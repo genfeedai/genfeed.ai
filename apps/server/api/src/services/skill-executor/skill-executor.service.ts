@@ -2,6 +2,7 @@ import { ContentRunsService } from '@api/collections/content-runs/services/conte
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
+import { ContentGeoOptimizerHandler } from '@api/services/skill-executor/handlers/content-geo-optimizer.handler';
 import { ContentWritingHandler } from '@api/services/skill-executor/handlers/content-writing.handler';
 import { ImageGenerationHandler } from '@api/services/skill-executor/handlers/image-generation.handler';
 import { TrendDiscoveryHandler } from '@api/services/skill-executor/handlers/trend-discovery.handler';
@@ -33,12 +34,14 @@ export class SkillExecutorService {
     private readonly skillsService: SkillsService,
     private readonly contentRunsService: ContentRunsService,
     private readonly byokProviderFactoryService: ByokProviderFactoryService,
+    contentGeoOptimizerHandler: ContentGeoOptimizerHandler,
     contentWritingHandler: ContentWritingHandler,
     imageGenerationHandler: ImageGenerationHandler,
     trendDiscoveryHandler: TrendDiscoveryHandler,
     trendRemixHandler: TrendRemixHandler,
   ) {
     this.handlers = {
+      'content-geo-optimizer': contentGeoOptimizerHandler,
       'content-writing': contentWritingHandler,
       'image-generation': imageGenerationHandler,
       'trend-discovery': trendDiscoveryHandler,

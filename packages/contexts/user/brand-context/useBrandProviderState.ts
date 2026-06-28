@@ -34,6 +34,23 @@ import {
   getBrandOrganizationSlug,
 } from './brand-context.helpers';
 
+interface GenfeedRuntimeConfig {
+  betterAuthEnabled?: boolean;
+}
+
+function isLocalBootstrapEnabled(): boolean {
+  const runtimeConfig = (
+    globalThis as typeof globalThis & {
+      __GENFEED_RUNTIME_CONFIG__?: GenfeedRuntimeConfig;
+    }
+  ).__GENFEED_RUNTIME_CONFIG__;
+  const betterAuthEnabled =
+    runtimeConfig?.betterAuthEnabled ??
+    process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED !== 'false';
+
+  return !process.env.NEXT_PUBLIC_GENFEED_CLOUD && !betterAuthEnabled;
+}
+
 interface UseBrandProviderStateParams {
   initialBootstrap?: ProtectedBootstrapData | null;
 }
@@ -48,11 +65,13 @@ export function useBrandProviderState({
     userId,
     orgId,
   } = useAuthIdentity();
+  const localBootstrapEnabled = isLocalBootstrapEnabled();
   const { user } = useAuthUser();
   const playwrightAuth = getPlaywrightAuthState();
   const effectiveIsAuthLoaded =
-    isAuthLoaded || playwrightAuth?.isLoaded === true;
-  const effectiveIsSignedIn = isSignedIn || playwrightAuth?.isSignedIn === true;
+    isAuthLoaded || playwrightAuth?.isLoaded === true || localBootstrapEnabled;
+  const effectiveIsSignedIn =
+    isSignedIn || playwrightAuth?.isSignedIn === true || localBootstrapEnabled;
   const effectiveUserId = userId ?? playwrightAuth?.userId ?? null;
   const effectiveOrgId = orgId ?? playwrightAuth?.orgId ?? null;
 
@@ -65,6 +84,10 @@ export function useBrandProviderState({
   );
   const getAuthService = useContextAuthedService((token: string) =>
     AuthService.getInstance(token),
+  );
+  const getLocalAuthService = useCallback(
+    async () => AuthService.getInstance(''),
+    [],
   );
 
   const sessionKey = `${effectiveUserId ?? 'none'}:${effectiveOrgId ?? 'none'}`;
@@ -160,7 +183,7 @@ export function useBrandProviderState({
       try {
         const bootstrap = await loadClientProtectedBootstrap(
           clientBootstrapCacheKey,
-          getAuthService,
+          localBootstrapEnabled ? getLocalAuthService : getAuthService,
         );
 
         if (bootstrap) {
@@ -171,6 +194,10 @@ export function useBrandProviderState({
           error,
           reportToSentry: false,
         });
+      }
+
+      if (localBootstrapEnabled) {
+        return [];
       }
 
       const service = await getUsersService();
@@ -308,7 +335,7 @@ export function useBrandProviderState({
       try {
         const bootstrap = await loadClientProtectedBootstrap(
           clientBootstrapCacheKey,
-          getAuthService,
+          localBootstrapEnabled ? getLocalAuthService : getAuthService,
         );
 
         if (bootstrap?.organizationId === scopedOrganizationId) {
@@ -321,6 +348,10 @@ export function useBrandProviderState({
           error,
           reportToSentry: false,
         });
+      }
+
+      if (localBootstrapEnabled) {
+        return null;
       }
 
       try {

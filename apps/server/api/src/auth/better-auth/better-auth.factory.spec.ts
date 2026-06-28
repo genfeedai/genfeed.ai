@@ -1,10 +1,15 @@
+import type { RateLimit } from 'better-auth';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  buildRateLimitStorage,
   resolveBetterAuthJwtAccess,
   resolveBetterAuthJwtIsSuperAdmin,
   resolveBetterAuthJwtOrganizationId,
 } from './better-auth.factory';
-import type { ICreateBetterAuthOptions } from './better-auth.types';
+import type {
+  IBetterAuthRateLimitStore,
+  ICreateBetterAuthOptions,
+} from './better-auth.types';
 
 type PrismaForBetterAuth = ICreateBetterAuthOptions['prisma'];
 
@@ -209,5 +214,58 @@ describe('resolveBetterAuthJwtAccess', () => {
 
     expect(prisma.organization.findFirst).not.toHaveBeenCalled();
     expect(prisma.member.findFirst).not.toHaveBeenCalled();
+  });
+});
+
+/** In-memory stand-in for the Redis KV that records the args it was called with. */
+function createFakeRateLimitStore(): IBetterAuthRateLimitStore & {
+  readonly entries: Map<string, string>;
+  readonly setCalls: Array<{ key: string; value: string; ttlSeconds: number }>;
+} {
+  const entries = new Map<string, string>();
+  const setCalls: Array<{ key: string; value: string; ttlSeconds: number }> =
+    [];
+  return {
+    entries,
+    get: async (key) => entries.get(key) ?? null,
+    set: async (key, value, ttlSeconds) => {
+      entries.set(key, value);
+      setCalls.push({ key, ttlSeconds, value });
+    },
+    setCalls,
+  };
+}
+
+const sampleRateLimit: RateLimit = {
+  count: 3,
+  key: 'ip:1.2.3.4',
+  lastRequest: 1700,
+};
+
+describe('buildRateLimitStorage', () => {
+  it('round-trips a rate-limit record through the shared store', async () => {
+    const storage = buildRateLimitStorage(createFakeRateLimitStore());
+
+    await storage.set('ip:1.2.3.4', sampleRateLimit);
+
+    expect(await storage.get('ip:1.2.3.4')).toEqual(sampleRateLimit);
+  });
+
+  it('namespaces keys and applies a TTL so idle counters self-expire', async () => {
+    const store = createFakeRateLimitStore();
+    const storage = buildRateLimitStorage(store);
+
+    await storage.set('ip:1.2.3.4', sampleRateLimit);
+
+    const [call] = store.setCalls;
+    expect(call.key).toBe('ba:ratelimit:ip:1.2.3.4');
+    expect(call.value).toBe(JSON.stringify(sampleRateLimit));
+    expect(call.ttlSeconds).toBeGreaterThan(0);
+  });
+
+  it('returns null when the counter is absent (fail-open path)', async () => {
+    const storage = buildRateLimitStorage(createFakeRateLimitStore());
+
+    expect(await storage.get('missing')).toBeNull();
   });
 });

@@ -8,6 +8,7 @@ import { FalModule } from '@api/services/integrations/fal/fal.module';
 import { LeonardoAIModule } from '@api/services/integrations/leonardoai/leonardoai.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
+import { ContentGeoOptimizerHandler } from '@api/services/skill-executor/handlers/content-geo-optimizer.handler';
 import { ContentWritingHandler } from '@api/services/skill-executor/handlers/content-writing.handler';
 import { ImageGenerationHandler } from '@api/services/skill-executor/handlers/image-generation.handler';
 import { TrendDiscoveryHandler } from '@api/services/skill-executor/handlers/trend-discovery.handler';
@@ -30,6 +31,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => TrendsModule),
   ],
   providers: [
+    ContentGeoOptimizerHandler,
     ContentWritingHandler,
     ImageGenerationHandler,
     TrendDiscoveryHandler,

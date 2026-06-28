@@ -66,6 +66,33 @@ vi.mock('@genfeedai/auth-client/react', () => {
   };
 });
 
+vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => ({
+    getToken: vi.fn().mockResolvedValue('mock-token'),
+    isLoaded: true,
+    isSignedIn: true,
+    orgId: 'org_test123',
+    sessionId: 'sess_test123',
+    userId: 'user_test123',
+  }),
+}));
+
+vi.mock('@genfeedai/hooks/auth/use-auth-user/use-auth-user', () => ({
+  useAuthUser: () => ({
+    isLoaded: true,
+    isSignedIn: true,
+    user: {
+      emailAddresses: [{ emailAddress: 'test@example.com', id: 'email_1' }],
+      firstName: 'Test',
+      fullName: 'Test User',
+      id: 'user_test123',
+      imageUrl: 'https://example.com/avatar.png',
+      lastName: 'User',
+      primaryEmailAddress: { emailAddress: 'test@example.com' },
+    },
+  }),
+}));
+
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: null,
@@ -167,6 +194,11 @@ describe('MenuShared', () => {
     mockBrandState.selectedBrand = null;
     mockLogoUrl.value = '';
     mockPathname.value = '/settings/personal';
+    process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
+  });
+
+  afterEach(() => {
+    delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
   });
 
   const config: MenuConfig = {
@@ -225,6 +257,17 @@ describe('MenuShared', () => {
 
     expect(screen.getByTestId('sidebar-header-shell')).toBeInTheDocument();
     expect(screen.getByTestId('organization-switcher')).toBeInTheDocument();
+  });
+
+  it('hides the organization switcher outside SaaS cloud mode', () => {
+    delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
+
+    render(<MenuShared config={config} />);
+
+    expect(screen.getByTestId('sidebar-header-shell')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('organization-switcher'),
+    ).not.toBeInTheDocument();
   });
 
   it('attaches the actionable inbox count to the workspace inbox row', () => {

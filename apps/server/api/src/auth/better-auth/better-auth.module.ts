@@ -4,6 +4,7 @@ import { OrganizationsModule } from '@api/collections/organizations/organization
 import { UserSetupModule } from '@api/collections/users/user-setup.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { ConfigService } from '@api/config/config.service';
+import { CacheClientService } from '@api/services/cache/services/cache-client.service';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IS_BETTER_AUTH_ENABLED } from '@genfeedai/config';
@@ -12,8 +13,11 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PassportModule } from '@nestjs/passport';
 
 import {
+  parseCommaSeparated,
   parseTrustedOrigins,
   resolveBetterAuthBaseUrl,
+  resolveCookieDomain,
+  resolveExperimentalJoins,
   resolveGoogleConfig,
 } from './better-auth.config';
 import {
@@ -25,6 +29,7 @@ import {
   createBetterAuthInstance,
 } from './better-auth.factory';
 import { BetterAuthService } from './better-auth.service';
+import type { IBetterAuthRateLimitStore } from './better-auth.types';
 import { UserProvisioningListener } from './listeners/user-provisioning.listener';
 import { BetterAuthStrategy } from './passport/better-auth.strategy';
 import { BetterAuthIdentityResolverService } from './services/better-auth-identity-resolver.service';
@@ -61,6 +66,7 @@ import { BetterAuthMailerService } from './services/better-auth-mailer.service';
         ConfigService,
         BetterAuthMailerService,
         EventEmitter2,
+        CacheClientService,
       ],
       provide: BETTER_AUTH_INSTANCE,
       useFactory: (
@@ -68,6 +74,7 @@ import { BetterAuthMailerService } from './services/better-auth-mailer.service';
         config: ConfigService,
         mailer: BetterAuthMailerService,
         eventEmitter: EventEmitter2,
+        cacheClient: CacheClientService,
       ): BetterAuthInstance | null => {
         // Enabled by default; explicit offline/local runs can set
         // BETTER_AUTH_ENABLED=false to skip the auth handler.
@@ -84,16 +91,52 @@ import { BetterAuthMailerService } from './services/better-auth-mailer.service';
           );
         }
 
+        // Shared Redis KV for rate-limit counters. Fails open — a Redis outage
+        // degrades cross-instance limiting rather than breaking authentication.
+        const rateLimitStore: IBetterAuthRateLimitStore = {
+          get: async (key) => {
+            if (!cacheClient.isReady) {
+              return null;
+            }
+            try {
+              return (await cacheClient.instance.get(key)) ?? null;
+            } catch {
+              return null;
+            }
+          },
+          set: async (key, value, ttlSeconds) => {
+            if (!cacheClient.isReady) {
+              return;
+            }
+            try {
+              await cacheClient.instance.set(key, value, { EX: ttlSeconds });
+            } catch {
+              // Fail open: never let a Redis error break auth rate limiting.
+              return;
+            }
+          },
+        };
+
         return createBetterAuthInstance({
           apiKey: config.get('BETTER_AUTH_API_KEY'),
           baseURL: resolveBetterAuthBaseUrl(
             config.get('BETTER_AUTH_URL'),
             config.get('PORT'),
           ),
+          cookieDomain: resolveCookieDomain(
+            config.get('BETTER_AUTH_COOKIE_DOMAIN'),
+          ),
+          experimentalJoins: resolveExperimentalJoins(
+            config.get('BETTER_AUTH_EXPERIMENTAL_JOINS'),
+          ),
           google: resolveGoogleConfig(
             config.get('GOOGLE_CLIENT_ID'),
             config.get('GOOGLE_CLIENT_SECRET'),
           ),
+          ipAddressHeaders: parseCommaSeparated(
+            config.get('BETTER_AUTH_IP_HEADERS'),
+          ),
+          rateLimitStore,
           // Awaited so provisioning completes before the create resolves; the
           // UserProvisioningListener (@OnEvent) runs under Nest DI.
           onUserCreated: async (event) => {
