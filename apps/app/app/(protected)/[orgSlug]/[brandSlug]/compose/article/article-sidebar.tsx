@@ -3,6 +3,7 @@
 import type { Article } from '@genfeedai/models/content/article.model';
 import type { ArticleFormState } from '@props/content/article-editor.props';
 import Card from '@ui/card/Card';
+import SeoScorecard from '@ui/evaluation/seo-scorecard/SeoScorecard';
 import ContentPreviewSidebar from '@ui/preview/ContentPreviewSidebar';
 
 type ArticleSidebarProps = {
@@ -11,9 +12,18 @@ type ArticleSidebarProps = {
     'label' | 'summary' | 'content' | 'status' | 'category'
   >;
   article: Article | null;
+  isDirty?: boolean;
+  isScoringSeo?: boolean;
+  onScoreSeo?: () => void | Promise<void>;
 };
 
-export default function ArticleSidebar({ form, article }: ArticleSidebarProps) {
+export default function ArticleSidebar({
+  form,
+  article,
+  isDirty = false,
+  isScoringSeo = false,
+  onScoreSeo,
+}: ArticleSidebarProps) {
   return (
     <div className="space-y-4">
       <ContentPreviewSidebar
@@ -22,6 +32,17 @@ export default function ArticleSidebar({ form, article }: ArticleSidebarProps) {
         content={form.content}
         platform="article"
       />
+
+      {article && (
+        <SeoScorecard
+          score={article.seoScore}
+          scorecard={article.seoBreakdown}
+          contentTypeLabel="article"
+          isScoring={isScoringSeo}
+          hasUnsavedChanges={isDirty}
+          onScore={onScoreSeo}
+        />
+      )}
 
       {/* Article stats */}
       {article && (

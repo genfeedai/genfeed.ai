@@ -12,6 +12,7 @@ import type {
   ITag,
   IUser,
   IXArticleMetadata,
+  SeoScorecardSnapshot,
 } from '@genfeedai/interfaces';
 
 export class Article extends BaseEntity implements IArticle {
@@ -29,6 +30,8 @@ export class Article extends BaseEntity implements IArticle {
   public declare publishedAt?: string;
   public declare scope: AssetScope;
   public declare generationPrompt?: string;
+  public declare seoScore?: number | null;
+  public declare seoBreakdown?: SeoScorecardSnapshot | null;
   public declare xArticleMetadata?: IXArticleMetadata;
 
   constructor(data: Partial<IArticle> = {}) {

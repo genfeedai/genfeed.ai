@@ -78,9 +78,11 @@ const defaultArticleDetailState = () => ({
   handleEnhance: vi.fn(),
   handlePublish: vi.fn(),
   handleSave: vi.fn(),
+  handleScoreSeo: vi.fn(),
   isDirty: false,
   isEnhancing: false,
   isLoading: false,
+  isScoringSeo: false,
   isSaving: false,
   pathname: '/org-123/brand-123/compose/article',
   setFormField: vi.fn(),
@@ -146,5 +148,62 @@ describe('ArticleDetail', () => {
     });
 
     expect(pushMock).toHaveBeenCalledWith('/org-123/brand-123/posts/post-1');
+  });
+
+  it('forwards article SEO scoring from the sidebar', () => {
+    const handleScoreSeo = vi.fn();
+    useArticleDetailMock.mockReturnValue({
+      ...defaultArticleDetailState(),
+      article: {
+        id: 'article-1',
+        category: 'blog',
+        content: '<p>Article body</p>',
+        label: 'SEO Article',
+        readingTime: 4,
+        seoBreakdown: {
+          breakdown: {
+            contentStructure: 16,
+            keywordPlacement: 18,
+            links: 5,
+            media: 7,
+            metaOptimization: 10,
+            readability: 12,
+            technicalSignals: 8,
+          },
+          checks: [],
+          meta: {
+            fleschReadingEase: 61,
+            keywordDensity: null,
+            llmApplied: false,
+            maxAvailable: 100,
+            scoredAt: '2026-06-28T12:00:00.000Z',
+            targetKeyword: null,
+            wordCount: 820,
+          },
+          rating: 'good',
+          suggestions: ['Add an internal link.'],
+        },
+        seoScore: 76,
+        status: 'draft',
+        summary: 'Article summary',
+        wordCount: 820,
+      },
+      form: {
+        category: 'blog',
+        content: '<p>Article body</p>',
+        label: 'SEO Article',
+        status: 'draft',
+        summary: 'Article summary',
+        tags: '',
+      },
+      handleScoreSeo,
+    });
+
+    render(<ArticleDetail articleId="article-1" />);
+
+    expect(screen.getByText('SEO Scorecard')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Re-score SEO' }));
+
+    expect(handleScoreSeo).toHaveBeenCalledTimes(1);
   });
 });

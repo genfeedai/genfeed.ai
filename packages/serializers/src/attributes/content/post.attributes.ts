@@ -54,5 +54,7 @@ export const postAttributes = createEntityAttributes([
   'avgEngagementRate',
   'evalScore',
   'evaluation',
+  'seoScore',
+  'seoBreakdown',
   'persona',
 ]);

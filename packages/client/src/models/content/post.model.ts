@@ -13,6 +13,7 @@ import type {
   IPostAnalyticsSummary,
   ITag,
   IUser,
+  SeoScorecardSnapshot,
 } from '@genfeedai/interfaces';
 
 export class Post extends BaseEntity implements IPost {
@@ -47,6 +48,8 @@ export class Post extends BaseEntity implements IPost {
   public declare children?: IPost[];
   public declare order?: number;
   public declare isShareToFeedSelected?: boolean;
+  public declare seoScore?: number | null;
+  public declare seoBreakdown?: SeoScorecardSnapshot | null;
 
   constructor(data: Partial<IPost> = {}) {
     super(data);

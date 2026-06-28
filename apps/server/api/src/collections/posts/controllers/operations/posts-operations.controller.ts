@@ -33,6 +33,8 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { QuotaService } from '@api/services/quota/quota.service';
+import { ScoreSeoDto } from '@api/services/seo/dto/score-seo.dto';
+import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
   ActivityEntityModel,
@@ -77,6 +79,7 @@ export class PostsOperationsController {
     private readonly postGenerationService: PostGenerationService,
     private readonly postsService: PostsService,
     private readonly quotaService: QuotaService,
+    private readonly seoScorerService: SeoScorerService,
   ) {}
 
   // ============================================================================
@@ -811,6 +814,59 @@ export class PostsOperationsController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  @Post(':postId/seo-scores')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async scoreSeo(
+    @Req() request: Request,
+    @Param('postId') postId: string,
+    @Body() dto: ScoreSeoDto,
+    @CurrentUser() user: User,
+  ): Promise<JsonApiSingleResponse> {
+    const publicMetadata = getPublicMetadata(user);
+
+    const post = await this.postsService.findOne({ _id: postId }, [
+      PopulatePatterns.ingredientsMinimal,
+      PopulatePatterns.credentialMinimal,
+    ]);
+
+    if (!post) {
+      throw new HttpException(
+        {
+          detail: 'Post not found',
+          title: `Post ${postId} not found`,
+        },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    if (
+      post.organization.toString() !== publicMetadata.organization.toString()
+    ) {
+      throw new HttpException(
+        {
+          detail: 'You do not have access to this post',
+          title: 'Access denied',
+        },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    await this.seoScorerService.scorePost(
+      postId,
+      publicMetadata.organization,
+      dto.targetKeyword,
+    );
+
+    const updatedPost = await this.postsService.findOne({ _id: postId }, [
+      PopulatePatterns.ingredientsMinimal,
+      PopulatePatterns.credentialMinimal,
+      PopulatePatterns.userMinimal,
+      PopulatePatterns.brandMinimal,
+    ]);
+
+    return serializeSingle(request, this.serializer, updatedPost ?? post);
   }
 
   // ============================================================================

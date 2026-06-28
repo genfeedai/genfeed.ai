@@ -92,6 +92,7 @@ export * from './content/post-quick-action.interface';
 export * from './content/prompt.interface';
 export * from './content/prompts-content.interface';
 export * from './content/publication-card.interface';
+export * from './content/seo-scorecard.interface';
 export * from './content/studio-edit-detail.interface';
 export * from './content/tag.interface';
 export * from './content/template.interface';
