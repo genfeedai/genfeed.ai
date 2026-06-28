@@ -322,7 +322,7 @@ export class EntityLeaderboardService {
       {
         where: {
           isDeleted: false,
-          ...(organizationId && { organization: organizationId }),
+          ...(organizationId && { organizationId }),
         },
       },
       { pagination: false },

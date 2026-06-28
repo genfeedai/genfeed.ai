@@ -120,7 +120,7 @@ export class AnalyticsExportService {
       status: PublishStatus.PUBLISHED,
     };
     if (organizationId) {
-      matchStage.organization = organizationId;
+      matchStage.organizationId = organizationId;
     }
 
     const aggregate = { where: matchStage };

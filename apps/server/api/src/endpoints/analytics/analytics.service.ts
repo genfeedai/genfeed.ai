@@ -1001,15 +1001,15 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
     const topPlatformsRaw: any[] = await this.prisma.$queryRaw`
       SELECT
-        "platform"::text AS platform,
+        pa."platform"::text AS platform,
         COUNT(*) AS post_count,
-        SUM("totalLikes" + "totalComments" + "totalShares" + "totalSaves") AS total_engagement,
-        SUM("totalViews") AS total_views
-      FROM "post_analytics"
-      WHERE "date" >= ${startDate} AND "date" <= ${endDate}
+        SUM(pa."totalLikes" + pa."totalComments" + pa."totalShares" + pa."totalSaves") AS total_engagement,
+        SUM(pa."totalViews") AS total_views
+      FROM "post_analytics" pa
+      WHERE pa."date" >= ${startDate} AND pa."date" <= ${endDate}
         ${brandFilter}
         ${orgFilter}
-      GROUP BY "platform"
+      GROUP BY pa."platform"
       ORDER BY total_engagement DESC
       LIMIT 5
     `;
