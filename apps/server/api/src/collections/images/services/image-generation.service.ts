@@ -6,16 +6,6 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { buildPromptBrandingFromBrand } from '@api/collections/brands/utils/brand-context.util';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
-import type {
-  CompletionPlan,
-  DeferredCreditsConfig,
-  GenerationContext,
-  PublicMetadata,
-  ResolvedBrand,
-  ResolvedPrompt,
-  SavedIngredient,
-  SavedMetadata,
-} from '@api/collections/images/services/image-generation.types';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
@@ -88,6 +78,66 @@ type ImageProvider =
   | 'leonardo'
   | 'replicate'
   | 'sdxl';
+
+/** Document types inferred from the underlying services (no `any`). */
+type ResolvedBrand = NonNullable<Awaited<ReturnType<BrandsService['findOne']>>>;
+type ResolvedPrompt = Awaited<ReturnType<PromptsService['create']>>;
+type SaveDocumentsResult = Awaited<ReturnType<SharedService['saveDocuments']>>;
+type SavedIngredient = SaveDocumentsResult['ingredientData'];
+type SavedMetadata = SaveDocumentsResult['metadataData'];
+type PublicMetadata = ReturnType<typeof getPublicMetadata>;
+
+/**
+ * Per-request state threaded through the provider handlers and the shared
+ * completion tail. Built once by {@link ImageGenerationService.generateImage}
+ * after the placeholder documents exist, so every handler reads from one place
+ * instead of the previous flat method's shared mutable locals.
+ */
+interface GenerationContext {
+  brand: ResolvedBrand;
+  brandPromptBranding: ReturnType<typeof buildPromptBrandingFromBrand>;
+  createImageDto: CreateImageDto;
+  height: number;
+  ingredientData: SavedIngredient;
+  metadataData: SavedMetadata;
+  model: string;
+  outputs: number;
+  /** Mutated by handlers (Fal) that fan out additional background outputs. */
+  pendingIngredientIds: string[];
+  promptBuilderBrand: {
+    description?: string;
+    label: string;
+    primaryColor?: string;
+    secondaryColor?: string;
+    text?: string;
+  };
+  promptData: ResolvedPrompt;
+  publicMetadata: PublicMetadata;
+  referenceImageUrl: string | null;
+  referenceImageUrls: string[];
+  request: Request;
+  style?: string;
+  user: User;
+  waitForCompletion: boolean;
+  websocketUrl: string;
+  width: number;
+}
+
+/**
+ * How the request should resolve once a provider has dispatched.
+ *
+ * - `inline` — GenfeedAi completes synchronously inside its promise; on wait we
+ *   re-read the ingredient (no polling, no timeout recovery).
+ * - `poll-single` — KlingAI/Leonardo poll one ingredient to completion.
+ * - `poll-multiple` — Replicate polls every fanned-out ingredient id.
+ * - `background-only` — Fal never blocks the request; always returns the
+ *   placeholder immediately.
+ */
+interface CompletionPlan {
+  generationPromise: Promise<unknown>;
+  kind: 'inline' | 'poll-single' | 'poll-multiple' | 'background-only';
+  pollIds?: string[];
+}
 
 /**
  * Owns the full image-generation workflow extracted out of
@@ -510,7 +560,11 @@ export class ImageGenerationService {
     request: Request,
   ): Promise<void> {
     const reqWithCredits = request as unknown as {
-      creditsConfig?: DeferredCreditsConfig;
+      creditsConfig?: {
+        deferred?: boolean;
+        amount?: number;
+        modelKey?: string;
+      };
     };
     if (!reqWithCredits.creditsConfig?.deferred) {
       return;
@@ -523,18 +577,38 @@ export class ImageGenerationService {
 
     const imgWidth = createImageDto.width || 1920;
     const imgHeight = createImageDto.height || 1080;
-    const outputCount = Number(createImageDto.outputs) || 1;
     let requiredCredits: number;
 
     if (resolvedModelDoc) {
-      const perImageCost = this.calculateDynamicImageCost(
+      requiredCredits = this.calculateDynamicImageCost(
         resolvedModelDoc,
         imgWidth,
         imgHeight,
       );
-      requiredCredits = perImageCost * outputCount;
     } else {
-      requiredCredits = 5 * outputCount; // Fallback default cost per image
+      requiredCredits = 5; // Fallback default cost
+    }
+
+    // This route always defers (CreditsGuard defers until the model resolves),
+    // so this is the sole authorizer and must charge for the real number of
+    // billable provider calls — the single figure CreditsInterceptor deducts on
+    // success. `calculateDynamicImageCost` returns the per-output base. Only the
+    // providers that fan out into one provider call per output multiply: Fal
+    // always loops per output, and non-batch Replicate makes a separate call per
+    // output. Batch-capable Replicate yields N images in one call, and the
+    // single-output providers (genfeedai/klingai/leonardo/sdxl) ignore `outputs`
+    // entirely, so neither multiplies. Mirrors the videos hardening in #853 and
+    // matches the dispatch logic below.
+    const requestedOutputs = Number(createImageDto.outputs) || 1;
+    if (requestedOutputs > 1) {
+      const provider = this.classifyProvider(model);
+      const isBatchSupported =
+        MODEL_OUTPUT_CAPABILITIES[model]?.isBatchSupported ?? false;
+      const fansOutPerOutput =
+        provider === 'fal' || (provider === 'replicate' && !isBatchSupported);
+      if (fansOutPerOutput) {
+        requiredCredits *= requestedOutputs;
+      }
     }
 
     const hasCredits =
@@ -607,28 +681,27 @@ export class ImageGenerationService {
   /**
    * Dispatch map: route the resolved provider to its handler. SDXL has no
    * external generation step, so it returns `null` and the request resolves to
-   * the placeholder. Adding a provider only requires a new handler and an entry
-   * in this map.
+   * the placeholder. Adding a provider touches only a handler plus this switch.
    */
   private async dispatchGeneration(
     context: GenerationContext,
     provider: ImageProvider,
   ): Promise<CompletionPlan | null> {
-    const handlers: Partial<
-      Record<
-        ImageProvider,
-        (ctx: GenerationContext) => Promise<CompletionPlan> | CompletionPlan
-      >
-    > = {
-      fal: (ctx) => this.dispatchFal(ctx),
-      genfeedai: (ctx) => this.dispatchGenfeedAi(ctx),
-      klingai: (ctx) => this.dispatchKlingAI(ctx),
-      leonardo: (ctx) => this.dispatchLeonardo(ctx),
-      replicate: (ctx) => this.dispatchReplicate(ctx),
-      // SDXL: placeholder only, no external generation — not included so the
-      // lookup returns undefined and we fall through to `null`.
-    };
-    return (await handlers[provider]?.(context)) ?? null;
+    switch (provider) {
+      case 'genfeedai':
+        return this.dispatchGenfeedAi(context);
+      case 'klingai':
+        return this.dispatchKlingAI(context);
+      case 'fal':
+        return this.dispatchFal(context);
+      case 'leonardo':
+        return this.dispatchLeonardo(context);
+      case 'replicate':
+        return this.dispatchReplicate(context);
+      default:
+        // SDXL: placeholder only, no external generation.
+        return null;
+    }
   }
 
   /**
@@ -749,26 +822,25 @@ export class ImageGenerationService {
    * Single failure path for every provider: log, persist the failed state, and
    * re-throw so the request rejects. Collapses the previously copy-pasted
    * `handleFailedImageGeneration` call sites.
-   *
-   * @param failedIngredientId - Optional override for the ingredient to mark
-   *   failed. Defaults to `context.ingredientData._id` (the primary placeholder).
-   *   Fan-out paths (Fal additional outputs, Replicate sequential loop) pass the
-   *   specific additional ingredient id so only the failed placeholder is marked.
    */
   private async handleProviderFailure(
     context: GenerationContext,
     error: unknown,
     label: string,
-    failedIngredientId?: string,
+    ingredientId: SavedIngredient['_id'] = context.ingredientData._id,
   ): Promise<never> {
     this.loggerService.error(`${label} failed`, error);
     const errorMessage = getErrorMessage(error);
-    const targetIngredientId = failedIngredientId ?? context.ingredientData._id;
 
+    // Attribute the failure to the specific output that failed, not always the
+    // primary ingredient. The websocket path is derived from the same id so the
+    // matching placeholder (not the first) receives the failure update. The
+    // default keeps every single-output provider call site on the primary id —
+    // and for the primary `WebSocketPaths.image(_id)` equals `context.websocketUrl`.
     await this.failedGenerationService.handleFailedImageGeneration(
       this.imagesService,
-      targetIngredientId,
-      context.websocketUrl,
+      ingredientId,
+      WebSocketPaths.image(ingredientId),
       context.publicMetadata,
       getUserRoomName(context.user.id),
       errorMessage,
@@ -993,27 +1065,41 @@ export class ImageGenerationService {
     });
 
     const generationPromise = (async () => {
-      const falResult = await this.falService.generateImage(
-        context.model,
-        buildFalInput(),
-      );
+      // Primary output: a failure here is attributed to the primary ingredient.
+      let primaryUrl: string;
+      try {
+        const falResult = await this.falService.generateImage(
+          context.model,
+          buildFalInput(),
+        );
+        await this.metadataService.patch(
+          metadataData._id,
+          new MetadataEntity({
+            externalId: falResult.url,
+            prompt: promptData._id,
+          }),
+        );
+        primaryUrl = falResult.url;
+      } catch (error: unknown) {
+        return this.handleProviderFailure(
+          context,
+          error,
+          'FalService generateImage',
+          context.ingredientData._id,
+        );
+      }
 
-      await this.metadataService.patch(
-        metadataData._id,
-        new MetadataEntity({
-          externalId: falResult.url,
-          prompt: promptData._id,
-        }),
-      );
-
+      // Additional outputs sit outside the primary's catch: each owns its own
+      // failure attribution (see createFalAdditionalOutput), so a failed fan-out
+      // output marks that output rather than the already-succeeded primary.
+      // finishGeneration attaches an empty catch to the background promise, so a
+      // rejection after marking is intentional and not an unhandled rejection.
       for (let i = 1; i < context.outputs; i++) {
         await this.createFalAdditionalOutput(context, buildFalInput);
       }
 
-      return falResult.url;
-    })().catch((error: unknown) =>
-      this.handleProviderFailure(context, error, 'FalService generateImage'),
-    );
+      return primaryUrl;
+    })();
 
     return { generationPromise, kind: 'background-only' };
   }
@@ -1025,53 +1111,81 @@ export class ImageGenerationService {
   ): Promise<void> {
     const { createImageDto, brand, promptData, publicMetadata } = context;
 
-    const {
-      metadataData: additionalMetadata,
-      ingredientData: additionalIngredient,
-    } = await this.sharedService.saveDocuments(context.user, {
-      ...createImageDto,
-      brand: brand._id,
-      category: IngredientCategory.IMAGE,
-      extension: MetadataExtension.JPG,
-      model: context.model,
-      organization: publicMetadata.organization,
-      parent: context.ingredientData.parent,
-      prompt: promptData._id,
-      status: IngredientStatus.PROCESSING,
-    });
+    // Capture the additional output's id as soon as its placeholder exists so a
+    // generation/patch failure marks that specific output, not the (already
+    // succeeded) primary.
+    let additionalIngredientId: SavedIngredient['_id'] | null = null;
+    try {
+      const {
+        metadataData: additionalMetadata,
+        ingredientData: additionalIngredient,
+      } = await this.sharedService.saveDocuments(context.user, {
+        ...createImageDto,
+        brand: brand._id,
+        category: IngredientCategory.IMAGE,
+        extension: MetadataExtension.JPG,
+        model: context.model,
+        organization: publicMetadata.organization,
+        parent: context.ingredientData.parent,
+        prompt: promptData._id,
+        status: IngredientStatus.PROCESSING,
+      });
+      additionalIngredientId = additionalIngredient._id;
 
-    const additionalIngredientId = additionalIngredient._id.toString();
+      const additionalResult = await this.falService.generateImage(
+        context.model,
+        buildFalInput(),
+      );
 
-    const additionalResult = await this.falService
-      .generateImage(context.model, buildFalInput())
-      .catch((error: unknown) =>
-        this.handleProviderFailure(
+      await Promise.all([
+        this.metadataService.patch(
+          additionalMetadata._id,
+          new MetadataEntity({
+            externalId: additionalResult.url,
+            prompt: promptData._id,
+          }),
+        ),
+        this.imagesService.patch(additionalIngredient._id, {
+          prompt: promptData._id,
+        }),
+      ]);
+
+      // Activity creation + websocket publishing is post-success bookkeeping:
+      // a failure here must not mark the already-generated additional output as
+      // failed, so swallow (and log) instead of letting it reach the catch.
+      try {
+        await this.createImagePlaceholderActivity(
+          context,
+          additionalIngredient._id,
+        );
+      } catch (activityError: unknown) {
+        this.loggerService.error(
+          'Failed to publish placeholder activity for additional output',
+          { error: activityError },
+        );
+      }
+
+      context.pendingIngredientIds.push(additionalIngredient._id.toString());
+    } catch (error: unknown) {
+      // Mark the specific additional output that failed; never fall back to the
+      // primary, which is a different (already-succeeded) output.
+      if (additionalIngredientId) {
+        return this.handleProviderFailure(
           context,
           error,
           'FalService generateImage (additional output)',
           additionalIngredientId,
-        ),
+        );
+      }
+      // The placeholder was never created (saveDocuments failed), so there is
+      // nothing to mark. Log so the dropped output is observable, then propagate
+      // to fail the request rather than swallowing it silently.
+      this.loggerService.error(
+        'Fal additional output failed before its placeholder was created',
+        error,
       );
-
-    await Promise.all([
-      this.metadataService.patch(
-        additionalMetadata._id,
-        new MetadataEntity({
-          externalId: additionalResult.url,
-          prompt: promptData._id,
-        }),
-      ),
-      this.imagesService.patch(additionalIngredient._id, {
-        prompt: promptData._id,
-      }),
-    ]);
-
-    await this.createImagePlaceholderActivity(
-      context,
-      additionalIngredient._id,
-    );
-
-    context.pendingIngredientIds.push(additionalIngredientId);
+      throw error;
+    }
   }
 
   /**
@@ -1092,13 +1206,12 @@ export class ImageGenerationService {
     const modelCapability = MODEL_OUTPUT_CAPABILITIES[destination];
     const isBatchSupported = modelCapability?.isBatchSupported ?? false;
 
-    // For non-batch models, ask the prompt builder for a single output so the
-    // external API receives `outputs: 1` per call. The sequential fan-out loop
-    // issues separate API calls for each additional output.
-    const effectiveOutputsForPrompt = isBatchSupported ? context.outputs : 1;
-
-    // Build provider-specific prompt using universal prompt builder with template
-    // support. NOTE: This must complete before we can start generation.
+    // Build provider-specific prompt using the universal prompt builder with
+    // template support. NOTE: This must complete before we can start generation.
+    // Only batch-capable models yield every output from a single call, so they
+    // request `context.outputs`; non-batch models make a separate call per output
+    // (see createReplicateSequentialOutputs) and must request exactly one output
+    // per call — otherwise every one of those N calls over-requests N images.
     const { input: promptParams } = await this.promptBuilderService.buildPrompt(
       context.model,
       {
@@ -1115,7 +1228,7 @@ export class ImageGenerationService {
         // Use model's category from DB (set by ModelsGuard), fallback to IMAGE
         modelCategory: ModelCategory.IMAGE,
         mood: createImageDto.mood,
-        outputs: effectiveOutputsForPrompt,
+        outputs: isBatchSupported ? context.outputs : 1,
         prompt: promptData.original,
         // Template support
         promptTemplate: createImageDto.promptTemplate,
@@ -1133,47 +1246,77 @@ export class ImageGenerationService {
     // Track all placeholder ingredient IDs - start with first one
     const pollIds: string[] = [context.ingredientData._id.toString()];
 
-    const generationPromise = this.replicateService
-      .generateTextToImage(destination, promptParams)
-      .then(async (generationId) => {
-        if (!generationId) {
+    const generationPromise = (async () => {
+      // Primary generation: a failure here is attributed to the primary
+      // ingredient.
+      let generationId: string;
+      try {
+        const id = await this.replicateService.generateTextToImage(
+          destination,
+          promptParams,
+        );
+        if (!id) {
           throw new Error('No generation ID returned from Replicate');
         }
+        generationId = id;
+      } catch (error: unknown) {
+        return this.handleProviderFailure(
+          context,
+          error,
+          'ReplicateService generateImage',
+          context.ingredientData._id,
+        );
+      }
 
-        if (isBatchSupported && context.outputs > 1) {
+      // Multi-output fan-out. createReplicateSequentialOutputs owns its own
+      // per-output failure attribution (a failed additional output marks that
+      // output, never the primary); the batch and single-output branches wrap
+      // their DB work here so a failure still tears down the primary placeholder.
+      if (isBatchSupported && context.outputs > 1) {
+        try {
           await this.createReplicateBatchOutputs(
             context,
             destination,
             generationId,
             pollIds,
           );
-        } else if (context.outputs > 1) {
-          await this.createReplicateSequentialOutputs(
+        } catch (error: unknown) {
+          return this.handleProviderFailure(
             context,
-            destination,
-            generationId,
-            promptParams,
-            pollIds,
+            error,
+            'ReplicateService generateImage',
+            context.ingredientData._id,
           );
-        } else {
-          // Single output - use original external ID
+        }
+      } else if (context.outputs > 1) {
+        await this.createReplicateSequentialOutputs(
+          context,
+          destination,
+          generationId,
+          promptParams,
+          pollIds,
+        );
+      } else {
+        // Single output - use original external ID
+        try {
           await this.metadataService.patch(
             context.metadataData._id,
             new MetadataEntity({
               externalId: generationId,
             }),
           );
+        } catch (error: unknown) {
+          return this.handleProviderFailure(
+            context,
+            error,
+            'ReplicateService generateImage',
+            context.ingredientData._id,
+          );
         }
+      }
 
-        return generationId;
-      })
-      .catch((error: unknown) =>
-        this.handleProviderFailure(
-          context,
-          error,
-          'ReplicateService generateImage',
-        ),
-      );
+      return generationId;
+    })();
 
     return { generationPromise, kind: 'poll-multiple', pollIds };
   }
@@ -1260,10 +1403,6 @@ export class ImageGenerationService {
   /**
    * Non-batch Replicate models: make a separate API call per additional output,
    * each with its own placeholder document and external id.
-   *
-   * promptParams is expected to already have `outputs: 1` (set by the caller
-   * via effectiveOutputsForPrompt) so each individual API call requests exactly
-   * one image from the external provider.
    */
   private async createReplicateSequentialOutputs(
     context: GenerationContext,
@@ -1274,72 +1413,94 @@ export class ImageGenerationService {
   ): Promise<void> {
     const { createImageDto, brand, promptData, publicMetadata } = context;
 
-    // Guarantee single-output params regardless of what was built upstream.
-    const singleOutputParams: Record<string, unknown> = {
-      ...promptParams,
-      num_outputs: 1,
-      outputs: 1,
-    };
-
-    await this.metadataService.patch(
-      context.metadataData._id,
-      new MetadataEntity({
-        externalId: generationId,
-      }),
-    );
+    try {
+      await this.metadataService.patch(
+        context.metadataData._id,
+        new MetadataEntity({
+          externalId: generationId,
+        }),
+      );
+    } catch (error: unknown) {
+      await this.handleProviderFailure(
+        context,
+        error,
+        'ReplicateService generateImage',
+        context.ingredientData._id,
+      );
+    }
 
     // Make additional API calls for remaining outputs
     // NOTE: Sequential because each needs unique generationId
     for (let i = 1; i < context.outputs; i++) {
-      const {
-        metadataData: additionalMetadata,
-        ingredientData: additionalIngredient,
-      } = await this.sharedService.saveDocuments(context.user, {
-        ...createImageDto,
-        brand: brand._id,
-        category: IngredientCategory.IMAGE,
-        extension: MetadataExtension.JPG,
-        model: context.model,
-        organization: publicMetadata.organization,
-        parent: context.ingredientData.parent,
-        prompt: promptData._id,
-        status: IngredientStatus.PROCESSING,
-      });
+      // Capture the additional output's id as soon as its placeholder exists so
+      // a generation/patch failure marks that specific output, not the primary.
+      let additionalIngredientId: SavedIngredient['_id'] | null = null;
+      try {
+        const {
+          metadataData: additionalMetadata,
+          ingredientData: additionalIngredient,
+        } = await this.sharedService.saveDocuments(context.user, {
+          ...createImageDto,
+          brand: brand._id,
+          category: IngredientCategory.IMAGE,
+          extension: MetadataExtension.JPG,
+          model: context.model,
+          organization: publicMetadata.organization,
+          parent: context.ingredientData.parent,
+          prompt: promptData._id,
+          status: IngredientStatus.PROCESSING,
+        });
+        additionalIngredientId = additionalIngredient._id;
 
-      const additionalIngredientId = additionalIngredient._id.toString();
+        // Make separate API call for each output
+        const additionalGenerationId =
+          await this.replicateService.generateTextToImage(
+            destination,
+            promptParams,
+          );
+        if (!additionalGenerationId) {
+          throw new Error('No generation ID returned from Replicate');
+        }
 
-      // Make separate API call for each output; attribute failure to the
-      // specific additional placeholder, not the primary ingredient.
-      const additionalGenerationId = await this.replicateService
-        .generateTextToImage(destination, singleOutputParams)
-        .catch((error: unknown) =>
-          this.handleProviderFailure(
-            context,
-            error,
-            'ReplicateService generateTextToImage (sequential output)',
-            additionalIngredientId,
+        await Promise.all([
+          this.metadataService.patch(
+            additionalMetadata._id,
+            new MetadataEntity({
+              externalId: additionalGenerationId,
+            }),
           ),
+          this.imagesService.patch(additionalIngredient._id, {
+            prompt: promptData._id,
+          }),
+        ]);
+
+        await this.createImagePlaceholderActivity(
+          context,
+          additionalIngredient._id,
         );
 
-      await Promise.all([
-        this.metadataService.patch(
-          additionalMetadata._id,
-          new MetadataEntity({
-            externalId: additionalGenerationId,
-          }),
-        ),
-        this.imagesService.patch(additionalIngredient._id, {
-          prompt: promptData._id,
-        }),
-      ]);
-
-      await this.createImagePlaceholderActivity(
-        context,
-        additionalIngredient._id,
-      );
-
-      // Push this additional ingredient ID to tracking array for polling
-      pollIds.push(additionalIngredientId);
+        // Push this additional ingredient ID to tracking array for polling
+        pollIds.push(additionalIngredient._id.toString());
+      } catch (error: unknown) {
+        // Mark the specific additional output that failed; never fall back to
+        // the primary, which is a different output.
+        if (additionalIngredientId) {
+          return this.handleProviderFailure(
+            context,
+            error,
+            'ReplicateService generateImage (additional output)',
+            additionalIngredientId,
+          );
+        }
+        // The placeholder was never created (saveDocuments failed), so there is
+        // nothing to mark. Log so the dropped output is observable, then
+        // propagate to fail the request rather than swallowing it silently.
+        this.loggerService.error(
+          'Replicate additional output failed before its placeholder was created',
+          error,
+        );
+        throw error;
+      }
     }
 
     this.loggerService.log(
