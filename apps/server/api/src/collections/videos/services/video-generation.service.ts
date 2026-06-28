@@ -62,6 +62,17 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
+/**
+ * HTTP cache tags busted after a video write so newly-created placeholders are
+ * visible immediately. Every cached video endpoint (`GET /latest`, `GET /`,
+ * `GET /:videoId`) is registered under the single `videos` tag, so busting it
+ * invalidates list, latest, and single-record responses alike. The aggregate
+ * tag set for the underlying ingredient collection (`agg:ingredient`,
+ * `agg:paginated`, …) is invalidated automatically by BaseService when
+ * saveDocuments/patch run during generation, so it is not duplicated here.
+ */
+const VIDEO_WRITE_CACHE_TAGS: readonly string[] = ['videos'];
+
 type PromptInput = Record<string, unknown> & {
   prompt?: string;
   resolution?: string;
@@ -186,12 +197,18 @@ export class VideoGenerationService {
       referenceIds,
     );
 
-    // Validate resolved model against org (catches default-resolution bypassing ModelsGuard)
-    if (request.context?.organizationId) {
-      const authenticatedOrgId = request.context.organizationId;
+    // Validate the resolved model against the authenticated organization. This
+    // catches a default/auto-selected model bypassing ModelsGuard. Prefer the
+    // organization claim from the verified token (publicMetadata) so validation
+    // still runs when request-context middleware did not populate
+    // organizationId; fall back to the request context. Only single-tenant
+    // deployments (no organization present) skip this check.
+    const validationOrgId =
+      publicMetadata.organization || request.context?.organizationId;
+    if (validationOrgId) {
       await this.modelRegistrationService.validateModelForOrg(
         model,
-        authenticatedOrgId,
+        validationOrgId,
       );
     }
 
@@ -231,14 +248,29 @@ export class VideoGenerationService {
     }
 
     if (createVideoDto.prompt) {
+      // Scope the saved-prompt lookup to the caller's organization and fail
+      // closed: an unknown or cross-organization prompt id must reject the
+      // request rather than silently continuing with an empty prompt. The org
+      // filter is only applied when an organization is present — single-tenant
+      // deployments store prompts with a null organization, so passing an empty
+      // string would never match.
       const prompt = await this.promptsService.findOne({
         _id: createVideoDto.prompt.toString(),
         isDeleted: false,
+        ...(validationOrgId ? { organization: validationOrgId } : {}),
       });
 
-      if (prompt?._id) {
-        promptText = prompt?.enhanced || prompt?.original || '';
+      if (!prompt?._id) {
+        throw new HttpException(
+          {
+            detail: 'The referenced prompt could not be found',
+            title: 'Prompt not found',
+          },
+          HttpStatus.NOT_FOUND,
+        );
       }
+
+      promptText = prompt.enhanced || prompt.original || '';
     }
 
     // First build prompt to get template info
@@ -296,7 +328,10 @@ export class VideoGenerationService {
     const promptData = await this.promptsService.create(
       new PromptEntity({
         blacklists: createVideoDto.blacklist,
-        brand: publicMetadata.brand,
+        // Persist against the resolved brand (which honors createVideoDto.brand)
+        // rather than the token default, matching the brand used everywhere else
+        // in this flow (saveDocuments, activities, cleanup).
+        brand: brand._id,
         camera: createVideoDto.camera,
         category: PromptCategory.MODELS_PROMPT_VIDEO,
         mood: createVideoDto.mood,
@@ -347,7 +382,6 @@ export class VideoGenerationService {
       user: publicMetadata.user,
     });
 
-    const websocketUrl = WebSocketPaths.video(ingredientData._id);
     const outputs = createVideoDto.outputs || 1;
 
     this.loggerService.debug('Video generation request received', {
@@ -372,62 +406,12 @@ export class VideoGenerationService {
       });
 
       if (generationId) {
-        // Deduct credits after successful generation trigger
-        // Credits were already verified by CreditsGuard before processing started
-        const modelData = await this.modelsService.findOne({ key: model });
-        let creditsToDeduct = modelData?.cost || 0;
-
-        // Multiply credits by resolution multiplier (high/1080p = 2x, standard/720p = 1x)
-        if (
-          promptInput.resolution === 'high' ||
-          promptInput.resolution === '1080p'
-        ) {
-          creditsToDeduct *= 2;
-        }
-
-        // Multiply credits by outputs for multi-output requests
-        if (outputs > 1) {
-          creditsToDeduct *= outputs;
-        }
-
-        if (creditsToDeduct > 0) {
-          // Build description with resolution and outputs info
-          let resolutionText = '';
-          if (
-            promptInput.resolution === 'high' ||
-            promptInput.resolution === '1080p'
-          ) {
-            resolutionText = ' (high resolution)';
-          } else if (
-            promptInput.resolution === 'standard' ||
-            promptInput.resolution === '720p'
-          ) {
-            resolutionText = ' (standard resolution)';
-          }
-          const outputsText = outputs > 1 ? ` (${outputs} outputs)` : '';
-          const description = `Video generation - ${model}${resolutionText}${outputsText}`;
-
-          await this.creditsUtilsService.deductCreditsFromOrganization(
-            publicMetadata.organization,
-            publicMetadata.user,
-            creditsToDeduct,
-            description,
-            ActivitySource.VIDEO_GENERATION,
-          );
-
-          this.loggerService.log(
-            'Credits deducted after video generation triggered',
-            {
-              credits: creditsToDeduct,
-              generationId,
-              model,
-              organizationId: publicMetadata.organization,
-              outputs,
-              resolution: promptInput.resolution || undefined,
-              userId: publicMetadata.user,
-            },
-          );
-        }
+        // Credit deduction is owned by CreditsInterceptor, which deducts the
+        // single authorized amount recorded on request.creditsConfig.amount by
+        // ensureDeferredCredits (resolution + output multipliers already
+        // applied). The service no longer performs a second, separately-computed
+        // deduction — that diverged from the authorized figure and double-charged
+        // the request. Matches the images generation pipeline.
 
         // Check if model supports batch generation (single API call with multiple outputs)
         const modelCapability = MODEL_OUTPUT_CAPABILITIES[model];
@@ -471,10 +455,27 @@ export class VideoGenerationService {
             }),
           );
 
-          // Add all ingredient IDs to pending list
+          // Track every additional placeholder before any further async work so
+          // the outer catch tears them down if a subsequent patch throws.
           pendingIngredientIds.push(
             ...additionalDocuments.map(({ ingredientData }) =>
               ingredientData._id.toString(),
+            ),
+          );
+
+          // Patch the indexed external id onto every additional placeholder so
+          // each batch output resolves to its own result (`_1`, `_2`, …). The
+          // first output already received `${generationId}_0` above; without
+          // this, only the first placeholder was ever reconciled.
+          await Promise.all(
+            additionalDocuments.map(
+              ({ metadataData: additionalMetadata }, index) =>
+                this.metadataService.patch(
+                  additionalMetadata._id,
+                  new MetadataEntity({
+                    externalId: `${generationId}_${index + 1}`,
+                  }),
+                ),
             ),
           );
 
@@ -538,6 +539,10 @@ export class VideoGenerationService {
               width,
             });
 
+            // Track the placeholder before the external call so the outer catch
+            // cleans it up if the provider call below throws.
+            pendingIngredientIds.push(additionalIngredient._id.toString());
+
             // Make separate API call for each output based on model
             const additionalGenerationId: string | null =
               await this.dispatchVideoGeneration({
@@ -550,20 +555,31 @@ export class VideoGenerationService {
                 width,
               });
 
+            // Fail closed on a null generation id rather than persisting an
+            // empty externalId that can never be reconciled. The outer catch
+            // tears down every tracked placeholder.
+            if (!additionalGenerationId) {
+              throw new HttpException(
+                {
+                  detail: `Video generation failed to start for output ${i + 1}`,
+                  title: 'Generation failed',
+                },
+                HttpStatus.BAD_GATEWAY,
+              );
+            }
+
             // Parallelize the patch operations
             await Promise.all([
               this.metadataService.patch(
                 additionalMetadata._id,
                 new MetadataEntity({
-                  externalId: additionalGenerationId || '',
+                  externalId: additionalGenerationId,
                 }),
               ),
               this.videosService.patch(additionalIngredient._id, {
                 prompt: promptData._id,
               }),
             ]);
-
-            pendingIngredientIds.push(additionalIngredient._id.toString());
 
             // Create activity for this additional output (non-batch path)
             await this.createVideoPlaceholderActivity({
@@ -595,24 +611,16 @@ export class VideoGenerationService {
           );
         }
       } else {
-        // Clean up all placeholders on failure
-        await this.failedGenerationService.handleFailedVideoGeneration(
-          this.videosService,
-          ingredientData._id,
-          websocketUrl,
-          user.id,
-          getUserRoomName(user.id),
+        // Generation never started. Throw so the outer catch tears down every
+        // tracked placeholder and the request fails — this prevents
+        // CreditsInterceptor (which deducts the authorized amount on HTTP
+        // success) from charging for a generation that never began.
+        throw new HttpException(
           {
-            brand: brand._id.toString(),
-            key: ActivityKey.VIDEO_FAILED,
-            organization: publicMetadata.organization,
-            source: ActivitySource.VIDEO_GENERATION,
-            user: publicMetadata.user,
-            value: JSON.stringify({
-              error: 'Generation failed to start',
-              ingredientId: ingredientData._id.toString(),
-            }),
+            detail: 'Video generation failed to start',
+            title: 'Generation failed',
           },
+          HttpStatus.BAD_GATEWAY,
         );
       }
     } catch (error: unknown) {
@@ -667,8 +675,10 @@ export class VideoGenerationService {
       }
     }
 
-    // Invalidate cached video listings so placeholders appear immediately
-    await this.cacheService.invalidateByTags(['videos']);
+    // Invalidate cached video listings so placeholders appear immediately.
+    // Busts the full tag set (list + single-record + aggregate) so no cached
+    // view can serve a stale response after the write.
+    await this.cacheService.invalidateByTags([...VIDEO_WRITE_CACHE_TAGS]);
 
     // Handle background music orchestration (runs in background)
     if (createVideoDto.backgroundMusic) {
@@ -860,6 +870,29 @@ export class VideoGenerationService {
       );
     } else {
       requiredCredits = 5; // Fallback default cost
+    }
+
+    // Apply the same resolution and output multipliers CreditsGuard applies on
+    // the non-deferred path. This deferred authorization amount is the single
+    // figure CreditsInterceptor deducts on success, so it must equal the full
+    // cost of the request (per-output base x resolution x outputs).
+    if (
+      createVideoDto.resolution === 'high' ||
+      createVideoDto.resolution === '1080p'
+    ) {
+      requiredCredits *= 2;
+    }
+    const requestedOutputs = createVideoDto.outputs || 1;
+    const isBatchSupported =
+      MODEL_OUTPUT_CAPABILITIES[model]?.isBatchSupported ?? false;
+    // This route always defers (see @DeferCreditsUntilModelResolution), so this
+    // is the sole authorizer and must charge for the real number of billable
+    // provider calls. generateVideo() fans out into separate dispatch calls
+    // exactly when the model is NOT batch-capable, so `isBatchSupported` — not
+    // CreditsGuard's training-key heuristic — is the predicate that matches the
+    // actual cost incurred below.
+    if (!isBatchSupported && requestedOutputs > 1) {
+      requiredCredits *= requestedOutputs;
     }
 
     const hasCredits =

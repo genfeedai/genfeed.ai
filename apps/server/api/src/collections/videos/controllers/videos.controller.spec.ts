@@ -52,7 +52,7 @@ import {
   ModelCategory,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpException, StreamableFile } from '@nestjs/common';
+import { HttpException, HttpStatus, StreamableFile } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type {
   Request as ExpressRequest,
@@ -230,7 +230,9 @@ describe('VideosController', () => {
         {
           provide: CreditsUtilsService,
           useValue: {
+            checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
             deductCreditsFromOrganization: vi.fn().mockResolvedValue(undefined),
+            getOrganizationCreditsBalance: vi.fn().mockResolvedValue(1000),
           },
         },
         {
@@ -285,6 +287,7 @@ describe('VideosController', () => {
           provide: ModelRegistrationService,
           useValue: {
             registerGeneratedOutput: vi.fn().mockResolvedValue(undefined),
+            validateModelForOrg: vi.fn().mockResolvedValue(mockModelData),
           },
         },
         {
@@ -976,73 +979,52 @@ describe('VideosController', () => {
       ).rejects.toThrow(HttpException);
     });
 
-    it('should deduct credits after successful generation', async () => {
-      await controller.create(mockRequest, baseCreateDto, mockUser);
+    // Credit deduction is owned by CreditsInterceptor (overridden in this spec).
+    // The service no longer deducts directly; instead ensureDeferredCredits
+    // authorizes the single amount the interceptor later deducts. These tests
+    // assert that authorized amount via the deferred-credits availability check.
+    const deferredRequest = () =>
+      ({
+        ...mockRequest,
+        creditsConfig: { deferred: true },
+      }) as unknown as ExpressRequest;
+
+    it('authorizes the base credit amount for a successful generation', async () => {
+      await controller.create(deferredRequest(), baseCreateDto, mockUser);
 
       expect(
-        creditsUtilsService.deductCreditsFromOrganization,
-      ).toHaveBeenCalledWith(
-        mockOrgId.toString(),
-        mockUserId.toString(),
-        expect.any(Number),
-        expect.stringContaining('Video generation'),
-        expect.any(String),
-      );
-    });
-
-    it('should double credits for high resolution', async () => {
-      const mockBuilderResult = {
-        ...mockPromptBuilderResult,
-        input: {
-          ...mockPromptBuilderResult.input,
-          resolution: 'high',
-        },
-      };
-      (
-        testingModule.get(PromptBuilderService).buildPrompt as vi.Mock
-      ).mockResolvedValue(mockBuilderResult);
-
-      await controller.create(mockRequest, baseCreateDto, mockUser);
-
+        creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).toHaveBeenCalledWith(mockOrgId.toString(), 10);
       expect(
         creditsUtilsService.deductCreditsFromOrganization,
-      ).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(String),
-        20, // 10 * 2 for high resolution
-        expect.stringContaining('high resolution'),
-        expect.any(String),
-      );
+      ).not.toHaveBeenCalled();
     });
 
-    it('should multiply credits by outputs count', async () => {
-      const mockBuilderResult = {
-        ...mockPromptBuilderResult,
-        input: {
-          ...mockPromptBuilderResult.input,
-          resolution: 'standard',
-        },
+    it('doubles the authorized amount for high resolution', async () => {
+      const dto: CreateVideoDto = {
+        ...baseCreateDto,
+        resolution: 'high',
       };
-      (
-        testingModule.get(PromptBuilderService).buildPrompt as vi.Mock
-      ).mockResolvedValueOnce(mockBuilderResult);
 
+      await controller.create(deferredRequest(), dto, mockUser);
+
+      expect(
+        creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).toHaveBeenCalledWith(mockOrgId.toString(), 20); // 10 * 2 for high resolution
+    });
+
+    it('multiplies the authorized amount by outputs for non-batch models', async () => {
       const dto: CreateVideoDto = {
         ...baseCreateDto,
         outputs: 3,
+        resolution: 'standard',
       };
 
-      await controller.create(mockRequest, dto, mockUser);
+      await controller.create(deferredRequest(), dto, mockUser);
 
       expect(
-        creditsUtilsService.deductCreditsFromOrganization,
-      ).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(String),
-        30, // 10 * 3 outputs
-        expect.stringContaining('3 outputs'),
-        expect.any(String),
-      );
+        creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).toHaveBeenCalledWith(mockOrgId.toString(), 30); // 10 * 3 outputs
     });
 
     it('should handle auto model selection', async () => {
@@ -1156,13 +1138,19 @@ describe('VideosController', () => {
       ).toHaveBeenCalled();
     });
 
-    it('should handle null generation ID', async () => {
+    it('should fail and clean up on a null generation ID', async () => {
       klingAIService.queueGenerateTextToVideo.mockResolvedValue(
         null as unknown as string,
       );
 
-      await controller.create(mockRequest, baseCreateDto, mockUser);
+      // A generation that never started must fail the request so
+      // CreditsInterceptor does not charge for it.
+      const error = await controller
+        .create(mockRequest, baseCreateDto, mockUser)
+        .catch((e) => e);
 
+      expect(error).toBeInstanceOf(HttpException);
+      expect(error.getStatus()).toBe(HttpStatus.BAD_GATEWAY);
       expect(
         failedGenerationService.handleFailedVideoGeneration,
       ).toHaveBeenCalled();
@@ -1234,6 +1222,7 @@ describe('VideosController', () => {
       expect(promptsService.findOne).toHaveBeenCalledWith({
         _id: mockPromptId.toString(),
         isDeleted: false,
+        organization: mockOrgId.toString(),
       });
     });
 
