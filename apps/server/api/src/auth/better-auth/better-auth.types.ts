@@ -47,6 +47,17 @@ export interface IBetterAuthMagicLinkParams {
   token: string;
 }
 
+/**
+ * Minimal shared KV (Redis) used to back Better Auth's rate-limit counters
+ * across stateless API instances. Implementations must fail open — a Redis
+ * outage must degrade rate limiting, never break authentication. The factory
+ * adapts this into Better Auth's `rateLimit.customStorage` shape.
+ */
+export interface IBetterAuthRateLimitStore {
+  get: (key: string) => Promise<string | null>;
+  set: (key: string, value: string, ttlSeconds: number) => Promise<void>;
+}
+
 /** Payload emitted after Better Auth creates a new user row. */
 export interface IBetterAuthUserCreatedEvent {
   userId: string;
@@ -61,6 +72,30 @@ export interface ICreateBetterAuthOptions {
   baseURL: string;
   trustedOrigins: string[];
   google?: IBetterAuthGoogleConfig;
+  /**
+   * Root cookie domain (e.g. `.genfeed.ai`) for sharing the session cookie set
+   * on the API host with sibling frontend subdomains. When set, enables
+   * `advanced.crossSubDomainCookies`. Unset (single-host / Community) keeps the
+   * default host-scoped cookie.
+   */
+  cookieDomain?: string;
+  /**
+   * Ordered client-IP headers for Better Auth's rate limiting + session
+   * tracking (e.g. `['x-forwarded-for']` behind the production ALB). Unset
+   * keeps Better Auth's default header detection — important for deployment
+   * modes with a different (or no) edge proxy.
+   */
+  ipAddressHeaders?: string[];
+  /**
+   * Enable Better Auth's experimental single-query joins on the Prisma adapter.
+   * Gated off by default; flip per environment after staging verification.
+   */
+  experimentalJoins?: boolean;
+  /**
+   * Shared KV (Redis) backing rate-limit counters across instances. When
+   * provided, rate limiting uses it instead of per-process memory.
+   */
+  rateLimitStore?: IBetterAuthRateLimitStore;
   sendMagicLink: (params: IBetterAuthMagicLinkParams) => Promise<void>;
   /**
    * Invoked (and awaited) from the `user.create.after` hook so a newly created

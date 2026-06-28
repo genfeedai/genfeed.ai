@@ -1,12 +1,47 @@
 import { randomUUID } from 'node:crypto';
 import { dash } from '@better-auth/infra';
 import type { IBetterAuthJwtUserPayloadSource } from '@genfeedai/interfaces';
-import { betterAuth } from 'better-auth';
+import { betterAuth, type RateLimit } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { jwt, magicLink } from 'better-auth/plugins';
 import { BETTER_AUTH_BASE_PATH } from './better-auth.constants';
-import type { ICreateBetterAuthOptions } from './better-auth.types';
+import type {
+  IBetterAuthRateLimitStore,
+  ICreateBetterAuthOptions,
+} from './better-auth.types';
 import { isPlatformSuperAdmin } from './better-auth-access.util';
+
+/**
+ * Prefix + GC window for Better Auth rate-limit counters in Redis. Active keys
+ * refresh their TTL on each write, so the TTL only reclaims idle counters.
+ */
+const RATE_LIMIT_KEY_PREFIX = 'ba:ratelimit:';
+const RATE_LIMIT_TTL_SECONDS = 86_400;
+
+/**
+ * Adapt the shared Redis KV into Better Auth's `rateLimit.customStorage` shape
+ * so all API instances share one counter window (per-process memory would let
+ * the effective limit scale with instance count). Reads/writes are JSON; the
+ * underlying store fails open, so a Redis blip degrades limiting, never auth.
+ */
+export function buildRateLimitStorage(store: IBetterAuthRateLimitStore): {
+  get: (key: string) => Promise<RateLimit | null>;
+  set: (key: string, value: RateLimit) => Promise<void>;
+} {
+  return {
+    get: async (key) => {
+      const raw = await store.get(`${RATE_LIMIT_KEY_PREFIX}${key}`);
+      return raw ? (JSON.parse(raw) as RateLimit) : null;
+    },
+    set: async (key, value) => {
+      await store.set(
+        `${RATE_LIMIT_KEY_PREFIX}${key}`,
+        JSON.stringify(value),
+        RATE_LIMIT_TTL_SECONDS,
+      );
+    },
+  };
+}
 
 function getString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
@@ -165,6 +200,10 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
     baseURL,
     trustedOrigins,
     google,
+    cookieDomain,
+    ipAddressHeaders,
+    experimentalJoins,
+    rateLimitStore,
     sendMagicLink,
     onUserCreated,
   } = options;
@@ -191,6 +230,28 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
           },
         }
       : {}),
+    // Share rate-limit counters across stateless API instances via Redis;
+    // `customStorage` scopes Redis to rate limiting only (sessions stay in
+    // Postgres). Omitted when no store is wired so the in-memory default holds.
+    ...(rateLimitStore
+      ? { rateLimit: { customStorage: buildRateLimitStorage(rateLimitStore) } }
+      : {}),
+    // Experimental single-query joins (Prisma adapter). Env-gated; off unless
+    // explicitly enabled after staging verification.
+    ...(experimentalJoins ? { experimental: { joins: true } } : {}),
+    advanced: {
+      // Pin the client-IP header(s) only when configured (e.g. `x-forwarded-for`
+      // behind the production ALB); unset keeps Better Auth's default detection
+      // for proxy-less / differently-fronted deployment modes.
+      ...(ipAddressHeaders && ipAddressHeaders.length > 0
+        ? { ipAddress: { ipAddressHeaders } }
+        : {}),
+      // Share the session cookie across sibling subdomains (api ↔ app) when a
+      // root domain is configured; host-scoped otherwise.
+      ...(cookieDomain
+        ? { crossSubDomainCookies: { enabled: true, domain: cookieDomain } }
+        : {}),
+    },
     user: {
       // Better Auth's `image` field maps onto the existing `User.avatar` column.
       fields: { image: 'avatar' },
@@ -234,6 +295,10 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
     plugins: [
       ...(apiKey ? [dash({ apiKey })] : []),
       magicLink({
+        // Persist only the hash of magic-link tokens so a DB read cannot replay
+        // them. Lookup re-hashes the incoming token, so any in-flight plaintext
+        // links issued before this change fail until they expire (~min TTL).
+        storeToken: 'hashed',
         sendMagicLink: async ({ email, url, token }) => {
           await sendMagicLink({ email, url, token });
         },
