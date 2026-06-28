@@ -147,9 +147,16 @@ export class RequestContextMiddleware implements NestMiddleware {
         isDeleted: false,
         organization: defaultOrg.id,
       });
+      const defaultBrand = await this.prisma.brand.findFirst({
+        where: {
+          isDefault: true,
+          isDeleted: false,
+          organizationId: defaultOrg.id,
+        },
+      });
 
       const requestContext: IRequestContext = {
-        brandId: undefined,
+        brandId: defaultBrand?.id,
         hydratedAt: Date.now(),
         isSuperAdmin: true,
         organizationId: defaultOrg.id,

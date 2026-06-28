@@ -15,10 +15,20 @@ const useAuthMock = vi.fn();
 const useParamsMock = vi.fn();
 const useUserMock = vi.fn();
 const useAuthedServiceMock = vi.fn();
+const loadClientProtectedBootstrapMock = vi.hoisted(() => vi.fn());
+const authServiceGetInstanceMock = vi.hoisted(() => vi.fn());
 
 vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => useAuthMock(),
   useUser: () => useUserMock(),
+}));
+
+vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => useAuthMock(),
+}));
+
+vi.mock('@genfeedai/hooks/auth/use-auth-user/use-auth-user', () => ({
+  useAuthUser: () => useUserMock(),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -52,7 +62,7 @@ vi.mock('@genfeedai/services/organization/users.service', () => ({
 
 vi.mock('@genfeedai/services/auth/auth.service', () => ({
   AuthService: {
-    getInstance: vi.fn(),
+    getInstance: authServiceGetInstanceMock,
   },
 }));
 
@@ -71,7 +81,7 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
 vi.mock(
   '../../providers/protected-bootstrap/client-protected-bootstrap',
   () => ({
-    loadClientProtectedBootstrap: vi.fn().mockResolvedValue(null),
+    loadClientProtectedBootstrap: loadClientProtectedBootstrapMock,
   }),
 );
 
@@ -130,6 +140,10 @@ describe('BrandProvider', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
+    delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
+    loadClientProtectedBootstrapMock.mockResolvedValue(null);
+    authServiceGetInstanceMock.mockReturnValue({});
     useParamsMock.mockReturnValue({});
     useAuthMock.mockReturnValue({
       isLoaded: true,
@@ -409,5 +423,85 @@ describe('BrandProvider', () => {
       );
       expect(screen.getByTestId('is-ready')).toHaveTextContent('true');
     });
+  });
+
+  it('loads self-hosted brands through local bootstrap without a signed-in session', async () => {
+    process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'false';
+    useAuthMock.mockReturnValue({
+      getToken: vi.fn().mockResolvedValue(null),
+      isLoaded: true,
+      isSignedIn: false,
+      orgId: null,
+      userId: null,
+    });
+    useUserMock.mockReturnValue({ user: null });
+    useParamsMock.mockReturnValue({
+      brandSlug: 'default',
+      orgSlug: 'default',
+    });
+    loadClientProtectedBootstrapMock.mockImplementation(
+      async (
+        _cacheKey: string | undefined,
+        getAuthService: () => Promise<unknown>,
+      ) => {
+        await getAuthService();
+
+        return {
+          ...initialBootstrap,
+          brandId: 'brand_default',
+          brands: [
+            {
+              id: 'brand_default',
+              label: 'Default Brand',
+              organization: {
+                id: 'org_default',
+                slug: 'default',
+              },
+              slug: 'default',
+            },
+          ],
+          organizationId: 'org_default',
+        };
+      },
+    );
+
+    function Consumer() {
+      const { brandId, brands, isReady, organizationId, selectedBrand } =
+        useBrand();
+
+      return (
+        <div>
+          <span data-testid="brand-id">{brandId}</span>
+          <span data-testid="organization-id">{organizationId}</span>
+          <span data-testid="brand-count">{String(brands.length)}</span>
+          <span data-testid="selected-brand">{selectedBrand?.label}</span>
+          <span data-testid="is-ready">{String(isReady)}</span>
+        </div>
+      );
+    }
+
+    const Wrapper = createWrapper();
+
+    render(
+      <Wrapper>
+        <BrandProvider initialBootstrap={null}>
+          <Consumer />
+        </BrandProvider>
+      </Wrapper>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('brand-id')).toHaveTextContent('brand_default');
+      expect(screen.getByTestId('organization-id')).toHaveTextContent(
+        'org_default',
+      );
+      expect(screen.getByTestId('brand-count')).toHaveTextContent('1');
+      expect(screen.getByTestId('selected-brand')).toHaveTextContent(
+        'Default Brand',
+      );
+      expect(screen.getByTestId('is-ready')).toHaveTextContent('true');
+    });
+    expect(authServiceGetInstanceMock).toHaveBeenCalledWith('');
+    expect(useAuthedServiceMock).not.toHaveBeenCalled();
   });
 });
