@@ -140,13 +140,13 @@ export class ArticlesService extends BaseService<
     brandId: string,
   ): void {
     if (!userId || userId.trim() === '') {
-      throw new Error('Invalid userId');
+      throw new BadRequestException('Invalid userId');
     }
     if (!organizationId || organizationId.trim() === '') {
-      throw new Error('Invalid organizationId');
+      throw new BadRequestException('Invalid organizationId');
     }
     if (!brandId || brandId.trim() === '') {
-      throw new Error('Invalid brandId');
+      throw new BadRequestException('Invalid brandId');
     }
   }
 
@@ -584,7 +584,8 @@ export class ArticlesService extends BaseService<
       // Set publishedAt if empty/null (first time publishing or missing date).
       // If republishing and publishedAt already exists, keep it as is.
       if (!currentArticle.publishedAt) {
-        params.updateData.publishedAt = new Date().toISOString();
+        params.updateData.publishedAt =
+          params.publishedAtFromDto ?? new Date().toISOString();
       }
     } else if (!params.publishedAtFromDto) {
       // Article not found, but this will be caught by the patch call below.

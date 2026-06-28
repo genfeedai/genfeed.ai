@@ -675,8 +675,11 @@ export class ArticlesContentService {
 
       // Resolve the public/preview article URL for the trailing link tweet
       let articleUrl: string | undefined;
-      if (article.slug && this.configService) {
-        const baseUrl = `${this.configService.get('GENFEEDAI_PUBLIC_URL')}/articles/${article.slug}`;
+      const publicUrl = this.configService
+        ?.get<string>('GENFEEDAI_PUBLIC_URL')
+        ?.replace(/\/$/, '');
+      if (article.slug && publicUrl) {
+        const baseUrl = `${publicUrl}/articles/${article.slug}`;
         articleUrl =
           String(article.status) === ArticleStatus.PUBLIC
             ? baseUrl
@@ -739,7 +742,11 @@ export class ArticlesContentService {
       params.harnessContext.brief,
     );
 
-    const { input } = (await this.promptBuilderService?.buildPrompt(
+    if (!this.promptBuilderService) {
+      throw new Error('Prompt builder service not available');
+    }
+
+    const { input } = await this.promptBuilderService.buildPrompt(
       params.model,
       {
         ...params.buildPromptOptions,
@@ -747,7 +754,7 @@ export class ArticlesContentService {
         ...params.harnessContext.promptBuilder,
       },
       params.organizationId,
-    )) || { input: {} };
+    );
 
     const responseText =
       await this.replicateService?.generateTextCompletionSync(
@@ -793,17 +800,30 @@ export class ArticlesContentService {
     };
     wordCount: number;
   } {
+    // Headings and pull quotes are plain-text fields; escape them before
+    // wrapping in HTML so generated text can't inject markup. section.content
+    // is intentionally HTML and passes through unescaped.
+    const escapeHtml = (value: string): string =>
+      value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
     // Build full HTML content by concatenating sections
     const htmlParts: string[] = [];
     for (const section of sections) {
       if (section.heading) {
-        htmlParts.push(`<h2>${section.heading}</h2>`);
+        htmlParts.push(`<h2>${escapeHtml(section.heading)}</h2>`);
       }
       if (section.content) {
         htmlParts.push(section.content);
       }
       if (section.pullQuote) {
-        htmlParts.push(`<blockquote>${section.pullQuote}</blockquote>`);
+        htmlParts.push(
+          `<blockquote>${escapeHtml(section.pullQuote)}</blockquote>`,
+        );
       }
     }
     const content = htmlParts.join('\n');
