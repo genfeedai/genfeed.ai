@@ -343,7 +343,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: trust
-    if: needs.trust.outputs.is-trusted == 'true' && github.event_name == 'workflow_call'
+    # Runs on every event: workflow_call (release/full-suite) AND pull_request /
+    # push so the focused `test-app-changed` gate below can read its outputs. The
+    # heavy sharded test-* jobs keep their own `&& workflow_call` gate, so
+    # broadening this does not trigger the full matrix on PRs.
+    if: needs.trust.outputs.is-trusted == 'true'
     outputs:
       app: ${{ steps.scope.outputs.app }}
       api: ${{ steps.scope.outputs.api }}
@@ -484,6 +488,45 @@ jobs:
         run: bunx turbo run build --filter='./apps/app...'
       - name: Run app test shard
         run: cd apps/app && bunx vitest run --config ./vitest.config.mts --maxWorkers=2 --shard=${{ matrix.shard }}/4
+        env:
+          NODE_ENV: test
+
+  # Focused, blocking app tests on every PR and master push: runs only the
+  # @genfeedai/app tests whose module graph touches the diff (vitest --changed),
+  # so it stays fast while pinning any regression to the single PR/merge that
+  # introduced it. The full sharded `test-app` matrix above still runs the whole
+  # suite via workflow_call (full-suite / release), which catches cross-cutting
+  # tests that --changed's static graph can miss (e.g. filesystem-scan contracts).
+  test-app-changed:
+    name: Test App (changed)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [trust, test-scope]
+    if: >-
+      needs.trust.outputs.is-trusted == 'true'
+      && needs.test-scope.outputs.app == 'true'
+      && (github.event_name == 'pull_request' || github.event_name == 'push')
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          bun-version: '1.3.14'
+      - name: Build app workspace
+        run: bunx turbo run build --filter='./apps/app...'
+      - name: Run changed app tests
+        run: |
+          BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
+          # Force-push / new-branch pushes report an all-zero "before"; fall back
+          # to the previous commit so --changed always has a valid diff base.
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            BASE="HEAD~1"
+          fi
+          echo "Running app tests changed since $BASE"
+          cd apps/app && bunx vitest run --config ./vitest.config.mts \
+            --maxWorkers=2 --passWithNoTests --changed "$BASE"
         env:
           NODE_ENV: test
 
