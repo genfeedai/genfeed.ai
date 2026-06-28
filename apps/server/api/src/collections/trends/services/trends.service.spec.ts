@@ -7,6 +7,10 @@ import { TrendAnalysisService } from '@api/collections/trends/services/modules/t
 import { TrendContentIdeasService } from '@api/collections/trends/services/modules/trend-content-ideas.service';
 import { TrendFetchService } from '@api/collections/trends/services/modules/trend-fetch.service';
 import { TrendFilteringService } from '@api/collections/trends/services/modules/trend-filtering.service';
+import { TrendPrelaunchCorpusService } from '@api/collections/trends/services/modules/trend-prelaunch-corpus.service';
+import { TrendQueryService } from '@api/collections/trends/services/modules/trend-query.service';
+import { TrendSourceItemsService } from '@api/collections/trends/services/modules/trend-source-items.service';
+import { TrendSourcePreviewService } from '@api/collections/trends/services/modules/trend-source-preview.service';
 import { TrendVideoService } from '@api/collections/trends/services/modules/trend-video.service';
 import { TrendPreferencesService } from '@api/collections/trends/services/trend-preferences.service';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
@@ -113,6 +117,10 @@ describe('TrendsService', () => {
         TrendContentIdeasService,
         TrendFetchService,
         TrendFilteringService,
+        TrendPrelaunchCorpusService,
+        TrendQueryService,
+        TrendSourceItemsService,
+        TrendSourcePreviewService,
         TrendVideoService,
         TrendPreferencesService,
         {
