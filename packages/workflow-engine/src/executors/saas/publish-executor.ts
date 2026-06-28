@@ -42,6 +42,14 @@ export type PublishResolver = (params: {
   caption: string;
   platforms: SocialPlatform[];
   scheduledFor: Date | null;
+  /**
+   * Opt-in: when true, the resolver should emit a `post-published` event after a
+   * successful publish so workflows rooted at a `postPublishTrigger` node can run
+   * an SEO-optimization pass. Off by default to avoid trigger loops.
+   */
+  triggerSeoOptimization?: boolean;
+  /** Target keyword forwarded to the downstream SEO-optimization workflow. */
+  targetKeyword?: string | null;
 }) => Promise<PublishOutput>;
 
 export class PublishExecutor extends BaseExecutor {
@@ -137,6 +145,17 @@ export class PublishExecutor extends BaseExecutor {
         ? new Date(schedule.datetime)
         : null;
 
+    const triggerSeoOptimization = this.getOptionalConfig<boolean>(
+      node.config,
+      'triggerSeoOptimization',
+      false,
+    );
+    const targetKeyword = this.getOptionalConfig<string | null>(
+      node.config,
+      'targetKeyword',
+      null,
+    );
+
     const result = await this.resolver({
       brandId: brandContext.brandId,
       caption,
@@ -144,6 +163,8 @@ export class PublishExecutor extends BaseExecutor {
       organizationId: context.organizationId,
       platforms: enabledPlatforms,
       scheduledFor,
+      targetKeyword,
+      triggerSeoOptimization,
       userId: context.userId,
     });
 

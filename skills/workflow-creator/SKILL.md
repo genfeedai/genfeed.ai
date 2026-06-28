@@ -67,6 +67,9 @@ Place at x: 300-500
 | `textToSpeech` | Text to Speech | text (text, required) | audio | Convert text to speech using ElevenLabs |
 | `transcribe` | Transcribe | video (video), audio (audio) | text | Convert video/audio to text transcript |
 | `motionControl` | Motion Control | image (image, required), prompt (text) | video | Generate video with motion control (Kling AI) |
+| `seoScore` | SEO Score | content (text/object) | object (`score`, `breakdown`, `suggestions`) | Score content against the canonical SEO rubric |
+| `seoRewrite` | SEO Rewrite | content (text, required), suggestions (text, multiple) | text | Rewrite content to address SEO suggestions |
+| `iterativeSeoRefine` | Iterative SEO Refine | content (text, required) | object (`text`, `score`, `iterations`, `converged`) | Internal score → rewrite → re-score loop until `targetScore` (no graph cycle) |
 
 ### Processing Nodes (Category: processing)
 
@@ -92,6 +95,29 @@ Place at x: 800-1000
 | Type | Label | Inputs | Description |
 |------|-------|--------|-------------|
 | `output` | Output | media (image/video, required) | Final workflow output |
+
+### Control Flow Nodes (Category: control)
+
+| Type | Label | Inputs | Outputs | Description |
+|------|-------|--------|---------|-------------|
+| `condition` | Condition | data (object) | true / false branches | Branch on a field. Use `field: 'custom'` + `customField` (dot-notation path into the upstream output) + an operator such as `greaterThanOrEquals` to branch on a numeric key (e.g. an SEO `score`). |
+| `delay` | Delay | any | any | Pause execution for a duration or until an optimal time |
+
+> The validator hard-rejects graph cycles (`CYCLE_DETECTED`). To iterate
+> (score → rewrite → re-score until a threshold), use the single
+> `iterativeSeoRefine` node — never a back-edge.
+
+### Trigger Nodes (Category: input)
+
+| Type | Label | Outputs | Description |
+|------|-------|---------|-------------|
+| `postPublishTrigger` | On Publish | object (`postIds`, `platforms`, `content`, `title`, `targetKeyword`) | Root trigger; starts the workflow when content is published with `triggerSeoOptimization` enabled on the `publish` node (`post-published` event). |
+
+> **Loop safety:** the `post-published` event only fires when a `publish` node sets
+> `triggerSeoOptimization: true` (off by default). Do **not** put a `publish` node
+> with that flag inside a workflow that is itself rooted at `postPublishTrigger` —
+> that would re-emit the event and re-trigger the workflow. Keep SEO-optimization
+> workflows publish-free, or leave the flag off on any publish node they contain.
 
 ### Composition Nodes (Category: composition)
 
@@ -579,6 +605,45 @@ Connections must match handle types:
       "sourceHandle": "video",
       "targetHandle": "media"
     }
+  ]
+}
+```
+
+### SEO Optimization (score → branch → rewrite → converge)
+
+Express a "keep improving until the score is good enough" loop **without a graph
+cycle**. Two valid shapes:
+
+**A. Single-node loop (preferred).** `iterativeSeoRefine` runs the
+score → rewrite → re-score loop internally up to `maxIterations`:
+
+```json
+{
+  "nodes": [
+    { "id": "trigger", "type": "postPublishTrigger", "position": { "x": 0, "y": 0 }, "data": { "label": "On Publish" } },
+    { "id": "refine", "type": "iterativeSeoRefine", "position": { "x": 300, "y": 0 }, "data": { "label": "Refine SEO", "targetScore": 80, "maxIterations": 3, "targetKeyword": "ai content workflows" } },
+    { "id": "out", "type": "output", "position": { "x": 600, "y": 0 }, "data": { "label": "Optimized" } }
+  ],
+  "edges": [
+    { "id": "e1", "source": "trigger", "target": "refine", "sourceHandle": "content", "targetHandle": "content" },
+    { "id": "e2", "source": "refine", "target": "out", "sourceHandle": "text", "targetHandle": "media" }
+  ]
+}
+```
+
+**B. Explicit single-pass branch.** `seoScore` → `condition` (branch on the
+emitted `score`) → `seoRewrite` on the low-score branch:
+
+```json
+{
+  "nodes": [
+    { "id": "score", "type": "seoScore", "position": { "x": 0, "y": 0 }, "data": { "label": "Score", "targetKeyword": "ai content workflows" } },
+    { "id": "gate", "type": "condition", "position": { "x": 300, "y": 0 }, "data": { "label": "Score >= 80?", "field": "custom", "customField": "score", "operator": "greaterThanOrEquals", "value": 80 } },
+    { "id": "rewrite", "type": "seoRewrite", "position": { "x": 600, "y": 120 }, "data": { "label": "Rewrite" } }
+  ],
+  "edges": [
+    { "id": "e1", "source": "score", "target": "gate", "sourceHandle": "data", "targetHandle": "data" },
+    { "id": "e2", "source": "gate", "target": "rewrite", "sourceHandle": "false", "targetHandle": "content" }
   ]
 }
 ```

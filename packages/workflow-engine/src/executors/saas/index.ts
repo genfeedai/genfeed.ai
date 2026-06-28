@@ -14,6 +14,8 @@ export * from '@workflow-engine/executors/saas/engagement-trigger-executor';
 export * from '@workflow-engine/executors/saas/film-grain-executor';
 // AI generation executors
 export * from '@workflow-engine/executors/saas/image-gen-executor';
+// SEO score -> rewrite -> re-score loop executor
+export * from '@workflow-engine/executors/saas/iterative-seo-refine-executor';
 export * from '@workflow-engine/executors/saas/keyword-trigger-executor';
 export * from '@workflow-engine/executors/saas/lens-effects-executor';
 // Lip sync executor
@@ -23,6 +25,8 @@ export * from '@workflow-engine/executors/saas/music-source-executor';
 export * from '@workflow-engine/executors/saas/new-follower-trigger-executor';
 export * from '@workflow-engine/executors/saas/new-like-trigger-executor';
 export * from '@workflow-engine/executors/saas/new-repost-trigger-executor';
+// Post-publish SEO trigger executor
+export * from '@workflow-engine/executors/saas/post-publish-trigger-executor';
 // Social action executors
 export * from '@workflow-engine/executors/saas/post-reply-executor';
 // Prompt construction executor
@@ -33,6 +37,9 @@ export * from '@workflow-engine/executors/saas/reframe-executor';
 export * from '@workflow-engine/executors/saas/rss-input-executor';
 export * from '@workflow-engine/executors/saas/send-dm-executor';
 export * from '@workflow-engine/executors/saas/send-email-executor';
+// SEO scoring + rewrite executors
+export * from '@workflow-engine/executors/saas/seo-rewrite-executor';
+export * from '@workflow-engine/executors/saas/seo-score-executor';
 export {
   createSocialPublishExecutor,
   SocialPublishExecutor,

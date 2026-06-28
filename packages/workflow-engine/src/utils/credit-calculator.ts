@@ -27,6 +27,7 @@ export const DEFAULT_CREDIT_COSTS: CreditCostConfig = {
   newRepostTrigger: 0,
   noop: 0,
   patternContext: 0,
+  postPublishTrigger: 0, // trigger node — the optimization workflow it starts bills itself
   promptConstructor: 0,
   rssInput: 0,
   trendTrigger: 0,
@@ -53,7 +54,10 @@ export const DEFAULT_CREDIT_COSTS: CreditCostConfig = {
   // ----- text / content generation -----
   caption: 1, // legacy alias
   generateArticle: 3, // legacy alias
+  iterativeSeoRefine: 15, // [ESTIMATED] default maxIterations(3) x (score 2 + rewrite 3) -> ~15; the engine reads this flat value for budgeting, while executor.estimateCost scales with the configured maxIterations
   postReply: 1, // [ESTIMATED] comparable to caption
+  seoRewrite: 3, // [ESTIMATED] LLM rewrite; comparable to generateArticle
+  seoScore: 2, // [ESTIMATED] LLM-assisted scoring pass; lighter than a full rewrite
   tweetRemix: 1,
 
   // ----- image generation / processing -----
@@ -231,6 +235,7 @@ const NODE_CATEGORY_MAP: Record<string, string> = {
   newRepostTrigger: 'input',
   noop: 'input',
   patternContext: 'input',
+  postPublishTrigger: 'input',
   rssInput: 'input',
   trendTrigger: 'input',
   tweetInput: 'input',
@@ -255,7 +260,10 @@ const NODE_CATEGORY_MAP: Record<string, string> = {
   generateMusic: 'ai',
   generateVideo: 'ai',
   imageGen: 'ai',
+  iterativeSeoRefine: 'ai',
   lipSync: 'ai',
+  seoRewrite: 'ai',
+  seoScore: 'ai',
   textToSpeech: 'ai',
   videoGen: 'ai',
   voiceChange: 'ai',
