@@ -109,7 +109,7 @@ export function computeKeywordDensity(
     return 0;
   }
   const escaped = normalisedKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const matches = text.toLowerCase().match(new RegExp(escaped, 'g'));
+  const matches = text.toLowerCase().match(new RegExp(`\\b${escaped}\\b`, 'g'));
   const occurrences = matches ? matches.length : 0;
   const keywordWordSpan = normalisedKeyword.split(/\s+/).filter(Boolean).length;
   return (
@@ -226,8 +226,11 @@ export function parseSeoHtml(html?: string | null): ParsedSeoHtml {
     links.push({
       href,
       isExternal: isAbsolute,
-      // In-page anchors are jump links, not content internal links.
-      isInternal: isWellFormed && !isAbsolute && !isAnchorOnly,
+      // Internal links are same-document relative paths only. In-page anchors
+      // are jump links, and scheme URIs (mailto:, tel:, …) are neither internal
+      // nor page links, so exclude both from the internal count.
+      isInternal:
+        isWellFormed && !isAnchorOnly && !/^[a-z][a-z0-9+.-]*:/i.test(href),
       isWellFormed,
       opensNewTab: ($(el).attr('target') ?? '') === '_blank',
       text,
@@ -242,13 +245,17 @@ export function parseSeoHtml(html?: string | null): ParsedSeoHtml {
     });
   });
 
+  // Capture JSON-LD presence before stripping non-visible nodes, then exclude
+  // script/style/noscript text from the scored plain text.
+  const hasJsonLd = $('script[type="application/ld+json"]').length > 0;
+  $('script, style, noscript').remove();
   const plainText = $.root().text().replace(/\s+/g, ' ').trim();
 
   return {
     h1Count: $('h1').length,
     hasCaptionTrack: $('track').length > 0,
     hasInPageAnchors: $('a[href^="#"]').length > 0,
-    hasJsonLd: $('script[type="application/ld+json"]').length > 0,
+    hasJsonLd,
     hasList: $('ul, ol').length > 0,
     hasVideoEmbed: $('iframe, video').length > 0,
     headings,

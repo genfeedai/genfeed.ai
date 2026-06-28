@@ -154,6 +154,7 @@ export class SeoScorerService {
       slug: null,
       targetKeyword: targetKeyword ?? null,
       title: post.label,
+      url: post.url,
     });
 
     await this.persist('post', post.id, organizationId, scorecard);
