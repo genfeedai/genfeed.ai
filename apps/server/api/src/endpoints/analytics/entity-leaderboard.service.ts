@@ -4,6 +4,7 @@
  * Extracted from AnalyticsService (issue #753) so the shared load + sort
  * scaffolding lives in one place and the dashboard service stays focused.
  */
+
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { LeaderboardSort } from '@api/endpoints/analytics/dto/leaderboard-query.dto';
@@ -22,90 +23,20 @@ import type { IEntityAnalyticsStats } from '@genfeedai/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import type {
+  AnalyticsAggRow,
+  BrandDoc,
+  DateRange,
+  EngagementAggRow,
+  EntityStatsRow,
+  LeaderboardStats,
+  OrganizationDoc,
+  PaginationSlice,
+} from './analytics.types';
 
 type PrismaSql = ReturnType<typeof Prisma.sql>;
 type EntityType = 'organization' | 'brand';
 type EntityField = 'organizationId' | 'brandId';
-
-interface DateRange {
-  startDate: Date;
-  endDate: Date;
-  previousStartDate: Date;
-  previousEndDate: Date;
-}
-
-/** Organization document with aggregated fields */
-interface OrganizationDoc {
-  id: string;
-  name?: string;
-  label?: string;
-  logo?: { cdnUrl?: string };
-  isDeleted?: boolean;
-  createdAt?: Date;
-}
-
-/** Brand document with aggregated fields */
-interface BrandDoc {
-  id: string;
-  name?: string;
-  label?: string;
-  logo?: { cdnUrl?: string };
-  organizationId?: string;
-  org?: OrganizationDoc;
-  isDeleted?: boolean;
-  createdAt?: Date;
-}
-
-/** Stats for leaderboard sorting */
-interface LeaderboardStats {
-  id: string;
-  name: string;
-  logo?: string;
-  avgEngagementRate: number;
-  growth: number;
-  totalEngagement: number;
-  totalPosts: number;
-  totalViews: number;
-  activePlatforms?: string[];
-  organizationId?: string;
-  organizationName?: string;
-}
-
-/** Raw row from $queryRaw analytics aggregation */
-interface AnalyticsAggRow {
-  entity_id: string;
-  avg_engagement_rate: number;
-  total_views: bigint;
-  total_likes: bigint;
-  total_comments: bigint;
-  total_shares: bigint;
-  total_saves: bigint;
-  unique_posts: bigint;
-  platforms?: string[];
-}
-
-/** Raw row from $queryRaw previous-engagement aggregation */
-interface EngagementAggRow {
-  entity_id: string;
-  total_engagement: bigint;
-}
-
-/** One entity paired with its current + previous period stats */
-interface EntityStatsRow<TEntity> {
-  entity: TEntity;
-  stats: IEntityAnalyticsStats;
-  prevEngagement: number;
-}
-
-interface PaginationSlice<TItem> {
-  data: TItem[];
-  pagination: {
-    limit: number;
-    page: number;
-    total: number;
-    totalPages: number;
-  };
-}
 
 /** Default analytics stats for entities with no data */
 const DEFAULT_ANALYTICS: IEntityAnalyticsStats = {

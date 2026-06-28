@@ -232,6 +232,29 @@ describe('AnalyticsExportService', () => {
       expect(result).toBeDefined();
       expect(mockLoggerService.error).toHaveBeenCalled();
     });
+
+    it('should scope PostsService.findAll to the given organizationId', async () => {
+      const orgId = 'org-scoped-abc';
+      mockPostsService.findAll.mockResolvedValue({ docs: [] });
+
+      await service.exportData('csv', ['id', 'title'], orgId);
+
+      expect(mockPostsService.findAll).toHaveBeenCalledWith(
+        { where: { status: 'published', organizationId: orgId } },
+        { pagination: false },
+      );
+    });
+
+    it('should NOT include organizationId filter when no organizationId provided', async () => {
+      mockPostsService.findAll.mockResolvedValue({ docs: [] });
+
+      await service.exportData('csv', ['id', 'title']);
+
+      expect(mockPostsService.findAll).toHaveBeenCalledWith(
+        { where: { status: 'published' } },
+        { pagination: false },
+      );
+    });
   });
 
   // ==========================================================================

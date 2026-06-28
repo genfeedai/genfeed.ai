@@ -225,7 +225,7 @@ export class TrendQueryService {
         topic: trend.topic,
         updatedAt: now,
         viralityScore: trend.viralityScore,
-      } as never);
+      } as unknown as TrendDocument);
     });
   }
 

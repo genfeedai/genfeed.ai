@@ -1,4 +1,8 @@
 import type { BaseApiClient } from './base-api-client';
+import type {
+  GenerateDarkroomContentParams,
+  StartTrainingParams,
+} from './darkroom.client.types';
 
 /**
  * Darkroom (GPU pipeline) admin/infrastructure, LoRA training, and on-box
@@ -51,12 +55,7 @@ export class DarkroomClient {
 
   // ── Training Pipeline ──
 
-  startTraining(params: {
-    handle: string;
-    steps?: number;
-    rank?: number;
-    learningRate?: number;
-  }): Promise<Record<string, unknown>> {
+  startTraining(params: StartTrainingParams): Promise<Record<string, unknown>> {
     return this.base.request(
       'starting training',
       async (http) =>
@@ -112,12 +111,9 @@ export class DarkroomClient {
 
   // ── Darkroom Generation ──
 
-  generateDarkroomContent(params: {
-    type: string;
-    prompt?: string;
-    count?: number;
-    personaHandle?: string;
-  }): Promise<Record<string, unknown>> {
+  generateDarkroomContent(
+    params: GenerateDarkroomContentParams,
+  ): Promise<Record<string, unknown>> {
     return this.base.request(
       'generating darkroom content',
       async (http) =>

@@ -442,47 +442,10 @@ describe('ImagesOperationsController', () => {
       })
       .compile();
 
-    // The image-generation workflow now lives in ImageGenerationService, built
-    // here from the same resolved mocks so the controller's create() delegate
-    // exercises the identical dependencies the assertions below observe.
-    const imageGenerationService = new ImageGenerationService(
-      module.get(ConfigService),
-      module.get(ActivitiesService),
-      module.get(AssetsService),
-      module.get(BrandsService),
-      module.get(ComfyUIService),
-      module.get(CreditsUtilsService),
-      module.get(FailedGenerationService),
-      module.get(FilesClientService),
-      module.get(FalService),
-      module.get(PollingService),
-      module.get(ImagesService),
-      module.get(IngredientsService),
-      module.get(OrganizationSettingsService),
-      module.get(KlingAIService),
-      module.get(LeonardoAIService),
-      module.get(LoggerService),
-      module.get(MetadataService),
-      module.get(ModelRegistrationService),
-      module.get(ModelsService),
-      module.get(PromptBuilderService),
-      module.get(PromptsService),
-      module.get(ReplicateService),
-      module.get(RouterService),
-      module.get(SharedService),
-      module.get(NotificationsPublisherService),
-    );
-
-    controller = new ImagesOperationsController(
-      module.get(ConfigService),
-      module.get(ActivitiesService),
-      module.get(FilesClientService),
-      module.get(ImagesService),
-      module.get(LoggerService),
-      module.get(SharedService),
-      module.get(TagsService),
-      imageGenerationService,
-    );
+    // Resolve ImageGenerationService from the DI graph — all its deps are
+    // provided as mocks in the TestingModule above, so this exercises the
+    // actual DI wiring and stays resilient to constructor signature changes.
+    controller = module.get(ImagesOperationsController);
     brandsService = module.get(BrandsService);
     imagesService = module.get(ImagesService);
     _promptsService = module.get(PromptsService);
@@ -955,6 +918,76 @@ describe('ImagesOperationsController', () => {
       expect(
         creditsUtilsService.checkOrganizationCreditsAvailable,
       ).toHaveBeenCalledWith(mockOrgId.toString(), 5);
+      expect(result).toBeDefined();
+    });
+
+    it('should multiply per-image credit cost by output count for deferred multi-output requests', async () => {
+      const dto: CreateImageDto = {
+        ...baseCreateDto,
+        autoSelectModel: true,
+        model: undefined,
+        outputs: 3,
+      };
+
+      const requestWithDeferred = {
+        ...mockRequest,
+        creditsConfig: {
+          amount: 0,
+          deferred: true,
+          description: 'Image generation',
+        },
+      } as unknown as Request;
+
+      // Per-image cost is 10; 3 outputs → 30 total required
+      modelsService.findOne.mockResolvedValue({ cost: 10, key: 'leonardoai' });
+      creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
+        true,
+      );
+
+      const result = await controller.create(
+        requestWithDeferred,
+        dto,
+        mockUser,
+      );
+
+      expect(
+        creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).toHaveBeenCalledWith(mockOrgId.toString(), 30);
+      expect(result).toBeDefined();
+    });
+
+    it('should multiply fallback credit cost by output count for deferred multi-output requests', async () => {
+      const dto: CreateImageDto = {
+        ...baseCreateDto,
+        autoSelectModel: true,
+        model: undefined,
+        outputs: 4,
+      };
+
+      const requestWithDeferred = {
+        ...mockRequest,
+        creditsConfig: {
+          amount: 0,
+          deferred: true,
+          description: 'Image generation',
+        },
+      } as unknown as Request;
+
+      // No model doc → fallback cost 5; 4 outputs → 20 total required
+      modelsService.findOne.mockResolvedValue(null);
+      creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
+        true,
+      );
+
+      const result = await controller.create(
+        requestWithDeferred,
+        dto,
+        mockUser,
+      );
+
+      expect(
+        creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).toHaveBeenCalledWith(mockOrgId.toString(), 20);
       expect(result).toBeDefined();
     });
   });

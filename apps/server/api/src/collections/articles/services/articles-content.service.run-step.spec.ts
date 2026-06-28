@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ArticlesContentService } from './articles-content.service';
+import type {
+  ArticlesContentServiceInternals,
+  RunTextGenerationStepParams,
+} from './articles-content.types';
 
 /**
  * Focused unit tests for the shared `runTextGenerationStep` prologue that backs
@@ -8,24 +12,6 @@ import { ArticlesContentService } from './articles-content.service';
  * (enhancement is intentionally unbilled) and surfaces the caller-supplied
  * failure message when the model returns no text.
  */
-interface RunStepParams {
-  model: string;
-  basePrompt: string;
-  harnessContext: { brief?: unknown; promptBuilder: Record<string, unknown> };
-  buildPromptOptions: Record<string, unknown>;
-  organizationId: string;
-  failureMessage: string;
-  onBilling?: (charge: {
-    amount: number;
-    inputTokens: number;
-    modelKey: string;
-    outputTokens: number;
-  }) => void;
-}
-
-interface ContentServiceInternals {
-  runTextGenerationStep(params: RunStepParams): Promise<string>;
-}
 
 function makeService() {
   const logger = {
@@ -60,11 +46,11 @@ function makeService() {
     promptBuilder,
   );
 
-  const internal = service as unknown as ContentServiceInternals;
+  const internal = service as unknown as ArticlesContentServiceInternals;
   return { internal, models, promptBuilder, replicate };
 }
 
-const baseParams: RunStepParams = {
+const baseParams: RunTextGenerationStepParams = {
   basePrompt: 'BASE PROMPT',
   buildPromptOptions: { systemPromptTemplate: 'ARTICLE', temperature: 0.8 },
   failureMessage: 'fail',

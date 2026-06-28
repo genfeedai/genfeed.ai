@@ -6,6 +6,16 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { buildPromptBrandingFromBrand } from '@api/collections/brands/utils/brand-context.util';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
+import type {
+  CompletionPlan,
+  DeferredCreditsConfig,
+  GenerationContext,
+  PublicMetadata,
+  ResolvedBrand,
+  ResolvedPrompt,
+  SavedIngredient,
+  SavedMetadata,
+} from '@api/collections/images/services/image-generation.types';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
@@ -78,66 +88,6 @@ type ImageProvider =
   | 'leonardo'
   | 'replicate'
   | 'sdxl';
-
-/** Document types inferred from the underlying services (no `any`). */
-type ResolvedBrand = NonNullable<Awaited<ReturnType<BrandsService['findOne']>>>;
-type ResolvedPrompt = Awaited<ReturnType<PromptsService['create']>>;
-type SaveDocumentsResult = Awaited<ReturnType<SharedService['saveDocuments']>>;
-type SavedIngredient = SaveDocumentsResult['ingredientData'];
-type SavedMetadata = SaveDocumentsResult['metadataData'];
-type PublicMetadata = ReturnType<typeof getPublicMetadata>;
-
-/**
- * Per-request state threaded through the provider handlers and the shared
- * completion tail. Built once by {@link ImageGenerationService.generateImage}
- * after the placeholder documents exist, so every handler reads from one place
- * instead of the previous flat method's shared mutable locals.
- */
-interface GenerationContext {
-  brand: ResolvedBrand;
-  brandPromptBranding: ReturnType<typeof buildPromptBrandingFromBrand>;
-  createImageDto: CreateImageDto;
-  height: number;
-  ingredientData: SavedIngredient;
-  metadataData: SavedMetadata;
-  model: string;
-  outputs: number;
-  /** Mutated by handlers (Fal) that fan out additional background outputs. */
-  pendingIngredientIds: string[];
-  promptBuilderBrand: {
-    description?: string;
-    label: string;
-    primaryColor?: string;
-    secondaryColor?: string;
-    text?: string;
-  };
-  promptData: ResolvedPrompt;
-  publicMetadata: PublicMetadata;
-  referenceImageUrl: string | null;
-  referenceImageUrls: string[];
-  request: Request;
-  style?: string;
-  user: User;
-  waitForCompletion: boolean;
-  websocketUrl: string;
-  width: number;
-}
-
-/**
- * How the request should resolve once a provider has dispatched.
- *
- * - `inline` — GenfeedAi completes synchronously inside its promise; on wait we
- *   re-read the ingredient (no polling, no timeout recovery).
- * - `poll-single` — KlingAI/Leonardo poll one ingredient to completion.
- * - `poll-multiple` — Replicate polls every fanned-out ingredient id.
- * - `background-only` — Fal never blocks the request; always returns the
- *   placeholder immediately.
- */
-interface CompletionPlan {
-  generationPromise: Promise<unknown>;
-  kind: 'inline' | 'poll-single' | 'poll-multiple' | 'background-only';
-  pollIds?: string[];
-}
 
 /**
  * Owns the full image-generation workflow extracted out of
@@ -560,11 +510,7 @@ export class ImageGenerationService {
     request: Request,
   ): Promise<void> {
     const reqWithCredits = request as unknown as {
-      creditsConfig?: {
-        deferred?: boolean;
-        amount?: number;
-        modelKey?: string;
-      };
+      creditsConfig?: DeferredCreditsConfig;
     };
     if (!reqWithCredits.creditsConfig?.deferred) {
       return;
@@ -577,16 +523,18 @@ export class ImageGenerationService {
 
     const imgWidth = createImageDto.width || 1920;
     const imgHeight = createImageDto.height || 1080;
+    const outputCount = Number(createImageDto.outputs) || 1;
     let requiredCredits: number;
 
     if (resolvedModelDoc) {
-      requiredCredits = this.calculateDynamicImageCost(
+      const perImageCost = this.calculateDynamicImageCost(
         resolvedModelDoc,
         imgWidth,
         imgHeight,
       );
+      requiredCredits = perImageCost * outputCount;
     } else {
-      requiredCredits = 5; // Fallback default cost
+      requiredCredits = 5 * outputCount; // Fallback default cost per image
     }
 
     const hasCredits =
@@ -659,27 +607,28 @@ export class ImageGenerationService {
   /**
    * Dispatch map: route the resolved provider to its handler. SDXL has no
    * external generation step, so it returns `null` and the request resolves to
-   * the placeholder. Adding a provider touches only a handler plus this switch.
+   * the placeholder. Adding a provider only requires a new handler and an entry
+   * in this map.
    */
   private async dispatchGeneration(
     context: GenerationContext,
     provider: ImageProvider,
   ): Promise<CompletionPlan | null> {
-    switch (provider) {
-      case 'genfeedai':
-        return this.dispatchGenfeedAi(context);
-      case 'klingai':
-        return this.dispatchKlingAI(context);
-      case 'fal':
-        return this.dispatchFal(context);
-      case 'leonardo':
-        return this.dispatchLeonardo(context);
-      case 'replicate':
-        return this.dispatchReplicate(context);
-      default:
-        // SDXL: placeholder only, no external generation.
-        return null;
-    }
+    const handlers: Partial<
+      Record<
+        ImageProvider,
+        (ctx: GenerationContext) => Promise<CompletionPlan> | CompletionPlan
+      >
+    > = {
+      fal: (ctx) => this.dispatchFal(ctx),
+      genfeedai: (ctx) => this.dispatchGenfeedAi(ctx),
+      klingai: (ctx) => this.dispatchKlingAI(ctx),
+      leonardo: (ctx) => this.dispatchLeonardo(ctx),
+      replicate: (ctx) => this.dispatchReplicate(ctx),
+      // SDXL: placeholder only, no external generation — not included so the
+      // lookup returns undefined and we fall through to `null`.
+    };
+    return (await handlers[provider]?.(context)) ?? null;
   }
 
   /**
@@ -800,18 +749,25 @@ export class ImageGenerationService {
    * Single failure path for every provider: log, persist the failed state, and
    * re-throw so the request rejects. Collapses the previously copy-pasted
    * `handleFailedImageGeneration` call sites.
+   *
+   * @param failedIngredientId - Optional override for the ingredient to mark
+   *   failed. Defaults to `context.ingredientData._id` (the primary placeholder).
+   *   Fan-out paths (Fal additional outputs, Replicate sequential loop) pass the
+   *   specific additional ingredient id so only the failed placeholder is marked.
    */
   private async handleProviderFailure(
     context: GenerationContext,
     error: unknown,
     label: string,
+    failedIngredientId?: string,
   ): Promise<never> {
     this.loggerService.error(`${label} failed`, error);
     const errorMessage = getErrorMessage(error);
+    const targetIngredientId = failedIngredientId ?? context.ingredientData._id;
 
     await this.failedGenerationService.handleFailedImageGeneration(
       this.imagesService,
-      context.ingredientData._id,
+      targetIngredientId,
       context.websocketUrl,
       context.publicMetadata,
       getUserRoomName(context.user.id),
@@ -1084,10 +1040,18 @@ export class ImageGenerationService {
       status: IngredientStatus.PROCESSING,
     });
 
-    const additionalResult = await this.falService.generateImage(
-      context.model,
-      buildFalInput(),
-    );
+    const additionalIngredientId = additionalIngredient._id.toString();
+
+    const additionalResult = await this.falService
+      .generateImage(context.model, buildFalInput())
+      .catch((error: unknown) =>
+        this.handleProviderFailure(
+          context,
+          error,
+          'FalService generateImage (additional output)',
+          additionalIngredientId,
+        ),
+      );
 
     await Promise.all([
       this.metadataService.patch(
@@ -1107,7 +1071,7 @@ export class ImageGenerationService {
       additionalIngredient._id,
     );
 
-    context.pendingIngredientIds.push(additionalIngredient._id.toString());
+    context.pendingIngredientIds.push(additionalIngredientId);
   }
 
   /**
@@ -1123,6 +1087,15 @@ export class ImageGenerationService {
       brandPromptBranding,
       promptData,
     } = context;
+
+    const destination = context.model;
+    const modelCapability = MODEL_OUTPUT_CAPABILITIES[destination];
+    const isBatchSupported = modelCapability?.isBatchSupported ?? false;
+
+    // For non-batch models, ask the prompt builder for a single output so the
+    // external API receives `outputs: 1` per call. The sequential fan-out loop
+    // issues separate API calls for each additional output.
+    const effectiveOutputsForPrompt = isBatchSupported ? context.outputs : 1;
 
     // Build provider-specific prompt using universal prompt builder with template
     // support. NOTE: This must complete before we can start generation.
@@ -1142,7 +1115,7 @@ export class ImageGenerationService {
         // Use model's category from DB (set by ModelsGuard), fallback to IMAGE
         modelCategory: ModelCategory.IMAGE,
         mood: createImageDto.mood,
-        outputs: context.outputs,
+        outputs: effectiveOutputsForPrompt,
         prompt: promptData.original,
         // Template support
         promptTemplate: createImageDto.promptTemplate,
@@ -1156,10 +1129,6 @@ export class ImageGenerationService {
       },
       context.publicMetadata.organization,
     );
-
-    const destination = context.model;
-    const modelCapability = MODEL_OUTPUT_CAPABILITIES[destination];
-    const isBatchSupported = modelCapability?.isBatchSupported ?? false;
 
     // Track all placeholder ingredient IDs - start with first one
     const pollIds: string[] = [context.ingredientData._id.toString()];
@@ -1291,6 +1260,10 @@ export class ImageGenerationService {
   /**
    * Non-batch Replicate models: make a separate API call per additional output,
    * each with its own placeholder document and external id.
+   *
+   * promptParams is expected to already have `outputs: 1` (set by the caller
+   * via effectiveOutputsForPrompt) so each individual API call requests exactly
+   * one image from the external provider.
    */
   private async createReplicateSequentialOutputs(
     context: GenerationContext,
@@ -1300,6 +1273,13 @@ export class ImageGenerationService {
     pollIds: string[],
   ): Promise<void> {
     const { createImageDto, brand, promptData, publicMetadata } = context;
+
+    // Guarantee single-output params regardless of what was built upstream.
+    const singleOutputParams: Record<string, unknown> = {
+      ...promptParams,
+      num_outputs: 1,
+      outputs: 1,
+    };
 
     await this.metadataService.patch(
       context.metadataData._id,
@@ -1326,11 +1306,19 @@ export class ImageGenerationService {
         status: IngredientStatus.PROCESSING,
       });
 
-      // Make separate API call for each output
-      const additionalGenerationId =
-        await this.replicateService.generateTextToImage(
-          destination,
-          promptParams,
+      const additionalIngredientId = additionalIngredient._id.toString();
+
+      // Make separate API call for each output; attribute failure to the
+      // specific additional placeholder, not the primary ingredient.
+      const additionalGenerationId = await this.replicateService
+        .generateTextToImage(destination, singleOutputParams)
+        .catch((error: unknown) =>
+          this.handleProviderFailure(
+            context,
+            error,
+            'ReplicateService generateTextToImage (sequential output)',
+            additionalIngredientId,
+          ),
         );
 
       await Promise.all([
@@ -1351,7 +1339,7 @@ export class ImageGenerationService {
       );
 
       // Push this additional ingredient ID to tracking array for polling
-      pollIds.push(additionalIngredient._id.toString());
+      pollIds.push(additionalIngredientId);
     }
 
     this.loggerService.log(

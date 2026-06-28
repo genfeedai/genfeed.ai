@@ -19,6 +19,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { WorkflowTrigger } from '@genfeedai/enums';
 import { PrismaClient } from '@genfeedai/prisma';
 import { Logger } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -405,6 +406,7 @@ async function ensureDefaultBundle(params: {
         status: 'active',
         steps: [],
         timezone,
+        trigger: WorkflowTrigger.SCHEDULED,
         userId: params.userId,
       },
     });

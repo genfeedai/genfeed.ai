@@ -135,6 +135,37 @@ describe('TrendQueryService', () => {
       expect(result).not.toBeNull();
       expect(String(result?.id)).toBe('x');
     });
+
+    it('without organizationId only queries global trends (organizationId: null)', async () => {
+      // Simulate DB correctly scoped to global-only; no cross-tenant doc returned
+      prisma.trend.findFirst.mockResolvedValue(
+        makeDoc(
+          'global-1',
+          { topic: 'global topic' },
+          { organizationId: null },
+        ),
+      );
+
+      const result = await service.getTrendById('global-1');
+
+      expect(result).not.toBeNull();
+      expect(String(result?.id)).toBe('global-1');
+      // Verify Prisma was called with organizationId: null scoping (no OR clause)
+      expect(prisma.trend.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ organizationId: null }),
+        }),
+      );
+    });
+
+    it('without organizationId returns null when prisma returns no match', async () => {
+      // DB returns null meaning no global trend matched — no cross-tenant leak
+      prisma.trend.findFirst.mockResolvedValue(null);
+
+      const result = await service.getTrendById('org-only-id');
+
+      expect(result).toBeNull();
+    });
   });
 
   describe('getBootstrapTrends', () => {
@@ -145,6 +176,23 @@ describe('TrendQueryService', () => {
       expect(all.length).toBeGreaterThan(1);
       expect(tiktok).toHaveLength(1);
       expect(tiktok[0]?.platform).toBe('tiktok');
+    });
+
+    it('every bootstrap trend has a valid trendType in metadata', () => {
+      const validTrendTypes = new Set([
+        'topic',
+        'hashtag',
+        'sound',
+        'video',
+        'creator',
+      ]);
+      const all = service.getBootstrapTrends();
+
+      for (const trend of all) {
+        const trendType = trend.metadata?.trendType;
+        expect(trendType).toBeDefined();
+        expect(validTrendTypes.has(trendType as string)).toBe(true);
+      }
     });
   });
 });

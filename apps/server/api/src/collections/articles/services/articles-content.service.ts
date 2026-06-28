@@ -19,6 +19,10 @@ import {
 import { UpdateArticleDto } from '@api/collections/articles/dto/update-article.dto';
 import { type ArticleDocument } from '@api/collections/articles/schemas/article.schema';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import type {
+  TextGenerationCharge,
+  XArticleContentMetadata,
+} from '@api/collections/articles/services/articles-content.types';
 import { buildTwitterThreadTweets } from '@api/collections/articles/utils/article-thread.util';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
@@ -83,13 +87,6 @@ export interface ArticleReviewRubric {
   }>;
   revisionInstructions: string;
   summary: string;
-}
-
-export interface TextGenerationCharge {
-  amount: number;
-  inputTokens: number;
-  modelKey: string;
-  outputTokens: number;
 }
 
 interface ArticleHarnessContext {
@@ -785,21 +782,7 @@ export class ArticlesContentService {
    */
   private buildXArticleContentAndMetadata(
     sections: NonNullable<ArticleGenerationResponse['sections']>,
-  ): {
-    content: string;
-    metadata: {
-      estimatedReadTime: number;
-      sections: Array<{
-        content: string;
-        heading: string;
-        id: string;
-        order: number;
-        pullQuote?: string;
-      }>;
-      wordCount: number;
-    };
-    wordCount: number;
-  } {
+  ): XArticleContentMetadata {
     // Headings and pull quotes are plain-text fields; escape them before
     // wrapping in HTML so generated text can't inject markup. section.content
     // is intentionally HTML and passes through unescaped.

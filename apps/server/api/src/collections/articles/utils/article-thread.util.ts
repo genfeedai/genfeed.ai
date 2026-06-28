@@ -1,4 +1,5 @@
 import { TwitterThreadResponse } from '@api/collections/articles/dto/article-to-thread.dto';
+import type { BuildTwitterThreadParams } from '@api/collections/articles/utils/article-thread.types';
 
 /**
  * Pure Twitter/X thread builder for articles.
@@ -10,16 +11,9 @@ import { TwitterThreadResponse } from '@api/collections/articles/dto/article-to-
  */
 export const MAX_TWEET_CHARS = 280;
 
-export function buildTwitterThreadTweets(params: {
-  /** Raw article content (may contain HTML — tags are stripped). */
-  content: string;
-  /** Resolved article label (already defaulted by the caller). */
-  label: string;
-  /** Article summary (empty string when absent). */
-  summary: string;
-  /** Fully-resolved public/preview article URL; omit to skip the link tweet. */
-  articleUrl?: string;
-}): TwitterThreadResponse['tweets'] {
+export function buildTwitterThreadTweets(
+  params: BuildTwitterThreadParams,
+): TwitterThreadResponse['tweets'] {
   const content = params.content
     .replace(/<[^>]+>/g, '') // Strip HTML tags
     .replace(/\n+/g, '\n') // Normalize newlines
@@ -43,10 +37,14 @@ export function buildTwitterThreadTweets(params: {
       order: 1,
     });
   } else {
-    // Title only if too long
+    // Title only if too long — truncate if the label itself exceeds the limit
+    const safeLabel =
+      params.label.length <= MAX_TWEET_CHARS
+        ? params.label
+        : `${params.label.slice(0, MAX_TWEET_CHARS - 1)}…`;
     tweets.push({
-      characterCount: params.label.length,
-      content: params.label,
+      characterCount: safeLabel.length,
+      content: safeLabel,
       order: 1,
     });
   }
@@ -82,7 +80,20 @@ export function buildTwitterThreadTweets(params: {
               order: tweets.length + 1,
             });
           }
-          currentTweet = sentence;
+          if (sentence.length > MAX_TWEET_CHARS) {
+            // Sentence exceeds the limit on its own — hard-split into chunks
+            for (let i = 0; i < sentence.length; i += MAX_TWEET_CHARS) {
+              const chunk = sentence.slice(i, i + MAX_TWEET_CHARS);
+              tweets.push({
+                characterCount: chunk.length,
+                content: chunk,
+                order: tweets.length + 1,
+              });
+            }
+            currentTweet = '';
+          } else {
+            currentTweet = sentence;
+          }
         }
       });
 

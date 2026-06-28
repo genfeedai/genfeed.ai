@@ -19,6 +19,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { TREND_DIGEST_CREDIT_COST } from '@genfeedai/constants';
 import { PrismaClient } from '@genfeedai/prisma';
 import { Logger } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -46,7 +47,7 @@ const DAILY_TRENDS_DIGEST_NODES = [
   {
     data: {
       config: {
-        creditCost: 5,
+        creditCost: TREND_DIGEST_CREDIT_COST,
         minViralScore: 70,
         platforms: ['tiktok', 'instagram', 'youtube', 'twitter'],
         topN: 5,
