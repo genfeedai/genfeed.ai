@@ -364,7 +364,11 @@ describe('SeoScorerService', () => {
     });
     expect(prisma.article.update).toHaveBeenCalledTimes(1);
     const updateArg = prisma.article.update.mock.calls[0][0];
-    expect(updateArg.where).toEqual({ id: 'art_1', isDeleted: false });
+    expect(updateArg.where).toEqual({
+      id: 'art_1',
+      isDeleted: false,
+      organizationId: 'org_1',
+    });
     expect(typeof updateArg.data.seoScore).toBe('number');
     expect(updateArg.data.seoBreakdown).toBeTruthy();
     expect(card.score).toBe(updateArg.data.seoScore);
@@ -372,7 +376,7 @@ describe('SeoScorerService', () => {
 
   it('throws NotFound when the article is missing', async () => {
     prisma.article.findFirst.mockResolvedValue(null);
-    await expect(service.scoreArticle('missing')).rejects.toThrow(
+    await expect(service.scoreArticle('missing', 'org_1')).rejects.toThrow(
       'Article not found',
     );
   });
@@ -389,7 +393,11 @@ describe('SeoScorerService', () => {
     const card = await service.scorePost('post_1', 'org_1', 'email marketing');
     expect(prisma.post.update).toHaveBeenCalledTimes(1);
     const updateArg = prisma.post.update.mock.calls[0][0];
-    expect(updateArg.where).toEqual({ id: 'post_1', isDeleted: false });
+    expect(updateArg.where).toEqual({
+      id: 'post_1',
+      isDeleted: false,
+      organizationId: 'org_1',
+    });
     expect(typeof updateArg.data.seoScore).toBe('number');
     expect(updateArg.data.seoBreakdown).toBeTruthy();
     expect(card.score).toBe(updateArg.data.seoScore);
@@ -397,7 +405,7 @@ describe('SeoScorerService', () => {
 
   it('throws NotFound when the post is missing', async () => {
     prisma.post.findFirst.mockResolvedValue(null);
-    await expect(service.scorePost('missing')).rejects.toThrow(
+    await expect(service.scorePost('missing', 'org_1')).rejects.toThrow(
       'Post not found',
     );
   });

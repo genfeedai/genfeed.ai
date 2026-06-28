@@ -105,14 +105,14 @@ export class SeoScorerService {
   /** Score an article by id and persist the result. */
   async scoreArticle(
     articleId: string,
-    organizationId?: string,
+    organizationId: string,
     targetKeyword?: string,
   ): Promise<SeoScorecard> {
     const article = await this.prisma.article.findFirst({
       where: {
         id: articleId,
         isDeleted: false,
-        ...(organizationId ? { organizationId } : {}),
+        organizationId,
       },
     });
     if (!article) {
@@ -127,21 +127,21 @@ export class SeoScorerService {
       title: article.title,
     });
 
-    await this.persist('article', article.id, scorecard);
+    await this.persist('article', article.id, organizationId, scorecard);
     return scorecard;
   }
 
   /** Score a post by id and persist the result. */
   async scorePost(
     postId: string,
-    organizationId?: string,
+    organizationId: string,
     targetKeyword?: string,
   ): Promise<SeoScorecard> {
     const post = await this.prisma.post.findFirst({
       where: {
         id: postId,
         isDeleted: false,
-        ...(organizationId ? { organizationId } : {}),
+        organizationId,
       },
     });
     if (!post) {
@@ -156,7 +156,7 @@ export class SeoScorerService {
       title: post.label,
     });
 
-    await this.persist('post', post.id, scorecard);
+    await this.persist('post', post.id, organizationId, scorecard);
     return scorecard;
   }
 
@@ -165,6 +165,7 @@ export class SeoScorerService {
   private async persist(
     type: SeoScorableType,
     id: string,
+    organizationId: string,
     scorecard: SeoScorecard,
   ): Promise<void> {
     const data = {
@@ -178,14 +179,18 @@ export class SeoScorerService {
       seoScore: scorecard.score,
     };
 
-    // Guard against a soft-delete racing between findFirst and persist.
+    // Scope the write by organization (defense-in-depth beyond the org-scoped
+    // read) and guard against a soft-delete racing between findFirst and persist.
     if (type === 'article') {
       await this.prisma.article.update({
         data,
-        where: { id, isDeleted: false },
+        where: { id, isDeleted: false, organizationId },
       });
     } else {
-      await this.prisma.post.update({ data, where: { id, isDeleted: false } });
+      await this.prisma.post.update({
+        data,
+        where: { id, isDeleted: false, organizationId },
+      });
     }
   }
 
