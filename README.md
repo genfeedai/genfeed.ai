@@ -27,7 +27,6 @@ Genfeed.ai is a self-hostable, AI-powered content creation platform. Generate im
 - **Editor** -- video and media composition timeline
 - **Desktop App** -- native Electron app for macOS, Windows, and Linux
 - **Mobile App** -- React Native / Expo for iOS and Android
-- **Admin Panel** -- model management, GPU configuration, system settings
 - **API + SDK** -- typed client library for programmatic access
 - **Self-Hosted GPU** -- bring your own GPU with ComfyUI integration
 
@@ -37,10 +36,11 @@ Genfeed.ai is a self-hostable, AI-powered content creation platform. Generate im
 git clone https://github.com/genfeedai/genfeed.ai.git
 cd genfeed.ai/docker
 cp .env.example .env
-docker compose up
+docker compose -f docker-compose.selfhosted.yml up
 ```
 
-The web UI will be available at `http://localhost:3000` and the API at `http://localhost:4000`.
+The web UI will be available at `http://localhost:3000`, the API at
+`http://localhost:3010`, and the local MCP surface at `http://localhost:3014`.
 
 ## Architecture
 
@@ -62,8 +62,7 @@ genfeed.ai/
       discord/        -- Discord bot integration
       slack/          -- Slack bot integration
       telegram/       -- Telegram bot integration
-    web/              -- Next.js studio UI
-    admin/            -- admin panel
+    app/              -- Next.js studio UI
     desktop/          -- Electron desktop app
     mobile/           -- React Native mobile app
     website/          -- marketing site
