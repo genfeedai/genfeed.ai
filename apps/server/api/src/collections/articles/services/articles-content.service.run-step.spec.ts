@@ -28,7 +28,12 @@ interface ContentServiceInternals {
 }
 
 function makeService() {
-  const logger = { debug: vi.fn(), error: vi.fn(), log: vi.fn(), warn: vi.fn() };
+  const logger = {
+    debug: vi.fn(),
+    error: vi.fn(),
+    log: vi.fn(),
+    warn: vi.fn(),
+  };
   const config = { get: vi.fn() };
   const models = {
     findOne: vi.fn().mockResolvedValue({ cost: 5, pricingType: 'flat' }),
