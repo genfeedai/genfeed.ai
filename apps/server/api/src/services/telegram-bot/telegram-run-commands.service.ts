@@ -228,6 +228,15 @@ export class TelegramRunCommandsService {
       return;
     }
 
+    // Never bind a personal API key to a shared chat: in a group/supergroup
+    // the context is keyed by chatId, so any participant could use the key.
+    if (ctx.chat?.type !== 'private') {
+      await ctx.reply(
+        '🔒 For your security, connect an API key in a direct message with the bot, not in a group chat.',
+      );
+      return;
+    }
+
     if (!this.apiKeysService) {
       await ctx.reply('⚠️ API key verification service is unavailable.');
       return;
@@ -330,11 +339,10 @@ export class TelegramRunCommandsService {
       return;
     }
 
-    const resolved = await this.resolveRunCommandContext(ctx, [
-      ApiKeyScope.VIDEOS_READ,
-      ApiKeyScope.IMAGES_READ,
-      ApiKeyScope.ANALYTICS_READ,
-    ]);
+    // Reading the status of a run in your own organization should not require
+    // every create/read scope; a connected context is enough, and getRun is
+    // already organization-scoped (so cross-tenant runs are not visible).
+    const resolved = await this.resolveRunCommandContext(ctx, []);
     if (!resolved) {
       return;
     }

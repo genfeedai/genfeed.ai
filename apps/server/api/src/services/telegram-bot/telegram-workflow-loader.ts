@@ -171,6 +171,8 @@ export function toExecutableWorkflow(
   workflow: WorkflowJson,
   collectedInputs: Map<string, string>,
   workflowId: string,
+  organizationId?: string,
+  userId?: string,
 ): ExecutableWorkflow {
   const nodes: ExecutableNode[] = workflow.nodes.map((node) => {
     const config = { ...node.data };
@@ -210,7 +212,9 @@ export function toExecutableWorkflow(
     id: workflowId,
     lockedNodeIds: [],
     nodes,
-    organizationId: 'telegram-bot',
-    userId: 'telegram-bot',
+    // Execute under the connected chat's real tenant when available; fall back
+    // to the bot sentinel only for unauthenticated (no /connect) chats.
+    organizationId: organizationId ?? 'telegram-bot',
+    userId: userId ?? 'telegram-bot',
   };
 }

@@ -17,6 +17,7 @@
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { RunsService } from '@api/collections/runs/services/runs.service';
 import { ConfigService } from '@api/config/config.service';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FalService } from '@api/services/integrations/fal/fal.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import {
@@ -64,13 +65,17 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
     @Optional() private readonly falService?: FalService,
     @Optional() private readonly runsService?: RunsService,
     @Optional() private readonly apiKeysService?: ApiKeysService,
+    @Optional() private readonly filesClientService?: FilesClientService,
   ) {
     this.runCommands = new TelegramRunCommandsService(
       this.loggerService,
       this.runsService,
       this.apiKeysService,
     );
-    this.runner = new TelegramWorkflowRunnerService(this.loggerService);
+    this.runner = new TelegramWorkflowRunnerService(
+      this.loggerService,
+      (chatId) => this.runCommands.resolveAuthContext(chatId),
+    );
     this.conversation = new TelegramConversationService(
       this.loggerService,
       this.runner,
@@ -79,6 +84,7 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
       this.loggerService,
       this.conversation,
       this.runCommands,
+      this.filesClientService,
     );
   }
 

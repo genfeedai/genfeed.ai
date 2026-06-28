@@ -39,12 +39,17 @@ function unwrapFirst(result: unknown): unknown {
 export async function pollReplicatePrediction(
   replicateService: ReplicateService,
   predictionId: string,
+  abortSignal?: AbortSignal,
   maxWaitMs = 10 * 60 * 1000,
 ): Promise<unknown> {
   const startTime = Date.now();
   const pollIntervalMs = 3000;
 
   while (Date.now() - startTime < maxWaitMs) {
+    if (abortSignal?.aborted) {
+      throw new Error(`Prediction ${predictionId} aborted`);
+    }
+
     const prediction = (await replicateService.getPrediction(
       predictionId,
     )) as ReplicatePredictionResult;
@@ -68,6 +73,10 @@ export async function pollReplicatePrediction(
 
     // Wait before polling again
     await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+
+    if (abortSignal?.aborted) {
+      throw new Error(`Prediction ${predictionId} aborted`);
+    }
   }
 
   throw new Error(
@@ -209,6 +218,7 @@ export function registerWorkflowExecutors(
       const result = await pollReplicatePrediction(
         replicateService,
         predictionId,
+        _ctx.abortSignal,
       );
 
       const outputUrl = unwrapFirst(result);
@@ -276,6 +286,7 @@ export function registerWorkflowExecutors(
       const result = await pollReplicatePrediction(
         replicateService,
         predictionId,
+        _ctx.abortSignal,
       );
       const outputUrl = unwrapFirst(result);
 

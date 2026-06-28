@@ -7,8 +7,10 @@
  * input collection or a pending-image generate run.
  */
 
+import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import type { TelegramConversationService } from '@api/services/telegram-bot/telegram-conversation.service';
 import type { TelegramRunCommandsService } from '@api/services/telegram-bot/telegram-run-commands.service';
+import { FileInputType } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { Context } from 'grammy';
 
@@ -19,6 +21,7 @@ export class TelegramMessageHandlerService {
     private readonly loggerService: LoggerService,
     private readonly conversation: TelegramConversationService,
     private readonly runCommands: TelegramRunCommandsService,
+    private readonly filesClientService?: FilesClientService,
   ) {}
 
   setBotToken(token: string): void {
@@ -43,18 +46,17 @@ export class TelegramMessageHandlerService {
 
     if (!state || state.step !== 'collecting_inputs') {
       try {
-        const { fileUrl, tmpPath } = await this.downloadPhotoFromTelegram(
+        const { imageUrl } = await this.downloadPhotoFromTelegram(
           ctx,
           bestPhoto.file_id,
           chatId,
           'agent-generate',
         );
 
-        this.conversation.setPendingImage(chatId, fileUrl);
-        // Do not log fileUrl: it embeds the bot token (bot<token>) in the path.
+        this.conversation.setPendingImage(chatId, imageUrl);
         this.loggerService.log(
           'TelegramBotService: Pending generation photo saved',
-          { chatId, tmpPath },
+          { chatId },
         );
 
         await ctx.reply(
@@ -79,22 +81,19 @@ export class TelegramMessageHandlerService {
     }
 
     try {
-      const { fileUrl, tmpPath } = await this.downloadPhotoFromTelegram(
+      const { imageUrl } = await this.downloadPhotoFromTelegram(
         ctx,
         bestPhoto.file_id,
         chatId,
         currentInput.nodeId,
       );
 
-      // Store the Telegram file URL (Replicate can fetch from URLs)
-      // We keep the local path too for potential local processing
-      state.collectedInputs.set(currentInput.nodeId, fileUrl);
+      // Store the re-hosted, token-free image URL; Replicate fetches from it.
+      state.collectedInputs.set(currentInput.nodeId, imageUrl);
       state.currentInputIndex++;
 
-      // Do not log fileUrl: it embeds the bot token (bot<token>) in the path.
       this.loggerService.log(
         `TelegramBotService: Image saved for node ${currentInput.nodeId}`,
-        { tmpPath },
       );
 
       await this.conversation.promptNextInput(ctx, chatId);
@@ -153,31 +152,47 @@ export class TelegramMessageHandlerService {
     await this.conversation.promptNextInput(ctx, chatId);
   }
 
+  /**
+   * Download a Telegram photo and re-host it to our own storage, returning a
+   * token-free public URL. The Telegram file URL embeds the long-lived bot
+   * token (`bot<token>`), so it must never be persisted in conversation state,
+   * forwarded to Replicate, or logged — it stays local to this method.
+   */
   private async downloadPhotoFromTelegram(
     ctx: Context,
     fileId: string,
     chatId: number,
     nodeId: string,
-  ): Promise<{ fileUrl: string; tmpPath: string }> {
+  ): Promise<{ imageUrl: string }> {
+    if (!this.filesClientService) {
+      throw new Error('File storage service is unavailable');
+    }
+
     const file = await ctx.api.getFile(fileId);
-    const fileUrl = `https://api.telegram.org/file/bot${this.botToken}/${file.file_path}`;
+    const telegramFileUrl = `https://api.telegram.org/file/bot${this.botToken}/${file.file_path}`;
 
-    const fs = await import('node:fs/promises');
-    const path = await import('node:path');
-    const os = await import('node:os');
-    const tmpDir = path.join(os.tmpdir(), 'genfeed-tg-bot');
-    await fs.mkdir(tmpDir, { recursive: true });
-
-    const ext = path.extname(file.file_path || '.jpg') || '.jpg';
-    const tmpPath = path.join(
-      tmpDir,
-      `${chatId}-${nodeId}-${Date.now()}${ext}`,
-    );
-
-    const response = await fetch(fileUrl);
+    const response = await fetch(telegramFileUrl);
+    if (!response.ok) {
+      throw new Error(`Telegram file download failed: ${response.status}`);
+    }
     const buffer = Buffer.from(await response.arrayBuffer());
-    await fs.writeFile(tmpPath, buffer);
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
 
-    return { fileUrl, tmpPath };
+    const path = await import('node:path');
+    const ext = path.extname(file.file_path || '') || '.jpg';
+    const key = `telegram-uploads/${chatId}-${nodeId}-${Date.now()}${ext}`;
+
+    const metadata = await this.filesClientService.uploadToS3(key, 'images', {
+      contentType,
+      data: buffer,
+      type: FileInputType.BUFFER,
+    });
+
+    // Fail closed: never fall back to the tokenized Telegram URL.
+    if (!metadata.publicUrl) {
+      throw new Error('Re-hosted image did not return a public URL');
+    }
+
+    return { imageUrl: metadata.publicUrl };
   }
 }

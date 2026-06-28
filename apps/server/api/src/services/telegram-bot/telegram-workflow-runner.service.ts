@@ -7,7 +7,10 @@
  * conversation state machine only orchestrates and this collaborator executes.
  */
 
-import type { ConversationState } from '@api/services/telegram-bot/telegram-bot.types';
+import type {
+  ChatAuthContext,
+  ConversationState,
+} from '@api/services/telegram-bot/telegram-bot.types';
 import { toExecutableWorkflow } from '@api/services/telegram-bot/telegram-workflow-loader';
 import { ParseMode } from '@genfeedai/enums';
 import type {
@@ -19,7 +22,12 @@ import type { LoggerService } from '@libs/logger/logger.service';
 import type { Context } from 'grammy';
 
 export class TelegramWorkflowRunnerService {
-  constructor(private readonly loggerService: LoggerService) {}
+  constructor(
+    private readonly loggerService: LoggerService,
+    private readonly resolveAuthContext?: (
+      chatId: number,
+    ) => ChatAuthContext | null,
+  ) {}
 
   /**
    * Execute a confirmed workflow run and report progress/results to the chat.
@@ -49,11 +57,16 @@ export class TelegramWorkflowRunnerService {
     const startTime = Date.now();
 
     try {
-      // Convert workflow JSON → ExecutableWorkflow
+      // Convert workflow JSON → ExecutableWorkflow under the chat's real tenant
+      // (org/user) when the chat has connected; otherwise the loader falls back
+      // to the bot sentinel.
+      const authContext = this.resolveAuthContext?.(chatId) ?? null;
       const executableWorkflow = toExecutableWorkflow(
         workflow,
         state.collectedInputs,
         state.workflowId || 'unknown',
+        authContext?.organizationId,
+        authContext?.userId,
       );
 
       this.loggerService.log(
@@ -82,8 +95,15 @@ export class TelegramWorkflowRunnerService {
       const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
 
       if (result.status === 'completed') {
-        // Find output node results
-        await this.sendResults(ctx, chatId, result, durationSec);
+        // Only collect media from terminal output nodes: imageGen/videoGen and
+        // the output node both surface image/video, so scanning every node
+        // would send duplicate files.
+        const outputNodeIds = new Set(
+          executableWorkflow.nodes
+            .filter((node) => node.type === 'output')
+            .map((node) => node.id),
+        );
+        await this.sendResults(ctx, result, durationSec, outputNodeIds);
       } else {
         await ctx.reply(
           `❌ **Workflow failed**\n\n` +
@@ -156,14 +176,19 @@ export class TelegramWorkflowRunnerService {
    */
   private async sendResults(
     ctx: Context,
-    _chatId: number,
     result: ExecutionRunResult,
     durationSec: string,
+    outputNodeIds: Set<string>,
   ): Promise<void> {
-    // Collect all outputs from output nodes
     const outputs: Array<{ type: string; url: string }> = [];
 
-    for (const [_nodeId, nodeResult] of result.nodeResults) {
+    for (const [nodeId, nodeResult] of result.nodeResults) {
+      // When the workflow declares terminal output nodes, only collect from
+      // those (avoids duplicate files from intermediate gen nodes). Fall back
+      // to every completed node when no output node is declared.
+      if (outputNodeIds.size > 0 && !outputNodeIds.has(nodeId)) {
+        continue;
+      }
       if (nodeResult.status !== 'completed' || !nodeResult.output) {
         continue;
       }

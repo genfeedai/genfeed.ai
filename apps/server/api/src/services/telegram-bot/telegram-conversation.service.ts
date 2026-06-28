@@ -181,6 +181,19 @@ export class TelegramConversationService {
       return;
     }
 
+    // Once a run is in flight, ignore confirm/edit/cancel taps: a double-tap on
+    // Run would execute the workflow twice, and Edit/Cancel would mutate or
+    // clear the conversation while the original run is still executing.
+    if (
+      (data === CALLBACK_PREFIX.CONFIRM_RUN ||
+        data === CALLBACK_PREFIX.CONFIRM_EDIT ||
+        data === CALLBACK_PREFIX.CONFIRM_CANCEL) &&
+      this.isExecuting(chatId)
+    ) {
+      await ctx.reply('⏳ A workflow is already running. Please wait.');
+      return;
+    }
+
     const handlers: Record<string, () => Promise<void>> = {
       [CALLBACK_PREFIX.CONFIRM_CANCEL]: () =>
         this.resetConversation(ctx, chatId),
