@@ -51,9 +51,10 @@ export class TelegramMessageHandlerService {
         );
 
         this.conversation.setPendingImage(chatId, fileUrl);
+        // Do not log fileUrl: it embeds the bot token (bot<token>) in the path.
         this.loggerService.log(
           'TelegramBotService: Pending generation photo saved',
-          { chatId, fileUrl, tmpPath },
+          { chatId, tmpPath },
         );
 
         await ctx.reply(
@@ -90,9 +91,10 @@ export class TelegramMessageHandlerService {
       state.collectedInputs.set(currentInput.nodeId, fileUrl);
       state.currentInputIndex++;
 
+      // Do not log fileUrl: it embeds the bot token (bot<token>) in the path.
       this.loggerService.log(
         `TelegramBotService: Image saved for node ${currentInput.nodeId}`,
-        { fileUrl, tmpPath },
+        { tmpPath },
       );
 
       await this.conversation.promptNextInput(ctx, chatId);
