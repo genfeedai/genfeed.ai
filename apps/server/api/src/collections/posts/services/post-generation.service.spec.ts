@@ -170,6 +170,10 @@ Tweet 3: Tech innovation is changing the world.`,
     };
 
     it('resolves context, creates a post per requested item, and returns them', async () => {
+      vi.spyOn(service, 'generateAccountContentAsync').mockResolvedValueOnce(
+        undefined,
+      );
+
       const result = await service.startAccountContentGeneration(
         dto,
         publicMetadata,

@@ -142,11 +142,16 @@ export class PostGenerationService {
       }
     } catch {
       // Fallback to marker-based splitting (---)
-      const posts = content
-        .split('---')
-        .map((post) => cleanPost(post))
-        .filter((post) => post.length > 0 && isValid(post))
-        .slice(0, maxCount);
+      // Only treat '---' as the post separator when it is actually present;
+      // otherwise a newline-delimited "one post per line" response would
+      // collapse into a single post.
+      const posts = content.includes('---')
+        ? content
+            .split('---')
+            .map((post) => cleanPost(post))
+            .filter((post) => post.length > 0 && isValid(post))
+            .slice(0, maxCount)
+        : [];
 
       if (posts.length > 0) {
         tweetLines = posts;
@@ -967,10 +972,12 @@ Requirements:
         .slice(0, count);
     }
 
+    const returnedHooks = hooks.slice(0, count);
+
     return {
-      hooks: hooks.slice(0, count),
+      hooks: returnedHooks,
       metadata: {
-        count: hooks.length,
+        count: returnedHooks.length,
         generatedAt: new Date().toISOString(),
         platform: dto.platform,
         topic: dto.topic,
