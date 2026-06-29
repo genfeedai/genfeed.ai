@@ -372,33 +372,71 @@ describe('DefaultRecurringContentService', () => {
     }
   });
 
-  it('treats a P2034 serialization conflict as success and does not throw', async () => {
-    const transactionSpy = vi.fn(async () => {
-      const error = new Error('could not serialize access') as Error & {
-        code: string;
-      };
-      error.code = 'P2034';
-      throw error;
+  it('retries on P2034 serialization failure and creates the workflow on the next attempt', async () => {
+    // Simulates the root-cause bug: an unrelated concurrent write (different
+    // org, a UI edit) causes a P2034 serialization failure. The original code
+    // silently swallowed P2034 as "already created", leaving the brand without
+    // its default recurring workflows. The fix must RETRY and ultimately create
+    // the workflow.
+    //
+    // Strategy: the spy throws P2034 on the first call and succeeds on the
+    // second. We also need a real committed store so getStatus (called at the
+    // end via includeStatus: undefined default) can observe the created row.
+    const { committed, prisma: basePrisma } = createFakePrisma({
+      brand: buildBrand(),
     });
+
+    let transactionCallCount = 0;
+    const overriddenTransactionSpy = vi.fn(
+      async (
+        fn: (tx: FakeTxClient) => Promise<unknown>,
+        opts?: { isolationLevel?: string },
+      ) => {
+        transactionCallCount += 1;
+        if (transactionCallCount === 1) {
+          // First call: simulate unrelated serialization failure (not a
+          // "workflow already created" signal — the store is still empty).
+          const error = new Error('could not serialize access') as Error & {
+            code: string;
+          };
+          error.code = 'P2034';
+          throw error;
+        }
+        // Subsequent calls: delegate to the real fake transaction logic.
+        return basePrisma.$transaction(fn, opts);
+      },
+    );
+
     const prisma = {
-      $transaction: transactionSpy,
-      brand: { findFirst: async () => buildBrand() },
-      credential: { findFirst: async () => null },
-      workflow: { findMany: async () => [], update: vi.fn() },
+      ...basePrisma,
+      $transaction: overriddenTransactionSpy,
     } as unknown as PrismaService;
+
     const service = new DefaultRecurringContentService(prisma, createLogger());
 
-    await expect(service.ensureDefaultBundle(buildParams())).resolves.toEqual({
-      isConfigured: true,
-      items: [],
+    // Must not throw — retry should succeed and workflows must be created.
+    await expect(
+      service.ensureDefaultBundle({ ...buildParams(), includeStatus: false }),
+    ).resolves.toEqual({ isConfigured: true, items: [] });
+
+    // Three workflows created after retrying; the false P2034 must NOT have
+    // been misread as "already created and skipped".
+    expect(committed).toHaveLength(CONTENT_TYPES.length);
+    expect(countByContentType(committed)).toEqual({
+      image: 1,
+      newsletter: 1,
+      post: 1,
     });
-    // Spy throws P2034 unconditionally, exercising the catch-handler path only
-    // (one swallow per missing content type). Actual conflict detection is
-    // covered by the concurrency test above.
-    expect(transactionSpy).toHaveBeenCalledTimes(CONTENT_TYPES.length);
+    // The first content type's first attempt failed; it retried once. The
+    // remaining content types succeeded on the first attempt. Total tx calls
+    // must be > CONTENT_TYPES.length (at least one retry).
+    expect(transactionCallCount).toBeGreaterThan(CONTENT_TYPES.length);
   });
 
-  it('rethrows non-serialization transaction errors', async () => {
+  it('treats a P2002 unique constraint violation as success (concurrent winner already committed)', async () => {
+    // P2002 is the legitimate "already created" signal — a concurrent caller
+    // committed the row first and a unique constraint (if present) fires.
+    // The fix must stop retrying immediately and return success.
     const transactionSpy = vi.fn(async () => {
       const error = new Error('unique constraint failed') as Error & {
         code: string;
@@ -414,10 +452,60 @@ describe('DefaultRecurringContentService', () => {
     } as unknown as PrismaService;
     const service = new DefaultRecurringContentService(prisma, createLogger());
 
-    await expect(service.ensureDefaultBundle(buildParams())).rejects.toThrow(
-      'unique constraint failed',
-    );
-    // Aborts on the first failing content type.
+    await expect(
+      service.ensureDefaultBundle({ ...buildParams(), includeStatus: false }),
+    ).resolves.toEqual({ isConfigured: true, items: [] });
+    // One P2002 per missing content type — no retries (each is immediately treated
+    // as "concurrent winner already created it").
+    expect(transactionSpy).toHaveBeenCalledTimes(CONTENT_TYPES.length);
+  });
+
+  it('rethrows P2034 after exhausting all retries', async () => {
+    // If all MAX_SERIALIZATION_RETRIES attempts fail with P2034, the error
+    // must propagate so the caller (onboarding flow, system job) sees a failure
+    // and can alert/retry at a higher level. The brand should NOT be silently
+    // left without its default recurring workflows.
+    let callCount = 0;
+    const transactionSpy = vi.fn(async () => {
+      callCount += 1;
+      const error = new Error('could not serialize access') as Error & {
+        code: string;
+      };
+      error.code = 'P2034';
+      throw error;
+    });
+    const prisma = {
+      $transaction: transactionSpy,
+      brand: { findFirst: async () => buildBrand() },
+      credential: { findFirst: async () => null },
+      workflow: { findMany: async () => [], update: vi.fn() },
+    } as unknown as PrismaService;
+    const service = new DefaultRecurringContentService(prisma, createLogger());
+
+    await expect(
+      service.ensureDefaultBundle({ ...buildParams(), includeStatus: false }),
+    ).rejects.toThrow('could not serialize access');
+    // 3 retries per content type, aborts on the first content type that
+    // exhausts all retries.
+    expect(callCount).toBe(3);
+  });
+
+  it('rethrows unknown transaction errors without retrying', async () => {
+    const transactionSpy = vi.fn(async () => {
+      throw new Error('connection lost');
+    });
+    const prisma = {
+      $transaction: transactionSpy,
+      brand: { findFirst: async () => buildBrand() },
+      credential: { findFirst: async () => null },
+      workflow: { findMany: async () => [], update: vi.fn() },
+    } as unknown as PrismaService;
+    const service = new DefaultRecurringContentService(prisma, createLogger());
+
+    await expect(
+      service.ensureDefaultBundle({ ...buildParams(), includeStatus: false }),
+    ).rejects.toThrow('connection lost');
+    // Aborts immediately — no retry for non-P2034 errors.
     expect(transactionSpy).toHaveBeenCalledTimes(1);
   });
 

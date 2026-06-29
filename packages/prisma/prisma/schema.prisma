@@ -2706,6 +2706,11 @@ model Workflow {
   executions WorkflowExecution[]
   batchJobs  BatchWorkflowJob[]
 
+  // Narrows predicate locks on the default-recurring-workflow re-check from a
+  // relation-level SIReadLock to a page-level lock, preventing unrelated
+  // concurrent writes to `workflows` (different org/brand) from aborting the
+  // Serializable transaction with a false-positive P2034.
+  @@index([organizationId, isDeleted])
   @@map("workflows")
 }
 

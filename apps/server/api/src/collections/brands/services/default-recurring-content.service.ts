@@ -5,10 +5,19 @@ import { WorkflowStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
-// Prisma serialization-failure code surfaced when a Serializable transaction
-// loses a write/write race (SQLSTATE 40001). A concurrent caller already
-// created the default workflow, so we treat it as success.
+// Prisma error codes used for race-condition handling.
+// P2034 — serialization failure (SQLSTATE 40001): the Serializable transaction
+//   was aborted by Postgres because of a read/write conflict with a concurrent
+//   transaction. This does NOT mean the workflow was already created; it means
+//   we need to retry. Silently swallowing P2034 as "already created" was the
+//   original bug: an unrelated concurrent write (different org, a UI edit) could
+//   abort the tx and silently leave the brand without its default recurring
+//   workflows. The fix retries up to MAX_SERIALIZATION_RETRIES times.
+// P2002 — unique constraint violation: a concurrent caller won the race and
+//   committed the row first. Here it IS safe to treat as "already created".
 const PRISMA_SERIALIZATION_FAILURE = 'P2034';
+const PRISMA_UNIQUE_CONSTRAINT_VIOLATION = 'P2002';
+const MAX_SERIALIZATION_RETRIES = 3;
 
 type DefaultRecurringContentType = 'image' | 'newsletter' | 'post';
 
@@ -190,9 +199,11 @@ export class DefaultRecurringContentService {
       const existing = existingByType.get(contentType);
       if (existing) {
         if (!existing.isScheduleEnabled) {
+          // Guard isDeleted so a soft-deleted row is never accidentally
+          // re-enabled by the fast-path update.
           await this.prisma.workflow.update({
             data: { isScheduleEnabled: true },
-            where: { id: existing.id },
+            where: { id: existing.id, isDeleted: false },
           });
         }
         continue;
@@ -225,10 +236,19 @@ export class DefaultRecurringContentService {
 
   /**
    * Idempotently ensures a single default recurring workflow exists for the
-   * given brand + contentType. Both the existence re-check and the create run
-   * inside the same Serializable transaction so concurrent callers cannot each
-   * create a duplicate: the second committer hits a serialization failure
-   * (P2034), which we treat as "already created by the winner".
+   * given brand + contentType. The existence re-check and create both run inside
+   * a Serializable transaction so concurrent callers cannot each create a
+   * duplicate.
+   *
+   * If the transaction fails with P2034 (serialization failure), it is retried
+   * up to MAX_SERIALIZATION_RETRIES times before giving up — a P2034 does NOT
+   * mean the workflow was already created; it means a concurrent write
+   * (possibly to a completely unrelated org or brand) invalidated the snapshot.
+   * An (organizationId, isDeleted) index on `workflows` narrows predicate locks
+   * to matching pages, drastically reducing the false-positive rate.
+   *
+   * P2002 (unique constraint) is the legitimate "concurrent winner already
+   * committed the row" signal and is treated as success immediately.
    */
   private async ensureRecurringWorkflowForType(params: {
     brand: BrandDocument;
@@ -259,65 +279,105 @@ export class DefaultRecurringContentService {
           )?.id ?? null)
         : null;
 
-    try {
-      await this.prisma.$transaction(
-        async (tx) => {
-          // Re-check inside the transaction. The metadata filter is unindexed,
-          // so Postgres seq-scans `workflows` and takes a relation-level
-          // SIReadLock; any concurrent insert into `workflows` therefore forms
-          // the read/write conflict that Serializable isolation needs to
-          // serialise the racing callers and reject the duplicate at commit.
-          const existing = await tx.workflow.findFirst({
-            select: { id: true, isScheduleEnabled: true },
-            where: {
-              brands: { some: { id: params.brandId } },
-              isDeleted: false,
-              metadata: {
-                equals: params.contentType,
-                path: ['defaultRecurringContent', 'contentType'],
+    // Retry loop: Serializable transactions can fail with P2034 when a
+    // concurrent write to `workflows` (even to a different org/brand) creates a
+    // read/write conflict under snapshot isolation. The fix in PR #892 adds an
+    // index on (organizationId, isDeleted) so conflicts are scoped to matching
+    // pages rather than the whole relation, dramatically reducing false positives.
+    // The retry loop handles the residual cases (genuine same-predicate conflicts
+    // that the index cannot eliminate). Three attempts are sufficient — genuine
+    // conflicts resolve within 1-2 retries; more than 3 indicates a systemic
+    // problem that should surface as an error.
+    for (let attempt = 0; attempt < MAX_SERIALIZATION_RETRIES; attempt += 1) {
+      try {
+        await this.prisma.$transaction(
+          async (tx) => {
+            // Re-check inside the transaction. With the new (organizationId,
+            // isDeleted) index, Postgres can take a page-level predicate lock
+            // instead of a relation-level one, so concurrent writes to
+            // workflows rows in other organizations no longer cause false P2034s.
+            const existing = await tx.workflow.findFirst({
+              select: { id: true, isScheduleEnabled: true },
+              where: {
+                brands: { some: { id: params.brandId } },
+                isDeleted: false,
+                metadata: {
+                  equals: params.contentType,
+                  path: ['defaultRecurringContent', 'contentType'],
+                },
+                organizationId: params.organizationId,
               },
+            });
+
+            if (existing) {
+              if (!existing.isScheduleEnabled) {
+                await tx.workflow.update({
+                  data: { isScheduleEnabled: true },
+                  where: { id: existing.id, isDeleted: false },
+                });
+              }
+              return;
+            }
+
+            await this.createDefaultRecurringWorkflow({
+              brand: params.brand,
+              contentType: params.contentType,
+              credentialId,
+              organizationId: params.organizationId,
+              origin: params.origin,
+              // The transaction.util cast idiom: the interactive-transaction
+              // client is structurally a PrismaTransactionClient.
+              tx: tx as unknown as PrismaTransactionClient,
+              userId: params.userId,
+            });
+          },
+          { isolationLevel: 'Serializable' },
+        );
+        // Transaction committed successfully — done.
+        return;
+      } catch (error) {
+        const errorCode = (error as { code?: string }).code;
+
+        if (errorCode === PRISMA_UNIQUE_CONSTRAINT_VIOLATION) {
+          // A concurrent caller won the race and already committed the row.
+          // This is the legitimate "already created" signal — safe to treat as
+          // success and stop retrying.
+          this.logger.debug(
+            `${this.logContext} unique constraint — default recurring workflow already created by a concurrent request`,
+            {
+              brandId: params.brandId,
+              contentType: params.contentType,
               organizationId: params.organizationId,
             },
-          });
+          );
+          return;
+        }
 
-          if (existing) {
-            if (!existing.isScheduleEnabled) {
-              await tx.workflow.update({
-                data: { isScheduleEnabled: true },
-                where: { id: existing.id },
-              });
-            }
-            return;
-          }
+        if (
+          errorCode === PRISMA_SERIALIZATION_FAILURE &&
+          attempt < MAX_SERIALIZATION_RETRIES - 1
+        ) {
+          // Serialization failure from a genuine read/write conflict. Retry
+          // with a small backoff (mirrors cron-jobs.service.ts:~734 pattern).
+          // Do NOT silently treat this as "already created" — the workflow may
+          // not exist yet.
+          this.logger.debug(
+            `${this.logContext} serialization failure on attempt ${attempt + 1} — retrying`,
+            {
+              brandId: params.brandId,
+              contentType: params.contentType,
+              organizationId: params.organizationId,
+            },
+          );
+          // Small exponential backoff: 50 ms, 100 ms (avoids thundering-herd).
+          await new Promise<void>((resolve) =>
+            setTimeout(resolve, 50 * (attempt + 1)),
+          );
+          continue;
+        }
 
-          await this.createDefaultRecurringWorkflow({
-            brand: params.brand,
-            contentType: params.contentType,
-            credentialId,
-            organizationId: params.organizationId,
-            origin: params.origin,
-            // The transaction.util cast idiom: the interactive-transaction
-            // client is structurally a PrismaTransactionClient.
-            tx: tx as unknown as PrismaTransactionClient,
-            userId: params.userId,
-          });
-        },
-        { isolationLevel: 'Serializable' },
-      );
-    } catch (error) {
-      const errorCode = (error as { code?: string }).code;
-      if (errorCode === PRISMA_SERIALIZATION_FAILURE) {
-        this.logger.debug(
-          `${this.logContext} serialization conflict — default recurring workflow already created by a concurrent request`,
-          {
-            brandId: params.brandId,
-            contentType: params.contentType,
-            organizationId: params.organizationId,
-          },
-        );
-        return;
+        throw error;
       }
-      throw error;
     }
   }
 
