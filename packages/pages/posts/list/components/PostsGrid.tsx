@@ -8,7 +8,7 @@ import {
   Platform,
 } from '@genfeedai/enums';
 import type { IPost } from '@genfeedai/interfaces';
-import { PLATFORM_LABEL_MAP } from '@helpers/content/posts.helper';
+import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import {
   formatDateInTimezone,
@@ -223,7 +223,7 @@ const PostsGrid = memo(
                     <p className="mt-1 text-xs uppercase tracking-[0.18em] text-foreground/35">
                       {post.platform === Platform.TWITTER
                         ? 'Post draft'
-                        : (PLATFORM_LABEL_MAP[post.platform] ?? 'Post')}
+                        : getPostsPlatformLabel(post.platform)}
                     </p>
                   </div>
                 </div>

@@ -1,6 +1,6 @@
 import type { Platform } from '@genfeedai/enums';
 import type { ICredential } from '@genfeedai/interfaces';
-import { PLATFORM_LABEL_MAP } from '@helpers/content/posts.helper';
+import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
 import type { PostsService } from '@services/content/posts.service';
 import { logger } from '@services/core/logger.service';
 
@@ -40,7 +40,7 @@ export async function generatePosts({
 
   const credential = getCredentialForPlatform(targetPlatform);
   if (!credential) {
-    const platformLabel = PLATFORM_LABEL_MAP[targetPlatform];
+    const platformLabel = getPostsPlatformLabel(targetPlatform);
     alert(`No ${platformLabel} account connected for this brand`);
     return;
   }
