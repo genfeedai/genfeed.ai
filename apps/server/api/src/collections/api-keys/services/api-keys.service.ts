@@ -2,6 +2,11 @@ import * as crypto from 'node:crypto';
 import { CreateApiKeyDto } from '@api/collections/api-keys/dto/create-api-key.dto';
 import { UpdateApiKeyDto } from '@api/collections/api-keys/dto/update-api-key.dto';
 import type { ApiKeyDocument } from '@api/collections/api-keys/schemas/api-key.schema';
+import {
+  CACHE_PATTERNS,
+  CACHE_TAGS,
+} from '@api/common/constants/cache-patterns.constants';
+import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { ConfigService } from '@api/config/config.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
@@ -25,6 +30,7 @@ export class ApiKeysService extends BaseService<
     public readonly logger: LoggerService,
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
+    private readonly cacheInvalidationService: CacheInvalidationService,
   ) {
     super(prisma, 'apiKey', logger);
   }
@@ -96,6 +102,54 @@ export class ApiKeysService extends BaseService<
 
     // Return both the document and the plain key (only shown once)
     return { apiKey: apiKey, plainKey };
+  }
+
+  async rotateWithKey(
+    keyId: string,
+    createApiKeyDto: CreateApiKeyDto & {
+      userId: string;
+      organizationId: string;
+    },
+  ): Promise<{ apiKey: ApiKeyDocument; plainKey: string }> {
+    let replacement: { apiKey: ApiKeyDocument; plainKey: string } | undefined;
+
+    try {
+      replacement = await this.createWithKey(createApiKeyDto);
+      await this.revoke(keyId);
+      await this.invalidateRotationCaches(
+        createApiKeyDto.organizationId,
+        keyId,
+        replacement.apiKey.id,
+      );
+      return replacement;
+    } catch (error) {
+      if (replacement?.apiKey.id) {
+        try {
+          await this.revoke(replacement.apiKey.id);
+        } catch (cleanupError) {
+          this.logger?.error('Failed to clean up replacement API key', {
+            cleanupError,
+            originalKeyId: keyId,
+            replacementKeyId: replacement.apiKey.id,
+          });
+        }
+      }
+
+      throw error;
+    }
+  }
+
+  private async invalidateRotationCaches(
+    organizationId: string,
+    originalKeyId: string,
+    replacementKeyId: string,
+  ): Promise<void> {
+    await this.cacheInvalidationService.invalidate(
+      CACHE_PATTERNS.API_KEYS_LIST(organizationId),
+      CACHE_PATTERNS.API_KEYS_SINGLE(originalKeyId),
+      CACHE_PATTERNS.API_KEYS_SINGLE(replacementKeyId),
+    );
+    await this.cacheInvalidationService.invalidateByTags([CACHE_TAGS.API_KEYS]);
   }
 
   /**

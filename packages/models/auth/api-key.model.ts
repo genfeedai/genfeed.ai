@@ -1,55 +1,67 @@
-export interface IApiKeyAttributes {
-  label?: string;
-  name?: string;
-  description?: string;
-  key?: string;
-  scopes?: string[];
-  expiresAt?: string | Date;
-  lastUsedAt?: string | Date;
-  createdAt?: string | Date;
-  updatedAt?: string | Date;
-  rateLimit?: number;
-  isActive?: boolean;
-}
+import type { IApiKey } from '@genfeedai/interfaces';
 
-export interface IApiKey {
-  id: string;
-  type?: string;
-  attributes?: IApiKeyAttributes;
+export type { IApiKey, IApiKeyAttributes } from '@genfeedai/interfaces';
+
+function toIsoDateString(
+  value: string | Date | null | undefined,
+): string | null | undefined {
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  return value;
 }
 
 export class ApiKey {
   id: string;
   type: string;
+  allowedIps: string[];
+  category?: string;
   label?: string;
   name?: string;
   description?: string;
   key?: string;
+  token?: string;
   scopes: string[];
   expiresAt?: string | null;
   lastUsedAt?: string | null;
+  lastUsedIp?: string;
   createdAt: string;
   updatedAt: string;
   rateLimit?: number;
+  metadata?: Record<string, unknown>;
   isActive: boolean;
+  isRevoked: boolean;
+  revokedAt?: string | null;
+  usageCount: number;
 
   constructor(partial: Partial<IApiKey> = {}) {
     this.id = partial.id ?? '';
     this.type = partial.type ?? 'api-keys';
 
-    const attrs = partial.attributes ?? {};
+    const attrs = { ...partial, ...(partial.attributes ?? {}) };
     const displayName = attrs.label ?? attrs.name;
+    this.allowedIps = attrs.allowedIps ?? [];
+    this.category = attrs.category;
     this.label = displayName;
     this.name = displayName;
     this.description = attrs.description;
     this.key = attrs.key;
+    this.token = attrs.token;
     this.scopes = attrs.scopes ?? [];
-    this.expiresAt = attrs.expiresAt as string | null | undefined;
-    this.lastUsedAt = attrs.lastUsedAt as string | null | undefined;
-    this.createdAt = (attrs.createdAt as string) ?? new Date().toISOString();
-    this.updatedAt = (attrs.updatedAt as string) ?? new Date().toISOString();
+    this.expiresAt = toIsoDateString(attrs.expiresAt);
+    this.lastUsedAt = toIsoDateString(attrs.lastUsedAt);
+    this.lastUsedIp = attrs.lastUsedIp;
+    this.createdAt =
+      toIsoDateString(attrs.createdAt) ?? new Date().toISOString();
+    this.updatedAt =
+      toIsoDateString(attrs.updatedAt) ?? new Date().toISOString();
     this.rateLimit = attrs.rateLimit;
-    this.isActive = attrs.isActive !== false;
+    this.metadata = attrs.metadata;
+    this.isRevoked = attrs.isRevoked ?? false;
+    this.revokedAt = toIsoDateString(attrs.revokedAt);
+    this.usageCount = attrs.usageCount ?? 0;
+    this.isActive = this.isRevoked ? false : (attrs.isActive ?? true);
   }
 
   get isExpired(): boolean {
