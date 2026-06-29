@@ -168,8 +168,14 @@ export class TelegramMessageHandlerService {
 
     const mimeType = document.mime_type;
     const inferredType = this.inferDocumentMediaType(mimeType);
-    if (inferredType && inferredType !== currentInput.inputType) {
-      await ctx.reply(this.getExpectedInputMessage(currentInput.inputType));
+    // Reject when the media type cannot be confirmed: an unrecognised MIME
+    // (inferredType === undefined) must not be silently accepted into an
+    // audio/video slot, and a confirmed mismatch is equally invalid.
+    if (!inferredType || inferredType !== currentInput.inputType) {
+      const reason = inferredType
+        ? this.getExpectedInputMessage(currentInput.inputType)
+        : `❌ The file type couldn't be recognized. Please send a valid ${currentInput.inputType} file.`;
+      await ctx.reply(reason);
       return;
     }
 
@@ -415,6 +421,15 @@ export class TelegramMessageHandlerService {
     }
 
     const file = await ctx.api.getFile(payload.fileId);
+
+    // Telegram omits file_path for files larger than the 20 MB Bot API limit.
+    if (!file.file_path) {
+      await ctx.reply(
+        '❌ This file is too large for the Telegram bot to download (limit: 20 MB). Please compress it or use a smaller file.',
+      );
+      throw new Error('Telegram file too large: file_path not returned by API');
+    }
+
     const telegramFileUrl = `https://api.telegram.org/file/bot${this.botToken}/${file.file_path}`;
 
     const response = await fetch(telegramFileUrl);

@@ -340,6 +340,15 @@ export class TelegramConversationService {
         case 'video':
           summary += `🎬 ${input.label}: Video received ✓\n`;
           break;
+        default: {
+          const displayFallback = value
+            ? value.length > 80
+              ? `${value.substring(0, 80)}...`
+              : value
+            : '(received)';
+          summary += `📎 ${input.label}: ${displayFallback}\n`;
+          break;
+        }
       }
     }
 
