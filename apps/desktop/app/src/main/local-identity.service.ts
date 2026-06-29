@@ -6,6 +6,7 @@ import type { DesktopKvService } from './kv.service';
  *
  * KV keys — permanent, never rename:
  *   local.user.id          — stable UUID set on first boot, never changes
+ *   local.device.id        — stable UUID for this installed desktop device
  *   local.user.betterAuthId     — Better Auth user ID persisted after first cloud sign-in,
  *                            survives sign-out and token expiry
  *   onboarding.completed   — '1' once the onboarding wizard is dismissed
@@ -15,6 +16,7 @@ import type { DesktopKvService } from './kv.service';
  * synchronously while persistence stays async on the PGlite layer.
  */
 const LOCAL_USER_ID_KEY = 'local.user.id';
+const LOCAL_DEVICE_ID_KEY = 'local.device.id';
 const LOCAL_BETTER_AUTH_ID_KEY = 'local.user.betterAuthId';
 const LEGACY_LOCAL_AUTH_ID_KEY = ['local.user.', 'auth', 'ProviderId'].join('');
 const ONBOARDING_COMPLETED_KEY = 'onboarding.completed';
@@ -22,6 +24,7 @@ const SYNC_THREADS_CURSOR_KEY = 'sync.threads.cursor';
 
 export class LocalIdentityService {
   private betterAuthId: string | null = null;
+  private localDeviceId: string | null = null;
   private localUserId: string | null = null;
   private onboardingCompleted = false;
   private syncCursor: string | null = null;
@@ -31,12 +34,14 @@ export class LocalIdentityService {
   async initialize(): Promise<void> {
     const [
       storedLocalUserId,
+      storedLocalDeviceId,
       storedBetterAuthId,
       storedLegacyAuthId,
       storedOnboardingCompleted,
       storedSyncCursor,
     ] = await Promise.all([
       this.database.getValue(LOCAL_USER_ID_KEY),
+      this.database.getValue(LOCAL_DEVICE_ID_KEY),
       this.database.getValue(LOCAL_BETTER_AUTH_ID_KEY),
       this.database.getValue(LEGACY_LOCAL_AUTH_ID_KEY),
       this.database.getValue(ONBOARDING_COMPLETED_KEY),
@@ -44,6 +49,7 @@ export class LocalIdentityService {
     ]);
 
     this.localUserId = storedLocalUserId ?? randomUUID();
+    this.localDeviceId = storedLocalDeviceId ?? randomUUID();
     this.betterAuthId = storedBetterAuthId ?? storedLegacyAuthId ?? null;
     this.onboardingCompleted = storedOnboardingCompleted === '1';
     this.syncCursor = storedSyncCursor ?? null;
@@ -51,6 +57,18 @@ export class LocalIdentityService {
     if (!storedLocalUserId) {
       await this.database.setValue(LOCAL_USER_ID_KEY, this.localUserId);
     }
+
+    if (!storedLocalDeviceId) {
+      await this.database.setValue(LOCAL_DEVICE_ID_KEY, this.localDeviceId);
+    }
+  }
+
+  getLocalDeviceId(): string {
+    if (!this.localDeviceId) {
+      throw new Error('Local identity service not initialized');
+    }
+
+    return this.localDeviceId;
   }
 
   getLocalUserId(): string {

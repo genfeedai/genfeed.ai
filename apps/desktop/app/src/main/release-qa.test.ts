@@ -30,15 +30,14 @@ describe('desktop release QA', () => {
     expect(scripts?.['release:mac']).toContain('bun run release:manifest');
   });
 
-  it('runs macOS desktop QA on pull requests that can affect the shell', () => {
+  it('exposes macOS desktop QA as a reusable/manual workflow', () => {
     const workflow = readText('.github/workflows/desktop-qa.yml');
 
     expect(workflow).toContain('name: Desktop QA');
-    expect(workflow).toContain('pull_request:');
+    expect(workflow).toContain('workflow_dispatch:');
+    expect(workflow).toContain('workflow_call:');
     expect(workflow).toContain('runs-on: macos-latest');
-    expect(workflow).toContain("'apps/desktop/**'");
-    expect(workflow).toContain("'apps/app/**'");
-    expect(workflow).toContain("'packages/desktop-*/**'");
+    expect(workflow).toContain('Setup Bun environment');
     expect(workflow).toContain(
       'bun run --filter=@genfeedai/desktop qa:release',
     );

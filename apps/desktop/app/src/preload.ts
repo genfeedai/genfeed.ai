@@ -266,6 +266,12 @@ const desktopBridge: IGenfeedDesktopBridge = {
   workspace: {
     getRecentWorkspaces: async () =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.workspaceRecent),
+    linkCloudContext: async (workspaceId, input) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.workspaceLinkCloudContext,
+        workspaceId,
+        input,
+      ),
     linkProject: async (workspaceId, projectId) =>
       ipcRenderer.invoke(
         DESKTOP_IPC_CHANNELS.workspaceLinkProject,

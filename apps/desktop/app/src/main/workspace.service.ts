@@ -4,6 +4,8 @@ import path from 'node:path';
 import type {
   IDesktopRecentItem,
   IDesktopWorkspace,
+  IDesktopWorkspaceCloudLink,
+  IDesktopWorkspaceCloudLinkInput,
   IDesktopWorkspaceFile,
 } from '@genfeedai/desktop-contracts';
 import {
@@ -29,14 +31,24 @@ const SKIPPED_INDEX_DIRECTORIES = new Set([
   'release',
 ]);
 
+export interface DesktopLocalCloudIdentityContext {
+  cloudUserId?: string | null;
+  localDeviceId: string;
+  localUserId: string;
+}
+
+const normalizeNullableString = (value: string | null | undefined) =>
+  value && value.length > 0 ? value : null;
+
 export class DesktopWorkspaceService {
+  private readonly cloudLinks = new Map<string, IDesktopWorkspaceCloudLink>();
   private readonly recents = new Map<string, IDesktopRecentItem>();
   private readonly workspaces = new Map<string, IDesktopWorkspace>();
 
   constructor(private readonly prisma: PrismaClient) {}
 
   async init(): Promise<void> {
-    const [workspaceRows, recentRows] = await Promise.all([
+    const [workspaceRows, recentRows, cloudLinkRows] = await Promise.all([
       this.prisma.desktopWorkspace.findMany({
         orderBy: {
           lastOpenedAt: 'desc',
@@ -47,7 +59,13 @@ export class DesktopWorkspaceService {
           openedAt: 'desc',
         },
       }),
+      this.prisma.desktopWorkspaceCloudLink.findMany(),
     ]);
+
+    this.cloudLinks.clear();
+    for (const row of cloudLinkRows) {
+      this.cloudLinks.set(row.workspaceId, this.toCloudLink(row));
+    }
 
     this.workspaces.clear();
     for (const row of workspaceRows) {
@@ -123,6 +141,7 @@ export class DesktopWorkspaceService {
     indexingState: string;
     lastOpenedAt: string;
     linkedBrandId: string | null;
+    linkedOrganizationId: string | null;
     linkedProjectId: string | null;
     localDraftCount: number;
     name: string;
@@ -131,20 +150,52 @@ export class DesktopWorkspaceService {
     syncPolicy: string;
     updatedAt: string;
   }): IDesktopWorkspace {
+    const cloudLink = this.cloudLinks.get(row.id);
+
     return {
       createdAt: row.createdAt,
       fileIndex: JSON.parse(row.fileIndex) as IDesktopWorkspaceFile[],
+      ...(cloudLink ? { cloudLink } : {}),
       id: row.id,
       indexingState: row.indexingState as 'idle' | 'indexing',
       lastOpenedAt: row.lastOpenedAt,
-      linkedBrandId: row.linkedBrandId ?? undefined,
-      linkedProjectId: row.linkedProjectId ?? undefined,
+      linkedBrandId: row.linkedBrandId ?? cloudLink?.cloudBrandId ?? undefined,
+      linkedOrganizationId:
+        row.linkedOrganizationId ?? cloudLink?.cloudOrganizationId ?? undefined,
+      linkedProjectId:
+        row.linkedProjectId ?? cloudLink?.cloudProjectId ?? undefined,
       localDraftCount: row.localDraftCount,
       name: row.name,
       path: row.path,
       pendingSyncCount: row.pendingSyncCount,
       syncPolicy: row.syncPolicy as IDesktopWorkspace['syncPolicy'],
       updatedAt: row.updatedAt,
+    };
+  }
+
+  private toCloudLink(row: {
+    cloudBrandId: string | null;
+    cloudOrganizationId: string | null;
+    cloudProjectId: string | null;
+    cloudUserId: string | null;
+    linkedAt: string;
+    localDeviceId: string;
+    localUserId: string;
+    syncPolicy: string;
+    updatedAt: string;
+    workspaceId: string;
+  }): IDesktopWorkspaceCloudLink {
+    return {
+      cloudBrandId: row.cloudBrandId ?? undefined,
+      cloudOrganizationId: row.cloudOrganizationId ?? undefined,
+      cloudProjectId: row.cloudProjectId ?? undefined,
+      cloudUserId: row.cloudUserId ?? undefined,
+      linkedAt: row.linkedAt,
+      localDeviceId: row.localDeviceId,
+      localUserId: row.localUserId,
+      syncPolicy: row.syncPolicy as IDesktopWorkspaceCloudLink['syncPolicy'],
+      updatedAt: row.updatedAt,
+      workspaceId: row.workspaceId,
     };
   }
 
@@ -162,10 +213,13 @@ export class DesktopWorkspaceService {
 
   private async persistWorkspace(input: {
     id?: string;
-    linkedProjectId?: string;
+    linkedBrandId?: string | null;
+    linkedOrganizationId?: string | null;
+    linkedProjectId?: string | null;
     name: string;
     path: string;
     reindex?: boolean;
+    syncPolicy?: IDesktopWorkspace['syncPolicy'];
   }): Promise<IDesktopWorkspace> {
     this.ensureWorkspaceMetadataFolder(input.path);
     const now = toIso();
@@ -184,14 +238,23 @@ export class DesktopWorkspaceService {
       id: existing?.id ?? input.id ?? randomUUID(),
       indexingState: 'idle',
       lastOpenedAt: now,
-      linkedBrandId: existing?.linkedBrandId ?? null,
+      linkedBrandId:
+        input.linkedBrandId !== undefined
+          ? input.linkedBrandId
+          : (existing?.linkedBrandId ?? null),
+      linkedOrganizationId:
+        input.linkedOrganizationId !== undefined
+          ? input.linkedOrganizationId
+          : (existing?.linkedOrganizationId ?? null),
       linkedProjectId:
-        input.linkedProjectId ?? existing?.linkedProjectId ?? null,
+        input.linkedProjectId !== undefined
+          ? input.linkedProjectId
+          : (existing?.linkedProjectId ?? null),
       localDraftCount: existing?.localDraftCount ?? 0,
       name: input.name,
       path: input.path,
       pendingSyncCount: existing?.pendingSyncCount ?? 0,
-      syncPolicy: existing?.syncPolicy ?? 'local-only',
+      syncPolicy: input.syncPolicy ?? existing?.syncPolicy ?? 'local-only',
       updatedAt: now,
     };
 
@@ -270,17 +333,102 @@ export class DesktopWorkspaceService {
 
   async linkProject(
     workspaceId: string,
-    projectId: string,
+    projectId: string | null,
+    identity?: DesktopLocalCloudIdentityContext,
   ): Promise<IDesktopWorkspace> {
+    if (identity) {
+      return this.linkCloudContext(
+        workspaceId,
+        { cloudProjectId: projectId },
+        identity,
+      );
+    }
+
     const workspace = this.getWorkspace(workspaceId);
 
     return this.persistWorkspace({
       id: workspace.id,
-      linkedProjectId: projectId,
+      linkedProjectId: normalizeNullableString(projectId),
       name: workspace.name,
       path: workspace.path,
       reindex: false,
     });
+  }
+
+  async linkCloudContext(
+    workspaceId: string,
+    input: IDesktopWorkspaceCloudLinkInput,
+    identity: DesktopLocalCloudIdentityContext,
+  ): Promise<IDesktopWorkspace> {
+    const workspace = this.getWorkspace(workspaceId);
+    const existingLink = this.cloudLinks.get(workspaceId);
+    const cloudOrganizationId =
+      input.cloudOrganizationId !== undefined
+        ? normalizeNullableString(input.cloudOrganizationId)
+        : (existingLink?.cloudOrganizationId ??
+          workspace.linkedOrganizationId ??
+          null);
+    const cloudBrandId =
+      input.cloudBrandId !== undefined
+        ? normalizeNullableString(input.cloudBrandId)
+        : (existingLink?.cloudBrandId ?? workspace.linkedBrandId ?? null);
+    const cloudProjectId =
+      input.cloudProjectId !== undefined
+        ? normalizeNullableString(input.cloudProjectId)
+        : (existingLink?.cloudProjectId ?? workspace.linkedProjectId ?? null);
+    const syncPolicy =
+      input.syncPolicy ?? existingLink?.syncPolicy ?? workspace.syncPolicy;
+    const now = toIso();
+    const linkedAt = existingLink?.linkedAt ?? now;
+
+    const nextWorkspace = await this.persistWorkspace({
+      id: workspace.id,
+      linkedBrandId: cloudBrandId,
+      linkedOrganizationId: cloudOrganizationId,
+      linkedProjectId: cloudProjectId,
+      name: workspace.name,
+      path: workspace.path,
+      reindex: false,
+      syncPolicy,
+    });
+
+    const row = {
+      cloudBrandId,
+      cloudOrganizationId,
+      cloudProjectId,
+      cloudUserId:
+        normalizeNullableString(identity.cloudUserId) ??
+        existingLink?.cloudUserId ??
+        null,
+      linkedAt,
+      localDeviceId: identity.localDeviceId,
+      localUserId: identity.localUserId,
+      syncPolicy,
+      updatedAt: now,
+      workspaceId,
+    };
+
+    await this.prisma.desktopWorkspaceCloudLink.upsert({
+      create: row,
+      update: row,
+      where: {
+        workspaceId,
+      },
+    });
+
+    const cloudLink = this.toCloudLink(row);
+    this.cloudLinks.set(workspaceId, cloudLink);
+    const linkedWorkspace = {
+      ...nextWorkspace,
+      cloudLink,
+      linkedBrandId: cloudBrandId ?? undefined,
+      linkedOrganizationId: cloudOrganizationId ?? undefined,
+      linkedProjectId: cloudProjectId ?? undefined,
+      syncPolicy,
+    };
+    this.workspaces.set(workspaceId, linkedWorkspace);
+
+    return linkedWorkspace;
   }
 
   async revealInFinder(workspaceId: string): Promise<void> {

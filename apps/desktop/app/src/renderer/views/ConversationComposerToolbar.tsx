@@ -2,6 +2,8 @@ import type {
   DesktopContentPlatform,
   DesktopContentType,
   DesktopPublishIntent,
+  IDesktopBrand,
+  IDesktopCloudOrganization,
   IDesktopCloudProject,
   IDesktopWorkspace,
 } from '@genfeedai/desktop-contracts';
@@ -61,17 +63,21 @@ const PUBLISH_INTENT_OPTIONS: Array<{
 ];
 
 const UNLINKED_PROJECT_VALUE = '__not_linked__';
+const UNLINKED_BRAND_VALUE = '__no_cloud_brand__';
 
 type ConversationComposerToolbarProps = {
   contentType: DesktopContentType;
   input: string;
   onContentTypeChange: (value: DesktopContentType) => void;
+  onBrandLink: (brandId: string, organizationId?: string) => Promise<void>;
   onImportAssets: () => Promise<void>;
   onPlatformChange: (value: DesktopContentPlatform) => void;
   onProjectLink: (projectId: string) => Promise<void>;
   onPublishIntentChange: (value: DesktopPublishIntent) => void;
   onSaveDraft: () => Promise<void>;
   platform: DesktopContentPlatform;
+  brands: IDesktopBrand[];
+  cloudOrganizations: IDesktopCloudOrganization[];
   projects: IDesktopCloudProject[];
   publishIntent: DesktopPublishIntent;
   workspace: IDesktopWorkspace | null;
@@ -81,7 +87,10 @@ type ConversationComposerToolbarProps = {
 export function ConversationComposerToolbar({
   contentType,
   input,
+  brands,
+  cloudOrganizations,
   onContentTypeChange,
+  onBrandLink,
   onImportAssets,
   onPlatformChange,
   onProjectLink,
@@ -93,6 +102,13 @@ export function ConversationComposerToolbar({
   workspace,
   workspaceId,
 }: ConversationComposerToolbarProps) {
+  const cloudOrgNamesById = new Map(
+    cloudOrganizations.map((organization) => [
+      organization.cloudId,
+      organization.name,
+    ]),
+  );
+
   return (
     <div className="composer-toolbar panel-card">
       <div className="composer-control-group">
@@ -158,6 +174,52 @@ export function ConversationComposerToolbar({
             {PUBLISH_INTENT_OPTIONS.map((option) => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="composer-control-group composer-project-group">
+        <label className="composer-label" htmlFor="desktop-brand-link">
+          Cloud brand
+        </label>
+        <Select
+          onValueChange={(value) => {
+            if (value === UNLINKED_BRAND_VALUE) {
+              void onBrandLink('');
+              return;
+            }
+
+            const brand = brands.find((item) => item.id === value);
+            void onBrandLink(
+              brand?.cloudId ?? value,
+              brand?.cloudOrganizationId,
+            );
+          }}
+          value={
+            workspace?.linkedBrandId
+              ? (brands.find(
+                  (brand) =>
+                    brand.cloudId === workspace.linkedBrandId ||
+                    brand.id === workspace.linkedBrandId,
+                )?.id ?? workspace.linkedBrandId)
+              : UNLINKED_BRAND_VALUE
+          }
+        >
+          <SelectTrigger id="desktop-brand-link">
+            <SelectValue placeholder="Local only" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={UNLINKED_BRAND_VALUE}>Local only</SelectItem>
+            {brands.map((brand) => (
+              <SelectItem key={brand.id} value={brand.id}>
+                {brand.cloudOrganizationId
+                  ? `${brand.name} - ${
+                      cloudOrgNamesById.get(brand.cloudOrganizationId) ??
+                      brand.cloudOrganizationId
+                    }`
+                  : brand.name}
               </SelectItem>
             ))}
           </SelectContent>

@@ -1,4 +1,6 @@
 import type {
+  IDesktopBrand,
+  IDesktopCloudOrganization,
   IDesktopMessage,
   IDesktopThread,
   IDesktopTrendHandoff,
@@ -52,6 +54,8 @@ const WorkflowsView = lazy(() =>
 interface MainViewProps {
   activeView: NavView;
   activeThread: IDesktopThread | null;
+  brands: IDesktopBrand[];
+  cloudOrganizations: IDesktopCloudOrganization[];
   isOnline: boolean;
   pendingTrend: IDesktopTrendHandoff | null;
   selectedWorkspace: IDesktopWorkspace | null;
@@ -68,6 +72,8 @@ interface MainViewProps {
 function MainView({
   activeView,
   activeThread,
+  brands,
+  cloudOrganizations,
   isOnline,
   pendingTrend,
   selectedWorkspace,
@@ -87,6 +93,8 @@ function MainView({
       onSetStatus={onSetStatus}
       onTrendConsumed={onTrendConsumed}
       pendingTrend={pendingTrend}
+      brands={brands}
+      cloudOrganizations={cloudOrganizations}
       thread={activeThread}
       workspaceId={selectedWorkspaceId}
     />
