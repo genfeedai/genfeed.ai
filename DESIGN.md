@@ -330,6 +330,30 @@ trigger button. Grouped into Content and Tools sections with a subtle divider.
 `bg-secondary` with `shadow-dropdown`. Items use `rounded-sm` (2px) with `hover:bg-hover`.
 Inline margin `mx-1` insets items from panel edges.
 
+## Brand OS Surfaces
+
+Brand OS surfaces are product-led acquisition surfaces, not a full visual
+rebrand. The public CTA and preview may use campaign-scale composition, but the
+authenticated review/apply flow stays dense and operational.
+
+### Evidence Labels
+
+Every Brand OS recommendation must be visibly tagged as extracted, inferred,
+candidate, or missing. Source-backed color and voice suggestions can appear in
+public previews, but candidate palettes do not become Genfeed product tokens
+until accepted into the real token source and reflected in this file.
+
+### Scale Roles
+
+Brand OS preview surfaces distinguish four roles:
+- `product` -- 32px control baseline for dense review fields and source rows
+- `block` -- standard public CTA and preview modules
+- `hero` -- primary public promise or conversion proof
+- `monument` -- one large proof artifact per page, used sparingly
+
+Do not use campaign-scale roles inside authenticated settings pages unless the
+screen is explicitly presenting a single launch artifact.
+
 ## Do's and Don'ts
 
 - **Do** use background layering for hierarchy instead of heavy borders.
