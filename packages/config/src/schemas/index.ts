@@ -51,6 +51,7 @@ export {
   allSocialSchema,
   facebookSchema,
   fanvueSchema,
+  googleSearchConsoleSchema,
   instagramSchema,
   linkedinSchema,
   mediumSchema,

@@ -180,7 +180,19 @@ export abstract class HTTPBaseService {
     if (!this.abortController) {
       this.abortController = new AbortController();
     }
-    config.signal = this.abortController.signal;
+    // Compose the instance-level cancellation signal with any per-request
+    // signal (e.g. from findOne/findAll callers) so that either side can abort
+    // the request independently.  Overwriting config.signal unconditionally
+    // would silently discard the caller's signal.
+    // Axios types config.signal as GenericAbortSignal (a structural subset of
+    // AbortSignal); at runtime callers always pass a native AbortSignal, so
+    // the cast to AbortSignal is safe.
+    config.signal = config.signal
+      ? AbortSignal.any([
+          this.abortController.signal,
+          config.signal as AbortSignal,
+        ])
+      : this.abortController.signal;
 
     return config;
   };

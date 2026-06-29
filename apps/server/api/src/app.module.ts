@@ -21,6 +21,7 @@ import { AvatarsModule } from '@api/collections/avatars/avatars.module';
 import { BookmarksModule } from '@api/collections/bookmarks/bookmarks.module';
 import { BotsModule } from '@api/collections/bots/bots.module';
 import { BrandMemoryModule } from '@api/collections/brand-memory/brand-memory.module';
+import { BrandInterviewModule } from '@api/collections/brands/brand-interview/brand-interview.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { BusinessAnalyticsModule } from '@api/collections/business-analytics/business-analytics.module';
 import { CaptionsModule } from '@api/collections/captions/captions.module';
@@ -147,6 +148,7 @@ import { ContentOrchestrationModule } from '@api/services/content-orchestration/
 import { BeehiivModule } from '@api/services/integrations/beehiiv/beehiiv.module';
 import { DiscordModule } from '@api/services/integrations/discord/discord.module';
 import { GhostModule } from '@api/services/integrations/ghost/ghost.module';
+import { GoogleSearchConsoleModule } from '@api/services/integrations/google-search-console/google-search-console.module';
 import { HedraModule } from '@api/services/integrations/hedra/hedra.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
 import { HiggsFieldModule } from '@api/services/integrations/higgsfield/higgsfield.module';
@@ -240,6 +242,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     // BusinessAnalyticsModule — EE (gated below)
     BotsModule,
     BrandMemoryModule,
+    BrandInterviewModule,
     BrandsModule,
     OutreachCampaignsModule,
     CronJobsModule,
@@ -339,6 +342,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     BeehiivModule,
     DiscordModule,
     GhostModule,
+    GoogleSearchConsoleModule,
     HedraModule,
     HeyGenModule,
     InstagramModule,

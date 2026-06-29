@@ -67,6 +67,7 @@ export const DESKTOP_IPC_CHANNELS = {
   terminalResize: 'desktop:terminal:resize',
   terminalWrite: 'desktop:terminal:write',
   toggleSidebar: 'desktop:view:toggleSidebar',
+  workspaceLinkCloudContext: 'desktop:workspace:linkCloudContext',
   workspaceLinkProject: 'desktop:workspace:linkProject',
   workspaceOpen: 'desktop:workspace:open',
   workspaceRead: 'desktop:workspace:read',
@@ -154,10 +155,12 @@ export interface IDesktopWorkspaceFile {
 export interface IDesktopWorkspace {
   createdAt: string;
   fileIndex: IDesktopWorkspaceFile[];
+  cloudLink?: IDesktopWorkspaceCloudLink;
   id: string;
   indexingState: 'idle' | 'indexing';
   lastOpenedAt: string;
   linkedBrandId?: string;
+  linkedOrganizationId?: string;
   linkedProjectId?: string;
   localDraftCount: number;
   name: string;
@@ -195,8 +198,68 @@ export type DesktopSyncCursorScope = 'brandManifest' | 'threads';
 
 export type DesktopAssetUploadMode = 'api-proxy' | 'presigned-put';
 
+export type DesktopCloudLinkStatus =
+  | 'connected'
+  | 'never-connected'
+  | 'signed-out';
+
+export type DesktopCloudAuthority =
+  | 'organization-membership'
+  | 'roles'
+  | 'shared-brand-settings';
+
+export type DesktopLocalAuthority =
+  | 'imported-files'
+  | 'local-generation'
+  | 'private-drafts'
+  | 'unsynced-assets';
+
+export interface IDesktopCloudIdentity {
+  cloudUserEmail?: string;
+  cloudUserId?: string;
+  connectedAt?: string;
+  localDeviceId: string;
+  localUserId: string;
+  status: DesktopCloudLinkStatus;
+}
+
+export interface IDesktopCloudOrganization {
+  cloudId: string;
+  lastPulledAt?: string;
+  name: string;
+  role?: string;
+  slug: string;
+  updatedAt: string;
+}
+
+export interface IDesktopWorkspaceCloudLink {
+  cloudBrandId?: string;
+  cloudOrganizationId?: string;
+  cloudProjectId?: string;
+  cloudUserId?: string;
+  linkedAt: string;
+  localDeviceId: string;
+  localUserId: string;
+  syncPolicy: DesktopSyncPolicy;
+  updatedAt: string;
+  workspaceId: string;
+}
+
+export interface IDesktopWorkspaceCloudLinkInput {
+  cloudBrandId?: string | null;
+  cloudOrganizationId?: string | null;
+  cloudProjectId?: string | null;
+  syncPolicy?: DesktopSyncPolicy;
+}
+
+export interface IDesktopAuthoritySummary {
+  cloud: DesktopCloudAuthority[];
+  local: DesktopLocalAuthority[];
+}
+
 export interface IDesktopBrand {
   cloudId?: string;
+  cloudOrganizationId?: string;
   cloudVersion?: string;
   createdAt: string;
   id: string;
@@ -505,6 +568,9 @@ export interface IDesktopBootstrap {
   activeWorkspaceId: string | null;
   /** Better Auth user ID persisted locally after first cloud sign-in; null if never signed in */
   betterAuthId: string | null;
+  authority: IDesktopAuthoritySummary;
+  cloudIdentity: IDesktopCloudIdentity;
+  cloudOrganizations: IDesktopCloudOrganization[];
   environment: IDesktopEnvironment;
   isOfflineMode: boolean;
   localOrganization: IDesktopLocalOrganization;
@@ -877,6 +943,10 @@ export interface IGenfeedDesktopBridge {
   };
   workspace: {
     getRecentWorkspaces: () => Promise<IDesktopWorkspace[]>;
+    linkCloudContext: (
+      workspaceId: string,
+      input: IDesktopWorkspaceCloudLinkInput,
+    ) => Promise<IDesktopWorkspace>;
     linkProject: (
       workspaceId: string,
       projectId: string,

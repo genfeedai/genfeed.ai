@@ -7,6 +7,7 @@ vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
 }));
 
 import type { ConfigService } from '@api/config/config.service';
+import type { CacheService } from '@api/services/cache/services/cache.service';
 import type { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -242,6 +243,7 @@ describe('assembleScorecard', () => {
 describe('SeoScorerService', () => {
   let configService: ConfigService;
   let logger: LoggerService;
+  let cacheService: { invalidateByTags: ReturnType<typeof vi.fn> };
   let openRouter: { chatCompletion: ReturnType<typeof vi.fn> };
   let prisma: {
     article: {
@@ -276,6 +278,7 @@ describe('SeoScorerService', () => {
       log: vi.fn(),
       warn: vi.fn(),
     } as unknown as LoggerService;
+    cacheService = { invalidateByTags: vi.fn().mockResolvedValue(0) };
     openRouter = { chatCompletion: vi.fn() };
     prisma = {
       article: { findFirst: vi.fn(), update: vi.fn() },
@@ -285,6 +288,7 @@ describe('SeoScorerService', () => {
       configService,
       logger,
       prisma as unknown as PrismaService,
+      cacheService as unknown as CacheService,
       openRouter as unknown as OpenRouterService,
     );
   });
@@ -374,6 +378,26 @@ describe('SeoScorerService', () => {
     expect(card.score).toBe(updateArg.data.seoScore);
   });
 
+  it('busts article collection cache after scoring an article', async () => {
+    prisma.article.findFirst.mockResolvedValue({
+      content: goodInput.content,
+      excerpt: goodInput.metaDescription,
+      id: 'art_1',
+      organizationId: 'org_1',
+      slug: goodInput.slug,
+      title: goodInput.title,
+    });
+    prisma.article.update.mockResolvedValue({});
+
+    await service.scoreArticle('art_1', 'org_1');
+
+    expect(cacheService.invalidateByTags).toHaveBeenCalledTimes(1);
+    const tags: string[] = cacheService.invalidateByTags.mock.calls[0][0];
+    expect(tags).toContain('articles');
+    expect(tags).toContain('collection:articles');
+    expect(tags).toContain('agg:articles');
+  });
+
   it('throws NotFound when the article is missing', async () => {
     prisma.article.findFirst.mockResolvedValue(null);
     await expect(service.scoreArticle('missing', 'org_1')).rejects.toThrow(
@@ -401,6 +425,24 @@ describe('SeoScorerService', () => {
     expect(typeof updateArg.data.seoScore).toBe('number');
     expect(updateArg.data.seoBreakdown).toBeTruthy();
     expect(card.score).toBe(updateArg.data.seoScore);
+  });
+
+  it('busts post collection cache after scoring a post', async () => {
+    prisma.post.findFirst.mockResolvedValue({
+      description: '<p>Email marketing is great for reach.</p>',
+      id: 'post_1',
+      label: 'Email Marketing',
+      organizationId: 'org_1',
+    });
+    prisma.post.update.mockResolvedValue({});
+
+    await service.scorePost('post_1', 'org_1');
+
+    expect(cacheService.invalidateByTags).toHaveBeenCalledTimes(1);
+    const tags: string[] = cacheService.invalidateByTags.mock.calls[0][0];
+    expect(tags).toContain('posts');
+    expect(tags).toContain('collection:posts');
+    expect(tags).toContain('agg:posts');
   });
 
   it('throws NotFound when the post is missing', async () => {

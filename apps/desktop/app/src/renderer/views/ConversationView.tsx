@@ -2,6 +2,8 @@ import type {
   DesktopContentPlatform,
   DesktopContentType,
   DesktopPublishIntent,
+  IDesktopBrand,
+  IDesktopCloudOrganization,
   IDesktopMessage,
   IDesktopThread,
   IDesktopTrendHandoff,
@@ -17,6 +19,8 @@ import { useConversationSend } from './useConversationSend';
 import { useConversationState } from './useConversationState';
 
 interface ConversationViewProps {
+  brands: IDesktopBrand[];
+  cloudOrganizations: IDesktopCloudOrganization[];
   onCreateThread: () => IDesktopThread;
   onSendMessage: (threadId: string, message: IDesktopMessage) => void;
   onSetStatus: (threadId: string, status: 'awaiting-response' | 'idle') => void;
@@ -30,6 +34,8 @@ export const ConversationView = ({
   onCreateThread,
   onSendMessage,
   onSetStatus,
+  brands,
+  cloudOrganizations,
   pendingTrend,
   onTrendConsumed,
   thread,
@@ -53,6 +59,7 @@ export const ConversationView = ({
     handleOpenCreditsCheckout,
     handleOpenProviderKeys,
     handleProjectLink,
+    handleBrandLink,
     handleSaveDraft,
     handleSaveProvider,
     handleTestProvider,
@@ -162,11 +169,14 @@ export const ConversationView = ({
               setPlatform as (v: DesktopContentPlatform) => void
             }
             onProjectLink={handleProjectLink}
+            onBrandLink={handleBrandLink}
             onPublishIntentChange={
               setPublishIntent as (v: DesktopPublishIntent) => void
             }
             onSaveDraft={handleSaveDraft}
             platform={platform}
+            brands={brands}
+            cloudOrganizations={cloudOrganizations}
             projects={projects}
             publishIntent={publishIntent}
             workspace={workspace}

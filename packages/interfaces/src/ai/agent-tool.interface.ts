@@ -85,6 +85,11 @@ export enum AgentToolName {
   SELECT_INGREDIENT = 'select_ingredient',
   // Campaign coordination tools
   REQUEST_ASSET = 'request_asset',
+  // Brand context interview tools
+  START_BRAND_INTERVIEW = 'start_brand_interview',
+  SUBMIT_BRAND_INTERVIEW_ANSWER = 'submit_brand_interview_answer',
+  SKIP_BRAND_INTERVIEW_QUESTION = 'skip_brand_interview_question',
+  GET_BRAND_COMPLETENESS = 'get_brand_completeness',
 }
 
 /** @deprecated Prefer canonical tool metadata from @genfeedai/tools. */

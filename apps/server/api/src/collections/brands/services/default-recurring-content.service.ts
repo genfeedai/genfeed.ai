@@ -163,6 +163,8 @@ export class DefaultRecurringContentService {
     }
 
     const existingWorkflows = (await this.prisma.workflow.findMany({
+      // Deterministic ordering so the "first per type" picked below is stable.
+      orderBy: { createdAt: 'desc' },
       select: { id: true, isScheduleEnabled: true, metadata: true },
       where: {
         brands: { some: { id: params.brandId } },

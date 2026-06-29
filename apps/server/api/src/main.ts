@@ -35,11 +35,7 @@ import {
 } from '@libs/redis/redis-connection.utils';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import {
-  DocumentBuilder,
-  type OpenAPIObject,
-  SwaggerModule,
-} from '@nestjs/swagger';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Queue } from 'bullmq';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
@@ -50,7 +46,6 @@ import helmet from 'helmet';
 import gptActionsSpec from './config/gpt-actions-openapi.json';
 
 const apiDir = dirname(fileURLToPath(import.meta.url));
-const BOOT_SMOKE_CLOSE_TIMEOUT_MS = 10_000;
 
 async function main() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -83,18 +78,10 @@ async function main() {
       .addServer('/v1')
       .build();
 
-    let document: OpenAPIObject | null = null;
-    try {
-      document = SwaggerModule.createDocument(app, options);
-    } catch (swaggerError) {
-      logger.error('Swagger document generation failed', swaggerError);
-    }
-
     const docsService = app.get(DocsService);
-    if (document) {
-      docsService.setOpenApiDocument(document);
-    }
-
+    docsService.setOpenApiDocumentFactory(() =>
+      SwaggerModule.createDocument(app, options),
+    );
     docsService.setGptActionsSpec(gptActionsSpec);
 
     app.enableCors(
@@ -285,8 +272,7 @@ async function main() {
       // exit cleanly without listening. Any boot failure throws into the catch
       // below, which exits non-zero so the gate fails.
       await app.init();
-      await closeBootSmokeApplication(app, logger);
-      logger.debug('Boot smoke OK — API initialized cleanly.');
+      console.info('Boot smoke OK — API initialized cleanly.');
       process.exit(0);
     }
 
@@ -297,49 +283,6 @@ async function main() {
     if (process.env.BOOT_SMOKE === '1') {
       // Fail the boot-smoke gate loudly — never let a startup error pass as green.
       process.exit(1);
-    }
-  }
-}
-
-async function closeBootSmokeApplication(
-  app: NestExpressApplication,
-  logger: LoggerService,
-): Promise<void> {
-  try {
-    await withTimeout(
-      app.close(),
-      BOOT_SMOKE_CLOSE_TIMEOUT_MS,
-      `Boot smoke app.close timed out after ${BOOT_SMOKE_CLOSE_TIMEOUT_MS}ms`,
-    );
-  } catch (error: unknown) {
-    logger.warn(
-      error instanceof Error
-        ? error.message
-        : `Boot smoke app.close failed: ${String(error)}`,
-    );
-  }
-}
-
-async function withTimeout<T>(
-  operation: Promise<T>,
-  timeoutMs: number,
-  timeoutMessage: string,
-): Promise<T> {
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
-
-  try {
-    return await Promise.race([
-      operation,
-      new Promise<never>((_resolve, reject) => {
-        timeoutId = setTimeout(
-          () => reject(new Error(timeoutMessage)),
-          timeoutMs,
-        );
-      }),
-    ]);
-  } finally {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
     }
   }
 }

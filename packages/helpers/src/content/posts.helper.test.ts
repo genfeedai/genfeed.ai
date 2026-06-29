@@ -9,6 +9,12 @@ describe('PostsHelper', () => {
     expect(PostsHelper.normalizePostsPlatform(Platform.YOUTUBE)).toBe(
       Platform.YOUTUBE,
     );
+    expect(
+      PostsHelper.normalizePostsPlatform(Platform.GOOGLE_SEARCH_CONSOLE),
+    ).toBe('all');
+    expect(PostsHelper.POST_PLATFORM_VALUES).not.toContain(
+      Platform.GOOGLE_SEARCH_CONSOLE,
+    );
   });
 
   it('should get platform labels correctly', () => {

@@ -458,6 +458,22 @@ export function useConversationState({
     [workspaceId],
   );
 
+  const handleBrandLink = useCallback(
+    async (brandId: string, organizationId?: string) => {
+      if (!workspaceId) {
+        return;
+      }
+
+      const nextWorkspace =
+        await window.genfeedDesktop.workspace.linkCloudContext(workspaceId, {
+          cloudBrandId: brandId || null,
+          cloudOrganizationId: brandId ? (organizationId ?? null) : null,
+        });
+      setWorkspace(nextWorkspace);
+    },
+    [workspaceId],
+  );
+
   const applyProviderPreset = useCallback(
     (nextProviderKind: DesktopGenerationProviderKind) => {
       const preset = PROVIDER_PRESETS[nextProviderKind];
@@ -573,6 +589,7 @@ export function useConversationState({
     handleNewDraft,
     handleOpenCreditsCheckout,
     handleOpenProviderKeys,
+    handleBrandLink,
     handleProjectLink,
     handleSaveDraft,
     handleSaveProvider,

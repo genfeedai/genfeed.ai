@@ -1,0 +1,92 @@
+---
+title: MCP Server
+description: Connect Genfeed.ai to Claude Code, Codex, or any Streamable HTTP MCP client.
+---
+
+# MCP Server
+
+Use the hosted Genfeed MCP server to give AI clients API-key scoped access to content, workflows, publishing, analytics, and ads.
+
+**Endpoint:** `https://mcp.genfeed.ai/mcp`
+
+**Transport:** Streamable HTTP.
+
+**Authentication:** `Authorization: Bearer <gf_... API key>`.
+
+Open [`https://mcp.genfeed.ai`](https://mcp.genfeed.ai) for Claude Code and Codex setup.
+
+## Create an API Key
+
+Create a key in Genfeed app settings and export it where your MCP client runs:
+
+```bash
+export GENFEED_API_KEY=gf_live_xxx
+```
+
+Treat API keys like passwords. Do not commit them or paste them into shared logs.
+
+## Connect Claude Code
+
+Claude Code can connect remote HTTP MCP servers from the terminal:
+
+```bash
+claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp --header "Authorization: Bearer $GENFEED_API_KEY"
+```
+
+Verify with:
+
+```bash
+claude mcp list
+```
+
+You can also open `/mcp` inside Claude Code and inspect the `genfeed` server.
+
+## Connect Codex
+
+Codex CLI and the Codex IDE share `~/.codex/config.toml`. Add the server with:
+
+```bash
+codex mcp add genfeed --url https://mcp.genfeed.ai/mcp --bearer-token-env-var GENFEED_API_KEY
+```
+
+Equivalent `config.toml`:
+
+```toml
+[mcp_servers.genfeed]
+url = "https://mcp.genfeed.ai/mcp"
+bearer_token_env_var = "GENFEED_API_KEY"
+```
+
+## Tools
+
+Each call uses the permissions on the API key.
+
+- **Content and media:** articles, images, videos, music, avatars, batches.
+- **Workflows:** list, create, execute, inspect status.
+- **Publishing:** list and publish social posts.
+- **Analytics and ads:** analytics, campaigns, Google Ads, Meta Ads.
+- **Agents and admin:** threads, approvals, role-gated admin tools.
+
+## HTTP Details
+
+The endpoint accepts `POST`, `GET`, and `DELETE`. Production requests must include:
+
+```http
+Authorization: Bearer gf_live_xxx
+```
+
+Missing, invalid, or expired keys return 401 errors.
+
+## Local Self-Hosted Surface
+
+Self-hosted Genfeed uses `http://localhost:3014/mcp` when the MCP service is running. Cloud uses:
+
+```text
+https://mcp.genfeed.ai/mcp
+```
+
+## Troubleshooting
+
+- **Discovery fails:** use exactly `https://mcp.genfeed.ai/mcp` and a Streamable HTTP client.
+- **401 errors:** confirm `GENFEED_API_KEY` is set and sent as a bearer token.
+- **Wrong endpoint:** check `/v1/config` on the MCP host.

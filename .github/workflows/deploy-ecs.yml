@@ -279,7 +279,7 @@ jobs:
           # Bound the wait: bare 'aws ecs wait tasks-stopped' polls silently for
           # up to ~10 min then fails opaquely. Poll describe-tasks with a deadline
           # and surface lastStatus / stoppedReason for fast diagnosis.
-          DEADLINE=$((SECONDS + 600))
+          DEADLINE=$((SECONDS + 900))
           while :; do
             STATUS=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
               --query 'tasks[0].lastStatus' --output text)
@@ -335,10 +335,9 @@ jobs:
         working-directory: ${{ env.TF_DIR }}
         run: |
           set -euo pipefail
-          # Run the api with BOOT_SMOKE=1 as a one-off task: it fully initializes
-          # (catching crash-on-boot like the #711 circular-dep TDZ) then exits 0.
-          # If it can't boot, fail HERE — before any service rolls — so a bad
-          # image never reaches traffic (vs. rolling then circuit-breaker rollback).
+          # Run the api as a one-off task and require localhost /v1/health to
+          # answer. This catches both crash-on-boot failures and "loads but never
+          # binds the port" failures before any service rolls.
           CLUSTER=$(tofu output -raw cluster_name)
           TASK_DEFINITION=$(tofu output -raw boot_smoke_task_definition_arn)
           SUBNETS=$(tofu output -json task_subnets | jq -r 'join(",")')
@@ -365,7 +364,9 @@ jobs:
             if [ "$SECONDS" -ge "$DEADLINE" ]; then
               REASON=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
                 --query 'tasks[0].stoppedReason' --output text)
-              echo "::error::boot smoke task did not stop within 10m (last status: $STATUS, reason: $REASON)"; exit 1
+              aws ecs stop-task --cluster "$CLUSTER" --task "$TASK_ARN" \
+                --reason "deploy boot-smoke timed out before rollout" >/dev/null || true
+              echo "::error::boot smoke task did not stop within 15m (last status: $STATUS, reason: $REASON)"; exit 1
             fi
             echo "  boot smoke task status: $STATUS ($((DEADLINE - SECONDS))s remaining)"
             sleep 6

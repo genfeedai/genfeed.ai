@@ -47,6 +47,7 @@ const AGENT_TYPE_LABELS: Record<AgentType, string> = {
   [AgentType.SHORT_FORM_WRITER]: 'Short-Form Writer',
   [AgentType.CTA_CONTENT]: 'CTA / Conversion',
   [AgentType.YOUTUBE_SCRIPT]: 'YouTube Script',
+  [AgentType.BRAND_INTERVIEW]: 'Brand Interview',
 };
 
 const AGENT_TYPE_ICONS: Record<AgentType, React.ReactNode> = {
@@ -61,6 +62,7 @@ const AGENT_TYPE_ICONS: Record<AgentType, React.ReactNode> = {
   [AgentType.SHORT_FORM_WRITER]: <HiOutlineBolt className="size-5" />,
   [AgentType.CTA_CONTENT]: <HiOutlineSparkles className="size-5" />,
   [AgentType.YOUTUBE_SCRIPT]: <FaYoutube className="size-4" />,
+  [AgentType.BRAND_INTERVIEW]: <HiOutlineSparkles className="size-5" />,
 };
 
 function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {

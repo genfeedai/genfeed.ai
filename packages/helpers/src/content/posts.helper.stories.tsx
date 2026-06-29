@@ -5,7 +5,7 @@ import Tabs from '@ui/navigation/tabs/Tabs';
 import { useState } from 'react';
 
 type PostPlatformTabsDemoProps = {
-  platforms?: Platform[];
+  platforms?: PostsHelper.PostPlatform[];
 };
 
 function PostPlatformTabsDemo({ platforms }: PostPlatformTabsDemoProps) {
@@ -46,7 +46,7 @@ export const Default: Story = {
 
 export const AllPlatforms: Story = {
   args: {
-    platforms: Object.values(Platform),
+    platforms: [...PostsHelper.POST_PLATFORM_VALUES],
   },
 };
 

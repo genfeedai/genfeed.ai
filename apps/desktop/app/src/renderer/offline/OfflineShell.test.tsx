@@ -5,8 +5,23 @@ import OfflineShell from './OfflineShell';
 
 const bootstrap: IDesktopBootstrap = {
   activeWorkspaceId: 'workspace-1',
+  authority: {
+    cloud: ['organization-membership', 'roles', 'shared-brand-settings'],
+    local: [
+      'private-drafts',
+      'local-generation',
+      'imported-files',
+      'unsynced-assets',
+    ],
+  },
   brands: [],
   betterAuthId: null,
+  cloudIdentity: {
+    localDeviceId: 'device-1',
+    localUserId: 'local-user',
+    status: 'never-connected',
+  },
+  cloudOrganizations: [],
   environment: {
     apiEndpoint: '',
     appEndpoint: '',

@@ -1,4 +1,9 @@
 import type { BaseApiClient } from './base-api-client';
+import type {
+  LinkedInConnectionStatus,
+  LinkedInContentAttributes,
+  LinkedInContentItem,
+} from './linkedin.client.types';
 
 /** LinkedIn content generation, connection status, and analytics tools. */
 export class LinkedInClient {
@@ -8,15 +13,7 @@ export class LinkedInClient {
     brandId?: string;
     topic: string;
     variationsCount?: number;
-  }): Promise<
-    Array<{
-      body: string;
-      content: string;
-      cta: string;
-      hashtags: string[];
-      hook: string;
-    }>
-  > {
+  }): Promise<LinkedInContentItem[]> {
     this.base.logger.debug('Generating LinkedIn content', { params });
 
     return this.base.request(
@@ -30,36 +27,20 @@ export class LinkedInClient {
         });
 
         return (
-          response.data?.data?.map(
-            (item: {
-              attributes?: {
-                body?: string;
-                content?: string;
-                cta?: string;
-                hashtags?: string[];
-                hook?: string;
-              };
-            }) => ({
-              body: item.attributes?.body || '',
-              content: item.attributes?.content || '',
-              cta: item.attributes?.cta || '',
-              hashtags: item.attributes?.hashtags || [],
-              hook: item.attributes?.hook || '',
-            }),
-          ) || []
+          response.data?.data?.map((item: LinkedInContentAttributes) => ({
+            body: item.attributes?.body || '',
+            content: item.attributes?.content || '',
+            cta: item.attributes?.cta || '',
+            hashtags: item.attributes?.hashtags || [],
+            hook: item.attributes?.hook || '',
+          })) || []
         );
       },
       this.base.failWith('Failed to generate LinkedIn content'),
     );
   }
 
-  getLinkedInConnectionStatus(): Promise<{
-    avatar: string | null;
-    connected: boolean;
-    handle: string | null;
-    name: string | null;
-    platform: string;
-  }> {
+  getLinkedInConnectionStatus(): Promise<LinkedInConnectionStatus> {
     this.base.logger.debug('Getting LinkedIn connection status');
 
     return this.base.request(

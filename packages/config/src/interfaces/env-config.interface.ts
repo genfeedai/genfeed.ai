@@ -247,6 +247,9 @@ export interface IEnvConfig {
   GOOGLE_ADS_CLIENT_SECRET?: string;
   GOOGLE_ADS_REDIRECT_URI?: string;
   GOOGLE_ADS_DEVELOPER_TOKEN?: string;
+  GOOGLE_SEARCH_CONSOLE_CLIENT_ID?: string;
+  GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET?: string;
+  GOOGLE_SEARCH_CONSOLE_REDIRECT_URI?: string;
 
   // === Beehiiv ===
   BEEHIIV_API_URL?: string;

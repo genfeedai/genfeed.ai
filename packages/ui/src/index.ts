@@ -42,6 +42,10 @@ export const designTokens: DesignTokens = {
 };
 
 export {
+  staticSurfaceClassNames,
+  staticSurfaceCss,
+} from './static/surface';
+export {
   generateNativeTokens,
   generateWebTokenCss,
   generateWebviewTokenCss,

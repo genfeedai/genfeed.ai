@@ -4,6 +4,7 @@ export enum Platform {
   TIKTOK = 'tiktok',
   FACEBOOK = 'facebook',
   GOOGLE_ADS = 'google_ads',
+  GOOGLE_SEARCH_CONSOLE = 'google_search_console',
   TWITTER = 'twitter',
   LINKEDIN = 'linkedin',
   PINTEREST = 'pinterest',

@@ -414,6 +414,7 @@ export class UserSetupService {
       isActive: true,
       organizationId,
       roleId: String(roleToAssign._id),
+      roleKey: roleToAssign.key,
       userId,
     } as unknown as Parameters<typeof this.membersService.create>[0]);
 

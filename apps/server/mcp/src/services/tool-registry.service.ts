@@ -56,6 +56,10 @@ const APPROVAL_REQUIRED_TOOLS: ReadonlySet<string> = new Set<string>([
   'generate_bootstrap',
   'generate_pulid',
   'generate_darkroom_content',
+  // Brand context interview — mutating tools require user confirmation
+  'start_brand_interview',
+  'submit_brand_interview_answer',
+  'skip_brand_interview_question',
 ]);
 
 @Injectable()

@@ -79,7 +79,9 @@ export interface TrendDiscoveryItem extends TrendData {
   requiresAuth: boolean;
   isCurrent: boolean;
   isDeleted: boolean;
-  expiresAt: Date;
+  // Nullable in the DB (Prisma `Trend.expiresAt DateTime?`); absent for bootstrap
+  // trends and rows without an explicit expiry. Consumers must null-check before use.
+  expiresAt?: Date;
   createdAt?: Date;
   updatedAt?: Date;
   sourcePreview: TrendSourceItem[];

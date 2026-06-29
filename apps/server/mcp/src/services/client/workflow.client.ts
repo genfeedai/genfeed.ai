@@ -75,7 +75,7 @@ export class WorkflowClient {
           results: execution?.attributes?.results,
           startedAt:
             execution?.attributes?.startedAt || new Date().toISOString(),
-          status: execution?.attributes?.status || 'started',
+          status: execution?.attributes?.status || CONTENT_STATUS.STARTED,
           workflowId: params.workflowId,
         };
       },

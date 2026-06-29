@@ -546,6 +546,48 @@ describe('AgentToolExecutorService', () => {
       }),
     };
 
+    const brandInterviewService = {
+      getCompleteness: vi.fn().mockResolvedValue({
+        incompleteFieldKeys: ['audience', 'tone'],
+        interviewableGapCount: 2,
+        overallScore: 40,
+      }),
+      skipField: vi.fn().mockResolvedValue({
+        completenessScore: 45,
+        interviewId: 'interview-1',
+        isComplete: false,
+        nextQuestion: {
+          fieldKey: 'tone',
+          questionText: "What is your brand's tone?",
+        },
+        progress: { answeredCount: 1, skippedCount: 1, totalCount: 10 },
+        status: 'in_progress',
+      }),
+      start: vi.fn().mockResolvedValue({
+        brandId: '67a123456789012345678901',
+        completenessScore: 40,
+        creditsCharged: 10,
+        currentQuestion: {
+          fieldKey: 'audience',
+          questionText: 'Who is your target audience?',
+        },
+        interviewId: 'interview-1',
+        progress: { answeredCount: 0, skippedCount: 0, totalCount: 10 },
+        status: 'in_progress',
+      }),
+      submitAnswer: vi.fn().mockResolvedValue({
+        completenessScore: 50,
+        interviewId: 'interview-1',
+        isComplete: false,
+        nextQuestion: {
+          fieldKey: 'tone',
+          questionText: "What is your brand's tone?",
+        },
+        progress: { answeredCount: 1, skippedCount: 0, totalCount: 10 },
+        status: 'in_progress',
+      }),
+    };
+
     const service = new AgentToolExecutorService(
       loggerService,
       configService as never,
@@ -582,6 +624,7 @@ describe('AgentToolExecutorService', () => {
       ingredientsService as never,
       {} as never, // votesService
       adsResearchService as never,
+      brandInterviewService as never,
     );
 
     return {
@@ -589,6 +632,7 @@ describe('AgentToolExecutorService', () => {
       agentGoalsService,
       agentMemoryCaptureService,
       aiActionsService,
+      brandInterviewService,
       analyticsService,
       batchGenerationService,
       botsLivestreamService,
@@ -3340,5 +3384,119 @@ describe('AgentToolExecutorService', () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain('not found');
+  });
+
+  // ──────────────────────────────────────────────
+  // BRAND CONTEXT INTERVIEW TOOLS
+  // ──────────────────────────────────────────────
+
+  it('start_brand_interview calls engine start and returns interview data', async () => {
+    const { brandInterviewService, service } = createService();
+
+    const result = await service.executeTool(
+      AgentToolName.START_BRAND_INTERVIEW,
+      { brandId: '67a123456789012345678901' },
+      CTX,
+    );
+
+    expect(result.success).toBe(true);
+    expect(brandInterviewService.start).toHaveBeenCalledWith(
+      '67a123456789012345678901',
+      CTX.organizationId,
+      CTX.userId,
+    );
+    expect(result.data).toEqual(
+      expect.objectContaining({
+        interviewId: 'interview-1',
+        status: 'in_progress',
+        completenessScore: 40,
+      }),
+    );
+    expect(result.creditsUsed).toBe(10);
+  });
+
+  it('start_brand_interview returns error when brandId is missing', async () => {
+    const { service } = createService();
+
+    const result = await service.executeTool(
+      AgentToolName.START_BRAND_INTERVIEW,
+      {},
+      CTX,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('brandId');
+  });
+
+  it('submit_brand_interview_answer calls engine submitAnswer and returns next question', async () => {
+    const { brandInterviewService, service } = createService();
+
+    const result = await service.executeTool(
+      AgentToolName.SUBMIT_BRAND_INTERVIEW_ANSWER,
+      { interviewId: 'interview-1', answer: 'Developers and startup founders' },
+      CTX,
+    );
+
+    expect(result.success).toBe(true);
+    expect(brandInterviewService.submitAnswer).toHaveBeenCalledWith(
+      'interview-1',
+      CTX.organizationId,
+      CTX.userId,
+      'Developers and startup founders',
+    );
+    expect(result.data).toEqual(
+      expect.objectContaining({
+        interviewId: 'interview-1',
+        isComplete: false,
+        completenessScore: 50,
+      }),
+    );
+    expect(result.creditsUsed).toBe(0);
+  });
+
+  it('skip_brand_interview_question calls engine skipField and returns next question', async () => {
+    const { brandInterviewService, service } = createService();
+
+    const result = await service.executeTool(
+      AgentToolName.SKIP_BRAND_INTERVIEW_QUESTION,
+      { interviewId: 'interview-1' },
+      CTX,
+    );
+
+    expect(result.success).toBe(true);
+    expect(brandInterviewService.skipField).toHaveBeenCalledWith(
+      'interview-1',
+      CTX.organizationId,
+    );
+    expect(result.data).toEqual(
+      expect.objectContaining({
+        interviewId: 'interview-1',
+        isComplete: false,
+      }),
+    );
+    expect(result.creditsUsed).toBe(0);
+  });
+
+  it('get_brand_completeness calls engine getCompleteness and returns score', async () => {
+    const { brandInterviewService, service } = createService();
+
+    const result = await service.executeTool(
+      AgentToolName.GET_BRAND_COMPLETENESS,
+      { brandId: '67a123456789012345678901' },
+      CTX,
+    );
+
+    expect(result.success).toBe(true);
+    expect(brandInterviewService.getCompleteness).toHaveBeenCalledWith(
+      '67a123456789012345678901',
+      CTX.organizationId,
+    );
+    expect(result.data).toEqual(
+      expect.objectContaining({
+        overallScore: 40,
+        incompleteFieldKeys: expect.arrayContaining(['audience', 'tone']),
+      }),
+    );
+    expect(result.creditsUsed).toBe(0);
   });
 });

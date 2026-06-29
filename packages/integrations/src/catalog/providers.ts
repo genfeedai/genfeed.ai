@@ -187,6 +187,42 @@ export const INTEGRATION_PROVIDER_DEFINITIONS = [
   },
   {
     authMode: 'oauth2',
+    capabilities: ['fetch_account', 'fetch_analytics'],
+    credentialFields: [
+      {
+        description: 'Google OAuth client ID.',
+        key: 'clientId',
+        label: 'Client ID',
+        required: true,
+        secret: false,
+      },
+      {
+        description: 'Google OAuth client secret.',
+        key: 'clientSecret',
+        label: 'Client Secret',
+        required: true,
+        secret: true,
+      },
+    ],
+    displayName: 'Google Search Console',
+    docsUrl: 'https://developers.google.com/webmaster-tools',
+    endpoints: {
+      apiBaseUrl: 'https://www.googleapis.com/webmasters/v3',
+      appBaseUrl: 'https://search.google.com/search-console',
+    },
+    key: 'google_search_console',
+    oauth: {
+      authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
+      scopes: ['https://www.googleapis.com/auth/webmasters.readonly'],
+      tokenUrl: 'https://oauth2.googleapis.com/token',
+    },
+    platform: CredentialPlatform.GOOGLE_SEARCH_CONSOLE,
+    retry: DEFAULT_RETRY,
+    setupGuideUrl:
+      'https://developers.google.com/webmaster-tools/v1/how-tos/authorizing',
+  },
+  {
+    authMode: 'oauth2',
     capabilities: [
       'fetch_account',
       'fetch_campaigns',

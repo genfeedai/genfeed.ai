@@ -18,6 +18,8 @@
 export const CACHE_PATTERNS = {
   API_KEYS_LIST: (orgId: string) => `apiKeys:list:${orgId}`,
   API_KEYS_SINGLE: (id: string) => `apiKeys:single:${id}`,
+  ARTICLES_LIST: (orgId: string) => `articles:list:${orgId}`,
+  ARTICLES_SINGLE: (id: string) => `articles:single:${id}`,
   BRANDS_LIST: (orgId: string) => `brands:list:${orgId}`,
   BRANDS_SINGLE: (id: string) => `brands:single:${id}`,
   CREDITS_BYOK: (orgId: string) => `credits:byok:${orgId}`,
@@ -32,6 +34,7 @@ export const CACHE_PATTERNS = {
  */
 export const CACHE_TAGS = {
   API_KEYS: 'apiKeys',
+  ARTICLES: 'articles',
   BRANDS: 'brands',
   CREDITS: 'credits',
 } as const;

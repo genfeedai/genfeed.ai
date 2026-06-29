@@ -1,6 +1,9 @@
 import type { Platform } from '@genfeedai/enums';
 import type { ICredential } from '@genfeedai/interfaces';
-import { PLATFORM_LABEL_MAP } from '@helpers/content/posts.helper';
+import {
+  getPostsPlatformLabel,
+  isPostPlatform,
+} from '@helpers/content/posts.helper';
 import type { PostsService } from '@services/content/posts.service';
 import { logger } from '@services/core/logger.service';
 
@@ -38,9 +41,17 @@ export async function generatePosts({
     return;
   }
 
+  // Guard non-posting platforms (e.g. Google Search Console / Google Ads-style
+  // SEO/analytics integrations): they are valid Platform values but cannot be
+  // post-generation targets, so reject them before attempting generation.
+  if (!isPostPlatform(targetPlatform)) {
+    alert('The selected platform does not support post generation.');
+    return;
+  }
+
   const credential = getCredentialForPlatform(targetPlatform);
   if (!credential) {
-    const platformLabel = PLATFORM_LABEL_MAP[targetPlatform];
+    const platformLabel = getPostsPlatformLabel(targetPlatform);
     alert(`No ${platformLabel} account connected for this brand`);
     return;
   }

@@ -3,8 +3,8 @@ import { Platform } from '../src/platform.enum';
 
 describe('platform.enum', () => {
   describe('Platform', () => {
-    it('should have 24 members', () => {
-      expect(Object.values(Platform)).toHaveLength(24);
+    it('should have 25 members', () => {
+      expect(Object.values(Platform)).toHaveLength(25);
     });
 
     it('should have correct values', () => {
@@ -13,6 +13,7 @@ describe('platform.enum', () => {
       expect(Platform.TIKTOK).toBe('tiktok');
       expect(Platform.FACEBOOK).toBe('facebook');
       expect(Platform.GOOGLE_ADS).toBe('google_ads');
+      expect(Platform.GOOGLE_SEARCH_CONSOLE).toBe('google_search_console');
       expect(Platform.TWITTER).toBe('twitter');
       expect(Platform.LINKEDIN).toBe('linkedin');
       expect(Platform.PINTEREST).toBe('pinterest');

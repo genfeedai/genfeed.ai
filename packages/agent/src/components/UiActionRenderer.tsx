@@ -14,6 +14,8 @@ import { AnalyticsSnapshotCard } from '@genfeedai/agent/components/AnalyticsSnap
 import { BatchGenerationCard } from '@genfeedai/agent/components/BatchGenerationCard';
 import { BatchGenerationResultCard } from '@genfeedai/agent/components/BatchGenerationResultCard';
 import { BrandCreateCard } from '@genfeedai/agent/components/BrandCreateCard';
+import { BrandInterviewCompleteCard } from '@genfeedai/agent/components/BrandInterviewCompleteCard';
+import { BrandInterviewOfferCard } from '@genfeedai/agent/components/BrandInterviewOfferCard';
 import { BrandVoiceProfileCard } from '@genfeedai/agent/components/BrandVoiceProfileCard';
 import {
   CampaignControlCard,
@@ -163,6 +165,12 @@ export function UiActionRenderer({
       return <LivestreamBotCard action={action} onUiAction={onUiAction} />;
     case 'livestream_bot_status_card':
       return <LivestreamBotCard action={action} onUiAction={onUiAction} />;
+    case 'brand_interview_offer_card':
+      return (
+        <BrandInterviewOfferCard action={action} onUiAction={onUiAction} />
+      );
+    case 'brand_interview_complete_card':
+      return <BrandInterviewCompleteCard action={action} />;
     case 'ai_text_action_card':
       return (
         <AiTextActionCard

@@ -8,6 +8,7 @@ import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads
 import { BotsModule } from '@api/collections/bots/bots.module';
 import { BotsService } from '@api/collections/bots/services/bots.service';
 import { BotsLivestreamService } from '@api/collections/bots/services/bots-livestream.service';
+import { BrandInterviewModule } from '@api/collections/brands/brand-interview/brand-interview.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
@@ -64,6 +65,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => AgentStreamPublisherModule),
     forwardRef(() => AnalyticsModule),
     forwardRef(() => BatchGenerationModule),
+    forwardRef(() => BrandInterviewModule),
     forwardRef(() => BrandsModule),
     forwardRef(() => BotsModule),
     forwardRef(() => OutreachCampaignsModule),
