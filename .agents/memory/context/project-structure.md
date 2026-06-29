@@ -1,7 +1,7 @@
 ---
 created: 2026-04-07T00:00:00Z
-last_updated: 2026-04-10T00:00:00Z
-version: 1.0
+last_updated: 2026-06-29T00:00:00Z
+version: 1.1
 author: Claude Code PM System
 ---
 
@@ -28,12 +28,12 @@ genfeed.ai/
 │   ├── app/                 # Main studio app (Next.js)
 │   ├── docs/                # Documentation site (Next.js)
 │   ├── website/             # Marketing site (Next.js)
-│   ├── desktop/             # Electron desktop app
-│   ├── mobile/              # React Native / Expo
+│   ├── desktop/app/         # Electron desktop app workspace
+│   ├── mobile/app/          # React Native / Expo workspace
 │   └── extensions/          # Browser & IDE extensions (v2 milestone)
-│       ├── browser/
-│       └── ide/
-├── packages/                # 43 shared packages (@genfeedai/*)
+│       ├── browser/app/
+│       └── ide/app/
+├── packages/                # 42 shared packages (@genfeedai/*)
 │   ├── agent/               # Agent logic
 │   ├── api-types/           # Generated API types
 │   ├── cli/                 # CLI tooling
@@ -42,37 +42,24 @@ genfeed.ai/
 │   ├── constants/           # Shared constants
 │   ├── contexts/            # React contexts
 │   ├── core/                # Core library
-│   ├── db/                  # Database utilities
-│   ├── deserializer/        # JSON:API deserializer
-│   ├── desktop-client/      # Desktop API client
 │   ├── desktop-contracts/   # Desktop IPC contracts
 │   ├── desktop-core/        # Desktop core logic
-│   ├── desktop-shell/       # Desktop shell
+│   ├── desktop-prisma/      # Desktop-local Prisma/PGlite schema + client
 │   ├── enums/               # Shared enums
 │   ├── errors/              # Error types
 │   ├── fonts/               # Font assets
 │   ├── helpers/             # Utility helpers
 │   ├── hooks/               # React hooks
-│   ├── integration-common/  # Integration base
 │   ├── integrations/        # Platform integrations
-│   │   ├── discord/
-│   │   ├── fanvue/
-│   │   ├── instagram/
-│   │   ├── linkedin/
-│   │   ├── slack/
-│   │   ├── telegram/
-│   │   ├── threads/
-│   │   ├── tiktok/
-│   │   ├── twitter/
-│   │   └── youtube/
 │   ├── interfaces/          # TypeScript interfaces
 │   ├── libs/                # Shared libraries
 │   ├── models/              # Domain data models
 │   ├── next-config/         # Shared Next.js config
 │   ├── pages/               # Shared page components
+│   ├── pricing/             # Pricing helpers
+│   ├── prisma/              # PostgreSQL Prisma schema, migrations, generated client
 │   ├── prompts/             # AI prompts
 │   ├── props/               # Component prop interfaces
-│   ├── providers/           # React providers
 │   ├── serializers/         # JSON:API serializers
 │   ├── services/            # Frontend services
 │   ├── storage/             # Storage abstraction
@@ -88,11 +75,11 @@ genfeed.ai/
 │   └── workflows/           # Workflow definitions
 ├── ee/                      # Enterprise features (commercial license)
 │   └── packages/
-│       ├── analytics/       # Advanced analytics (v2)
-│       ├── billing/         # Stripe billing & credits (Phase C extraction target)
+│       ├── analytics/       # Advanced analytics
+│       ├── billing/         # Stripe billing & credits
 │       ├── harness/         # @genfeedai/ee-harness — enterprise content-harness contributions
-│       ├── multi-tenancy/   # Multi-tenant org isolation (v2)
-│       └── teams/           # Team management (v2)
+│       ├── multi-tenancy/   # Multi-tenant org isolation
+│       └── teams/           # Team management
 ├── docker/                  # Docker configs
 ├── docs/                    # Documentation
 ├── e2e/                     # E2E test suites
@@ -107,7 +94,7 @@ genfeed.ai/
 - **Backend service structure**: `apps/server/{service}/src/` with NestJS modules
 - **API services**: `apps/server/api/src/services/{service-name}/` — 30+ domain services
 - **Integrations**: `apps/server/api/src/services/integrations/{platform}/` — 48+ platforms
-- **Frontend app structure**: `apps/{app}/app/` (Next.js App Router)
+- **Frontend app structure**: `apps/app/app/`, `apps/docs/app/`, and `apps/website/app/` use Next.js App Router. Admin routes are inside `apps/app/app/(protected)/admin`.
 - **Shared packages**: `packages/{name}/src/index.ts` barrel exports
 - **Serializers**: `packages/serializers/src/{attributes,configs,server}/{category}/`
 - **Enterprise packages**: `ee/packages/{name}/` — commercial license, multi-tenancy features

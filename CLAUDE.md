@@ -6,7 +6,7 @@
 @.agents/memory/context/project-style-guide.md
 @.agents/memory/context/skills-architecture.md
 
-TypeScript monorepo: 6 app surfaces, 12 backend services, 43 shared packages.
+TypeScript monorepo: 6 app surfaces, 12 backend services, 42 shared packages.
 Stack: Next.js + NestJS + PostgreSQL (Prisma) + Redis + BullMQ
 
 ## Git Workflow
@@ -69,7 +69,7 @@ bun run test --filter=@genfeedai/[name]  # Run specific package tests
 ### Serializers (ALWAYS)
 - Serializers live in `packages/serializers/`, NEVER in API modules
 - Never return raw database records — serialize first
-- Flow: DB Document → Serializer → Client Response
+- Flow: DB record → Serializer → Client Response
 
 ### Frontend (ALWAYS)
 - AbortController in every useEffect with async calls
@@ -78,14 +78,14 @@ bun run test --filter=@genfeedai/[name]  # Run specific package tests
 - **Never raw HTML elements** — use `@ui/primitives/*` instead. `<button>`, `<input>`, `<textarea>`, `<select>`, `<dialog>`, `<table>`, `<hr>`, etc. are blocked by `scripts/lint-no-raw-html.sh` pre-commit hook. For unstyled usage, use `Button` with `variant={ButtonVariant.UNSTYLED}` + `withWrapper={false}`. Never nest `Button` inside `Button` (invalid HTML) — restructure as siblings.
 
 ### Backend (ALWAYS)
-- Compound indexes in module `useFactory`, simple indexes via `@Prop` decorator
+- Compound indexes live in Prisma schema `@@index` directives or explicit migrations
 - NestJS exceptions for errors (`NotFoundException`, `BadRequestException`)
 - No backward compatibility wrappers — fix at the source
 - Soft deletes: `isDeleted: boolean` (NOT `deletedAt`)
 - ConfigService: `{ provide: ConfigService, useValue: new ConfigService() }` — never use `process.env` directly
 
 ### Multi-Tenancy (Enterprise `ee/` only)
-- Enterprise code under `ee/`: every MongoDB query MUST include `{ organization: orgId, isDeleted: false }`
+- Enterprise code under `ee/`: every tenant-scoped Prisma query MUST include `{ organizationId: orgId, isDeleted: false }`
 - Self-hosted single-tenant: organization filter is optional
 - **Repo invariant:** All multi-tenant data access code must live under `ee/` or import from `ee/packages/`
 
@@ -121,9 +121,9 @@ bun run test --filter=@genfeedai/[name]  # Run specific package tests
 | `apps/app/` | Main studio app |
 | `apps/docs/` | Documentation site |
 | `apps/website/` | Marketing site |
-| `apps/desktop/` | Electron desktop app |
-| `apps/mobile/` | React Native / Expo |
-| `apps/extensions/` | Browser + IDE extensions |
+| `apps/desktop/app/` | Electron desktop app |
+| `apps/mobile/app/` | React Native / Expo |
+| `apps/extensions/browser/app/`, `apps/extensions/ide/app/` | Browser + IDE extensions |
 
 ### Infrastructure
 - **Self-hosted**: Docker deployment (see `docs/self-hosting.md`)

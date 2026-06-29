@@ -7,9 +7,9 @@ Project planning/reporting summary.
 - Architecture: `./ARCHITECTURE.md`
 - Rules: `./RULES.md`
 - Agent runtime: `./AGENT-RUNTIME.md`
-- Critical rules: `./critical/CRITICAL-NEVER-DO.md`
-- Cross-project rules: `./critical/CROSS-PROJECT-RULES.md`
-- Priority reading: `./critical/PRIORITY-READING.md`
+- Critical rules: `./CRITICAL-NEVER-DO.md`
+- Cross-project rules: `./CROSS-PROJECT-RULES.md`
+- Priority reading: `./PRIORITY-READING.md`
 - Open-source context: `./OPEN-SOURCE-CONTEXT.md`
 - Self-hosted guide: `./SELF-HOSTED-GUIDE.md`
 
@@ -19,11 +19,10 @@ Project planning/reporting summary.
 apps/
   server/     api, clips, discord, files, images, mcp, notifications, slack, telegram, videos, voices, workers
   app/        Next.js studio UI
-  admin/      Admin panel
   website/    Marketing site
-  desktop/    Electron desktop shell embedding apps/app with local IPC backend actions
-  mobile/     React Native / Expo
-  extensions/ Browser + IDE extensions
+  desktop/app/ Electron desktop shell embedding apps/app with local IPC backend actions
+  mobile/app/  React Native / Expo
+  extensions/  Browser + IDE extensions
 packages/     Shared packages (@genfeedai/*)
 ee/packages/  Enterprise features (commercial license)
 docker/       Self-hosted deployment
