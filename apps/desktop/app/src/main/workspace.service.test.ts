@@ -10,10 +10,29 @@ import {
 const { DesktopWorkspaceService } = await import('./workspace.service');
 
 const createPrismaMock = () => {
+  const cloudLinksByWorkspaceId = new Map<string, Record<string, unknown>>();
   const workspacesById = new Map<string, Record<string, unknown>>();
   const recentItemsById = new Map<string, Record<string, unknown>>();
 
   return {
+    desktopWorkspaceCloudLink: {
+      findMany: async () => Array.from(cloudLinksByWorkspaceId.values()),
+      upsert: async ({
+        create,
+        update,
+        where,
+      }: {
+        create: Record<string, unknown>;
+        update: Record<string, unknown>;
+        where: { workspaceId: string };
+      }) => {
+        cloudLinksByWorkspaceId.set(where.workspaceId, {
+          ...(cloudLinksByWorkspaceId.get(where.workspaceId) ?? create),
+          ...update,
+          workspaceId: where.workspaceId,
+        });
+      },
+    },
     desktopRecentItem: {
       findMany: async () =>
         Array.from(recentItemsById.values()).sort((left, right) =>
@@ -58,6 +77,7 @@ const createPrismaMock = () => {
         });
       },
     },
+    cloudLinksByWorkspaceId,
     recentItemsById,
     workspacesById,
   };
@@ -129,6 +149,7 @@ describe('DesktopWorkspaceService', () => {
       indexingState: 'idle',
       lastOpenedAt: now,
       linkedBrandId: null,
+      linkedOrganizationId: null,
       linkedProjectId: null,
       localDraftCount: 0,
       name: 'Linked Workspace',
@@ -156,5 +177,69 @@ describe('DesktopWorkspaceService', () => {
 
     await service.revealInFinder('workspace-1');
     expect(electronMockState.shell.revealedPaths).toEqual([workspaceDir]);
+  });
+
+  it('links a workspace to explicit cloud org, brand, and project context', async () => {
+    const workspaceDir = path.join(temporaryRoot, 'cloud-linked-workspace');
+    fs.mkdirSync(workspaceDir, { recursive: true });
+
+    const now = '2026-04-01T10:00:00.000Z';
+    const prisma = createPrismaMock();
+    prisma.workspacesById.set('workspace-1', {
+      createdAt: now,
+      fileIndex: '[]',
+      id: 'workspace-1',
+      indexingState: 'idle',
+      lastOpenedAt: now,
+      linkedBrandId: null,
+      linkedOrganizationId: null,
+      linkedProjectId: null,
+      localDraftCount: 0,
+      name: 'Cloud Linked Workspace',
+      path: workspaceDir,
+      pendingSyncCount: 0,
+      syncPolicy: 'local-only',
+      updatedAt: now,
+    });
+
+    const service = new DesktopWorkspaceService(prisma as never);
+    await service.init();
+
+    const workspace = await service.linkCloudContext(
+      'workspace-1',
+      {
+        cloudBrandId: 'brand-cloud-1',
+        cloudOrganizationId: 'org-cloud-1',
+        cloudProjectId: 'project-cloud-1',
+        syncPolicy: 'metadata-sync',
+      },
+      {
+        cloudUserId: 'cloud-user-1',
+        localDeviceId: 'device-1',
+        localUserId: 'local-user-1',
+      },
+    );
+
+    expect(workspace).toMatchObject({
+      linkedBrandId: 'brand-cloud-1',
+      linkedOrganizationId: 'org-cloud-1',
+      linkedProjectId: 'project-cloud-1',
+      syncPolicy: 'metadata-sync',
+    });
+    expect(workspace.cloudLink).toMatchObject({
+      cloudBrandId: 'brand-cloud-1',
+      cloudOrganizationId: 'org-cloud-1',
+      cloudProjectId: 'project-cloud-1',
+      cloudUserId: 'cloud-user-1',
+      localDeviceId: 'device-1',
+      localUserId: 'local-user-1',
+      syncPolicy: 'metadata-sync',
+      workspaceId: 'workspace-1',
+    });
+    expect(prisma.cloudLinksByWorkspaceId.get('workspace-1')).toMatchObject({
+      cloudBrandId: 'brand-cloud-1',
+      cloudOrganizationId: 'org-cloud-1',
+      cloudProjectId: 'project-cloud-1',
+    });
   });
 });

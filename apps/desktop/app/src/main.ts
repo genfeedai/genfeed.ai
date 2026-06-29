@@ -6,6 +6,7 @@ import type {
   DesktopSyncCursorScope,
   IDesktopAssetGenerationRequest,
   IDesktopAssetSyncUpdate,
+  IDesktopAuthoritySummary,
   IDesktopBootstrap,
   IDesktopBrandManifest,
   IDesktopContentRunDraft,
@@ -15,6 +16,7 @@ import type {
   IDesktopSyncOpAck,
   IDesktopTerminalCreateOptions,
   IDesktopWorkflowGenerationOptions,
+  IDesktopWorkspaceCloudLinkInput,
 } from '@genfeedai/desktop-contracts';
 import { DESKTOP_IPC_CHANNELS } from '@genfeedai/desktop-contracts';
 import {
@@ -40,6 +42,7 @@ import { DesktopFilesService } from './main/files.service';
 import { DesktopGenerationService } from './main/generation.service';
 import { DesktopKvService } from './main/kv.service';
 import { DesktopLocalService } from './main/local.service';
+import { LocalIdentityService } from './main/local-identity.service';
 import { buildDesktopMenu } from './main/menu.service';
 import { DesktopPgliteService } from './main/pglite.service';
 import { DesktopPrismaService } from './main/prisma.service';
@@ -61,6 +64,7 @@ let bootstrapCache: IDesktopBootstrap | null = null;
 let pgliteService: DesktopPgliteService | null = null;
 let prismaService: DesktopPrismaService | null = null;
 let kvService: DesktopKvService;
+let localIdentityService: LocalIdentityService;
 let sessionService: DesktopSessionService;
 let workspaceService: DesktopWorkspaceService;
 let filesService: DesktopFilesService;
@@ -106,15 +110,21 @@ const LOCAL_ORGANIZATION = {
   slug: 'local-workspace',
 } as const;
 const LOCAL_USER = {
-  id: 'local-user',
   name: 'Local Desktop User',
   organizationId: LOCAL_ORGANIZATION.id,
 } as const;
+const DESKTOP_AUTHORITY: IDesktopAuthoritySummary = {
+  cloud: ['organization-membership', 'roles', 'shared-brand-settings'],
+  local: [
+    'private-drafts',
+    'local-generation',
+    'imported-files',
+    'unsynced-assets',
+  ],
+};
 const OFFLINE_MODE_KEY = 'desktop.offline.mode';
 const ONBOARDING_COMPLETED_KEY = 'onboarding.completed';
 const SYNC_THREADS_CURSOR_KEY = 'sync.threads.cursor';
-const LOCAL_BETTER_AUTH_ID_KEY = 'local.user.betterAuthId';
-const LEGACY_LOCAL_AUTH_ID_KEY = ['local.user.', 'auth', 'ProviderId'].join('');
 const ACTIVE_WORKSPACE_ID_KEY = 'desktop.workspace.activeId';
 
 function getSyncCursorKey(scope: DesktopSyncCursorScope = 'threads'): string {
@@ -122,11 +132,66 @@ function getSyncCursorKey(scope: DesktopSyncCursorScope = 'threads'): string {
 }
 
 function getBetterAuthId(): string | null {
-  return (
-    kvService.getValueSync(LOCAL_BETTER_AUTH_ID_KEY) ??
-    kvService.getValueSync(LEGACY_LOCAL_AUTH_ID_KEY)
-  );
+  return localIdentityService.getBetterAuthId();
 }
+
+function getLocalCloudIdentityContext() {
+  return {
+    cloudUserId: getBetterAuthId(),
+    localDeviceId: localIdentityService.getLocalDeviceId(),
+    localUserId: localIdentityService.getLocalUserId(),
+  };
+}
+
+const getCloudIdentityStatus = (
+  session: IDesktopBootstrap['session'],
+  betterAuthId: string | null,
+) => (session ? 'connected' : betterAuthId ? 'signed-out' : 'never-connected');
+
+const persistDeviceIdentity = async (
+  session: IDesktopBootstrap['session'],
+): Promise<void> => {
+  const client = prismaService?.getClient();
+
+  if (!client) {
+    return;
+  }
+
+  const now = new Date().toISOString();
+  const localDeviceId = localIdentityService.getLocalDeviceId();
+  const betterAuthId = getBetterAuthId();
+  const existing = await client.desktopDeviceIdentity.findUnique({
+    where: {
+      id: localDeviceId,
+    },
+  });
+
+  await client.desktopDeviceIdentity.upsert({
+    create: {
+      cloudUserEmail: session?.userEmail ?? null,
+      cloudUserId: betterAuthId,
+      connectedAt: session?.issuedAt ?? null,
+      createdAt: now,
+      id: localDeviceId,
+      lastSeenAt: now,
+      localUserId: localIdentityService.getLocalUserId(),
+      status: getCloudIdentityStatus(session, betterAuthId),
+      updatedAt: now,
+    },
+    update: {
+      cloudUserEmail: session?.userEmail ?? existing?.cloudUserEmail ?? null,
+      cloudUserId: betterAuthId ?? existing?.cloudUserId ?? null,
+      connectedAt: session?.issuedAt ?? existing?.connectedAt ?? null,
+      lastSeenAt: now,
+      localUserId: localIdentityService.getLocalUserId(),
+      status: getCloudIdentityStatus(session, betterAuthId),
+      updatedAt: now,
+    },
+    where: {
+      id: localDeviceId,
+    },
+  });
+};
 
 const getActiveWorkspaceId = (
   workspaces = workspaceService.listRecentWorkspaces(),
@@ -176,23 +241,37 @@ const getBootstrap = (): IDesktopBootstrap => {
   }
 
   const workspaces = workspaceService.listRecentWorkspaces();
+  const session = sessionService.getSession();
+  const betterAuthId = getBetterAuthId();
+  const localUserId = localIdentityService.getLocalUserId();
   const bootstrap: IDesktopBootstrap = {
     activeWorkspaceId: getActiveWorkspaceId(workspaces),
-    betterAuthId: getBetterAuthId(),
+    authority: DESKTOP_AUTHORITY,
+    betterAuthId,
+    cloudIdentity: {
+      cloudUserEmail: session?.userEmail,
+      cloudUserId: betterAuthId ?? undefined,
+      connectedAt: session?.issuedAt,
+      localDeviceId: localIdentityService.getLocalDeviceId(),
+      localUserId,
+      status: getCloudIdentityStatus(session, betterAuthId),
+    },
+    cloudOrganizations: syncService.listCloudOrganizations(),
     environment: sessionService.getEnvironment(),
     isOfflineMode,
     localOrganization: { ...LOCAL_ORGANIZATION },
     localUser: {
       ...LOCAL_USER,
-      userEmail: sessionService.getSession()?.userEmail,
+      id: localUserId,
+      userEmail: session?.userEmail,
     },
-    localUserId: LOCAL_USER.id,
+    localUserId,
     preferences: {
       nativeNotificationsEnabled: Notification.isSupported(),
     },
     brands: syncService.listBrands(),
     recents: workspaceService.listRecents(),
-    session: sessionService.getSession(),
+    session,
     syncState: syncService.getState(),
     workspaces,
   };
@@ -370,7 +449,8 @@ const handleAuthCallback = async (rawUrl: string): Promise<void> => {
     return;
   }
 
-  await kvService.setValue(LOCAL_BETTER_AUTH_ID_KEY, session.userId);
+  await localIdentityService.setBetterAuthId(session.userId);
+  await persistDeviceIdentity(session);
   isOfflineMode = false;
   await kvService.setValue(OFFLINE_MODE_KEY, '0');
   await emitSession();
@@ -419,6 +499,7 @@ const registerIpcHandlers = (): void => {
   });
   ipcMain.handle(DESKTOP_IPC_CHANNELS.authLogout, async () => {
     await sessionService.clearSession();
+    await persistDeviceIdentity(null);
     await emitSession();
     await emitBootstrap();
   });
@@ -498,7 +579,24 @@ const registerIpcHandlers = (): void => {
     async (_event: unknown, workspaceId: string, projectId: string) => {
       const workspace = await workspaceService.linkProject(
         workspaceId,
-        projectId,
+        projectId || null,
+        getLocalCloudIdentityContext(),
+      );
+      await emitBootstrap();
+      return workspace;
+    },
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.workspaceLinkCloudContext,
+    async (
+      _event: unknown,
+      workspaceId: string,
+      input: IDesktopWorkspaceCloudLinkInput,
+    ) => {
+      const workspace = await workspaceService.linkCloudContext(
+        workspaceId,
+        input,
+        getLocalCloudIdentityContext(),
       );
       await emitBootstrap();
       return workspace;
@@ -841,14 +939,19 @@ app.whenReady().then(async () => {
   const pglite = await pgliteService.init();
   prismaService = new DesktopPrismaService(pglite);
   const prismaClient = prismaService.getClient();
-  await prismaService.bootstrapLocalIdentity();
   kvService = new DesktopKvService(prismaClient);
   await kvService.init();
+  localIdentityService = new LocalIdentityService(kvService);
+  await localIdentityService.initialize();
+  await prismaService.bootstrapLocalIdentity(
+    localIdentityService.getLocalUserId(),
+  );
   sessionService = new DesktopSessionService(kvService, environment);
   const session = await sessionService.validateStoredSession();
   if (session) {
-    await kvService.setValue(LOCAL_BETTER_AUTH_ID_KEY, session.userId);
+    await localIdentityService.setBetterAuthId(session.userId);
   }
+  await persistDeviceIdentity(session);
   workspaceService = new DesktopWorkspaceService(prismaClient);
   await workspaceService.init();
   syncService = new DesktopSyncService(prismaClient);

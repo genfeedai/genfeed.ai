@@ -19,6 +19,21 @@ import type { DesktopAgentRunHandoff } from './views/AgentsView';
 
 const emptyBootstrap: IDesktopBootstrap = {
   betterAuthId: null,
+  authority: {
+    cloud: ['organization-membership', 'roles', 'shared-brand-settings'],
+    local: [
+      'private-drafts',
+      'local-generation',
+      'imported-files',
+      'unsynced-assets',
+    ],
+  },
+  cloudIdentity: {
+    localDeviceId: '',
+    localUserId: '',
+    status: 'never-connected',
+  },
+  cloudOrganizations: [],
   environment: {
     apiEndpoint: '',
     appEndpoint: '',
@@ -435,6 +450,8 @@ export const App = () => {
             activeThread={activeThread}
             isOnline={isOnline}
             pendingTrend={pendingTrend}
+            brands={bootstrap.brands}
+            cloudOrganizations={bootstrap.cloudOrganizations}
             selectedWorkspace={selectedWorkspace}
             selectedWorkspaceId={selectedWorkspaceId}
             onCreateThread={createThread}

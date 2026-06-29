@@ -4,10 +4,32 @@ import { DesktopSyncService } from './sync.service';
 const createPrismaMock = (rows: Array<Record<string, unknown>> = []) => {
   const assets = new Map<string, Record<string, unknown>>();
   const brands = new Map<string, Record<string, unknown>>();
+  const cloudOrganizations = new Map<string, Record<string, unknown>>();
   const syncJobs = new Map(rows.map((row) => [String(row.id), row]));
   const syncOps = new Map<string, Record<string, unknown>>();
 
   return {
+    desktopCloudOrganization: {
+      findMany: async () =>
+        Array.from(cloudOrganizations.values()).sort((left, right) =>
+          String(right.updatedAt).localeCompare(String(left.updatedAt)),
+        ),
+      upsert: async ({
+        create,
+        update,
+        where,
+      }: {
+        create: Record<string, unknown>;
+        update: Record<string, unknown>;
+        where: { cloudId: string };
+      }) => {
+        cloudOrganizations.set(where.cloudId, {
+          ...(cloudOrganizations.get(where.cloudId) ?? create),
+          ...update,
+          cloudId: where.cloudId,
+        });
+      },
+    },
     desktopAsset: {
       findMany: async () =>
         Array.from(assets.values()).sort((left, right) =>
@@ -117,6 +139,7 @@ const createPrismaMock = (rows: Array<Record<string, unknown>> = []) => {
     },
     assets,
     brands,
+    cloudOrganizations,
     syncJobs,
     syncOps,
   };
@@ -188,6 +211,61 @@ describe('DesktopSyncService', () => {
       pendingCount: 1,
       retryingCount: 0,
       runningCount: 1,
+    });
+  });
+
+  it('persists cloud organization and brand mappings from a manifest', async () => {
+    const prisma = createPrismaMock();
+    const service = new DesktopSyncService(prisma as never);
+    await service.init();
+
+    await service.applyBrandManifest({
+      assets: [],
+      brands: [
+        {
+          id: 'brand-cloud-1',
+          label: 'Moonrise Studio',
+          organizationId: 'org-cloud-1',
+          slug: 'moonrise',
+          updatedAt: '2026-04-01T09:00:00.000Z',
+        },
+      ],
+      ingredients: [],
+      organization: {
+        id: 'org-cloud-1',
+        label: 'Acme Cloud',
+        slug: 'acme',
+        updatedAt: '2026-04-01T08:00:00.000Z',
+      },
+      updatedCursor: 'cursor-1',
+    });
+
+    expect(service.listCloudOrganizations()).toEqual([
+      {
+        cloudId: 'org-cloud-1',
+        lastPulledAt: expect.any(String),
+        name: 'Acme Cloud',
+        slug: 'acme',
+        updatedAt: '2026-04-01T08:00:00.000Z',
+      },
+    ]);
+    expect(service.listBrands()).toEqual([
+      expect.objectContaining({
+        cloudId: 'brand-cloud-1',
+        cloudOrganizationId: 'org-cloud-1',
+        id: 'brand-cloud-1',
+        name: 'Moonrise Studio',
+        organizationId: 'local-org',
+        syncPolicy: 'metadata-sync',
+      }),
+    ]);
+    expect(prisma.cloudOrganizations.get('org-cloud-1')).toMatchObject({
+      name: 'Acme Cloud',
+      slug: 'acme',
+    });
+    expect(prisma.brands.get('brand-cloud-1')).toMatchObject({
+      cloudOrganizationId: 'org-cloud-1',
+      organizationId: 'local-org',
     });
   });
 });
