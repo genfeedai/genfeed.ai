@@ -828,10 +828,13 @@ export class PostsOperationsController {
     @Body() dto: GenerateHooksDto,
     @Req() _request: Request,
   ) {
-    const _publicMetadata = getPublicMetadata(user);
+    const publicMetadata = getPublicMetadata(user);
 
     try {
-      return await this.postGenerationService.generateHookVariations(dto);
+      return await this.postGenerationService.generateHookVariations(
+        dto,
+        publicMetadata,
+      );
     } catch (error: unknown) {
       const errorMessage = (error as Error)?.message || 'Unknown error';
       this.logger.error(`Hook generation failed: ${errorMessage}`);
