@@ -151,7 +151,33 @@ resource "aws_ecs_task_definition" "boot_smoke" {
     command = [
       "bash",
       "-lc",
-      "set -euo pipefail; bun --filter ${local.services.api.filter} start:prod & pid=$!; trap 'kill $pid 2>/dev/null || true' EXIT; for i in $(seq 1 48); do if ! kill -0 $pid 2>/dev/null; then wait $pid; exit $?; fi; if curl -fsS http://127.0.0.1:${local.services.api.port}/v1/health >/dev/null; then echo 'Boot smoke OK — API served /v1/health.'; exit 0; fi; sleep 10; done; echo 'API did not serve /v1/health within boot-smoke window' >&2; exit 1",
+      <<-EOT
+      set -euo pipefail
+      bun --filter ${local.services.api.filter} start:prod &
+      pid=$!
+      cleanup() {
+        kill "$pid" 2>/dev/null || true
+        wait "$pid" 2>/dev/null || true
+      }
+      trap cleanup EXIT
+
+      for i in $(seq 1 48); do
+        if ! kill -0 "$pid" 2>/dev/null; then
+          wait "$pid"
+          exit $?
+        fi
+        if curl -fsS http://127.0.0.1:${local.services.api.port}/v1/health >/dev/null; then
+          echo 'Boot smoke OK - API served /v1/health.'
+          trap - EXIT
+          cleanup
+          exit 0
+        fi
+        sleep 10
+      done
+
+      echo 'API did not serve /v1/health within boot-smoke window' >&2
+      exit 1
+      EOT
     ]
     secrets = local.task_secrets
     environment = concat(local.internal_env, [
