@@ -1,4 +1,18 @@
 import { workflowAttributes } from '@serializers/attributes/automation/workflow.attributes';
+import { FleetCloudFrontInvalidationSerializer } from '@serializers/server/admin/fleet-cloud-front-invalidation.serializer';
+import { FleetEc2ActionResultSerializer } from '@serializers/server/admin/fleet-ec2-action-result.serializer';
+import { FleetEc2BulkActionResultSerializer } from '@serializers/server/admin/fleet-ec2-bulk-action-result.serializer';
+import { FleetEc2InstanceSerializer } from '@serializers/server/admin/fleet-ec2-instance.serializer';
+import { FleetGenerateVoiceResultSerializer } from '@serializers/server/admin/fleet-generate-voice-result.serializer';
+import { FleetGenerationJobSerializer } from '@serializers/server/admin/fleet-generation-job.serializer';
+import { FleetHealthSerializer } from '@serializers/server/admin/fleet-health.serializer';
+import { FleetLipSyncJobSerializer } from '@serializers/server/admin/fleet-lip-sync-job.serializer';
+import { FleetLipSyncStatusSerializer } from '@serializers/server/admin/fleet-lip-sync-status.serializer';
+import { FleetPipelineCampaignSerializer } from '@serializers/server/admin/fleet-pipeline-campaign.serializer';
+import { FleetPipelineStatsSerializer } from '@serializers/server/admin/fleet-pipeline-stats.serializer';
+import { FleetServiceStatusSerializer } from '@serializers/server/admin/fleet-service-status.serializer';
+import { FleetUploadDatasetResultSerializer } from '@serializers/server/admin/fleet-upload-dataset-result.serializer';
+import { FleetVoiceSerializer } from '@serializers/server/admin/fleet-voice.serializer';
 import { EvaluationSerializer } from '@serializers/server/analytics/evaluation.serializer';
 import { WatchlistSerializer } from '@serializers/server/analytics/watchlist.serializer';
 import { BotSerializer } from '@serializers/server/automation/bot.serializer';
@@ -1001,4 +1015,42 @@ describe('Server Serializers', () => {
       expect(typeof PatternPlaybookSerializer.serialize).toBe('function');
     });
   });
+});
+
+describe('Fleet admin serializers', () => {
+  const cases = [
+    [
+      'FleetCloudFrontInvalidationSerializer',
+      FleetCloudFrontInvalidationSerializer,
+    ],
+    ['FleetEc2ActionResultSerializer', FleetEc2ActionResultSerializer],
+    ['FleetEc2BulkActionResultSerializer', FleetEc2BulkActionResultSerializer],
+    ['FleetEc2InstanceSerializer', FleetEc2InstanceSerializer],
+    ['FleetHealthSerializer', FleetHealthSerializer],
+    ['FleetGenerateVoiceResultSerializer', FleetGenerateVoiceResultSerializer],
+    ['FleetGenerationJobSerializer', FleetGenerationJobSerializer],
+    ['FleetLipSyncJobSerializer', FleetLipSyncJobSerializer],
+    ['FleetLipSyncStatusSerializer', FleetLipSyncStatusSerializer],
+    ['FleetPipelineCampaignSerializer', FleetPipelineCampaignSerializer],
+    ['FleetPipelineStatsSerializer', FleetPipelineStatsSerializer],
+    ['FleetServiceStatusSerializer', FleetServiceStatusSerializer],
+    ['FleetUploadDatasetResultSerializer', FleetUploadDatasetResultSerializer],
+    ['FleetVoiceSerializer', FleetVoiceSerializer],
+  ] as const;
+
+  for (const [name, serializer] of cases) {
+    describe(name, () => {
+      it('is defined (not undefined — type string must PascalCase to match export name)', () => {
+        expect(serializer).toBeTruthy();
+      });
+
+      it('is an object', () => {
+        expect(typeof serializer).toBe('object');
+      });
+
+      it('has a serialize method', () => {
+        expect(typeof serializer.serialize).toBe('function');
+      });
+    });
+  }
 });
