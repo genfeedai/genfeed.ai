@@ -1,6 +1,5 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn';
-import Card from '@ui/card/Card';
 import type { ComponentType, ReactNode } from 'react';
 import { Button } from '../primitives/button';
 
@@ -31,12 +30,11 @@ export function MetricCard({
   const isClickable = !!(href || onClick);
 
   const inner = (
-    <Card
+    <div
       className={cn(
-        'h-full',
+        'h-full rounded-card bg-card px-4 py-4 shadow-border transition-[border-color,background-color] duration-150 ease-out sm:px-5 sm:py-5',
         isClickable && 'cursor-pointer hover:bg-accent/50',
       )}
-      bodyClassName="gap-0 px-4 py-4 sm:px-5 sm:py-5"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
@@ -54,7 +52,7 @@ export function MetricCard({
         </div>
         <Icon className="mt-1.5 size-4 shrink-0 text-muted-foreground/50" />
       </div>
-    </Card>
+    </div>
   );
 
   if (href && LinkComponent) {
