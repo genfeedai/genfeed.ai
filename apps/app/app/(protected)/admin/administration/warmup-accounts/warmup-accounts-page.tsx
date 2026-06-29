@@ -70,6 +70,7 @@ type PageState = {
   form: WarmupAccountFormState;
   isLoading: boolean;
   isSubmitting: boolean;
+  loadTrigger: number;
   selectedAccountId?: string;
 };
 
@@ -97,6 +98,7 @@ function pageReducer(state: PageState, action: PageAction): PageState {
         accounts: [action.account, ...remaining],
         activeTab: 'accounts',
         form: INITIAL_FORM,
+        loadTrigger: state.loadTrigger + 1,
         selectedAccountId: action.account.id,
       };
     }
@@ -123,6 +125,8 @@ function pageReducer(state: PageState, action: PageAction): PageState {
         ...state,
         activeTab: action.tab,
         isLoading: action.tab === 'accounts' ? true : state.isLoading,
+        loadTrigger:
+          action.tab === 'accounts' ? state.loadTrigger + 1 : state.loadTrigger,
       };
     default:
       return state;
@@ -152,9 +156,11 @@ export default function WarmupAccountsPage({
     form: INITIAL_FORM,
     isLoading: defaultTab === 'accounts',
     isSubmitting: false,
+    loadTrigger: 0,
   });
 
-  const { accounts, activeTab, form, isLoading, isSubmitting } = state;
+  const { accounts, activeTab, form, isLoading, isSubmitting, loadTrigger } =
+    state;
   const notificationsService = NotificationsService.getInstance();
 
   const getWarmupAccountsService = useAuthedService((token: string) =>
@@ -193,6 +199,7 @@ export default function WarmupAccountsPage({
     [getWarmupAccountsService, notificationsService],
   );
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: loadTrigger is an intentional re-fire signal incremented on every accounts-tab selection, including re-selections of the already-active tab
   useEffect(() => {
     if (activeTab !== 'accounts') {
       return;
@@ -202,7 +209,7 @@ export default function WarmupAccountsPage({
     loadAccounts(controller.signal);
 
     return () => controller.abort();
-  }, [activeTab, loadAccounts]);
+  }, [activeTab, loadAccounts, loadTrigger]);
 
   function handleFieldChange(
     field: keyof WarmupAccountFormState,
@@ -526,9 +533,10 @@ function WarmupAccountDetail({ account }: { account?: IWarmupAccount }) {
           </p>
         ) : (
           <ol className="mt-3 space-y-3">
-            {diagnostics.map((step) => (
+            {diagnostics.map((step, index) => (
               <li
-                key={`${step.timestamp}-${step.message}`}
+                // biome-ignore lint/suspicious/noArrayIndexKey: timestamp+message collide on same-ms duplicate steps; index is the correct disambiguator
+                key={`${step.timestamp}-${step.message}-${index}`}
                 className="flex gap-3 text-sm"
               >
                 <Badge variant={step.status === 'failed' ? 'error' : 'outline'}>

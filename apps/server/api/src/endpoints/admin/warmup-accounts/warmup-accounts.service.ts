@@ -34,7 +34,6 @@ const ACTIVE_WARMUP_STATUSES: WarmupAccountStatus[] = [
   WarmupAccountStatus.PROVISIONING,
   WarmupAccountStatus.PROVISIONED,
   WarmupAccountStatus.INVITED,
-  WarmupAccountStatus.FAILED,
 ];
 
 function normalizeEmail(email: string): string {
@@ -178,7 +177,6 @@ export class AdminWarmupAccountsService {
 
     const brand = await tx.brand.create({
       data: {
-        description: trimOptional(dto.websiteUrl),
         isSelected: true,
         label: dto.brandName.trim(),
         organizationId: organization.id,
@@ -391,17 +389,14 @@ export class AdminWarmupAccountsService {
       select: { id: true, key: true },
       where: {
         isDeleted: false,
-        key: { in: ['admin', 'member', 'user'] },
+        key: 'admin',
       },
-      orderBy: [
-        {
-          key: 'asc',
-        },
-      ],
     });
 
     if (!role) {
-      throw new BadRequestException('No member role is available');
+      throw new BadRequestException(
+        'Admin role is not configured — warm-up provisioning requires an admin role',
+      );
     }
 
     return role;
