@@ -28,7 +28,7 @@ import { GoogleSearchConsoleService } from '@api/services/integrations/google-se
 import { GoogleSearchConsoleOAuthService } from '@api/services/integrations/google-search-console/services/google-search-console-oauth.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpException } from '@nestjs/common';
+import { BadRequestException, HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -175,6 +175,22 @@ describe('GoogleSearchConsoleController', () => {
     await expect(
       controller.verify(request, { code: 'auth-code' }),
     ).rejects.toBeInstanceOf(HttpException);
+  });
+
+  it('throws BadRequestException when the account has no verified Search Console properties', async () => {
+    gscService.listSites.mockResolvedValueOnce([]);
+
+    await expect(
+      controller.verify(request, {
+        code: 'auth-code',
+        state: JSON.stringify({
+          brandId: 'brand-id',
+          organizationId: 'org-id',
+        }),
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(credentialsService.patch).not.toHaveBeenCalled();
   });
 
   it('lists connected Search Console sites using the stored token', async () => {

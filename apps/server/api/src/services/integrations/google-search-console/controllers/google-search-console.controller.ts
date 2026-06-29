@@ -26,6 +26,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -145,6 +146,12 @@ export class GoogleSearchConsoleController {
       tokens.accessToken,
     );
     const primarySite = sites[0];
+
+    if (!primarySite) {
+      throw new BadRequestException(
+        'No verified Google Search Console properties found for this account. Verify a property in Google Search Console, then reconnect.',
+      );
+    }
 
     const updatedCredential = await this.credentialsService.patch(
       credential._id,

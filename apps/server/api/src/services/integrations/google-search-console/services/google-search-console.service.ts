@@ -16,7 +16,7 @@ import type {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
 const DEFAULT_DIMENSIONS: GoogleSearchConsoleDimension[] = [
@@ -129,7 +129,7 @@ export class GoogleSearchConsoleService {
     });
 
     if (!credential?.refreshToken) {
-      throw new Error('Google Search Console credential not found');
+      throw new NotFoundException('Google Search Console credential not found');
     }
 
     try {
