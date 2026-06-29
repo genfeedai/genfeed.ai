@@ -53,6 +53,19 @@ jobs:
         working-directory: ${{ matrix.path }}
         run: vercel pull --yes --environment=production --token="${VERCEL_TOKEN}"
 
+      - name: Preserve runner PATH for local Vercel build
+        working-directory: ${{ matrix.path }}
+        run: |
+          env_file=".vercel/.env.production.local"
+          if [ -f "$env_file" ] && grep -q '^PATH=' "$env_file"; then
+            awk '!/^PATH=/' "$env_file" > "${env_file}.tmp"
+            mv "${env_file}.tmp" "$env_file"
+            echo "Removed reserved PATH from ${env_file}"
+          fi
+          command -v sh
+          command -v bun
+          command -v vercel
+
       - name: Build ${{ matrix.label }}
         working-directory: ${{ matrix.path }}
         run: vercel build --prod --token="${VERCEL_TOKEN}"
