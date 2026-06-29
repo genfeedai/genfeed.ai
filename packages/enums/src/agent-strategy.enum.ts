@@ -22,6 +22,7 @@ export enum AgentType {
   SHORT_FORM_WRITER = 'short_form_writer',
   CTA_CONTENT = 'cta_content',
   YOUTUBE_SCRIPT = 'youtube_script',
+  BRAND_INTERVIEW = 'brand_interview',
 }
 
 export enum AgentAutonomyMode {

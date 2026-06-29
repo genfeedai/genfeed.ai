@@ -2725,4 +2725,69 @@ describe('AgentOrchestratorService', () => {
     );
     expect(response.message.content).toBe('Approved plan executed.');
   });
+
+  // ──────────────────────────────────────────────
+  // BRAND CONTEXT INTERVIEW — agent-type routing
+  // ──────────────────────────────────────────────
+
+  it('uses BRAND_INTERVIEW_SYSTEM_PROMPT when agentType is BRAND_INTERVIEW', async () => {
+    organizationsService.findOne.mockResolvedValue({
+      onboardingCompleted: true,
+    } as never);
+
+    await service.chat(
+      {
+        agentType: AgentType.BRAND_INTERVIEW,
+        content: 'Start my brand interview',
+      },
+      {
+        organizationId: ORG_ID,
+        userId: USER_ID,
+      },
+    );
+
+    expect(llmDispatcher.chatCompletion).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messages: expect.arrayContaining([
+          expect.objectContaining({
+            content: expect.stringContaining('brand context facilitator'),
+            role: 'system',
+          }),
+        ]),
+      }),
+      ORG_ID,
+    );
+  });
+
+  it('does not charge per-turn credits for BRAND_INTERVIEW agentType', async () => {
+    organizationsService.findOne.mockResolvedValue({
+      onboardingCompleted: true,
+    } as never);
+
+    await service.chat(
+      {
+        agentType: AgentType.BRAND_INTERVIEW,
+        content: 'Start my brand interview',
+      },
+      {
+        organizationId: ORG_ID,
+        userId: USER_ID,
+      },
+    );
+
+    // With turnCost = 0 the service checks credits with 0 (so it never blocks)
+    // and deducts 0 — the net effect is no credits billed for the turn.
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).toHaveBeenCalledWith(ORG_ID, 0);
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).toHaveBeenCalledWith(
+      ORG_ID,
+      USER_ID,
+      0,
+      expect.stringContaining('Agent chat turn'),
+      expect.anything(),
+    );
+  });
 });
