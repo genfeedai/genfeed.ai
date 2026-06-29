@@ -223,6 +223,14 @@ describe('UserSetupService', () => {
       await service.initializeUserResources(userId);
 
       expect(mockMembersService.create).toHaveBeenCalledTimes(1);
+      expect(mockMembersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          organizationId: orgId,
+          roleId,
+          roleKey: 'admin',
+          userId,
+        }),
+      );
     });
 
     it('should provision default recurring workflows for a newly created organization', async () => {
@@ -265,7 +273,9 @@ describe('UserSetupService', () => {
 
       // Both role lookups should have been attempted
       expect(mockRolesService.findOne).toHaveBeenCalledTimes(2);
-      expect(mockMembersService.create).toHaveBeenCalledTimes(1);
+      expect(mockMembersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ roleKey: 'user' }),
+      );
     });
 
     it('should throw if no role found at all', async () => {
