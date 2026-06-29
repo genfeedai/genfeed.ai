@@ -96,8 +96,10 @@ export class VideoProvenanceService {
         IngredientCategory.VIDEO,
       ),
       isDeleted: false,
-      scope: AssetScope.PUBLIC,
-      status: IngredientStatus.GENERATED,
+      // scope and status are also Prisma enums stored as UPPERCASE. Convert from
+      // the lowercase JS enum values to avoid the same silent WHERE mismatch.
+      scope: CategoryPrismaUtil.toAssetScope(AssetScope.PUBLIC),
+      status: CategoryPrismaUtil.toIngredientStatus(IngredientStatus.GENERATED),
     });
   }
 

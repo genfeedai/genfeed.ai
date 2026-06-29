@@ -139,12 +139,13 @@ describe('VideoProvenanceService', () => {
     expect(pkg.assetId).toBe('video-1');
     expect(videosService.findOne).toHaveBeenCalledWith({
       _id: 'video-1',
-      // CategoryPrismaUtil.toIngredientCategory converts the JS enum ('video') to
-      // the Prisma UPPERCASE form ('VIDEO') required by findFirst WHERE clauses.
+      // All three enum fields are converted to the Prisma UPPERCASE form by
+      // CategoryPrismaUtil before being passed to findFirst. The JS enum values
+      // are lowercase ('video', 'public', 'generated'); Prisma stores UPPERCASE.
       category: 'VIDEO',
       isDeleted: false,
-      scope: 'public',
-      status: 'generated',
+      scope: 'PUBLIC',
+      status: 'GENERATED',
     });
     expect(pkg.transcriptSidecar.segmentCount).toBe(1);
   });
