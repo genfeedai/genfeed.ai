@@ -1,8 +1,8 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { API_KEY_SCOPE_PRESETS } from '@genfeedai/constants';
-import { ApiKeyScope, ButtonVariant } from '@genfeedai/enums';
+import { API_KEY_SCOPE_PRESETS } from '@genfeedai/constants/api-key-presets.constant';
+import type { ButtonVariant } from '@genfeedai/enums';
 import type { IByokProviderStatus } from '@genfeedai/interfaces';
 import type { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -74,27 +74,32 @@ type ProductPlainKey = {
   label: string;
 };
 
+type ProductApiKeyScope =
+  (typeof API_KEY_SCOPE_PRESETS)[keyof typeof API_KEY_SCOPE_PRESETS][number];
+
+const SECONDARY_BUTTON_VARIANT = 'secondary' as ButtonVariant;
+
 const API_KEY_SCOPE_OPTIONS = [
   {
     label: 'Videos',
-    scopes: [ApiKeyScope.VIDEOS_READ, ApiKeyScope.VIDEOS_CREATE],
+    scopes: ['videos:read', 'videos:create'],
   },
   {
     label: 'Images',
-    scopes: [ApiKeyScope.IMAGES_READ, ApiKeyScope.IMAGES_CREATE],
+    scopes: ['images:read', 'images:create'],
   },
   {
     label: 'Prompts',
-    scopes: [ApiKeyScope.PROMPTS_READ, ApiKeyScope.PROMPTS_CREATE],
+    scopes: ['prompts:read', 'prompts:create'],
   },
   {
     label: 'Articles',
-    scopes: [ApiKeyScope.ARTICLES_READ, ApiKeyScope.ARTICLES_CREATE],
+    scopes: ['articles:read', 'articles:create'],
   },
-  { label: 'Posts', scopes: [ApiKeyScope.POSTS_CREATE] },
-  { label: 'Brands', scopes: [ApiKeyScope.BRANDS_READ] },
-  { label: 'Credits', scopes: [ApiKeyScope.CREDITS_READ] },
-  { label: 'Analytics', scopes: [ApiKeyScope.ANALYTICS_READ] },
+  { label: 'Posts', scopes: ['posts:create'] },
+  { label: 'Brands', scopes: ['brands:read'] },
+  { label: 'Credits', scopes: ['credits:read'] },
+  { label: 'Analytics', scopes: ['analytics:read'] },
 ] as const;
 
 const PRODUCT_API_KEY_PRESETS = [
@@ -312,7 +317,7 @@ export default function SettingsApiKeysPage() {
     setProductForm((current) => ({ ...current, [field]: value }));
   };
 
-  const handleScopeToggle = (scopes: readonly ApiKeyScope[]) => {
+  const handleScopeToggle = (scopes: readonly ProductApiKeyScope[]) => {
     setProductForm((current) => {
       const nextScopes = new Set(current.selectedScopes);
       const allSelected = scopes.every((scope) => nextScopes.has(scope));
@@ -329,7 +334,7 @@ export default function SettingsApiKeysPage() {
     });
   };
 
-  const handlePresetSelect = (scopes: readonly ApiKeyScope[]) => {
+  const handlePresetSelect = (scopes: readonly ProductApiKeyScope[]) => {
     setProductForm((current) => ({
       ...current,
       selectedScopes: [...scopes],
@@ -529,7 +534,7 @@ export default function SettingsApiKeysPage() {
               </p>
             </div>
             <Button
-              variant={ButtonVariant.SECONDARY}
+              variant={SECONDARY_BUTTON_VARIANT}
               onClick={() => fetchProductApiKeys()}
               isDisabled={isProductLoading}
               aria-label="Refresh Genfeed API keys"
@@ -548,7 +553,7 @@ export default function SettingsApiKeysPage() {
                   </p>
                 </div>
                 <Button
-                  variant={ButtonVariant.SECONDARY}
+                  variant={SECONDARY_BUTTON_VARIANT}
                   onClick={() => handleCopyProductKey(productPlainKey.key)}
                 >
                   <HiClipboardDocument className="size-4" />
@@ -631,7 +636,7 @@ export default function SettingsApiKeysPage() {
               {PRODUCT_API_KEY_PRESETS.map((preset) => (
                 <Button
                   key={preset.label}
-                  variant={ButtonVariant.SECONDARY}
+                  variant={SECONDARY_BUTTON_VARIANT}
                   onClick={() => handlePresetSelect(preset.scopes)}
                 >
                   {preset.label}
@@ -701,7 +706,7 @@ export default function SettingsApiKeysPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
-                        variant={ButtonVariant.SECONDARY}
+                        variant={SECONDARY_BUTTON_VARIANT}
                         onClick={() => handleRotateProductKey(apiKey)}
                         isDisabled={mutatingProductKeyId === apiKey.id}
                       >
@@ -709,7 +714,7 @@ export default function SettingsApiKeysPage() {
                         Rotate
                       </Button>
                       <Button
-                        variant={ButtonVariant.SECONDARY}
+                        variant={SECONDARY_BUTTON_VARIANT}
                         onClick={() => handleRevokeProductKey(apiKey)}
                         isDisabled={mutatingProductKeyId === apiKey.id}
                       >

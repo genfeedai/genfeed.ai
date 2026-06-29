@@ -5,6 +5,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsApiKeysPage from './content';
 
 const mocks = vi.hoisted(() => ({
+  authedServices: new WeakMap<
+    (token: string) => unknown,
+    () => Promise<unknown>
+  >(),
   createApiKey: vi.fn(),
   desktop: false,
   findAllApiKeys: vi.fn(),
@@ -32,8 +36,17 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: (factory: (token: string) => unknown) => async () =>
-    factory('test-token'),
+  useAuthedService: (factory: (token: string) => unknown) => {
+    const existingService = mocks.authedServices.get(factory);
+
+    if (existingService) {
+      return existingService;
+    }
+
+    const service = async () => factory('test-token');
+    mocks.authedServices.set(factory, service);
+    return service;
+  },
 }));
 
 vi.mock('@services/core/logger.service', () => ({
@@ -71,6 +84,13 @@ vi.mock('@services/management/api-keys.service', () => ({
       rotateApiKey: mocks.rotateApiKey,
     }),
   },
+}));
+
+vi.mock('react-icons/hi2', () => ({
+  HiArrowPath: () => <span data-testid="hi-arrow-path" />,
+  HiClipboardDocument: () => <span data-testid="hi-clipboard-document" />,
+  HiPlus: () => <span data-testid="hi-plus" />,
+  HiTrash: () => <span data-testid="hi-trash" />,
 }));
 
 vi.mock('@ui/card/Card', () => ({

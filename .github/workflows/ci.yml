@@ -500,7 +500,7 @@ jobs:
   test-app-changed:
     name: Test App (changed)
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 20
     needs: [trust, test-scope]
     if: >-
       needs.trust.outputs.is-trusted == 'true'
@@ -525,18 +525,10 @@ jobs:
             BASE="HEAD~1"
           fi
           echo "Running app tests changed since $BASE"
-          # `--changed` can still select hundreds of app files on long-lived
-          # PRs; split the focused gate into small sequential shards so Vitest
-          # can release worker heap between process runs.
-          cd apps/app
-          for SHARD in $(seq 1 64); do
-            echo "Running changed app test shard ${SHARD}/64"
-            bunx vitest run --config ./vitest.config.mts \
-              --maxWorkers=1 --passWithNoTests --changed "$BASE" --shard="${SHARD}/64"
-          done
+          cd apps/app && bunx vitest run --config ./vitest.config.mts \
+            --maxWorkers=2 --passWithNoTests --changed "$BASE"
         env:
           NODE_ENV: test
-          NODE_OPTIONS: --max-old-space-size=5120
 
   test-api:
     name: Test API (Shard ${{ matrix.shard }}/4)
