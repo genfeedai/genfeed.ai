@@ -127,11 +127,10 @@ resource "aws_ecs_task_definition" "workflow_backfill" {
 }
 
 # ── One-off boot smoke (run via `aws ecs run-task` BEFORE services roll) ─
-# Boots the api with BOOT_SMOKE=1 so it fully initializes (catching crash-on-boot
-# bugs like the circular-dependency TDZ in #711 that CI's lack of a boot test let
-# ship) then exits 0 — without listening. Uses the api service's full env so the
-# boot path is realistic. If the new image can't boot, the deploy fails HERE,
-# before any service rolls.
+# Boots the compiled api entrypoint with BOOT_CHECK=1 so module evaluation catches
+# crash-on-boot bugs like the circular-dependency TDZ in #711, then exits before
+# opening long-lived production connections. If the new image can't load, the
+# deploy fails HERE, before any service rolls.
 resource "aws_cloudwatch_log_group" "boot_smoke" {
   name              = "/ecs/${local.name_prefix}/boot-smoke"
   retention_in_days = 30
@@ -155,7 +154,7 @@ resource "aws_ecs_task_definition" "boot_smoke" {
     environment = concat(local.internal_env, [
       { name = "PORT", value = tostring(local.services.api.port) },
       { name = "SERVICE_NAME", value = "api" },
-      { name = "BOOT_SMOKE", value = "1" },
+      { name = "BOOT_CHECK", value = "1" },
     ])
     logConfiguration = {
       logDriver = "awslogs"

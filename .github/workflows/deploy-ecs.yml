@@ -335,10 +335,11 @@ jobs:
         working-directory: ${{ env.TF_DIR }}
         run: |
           set -euo pipefail
-          # Run the api with BOOT_SMOKE=1 as a one-off task: it fully initializes
-          # (catching crash-on-boot like the #711 circular-dep TDZ) then exits 0.
-          # If it can't boot, fail HERE — before any service rolls — so a bad
-          # image never reaches traffic (vs. rolling then circuit-breaker rollback).
+          # Run the api with BOOT_CHECK=1 as a one-off task: it loads the compiled
+          # entrypoint (catching crash-on-boot like the #711 circular-dep TDZ)
+          # then exits before opening long-lived prod connections. If it can't
+          # load, fail HERE — before any service rolls — so a bad image never
+          # reaches traffic (vs. rolling then circuit-breaker rollback).
           CLUSTER=$(tofu output -raw cluster_name)
           TASK_DEFINITION=$(tofu output -raw boot_smoke_task_definition_arn)
           SUBNETS=$(tofu output -json task_subnets | jq -r 'join(",")')
