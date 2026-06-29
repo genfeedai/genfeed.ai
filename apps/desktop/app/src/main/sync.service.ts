@@ -8,6 +8,7 @@ import type {
   IDesktopAssetSyncUpdate,
   IDesktopBrand,
   IDesktopBrandManifest,
+  IDesktopCloudOrganization,
   IDesktopSyncJob,
   IDesktopSyncOp,
   IDesktopSyncOpAck,
@@ -42,34 +43,44 @@ const isOneOf = <T extends string>(
 export class DesktopSyncService {
   private readonly assets = new Map<string, IDesktopAsset>();
   private readonly brands = new Map<string, IDesktopBrand>();
+  private readonly cloudOrganizations = new Map<
+    string,
+    IDesktopCloudOrganization
+  >();
   private readonly jobs = new Map<string, IDesktopSyncJob>();
   private readonly ops = new Map<string, IDesktopSyncOp>();
 
   constructor(private readonly prisma: PrismaClient) {}
 
   async init(): Promise<void> {
-    const [assetRows, brandRows, jobRows, opRows] = await Promise.all([
-      this.prisma.desktopAsset.findMany({
-        orderBy: {
-          updatedAt: 'desc',
-        },
-      }),
-      this.prisma.desktopBrand.findMany({
-        orderBy: {
-          updatedAt: 'desc',
-        },
-      }),
-      this.prisma.desktopSyncJob.findMany({
-        orderBy: {
-          updatedAt: 'desc',
-        },
-      }),
-      this.prisma.desktopSyncOp.findMany({
-        orderBy: {
-          updatedAt: 'desc',
-        },
-      }),
-    ]);
+    const [assetRows, brandRows, cloudOrganizationRows, jobRows, opRows] =
+      await Promise.all([
+        this.prisma.desktopAsset.findMany({
+          orderBy: {
+            updatedAt: 'desc',
+          },
+        }),
+        this.prisma.desktopBrand.findMany({
+          orderBy: {
+            updatedAt: 'desc',
+          },
+        }),
+        this.prisma.desktopCloudOrganization.findMany({
+          orderBy: {
+            updatedAt: 'desc',
+          },
+        }),
+        this.prisma.desktopSyncJob.findMany({
+          orderBy: {
+            updatedAt: 'desc',
+          },
+        }),
+        this.prisma.desktopSyncOp.findMany({
+          orderBy: {
+            updatedAt: 'desc',
+          },
+        }),
+      ]);
 
     this.assets.clear();
     for (const row of assetRows) {
@@ -79,6 +90,11 @@ export class DesktopSyncService {
     this.brands.clear();
     for (const row of brandRows) {
       this.brands.set(row.id, this.toBrand(row));
+    }
+
+    this.cloudOrganizations.clear();
+    for (const row of cloudOrganizationRows) {
+      this.cloudOrganizations.set(row.cloudId, this.toCloudOrganization(row));
     }
 
     this.jobs.clear();
@@ -98,6 +114,7 @@ export class DesktopSyncService {
 
   private toBrand(row: {
     cloudId: string | null;
+    cloudOrganizationId: string | null;
     cloudVersion: string | null;
     createdAt: string;
     id: string;
@@ -110,6 +127,7 @@ export class DesktopSyncService {
   }): IDesktopBrand {
     return {
       cloudId: row.cloudId ?? undefined,
+      cloudOrganizationId: row.cloudOrganizationId ?? undefined,
       cloudVersion: row.cloudVersion ?? undefined,
       createdAt: row.createdAt,
       id: row.id,
@@ -118,6 +136,24 @@ export class DesktopSyncService {
       organizationId: row.organizationId,
       slug: row.slug,
       syncPolicy: row.syncPolicy as IDesktopBrand['syncPolicy'],
+      updatedAt: row.updatedAt,
+    };
+  }
+
+  private toCloudOrganization(row: {
+    cloudId: string;
+    lastPulledAt: string | null;
+    name: string;
+    role: string | null;
+    slug: string;
+    updatedAt: string;
+  }): IDesktopCloudOrganization {
+    return {
+      cloudId: row.cloudId,
+      lastPulledAt: row.lastPulledAt ?? undefined,
+      name: row.name,
+      role: row.role ?? undefined,
+      slug: row.slug,
       updatedAt: row.updatedAt,
     };
   }
@@ -200,6 +236,12 @@ export class DesktopSyncService {
 
   listBrands(): IDesktopBrand[] {
     return Array.from(this.brands.values()).sort((left, right) =>
+      right.updatedAt.localeCompare(left.updatedAt),
+    );
+  }
+
+  listCloudOrganizations(): IDesktopCloudOrganization[] {
+    return Array.from(this.cloudOrganizations.values()).sort((left, right) =>
       right.updatedAt.localeCompare(left.updatedAt),
     );
   }
@@ -337,6 +379,38 @@ export class DesktopSyncService {
   async applyBrandManifest(manifest: IDesktopBrandManifest): Promise<void> {
     const pulledAt = toIso();
 
+    if (manifest.organization) {
+      const organization: IDesktopCloudOrganization = {
+        cloudId: manifest.organization.id,
+        lastPulledAt: pulledAt,
+        name: manifest.organization.label,
+        slug: manifest.organization.slug,
+        updatedAt: manifest.organization.updatedAt,
+      };
+
+      await this.prisma.desktopCloudOrganization.upsert({
+        create: {
+          cloudId: organization.cloudId,
+          lastPulledAt: organization.lastPulledAt ?? null,
+          name: organization.name,
+          role: organization.role ?? null,
+          slug: organization.slug,
+          updatedAt: organization.updatedAt,
+        },
+        update: {
+          lastPulledAt: organization.lastPulledAt ?? null,
+          name: organization.name,
+          role: organization.role ?? null,
+          slug: organization.slug,
+          updatedAt: organization.updatedAt,
+        },
+        where: {
+          cloudId: organization.cloudId,
+        },
+      });
+      this.cloudOrganizations.set(organization.cloudId, organization);
+    }
+
     for (const cloudBrand of manifest.brands) {
       if (cloudBrand.isDeleted) {
         await this.prisma.desktopBrand.deleteMany({
@@ -358,6 +432,8 @@ export class DesktopSyncService {
         id: cloudBrand.id,
         lastPulledAt: pulledAt,
         name: cloudBrand.label,
+        cloudOrganizationId:
+          cloudBrand.organizationId ?? manifest.organization?.id,
         organizationId: LOCAL_ORGANIZATION_ID,
         slug: cloudBrand.slug,
         syncPolicy: 'metadata-sync',
@@ -367,6 +443,7 @@ export class DesktopSyncService {
       await this.prisma.desktopBrand.upsert({
         create: {
           cloudId: brand.cloudId ?? null,
+          cloudOrganizationId: brand.cloudOrganizationId ?? null,
           cloudVersion: brand.cloudVersion ?? null,
           createdAt: brand.createdAt,
           id: brand.id,
@@ -379,6 +456,7 @@ export class DesktopSyncService {
         },
         update: {
           cloudId: brand.cloudId ?? null,
+          cloudOrganizationId: brand.cloudOrganizationId ?? null,
           cloudVersion: brand.cloudVersion ?? null,
           lastPulledAt: brand.lastPulledAt ?? null,
           name: brand.name,

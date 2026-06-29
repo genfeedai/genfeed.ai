@@ -17,14 +17,14 @@ This file provides context for AI agents working on deployment-related tasks. It
 - **Single-tenant default:** One organization per deployment. No tenant isolation logic needed outside `ee/`.
 - **Enterprise multi-tenancy:** Available via `ee/packages/`. All multi-tenant data access code must live under `ee/` or import from `ee/packages/`.
 - **Server apps:** `apps/server/{api,clips,discord,files,images,mcp,notifications,slack,telegram,videos,voices,workers}`
-- **Frontend apps:** `apps/{app,admin,website,desktop,mobile}`
+- **Frontend apps:** `apps/app`, `apps/docs`, `apps/website`, `apps/desktop/app`, `apps/mobile/app`, and `apps/extensions/{browser,ide}/app`
 - **Database:** PostgreSQL via Prisma
 - **Queue:** BullMQ via Redis
 - **Real-time:** WebSocket via Redis pub/sub
 
 ## Key Invariants
 
-1. Self-hosted deployments must work with a single `docker compose up`.
+1. Self-hosted deployments must work with the documented self-host compose command: `docker compose -f docker-compose.selfhosted.yml up`.
 2. All required services must be documented in `docker/` configuration.
 3. BYOK (bring your own key) model execution must work without cloud dependencies.
 4. No external service dependencies should be hard requirements (social integrations are opt-in).

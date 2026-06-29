@@ -28,6 +28,7 @@ import { ReplicateModule } from '@api/services/integrations/replicate/replicate.
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
 import { RouterModule } from '@api/services/router/router.module';
+import { SeoModule } from '@api/services/seo/seo.module';
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
@@ -50,6 +51,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => PromptsModule),
     forwardRef(() => ReplicateModule),
     forwardRef(() => RouterModule),
+    forwardRef(() => SeoModule),
     forwardRef(() => TemplatesModule),
     forwardRef(() => UsersModule),
     forwardRef(() => ContentHarnessModule),

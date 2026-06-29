@@ -79,7 +79,7 @@ Verification levels:
 
 Minimum checks by change type:
 
-- Frontend (`apps/app/*`, `apps/admin/*`, `packages/ui/*`, `packages/hooks/*`)
+- Frontend (`apps/app/*`, `apps/docs/*`, `apps/website/*`, `apps/desktop/app/*`, `apps/mobile/app/*`, `apps/extensions/*/app/*`, `packages/ui/*`, `packages/hooks/*`)
   - `fast`: lint/type checks
   - `strict`: add affected tests + QA flow
 

@@ -17,6 +17,9 @@ describe('desktop shared packages', () => {
     expect(DESKTOP_IPC_CHANNELS.workspaceSelect).toBe(
       'desktop:workspace:select',
     );
+    expect(DESKTOP_IPC_CHANNELS.workspaceLinkCloudContext).toBe(
+      'desktop:workspace:linkCloudContext',
+    );
     expect(DESKTOP_IPC_CHANNELS.filesRevealAsset).toBe(
       'desktop:files:revealAsset',
     );

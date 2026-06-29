@@ -4,7 +4,7 @@ import { createDesktopPrismaClient } from '@genfeedai/desktop-prisma';
 import { toIso } from './time.util';
 
 const LOCAL_ORGANIZATION_ID = 'local-org';
-const LOCAL_USER_ID = 'local-user';
+const DEFAULT_LOCAL_USER_ID = 'local-user';
 
 export class DesktopPrismaService {
   private client: PrismaClient | null = null;
@@ -19,7 +19,9 @@ export class DesktopPrismaService {
     return this.client;
   }
 
-  async bootstrapLocalIdentity(): Promise<void> {
+  async bootstrapLocalIdentity(
+    localUserId = DEFAULT_LOCAL_USER_ID,
+  ): Promise<void> {
     const client = this.getClient();
     const now = toIso();
 
@@ -43,7 +45,7 @@ export class DesktopPrismaService {
     await client.user.upsert({
       create: {
         createdAt: now,
-        id: LOCAL_USER_ID,
+        id: localUserId,
         name: 'Local Desktop User',
         organizationId: LOCAL_ORGANIZATION_ID,
         updatedAt: now,
@@ -53,7 +55,7 @@ export class DesktopPrismaService {
         updatedAt: now,
       },
       where: {
-        id: LOCAL_USER_ID,
+        id: localUserId,
       },
     });
   }

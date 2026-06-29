@@ -34,7 +34,10 @@ describe('DesktopPgliteService', () => {
     );
 
     expect(service.getDataDir()).toBe(dataDir);
-    expect(migrationRows.rows).toEqual([{ migration_name: '0001_init' }]);
+    expect(migrationRows.rows).toEqual([
+      { migration_name: '0001_init' },
+      { migration_name: '0002_local_cloud_identity' },
+    ]);
     expect(workspaceRows.rows).toEqual([{ name: 'desktop_workspace' }]);
 
     await service.close();

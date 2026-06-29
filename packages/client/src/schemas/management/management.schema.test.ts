@@ -10,19 +10,22 @@ import { describe, expect, it } from 'vitest';
 describe('management schemas', () => {
   describe('apiKeySchema', () => {
     it('accepts valid', () => {
-      expect(apiKeySchema.safeParse({ name: 'Key' }).success).toBe(true);
+      expect(apiKeySchema.safeParse({ label: 'Key' }).success).toBe(true);
     });
 
-    it('rejects empty name', () => {
-      expect(apiKeySchema.safeParse({ name: '' }).success).toBe(false);
+    it('rejects empty label', () => {
+      expect(apiKeySchema.safeParse({ label: '' }).success).toBe(false);
     });
 
     it('accepts optional fields', () => {
       expect(
         apiKeySchema.safeParse({
+          allowedIps: ['127.0.0.1'],
+          category: 'genfeedai',
           description: 'D',
-          expiresAt: '2025-01-01',
-          name: 'K',
+          expiresAt: '2025-01-01T00:00:00.000Z',
+          label: 'K',
+          metadata: { source: 'settings' },
           rateLimit: 100,
           scopes: ['read'],
         }).success,

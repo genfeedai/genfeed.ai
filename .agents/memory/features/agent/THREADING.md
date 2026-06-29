@@ -1,26 +1,29 @@
 # Agent Threading & Event Sourcing
 
+> **Last verified:** 2026-06-29 against `apps/server/api/src/services/agent-threading/` and `packages/prisma/prisma/schema.prisma`.
+
 **Directory:** `apps/server/api/src/services/agent-threading/`
+
+Agent threading now persists through Prisma/Postgres. The `schemas/*.schema.ts` files in this directory are compatibility document types around Prisma rows and snapshot JSON, not Mongoose collection schemas.
 
 ## Module Exports
 
 - `AgentThreadEngineService` -- event appending + snapshot management
 - `AgentThreadProjectorService` -- event -> snapshot projection
-- `AgentRuntimeSessionService` -- session binding CRUD
+- `AgentRuntimeSessionService` -- session binding CRUD stored in `AgentThreadSnapshot.data.sessionBinding`
 - `AgentExecutionLaneService` -- in-memory concurrency control
 - `AgentProfileResolverService` -- agent profile resolution
+- `ThreadContextCompressorService` -- thread context compaction state
 
-## Collections
+## Persistence Records
 
-| Collection | Schema | Purpose |
-|-----------|--------|---------|
-| `agent_thread_events` | AgentThreadEvent | Immutable event log (event sourcing) |
-| `agent_thread_snapshots` | AgentThreadSnapshot | Projected state from events |
-| `agent_session_bindings` | AgentSessionBinding | Runtime/session state (runId, model, status, resumeCursor, activeCommandId) |
-| `agent_input_requests` | AgentInputRequest | Pending/resolved user input requests |
-| `agent_profile_snapshots` | AgentProfileSnapshot | Agent config snapshot (tools, prompts, memory policy) |
+| Prisma record | Backing table | Purpose |
+|---|---|---|
+| `AgentThreadEvent` | `agent_thread_events` | Immutable event log |
+| `AgentThreadSnapshot` | `agent_thread_snapshots` | Projected state from events; JSON payload holds runtime/session/profile/input state |
+| `ThreadContextState` | `thread_context_states` | Thread context compression state |
 
-All agent-threading records use the dedicated agent persistence connection.
+Runtime/session bindings, input requests, and profile snapshots are not standalone Prisma tables in the current schema. Current services adapt them into document-like shapes from `AgentThreadSnapshot.data`.
 
 ## Event Types (19)
 
@@ -41,13 +44,15 @@ error.raised
 **Key methods:**
 
 ### `appendEvent(params)`
-- Appends event to `agent_thread_events` with sequence guarantee
-- Uses `commandId` for idempotency (returns existing event if duplicate)
-- Increments `lastSequence` atomically on the snapshot
-- Projects event into snapshot via `AgentThreadProjectorService`
 
-**Side effects on session binding:**
-- `input.requested` -> status = `waiting_input`, creates `AgentInputRequest` doc
+- Appends an `AgentThreadEvent` row with a sequence guarantee.
+- Uses `commandId` for idempotency where supplied.
+- Increments `lastSequence` in projected snapshot data.
+- Projects the event into `AgentThreadSnapshot.data` via `AgentThreadProjectorService`.
+
+**Side effects on session binding stored in snapshot JSON:**
+
+- `input.requested` -> status = `waiting_input`, appends an input request to `data.inputRequests[]`
 - `thread.turn_started`, `work.started`, `tool.started`, `tool.progress` -> status = `running`
 - `input.resolved` -> status = `running`
 - `run.cancelled` -> status = `cancelled`
@@ -55,88 +60,102 @@ error.raised
 - `run.failed`, `error.raised` -> status = `failed`
 
 ### `resolveInputRequest(params)`
-Marks `AgentInputRequest` as resolved with answer + timestamp.
 
-### `recordProfileSnapshot(threadId, orgId, snapshot)`
-Upserts agent profile (tools, prompts, memory policy) for the thread.
+Marks an input request inside `AgentThreadSnapshot.data.inputRequests[]` as resolved with answer + timestamp.
 
-### `recordMemoryFlush(threadId, orgId, userId, content, tags)`
-Persists thread conversation summary to memory, returns memory ID.
+### `recordProfileSnapshot(threadId, organizationId, snapshot)`
+
+Stores agent profile data under `AgentThreadSnapshot.data.profileSnapshot`.
+
+### `recordMemoryFlush(threadId, organizationId, userId, content, tags)`
+
+Persists thread conversation summary to memory and returns a memory ID.
 
 ## AgentThreadProjectorService
 
 **Core method:** `applyEvent(snapshot, event) -> MutableSnapshot`
 
-Projects each event type into the snapshot state:
+Projects each event type into snapshot data:
 
 | Event | Snapshot Update |
 |-------|----------------|
 | `thread.turn_requested` | `activeRun = { status: 'queued' }` |
 | `thread.turn_started` / `work.started` | `activeRun = { status: 'running' }` |
 | `assistant.finalized` | `lastAssistantMessage = { messageId, content, metadata }` |
-| `input.requested` | Appends to `pendingInputRequests[]` |
+| `input.requested` | Appends to `pendingInputRequests[]` and `inputRequests[]` |
 | `input.resolved` | Removes matching `requestId` from `pendingInputRequests[]` |
 | `plan.upserted` | `latestProposedPlan = { id, content, steps }` |
 | `ui.blocks_updated` | `latestUiBlocks = { operation, blocks, blockIds }` |
 | `run.*` / `work.completed` / `error.raised` | `activeRun.completedAt` + status |
 | `memory.flushed` | Appends `memoryId` to `memorySummaryRefs[]` |
 | `tool.started` / `tool.progress` | `activeRun.status = 'running'` |
-| `tool.completed` | `activeRun.status = 'running'` (or `'failed'` if `payload.status='failed'`) |
+| `tool.completed` | `activeRun.status = 'running'` or `'failed'` if `payload.status='failed'` |
 
-**Timeline:** Max 250 entries (oldest dropped). Each entry has: `id`, `kind`, `label`, `detail`, `status`, `createdAt`, `sequence`, optional `runId`, `toolName`, `requestId`, `role`, `payload`.
+**Timeline:** Max 250 entries (oldest dropped). Each entry has `id`, `kind`, `label`, `detail`, `status`, `createdAt`, `sequence`, and optional `runId`, `toolName`, `requestId`, `role`, `payload`.
 
 **Timeline entry kinds:** `'assistant'`, `'input'`, `'message'`, `'plan'`, `'tool'`, `'work'`, `'system'`, `'error'`
 
-## AgentThreadSnapshot Schema
+## AgentThreadSnapshot
 
-**Collection:** `agent_thread_snapshots`
+**Prisma model:** `AgentThreadSnapshot`
+**Table:** `agent_thread_snapshots`
+
+Canonical row fields:
 
 ```typescript
 {
-  organization: ObjectId
-  thread: ObjectId          // unique with org
-  lastSequence: number      // highest event sequence processed
+  id: string
+  mongoId?: string
+  organizationId: string
+  threadId: string
+  data: Json
+  isDeleted: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+```
+
+**Index:** `@@unique([organizationId, threadId])`
+
+Snapshot `data` contains the projected thread state:
+
+```typescript
+{
+  lastSequence: number
   title?: string
   source?: string
   threadStatus?: string
   activeRun?: { runId, model, status, startedAt, completedAt }
-  pendingApprovals: AgentPendingApproval[]  // { requestId, requestKind, detail?, createdAt }
-  pendingInputRequests: AgentPendingInputRequest[]  // { requestId, title, prompt, allowFreeText?, recommendedOptionId?, options[], fieldId?, metadata?, createdAt }
+  pendingApprovals?: AgentPendingApproval[]
+  pendingInputRequests?: AgentPendingInputRequest[]
+  inputRequests?: Record<string, unknown>[]
   latestProposedPlan?: { id, content, explanation, steps, createdAt, updatedAt }
   latestUiBlocks?: { operation, blocks, blockIds, updatedAt }
   lastAssistantMessage?: { messageId, content, metadata, createdAt }
-  memorySummaryRefs: string[]
-  timeline: AgentThreadTimelineEntry[]  // max 250
+  memorySummaryRefs?: string[]
+  timeline?: AgentThreadTimelineEntry[]
   sessionBinding?: Record<string, unknown>
   profileSnapshot?: Record<string, unknown>
-  isDeleted: boolean
 }
 ```
 
-Index: `{ organization: 1, thread: 1 }` -- UNIQUE
+## AgentRuntimeSessionService
 
-## AgentSessionBinding Schema
-
-**Collection:** `agent_session_bindings`
-
-Stores runtime/session state for active agent execution. Does NOT store user/brand context -- that lives in the thread and profile snapshot.
+Stores runtime/session state inside `AgentThreadSnapshot.data.sessionBinding` and adapts it to `AgentSessionBindingDocument` for callers.
 
 ```typescript
 {
-  organization: ObjectId
-  thread: ObjectId
+  organizationId: string
+  threadId: string
   runId?: string
   model?: string
   status: 'idle' | 'running' | 'waiting_input' | 'completed' | 'failed' | 'cancelled'
-  resumeCursor?: Record<string, unknown>   // checkpointing position
-  activeCommandId?: string                 // currently executing command
-  lastSeenAt?: string                      // last activity timestamp
+  resumeCursor?: Record<string, unknown>
+  activeCommandId?: string
+  lastSeenAt?: string
   metadata?: Record<string, unknown>
-  isDeleted: boolean
 }
 ```
-
-Index: `{ organization: 1, thread: 1 }` -- UNIQUE
 
 ## AgentExecutionLaneService
 
@@ -146,7 +165,7 @@ In-memory concurrency control using promise chains.
 async runExclusive<T>(laneKey: string, task: () => Promise<T>): Promise<T>
 ```
 
-Maintains `Map<string, Promise<unknown>>` -- tasks on the same lane execute sequentially. Used with key `thread:{threadId}` to serialize concurrent mutations on the same thread.
+Maintains `Map<string, Promise<unknown>>`; tasks on the same lane execute sequentially. Used with key `thread:{threadId}` to serialize concurrent mutations on the same thread.
 
 ## AgentProfileResolverService
 
@@ -155,9 +174,9 @@ Resolves agent configuration from context:
 ```typescript
 resolve(context: { agentType?, campaignId?, strategyId? }): {
   agentType?: string
-  campaign?: ObjectId
-  strategy?: ObjectId
-  routeKey: string              // "agentType:campaignId:strategyId"
+  campaignId?: string
+  strategyId?: string
+  routeKey: string
   enabledTools: string[]
   promptFragments: string[]
   hooks: { before_prompt_build, after_tool_call, before_tool_call, session_end }

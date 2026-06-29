@@ -5,12 +5,12 @@
 - [Project Overview](project_overview.md) — Genfeed.ai monorepo structure and key context
 - [One API Epic](project_one_api_epic.md) — Epic #95: consolidate self-hosted + cloud into one NestJS API, 20 issues, 8 phases
 - [Fallow Health](project_fallow.md) — Fallow codebase health analysis (#83), weekly CI, score 72/100
-- [BullMQ Refactor](project_bullmq.md) — 32 @Processor decorators in API need moving to Workers (#84)
+- [BullMQ Processor Placement](project_bullmq.md) — API no longer owns BullMQ processors; add new processors to workers or the owning runtime service
 - [Migration Status](project_migration.md) — cloud + core → genfeed.ai migration complete, all pages/tests present
 - [Settings Routing](project_settings_routing.md) — canonical personal/org/brand settings URL shapes
 - [Desktop BYOK Generation](project_desktop_byok_generation.md) — desktop local/BYOK generation is local-first; cloud connect is optional
 - [TS6.0/Prisma-7 build regression](project_ts6_prisma7_build_regression.md) — **BUILD REGRESSION RESOLVED 2026-06-03** (CI green @ 2e66b0aa8). Root cause was outdated turbo cache + mv-dist-src hack, not ~2020 real errors; removed the hack + fixed ~7 Prisma-7 Document interfaces. Stage 4 + migration-apply still pending.
-- **Deployment Modes & Auth Refactor (2026-06-22)** — canonical 3-mode model (SaaS / Community / Desktop as `deployment × client` axes) locked in [ADR-DEPLOYMENT-MODES](architecture/ADR-DEPLOYMENT-MODES.md). Two P0 epics: **#735** Better Auth across ALL modes incl. SaaS; phased rollout; headless API-keys UI+CLI #747 and **#740** deployment modes (canonical mode #742, switcher #743, CI rework #744, community-just-works #745, release QA #746). Multi-tenancy stays EE/SaaS; managed credits cloud-only; Community = funnel charter. Supersedes the auth half of #95.
+- **Deployment Modes & Auth Baseline (2026-06-29)** — canonical 3-mode model (SaaS / Community / Desktop as `deployment × client` axes) locked in [ADR-DEPLOYMENT-MODES](architecture/ADR-DEPLOYMENT-MODES.md). Better Auth is now the active auth baseline across modes after #769/#866; platform admin access uses `users.platformRole`; headless API keys remain tracked under #747/#878. Multi-tenancy stays EE/SaaS; managed credits cloud-only; Community = funnel charter. Supersedes the auth half of #95.
 
 ## Rules (user corrections — permanent)
 
@@ -56,7 +56,7 @@
 - [Project Brief](context/project-brief.md) — project brief
 - [Project Vision](context/project-vision.md) — long-term vision
 - [Tech Context](context/tech-context.md) — technology stack details
-- [E2E Architecture](context/e2e-architecture.md) — GitHub Actions e2e pipeline (4 jobs), Playwright + API E2E layers, triggers, DB provisioning, known debt
+- [E2E Architecture](context/e2e-architecture.md) — GitHub Actions E2E pipeline, API boot gate, sharded Playwright suite, triggers, DB provisioning, known debt
 
 ## Features
 
@@ -82,7 +82,7 @@
 - [PLG Boundary](architecture/ADR-PLG-BOUNDARY-OSS-CLOUD.md) — OSS vs cloud feature split
 - [Workflow-Backed Agents](architecture/ADR-WORKFLOW-BACKED-RECURRING-AGENT-AUTOMATION.md) — recurring agent automation
 - [Skills, Routines, and Memory Boundary](architecture/ADR-SKILLS-ROUTINES-MEMORY-BOUNDARY.md) — OSS single-player loop vs cloud collaborative governance
-- [Deployment Modes & Auth](architecture/ADR-DEPLOYMENT-MODES.md) — 3 product modes (SaaS/Community/Desktop) as `deployment × client` axes; Better Auth everywhere; brand-always/org-SaaS-only switcher; multi-tenancy = EE/SaaS; managed credits cloud-only; Community funnel charter. Epics #735, #740. (contributor doc: `docs/deployment-modes.md`)
+- [Deployment Modes & Auth](architecture/ADR-DEPLOYMENT-MODES.md) — 3 product modes (SaaS/Community/Desktop) as `deployment × client` axes; Better Auth active baseline; brand-always/org-SaaS-only switcher; platform admin via `users.platformRole`; multi-tenancy = EE/SaaS; managed credits cloud-only; Community funnel charter. Epics #735, #740. (contributor doc: `docs/deployment-modes.md`)
 
 ## Rules (symlinked to .claude/rules/)
 

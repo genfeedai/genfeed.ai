@@ -14,6 +14,7 @@ const now = new Date('2026-06-23T12:00:00.000Z');
 const orgId = 'org_123';
 const userId = 'user_123';
 const roleId = 'role_user';
+const roleKey = 'member';
 const memberId = 'member_123';
 
 type MockFn = ReturnType<typeof vi.fn>;
@@ -66,6 +67,8 @@ interface InvitationRow {
   redirectUrl: string | null;
   revokedAt: Date | null;
   roleId: string;
+  roleKey: string;
+  status: string;
   tokenHash: string;
   updatedAt: Date;
 }
@@ -83,6 +86,7 @@ interface MemberRow {
   isDeleted: boolean;
   organizationId: string;
   roleId: string;
+  roleKey: string;
   userId: string;
 }
 
@@ -108,6 +112,8 @@ function makeInvitation(overrides: Partial<InvitationRow> = {}): InvitationRow {
     redirectUrl: null,
     revokedAt: null,
     roleId,
+    roleKey,
+    status: 'pending',
     tokenHash: hashToken('token-123'),
     updatedAt: now,
     ...overrides,
@@ -131,6 +137,7 @@ function makeMember(overrides: Partial<MemberRow> = {}): MemberRow {
     isDeleted: false,
     organizationId: orgId,
     roleId,
+    roleKey,
     userId,
     ...overrides,
   };
@@ -227,7 +234,7 @@ describe('InvitationService', () => {
   describe('createInvitation', () => {
     it('creates a hashed invitation token and sends an accept email', async () => {
       const { notificationsService, prisma, service } = buildService();
-      prisma.role.findFirst.mockResolvedValue({ id: roleId });
+      prisma.role.findFirst.mockResolvedValue({ id: roleId, key: roleKey });
       prisma.organization.findFirst.mockResolvedValue({
         id: orgId,
         label: 'Acme',
@@ -248,7 +255,7 @@ describe('InvitationService', () => {
       });
 
       expect(prisma.invitation.updateMany).toHaveBeenCalledWith({
-        data: { isDeleted: true, revokedAt: now },
+        data: { isDeleted: true, revokedAt: now, status: 'canceled' },
         where: {
           acceptedAt: null,
           email: 'new@example.com',
@@ -263,6 +270,8 @@ describe('InvitationService', () => {
           invitedByUserId: userId,
           organizationId: orgId,
           roleId,
+          roleKey,
+          status: 'pending',
           tokenHash: expect.stringMatching(/^[a-f0-9]{64}$/),
         }),
       });
@@ -281,7 +290,7 @@ describe('InvitationService', () => {
 
     it('rejects invitations for users already active in the organization', async () => {
       const { prisma, service } = buildService();
-      prisma.role.findFirst.mockResolvedValue({ id: roleId });
+      prisma.role.findFirst.mockResolvedValue({ id: roleId, key: roleKey });
       prisma.organization.findFirst.mockResolvedValue({
         id: orgId,
         label: 'Acme',
@@ -338,7 +347,7 @@ describe('InvitationService', () => {
       const result = await service.revokeInvitation('inv_123', orgId);
 
       expect(prisma.invitation.update).toHaveBeenCalledWith({
-        data: { isDeleted: true, revokedAt: now },
+        data: { isDeleted: true, revokedAt: now, status: 'canceled' },
         where: { id: 'inv_123' },
       });
       expect(result.status).toBe('revoked');
@@ -395,6 +404,7 @@ describe('InvitationService', () => {
         data: {
           isActive: true,
           roleId,
+          roleKey,
         },
         where: { id: memberId },
       });
@@ -438,6 +448,7 @@ describe('InvitationService', () => {
           isActive: true,
           organizationId: orgId,
           roleId,
+          roleKey,
           userId,
         },
       });

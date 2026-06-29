@@ -8,54 +8,54 @@ datasource db {
 }
 
 model User {
-  id             String         @id
-  organizationId String         @map("organization_id")
-  authProviderId        String?        @unique @map("authProvider_id")
+  id             String       @id
+  organizationId String       @map("organization_id")
+  authProviderId String?      @unique @map("authProvider_id")
   email          String?
   name           String
-  createdAt      String         @map("created_at")
-  updatedAt      String         @map("updated_at")
-  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      String       @map("created_at")
+  updatedAt      String       @map("updated_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId])
   @@map("users")
 }
 
 model Organization {
-  id        String          @id
-  name      String
-  slug      String          @unique
-  createdAt String          @map("created_at")
-  updatedAt String          @map("updated_at")
-  users     User[]
-  posts     Post[]
-  trends    Trend[]
-  ingredients Ingredient[]
+  id              String          @id
+  name            String
+  slug            String          @unique
+  createdAt       String          @map("created_at")
+  updatedAt       String          @map("updated_at")
+  users           User[]
+  posts           Post[]
+  trends          Trend[]
+  ingredients     Ingredient[]
   agentStrategies AgentStrategy[]
-  workflows Workflow[]
+  workflows       Workflow[]
 
   @@map("organizations")
 }
 
 model Post {
-  id               String        @id
-  organizationId   String        @map("organization_id")
-  workspaceId      String?       @map("workspace_id")
+  id               String       @id
+  organizationId   String       @map("organization_id")
+  workspaceId      String?      @map("workspace_id")
   platform         String
   type             String
   prompt           String
   content          String
   status           String
-  publishIntent    String?       @map("publish_intent")
-  sourceDraftId    String?       @unique @map("source_draft_id")
-  sourceTrendId    String?       @map("source_trend_id")
-  sourceTrendTopic String?       @map("source_trend_topic")
-  publishedAt      String?       @map("published_at")
-  views            Int           @default(0)
-  engagements      Int           @default(0)
-  createdAt        String        @map("created_at")
-  updatedAt        String        @map("updated_at")
-  organization     Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  publishIntent    String?      @map("publish_intent")
+  sourceDraftId    String?      @unique @map("source_draft_id")
+  sourceTrendId    String?      @map("source_trend_id")
+  sourceTrendTopic String?      @map("source_trend_topic")
+  publishedAt      String?      @map("published_at")
+  views            Int          @default(0)
+  engagements      Int          @default(0)
+  createdAt        String       @map("created_at")
+  updatedAt        String       @map("updated_at")
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, updatedAt(sort: Desc)])
   @@index([status, publishedAt(sort: Desc)])
@@ -64,16 +64,16 @@ model Post {
 }
 
 model Ingredient {
-  id                  String        @id
-  organizationId      String        @map("organization_id")
-  title               String
-  content             String
-  platform            String?
-  totalVotes          Int           @default(0) @map("total_votes")
-  sourcePostId        String?       @map("source_post_id")
-  createdAt           String        @map("created_at")
-  updatedAt           String        @map("updated_at")
-  organization        Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  id             String       @id
+  organizationId String       @map("organization_id")
+  title          String
+  content        String
+  platform       String?
+  totalVotes     Int          @default(0) @map("total_votes")
+  sourcePostId   String?      @map("source_post_id")
+  createdAt      String       @map("created_at")
+  updatedAt      String       @map("updated_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, updatedAt(sort: Desc)])
   @@index([platform, totalVotes(sort: Desc)])
@@ -81,32 +81,32 @@ model Ingredient {
 }
 
 model Trend {
-  id              String        @id
-  organizationId  String        @map("organization_id")
+  id              String       @id
+  organizationId  String       @map("organization_id")
   platform        String
   topic           String
   summary         String?
-  viralityScore   Int           @map("virality_score")
-  engagementScore Int           @map("engagement_score")
-  createdAt       String        @map("created_at")
-  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  viralityScore   Int          @map("virality_score")
+  engagementScore Int          @map("engagement_score")
+  createdAt       String       @map("created_at")
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, platform, topic])
   @@map("trends")
 }
 
 model AgentStrategy {
-  id             String               @id
-  organizationId String               @map("organization_id")
+  id             String              @id
+  organizationId String              @map("organization_id")
   name           String
   avatar         String?
-  platformsJson  String               @default("[]") @map("platforms_json")
+  platformsJson  String              @default("[]") @map("platforms_json")
   status         String
-  isActive       Boolean              @default(true) @map("is_active")
-  lastRunAt      String?              @map("last_run_at")
-  createdAt      String               @map("created_at")
-  updatedAt      String               @map("updated_at")
-  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  isActive       Boolean             @default(true) @map("is_active")
+  lastRunAt      String?             @map("last_run_at")
+  createdAt      String              @map("created_at")
+  updatedAt      String              @map("updated_at")
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   workflows      WorkflowExecution[]
 
   @@index([organizationId, updatedAt(sort: Desc)])
@@ -114,17 +114,17 @@ model AgentStrategy {
 }
 
 model Workflow {
-  id             String               @id
-  organizationId String               @map("organization_id")
+  id             String              @id
+  organizationId String              @map("organization_id")
   name           String
   description    String?
   lifecycle      String
-  nodeCount      Int                  @map("node_count")
-  supportsBatch  Boolean              @default(false) @map("supports_batch")
-  lastExecutedAt String?              @map("last_executed_at")
-  createdAt      String               @map("created_at")
-  updatedAt      String               @map("updated_at")
-  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  nodeCount      Int                 @map("node_count")
+  supportsBatch  Boolean             @default(false) @map("supports_batch")
+  lastExecutedAt String?             @map("last_executed_at")
+  createdAt      String              @map("created_at")
+  updatedAt      String              @map("updated_at")
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   executions     WorkflowExecution[]
 
   @@index([organizationId, updatedAt(sort: Desc)])
@@ -155,39 +155,89 @@ model DesktopKv {
 }
 
 model DesktopWorkspace {
-  id               String  @id
-  name             String
-  path             String  @unique
-  linkedProjectId  String? @map("linked_project_id")
-  linkedBrandId    String? @map("linked_brand_id")
-  syncPolicy       String  @default("local-only") @map("sync_policy")
-  fileIndex        String  @default("[]") @map("file_index")
-  indexingState    String  @default("idle") @map("indexing_state")
-  localDraftCount  Int     @default(0) @map("local_draft_count")
-  pendingSyncCount Int     @default(0) @map("pending_sync_count")
-  createdAt        String  @map("created_at")
-  updatedAt        String  @map("updated_at")
-  lastOpenedAt     String  @map("last_opened_at")
+  id                   String                     @id
+  name                 String
+  path                 String                     @unique
+  linkedOrganizationId String?                    @map("linked_organization_id")
+  linkedProjectId      String?                    @map("linked_project_id")
+  linkedBrandId        String?                    @map("linked_brand_id")
+  syncPolicy           String                     @default("local-only") @map("sync_policy")
+  fileIndex            String                     @default("[]") @map("file_index")
+  indexingState        String                     @default("idle") @map("indexing_state")
+  localDraftCount      Int                        @default(0) @map("local_draft_count")
+  pendingSyncCount     Int                        @default(0) @map("pending_sync_count")
+  createdAt            String                     @map("created_at")
+  updatedAt            String                     @map("updated_at")
+  lastOpenedAt         String                     @map("last_opened_at")
+  cloudLink            DesktopWorkspaceCloudLink?
 
   @@index([lastOpenedAt(sort: Desc)])
   @@map("desktop_workspace")
 }
 
 model DesktopBrand {
-  id             String  @id
-  organizationId String  @map("organization_id")
-  cloudId        String? @unique @map("cloud_id")
-  name           String
-  slug           String
-  syncPolicy     String  @default("none") @map("sync_policy")
-  cloudVersion   String? @map("cloud_version")
-  lastPulledAt   String? @map("last_pulled_at")
-  createdAt      String  @map("created_at")
-  updatedAt      String  @map("updated_at")
+  id                  String  @id
+  organizationId      String  @map("organization_id")
+  cloudOrganizationId String? @map("cloud_organization_id")
+  cloudId             String? @unique @map("cloud_id")
+  name                String
+  slug                String
+  syncPolicy          String  @default("none") @map("sync_policy")
+  cloudVersion        String? @map("cloud_version")
+  lastPulledAt        String? @map("last_pulled_at")
+  createdAt           String  @map("created_at")
+  updatedAt           String  @map("updated_at")
 
   @@unique([organizationId, slug])
   @@index([organizationId, updatedAt(sort: Desc)])
+  @@index([cloudOrganizationId, updatedAt(sort: Desc)])
   @@map("desktop_brand")
+}
+
+model DesktopDeviceIdentity {
+  id             String  @id
+  localUserId    String  @map("local_user_id")
+  cloudUserId    String? @map("cloud_user_id")
+  cloudUserEmail String? @map("cloud_user_email")
+  status         String  @default("never-connected")
+  connectedAt    String? @map("connected_at")
+  lastSeenAt     String? @map("last_seen_at")
+  createdAt      String  @map("created_at")
+  updatedAt      String  @map("updated_at")
+
+  @@index([cloudUserId])
+  @@map("desktop_device_identity")
+}
+
+model DesktopCloudOrganization {
+  cloudId      String  @id @map("cloud_id")
+  name         String
+  slug         String
+  role         String?
+  lastPulledAt String? @map("last_pulled_at")
+  updatedAt    String  @map("updated_at")
+
+  @@index([slug])
+  @@map("desktop_cloud_organization")
+}
+
+model DesktopWorkspaceCloudLink {
+  workspaceId         String           @id @map("workspace_id")
+  localUserId         String           @map("local_user_id")
+  localDeviceId       String           @map("local_device_id")
+  cloudUserId         String?          @map("cloud_user_id")
+  cloudOrganizationId String?          @map("cloud_organization_id")
+  cloudBrandId        String?          @map("cloud_brand_id")
+  cloudProjectId      String?          @map("cloud_project_id")
+  syncPolicy          String           @default("local-only") @map("sync_policy")
+  linkedAt            String           @map("linked_at")
+  updatedAt           String           @map("updated_at")
+  workspace           DesktopWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([cloudOrganizationId])
+  @@index([cloudBrandId])
+  @@index([cloudProjectId])
+  @@map("desktop_workspace_cloud_link")
 }
 
 model DesktopAsset {
@@ -241,15 +291,15 @@ model DesktopSyncOp {
 }
 
 model DesktopSyncJob {
-  id         String  @id
+  id          String  @id
   workspaceId String? @map("workspace_id")
-  type       String
-  payload    String
-  status     String
-  error      String?
-  retryCount Int     @default(0) @map("retry_count")
-  createdAt  String  @map("created_at")
-  updatedAt  String  @map("updated_at")
+  type        String
+  payload     String
+  status      String
+  error       String?
+  retryCount  Int     @default(0) @map("retry_count")
+  createdAt   String  @map("created_at")
+  updatedAt   String  @map("updated_at")
 
   @@index([workspaceId, updatedAt(sort: Desc)])
   @@index([status, updatedAt(sort: Desc)])

@@ -9,10 +9,15 @@ import { PostGenerationService } from '@api/collections/posts/services/post-gene
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
+import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostStatus,
+  SystemPromptKey,
+} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -283,6 +288,94 @@ Tweet 3: Tech innovation is changing the world.`,
       expect(mockActivitiesService.patch).toHaveBeenCalled();
       expect(mockWebsocketService.emit).toHaveBeenCalled();
     });
+
+    it('marks every created post FAILED when activity creation throws (issue #861)', async () => {
+      mockActivitiesService.create.mockRejectedValueOnce(
+        new Error('activity store down'),
+      );
+      const secondPost = { ...mockPost, _id: '507f1f77bcf86cd799439015' };
+
+      await service.generateAccountContentAsync(
+        { count: 2, credential: credentialId, format: 'post', topic: 'AI' },
+        [mockPost, secondPost],
+        publicMetadata,
+        mockPublishingContext,
+      );
+
+      // No activity exists, so the failure branch must not attempt to patch it.
+      expect(mockActivitiesService.patch).not.toHaveBeenCalled();
+      // Both placeholder posts are driven out of PROCESSING into FAILED.
+      expect(mockPostsService.patch).toHaveBeenCalledWith(
+        String(mockPost._id),
+        expect.objectContaining({ status: PostStatus.FAILED }),
+      );
+      expect(mockPostsService.patch).toHaveBeenCalledWith(
+        String(secondPost._id),
+        expect.objectContaining({ status: PostStatus.FAILED }),
+      );
+    });
+  });
+
+  describe('expandThreadAsync', () => {
+    const originalPost = { ...mockPost, description: 'Original tweet content' };
+    const childPosts = [
+      { ...mockPost, _id: '507f1f77bcf86cd799439021' },
+      { ...mockPost, _id: '507f1f77bcf86cd799439022' },
+    ];
+
+    it('marks every child FAILED when activity creation throws (issue #861)', async () => {
+      mockActivitiesService.create.mockRejectedValueOnce(
+        new Error('activity store down'),
+      );
+
+      await service.expandThreadAsync(
+        originalPost,
+        childPosts,
+        { count: 3, tone: TweetTone.PROFESSIONAL },
+        publicMetadata,
+      );
+
+      expect(mockActivitiesService.patch).not.toHaveBeenCalled();
+      expect(mockPostsService.patch).toHaveBeenCalledWith(
+        String(childPosts[0]._id),
+        expect.objectContaining({ status: PostStatus.FAILED }),
+      );
+      expect(mockPostsService.patch).toHaveBeenCalledWith(
+        String(childPosts[1]._id),
+        expect.objectContaining({ status: PostStatus.FAILED }),
+      );
+    });
+
+    it('rejects thread replies over the 280 weighted-character limit (issue #861)', async () => {
+      // 300 plain characters exceeds the 280 weighted limit but would pass the
+      // old unweighted 560-char default — so this asserts the weighted gate.
+      const overLimitReply = 'a'.repeat(300);
+      mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(
+        JSON.stringify([overLimitReply, overLimitReply]),
+      );
+
+      await service.expandThreadAsync(
+        originalPost,
+        childPosts,
+        { count: 3, tone: TweetTone.PROFESSIONAL },
+        publicMetadata,
+      );
+
+      // No reply survives validation, so none is patched to DRAFT...
+      expect(mockPostsService.patch).not.toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ status: PostStatus.DRAFT }),
+      );
+      // ...and every child is marked FAILED instead.
+      expect(mockPostsService.patch).toHaveBeenCalledWith(
+        String(childPosts[0]._id),
+        expect.objectContaining({ status: PostStatus.FAILED }),
+      );
+      expect(mockPostsService.patch).toHaveBeenCalledWith(
+        String(childPosts[1]._id),
+        expect.objectContaining({ status: PostStatus.FAILED }),
+      );
+    });
   });
 
   describe('parseTweetContent', () => {
@@ -373,16 +466,47 @@ Tweet 3: Tech innovation is changing the world.`,
         '["Hook one", "Hook two", "Hook three"]',
       );
 
-      const result = await service.generateHookVariations({
-        count: 3,
-        platform: 'twitter',
-        topic: 'AI technology',
-      });
+      const result = await service.generateHookVariations(
+        {
+          count: 3,
+          platform: 'twitter',
+          topic: 'AI technology',
+        },
+        publicMetadata,
+      );
 
       expect(result.hooks).toEqual(['Hook one', 'Hook two', 'Hook three']);
       expect(result.metadata.platform).toBe('twitter');
       expect(result.metadata.topic).toBe('AI technology');
       expect(result.metadata.count).toBe(3);
+    });
+
+    it('builds the Replicate input via the prompt builder with org context and the hook system prompt (issue #861)', async () => {
+      mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(
+        '[]',
+      );
+
+      await service.generateHookVariations(
+        { count: 2, platform: 'twitter', topic: 'AI' },
+        publicMetadata,
+      );
+
+      expect(mockPromptBuilderService.buildPrompt).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          maxTokens: TEXT_GENERATION_LIMITS.hookGeneration,
+          systemPromptTemplate: SystemPromptKey.HOOK_GENERATOR,
+          useTemplate: false,
+        }),
+        organizationId,
+      );
+      // The typed input object is forwarded to Replicate (no raw-string call).
+      expect(
+        mockReplicateService.generateTextCompletionSync,
+      ).toHaveBeenCalledWith(expect.any(String), {
+        max_tokens: 4096,
+        prompt: 'test prompt',
+      });
     });
   });
 });

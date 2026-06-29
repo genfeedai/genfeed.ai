@@ -1,6 +1,6 @@
 # Postgres RDS instances (us-west-1)
 
-last_verified: 2026-06-10
+last_verified: 2026-06-29
 
 | Instance | Role | Endpoint | Notes |
 |---|---|---|---|
@@ -9,8 +9,8 @@ last_verified: 2026-06-10
 
 ## Connection gotchas
 
-- **RDS PG 18 forces SSL** (`rds.force_ssl=1` system default). `@prisma/adapter-pg` sends no TLS by default → `P1010 "User was denied access on the database"` (looks like permissions, is actually missing TLS). Prisma CLI works regardless (auto-negotiates). Fix: `?sslmode=no-verify` in `DATABASE_URL` (TLS on, skip CA verify — RDS CA absent from node trust store).
-- **`PrismaService` reads raw `process.env.DATABASE_URL`** (`apps/server/api/src/shared/modules/prisma/prisma.service.ts`) — bypasses `BaseConfigService` file layering. Actual injection: bun auto-loads `apps/server/<service>/.env{,.local}` when turbo spawns package dev scripts.
+- **RDS PG 18 forces SSL** (`rds.force_ssl=1` system default). `PrismaService` resolves TLS explicitly for `@prisma/adapter-pg`: production server images bundle the AWS RDS CA at `/certs/rds-ca.pem`, and the service also honors `PRISMA_POSTGRES_CA_FILE` / `PGSSLROOTCERT`. `?sslmode=no-verify` remains a local escape hatch when no CA file is available.
+- **`PrismaService` reads `DATABASE_URL` through `ConfigService.get()`** (`apps/server/api/src/shared/modules/prisma/prisma.service.ts`) and passes an explicit `PrismaPg` adapter config. Prisma CLI and package scripts still read `process.env.DATABASE_URL` through `packages/prisma/prisma.config.mjs`.
 - `DATABASE_URL` lives in per-service `.env.local` files (api, files, mcp, notifications, workers) + `packages/prisma/prisma/.env`. Root `.env.local` has none.
 - Db/user/database all named `genfeed`. Prisma tables snake_case (`organizations`, `users`).
 
