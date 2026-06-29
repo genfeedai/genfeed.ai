@@ -9,6 +9,7 @@ const mockPipeline = { exec: vi.fn().mockResolvedValue([]) };
 const mockRedisClient = {
   connect: vi.fn().mockResolvedValue(undefined),
   disconnect: vi.fn().mockResolvedValue(undefined),
+  destroy: vi.fn(),
   isReady: true,
   multi: vi.fn().mockReturnValue(mockPipeline),
   on: vi.fn().mockReturnThis(),
@@ -160,5 +161,23 @@ describe('CacheClientService', () => {
       expect.stringContaining('disconnect error'),
       expect.anything(),
     );
+  });
+
+  it('should force close when quit hangs on module destroy', async () => {
+    vi.useFakeTimers();
+    mockRedisClient.quit.mockImplementationOnce(
+      () => new Promise<never>(() => undefined),
+    );
+
+    const destroyPromise = service.onModuleDestroy();
+    await vi.advanceTimersByTimeAsync(3_000);
+    await destroyPromise;
+
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      expect.stringContaining('disconnect error'),
+      expect.any(Error),
+    );
+    expect(mockRedisClient.destroy).toHaveBeenCalled();
+    vi.useRealTimers();
   });
 });
