@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const pushMock = vi.fn();
 const postMock = vi.fn();
 const findOneMock = vi.fn();
+const scoreSeoMock = vi.fn();
 const notificationsServiceMock = {
   error: vi.fn(),
   success: vi.fn(),
@@ -12,6 +13,7 @@ const notificationsServiceMock = {
 const articlesServiceMock = {
   findOne: findOneMock,
   post: postMock,
+  scoreSeo: scoreSeoMock,
 };
 const getArticlesServiceMock = vi.fn(async () => articlesServiceMock);
 
@@ -58,6 +60,17 @@ describe('useArticleDetail', () => {
       tags: [],
     });
     postMock.mockResolvedValue({ id: 'article-created-1' });
+    scoreSeoMock.mockResolvedValue({
+      category: 'post',
+      content: '',
+      id: 'article-1',
+      label: 'Existing article',
+      seoScore: 82,
+      slug: 'existing-article',
+      status: 'draft',
+      summary: '',
+      tags: [],
+    });
     getArticlesServiceMock.mockResolvedValue(articlesServiceMock);
   });
 
@@ -67,6 +80,7 @@ describe('useArticleDetail', () => {
     expect(result.current).toHaveProperty('isLoading');
     expect(result.current).toHaveProperty('isSaving');
     expect(result.current).toHaveProperty('isEnhancing');
+    expect(result.current).toHaveProperty('isScoringSeo');
     expect(result.current).toHaveProperty('isDirty');
     expect(result.current).toHaveProperty('error');
     expect(result.current).toHaveProperty('form');
@@ -76,6 +90,7 @@ describe('useArticleDetail', () => {
     expect(result.current).toHaveProperty('handleArchive');
     expect(result.current).toHaveProperty('handleDelete');
     expect(result.current).toHaveProperty('handleEnhance');
+    expect(result.current).toHaveProperty('handleScoreSeo');
   });
 
   it('initializes with null article', () => {
@@ -110,7 +125,28 @@ describe('useArticleDetail', () => {
     expect(typeof result.current.handleArchive).toBe('function');
     expect(typeof result.current.handleDelete).toBe('function');
     expect(typeof result.current.handleEnhance).toBe('function');
+    expect(typeof result.current.handleScoreSeo).toBe('function');
     expect(typeof result.current.setFormField).toBe('function');
+  });
+
+  it('scores SEO for the current article', async () => {
+    const { result } = renderHook(() =>
+      useArticleDetail({ articleId: 'article-1' }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.handleScoreSeo();
+    });
+
+    expect(scoreSeoMock).toHaveBeenCalledWith('article-1');
+    expect(result.current.article?.seoScore).toBe(82);
+    expect(notificationsServiceMock.success).toHaveBeenCalledWith(
+      'SEO score updated',
+    );
   });
 
   it('navigates to the generic composer route after creating a new article', async () => {

@@ -1,6 +1,7 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type { ArticleCategory } from '@genfeedai/enums';
 import { PublishStatus } from '@genfeedai/enums';
+import type { ScoreSeoRequest } from '@genfeedai/interfaces';
 import { Article } from '@genfeedai/models/content/article.model';
 import { ArticleSerializer } from '@genfeedai/serializers';
 import {
@@ -171,6 +172,15 @@ export class ArticlesService extends BaseService<Article> {
         // on the response object. The frontend handles extracting these in the component.
         return article;
       });
+  }
+
+  public async scoreSeo(
+    id: string,
+    data: ScoreSeoRequest = {},
+  ): Promise<Article> {
+    return await this.instance
+      .post<JsonApiResponseDocument>(`/${id}/seo-scores`, data)
+      .then((res) => this.mapOne(res.data));
   }
 
   public async review(

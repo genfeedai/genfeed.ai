@@ -3,7 +3,12 @@ import { dash } from '@better-auth/infra';
 import type { IBetterAuthJwtUserPayloadSource } from '@genfeedai/interfaces';
 import { betterAuth, type RateLimit } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
-import { jwt, magicLink } from 'better-auth/plugins';
+import {
+  jwt,
+  magicLink,
+  type OrganizationOptions,
+  organization,
+} from 'better-auth/plugins';
 import { BETTER_AUTH_BASE_PATH } from './better-auth.constants';
 import type {
   IBetterAuthRateLimitStore,
@@ -17,6 +22,22 @@ import { isPlatformSuperAdmin } from './better-auth-access.util';
  */
 const RATE_LIMIT_KEY_PREFIX = 'ba:ratelimit:';
 const RATE_LIMIT_TTL_SECONDS = 86_400;
+const BETTER_AUTH_CREATOR_ROLE = 'admin';
+const BETTER_AUTH_DEFAULT_ORGANIZATION_CATEGORY = 'BUSINESS';
+
+const BETTER_AUTH_ROLE_KEY_FALLBACKS: Record<string, string[]> = {
+  admin: ['admin', 'user'],
+  member: ['member', 'user'],
+  owner: ['admin', 'user'],
+  user: ['user'],
+};
+
+function normalizeBetterAuthOrganizationRole(role: string | undefined): string {
+  const normalized = role?.trim().toLowerCase();
+  return normalized && normalized in BETTER_AUTH_ROLE_KEY_FALLBACKS
+    ? normalized
+    : 'member';
+}
 
 /**
  * Adapt the shared Redis KV into Better Auth's `rateLimit.customStorage` shape
@@ -45,6 +66,207 @@ export function buildRateLimitStorage(store: IBetterAuthRateLimitStore): {
 
 function getString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function getRequiredString(value: unknown, label: string): string {
+  const resolved = getString(value);
+  if (!resolved) {
+    throw new Error(`${label} is required for Better Auth organization bridge`);
+  }
+  return resolved;
+}
+
+async function resolveGenfeedRoleForBetterAuthRole(
+  prisma: ICreateBetterAuthOptions['prisma'],
+  role: string | undefined,
+): Promise<{ roleId: string; roleKey: string }> {
+  const roleKey = normalizeBetterAuthOrganizationRole(role);
+  const fallbackKeys = BETTER_AUTH_ROLE_KEY_FALLBACKS[roleKey] ?? ['user'];
+
+  for (const key of fallbackKeys) {
+    const genfeedRole = await prisma.role.findFirst({
+      select: { id: true, key: true },
+      where: { isDeleted: false, key },
+    });
+    if (genfeedRole) {
+      return { roleId: genfeedRole.id, roleKey: genfeedRole.key };
+    }
+  }
+
+  throw new Error(
+    `No Genfeed Role found for Better Auth organization role "${roleKey}"`,
+  );
+}
+
+/**
+ * Maps Better Auth's organization plugin onto Genfeed's existing domain tables.
+ *
+ * BA gets string role/session compatibility (`roleKey`,
+ * `Session.activeOrganizationId`), but Genfeed authorization keeps validating
+ * against Organization/Member/Role rows. Invitation creation stays owned by
+ * `InvitationService`; BA invite creation is rejected so there is one source of
+ * token/email/status behavior.
+ */
+export function buildBetterAuthOrganizationOptions(
+  prisma: ICreateBetterAuthOptions['prisma'],
+): OrganizationOptions {
+  return {
+    creatorRole: BETTER_AUTH_CREATOR_ROLE,
+    disableOrganizationDeletion: true,
+    requireEmailVerificationOnInvitation: true,
+    schema: {
+      session: {
+        fields: {
+          activeOrganizationId: 'activeOrganizationId',
+        },
+      },
+      organization: {
+        modelName: 'organization',
+        fields: {
+          createdAt: 'createdAt',
+          logo: 'authProviderLogoUrl',
+          name: 'label',
+          slug: 'slug',
+          updatedAt: 'updatedAt',
+        },
+        additionalFields: {
+          category: {
+            defaultValue: BETTER_AUTH_DEFAULT_ORGANIZATION_CATEGORY,
+            input: false,
+            required: true,
+            type: 'string',
+          },
+          isDeleted: {
+            defaultValue: false,
+            input: false,
+            required: true,
+            type: 'boolean',
+          },
+          isSelected: {
+            defaultValue: false,
+            input: false,
+            required: true,
+            type: 'boolean',
+          },
+          userId: {
+            input: false,
+            references: { field: 'id', model: 'user' },
+            required: true,
+            type: 'string',
+          },
+        },
+      },
+      member: {
+        modelName: 'member',
+        fields: {
+          createdAt: 'createdAt',
+          organizationId: 'organizationId',
+          role: 'roleKey',
+          userId: 'userId',
+        },
+        additionalFields: {
+          isActive: {
+            defaultValue: true,
+            input: false,
+            required: true,
+            type: 'boolean',
+          },
+          isDeleted: {
+            defaultValue: false,
+            input: false,
+            required: true,
+            type: 'boolean',
+          },
+          roleId: {
+            input: false,
+            references: { field: 'id', model: 'role' },
+            required: true,
+            type: 'string',
+          },
+          updatedAt: {
+            input: false,
+            onUpdate: () => new Date(),
+            required: false,
+            type: 'date',
+          },
+        },
+      },
+      invitation: {
+        modelName: 'invitation',
+        fields: {
+          createdAt: 'createdAt',
+          email: 'email',
+          expiresAt: 'expiresAt',
+          inviterId: 'invitedByUserId',
+          organizationId: 'organizationId',
+          role: 'roleKey',
+          status: 'status',
+        },
+        additionalFields: {
+          roleId: {
+            input: false,
+            references: { field: 'id', model: 'role' },
+            required: true,
+            type: 'string',
+          },
+          tokenHash: {
+            input: false,
+            required: true,
+            type: 'string',
+            unique: true,
+          },
+          updatedAt: {
+            input: false,
+            onUpdate: () => new Date(),
+            required: false,
+            type: 'date',
+          },
+        },
+      },
+    },
+    organizationHooks: {
+      beforeCreateOrganization: async ({ organization, user }) => {
+        return {
+          data: {
+            ...organization,
+            category: BETTER_AUTH_DEFAULT_ORGANIZATION_CATEGORY,
+            isDeleted: false,
+            isSelected: false,
+            userId: getRequiredString(user.id, 'user.id'),
+          },
+        };
+      },
+      beforeAddMember: async ({ member }) => {
+        const role = await resolveGenfeedRoleForBetterAuthRole(
+          prisma,
+          member.role,
+        );
+        return {
+          data: {
+            ...member,
+            isActive: true,
+            isDeleted: false,
+            role: role.roleKey,
+            roleId: role.roleId,
+          },
+        };
+      },
+      beforeUpdateMemberRole: async ({ newRole }) => {
+        const role = await resolveGenfeedRoleForBetterAuthRole(prisma, newRole);
+        return {
+          data: {
+            role: role.roleKey,
+            roleId: role.roleId,
+          },
+        };
+      },
+      beforeCreateInvitation: async () => {
+        throw new Error(
+          'Genfeed InvitationService owns organization invitations; Better Auth invite creation is disabled.',
+        );
+      },
+    },
+  };
 }
 
 /**
@@ -187,10 +409,11 @@ export async function resolveBetterAuthJwtIsSuperAdmin(
  *
  * Runs against the existing Postgres via the Prisma adapter. Better Auth's `user`
  * model maps onto the existing `User` table (`image` → `avatar`; `handle` filled
- * by a create hook). Plugins: magic-link + jwt now; the organization and admin
- * plugins are deferred (they require remapping the custom Organization/Member/Role
- * models). The jwt plugin issues short-lived JWTs (sub = `User.id`) and publishes
- * a JWKS at `${baseURL}${BETTER_AUTH_BASE_PATH}/jwks`.
+ * by a create hook). Plugins: magic-link, organization bridge, and jwt. The
+ * organization plugin is compatibility-only: active org / string-role session
+ * state maps onto existing Organization/Member rows while Genfeed remains the
+ * tenant authorization source. The jwt plugin issues short-lived JWTs (sub =
+ * `User.id`) and publishes a JWKS at `${baseURL}${BETTER_AUTH_BASE_PATH}/jwks`.
  */
 export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
   const {
@@ -303,6 +526,7 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
           await sendMagicLink({ email, url, token });
         },
       }),
+      organization(buildBetterAuthOrganizationOptions(prisma)),
       jwt({
         jwt: {
           issuer: baseURL,

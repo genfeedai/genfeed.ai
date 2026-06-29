@@ -2,7 +2,7 @@ import { ApiKeyCategory } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
-  IsDate,
+  IsDateString,
   IsEnum,
   IsNumber,
   IsObject,
@@ -58,8 +58,8 @@ export class CreateApiKeyDto {
     required: false,
   })
   @IsOptional()
-  @IsDate()
-  readonly expiresAt?: Date;
+  @IsDateString()
+  readonly expiresAt?: string;
 
   @ApiProperty({
     default: 60,
@@ -85,7 +85,6 @@ export class CreateApiKeyDto {
     description: 'Optional metadata for managed/system-created keys',
     required: false,
   })
-  @IsObject()
   @IsOptional()
   @IsObject()
   readonly metadata?: Record<string, unknown>;

@@ -492,7 +492,7 @@ enum PlatformRole {
 model User {
   id                       String          @id @default(cuid())
   mongoId                  String?         @unique
-  authProviderId                  String?         @unique
+  authProviderId           String?         @unique
   handle                   String          @unique
   firstName                String?
   lastName                 String?
@@ -528,8 +528,8 @@ model User {
   organizations            Organization[]
   brands                   Brand[]
   members                  Member[]
-  invitationsSent          Invitation[]            @relation("invitation_invited_by")
-  invitationsAccepted      Invitation[]            @relation("invitation_accepted_by")
+  invitationsSent          Invitation[]              @relation("invitation_invited_by")
+  invitationsAccepted      Invitation[]              @relation("invitation_accepted_by")
   sessions                 Session[]
   accounts                 Account[]
   settings                 Setting?
@@ -598,24 +598,25 @@ model User {
 }
 
 model Organization {
-  id                        String                @id @default(cuid())
-  mongoId                   String?               @unique
-  authProviderOrganizationId       String?               @unique
-  userId                    String
-  user                      User                  @relation(fields: [userId], references: [id])
-  label                     String
-  slug                      String                @unique
-  prefix                    String?
-  isSelected                Boolean               @default(false)
-  isDefault                 Boolean               @default(false)
-  isDeleted                 Boolean               @default(false)
-  category                  OrganizationCategory  @default(BUSINESS)
-  accountType               OrganizationCategory?
-  onboardingCompleted       Boolean               @default(false)
-  isProactiveOnboarding     Boolean               @default(false)
-  proactiveWelcomeDismissed Boolean               @default(false)
-  createdAt                 DateTime              @default(now())
-  updatedAt                 DateTime              @updatedAt
+  id                         String                @id @default(cuid())
+  mongoId                    String?               @unique
+  authProviderOrganizationId String?               @unique
+  authProviderLogoUrl        String?
+  userId                     String
+  user                       User                  @relation(fields: [userId], references: [id])
+  label                      String
+  slug                       String                @unique
+  prefix                     String?
+  isSelected                 Boolean               @default(false)
+  isDefault                  Boolean               @default(false)
+  isDeleted                  Boolean               @default(false)
+  category                   OrganizationCategory  @default(BUSINESS)
+  accountType                OrganizationCategory?
+  onboardingCompleted        Boolean               @default(false)
+  isProactiveOnboarding      Boolean               @default(false)
+  proactiveWelcomeDismissed  Boolean               @default(false)
+  createdAt                  DateTime              @default(now())
+  updatedAt                  DateTime              @updatedAt
 
   // Ownership relations
   brands                        Brand[]
@@ -875,24 +876,29 @@ model MoodBoard {
 }
 
 model Member {
-  id                String       @id @default(cuid())
-  mongoId           String?      @unique
+  id                       String       @id @default(cuid())
+  mongoId                  String?      @unique
   authProviderMembershipId String?      @unique
-  organizationId    String
-  organization      Organization @relation(fields: [organizationId], references: [id])
-  userId            String
-  user              User         @relation(fields: [userId], references: [id])
-  roleId            String
-  role              Role         @relation(fields: [roleId], references: [id])
-  brands            Brand[]      @relation("member_brands")
-  lastUsedBrandId   String?
-  lastUsedBrand     Brand?       @relation("member_last_used_brand", fields: [lastUsedBrandId], references: [id])
-  isActive          Boolean      @default(true)
-  isDeleted         Boolean      @default(false)
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
+  organizationId           String
+  organization             Organization @relation(fields: [organizationId], references: [id])
+  userId                   String
+  user                     User         @relation(fields: [userId], references: [id])
+  roleId                   String
+  role                     Role         @relation(fields: [roleId], references: [id])
+  // Better Auth organization-plugin compatibility. This is a denormalized role
+  // key for BA's string-role checks only; Genfeed authorization remains
+  // Member.roleId -> Role.
+  roleKey                  String?
+  brands                   Brand[]      @relation("member_brands")
+  lastUsedBrandId          String?
+  lastUsedBrand            Brand?       @relation("member_last_used_brand", fields: [lastUsedBrandId], references: [id])
+  isActive                 Boolean      @default(true)
+  isDeleted                Boolean      @default(false)
+  createdAt                DateTime     @default(now())
+  updatedAt                DateTime     @updatedAt
 
   @@index([organizationId, userId, isDeleted], map: "members_org_user_deleted_idx")
+  @@index([organizationId, roleKey, isDeleted], map: "members_organizationId_roleKey_isDeleted_idx")
   @@map("members")
 }
 
@@ -908,6 +914,11 @@ model Invitation {
   invitedByUser    User         @relation("invitation_invited_by", fields: [invitedByUserId], references: [id])
   roleId           String
   role             Role         @relation(fields: [roleId], references: [id])
+  // Better Auth organization-plugin compatibility. Genfeed InvitationService
+  // owns invitation lifecycle and keeps these fields in sync for read-only BA
+  // compatibility; BA invite creation is blocked by factory hooks.
+  roleKey          String?
+  status           String       @default("pending")
   tokenHash        String       @unique
   redirectUrl      String?
   expiresAt        DateTime
@@ -949,24 +960,28 @@ model Role {
 //   Account      → user_credentials  (password hash + linked OAuth accounts)
 //   Verification → auth_tokens        (magic-link + email-verification tokens)
 //   Jwks         → auth_jwks          (jwt-plugin signing keys; JWKS source)
-// The BA `user` model maps onto the existing `User` model above. The org/member
-// and admin plugins are deferred (they require remapping the custom
-// Organization/Member/Role models); Phase 1 resolves org/brand from the existing
-// tables, matching the legacy auth provider path.
+// The BA `user` model maps onto the existing `User` model above. The
+// organization plugin maps onto existing Organization/Member/Invitation tables
+// through compatibility fields while Genfeed keeps Member.roleId -> Role and
+// InvitationService as the authorization/invitation source of truth.
 // ═══════════════════════════════════════════════════════════════
 
 model Session {
-  id        String   @id @default(cuid())
-  expiresAt DateTime
-  token     String   @unique
-  ipAddress String?
-  userAgent String?
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  expiresAt            DateTime
+  token                String   @unique
+  ipAddress            String?
+  userAgent            String?
+  userId               String
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Better Auth organization-plugin session state. Genfeed request
+  // authorization still validates organization access from User/Member rows.
+  activeOrganizationId String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   @@index([userId])
+  @@index([activeOrganizationId])
   @@map("sessions")
 }
 

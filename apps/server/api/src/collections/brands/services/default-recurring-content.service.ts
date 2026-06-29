@@ -1,9 +1,8 @@
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { WorkflowTrigger } from '@genfeedai/enums';
+import { WorkflowStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
 
 type DefaultRecurringContentType = 'image' | 'newsletter' | 'post';
 
@@ -27,6 +26,7 @@ type ExistingDefaultRecurringWorkflow = {
 
 type EnsureDefaultRecurringContentParams = {
   brandId: string;
+  includeStatus?: boolean;
   organizationId: string;
   origin: 'brand-create' | 'empty-state' | 'manual' | 'onboarding' | 'system';
   userId: string;
@@ -45,7 +45,6 @@ export class DefaultRecurringContentService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly moduleRef: ModuleRef,
     private readonly logger: LoggerService,
   ) {}
 
@@ -206,6 +205,13 @@ export class DefaultRecurringContentService {
       { isolationLevel: 'Serializable' },
     );
 
+    if (params.includeStatus === false) {
+      return {
+        isConfigured: true,
+        items: [],
+      };
+    }
+
     return await this.getStatus(params.organizationId, params.brandId);
   }
 
@@ -252,20 +258,14 @@ export class DefaultRecurringContentService {
       cronSchedule,
       timezone,
     );
-    const { WorkflowsService } = await import(
-      '@api/collections/workflows/services/workflows.service'
-    );
-    const workflowsService = this.moduleRef.get(WorkflowsService, {
-      strict: false,
-    });
-    const workflow = await workflowsService.createWorkflow(
-      params.userId,
-      params.organizationId,
-      {
-        brands: [brandId],
+    const workflow = await this.prisma.workflow.create({
+      data: {
+        brands: { connect: [{ id: brandId }] },
         description: workflowDescription,
-        edges: [],
-        inputVariables: [],
+        edges: [] as never,
+        executionCount: 0,
+        inputVariables: [] as never,
+        isDeleted: false,
         isScheduleEnabled: true,
         label: workflowLabel,
         metadata: {
@@ -294,12 +294,16 @@ export class DefaultRecurringContentService {
             position: { x: 120, y: 120 },
             type: this.buildNodeType(params.contentType),
           },
-        ],
+        ] as never,
+        organizationId: params.organizationId,
+        progress: 0,
         schedule: cronSchedule,
+        status: WorkflowStatus.ACTIVE,
+        steps: [] as never,
         timezone,
-        trigger: WorkflowTrigger.SCHEDULED,
-      } as never,
-    );
+        userId: params.userId,
+      },
+    });
 
     const workflowId = String(
       (workflow as Record<string, unknown>)._id ??

@@ -4,6 +4,7 @@ import { OrganizationsModule } from '@api/collections/organizations/organization
 import { UserSetupModule } from '@api/collections/users/user-setup.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { ConfigService } from '@api/config/config.service';
+import { CacheModule } from '@api/services/cache/cache.module';
 import { CacheClientService } from '@api/services/cache/services/cache-client.service';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -52,6 +53,7 @@ import { BetterAuthMailerService } from './services/better-auth-mailer.service';
     forwardRef(() => BrandsModule),
     forwardRef(() => MembersModule),
     forwardRef(() => UserSetupModule),
+    CacheModule,
     NotificationsModule,
   ],
   providers: [

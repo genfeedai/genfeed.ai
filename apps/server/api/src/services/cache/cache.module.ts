@@ -17,6 +17,7 @@ import { Global, Module } from '@nestjs/common';
 @Module({
   exports: [
     CacheInvalidationService,
+    CacheClientService,
     CacheService,
     CacheStrategies,
     RedisCacheInterceptor,

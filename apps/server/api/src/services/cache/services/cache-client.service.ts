@@ -15,6 +15,8 @@ export class CacheClientService implements OnModuleInit, OnModuleDestroy {
 
   private static readonly MAX_RECONNECT_RETRIES = 10;
   private static readonly MAX_RECONNECT_DELAY_MS = 30_000;
+  private static readonly DISCONNECT_TIMEOUT_MS = 3_000;
+  private static readonly FORCE_DISCONNECT_TIMEOUT_MS = 500;
 
   constructor(
     private readonly configService: ConfigService,
@@ -92,10 +94,66 @@ export class CacheClientService implements OnModuleInit, OnModuleDestroy {
     try {
       // Remove all event listeners to prevent memory leaks
       this.client.removeAllListeners();
-      await this.client.quit();
+      await this.withTimeout(
+        this.client.quit(),
+        CacheClientService.DISCONNECT_TIMEOUT_MS,
+        'Redis disconnect timeout',
+      );
       this.logger.log(`${this.constructorName} disconnected`);
     } catch (error: unknown) {
       this.logger.error(`${this.constructorName} disconnect error`, error);
+      await this.forceCloseClient();
+    }
+  }
+
+  private async forceCloseClient(): Promise<void> {
+    const client = this.client as RedisClientType & {
+      destroy?: () => void;
+      disconnect?: () => Promise<void> | void;
+    };
+
+    try {
+      if (typeof client.destroy === 'function') {
+        client.destroy();
+        return;
+      }
+
+      if (typeof client.disconnect === 'function') {
+        await this.withTimeout(
+          Promise.resolve(client.disconnect()),
+          CacheClientService.FORCE_DISCONNECT_TIMEOUT_MS,
+          'Redis force disconnect timeout',
+        );
+      }
+    } catch (error: unknown) {
+      this.logger.error(
+        `${this.constructorName} force disconnect error`,
+        error,
+      );
+    }
+  }
+
+  private async withTimeout<T>(
+    operation: Promise<T>,
+    timeoutMs: number,
+    timeoutMessage: string,
+  ): Promise<T> {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    try {
+      return await Promise.race([
+        operation,
+        new Promise<never>((_resolve, reject) => {
+          timeoutId = setTimeout(
+            () => reject(new Error(timeoutMessage)),
+            timeoutMs,
+          );
+        }),
+      ]);
+    } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
     }
   }
 }

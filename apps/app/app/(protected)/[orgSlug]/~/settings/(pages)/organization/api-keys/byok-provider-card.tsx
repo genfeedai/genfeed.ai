@@ -72,6 +72,7 @@ export default function ByokProviderCard({
                 variant={ButtonVariant.SECONDARY}
                 onClick={onRemoveKey}
                 isDisabled={isRemoving}
+                aria-label={`Remove ${providerStatus.label} key`}
               >
                 <HiTrash className="size-4" />
               </Button>

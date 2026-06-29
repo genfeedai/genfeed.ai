@@ -6,11 +6,11 @@ Accepted
 
 ## Spec Version
 
-v1.1.0
+v1.2.0
 
 ## Last Updated
 
-2026-06-22
+2026-06-29
 
 ## Canonical Source
 
@@ -72,7 +72,7 @@ Better Auth ships **magic link, Google/GitHub OAuth, organizations/teams, and ad
 
 Client features gate on **mode**, never on raw auth signals.
 
-**Migration** is a phased rollout epic (#735). Better Auth organizations are implemented as an auth/session bridge while Genfeed `Organization`, `Member`, and `Role` remain the domain authorization and tenant-guard source. Use clean platform `role:superadmin` for SaaS control-plane access. Subscription state lives in DB-owned billing state.
+**Baseline:** Better Auth is the active auth path after the #735 cutover (#769) and hardening pass (#866). Better Auth organizations remain an auth/session bridge while Genfeed `Organization`, `Member`, and `Role` stay the domain authorization and tenant-guard source. SaaS control-plane access uses `users.platformRole` (for example `PLATFORM_SUPERADMIN`), not legacy superadmin flags. Subscription state lives in DB-owned billing state.
 
 ### 4. Tenancy
 
@@ -112,7 +112,7 @@ Community is a **funnel and credibility driver, not a revenue tier** (PostHog ki
 ## Consequences (implementation — tracked on epics #735 and #740)
 
 1. **Mode consolidation** → one canonical source, two axes (#742).
-2. **Auth** → Better Auth across all modes; phased rollout (#735), Better Auth organizations bridge (#792), platform `role:superadmin` (#806), and headless API-keys UI + CLI (#747).
+2. **Auth** → Better Auth across all modes; active baseline after #769/#866, Better Auth organizations bridge (#792), platform `users.platformRole` (#806), and headless API-keys UI + CLI (#747/#878).
 3. **Switcher rule** → brand always shown+populated; org SaaS-only (#743).
 4. **CI** → fast PRs; heavy gates at release-cut; self-hosted E2E nightly-only; community build split from SaaS deploy (#744).
 5. **Community "just works"** → fix docs/ports/compose + healthcheck (#745).
@@ -126,3 +126,10 @@ Community is a **funnel and credibility driver, not a revenue tier** (PostHog ki
 - **Epic #740** — Deployment modes (canonical split, switcher, CI, community, QA)
 - Supersedes the **auth half** of the closed One-API epic #95
 - Issue #87 — EE billing / multi-tenancy extraction
+
+## Revision Log
+
+| Version | Date       | Summary |
+| ------- | ---------- | ------- |
+| v1.1.0  | 2026-06-22 | Initial accepted deployment-mode and auth direction |
+| v1.2.0  | 2026-06-29 | Better Auth cutover is active baseline; platform admin access uses `users.platformRole` |

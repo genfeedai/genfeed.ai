@@ -54,6 +54,7 @@ export const WatchlistSerializer = noop;
 export const VoteSerializer = noop;
 export const TrendSerializer = noop;
 export const ActivitySerializer = noop;
+export const ApiKeySerializer = noop;
 export const BrandSerializer = noop;
 export const OrganizationSerializer = noop;
 export const MemberSerializer = noop;

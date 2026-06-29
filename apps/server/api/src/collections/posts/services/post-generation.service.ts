@@ -34,6 +34,7 @@ import {
   SystemPromptKey,
 } from '@genfeedai/enums';
 import type {
+  AccountPublishingConstraints,
   AccountPublishingContext,
   SocialGenerationFormat,
 } from '@genfeedai/interfaces';
@@ -50,6 +51,20 @@ type GenerationMetadata = Pick<
   IAuthPublicMetadata,
   'brand' | 'organization' | 'user'
 >;
+
+/**
+ * Thread expansion always targets X/Twitter, whose replies must respect the
+ * 280 weighted-character limit. Used to validate generated thread posts so
+ * over-limit replies are rejected instead of silently accepted (issue #861).
+ */
+const TWITTER_THREAD_CONSTRAINTS: AccountPublishingConstraints = {
+  maxWeightedCharacters: 280,
+  notes: ['Standard X posts use the 280 weighted-character limit.'],
+  supportsDirectPublishing: true,
+  supportsRichArticleCopy: false,
+  supportsThreads: true,
+  usesWeightedCharacters: true,
+};
 
 /**
  * Owns the AI generation engine for posts: account-content and thread-expansion
@@ -110,7 +125,7 @@ export class PostGenerationService {
   parseTweetContent(
     content: string,
     maxCount: number,
-    context?: Pick<AccountPublishingContext, 'account' | 'constraints'>,
+    context?: Pick<AccountPublishingContext, 'constraints'>,
   ): string[] {
     let tweetLines: string[] = [];
     const maxLength =
@@ -512,9 +527,10 @@ export class PostGenerationService {
     publicMetadata: GenerationMetadata,
     context: AccountPublishingContext,
   ): Promise<void> {
-    let activity:
-      | Awaited<ReturnType<typeof this.activitiesService.create>>
-      | undefined;
+    // Create the PROCESSING activity inside the try so a failure here cannot
+    // exit the method while leaving the already-created posts stuck in
+    // PROCESSING — the catch marks every post FAILED regardless (issue #861).
+    let activity: Awaited<ReturnType<ActivitiesService['create']>> | undefined;
 
     try {
       activity = await this.activitiesService.create(
@@ -641,12 +657,22 @@ export class PostGenerationService {
       });
 
       if (activity) {
-        await this.activitiesService.patch(activity._id.toString(), {
-          key: ActivityKey.POST_FAILED,
-          value: JSON.stringify({
-            error: (error as Error)?.message || 'Generation failed',
-          }),
-        });
+        try {
+          await this.activitiesService.patch(activity._id.toString(), {
+            key: ActivityKey.POST_FAILED,
+            value: JSON.stringify({
+              error: (error as Error)?.message || 'Generation failed',
+            }),
+          });
+        } catch (activityError) {
+          // Never let an activity-update failure short-circuit the cleanup
+          // below — placeholder posts must still be marked FAILED, otherwise
+          // they stay stuck in PROCESSING forever.
+          this.logger.error(
+            'Failed to mark activity as failed during account content cleanup',
+            { activityError, platform: context.account.platform },
+          );
+        }
       }
 
       for (const post of createdPosts) {
@@ -693,9 +719,10 @@ export class PostGenerationService {
     dto: ExpandToThreadDto,
     publicMetadata: GenerationMetadata,
   ): Promise<void> {
-    let activity:
-      | Awaited<ReturnType<typeof this.activitiesService.create>>
-      | undefined;
+    // Create the PROCESSING activity inside the try so a failure here cannot
+    // exit the method while leaving the child posts stuck in PROCESSING — the
+    // catch marks every child FAILED regardless (issue #861).
+    let activity: Awaited<ReturnType<ActivitiesService['create']>> | undefined;
 
     try {
       activity = await this.activitiesService.create(
@@ -753,32 +780,12 @@ export class PostGenerationService {
         throw new Error('No content generated from AI service');
       }
 
-      // Parse content into tweet lines using helper.
-      // Thread expansion is Twitter/X-specific: enforce the 280 weighted-character
-      // limit so replies are validated against the actual platform constraint.
-      const twitterThreadContext: Pick<
-        AccountPublishingContext,
-        'account' | 'constraints'
-      > = {
-        account: {
-          id: '',
-          label: '',
-          platform: CredentialPlatform.TWITTER,
-        },
-        constraints: {
-          maxWeightedCharacters: 280,
-          notes: [],
-          supportsDirectPublishing: true,
-          supportsRichArticleCopy: false,
-          supportsThreads: true,
-          usesWeightedCharacters: true,
-        },
-      };
-      const tweetLines = this.parseTweetContent(
-        content,
-        additionalCount,
-        twitterThreadContext,
-      );
+      // Parse content into tweet lines using helper. Thread expansion targets
+      // X/Twitter, so enforce the 280 weighted-character reply limit instead of
+      // the unweighted default (issue #861).
+      const tweetLines = this.parseTweetContent(content, additionalCount, {
+        constraints: TWITTER_THREAD_CONSTRAINTS,
+      });
 
       // Update child posts with generated content
       for (let i = 0; i < childPosts.length && i < tweetLines.length; i++) {
@@ -838,14 +845,24 @@ export class PostGenerationService {
     } catch (error) {
       this.logger.error('Failed to expand thread asynchronously', error);
 
+      // Update activity to FAILED
       if (activity) {
-        // Update activity to FAILED
-        await this.activitiesService.patch(activity._id.toString(), {
-          key: ActivityKey.POST_FAILED,
-          value: JSON.stringify({
-            error: (error as Error)?.message || 'Thread expansion failed',
-          }),
-        });
+        try {
+          await this.activitiesService.patch(activity._id.toString(), {
+            key: ActivityKey.POST_FAILED,
+            value: JSON.stringify({
+              error: (error as Error)?.message || 'Thread expansion failed',
+            }),
+          });
+        } catch (activityError) {
+          // Never let an activity-update failure short-circuit the cleanup
+          // below — child posts must still be marked FAILED, otherwise they
+          // stay stuck in PROCESSING forever.
+          this.logger.error(
+            'Failed to mark activity as failed during thread expansion cleanup',
+            activityError,
+          );
+        }
       }
 
       for (const child of childPosts) {
@@ -946,7 +963,7 @@ export class PostGenerationService {
    */
   async generateHookVariations(
     dto: GenerateHooksDto,
-    organizationId: string,
+    publicMetadata: Pick<IAuthPublicMetadata, 'organization'>,
   ): Promise<{
     hooks: string[];
     metadata: {
@@ -981,17 +998,21 @@ Requirements:
 - No hashtags in hooks
 - Return as JSON array: ["hook1", "hook2", ...]`;
 
+    // Route through the prompt builder so hooks inherit brand/org system-prompt
+    // context and a typed Replicate input, matching the other generation flows
+    // (issue #861). Replaces the prior raw-string call that needed a type
+    // suppression because generateTextCompletionSync expects an input object.
     const { input } = await this.promptBuilderService.buildPrompt(
       DEFAULT_MINI_TEXT_MODEL,
       {
-        maxTokens: TEXT_GENERATION_LIMITS.postTweetGeneration,
+        maxTokens: TEXT_GENERATION_LIMITS.hookGeneration,
         modelCategory: ModelCategory.TEXT,
         prompt: userPrompt,
-        systemPromptTemplate: SystemPromptKey.DEFAULT,
+        systemPromptTemplate: SystemPromptKey.HOOK_GENERATOR,
         temperature: 0.8,
         useTemplate: false,
       },
-      organizationId,
+      publicMetadata.organization,
     );
 
     const result = await this.replicateService.generateTextCompletionSync(

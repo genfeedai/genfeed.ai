@@ -12,6 +12,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { ApiKeyCategory } from '@genfeedai/enums';
 import { ApiKeyFullSerializer, ApiKeySerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -20,6 +21,7 @@ import {
   Get,
   HttpException,
   HttpStatus,
+  NotFoundException,
   Param,
   Patch,
   Post,
@@ -40,6 +42,22 @@ import type { Request } from 'express';
 @AutoSwagger()
 export class ApiKeysController {
   constructor(private readonly apiKeysService: ApiKeysService) {}
+
+  private getApiKeyNotFoundError(detail: string) {
+    return new NotFoundException({
+      detail,
+      title: 'API Key Not Found',
+    });
+  }
+
+  private toApiKeyCategory(category: string): ApiKeyCategory {
+    const normalized = category.toLowerCase().replaceAll('_', '');
+    const match = Object.values(ApiKeyCategory).find(
+      (value) => value.replaceAll('_', '') === normalized,
+    );
+
+    return match ?? ApiKeyCategory.GENFEEDAI;
+  }
 
   @Post()
   @RateLimit({ limit: 5, windowMs: 60000 }) // Limit key creation to 5 per minute
@@ -183,13 +201,7 @@ export class ApiKeysController {
     });
 
     if (!apiKey) {
-      throw new HttpException(
-        {
-          detail: 'The specified API key was not found.',
-          title: 'API Key Not Found',
-        },
-        HttpStatus.NOT_FOUND,
-      );
+      throw this.getApiKeyNotFoundError('The specified API key was not found.');
     }
 
     return serializeSingle(request, ApiKeySerializer, apiKey);
@@ -217,13 +229,8 @@ export class ApiKeysController {
     });
 
     if (!existingKey) {
-      throw new HttpException(
-        {
-          detail:
-            'The specified API key was not found or you do not have permission to modify it.',
-          title: 'API Key Not Found',
-        },
-        HttpStatus.NOT_FOUND,
+      throw this.getApiKeyNotFoundError(
+        'The specified API key was not found or you do not have permission to modify it.',
       );
     }
 
@@ -232,6 +239,63 @@ export class ApiKeysController {
       updateApiKeyDto,
     );
     return serializeSingle(request, ApiKeySerializer, updatedKey);
+  }
+
+  @Post(':apiKeyId/rotate')
+  @RateLimit({ limit: 5, windowMs: 60000 })
+  @ApiOperation({ summary: 'Rotate an API key' })
+  @ApiResponse({
+    description: 'API key rotated successfully',
+    status: HttpStatus.CREATED,
+  })
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async rotate(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('apiKeyId') apiKeyId: string,
+  ) {
+    const publicMetadata = getPublicMetadata(user);
+
+    const existingKey = await this.apiKeysService.findOne({
+      id: apiKeyId,
+      isRevoked: false,
+      organizationId: publicMetadata.organization,
+      userId: publicMetadata.user,
+    });
+
+    if (!existingKey) {
+      throw this.getApiKeyNotFoundError(
+        'The specified API key was not found or has already been revoked.',
+      );
+    }
+
+    const metadata =
+      existingKey.metadata &&
+      typeof existingKey.metadata === 'object' &&
+      !Array.isArray(existingKey.metadata)
+        ? (existingKey.metadata as Record<string, unknown>)
+        : undefined;
+
+    const { apiKey, plainKey } = await this.apiKeysService.rotateWithKey(
+      apiKeyId,
+      {
+        allowedIps: existingKey.allowedIps,
+        category: this.toApiKeyCategory(existingKey.category),
+        description: existingKey.description ?? undefined,
+        expiresAt: existingKey.expiresAt?.toISOString(),
+        label: existingKey.label,
+        metadata,
+        organizationId: publicMetadata.organization,
+        rateLimit: existingKey.rateLimit ?? undefined,
+        scopes: existingKey.scopes,
+        userId: publicMetadata.user,
+      },
+    );
+
+    return serializeSingle(request, ApiKeyFullSerializer, {
+      ...apiKey,
+      key: plainKey,
+    });
   }
 
   @Delete(':apiKeyId')
@@ -256,13 +320,8 @@ export class ApiKeysController {
     });
 
     if (!existingKey) {
-      throw new HttpException(
-        {
-          detail:
-            'The specified API key was not found or has already been revoked.',
-          title: 'API Key Not Found',
-        },
-        HttpStatus.NOT_FOUND,
+      throw this.getApiKeyNotFoundError(
+        'The specified API key was not found or has already been revoked.',
       );
     }
 
