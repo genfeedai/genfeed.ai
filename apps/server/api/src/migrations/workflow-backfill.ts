@@ -5,7 +5,7 @@ import { bootstrap, setupGracefulShutdown } from '@libs/bootstrap';
 bootstrap({ app: 'api' });
 
 import process from 'node:process';
-import { AppModule } from '@api/app.module';
+import { WorkflowBackfillModule } from '@api/migrations/workflow-backfill.module';
 import { WorkflowDeploymentBackfillService } from '@api/seeds/workflow-deployment-backfill.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { type INestApplicationContext, Logger } from '@nestjs/common';
@@ -16,11 +16,14 @@ const APP_CLOSE_TIMEOUT_MS = 10_000;
 
 async function main(): Promise<void> {
   console.info('Workflow backfill migration booting');
-  const app = await NestFactory.createApplicationContext(AppModule, {
-    abortOnError: false,
-    logger: ['error'],
-    snapshot: true,
-  });
+  const app = await NestFactory.createApplicationContext(
+    WorkflowBackfillModule,
+    {
+      abortOnError: false,
+      logger: ['error'],
+      snapshot: true,
+    },
+  );
   console.info('Workflow backfill application context created');
 
   try {
