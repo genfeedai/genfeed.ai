@@ -15,6 +15,8 @@ export class RedisService
   extends EventEmitter
   implements OnModuleInit, OnModuleDestroy
 {
+  private static readonly CONNECT_TIMEOUT_MS = 3_000;
+  private static readonly SUBSCRIBE_TIMEOUT_MS = 5_000;
   private readonly context = { service: RedisService.name };
   private publisher!: RedisClientType;
   private subscriber!: RedisClientType;
@@ -46,9 +48,8 @@ export class RedisService
     }
 
     const config = parseRedisConnection(this.configService);
-    const CONNECT_TIMEOUT = 3_000;
     const socketOptions = {
-      connectTimeout: CONNECT_TIMEOUT,
+      connectTimeout: RedisService.CONNECT_TIMEOUT_MS,
       reconnectStrategy: () => false as const, // Don't retry - fail fast
       ...(config.tls ? { tls: true as const } : {}),
     };
@@ -66,7 +67,7 @@ export class RedisService
         new Promise((_, reject) =>
           setTimeout(
             () => reject(new Error('Redis publisher connection timeout')),
-            CONNECT_TIMEOUT,
+            RedisService.CONNECT_TIMEOUT_MS,
           ),
         ),
       ]);
@@ -83,7 +84,7 @@ export class RedisService
         new Promise((_, reject) =>
           setTimeout(
             () => reject(new Error('Redis subscriber connection timeout')),
-            CONNECT_TIMEOUT,
+            RedisService.CONNECT_TIMEOUT_MS,
           ),
         ),
       ]);
@@ -143,16 +144,25 @@ export class RedisService
   ) {
     if (!this.handlers.has(channel)) {
       this.handlers.set(channel, []);
-      await this.subscriber.subscribe(channel, (message) => {
-        const parsedMessage = JSON.parse(message);
-        // Emit for EventEmitter listeners
-        this.emit('message', channel, message);
-        // Call specific handlers
-        const handlers = this.handlers.get(channel) || [];
-        for (const h of handlers) {
-          h(parsedMessage);
-        }
-      });
+      try {
+        await this.withTimeout(
+          this.subscriber.subscribe(channel, (message) => {
+            const parsedMessage = JSON.parse(message);
+            // Emit for EventEmitter listeners
+            this.emit('message', channel, message);
+            // Call specific handlers
+            const handlers = this.handlers.get(channel) || [];
+            for (const h of handlers) {
+              h(parsedMessage);
+            }
+          }),
+          RedisService.SUBSCRIBE_TIMEOUT_MS,
+          `Redis subscribe to ${channel} timed out after ${RedisService.SUBSCRIBE_TIMEOUT_MS}ms`,
+        );
+      } catch (error) {
+        this.handlers.delete(channel);
+        throw error;
+      }
       this.logger.log(`Subscribed to channel: ${channel}`, this.context);
     }
     if (handler) {
@@ -175,5 +185,29 @@ export class RedisService
       return null;
     }
     return this.publisher;
+  }
+
+  private async withTimeout<T>(
+    operation: Promise<T>,
+    timeoutMs: number,
+    timeoutMessage: string,
+  ): Promise<T> {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    try {
+      return await Promise.race([
+        operation,
+        new Promise<never>((_resolve, reject) => {
+          timeoutId = setTimeout(
+            () => reject(new Error(timeoutMessage)),
+            timeoutMs,
+          );
+        }),
+      ]);
+    } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    }
   }
 }

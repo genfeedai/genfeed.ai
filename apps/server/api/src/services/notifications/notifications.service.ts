@@ -23,6 +23,7 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
   private publisher: RedisClientType;
   private isShuttingDown = false;
   private readonly constructorName = this.constructor.name;
+  private static readonly CONNECT_TIMEOUT_MS = 5_000;
 
   constructor(
     private readonly configService: ConfigService,
@@ -31,7 +32,8 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
     const config = parseRedisConnection(this.configService);
     this.publisher = createClient({
       socket: {
-        connectTimeout: 10_000,
+        connectTimeout: NotificationsService.CONNECT_TIMEOUT_MS,
+        reconnectStrategy: () => false as const,
         ...(config.tls ? { tls: true as const } : {}),
       },
       url: config.url,
@@ -48,10 +50,13 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     try {
-      await this.publisher.connect();
+      await this.connectPublisher('initial connect');
       this.logger.log(`${this.constructorName} initialized successfully`);
     } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} failed to connect`, error);
+      this.logger.warn(
+        `${this.constructorName} failed to connect - notifications disabled`,
+        error,
+      );
     }
   }
 
@@ -123,7 +128,7 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
     }
 
     try {
-      await this.publisher.connect();
+      await this.connectPublisher('reconnect');
       return this.publisher.isReady;
     } catch (error: unknown) {
       this.logger.error(`${this.constructorName} failed to reconnect`, error);
@@ -136,6 +141,31 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
       error instanceof Error &&
       error.message.toLowerCase().includes('client is closed')
     );
+  }
+
+  private async connectPublisher(reason: string): Promise<void> {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    try {
+      await Promise.race([
+        this.publisher.connect(),
+        new Promise<never>((_resolve, reject) => {
+          timeoutId = setTimeout(
+            () =>
+              reject(
+                new Error(
+                  `${this.constructorName} Redis publisher ${reason} timed out after ${NotificationsService.CONNECT_TIMEOUT_MS}ms`,
+                ),
+              ),
+            NotificationsService.CONNECT_TIMEOUT_MS,
+          );
+        }),
+      ]);
+    } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    }
   }
 
   // Helper methods for specific notification types

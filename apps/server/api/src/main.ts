@@ -46,19 +46,60 @@ import helmet from 'helmet';
 import gptActionsSpec from './config/gpt-actions-openapi.json';
 
 const apiDir = dirname(fileURLToPath(import.meta.url));
+const DEFAULT_API_LISTEN_TIMEOUT_MS = 120_000;
 
-async function main() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    abortOnError: false,
-    logger: ['error'],
-    snapshot: true,
-  });
+function parsePositiveTimeoutMs(
+  value: string | undefined,
+  fallbackMs: number,
+): number {
+  const timeoutMs = Number(value ?? fallbackMs);
+  return Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : fallbackMs;
+}
 
-  const configService = app.get(ConfigService);
-  const logger = app.get<LoggerService>(LoggerService);
-  const port = configService.get('PORT');
+async function withStartupTimeout<T>(
+  operation: Promise<T>,
+  timeoutMs: number,
+  timeoutMessage: string,
+): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
   try {
+    return await Promise.race([
+      operation,
+      new Promise<never>((_resolve, reject) => {
+        timeoutId = setTimeout(
+          () => reject(new Error(timeoutMessage)),
+          timeoutMs,
+        );
+      }),
+    ]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
+
+async function main() {
+  let logger: LoggerService | undefined;
+
+  try {
+    console.info('API bootstrap: creating Nest application');
+    const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+      abortOnError: false,
+      logger: ['error'],
+      snapshot: true,
+    });
+    console.info('API bootstrap: Nest application created');
+
+    const configService = app.get(ConfigService);
+    logger = app.get<LoggerService>(LoggerService);
+    const port = configService.get('PORT');
+    const apiListenTimeoutMs = parsePositiveTimeoutMs(
+      configService.get('API_LISTEN_TIMEOUT_MS'),
+      DEFAULT_API_LISTEN_TIMEOUT_MS,
+    );
+
     app.set('trust proxy', 1);
     app.enableShutdownHooks();
 
@@ -276,14 +317,20 @@ async function main() {
       process.exit(0);
     }
 
-    await app.listen(port);
+    console.info(`API bootstrap: starting listener on port ${port}`);
+    await withStartupTimeout(
+      app.listen(port),
+      apiListenTimeoutMs,
+      `API listen timed out after ${apiListenTimeoutMs}ms before serving port ${port}`,
+    );
+    console.info(`API bootstrap: listener ready on port ${port}`);
     logger.debug(`API service is running on port ${port}`);
   } catch (error: unknown) {
-    logger.error('Failed to start API service:', error);
-    if (process.env.BOOT_SMOKE === '1') {
-      // Fail the boot-smoke gate loudly — never let a startup error pass as green.
-      process.exit(1);
-    }
+    logger?.error('Failed to start API service:', error);
+    console.error('API bootstrap failed:', error);
+    // A failed bootstrap leaves the process alive but unbound if Redis/BullMQ
+    // handles remain open. Exit loudly so ECS and boot-smoke fail fast.
+    process.exit(1);
   }
 }
 

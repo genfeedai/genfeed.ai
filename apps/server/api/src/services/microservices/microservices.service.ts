@@ -1,3 +1,4 @@
+import process from 'node:process';
 import { ConfigService } from '@api/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { parseRedisConnection } from '@libs/redis/redis-connection.utils';
@@ -23,6 +24,7 @@ export interface ServiceHealth {
 @Injectable()
 export class MicroservicesService implements OnModuleInit {
   private readonly constructorName: string = String(this.constructor.name);
+  private static readonly REDIS_CONNECT_TIMEOUT_MS = 5_000;
   private redisClient: RedisClientType | null = null;
   private servicesConfig!: Map<string, { url: string; required: boolean }>;
 
@@ -77,8 +79,18 @@ export class MicroservicesService implements OnModuleInit {
     ]);
   }
 
+  private getRedisLogTarget(redisUrl: string): string {
+    try {
+      const url = new URL(redisUrl);
+      return `${url.protocol}//${url.host}`;
+    } catch {
+      return '[invalid Redis URL]';
+    }
+  }
+
   private async initializeRedis() {
-    if (!process.env.REDIS_URL) {
+    const redisUrl = this.configService.get('REDIS_URL');
+    if (!redisUrl) {
       this.loggerService.warn(
         `${this.constructorName} initializeRedis: REDIS_URL not set — skipping (offline/self-hosted mode)`,
       );
@@ -86,15 +98,17 @@ export class MicroservicesService implements OnModuleInit {
     }
 
     const config = parseRedisConnection(this.configService);
+    const redisLogTarget = this.getRedisLogTarget(config.url);
 
     this.loggerService.log(
-      `${this.constructorName} initializeRedis: Connecting to Redis at ${config.url}`,
+      `${this.constructorName} initializeRedis: Connecting to Redis at ${redisLogTarget}`,
     );
 
     try {
       this.redisClient = createClient({
         socket: {
-          connectTimeout: 3_000,
+          connectTimeout: MicroservicesService.REDIS_CONNECT_TIMEOUT_MS,
+          reconnectStrategy: () => false as const,
           ...(config.tls ? { tls: true as const } : {}),
         },
         url: config.url,
@@ -108,15 +122,44 @@ export class MicroservicesService implements OnModuleInit {
         this.loggerService.log('Redis Client Connected');
       });
 
-      await this.redisClient.connect();
+      await this.withTimeout(
+        this.redisClient.connect(),
+        MicroservicesService.REDIS_CONNECT_TIMEOUT_MS,
+        `${this.constructorName} initializeRedis: Redis connect timed out after ${MicroservicesService.REDIS_CONNECT_TIMEOUT_MS}ms`,
+      );
       this.loggerService.log(
         `${this.constructorName} initializeRedis: Successfully connected to Redis`,
       );
     } catch (error: unknown) {
+      this.redisClient = null;
       this.loggerService.error(
-        `${this.constructorName} initializeRedis: Failed to connect to Redis at ${config.url}`,
+        `${this.constructorName} initializeRedis: Failed to connect to Redis at ${redisLogTarget}`,
         error,
       );
+    }
+  }
+
+  private async withTimeout<T>(
+    operation: Promise<T>,
+    timeoutMs: number,
+    timeoutMessage: string,
+  ): Promise<T> {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    try {
+      return await Promise.race([
+        operation,
+        new Promise<never>((_resolve, reject) => {
+          timeoutId = setTimeout(
+            () => reject(new Error(timeoutMessage)),
+            timeoutMs,
+          );
+        }),
+      ]);
+    } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
     }
   }
 
@@ -126,7 +169,11 @@ export class MicroservicesService implements OnModuleInit {
     }
 
     try {
-      await this.redisClient.ping();
+      await this.withTimeout(
+        this.redisClient.ping(),
+        MicroservicesService.REDIS_CONNECT_TIMEOUT_MS,
+        'Redis health check timed out',
+      );
       return true;
     } catch (error: unknown) {
       this.loggerService.error('Redis health check failed', error);
@@ -208,7 +255,7 @@ export class MicroservicesService implements OnModuleInit {
 
     this.loggerService.log(`${url} checking services in ${nodeEnv} mode`);
 
-    if (process.env.REDIS_URL) {
+    if (this.configService.get('REDIS_URL')) {
       const redisHealthy = await this.checkRedisHealth();
       if (!redisHealthy) {
         const message =
