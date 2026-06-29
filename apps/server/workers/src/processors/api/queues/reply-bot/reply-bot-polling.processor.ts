@@ -10,6 +10,7 @@ import {
   createProcessorCircuitBreaker,
   type ProcessorCircuitBreaker,
 } from '@api/shared/utils/circuit-breaker/circuit-breaker.util';
+import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
@@ -59,10 +60,10 @@ export class ReplyBotPollingProcessor extends WorkerHost {
     }
 
     return {
-      accessToken: credential.accessToken,
+      accessToken: EncryptionUtil.decrypt(credential.accessToken),
       accessTokenSecret:
         typeof credential.accessTokenSecret === 'string'
-          ? credential.accessTokenSecret
+          ? EncryptionUtil.decrypt(credential.accessTokenSecret)
           : undefined,
       brandId:
         typeof credential.brandId === 'string' ? credential.brandId : undefined,
@@ -80,7 +81,7 @@ export class ReplyBotPollingProcessor extends WorkerHost {
           : undefined,
       refreshToken:
         typeof credential.refreshToken === 'string'
-          ? credential.refreshToken
+          ? EncryptionUtil.decrypt(credential.refreshToken)
           : undefined,
       username:
         typeof credential.externalHandle === 'string'

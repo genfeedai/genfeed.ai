@@ -101,47 +101,38 @@ export class CredentialCryptoService {
   }
 
   /**
-   * Decrypt a secret. Values that are not in our ciphertext envelope (legacy
-   * plaintext, or anything that fails authentication) are returned unchanged so
-   * pre-encryption credentials keep working until they are re-written.
+   * Decrypt a secret.
+   *
+   * - Values that do NOT match the ciphertext envelope pattern are treated as
+   *   legacy plaintext and returned as-is (migration support).
+   * - Values that DO match the envelope pattern but fail GCM authenticated
+   *   decryption (wrong key, tampered ciphertext) throw immediately so the
+   *   caller is never silently handed back raw ciphertext.
    */
   decrypt(value: string): string {
     if (!value || !this.isEncrypted(value)) {
+      // Not in ciphertext format — legacy plaintext, return as-is.
       return value;
     }
 
     const parts = value.split(':');
-    if (parts.length !== 3) {
-      return value;
-    }
     const [ivHex, encryptedHex, authTagHex] = parts;
 
-    try {
-      const decipher = createDecipheriv(
-        GCM_ALGORITHM,
-        this.key,
-        Buffer.from(ivHex, 'hex'),
-      );
-      decipher.setAuthTag(Buffer.from(authTagHex, 'hex'));
+    const decipher = createDecipheriv(
+      GCM_ALGORITHM,
+      this.key,
+      Buffer.from(ivHex, 'hex'),
+    );
+    decipher.setAuthTag(Buffer.from(authTagHex, 'hex'));
 
-      const decrypted = Buffer.concat([
-        decipher.update(Buffer.from(encryptedHex, 'hex')),
-        decipher.final(),
-      ]);
+    // Let GCM auth errors throw — returning ciphertext on failure would silently
+    // ship an encrypted blob to the upstream API (wrong key / tampered value).
+    const decrypted = Buffer.concat([
+      decipher.update(Buffer.from(encryptedHex, 'hex')),
+      decipher.final(),
+    ]);
 
-      return decrypted.toString('utf8');
-    } catch (error: unknown) {
-      // The value matched our ciphertext envelope but failed authenticated
-      // decryption — a wrong/rotated key or tampering. Surface it (without the
-      // secret) so it is diagnosable instead of silently shipping ciphertext to
-      // an upstream API. Return unchanged to preserve the legacy-plaintext
-      // fallback contract.
-      this.logger?.warn(
-        'Credential secret failed authenticated decryption — returning value unchanged',
-        { error: error instanceof Error ? error.message : String(error) },
-      );
-      return value;
-    }
+    return decrypted.toString('utf8');
   }
 
   /**

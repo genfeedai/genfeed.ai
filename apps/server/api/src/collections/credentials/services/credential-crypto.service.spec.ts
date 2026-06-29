@@ -5,7 +5,6 @@ import {
 } from '@api/collections/credentials/services/credential-crypto.service';
 import type { ConfigService } from '@api/config/config.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
-import type { LoggerService } from '@libs/logger/logger.service';
 
 // Use the same key the global test setup gives EncryptionUtil so the
 // interop assertions (cross-decrypt) are meaningful.
@@ -113,31 +112,22 @@ describe('CredentialCryptoService', () => {
   });
 
   describe('decryption failure (wrong key / tampering)', () => {
-    it('warns and returns the value unchanged when an encrypted value fails to authenticate', () => {
-      const logger = {
-        debug: vi.fn(),
-        error: vi.fn(),
-        log: vi.fn(),
-        warn: vi.fn(),
-      };
+    it('throws when an encrypted value fails GCM authentication', () => {
       const encrypted = service.encrypt('real-secret');
 
       // A service with a different key cannot authenticate the ciphertext.
-      const wrongKeyService = new CredentialCryptoService(
-        {
-          tokenEncryptionKey: 'a-totally-different-key-0123456789',
-        } as unknown as ConfigService,
-        logger as unknown as LoggerService,
-      );
+      const wrongKeyService = new CredentialCryptoService({
+        tokenEncryptionKey: 'a-totally-different-key-0123456789',
+      } as unknown as ConfigService);
 
-      const result = wrongKeyService.decrypt(encrypted);
+      // Must throw — never silently return ciphertext (wrong key / tampering).
+      expect(() => wrongKeyService.decrypt(encrypted)).toThrow();
+    });
 
-      // Must never leak a wrong-key "plaintext"; returns the value unchanged.
-      expect(result).toBe(encrypted);
-      expect(logger.warn).toHaveBeenCalledTimes(1);
-      // The warning must not contain the secret.
-      expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(
-        'real-secret',
+    it('returns legacy plaintext unchanged (migration support)', () => {
+      // A value that does NOT match the ciphertext envelope is legacy plaintext.
+      expect(service.decrypt('legacy-plaintext-token')).toBe(
+        'legacy-plaintext-token',
       );
     });
   });
