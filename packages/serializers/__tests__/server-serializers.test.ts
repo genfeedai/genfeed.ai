@@ -98,7 +98,6 @@ import { PromptSerializer } from '@serializers/server/management/prompt.serializ
 import { TagSerializer } from '@serializers/server/management/tag.serializer';
 import { BrandSerializer } from '@serializers/server/organizations/brand.serializer';
 import {
-  CredentialFullSerializer,
   CredentialInstagramPagesSerializer,
   CredentialOAuthSerializer,
   CredentialSerializer,
@@ -447,16 +446,6 @@ describe('Server Serializers', () => {
 
     it('should have a serialize method', () => {
       expect(typeof CredentialSerializer.serialize).toBe('function');
-    });
-  });
-
-  describe('CredentialFullSerializer', () => {
-    it('should be a function (serializer)', () => {
-      expect(typeof CredentialFullSerializer).toBe('object');
-    });
-
-    it('should have a serialize method', () => {
-      expect(typeof CredentialFullSerializer.serialize).toBe('function');
     });
   });
 
