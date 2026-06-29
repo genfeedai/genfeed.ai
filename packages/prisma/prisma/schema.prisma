@@ -2701,6 +2701,15 @@ model Workflow {
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
+  // Denormalized for the partial unique constraint that enforces at-most-one
+  // default recurring workflow per (brand, org, contentType). NULL for every
+  // non-default-recurring workflow. Set by `DefaultRecurringContentService`
+  // on creation; enforced by the DB-level partial unique index
+  // `workflows_default_recurring_brand_org_type_uidx` (see migration
+  // 20260629202231). Prisma cannot express partial unique indexes in schema.prisma,
+  // so the index lives only in the migration; this field documents its purpose.
+  defaultRecurringBrandId String?
+
   tags       Tag[]               @relation("workflow_tags")
   brands     Brand[]             @relation("workflow_brands")
   executions WorkflowExecution[]
@@ -2711,6 +2720,8 @@ model Workflow {
   // concurrent writes to `workflows` (different org/brand) from aborting the
   // Serializable transaction with a false-positive P2034.
   @@index([organizationId, isDeleted])
+  // Supporting index for the partial unique constraint lookup.
+  @@index([defaultRecurringBrandId, organizationId])
   @@map("workflows")
 }
 

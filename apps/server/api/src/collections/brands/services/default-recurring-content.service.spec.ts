@@ -29,6 +29,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 type StoredWorkflow = {
   brandId: string;
   contentType: string;
+  defaultRecurringBrandId: string | null;
   id: string;
   isDeleted: boolean;
   isScheduleEnabled: boolean | null;
@@ -103,6 +104,7 @@ function rowFromCreateData(
   return {
     brandId: brands?.connect?.[0]?.id ?? '',
     contentType: defaultRecurringContent?.contentType ?? '',
+    defaultRecurringBrandId: (data.defaultRecurringBrandId as string) ?? null,
     id,
     isDeleted: (data.isDeleted as boolean) ?? false,
     isScheduleEnabled: (data.isScheduleEnabled as boolean | null) ?? null,
@@ -186,17 +188,53 @@ function createFakePrisma(options: FakePrismaOptions) {
       const result = await fn(tx);
 
       // Commit phase — synchronous critical section (no await), so it is atomic
-      // relative to other transactions. A staged row conflicts when a matching
-      // row was committed by another transaction after this snapshot.
+      // relative to other transactions.
+      //
+      // Two conflict types are modelled, matching the DB's real behaviour after
+      // the partial unique index is in place:
+      //
+      // 1. P2002 — partial unique index violation: the row being inserted has a
+      //    non-null `defaultRecurringBrandId` and a committed row with the same
+      //    (defaultRecurringBrandId, organizationId, contentType) and
+      //    isDeleted=false already exists (committed by ANY transaction, not just
+      //    post-snapshot ones). This is the DB-level constraint fire that the
+      //    service now correctly handles as "concurrent winner already created it".
+      //
+      // 2. P2034 — serialization failure: a committed row matching the
+      //    transaction's READ predicate was written AFTER this snapshot (i.e. by
+      //    a concurrent transaction). This represents Postgres aborting the
+      //    Serializable transaction due to a rw-conflict unrelated to the unique
+      //    constraint — the service retries on this code.
       for (const row of staged) {
-        const conflict = committed.some(
+        // P2002: DB-level partial unique index fire (any committed duplicate,
+        // regardless of snapshot age). Only applies to default-recurring rows.
+        if (row.defaultRecurringBrandId !== null) {
+          const uniqueConflict = committed.some(
+            (c) =>
+              !c.isDeleted &&
+              c.defaultRecurringBrandId === row.defaultRecurringBrandId &&
+              c.organizationId === row.organizationId &&
+              c.contentType === row.contentType,
+          );
+          if (uniqueConflict) {
+            const error = new Error(
+              'Unique constraint failed on the fields: (`defaultRecurringBrandId`,`organizationId`,`contentType`)',
+            ) as Error & { code: string };
+            error.code = 'P2002';
+            throw error;
+          }
+        }
+
+        // P2034: Serializable rw-conflict from a row committed after this
+        // transaction's snapshot (concurrent write, not necessarily duplicate).
+        const serializationConflict = committed.some(
           (c) =>
             !snapshot.includes(c) &&
             !c.isDeleted &&
             c.brandId === row.brandId &&
             c.contentType === row.contentType,
         );
-        if (conflict) {
+        if (serializationConflict) {
           const error = new Error('could not serialize access') as Error & {
             code: string;
           };
@@ -307,6 +345,7 @@ function buildStoredWorkflow(
   return {
     brandId: BRAND_ID,
     contentType,
+    defaultRecurringBrandId: BRAND_ID,
     id: `seed_${contentType}`,
     isDeleted: false,
     isScheduleEnabled,
@@ -458,6 +497,82 @@ describe('DefaultRecurringContentService', () => {
     // One P2002 per missing content type — no retries (each is immediately treated
     // as "concurrent winner already created it").
     expect(transactionSpy).toHaveBeenCalledTimes(CONTENT_TYPES.length);
+  });
+
+  it('DB partial unique index (defaultRecurringBrandId, organizationId, contentType) fires P2002 on true duplicate create', async () => {
+    // This test exercises the DB-level constraint added in migration
+    // 20260629202231. When two concurrent callers both observe "no existing
+    // workflow" and both attempt to create one, the unique index on
+    // (defaultRecurringBrandId, organizationId, contentType) WHERE isDeleted=false
+    // ensures the second committer gets P2002. The service must treat P2002 as
+    // "concurrent winner already committed" — not retry, not error.
+    //
+    // The fake transaction commit phase models this exactly: if a staged row has
+    // a non-null defaultRecurringBrandId and an identical (brand, org, type) row
+    // already exists in committed, P2002 is thrown (matching the real DB index).
+    //
+    // We seed a committed workflow that represents the first caller's committed
+    // row, then verify that the second caller's attempt resolves as success.
+    const preCommitted: StoredWorkflow[] = CONTENT_TYPES.map((contentType) =>
+      buildStoredWorkflow(contentType, true),
+    );
+
+    // The fake prisma's `workflow.findMany` returns an empty list (simulating
+    // that the bulk read happened BEFORE the pre-committed rows landed — a
+    // classic race), but the transaction commit phase will fire P2002 because
+    // the index already holds these rows in `committed`.
+    const { committed, prisma, transactionSpy } = createFakePrisma({
+      brand: buildBrand(),
+      // Pre-seed committed store with the "first caller already won" rows.
+      initialWorkflows: preCommitted,
+    });
+
+    // Override findMany to return empty (simulate bulk read pre-dating the
+    // first caller's commit), while the committed store already has the rows.
+    const findManySpy = vi.fn(async () => []);
+    const prismaWithEmptyBulkRead = {
+      ...prisma,
+      workflow: {
+        ...((prisma as unknown as Record<string, unknown>).workflow as Record<
+          string,
+          unknown
+        >),
+        findMany: findManySpy,
+      },
+    } as unknown as PrismaService;
+
+    const service = new DefaultRecurringContentService(
+      prismaWithEmptyBulkRead,
+      createLogger(),
+    );
+
+    // Must resolve successfully — the P2002 from the partial unique index is
+    // the correct "already created by concurrent winner" signal.
+    await expect(
+      service.ensureDefaultBundle({ ...buildParams(), includeStatus: false }),
+    ).resolves.toEqual({ isConfigured: true, items: [] });
+
+    // Each contentType attempt should have fired exactly once and been handled
+    // as P2002 — no retries (P2002 is not a retryable error).
+    expect(transactionSpy).toHaveBeenCalledTimes(CONTENT_TYPES.length);
+    for (const call of transactionSpy.mock.calls) {
+      expect(call[1]).toEqual({ isolationLevel: 'Serializable' });
+    }
+
+    // The committed store must have only the original 3 rows — none added by
+    // the second caller (its creates were rejected by the unique index).
+    expect(committed).toHaveLength(CONTENT_TYPES.length);
+    expect(countByContentType(committed)).toEqual({
+      image: 1,
+      newsletter: 1,
+      post: 1,
+    });
+
+    // The surviving rows are the pre-committed ones (the first caller's rows).
+    for (const row of committed) {
+      expect(row.id).toMatch(/^seed_/);
+      expect(row.isDeleted).toBe(false);
+    }
   });
 
   it('rethrows P2034 after exhausting all retries', async () => {

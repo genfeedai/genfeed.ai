@@ -420,6 +420,12 @@ export class DefaultRecurringContentService {
     const workflow = await params.tx.workflow.create({
       data: {
         brands: { connect: [{ id: brandId }] },
+        // Denormalized brand identity used by the partial unique index
+        // `workflows_default_recurring_brand_org_type_uidx`. Setting this
+        // allows Postgres to enforce at-most-one default recurring workflow
+        // per (brand, org, contentType) at the DB level, making P2002 the
+        // legitimate "concurrent winner" signal.
+        defaultRecurringBrandId: brandId,
         description: workflowDescription,
         edges: [] as never,
         executionCount: 0,
