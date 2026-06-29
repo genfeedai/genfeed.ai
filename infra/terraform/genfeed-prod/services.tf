@@ -152,19 +152,20 @@ resource "aws_ecs_task_definition" "boot_smoke" {
       "bash",
       "-lc",
       <<-EOT
-      set -euo pipefail
+      set -uo pipefail
       bun --filter ${local.services.api.filter} start:prod &
       pid=$!
       cleanup() {
+        # After health succeeds, do not wait on Bun/API shutdown; SIGTERM exit
+        # status would turn a successful smoke into a failed ECS task.
         kill "$pid" 2>/dev/null || true
-        wait "$pid" 2>/dev/null || true
       }
       trap cleanup EXIT
 
       for i in $(seq 1 48); do
         if ! kill -0 "$pid" 2>/dev/null; then
           wait "$pid"
-          exit $?
+          exit "$?"
         fi
         if curl -fsS http://127.0.0.1:${local.services.api.port}/v1/health >/dev/null; then
           echo 'Boot smoke OK - API served /v1/health.'
