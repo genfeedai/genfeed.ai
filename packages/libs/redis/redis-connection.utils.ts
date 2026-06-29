@@ -90,6 +90,7 @@ export function buildBullMQConnection(config: ParsedRedisConfig) {
     lazyConnect: true,
     maxRetriesPerRequest: 0,
     retryStrategy: () => null,
+    skipVersionCheck: true,
     ...(config.tls && { tls: {} }),
   };
 }
