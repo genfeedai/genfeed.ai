@@ -127,10 +127,9 @@ resource "aws_ecs_task_definition" "workflow_backfill" {
 }
 
 # ── One-off boot smoke (run via `aws ecs run-task` BEFORE services roll) ─
-# Boots the compiled api entrypoint with BOOT_CHECK=1 so module evaluation catches
-# crash-on-boot bugs like the circular-dependency TDZ in #711, then exits before
-# opening long-lived production connections. If the new image can't load, the
-# deploy fails HERE, before any service rolls.
+# Starts the production api command and requires localhost /v1/health to answer.
+# This catches both crash-on-boot bugs and "loads but never binds the port"
+# failures before any service rolls.
 resource "aws_cloudwatch_log_group" "boot_smoke" {
   name              = "/ecs/${local.name_prefix}/boot-smoke"
   retention_in_days = 30
@@ -149,12 +148,15 @@ resource "aws_ecs_task_definition" "boot_smoke" {
     name      = "boot-smoke"
     image     = local.image
     essential = true
-    command   = ["bun", "--filter", local.services.api.filter, "start:prod"]
-    secrets   = local.task_secrets
+    command = [
+      "bash",
+      "-lc",
+      "set -euo pipefail; bun --filter ${local.services.api.filter} start:prod & pid=$!; trap 'kill $pid 2>/dev/null || true' EXIT; for i in $(seq 1 48); do if ! kill -0 $pid 2>/dev/null; then wait $pid; exit $?; fi; if curl -fsS http://127.0.0.1:${local.services.api.port}/v1/health >/dev/null; then echo 'Boot smoke OK — API served /v1/health.'; exit 0; fi; sleep 10; done; echo 'API did not serve /v1/health within boot-smoke window' >&2; exit 1",
+    ]
+    secrets = local.task_secrets
     environment = concat(local.internal_env, [
       { name = "PORT", value = tostring(local.services.api.port) },
       { name = "SERVICE_NAME", value = "api" },
-      { name = "BOOT_CHECK", value = "1" },
     ])
     logConfiguration = {
       logDriver = "awslogs"

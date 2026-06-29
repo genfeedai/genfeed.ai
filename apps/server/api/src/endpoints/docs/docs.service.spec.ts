@@ -71,6 +71,43 @@ describe('DocsService', () => {
       expect(result.components?.schemas?.User).toBeDefined();
       expect(result.tags).toHaveLength(1);
     });
+
+    it('should lazily build and cache the OpenAPI document from a factory', () => {
+      const doc = {
+        info: { title: 'Lazy API', version: '1.0.0' },
+        openapi: '3.0.0',
+        paths: {},
+      } as OpenAPIObject;
+      const factory = vi.fn(() => doc);
+
+      service.setOpenApiDocumentFactory(factory);
+
+      expect(service.getOpenApiDocument()).toBe(doc);
+      expect(service.getOpenApiDocument()).toBe(doc);
+      expect(factory).toHaveBeenCalledTimes(1);
+    });
+
+    it('should clear a lazy factory when a document is set directly', () => {
+      const factory = vi.fn(
+        () =>
+          ({
+            info: { title: 'Factory API', version: '1.0.0' },
+            openapi: '3.0.0',
+            paths: {},
+          }) as OpenAPIObject,
+      );
+      const doc = {
+        info: { title: 'Direct API', version: '1.0.0' },
+        openapi: '3.0.0',
+        paths: {},
+      } as OpenAPIObject;
+
+      service.setOpenApiDocumentFactory(factory);
+      service.setOpenApiDocument(doc);
+
+      expect(service.getOpenApiDocument()).toBe(doc);
+      expect(factory).not.toHaveBeenCalled();
+    });
   });
 
   describe('setGptActionsSpec / getGptActionsSpec', () => {
