@@ -48,8 +48,9 @@
   --radius-2xl: 12px;
   --radius-3xl: 16px;
   --radius-full: 9999px;
-  /* Semantic: canonical card/surface radius (near-sharp). Retune here once. */
-  --radius-card: 2px;
+  /* Semantic: canonical card/surface radius — sharp 0px, matching the Brand OS
+     editorial direction. This single knob drives every card; retune here once. */
+  --radius-card: 0px;
 
   --motion-duration-fast: 200ms;
   --motion-duration-normal: 300ms;

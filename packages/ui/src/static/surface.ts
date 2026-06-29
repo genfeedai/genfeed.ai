@@ -50,9 +50,9 @@ export const staticSurfaceCss = `
   --gf-radius-lg: ${radiusTokens.lg};
   --gf-radius-xl: ${radiusTokens.xl};
   /* Single knob for the editorial "sharp border" surface language. Mirrors the
-     canonical --radius-card (near-sharp 2px). Set to ${radiusTokens.none} for
-     perfectly sharp corners or a larger token to soften every surface at once. */
-  --gf-surface-radius: ${radiusTokens.xs};
+     canonical --radius-card (sharp 0px). Raise to a token (e.g. ${radiusTokens.xs})
+     to soften every surface at once. */
+  --gf-surface-radius: ${radiusTokens.none};
   --gf-shadow-border: inset 0 0 0 1px var(--gf-border);
   --gf-shadow-border-strong: inset 0 0 0 1px var(--gf-border-strong);
 }
