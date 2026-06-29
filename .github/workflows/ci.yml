@@ -525,10 +525,13 @@ jobs:
             BASE="HEAD~1"
           fi
           echo "Running app tests changed since $BASE"
+          # `--changed` can still select hundreds of app files on long-lived
+          # PRs; keep this focused gate serial to avoid fork-worker heap OOMs.
           cd apps/app && bunx vitest run --config ./vitest.config.mts \
-            --maxWorkers=2 --passWithNoTests --changed "$BASE"
+            --maxWorkers=1 --passWithNoTests --changed "$BASE"
         env:
           NODE_ENV: test
+          NODE_OPTIONS: --max-old-space-size=4096
 
   test-api:
     name: Test API (Shard ${{ matrix.shard }}/4)
