@@ -1,7 +1,11 @@
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
-import { IngredientCategory } from '@genfeedai/enums';
+import {
+  AssetScope,
+  IngredientCategory,
+  IngredientStatus,
+} from '@genfeedai/enums';
 import { buildMediaProvenancePackage } from '@genfeedai/helpers';
 import type {
   IMediaProvenanceInput,
@@ -71,6 +75,29 @@ export class VideoProvenanceService {
       isDeleted: false,
     };
 
+    return this.buildPackageFromVideoQuery(videoId, where);
+  }
+
+  async buildPublicProvenance(
+    videoId: string,
+  ): Promise<IMediaProvenancePackage> {
+    this.loggerService.debug(`${this.constructorName} buildPublicProvenance`, {
+      videoId,
+    });
+
+    return this.buildPackageFromVideoQuery(videoId, {
+      _id: videoId,
+      category: IngredientCategory.VIDEO,
+      isDeleted: false,
+      scope: AssetScope.PUBLIC,
+      status: IngredientStatus.GENERATED,
+    });
+  }
+
+  private async buildPackageFromVideoQuery(
+    videoId: string,
+    where: Record<string, unknown>,
+  ): Promise<IMediaProvenancePackage> {
     const video = (await this.videosService.findOne(
       where,
     )) as unknown as IVideoProvenanceRecord | null;

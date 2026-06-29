@@ -129,6 +129,20 @@ export interface IMediaProvenancePackage {
   transcriptSidecar: IMediaTranscriptSidecar;
 }
 
+/** Public API route references for a generated media provenance package. */
+export interface IPublicMediaRouteReference {
+  assetId: string;
+  kind: string;
+  canonicalUrl: string | null;
+  publicPagePath: string;
+  mediaPath: string | null;
+  provenancePath: string;
+  manifestPath: string;
+  transcriptPath: string;
+  manifestFilename: string;
+  transcriptFilename: string;
+}
+
 /*
  * Read shapes consumed by the API provenance export service. They describe the
  * narrow projection of DB rows the service reads when assembling a package, kept

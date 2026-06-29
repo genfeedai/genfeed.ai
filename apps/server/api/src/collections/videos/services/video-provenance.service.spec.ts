@@ -126,6 +126,32 @@ describe('VideoProvenanceService', () => {
     });
   });
 
+  it('builds public provenance only from generated public videos', async () => {
+    videosService.findOne.mockResolvedValue(makeVideo());
+    metadataService.findOne.mockResolvedValue(null);
+    captionsService.find.mockResolvedValue([{ content: 'Public transcript' }]);
+
+    const pkg = await service.buildPublicProvenance('video-1');
+
+    expect(pkg.assetId).toBe('video-1');
+    expect(videosService.findOne).toHaveBeenCalledWith({
+      _id: 'video-1',
+      category: IngredientCategory.VIDEO,
+      isDeleted: false,
+      scope: 'public',
+      status: 'generated',
+    });
+    expect(pkg.transcriptSidecar.segmentCount).toBe(1);
+  });
+
+  it('does not build public provenance for non-public videos', async () => {
+    videosService.findOne.mockResolvedValue(null);
+
+    await expect(
+      service.buildPublicProvenance('video-1'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
   it('throws NotFound when the video does not exist', async () => {
     videosService.findOne.mockResolvedValue(null);
 
