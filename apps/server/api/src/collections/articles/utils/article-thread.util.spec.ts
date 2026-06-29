@@ -74,6 +74,69 @@ describe('article-thread.util', () => {
       }
     });
 
+    it('hard-splits a title that alone exceeds the limit (title-only fallback)', () => {
+      // Title is too long on its own, so even the title-only fallback must not
+      // emit an unpostable (>280) first tweet.
+      const label = 'T'.repeat(400);
+      const summary = 'S'.repeat(50);
+
+      const tweets = buildTwitterThreadTweets({
+        content: 'Body.',
+        label,
+        summary,
+      });
+
+      // Every tweet — including the split title segments — stays within the limit.
+      for (const tweet of tweets) {
+        expect(tweet.characterCount).toBeLessThanOrEqual(MAX_TWEET_CHARS);
+        expect(tweet.content.length).toBeLessThanOrEqual(MAX_TWEET_CHARS);
+      }
+      // The split title content is preserved across the leading segments.
+      expect(tweets[0].order).toBe(1);
+      expect(tweets[0].content.replace(/\s+/g, '')).toContain('T');
+    });
+
+    it('hard-splits a single sentence longer than the limit', () => {
+      // One sentence with no internal sentence boundary and longer than 280
+      // chars must be broken into multiple postable tweets, not emitted whole.
+      const longSentence = `${'word '.repeat(120).trim()}.`; // ~599 chars, single sentence
+
+      const tweets = buildTwitterThreadTweets({
+        content: longSentence,
+        label: 'Title',
+        summary: '',
+      });
+
+      expect(tweets.length).toBeGreaterThan(2); // title + multiple split tweets
+      for (const tweet of tweets) {
+        expect(tweet.characterCount).toBeLessThanOrEqual(MAX_TWEET_CHARS);
+        expect(tweet.content.length).toBeLessThanOrEqual(MAX_TWEET_CHARS);
+      }
+    });
+
+    it('hard-splits an unbroken token longer than the limit by characters', () => {
+      // A single "word" (e.g. a long URL or hash) longer than the limit has no
+      // whitespace to break on and must be chunked by character count.
+      const giantToken = 'x'.repeat(700);
+
+      const tweets = buildTwitterThreadTweets({
+        content: giantToken,
+        label: 'Title',
+        summary: '',
+      });
+
+      for (const tweet of tweets) {
+        expect(tweet.characterCount).toBeLessThanOrEqual(MAX_TWEET_CHARS);
+        expect(tweet.content.length).toBeLessThanOrEqual(MAX_TWEET_CHARS);
+      }
+      // The full token content survives, reassembled from the chunks.
+      const reassembled = tweets
+        .slice(1)
+        .map((tweet) => tweet.content)
+        .join('');
+      expect(reassembled).toBe(giantToken);
+    });
+
     it('appends a trailing link tweet only when an articleUrl is provided', () => {
       const withUrl = buildTwitterThreadTweets({
         articleUrl: 'https://genfeed.ai/articles/my-slug',
