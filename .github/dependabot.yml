@@ -1,10 +1,16 @@
 # Dependabot configuration
 #
-# Policy: SECURITY-ONLY. Routine dependency refreshes are done in one sweep with
-# `bun run deps:update` (npm-check-updates) and land via a single reviewed PR,
-# instead of a stream of per-package version-update PRs that only add CI noise.
+# Policy: SECURITY-ONLY for npm + docker. Routine dependency refreshes there are
+# done in one sweep with `bun run deps:update` (npm-check-updates) and land via a
+# single reviewed PR, instead of a stream of per-package version-update PRs that
+# only add CI noise.
 #
-# `open-pull-requests-limit: 0` disables version-update PRs for each ecosystem.
+# EXCEPTION — github-actions: version updates ARE enabled but GROUPED into a
+# single weekly PR. Action-pin drift (e.g. upload-artifact @v4 vs @v7) forced the
+# manual #895 Node-24 sweep; grouping self-corrects that drift without the
+# per-action PR stream the security-only policy was avoiding.
+#
+# `open-pull-requests-limit: 0` disables version-update PRs for npm + docker.
 # Dependabot SECURITY updates are NOT subject to that limit and still open against
 # the default branch (master) — that is the signal we actually want to see.
 #
@@ -34,6 +40,9 @@ updates:
       include: "scope"
 
   # GitHub Actions — workflows in .github/workflows + composite actions.
+  # Version updates ENABLED but grouped: every action bump lands in one weekly PR
+  # so pin drift self-corrects (the recurrence that caused the #895 manual sweep)
+  # without the per-action PR stream the security-only policy avoided.
   - package-ecosystem: "github-actions"
     directory: "/"
     target-branch: "master"
@@ -42,11 +51,14 @@ updates:
       day: "monday"
       time: "06:00"
       timezone: "Europe/Paris"
-    open-pull-requests-limit: 0
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - "*"
     labels:
       - "dependencies"
       - "github-actions"
-      - "security"
     commit-message:
       prefix: "chore(ci)"
       include: "scope"
