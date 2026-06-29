@@ -32,27 +32,97 @@ type BenchmarkMetricRow = {
   sumRoas: number | null;
 };
 
+type TopHeadlineBenchmarksResult = {
+  patterns: Array<{
+    category: string;
+    avgCtr: number;
+    avgRoas: number;
+    sampleSize: number;
+  }>;
+  sampleSize: number;
+};
+
+type CtaBenchmarksResult = {
+  patterns: Array<{
+    category: string;
+    avgCtr: number;
+    avgConversionRate: number;
+    sampleSize: number;
+  }>;
+  sampleSize: number;
+};
+
+type SpendBenchmarksResult = {
+  buckets: Array<{
+    range: string;
+    avgPerformanceScore: number;
+    avgRoas: number;
+    sampleSize: number;
+  }>;
+  sampleSize: number;
+};
+
+type BenchmarkValues = {
+  avgCtr: number;
+  avgCpc: number;
+  avgCpa: number;
+  avgRoas: number;
+  sampleSize: number;
+};
+
+type PlatformBenchmarksResult = {
+  google: BenchmarkValues;
+  meta: BenchmarkValues;
+  tiktok: BenchmarkValues;
+  sampleSize: number;
+};
+
+type IndustryBenchmarksResult = {
+  industries: Array<
+    BenchmarkValues & {
+      industry: string;
+    }
+  >;
+  sampleSize: number;
+};
+
+type BenchmarkCacheEntry<T> = {
+  expiresAt: number;
+  value: T;
+};
+
+const AD_BENCHMARK_CACHE_TTL_MS = 5 * 60 * 1000;
+const AD_BENCHMARK_CACHE_MAX_ENTRIES = 100;
+
 @Injectable()
 export class AdAggregationService {
   private readonly MIN_ORGS = 5;
   private readonly constructorName = String(this.constructor.name);
+  private readonly benchmarkCache = new Map<
+    string,
+    BenchmarkCacheEntry<unknown>
+  >();
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
   ) {}
 
-  async computeTopHeadlines(industry?: string): Promise<{
-    patterns: Array<{
-      category: string;
-      avgCtr: number;
-      avgRoas: number;
-      sampleSize: number;
-    }>;
-    sampleSize: number;
-  }> {
+  async computeTopHeadlines(
+    industry?: string,
+  ): Promise<TopHeadlineBenchmarksResult> {
+    return this.readThroughBenchmarkCache(
+      this.getBenchmarkCacheKey('top-headlines', industry),
+      () => this.computeTopHeadlinesUncached(industry),
+    );
+  }
+
+  private async computeTopHeadlinesUncached(
+    industry?: string,
+  ): Promise<TopHeadlineBenchmarksResult> {
     this.logger.log(`${this.constructorName}: Computing top headlines`);
 
+    // sql-risk-audit: ignore raw-sql-review -- #630 reviewed aggregate: scope/industry B-tree plus headline GIN indexes constrain public rows; fixed taxonomy groups stay k-anonymous and TTL-cached.
     const rows = await this.prisma.$queryRaw<PatternMetricRow[]>(
       Prisma.sql`
         SELECT
@@ -96,17 +166,19 @@ export class AdAggregationService {
     return { patterns, sampleSize: totalSampleSize };
   }
 
-  async computeBestCtas(industry?: string): Promise<{
-    patterns: Array<{
-      category: string;
-      avgCtr: number;
-      avgConversionRate: number;
-      sampleSize: number;
-    }>;
-    sampleSize: number;
-  }> {
+  async computeBestCtas(industry?: string): Promise<CtaBenchmarksResult> {
+    return this.readThroughBenchmarkCache(
+      this.getBenchmarkCacheKey('best-ctas', industry),
+      () => this.computeBestCtasUncached(industry),
+    );
+  }
+
+  private async computeBestCtasUncached(
+    industry?: string,
+  ): Promise<CtaBenchmarksResult> {
     this.logger.log(`${this.constructorName}: Computing best CTAs`);
 
+    // sql-risk-audit: ignore raw-sql-review -- #630 reviewed aggregate: scope/industry B-tree plus CTA GIN indexes constrain public rows; fixed taxonomy groups stay k-anonymous and TTL-cached.
     const rows = await this.prisma.$queryRaw<PatternMetricRow[]>(
       Prisma.sql`
         SELECT
@@ -158,17 +230,20 @@ export class AdAggregationService {
   async computeOptimalSpend(
     platform?: string,
     industry?: string,
-  ): Promise<{
-    buckets: Array<{
-      range: string;
-      avgPerformanceScore: number;
-      avgRoas: number;
-      sampleSize: number;
-    }>;
-    sampleSize: number;
-  }> {
+  ): Promise<SpendBenchmarksResult> {
+    return this.readThroughBenchmarkCache(
+      this.getBenchmarkCacheKey('optimal-spend', platform, industry),
+      () => this.computeOptimalSpendUncached(platform, industry),
+    );
+  }
+
+  private async computeOptimalSpendUncached(
+    platform?: string,
+    industry?: string,
+  ): Promise<SpendBenchmarksResult> {
     this.logger.log(`${this.constructorName}: Computing optimal spend`);
 
+    // sql-risk-audit: ignore raw-sql-review -- #630 reviewed aggregate: spend bucket/platform/industry index bounds the scan, returns fixed buckets only, stays k-anonymous, and is TTL-cached.
     const rows = await this.prisma.$queryRaw<SpendBucketMetricRow[]>(
       Prisma.sql`
         SELECT
@@ -211,32 +286,21 @@ export class AdAggregationService {
     return { buckets, sampleSize: totalSampleSize };
   }
 
-  async computePlatformBenchmarks(industry?: string): Promise<{
-    meta: {
-      avgCtr: number;
-      avgCpc: number;
-      avgCpa: number;
-      avgRoas: number;
-      sampleSize: number;
-    };
-    google: {
-      avgCtr: number;
-      avgCpc: number;
-      avgCpa: number;
-      avgRoas: number;
-      sampleSize: number;
-    };
-    tiktok: {
-      avgCtr: number;
-      avgCpc: number;
-      avgCpa: number;
-      avgRoas: number;
-      sampleSize: number;
-    };
-    sampleSize: number;
-  }> {
+  async computePlatformBenchmarks(
+    industry?: string,
+  ): Promise<PlatformBenchmarksResult> {
+    return this.readThroughBenchmarkCache(
+      this.getBenchmarkCacheKey('platform-benchmarks', industry),
+      () => this.computePlatformBenchmarksUncached(industry),
+    );
+  }
+
+  private async computePlatformBenchmarksUncached(
+    industry?: string,
+  ): Promise<PlatformBenchmarksResult> {
     this.logger.log(`${this.constructorName}: Computing platform benchmarks`);
 
+    // sql-risk-audit: ignore raw-sql-review -- #630 reviewed aggregate: scope/platform/industry index backs platform grouping and returns fixed public benchmark keys behind k-anonymous threshold plus TTL cache.
     const rows = await this.prisma.$queryRaw<BenchmarkMetricRow[]>(
       Prisma.sql`
         SELECT
@@ -270,19 +334,17 @@ export class AdAggregationService {
     };
   }
 
-  async computeIndustryBenchmarks(): Promise<{
-    industries: Array<{
-      industry: string;
-      avgCtr: number;
-      avgCpc: number;
-      avgCpa: number;
-      avgRoas: number;
-      sampleSize: number;
-    }>;
-    sampleSize: number;
-  }> {
+  async computeIndustryBenchmarks(): Promise<IndustryBenchmarksResult> {
+    return this.readThroughBenchmarkCache(
+      this.getBenchmarkCacheKey('industry-benchmarks'),
+      () => this.computeIndustryBenchmarksUncached(),
+    );
+  }
+
+  private async computeIndustryBenchmarksUncached(): Promise<IndustryBenchmarksResult> {
     this.logger.log(`${this.constructorName}: Computing industry benchmarks`);
 
+    // sql-risk-audit: ignore raw-sql-review -- #630 reviewed aggregate: scans public benchmark rows into bounded industry groups, exposes only aggregates after k-anonymous threshold, and is TTL-cached.
     const rows = await this.prisma.$queryRaw<BenchmarkMetricRow[]>(
       Prisma.sql`
         SELECT
@@ -312,6 +374,45 @@ export class AdAggregationService {
         0,
       ),
     };
+  }
+
+  private getBenchmarkCacheKey(
+    metric: string,
+    ...parts: Array<string | undefined>
+  ): string {
+    return [metric, ...parts.map((part) => part ?? '*')].join(':');
+  }
+
+  private async readThroughBenchmarkCache<T>(
+    key: string,
+    loadValue: () => Promise<T>,
+  ): Promise<T> {
+    const cached = this.benchmarkCache.get(key);
+    if (cached) {
+      if (cached.expiresAt > Date.now()) {
+        return cached.value as T;
+      }
+
+      this.benchmarkCache.delete(key);
+    }
+
+    const value = await loadValue();
+    this.setBenchmarkCacheValue(key, value);
+    return value;
+  }
+
+  private setBenchmarkCacheValue<T>(key: string, value: T): void {
+    if (this.benchmarkCache.size >= AD_BENCHMARK_CACHE_MAX_ENTRIES) {
+      const firstKey = this.benchmarkCache.keys().next().value;
+      if (firstKey) {
+        this.benchmarkCache.delete(firstKey);
+      }
+    }
+
+    this.benchmarkCache.set(key, {
+      expiresAt: Date.now() + AD_BENCHMARK_CACHE_TTL_MS,
+      value,
+    });
   }
 
   private industryClause(industry?: string) {

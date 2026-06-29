@@ -21,6 +21,10 @@ describe('AdAggregationService', () => {
     );
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('computes headline pattern benchmarks from SQL aggregate rows', async () => {
     prisma.$queryRaw.mockResolvedValue([
       {
@@ -209,5 +213,57 @@ describe('AdAggregationService', () => {
       ],
       sampleSize: 12,
     });
+  });
+
+  it('caches benchmark aggregates by metric and filters until the ttl expires', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-29T12:00:00.000Z'));
+    prisma.$queryRaw
+      .mockResolvedValueOnce([
+        {
+          avgKey: 'meta',
+          sampleSize: 5,
+          sumCpa: 20,
+          sumCpc: 10,
+          sumCtr: 0.5,
+          sumRoas: 15,
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          avgKey: 'google',
+          sampleSize: 5,
+          sumCpa: 10,
+          sumCpc: 5,
+          sumCtr: 0.25,
+          sumRoas: 10,
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          avgKey: 'meta',
+          sampleSize: 5,
+          sumCpa: 30,
+          sumCpc: 15,
+          sumCtr: 0.75,
+          sumRoas: 20,
+        },
+      ]);
+
+    const first = await service.computePlatformBenchmarks('retail');
+    const cached = await service.computePlatformBenchmarks('retail');
+    const differentFilter = await service.computePlatformBenchmarks('saas');
+
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
+    expect(cached).toBe(first);
+    expect(first.meta.avgCtr).toBe(0.1);
+    expect(differentFilter.google.avgCtr).toBe(0.05);
+
+    vi.advanceTimersByTime(5 * 60 * 1000 + 1);
+    const refreshed = await service.computePlatformBenchmarks('retail');
+
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(3);
+    expect(refreshed).not.toBe(first);
+    expect(refreshed.meta.avgCtr).toBe(0.15);
   });
 });

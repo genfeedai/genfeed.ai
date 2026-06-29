@@ -50,4 +50,22 @@ describe('sql risk audit — real codebase regression gate', () => {
         .join('\n')}`,
     ).toHaveLength(0);
   });
+
+  it('does not report reviewed ad benchmark aggregate queries', () => {
+    const adAggregationFindings = result.findings.filter(
+      (finding) =>
+        finding.file ===
+        'apps/server/api/src/services/ad-aggregation/ad-aggregation.service.ts',
+    );
+
+    expect(
+      adAggregationFindings,
+      `Ad benchmark SQL findings should stay documented at the query site:\n${adAggregationFindings
+        .map(
+          (finding) =>
+            `  - ${finding.category} ${finding.file}:${finding.line}`,
+        )
+        .join('\n')}`,
+    ).toHaveLength(0);
+  });
 });

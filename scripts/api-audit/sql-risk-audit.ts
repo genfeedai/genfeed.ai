@@ -280,7 +280,10 @@ function createFindingsForCall(call: PrismaCall): SqlRiskFinding[] {
         'Replace unsafe raw SQL with Prisma.sql tagged templates or parameterized query helpers.',
       ),
     );
-  } else if (call.method === '$queryRaw' || call.method === '$executeRaw') {
+  } else if (
+    (call.method === '$queryRaw' || call.method === '$executeRaw') &&
+    !hasSuppression(call, 'raw-sql-review')
+  ) {
     findings.push(
       createFinding(
         call,
