@@ -485,6 +485,16 @@ enum PlatformRole {
   SUPERADMIN
 }
 
+enum WarmupAccountStatus {
+  DRAFT
+  PROVISIONING
+  PROVISIONED
+  INVITED
+  FAILED
+  CLAIMED
+  ARCHIVED
+}
+
 // ═══════════════════════════════════════════════════════════════
 // CORE IDENTITY — The ownership chain
 // User → Organization → Brand → Member
@@ -592,6 +602,8 @@ model User {
   personaAssignments       Persona[]                 @relation("persona_assigned_members")
   mcpApprovals             McpApproval[]
   brandInterviews          BrandInterview[]
+  warmupAccountsOperated   WarmupAccount[]           @relation("warmup_account_operator")
+  warmupAccountsCustomer   WarmupAccount[]           @relation("warmup_account_customer")
 
   @@index([isDefault])
   @@index([appSource])
@@ -728,6 +740,7 @@ model Organization {
   mcpApprovals                  McpApproval[]
   moodBoards                    MoodBoard[]                    @relation("org_moodboard")
   brandInterviews               BrandInterview[]
+  warmupAccounts                WarmupAccount[]
 
   @@index([isDefault])
   @@index([category])
@@ -854,6 +867,7 @@ model Brand {
   bookmarks                  Bookmark[]
   moodBoard                  MoodBoard?                 @relation("brand_moodboard")
   brandInterviews            BrandInterview[]
+  warmupAccounts             WarmupAccount[]
 
   @@index([isDefault])
   @@index([organizationId, isDeleted, label], map: "brands_org_deleted_label_idx")
@@ -966,6 +980,7 @@ model Invitation {
   acceptedAt       DateTime?
   acceptedByUserId String?
   acceptedByUser   User?        @relation("invitation_accepted_by", fields: [acceptedByUserId], references: [id])
+  warmupAccounts   WarmupAccount[]
   revokedAt        DateTime?
   isDeleted        Boolean      @default(false)
   createdAt        DateTime     @default(now())
@@ -976,6 +991,38 @@ model Invitation {
   @@index([email, isDeleted], map: "invitations_email_deleted_idx")
   @@index([expiresAt, acceptedAt, revokedAt, isDeleted], map: "invitations_expiry_status_idx")
   @@map("invitations")
+}
+
+model WarmupAccount {
+  id               String              @id @default(cuid())
+  leadEmail        String
+  leadFirstName    String?
+  leadLastName     String?
+  organizationName String
+  brandName        String
+  websiteUrl       String?
+  guidance         String?
+  status           WarmupAccountStatus @default(DRAFT)
+  operatorUserId   String
+  operatorUser     User                @relation("warmup_account_operator", fields: [operatorUserId], references: [id])
+  customerUserId   String?
+  customerUser     User?               @relation("warmup_account_customer", fields: [customerUserId], references: [id], onDelete: SetNull)
+  organizationId   String?
+  organization     Organization?       @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  brandId          String?
+  brand            Brand?              @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  invitationId     String?
+  invitation       Invitation?         @relation(fields: [invitationId], references: [id], onDelete: SetNull)
+  diagnostics      Json                @default("{}")
+  auditEvents      Json                @default("[]")
+  isDeleted        Boolean             @default(false)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  @@index([leadEmail, isDeleted, status], map: "warmup_accounts_lead_status_idx")
+  @@index([status, isDeleted, createdAt(sort: Desc)], map: "warmup_accounts_status_created_idx")
+  @@index([organizationId, isDeleted], map: "warmup_accounts_org_deleted_idx")
+  @@map("warmup_accounts")
 }
 
 model Role {

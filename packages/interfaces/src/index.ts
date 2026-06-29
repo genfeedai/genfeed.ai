@@ -1,6 +1,7 @@
 export * from './admin/announcements.interface';
 export * from './admin/darkroom.interface';
 export * from './admin/fleet.interface';
+export * from './admin/warmup-accounts.interface';
 export * from './ai/agent-campaign.interface';
 export * from './ai/agent-run.interface';
 export * from './ai/agent-strategy.interface';
