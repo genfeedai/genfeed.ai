@@ -25,6 +25,13 @@ type WorkflowDeploymentBackfillReport = {
   organizationsProcessed: number;
 };
 
+type WorkflowDeploymentBackfillOptions = {
+  concurrency?: number;
+};
+
+const DEFAULT_BACKFILL_CONCURRENCY = 4;
+const PROGRESS_LOG_INTERVAL = 25;
+
 @Injectable()
 export class WorkflowDeploymentBackfillService {
   private readonly context = 'WorkflowDeploymentBackfillService';
@@ -35,8 +42,13 @@ export class WorkflowDeploymentBackfillService {
     private readonly moduleRef: ModuleRef,
   ) {}
 
-  async run(): Promise<WorkflowDeploymentBackfillReport> {
-    this.logger.log('Starting deployment workflow backfill', this.context);
+  async run(
+    options: WorkflowDeploymentBackfillOptions = {},
+  ): Promise<WorkflowDeploymentBackfillReport> {
+    const concurrency = this.normalizeConcurrency(options.concurrency);
+    this.logProgress('Starting deployment workflow backfill', {
+      concurrency,
+    });
 
     const organizations = (await this.prisma.organization.findMany({
       orderBy: { createdAt: 'asc' },
@@ -46,26 +58,45 @@ export class WorkflowDeploymentBackfillService {
     const orgOwnerById = new Map<string, string>();
     let organizationsProcessed = 0;
     let orgFailures = 0;
+    const eligibleOrganizations: BackfillOrganization[] = [];
 
     for (const organization of organizations) {
       if (!organization.userId) {
         continue;
       }
       orgOwnerById.set(organization.id, organization.userId);
-      organizationsProcessed += 1;
-
-      try {
-        await this.provisionOrganizationWorkflows(
-          organization.userId,
-          organization.id,
-        );
-      } catch (error: unknown) {
-        orgFailures += 1;
-        this.logger.error('Failed to backfill organization workflows', error, {
-          organizationId: organization.id,
-        });
-      }
+      eligibleOrganizations.push(organization);
     }
+
+    await this.processWithConcurrency(
+      eligibleOrganizations,
+      concurrency,
+      async (organization) => {
+        try {
+          await this.provisionOrganizationWorkflows(
+            organization.userId as string,
+            organization.id,
+          );
+        } catch (error: unknown) {
+          orgFailures += 1;
+          this.logger.error(
+            'Failed to backfill organization workflows',
+            error,
+            {
+              organizationId: organization.id,
+            },
+          );
+        } finally {
+          organizationsProcessed += 1;
+          this.logProgressCheckpoint(
+            'Organization workflow backfill progress',
+            organizationsProcessed,
+            eligibleOrganizations.length,
+            orgFailures,
+          );
+        }
+      },
+    );
 
     const brands = (await this.prisma.brand.findMany({
       orderBy: { createdAt: 'asc' },
@@ -74,40 +105,55 @@ export class WorkflowDeploymentBackfillService {
     })) as BackfillBrand[];
     let brandsProcessed = 0;
     let brandFailures = 0;
+    const eligibleBrands = brands.filter(
+      (brand) => brand.userId ?? orgOwnerById.get(brand.organizationId),
+    );
 
-    for (const brand of brands) {
-      const userId = brand.userId ?? orgOwnerById.get(brand.organizationId);
-      if (!userId) {
-        continue;
-      }
-      brandsProcessed += 1;
+    await this.processWithConcurrency(
+      eligibleBrands,
+      concurrency,
+      async (brand) => {
+        const userId = brand.userId ?? orgOwnerById.get(brand.organizationId);
+        if (!userId) {
+          return;
+        }
 
-      try {
-        const { DefaultRecurringContentService } = await import(
-          '@api/collections/brands/services/default-recurring-content.service'
-        );
-        const defaultRecurringContentService = this.moduleRef.get(
-          DefaultRecurringContentService,
-          { strict: false },
-        );
-        await defaultRecurringContentService.ensureDefaultBundle({
-          brandId: brand.id,
-          organizationId: brand.organizationId,
-          origin: 'system',
-          userId,
-        });
-      } catch (error: unknown) {
-        brandFailures += 1;
-        this.logger.error(
-          'Failed to backfill default recurring workflows',
-          error,
-          {
+        try {
+          const { DefaultRecurringContentService } = await import(
+            '@api/collections/brands/services/default-recurring-content.service'
+          );
+          const defaultRecurringContentService = this.moduleRef.get(
+            DefaultRecurringContentService,
+            { strict: false },
+          );
+          await defaultRecurringContentService.ensureDefaultBundle({
             brandId: brand.id,
+            includeStatus: false,
             organizationId: brand.organizationId,
-          },
-        );
-      }
-    }
+            origin: 'system',
+            userId,
+          });
+        } catch (error: unknown) {
+          brandFailures += 1;
+          this.logger.error(
+            'Failed to backfill default recurring workflows',
+            error,
+            {
+              brandId: brand.id,
+              organizationId: brand.organizationId,
+            },
+          );
+        } finally {
+          brandsProcessed += 1;
+          this.logProgressCheckpoint(
+            'Brand workflow backfill progress',
+            brandsProcessed,
+            eligibleBrands.length,
+            brandFailures,
+          );
+        }
+      },
+    );
 
     const { CronJobsService } = await import(
       '@api/collections/cron-jobs/services/cron-jobs.service'
@@ -120,11 +166,20 @@ export class WorkflowDeploymentBackfillService {
       invalid: 0,
       migrated: 0,
       scanned: 0,
+      skipped: 0,
     };
 
     try {
+      this.logProgress('Starting legacy cron workflow migration');
       legacyCronReport = await cronJobsService.migrateLegacyJobsToWorkflows({
         dryRun: false,
+      });
+      this.logProgress('Legacy cron workflow migration completed', {
+        failed: legacyCronReport.failed,
+        invalid: legacyCronReport.invalid,
+        migrated: legacyCronReport.migrated,
+        scanned: legacyCronReport.scanned,
+        skipped: legacyCronReport.skipped,
       });
     } catch (error: unknown) {
       // Treat an unexpected throw the same way the org/brand loops above treat
@@ -152,7 +207,7 @@ export class WorkflowDeploymentBackfillService {
       organizationsProcessed,
     };
 
-    this.logger.log('Deployment workflow backfill completed', report);
+    this.logProgress('Deployment workflow backfill completed', report);
 
     const hardFailures =
       report.orgFailures + report.brandFailures + report.legacyCronFailed;
@@ -163,6 +218,68 @@ export class WorkflowDeploymentBackfillService {
     }
 
     return report;
+  }
+
+  private async processWithConcurrency<T>(
+    items: readonly T[],
+    concurrency: number,
+    worker: (item: T) => Promise<void>,
+  ): Promise<void> {
+    let nextIndex = 0;
+    const workerCount = Math.min(concurrency, Math.max(items.length, 1));
+
+    await Promise.all(
+      Array.from({ length: workerCount }, async () => {
+        while (true) {
+          const index = nextIndex;
+          nextIndex += 1;
+
+          if (index >= items.length) {
+            return;
+          }
+
+          await worker(items[index] as T);
+        }
+      }),
+    );
+  }
+
+  private normalizeConcurrency(concurrency: number | undefined): number {
+    if (!Number.isSafeInteger(concurrency) || !concurrency) {
+      return DEFAULT_BACKFILL_CONCURRENCY;
+    }
+
+    return Math.min(Math.max(concurrency, 1), 10);
+  }
+
+  private logProgress(
+    message: string,
+    details?: Record<string, unknown>,
+  ): void {
+    const context = { ...(details ?? {}), service: this.context };
+    this.logger.log(message, context);
+    console.info(
+      `[${this.context}] ${message}${
+        details ? ` ${JSON.stringify(details)}` : ''
+      }`,
+    );
+  }
+
+  private logProgressCheckpoint(
+    message: string,
+    processed: number,
+    total: number,
+    failures: number,
+  ): void {
+    if (processed !== total && processed % PROGRESS_LOG_INTERVAL !== 0) {
+      return;
+    }
+
+    this.logProgress(message, {
+      failures,
+      processed,
+      total,
+    });
   }
 
   private async provisionOrganizationWorkflows(

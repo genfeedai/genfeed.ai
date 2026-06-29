@@ -27,6 +27,7 @@ type ExistingDefaultRecurringWorkflow = {
 
 type EnsureDefaultRecurringContentParams = {
   brandId: string;
+  includeStatus?: boolean;
   organizationId: string;
   origin: 'brand-create' | 'empty-state' | 'manual' | 'onboarding' | 'system';
   userId: string;
@@ -198,6 +199,13 @@ export class DefaultRecurringContentService {
         origin: params.origin,
         userId: params.userId,
       });
+    }
+
+    if (params.includeStatus === false) {
+      return {
+        isConfigured: true,
+        items: [],
+      };
     }
 
     return await this.getStatus(params.organizationId, params.brandId);
