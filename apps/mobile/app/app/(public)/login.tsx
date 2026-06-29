@@ -72,18 +72,30 @@ export default function Login() {
       setIsGoogleLoading(true);
       const result = await promptGoogleAsync();
       const auth = result.type === 'success' ? result.authentication : null;
+      // Prefer the canonical OIDC field; fall back to the raw params entry.
       const idToken =
         result.type === 'success'
-          ? ((result.params?.id_token as string | undefined) ?? null)
+          ? (auth?.idToken ??
+            (result.params?.id_token as string | undefined) ??
+            null)
           : null;
 
       if (!idToken) {
-        throw new Error('Google did not return an ID token.');
+        Alert.alert(
+          'Google sign in failed',
+          'Google did not return an ID token. Please try again.',
+        );
+        return;
       }
+
+      // Forward the nonce so the server can verify it against the token claim.
+      const nonce =
+        result.type === 'success' ? (googleRequest?.nonce ?? null) : null;
 
       await signInWithGoogleIdToken({
         accessToken: auth?.accessToken ?? null,
         idToken,
+        nonce,
       });
       router.replace('/content');
     } catch (err: unknown) {

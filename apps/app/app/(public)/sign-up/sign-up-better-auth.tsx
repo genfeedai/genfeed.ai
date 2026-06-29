@@ -72,7 +72,20 @@ export default function SignUpBetterAuth() {
 
   async function handleSocialSignUp(provider: 'github' | 'google') {
     setErrorMessage(null);
-    await signIn.social({ callbackURL: authCallbackURL, provider });
+    try {
+      const result = await signIn.social({
+        callbackURL: authCallbackURL,
+        provider,
+      });
+      if (result?.error) {
+        setErrorMessage(
+          result.error.message ??
+            `Failed to sign up with ${provider}. Please try again.`,
+        );
+      }
+    } catch {
+      setErrorMessage(`Failed to sign up with ${provider}. Please try again.`);
+    }
   }
 
   if (!isMounted) {

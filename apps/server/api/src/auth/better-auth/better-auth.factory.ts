@@ -476,6 +476,16 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
       sendOnSignIn: requireEmailVerification,
       sendOnSignUp: requireEmailVerification,
       sendVerificationEmail: async ({ token, url, user }) => {
+        // Guard: this callback should only be invoked when email verification is
+        // required (SMTP is configured). If it fires without that flag, the
+        // deployment is misconfigured — throw so the error surfaces rather than
+        // silently swallowing a verification that was never sent.
+        if (!requireEmailVerification) {
+          throw new Error(
+            'sendVerificationEmail called but requireEmailVerification is false. ' +
+              'Configure SMTP and enable requireEmailVerification before sending verification emails.',
+          );
+        }
         await sendVerificationEmail({
           token,
           url,
