@@ -52,6 +52,10 @@ import {
   ImageGenExecutor,
 } from '@workflow-engine/executors/saas/image-gen-executor';
 import {
+  createIterativeSeoRefineExecutor,
+  IterativeSeoRefineExecutor,
+} from '@workflow-engine/executors/saas/iterative-seo-refine-executor';
+import {
   createKeywordTriggerExecutor,
   KeywordTriggerExecutor,
 } from '@workflow-engine/executors/saas/keyword-trigger-executor';
@@ -88,6 +92,10 @@ import {
   PatternContextExecutor,
 } from '@workflow-engine/executors/saas/pattern-context-executor';
 import {
+  createPostPublishTriggerExecutor,
+  PostPublishTriggerExecutor,
+} from '@workflow-engine/executors/saas/post-publish-trigger-executor';
+import {
   createPostReplyExecutor,
   PostReplyExecutor,
 } from '@workflow-engine/executors/saas/post-reply-executor';
@@ -115,6 +123,14 @@ import {
   createSendEmailExecutor,
   SendEmailExecutor,
 } from '@workflow-engine/executors/saas/send-email-executor';
+import {
+  createSeoRewriteExecutor,
+  SeoRewriteExecutor,
+} from '@workflow-engine/executors/saas/seo-rewrite-executor';
+import {
+  createSeoScoreExecutor,
+  SeoScoreExecutor,
+} from '@workflow-engine/executors/saas/seo-score-executor';
 import {
   createSocialPublishExecutor,
   SocialPublishExecutor,
@@ -299,6 +315,14 @@ export const EXECUTOR_REGISTRY: Record<string, ExecutorRegistryEntry> = {
     nodeType: 'imageGen',
     requiresResolver: true,
   },
+  iterativeSeoRefine: {
+    description:
+      'Runs an internal SEO score -> rewrite -> re-score loop until the target score is reached (no graph cycle)',
+    executorClass: IterativeSeoRefineExecutor,
+    factory: () => createIterativeSeoRefineExecutor(),
+    nodeType: 'iterativeSeoRefine',
+    requiresResolver: true,
+  },
   keywordTrigger: {
     description:
       'Starts workflow when a keyword or phrase is detected in social posts',
@@ -376,6 +400,14 @@ export const EXECUTOR_REGISTRY: Record<string, ExecutorRegistryEntry> = {
     nodeType: 'patternContext',
     requiresResolver: true,
   },
+  postPublishTrigger: {
+    description:
+      'Starts an SEO-optimization workflow when content is published (post-published event)',
+    executorClass: PostPublishTriggerExecutor,
+    factory: () => createPostPublishTriggerExecutor(),
+    nodeType: 'postPublishTrigger',
+    requiresResolver: false,
+  },
   postReply: {
     description: 'Replies to a social media post on the specified platform',
     executorClass: PostReplyExecutor,
@@ -424,6 +456,22 @@ export const EXECUTOR_REGISTRY: Record<string, ExecutorRegistryEntry> = {
     executorClass: SendEmailExecutor,
     factory: () => createSendEmailExecutor(),
     nodeType: 'sendEmail',
+    requiresResolver: true,
+  },
+  seoRewrite: {
+    description:
+      'Rewrites content to address SEO suggestions from an upstream seoScore node',
+    executorClass: SeoRewriteExecutor,
+    factory: () => createSeoRewriteExecutor(),
+    nodeType: 'seoRewrite',
+    requiresResolver: true,
+  },
+  seoScore: {
+    description:
+      'Scores content against the canonical SEO rubric; emits score, breakdown, and suggestions',
+    executorClass: SeoScoreExecutor,
+    factory: () => createSeoScoreExecutor(),
+    nodeType: 'seoScore',
     requiresResolver: true,
   },
   socialPublish: {
