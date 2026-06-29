@@ -477,6 +477,50 @@ describe('BrandInterviewService', () => {
     });
   });
 
+  // ── getActiveForBrand() ────────────────────────────────────────────────────
+
+  describe('getActiveForBrand()', () => {
+    it('returns null when no active session exists', async () => {
+      interviewDelegate.findFirst.mockResolvedValue(null);
+
+      const result = await service.getActiveForBrand('brand-1', 'org-1');
+
+      expect(result).toBeNull();
+    });
+
+    it('maps currentFieldKey → currentQuestion and completenessBefore → completenessScore', async () => {
+      const session = makeSession({
+        currentFieldKey: 'description',
+        completenessBefore: 42,
+        answeredFields: { tone: 'Bold' },
+      });
+      interviewDelegate.findFirst.mockResolvedValue(session);
+
+      const result = await service.getActiveForBrand('brand-1', 'org-1');
+
+      expect(result).not.toBeNull();
+      expect(result!.id).toBe('interview-1');
+      expect(result!.status).toBe('in_progress');
+      // currentFieldKey 'description' must resolve to a question object
+      expect(result!.currentQuestion).not.toBeNull();
+      expect(result!.currentQuestion?.fieldKey).toBe('description');
+      // completenessBefore must surface as completenessScore
+      expect(result!.completenessScore).toBe(42);
+      // answeredCount reflects answered fields in session
+      expect(result!.answeredCount).toBe(1);
+      expect(result!.totalCount).toBe(IN_SCOPE_FIELD_KEYS.length);
+    });
+
+    it('sets currentQuestion to null when currentFieldKey is null', async () => {
+      const session = makeSession({ currentFieldKey: null });
+      interviewDelegate.findFirst.mockResolvedValue(session);
+
+      const result = await service.getActiveForBrand('brand-1', 'org-1');
+
+      expect(result!.currentQuestion).toBeNull();
+    });
+  });
+
   // ── abandon() ─────────────────────────────────────────────────────────────
 
   describe('abandon()', () => {

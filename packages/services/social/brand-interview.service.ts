@@ -1,9 +1,8 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type {
-  BrandInterviewStatus,
+  IActiveBrandInterview,
   IBrandInterviewAnswerResult,
   IBrandInterviewCompleteness,
-  IBrandInterviewQuestion,
   IBrandInterviewStartResult,
 } from '@genfeedai/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -13,24 +12,11 @@ import {
   ServiceInstanceManager,
 } from '@services/core/service-instance-manager';
 
+export type { IActiveBrandInterview };
+
 const serviceInstances = new ServiceInstanceManager<BrandInterviewService>();
 
-/**
- * Minimal shape of an active BrandInterview session as returned by the API.
- * The full Prisma record is backend-only; the frontend only needs these fields.
- */
-export interface IActiveBrandInterview {
-  id: string;
-  brandId: string;
-  status: BrandInterviewStatus;
-  currentQuestion: IBrandInterviewQuestion | null;
-  completenessScore: number;
-  answeredCount: number;
-  totalCount: number;
-}
-
 export interface StartInterviewOptions {
-  creditAmount?: number;
   signal?: AbortSignal;
 }
 
@@ -63,15 +49,9 @@ export class BrandInterviewService extends HTTPBaseService {
     brandId: string,
     opts?: StartInterviewOptions,
   ): Promise<IBrandInterviewStartResult> {
-    const body: { creditAmount?: number } = {};
-
-    if (opts?.creditAmount !== undefined) {
-      body.creditAmount = opts.creditAmount;
-    }
-
     const response = await this.instance.post<IBrandInterviewStartResult>(
       `/${brandId}/interview`,
-      body,
+      {},
       { signal: opts?.signal },
     );
 

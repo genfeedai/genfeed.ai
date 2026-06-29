@@ -6,6 +6,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import type {
+  IActiveBrandInterview,
   IBrandInterviewAnswerResult,
   IBrandInterviewCompleteness,
   IBrandInterviewStartResult,
@@ -21,7 +22,6 @@ import {
   Param,
   Post,
 } from '@nestjs/common';
-import { BRAND_INTERVIEW_CREDIT_COST } from '../constants/brand-interview-question-catalog.constant';
 
 @AutoSwagger()
 @Controller('brands')
@@ -65,12 +65,7 @@ export class BrandInterviewController {
     const publicMetadata = getPublicMetadata(user);
     const userId = publicMetadata.user?.toString() ?? '';
 
-    return this.brandInterviewService.start(
-      brandId,
-      organizationId,
-      userId,
-      dto.creditAmount ?? BRAND_INTERVIEW_CREDIT_COST,
-    );
+    return this.brandInterviewService.start(brandId, organizationId, userId);
   }
 
   /**
@@ -81,7 +76,7 @@ export class BrandInterviewController {
   async getActiveForBrand(
     @Param('brandId') brandId: string,
     @CurrentUser() user: User,
-  ): Promise<BrandInterview | null> {
+  ): Promise<IActiveBrandInterview | null> {
     const organizationId = this.requireOrganizationId(user);
     return this.brandInterviewService.getActiveForBrand(
       brandId,

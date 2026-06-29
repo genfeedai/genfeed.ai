@@ -51,3 +51,19 @@ export interface IBrandInterviewCompleteness {
   interviewableGapCount: number;
   incompleteFieldKeys: string[];
 }
+
+/**
+ * Mapped shape returned by GET /brands/:brandId/interview/active.
+ * Derived from the raw Prisma BrandInterview row — currentFieldKey is resolved
+ * to a full IBrandInterviewQuestion and completenessBefore is surfaced as
+ * completenessScore so the resume hook gets a consistent contract.
+ */
+export interface IActiveBrandInterview {
+  id: string;
+  brandId: string;
+  status: BrandInterviewStatus;
+  currentQuestion: IBrandInterviewQuestion | null;
+  completenessScore: number;
+  answeredCount: number;
+  totalCount: number;
+}

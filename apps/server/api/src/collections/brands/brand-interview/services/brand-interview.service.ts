@@ -7,6 +7,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActivitySource } from '@genfeedai/enums';
 import { computeBrandCompleteness } from '@genfeedai/helpers';
 import type {
+  IActiveBrandInterview,
   IBrandInterviewAnswerResult,
   IBrandInterviewCompleteness,
   IBrandInterviewProgress,
@@ -345,8 +346,8 @@ export class BrandInterviewService {
   async getActiveForBrand(
     brandId: string,
     organizationId: string,
-  ): Promise<BrandInterview | null> {
-    return this.prisma.brandInterview.findFirst({
+  ): Promise<IActiveBrandInterview | null> {
+    const session = await this.prisma.brandInterview.findFirst({
       where: {
         brandId,
         isDeleted: false,
@@ -354,6 +355,12 @@ export class BrandInterviewService {
         status: 'in_progress',
       },
     });
+
+    if (!session) {
+      return null;
+    }
+
+    return this.buildActiveResult(session);
   }
 
   async getCompleteness(
@@ -520,6 +527,32 @@ export class BrandInterviewService {
       interviewId: session.id,
       progress,
       status: session.status as IBrandInterviewStartResult['status'],
+    };
+  }
+
+  /**
+   * Map a raw BrandInterview row to the IActiveBrandInterview shape consumed
+   * by the frontend resume hook. Resolves currentFieldKey → currentQuestion and
+   * surfaces completenessBefore as completenessScore.
+   */
+  private buildActiveResult(session: BrandInterview): IActiveBrandInterview {
+    const currentQuestion: IBrandInterviewQuestion | null =
+      session.currentFieldKey
+        ? (CATALOG_BY_FIELD_KEY[session.currentFieldKey] ?? null)
+        : null;
+
+    const answeredCount = Object.keys(
+      (session.answeredFields as Record<string, unknown>) ?? {},
+    ).length;
+
+    return {
+      answeredCount,
+      brandId: session.brandId,
+      completenessScore: session.completenessBefore,
+      currentQuestion,
+      id: session.id,
+      status: session.status as IActiveBrandInterview['status'],
+      totalCount: IN_SCOPE_FIELD_KEYS.length,
     };
   }
 
