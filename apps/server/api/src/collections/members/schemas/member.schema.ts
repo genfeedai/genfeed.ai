@@ -6,6 +6,5 @@ export interface MemberDocument extends Member {
   _id: string;
   organization?: string | null;
   role?: string | null;
-  roleKey?: string | null;
   user?: string | null;
 }

@@ -898,6 +898,7 @@ model Member {
   updatedAt                DateTime     @updatedAt
 
   @@index([organizationId, userId, isDeleted], map: "members_org_user_deleted_idx")
+  @@index([organizationId, roleKey, isDeleted], map: "members_organizationId_roleKey_isDeleted_idx")
   @@map("members")
 }
 
