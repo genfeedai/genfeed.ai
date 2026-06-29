@@ -58,6 +58,14 @@ vi.mock('@genfeedai/prisma', () => {
     PENDING: 'PENDING',
   } as const;
 
+  const WorkflowExecutionStatus = {
+    CANCELLED: 'CANCELLED',
+    COMPLETED: 'COMPLETED',
+    FAILED: 'FAILED',
+    PENDING: 'PENDING',
+    RUNNING: 'RUNNING',
+  } as const;
+
   const Prisma = {
     empty: createSql(''),
     raw: (sql: string) => createSql(sql),
@@ -71,7 +79,13 @@ vi.mock('@genfeedai/prisma', () => {
     },
   };
 
-  return { McpApprovalStatus, Prisma, PrismaClient, VoiceProvider };
+  return {
+    McpApprovalStatus,
+    Prisma,
+    PrismaClient,
+    VoiceProvider,
+    WorkflowExecutionStatus,
+  };
 });
 
 // Mock @prisma/adapter-pg so PrismaService constructor doesn't require DATABASE_URL

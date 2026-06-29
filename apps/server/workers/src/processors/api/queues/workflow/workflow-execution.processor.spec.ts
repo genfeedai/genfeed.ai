@@ -2,7 +2,8 @@ import { WorkflowExecutionsService } from '@api/collections/workflow-executions/
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { WorkflowQueueService } from '@api/queues/workflow/workflow-queue.service';
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus as SharedWorkflowExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus as PrismaWorkflowExecutionStatus } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import {
@@ -150,7 +151,7 @@ describe('WorkflowDelayProcessor', () => {
     mockExecutionsService = {
       findOne: vi.fn().mockResolvedValue({
         _id: 'exec-1',
-        status: WorkflowExecutionStatus.RUNNING,
+        status: PrismaWorkflowExecutionStatus.RUNNING,
       }),
     };
 
@@ -206,7 +207,31 @@ describe('WorkflowDelayProcessor', () => {
   it('should skip resume for cancelled execution', async () => {
     mockExecutionsService.findOne.mockResolvedValue({
       _id: 'exec-1',
-      status: WorkflowExecutionStatus.CANCELLED,
+      status: PrismaWorkflowExecutionStatus.CANCELLED,
+    });
+
+    const job = {
+      data: {
+        delayNodeId: 'delay-1',
+        executionId: 'exec-1',
+        organizationId: 'org-1',
+        resumeAt: new Date().toISOString(),
+        scheduledAt: new Date().toISOString(),
+        userId: 'user-1',
+        workflowId: 'wf-1',
+      },
+      name: 'delay-resume',
+    } as any;
+
+    await processor.process(job);
+
+    expect(mockQueueService.queueExecution).not.toHaveBeenCalled();
+  });
+
+  it('should skip resume for completed execution with legacy app casing', async () => {
+    mockExecutionsService.findOne.mockResolvedValue({
+      _id: 'exec-1',
+      status: SharedWorkflowExecutionStatus.COMPLETED,
     });
 
     const job = {

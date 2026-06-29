@@ -10,8 +10,9 @@ import type {
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus as SharedWorkflowExecutionStatus } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
+import { WorkflowExecutionStatus as PrismaWorkflowExecutionStatus } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -73,7 +74,7 @@ export class WorkflowExecutionsService extends BaseService<
           progress: 0,
           trigger: dto.trigger ?? null,
         } as never,
-        status: WorkflowExecutionStatus.PENDING,
+        status: PrismaWorkflowExecutionStatus.PENDING,
         userId,
         workflowId: dto.workflow,
       } as never,
@@ -89,7 +90,7 @@ export class WorkflowExecutionsService extends BaseService<
     const result = await this.prisma.workflowExecution.update({
       data: {
         startedAt: new Date(),
-        status: WorkflowExecutionStatus.RUNNING,
+        status: PrismaWorkflowExecutionStatus.RUNNING,
       } as never,
       where: { id: executionId },
     });
@@ -174,8 +175,8 @@ export class WorkflowExecutionsService extends BaseService<
         error,
         result: updatedResult as never,
         status: error
-          ? WorkflowExecutionStatus.FAILED
-          : WorkflowExecutionStatus.COMPLETED,
+          ? PrismaWorkflowExecutionStatus.FAILED
+          : PrismaWorkflowExecutionStatus.COMPLETED,
       } as never,
       where: { id: executionId },
     });
@@ -190,7 +191,7 @@ export class WorkflowExecutionsService extends BaseService<
     const result = await this.prisma.workflowExecution.update({
       data: {
         completedAt: new Date(),
-        status: WorkflowExecutionStatus.CANCELLED,
+        status: PrismaWorkflowExecutionStatus.CANCELLED,
       } as never,
       where: { id: executionId },
     });
@@ -235,8 +236,8 @@ export class WorkflowExecutionsService extends BaseService<
     const expectedNodes = totalNodes ?? nodeResults.length;
     const completedNodes = nodeResults.filter(
       (r) =>
-        r.status === WorkflowExecutionStatus.COMPLETED ||
-        r.status === WorkflowExecutionStatus.FAILED,
+        r.status === SharedWorkflowExecutionStatus.COMPLETED ||
+        r.status === SharedWorkflowExecutionStatus.FAILED,
     ).length;
     const progress =
       expectedNodes > 0
@@ -420,10 +421,10 @@ export class WorkflowExecutionsService extends BaseService<
 
     const total = typed.length;
     const completed = typed.filter(
-      (e) => e.status === WorkflowExecutionStatus.COMPLETED,
+      (e) => e.status === PrismaWorkflowExecutionStatus.COMPLETED,
     ).length;
     const failed = typed.filter(
-      (e) => e.status === WorkflowExecutionStatus.FAILED,
+      (e) => e.status === PrismaWorkflowExecutionStatus.FAILED,
     ).length;
 
     const durationsWithValue = typed
