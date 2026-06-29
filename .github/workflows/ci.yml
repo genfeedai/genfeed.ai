@@ -203,10 +203,19 @@ jobs:
             bunx react-doctor@0.4.2 . --blocking error --project '*' --diff false
           fi
 
-  architecture-guards:
-    name: Architecture Guards
+  # Consolidated static guards — these four checks each do ~10-20s of actual
+  # work but previously ran as four separate jobs, each paying a full
+  # checkout + bun install (~2 min) on its own runner. Merged into one job they
+  # share a single setup, cutting ~3 runners (~6-8 runner-min) per run with no
+  # critical-path impact (they sit well under the test jobs). None of these are
+  # required status checks, so collapsing their individual names is safe.
+  # React Doctor is intentionally NOT folded in: it skips on draft PRs and runs
+  # its own diff-detection, so its trigger semantics differ from these always-on
+  # guards.
+  guards:
+    name: Guards
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     needs: trust
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
@@ -218,41 +227,14 @@ jobs:
         with:
           bun-version: '1.3.14'
           cache-turbo: 'false'
-      - run: bun run check:architecture
-
-  sql-risk-audit:
-    name: SQL Risk Audit
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: trust
-    if: needs.trust.outputs.is-trusted == 'true'
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
-        with:
-          bun-version: '1.3.14'
-          cache-turbo: 'false'
-      - run: bun run audit:api:sql:ci
-
-  ui-guards:
-    name: UI Guards
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: trust
-    if: needs.trust.outputs.is-trusted == 'true'
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
-        with:
-          bun-version: '1.3.14'
-          cache-turbo: 'false'
-      - run: bun run check:ui-guards
+      - name: Architecture Guards
+        run: bun run check:architecture
+      - name: SQL Risk Audit
+        run: bun run audit:api:sql:ci
+      - name: UI Guards
+        run: bun run check:ui-guards
+      - name: Design System
+        run: bun run design:check
 
   format:
     name: Format
@@ -292,23 +274,6 @@ jobs:
           else
             bun run lint
           fi
-
-  design:
-    name: Design System
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: trust
-    if: needs.trust.outputs.is-trusted == 'true'
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
-        with:
-          bun-version: '1.3.14'
-          cache-turbo: 'false'
-      - run: bun run design:check
 
   typecheck:
     name: Typecheck
@@ -530,6 +495,47 @@ jobs:
         env:
           NODE_ENV: test
 
+  # Focused, blocking API tests on every PR and master push: mirrors
+  # test-app-changed for apps/server/api — runs only the API tests whose module
+  # graph touches the diff (vitest --changed), so it stays fast while pinning any
+  # regression to the single PR/merge that introduced it. The full sharded
+  # test-api matrix below still runs the whole suite via workflow_call
+  # (full-suite / release / deploy), which catches cross-cutting tests the
+  # --changed static graph can miss.
+  test-api-changed:
+    name: Test API (changed)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [trust, test-scope]
+    if: >-
+      needs.trust.outputs.is-trusted == 'true'
+      && needs.test-scope.outputs.api == 'true'
+      && (github.event_name == 'pull_request' || github.event_name == 'push')
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          bun-version: '1.3.14'
+      - name: Build API dependencies
+        run: bunx turbo run build --filter=./packages/**
+      - name: Run changed API tests
+        run: |
+          BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
+          # Force-push / new-branch pushes report an all-zero "before"; fall back
+          # to the previous commit so --changed always has a valid diff base.
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            BASE="HEAD~1"
+          fi
+          echo "Running API tests changed since $BASE"
+          cd apps/server/api && bunx vitest run --config vitest.config.ts \
+            --maxWorkers=2 --passWithNoTests --changed "$BASE"
+        env:
+          NODE_ENV: test
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
+
   test-api:
     name: Test API (Shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
@@ -560,7 +566,7 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: [trust, format, lint, design, typecheck]
+    needs: [trust, format, lint, guards, typecheck]
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
       - uses: actions/checkout@v5
