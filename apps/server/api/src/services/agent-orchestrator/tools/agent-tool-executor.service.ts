@@ -65,10 +65,14 @@ import {
   PostStatus,
   Status,
   VoiceCloneStatus,
+  VoiceProvider,
   VoteEntityModel,
   WorkflowTrigger,
 } from '@genfeedai/enums';
 import type {
+  AgentClipRunIdentity,
+  AgentClipRunIdentityField,
+  AgentClipRunIdentitySource,
   AgentDashboardOperation,
   AgentIngredientItem,
   AgentToolResult,
@@ -139,6 +143,20 @@ interface ToolRouteSlugs {
 interface DashboardHydrationState {
   status?: 'idle' | 'loading' | 'ready';
   staggerMs?: number;
+}
+
+interface DefaultVoiceRefLike {
+  externalVoiceId?: unknown;
+  provider?: unknown;
+  source?: unknown;
+}
+
+interface ResolvedClipIdentityInput {
+  avatarId?: string;
+  avatarProvider?: string;
+  source: AgentClipRunIdentitySource;
+  voiceId?: string;
+  voiceProvider?: string;
 }
 
 type HydratableDashboardBlock<T extends AgentUIBlock = AgentUIBlock> = T & {
@@ -7895,6 +7913,168 @@ export class AgentToolExecutorService {
     };
   }
 
+  private resolveClipWorkflowIdentity(
+    params: Record<string, unknown>,
+    brand: unknown,
+    organizationSettings: unknown,
+  ): AgentClipRunIdentity {
+    const explicitAvatarId =
+      this.readOptionalString(params.avatarId) ??
+      this.readOptionalString(params.heygenAvatarId);
+    const explicitVoiceId =
+      this.readOptionalString(params.voiceId) ??
+      this.readOptionalString(params.heygenVoiceId);
+    const brandRecord = this.readObjectRecord(brand);
+    const brandAgentConfig = this.readObjectRecord(brandRecord?.agentConfig);
+    const brandAvatarId = this.readOptionalString(
+      brandAgentConfig?.heygenAvatarId,
+    );
+    const brandVoiceId =
+      this.readOptionalString(brandAgentConfig?.heygenVoiceId) ??
+      this.readHeygenVoiceIdFromDefaultRef(brandAgentConfig?.defaultVoiceRef) ??
+      (this.isHeygenProvider(brandAgentConfig?.defaultVoiceProvider)
+        ? this.readOptionalString(brandAgentConfig?.defaultVoiceId)
+        : undefined);
+    const orgSettingsRecord = this.readObjectRecord(organizationSettings);
+    const organizationVoiceId =
+      this.readHeygenVoiceIdFromDefaultRef(
+        orgSettingsRecord?.defaultVoiceRef,
+      ) ??
+      (this.isHeygenProvider(orgSettingsRecord?.defaultVoiceProvider)
+        ? this.readOptionalString(orgSettingsRecord?.defaultVoiceId)
+        : undefined);
+
+    const source: AgentClipRunIdentitySource =
+      explicitAvatarId || explicitVoiceId
+        ? 'explicit'
+        : brandAvatarId || brandVoiceId
+          ? 'brand'
+          : organizationVoiceId
+            ? 'organization'
+            : 'missing';
+    const avatarId = explicitAvatarId ?? brandAvatarId;
+    const voiceId = explicitVoiceId ?? brandVoiceId ?? organizationVoiceId;
+
+    return this.createClipIdentity({
+      avatarId,
+      avatarProvider:
+        this.readOptionalString(params.avatarProvider) ??
+        (avatarId ? VoiceProvider.HEYGEN : undefined),
+      source,
+      voiceId,
+      voiceProvider:
+        this.readOptionalString(params.voiceProvider) ??
+        (voiceId ? VoiceProvider.HEYGEN : undefined),
+    });
+  }
+
+  private createClipIdentity(
+    input: ResolvedClipIdentityInput,
+  ): AgentClipRunIdentity {
+    const missing: AgentClipRunIdentityField[] = [];
+
+    if (!input.avatarId) {
+      missing.push('avatar');
+    }
+
+    if (!input.voiceId) {
+      missing.push('voice');
+    }
+
+    return {
+      avatarId: input.avatarId,
+      avatarProvider: input.avatarProvider,
+      isComplete: missing.length === 0,
+      label: this.getClipIdentityLabel(input.source, missing),
+      missing,
+      source: input.source,
+      useIdentity: true,
+      voiceId: input.voiceId,
+      voiceProvider: input.voiceProvider,
+    };
+  }
+
+  private getClipIdentityLabel(
+    source: AgentClipRunIdentitySource,
+    missing: AgentClipRunIdentityField[],
+  ): string {
+    if (missing.length > 0) {
+      return `Missing ${missing.join(' and ')} defaults`;
+    }
+
+    switch (source) {
+      case 'explicit':
+        return 'Explicit clip identity';
+      case 'brand':
+        return 'Brand clip defaults';
+      case 'organization':
+        return 'Organization clip defaults';
+      default:
+        return 'Clip identity defaults';
+    }
+  }
+
+  private buildClipIdentityInputValues(
+    identity: AgentClipRunIdentity,
+  ): Record<string, unknown> {
+    const values: Record<string, unknown> = {
+      identitySource: identity.source,
+      identityStatus: identity.isComplete ? 'ready' : 'missing_identity',
+      missingIdentity: identity.missing,
+      useIdentity: identity.useIdentity,
+    };
+
+    if (identity.avatarId) {
+      values.avatarId = identity.avatarId;
+      values.avatarProvider = identity.avatarProvider ?? VoiceProvider.HEYGEN;
+
+      if (
+        (identity.avatarProvider ?? VoiceProvider.HEYGEN) ===
+        VoiceProvider.HEYGEN
+      ) {
+        values.heygenAvatarId = identity.avatarId;
+      }
+    }
+
+    if (identity.voiceId) {
+      values.voiceId = identity.voiceId;
+      values.voiceProvider = identity.voiceProvider ?? VoiceProvider.HEYGEN;
+
+      if (
+        (identity.voiceProvider ?? VoiceProvider.HEYGEN) ===
+        VoiceProvider.HEYGEN
+      ) {
+        values.heygenVoiceId = identity.voiceId;
+      }
+    }
+
+    return values;
+  }
+
+  private readObjectRecord(
+    value: unknown,
+  ): Record<string, unknown> | undefined {
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : undefined;
+  }
+
+  private readHeygenVoiceIdFromDefaultRef(value: unknown): string | undefined {
+    const ref = this.readObjectRecord(value) as DefaultVoiceRefLike | undefined;
+
+    if (ref?.source !== 'catalog' || !this.isHeygenProvider(ref.provider)) {
+      return undefined;
+    }
+
+    return this.readOptionalString(ref.externalVoiceId);
+  }
+
+  private isHeygenProvider(value: unknown): boolean {
+    return (
+      typeof value === 'string' && value.toLowerCase() === VoiceProvider.HEYGEN
+    );
+  }
+
   private async prepareClipWorkflowRun(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
@@ -7911,6 +8091,18 @@ export class AgentToolExecutorService {
     const selectedBrandId = currentBrand
       ? String((currentBrand as Record<string, unknown>)._id)
       : null;
+    const orgSettings = this.organizationSettingsService
+      ? await this.organizationSettingsService.findOne({
+          isDeleted: false,
+          organization: ctx.organizationId,
+        })
+      : null;
+    const identity = this.resolveClipWorkflowIdentity(
+      params,
+      currentBrand,
+      orgSettings,
+    );
+    const identityInputValues = this.buildClipIdentityInputValues(identity);
     const requestedWorkflowId = (
       params.workflowId as string | undefined
     )?.trim();
@@ -7996,6 +8188,7 @@ export class AgentToolExecutorService {
       data: {
         durationSeconds,
         format: 'landscape',
+        identity,
         intent: 'twitter_clip',
         mergeGeneratedVideos,
         prompt,
@@ -8007,10 +8200,12 @@ export class AgentToolExecutorService {
             autonomousMode,
             durationSeconds,
             format: 'landscape',
+            identity,
             inputValues: {
               confirmBeforePublish: true,
               duration: durationSeconds,
               format: 'landscape',
+              ...identityInputValues,
               intent: 'twitter_clip',
               mergeGeneratedVideos,
               prompt,
@@ -8024,6 +8219,7 @@ export class AgentToolExecutorService {
             brandId: selectedBrandId ?? '',
             clipProjectId: selectedWorkflow ?? `clip-${Date.now()}`,
             currentStep: 'generate',
+            identity,
             modes: {
               aspectRatio: '16:9' as const,
               confirmBeforePublish: true,
@@ -8067,8 +8263,9 @@ export class AgentToolExecutorService {
               },
             ],
           },
-          description:
-            'Generate a 30-second landscape clip, optionally merge multiple clips, then reframe to portrait for Instagram.',
+          description: identity.isComplete
+            ? 'Generate a 30-second landscape clip, optionally merge multiple clips, then reframe to portrait for Instagram.'
+            : 'Clip identity defaults are incomplete. Add the missing avatar or voice defaults before generating.',
           id: `clip-workflow-run-${Date.now()}`,
           title: 'Run Clip Workflow (X → IG)',
           type: 'clip_workflow_run_card' as const,

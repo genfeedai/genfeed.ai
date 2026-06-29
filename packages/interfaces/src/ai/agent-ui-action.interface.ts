@@ -60,6 +60,26 @@ export interface AgentIngredientItem {
   title?: string;
 }
 
+export type AgentClipRunIdentityField = 'avatar' | 'voice';
+
+export type AgentClipRunIdentitySource =
+  | 'brand'
+  | 'explicit'
+  | 'missing'
+  | 'organization';
+
+export interface AgentClipRunIdentity {
+  avatarId?: string;
+  avatarProvider?: string;
+  isComplete: boolean;
+  label: string;
+  missing: AgentClipRunIdentityField[];
+  source: AgentClipRunIdentitySource;
+  useIdentity: boolean;
+  voiceId?: string;
+  voiceProvider?: string;
+}
+
 export interface AgentUiAction extends AgentUiActionBase {
   ctas?: AgentUiActionCta[];
   data?: Record<string, unknown>;
@@ -106,6 +126,7 @@ export interface AgentUiAction extends AgentUiActionBase {
     autonomousMode?: boolean;
     durationSeconds?: number;
     format?: 'landscape' | 'portrait' | 'square';
+    identity?: AgentClipRunIdentity;
     inputValues?: Record<string, unknown>;
     mergeGeneratedVideos?: boolean;
     model?: string;

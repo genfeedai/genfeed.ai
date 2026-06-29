@@ -43,6 +43,7 @@ export default function StudioClipsPage() {
     error,
     handleAnalyze,
     handleGenerate,
+    identityDefaults,
     isSubmitting,
     maxClips,
     minViralityScore,
@@ -175,6 +176,14 @@ export default function StudioClipsPage() {
                   />
                 </div>
               </div>
+
+              <p className="text-xs text-zinc-500">
+                {identityDefaults.isComplete
+                  ? identityDefaults.source === 'brand'
+                    ? 'Using saved brand HeyGen avatar and voice defaults.'
+                    : 'Using saved organization HeyGen voice default.'
+                  : `Missing ${identityDefaults.missing.join(' and ')} defaults. Enter IDs manually or save them in brand defaults.`}
+              </p>
 
               {/* Provider */}
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
