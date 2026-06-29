@@ -5,12 +5,59 @@ import { ClientService } from '@mcp/services/client.service';
 import { ServerService } from '@mcp/services/server.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
+type AuthenticatedControllerRequest = Parameters<McpController['callTool']>[2];
+
+vi.mock('@genfeedai/tools', () => ({
+  getToolsForSurface: vi.fn(() => [
+    {
+      inputSchema: { type: 'object' },
+      name: 'generate_video',
+    },
+    {
+      inputSchema: { type: 'object' },
+      name: 'get_video_status',
+    },
+    {
+      inputSchema: { type: 'object' },
+      name: 'list_videos',
+    },
+    {
+      inputSchema: { type: 'object' },
+      name: 'get_video_analytics',
+    },
+  ]),
+  toMcpTools: vi.fn((tools: unknown) => tools),
+}));
+
+vi.mock('@mcp/services/client.service', () => ({
+  ClientService: class ClientService {},
+}));
+
+vi.mock('@mcp/services/server.service', () => ({
+  ServerService: class ServerService {},
+}));
+
+vi.mock('@mcp/guards/mcp-auth.guard', () => ({
+  McpAuthGuard: class McpAuthGuard {},
+  Public: () => () => undefined,
+}));
+
 describe('McpController', () => {
   let controller: McpController;
 
   const mockMcpService = {
     getHello: vi.fn().mockReturnValue('Genfeed MCP Server'),
-    getMcpConfiguration: vi.fn().mockReturnValue({ version: '1.0.0' }),
+    getMcpConfiguration: vi.fn().mockReturnValue({
+      mcpServers: {
+        genfeed: {
+          headers: { Authorization: 'Bearer ${GENFEED_API_KEY}' },
+          transport: 'streamable-http',
+          type: 'http',
+          url: 'https://mcp.genfeed.ai/mcp',
+        },
+      },
+      version: '1.0.0',
+    }),
     getMcpExample: vi.fn().mockReturnValue({ example: 'data' }),
   };
 
@@ -92,6 +139,11 @@ describe('McpController', () => {
     it('should return MCP configuration', () => {
       const result = controller.getMcpConfiguration();
       expect(result).toHaveProperty('version', '1.0.0');
+      expect(result.mcpServers).toHaveProperty('genfeed');
+      expect(result.mcpServers.genfeed).toMatchObject({
+        type: 'http',
+        url: 'https://mcp.genfeed.ai/mcp',
+      });
       expect(result).toHaveProperty('streamableHttp');
       expect(result.streamableHttp).toHaveProperty(
         'endpoint',
@@ -110,6 +162,30 @@ describe('McpController', () => {
       const result = controller.getMcpExample();
       expect(result).toEqual({ example: 'data' });
       expect(mockMcpService.getMcpExample).toHaveBeenCalled();
+    });
+  });
+
+  describe('getMcpDocumentation', () => {
+    it('returns the production setup page for Claude Code and Codex', () => {
+      const response = {
+        send: vi.fn(),
+        setHeader: vi.fn(),
+      } as unknown as {
+        send: ReturnType<typeof vi.fn>;
+        setHeader: ReturnType<typeof vi.fn>;
+      };
+
+      controller.getMcpDocumentation(response as never);
+
+      expect(response.setHeader).toHaveBeenCalledWith(
+        'Content-Type',
+        'text/html',
+      );
+      const html = response.send.mock.calls[0]?.[0] as string;
+      expect(html).toContain('https://mcp.genfeed.ai/mcp');
+      expect(html).toContain('Claude Code setup');
+      expect(html).toContain('Codex setup');
+      expect(html).not.toContain('http://localhost:3014');
     });
   });
 
@@ -133,7 +209,7 @@ describe('McpController', () => {
 
       // Check canonical video tool exists
       const createVideoTool = result.tools.find(
-        (t: any) => t.name === 'generate_video',
+        (tool) => tool.name === 'generate_video',
       );
       expect(createVideoTool).toBeDefined();
       expect(createVideoTool?.inputSchema).toBeDefined();
@@ -148,7 +224,7 @@ describe('McpController', () => {
       expect(result.resources.length).toBe(2);
 
       const videoAnalytics = result.resources.find(
-        (r: any) => r.uri === 'genfeed://analytics/videos',
+        (resource) => resource.uri === 'genfeed://analytics/videos',
       );
       expect(videoAnalytics).toBeDefined();
     });
@@ -161,7 +237,7 @@ describe('McpController', () => {
         token: 'test-token',
         userId: 'user-456',
       },
-    } as any;
+    } as AuthenticatedControllerRequest;
 
     it('should call generate_video tool', async () => {
       const args = {
@@ -254,7 +330,7 @@ describe('McpController', () => {
         token: 'test-token',
         userId: 'user-456',
       },
-    } as any;
+    } as AuthenticatedControllerRequest;
 
     it('should read video analytics resource', async () => {
       mockClientService.getVideoAnalytics.mockResolvedValue({

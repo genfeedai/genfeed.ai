@@ -1,4 +1,8 @@
-import type { McpConfiguration } from '@mcp/shared/interfaces/mcp-config.interface';
+import { getPublicMcpUrl } from '@mcp/mcp/setup-page';
+import type {
+  McpClientExamples,
+  McpConfiguration,
+} from '@mcp/shared/interfaces/mcp-config.interface';
 import { Injectable } from '@nestjs/common';
 
 export interface McpExample {
@@ -8,12 +12,7 @@ export interface McpExample {
   };
   description: string;
   installation: {
-    configuration: {
-      claudeDesktop: {
-        example: McpConfiguration;
-        path: string;
-      };
-    };
+    clientExamples: McpClientExamples;
     description: string;
     steps: string[];
   };
@@ -43,23 +42,25 @@ export class MCPService {
   }
 
   getMcpConfiguration(): McpConfiguration {
+    const mcpUrl = getPublicMcpUrl();
+
     return {
       mcpServers: {
-        'genfeed-ai': {
-          args: ['dist/mcp/main.js'],
-          command: 'node',
-          env: {
-            GENFEED_API_KEY: 'your-api-key-here',
-            GENFEEDAI_API_URL: 'https://api.genfeed.ai',
-            MCP_PORT: '3014',
-            NODE_ENV: 'production',
+        genfeed: {
+          headers: {
+            Authorization: 'Bearer ${GENFEED_API_KEY}',
           },
+          transport: 'streamable-http',
+          type: 'http',
+          url: mcpUrl,
         },
       },
     };
   }
 
   getMcpExample(): McpExample {
+    const mcpUrl = getPublicMcpUrl();
+
     return {
       capabilities: {
         resources: {
@@ -71,32 +72,36 @@ export class MCPService {
       },
       description: 'AI-powered video generation and analytics MCP server',
       installation: {
-        configuration: {
-          claudeDesktop: {
-            example: {
-              mcpServers: {
-                'genfeed-ai': {
-                  args: ['/path/to/genfeed/dist/mcp/main.js'],
-                  command: 'node',
-                  env: {
-                    GENFEED_API_KEY: 'your-api-key-here',
-                    GENFEEDAI_API_URL: 'https://api.genfeed.ai',
-                    MCP_PORT: '3014',
-                    NODE_ENV: 'production',
-                  },
-                },
+        clientExamples: {
+          claudeCode: {
+            command: `claude mcp add --transport http genfeed --scope user ${mcpUrl} --header "Authorization: Bearer $GENFEED_API_KEY"`,
+          },
+          codex: {
+            command: `codex mcp add genfeed --url ${mcpUrl} --bearer-token-env-var GENFEED_API_KEY`,
+            configToml: `[mcp_servers.genfeed]
+url = "${mcpUrl}"
+bearer_token_env_var = "GENFEED_API_KEY"`,
+          },
+          mcpServers: {
+            genfeed: {
+              env: {
+                GENFEED_API_KEY: 'gf_live_xxx',
               },
+              headers: {
+                Authorization: 'Bearer ${GENFEED_API_KEY}',
+              },
+              transport: 'streamable-http',
+              type: 'http',
+              url: mcpUrl,
             },
-            path: '~/.config/claude-desktop/config.json',
           },
         },
-        description: 'Install Genfeed.ai MCP Server',
+        description: 'Connect the hosted Genfeed.ai MCP server',
         steps: [
-          '1. Clone the Genfeed.ai repository',
-          '2. Install dependencies: npm install',
-          '3. Set up environment variables',
-          '4. Build the project: npm run build',
-          '5. Add the MCP server configuration to your Claude Desktop settings',
+          '1. Create a Genfeed API key in app settings',
+          '2. Export GENFEED_API_KEY in your shell or client environment',
+          '3. Add the hosted Streamable HTTP endpoint to Claude Code or Codex',
+          '4. Verify the server with your client MCP list command',
         ],
       },
       name: 'Genfeed.ai MCP Server',
