@@ -156,48 +156,54 @@ export class DefaultRecurringContentService {
       throw new Error(`Brand "${params.brandId}" not found`);
     }
 
-    const existingWorkflows = (await this.prisma.workflow.findMany({
-      select: { id: true, isScheduleEnabled: true, metadata: true },
-      where: {
-        brands: { some: { id: params.brandId } },
-        isDeleted: false,
-        organizationId: params.organizationId,
-      },
-    })) as ExistingDefaultRecurringWorkflow[];
+    await this.prisma.$transaction(
+      async (tx) => {
+        const existingWorkflows = (await tx.workflow.findMany({
+          orderBy: { createdAt: 'desc' },
+          select: { id: true, isScheduleEnabled: true, metadata: true },
+          where: {
+            brands: { some: { id: params.brandId } },
+            isDeleted: false,
+            organizationId: params.organizationId,
+          },
+        })) as ExistingDefaultRecurringWorkflow[];
 
-    const existingByType = new Map<
-      DefaultRecurringContentType,
-      ExistingDefaultRecurringWorkflow
-    >();
-    for (const workflow of existingWorkflows) {
-      const contentType = this.readWorkflowContentType(
-        workflow.metadata as Record<string, unknown> | undefined,
-      );
-      if (contentType && !existingByType.has(contentType)) {
-        existingByType.set(contentType, workflow);
-      }
-    }
+        const existingByType = new Map<
+          DefaultRecurringContentType,
+          ExistingDefaultRecurringWorkflow
+        >();
+        for (const workflow of existingWorkflows) {
+          const contentType = this.readWorkflowContentType(
+            workflow.metadata as Record<string, unknown> | undefined,
+          );
+          if (contentType && !existingByType.has(contentType)) {
+            existingByType.set(contentType, workflow);
+          }
+        }
 
-    for (const contentType of DEFAULT_RECURRING_TYPES) {
-      const existing = existingByType.get(contentType);
-      if (existing) {
-        if (!existing.isScheduleEnabled) {
-          await this.prisma.workflow.update({
-            data: { isScheduleEnabled: true },
-            where: { id: existing.id },
+        for (const contentType of DEFAULT_RECURRING_TYPES) {
+          const existing = existingByType.get(contentType);
+          if (existing) {
+            if (!existing.isScheduleEnabled) {
+              await tx.workflow.update({
+                data: { isScheduleEnabled: true },
+                where: { id: existing.id },
+              });
+            }
+            continue;
+          }
+
+          await this.createDefaultRecurringWorkflow({
+            brand: brand as unknown as BrandDocument,
+            contentType,
+            organizationId: params.organizationId,
+            origin: params.origin,
+            userId: params.userId,
           });
         }
-        continue;
-      }
-
-      await this.createDefaultRecurringWorkflow({
-        brand: brand as unknown as BrandDocument,
-        contentType,
-        organizationId: params.organizationId,
-        origin: params.origin,
-        userId: params.userId,
-      });
-    }
+      },
+      { isolationLevel: 'Serializable' },
+    );
 
     if (params.includeStatus === false) {
       return {

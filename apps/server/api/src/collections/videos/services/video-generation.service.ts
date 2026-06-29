@@ -61,46 +61,11 @@ import { VideoSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-
-/**
- * HTTP cache tags busted after a video write so newly-created placeholders are
- * visible immediately. Every cached video endpoint (`GET /latest`, `GET /`,
- * `GET /:videoId`) is registered under the single `videos` tag, so busting it
- * invalidates list, latest, and single-record responses alike. The aggregate
- * tag set for the underlying ingredient collection (`agg:ingredient`,
- * `agg:paginated`, …) is invalidated automatically by BaseService when
- * saveDocuments/patch run during generation, so it is not duplicated here.
- */
-const VIDEO_WRITE_CACHE_TAGS: readonly string[] = ['videos'];
-
-type PromptInput = Record<string, unknown> & {
-  prompt?: string;
-  resolution?: string;
-};
-
-/**
- * Parameters passed to the single provider-dispatch helper. The same shape is
- * reused for the first output and every additional output, so provider routing
- * lives in exactly one place.
- */
-interface DispatchVideoGenerationParams {
-  duration?: number;
-  height: number;
-  imageUrl?: string;
-  model: string;
-  prompt: string;
-  promptParams: Record<string, unknown>;
-  width: number;
-}
-
-interface CreateVideoPlaceholderActivityParams {
-  brandId: string;
-  authProviderUserId: string;
-  ingredientId: string;
-  model: string;
-  organization: string;
-  user: string;
-}
+import type {
+  CreateVideoPlaceholderActivityParams,
+  DispatchVideoGenerationParams,
+  PromptInput,
+} from './video-generation.types';
 
 /**
  * Owns the full video-generation workflow extracted out of `VideosController`.
@@ -677,8 +642,11 @@ export class VideoGenerationService {
 
     // Invalidate cached video listings so placeholders appear immediately.
     // Busts the full tag set (list + single-record + aggregate) so no cached
-    // view can serve a stale response after the write.
-    await this.cacheService.invalidateByTags([...VIDEO_WRITE_CACHE_TAGS]);
+    // view can serve a stale response after the write. Every cached video
+    // endpoint (GET /latest, GET /, GET /:videoId) is registered under the
+    // single `videos` tag; busting it invalidates list, latest, and
+    // single-record responses alike.
+    await this.cacheService.invalidateByTags(['videos']);
 
     // Handle background music orchestration (runs in background)
     if (createVideoDto.backgroundMusic) {

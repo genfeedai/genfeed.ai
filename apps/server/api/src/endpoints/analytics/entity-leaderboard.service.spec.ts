@@ -368,6 +368,35 @@ describe('EntityLeaderboardService', () => {
       expect(result[0].name).toBe('Brand2');
       expect(result[0].totalPosts).toBe(3);
     });
+
+    it('should scope BrandsService.findAll to the given organizationId', async () => {
+      const orgId = 'org-scoped-xyz';
+      mockBrandsService.findAll.mockResolvedValue({ docs: [] });
+
+      await service.getBrandsLeaderboard(
+        undefined,
+        undefined,
+        LeaderboardSort.ENGAGEMENT,
+        10,
+        orgId,
+      );
+
+      expect(mockBrandsService.findAll).toHaveBeenCalledWith(
+        { where: { isDeleted: false, organizationId: orgId } },
+        { pagination: false },
+      );
+    });
+
+    it('should NOT include organizationId filter when no organizationId provided to getBrandsLeaderboard', async () => {
+      mockBrandsService.findAll.mockResolvedValue({ docs: [] });
+
+      await service.getBrandsLeaderboard();
+
+      expect(mockBrandsService.findAll).toHaveBeenCalledWith(
+        { where: { isDeleted: false } },
+        { pagination: false },
+      );
+    });
   });
 
   // ==========================================================================
@@ -443,6 +472,36 @@ describe('EntityLeaderboardService', () => {
       expect(result.data).toHaveLength(10);
       expect(result.pagination.page).toBe(2);
       expect(result.pagination.total).toBe(30);
+    });
+
+    it('should scope BrandsService.findAll to the given organizationId', async () => {
+      const orgId = 'org-stats-scoped';
+      mockBrandsService.findAll.mockResolvedValue({ docs: [] });
+
+      await service.getBrandsWithStats(
+        undefined,
+        undefined,
+        1,
+        20,
+        LeaderboardSort.ENGAGEMENT,
+        orgId,
+      );
+
+      expect(mockBrandsService.findAll).toHaveBeenCalledWith(
+        { where: { isDeleted: false, organizationId: orgId } },
+        { pagination: false },
+      );
+    });
+
+    it('should NOT include organizationId filter when no organizationId provided to getBrandsWithStats', async () => {
+      mockBrandsService.findAll.mockResolvedValue({ docs: [] });
+
+      await service.getBrandsWithStats();
+
+      expect(mockBrandsService.findAll).toHaveBeenCalledWith(
+        { where: { isDeleted: false } },
+        { pagination: false },
+      );
     });
   });
 });

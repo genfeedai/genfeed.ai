@@ -45,6 +45,16 @@ export interface ListBatchesParams {
 }
 
 /**
+ * Minimal JSON:API resource shape used in map callbacks across workspace,
+ * ads, and other client files. Centralised here to avoid the same inline
+ * object literal being repeated in every client.
+ */
+export interface JsonApiResource {
+  id?: string;
+  attributes?: Record<string, unknown>;
+}
+
+/**
  * Canonical fallback status strings for resource responses. Centralized here so
  * the defaults no longer drift across methods (e.g. a created resource is
  * `processing`, a listed one is `completed`). Values are unchanged from the
@@ -56,5 +66,6 @@ export const CONTENT_STATUS = {
   PENDING: 'pending',
   PROCESSING: 'processing',
   PUBLISHED: 'published',
+  STARTED: 'started',
   UNKNOWN: 'unknown',
 } as const;

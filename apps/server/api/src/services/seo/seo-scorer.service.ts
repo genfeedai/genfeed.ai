@@ -1,4 +1,5 @@
 import { ConfigService } from '@api/config/config.service';
+import { CacheService } from '@api/services/cache/services/cache.service';
 import type {
   OpenRouterChatCompletionParams,
   OpenRouterChatCompletionResponse,
@@ -53,6 +54,8 @@ export class SeoScorerService {
     private readonly configService: ConfigService,
     private readonly logger: LoggerService,
     private readonly prisma: PrismaService,
+    @Optional()
+    private readonly cacheService?: CacheService,
     @Optional()
     private readonly openRouterService?: OpenRouterService,
   ) {
@@ -187,12 +190,36 @@ export class SeoScorerService {
         data,
         where: { id, isDeleted: false, organizationId },
       });
+      await this.bustCollectionCache('article');
     } else {
       await this.prisma.post.update({
         data,
         where: { id, isDeleted: false, organizationId },
       });
+      await this.bustCollectionCache('post');
     }
+  }
+
+  /**
+   * Invalidate tag-based cache entries for the given collection so that
+   * subsequent HTTP-cached list/single responses reflect the updated seoScore.
+   * Mirrors the pattern used in ArticlesService and PostsService.
+   */
+  private async bustCollectionCache(
+    collection: 'article' | 'post',
+  ): Promise<void> {
+    if (!this.cacheService) {
+      return;
+    }
+    // Plural collection name matches the tag convention used by @Cache decorators
+    // and BaseService (e.g. 'articles', 'collection:articles', 'agg:articles').
+    const name = collection === 'article' ? 'articles' : 'posts';
+    await this.cacheService.invalidateByTags([
+      name,
+      `collection:${name}`,
+      `agg:${name}`,
+      'agg:paginated',
+    ]);
   }
 
   private toJsonValue(value: unknown): Prisma.InputJsonValue {

@@ -383,12 +383,11 @@ describe('VideosController', () => {
             addMusicToVideo: vi.fn().mockResolvedValue(undefined),
           },
         },
-        // DI-instantiating VideosController via the module needs this provider;
-        // the tests themselves drive a real VideoGenerationService built below.
-        {
-          provide: VideoGenerationService,
-          useValue: { generateVideo: vi.fn() },
-        },
+        // VideoGenerationService is provided as a real class so NestJS DI
+        // resolves its constructor dependencies from the mocked providers
+        // above. This catches constructor-dependency regressions that the
+        // previous `new VideoGenerationService(...)` pattern silently missed.
+        VideoGenerationService,
       ],
     })
       .overrideGuard(BetterAuthGuard)
@@ -408,45 +407,7 @@ describe('VideosController', () => {
       })
       .compile();
 
-    // The generation workflow now lives in VideoGenerationService; build the
-    // real service from the same mocked providers so the controller delegates
-    // into it and every existing create() expectation still holds.
-    const videoGenerationService = new VideoGenerationService(
-      testingModule.get(ConfigService),
-      testingModule.get(ActivitiesService),
-      testingModule.get(BrandsService),
-      testingModule.get(AssetsService),
-      testingModule.get(BookmarksService),
-      testingModule.get(CreditsUtilsService),
-      testingModule.get(FalService),
-      testingModule.get(FailedGenerationService),
-      testingModule.get(IngredientsService),
-      testingModule.get(PollingService),
-      testingModule.get(KlingAIService),
-      testingModule.get(LoggerService),
-      testingModule.get(MetadataService),
-      testingModule.get(ModelRegistrationService),
-      testingModule.get(ModelsService),
-      testingModule.get(OrganizationSettingsService),
-      testingModule.get(PromptsService),
-      testingModule.get(PromptBuilderService),
-      testingModule.get(ReplicateService),
-      testingModule.get(SharedService),
-      testingModule.get(VideoMusicOrchestrationService),
-      testingModule.get(VideosService),
-      testingModule.get(CacheService),
-      testingModule.get(RouterService),
-      testingModule.get(NotificationsPublisherService),
-    );
-
-    controller = new VideosController(
-      testingModule.get(ConfigService),
-      testingModule.get(VideosService),
-      testingModule.get(VotesService),
-      testingModule.get(FilesClientService),
-      testingModule.get(MetadataService),
-      videoGenerationService,
-    );
+    controller = testingModule.get(VideosController);
     videosService = testingModule.get(VideosService);
     brandsService = testingModule.get(BrandsService);
     votesService = testingModule.get(VotesService);
@@ -994,6 +955,9 @@ describe('VideosController', () => {
 
       expect(
         creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).toHaveBeenCalledTimes(1);
+      expect(
+        creditsUtilsService.checkOrganizationCreditsAvailable,
       ).toHaveBeenCalledWith(mockOrgId.toString(), 10);
       expect(
         creditsUtilsService.deductCreditsFromOrganization,
@@ -1010,7 +974,13 @@ describe('VideosController', () => {
 
       expect(
         creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).toHaveBeenCalledTimes(1);
+      expect(
+        creditsUtilsService.checkOrganizationCreditsAvailable,
       ).toHaveBeenCalledWith(mockOrgId.toString(), 20); // 10 * 2 for high resolution
+      expect(
+        creditsUtilsService.deductCreditsFromOrganization,
+      ).not.toHaveBeenCalled();
     });
 
     it('multiplies the authorized amount by outputs for non-batch models', async () => {
@@ -1024,7 +994,13 @@ describe('VideosController', () => {
 
       expect(
         creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).toHaveBeenCalledTimes(1);
+      expect(
+        creditsUtilsService.checkOrganizationCreditsAvailable,
       ).toHaveBeenCalledWith(mockOrgId.toString(), 30); // 10 * 3 outputs
+      expect(
+        creditsUtilsService.deductCreditsFromOrganization,
+      ).not.toHaveBeenCalled();
     });
 
     it('should handle auto model selection', async () => {

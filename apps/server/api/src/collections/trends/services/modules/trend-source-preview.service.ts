@@ -171,7 +171,9 @@ export class TrendSourcePreviewService {
       expiresAt:
         trend.expiresAt instanceof Date
           ? trend.expiresAt
-          : new Date(trend.expiresAt),
+          : trend.expiresAt
+            ? new Date(trend.expiresAt)
+            : undefined,
       sourcePreview,
       sourcePreviewState,
       sourcePreviewTotal: sourcePreview.length,

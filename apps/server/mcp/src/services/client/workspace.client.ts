@@ -6,6 +6,7 @@ import type { BaseApiClient } from './base-api-client';
 import type {
   BrandResponse,
   CreateBatchParams,
+  JsonApiResource,
   ListBatchesParams,
   PersonaResponse,
 } from './client.types';
@@ -85,16 +86,14 @@ export class WorkspaceClient {
       async (http) => {
         const response = await http.get('/brands');
         return (
-          response.data?.data?.map(
-            (brand: { id?: string; attributes?: Record<string, unknown> }) => ({
-              id: brand.id || String(brand.attributes?.id || ''),
-              name: String(brand.attributes?.name || 'Unnamed'),
-              status: brand.attributes?.status
-                ? String(brand.attributes.status)
-                : undefined,
-              ...(brand.attributes || {}),
-            }),
-          ) || []
+          response.data?.data?.map((brand: JsonApiResource) => ({
+            id: brand.id || String(brand.attributes?.id || ''),
+            name: String(brand.attributes?.name || 'Unnamed'),
+            status: brand.attributes?.status
+              ? String(brand.attributes.status)
+              : undefined,
+            ...(brand.attributes || {}),
+          })) || []
         );
       },
       this.base.failWith('Failed to list brands'),
@@ -118,19 +117,14 @@ export class WorkspaceClient {
         });
 
         return (
-          response.data?.data?.map(
-            (persona: {
-              id?: string;
-              attributes?: Record<string, unknown>;
-            }) => ({
-              id: persona.id || String(persona.attributes?.id || ''),
-              name: String(persona.attributes?.name || 'Unnamed'),
-              status: persona.attributes?.status
-                ? String(persona.attributes.status)
-                : undefined,
-              ...(persona.attributes || {}),
-            }),
-          ) || []
+          response.data?.data?.map((persona: JsonApiResource) => ({
+            id: persona.id || String(persona.attributes?.id || ''),
+            name: String(persona.attributes?.name || 'Unnamed'),
+            status: persona.attributes?.status
+              ? String(persona.attributes.status)
+              : undefined,
+            ...(persona.attributes || {}),
+          })) || []
         );
       },
       this.base.failWith('Failed to list personas'),
@@ -177,12 +171,10 @@ export class WorkspaceClient {
           return [];
         }
 
-        return response.data.data.map(
-          (item: { id?: string; attributes?: Record<string, unknown> }) => ({
-            id: item.id || String(item.attributes?.id || ''),
-            ...(item.attributes || {}),
-          }),
-        );
+        return response.data.data.map((item: JsonApiResource) => ({
+          id: item.id || String(item.attributes?.id || ''),
+          ...(item.attributes || {}),
+        }));
       },
       this.base.failWith('Failed to list batches'),
     );

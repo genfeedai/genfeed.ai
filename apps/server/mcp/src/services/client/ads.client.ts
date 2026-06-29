@@ -1,3 +1,8 @@
+import type {
+  AdHeadlineParams,
+  AdInsightsParams,
+  AdVariationsParams,
+} from './ads.client.types';
 import type { BaseApiClient } from './base-api-client';
 
 /** Meta Ads, Google Ads, and ad-insights (content-loop) read/generate methods. */
@@ -255,10 +260,7 @@ export class AdsClient {
 
   // ── Ad Insights (Content Loop) ──
 
-  getAdPerformanceInsights(params?: {
-    industry?: string;
-    platform?: string;
-  }): Promise<unknown> {
+  getAdPerformanceInsights(params?: AdInsightsParams): Promise<unknown> {
     return this.base.request(
       'getting ad performance insights',
       async (http) =>
@@ -269,10 +271,7 @@ export class AdsClient {
     );
   }
 
-  getTopHeadlines(params?: {
-    industry?: string;
-    platform?: string;
-  }): Promise<unknown[]> {
+  getTopHeadlines(params?: AdInsightsParams): Promise<unknown[]> {
     return this.base.request(
       'getting top headlines',
       async (http) =>
@@ -283,11 +282,7 @@ export class AdsClient {
     );
   }
 
-  suggestAdHeadlines(params: {
-    industry?: string;
-    platform?: string;
-    product?: string;
-  }): Promise<unknown> {
+  suggestAdHeadlines(params: AdHeadlineParams): Promise<unknown> {
     return this.base.request(
       'suggesting ad headlines',
       async (http) =>
@@ -298,12 +293,7 @@ export class AdsClient {
     );
   }
 
-  generateAdVariations(params: {
-    headline?: string;
-    body?: string;
-    platform?: string;
-    count?: number;
-  }): Promise<unknown> {
+  generateAdVariations(params: AdVariationsParams): Promise<unknown> {
     return this.base.request(
       'generating ad variations',
       async (http) =>
@@ -314,10 +304,7 @@ export class AdsClient {
     );
   }
 
-  benchmarkAdPerformance(params?: {
-    industry?: string;
-    platform?: string;
-  }): Promise<unknown> {
+  benchmarkAdPerformance(params?: AdInsightsParams): Promise<unknown> {
     return this.base.request(
       'benchmarking ad performance',
       async (http) =>

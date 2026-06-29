@@ -914,3 +914,107 @@ describe('ServiceInstanceManager (implicit)', () => {
     expect(newInstance).toBeInstanceOf(TestService);
   });
 });
+
+// ---------------------------------------------------------------------------
+// HTTPBaseService interceptor — signal merging regression tests
+// These tests exercise the *real* HTTPBaseService (not the vi.mock above)
+// by using vi.importActual so the interceptor logic is live.
+// ---------------------------------------------------------------------------
+describe('HTTPBaseService handleRequest signal merging', () => {
+  it('uses the instance-level abort signal when no per-request signal is supplied', async () => {
+    const { HTTPBaseService: RealHTTPBaseService } = await vi.importActual<
+      typeof import('@services/core/interceptor.service')
+    >('@services/core/interceptor.service');
+
+    class ConcreteService extends RealHTTPBaseService {
+      constructor() {
+        super('https://api.example.com', 'test-token');
+      }
+    }
+
+    const svc = new ConcreteService();
+    const handleRequest = (svc as unknown as Record<string, unknown>)
+      .handleRequest as (
+      config: Record<string, unknown>,
+    ) => Record<string, unknown>;
+
+    const config: Record<string, unknown> = { headers: {} };
+    const result = handleRequest.call(svc, config);
+
+    // Signal must be set (the instance-level AbortController's signal)
+    expect(result.signal).toBeDefined();
+    expect(result.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('composes the instance-level signal with a per-request signal so both can abort independently', async () => {
+    const { HTTPBaseService: RealHTTPBaseService } = await vi.importActual<
+      typeof import('@services/core/interceptor.service')
+    >('@services/core/interceptor.service');
+
+    class ConcreteService extends RealHTTPBaseService {
+      constructor() {
+        super('https://api.example.com', 'test-token');
+      }
+
+      public getAbortController(): AbortController | null {
+        return (this as unknown as Record<string, unknown>)
+          .abortController as AbortController | null;
+      }
+    }
+
+    const svc = new ConcreteService();
+    const handleRequest = (svc as unknown as Record<string, unknown>)
+      .handleRequest as (
+      config: Record<string, unknown>,
+    ) => Record<string, unknown>;
+
+    const callerController = new AbortController();
+    const config: Record<string, unknown> = {
+      headers: {},
+      signal: callerController.signal,
+    };
+
+    const result = handleRequest.call(svc, config);
+
+    // Result must be a signal (either original or composed)
+    expect(result.signal).toBeDefined();
+    expect(result.signal).toBeInstanceOf(AbortSignal);
+
+    // Aborting the caller signal must abort the composed signal
+    callerController.abort('caller cancelled');
+    const composedSignal = result.signal as AbortSignal;
+    expect(composedSignal.aborted).toBe(true);
+  });
+
+  it('composes so that cancelPendingRequests() also aborts the composed signal', async () => {
+    const { HTTPBaseService: RealHTTPBaseService } = await vi.importActual<
+      typeof import('@services/core/interceptor.service')
+    >('@services/core/interceptor.service');
+
+    class ConcreteService extends RealHTTPBaseService {
+      constructor() {
+        super('https://api.example.com', 'test-token');
+      }
+    }
+
+    const svc = new ConcreteService();
+    const handleRequest = (svc as unknown as Record<string, unknown>)
+      .handleRequest as (
+      config: Record<string, unknown>,
+    ) => Record<string, unknown>;
+
+    const callerController = new AbortController();
+    const config: Record<string, unknown> = {
+      headers: {},
+      signal: callerController.signal,
+    };
+
+    const result = handleRequest.call(svc, config);
+    const composedSignal = result.signal as AbortSignal;
+
+    // Cancelling via the service method must abort the composed signal even
+    // though a distinct per-request signal was also provided.
+    svc.cancelPendingRequests();
+    expect(composedSignal.aborted).toBe(true);
+  });
+});

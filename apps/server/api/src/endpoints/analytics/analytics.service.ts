@@ -7,17 +7,11 @@ import { AnalyticsMetric, CredentialPlatform } from '@genfeedai/enums';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import type { DateRange } from './analytics.types';
 
 type PrismaSql = ReturnType<typeof Prisma.sql>;
 type PostAnalyticsTextColumn = 'brandId' | 'organizationId';
 type RawRow = Record<string, unknown>;
-
-interface DateRange {
-  startDate: Date;
-  endDate: Date;
-  previousStartDate: Date;
-  previousEndDate: Date;
-}
 
 /** Platform metrics for time series */
 interface PlatformMetrics {
@@ -287,22 +281,23 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       organizationId,
     );
 
-    const current = await this.fetchOverviewCurrentMetrics(
-      startDate,
-      endDate,
-      brandFilter,
-      orgFilter,
-    );
-    const previous = await this.fetchOverviewPreviousMetrics(
-      previousStartDate,
-      previousEndDate,
-      brandFilter,
-      orgFilter,
-    );
+    const [current, previous, { brandCount, orgCount }] = await Promise.all([
+      this.fetchOverviewCurrentMetrics(
+        startDate,
+        endDate,
+        brandFilter,
+        orgFilter,
+      ),
+      this.fetchOverviewPreviousMetrics(
+        previousStartDate,
+        previousEndDate,
+        brandFilter,
+        orgFilter,
+      ),
+      this.countOverviewEntities(organizationId),
+    ]);
 
     const metrics = this.computeOverviewMetrics(current, previous);
-    const { brandCount, orgCount } =
-      await this.countOverviewEntities(organizationId);
 
     return {
       ...metrics,

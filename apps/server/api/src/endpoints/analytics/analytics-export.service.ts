@@ -3,6 +3,7 @@
  * CSV/XLSX export of published-post analytics. Owns the five platform-service
  * integrations used only for export. Extracted from AnalyticsService (#753).
  */
+
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
@@ -14,76 +15,12 @@ import { CredentialPlatform, PublishStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import * as ExcelJS from 'exceljs';
-
-interface ExportPostData {
-  id: string;
-  label: string;
-  description?: string;
-  status: string;
-  scheduledDate?: Date;
-  publicationDate?: Date;
-  tags?: string[];
-  views?: number;
-  isRepeat?: boolean;
-  repeatFrequency?: string;
-  repeatInterval?: number;
-  repeatCount?: number;
-  maxRepeats?: number;
-  createdAt: Date;
-  updatedAt: Date;
-  externalId?: string;
-  credential: {
-    platform: CredentialPlatform;
-  };
-  ingredient: {
-    metadata: string;
-  };
-  metadata?: {
-    label?: string;
-    description?: string;
-    extension?: string;
-    model?: string;
-    style?: string;
-  };
-  organizationId: string;
-  brandId: string;
-}
-
-interface ProcessedExportData {
-  id: string;
-  title: string;
-  description?: string;
-  status: string;
-  platform: CredentialPlatform;
-  scheduledDate?: Date;
-  publicationDate?: Date;
-  views: number;
-  likes: number;
-  comments: number;
-  tags: string;
-  videoLabel: string;
-  videoDescription: string;
-  extension: string;
-  model: string;
-  style: string;
-  isRepeat?: boolean;
-  repeatFrequency: string;
-  repeatInterval: number;
-  repeatCount: number;
-  maxRepeats: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-interface ExportRowData {
-  [key: string]: string | number | Date | boolean | undefined;
-}
-
-interface PlatformStats {
-  comments: number;
-  likes: number;
-  views: number;
-}
+import type {
+  ExportPostData,
+  ExportRowData,
+  PlatformStats,
+  ProcessedExportData,
+} from './analytics.types';
 
 @Injectable()
 export class AnalyticsExportService {
