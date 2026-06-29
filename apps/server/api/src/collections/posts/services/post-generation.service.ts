@@ -657,12 +657,22 @@ export class PostGenerationService {
       });
 
       if (activity) {
-        await this.activitiesService.patch(activity._id.toString(), {
-          key: ActivityKey.POST_FAILED,
-          value: JSON.stringify({
-            error: (error as Error)?.message || 'Generation failed',
-          }),
-        });
+        try {
+          await this.activitiesService.patch(activity._id.toString(), {
+            key: ActivityKey.POST_FAILED,
+            value: JSON.stringify({
+              error: (error as Error)?.message || 'Generation failed',
+            }),
+          });
+        } catch (activityError) {
+          // Never let an activity-update failure short-circuit the cleanup
+          // below — placeholder posts must still be marked FAILED, otherwise
+          // they stay stuck in PROCESSING forever.
+          this.logger.error(
+            'Failed to mark activity as failed during account content cleanup',
+            { activityError, platform: context.account.platform },
+          );
+        }
       }
 
       for (const post of createdPosts) {
@@ -837,12 +847,22 @@ export class PostGenerationService {
 
       // Update activity to FAILED
       if (activity) {
-        await this.activitiesService.patch(activity._id.toString(), {
-          key: ActivityKey.POST_FAILED,
-          value: JSON.stringify({
-            error: (error as Error)?.message || 'Thread expansion failed',
-          }),
-        });
+        try {
+          await this.activitiesService.patch(activity._id.toString(), {
+            key: ActivityKey.POST_FAILED,
+            value: JSON.stringify({
+              error: (error as Error)?.message || 'Thread expansion failed',
+            }),
+          });
+        } catch (activityError) {
+          // Never let an activity-update failure short-circuit the cleanup
+          // below — child posts must still be marked FAILED, otherwise they
+          // stay stuck in PROCESSING forever.
+          this.logger.error(
+            'Failed to mark activity as failed during thread expansion cleanup',
+            activityError,
+          );
+        }
       }
 
       for (const child of childPosts) {
