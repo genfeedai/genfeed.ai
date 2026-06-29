@@ -29,7 +29,7 @@ type WorkflowDeploymentBackfillOptions = {
   concurrency?: number;
 };
 
-const DEFAULT_BACKFILL_CONCURRENCY = 4;
+const DEFAULT_BACKFILL_CONCURRENCY = 1;
 const PROGRESS_LOG_INTERVAL = 25;
 
 @Injectable()
