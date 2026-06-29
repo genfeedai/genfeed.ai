@@ -48,7 +48,7 @@ export default function StreakCard() {
 
   return (
     <Card
-      className="mx-3 mb-3 overflow-visible border border-orange-500/15 bg-orange-500/[0.06]"
+      className="mx-3 mb-3 overflow-visible shadow-[inset_0_0_0_1px_rgba(249,115,22,0.15)] bg-orange-500/[0.06]"
       bodyClassName="gap-0 p-3"
     >
       <StreakCelebrationBurst isVisible={isCelebrating} />

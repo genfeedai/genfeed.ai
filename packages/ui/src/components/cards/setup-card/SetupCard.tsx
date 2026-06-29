@@ -17,7 +17,7 @@ export default function SetupCard() {
 
   return (
     <Card
-      className="mx-3 mb-3 border border-white/[0.06] bg-white/[0.03]"
+      className="mx-3 mb-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)] bg-white/[0.03]"
       bodyClassName="gap-0 p-3"
     >
       {/* Header */}
