@@ -6,6 +6,7 @@ import type {
   GeneratedPromptCardProps,
   PromptMetadataTagProps,
 } from '@genfeedai/props/studio/prompt-generator.props';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { memo, useCallback } from 'react';
 import {
@@ -55,14 +56,15 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
   const isCurrentlyGenerating = isGenerating && generatingType !== null;
 
   return (
-    <article
+    <Card
       className={cn(
-        'relative group',
+        'group',
         'bg-white/[0.03] border border-white/[0.08]',
         'transition-all duration-300 ease-out',
         'hover:border-white/[0.15] hover:bg-white/[0.05]',
         prompt.isRejected && 'opacity-40 pointer-events-none',
       )}
+      bodyClassName="gap-0 p-0"
     >
       {/* Reject button */}
       <Button
@@ -157,7 +159,7 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
           <span className="capitalize">{prompt.format}</span>
         </div>
       </div>
-    </article>
+    </Card>
   );
 });
 

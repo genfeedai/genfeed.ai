@@ -1,7 +1,7 @@
 import { Tabs, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { Button, StyleSheet, Text, View } from 'react-native';
-import { colors } from '@/constants';
+import { borderRadius, colors } from '@/constants';
 import { useMobileAuth } from '@/contexts/auth-context';
 import { usePendingApprovalCount } from '@/hooks/use-approvals';
 
@@ -28,7 +28,7 @@ const badgeStyles = StyleSheet.create({
   container: {
     alignItems: 'center',
     backgroundColor: colors.error,
-    borderRadius: 10,
+    borderRadius: borderRadius.xl,
     height: 20,
     justifyContent: 'center',
     minWidth: 20,

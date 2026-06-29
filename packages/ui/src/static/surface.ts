@@ -49,6 +49,10 @@ export const staticSurfaceCss = `
   --gf-radius-md: ${radiusTokens.md};
   --gf-radius-lg: ${radiusTokens.lg};
   --gf-radius-xl: ${radiusTokens.xl};
+  /* Single knob for the editorial "sharp border" surface language. Mirrors the
+     canonical --radius-card (near-sharp 2px). Set to ${radiusTokens.none} for
+     perfectly sharp corners or a larger token to soften every surface at once. */
+  --gf-surface-radius: ${radiusTokens.xs};
   --gf-shadow-border: inset 0 0 0 1px var(--gf-border);
   --gf-shadow-border-strong: inset 0 0 0 1px var(--gf-border-strong);
 }
@@ -56,7 +60,7 @@ export const staticSurfaceCss = `
   position: relative;
   overflow: hidden;
   border: 0;
-  border-radius: var(--gf-radius-md);
+  border-radius: var(--gf-surface-radius);
   background: var(--gf-bg-secondary);
   color: var(--gf-text-primary);
   box-shadow: var(--gf-shadow-border);
@@ -68,11 +72,8 @@ export const staticSurfaceCss = `
 }
 .gf-feature-card {
   min-height: 430px;
-  background:
-    linear-gradient(160deg, rgba(255,255,255,0.075), rgba(255,255,255,0.018) 46%, rgba(255,255,255,0.008)),
-    var(--gf-bg-primary);
+  background: var(--gf-bg-tertiary);
   padding: 34px;
-  box-shadow: 0 24px 80px rgba(0,0,0,0.32);
 }
 .gf-feature-card::before {
   position: absolute;
@@ -151,7 +152,7 @@ export const staticSurfaceCss = `
   align-items: center;
   justify-content: center;
   border: 1px solid var(--gf-border-strong);
-  border-radius: var(--gf-radius-md);
+  border-radius: var(--gf-surface-radius);
   background: transparent;
   color: var(--gf-text-primary);
   padding: 0 14px;
@@ -185,7 +186,7 @@ export const staticSurfaceCss = `
   display: inline-flex;
   align-items: center;
   border: 1px solid var(--gf-border);
-  border-radius: var(--gf-radius-md);
+  border-radius: var(--gf-surface-radius);
   background: rgba(255, 255, 255, 0.025);
   color: var(--gf-text-muted);
   font-size: 10px;
@@ -211,7 +212,7 @@ export const staticSurfaceCss = `
 }
 .gf-inline-code {
   border: 1px solid var(--gf-border);
-  border-radius: var(--gf-radius-sm);
+  border-radius: var(--gf-surface-radius);
   background: rgba(255, 255, 255, 0.035);
   color: var(--gf-text-secondary);
   padding: 1px 5px;
@@ -221,7 +222,7 @@ export const staticSurfaceCss = `
   max-width: 100%;
   overflow-x: auto;
   border: 0;
-  border-radius: var(--gf-radius-md);
+  border-radius: var(--gf-surface-radius);
   background: var(--gf-bg-primary);
   color: #dbeafe;
   box-shadow: var(--gf-shadow-border);
@@ -235,7 +236,7 @@ export const staticSurfaceCss = `
   grid-template-columns: 20px minmax(0, 1fr);
   gap: 12px;
   border: 1px solid rgba(245, 158, 11, 0.26);
-  border-radius: var(--gf-radius-md);
+  border-radius: var(--gf-surface-radius);
   background: rgba(245, 158, 11, 0.08);
   color: var(--gf-text-secondary);
   padding: 14px;

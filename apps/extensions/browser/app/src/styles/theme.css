@@ -37,7 +37,8 @@
   background: var(--color-base-100);
   border: 1px solid var(--color-base-300);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
-  border-radius: 8px;
+  /* Near-sharp card radius — matches the canonical --radius-card (2px). */
+  border-radius: 2px;
   transition: all 300ms;
 
   &:hover {

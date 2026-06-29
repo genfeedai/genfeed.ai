@@ -434,7 +434,7 @@
 .gen-card-spotlight {
   position: relative;
   overflow: hidden;
-  border-radius: 1.5rem;
+  border-radius: var(--radius-card);
   border: 1px solid var(--gen-accent-border);
   background: color-mix(
     in srgb,
@@ -447,28 +447,10 @@
     box-shadow 0.3s ease,
     transform 0.3s ease;
 
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(
-      circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-      var(--gen-accent-bg),
-      transparent 60%
-    );
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-  }
-
   &:hover {
     border-color: var(--gen-accent-hover);
     box-shadow: 0 28px 64px -34px rgba(0, 0, 0, 0.68);
     transform: translateY(-2px);
-
-    &::before {
-      opacity: 1;
-    }
   }
 }
 
@@ -577,13 +559,9 @@
 
 /* Cards */
 .gen-card-featured {
-  border-radius: 0;
+  border-radius: var(--radius-card);
   border: 1px solid color-mix(in srgb, hsl(var(--gen-accent)) 72%, white 28%);
-  background: linear-gradient(
-    145deg,
-    color-mix(in srgb, hsl(var(--gen-accent)) 88%, white 12%),
-    color-mix(in srgb, hsl(var(--gen-accent)) 68%, black 32%)
-  );
+  background: color-mix(in srgb, hsl(var(--gen-accent)) 82%, black 18%);
   box-shadow: 0 28px 64px -34px
     color-mix(in srgb, hsl(var(--gen-accent)) 45%, black 55%);
   color: hsl(var(--background));

@@ -32,13 +32,11 @@ export default function EditorialPoster({
   return (
     <article
       className={cn(
-        'relative overflow-hidden border border-[var(--gen-accent-border)] bg-[linear-gradient(160deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02)_45%,rgba(255,255,255,0.01))] p-8 sm:p-10 lg:p-12',
-        'shadow-[0_24px_80px_rgba(0,0,0,0.28)]',
+        'relative overflow-hidden rounded-card border border-[var(--gen-accent-border)] bg-white/[0.04] p-8 sm:p-10 lg:p-12',
         className,
       )}
       data-testid={testId}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,var(--gen-accent-glow),transparent_45%),linear-gradient(to_bottom,transparent,rgba(0,0,0,0.45))]" />
       <div className="pointer-events-none absolute inset-0 opacity-40 mix-blend-screen">
         <div className="absolute inset-y-0 left-[14%] w-px bg-[var(--gen-accent-border)]" />
         <div className="absolute inset-y-0 right-[18%] w-px bg-[var(--gen-accent-border)]" />

@@ -40,9 +40,10 @@ export const PLATFORM_TOKEN_COLORS = Object.fromEntries(
  * Use as a preset in each app's tailwind.config.ts:
  *   presets: [baseTailwindConfig]
  *
- * Design: subtle border radius (4px) on interactive elements.
- * Use `rounded-none` explicitly for sharp-edge layout containers.
- * `rounded-full` (9999px) preserved for intentionally circular elements.
+ * Radius is owned entirely by the v4 `@theme` block in
+ * packages/styles/globals.css (single source of truth, mirrors
+ * packages/ui/web-tokens.css). `rounded-none`/`rounded-full`/`rounded`
+ * fall back to Tailwind v4 built-ins. Do not redefine borderRadius here.
  */
 export const baseTailwindConfig: Config = {
   content: [
@@ -54,17 +55,6 @@ export const baseTailwindConfig: Config = {
     '../../../node_modules/@genfeedai/workflow-ui/dist/**/*.mjs',
   ],
   theme: {
-    borderRadius: {
-      '2xl': '0.75rem',
-      '3xl': '1rem',
-      DEFAULT: '0.25rem',
-      full: '9999px',
-      lg: '0.5rem',
-      md: '0.375rem',
-      none: '0',
-      sm: '0.25rem',
-      xl: '0.625rem',
-    },
     extend: {
       animation: {
         'collapsible-down': 'collapsible-down 200ms ease-out',

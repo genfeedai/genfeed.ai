@@ -1,3 +1,4 @@
+import { radiusTokens } from '@ui/core/radius';
 import { webviewSemanticTokenMap } from '@ui/semantic/webview';
 
 export function generateWebviewTokenCss(): string {
@@ -14,7 +15,7 @@ ${semanticLines.join('\n')}
     --badge: var(--vscode-badge-background);
     --badge-foreground: var(--vscode-badge-foreground);
     --container-padding: 12px;
-    --radius: 4px;
+    --radius: ${radiusTokens.sm};
     --space-md: 12px;
     --space-lg: 16px;
   }

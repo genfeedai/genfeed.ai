@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import React, { type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { colors } from '@/constants';
+import { borderRadius, colors } from '@/constants';
 
 interface ScreenErrorFallbackProps {
   onRetry: () => void;
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.transparent,
     borderColor: colors.bgTertiary,
-    borderRadius: 12,
+    borderRadius: borderRadius.xxl,
     borderWidth: 2,
     paddingVertical: 14,
   },
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   retryButton: {
     alignItems: 'center',
     backgroundColor: colors.indigo,
-    borderRadius: 12,
+    borderRadius: borderRadius.xxl,
     paddingVertical: 14,
   },
   retryButtonPressed: {

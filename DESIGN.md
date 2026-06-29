@@ -117,7 +117,7 @@ components:
   card:
     backgroundColor: "{colors.bg-secondary}"
     textColor: "{colors.text-primary}"
-    rounded: "{rounded.md}"
+    rounded: "{rounded.sm}"
     shadow: "inset 0 0 0 1px {colors.border}"
   dialog:
     backgroundColor: "{colors.bg-primary}"
@@ -163,7 +163,7 @@ components:
   stat-card:
     backgroundColor: "{colors.bg-secondary}"
     textColor: "{colors.text-primary}"
-    rounded: "{rounded.md}"
+    rounded: "{rounded.sm}"
   input:
     backgroundColor: "{colors.bg-tertiary}"
     textColor: "{colors.text-primary}"

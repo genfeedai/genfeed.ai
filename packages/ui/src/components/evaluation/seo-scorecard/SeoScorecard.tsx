@@ -197,7 +197,7 @@ export default function SeoScorecard({
       <Card
         label="SEO Scorecard"
         headerAction={headerAction}
-        className={cn('border border-white/[0.08] bg-card', className)}
+        className={className}
       >
         <div className="flex items-start gap-3">
           <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
