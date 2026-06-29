@@ -78,6 +78,7 @@ export * from './components/virtual-list.interface';
 export * from './content/account-publishing-context.interface';
 export * from './content/article.interface';
 export * from './content/article-extended.interface';
+export * from './content/clip-terminal-contract.interface';
 export * from './content/composer-content.interface';
 export * from './content/content-run.interface';
 export * from './content/content-run-service.contract';

@@ -1,8 +1,10 @@
+import { ClipProjectStatus } from '@api/collections/clip-projects/schemas/clip-project.schema';
 import { OrganizationalCreateDto } from '@api/shared/dto/base/base.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
+  IsIn,
   IsNumber,
   IsOptional,
   IsString,
@@ -110,8 +112,11 @@ export class CreateClipProjectDto extends OrganizationalCreateDto {
 
   @IsOptional()
   @IsString()
+  @IsIn([...ClipProjectStatus])
   @ApiProperty({
     description: 'Project processing status',
+    enum: ClipProjectStatus,
+    enumName: 'ClipProjectStatus',
     required: false,
   })
   readonly status?: string;
