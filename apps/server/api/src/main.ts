@@ -35,11 +35,7 @@ import {
 } from '@libs/redis/redis-connection.utils';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import {
-  DocumentBuilder,
-  type OpenAPIObject,
-  SwaggerModule,
-} from '@nestjs/swagger';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Queue } from 'bullmq';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
@@ -82,18 +78,10 @@ async function main() {
       .addServer('/v1')
       .build();
 
-    let document: OpenAPIObject | null = null;
-    try {
-      document = SwaggerModule.createDocument(app, options);
-    } catch (swaggerError) {
-      logger.error('Swagger document generation failed', swaggerError);
-    }
-
     const docsService = app.get(DocsService);
-    if (document) {
-      docsService.setOpenApiDocument(document);
-    }
-
+    docsService.setOpenApiDocumentFactory(() =>
+      SwaggerModule.createDocument(app, options),
+    );
     docsService.setGptActionsSpec(gptActionsSpec);
 
     app.enableCors(
