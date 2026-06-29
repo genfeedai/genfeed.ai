@@ -67,6 +67,7 @@ type InvitationWithOrganization = Invitation & {
 };
 
 type InvitationTransaction = Prisma.TransactionClient;
+type RoleAssignment = { roleId: string; roleKey: string };
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
@@ -142,7 +143,7 @@ export class InvitationService {
     input: CreateInvitationInput,
   ): Promise<InvitationView> {
     const email = normalizeEmail(input.email);
-    const roleId = await this.resolveRoleId(
+    const role = await this.resolveRoleAssignment(
       input.roleId,
       input.defaultRoleKey ?? 'member',
     );
@@ -165,7 +166,7 @@ export class InvitationService {
 
     const invitation = await this.prisma.$transaction(async (tx) => {
       await tx.invitation.updateMany({
-        data: { isDeleted: true, revokedAt: new Date() },
+        data: { isDeleted: true, revokedAt: new Date(), status: 'canceled' },
         where: {
           acceptedAt: null,
           email,
@@ -184,7 +185,9 @@ export class InvitationService {
           lastName: input.lastName,
           organizationId: input.organizationId,
           redirectUrl: input.redirectUrl,
-          roleId,
+          roleId: role.roleId,
+          roleKey: role.roleKey,
+          status: 'pending',
           tokenHash,
         },
       });
@@ -234,7 +237,7 @@ export class InvitationService {
     }
 
     const revoked = await this.prisma.invitation.update({
-      data: { isDeleted: true, revokedAt: new Date() },
+      data: { isDeleted: true, revokedAt: new Date(), status: 'canceled' },
       where: { id: invitation.id },
     });
 
@@ -293,7 +296,7 @@ export class InvitationService {
       this.assertInvitationAcceptable(invitation);
 
       const consumeResult = await tx.invitation.updateMany({
-        data: { acceptedAt: new Date() },
+        data: { acceptedAt: new Date(), status: 'accepted' },
         where: {
           acceptedAt: null,
           id: invitation.id,
@@ -341,28 +344,28 @@ export class InvitationService {
     return url.toString();
   }
 
-  private async resolveRoleId(
+  private async resolveRoleAssignment(
     roleId: string | undefined,
     defaultRoleKey: 'member' | 'user',
-  ): Promise<string> {
+  ): Promise<RoleAssignment> {
     if (roleId) {
       const role = await this.prisma.role.findFirst({
-        select: { id: true },
+        select: { id: true, key: true },
         where: { id: roleId, isDeleted: false },
       });
       if (!role) {
         throw new BadRequestException('Role not found');
       }
-      return role.id;
+      return { roleId: role.id, roleKey: role.key };
     }
 
     const role =
       (await this.prisma.role.findFirst({
-        select: { id: true },
+        select: { id: true, key: true },
         where: { isDeleted: false, key: defaultRoleKey },
       })) ??
       (await this.prisma.role.findFirst({
-        select: { id: true },
+        select: { id: true, key: true },
         where: { isDeleted: false, key: 'user' },
       }));
 
@@ -370,7 +373,7 @@ export class InvitationService {
       throw new BadRequestException('Default role not found');
     }
 
-    return role.id;
+    return { roleId: role.id, roleKey: role.key };
   }
 
   private async assertNoActiveMember(
@@ -499,6 +502,7 @@ export class InvitationService {
         data: {
           isActive: true,
           roleId: invitation.roleId,
+          roleKey: invitation.roleKey,
         },
         where: { id: existing.id },
       });
@@ -509,6 +513,7 @@ export class InvitationService {
         isActive: true,
         organizationId: invitation.organizationId,
         roleId: invitation.roleId,
+        roleKey: invitation.roleKey,
         userId,
       },
     });

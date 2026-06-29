@@ -1,6 +1,7 @@
 import type { RateLimit } from 'better-auth';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  buildBetterAuthOrganizationOptions,
   buildRateLimitStorage,
   resolveBetterAuthJwtAccess,
   resolveBetterAuthJwtIsSuperAdmin,
@@ -19,6 +20,9 @@ function createPrismaMock() {
       findFirst: vi.fn(),
     },
     organization: {
+      findFirst: vi.fn(),
+    },
+    role: {
       findFirst: vi.fn(),
     },
     user: {
@@ -214,6 +218,115 @@ describe('resolveBetterAuthJwtAccess', () => {
 
     expect(prisma.organization.findFirst).not.toHaveBeenCalled();
     expect(prisma.member.findFirst).not.toHaveBeenCalled();
+  });
+});
+
+describe('buildBetterAuthOrganizationOptions', () => {
+  it('maps Better Auth organization tables onto Genfeed ownership fields', () => {
+    const options = buildBetterAuthOrganizationOptions(
+      createPrismaMock() as unknown as PrismaForBetterAuth,
+    );
+
+    expect(options.creatorRole).toBe('admin');
+    expect(options.disableOrganizationDeletion).toBe(true);
+    expect(options.requireEmailVerificationOnInvitation).toBe(true);
+    expect(options.schema?.session?.fields?.activeOrganizationId).toBe(
+      'activeOrganizationId',
+    );
+    expect(options.schema?.organization?.modelName).toBe('organization');
+    expect(options.schema?.organization?.fields?.name).toBe('label');
+    expect(options.schema?.organization?.fields?.logo).toBe(
+      'authProviderLogoUrl',
+    );
+    expect(options.schema?.member?.modelName).toBe('member');
+    expect(options.schema?.member?.fields?.role).toBe('roleKey');
+    expect(options.schema?.member?.additionalFields?.roleId).toMatchObject({
+      references: { field: 'id', model: 'role' },
+      required: true,
+      type: 'string',
+    });
+    expect(options.schema?.invitation?.modelName).toBe('invitation');
+    expect(options.schema?.invitation?.fields?.role).toBe('roleKey');
+    expect(options.schema?.invitation?.fields?.status).toBe('status');
+  });
+
+  it('fills required Genfeed organization fields before plugin organization creation', async () => {
+    const options = buildBetterAuthOrganizationOptions(
+      createPrismaMock() as unknown as PrismaForBetterAuth,
+    );
+
+    const result = await options.organizationHooks?.beforeCreateOrganization?.({
+      organization: { name: 'Acme', slug: 'acme' },
+      user: { id: 'user_1' } as never,
+    });
+
+    expect(result).toEqual({
+      data: {
+        category: 'BUSINESS',
+        isDeleted: false,
+        isSelected: false,
+        name: 'Acme',
+        slug: 'acme',
+        userId: 'user_1',
+      },
+    });
+  });
+
+  it('resolves Better Auth string roles to Genfeed role ids before member writes', async () => {
+    const prisma = createPrismaMock();
+    prisma.role.findFirst.mockResolvedValueOnce({
+      id: 'role_admin',
+      key: 'admin',
+    });
+    const options = buildBetterAuthOrganizationOptions(
+      prisma as unknown as PrismaForBetterAuth,
+    );
+
+    const result = await options.organizationHooks?.beforeAddMember?.({
+      member: {
+        organizationId: 'org_1',
+        role: 'owner',
+        userId: 'user_1',
+      },
+      organization: { id: 'org_1' } as never,
+      user: { id: 'user_1' } as never,
+    });
+
+    expect(result).toEqual({
+      data: {
+        isActive: true,
+        isDeleted: false,
+        organizationId: 'org_1',
+        role: 'admin',
+        roleId: 'role_admin',
+        userId: 'user_1',
+      },
+    });
+    expect(prisma.role.findFirst).toHaveBeenCalledWith({
+      select: { id: true, key: true },
+      where: { isDeleted: false, key: 'admin' },
+    });
+  });
+
+  it('rejects Better Auth invitation creation because Genfeed owns invites', async () => {
+    const options = buildBetterAuthOrganizationOptions(
+      createPrismaMock() as unknown as PrismaForBetterAuth,
+    );
+
+    await expect(
+      options.organizationHooks?.beforeCreateInvitation?.({
+        invitation: {
+          email: 'user@example.com',
+          inviterId: 'user_1',
+          organizationId: 'org_1',
+          role: 'member',
+        },
+        inviter: { id: 'user_1' } as never,
+        organization: { id: 'org_1' } as never,
+      }),
+    ).rejects.toThrow(
+      'Genfeed InvitationService owns organization invitations',
+    );
   });
 });
 
