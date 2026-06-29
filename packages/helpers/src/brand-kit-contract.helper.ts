@@ -173,22 +173,40 @@ function readReferenceAssets(
   const references = brand.references ?? [];
   const referenceImages = brand.referenceImages ?? [];
   const values: IBrandKitAssetValue[] = [];
+  const seenUrls = new Set<string>();
 
   for (const reference of references) {
     const value = toAssetValue('reference', reference);
     if (value) {
+      if (value.url) {
+        if (seenUrls.has(value.url)) {
+          continue;
+        }
+        seenUrls.add(value.url);
+      }
       values.push(value);
     }
   }
 
   const primaryReference = toAssetValue('reference', brand.primaryReferenceUrl);
   if (primaryReference) {
-    values.push(primaryReference);
+    if (!primaryReference.url || !seenUrls.has(primaryReference.url)) {
+      if (primaryReference.url) {
+        seenUrls.add(primaryReference.url);
+      }
+      values.push(primaryReference);
+    }
   }
 
   for (const referenceImage of referenceImages) {
     const value = toAssetValue('reference', referenceImage);
     if (value) {
+      if (value.url) {
+        if (seenUrls.has(value.url)) {
+          continue;
+        }
+        seenUrls.add(value.url);
+      }
       values.push(value);
     }
   }

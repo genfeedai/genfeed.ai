@@ -168,12 +168,25 @@ export interface IBrandKitDraft {
   updatedAt?: string;
 }
 
-export interface IBrandKitApplyFieldDecision<TValue = unknown> {
-  action: BrandKitApplyAction;
+export interface IBrandKitApplyFieldDecisionAccept<TValue = unknown> {
+  action: 'accept';
   value?: TValue;
   assetCandidateId?: string;
   replaceExisting?: boolean;
 }
+
+export interface IBrandKitApplyFieldDecisionPreserve {
+  action: 'preserve';
+}
+
+export interface IBrandKitApplyFieldDecisionReject {
+  action: 'reject';
+}
+
+export type IBrandKitApplyFieldDecision<TValue = unknown> =
+  | IBrandKitApplyFieldDecisionAccept<TValue>
+  | IBrandKitApplyFieldDecisionPreserve
+  | IBrandKitApplyFieldDecisionReject;
 
 export interface IBrandKitApplyRequest {
   brandId: string;

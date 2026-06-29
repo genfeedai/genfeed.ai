@@ -177,6 +177,43 @@ describe('brand kit contract helpers', () => {
     expect(draft.readiness.missingFields).toHaveLength(9);
   });
 
+  it('deduplicates reference asset URLs across references, primaryReferenceUrl, and referenceImages', () => {
+    const sharedUrl = 'https://cdn.example.com/shared.png';
+    const draft = buildBrandKitDraftFromBrand({
+      id: 'brand-dedup',
+      primaryReferenceUrl: sharedUrl,
+      referenceImages: [sharedUrl, 'https://cdn.example.com/unique.png'],
+      references: [{ id: 'ref-1', url: sharedUrl }],
+    });
+
+    const references = draft.fields.references?.currentValue as
+      | IBrandKitAssetValue[]
+      | undefined;
+    const urls = references?.map((r) => r.url);
+    const uniqueUrls = [...new Set(urls)];
+    expect(urls).toHaveLength(uniqueUrls.length);
+    expect(references?.some((r) => r.url === sharedUrl)).toBe(true);
+    expect(
+      references?.some((r) => r.url === 'https://cdn.example.com/unique.png'),
+    ).toBe(true);
+  });
+
+  it('preserves primaryReferenceUrl as a reference asset when not already in references[]', () => {
+    const draft = buildBrandKitDraftFromBrand({
+      id: 'brand-primary-ref',
+      primaryReferenceUrl: 'https://cdn.example.com/primary.png',
+      references: [{ id: 'ref-1', url: 'https://cdn.example.com/other.png' }],
+    });
+
+    const references = draft.fields.references?.currentValue as
+      | IBrandKitAssetValue[]
+      | undefined;
+    expect(references).toHaveLength(2);
+    expect(
+      references?.some((r) => r.url === 'https://cdn.example.com/primary.png'),
+    ).toBe(true);
+  });
+
   it('carries blocking diagnostics into the draft readiness state', () => {
     const draft = buildBrandKitDraftFromBrand(createCompleteBrand(), {
       diagnostics: [
