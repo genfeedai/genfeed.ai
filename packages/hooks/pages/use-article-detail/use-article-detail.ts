@@ -21,6 +21,7 @@ export interface UseArticleDetailReturn {
   isLoading: boolean;
   isSaving: boolean;
   isEnhancing: boolean;
+  isScoringSeo: boolean;
   isDirty: boolean;
   error: string | null;
   form: ArticleFormState;
@@ -33,6 +34,7 @@ export interface UseArticleDetailReturn {
   handleArchive: () => Promise<void>;
   handleDelete: () => Promise<void>;
   handleEnhance: (prompt: string) => Promise<void>;
+  handleScoreSeo: () => Promise<void>;
   pathname: string;
   notificationsService: NotificationsService;
   getArticlesService: () => Promise<ArticlesService>;
@@ -76,6 +78,7 @@ export function useArticleDetail({
   const [isLoading, setIsLoading] = useState(!!articleId);
   const [isSaving, setIsSaving] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
+  const [isScoringSeo, setIsScoringSeo] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const initialFormRef = useRef<ArticleFormState>(DEFAULT_FORM_STATE);
@@ -281,6 +284,32 @@ export function useArticleDetail({
     [resolvedId, isEnhancing, getArticlesService, notificationsService, form],
   );
 
+  const handleScoreSeo = useCallback(async () => {
+    if (!resolvedId || isScoringSeo || isDirty) {
+      return;
+    }
+
+    setIsScoringSeo(true);
+
+    try {
+      const service = await getArticlesService();
+      const updated = await service.scoreSeo(resolvedId);
+      setArticle(updated);
+      notificationsService.success('SEO score updated');
+    } catch (err) {
+      logger.error('Failed to score article SEO', err);
+      notificationsService.error('Failed to score SEO');
+    } finally {
+      setIsScoringSeo(false);
+    }
+  }, [
+    resolvedId,
+    isScoringSeo,
+    isDirty,
+    getArticlesService,
+    notificationsService,
+  ]);
+
   return {
     article,
     error,
@@ -291,9 +320,11 @@ export function useArticleDetail({
     handleEnhance,
     handlePublish,
     handleSave,
+    handleScoreSeo,
     isDirty,
     isEnhancing,
     isLoading,
+    isScoringSeo,
     isSaving,
     notificationsService,
     pathname,

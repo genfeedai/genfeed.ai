@@ -25,9 +25,12 @@ export interface PostDetailSidebarProps {
   scheduleDraft: string;
   isSavingSchedule: boolean;
   isScheduleDirty: boolean;
+  isScoringSeo?: boolean;
+  isSeoDirty?: boolean;
   analyticsStats: AnalyticsStat[];
   reviewSummary?: PostReviewSummary;
   onScheduleChange: (value: string) => void;
   onScheduleSave: () => void;
+  onScoreSeo?: () => void | Promise<void>;
   className?: string;
 }

@@ -3,6 +3,36 @@ import { Post } from '@genfeedai/models/content/post.model';
 import { PostSerializer } from '@genfeedai/serializers';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@genfeedai/pricing', () => ({
+  AVATAR_CREDIT_COSTS: {},
+  BYOK_CREDIT_VALUE_DOLLARS: 0.01,
+  BYOK_FEE_PERCENTAGE: 0,
+  BYOK_FEE_PER_CREDIT: 0,
+  BYOK_FREE_THRESHOLD_CREDITS: 0,
+  INTERNAL_CREDIT_COSTS: {},
+  PAYG_CREDIT_PACKS: [],
+  TRAINING_PACKAGES: [],
+  VIDEO_CREDIT_COSTS: {},
+  WEBSITE_CREDIT_PACKS: [],
+  applyMargin: (value: number) => value,
+  contentServiceOffering: {},
+  creatorPlan: {},
+  creditPackPrice: () => 0,
+  creditPackTotalCredits: () => 0,
+  creditsToOutputEstimate: () => '',
+  dedicatedServerPlan: {},
+  formatOutputs: () => '',
+  formatPrice: () => '',
+  getCloudTeamsPlan: () => null,
+  getCreatorPlan: () => null,
+  getEnterprisePlan: () => null,
+  getHostedPlan: () => null,
+  getPlanByLabel: () => null,
+  getProPlan: () => null,
+  getScalePlan: () => null,
+  websitePlans: [],
+}));
+
 // Mock EnvironmentService
 vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: {
@@ -54,14 +84,16 @@ vi.mock('@services/core/base.service', () => {
       return new ServiceClass(token);
     }
 
-    protected async mapOne(data: any): Promise<Post> {
-      return new Post(data.data || data);
+    protected async mapOne(data: unknown): Promise<Post> {
+      const payload = data as { data?: unknown };
+      return new Post((payload.data ?? data) as Partial<Post>);
     }
 
-    protected async mapMany(data: any): Promise<Post[]> {
-      const items = data.data || data;
+    protected async mapMany(data: unknown): Promise<Post[]> {
+      const payload = data as { data?: unknown };
+      const items = payload.data ?? data;
       return Array.isArray(items)
-        ? items.map((item: any) => new Post(item))
+        ? items.map((item) => new Post(item as Partial<Post>))
         : [];
     }
   }
@@ -107,11 +139,13 @@ describe('PostsService', () => {
 
   describe('constructor', () => {
     it('should initialize with correct endpoint', () => {
-      expect((service as any).endpoint).toBe(API_ENDPOINTS.POSTS);
+      expect((service as unknown as { endpoint: string }).endpoint).toBe(
+        API_ENDPOINTS.POSTS,
+      );
     });
 
     it('should initialize with provided token', () => {
-      expect((service as any).token).toBe(mockToken);
+      expect((service as unknown as { token: string }).token).toBe(mockToken);
     });
   });
 
@@ -169,6 +203,21 @@ describe('PostsService', () => {
           },
         );
       }
+    });
+  });
+
+  describe('scoreSeo', () => {
+    it('should score post SEO with an optional target keyword', async () => {
+      mockInstance.post.mockResolvedValue({ data: mockPostData });
+
+      const result = await service.scoreSeo('post-123', {
+        targetKeyword: 'workflow automation',
+      });
+
+      expect(mockInstance.post).toHaveBeenCalledWith('/post-123/seo-scores', {
+        targetKeyword: 'workflow automation',
+      });
+      expect(result).toBeInstanceOf(Post);
     });
   });
 

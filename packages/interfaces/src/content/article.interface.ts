@@ -12,6 +12,7 @@ import type {
   ITag,
   IUser,
 } from '../index';
+import type { SeoScorecardSnapshot } from './seo-scorecard.interface';
 import type { IXArticleMetadata } from './x-article-metadata.interface';
 
 export interface IArticle extends IBaseEntity {
@@ -34,6 +35,8 @@ export interface IArticle extends IBaseEntity {
   generationPrompt?: string;
   bannerUrl?: string;
   evaluation?: IEvaluation | null;
+  seoScore?: number | null;
+  seoBreakdown?: SeoScorecardSnapshot | null;
   xArticleMetadata?: IXArticleMetadata;
 }
 

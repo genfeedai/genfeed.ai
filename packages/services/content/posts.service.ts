@@ -1,6 +1,7 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type {
   AccountPublishingContext,
+  ScoreSeoRequest,
   SocialGenerationFormat,
 } from '@genfeedai/interfaces';
 import { Post } from '@genfeedai/models/content/post.model';
@@ -70,6 +71,14 @@ export class PostsService extends BaseService<Post> {
     const response = await this.instance.post<JsonApiResponseDocument>(
       `/${id}/enhancements`,
       { prompt, tone },
+    );
+    return this.mapOne(response.data);
+  }
+
+  public async scoreSeo(id: string, data: ScoreSeoRequest = {}): Promise<Post> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/${id}/seo-scores`,
+      data,
     );
     return this.mapOne(response.data);
   }

@@ -14,6 +14,7 @@ export * from './post-quick-action.interface';
 export * from './prompt.interface';
 export * from './prompts-content.interface';
 export * from './publication-card.interface';
+export * from './seo-scorecard.interface';
 export * from './studio-edit-detail.interface';
 export * from './tag.interface';
 export * from './template.interface';

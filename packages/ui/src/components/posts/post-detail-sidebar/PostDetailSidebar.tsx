@@ -12,6 +12,7 @@ import {
 } from '@genfeedai/utils/media/ingredient-type.util';
 import Card from '@ui/card/Card';
 import EvaluationCard from '@ui/evaluation/card/EvaluationCard';
+import SeoScorecard from '@ui/evaluation/seo-scorecard/SeoScorecard';
 import {
   LazyMasonryImage,
   LazyMasonryVideo,
@@ -29,10 +30,13 @@ export default function PostDetailSidebar({
   scheduleDraft,
   isSavingSchedule,
   isScheduleDirty,
+  isScoringSeo = false,
+  isSeoDirty = false,
   analyticsStats,
   reviewSummary,
   onScheduleChange,
   onScheduleSave,
+  onScoreSeo,
   className = '',
 }: PostDetailSidebarProps) {
   // Get browser timezone for consistent date display
@@ -102,6 +106,15 @@ export default function PostDetailSidebar({
         onEvaluate={async () => {
           await evaluate();
         }}
+      />
+
+      <SeoScorecard
+        score={post.seoScore}
+        scorecard={post.seoBreakdown}
+        contentTypeLabel="post"
+        isScoring={isScoringSeo}
+        hasUnsavedChanges={isSeoDirty}
+        onScore={onScoreSeo}
       />
 
       {isPublished && post.ingredients?.length > 0 && (

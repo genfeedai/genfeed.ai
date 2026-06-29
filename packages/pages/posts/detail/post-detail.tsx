@@ -16,7 +16,7 @@ import Breadcrumb from '@ui/navigation/breadcrumb/Breadcrumb';
 import EngagementPreview from '@ui/posts/engagement-preview/EngagementPreview';
 import PostDetailSidebar from '@ui/posts/post-detail-sidebar/PostDetailSidebar';
 import { useRouter } from 'next/navigation';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 
 export interface PostDetailProps {
   postId: string;
@@ -47,7 +47,6 @@ export default function PostDetail({
     childDescriptions,
     scheduleDraft,
     selectedIngredients,
-    isUpdating,
     isSavingDescription,
     isSavingSchedule,
     isSavingIngredients,
@@ -56,7 +55,6 @@ export default function PostDetail({
     isTogglingGrok,
     isTogglingFirstComment,
     isExpandingToThread,
-    isEditable,
     isPublished,
     analyticsStats,
     carouselValidation,
@@ -98,8 +96,10 @@ export default function PostDetail({
     performAutoSaveForPost,
     getPostsService,
     notificationsService,
+    refreshPost,
     pathname,
   } = hookData;
+  const [isScoringSeo, setIsScoringSeo] = useState(false);
   const reviewSummary: PostReviewSummary | undefined = post
     ? {
         generationId: (post as { generationId?: string }).generationId,
@@ -175,6 +175,32 @@ export default function PostDetail({
       notificationsService.error('Failed to duplicate post');
     }
   }, [post, getPostsService, notificationsService, router, href]);
+
+  const handleScoreSeo = useCallback(async () => {
+    if (!post || isScoringSeo || isContentDirty) {
+      return;
+    }
+
+    setIsScoringSeo(true);
+
+    try {
+      const service = await getPostsService();
+      await service.scoreSeo(post.id);
+      await refreshPost(true);
+      notificationsService.success('SEO score updated');
+    } catch {
+      notificationsService.error('Failed to score SEO');
+    } finally {
+      setIsScoringSeo(false);
+    }
+  }, [
+    post,
+    isScoringSeo,
+    isContentDirty,
+    getPostsService,
+    refreshPost,
+    notificationsService,
+  ]);
 
   const isPagePresentation = presentation === 'page';
   const wrapperClassName = isPagePresentation ? 'container mx-auto p-6' : '';
@@ -311,10 +337,13 @@ export default function PostDetail({
             scheduleDraft={scheduleDraft}
             isSavingSchedule={isSavingSchedule}
             isScheduleDirty={isScheduleDirty}
+            isScoringSeo={isScoringSeo}
+            isSeoDirty={isContentDirty}
             analyticsStats={analyticsStats}
             reviewSummary={reviewSummary}
             onScheduleChange={(value) => setScheduleDraft(value)}
             onScheduleSave={handleScheduleSave}
+            onScoreSeo={handleScoreSeo}
           />
 
           {/* Engagement Preview - shown for unpublished posts */}

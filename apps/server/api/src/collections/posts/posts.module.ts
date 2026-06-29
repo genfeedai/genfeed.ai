@@ -26,6 +26,7 @@ import { ReplicateModule } from '@api/services/integrations/replicate/replicate.
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
 import { QuotaModule } from '@api/services/quota/quota.module';
+import { SeoModule } from '@api/services/seo/seo.module';
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
@@ -47,6 +48,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => PromptBuilderModule),
     forwardRef(() => QuotaModule),
     forwardRef(() => ReplicateModule),
+    forwardRef(() => SeoModule),
     forwardRef(() => TemplatesModule),
     forwardRef(() => TrendsModule),
   ],
