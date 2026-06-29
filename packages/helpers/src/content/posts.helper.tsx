@@ -28,9 +28,42 @@ import {
 } from 'react-icons/fa6';
 import { HiNewspaper, HiSquares2X2 } from 'react-icons/hi2';
 
-export const POST_PLATFORMS = ['all', ...Object.values(Platform)] as const;
+export const POST_PLATFORM_VALUES = [
+  Platform.YOUTUBE,
+  Platform.INSTAGRAM,
+  Platform.TWITTER,
+  Platform.TIKTOK,
+  Platform.FACEBOOK,
+  Platform.LINKEDIN,
+  Platform.PINTEREST,
+  Platform.REDDIT,
+  Platform.DISCORD,
+  Platform.TELEGRAM,
+  Platform.TWITCH,
+  Platform.MEDIUM,
+  Platform.THREADS,
+  Platform.FANVUE,
+  Platform.SLACK,
+  Platform.WORDPRESS,
+  Platform.SNAPCHAT,
+  Platform.WHATSAPP,
+  Platform.MASTODON,
+  Platform.GHOST,
+  Platform.SHOPIFY,
+  Platform.BEEHIIV,
+  Platform.UNIPILE,
+  Platform.GOOGLE_ADS,
+] as const;
 
-export type PostsPlatform = 'all' | Platform;
+export type PostPlatform = (typeof POST_PLATFORM_VALUES)[number];
+
+export const POST_PLATFORMS = ['all', ...POST_PLATFORM_VALUES] as const;
+
+export type PostsPlatform = 'all' | PostPlatform;
+
+export function isPostPlatform(platform: Platform): platform is PostPlatform {
+  return (POST_PLATFORM_VALUES as readonly Platform[]).includes(platform);
+}
 
 export const PLATFORM_LABEL_MAP: Record<PostsPlatform, string> = {
   all: 'All',
@@ -70,12 +103,19 @@ export function normalizePostsPlatform(value?: string): PostsPlatform {
     return 'all';
   }
 
-  const platformValues = Object.values(Platform) as string[];
-  return platformValues.includes(normalized) ? (normalized as Platform) : 'all';
+  return isPostPlatform(normalized as Platform)
+    ? (normalized as PostPlatform)
+    : 'all';
 }
 
-export function getPostsPlatformLabel(platform: PostsPlatform): string {
-  return PLATFORM_LABEL_MAP[platform];
+export function getPostsPlatformLabel(
+  platform: PostsPlatform | Platform,
+): string {
+  if (platform === 'all' || isPostPlatform(platform)) {
+    return PLATFORM_LABEL_MAP[platform];
+  }
+
+  return 'Post';
 }
 
 const PUBLISHER_POST_STATUSES = [
@@ -184,7 +224,7 @@ export function getPostStatusOptions(
 }
 
 const PLATFORM_ICON_MAP: Record<
-  'all' | Platform,
+  PostsPlatform,
   ComponentType<{ className?: string }>
 > = {
   all: HiSquares2X2,
@@ -215,7 +255,7 @@ const PLATFORM_ICON_MAP: Record<
 };
 
 export function getPostPlatformTabs(
-  platforms: Platform[] = [
+  platforms: PostPlatform[] = [
     Platform.YOUTUBE,
     Platform.INSTAGRAM,
     Platform.TWITTER,

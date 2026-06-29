@@ -2,6 +2,7 @@ import type { CredentialPlatform } from '@genfeedai/enums';
 
 export type IntegrationProviderKey =
   | 'google_ads'
+  | 'google_search_console'
   | 'linkedin'
   | 'meta_ads'
   | 'twitter'

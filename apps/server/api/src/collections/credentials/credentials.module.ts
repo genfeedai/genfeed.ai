@@ -10,6 +10,7 @@ import { OrganizationsModule } from '@api/collections/organizations/organization
 import { TagsModule } from '@api/collections/tags/tags.module';
 import { FacebookModule } from '@api/services/integrations/facebook/facebook.module';
 import { GoogleAdsModule } from '@api/services/integrations/google-ads/google-ads.module';
+import { GoogleSearchConsoleModule } from '@api/services/integrations/google-search-console/google-search-console.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { LinkedInModule } from '@api/services/integrations/linkedin/linkedin.module';
 import { PinterestModule } from '@api/services/integrations/pinterest/pinterest.module';
@@ -28,6 +29,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => CredentialsCoreModule),
     forwardRef(() => FacebookModule),
     forwardRef(() => GoogleAdsModule),
+    forwardRef(() => GoogleSearchConsoleModule),
     forwardRef(() => InstagramModule),
     forwardRef(() => LinkedInModule),
     forwardRef(() => OrganizationsModule),

@@ -1,7 +1,12 @@
 'use client';
 
 import { ButtonSize, ButtonVariant, Platform } from '@genfeedai/enums';
-import { PLATFORM_LABEL_MAP } from '@genfeedai/helpers/content/posts.helper';
+import {
+  getPostsPlatformLabel,
+  isPostPlatform,
+  PLATFORM_LABEL_MAP,
+  type PostPlatform,
+} from '@genfeedai/helpers/content/posts.helper';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { getPlatformIcon } from '@genfeedai/helpers/ui/platform-icon/platform-icon.helper';
 import type { PromptBarContentProps } from '@genfeedai/props/prompt-bars/prompt-bar-content.props';
@@ -42,7 +47,7 @@ const DEFAULT_PLATFORMS = [
   Platform.INSTAGRAM,
   Platform.TWITTER,
   Platform.TIKTOK,
-];
+] satisfies PostPlatform[];
 
 const CONTROL_CLASS =
   'h-9 px-3 gap-2 text-sm flex-shrink-0 !border-white/10 !bg-white/[0.03] text-white/80 hover:!bg-white/[0.06] hover:text-white';
@@ -51,7 +56,7 @@ const COLLAPSE_BUTTON_CLASS =
 
 type PlatformOption = {
   icon: ReactNode;
-  key: Platform;
+  key: PostPlatform;
   label: string;
 };
 
@@ -112,11 +117,13 @@ function usePromptBarPostController({
 
   const platformOptions = useMemo<PlatformOption[]>(
     () =>
-      availablePlatforms.map((currentPlatform: Platform) => ({
-        icon: getPlatformIcon(currentPlatform),
-        key: currentPlatform,
-        label: PLATFORM_LABEL_MAP[currentPlatform],
-      })),
+      availablePlatforms
+        .filter(isPostPlatform)
+        .map((currentPlatform: PostPlatform) => ({
+          icon: getPlatformIcon(currentPlatform),
+          key: currentPlatform,
+          label: PLATFORM_LABEL_MAP[currentPlatform],
+        })),
     [availablePlatforms],
   );
 
@@ -125,7 +132,7 @@ function usePromptBarPostController({
       return 'Describe how you want to enhance your post…';
     }
 
-    const platformPlaceholders: Record<Platform | 'all', string> = {
+    const platformPlaceholders: Record<PostPlatform | 'all', string> = {
       all: 'e.g., AI productivity tips, startup advice, tech trends…',
       [Platform.TWITTER]:
         'e.g., viral tweet ideas, trending topics, quick tips…',
@@ -172,10 +179,9 @@ function usePromptBarPostController({
         'e.g., ad copy, campaign ideas, keyword strategies…',
     };
 
-    return (
-      platformPlaceholders[platform as Platform | 'all'] ||
-      platformPlaceholders.all
-    );
+    return platform !== 'all' && isPostPlatform(platform)
+      ? platformPlaceholders[platform]
+      : platformPlaceholders.all;
   }, [platform, showCountDropdown]);
 
   const selectedPresetKey = presets.some(
@@ -206,8 +212,10 @@ function usePromptBarPostController({
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (prompt.trim() && !isEnhancing) {
+      // Only forward an actual post-capable platform; non-posting platforms
+      // (e.g. Google Search Console) are treated as no specific platform.
       const selectedPlatform =
-        platform === 'all' ? undefined : (platform as Platform);
+        platform !== 'all' && isPostPlatform(platform) ? platform : undefined;
 
       await onSubmit(
         prompt.trim(),
@@ -401,7 +409,7 @@ function PromptBarPostExpandedView({
                   getPlatformIcon(platform as Platform)
                 )
               }
-              label={PLATFORM_LABEL_MAP[platform as Platform]}
+              label={getPostsPlatformLabel(platform)}
               isFullWidth={false}
               dropdownDirection="up"
               className={CONTROL_CLASS}

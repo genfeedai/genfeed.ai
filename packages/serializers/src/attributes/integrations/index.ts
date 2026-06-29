@@ -1,3 +1,4 @@
+export * from '@serializers/attributes/integrations/google-search-console.attributes';
 export * from '@serializers/attributes/integrations/heygen.attributes';
 export * from '@serializers/attributes/integrations/org-integration.attributes';
 export * from '@serializers/attributes/integrations/service.attributes';
