@@ -149,9 +149,13 @@ describe('GoogleSearchConsoleController', () => {
   });
 
   it('verifies OAuth and stores the primary Search Console property', async () => {
-    const result = await controller.verify(request, {
+    const result = await controller.verify(request, user, {
       code: 'auth-code',
-      state: JSON.stringify({ brandId: 'brand-id', organizationId: 'org-id' }),
+      state: JSON.stringify({
+        brandId: 'brand-id',
+        organizationId: 'org-id',
+        userId: 'user-id',
+      }),
     });
 
     expect(oauthService.exchangeAuthCodeForAccessToken).toHaveBeenCalledWith(
@@ -173,7 +177,35 @@ describe('GoogleSearchConsoleController', () => {
 
   it('throws when verify payload is missing OAuth parameters', async () => {
     await expect(
-      controller.verify(request, { code: 'auth-code' }),
+      controller.verify(request, user, { code: 'auth-code' }),
+    ).rejects.toBeInstanceOf(HttpException);
+  });
+
+  it('throws Forbidden when state userId does not match the authenticated user', async () => {
+    await expect(
+      controller.verify(request, user, {
+        code: 'auth-code',
+        state: JSON.stringify({
+          brandId: 'brand-id',
+          organizationId: 'org-id',
+          userId: 'different-user-id',
+        }),
+      }),
+    ).rejects.toBeInstanceOf(HttpException);
+
+    expect(credentialsService.findOne).not.toHaveBeenCalled();
+    expect(oauthService.exchangeAuthCodeForAccessToken).not.toHaveBeenCalled();
+  });
+
+  it('throws when state is missing userId', async () => {
+    await expect(
+      controller.verify(request, user, {
+        code: 'auth-code',
+        state: JSON.stringify({
+          brandId: 'brand-id',
+          organizationId: 'org-id',
+        }),
+      }),
     ).rejects.toBeInstanceOf(HttpException);
   });
 
@@ -181,11 +213,12 @@ describe('GoogleSearchConsoleController', () => {
     gscService.listSites.mockResolvedValueOnce([]);
 
     await expect(
-      controller.verify(request, {
+      controller.verify(request, user, {
         code: 'auth-code',
         state: JSON.stringify({
           brandId: 'brand-id',
           organizationId: 'org-id',
+          userId: 'user-id',
         }),
       }),
     ).rejects.toBeInstanceOf(BadRequestException);

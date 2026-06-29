@@ -67,7 +67,12 @@ export class GoogleSearchConsoleService {
         siteUrl: site.siteUrl ?? '',
       }));
     } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
+      const status = (error as { response?: { status?: number } })?.response
+        ?.status;
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.loggerService.error(
+        `${caller} failed: ${message}${status ? ` (HTTP ${status})` : ''}`,
+      );
       throw error;
     }
   }
@@ -111,7 +116,12 @@ export class GoogleSearchConsoleService {
         startDate: params.startDate,
       };
     } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
+      const status = (error as { response?: { status?: number } })?.response
+        ?.status;
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.loggerService.error(
+        `${caller} failed: ${message}${status ? ` (HTTP ${status})` : ''}`,
+      );
       throw error;
     }
   }

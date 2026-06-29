@@ -73,7 +73,12 @@ export class GoogleSearchConsoleOAuthService {
         tokenType: response.data.token_type,
       };
     } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
+      const status = (error as { response?: { status?: number } })?.response
+        ?.status;
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.loggerService.error(
+        `${caller} failed: ${message}${status ? ` (HTTP ${status})` : ''}`,
+      );
       throw error;
     }
   }
@@ -106,7 +111,12 @@ export class GoogleSearchConsoleOAuthService {
         tokenType: response.data.token_type,
       };
     } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
+      const status = (error as { response?: { status?: number } })?.response
+        ?.status;
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.loggerService.error(
+        `${caller} failed: ${message}${status ? ` (HTTP ${status})` : ''}`,
+      );
       throw error;
     }
   }

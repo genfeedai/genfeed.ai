@@ -105,6 +105,7 @@ export class GoogleSearchConsoleController {
   @Post('verify')
   async verify(
     @Req() request: Request,
+    @CurrentUser() user: User,
     @Body() body: Partial<CreateCredentialVerifyDto>,
   ) {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
@@ -120,12 +121,25 @@ export class GoogleSearchConsoleController {
       );
     }
 
-    const { brandId, organizationId } = this.parseState(body.state);
+    const { brandId, organizationId, userId } = this.parseState(body.state);
+    const publicMetadata = getPublicMetadata(user);
+
+    if (userId !== publicMetadata.user) {
+      throw new HttpException(
+        {
+          detail: 'OAuth state does not match the authenticated user',
+          title: 'Forbidden',
+        },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
     const credential = await this.credentialsService.findOne({
       brand: brandId,
       isDeleted: false,
       organization: organizationId,
       platform: CredentialPlatform.GOOGLE_SEARCH_CONSOLE,
+      user: publicMetadata.user,
     });
 
     if (!credential) {
@@ -232,16 +246,19 @@ export class GoogleSearchConsoleController {
   private parseState(state: string): {
     brandId: string;
     organizationId: string;
+    userId: string;
   } {
     try {
       const parsed = JSON.parse(state) as {
         brandId?: unknown;
         organizationId?: unknown;
+        userId?: unknown;
       };
 
       if (
         typeof parsed.brandId !== 'string' ||
-        typeof parsed.organizationId !== 'string'
+        typeof parsed.organizationId !== 'string' ||
+        typeof parsed.userId !== 'string'
       ) {
         throw new Error('Missing identifiers');
       }
@@ -249,6 +266,7 @@ export class GoogleSearchConsoleController {
       return {
         brandId: parsed.brandId,
         organizationId: parsed.organizationId,
+        userId: parsed.userId,
       };
     } catch {
       throw new HttpException(

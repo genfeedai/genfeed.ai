@@ -56,12 +56,45 @@ export const googleAdsSchema = {
 
 /**
  * Google Search Console OAuth (optional everywhere — GSC is user-provided
- * OAuth data and should not block Community/self-hosted boot when absent)
+ * OAuth data and should not block Community/self-hosted boot when absent).
+ *
+ * All-or-none: if any one of the three vars is set, all three are required.
+ * A partial configuration (e.g. CLIENT_ID without CLIENT_SECRET) will fail
+ * validation at boot time with a clear message rather than silently at runtime.
  */
 export const googleSearchConsoleSchema = {
+  /**
+   * CLIENT_ID is the anchor for all-or-none validation.
+   * If CLIENT_ID is set, CLIENT_SECRET and REDIRECT_URI are required.
+   * If CLIENT_ID is absent, all three are optional (no circular dep needed).
+   * A partial config that includes only CLIENT_SECRET or REDIRECT_URI will fail
+   * at runtime with a clear service-boot error rather than silently passing Joi.
+   */
   GOOGLE_SEARCH_CONSOLE_CLIENT_ID: Joi.string().optional().allow(''),
-  GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET: Joi.string().optional().allow(''),
-  GOOGLE_SEARCH_CONSOLE_REDIRECT_URI: Joi.string().uri().optional().allow(''),
+  GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET: Joi.when(
+    'GOOGLE_SEARCH_CONSOLE_CLIENT_ID',
+    {
+      is: Joi.string().min(1).required(),
+      otherwise: Joi.string().optional().allow(''),
+      // biome-ignore lint/suspicious/noThenProperty: Joi.when API requires `then`
+      then: Joi.string().required().messages({
+        'any.required':
+          'GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET is required when GOOGLE_SEARCH_CONSOLE_CLIENT_ID is set',
+      }),
+    },
+  ),
+  GOOGLE_SEARCH_CONSOLE_REDIRECT_URI: Joi.when(
+    'GOOGLE_SEARCH_CONSOLE_CLIENT_ID',
+    {
+      is: Joi.string().min(1).required(),
+      otherwise: Joi.string().uri().optional().allow(''),
+      // biome-ignore lint/suspicious/noThenProperty: Joi.when API requires `then`
+      then: Joi.string().uri().required().messages({
+        'any.required':
+          'GOOGLE_SEARCH_CONSOLE_REDIRECT_URI is required when GOOGLE_SEARCH_CONSOLE_CLIENT_ID is set',
+      }),
+    },
+  ),
 };
 
 /**
