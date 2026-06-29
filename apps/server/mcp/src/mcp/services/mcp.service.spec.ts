@@ -12,8 +12,13 @@ describe('MCPService', () => {
     service = module.get<MCPService>(MCPService);
   });
 
+  beforeEach(() => {
+    vi.stubEnv('GENFEED_MCP_RESOURCE_URL', '');
+  });
+
   afterEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it('should be defined', () => {

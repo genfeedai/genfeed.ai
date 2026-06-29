@@ -17,6 +17,17 @@ describe('MCP setup page', () => {
     expect(html).not.toContain('http://localhost:3014');
   });
 
+  it('uses shared static UI surface primitives instead of local card CSS', () => {
+    const html = renderSetupPage();
+
+    expect(html).toContain('gf-card mcp-hero-card');
+    expect(html).toContain('gf-button gf-button-primary');
+    expect(html).toContain('gf-code-block command');
+    expect(html).not.toContain('class="poster"');
+    expect(html).not.toContain('class="client-shell"');
+    expect(html).not.toContain('class="meta-card"');
+  });
+
   it('escapes an overridden endpoint before rendering it into HTML', () => {
     vi.stubEnv(
       'GENFEED_MCP_RESOURCE_URL',

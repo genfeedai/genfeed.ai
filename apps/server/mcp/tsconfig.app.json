@@ -7,8 +7,10 @@
     "moduleResolution": "node16",
     "outDir": "../dist/apps/mcp",
     "paths": {
+      "@genfeedai/ui/*": ["../../../packages/ui/src/*"],
       "@libs/*": ["../../../packages/libs/*"],
-      "@mcp/*": ["./src/*"]
+      "@mcp/*": ["./src/*"],
+      "@ui/*": ["../../../packages/ui/src/*"]
     },
     "resolveJsonModule": true
   },

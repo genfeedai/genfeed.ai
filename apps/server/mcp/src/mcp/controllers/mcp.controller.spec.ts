@@ -115,8 +115,13 @@ describe('McpController', () => {
     controller = module.get<McpController>(McpController);
   });
 
+  beforeEach(() => {
+    vi.stubEnv('GENFEED_MCP_RESOURCE_URL', '');
+  });
+
   afterEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it('should be defined', () => {

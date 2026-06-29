@@ -71,6 +71,13 @@ export class McpController {
   getManifest() {
     return {
       ...appMetadata,
+      mcp: {
+        ...appMetadata.mcp,
+        server: {
+          ...appMetadata.mcp.server,
+          url: getPublicMcpUrl(),
+        },
+      },
       mcp_version: '1.18.1',
       server_running: this.serverService.isServerRunning(),
       server_version: '1.0.0',

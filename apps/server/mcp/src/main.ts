@@ -8,7 +8,7 @@ import { getGenfeedCorsOptions } from '@libs/config/cors.config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { AppModule } from '@mcp/app.module';
 import { ConfigService } from '@mcp/config/config.service';
-import { renderSetupPage } from '@mcp/mcp/setup-page';
+import { getPublicMcpUrl, renderSetupPage } from '@mcp/mcp/setup-page';
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import { ServerService } from '@mcp/services/server.service';
 import { StreamableHttpService } from '@mcp/services/streamable-http.service';
@@ -147,7 +147,7 @@ async function main(): Promise<void> {
       const preferred = req.accepts(['html', 'json']);
       if (preferred === 'json') {
         res.json({
-          endpoint: '/mcp',
+          endpoint: getPublicMcpUrl(),
           service: 'mcp',
           status: 'healthy',
           transport: 'streamable-http',

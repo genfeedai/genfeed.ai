@@ -1,5 +1,10 @@
 import process from 'node:process';
 
+import {
+  staticSurfaceClassNames,
+  staticSurfaceCss,
+} from '@genfeedai/ui/static/surface';
+
 const DEFAULT_APP_URL = 'https://app.genfeed.ai';
 const DEFAULT_DOCS_URL = 'https://docs.genfeed.ai';
 const DEFAULT_MCP_URL = 'https://mcp.genfeed.ai/mcp';
@@ -39,6 +44,7 @@ export function getPublicAppUrl(): string {
 }
 
 export function renderSetupPage(): string {
+  const ui = staticSurfaceClassNames;
   const mcpUrl = getPublicMcpUrl();
   const appUrl = getPublicAppUrl();
   const docsUrl = getPublicDocsUrl();
@@ -69,33 +75,15 @@ bearer_token_env_var = "GENFEED_API_KEY"`);
 <style>
 :root {
   color-scheme: dark;
-  --bg: #000000;
-  --bg-soft: #050607;
-  --surface: rgba(255, 255, 255, 0.025);
-  --surface-strong: rgba(255, 255, 255, 0.055);
-  --edge: rgba(255, 255, 255, 0.08);
-  --edge-strong: rgba(255, 255, 255, 0.16);
-  --text: #f4f4f5;
-  --text-soft: rgba(244, 244, 245, 0.72);
-  --text-muted: rgba(244, 244, 245, 0.42);
-  --text-faint: rgba(244, 244, 245, 0.22);
-  --accent: #fafafa;
-  --accent-foreground: #050607;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --agent: #38bdf8;
-  --done: #a855f7;
-  --youtube: #ff0000;
-  --tiktok: #fe2c55;
-  --linkedin: #0a66c2;
 }
+${staticSurfaceCss}
 * { box-sizing: border-box; }
-html { min-height: 100%; background: var(--bg); }
+html { min-height: 100%; background: #050607; }
 body {
   min-height: 100vh;
   margin: 0;
-  background: var(--bg);
-  color: var(--text);
+  background: var(--gf-bg-primary);
+  color: var(--gf-text-primary);
   font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   letter-spacing: 0;
   -webkit-font-smoothing: antialiased;
@@ -131,7 +119,7 @@ a { color: inherit; text-decoration: none; }
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  border-bottom: 1px solid var(--edge);
+  border-bottom: 1px solid var(--gf-border);
 }
 .brand {
   display: inline-flex;
@@ -144,14 +132,15 @@ a { color: inherit; text-decoration: none; }
   width: 24px;
   height: 24px;
   place-items: center;
-  border: 1px solid var(--edge);
-  background: #050607;
-  color: var(--text);
+  border: 1px solid var(--gf-border);
+  border-radius: var(--gf-radius-sm);
+  background: var(--gf-bg-primary);
+  color: var(--gf-text-primary);
   font-size: 12px;
   font-weight: 800;
 }
 .brand-name {
-  color: var(--text-muted);
+  color: var(--gf-text-muted);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.18em;
@@ -165,43 +154,28 @@ a { color: inherit; text-decoration: none; }
   gap: 16px;
 }
 .nav-link {
-  color: var(--text-muted);
+  color: var(--gf-text-muted);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
-.nav-link:hover { color: var(--text); }
-.nav-button {
-  display: inline-flex;
-  min-height: 30px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--accent);
-  border-radius: 4px;
-  background: var(--accent);
-  color: var(--accent-foreground);
-  padding: 0 14px;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
+.nav-link:hover { color: var(--gf-text-primary); }
 .hero {
   display: grid;
   min-height: 540px;
   grid-template-columns: minmax(0, 1fr) minmax(340px, 460px);
   gap: 56px;
   align-items: center;
-  border-bottom: 1px solid var(--edge);
+  border-bottom: 1px solid var(--gf-border);
   padding: 58px 0 64px;
 }
 .eyebrow,
 .section-kicker,
-.poster-kicker,
+.mcp-hero-card-kicker,
 .meta-label {
   margin: 0;
-  color: var(--text-faint);
+  color: var(--gf-text-faint);
   font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.2em;
@@ -210,7 +184,7 @@ a { color: inherit; text-decoration: none; }
 .hero h1 {
   max-width: 680px;
   margin: 18px 0 0;
-  color: var(--text);
+  color: var(--gf-text-primary);
   font-family: Georgia, "Times New Roman", serif;
   font-size: 72px;
   font-weight: 700;
@@ -219,14 +193,14 @@ a { color: inherit; text-decoration: none; }
 }
 .hero h1 em {
   display: block;
-  color: var(--text-muted);
+  color: var(--gf-text-muted);
   font-style: italic;
   font-weight: 400;
 }
 .lede {
   max-width: 600px;
   margin: 22px 0 0;
-  color: var(--text-muted);
+  color: var(--gf-text-muted);
   font-size: 14px;
   line-height: 1.8;
 }
@@ -236,41 +210,15 @@ a { color: inherit; text-decoration: none; }
   gap: 10px;
   margin-top: 30px;
 }
-.button {
-  display: inline-flex;
-  min-height: 36px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--edge-strong);
-  border-radius: 4px;
-  background: #050607;
-  color: var(--text);
-  padding: 0 14px;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-.button.primary {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-foreground);
-}
-.button:hover { border-color: rgba(255,255,255,0.28); }
-.button.primary:hover { background: #e4e4e7; }
-.poster {
-  position: relative;
-  overflow: hidden;
+.mcp-hero-card {
   min-height: 430px;
-  border: 1px solid var(--edge);
   background:
     linear-gradient(160deg, rgba(255,255,255,0.075), rgba(255,255,255,0.018) 46%, rgba(255,255,255,0.008)),
-    #050607;
+    var(--gf-bg-primary);
   padding: 34px;
   box-shadow: 0 24px 80px rgba(0,0,0,0.32);
 }
-.poster::before {
+.mcp-hero-card::before {
   position: absolute;
   inset: 0;
   background-image:
@@ -280,7 +228,7 @@ a { color: inherit; text-decoration: none; }
   content: "";
   opacity: 0.28;
 }
-.poster-inner {
+.mcp-hero-card-inner {
   position: relative;
   z-index: 1;
   display: flex;
@@ -289,7 +237,7 @@ a { color: inherit; text-decoration: none; }
   justify-content: space-between;
   gap: 28px;
 }
-.poster-title {
+.mcp-hero-card-title {
   max-width: 350px;
   margin: 18px 0 0;
   font-family: Georgia, "Times New Roman", serif;
@@ -298,17 +246,17 @@ a { color: inherit; text-decoration: none; }
   line-height: 0.98;
   letter-spacing: 0;
 }
-.poster-copy {
+.mcp-hero-card-copy {
   max-width: 330px;
   margin: 14px 0 0;
-  color: var(--text-muted);
+  color: var(--gf-text-muted);
   font-size: 13px;
   line-height: 1.65;
 }
 .flow {
   display: grid;
   gap: 8px;
-  border-top: 1px solid var(--edge);
+  border-top: 1px solid var(--gf-border);
   padding-top: 18px;
 }
 .flow-row {
@@ -321,14 +269,14 @@ a { color: inherit; text-decoration: none; }
 }
 .flow-row:last-child { border-bottom: 0; }
 .flow-name {
-  color: var(--text);
+  color: var(--gf-text-primary);
   font-size: 12px;
   font-weight: 750;
 }
 .flow-copy {
   min-width: 0;
   overflow: hidden;
-  color: var(--text-muted);
+  color: var(--gf-text-muted);
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -337,7 +285,7 @@ a { color: inherit; text-decoration: none; }
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--text-muted);
+  color: var(--gf-text-muted);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.1em;
@@ -347,26 +295,15 @@ a { color: inherit; text-decoration: none; }
   width: 7px;
   height: 7px;
   border-radius: 999px;
-  background: var(--success);
+  background: var(--gf-success);
   content: "";
 }
 .platforms {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  border-top: 1px solid var(--edge);
+  border-top: 1px solid var(--gf-border);
   padding-top: 18px;
-}
-.platform {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  border: 1px solid var(--edge);
-  background: rgba(0,0,0,0.24);
-  padding: 6px 8px;
-  color: var(--text-soft);
-  font-size: 11px;
-  font-weight: 700;
 }
 .platform::before {
   width: 6px;
@@ -374,15 +311,15 @@ a { color: inherit; text-decoration: none; }
   border-radius: 999px;
   content: "";
 }
-.platform.youtube::before { background: var(--youtube); }
-.platform.tiktok::before { background: var(--tiktok); }
-.platform.linkedin::before { background: var(--linkedin); }
+.platform.youtube::before { background: var(--gf-platform-youtube); }
+.platform.tiktok::before { background: var(--gf-platform-tiktok); }
+.platform.linkedin::before { background: var(--gf-platform-linkedin); }
 .endpoint-band {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(260px, auto) auto;
   gap: 18px;
   align-items: end;
-  border-bottom: 1px solid var(--edge);
+  border-bottom: 1px solid var(--gf-border);
   padding: 30px 0;
 }
 .endpoint-band > div {
@@ -393,39 +330,21 @@ a { color: inherit; text-decoration: none; }
 }
 .endpoint-copy p {
   margin: 8px 0 0;
-  color: var(--text-muted);
+  color: var(--gf-text-muted);
   font-size: 13px;
 }
 .endpoint-code {
   min-width: 0;
-  overflow-x: auto;
-  border: 1px solid var(--edge);
-  background: rgba(255,255,255,0.025);
-  color: var(--text);
-  font-family: "SF Mono", SFMono-Regular, Consolas, Menlo, monospace;
-  font-size: 12px;
+  color: var(--gf-text-primary);
   line-height: 1.6;
-  padding: 10px 12px;
   white-space: nowrap;
 }
 .copy {
   align-self: end;
   justify-self: start;
-  min-height: 36px;
-  border: 1px solid var(--edge-strong);
-  border-radius: 4px;
-  background: #050607;
-  color: var(--text-soft);
-  padding: 0 12px;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  white-space: nowrap;
 }
-.copy:hover { border-color: rgba(255,255,255,0.28); color: var(--text); }
 .section {
-  border-bottom: 1px solid var(--edge);
+  border-bottom: 1px solid var(--gf-border);
   padding: 82px 0;
 }
 .section-head {
@@ -444,32 +363,28 @@ a { color: inherit; text-decoration: none; }
   letter-spacing: 0;
 }
 .section-title em {
-  color: var(--text-muted);
+  color: var(--gf-text-muted);
   font-style: italic;
   font-weight: 400;
 }
 .section-copy {
   margin: 0;
-  color: var(--text-muted);
+  color: var(--gf-text-muted);
   font-size: 14px;
   line-height: 1.8;
-}
-.client-shell {
-  border: 1px solid var(--edge);
-  background: var(--surface);
 }
 .tablist {
   display: flex;
   flex-wrap: wrap;
   gap: 0;
-  border-bottom: 1px solid var(--edge);
+  border-bottom: 1px solid var(--gf-border);
 }
 .tab {
   min-height: 46px;
   border: 0;
-  border-right: 1px solid var(--edge);
+  border-right: 1px solid var(--gf-border);
   background: transparent;
-  color: var(--text-muted);
+  color: var(--gf-text-muted);
   padding: 0 18px;
   font-size: 10px;
   font-weight: 900;
@@ -477,8 +392,8 @@ a { color: inherit; text-decoration: none; }
   text-transform: uppercase;
 }
 .tab[aria-selected="true"] {
-  background: var(--surface-strong);
-  color: var(--text);
+  background: var(--gf-bg-hover);
+  color: var(--gf-text-primary);
 }
 .tabpanel {
   display: none;
@@ -491,28 +406,16 @@ a { color: inherit; text-decoration: none; }
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  border-bottom: 1px solid var(--edge);
+  border-bottom: 1px solid var(--gf-border);
   padding: 22px 0;
 }
 .instruction-title {
   margin: 0;
-  color: var(--text);
+  color: var(--gf-text-primary);
   font-family: Georgia, "Times New Roman", serif;
   font-size: 28px;
   font-weight: 700;
   letter-spacing: 0;
-}
-.badge {
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid var(--edge);
-  background: rgba(255,255,255,0.025);
-  color: var(--text-muted);
-  padding: 5px 8px;
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
 }
 .steps {
   display: grid;
@@ -532,7 +435,7 @@ a { color: inherit; text-decoration: none; }
 }
 .step:last-child { border-bottom: 0; }
 .step-number {
-  color: var(--text-faint);
+  color: var(--gf-text-faint);
   font-family: Georgia, "Times New Roman", serif;
   font-size: 34px;
   font-weight: 700;
@@ -540,85 +443,58 @@ a { color: inherit; text-decoration: none; }
 }
 .step-title {
   margin: 0;
-  color: var(--text);
+  color: var(--gf-text-primary);
   font-size: 14px;
   font-weight: 750;
 }
 .step-copy {
   margin: 5px 0 0;
-  color: var(--text-muted);
+  color: var(--gf-text-muted);
   font-size: 13px;
   line-height: 1.6;
 }
 code, pre {
   font-family: "SF Mono", SFMono-Regular, Consolas, Menlo, monospace;
 }
-code.inline {
-  border: 1px solid var(--edge);
-  background: rgba(255,255,255,0.035);
-  padding: 1px 5px;
-  color: var(--text-soft);
-  font-size: 11px;
-}
 pre.command {
   margin: 12px 0 0;
-  max-width: 100%;
-  overflow-x: auto;
-  border: 1px solid var(--edge);
-  background: #030303;
-  color: #dbeafe;
-  font-size: 12px;
-  line-height: 1.7;
-  padding: 13px;
-  white-space: pre;
 }
 .meta-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
 }
-.meta-card {
+.mcp-meta-card {
   min-height: 190px;
-  border: 1px solid var(--edge);
-  background: var(--surface);
   padding: 22px;
 }
-.meta-card h3 {
+.mcp-meta-card h3 {
   margin: 14px 0 0;
-  color: var(--text);
+  color: var(--gf-text-primary);
   font-size: 15px;
   font-weight: 750;
 }
-.meta-card p {
+.mcp-meta-card p {
   margin: 9px 0 0;
-  color: var(--text-muted);
+  color: var(--gf-text-muted);
   font-size: 13px;
   line-height: 1.65;
 }
-.meta-card a {
+.mcp-meta-card a {
   display: inline-flex;
   margin-top: 16px;
-  color: var(--text-soft);
+  color: var(--gf-text-secondary);
   font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
-.meta-card a:hover { color: var(--text); }
-.warning-note {
-  display: grid;
-  grid-template-columns: 20px minmax(0, 1fr);
-  gap: 12px;
+.mcp-meta-card a:hover { color: var(--gf-text-primary); }
+.mcp-warning-note {
   margin-top: 14px;
-  border: 1px solid rgba(245,158,11,0.26);
-  background: rgba(245,158,11,0.08);
-  padding: 14px;
-  color: var(--text-soft);
-  font-size: 12px;
-  line-height: 1.6;
 }
 .warning-mark {
-  color: var(--warning);
+  color: var(--gf-warning);
   font-weight: 900;
 }
 .site-footer {
@@ -627,7 +503,7 @@ pre.command {
   gap: 18px;
   align-items: center;
   padding: 36px 0 44px;
-  color: var(--text-faint);
+  color: var(--gf-text-faint);
   font-size: 11px;
 }
 .footer-links {
@@ -637,13 +513,13 @@ pre.command {
   gap: 16px;
 }
 .footer-links a {
-  color: var(--text-muted);
+  color: var(--gf-text-muted);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
-.footer-links a:hover { color: var(--text); }
+.footer-links a:hover { color: var(--gf-text-primary); }
 @media (max-width: 920px) {
   .hero,
   .section-head,
@@ -657,7 +533,7 @@ pre.command {
     padding: 48px 0 54px;
   }
   .hero h1 { font-size: 58px; }
-  .poster { min-height: 360px; }
+  .mcp-hero-card { min-height: 360px; }
   .copy { justify-self: start; }
 }
 @media (max-width: 640px) {
@@ -666,8 +542,8 @@ pre.command {
   .nav-links { gap: 10px; }
   .nav-link { display: none; }
   .hero h1 { font-size: 42px; }
-  .poster { padding: 22px; }
-  .poster-title { font-size: 34px; }
+  .mcp-hero-card { padding: 22px; }
+  .mcp-hero-card-title { font-size: 34px; }
   .flow-row { grid-template-columns: 1fr; gap: 3px; }
   .flow-copy { white-space: normal; }
   .section { padding: 56px 0; }
@@ -675,7 +551,7 @@ pre.command {
   .tabpanel { padding: 0 16px 4px; }
   .tab {
     flex: 1 1 50%;
-    border-bottom: 1px solid var(--edge);
+    border-bottom: 1px solid var(--gf-border);
     padding: 0 10px;
   }
   .step { grid-template-columns: 1fr; gap: 8px; }
@@ -685,7 +561,7 @@ pre.command {
 }
 </style>
 </head>
-<body>
+<body class="${ui.root}">
 <main class="page">
   <nav class="site-nav" aria-label="Genfeed MCP">
     <a class="brand" href="https://genfeed.ai" rel="noopener noreferrer">
@@ -696,7 +572,7 @@ pre.command {
       <a class="nav-link" href="${docsGuideUrlSafe}" rel="noopener noreferrer">Docs</a>
       <a class="nav-link" href="/v1/config" rel="noopener noreferrer">Config</a>
       <a class="nav-link" href="/v1/health" rel="noopener noreferrer">Health</a>
-      <a class="nav-button" href="${apiKeysUrlSafe}" rel="noopener noreferrer">API keys</a>
+      <a class="${ui.buttonPrimary}" href="${apiKeysUrlSafe}" rel="noopener noreferrer">API keys</a>
     </div>
   </nav>
 
@@ -706,17 +582,17 @@ pre.command {
       <h1>Genfeed MCP.<em>Claude + Codex.</em></h1>
       <p class="lede">Connect AI clients to Genfeed content, workflows, publishing, analytics, and ads with an API key.</p>
       <div class="hero-actions">
-        <a class="button primary" href="${apiKeysUrlSafe}" rel="noopener noreferrer">Create API key</a>
-        <a class="button" href="${docsGuideUrlSafe}" rel="noopener noreferrer">Read MCP docs</a>
+        <a class="${ui.buttonPrimary}" href="${apiKeysUrlSafe}" rel="noopener noreferrer">Create API key</a>
+        <a class="${ui.buttonSecondary}" href="${docsGuideUrlSafe}" rel="noopener noreferrer">Read MCP docs</a>
       </div>
     </div>
 
-    <aside class="poster" aria-label="Genfeed MCP workflow preview">
-      <div class="poster-inner">
+    <aside class="${ui.card} mcp-hero-card" aria-label="Genfeed MCP workflow preview">
+      <div class="mcp-hero-card-inner">
         <div>
-          <p class="poster-kicker">AI model context protocol</p>
-          <h2 class="poster-title">Agent workspace access.</h2>
-          <p class="poster-copy">Read, create, publish, and measure from your AI client.</p>
+          <p class="mcp-hero-card-kicker">AI model context protocol</p>
+          <h2 class="mcp-hero-card-title">Agent workspace access.</h2>
+          <p class="mcp-hero-card-copy">Read, create, publish, and measure from your AI client.</p>
         </div>
         <div class="flow" aria-label="Content operating loop">
           <div class="flow-row">
@@ -736,9 +612,9 @@ pre.command {
           </div>
         </div>
         <div class="platforms" aria-label="Platform publishing preview">
-          <span class="platform youtube">YouTube</span>
-          <span class="platform tiktok">TikTok</span>
-          <span class="platform linkedin">LinkedIn</span>
+          <span class="${ui.chip} platform youtube">YouTube</span>
+          <span class="${ui.chip} platform tiktok">TikTok</span>
+          <span class="${ui.chip} platform linkedin">LinkedIn</span>
         </div>
       </div>
     </aside>
@@ -750,9 +626,9 @@ pre.command {
       <p>Hosted Streamable HTTP. Use localhost only for self-hosting.</p>
     </div>
     <div>
-      <div class="endpoint-code" id="mcp-url">${mcpUrlSafe}</div>
+      <div class="${ui.codeBlock} endpoint-code" id="mcp-url">${mcpUrlSafe}</div>
     </div>
-    <button class="copy" type="button" data-copy="${mcpUrlSafe}" aria-label="Copy MCP endpoint">Copy</button>
+    <button class="${ui.buttonSecondary} copy" type="button" data-copy="${mcpUrlSafe}" aria-label="Copy MCP endpoint">Copy</button>
   </section>
 
   <section class="section" aria-labelledby="setup-title">
@@ -764,7 +640,7 @@ pre.command {
       <p class="section-copy">Export a Genfeed API key, then add the remote HTTP server to your client.</p>
     </div>
 
-    <div class="client-shell">
+    <div class="${ui.card}">
       <div class="tablist" role="tablist" aria-label="Client setup instructions">
         <button class="tab" id="tab-claude-code" type="button" role="tab" aria-selected="true" aria-controls="panel-claude-code" data-tab="claude-code">Claude Code</button>
         <button class="tab" id="tab-codex" type="button" role="tab" aria-selected="false" aria-controls="panel-codex" data-tab="codex">Codex</button>
@@ -773,15 +649,15 @@ pre.command {
       <section class="tabpanel is-active" id="panel-claude-code" role="tabpanel" aria-labelledby="tab-claude-code" data-panel="claude-code">
         <div class="setup-title-row">
           <h3 class="instruction-title">Claude Code setup</h3>
-          <span class="badge">HTTP transport</span>
+          <span class="${ui.badge}">HTTP transport</span>
         </div>
         <ol class="steps">
           <li class="step">
             <span class="step-number">01</span>
             <div>
               <p class="step-title">Export API key</p>
-              <p class="step-copy">Create a <code class="inline">gf_</code> key in Genfeed settings.</p>
-              <pre class="command"><code>export GENFEED_API_KEY=gf_live_xxx</code></pre>
+              <p class="step-copy">Create a <code class="${ui.inlineCode}">gf_</code> key in Genfeed settings.</p>
+              <pre class="${ui.codeBlock} command"><code>export GENFEED_API_KEY=gf_live_xxx</code></pre>
             </div>
           </li>
           <li class="step">
@@ -789,14 +665,14 @@ pre.command {
             <div>
               <p class="step-title">Add MCP server</p>
               <p class="step-copy">Register the hosted endpoint in user scope.</p>
-              <pre class="command"><code>${claudeCommandSafe}</code></pre>
+              <pre class="${ui.codeBlock} command"><code>${claudeCommandSafe}</code></pre>
             </div>
           </li>
           <li class="step">
             <span class="step-number">03</span>
             <div>
               <p class="step-title">Verify</p>
-              <p class="step-copy">Run <code class="inline">claude mcp list</code> or open <code class="inline">/mcp</code>.</p>
+              <p class="step-copy">Run <code class="${ui.inlineCode}">claude mcp list</code> or open <code class="${ui.inlineCode}">/mcp</code>.</p>
             </div>
           </li>
         </ol>
@@ -805,7 +681,7 @@ pre.command {
       <section class="tabpanel" id="panel-codex" role="tabpanel" aria-labelledby="tab-codex" data-panel="codex">
         <div class="setup-title-row">
           <h3 class="instruction-title">Codex setup</h3>
-          <span class="badge">CLI and IDE config</span>
+          <span class="${ui.badge}">CLI and IDE config</span>
         </div>
         <ol class="steps">
           <li class="step">
@@ -813,15 +689,15 @@ pre.command {
             <div>
               <p class="step-title">Export API key</p>
               <p class="step-copy">Codex reads this env var for the bearer token.</p>
-              <pre class="command"><code>export GENFEED_API_KEY=gf_live_xxx</code></pre>
+              <pre class="${ui.codeBlock} command"><code>export GENFEED_API_KEY=gf_live_xxx</code></pre>
             </div>
           </li>
           <li class="step">
             <span class="step-number">02</span>
             <div>
               <p class="step-title">Add MCP server</p>
-              <p class="step-copy">The CLI and IDE share <code class="inline">~/.codex/config.toml</code>.</p>
-              <pre class="command"><code>${codexCommandSafe}</code></pre>
+              <p class="step-copy">The CLI and IDE share <code class="${ui.inlineCode}">~/.codex/config.toml</code>.</p>
+              <pre class="${ui.codeBlock} command"><code>${codexCommandSafe}</code></pre>
             </div>
           </li>
           <li class="step">
@@ -829,7 +705,7 @@ pre.command {
             <div>
               <p class="step-title">Manual config</p>
               <p class="step-copy">Paste this into a user or trusted project config.</p>
-              <pre class="command"><code>${codexTomlSafe}</code></pre>
+              <pre class="${ui.codeBlock} command"><code>${codexTomlSafe}</code></pre>
             </div>
           </li>
         </ol>
@@ -843,23 +719,23 @@ pre.command {
         <p class="section-kicker">Details</p>
         <h2 class="section-title" id="details-title">Endpoint. <em>API auth.</em></h2>
       </div>
-      <p class="section-copy">MCP calls go to <code class="inline">${mcpUrlSafe}</code> and use the permissions on the API key.</p>
+      <p class="section-copy">MCP calls go to <code class="${ui.inlineCode}">${mcpUrlSafe}</code> and use the permissions on the API key.</p>
     </div>
 
     <div class="meta-grid">
-      <article class="meta-card">
+      <article class="${ui.card} mcp-meta-card">
         <p class="meta-label">Authentication</p>
         <h3>Bearer token</h3>
-        <p>Send <code class="inline">Authorization: Bearer gf_live_xxx</code> with every request.</p>
+        <p>Send <code class="${ui.inlineCode}">Authorization: Bearer gf_live_xxx</code> with every request.</p>
         <a href="${apiKeysUrlSafe}" rel="noopener noreferrer">Manage keys</a>
       </article>
-      <article class="meta-card">
+      <article class="${ui.card} mcp-meta-card">
         <p class="meta-label">Transport</p>
         <h3>HTTP transport</h3>
-        <p>Register Genfeed as a remote MCP server. No <code class="inline">npx</code> or localhost for cloud.</p>
+        <p>Register Genfeed as a remote MCP server. No <code class="${ui.inlineCode}">npx</code> or localhost for cloud.</p>
         <a href="/v1/config" rel="noopener noreferrer">View config</a>
       </article>
-      <article class="meta-card">
+      <article class="${ui.card} mcp-meta-card">
         <p class="meta-label">Status</p>
         <h3>Health checks</h3>
         <p>Use health and config to debug routing or stale client settings.</p>
@@ -867,7 +743,7 @@ pre.command {
       </article>
     </div>
 
-    <div class="warning-note" role="note">
+    <div class="${ui.warningNote} mcp-warning-note" role="note">
       <span class="warning-mark">!</span>
       <span>Keep API keys out of commits and shared logs.</span>
     </div>
@@ -912,7 +788,7 @@ pre.command {
     });
   });
 
-  document.querySelectorAll('button.copy').forEach(function (btn) {
+  document.querySelectorAll('button[data-copy]').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var text = btn.getAttribute('data-copy') || '';
       navigator.clipboard.writeText(text).then(function () {
