@@ -11,7 +11,8 @@ import type {
   WorkflowExecutionJobData,
 } from '@api/queues/workflow/workflow-queue.service';
 import { WorkflowQueueService } from '@api/queues/workflow/workflow-queue.service';
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus as SharedWorkflowExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus as PrismaWorkflowExecutionStatus } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { forwardRef, Inject } from '@nestjs/common';
@@ -20,6 +21,15 @@ import { Job } from 'bullmq';
 type WorkflowExecutionResult = Awaited<
   ReturnType<WorkflowEngineAdapterService['executeWorkflow']>
 >;
+
+const TERMINAL_EXECUTION_STATUSES = new Set<string>([
+  PrismaWorkflowExecutionStatus.CANCELLED,
+  PrismaWorkflowExecutionStatus.COMPLETED,
+  PrismaWorkflowExecutionStatus.FAILED,
+  SharedWorkflowExecutionStatus.CANCELLED,
+  SharedWorkflowExecutionStatus.COMPLETED,
+  SharedWorkflowExecutionStatus.FAILED,
+]);
 
 @Processor('workflow-execution', {
   concurrency: 3,
@@ -121,10 +131,10 @@ export class WorkflowExecutionProcessor extends WorkerHost {
               startedAt: event.timestamp,
               status:
                 event.newStatus === 'completed'
-                  ? WorkflowExecutionStatus.COMPLETED
+                  ? SharedWorkflowExecutionStatus.COMPLETED
                   : event.newStatus === 'failed'
-                    ? WorkflowExecutionStatus.FAILED
-                    : WorkflowExecutionStatus.RUNNING,
+                    ? SharedWorkflowExecutionStatus.FAILED
+                    : SharedWorkflowExecutionStatus.RUNNING,
             },
             executable.nodes.length,
           );
@@ -198,11 +208,7 @@ export class WorkflowDelayProcessor extends WorkerHost {
 
     const executionStatus = String(execution.status);
 
-    if (
-      executionStatus === WorkflowExecutionStatus.CANCELLED ||
-      executionStatus === WorkflowExecutionStatus.FAILED ||
-      executionStatus === WorkflowExecutionStatus.COMPLETED
-    ) {
+    if (TERMINAL_EXECUTION_STATUSES.has(executionStatus)) {
       this.logger.warn(
         `${url} execution already ${executionStatus}, skipping delayed resume`,
         {
