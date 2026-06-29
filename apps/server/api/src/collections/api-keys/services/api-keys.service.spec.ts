@@ -10,6 +10,11 @@ type ApiKeysServiceHarness = ApiKeysService & {
   revoke: MockFn;
 };
 
+type MockCacheInvalidationService = {
+  invalidate: MockFn;
+  invalidateByTags: MockFn;
+};
+
 const rotatePayload: CreateApiKeyDto & {
   organizationId: string;
   userId: string;
@@ -21,24 +26,34 @@ const rotatePayload: CreateApiKeyDto & {
   userId: 'user-1',
 };
 
-function createHarness(): ApiKeysServiceHarness {
+function createHarness(): {
+  cacheInvalidationService: MockCacheInvalidationService;
+  service: ApiKeysServiceHarness;
+} {
   const service = Object.create(
     ApiKeysService.prototype,
   ) as ApiKeysServiceHarness;
+  const cacheInvalidationService = {
+    invalidate: vi.fn().mockResolvedValue(undefined),
+    invalidateByTags: vi.fn().mockResolvedValue(0),
+  };
 
   service.createWithKey = vi.fn();
   service.revoke = vi.fn();
+  Object.defineProperty(service, 'cacheInvalidationService', {
+    value: cacheInvalidationService,
+  });
   Object.defineProperty(service, 'logger', {
     value: { error: vi.fn() },
   });
 
-  return service;
+  return { cacheInvalidationService, service };
 }
 
 describe('ApiKeysService', () => {
   describe('rotateWithKey', () => {
     it('creates a replacement and revokes the original key', async () => {
-      const service = createHarness();
+      const { cacheInvalidationService, service } = createHarness();
       const replacement = {
         apiKey: { id: 'key-2' } as ApiKeyDocument,
         plainKey: 'gf_test_rotated',
@@ -53,10 +68,18 @@ describe('ApiKeysService', () => {
 
       expect(service.createWithKey).toHaveBeenCalledWith(rotatePayload);
       expect(service.revoke).toHaveBeenCalledWith('key-1');
+      expect(cacheInvalidationService.invalidate).toHaveBeenCalledWith(
+        'apiKeys:list:org-1',
+        'apiKeys:single:key-1',
+        'apiKeys:single:key-2',
+      );
+      expect(cacheInvalidationService.invalidateByTags).toHaveBeenCalledWith([
+        'apiKeys',
+      ]);
     });
 
     it('revokes the replacement key when revoking the original fails', async () => {
-      const service = createHarness();
+      const { cacheInvalidationService, service } = createHarness();
       const error = new Error('revoke failed');
       const replacement = {
         apiKey: { id: 'key-2' } as ApiKeyDocument,
@@ -74,6 +97,8 @@ describe('ApiKeysService', () => {
 
       expect(service.revoke).toHaveBeenNthCalledWith(1, 'key-1');
       expect(service.revoke).toHaveBeenNthCalledWith(2, 'key-2');
+      expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
+      expect(cacheInvalidationService.invalidateByTags).not.toHaveBeenCalled();
     });
   });
 });
