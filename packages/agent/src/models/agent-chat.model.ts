@@ -151,7 +151,9 @@ export interface AgentUiAction {
     | 'campaign_launch_prep_card'
     | 'workflow_created_card'
     | 'bot_created_card'
-    | 'livestream_bot_status_card';
+    | 'livestream_bot_status_card'
+    | 'brand_interview_offer_card'
+    | 'brand_interview_complete_card';
   title: string;
   description?: string;
   platform?: string;

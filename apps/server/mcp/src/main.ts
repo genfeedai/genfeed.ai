@@ -8,6 +8,7 @@ import { getGenfeedCorsOptions } from '@libs/config/cors.config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { AppModule } from '@mcp/app.module';
 import { ConfigService } from '@mcp/config/config.service';
+import { getPublicMcpUrl, renderSetupPage } from '@mcp/mcp/setup-page';
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import { ServerService } from '@mcp/services/server.service';
 import { StreamableHttpService } from '@mcp/services/streamable-http.service';
@@ -25,6 +26,19 @@ interface AuthenticatedRequest extends Request {
   };
 }
 
+const MCP_CORS_ALLOWED_HEADERS = [
+  'Authorization',
+  'Content-Type',
+  'Last-Event-ID',
+  'Mcp-Protocol-Version',
+  'Mcp-Session-Id',
+].join(', ');
+
+const MCP_CORS_EXPOSED_HEADERS = [
+  'Mcp-Protocol-Version',
+  'Mcp-Session-Id',
+].join(', ');
+
 async function main(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     abortOnError: false,
@@ -40,13 +54,15 @@ async function main(): Promise<void> {
 
   const port = configService.get('PORT');
 
-  app.enableCors(
-    getGenfeedCorsOptions({
+  app.enableCors({
+    ...getGenfeedCorsOptions({
       additionalOrigins: ['https://mcp.genfeed.ai'],
       chromeExtensionId: configService.get('CHROME_EXTENSION_ID'),
       isDevelopment: configService.get('NODE_ENV') === 'development',
     }),
-  );
+    allowedHeaders: MCP_CORS_ALLOWED_HEADERS,
+    exposedHeaders: MCP_CORS_EXPOSED_HEADERS,
+  });
 
   const expressApp = app.getHttpAdapter().getInstance();
 
@@ -58,16 +74,30 @@ async function main(): Promise<void> {
     const token = authService.extractBearerToken(req.headers.authorization);
 
     if (!token) {
-      res
-        .status(401)
-        .json({ error: 'Authorization header with Bearer token required' });
+      res.setHeader('WWW-Authenticate', 'Bearer');
+      res.status(401).json({
+        error: {
+          code: -32001,
+          message: 'Unauthorized. Connect with a Genfeed API key bearer token.',
+        },
+        id: null,
+        jsonrpc: '2.0',
+      });
       return;
     }
 
     const authResult = await authService.authenticateRequest(token);
 
     if (!authResult.valid) {
-      res.status(401).json({ error: authResult.error || 'Invalid token' });
+      res.setHeader('WWW-Authenticate', 'Bearer');
+      res.status(401).json({
+        error: {
+          code: -32001,
+          message: authResult.error || 'Invalid token',
+        },
+        id: null,
+        jsonrpc: '2.0',
+      });
       return;
     }
 
@@ -113,8 +143,23 @@ async function main(): Promise<void> {
   );
 
   app.use('/', (req: Request, res: Response, next: NextFunction) => {
-    const redirectPaths = ['/', '/docs', '/v1'];
-    if (redirectPaths.includes(req.path)) {
+    if (req.path === '/' || req.path === '/docs') {
+      const preferred = req.accepts(['html', 'json']);
+      if (preferred === 'json') {
+        res.json({
+          endpoint: getPublicMcpUrl(),
+          service: 'mcp',
+          status: 'healthy',
+          transport: 'streamable-http',
+        });
+        return;
+      }
+
+      res.type('html').send(renderSetupPage());
+      return;
+    }
+
+    if (req.path === '/v1') {
       res.redirect('/v1/docs');
     } else {
       next();

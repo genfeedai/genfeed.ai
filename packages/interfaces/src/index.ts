@@ -159,6 +159,7 @@ export * from './onboarding/onboarding.interface';
 export * from './onboarding/onboarding-journey.interface';
 export * from './onboarding/onboarding-wizard.interface';
 export * from './organization/brand.interface';
+export * from './organization/brand-interview.interface';
 export * from './organization/byok-key-entry.interface';
 export * from './organization/byok-provider-status.interface';
 export * from './organization/byok-resolution-result.interface';

@@ -21,6 +21,7 @@ import { AvatarsModule } from '@api/collections/avatars/avatars.module';
 import { BookmarksModule } from '@api/collections/bookmarks/bookmarks.module';
 import { BotsModule } from '@api/collections/bots/bots.module';
 import { BrandMemoryModule } from '@api/collections/brand-memory/brand-memory.module';
+import { BrandInterviewModule } from '@api/collections/brands/brand-interview/brand-interview.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { BusinessAnalyticsModule } from '@api/collections/business-analytics/business-analytics.module';
 import { CaptionsModule } from '@api/collections/captions/captions.module';
@@ -240,6 +241,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     // BusinessAnalyticsModule — EE (gated below)
     BotsModule,
     BrandMemoryModule,
+    BrandInterviewModule,
     BrandsModule,
     OutreachCampaignsModule,
     CronJobsModule,

@@ -412,6 +412,19 @@ YouTube-specific guidelines:
 - For Shorts: hook in first 2 seconds, single idea, end with rewatch trigger`,
   },
 
+  [AgentType.BRAND_INTERVIEW]: {
+    defaultDailyCreditBudget: 50,
+    defaultModel: 'deepseek/deepseek-chat',
+    defaultTools: [
+      AgentToolName.GET_CURRENT_BRAND,
+      AgentToolName.START_BRAND_INTERVIEW,
+      AgentToolName.SUBMIT_BRAND_INTERVIEW_ANSWER,
+      AgentToolName.SKIP_BRAND_INTERVIEW_QUESTION,
+      AgentToolName.GET_BRAND_COMPLETENESS,
+    ],
+    systemPromptSuffix: '',
+  },
+
   [ORCHESTRATOR_AGENT_TYPE]: {
     defaultDailyCreditBudget: 250,
     defaultModel: 'deepseek/deepseek-chat',

@@ -30,6 +30,11 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { UsersService } from '@api/collections/users/services/users.service';
+import {
+  CACHE_PATTERNS,
+  CACHE_TAGS,
+} from '@api/common/constants/cache-patterns.constants';
+import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { ConfigService } from '@api/config/config.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
@@ -104,6 +109,8 @@ export class ArticlesService extends BaseService<
     @Optional() private readonly organizationsService?: OrganizationsService,
     @Optional() private readonly creditsUtilsService?: CreditsUtilsService,
     @Optional() private readonly modelsService?: ModelsService,
+    @Optional()
+    private readonly cacheInvalidationService?: CacheInvalidationService,
   ) {
     super(prisma, 'article', logger, undefined, cacheService);
   }
@@ -152,24 +159,56 @@ export class ArticlesService extends BaseService<
   }
 
   /**
-   * Invalidate the article list/aggregation cache tag set after a write.
+   * Invalidate the article cache after a write.
    * Single home for the tag block previously copy-pasted across
    * createArticle/update/removeArticle.
    *
+   * Busts two layers: (1) the canonical `articles:list:{orgId}` /
+   * `articles:single:{id}` keys plus the shared `articles:*` pattern via
+   * CacheInvalidationService — without these, HTTP `@Cache` responses keyed by
+   * org/id can go stale after a write — and (2) the legacy tag set on the
+   * tag-based CacheService. See api CLAUDE.md → Cache Invalidation Pattern.
+   *
    * @param context - the write that triggered invalidation (used in the debug log)
-   * @param includePublic - also bust the `public` tag (published articles)
+   * @param options.includePublic - also bust the `public` tag (published articles)
+   * @param options.organizationId - bust this org's `articles:list:{orgId}` key
+   * @param options.articleId - bust this article's `articles:single:{id}` key
    */
   private async invalidateArticleListCaches(
     context: string,
-    includePublic = false,
+    options: {
+      includePublic?: boolean;
+      organizationId?: string;
+      articleId?: string;
+    } = {},
   ): Promise<void> {
+    const { includePublic = false, organizationId, articleId } = options;
+
+    if (this.cacheInvalidationService) {
+      const keys: string[] = [];
+      if (organizationId) {
+        keys.push(CACHE_PATTERNS.ARTICLES_LIST(organizationId));
+      }
+      if (articleId) {
+        keys.push(CACHE_PATTERNS.ARTICLES_SINGLE(articleId));
+      }
+
+      if (keys.length > 0) {
+        await this.cacheInvalidationService.invalidate(...keys);
+      }
+      // Bust any remaining org/user-scoped article keys from the @Cache decorator.
+      await this.cacheInvalidationService.invalidatePattern(
+        `${CACHE_TAGS.ARTICLES}:*`,
+      );
+    }
+
     if (!this.cacheService) {
       return;
     }
 
     const collectionName = this.collectionName;
     const tagsToInvalidate = [
-      'articles',
+      CACHE_TAGS.ARTICLES,
       collectionName,
       `collection:${collectionName}`,
       `agg:${collectionName}`,
@@ -424,8 +463,11 @@ export class ArticlesService extends BaseService<
 
     const result = await super.create(articleData);
 
-    // Explicitly invalidate cache after create - invalidate ALL possible tags
-    await this.invalidateArticleListCaches('create');
+    // Explicitly invalidate cache after create — canonical org/id keys + tags
+    await this.invalidateArticleListCaches('create', {
+      articleId: result.id,
+      organizationId,
+    });
 
     this.logger.debug(`${this.constructorName} create success`, {
       id: result.id,
@@ -528,11 +570,12 @@ export class ArticlesService extends BaseService<
         throw new NotFoundException('Article not found');
       }
 
-      // Explicitly invalidate ALL cache after update - invalidate ALL possible tags
-      await this.invalidateArticleListCaches(
-        'update',
-        ArticleFilterUtil.isPublicArticleStatus(result.status),
-      );
+      // Explicitly invalidate cache after update — canonical org/id keys + tags
+      await this.invalidateArticleListCaches('update', {
+        articleId: result.id,
+        includePublic: ArticleFilterUtil.isPublicArticleStatus(result.status),
+        organizationId,
+      });
 
       this.logger.debug(`${this.constructorName} update success`, {
         id: result.id,
@@ -687,8 +730,11 @@ export class ArticlesService extends BaseService<
       // Soft delete by setting isDeleted to true
       await super.patch(id, { isDeleted: true }, []);
 
-      // Explicitly invalidate ALL cache after delete - invalidate ALL possible tags
-      await this.invalidateArticleListCaches('delete');
+      // Explicitly invalidate cache after delete — canonical org/id keys + tags
+      await this.invalidateArticleListCaches('delete', {
+        articleId: id,
+        organizationId,
+      });
 
       this.logger.debug(`${this.constructorName} remove success`, { id });
     } catch (error: unknown) {

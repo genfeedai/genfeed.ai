@@ -365,6 +365,8 @@ jobs:
             if [ "$SECONDS" -ge "$DEADLINE" ]; then
               REASON=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
                 --query 'tasks[0].stoppedReason' --output text)
+              aws ecs stop-task --cluster "$CLUSTER" --task "$TASK_ARN" \
+                --reason "deploy boot-smoke timed out before rollout" >/dev/null || true
               echo "::error::boot smoke task did not stop within 10m (last status: $STATUS, reason: $REASON)"; exit 1
             fi
             echo "  boot smoke task status: $STATUS ($((DEADLINE - SECONDS))s remaining)"

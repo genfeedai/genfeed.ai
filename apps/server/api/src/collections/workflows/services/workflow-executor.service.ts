@@ -125,6 +125,7 @@ const TRIGGER_NODE_TYPES = new Set([
   'newFollowerTrigger',
   'newLikeTrigger',
   'newRepostTrigger',
+  'postPublishTrigger',
   'trendTrigger',
 ]);
 
@@ -141,6 +142,8 @@ const EVENT_TYPE_TO_NODE_TYPE: Record<string, string> = {
   newLikeTrigger: 'newLikeTrigger',
   newRepost: 'newRepostTrigger',
   newRepostTrigger: 'newRepostTrigger',
+  'post-published': 'postPublishTrigger',
+  postPublishTrigger: 'postPublishTrigger',
   trend: 'trendTrigger',
   trendTrigger: 'trendTrigger',
 };

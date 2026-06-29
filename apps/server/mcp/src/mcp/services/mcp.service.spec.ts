@@ -12,8 +12,13 @@ describe('MCPService', () => {
     service = module.get<MCPService>(MCPService);
   });
 
+  beforeEach(() => {
+    vi.stubEnv('GENFEED_MCP_RESOURCE_URL', '');
+  });
+
   afterEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it('should be defined', () => {
@@ -32,25 +37,31 @@ describe('MCPService', () => {
   describe('getMcpConfiguration', () => {
     it('should return MCP configuration', () => {
       const config = service.getMcpConfiguration();
+      const serverConfig = config.mcpServers.genfeed;
 
       expect(config).toBeDefined();
       expect(config.mcpServers).toBeDefined();
-      expect(config.mcpServers['genfeed-ai']).toBeDefined();
-      expect(config.mcpServers['genfeed-ai'].command).toBe('node');
-      expect(config.mcpServers['genfeed-ai'].args).toEqual([
-        'dist/mcp/main.js',
-      ]);
-      expect(config.mcpServers['genfeed-ai'].env).toBeDefined();
+      expect(serverConfig).toBeDefined();
+      expect(serverConfig).toMatchObject({
+        headers: {
+          Authorization: 'Bearer ${GENFEED_API_KEY}',
+        },
+        transport: 'streamable-http',
+        type: 'http',
+        url: 'https://mcp.genfeed.ai/mcp',
+      });
     });
 
-    it('should include required environment variables', () => {
+    it('should include hosted Streamable HTTP auth details', () => {
       const config = service.getMcpConfiguration();
-      const env = config.mcpServers['genfeed-ai'].env;
+      const serverConfig = config.mcpServers.genfeed;
 
-      expect(env?.NODE_ENV).toBe('production');
-      expect(env?.MCP_PORT).toBe('3014');
-      expect(env?.GENFEEDAI_API_URL).toBe('https://api.genfeed.ai');
-      expect(env?.GENFEED_API_KEY).toBeDefined();
+      expect(serverConfig).toMatchObject({
+        headers: {
+          Authorization: 'Bearer ${GENFEED_API_KEY}',
+        },
+        url: 'https://mcp.genfeed.ai/mcp',
+      });
     });
   });
 
@@ -63,6 +74,12 @@ describe('MCPService', () => {
       expect(example.version).toBe('1.0.0');
       expect(example.description).toContain('AI-powered video generation');
       expect(example.capabilities).toBeDefined();
+      expect(example.installation.clientExamples.claudeCode.command).toContain(
+        'claude mcp add --transport http genfeed',
+      );
+      expect(example.installation.clientExamples.codex.command).toContain(
+        'codex mcp add genfeed --url https://mcp.genfeed.ai/mcp',
+      );
       expect(example.tools).toBeDefined();
     });
 

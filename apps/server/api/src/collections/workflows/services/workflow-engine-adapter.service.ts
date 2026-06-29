@@ -37,6 +37,8 @@ import { ContentProductionWorkflowService } from '@api/collections/workflows/ser
 import { LivestreamBotWorkflowService } from '@api/collections/workflows/services/livestream-bot-workflow.service';
 import { ReplyPollingWorkflowService } from '@api/collections/workflows/services/reply-polling-workflow.service';
 import { TrendNotificationWorkflowService } from '@api/collections/workflows/services/trend-notification-workflow.service';
+import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import type { TriggerEvent } from '@api/collections/workflows/services/workflow-executor.service';
 import type { TrendNotificationCadence } from '@api/collections/workflows/templates/trend-notification-workflows.template';
 import { ConfigService } from '@api/config/config.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
@@ -48,6 +50,7 @@ import { OpenRouterService } from '@api/services/integrations/openrouter/service
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
@@ -82,23 +85,29 @@ import {
   createBrandAssetExecutor,
   createBrandContextExecutor,
   createImageGenExecutor,
+  createIterativeSeoRefineExecutor,
   createLipSyncExecutor,
   createMentionTriggerExecutor,
   createNewFollowerTriggerExecutor,
   createNewLikeTriggerExecutor,
   createNewRepostTriggerExecutor,
+  createPostPublishTriggerExecutor,
   createPostReplyExecutor,
   createPromptConstructorExecutor,
   createPublishExecutor,
   createReframeExecutor,
   createSendDmExecutor,
   createSendEmailExecutor,
+  createSeoRewriteExecutor,
+  createSeoScoreExecutor,
   createTextToSpeechExecutor,
   createTrendDigestExecutor,
   createTrendTriggerExecutor,
   createUpscaleExecutor,
   type KeywordTriggerPlatform,
   type NodeExecutor,
+  type SeoRewriteResolver,
+  type SeoScoreResolver,
   type SocialPlatform,
   type TrendDigestEntry,
   type TrendPlatform,
@@ -288,6 +297,9 @@ export class WorkflowEngineAdapterService {
     private readonly legacyCronJobExecutor?: LegacyCronJobExecutor,
     @Optional()
     private readonly livestreamBotWorkflowService?: LivestreamBotWorkflowService,
+    @Optional() private readonly seoScorerService?: SeoScorerService,
+    @Optional()
+    private readonly workflowExecutionQueueService?: WorkflowExecutionQueueService,
   ) {
     this.engine = new WorkflowEngine({
       maxConcurrency: 3,
@@ -313,6 +325,7 @@ export class WorkflowEngineAdapterService {
     this.registerBrandAssetExecutor();
     this.registerBrandContextExecutor();
     this.registerAnalyticsFeedbackExecutor();
+    this.registerSeoExecutors();
     this.registerAdAutomationExecutors();
     this.registerCampaignOrchestrationExecutors();
     this.registerAgentAutopilotExecutors();
@@ -651,6 +664,169 @@ export class WorkflowEngineAdapterService {
       executor.nodeType,
       this.wrapEngineExecutor(executor),
     );
+  }
+
+  /**
+   * Registers the SEO workflow nodes (#761):
+   * - `seoScore`: scores content via SeoScorerService, emitting score + suggestions.
+   * - `seoRewrite`: rewrites content to address suggestions via the LLM client.
+   * - `iterativeSeoRefine`: runs an internal score -> rewrite -> re-score loop
+   *   (no graph cycle) until the target score is reached.
+   * - `postPublishTrigger`: root trigger node; output is injected from the
+   *   `post-published` event when a workflow is started by a publish.
+   *
+   * The score + rewrite resolvers are shared between the standalone nodes and
+   * the iterative node so behavior stays identical across both composition styles.
+   */
+  private registerSeoExecutors(): void {
+    const seoScorerService = this.seoScorerService;
+    const openRouterService = this.openRouterService;
+
+    const scoreResolver: SeoScoreResolver = async ({ content, useLlm }) => {
+      if (!seoScorerService) {
+        return {
+          breakdown: {},
+          rating: 'critical',
+          score: 0,
+          suggestions: ['SEO scorer service unavailable'],
+        };
+      }
+      const scorecard = await seoScorerService.scoreContent(content, {
+        useLlm,
+      });
+      return {
+        breakdown: scorecard.breakdown,
+        rating: scorecard.rating,
+        score: scorecard.score,
+        suggestions: scorecard.suggestions,
+      };
+    };
+
+    const rewriteResolver: SeoRewriteResolver = async ({
+      content,
+      suggestions,
+      targetKeyword,
+      title,
+      model,
+    }) => {
+      if (!openRouterService) {
+        // Graceful degradation: return content unchanged so the loop terminates
+        // rather than throwing in environments without an LLM client.
+        return { model: null, text: content };
+      }
+
+      const systemPrompt =
+        'You are an expert SEO editor. Rewrite the provided content to address ' +
+        'the listed SEO suggestions while preserving the original meaning, tone, ' +
+        'and factual accuracy. Return ONLY the rewritten content body (plain text ' +
+        'or HTML matching the input) with no preamble or commentary.';
+
+      const userPrompt = [
+        title ? `Title: ${title}` : null,
+        targetKeyword ? `Target keyword: ${targetKeyword}` : null,
+        suggestions.length > 0
+          ? `SEO suggestions to address:\n${suggestions
+              .map((suggestion, index) => `${index + 1}. ${suggestion}`)
+              .join('\n')}`
+          : null,
+        `Content:\n${content}`,
+      ]
+        .filter((section): section is string => section !== null)
+        .join('\n\n');
+
+      const response = await openRouterService.chatCompletion({
+        max_tokens: 2000,
+        messages: [
+          { content: systemPrompt, role: 'system' },
+          { content: userPrompt, role: 'user' },
+        ],
+        model: model ?? 'openai/gpt-4o-mini',
+        temperature: 0.4,
+      });
+
+      const rewritten = response.choices[0]?.message?.content?.trim() ?? '';
+      return {
+        model: response.model,
+        text: rewritten.length > 0 ? rewritten : content,
+      };
+    };
+
+    const seoScoreExecutor = createSeoScoreExecutor(scoreResolver);
+    this.engine.registerExecutor(
+      seoScoreExecutor.nodeType,
+      this.wrapEngineExecutor(seoScoreExecutor),
+    );
+
+    const seoRewriteExecutor = createSeoRewriteExecutor(rewriteResolver);
+    this.engine.registerExecutor(
+      seoRewriteExecutor.nodeType,
+      this.wrapEngineExecutor(seoRewriteExecutor),
+    );
+
+    const iterativeSeoRefineExecutor = createIterativeSeoRefineExecutor(
+      scoreResolver,
+      rewriteResolver,
+    );
+    this.engine.registerExecutor(
+      iterativeSeoRefineExecutor.nodeType,
+      this.wrapEngineExecutor(iterativeSeoRefineExecutor),
+    );
+
+    const postPublishTriggerExecutor = createPostPublishTriggerExecutor();
+    this.engine.registerExecutor(
+      postPublishTriggerExecutor.nodeType,
+      this.wrapEngineExecutor(postPublishTriggerExecutor),
+    );
+  }
+
+  /**
+   * Emits a `post-published` trigger event so any workflow rooted at a
+   * `postPublishTrigger` node runs an SEO-optimization pass on the published
+   * content. Best-effort: failures are logged and never block publishing.
+   */
+  private async emitPostPublishedEvent(params: {
+    organizationId: string;
+    userId: string;
+    brandId: string;
+    postIds: string[];
+    platforms: SocialPlatform[];
+    caption: string;
+    targetKeyword: string | null;
+    /** Publish status forwarded to PostPublishTriggerExecutor's `status` output field. */
+    status?: string;
+  }): Promise<void> {
+    if (!this.workflowExecutionQueueService) {
+      return;
+    }
+
+    const event: TriggerEvent = {
+      data: {
+        brandId: params.brandId,
+        caption: params.caption,
+        content: params.caption,
+        platforms: params.platforms,
+        postIds: params.postIds,
+        status: params.status ?? 'queued',
+        targetKeyword: params.targetKeyword,
+        title: null,
+      },
+      organizationId: params.organizationId,
+      platform: params.platforms[0] ?? 'multi',
+      type: 'post-published',
+      userId: params.userId,
+    };
+
+    try {
+      await this.workflowExecutionQueueService.queueTriggerEvent(event);
+    } catch (error) {
+      this.loggerService.error(
+        `${this.logContext} failed to emit post-published event`,
+        {
+          error: error instanceof Error ? error.message : String(error),
+          organizationId: params.organizationId,
+        },
+      );
+    }
   }
 
   private registerAdAutomationExecutors(): void {
@@ -1423,7 +1599,10 @@ export class WorkflowEngineAdapterService {
         organizationId,
         platforms,
         scheduledFor,
+        targetKeyword,
+        triggerSeoOptimization,
         userId,
+        workflowId,
       }) => {
         if (!postsService || !credentialsService) {
           return {
@@ -1468,6 +1647,52 @@ export class WorkflowEngineAdapterService {
 
           postIds.push(post._id.toString());
           publishedPlatforms.push(platform);
+        }
+
+        // Opt-in, loop-safe: only emit for immediate publishes that actually
+        // created posts, so an SEO-optimization workflow can run on the content.
+        if (triggerSeoOptimization && !scheduledFor && postIds.length > 0) {
+          // Guard: if the current workflow is itself rooted at a
+          // `postPublishTrigger` node, re-emitting `post-published` would route
+          // back to the same workflow and create an infinite trigger loop.
+          // Fetch the workflow's node list and skip the emit when a
+          // postPublishTrigger node is present.
+          let isPostPublishWorkflow = false;
+          if (this.prismaService && workflowId) {
+            try {
+              const workflowDoc = await this.prismaService.workflow.findFirst({
+                select: { nodes: true },
+                where: { id: workflowId, isDeleted: false },
+              });
+              const nodes = Array.isArray(workflowDoc?.nodes)
+                ? (workflowDoc.nodes as Array<{ type?: string }>)
+                : [];
+              isPostPublishWorkflow = nodes.some(
+                (n) => n.type === 'postPublishTrigger',
+              );
+            } catch {
+              // Non-fatal: if the lookup fails, default to safe (no re-emit).
+              isPostPublishWorkflow = true;
+            }
+          }
+
+          if (isPostPublishWorkflow) {
+            this.loggerService.debug(
+              `${this.logContext} skipping post-published re-emit — workflow ${workflowId} is itself a postPublishTrigger workflow`,
+              { organizationId, workflowId },
+            );
+          } else {
+            await this.emitPostPublishedEvent({
+              brandId,
+              caption,
+              organizationId,
+              platforms: publishedPlatforms,
+              postIds,
+              status: 'queued',
+              targetKeyword: targetKeyword ?? null,
+              userId,
+            });
+          }
         }
 
         return {

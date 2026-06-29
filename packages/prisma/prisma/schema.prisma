@@ -590,6 +590,7 @@ model User {
   captions                 Caption[]
   personaAssignments       Persona[]                 @relation("persona_assigned_members")
   mcpApprovals             McpApproval[]
+  brandInterviews          BrandInterview[]
 
   @@index([isDefault])
   @@index([appSource])
@@ -725,6 +726,7 @@ model Organization {
   creatorAnalyses               CreatorAnalysis[]
   mcpApprovals                  McpApproval[]
   moodBoards                    MoodBoard[]                    @relation("org_moodboard")
+  brandInterviews               BrandInterview[]
 
   @@index([isDefault])
   @@index([category])
@@ -850,10 +852,48 @@ model Brand {
   schedules                  Schedule[]
   bookmarks                  Bookmark[]
   moodBoard                  MoodBoard?                 @relation("brand_moodboard")
+  brandInterviews            BrandInterview[]
 
   @@index([isDefault])
   @@index([organizationId, isDeleted, label], map: "brands_org_deleted_label_idx")
   @@map("brands")
+}
+
+enum BrandInterviewStatus {
+  in_progress
+  completed
+  abandoned
+
+  @@map("brand_interview_status")
+}
+
+// Stateful brand-context interview session. Detects in-scope gaps (identity /
+// voice / strategy) via computeBrandCompleteness, asks one question per gap, and
+// writes answers back into the Brand. At most one active session per brand is
+// enforced by a partial unique index (status = 'in_progress', is_deleted = false)
+// added in the migration; the per-run credit charge happens once at session start.
+model BrandInterview {
+  id                 String               @id @default(cuid())
+  organizationId     String
+  organization       Organization         @relation(fields: [organizationId], references: [id])
+  brandId            String
+  brand              Brand                @relation(fields: [brandId], references: [id])
+  userId             String
+  user               User                 @relation(fields: [userId], references: [id])
+  status             BrandInterviewStatus @default(in_progress)
+  answeredFields     Json                 @default("{}")
+  askedFieldKeys     String[]             @default([])
+  currentFieldKey    String?
+  completenessBefore Int                  @default(0)
+  completenessAfter  Int?
+  creditsCharged     Int                  @default(0)
+  isDeleted          Boolean              @default(false)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  @@index([organizationId, isDeleted])
+  @@index([brandId, status])
+  @@map("brand_interviews")
 }
 
 // One mood board per brand. `layout` stores only positions keyed by asset id

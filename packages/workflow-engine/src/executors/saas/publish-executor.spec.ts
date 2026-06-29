@@ -120,6 +120,18 @@ describe('PublishExecutor', () => {
       );
     });
 
+    it('forwards workflowId from context to the resolver', async () => {
+      const input = makeInput(
+        { caption: 'Test', platforms: { twitter: true } },
+        { brand: { brandId: 'b-1' }, media: 'img.png' },
+      );
+      await executor.execute(input);
+      // context.workflowId is 'wf-1' in makeInput
+      expect(resolver).toHaveBeenCalledWith(
+        expect.objectContaining({ workflowId: 'wf-1' }),
+      );
+    });
+
     it('prefers caption from input over config', async () => {
       const input = makeInput(
         { caption: 'config', platforms: { twitter: true } },

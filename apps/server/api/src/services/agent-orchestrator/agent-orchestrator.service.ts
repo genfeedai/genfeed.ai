@@ -33,6 +33,7 @@ import {
   detectPlatformIntentSuffix,
   getAgentTypeConfig,
 } from '@api/services/agent-orchestrator/constants/agent-type-config.constant';
+import { BRAND_INTERVIEW_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/brand-interview-system-prompt.constant';
 import { ONBOARDING_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/onboarding-system-prompt.constant';
 import {
   type AgentGenerationPriority,
@@ -61,7 +62,7 @@ import {
   AgentAutonomyMode,
   AgentExecutionTrigger,
   AgentMessageRole,
-  type AgentType,
+  AgentType,
   SubscriptionTier,
 } from '@genfeedai/enums';
 import {
@@ -519,8 +520,12 @@ export class AgentOrchestratorService {
 
       const model = request.model || DEFAULT_AGENT_CHAT_MODEL;
 
-      // Check minimum credits for the turn based on selected model
-      const turnCost = getAgentTurnCost(model);
+      // Brand interview turns are free — the engine charges 10 credits once via
+      // BrandInterviewService.start(). Never double-bill the per-turn cost.
+      const turnCost =
+        request.agentType === AgentType.BRAND_INTERVIEW
+          ? 0
+          : getAgentTurnCost(model);
       const hasCredits =
         await this.creditsUtilsService.checkOrganizationCreditsAvailable(
           context.organizationId,
@@ -1299,8 +1304,12 @@ export class AgentOrchestratorService {
 
     const model = request.model || DEFAULT_AGENT_CHAT_MODEL;
 
-    // Check minimum credits for the turn based on selected model
-    const turnCost = getAgentTurnCost(model);
+    // Brand interview turns are free — the engine charges 10 credits once via
+    // BrandInterviewService.start(). Never double-bill the per-turn cost.
+    const turnCost =
+      request.agentType === AgentType.BRAND_INTERVIEW
+        ? 0
+        : getAgentTurnCost(model);
     const hasCredits =
       await this.creditsUtilsService.checkOrganizationCreditsAvailable(
         context.organizationId,
@@ -3670,6 +3679,16 @@ export class AgentOrchestratorService {
         policy,
         resolvedSkills,
         systemPrompt: ONBOARDING_SYSTEM_PROMPT,
+      };
+    }
+
+    if (request.agentType === AgentType.BRAND_INTERVIEW) {
+      return {
+        memories,
+        model: resolveModel(),
+        policy,
+        resolvedSkills,
+        systemPrompt: BRAND_INTERVIEW_SYSTEM_PROMPT,
       };
     }
 

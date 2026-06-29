@@ -32,9 +32,12 @@
   "icon": "https://api.genfeed.ai/favicon.ico",
   "mcp": {
     "server": {
-      "args": ["-y", "@genfeedai/mcp-client"],
-      "command": "npx",
-      "type": "stdio"
+      "headers": {
+        "Authorization": "Bearer ${GENFEED_API_KEY}"
+      },
+      "transport": "streamable-http",
+      "type": "http",
+      "url": "https://mcp.genfeed.ai/mcp"
     }
   },
   "name": "Genfeed AI",
