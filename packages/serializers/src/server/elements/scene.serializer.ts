@@ -1,7 +1,7 @@
 import { buildSerializer } from '@serializers/builders';
 import { elementSceneSerializerConfig } from '@serializers/configs';
 
-export const { ElementSceneSerializer } = buildSerializer(
+const { ElementSceneSerializer } = buildSerializer(
   'server',
   elementSceneSerializerConfig,
 );
