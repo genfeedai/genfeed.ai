@@ -1,3 +1,4 @@
+import { API_KEY_SCOPE_PRESETS, type ApiKeyScopePreset } from '@genfeedai/constants';
 import { confirm } from '@inquirer/prompts';
 import chalk from 'chalk';
 import { Command } from 'commander';
@@ -14,70 +15,11 @@ import {
 } from '@/ui/theme';
 import { GenfeedError, handleError } from '@/utils/errors';
 
-const SCOPE_PRESETS = {
-  content: [
-    'videos:read',
-    'videos:create',
-    'images:read',
-    'images:create',
-    'prompts:read',
-    'prompts:create',
-    'articles:read',
-    'articles:create',
-    'posts:create',
-  ],
-  full: [
-    'videos:read',
-    'videos:create',
-    'videos:update',
-    'videos:delete',
-    'images:read',
-    'images:create',
-    'images:update',
-    'images:delete',
-    'prompts:read',
-    'prompts:create',
-    'prompts:update',
-    'prompts:delete',
-    'articles:read',
-    'articles:create',
-    'brands:read',
-    'credits:read',
-    'posts:create',
-    'analytics:read',
-  ],
-  mcp: [
-    'videos:read',
-    'videos:create',
-    'videos:update',
-    'videos:delete',
-    'images:read',
-    'images:create',
-    'images:update',
-    'images:delete',
-    'prompts:read',
-    'prompts:create',
-    'prompts:update',
-    'prompts:delete',
-    'articles:read',
-    'articles:create',
-    'brands:read',
-    'credits:read',
-    'posts:create',
-    'analytics:read',
-  ],
-  read: [
-    'videos:read',
-    'images:read',
-    'prompts:read',
-    'articles:read',
-    'brands:read',
-    'credits:read',
-    'analytics:read',
-  ],
-} as const;
+type Spinner = ReturnType<typeof ora>;
 
-type ScopePreset = keyof typeof SCOPE_PRESETS;
+const SCOPE_PRESETS = API_KEY_SCOPE_PRESETS;
+
+type ScopePreset = ApiKeyScopePreset;
 
 function parseCsv(value?: string): string[] | undefined {
   if (!value) {
@@ -151,12 +93,14 @@ keysCommand
   .description('List active API keys')
   .option('--json', 'Output as JSON')
   .action(async (options) => {
+    let spinner: Spinner | undefined;
     try {
       await requireAuth();
 
-      const spinner = ora('Fetching API keys...').start();
+      spinner = ora('Fetching API keys...').start();
       const keys = await listApiKeys();
       spinner.stop();
+      spinner = undefined;
 
       if (options.json) {
         printJson({ keys });
@@ -165,6 +109,7 @@ keysCommand
 
       printApiKeyList(keys);
     } catch (error) {
+      spinner?.fail('Failed to fetch API keys');
       handleError(error);
     }
   });
@@ -181,6 +126,7 @@ keysCommand
   .option('--allow-ip <ips>', 'Comma-separated allowed IP addresses')
   .option('--json', 'Output as JSON')
   .action(async (options) => {
+    let spinner: Spinner | undefined;
     try {
       await requireAuth();
 
@@ -192,7 +138,7 @@ keysCommand
         );
       }
 
-      const spinner = ora('Creating API key...').start();
+      spinner = ora('Creating API key...').start();
       const apiKey = await createApiKey({
         allowedIps: parseCsv(options.allowIp),
         description: options.description,
@@ -202,6 +148,7 @@ keysCommand
         scopes: resolveScopes(preset, options.scopes),
       });
       spinner.stop();
+      spinner = undefined;
 
       const plainKey = getPlainKey(apiKey);
 
@@ -218,6 +165,7 @@ keysCommand
         print(chalk.dim('Store this key now; it will not be shown again.'));
       }
     } catch (error) {
+      spinner?.fail('Failed to create API key');
       handleError(error);
     }
   });
@@ -229,6 +177,7 @@ keysCommand
   .option('-f, --force', 'Skip confirmation')
   .option('--json', 'Output as JSON')
   .action(async (id, options) => {
+    let spinner: Spinner | undefined;
     try {
       await requireAuth();
 
@@ -243,9 +192,10 @@ keysCommand
         }
       }
 
-      const spinner = ora('Revoking API key...').start();
+      spinner = ora('Revoking API key...').start();
       const apiKey = await revokeApiKey(id);
       spinner.stop();
+      spinner = undefined;
 
       if (options.json) {
         printJson({ apiKey, revoked: true });
@@ -255,6 +205,7 @@ keysCommand
       print(formatSuccess('API key revoked'));
       print(formatLabel('ID', apiKey.id));
     } catch (error) {
+      spinner?.fail('Failed to revoke API key');
       handleError(error);
     }
   });
@@ -266,6 +217,7 @@ keysCommand
   .option('-f, --force', 'Skip confirmation')
   .option('--json', 'Output as JSON')
   .action(async (id, options) => {
+    let spinner: Spinner | undefined;
     try {
       await requireAuth();
 
@@ -280,9 +232,10 @@ keysCommand
         }
       }
 
-      const spinner = ora('Rotating API key...').start();
+      spinner = ora('Rotating API key...').start();
       const apiKey = await rotateApiKey(id);
       spinner.stop();
+      spinner = undefined;
 
       const plainKey = getPlainKey(apiKey);
 
@@ -298,6 +251,7 @@ keysCommand
         print(chalk.dim('Store this key now; it will not be shown again.'));
       }
     } catch (error) {
+      spinner?.fail('Failed to rotate API key');
       handleError(error);
     }
   });

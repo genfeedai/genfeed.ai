@@ -304,7 +304,7 @@ export async function runLogin(options: LoginOptions): Promise<void> {
 
     // Manual paste mode
     if (options.interactive) {
-      print(chalk.dim('Get your API key at: https://app.genfeed.ai/settings/api-keys\n'));
+      print(chalk.dim('Create an API key in your Genfeed settings, then paste it here.\n'));
 
       const apiKey = await password({
         mask: '*',

@@ -1,3 +1,4 @@
+import type { IApiKey, IApiKeyAttributes } from '@genfeedai/interfaces';
 import { del, get, post } from './client';
 import {
   flattenCollection,
@@ -6,37 +7,17 @@ import {
   type JsonApiSingleResponse,
 } from './json-api';
 
-export interface ApiKey {
-  id: string;
-  allowedIps?: string[];
-  category?: string;
-  createdAt?: string;
-  description?: string;
-  expiresAt?: string | null;
-  isRevoked?: boolean;
-  key?: string;
-  label?: string;
-  lastUsedAt?: string | null;
-  lastUsedIp?: string;
-  metadata?: Record<string, unknown>;
-  rateLimit?: number;
-  revokedAt?: string | null;
-  scopes?: string[];
-  token?: string;
-  updatedAt?: string;
-  usageCount?: number;
-}
+export type ApiKey = IApiKey;
 
-export interface CreateApiKeyInput {
-  allowedIps?: string[];
-  category?: string;
-  description?: string;
+type CreateApiKeyFields = Pick<
+  IApiKeyAttributes,
+  'allowedIps' | 'description' | 'label' | 'metadata' | 'rateLimit' | 'scopes'
+>;
+
+export type CreateApiKeyInput = Omit<CreateApiKeyFields, 'label'> & {
   expiresAt?: string;
   label: string;
-  metadata?: Record<string, unknown>;
-  rateLimit?: number;
-  scopes?: string[];
-}
+};
 
 export async function listApiKeys(): Promise<ApiKey[]> {
   const response = await get<JsonApiCollectionResponse>('/api-keys?limit=100');
@@ -45,8 +26,8 @@ export async function listApiKeys(): Promise<ApiKey[]> {
 
 export async function createApiKey(input: CreateApiKeyInput): Promise<ApiKey> {
   const response = await post<JsonApiSingleResponse>('/api-keys', {
-    category: 'genfeedai',
     ...input,
+    category: 'genfeedai',
   });
   return flattenSingle<ApiKey>(response);
 }

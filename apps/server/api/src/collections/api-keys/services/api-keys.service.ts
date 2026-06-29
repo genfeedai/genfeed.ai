@@ -98,6 +98,36 @@ export class ApiKeysService extends BaseService<
     return { apiKey: apiKey, plainKey };
   }
 
+  async rotateWithKey(
+    keyId: string,
+    createApiKeyDto: CreateApiKeyDto & {
+      userId: string;
+      organizationId: string;
+    },
+  ): Promise<{ apiKey: ApiKeyDocument; plainKey: string }> {
+    let replacement: { apiKey: ApiKeyDocument; plainKey: string } | undefined;
+
+    try {
+      replacement = await this.createWithKey(createApiKeyDto);
+      await this.revoke(keyId);
+      return replacement;
+    } catch (error) {
+      if (replacement?.apiKey.id) {
+        try {
+          await this.revoke(replacement.apiKey.id);
+        } catch (cleanupError) {
+          this.logger?.error('Failed to clean up replacement API key', {
+            cleanupError,
+            originalKeyId: keyId,
+            replacementKeyId: replacement.apiKey.id,
+          });
+        }
+      }
+
+      throw error;
+    }
+  }
+
   /**
    * Find an API key by its plain text value.
    * Uses fingerprint index for O(1) lookup, with a legacy full-scan fallback

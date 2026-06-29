@@ -10,6 +10,7 @@ const {
   mockRequireAuth,
   mockRevokeApiKey,
   mockRotateApiKey,
+  mockSpinnerFail,
   mockSpinnerStop,
 } = vi.hoisted(() => ({
   mockCreateApiKey: vi.fn(),
@@ -22,11 +23,13 @@ const {
   mockRequireAuth: vi.fn(),
   mockRevokeApiKey: vi.fn(),
   mockRotateApiKey: vi.fn(),
+  mockSpinnerFail: vi.fn(),
   mockSpinnerStop: vi.fn(),
 }));
 
 vi.mock('ora', () => {
   const spinner = {
+    fail: (...args: unknown[]) => mockSpinnerFail(...args),
     start: () => spinner,
     stop: (...args: unknown[]) => mockSpinnerStop(...args),
   };
@@ -145,5 +148,17 @@ describe('keys command', () => {
         key: 'gf_test_rotated',
       })
     );
+  });
+
+  it('fails the spinner before handling API errors', async () => {
+    const error = new Error('network down');
+    mockListApiKeys.mockRejectedValue(error);
+
+    await expect(keysCommand.parseAsync(['list', '--json'], { from: 'user' })).rejects.toThrow(
+      error
+    );
+
+    expect(mockSpinnerFail).toHaveBeenCalledWith('Failed to fetch API keys');
+    expect(mockHandleError).toHaveBeenCalledWith(error);
   });
 });

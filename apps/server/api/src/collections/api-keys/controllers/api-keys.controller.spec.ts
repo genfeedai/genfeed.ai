@@ -52,6 +52,7 @@ describe('ApiKeysController', () => {
     patch: vi.fn(),
     remove: vi.fn(),
     revoke: vi.fn(),
+    rotateWithKey: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -297,11 +298,7 @@ describe('ApiKeysController', () => {
       };
 
       mockApiKeysService.findOne.mockResolvedValue(mockApiKey);
-      mockApiKeysService.revoke.mockResolvedValue({
-        ...mockApiKey,
-        isRevoked: true,
-      });
-      mockApiKeysService.createWithKey.mockResolvedValue({
+      mockApiKeysService.rotateWithKey.mockResolvedValue({
         apiKey: rotatedKey,
         plainKey,
       });
@@ -311,10 +308,11 @@ describe('ApiKeysController', () => {
       expect(service.findOne).toHaveBeenCalledWith({
         id,
         isRevoked: false,
+        organizationId: '507f1f77bcf86cd799439012',
         userId: '507f1f77bcf86cd799439011',
       });
-      expect(service.revoke).toHaveBeenCalledWith(id);
-      expect(service.createWithKey).toHaveBeenCalledWith(
+      expect(service.rotateWithKey).toHaveBeenCalledWith(
+        id,
         expect.objectContaining({
           category: mockApiKey.category,
           description: mockApiKey.description,
@@ -324,6 +322,8 @@ describe('ApiKeysController', () => {
           userId: '507f1f77bcf86cd799439011',
         }),
       );
+      expect(service.revoke).not.toHaveBeenCalled();
+      expect(service.createWithKey).not.toHaveBeenCalled();
       expect(result).toBeDefined();
     });
 
@@ -336,6 +336,7 @@ describe('ApiKeysController', () => {
       ).rejects.toThrow(HttpException);
       expect(service.revoke).not.toHaveBeenCalled();
       expect(service.createWithKey).not.toHaveBeenCalled();
+      expect(service.rotateWithKey).not.toHaveBeenCalled();
     });
   });
 

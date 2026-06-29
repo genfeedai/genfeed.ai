@@ -32,8 +32,8 @@ export class ApiKeysService extends BaseService<
 
   public async createApiKey(payload: CreateApiKeyPayload): Promise<ApiKey> {
     return await this.post({
-      category: ApiKeyCategory.GENFEEDAI,
       ...payload,
+      category: ApiKeyCategory.GENFEEDAI,
     });
   }
 

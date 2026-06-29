@@ -1,30 +1,6 @@
-export interface IApiKeyAttributes {
-  allowedIps?: string[];
-  category?: string;
-  label?: string;
-  name?: string;
-  description?: string;
-  key?: string;
-  token?: string;
-  scopes?: string[];
-  expiresAt?: string | Date | null;
-  lastUsedAt?: string | Date | null;
-  lastUsedIp?: string;
-  createdAt?: string | Date | null;
-  updatedAt?: string | Date | null;
-  rateLimit?: number;
-  metadata?: Record<string, unknown>;
-  isActive?: boolean;
-  isRevoked?: boolean;
-  revokedAt?: string | Date | null;
-  usageCount?: number;
-}
+import type { IApiKey } from '@genfeedai/interfaces';
 
-export interface IApiKey extends IApiKeyAttributes {
-  id: string;
-  type?: string;
-  attributes?: IApiKeyAttributes;
-}
+export type { IApiKey, IApiKeyAttributes } from '@genfeedai/interfaces';
 
 function toIsoDateString(
   value: string | Date | null | undefined,
@@ -85,7 +61,7 @@ export class ApiKey {
     this.isRevoked = attrs.isRevoked ?? false;
     this.revokedAt = toIsoDateString(attrs.revokedAt);
     this.usageCount = attrs.usageCount ?? 0;
-    this.isActive = attrs.isActive ?? !this.isRevoked;
+    this.isActive = this.isRevoked ? false : (attrs.isActive ?? true);
   }
 
   get isExpired(): boolean {

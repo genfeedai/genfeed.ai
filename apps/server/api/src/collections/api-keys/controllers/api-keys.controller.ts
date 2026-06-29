@@ -12,6 +12,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { ApiKeyCategory } from '@genfeedai/enums';
 import { ApiKeyFullSerializer, ApiKeySerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -20,6 +21,7 @@ import {
   Get,
   HttpException,
   HttpStatus,
+  NotFoundException,
   Param,
   Patch,
   Post,
@@ -42,13 +44,19 @@ export class ApiKeysController {
   constructor(private readonly apiKeysService: ApiKeysService) {}
 
   private getApiKeyNotFoundError(detail: string) {
-    return new HttpException(
-      {
-        detail,
-        title: 'API Key Not Found',
-      },
-      HttpStatus.NOT_FOUND,
+    return new NotFoundException({
+      detail,
+      title: 'API Key Not Found',
+    });
+  }
+
+  private toApiKeyCategory(category: string): ApiKeyCategory {
+    const normalized = category.toLowerCase().replaceAll('_', '');
+    const match = Object.values(ApiKeyCategory).find(
+      (value) => value.replaceAll('_', '') === normalized,
     );
+
+    return match ?? ApiKeyCategory.GENFEEDAI;
   }
 
   @Post()
@@ -251,6 +259,7 @@ export class ApiKeysController {
     const existingKey = await this.apiKeysService.findOne({
       id: apiKeyId,
       isRevoked: false,
+      organizationId: publicMetadata.organization,
       userId: publicMetadata.user,
     });
 
@@ -267,20 +276,21 @@ export class ApiKeysController {
         ? (existingKey.metadata as Record<string, unknown>)
         : undefined;
 
-    const { apiKey, plainKey } = await this.apiKeysService.createWithKey({
-      allowedIps: existingKey.allowedIps,
-      category: existingKey.category,
-      description: existingKey.description ?? undefined,
-      expiresAt: existingKey.expiresAt?.toISOString(),
-      label: existingKey.label,
-      metadata,
-      organizationId: publicMetadata.organization,
-      rateLimit: existingKey.rateLimit ?? undefined,
-      scopes: existingKey.scopes,
-      userId: publicMetadata.user,
-    });
-
-    await this.apiKeysService.revoke(apiKeyId);
+    const { apiKey, plainKey } = await this.apiKeysService.rotateWithKey(
+      apiKeyId,
+      {
+        allowedIps: existingKey.allowedIps,
+        category: this.toApiKeyCategory(existingKey.category),
+        description: existingKey.description ?? undefined,
+        expiresAt: existingKey.expiresAt?.toISOString(),
+        label: existingKey.label,
+        metadata,
+        organizationId: publicMetadata.organization,
+        rateLimit: existingKey.rateLimit ?? undefined,
+        scopes: existingKey.scopes,
+        userId: publicMetadata.user,
+      },
+    );
 
     return serializeSingle(request, ApiKeyFullSerializer, {
       ...apiKey,

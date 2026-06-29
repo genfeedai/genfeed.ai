@@ -122,6 +122,19 @@ describe('ApiKey', () => {
       expect(apiKey.revokedAt).toBe('2025-01-01T00:00:00Z');
     });
 
+    it('forces revoked keys inactive when the payload also says active', () => {
+      const apiKey = new ApiKey({
+        attributes: {
+          isActive: true,
+          isRevoked: true,
+        },
+        id: 'key-revoked-active',
+      });
+
+      expect(apiKey.isRevoked).toBe(true);
+      expect(apiKey.isActive).toBe(false);
+    });
+
     it('should handle date attributes', () => {
       const apiKey = new ApiKey({
         attributes: {

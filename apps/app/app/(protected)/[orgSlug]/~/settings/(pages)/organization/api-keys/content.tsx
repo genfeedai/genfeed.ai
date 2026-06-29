@@ -1,6 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { API_KEY_SCOPE_PRESETS } from '@genfeedai/constants';
 import { ApiKeyScope, ButtonVariant } from '@genfeedai/enums';
 import type { IByokProviderStatus } from '@genfeedai/interfaces';
 import type { ApiKey } from '@genfeedai/models/auth/api-key.model';
@@ -73,49 +74,6 @@ type ProductPlainKey = {
   label: string;
 };
 
-const READ_SCOPES = [
-  ApiKeyScope.VIDEOS_READ,
-  ApiKeyScope.IMAGES_READ,
-  ApiKeyScope.PROMPTS_READ,
-  ApiKeyScope.ARTICLES_READ,
-  ApiKeyScope.BRANDS_READ,
-  ApiKeyScope.CREDITS_READ,
-  ApiKeyScope.ANALYTICS_READ,
-];
-
-const MCP_SCOPES = [
-  ApiKeyScope.VIDEOS_READ,
-  ApiKeyScope.VIDEOS_CREATE,
-  ApiKeyScope.VIDEOS_UPDATE,
-  ApiKeyScope.VIDEOS_DELETE,
-  ApiKeyScope.IMAGES_READ,
-  ApiKeyScope.IMAGES_CREATE,
-  ApiKeyScope.IMAGES_UPDATE,
-  ApiKeyScope.IMAGES_DELETE,
-  ApiKeyScope.PROMPTS_READ,
-  ApiKeyScope.PROMPTS_CREATE,
-  ApiKeyScope.PROMPTS_UPDATE,
-  ApiKeyScope.PROMPTS_DELETE,
-  ApiKeyScope.ARTICLES_READ,
-  ApiKeyScope.ARTICLES_CREATE,
-  ApiKeyScope.BRANDS_READ,
-  ApiKeyScope.CREDITS_READ,
-  ApiKeyScope.POSTS_CREATE,
-  ApiKeyScope.ANALYTICS_READ,
-];
-
-const CONTENT_SCOPES = [
-  ApiKeyScope.VIDEOS_READ,
-  ApiKeyScope.VIDEOS_CREATE,
-  ApiKeyScope.IMAGES_READ,
-  ApiKeyScope.IMAGES_CREATE,
-  ApiKeyScope.PROMPTS_READ,
-  ApiKeyScope.PROMPTS_CREATE,
-  ApiKeyScope.ARTICLES_READ,
-  ApiKeyScope.ARTICLES_CREATE,
-  ApiKeyScope.POSTS_CREATE,
-];
-
 const API_KEY_SCOPE_OPTIONS = [
   {
     label: 'Videos',
@@ -140,9 +98,9 @@ const API_KEY_SCOPE_OPTIONS = [
 ] as const;
 
 const PRODUCT_API_KEY_PRESETS = [
-  { label: 'MCP', scopes: MCP_SCOPES },
-  { label: 'Read', scopes: READ_SCOPES },
-  { label: 'Content', scopes: CONTENT_SCOPES },
+  { label: 'MCP', scopes: API_KEY_SCOPE_PRESETS.mcp },
+  { label: 'Read', scopes: API_KEY_SCOPE_PRESETS.read },
+  { label: 'Content', scopes: API_KEY_SCOPE_PRESETS.content },
 ] as const;
 
 const initialProductApiKeyForm: ProductApiKeyForm = {
@@ -151,7 +109,7 @@ const initialProductApiKeyForm: ProductApiKeyForm = {
   expiresAt: '',
   label: '',
   rateLimit: '',
-  selectedScopes: MCP_SCOPES,
+  selectedScopes: [...API_KEY_SCOPE_PRESETS.mcp],
 };
 
 const initialApiKeysState: ApiKeysState = {
@@ -333,11 +291,16 @@ export default function SettingsApiKeysPage() {
 
   useEffect(() => {
     if (!organizationId || !isReady) {
+      setProductApiKeys([]);
+      setProductPlainKey(null);
       setIsProductLoading(false);
       return;
     }
     const controller = new AbortController();
 
+    setProductApiKeys([]);
+    setProductPlainKey(null);
+    setIsProductLoading(true);
     fetchProductApiKeys(controller.signal);
     return () => controller.abort();
   }, [organizationId, isReady, fetchProductApiKeys]);
