@@ -1,7 +1,7 @@
 ---
 created: 2026-04-07T00:00:00Z
-last_updated: 2026-04-07T00:00:00Z
-version: 1.0
+last_updated: 2026-06-29T00:00:00Z
+version: 1.1
 author: Claude Code PM System
 ---
 
@@ -28,8 +28,8 @@ Backend modules use `createServiceModule()` factory (auto-includes ConfigModule 
 ### Soft Deletes
 `isDeleted: boolean` field — never `deletedAt`. All queries filter `isDeleted: false`.
 
-### Queue Processing
-BullMQ queues with Redis. All cron jobs live in the workers service.
+### Queue Processing And Scheduling
+BullMQ queues use Redis. Product-facing recurring automation is workflow-backed through `WorkflowSchedulerService` and workflow trigger records. The legacy `cron-jobs` subsystem is retained for compatibility reads and workflow-adapter execution of migrated rows; do not add new product features to it. Static Nest `@Cron(...)` jobs are reserved for reviewed platform/maintenance responsibilities and are guarded by `bun run check:cron-boundary`.
 
 ## Frontend Patterns
 
@@ -57,7 +57,7 @@ Use `gen-*` design classes (`gen-card-spotlight`, `gen-contact-sheet`, `gen-divi
 ### Integration Services
 - Module: `createServiceModule()` factory
 - OAuth: `@Post('connect')` -> auth URL, `@Post('verify')` -> exchange code
-- Credentials scoped: `{ platform: CredentialPlatform.X, isDeleted: false }` (add `organization: orgId` only with enterprise multi-tenancy)
+- Credentials scoped: `{ platform: CredentialPlatform.X, isDeleted: false }` (add `organizationId` only with enterprise multi-tenancy)
 
 ### Agent Tools
 - Registration chain: tool def -> credit cost -> agent type config -> executor handler -> UI label -> test

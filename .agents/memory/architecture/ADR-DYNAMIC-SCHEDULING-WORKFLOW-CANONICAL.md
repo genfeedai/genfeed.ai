@@ -4,6 +4,10 @@
 
 Accepted
 
+## Last Updated
+
+2026-06-29
+
 ## Decision
 
 Dynamic recurring automation must be workflow-backed by default.
@@ -51,6 +55,11 @@ The legacy product surface is retired:
 - `POST`/`PATCH`/pause/resume/delete/run-now cron-job API routes return `410`
 - SDK mutation methods fail before making HTTP calls
 - new product code must not create legacy cron rows or call legacy mutation APIs
+
+Recent migrations made this concrete for campaign orchestration, ad sync and
+optimization, agent autopilot, analytics sync, content production, reply
+polling, trend notifications, livestream bot scheduling, and default recurring
+workflows. Treat those migrations as the current pattern for tenant automation.
 
 Ad insights aggregation is explicitly classified as platform scheduling:
 

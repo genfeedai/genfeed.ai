@@ -5,7 +5,7 @@ Primary architecture references for planning/reporting.
 ## Repo Structure
 
 - **Apps (server):** `apps/server/{api,clips,discord,files,images,mcp,notifications,slack,telegram,videos,voices,workers}`
-- **Apps (frontend):** `apps/{app,admin,website,desktop,mobile,extensions}`
+- **Apps (frontend):** `apps/app`, `apps/docs`, `apps/website`, `apps/desktop/app`, `apps/mobile/app`, `apps/extensions/{browser,ide}/app`
 - **Packages:** `packages/*` (`@genfeedai/*` scope)
 - **Enterprise:** `ee/packages/*` (commercial license)
 

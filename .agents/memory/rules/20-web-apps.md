@@ -2,7 +2,7 @@
 description: Frontend standards for Next.js apps.
 globs:
   - "apps/app/**"
-  - "apps/admin/**"
+  - "apps/docs/**"
   - "apps/website/**"
   - "apps/desktop/**"
   - "apps/mobile/**"
