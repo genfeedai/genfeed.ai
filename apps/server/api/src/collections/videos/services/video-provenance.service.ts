@@ -1,6 +1,7 @@
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import {
   AssetScope,
   IngredientCategory,
@@ -87,7 +88,13 @@ export class VideoProvenanceService {
 
     return this.buildPackageFromVideoQuery(videoId, {
       _id: videoId,
-      category: IngredientCategory.VIDEO,
+      // buildWhereFromParams passes the value directly to Prisma which stores
+      // IngredientCategory as uppercase (e.g. 'VIDEO'). The JS enum value is
+      // lowercase ('video'), so we convert via CategoryPrismaUtil to avoid a
+      // silent mismatch that would cause findOne to return null on valid records.
+      category: CategoryPrismaUtil.toIngredientCategory(
+        IngredientCategory.VIDEO,
+      ),
       isDeleted: false,
       scope: AssetScope.PUBLIC,
       status: IngredientStatus.GENERATED,
@@ -102,7 +109,19 @@ export class VideoProvenanceService {
       where,
     )) as unknown as IVideoProvenanceRecord | null;
 
-    if (!video || video.category !== IngredientCategory.VIDEO) {
+    // Prisma returns IngredientCategory as its UPPERCASE stored form (e.g. 'VIDEO'),
+    // while IngredientCategory.VIDEO in the JS enum is lowercase ('video').
+    // Compare against the Prisma form to avoid rejecting valid video records.
+    // Only reject when the category field is explicitly present AND is not VIDEO —
+    // a missing category is already ruled out by the WHERE clause in the callers
+    // that filter by category, but we keep the null-check for defensive coverage.
+    const prismaVideoCategory = CategoryPrismaUtil.toIngredientCategory(
+      IngredientCategory.VIDEO,
+    );
+    if (
+      !video ||
+      (video.category !== undefined && video.category !== prismaVideoCategory)
+    ) {
       throw new NotFoundException(
         `${this.constructorName}: video ${videoId} not found`,
       );

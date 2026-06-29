@@ -20,18 +20,19 @@ export class PublicMediaService {
       await this.videoProvenanceService.buildPublicProvenance(assetId);
     const basePath = publicMediaPath(mediaPackage.assetId);
 
+    const isVideo = mediaPackage.manifest.kind === 'video';
+
     return {
       assetId: mediaPackage.assetId,
       canonicalUrl: mediaPackage.manifest.canonicalUrl,
       kind: mediaPackage.manifest.kind,
       manifestFilename: mediaPackage.manifestFilename,
       manifestPath: `${basePath}/manifest.json`,
-      mediaPath:
-        mediaPackage.manifest.kind === 'video'
-          ? `/public/videos/${mediaPackage.assetId}/video.mp4`
-          : null,
+      mediaPath: isVideo
+        ? `/public/videos/${mediaPackage.assetId}/video.mp4`
+        : null,
       provenancePath: basePath,
-      publicPagePath: `/public/videos/${mediaPackage.assetId}`,
+      publicPagePath: isVideo ? `/public/videos/${mediaPackage.assetId}` : null,
       transcriptFilename: mediaPackage.transcriptSidecar.filename,
       transcriptPath: `${basePath}/transcript.vtt`,
     };

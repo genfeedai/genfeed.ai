@@ -9,7 +9,10 @@ import { Test, type TestingModule } from '@nestjs/testing';
 
 const makeVideo = (overrides: Record<string, unknown> = {}) => ({
   _id: 'video-1',
-  category: IngredientCategory.VIDEO,
+  // Prisma returns IngredientCategory as its UPPERCASE stored form ('VIDEO'),
+  // not the JS enum lowercase value ('video'). The mock reflects what the DB layer
+  // actually returns so the guard comparison in buildPackageFromVideoQuery is valid.
+  category: 'VIDEO',
   cdnUrl: 'https://cdn.example.com/video-1.mp4',
   fileSize: 2048,
   generationCompletedAt: new Date('2026-06-20T10:00:00.000Z'),
@@ -136,7 +139,9 @@ describe('VideoProvenanceService', () => {
     expect(pkg.assetId).toBe('video-1');
     expect(videosService.findOne).toHaveBeenCalledWith({
       _id: 'video-1',
-      category: IngredientCategory.VIDEO,
+      // CategoryPrismaUtil.toIngredientCategory converts the JS enum ('video') to
+      // the Prisma UPPERCASE form ('VIDEO') required by findFirst WHERE clauses.
+      category: 'VIDEO',
       isDeleted: false,
       scope: 'public',
       status: 'generated',
