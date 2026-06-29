@@ -212,8 +212,10 @@ function usePromptBarPostController({
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (prompt.trim() && !isEnhancing) {
+      // Only forward an actual post-capable platform; non-posting platforms
+      // (e.g. Google Search Console) are treated as no specific platform.
       const selectedPlatform =
-        platform === 'all' ? undefined : (platform as Platform);
+        platform !== 'all' && isPostPlatform(platform) ? platform : undefined;
 
       await onSubmit(
         prompt.trim(),

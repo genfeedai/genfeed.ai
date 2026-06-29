@@ -1,6 +1,9 @@
 import type { Platform } from '@genfeedai/enums';
 import type { ICredential } from '@genfeedai/interfaces';
-import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
+import {
+  getPostsPlatformLabel,
+  isPostPlatform,
+} from '@helpers/content/posts.helper';
 import type { PostsService } from '@services/content/posts.service';
 import { logger } from '@services/core/logger.service';
 
@@ -35,6 +38,14 @@ export async function generatePosts({
 
   if (!targetPlatform) {
     alert('No platform selected. Please select a platform.');
+    return;
+  }
+
+  // Guard non-posting platforms (e.g. Google Search Console / Google Ads-style
+  // SEO/analytics integrations): they are valid Platform values but cannot be
+  // post-generation targets, so reject them before attempting generation.
+  if (!isPostPlatform(targetPlatform)) {
+    alert('The selected platform does not support post generation.');
     return;
   }
 
