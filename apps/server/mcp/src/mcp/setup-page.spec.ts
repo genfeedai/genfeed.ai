@@ -20,9 +20,12 @@ describe('MCP setup page', () => {
   it('uses shared static UI surface primitives instead of local card CSS', () => {
     const html = renderSetupPage();
 
-    expect(html).toContain('gf-card mcp-hero-card');
+    expect(html).toContain('gf-card gf-feature-card');
+    expect(html).toContain('gf-card gf-info-card');
     expect(html).toContain('gf-button gf-button-primary');
     expect(html).toContain('gf-code-block command');
+    expect(html).not.toContain('mcp-hero-card');
+    expect(html).not.toContain('mcp-meta-card');
     expect(html).not.toContain('class="poster"');
     expect(html).not.toContain('class="client-shell"');
     expect(html).not.toContain('class="meta-card"');

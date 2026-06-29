@@ -11,6 +11,12 @@ export const staticSurfaceClassNames = {
   card: 'gf-card',
   chip: 'gf-chip',
   codeBlock: 'gf-code-block',
+  featureCard: 'gf-card gf-feature-card',
+  featureCardCopy: 'gf-feature-card-copy',
+  featureCardInner: 'gf-feature-card-inner',
+  featureCardKicker: 'gf-feature-card-kicker',
+  featureCardTitle: 'gf-feature-card-title',
+  infoCard: 'gf-card gf-info-card',
   inlineCode: 'gf-inline-code',
   root: 'gf-ui',
   warningNote: 'gf-warning-note',
@@ -59,6 +65,85 @@ export const staticSurfaceCss = `
 }
 .gf-card:hover {
   box-shadow: var(--gf-shadow-border-strong);
+}
+.gf-feature-card {
+  min-height: 430px;
+  background:
+    linear-gradient(160deg, rgba(255,255,255,0.075), rgba(255,255,255,0.018) 46%, rgba(255,255,255,0.008)),
+    var(--gf-bg-primary);
+  padding: 34px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.32);
+}
+.gf-feature-card::before {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px);
+  background-size: 96px 96px;
+  content: "";
+  opacity: 0.28;
+}
+.gf-feature-card-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-height: 360px;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 28px;
+}
+.gf-feature-card-kicker {
+  margin: 0;
+  color: var(--gf-text-faint);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.gf-feature-card-title {
+  max-width: 350px;
+  margin: 18px 0 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 42px;
+  font-weight: 700;
+  line-height: 0.98;
+  letter-spacing: 0;
+}
+.gf-feature-card-copy {
+  max-width: 330px;
+  margin: 14px 0 0;
+  color: var(--gf-text-muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+.gf-info-card {
+  min-height: 190px;
+  padding: 22px;
+}
+.gf-info-card h3 {
+  margin: 14px 0 0;
+  color: var(--gf-text-primary);
+  font-size: 15px;
+  font-weight: 750;
+}
+.gf-info-card p {
+  margin: 9px 0 0;
+  color: var(--gf-text-muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+.gf-info-card a {
+  display: inline-flex;
+  margin-top: 16px;
+  color: var(--gf-text-secondary);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.gf-info-card a:hover {
+  color: var(--gf-text-primary);
 }
 .gf-button {
   display: inline-flex;
@@ -156,5 +241,18 @@ export const staticSurfaceCss = `
   padding: 14px;
   font-size: 12px;
   line-height: 1.6;
+}
+@media (max-width: 920px) {
+  .gf-feature-card {
+    min-height: 360px;
+  }
+}
+@media (max-width: 640px) {
+  .gf-feature-card {
+    padding: 22px;
+  }
+  .gf-feature-card-title {
+    font-size: 34px;
+  }
 }
 `;

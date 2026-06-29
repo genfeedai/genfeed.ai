@@ -186,7 +186,6 @@ a { color: inherit; text-decoration: none; }
 }
 .eyebrow,
 .section-kicker,
-.mcp-hero-card-kicker,
 .meta-label {
   margin: 0;
   color: var(--gf-text-faint);
@@ -223,49 +222,6 @@ a { color: inherit; text-decoration: none; }
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 30px;
-}
-.mcp-hero-card {
-  min-height: 430px;
-  background:
-    linear-gradient(160deg, rgba(255,255,255,0.075), rgba(255,255,255,0.018) 46%, rgba(255,255,255,0.008)),
-    var(--gf-bg-primary);
-  padding: 34px;
-  box-shadow: 0 24px 80px rgba(0,0,0,0.32);
-}
-.mcp-hero-card::before {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px);
-  background-size: 96px 96px;
-  content: "";
-  opacity: 0.28;
-}
-.mcp-hero-card-inner {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  min-height: 360px;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 28px;
-}
-.mcp-hero-card-title {
-  max-width: 350px;
-  margin: 18px 0 0;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 42px;
-  font-weight: 700;
-  line-height: 0.98;
-  letter-spacing: 0;
-}
-.mcp-hero-card-copy {
-  max-width: 330px;
-  margin: 14px 0 0;
-  color: var(--gf-text-muted);
-  font-size: 13px;
-  line-height: 1.65;
 }
 .flow {
   display: grid;
@@ -478,32 +434,6 @@ pre.command {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
 }
-.mcp-meta-card {
-  min-height: 190px;
-  padding: 22px;
-}
-.mcp-meta-card h3 {
-  margin: 14px 0 0;
-  color: var(--gf-text-primary);
-  font-size: 15px;
-  font-weight: 750;
-}
-.mcp-meta-card p {
-  margin: 9px 0 0;
-  color: var(--gf-text-muted);
-  font-size: 13px;
-  line-height: 1.65;
-}
-.mcp-meta-card a {
-  display: inline-flex;
-  margin-top: 16px;
-  color: var(--gf-text-secondary);
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-.mcp-meta-card a:hover { color: var(--gf-text-primary); }
 .mcp-warning-note {
   margin-top: 14px;
 }
@@ -547,7 +477,6 @@ pre.command {
     padding: 48px 0 54px;
   }
   .hero h1 { font-size: 58px; }
-  .mcp-hero-card { min-height: 360px; }
   .copy { justify-self: start; }
 }
 @media (max-width: 640px) {
@@ -556,8 +485,6 @@ pre.command {
   .nav-links { gap: 10px; }
   .nav-link { display: none; }
   .hero h1 { font-size: 42px; }
-  .mcp-hero-card { padding: 22px; }
-  .mcp-hero-card-title { font-size: 34px; }
   .flow-row { grid-template-columns: 1fr; gap: 3px; }
   .flow-copy { white-space: normal; }
   .section { padding: 56px 0; }
@@ -601,12 +528,12 @@ pre.command {
       </div>
     </div>
 
-    <aside class="${ui.card} mcp-hero-card" aria-label="Genfeed MCP workflow preview">
-      <div class="mcp-hero-card-inner">
+    <aside class="${ui.featureCard}" aria-label="Genfeed MCP workflow preview">
+      <div class="${ui.featureCardInner}">
         <div>
-          <p class="mcp-hero-card-kicker">AI model context protocol</p>
-          <h2 class="mcp-hero-card-title">Agent workspace access.</h2>
-          <p class="mcp-hero-card-copy">Read, create, publish, and measure from your AI client.</p>
+          <p class="${ui.featureCardKicker}">AI model context protocol</p>
+          <h2 class="${ui.featureCardTitle}">Agent workspace access.</h2>
+          <p class="${ui.featureCardCopy}">Read, create, publish, and measure from your AI client.</p>
         </div>
         <div class="flow" aria-label="Content operating loop">
           <div class="flow-row">
@@ -737,19 +664,19 @@ pre.command {
     </div>
 
     <div class="meta-grid">
-      <article class="${ui.card} mcp-meta-card">
+      <article class="${ui.infoCard}">
         <p class="meta-label">Authentication</p>
         <h3>Bearer token</h3>
         <p>Send <code class="${ui.inlineCode}">Authorization: Bearer gf_live_xxx</code> with every request.</p>
         <a href="${apiKeysUrlSafe}" rel="noopener noreferrer">Manage keys</a>
       </article>
-      <article class="${ui.card} mcp-meta-card">
+      <article class="${ui.infoCard}">
         <p class="meta-label">Transport</p>
         <h3>HTTP transport</h3>
         <p>Register Genfeed as a remote MCP server. No <code class="${ui.inlineCode}">npx</code> or localhost for cloud.</p>
         <a href="/v1/config" rel="noopener noreferrer">View config</a>
       </article>
-      <article class="${ui.card} mcp-meta-card">
+      <article class="${ui.infoCard}">
         <p class="meta-label">Status</p>
         <h3>Health checks</h3>
         <p>Use health and config to debug routing or stale client settings.</p>
