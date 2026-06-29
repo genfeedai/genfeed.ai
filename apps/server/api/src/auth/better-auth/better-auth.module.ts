@@ -17,9 +17,10 @@ import {
   parseCommaSeparated,
   parseTrustedOrigins,
   resolveBetterAuthBaseUrl,
+  resolveBooleanFlag,
   resolveCookieDomain,
   resolveExperimentalJoins,
-  resolveGoogleConfig,
+  resolveSocialProviderConfig,
 } from './better-auth.config';
 import {
   BETTER_AUTH_INSTANCE,
@@ -131,7 +132,11 @@ import { BetterAuthMailerService } from './services/better-auth-mailer.service';
           experimentalJoins: resolveExperimentalJoins(
             config.get('BETTER_AUTH_EXPERIMENTAL_JOINS'),
           ),
-          google: resolveGoogleConfig(
+          github: resolveSocialProviderConfig(
+            config.get('GITHUB_CLIENT_ID'),
+            config.get('GITHUB_CLIENT_SECRET'),
+          ),
+          google: resolveSocialProviderConfig(
             config.get('GOOGLE_CLIENT_ID'),
             config.get('GOOGLE_CLIENT_SECRET'),
           ),
@@ -139,6 +144,10 @@ import { BetterAuthMailerService } from './services/better-auth-mailer.service';
             config.get('BETTER_AUTH_IP_HEADERS'),
           ),
           rateLimitStore,
+          requireEmailVerification: resolveBooleanFlag(
+            config.get('BETTER_AUTH_REQUIRE_EMAIL_VERIFICATION'),
+            false,
+          ),
           // Awaited so provisioning completes before the create resolves; the
           // UserProvisioningListener (@OnEvent) runs under Nest DI.
           onUserCreated: async (event) => {
@@ -147,6 +156,8 @@ import { BetterAuthMailerService } from './services/better-auth-mailer.service';
           prisma,
           secret,
           sendMagicLink: (params) => mailer.sendMagicLink(params),
+          sendVerificationEmail: (params) =>
+            mailer.sendVerificationEmail(params),
           trustedOrigins: parseTrustedOrigins(
             config.get('BETTER_AUTH_TRUSTED_ORIGINS'),
           ),

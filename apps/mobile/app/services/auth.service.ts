@@ -31,6 +31,10 @@ interface BetterAuthSignInResponse {
   user?: BetterAuthUserResponse | null;
 }
 
+interface BetterAuthSocialSignInResponse extends BetterAuthSignInResponse {
+  token?: string;
+}
+
 function normalizeUser(
   data: BetterAuthUserResponse | null | undefined,
   organizationId: string | null = null,
@@ -78,7 +82,7 @@ function toCookieHeader(headers: Headers): string | null {
   const cookies = getSetCookieValues(headers)
     .map((cookie) => cookie.split(';')[0]?.trim())
     .filter((cookie): cookie is string => {
-      return Boolean(cookie && cookie.includes('better-auth.'));
+      return Boolean(cookie?.includes('better-auth.'));
     });
 
   return cookies.length > 0 ? cookies.join('; ') : null;
@@ -204,6 +208,40 @@ export const mobileAuthService = {
 
     if (!cookieHeader || !user) {
       throw new Error('Sign in did not return a usable Better Auth session.');
+    }
+
+    await Promise.all([
+      SecureStore.setItemAsync(SESSION_COOKIE_KEY, cookieHeader),
+      SecureStore.setItemAsync(USER_KEY, JSON.stringify(user)),
+    ]);
+
+    return { cookieHeader, user };
+  },
+
+  async signInWithGoogleIdToken(input: {
+    accessToken?: string | null;
+    idToken: string;
+    nonce?: string | null;
+  }): Promise<{ cookieHeader: string; user: MobileAuthUser }> {
+    const { cookieHeader, data } =
+      await authFetch<BetterAuthSocialSignInResponse>('/sign-in/social', {
+        body: JSON.stringify({
+          disableRedirect: true,
+          idToken: {
+            accessToken: input.accessToken ?? undefined,
+            nonce: input.nonce ?? undefined,
+            token: input.idToken,
+          },
+          provider: 'google',
+        }),
+        method: 'POST',
+      });
+    const user = normalizeUser(data?.user);
+
+    if (!cookieHeader || !user) {
+      throw new Error(
+        'Google sign in did not return a usable Better Auth session.',
+      );
     }
 
     await Promise.all([

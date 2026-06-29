@@ -3,8 +3,10 @@ import {
   parseCommaSeparated,
   parseTrustedOrigins,
   resolveBetterAuthBaseUrl,
+  resolveBooleanFlag,
   resolveCookieDomain,
   resolveExperimentalJoins,
+  resolveSocialProviderConfig,
 } from './better-auth.config';
 import { BETTER_AUTH_BASE_PATH } from './better-auth.constants';
 
@@ -59,6 +61,32 @@ describe('Better Auth config', () => {
       expect(resolveExperimentalJoins('false')).toBe(false);
       expect(resolveExperimentalJoins(undefined)).toBe(false);
       expect(resolveExperimentalJoins('1')).toBe(false);
+    });
+  });
+
+  describe('resolveBooleanFlag', () => {
+    it('parses explicit boolean strings and otherwise falls back', () => {
+      expect(resolveBooleanFlag('true')).toBe(true);
+      expect(resolveBooleanFlag(' false ')).toBe(false);
+      expect(resolveBooleanFlag(undefined, true)).toBe(true);
+      expect(resolveBooleanFlag('1', false)).toBe(false);
+    });
+  });
+
+  describe('resolveSocialProviderConfig', () => {
+    it('returns trimmed OAuth credentials when both values are configured', () => {
+      expect(
+        resolveSocialProviderConfig(' google-client ', ' google-secret '),
+      ).toEqual({
+        clientId: 'google-client',
+        clientSecret: 'google-secret',
+      });
+    });
+
+    it('omits the provider when either credential is missing', () => {
+      expect(resolveSocialProviderConfig('google-client', '')).toBeUndefined();
+      expect(resolveSocialProviderConfig('', 'google-secret')).toBeUndefined();
+      expect(resolveSocialProviderConfig(undefined, undefined)).toBeUndefined();
     });
   });
 });

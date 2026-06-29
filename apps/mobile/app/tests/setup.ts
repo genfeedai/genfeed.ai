@@ -173,6 +173,14 @@ vi.mock('expo-web-browser', () => ({
   maybeCompleteAuthSession: vi.fn(),
 }));
 
+vi.mock('expo-auth-session/providers/google', () => ({
+  useIdTokenAuthRequest: vi.fn(() => [
+    { clientId: 'google-client' },
+    null,
+    vi.fn().mockResolvedValue({ type: 'cancel' }),
+  ]),
+}));
+
 vi.mock('expo-splash-screen', () => ({
   hideAsync: vi.fn(),
   preventAutoHideAsync: vi.fn(),
@@ -238,6 +246,7 @@ vi.mock('@/contexts/auth-context', () => ({
     isSignedIn: false,
     refreshSession: vi.fn(),
     signInWithEmail: vi.fn(),
+    signInWithGoogleIdToken: vi.fn(),
     signOut: vi.fn(),
     user: null,
   })),

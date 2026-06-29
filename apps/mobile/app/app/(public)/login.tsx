@@ -1,3 +1,5 @@
+import * as Google from 'expo-auth-session/providers/google';
+import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -13,12 +15,33 @@ import { colors } from '@/constants';
 import { useMobileAuth } from '@/contexts/auth-context';
 
 export default function Login() {
-  const { isLoaded, signInWithEmail } = useMobileAuth();
+  const { isLoaded, signInWithEmail, signInWithGoogleIdToken } =
+    useMobileAuth();
   const router = useRouter();
+  const extra = Constants.expoConfig?.extra ?? {};
+  const [googleRequest, , promptGoogleAsync] = Google.useIdTokenAuthRequest({
+    androidClientId:
+      typeof extra.googleOAuthAndroidClientId === 'string'
+        ? extra.googleOAuthAndroidClientId
+        : undefined,
+    clientId:
+      typeof extra.googleOAuthClientId === 'string'
+        ? extra.googleOAuthClientId
+        : undefined,
+    iosClientId:
+      typeof extra.googleOAuthIosClientId === 'string'
+        ? extra.googleOAuthIosClientId
+        : undefined,
+    webClientId:
+      typeof extra.googleOAuthWebClientId === 'string'
+        ? extra.googleOAuthWebClientId
+        : undefined,
+  });
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const handleSignIn = async () => {
     if (!isLoaded || isLoading) {
@@ -40,6 +63,40 @@ export default function Login() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    if (!isLoaded || isGoogleLoading) {
+      return;
+    }
+
+    try {
+      setIsGoogleLoading(true);
+      const result = await promptGoogleAsync();
+      const auth = result.type === 'success' ? result.authentication : null;
+      const idToken =
+        result.type === 'success'
+          ? ((result.params?.id_token as string | undefined) ?? null)
+          : null;
+
+      if (!idToken) {
+        throw new Error('Google did not return an ID token.');
+      }
+
+      await signInWithGoogleIdToken({
+        accessToken: auth?.accessToken ?? null,
+        idToken,
+      });
+      router.replace('/content');
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      Alert.alert(
+        'Google sign in failed',
+        error.message || 'An error occurred',
+      );
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -48,6 +105,27 @@ export default function Login() {
       </View>
 
       <View style={styles.form}>
+        <Pressable
+          disabled={isGoogleLoading || !googleRequest}
+          onPress={handleGoogleSignIn}
+          style={[
+            styles.googleButton,
+            isGoogleLoading && styles.signInButtonDisabled,
+          ]}
+        >
+          {isGoogleLoading ? (
+            <ActivityIndicator color={colors.textPrimary} size="small" />
+          ) : (
+            <Text style={styles.googleButtonText}>Continue with Google</Text>
+          )}
+        </Pressable>
+
+        <View style={styles.divider}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>or</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>Email</Text>
           <TextInput
@@ -103,6 +181,34 @@ const styles = StyleSheet.create({
   },
   form: {
     gap: 16,
+  },
+  divider: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+  },
+  dividerLine: {
+    backgroundColor: colors.bgBorder,
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  googleButton: {
+    alignItems: 'center',
+    backgroundColor: colors.bgTertiary,
+    borderColor: colors.bgBorder,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingVertical: 14,
+  },
+  googleButtonText: {
+    color: colors.textPrimary,
+    fontSize: 16,
+    fontWeight: '600',
   },
   header: {
     marginBottom: 32,

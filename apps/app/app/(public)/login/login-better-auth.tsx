@@ -15,6 +15,7 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
+import { FaGithub } from 'react-icons/fa6';
 import { FcGoogle } from 'react-icons/fc';
 import {
   getAuthCallbackURL,
@@ -129,7 +130,7 @@ export default function LoginBetterAuth({
     }
   }
 
-  async function handleGoogleSignIn() {
+  async function handleSocialSignIn(provider: 'github' | 'google') {
     setSocialErrorMessage(null);
     setErrorMessage(null);
     setPasswordErrorMessage(null);
@@ -138,17 +139,19 @@ export default function LoginBetterAuth({
     try {
       const result = await signIn.social({
         callbackURL: authCallbackURL,
-        provider: 'google',
+        provider,
       });
       if (result?.error) {
+        const label = provider === 'google' ? 'Google' : 'GitHub';
         setSocialErrorMessage(
           result.error.message ??
-            'Failed to continue with Google. Please try again.',
+            `Failed to continue with ${label}. Please try again.`,
         );
       }
     } catch {
+      const label = provider === 'google' ? 'Google' : 'GitHub';
       setSocialErrorMessage(
-        'Failed to continue with Google. Please try again.',
+        `Failed to continue with ${label}. Please try again.`,
       );
     } finally {
       setIsSocialSubmitting(false);
@@ -305,13 +308,25 @@ export default function LoginBetterAuth({
           <Button
             type="button"
             variant={ButtonVariant.OUTLINE}
-            onClick={handleGoogleSignIn}
+            onClick={() => handleSocialSignIn('google')}
             icon={<FcGoogle className="size-4" aria-hidden="true" />}
             isLoading={isSocialSubmitting}
             className={AUTH_BUTTON_CLASS_NAME}
             withWrapper={false}
           >
             Sign in with Google
+          </Button>
+
+          <Button
+            type="button"
+            variant={ButtonVariant.OUTLINE}
+            onClick={() => handleSocialSignIn('github')}
+            icon={<FaGithub className="size-4" aria-hidden="true" />}
+            isLoading={isSocialSubmitting}
+            className={AUTH_BUTTON_CLASS_NAME}
+            withWrapper={false}
+          >
+            Sign in with GitHub
           </Button>
 
           <Button
