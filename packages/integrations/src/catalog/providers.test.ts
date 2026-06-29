@@ -18,6 +18,7 @@ describe('integration provider catalog', () => {
       'linkedin',
       'twitter',
       'google_ads',
+      'google_search_console',
       'meta_ads',
     ]);
   });

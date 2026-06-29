@@ -55,6 +55,16 @@ export const googleAdsSchema = {
 };
 
 /**
+ * Google Search Console OAuth (optional everywhere — GSC is user-provided
+ * OAuth data and should not block Community/self-hosted boot when absent)
+ */
+export const googleSearchConsoleSchema = {
+  GOOGLE_SEARCH_CONSOLE_CLIENT_ID: Joi.string().optional().allow(''),
+  GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET: Joi.string().optional().allow(''),
+  GOOGLE_SEARCH_CONSOLE_REDIRECT_URI: Joi.string().uri().optional().allow(''),
+};
+
+/**
  * Twitter/X API (required in cloud, optional in self-hosted)
  */
 export const twitterSchema = {
@@ -183,6 +193,7 @@ export const allSocialSchema = {
   ...instagramSchema,
   ...facebookSchema,
   ...googleAdsSchema,
+  ...googleSearchConsoleSchema,
   ...twitterSchema,
   ...pinterestSchema,
   ...redditSchema,

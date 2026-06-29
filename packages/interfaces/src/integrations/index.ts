@@ -2,6 +2,7 @@ export * from './ads-gateway.interface';
 export * from './ads-research.interface';
 export * from './facebook.interface';
 export * from './ghost.interface';
+export * from './google-search-console.interface';
 export * from './heygen.interface';
 export * from './instagram.interface';
 export * from './integration.interface';

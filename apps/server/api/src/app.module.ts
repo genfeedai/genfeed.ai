@@ -147,6 +147,7 @@ import { ContentOrchestrationModule } from '@api/services/content-orchestration/
 import { BeehiivModule } from '@api/services/integrations/beehiiv/beehiiv.module';
 import { DiscordModule } from '@api/services/integrations/discord/discord.module';
 import { GhostModule } from '@api/services/integrations/ghost/ghost.module';
+import { GoogleSearchConsoleModule } from '@api/services/integrations/google-search-console/google-search-console.module';
 import { HedraModule } from '@api/services/integrations/hedra/hedra.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
 import { HiggsFieldModule } from '@api/services/integrations/higgsfield/higgsfield.module';
@@ -339,6 +340,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     BeehiivModule,
     DiscordModule,
     GhostModule,
+    GoogleSearchConsoleModule,
     HedraModule,
     HeyGenModule,
     InstagramModule,
