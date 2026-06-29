@@ -169,8 +169,15 @@ export default function BrandOSContent(): React.ReactElement {
 
                 <form
                   className="grid gap-5 border border-edge/5 bg-fill/[0.02] p-5 sm:p-6"
+                  noValidate
                   onSubmit={(event) => {
                     event.preventDefault();
+                    const raw = websiteUrl.trim();
+                    const normalized =
+                      raw && !raw.startsWith('http') ? `https://${raw}` : raw;
+                    if (normalized !== websiteUrl) {
+                      setWebsiteUrl(normalized);
+                    }
                     setPreviewMode(hasGuidance ? 'ready' : 'partial');
                   }}
                 >
@@ -179,7 +186,7 @@ export default function BrandOSContent(): React.ReactElement {
                     label="Public website URL"
                     onChange={(event) => setWebsiteUrl(event.target.value)}
                     placeholder="https://example.com"
-                    type="url"
+                    type="text"
                     value={websiteUrl}
                   />
                   <Text

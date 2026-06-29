@@ -84,4 +84,21 @@ describe('BrandOSContent', () => {
 
     expect(screen.getByText(/preview ready: example.com/i)).toBeInTheDocument();
   });
+
+  it('submits the Refresh Preview form on first load without typing https://', () => {
+    render(<BrandOSContent />);
+
+    // Input starts with bare "genfeed.ai" (no scheme) — form must fire without
+    // browser native-URL-validation blocking it.
+    const submitButton = screen.getByRole('button', {
+      name: /refresh preview/i,
+    });
+    const form = submitButton.closest('form');
+    expect(form).not.toBeNull();
+    fireEvent.submit(form as HTMLFormElement);
+
+    // After submit the preview transitions away from idle; with guidance present
+    // (initial state has guidance) it should move to "ready".
+    expect(screen.getByText(/preview ready:/i)).toBeInTheDocument();
+  });
 });
