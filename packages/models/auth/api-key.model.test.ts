@@ -83,6 +83,45 @@ describe('ApiKey', () => {
       expect(apiKey.isActive).toBe(false);
     });
 
+    it('should read flattened service responses', () => {
+      const apiKey = new ApiKey({
+        allowedIps: ['127.0.0.1'],
+        category: 'genfeedai',
+        description: 'Headless MCP key',
+        id: 'key-flat',
+        isRevoked: false,
+        key: 'gf_test_plain',
+        label: 'MCP',
+        lastUsedIp: '127.0.0.1',
+        metadata: { source: 'settings' },
+        rateLimit: 120,
+        scopes: ['videos:read', 'analytics:read'],
+        usageCount: 7,
+      });
+
+      expect(apiKey.label).toBe('MCP');
+      expect(apiKey.name).toBe('MCP');
+      expect(apiKey.key).toBe('gf_test_plain');
+      expect(apiKey.allowedIps).toEqual(['127.0.0.1']);
+      expect(apiKey.metadata).toEqual({ source: 'settings' });
+      expect(apiKey.lastUsedIp).toBe('127.0.0.1');
+      expect(apiKey.usageCount).toBe(7);
+      expect(apiKey.isActive).toBe(true);
+    });
+
+    it('marks revoked flattened keys inactive by default', () => {
+      const apiKey = new ApiKey({
+        id: 'key-revoked',
+        isRevoked: true,
+        label: 'Old Key',
+        revokedAt: '2025-01-01T00:00:00Z',
+      });
+
+      expect(apiKey.isRevoked).toBe(true);
+      expect(apiKey.isActive).toBe(false);
+      expect(apiKey.revokedAt).toBe('2025-01-01T00:00:00Z');
+    });
+
     it('should handle date attributes', () => {
       const apiKey = new ApiKey({
         attributes: {

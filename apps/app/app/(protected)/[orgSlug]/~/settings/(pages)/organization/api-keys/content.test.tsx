@@ -5,7 +5,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsApiKeysPage from './content';
 
 const mocks = vi.hoisted(() => ({
+  createApiKey: vi.fn(),
   desktop: false,
+  findAllApiKeys: vi.fn(),
+  getApiKeysService: vi.fn(),
   getByokAllProviders: vi.fn(),
   getOrganizationsService: vi.fn(),
   isReady: true,
@@ -15,6 +18,8 @@ const mocks = vi.hoisted(() => ({
   notificationsSuccess: vi.fn(),
   organizationId: 'org-1',
   removeByokProviderKey: vi.fn(),
+  revokeApiKey: vi.fn(),
+  rotateApiKey: vi.fn(),
   saveByokProviderKey: vi.fn(),
   validateByokProviderKey: vi.fn(),
 }));
@@ -27,7 +32,8 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => mocks.getOrganizationsService,
+  useAuthedService: (factory: (token: string) => unknown) => async () =>
+    factory('test-token'),
 }));
 
 vi.mock('@services/core/logger.service', () => ({
@@ -56,6 +62,17 @@ vi.mock('@services/organization/organizations.service', () => ({
   },
 }));
 
+vi.mock('@services/management/api-keys.service', () => ({
+  ApiKeysService: {
+    getInstance: () => ({
+      createApiKey: mocks.createApiKey,
+      findAll: mocks.findAllApiKeys,
+      revokeApiKey: mocks.revokeApiKey,
+      rotateApiKey: mocks.rotateApiKey,
+    }),
+  },
+}));
+
 vi.mock('@ui/card/Card', () => ({
   default: ({
     children,
@@ -68,6 +85,12 @@ vi.mock('@ui/card/Card', () => ({
 
 function resolveButtonLabel(children: ReactNode): string {
   if (typeof children === 'string') return children;
+  if (Array.isArray(children)) {
+    return children
+      .map(resolveButtonLabel)
+      .filter((label) => label !== 'Icon Button')
+      .join(' ');
+  }
   if (children != null) return 'Icon Button';
   return '';
 }
@@ -76,24 +99,55 @@ vi.mock('@ui/primitives/button', () => ({
   Button: ({
     asChild,
     children,
+    className: _className,
     isDisabled,
     onClick,
+    variant: _variant,
+    ...buttonProps
   }: {
     asChild?: boolean;
     children?: ReactNode;
+    className?: string;
     isDisabled?: boolean;
     onClick?: () => void;
-  }) => {
+    variant?: unknown;
+  } & React.ButtonHTMLAttributes<HTMLButtonElement>) => {
     if (asChild) {
       return <>{children}</>;
     }
 
     return (
-      <button type="button" disabled={isDisabled} onClick={onClick}>
+      <button
+        type="button"
+        disabled={isDisabled}
+        onClick={onClick}
+        {...buttonProps}
+      >
         {resolveButtonLabel(children)}
       </button>
     );
   },
+}));
+
+vi.mock('@ui/primitives/checkbox', () => ({
+  Checkbox: ({
+    isChecked,
+    label,
+    onCheckedChange,
+  }: {
+    isChecked?: boolean;
+    label?: ReactNode;
+    onCheckedChange?: (checked: boolean) => void;
+  }) => (
+    <label>
+      <input
+        type="checkbox"
+        checked={isChecked}
+        onChange={(event) => onCheckedChange?.(event.target.checked)}
+      />
+      {label}
+    </label>
+  ),
 }));
 
 vi.mock('@ui/primitives/input', () => ({
@@ -140,6 +194,17 @@ function providerStatuses() {
   ];
 }
 
+function productApiKeys() {
+  return [
+    {
+      id: 'key-1',
+      label: 'MCP Key',
+      lastUsedAt: null,
+      scopes: ['videos:read', 'analytics:read'],
+    },
+  ];
+}
+
 describe('SettingsApiKeysPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -148,6 +213,30 @@ describe('SettingsApiKeysPage', () => {
     mocks.isSelfHosted = false;
     mocks.organizationId = 'org-1';
     mocks.getByokAllProviders.mockResolvedValue(providerStatuses());
+    mocks.findAllApiKeys.mockResolvedValue(productApiKeys());
+    mocks.createApiKey.mockResolvedValue({
+      id: 'key-2',
+      key: 'gf_test_created',
+      label: 'MCP Server',
+      scopes: ['videos:read'],
+    });
+    mocks.revokeApiKey.mockResolvedValue({
+      id: 'key-1',
+      isRevoked: true,
+      label: 'MCP Key',
+    });
+    mocks.rotateApiKey.mockResolvedValue({
+      id: 'key-3',
+      key: 'gf_test_rotated',
+      label: 'MCP Key',
+      scopes: ['videos:read'],
+    });
+    mocks.getApiKeysService.mockResolvedValue({
+      createApiKey: mocks.createApiKey,
+      findAll: mocks.findAllApiKeys,
+      revokeApiKey: mocks.revokeApiKey,
+      rotateApiKey: mocks.rotateApiKey,
+    });
     mocks.getOrganizationsService.mockResolvedValue({
       getByokAllProviders: mocks.getByokAllProviders,
       removeByokProviderKey: mocks.removeByokProviderKey,
@@ -163,6 +252,8 @@ describe('SettingsApiKeysPage', () => {
     render(<SettingsApiKeysPage />);
 
     expect(await screen.findByText('API Keys')).toBeInTheDocument();
+    expect(screen.getByText('Genfeed API keys')).toBeInTheDocument();
+    expect(await screen.findByText('MCP Key')).toBeInTheDocument();
     expect(
       screen.getByText(/server-configured providers by default/),
     ).toBeInTheDocument();
@@ -172,6 +263,59 @@ describe('SettingsApiKeysPage', () => {
     expect(screen.getByText('r8_****1234')).toBeInTheDocument();
 
     expect(mocks.getByokAllProviders).toHaveBeenCalledWith('org-1');
+    expect(mocks.findAllApiKeys).toHaveBeenCalledWith({ limit: 100 });
+  });
+
+  it('creates a Genfeed API key and shows the plain key once', async () => {
+    render(<SettingsApiKeysPage />);
+
+    await screen.findByText('MCP Key');
+    fireEvent.change(screen.getByPlaceholderText('MCP Server'), {
+      target: { value: 'Automation MCP' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Used by local MCP server'), {
+      target: { value: 'Used by CI' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Create Key' }));
+
+    await waitFor(() => {
+      expect(mocks.createApiKey).toHaveBeenCalledWith(
+        expect.objectContaining({
+          description: 'Used by CI',
+          label: 'Automation MCP',
+          scopes: expect.arrayContaining(['videos:read', 'analytics:read']),
+        }),
+      );
+      expect(mocks.notificationsSuccess).toHaveBeenCalledWith(
+        'API key created',
+      );
+    });
+
+    expect(screen.getByText('gf_test_created')).toBeInTheDocument();
+  });
+
+  it('rotates and revokes Genfeed API keys', async () => {
+    render(<SettingsApiKeysPage />);
+
+    await screen.findByText('MCP Key');
+    fireEvent.click(screen.getByRole('button', { name: 'Rotate' }));
+
+    await waitFor(() => {
+      expect(mocks.rotateApiKey).toHaveBeenCalledWith('key-1');
+      expect(mocks.notificationsSuccess).toHaveBeenCalledWith(
+        'API key rotated',
+      );
+    });
+    expect(screen.getByText('gf_test_rotated')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Revoke' }));
+
+    await waitFor(() => {
+      expect(mocks.revokeApiKey).toHaveBeenCalledWith('key-1');
+      expect(mocks.notificationsSuccess).toHaveBeenCalledWith(
+        'API key revoked',
+      );
+    });
   });
 
   it('validates and saves a provider key, then refreshes provider statuses', async () => {
@@ -229,7 +373,9 @@ describe('SettingsApiKeysPage', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Icon Button' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Remove Replicate key' }),
+    );
 
     await waitFor(() => {
       expect(mocks.removeByokProviderKey).toHaveBeenCalledWith(
@@ -273,7 +419,9 @@ describe('SettingsApiKeysPage', () => {
     mocks.removeByokProviderKey.mockRejectedValueOnce(
       new Error('remove failed'),
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Icon Button' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Remove Replicate key' }),
+    );
 
     await waitFor(() => {
       expect(mocks.loggerError).toHaveBeenCalledWith(

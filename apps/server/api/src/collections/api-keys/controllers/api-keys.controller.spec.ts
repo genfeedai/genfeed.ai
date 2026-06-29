@@ -285,6 +285,60 @@ describe('ApiKeysController', () => {
     });
   });
 
+  describe('rotate', () => {
+    it('should revoke the old key and create a replacement with the same settings', async () => {
+      const id = '507f1f77bcf86cd799439014';
+      const plainKey = 'plain_rotated_api_key_12345';
+      const rotatedKey = {
+        ...mockApiKey,
+        _id: '507f1f77bcf86cd799439015',
+        id: '507f1f77bcf86cd799439015',
+        label: mockApiKey.label,
+      };
+
+      mockApiKeysService.findOne.mockResolvedValue(mockApiKey);
+      mockApiKeysService.revoke.mockResolvedValue({
+        ...mockApiKey,
+        isRevoked: true,
+      });
+      mockApiKeysService.createWithKey.mockResolvedValue({
+        apiKey: rotatedKey,
+        plainKey,
+      });
+
+      const result = await controller.rotate(mockRequest, mockUser, id);
+
+      expect(service.findOne).toHaveBeenCalledWith({
+        id,
+        isRevoked: false,
+        userId: '507f1f77bcf86cd799439011',
+      });
+      expect(service.revoke).toHaveBeenCalledWith(id);
+      expect(service.createWithKey).toHaveBeenCalledWith(
+        expect.objectContaining({
+          category: mockApiKey.category,
+          description: mockApiKey.description,
+          label: mockApiKey.label,
+          organizationId: '507f1f77bcf86cd799439012',
+          scopes: mockApiKey.scopes,
+          userId: '507f1f77bcf86cd799439011',
+        }),
+      );
+      expect(result).toBeDefined();
+    });
+
+    it('should throw NotFoundException when rotating a missing key', async () => {
+      const id = '507f1f77bcf86cd799439014';
+      mockApiKeysService.findOne.mockResolvedValue(null);
+
+      await expect(
+        controller.rotate(mockRequest, mockUser, id),
+      ).rejects.toThrow(HttpException);
+      expect(service.revoke).not.toHaveBeenCalled();
+      expect(service.createWithKey).not.toHaveBeenCalled();
+    });
+  });
+
   describe('validate', () => {
     it('should validate an API key', async () => {
       const key = 'test_api_key';

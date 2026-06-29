@@ -1,12 +1,25 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { ApiKeyScope, ButtonVariant } from '@genfeedai/enums';
 import type { IByokProviderStatus } from '@genfeedai/interfaces';
+import type { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { ApiKeysService } from '@services/management/api-keys.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
-import { useCallback, useEffect, useReducer } from 'react';
+import Card from '@ui/card/Card';
+import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
+import { Input } from '@ui/primitives/input';
+import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
+import {
+  HiArrowPath,
+  HiClipboardDocument,
+  HiPlus,
+  HiTrash,
+} from 'react-icons/hi2';
 import DesktopLocalProviderSettings from '@/components/desktop/DesktopLocalProviderSettings';
 import { isSelfHosted } from '@/lib/config/edition';
 import { isDesktopShell } from '@/lib/desktop/runtime';
@@ -45,6 +58,101 @@ type ApiKeysAction =
       };
     }
   | { type: 'SAVE_DONE' };
+
+type ProductApiKeyForm = {
+  allowedIps: string;
+  description: string;
+  expiresAt: string;
+  label: string;
+  rateLimit: string;
+  selectedScopes: string[];
+};
+
+type ProductPlainKey = {
+  key: string;
+  label: string;
+};
+
+const READ_SCOPES = [
+  ApiKeyScope.VIDEOS_READ,
+  ApiKeyScope.IMAGES_READ,
+  ApiKeyScope.PROMPTS_READ,
+  ApiKeyScope.ARTICLES_READ,
+  ApiKeyScope.BRANDS_READ,
+  ApiKeyScope.CREDITS_READ,
+  ApiKeyScope.ANALYTICS_READ,
+];
+
+const MCP_SCOPES = [
+  ApiKeyScope.VIDEOS_READ,
+  ApiKeyScope.VIDEOS_CREATE,
+  ApiKeyScope.VIDEOS_UPDATE,
+  ApiKeyScope.VIDEOS_DELETE,
+  ApiKeyScope.IMAGES_READ,
+  ApiKeyScope.IMAGES_CREATE,
+  ApiKeyScope.IMAGES_UPDATE,
+  ApiKeyScope.IMAGES_DELETE,
+  ApiKeyScope.PROMPTS_READ,
+  ApiKeyScope.PROMPTS_CREATE,
+  ApiKeyScope.PROMPTS_UPDATE,
+  ApiKeyScope.PROMPTS_DELETE,
+  ApiKeyScope.ARTICLES_READ,
+  ApiKeyScope.ARTICLES_CREATE,
+  ApiKeyScope.BRANDS_READ,
+  ApiKeyScope.CREDITS_READ,
+  ApiKeyScope.POSTS_CREATE,
+  ApiKeyScope.ANALYTICS_READ,
+];
+
+const CONTENT_SCOPES = [
+  ApiKeyScope.VIDEOS_READ,
+  ApiKeyScope.VIDEOS_CREATE,
+  ApiKeyScope.IMAGES_READ,
+  ApiKeyScope.IMAGES_CREATE,
+  ApiKeyScope.PROMPTS_READ,
+  ApiKeyScope.PROMPTS_CREATE,
+  ApiKeyScope.ARTICLES_READ,
+  ApiKeyScope.ARTICLES_CREATE,
+  ApiKeyScope.POSTS_CREATE,
+];
+
+const API_KEY_SCOPE_OPTIONS = [
+  {
+    label: 'Videos',
+    scopes: [ApiKeyScope.VIDEOS_READ, ApiKeyScope.VIDEOS_CREATE],
+  },
+  {
+    label: 'Images',
+    scopes: [ApiKeyScope.IMAGES_READ, ApiKeyScope.IMAGES_CREATE],
+  },
+  {
+    label: 'Prompts',
+    scopes: [ApiKeyScope.PROMPTS_READ, ApiKeyScope.PROMPTS_CREATE],
+  },
+  {
+    label: 'Articles',
+    scopes: [ApiKeyScope.ARTICLES_READ, ApiKeyScope.ARTICLES_CREATE],
+  },
+  { label: 'Posts', scopes: [ApiKeyScope.POSTS_CREATE] },
+  { label: 'Brands', scopes: [ApiKeyScope.BRANDS_READ] },
+  { label: 'Credits', scopes: [ApiKeyScope.CREDITS_READ] },
+  { label: 'Analytics', scopes: [ApiKeyScope.ANALYTICS_READ] },
+] as const;
+
+const PRODUCT_API_KEY_PRESETS = [
+  { label: 'MCP', scopes: MCP_SCOPES },
+  { label: 'Read', scopes: READ_SCOPES },
+  { label: 'Content', scopes: CONTENT_SCOPES },
+] as const;
+
+const initialProductApiKeyForm: ProductApiKeyForm = {
+  allowedIps: '',
+  description: '',
+  expiresAt: '',
+  label: '',
+  rateLimit: '',
+  selectedScopes: MCP_SCOPES,
+};
 
 const initialApiKeysState: ApiKeysState = {
   providerStatuses: [],
@@ -111,11 +219,47 @@ function apiKeysReducer(
   }
 }
 
+function parseCommaSeparated(value: string): string[] | undefined {
+  const items = value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return items.length > 0 ? items : undefined;
+}
+
+function parseExpiresAt(value: string): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  return new Date(value).toISOString();
+}
+
+function formatLastUsed(value?: string | null): string {
+  return value ? new Date(value).toLocaleString() : 'Never';
+}
+
+function getVisibleKey(apiKey: ApiKey): string | undefined {
+  return apiKey.key ?? apiKey.token;
+}
+
 export default function SettingsApiKeysPage() {
   const { organizationId, isReady } = useBrand();
   const desktop = isDesktopShell();
 
   const [state, dispatch] = useReducer(apiKeysReducer, initialApiKeysState);
+  const [productApiKeys, setProductApiKeys] = useState<ApiKey[]>([]);
+  const [productForm, setProductForm] = useState<ProductApiKeyForm>(
+    initialProductApiKeyForm,
+  );
+  const [productPlainKey, setProductPlainKey] =
+    useState<ProductPlainKey | null>(null);
+  const [isProductLoading, setIsProductLoading] = useState(true);
+  const [isCreatingProductKey, setIsCreatingProductKey] = useState(false);
+  const [mutatingProductKeyId, setMutatingProductKeyId] = useState<
+    string | null
+  >(null);
   const {
     providerStatuses,
     expandedProvider,
@@ -129,6 +273,35 @@ export default function SettingsApiKeysPage() {
 
   const getOrganizationsService = useAuthedService(
     useCallback((token: string) => OrganizationsService.getInstance(token), []),
+  );
+  const getApiKeysService = useAuthedService(
+    useCallback((token: string) => ApiKeysService.getInstance(token), []),
+  );
+
+  const selectedScopeSet = useMemo(
+    () => new Set(productForm.selectedScopes),
+    [productForm.selectedScopes],
+  );
+
+  const fetchProductApiKeys = useCallback(
+    async (signal?: AbortSignal) => {
+      try {
+        const service = await getApiKeysService();
+        const apiKeys = await service.findAll({ limit: 100 });
+
+        if (!signal?.aborted) {
+          setProductApiKeys(apiKeys);
+          setIsProductLoading(false);
+        }
+      } catch (error) {
+        if (!signal?.aborted) {
+          logger.error('Failed to fetch Genfeed API keys', error);
+          NotificationsService.getInstance().error('Failed to load API keys');
+          setIsProductLoading(false);
+        }
+      }
+    },
+    [getApiKeysService],
   );
 
   useEffect(() => {
@@ -157,6 +330,133 @@ export default function SettingsApiKeysPage() {
     fetchStatuses();
     return () => controller.abort();
   }, [organizationId, isReady, getOrganizationsService]);
+
+  useEffect(() => {
+    if (!organizationId || !isReady) {
+      setIsProductLoading(false);
+      return;
+    }
+    const controller = new AbortController();
+
+    fetchProductApiKeys(controller.signal);
+    return () => controller.abort();
+  }, [organizationId, isReady, fetchProductApiKeys]);
+
+  const handleProductFormChange = (
+    field: keyof Omit<ProductApiKeyForm, 'selectedScopes'>,
+    value: string,
+  ) => {
+    setProductForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const handleScopeToggle = (scopes: readonly ApiKeyScope[]) => {
+    setProductForm((current) => {
+      const nextScopes = new Set(current.selectedScopes);
+      const allSelected = scopes.every((scope) => nextScopes.has(scope));
+
+      for (const scope of scopes) {
+        if (allSelected) {
+          nextScopes.delete(scope);
+        } else {
+          nextScopes.add(scope);
+        }
+      }
+
+      return { ...current, selectedScopes: [...nextScopes] };
+    });
+  };
+
+  const handlePresetSelect = (scopes: readonly ApiKeyScope[]) => {
+    setProductForm((current) => ({
+      ...current,
+      selectedScopes: [...scopes],
+    }));
+  };
+
+  const handleCreateProductKey = async () => {
+    const label = productForm.label.trim();
+    if (!label || productForm.selectedScopes.length === 0) {
+      return;
+    }
+
+    setIsCreatingProductKey(true);
+    try {
+      const service = await getApiKeysService();
+      const apiKey = await service.createApiKey({
+        allowedIps: parseCommaSeparated(productForm.allowedIps),
+        description: productForm.description.trim() || undefined,
+        expiresAt: parseExpiresAt(productForm.expiresAt),
+        label,
+        rateLimit: productForm.rateLimit
+          ? Number.parseInt(productForm.rateLimit, 10)
+          : undefined,
+        scopes: productForm.selectedScopes,
+      });
+      const key = getVisibleKey(apiKey);
+
+      if (key) {
+        setProductPlainKey({ key, label: apiKey.label ?? label });
+      }
+
+      setProductForm(initialProductApiKeyForm);
+      await fetchProductApiKeys();
+      NotificationsService.getInstance().success('API key created');
+    } catch (error) {
+      logger.error('Failed to create Genfeed API key', error);
+      NotificationsService.getInstance().error('Failed to create API key');
+    } finally {
+      setIsCreatingProductKey(false);
+    }
+  };
+
+  const handleCopyProductKey = async (key: string) => {
+    try {
+      await navigator.clipboard.writeText(key);
+      NotificationsService.getInstance().success('API key copied');
+    } catch (error) {
+      logger.error('Failed to copy Genfeed API key', error);
+      NotificationsService.getInstance().error('Failed to copy API key');
+    }
+  };
+
+  const handleRotateProductKey = async (apiKey: ApiKey) => {
+    setMutatingProductKeyId(apiKey.id);
+    try {
+      const service = await getApiKeysService();
+      const rotatedKey = await service.rotateApiKey(apiKey.id);
+      const key = getVisibleKey(rotatedKey);
+
+      if (key) {
+        setProductPlainKey({
+          key,
+          label: rotatedKey.label ?? apiKey.label ?? 'Rotated key',
+        });
+      }
+
+      await fetchProductApiKeys();
+      NotificationsService.getInstance().success('API key rotated');
+    } catch (error) {
+      logger.error('Failed to rotate Genfeed API key', error);
+      NotificationsService.getInstance().error('Failed to rotate API key');
+    } finally {
+      setMutatingProductKeyId(null);
+    }
+  };
+
+  const handleRevokeProductKey = async (apiKey: ApiKey) => {
+    setMutatingProductKeyId(apiKey.id);
+    try {
+      const service = await getApiKeysService();
+      await service.revokeApiKey(apiKey.id);
+      await fetchProductApiKeys();
+      NotificationsService.getInstance().success('API key revoked');
+    } catch (error) {
+      logger.error('Failed to revoke Genfeed API key', error);
+      NotificationsService.getInstance().error('Failed to revoke API key');
+    } finally {
+      setMutatingProductKeyId(null);
+    }
+  };
 
   const handleValidateAndSave = async (
     provider: string,
@@ -254,6 +554,213 @@ export default function SettingsApiKeysPage() {
       {isSelfHosted() ? <ManagedCreditsCheckoutCard /> : null}
 
       <ApiKeysHeader />
+
+      {isReady ? (
+        <Card className="p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-medium">Genfeed API keys</h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                Use these keys for CLI profiles, MCP servers, and unattended
+                workflows.
+              </p>
+            </div>
+            <Button
+              variant={ButtonVariant.SECONDARY}
+              onClick={() => fetchProductApiKeys()}
+              isDisabled={isProductLoading}
+              aria-label="Refresh Genfeed API keys"
+            >
+              <HiArrowPath className="size-4" />
+            </Button>
+          </div>
+
+          {productPlainKey ? (
+            <div className="mt-4 rounded-md border border-border bg-muted/30 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-medium">{productPlainKey.label}</p>
+                  <p className="mt-1 font-mono text-xs break-all">
+                    {productPlainKey.key}
+                  </p>
+                </div>
+                <Button
+                  variant={ButtonVariant.SECONDARY}
+                  onClick={() => handleCopyProductKey(productPlainKey.key)}
+                >
+                  <HiClipboardDocument className="size-4" />
+                  Copy
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Store this key now. It will not be shown again.
+              </p>
+            </div>
+          ) : null}
+
+          <div className="mt-5 grid gap-3 md:grid-cols-2">
+            <div>
+              <span className="text-xs text-muted-foreground mb-1 block">
+                Key name
+              </span>
+              <Input
+                value={productForm.label}
+                onChange={(event) =>
+                  handleProductFormChange('label', event.target.value)
+                }
+                placeholder="MCP Server"
+              />
+            </div>
+            <div>
+              <span className="text-xs text-muted-foreground mb-1 block">
+                Expires
+              </span>
+              <Input
+                type="date"
+                value={productForm.expiresAt}
+                onChange={(event) =>
+                  handleProductFormChange('expiresAt', event.target.value)
+                }
+              />
+            </div>
+            <div>
+              <span className="text-xs text-muted-foreground mb-1 block">
+                Rate limit
+              </span>
+              <Input
+                type="number"
+                min="1"
+                value={productForm.rateLimit}
+                onChange={(event) =>
+                  handleProductFormChange('rateLimit', event.target.value)
+                }
+                placeholder="60"
+              />
+            </div>
+            <div>
+              <span className="text-xs text-muted-foreground mb-1 block">
+                Allowed IPs
+              </span>
+              <Input
+                value={productForm.allowedIps}
+                onChange={(event) =>
+                  handleProductFormChange('allowedIps', event.target.value)
+                }
+                placeholder="203.0.113.10, 203.0.113.11"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <span className="text-xs text-muted-foreground mb-1 block">
+                Description
+              </span>
+              <Input
+                value={productForm.description}
+                onChange={(event) =>
+                  handleProductFormChange('description', event.target.value)
+                }
+                placeholder="Used by local MCP server"
+              />
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            <div className="flex flex-wrap gap-2">
+              {PRODUCT_API_KEY_PRESETS.map((preset) => (
+                <Button
+                  key={preset.label}
+                  variant={ButtonVariant.SECONDARY}
+                  onClick={() => handlePresetSelect(preset.scopes)}
+                >
+                  {preset.label}
+                </Button>
+              ))}
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {API_KEY_SCOPE_OPTIONS.map((option) => {
+                const checked = option.scopes.every((scope) =>
+                  selectedScopeSet.has(scope),
+                );
+
+                return (
+                  <div
+                    key={option.label}
+                    className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-xs"
+                  >
+                    <Checkbox
+                      isChecked={checked}
+                      label={option.label}
+                      onCheckedChange={() => handleScopeToggle(option.scopes)}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-4 flex justify-end">
+            <Button
+              onClick={handleCreateProductKey}
+              isDisabled={
+                isCreatingProductKey ||
+                !productForm.label.trim() ||
+                productForm.selectedScopes.length === 0
+              }
+            >
+              <HiPlus className="size-4" />
+              {isCreatingProductKey ? 'Creating...' : 'Create Key'}
+            </Button>
+          </div>
+
+          <div className="mt-5 border-t border-border pt-4">
+            {isProductLoading ? (
+              <p className="text-sm text-muted-foreground">Loading keys...</p>
+            ) : productApiKeys.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No active Genfeed API keys.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {productApiKeys.map((apiKey) => (
+                  <div
+                    key={apiKey.id}
+                    className="flex flex-col gap-3 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">
+                        {apiKey.label ?? 'Untitled key'}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Last used: {formatLastUsed(apiKey.lastUsedAt)}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {(apiKey.scopes ?? []).join(', ') || 'No scopes'}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant={ButtonVariant.SECONDARY}
+                        onClick={() => handleRotateProductKey(apiKey)}
+                        isDisabled={mutatingProductKeyId === apiKey.id}
+                      >
+                        <HiArrowPath className="size-4" />
+                        Rotate
+                      </Button>
+                      <Button
+                        variant={ButtonVariant.SECONDARY}
+                        onClick={() => handleRevokeProductKey(apiKey)}
+                        isDisabled={mutatingProductKeyId === apiKey.id}
+                      >
+                        <HiTrash className="size-4" />
+                        Revoke
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Card>
+      ) : null}
 
       {isReady && !isLoading
         ? providerStatuses.map((providerStatus) => (

@@ -1,8 +1,12 @@
 import type { IBaseEntity } from '../index';
 
 export interface IApiKey extends IBaseEntity {
+  allowedIps?: string[];
+  category?: string;
   label: string;
   description?: string;
+  key?: string;
+  token?: string;
 
   scopes: string[];
   lastUsedAt?: string;
@@ -12,4 +16,5 @@ export interface IApiKey extends IBaseEntity {
   revokedAt?: string;
   usageCount: number;
   rateLimit?: number;
+  metadata?: Record<string, unknown>;
 }
