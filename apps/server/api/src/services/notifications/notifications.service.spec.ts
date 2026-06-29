@@ -91,10 +91,32 @@ describe('NotificationsService', () => {
 
       await service.onModuleInit();
 
-      expect(loggerService.error).toHaveBeenCalledWith(
+      expect(loggerService.warn).toHaveBeenCalledWith(
         expect.stringContaining('failed to connect'),
         error,
       );
+    });
+
+    it('should not block startup when Redis connect hangs', async () => {
+      vi.useFakeTimers();
+      try {
+        (mockPublisher.connect as vi.Mock).mockReturnValue(
+          new Promise(() => {}),
+        );
+
+        const init = service.onModuleInit();
+        await vi.advanceTimersByTimeAsync(5_000);
+        await init;
+
+        expect(loggerService.warn).toHaveBeenCalledWith(
+          expect.stringContaining('failed to connect'),
+          expect.objectContaining({
+            message: expect.stringContaining('timed out'),
+          }),
+        );
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 

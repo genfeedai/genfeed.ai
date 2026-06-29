@@ -134,8 +134,12 @@ describe('RedisService', () => {
     createService();
     await service.onModuleInit();
 
-    await expect(service.publish('test-channel', { ok: true })).rejects.toThrow(
-      'Redis service not initialized',
+    await expect(
+      service.publish('test-channel', { ok: true }),
+    ).resolves.toBeUndefined();
+    expect(mockLoggerService.warn).toHaveBeenCalledWith(
+      expect.stringContaining('Redis not initialized'),
+      expect.objectContaining({ service: 'RedisService' }),
     );
 
     expect(mockLoggerService.warn).toHaveBeenCalledWith(
@@ -164,12 +168,16 @@ describe('RedisService', () => {
     );
   });
 
-  it('should throw on publish before initialization', async () => {
+  it('should no-op on publish before initialization', async () => {
     createService();
 
     await expect(
       service.publish('test-channel', { test: 'data' }),
-    ).rejects.toThrow('Redis service not initialized');
+    ).resolves.toBeUndefined();
+    expect(mockLoggerService.warn).toHaveBeenCalledWith(
+      expect.stringContaining('Redis not initialized'),
+      expect.objectContaining({ service: 'RedisService' }),
+    );
   });
 
   it('should unsubscribe and clear handlers', async () => {
