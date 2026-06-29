@@ -526,9 +526,14 @@ jobs:
           fi
           echo "Running app tests changed since $BASE"
           # `--changed` can still select hundreds of app files on long-lived
-          # PRs; keep this focused gate serial to avoid fork-worker heap OOMs.
-          cd apps/app && bunx vitest run --config ./vitest.config.mts \
-            --maxWorkers=1 --passWithNoTests --changed "$BASE"
+          # PRs; split the focused gate into sequential shards so Vitest can
+          # release worker heap between process runs.
+          cd apps/app
+          for SHARD in 1 2 3 4; do
+            echo "Running changed app test shard ${SHARD}/4"
+            bunx vitest run --config ./vitest.config.mts \
+              --maxWorkers=1 --passWithNoTests --changed "$BASE" --shard="${SHARD}/4"
+          done
         env:
           NODE_ENV: test
           NODE_OPTIONS: --max-old-space-size=4096
