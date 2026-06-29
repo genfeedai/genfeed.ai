@@ -3,6 +3,7 @@ import { DistributionsService } from '@api/collections/distributions/services/di
 import { ConfigService } from '@api/config/config.service';
 import { QueueService } from '@api/queues/core/queue.service';
 import type { TelegramDistributeJobData } from '@api/queues/telegram-distribute/telegram-distribute-job.interface';
+import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import {
   CredentialPlatform,
   DistributionContentType,
@@ -260,7 +261,7 @@ export class TelegramDistributionService {
       });
 
       if (credential?.accessToken) {
-        return credential.accessToken;
+        return EncryptionUtil.decrypt(credential.accessToken);
       }
     }
 
@@ -273,7 +274,7 @@ export class TelegramDistributionService {
     });
 
     if (orgCredential?.accessToken) {
-      return orgCredential.accessToken;
+      return EncryptionUtil.decrypt(orgCredential.accessToken);
     }
 
     // Fall back to global bot token from config
