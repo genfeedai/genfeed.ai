@@ -145,7 +145,11 @@ export class SeoScoreExecutor extends BaseExecutor {
       [];
 
     return {
-      content: pickSeoString(inputs, upstream, node, 'content'),
+      // `seoRewrite` emits `text`, not `content` — fall back so a
+      // seoRewrite→seoScore wiring scores the rewritten body rather than null.
+      content:
+        pickSeoString(inputs, upstream, node, 'content') ??
+        pickSeoString(inputs, upstream, node, 'text'),
       metaDescription: pickSeoString(inputs, upstream, node, 'metaDescription'),
       secondaryKeywords: Array.isArray(secondary)
         ? (secondary as string[])

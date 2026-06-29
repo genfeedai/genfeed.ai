@@ -38,6 +38,9 @@ export type PublishResolver = (params: {
   brandId: string;
   organizationId: string;
   userId: string;
+  /** ID of the currently executing workflow — used by the resolver to detect
+   * trigger loops when `triggerSeoOptimization` is true. */
+  workflowId: string;
   media?: unknown;
   caption: string;
   platforms: SocialPlatform[];
@@ -166,6 +169,7 @@ export class PublishExecutor extends BaseExecutor {
       targetKeyword,
       triggerSeoOptimization,
       userId: context.userId,
+      workflowId: context.workflowId,
     });
 
     return {

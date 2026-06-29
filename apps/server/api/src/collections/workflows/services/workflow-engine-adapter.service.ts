@@ -792,6 +792,8 @@ export class WorkflowEngineAdapterService {
     platforms: SocialPlatform[];
     caption: string;
     targetKeyword: string | null;
+    /** Publish status forwarded to PostPublishTriggerExecutor's `status` output field. */
+    status?: string;
   }): Promise<void> {
     if (!this.workflowExecutionQueueService) {
       return;
@@ -804,6 +806,7 @@ export class WorkflowEngineAdapterService {
         content: params.caption,
         platforms: params.platforms,
         postIds: params.postIds,
+        status: params.status ?? 'queued',
         targetKeyword: params.targetKeyword,
         title: null,
       },
@@ -1599,6 +1602,7 @@ export class WorkflowEngineAdapterService {
         targetKeyword,
         triggerSeoOptimization,
         userId,
+        workflowId,
       }) => {
         if (!postsService || !credentialsService) {
           return {
@@ -1648,15 +1652,47 @@ export class WorkflowEngineAdapterService {
         // Opt-in, loop-safe: only emit for immediate publishes that actually
         // created posts, so an SEO-optimization workflow can run on the content.
         if (triggerSeoOptimization && !scheduledFor && postIds.length > 0) {
-          await this.emitPostPublishedEvent({
-            brandId,
-            caption,
-            organizationId,
-            platforms: publishedPlatforms,
-            postIds,
-            targetKeyword: targetKeyword ?? null,
-            userId,
-          });
+          // Guard: if the current workflow is itself rooted at a
+          // `postPublishTrigger` node, re-emitting `post-published` would route
+          // back to the same workflow and create an infinite trigger loop.
+          // Fetch the workflow's node list and skip the emit when a
+          // postPublishTrigger node is present.
+          let isPostPublishWorkflow = false;
+          if (this.prismaService && workflowId) {
+            try {
+              const workflowDoc = await this.prismaService.workflow.findFirst({
+                select: { nodes: true },
+                where: { id: workflowId, isDeleted: false },
+              });
+              const nodes = Array.isArray(workflowDoc?.nodes)
+                ? (workflowDoc.nodes as Array<{ type?: string }>)
+                : [];
+              isPostPublishWorkflow = nodes.some(
+                (n) => n.type === 'postPublishTrigger',
+              );
+            } catch {
+              // Non-fatal: if the lookup fails, default to safe (no re-emit).
+              isPostPublishWorkflow = true;
+            }
+          }
+
+          if (isPostPublishWorkflow) {
+            this.loggerService.debug(
+              `${this.logContext} skipping post-published re-emit — workflow ${workflowId} is itself a postPublishTrigger workflow`,
+              { organizationId, workflowId },
+            );
+          } else {
+            await this.emitPostPublishedEvent({
+              brandId,
+              caption,
+              organizationId,
+              platforms: publishedPlatforms,
+              postIds,
+              status: 'queued',
+              targetKeyword: targetKeyword ?? null,
+              userId,
+            });
+          }
         }
 
         return {

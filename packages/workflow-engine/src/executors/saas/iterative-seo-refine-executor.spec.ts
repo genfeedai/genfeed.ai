@@ -203,7 +203,7 @@ describe('IterativeSeoRefineExecutor', () => {
     });
   });
 
-  it('estimates cost proportional to maxIterations', () => {
+  it('estimates cost proportional to maxIterations (initial score + iterations)', () => {
     const node: ExecutableNode = {
       config: { maxIterations: 3 },
       id: 'r',
@@ -211,6 +211,37 @@ describe('IterativeSeoRefineExecutor', () => {
       label: 'R',
       type: 'iterativeSeoRefine',
     };
-    expect(executor.estimateCost(node)).toBe(15);
+    // 2 (initial score) + 3 × 5 (score + rewrite per iteration) = 17
+    expect(executor.estimateCost(node)).toBe(17);
+  });
+
+  it('returns the best-scoring candidate, not the last, when a rewrite lowers the score', async () => {
+    // Scores: initial=60, after rewrite-1=80 (best), after rewrite-2=50 (regression)
+    const score = scoreSequence([60, 80, 50]);
+    executor.setScoreResolver(score as unknown as SeoScoreResolver);
+
+    let rewriteCall = 0;
+    rewrite.mockImplementation(async () => {
+      rewriteCall += 1;
+      return {
+        model: 'm',
+        text: rewriteCall === 1 ? 'best body' : 'worse body',
+      };
+    });
+
+    const result = await executor.execute(
+      makeInput(
+        { maxIterations: 3, targetScore: 90 },
+        { content: 'original body' },
+      ),
+    );
+    const data = result.data as IterativeSeoRefineOutput;
+
+    // Should return the best candidate (score 80, after first rewrite), not the last (50)
+    expect(data.score).toBe(80);
+    expect(data.text).toBe('best body');
+    expect(data.converged).toBe(false);
+    // History still records all iterations
+    expect(data.history).toHaveLength(4); // initial + 3 rewrites (loop runs until maxIterations)
   });
 });

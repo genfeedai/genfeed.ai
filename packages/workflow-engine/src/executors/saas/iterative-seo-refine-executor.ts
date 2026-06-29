@@ -109,7 +109,8 @@ export class IterativeSeoRefineExecutor extends BaseExecutor {
 
   estimateCost(node: ExecutableNode): number {
     const maxIterations = this.resolveMaxIterations(node);
-    return maxIterations * CREDITS_PER_ITERATION;
+    // 2 credits for the initial score + up to maxIterations × 5 (1 rewrite + 1 rescore each).
+    return 2 + maxIterations * CREDITS_PER_ITERATION;
   }
 
   private resolveMaxIterations(node: ExecutableNode): number {
@@ -176,6 +177,12 @@ export class IterativeSeoRefineExecutor extends BaseExecutor {
     });
     history.push({ iteration: 0, rewritten: false, score: current.score });
 
+    // Track the best-scoring candidate across iterations so a rewrite that
+    // lowers the score does not cause the executor to return worse content.
+    let bestText = text;
+    let bestScore = current.score;
+    let bestResult = current;
+
     let iterations = 0;
     while (current.score < targetScore && iterations < maxIterations) {
       const rewrite = await this.rewriteResolver({
@@ -205,18 +212,25 @@ export class IterativeSeoRefineExecutor extends BaseExecutor {
         rewritten: true,
         score: current.score,
       });
+
+      // Only promote this iteration's candidate if it improves on the best seen so far.
+      if (current.score > bestScore) {
+        bestText = text;
+        bestScore = current.score;
+        bestResult = current;
+      }
     }
 
     const output: IterativeSeoRefineOutput = {
-      breakdown: current.breakdown ?? null,
-      converged: current.score >= targetScore,
+      breakdown: bestResult.breakdown ?? null,
+      converged: bestScore >= targetScore,
       history,
       iterations,
-      rating: current.rating ?? null,
-      score: current.score,
-      suggestions: current.suggestions ?? [],
+      rating: bestResult.rating ?? null,
+      score: bestScore,
+      suggestions: bestResult.suggestions ?? [],
       targetKeyword: targetKeyword ?? null,
-      text,
+      text: bestText,
       title: title ?? null,
     };
 
@@ -225,7 +239,7 @@ export class IterativeSeoRefineExecutor extends BaseExecutor {
       metadata: {
         converged: output.converged,
         iterations,
-        score: current.score,
+        score: bestScore,
       },
     };
   }
