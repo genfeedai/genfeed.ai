@@ -703,8 +703,8 @@ pre.command {
   <header class="hero">
     <div>
       <p class="eyebrow">&lt; MCP server &gt;</p>
-      <h1>Connect AI agents to your content operating system.<em>From Claude Code to Codex.</em></h1>
-      <p class="lede">Genfeed MCP gives compatible AI clients API-key scoped access to content, media generation, workflows, publishing, analytics, ads, and agent threads.</p>
+      <h1>Genfeed MCP.<em>Claude + Codex.</em></h1>
+      <p class="lede">Connect AI clients to Genfeed content, workflows, publishing, analytics, and ads with an API key.</p>
       <div class="hero-actions">
         <a class="button primary" href="${apiKeysUrlSafe}" rel="noopener noreferrer">Create API key</a>
         <a class="button" href="${docsGuideUrlSafe}" rel="noopener noreferrer">Read MCP docs</a>
@@ -715,23 +715,23 @@ pre.command {
       <div class="poster-inner">
         <div>
           <p class="poster-kicker">AI model context protocol</p>
-          <h2 class="poster-title">Workspace context for every agent.</h2>
-          <p class="poster-copy">Research, create, publish, and measure without copying data between Genfeed and your AI client.</p>
+          <h2 class="poster-title">Agent workspace access.</h2>
+          <p class="poster-copy">Read, create, publish, and measure from your AI client.</p>
         </div>
         <div class="flow" aria-label="Content operating loop">
           <div class="flow-row">
             <span class="flow-name">Research</span>
-            <span class="flow-copy">Trending topics, analytics, audience signals</span>
+            <span class="flow-copy">Topics, analytics, audience signals</span>
             <span class="status-dot">Live</span>
           </div>
           <div class="flow-row">
             <span class="flow-name">Generate</span>
-            <span class="flow-copy">Video, image, music, article, campaign assets</span>
+            <span class="flow-copy">Media and campaign assets</span>
             <span class="status-dot">Ready</span>
           </div>
           <div class="flow-row">
             <span class="flow-name">Publish</span>
-            <span class="flow-copy">Schedule posts and trigger workflows</span>
+            <span class="flow-copy">Posts and workflows</span>
             <span class="status-dot">Guarded</span>
           </div>
         </div>
@@ -746,8 +746,8 @@ pre.command {
 
   <section class="endpoint-band" aria-labelledby="endpoint-title">
     <div class="endpoint-copy">
-      <p class="meta-label" id="endpoint-title">Production endpoint</p>
-      <p>Use the hosted Streamable HTTP endpoint. Localhost belongs only in self-hosted development config.</p>
+      <p class="meta-label" id="endpoint-title">Endpoint</p>
+      <p>Hosted Streamable HTTP. Use localhost only for self-hosting.</p>
     </div>
     <div>
       <div class="endpoint-code" id="mcp-url">${mcpUrlSafe}</div>
@@ -758,10 +758,10 @@ pre.command {
   <section class="section" aria-labelledby="setup-title">
     <div class="section-head">
       <div>
-        <p class="section-kicker">Client setup</p>
-        <h2 class="section-title" id="setup-title">One server. <em>Two agent clients.</em></h2>
+        <p class="section-kicker">Setup</p>
+        <h2 class="section-title" id="setup-title">One server. <em>Any client.</em></h2>
       </div>
-      <p class="section-copy">Claude Code and Codex both connect to the same production MCP server with the same bearer-token model. Create a Genfeed API key, export it locally, then register the remote HTTP server.</p>
+      <p class="section-copy">Export a Genfeed API key, then add the remote HTTP server to your client.</p>
     </div>
 
     <div class="client-shell">
@@ -779,24 +779,24 @@ pre.command {
           <li class="step">
             <span class="step-number">01</span>
             <div>
-              <p class="step-title">Export a Genfeed API key</p>
-              <p class="step-copy">Create a <code class="inline">gf_</code> key in Genfeed settings, then export it before adding the server.</p>
+              <p class="step-title">Export API key</p>
+              <p class="step-copy">Create a <code class="inline">gf_</code> key in Genfeed settings.</p>
               <pre class="command"><code>export GENFEED_API_KEY=gf_live_xxx</code></pre>
             </div>
           </li>
           <li class="step">
             <span class="step-number">02</span>
             <div>
-              <p class="step-title">Add the remote HTTP server</p>
-              <p class="step-copy">User scope makes Genfeed available across local Claude Code sessions.</p>
+              <p class="step-title">Add MCP server</p>
+              <p class="step-copy">Register the hosted endpoint in user scope.</p>
               <pre class="command"><code>${claudeCommandSafe}</code></pre>
             </div>
           </li>
           <li class="step">
             <span class="step-number">03</span>
             <div>
-              <p class="step-title">Verify the connection</p>
-              <p class="step-copy">Run <code class="inline">claude mcp list</code> or open <code class="inline">/mcp</code> inside Claude Code.</p>
+              <p class="step-title">Verify</p>
+              <p class="step-copy">Run <code class="inline">claude mcp list</code> or open <code class="inline">/mcp</code>.</p>
             </div>
           </li>
         </ol>
@@ -811,24 +811,24 @@ pre.command {
           <li class="step">
             <span class="step-number">01</span>
             <div>
-              <p class="step-title">Export a Genfeed API key</p>
-              <p class="step-copy">Codex reads the bearer token from the environment variable configured for this server.</p>
+              <p class="step-title">Export API key</p>
+              <p class="step-copy">Codex reads this env var for the bearer token.</p>
               <pre class="command"><code>export GENFEED_API_KEY=gf_live_xxx</code></pre>
             </div>
           </li>
           <li class="step">
             <span class="step-number">02</span>
             <div>
-              <p class="step-title">Add the Streamable HTTP server</p>
-              <p class="step-copy">The CLI and IDE extension share the server definition through <code class="inline">~/.codex/config.toml</code>.</p>
+              <p class="step-title">Add MCP server</p>
+              <p class="step-copy">The CLI and IDE share <code class="inline">~/.codex/config.toml</code>.</p>
               <pre class="command"><code>${codexCommandSafe}</code></pre>
             </div>
           </li>
           <li class="step">
             <span class="step-number">03</span>
             <div>
-              <p class="step-title">Or edit config.toml directly</p>
-              <p class="step-copy">Use the same settings in a user or trusted project config.</p>
+              <p class="step-title">Manual config</p>
+              <p class="step-copy">Paste this into a user or trusted project config.</p>
               <pre class="command"><code>${codexTomlSafe}</code></pre>
             </div>
           </li>
@@ -840,36 +840,36 @@ pre.command {
   <section class="section" aria-labelledby="details-title">
     <div class="section-head">
       <div>
-        <p class="section-kicker">Server details</p>
-        <h2 class="section-title" id="details-title">Production by default. <em>Guarded by API keys.</em></h2>
+        <p class="section-kicker">Details</p>
+        <h2 class="section-title" id="details-title">Endpoint. <em>API auth.</em></h2>
       </div>
-      <p class="section-copy">The browser page is documentation. Actual MCP calls use the hosted <code class="inline">${mcpUrlSafe}</code> endpoint and the permissions attached to the API key on each request.</p>
+      <p class="section-copy">MCP calls go to <code class="inline">${mcpUrlSafe}</code> and use the permissions on the API key.</p>
     </div>
 
     <div class="meta-grid">
       <article class="meta-card">
         <p class="meta-label">Authentication</p>
-        <h3>Bearer token required</h3>
-        <p>Send <code class="inline">Authorization: Bearer gf_live_xxx</code> with every MCP request. Keys can be created and revoked from Genfeed app settings.</p>
+        <h3>Bearer token</h3>
+        <p>Send <code class="inline">Authorization: Bearer gf_live_xxx</code> with every request.</p>
         <a href="${apiKeysUrlSafe}" rel="noopener noreferrer">Manage keys</a>
       </article>
       <article class="meta-card">
         <p class="meta-label">Transport</p>
-        <h3>Streamable HTTP</h3>
-        <p>Clients should register Genfeed as a remote HTTP MCP server, not an <code class="inline">npx</code> stdio process and not localhost.</p>
+        <h3>HTTP transport</h3>
+        <p>Register Genfeed as a remote MCP server. No <code class="inline">npx</code> or localhost for cloud.</p>
         <a href="/v1/config" rel="noopener noreferrer">View config</a>
       </article>
       <article class="meta-card">
         <p class="meta-label">Status</p>
-        <h3>Service discovery</h3>
-        <p>Use the health and config endpoints when debugging client discovery, deployment routing, or stale MCP client settings.</p>
+        <h3>Health checks</h3>
+        <p>Use health and config to debug routing or stale client settings.</p>
         <a href="/v1/health" rel="noopener noreferrer">View health</a>
       </article>
     </div>
 
     <div class="warning-note" role="note">
       <span class="warning-mark">!</span>
-      <span>Treat API keys like passwords. Do not commit them or paste them into shared logs.</span>
+      <span>Keep API keys out of commits and shared logs.</span>
     </div>
   </section>
 

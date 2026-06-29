@@ -1,11 +1,11 @@
 ---
 title: MCP Server
-description: Connect Genfeed.ai to Claude Code, Codex, and any Streamable HTTP MCP client.
+description: Connect Genfeed.ai to Claude Code, Codex, or any Streamable HTTP MCP client.
 ---
 
 # MCP Server
 
-Genfeed.ai runs a hosted Model Context Protocol server so AI clients can work with Genfeed content, media generation, workflows, publishing, analytics, ads, and agent threads using your own API key permissions.
+Use the hosted Genfeed MCP server to give AI clients API-key scoped access to content, workflows, publishing, analytics, and ads.
 
 **Endpoint:** `https://mcp.genfeed.ai/mcp`
 
@@ -13,11 +13,11 @@ Genfeed.ai runs a hosted Model Context Protocol server so AI clients can work wi
 
 **Authentication:** `Authorization: Bearer <gf_... API key>`.
 
-Visit [`https://mcp.genfeed.ai`](https://mcp.genfeed.ai) in a browser for a short connection page with Claude Code and Codex setup tabs.
+Open [`https://mcp.genfeed.ai`](https://mcp.genfeed.ai) for Claude Code and Codex setup.
 
 ## Create an API Key
 
-Create a Genfeed API key in app settings, then export it where your MCP client runs:
+Create a key in Genfeed app settings and export it where your MCP client runs:
 
 ```bash
 export GENFEED_API_KEY=gf_live_xxx
@@ -43,7 +43,7 @@ You can also open `/mcp` inside Claude Code and inspect the `genfeed` server.
 
 ## Connect Codex
 
-Codex CLI and the Codex IDE extension share MCP configuration through `~/.codex/config.toml`. Add the server with:
+Codex CLI and the Codex IDE share `~/.codex/config.toml`. Add the server with:
 
 ```bash
 codex mcp add genfeed --url https://mcp.genfeed.ai/mcp --bearer-token-env-var GENFEED_API_KEY
@@ -57,30 +57,29 @@ url = "https://mcp.genfeed.ai/mcp"
 bearer_token_env_var = "GENFEED_API_KEY"
 ```
 
-## What the Agent Can Do
+## Tools
 
-The MCP server exposes Genfeed as a set of tools and resources. Each call runs with the API key permissions attached to the request.
+Each call uses the permissions on the API key.
 
-- **Content and media:** create and inspect articles, images, videos, music, avatars, darkroom jobs, and batch generation.
-- **Workflows:** list templates, create workflows, execute workflows, and inspect run status.
-- **Publishing:** list social posts, publish content, and inspect publishing state.
-- **Analytics and ads:** read analytics, ad insights, campaign data, Google Ads, and Meta Ads surfaces.
-- **Agent control:** create and inspect agent threads, run agent chat, and resolve approval-gated actions.
-- **Admin tools:** superadmin-only infrastructure and approval tools stay role-gated.
+- **Content and media:** articles, images, videos, music, avatars, batches.
+- **Workflows:** list, create, execute, inspect status.
+- **Publishing:** list and publish social posts.
+- **Analytics and ads:** analytics, campaigns, Google Ads, Meta Ads.
+- **Agents and admin:** threads, approvals, role-gated admin tools.
 
 ## HTTP Details
 
-The MCP endpoint accepts `POST`, `GET`, and `DELETE` per the Streamable HTTP transport. Production requests must include:
+The endpoint accepts `POST`, `GET`, and `DELETE`. Production requests must include:
 
 ```http
 Authorization: Bearer gf_live_xxx
 ```
 
-Unauthenticated requests return a JSON-RPC unauthorized error. Invalid or expired keys return a 401 with the API authentication error.
+Missing, invalid, or expired keys return 401 errors.
 
 ## Local Self-Hosted Surface
 
-Self-hosted Genfeed exposes the same MCP surface locally at `http://localhost:3014/mcp` when the MCP service is running. The hosted cloud endpoint remains:
+Self-hosted Genfeed uses `http://localhost:3014/mcp` when the MCP service is running. Cloud uses:
 
 ```text
 https://mcp.genfeed.ai/mcp
@@ -88,6 +87,6 @@ https://mcp.genfeed.ai/mcp
 
 ## Troubleshooting
 
-- **Client cannot discover the server:** confirm the URL is exactly `https://mcp.genfeed.ai/mcp` and that your client supports Streamable HTTP.
-- **Unauthorized errors:** confirm `GENFEED_API_KEY` is set in the environment where the client runs, starts with `gf_`, and is sent as a bearer token.
-- **Wrong endpoint in docs or config:** use `/v1/config` on the MCP host and verify it returns `https://mcp.genfeed.ai/mcp`.
+- **Discovery fails:** use exactly `https://mcp.genfeed.ai/mcp` and a Streamable HTTP client.
+- **401 errors:** confirm `GENFEED_API_KEY` is set and sent as a bearer token.
+- **Wrong endpoint:** check `/v1/config` on the MCP host.
