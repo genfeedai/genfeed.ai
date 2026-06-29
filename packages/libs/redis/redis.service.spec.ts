@@ -233,4 +233,35 @@ describe('RedisService', () => {
 
     expect(eventSpy).toHaveBeenCalledWith('test-channel', payload);
   });
+
+  it('should retry Redis subscription after a failed subscribe attempt', async () => {
+    const publisher = buildMockClient();
+    const subscriber = buildMockClient();
+    subscriber.subscribe
+      .mockRejectedValueOnce(new Error('subscribe timeout'))
+      .mockResolvedValueOnce(undefined);
+
+    createClientSpy = vi
+      .spyOn(redis, 'createClient')
+      .mockReturnValueOnce(publisher as unknown as RedisClientType)
+      .mockReturnValueOnce(subscriber as unknown as RedisClientType);
+
+    createService();
+    await service.onModuleInit();
+
+    await expect(service.subscribe('flaky-channel', vi.fn())).rejects.toThrow(
+      'subscribe timeout',
+    );
+
+    const handler = vi.fn();
+    await service.subscribe('flaky-channel', handler);
+
+    expect(subscriber.subscribe).toHaveBeenCalledTimes(2);
+    const callback = subscriber.subscribe.mock.calls[1]?.[1] as
+      | ((payload: string) => void)
+      | undefined;
+    callback?.(JSON.stringify({ retried: true }));
+
+    expect(handler).toHaveBeenCalledWith({ retried: true });
+  });
 });

@@ -79,8 +79,18 @@ export class MicroservicesService implements OnModuleInit {
     ]);
   }
 
+  private getRedisLogTarget(redisUrl: string): string {
+    try {
+      const url = new URL(redisUrl);
+      return `${url.protocol}//${url.host}`;
+    } catch {
+      return '[invalid Redis URL]';
+    }
+  }
+
   private async initializeRedis() {
-    if (!process.env.REDIS_URL) {
+    const redisUrl = this.configService.get('REDIS_URL');
+    if (!redisUrl) {
       this.loggerService.warn(
         `${this.constructorName} initializeRedis: REDIS_URL not set — skipping (offline/self-hosted mode)`,
       );
@@ -88,9 +98,10 @@ export class MicroservicesService implements OnModuleInit {
     }
 
     const config = parseRedisConnection(this.configService);
+    const redisLogTarget = this.getRedisLogTarget(config.url);
 
     this.loggerService.log(
-      `${this.constructorName} initializeRedis: Connecting to Redis at ${config.url}`,
+      `${this.constructorName} initializeRedis: Connecting to Redis at ${redisLogTarget}`,
     );
 
     try {
@@ -122,7 +133,7 @@ export class MicroservicesService implements OnModuleInit {
     } catch (error: unknown) {
       this.redisClient = null;
       this.loggerService.error(
-        `${this.constructorName} initializeRedis: Failed to connect to Redis at ${config.url}`,
+        `${this.constructorName} initializeRedis: Failed to connect to Redis at ${redisLogTarget}`,
         error,
       );
     }
@@ -244,7 +255,7 @@ export class MicroservicesService implements OnModuleInit {
 
     this.loggerService.log(`${url} checking services in ${nodeEnv} mode`);
 
-    if (process.env.REDIS_URL) {
+    if (this.configService.get('REDIS_URL')) {
       const redisHealthy = await this.checkRedisHealth();
       if (!redisHealthy) {
         const message =

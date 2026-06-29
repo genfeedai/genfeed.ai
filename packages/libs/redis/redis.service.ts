@@ -144,20 +144,25 @@ export class RedisService
   ) {
     if (!this.handlers.has(channel)) {
       this.handlers.set(channel, []);
-      await this.withTimeout(
-        this.subscriber.subscribe(channel, (message) => {
-          const parsedMessage = JSON.parse(message);
-          // Emit for EventEmitter listeners
-          this.emit('message', channel, message);
-          // Call specific handlers
-          const handlers = this.handlers.get(channel) || [];
-          for (const h of handlers) {
-            h(parsedMessage);
-          }
-        }),
-        RedisService.SUBSCRIBE_TIMEOUT_MS,
-        `Redis subscribe to ${channel} timed out after ${RedisService.SUBSCRIBE_TIMEOUT_MS}ms`,
-      );
+      try {
+        await this.withTimeout(
+          this.subscriber.subscribe(channel, (message) => {
+            const parsedMessage = JSON.parse(message);
+            // Emit for EventEmitter listeners
+            this.emit('message', channel, message);
+            // Call specific handlers
+            const handlers = this.handlers.get(channel) || [];
+            for (const h of handlers) {
+              h(parsedMessage);
+            }
+          }),
+          RedisService.SUBSCRIBE_TIMEOUT_MS,
+          `Redis subscribe to ${channel} timed out after ${RedisService.SUBSCRIBE_TIMEOUT_MS}ms`,
+        );
+      } catch (error) {
+        this.handlers.delete(channel);
+        throw error;
+      }
       this.logger.log(`Subscribed to channel: ${channel}`, this.context);
     }
     if (handler) {
