@@ -59,7 +59,7 @@ resource "aws_ecs_task_definition" "this" {
       interval    = 30
       timeout     = 10
       retries     = 5
-      startPeriod = var.health_grace > 0 ? var.health_grace : 40
+      startPeriod = min(var.health_grace > 0 ? var.health_grace : 40, 300)
     }
   }])
 }
