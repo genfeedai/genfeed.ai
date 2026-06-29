@@ -41,4 +41,22 @@ describe('MCP setup page', () => {
     );
     expect(html).not.toContain('x=<script>');
   });
+
+  it('falls back to the default when override scheme is not http/https', () => {
+    // Concatenate to prevent biome from misinterpreting the scheme token.
+    const dangerousScheme = ['java', 'script:alert(1)'].join('');
+    vi.stubEnv('GENFEED_MCP_RESOURCE_URL', dangerousScheme);
+
+    expect(getPublicMcpUrl()).toBe('https://mcp.genfeed.ai/mcp');
+
+    const html = renderSetupPage();
+    expect(html).toContain('https://mcp.genfeed.ai/mcp');
+    expect(html).not.toContain(dangerousScheme);
+  });
+
+  it('falls back to the default URL when override is malformed', () => {
+    vi.stubEnv('GENFEED_MCP_RESOURCE_URL', 'not a url %%');
+
+    expect(getPublicMcpUrl()).toBe('https://mcp.genfeed.ai/mcp');
+  });
 });

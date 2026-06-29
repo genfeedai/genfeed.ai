@@ -29,18 +29,32 @@ function readEnv(name: string): string | undefined {
   return process.env[name];
 }
 
+function readPublicUrl(name: string, fallback: string): string {
+  const raw = readEnv(name);
+  if (!raw) return trimTrailingSlash(fallback);
+  let protocol: string;
+  try {
+    ({ protocol } = new URL(raw));
+  } catch {
+    return trimTrailingSlash(fallback);
+  }
+  if (protocol !== 'http:' && protocol !== 'https:') {
+    return trimTrailingSlash(fallback);
+  }
+  // Return raw (not URL#toString) to preserve original encoding.
+  return trimTrailingSlash(raw);
+}
+
 export function getPublicMcpUrl(): string {
-  return trimTrailingSlash(
-    readEnv('GENFEED_MCP_RESOURCE_URL') || DEFAULT_MCP_URL,
-  );
+  return readPublicUrl('GENFEED_MCP_RESOURCE_URL', DEFAULT_MCP_URL);
 }
 
 export function getPublicDocsUrl(): string {
-  return trimTrailingSlash(readEnv('GENFEED_DOCS_URL') || DEFAULT_DOCS_URL);
+  return readPublicUrl('GENFEED_DOCS_URL', DEFAULT_DOCS_URL);
 }
 
 export function getPublicAppUrl(): string {
-  return trimTrailingSlash(readEnv('GENFEED_APP_URL') || DEFAULT_APP_URL);
+  return readPublicUrl('GENFEED_APP_URL', DEFAULT_APP_URL);
 }
 
 export function renderSetupPage(): string {
