@@ -160,6 +160,9 @@ const adminRouteBuckets: RouteBucket[] = [
   routeBucket('admin content', adminRoutes, (route) =>
     route.startsWith('/admin/content'),
   ),
+  routeBucket('admin fleet', adminRoutes, (route) =>
+    route.startsWith('/admin/fleet'),
+  ),
   routeBucket('admin darkroom library media', adminRoutes, (route) =>
     /^\/admin\/(darkroom|folders|images|library|videos)(\/|$)/.test(route),
   ),

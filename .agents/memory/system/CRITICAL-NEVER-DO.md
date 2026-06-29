@@ -19,11 +19,11 @@ All operations within the workspace root only. NEVER use `/tmp`, `/private/tmp`,
 
 ### NEVER DELETE Protected Root Files
 
-At repo root: `AGENTS.md`, `CLAUDE.md`, `README.md`. These are required for the Agentic Dashboard -- NOT duplicates of `.agents/` files.
+At repo root: `AGENTS.md`, `CLAUDE.md`, `CODEX.md`, `CONTRIBUTING.md`, `DESIGN.md`, `README.md`, and `RELEASING.md`. These are intentional root documentation surfaces -- NOT duplicates of `.agents/` files.
 
 ### NEVER Create Root-Level .md Files
 
-Only 3 allowed at root: `AGENTS.md`, `CLAUDE.md`, `README.md`. Everything else goes in `.agents/`.
+Only the current intentional root docs are allowed at root: `AGENTS.md`, `CLAUDE.md`, `CODEX.md`, `CONTRIBUTING.md`, `DESIGN.md`, `README.md`, and `RELEASING.md`. Everything else goes in `.agents/`.
 
 ### Session Files: ONE FILE PER DAY
 

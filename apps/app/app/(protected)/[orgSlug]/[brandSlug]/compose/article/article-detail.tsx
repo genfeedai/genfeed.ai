@@ -109,6 +109,7 @@ export default function ArticleDetail({
     isLoading,
     isSaving,
     isEnhancing,
+    isScoringSeo,
     isDirty,
     error,
     form,
@@ -118,6 +119,7 @@ export default function ArticleDetail({
     handleArchive,
     handleDelete,
     handleEnhance,
+    handleScoreSeo,
     pathname,
   } = useArticleDetail({ articleId });
 
@@ -322,7 +324,13 @@ export default function ArticleDetail({
         </div>
 
         {/* Right column */}
-        <ArticleSidebar form={form} article={article} />
+        <ArticleSidebar
+          form={form}
+          article={article}
+          isDirty={isDirty}
+          isScoringSeo={isScoringSeo}
+          onScoreSeo={handleScoreSeo}
+        />
       </div>
     </div>
   );

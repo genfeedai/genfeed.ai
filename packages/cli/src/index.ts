@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import chalk from 'chalk';
 import { Command } from 'commander';
+import { authCommand } from './commands/auth';
 import { batchCommand } from './commands/batch';
 import { brandsCommand } from './commands/brands';
 import { captionCommand } from './commands/caption';
@@ -11,6 +12,7 @@ import { darkroomCommand } from './commands/darkroom';
 import { datasetCommand } from './commands/dataset';
 import { generateCommand } from './commands/generate/index';
 import { insightsCommand } from './commands/insights';
+import { keysCommand } from './commands/keys';
 import { libraryCommand } from './commands/library';
 import { loginCommand } from './commands/login';
 import { logoutCommand } from './commands/logout';
@@ -45,9 +47,11 @@ program
   .name('gf')
   .description('Unified CLI for Genfeed.ai')
   .version('0.4.0')
+  .addCommand(authCommand)
   .addCommand(loginCommand)
   .addCommand(logoutCommand)
   .addCommand(whoamiCommand)
+  .addCommand(keysCommand)
   .addCommand(brandsCommand)
   .addCommand(generateCommand)
   .addCommand(statusCommand)
@@ -92,8 +96,10 @@ async function printHelp(): Promise<void> {
 
   print(formatHeader('User Commands:\n'));
   print('  login          Authenticate with your Genfeed API key');
+  print('  auth          Authentication commands, including `gf auth login`');
   print('  logout         Remove stored credentials');
   print('  whoami         Show current user and organization');
+  print('  keys           Manage API keys for headless and MCP access');
   print('  brands         Manage brands');
   print('  generate       Generate AI content (image, video, article)');
   print('  status         Check the status of a generation job');

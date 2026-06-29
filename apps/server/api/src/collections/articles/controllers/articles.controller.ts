@@ -48,6 +48,8 @@ import {
 import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { RouterService } from '@api/services/router/router.service';
+import { ScoreSeoDto } from '@api/services/seo/dto/score-seo.dto';
+import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import {
   ActivityEntityModel,
@@ -97,6 +99,7 @@ export class ArticlesController extends BaseCRUDController<
     private readonly organizationSettingsService: OrganizationSettingsService,
     public readonly loggerService: LoggerService,
     public readonly routerService: RouterService,
+    private readonly seoScorerService: SeoScorerService,
   ) {
     // ArticleSerializer would need to be created, using null for now
     super(loggerService, articlesService, ArticleSerializer, 'Article', [
@@ -447,6 +450,66 @@ export class ArticlesController extends BaseCRUDController<
     );
 
     return serializeSingle(request, ArticleSerializer, updatedArticle);
+  }
+
+  @Post(':articleId/seo-scores')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async scoreSeo(
+    @Req() request: Request,
+    @Param('articleId') articleId: string,
+    @Body() dto: ScoreSeoDto,
+    @CurrentUser() user: User,
+  ): Promise<JsonApiSingleResponse> {
+    const publicMetadata = getPublicMetadata(user);
+    const results = await this.articlesService.findAll(
+      {
+        where: {
+          _id: articleId,
+          isDeleted: false,
+        },
+      },
+      {
+        pagination: false,
+      },
+    );
+
+    if (!results || !results.docs || results.docs.length === 0) {
+      ErrorResponse.notFound(this.entityName, articleId);
+    }
+
+    const article = results.docs[0];
+
+    if (
+      String(article.organization ?? article.organizationId) !==
+        publicMetadata.organization.toString() &&
+      !getIsSuperAdmin(user, request)
+    ) {
+      ErrorResponse.notFound(this.entityName, articleId);
+    }
+
+    await this.seoScorerService.scoreArticle(
+      articleId,
+      publicMetadata.organization,
+      dto.targetKeyword,
+    );
+
+    const updatedResults = await this.articlesService.findAll(
+      {
+        where: {
+          _id: articleId,
+          isDeleted: false,
+        },
+      },
+      {
+        pagination: false,
+      },
+    );
+
+    return serializeSingle(
+      request,
+      ArticleSerializer,
+      updatedResults?.docs?.[0] ?? article,
+    );
   }
 
   @Post(':articleId/reviews')

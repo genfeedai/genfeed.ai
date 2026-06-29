@@ -18,8 +18,10 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { RouterService } from '@api/services/router/router.service';
+import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
 import { ArticleCategory, AssetScope } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -96,6 +98,10 @@ describe('ArticlesController', () => {
     getDefaultModel: vi.fn(),
   };
 
+  const mockSeoScorerService = {
+    scoreArticle: vi.fn(),
+  };
+
   const mockLoggerService = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -104,6 +110,12 @@ describe('ArticlesController', () => {
   };
 
   beforeEach(async () => {
+    vi.clearAllMocks();
+    mockArticlesService.findAll.mockResolvedValue({ docs: [mockArticle] });
+    mockSeoScorerService.scoreArticle.mockResolvedValue({
+      score: 84,
+    });
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ArticlesController],
       providers: [
@@ -143,6 +155,10 @@ describe('ArticlesController', () => {
         {
           provide: RouterService,
           useValue: mockRouterService,
+        },
+        {
+          provide: SeoScorerService,
+          useValue: mockSeoScorerService,
         },
         {
           provide: LoggerService,
@@ -304,6 +320,75 @@ describe('ArticlesController', () => {
         mockUser.publicMetadata.brand,
       );
       expect(result).toBeDefined();
+    });
+  });
+
+  describe('scoreSeo', () => {
+    const id = '507f1f77bcf86cd799439014';
+
+    it('should score article SEO and return the refreshed article', async () => {
+      const scoredArticle = {
+        ...mockArticle,
+        seoBreakdown: { rating: 'good' },
+        seoScore: 84,
+      };
+      mockArticlesService.findAll
+        .mockResolvedValueOnce({ docs: [mockArticle] })
+        .mockResolvedValueOnce({ docs: [scoredArticle] });
+
+      const result = await controller.scoreSeo(
+        mockRequest,
+        id,
+        { targetKeyword: 'content automation' },
+        mockUser,
+      );
+
+      expect(service.findAll).toHaveBeenNthCalledWith(
+        1,
+        {
+          where: {
+            _id: id,
+            isDeleted: false,
+          },
+        },
+        {
+          pagination: false,
+        },
+      );
+      expect(mockSeoScorerService.scoreArticle).toHaveBeenCalledWith(
+        id,
+        mockUser.publicMetadata.organization,
+        'content automation',
+      );
+      expect(service.findAll).toHaveBeenCalledTimes(2);
+      expect(result).toBeDefined();
+    });
+
+    it('should throw NOT_FOUND when article is missing', async () => {
+      mockArticlesService.findAll.mockResolvedValueOnce({ docs: [] });
+
+      await expect(
+        controller.scoreSeo(mockRequest, id, {}, mockUser),
+      ).rejects.toThrow(HttpException);
+
+      expect(mockSeoScorerService.scoreArticle).not.toHaveBeenCalled();
+    });
+
+    it('should throw NOT_FOUND when article belongs to another organization', async () => {
+      mockArticlesService.findAll.mockResolvedValueOnce({
+        docs: [
+          {
+            ...mockArticle,
+            organization: '507f191e810c19729de860ee',
+          },
+        ],
+      });
+
+      await expect(
+        controller.scoreSeo(mockRequest, id, {}, mockUser),
+      ).rejects.toThrow(HttpException);
+
+      expect(mockSeoScorerService.scoreArticle).not.toHaveBeenCalled();
     });
   });
 

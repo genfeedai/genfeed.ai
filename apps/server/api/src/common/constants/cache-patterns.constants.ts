@@ -16,6 +16,8 @@
  * 4. See CLAUDE.md → Cache Invalidation Pattern
  */
 export const CACHE_PATTERNS = {
+  API_KEYS_LIST: (orgId: string) => `apiKeys:list:${orgId}`,
+  API_KEYS_SINGLE: (id: string) => `apiKeys:single:${id}`,
   ARTICLES_LIST: (orgId: string) => `articles:list:${orgId}`,
   ARTICLES_SINGLE: (id: string) => `articles:single:${id}`,
   BRANDS_LIST: (orgId: string) => `brands:list:${orgId}`,
@@ -31,6 +33,7 @@ export const CACHE_PATTERNS = {
  * Invalidating a tag busts all cache entries that were stored under that tag.
  */
 export const CACHE_TAGS = {
+  API_KEYS: 'apiKeys',
   ARTICLES: 'articles',
   BRANDS: 'brands',
   CREDITS: 'credits',

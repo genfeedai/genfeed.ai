@@ -27,6 +27,11 @@ interface ExchangeResponse {
   userName?: string;
 }
 
+export interface LoginOptions {
+  key?: string;
+  interactive?: boolean;
+}
+
 function generatePkce(): PkceParams {
   const verifier = randomBytes(32).toString('base64url');
   const challenge = createHash('sha256').update(verifier).digest('base64url');
@@ -283,61 +288,67 @@ async function completeLogin(apiKey: string): Promise<void> {
   }
 }
 
-export const loginCommand = new Command('login')
-  .description('Authenticate with Genfeed (opens browser)')
-  .option('-k, --key <key>', 'API key (skip browser, non-interactive)')
-  .option('-i, --interactive', 'Paste API key manually instead of browser')
-  .action(async (options) => {
-    try {
-      // Direct key — skip everything
-      if (options.key) {
-        if (!options.key.startsWith('gf_live_') && !options.key.startsWith('gf_test_')) {
-          throw new GenfeedError(
-            'Invalid API key format',
-            'API keys should start with gf_live_ or gf_test_'
-          );
-        }
-        await completeLogin(options.key);
-        return;
+export async function runLogin(options: LoginOptions): Promise<void> {
+  try {
+    // Direct key — skip everything
+    if (options.key) {
+      if (!options.key.startsWith('gf_live_') && !options.key.startsWith('gf_test_')) {
+        throw new GenfeedError(
+          'Invalid API key format',
+          'API keys should start with gf_live_ or gf_test_'
+        );
       }
-
-      // Manual paste mode
-      if (options.interactive) {
-        print(chalk.dim('Get your API key at: https://app.genfeed.ai/settings/api-keys\n'));
-
-        const apiKey = await password({
-          mask: '*',
-          message: 'Enter your Genfeed API key:',
-          validate: (value) => {
-            if (!value) return 'API key is required';
-            if (!value.startsWith('gf_')) return 'Invalid key format (should start with gf_)';
-            return true;
-          },
-        });
-
-        if (!apiKey.startsWith('gf_live_') && !apiKey.startsWith('gf_test_')) {
-          throw new GenfeedError(
-            'Invalid API key format',
-            'API keys should start with gf_live_ or gf_test_'
-          );
-        }
-
-        await completeLogin(apiKey);
-        return;
-      }
-
-      // Default: OAuth browser flow
-      const spinner = ora('Waiting for authentication...').start();
-
-      try {
-        const apiKey = await waitForOAuthCallback();
-        spinner.succeed('Authenticated');
-        await completeLogin(apiKey);
-      } catch (error) {
-        spinner.fail('Authentication failed');
-        throw error;
-      }
-    } catch (error) {
-      handleError(error);
+      await completeLogin(options.key);
+      return;
     }
-  });
+
+    // Manual paste mode
+    if (options.interactive) {
+      print(chalk.dim('Create an API key in your Genfeed settings, then paste it here.\n'));
+
+      const apiKey = await password({
+        mask: '*',
+        message: 'Enter your Genfeed API key:',
+        validate: (value) => {
+          if (!value) return 'API key is required';
+          if (!value.startsWith('gf_')) return 'Invalid key format (should start with gf_)';
+          return true;
+        },
+      });
+
+      if (!apiKey.startsWith('gf_live_') && !apiKey.startsWith('gf_test_')) {
+        throw new GenfeedError(
+          'Invalid API key format',
+          'API keys should start with gf_live_ or gf_test_'
+        );
+      }
+
+      await completeLogin(apiKey);
+      return;
+    }
+
+    // Default: OAuth browser flow
+    const spinner = ora('Waiting for authentication...').start();
+
+    try {
+      const apiKey = await waitForOAuthCallback();
+      spinner.succeed('Authenticated');
+      await completeLogin(apiKey);
+    } catch (error) {
+      spinner.fail('Authentication failed');
+      throw error;
+    }
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+export function createLoginCommand(name = 'login'): Command {
+  return new Command(name)
+    .description('Authenticate with Genfeed (opens browser)')
+    .option('-k, --key <key>', 'API key (skip browser, non-interactive)')
+    .option('-i, --interactive', 'Paste API key manually instead of browser')
+    .action(runLogin);
+}
+
+export const loginCommand = createLoginCommand();

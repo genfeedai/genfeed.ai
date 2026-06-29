@@ -1,6 +1,6 @@
 # E2E Architecture — Genfeed.ai
 
-> **Last verified:** 2026-06-19 (against `master`, live run #27803494712 — nightly, all 12 shards green)
+> **Last verified:** 2026-06-29 (against workflow files on `master`; latest live run not checked in this memory pass)
 > **Source of truth:** `.github/workflows/e2e.yml`, `playwright/`, `apps/server/api/test/`, `packages/prisma/`
 
 End-to-end testing runs **entirely on GitHub-hosted runners** (free for this public/OSS repo).
@@ -45,14 +45,14 @@ Top-level env: `TURBO_TOKEN` (secret) + `TURBO_TEAM` (var) enable Turborepo remo
 | Job id | Display name | Runner / timeout | Blocking? | What it runs |
 |---|---|---|---|---|
 | `e2e-route-coverage` | E2E Route Coverage Gate | ubuntu / 5m | **yes** (via gate) | `node scripts/e2e-route-coverage.mjs` |
-| `e2e-api` | API E2E Tests | ubuntu / 20m | **DISABLED** (`if: false`) | was `test:e2e:ci` — DI/path-alias broken, see §6 |
+| `e2e-api` | API E2E Tests | ubuntu / 20m | **yes** (via gate) | Postgres + Redis service containers, package build, Prisma migrate deploy, `test:e2e:ci` |
 | `e2e-frontend` | Frontend E2E (Shard N/12) | ubuntu / 45m | **yes** (via gate) | matrix 12 shards, `fail-fast:false`, `bun run test:e2e:sharded -- --reporter=blob` |
 | `e2e-merge-reports` | Merge E2E Reports | ubuntu / 10m | no (`if: always()`) | `playwright merge-reports` → single HTML report |
-| `e2e-gate` | E2E Gate (all shards) | ubuntu / 5m | **yes — the aggregator** | bash check of `e2e-route-coverage` + `e2e-frontend` results (fails on any shard failure OR cancellation) |
+| `e2e-gate` | E2E Gate (all shards) | ubuntu / 5m | **yes — the aggregator** | bash check of `e2e-route-coverage` + `e2e-frontend` + `e2e-api` results (fails on any required job failure OR cancellation) |
 | `e2e-frontend-authed` | Frontend Authenticated E2E | ubuntu / 40m | no (`continue-on-error`, gated by `E2E_AUTHED_ENABLED` var) | `bun run test:e2e:authed` |
 
-`e2e-gate` is the single job that represents the suite's pass/fail (it `needs:` route-coverage +
-frontend). It exits 1 if route coverage failed or any shard failed/was cancelled. Re-running only the
+`e2e-gate` is the single job that represents the required suite's pass/fail (it `needs:` route-coverage +
+frontend + API). It exits 1 if route coverage failed, API E2E failed, or any shard failed/was cancelled. Re-running only the
 failed shard + gate carries the green shards forward. **Frontend code-coverage moved out of this
 workflow** — it now lives in `coverage.yml` (weekly), not here. The old single `e2e-frontend` /
 `e2e-frontend-coverage` jobs in §2.3/§2.4 below are superseded by the sharded layout above.
@@ -75,11 +75,10 @@ workflow** — it now lives in `coverage.yml` (weekly), not here. The old single
 - **Job env:** `NODE_ENV=test`, `DATABASE_URL=postgresql://genfeed:genfeed_local@localhost:5432/test`,
   `REDIS_URL=redis://localhost:6379`. All external keys mocked
   (`REPLICATE_API_TOKEN`, `STRIPE_SECRET_KEY`, and auth secrets use test-safe values).
-- **Steps:** checkout → Node 22 → Bun 1.3.13 → cache bun/turbo → `bun install` →
+- **Steps:** checkout → Bun 1.3.14 via `.github/actions/setup-bun-env` → cache bun/turbo → `bun install` →
   `bunx turbo run build --filter="./packages/*"` →
   `bunx prisma migrate deploy` (cwd `packages/prisma`) → `test:e2e:ci` → codecov (flag `api-e2e`, non-fatal).
-- The API E2E job currently gates when enabled; keep workflow comments aligned with that behavior.
-  `continue-on-error`, so it DOES gate the run. (See §5.)
+- The API E2E job is enabled and required by `e2e-gate`; it has no `continue-on-error`.
 
 ### 2.3 `e2e-frontend` — Playwright core
 - **Steps:** checkout → Node 22 → Bun → cache bun/turbo/playwright-browsers → `bun install` →
@@ -196,7 +195,7 @@ Fixtures: `auth.fixture.ts` (`authenticatedPage`, `adminPage`, `automationPage`,
   `packages/prisma/generated/prisma/client/`, re-exported as `@genfeedai/prisma`).
   `DATABASE_URL` read via `packages/prisma/prisma.config.mjs` (not in schema), so `prisma generate` needs no DB.
 - **Migrations:** `packages/prisma/prisma/migrations/` — baseline `20260417050332_init` (all enums + ~140 tables)
-  + incremental migrations through `20260603083913_reconcile_filter_fields`.
+  + incremental migrations through `20260628200000_backfill_email_verified_for_migrated_users`.
 - **CI provisioning:** `e2e-api` job's `postgres` service container + `bunx prisma migrate deploy`
   (production-safe, applies pending migrations in order, no prompts). Suite then truncates/reseeds per test.
 - **Redis:** first-class dep — `RedisService` pub/sub (`packages/libs/redis/`) + BullMQ queues. Fault-tolerant
@@ -206,8 +205,6 @@ Fixtures: `auth.fixture.ts` (`authenticatedPage`, `adminPage`, `automationPage`,
 
 ## 6. Known risks / debt (gardening backlog)
 
-- **Stale "non-blocking" comment** on `e2e-api` — the job actually gates the run (no `continue-on-error`).
-  Either wire it as truly non-blocking or drop the comment.
 - **Hardcoded CI file list** in `test:e2e:ci` — rename/move any of the 3 files → CI silently runs fewer tests.
 - **Only 3 of ~11 API specs run in CI** — organizations/brands/auth/tasks never exercised by CI.
 - **`health.e2e-spec.ts`** (HTTP version) imports `@test/app.module` which does not exist — would fail if added.
@@ -216,8 +213,7 @@ Fixtures: `auth.fixture.ts` (`authenticatedPage`, `adminPage`, `automationPage`,
 - **`workers: 1` + `fullyParallel: true`** is contradictory; masks races that surface if workers increase.
 - **Playwright browser cache** has no restore-key fallback — any `bun.lock` change forces full Chromium re-download.
 - **Visual baselines** (`__screenshots__/`) are OS/font-sensitive — diffs across environments.
-- **Not a required PR gate** — runs nightly/manual only, so a regression can sit up to a day before
-  the nightly catches it.
+- **Not a regular PR gate** — the full E2E suite runs nightly/manual and through `full-suite.yml` / production QA, so an ordinary PR can merge before the nightly or release gate catches an E2E-only regression.
 
 ---
 

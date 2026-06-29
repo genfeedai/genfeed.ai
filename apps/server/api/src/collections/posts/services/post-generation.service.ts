@@ -34,6 +34,7 @@ import {
   SystemPromptKey,
 } from '@genfeedai/enums';
 import type {
+  AccountPublishingConstraints,
   AccountPublishingContext,
   SocialGenerationFormat,
 } from '@genfeedai/interfaces';
@@ -50,6 +51,20 @@ type GenerationMetadata = Pick<
   IAuthPublicMetadata,
   'brand' | 'organization' | 'user'
 >;
+
+/**
+ * Thread expansion always targets X/Twitter, whose replies must respect the
+ * 280 weighted-character limit. Used to validate generated thread posts so
+ * over-limit replies are rejected instead of silently accepted (issue #861).
+ */
+const TWITTER_THREAD_CONSTRAINTS: AccountPublishingConstraints = {
+  maxWeightedCharacters: 280,
+  notes: ['Standard X posts use the 280 weighted-character limit.'],
+  supportsDirectPublishing: true,
+  supportsRichArticleCopy: false,
+  supportsThreads: true,
+  usesWeightedCharacters: true,
+};
 
 /**
  * Owns the AI generation engine for posts: account-content and thread-expansion
@@ -110,7 +125,7 @@ export class PostGenerationService {
   parseTweetContent(
     content: string,
     maxCount: number,
-    context?: Pick<AccountPublishingContext, 'account' | 'constraints'>,
+    context?: Pick<AccountPublishingContext, 'constraints'>,
   ): string[] {
     let tweetLines: string[] = [];
     const maxLength =
@@ -512,22 +527,27 @@ export class PostGenerationService {
     publicMetadata: GenerationMetadata,
     context: AccountPublishingContext,
   ): Promise<void> {
-    const activity = await this.activitiesService.create(
-      new ActivityEntity({
-        brand: publicMetadata.brand,
-        key: ActivityKey.POST_PROCESSING,
-        organization: publicMetadata.organization,
-        source: ActivitySource.POST_GENERATION,
-        user: publicMetadata.user,
-        value: JSON.stringify({
-          count: dto.count,
-          topic: dto.topic?.substring(0, 100),
-          type: `${dto.format}-generation`,
-        }),
-      }),
-    );
+    // Create the PROCESSING activity inside the try so a failure here cannot
+    // exit the method while leaving the already-created posts stuck in
+    // PROCESSING — the catch marks every post FAILED regardless (issue #861).
+    let activity: Awaited<ReturnType<ActivitiesService['create']>> | undefined;
 
     try {
+      activity = await this.activitiesService.create(
+        new ActivityEntity({
+          brand: publicMetadata.brand,
+          key: ActivityKey.POST_PROCESSING,
+          organization: publicMetadata.organization,
+          source: ActivitySource.POST_GENERATION,
+          user: publicMetadata.user,
+          value: JSON.stringify({
+            count: dto.count,
+            topic: dto.topic?.substring(0, 100),
+            type: `${dto.format}-generation`,
+          }),
+        }),
+      );
+
       const prompt = await this.buildAccountGenerationPrompt(
         dto,
         context,
@@ -636,12 +656,14 @@ export class PostGenerationService {
         platform: context.account.platform,
       });
 
-      await this.activitiesService.patch(activity._id.toString(), {
-        key: ActivityKey.POST_FAILED,
-        value: JSON.stringify({
-          error: (error as Error)?.message || 'Generation failed',
-        }),
-      });
+      if (activity) {
+        await this.activitiesService.patch(activity._id.toString(), {
+          key: ActivityKey.POST_FAILED,
+          value: JSON.stringify({
+            error: (error as Error)?.message || 'Generation failed',
+          }),
+        });
+      }
 
       for (const post of createdPosts) {
         await this.handleGeneratedPostFailure(
@@ -687,23 +709,27 @@ export class PostGenerationService {
     dto: ExpandToThreadDto,
     publicMetadata: GenerationMetadata,
   ): Promise<void> {
-    // Create PROCESSING activity at start
-    const activity = await this.activitiesService.create(
-      new ActivityEntity({
-        brand: publicMetadata.brand,
-        key: ActivityKey.POST_PROCESSING,
-        organization: publicMetadata.organization,
-        source: ActivitySource.POST_GENERATION,
-        user: publicMetadata.user,
-        value: JSON.stringify({
-          count: dto.count,
-          originalPostId: String(originalPost._id),
-          type: 'thread-expansion',
-        }),
-      }),
-    );
+    // Create the PROCESSING activity inside the try so a failure here cannot
+    // exit the method while leaving the child posts stuck in PROCESSING — the
+    // catch marks every child FAILED regardless (issue #861).
+    let activity: Awaited<ReturnType<ActivitiesService['create']>> | undefined;
 
     try {
+      activity = await this.activitiesService.create(
+        new ActivityEntity({
+          brand: publicMetadata.brand,
+          key: ActivityKey.POST_PROCESSING,
+          organization: publicMetadata.organization,
+          source: ActivitySource.POST_GENERATION,
+          user: publicMetadata.user,
+          value: JSON.stringify({
+            count: dto.count,
+            originalPostId: String(originalPost._id),
+            type: 'thread-expansion',
+          }),
+        }),
+      );
+
       const tone = dto.tone || TweetTone.PROFESSIONAL;
       const additionalCount = dto.count - 1;
 
@@ -744,8 +770,12 @@ export class PostGenerationService {
         throw new Error('No content generated from AI service');
       }
 
-      // Parse content into tweet lines using helper
-      const tweetLines = this.parseTweetContent(content, additionalCount);
+      // Parse content into tweet lines using helper. Thread expansion targets
+      // X/Twitter, so enforce the 280 weighted-character reply limit instead of
+      // the unweighted default (issue #861).
+      const tweetLines = this.parseTweetContent(content, additionalCount, {
+        constraints: TWITTER_THREAD_CONSTRAINTS,
+      });
 
       // Update child posts with generated content
       for (let i = 0; i < childPosts.length && i < tweetLines.length; i++) {
@@ -806,12 +836,14 @@ export class PostGenerationService {
       this.logger.error('Failed to expand thread asynchronously', error);
 
       // Update activity to FAILED
-      await this.activitiesService.patch(activity._id.toString(), {
-        key: ActivityKey.POST_FAILED,
-        value: JSON.stringify({
-          error: (error as Error)?.message || 'Thread expansion failed',
-        }),
-      });
+      if (activity) {
+        await this.activitiesService.patch(activity._id.toString(), {
+          key: ActivityKey.POST_FAILED,
+          value: JSON.stringify({
+            error: (error as Error)?.message || 'Thread expansion failed',
+          }),
+        });
+      }
 
       for (const child of childPosts) {
         await this.handleExpandPostFailure(String(child._id), error);
@@ -909,7 +941,10 @@ export class PostGenerationService {
    * Generate hook variations for a topic/platform. Throws on AI failure; the
    * caller maps the error onto the HTTP boundary.
    */
-  async generateHookVariations(dto: GenerateHooksDto): Promise<{
+  async generateHookVariations(
+    dto: GenerateHooksDto,
+    publicMetadata: Pick<IAuthPublicMetadata, 'organization'>,
+  ): Promise<{
     hooks: string[];
     metadata: {
       count: number;
@@ -932,8 +967,6 @@ export class PostGenerationService {
       platformToneMap[dto.platform] || platformToneMap.twitter;
     const toneInstruction = dto.tone ? `Tone: ${dto.tone}.` : '';
 
-    const systemPrompt = `You are an expert social media copywriter specializing in hooks that stop the scroll. Generate hook variations that are optimized for maximum engagement. Return ONLY a JSON array of strings, no other text.`;
-
     const userPrompt = `Generate ${count} different hook variations for this topic: "${dto.topic}"
 
 Platform: ${dto.platform} (${platformGuidance})
@@ -945,10 +978,26 @@ Requirements:
 - No hashtags in hooks
 - Return as JSON array: ["hook1", "hook2", ...]`;
 
+    // Route through the prompt builder so hooks inherit brand/org system-prompt
+    // context and a typed Replicate input, matching the other generation flows
+    // (issue #861). Replaces the prior raw-string call that needed a type
+    // suppression because generateTextCompletionSync expects an input object.
+    const { input } = await this.promptBuilderService.buildPrompt(
+      DEFAULT_MINI_TEXT_MODEL,
+      {
+        maxTokens: TEXT_GENERATION_LIMITS.hookGeneration,
+        modelCategory: ModelCategory.TEXT,
+        prompt: userPrompt,
+        systemPromptTemplate: SystemPromptKey.HOOK_GENERATOR,
+        temperature: 0.8,
+        useTemplate: false,
+      },
+      publicMetadata.organization,
+    );
+
     const result = await this.replicateService.generateTextCompletionSync(
       DEFAULT_MINI_TEXT_MODEL,
-      // @ts-expect-error TS2345
-      `${systemPrompt}\n\n${userPrompt}`,
+      input,
     );
 
     let hooks: string[] = [];

@@ -40,6 +40,7 @@ import { ReplicateService } from '@api/services/integrations/replicate/replicate
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { QuotaService } from '@api/services/quota/quota.service';
+import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
 import {
   CredentialPlatform,
   IngredientCategory,
@@ -201,6 +202,12 @@ describe('PostsOperationsController', () => {
     verifyQuota: vi.fn().mockResolvedValue(true),
   };
 
+  const mockSeoScorerService = {
+    scorePost: vi.fn().mockResolvedValue({
+      score: 82,
+    }),
+  };
+
   const mockReplicateService = {
     generateTextCompletionSync: vi.fn().mockResolvedValue(
       `Tweet 1: This is a great tweet about technology.
@@ -244,6 +251,9 @@ Tweet 3: Tech innovation is changing the world.`,
       input: { max_tokens: 4096, prompt: 'test prompt' },
     });
     mockQuotaService.verifyQuota.mockResolvedValue(true);
+    mockSeoScorerService.scorePost.mockResolvedValue({
+      score: 82,
+    });
     mockReplicateService.generateTextCompletionSync.mockResolvedValue(
       `Tweet 1: This is a great tweet about technology.
 Tweet 2: Here's another insightful post.
@@ -275,6 +285,7 @@ Tweet 3: Tech innovation is changing the world.`,
         { provide: PromptBuilderService, useValue: mockPromptBuilderService },
         { provide: QuotaService, useValue: mockQuotaService },
         { provide: ReplicateService, useValue: mockReplicateService },
+        { provide: SeoScorerService, useValue: mockSeoScorerService },
         { provide: TemplatesService, useValue: mockTemplatesService },
         {
           provide: TrendReferenceCorpusService,
@@ -1062,6 +1073,73 @@ Tweet 3: Tech innovation is changing the world.`,
         }),
         organizationId,
       );
+    });
+  });
+
+  // ==========================================================================
+  // POST /posts/:postId/seo-scores - scoreSeo
+  // ==========================================================================
+  describe('scoreSeo', () => {
+    beforeEach(() => {
+      mockPostsService.findOne.mockResolvedValue(mockPost);
+    });
+
+    it('scores post SEO and returns the refreshed post', async () => {
+      const scoredPost = {
+        ...mockPost,
+        seoBreakdown: { rating: 'good' },
+        seoScore: 82,
+      };
+      mockPostsService.findOne
+        .mockResolvedValueOnce(mockPost)
+        .mockResolvedValueOnce(scoredPost);
+
+      const result = await controller.scoreSeo(
+        mockRequest,
+        postId,
+        { targetKeyword: 'workflow automation' },
+        mockUser,
+      );
+
+      expect(mockPostsService.findOne).toHaveBeenNthCalledWith(
+        1,
+        { _id: postId },
+        expect.any(Array),
+      );
+      expect(mockSeoScorerService.scorePost).toHaveBeenCalledWith(
+        postId,
+        organizationId,
+        'workflow automation',
+      );
+      expect(mockPostsService.findOne).toHaveBeenNthCalledWith(
+        2,
+        { _id: postId },
+        expect.any(Array),
+      );
+      expect(result).toEqual({ data: scoredPost });
+    });
+
+    it('throws NOT_FOUND when post is missing', async () => {
+      mockPostsService.findOne.mockResolvedValueOnce(null);
+
+      await expect(
+        controller.scoreSeo(mockRequest, postId, {}, mockUser),
+      ).rejects.toThrow(HttpException);
+
+      expect(mockSeoScorerService.scorePost).not.toHaveBeenCalled();
+    });
+
+    it('throws FORBIDDEN when post belongs to another organization', async () => {
+      mockPostsService.findOne.mockResolvedValueOnce({
+        ...mockPost,
+        organization: '507f191e810c19729de860ee',
+      });
+
+      await expect(
+        controller.scoreSeo(mockRequest, postId, {}, mockUser),
+      ).rejects.toThrow(HttpException);
+
+      expect(mockSeoScorerService.scorePost).not.toHaveBeenCalled();
     });
   });
 

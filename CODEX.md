@@ -2,15 +2,16 @@
 
 ## Last Verified
 
-- **Date:** 2026-04-07
+- **Date:** 2026-06-29
 
 Codex-specific fast reference. See `AGENTS.md` for full project context.
 
 ## Reality Snapshot
 
-- Frontend apps: 4 (`app`, `admin`, `website`, `desktop`) + mobile + extensions
+- Frontend workspaces: `apps/app`, `apps/docs`, `apps/website`, `apps/desktop/app`, `apps/mobile/app`, `apps/extensions/browser/app`, `apps/extensions/ide/app`
 - Backend services: 12 on `apps/server/` (api, clips, discord, files, images, mcp, notifications, slack, telegram, videos, voices, workers)
-- Shared packages: 45+ directories under `packages/`
+- Shared packages: 42 directories under `packages/`
+- Admin routes live inside `apps/app/app/(protected)/admin`; there is no separate `apps/admin` workspace.
 - Enterprise features: `ee/packages/` (commercial license)
 
 ## Rules
@@ -33,7 +34,7 @@ Codex-specific fast reference. See `AGENTS.md` for full project context.
 - Keep serializers in `packages/serializers`; do not inline response shaping in controllers/services.
 - Preserve strict TypeScript quality (no `any` shortcuts for new code).
 - Use path aliases, not deep relative imports.
-- Treat MongoDB `users._id` as canonical user reference; do not use legacy auth provider `user.id` as DB foreign key.
+- Treat Prisma `users.id` as canonical user reference; do not use legacy auth provider IDs (`authProviderId`) as DB foreign keys.
 - Enterprise code (`ee/`): enforce multi-tenancy query guards.
 - Self-hosted (non-`ee/`): organization filter is optional for single-tenant deployments.
 - Soft deletes: `isDeleted: boolean` (NOT `deletedAt`).

@@ -10,6 +10,7 @@ import type {
   ITag,
   IUser,
 } from '../index';
+import type { SeoScorecardSnapshot } from './seo-scorecard.interface';
 
 export interface IPost extends IBaseEntity {
   ingredients: IIngredient[];
@@ -41,6 +42,8 @@ export interface IPost extends IBaseEntity {
   avgEngagementRate?: number;
   evalScore?: number | null;
   evaluation?: IEvaluation | null;
+  seoScore?: number | null;
+  seoBreakdown?: SeoScorecardSnapshot | null;
   parent?: string;
   children?: IPost[];
   order?: number;

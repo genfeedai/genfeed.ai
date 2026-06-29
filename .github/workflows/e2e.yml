@@ -244,7 +244,35 @@ jobs:
           install-command: "bun install"
           cache-playwright: "true"
 
+      - name: Check authed E2E secrets
+        id: authed_secrets
+        env:
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          E2E_BETTER_AUTH_SESSION_TOKEN: ${{ secrets.E2E_BETTER_AUTH_SESSION_TOKEN }}
+        run: |
+          set -euo pipefail
+          missing=()
+          if [ -z "${BETTER_AUTH_SECRET:-}" ]; then
+            missing+=("BETTER_AUTH_SECRET")
+          fi
+          if [ -z "${E2E_BETTER_AUTH_SESSION_TOKEN:-}" ]; then
+            missing+=("E2E_BETTER_AUTH_SESSION_TOKEN")
+          fi
+
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "## Authed E2E Skipped"
+              echo ""
+              echo "Missing GitHub Actions secret(s): ${missing[*]}."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
       - name: Build app (real Better Auth client, bypass OFF)
+        if: steps.authed_secrets.outputs.ready == 'true'
         run: bunx turbo run build --filter=@genfeedai/app
         env:
           # CRUCIAL: build with the bypass flag OFF so the app uses the real
@@ -257,6 +285,7 @@ jobs:
           NEXT_PUBLIC_API_ENDPOINT: https://api.genfeed.ai/v1
 
       - name: Run authed E2E (Better Auth setup + app-authed)
+        if: steps.authed_secrets.outputs.ready == 'true'
         run: bun run test:e2e:authed
         env:
           CI: true
@@ -273,7 +302,7 @@ jobs:
 
       - name: Upload authed Playwright report
         uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && steps.authed_secrets.outputs.ready == 'true'
         with:
           name: playwright-report-authed
           path: playwright/artifacts/report/
@@ -281,7 +310,7 @@ jobs:
 
       - name: Upload authed traces (on failure)
         uses: actions/upload-artifact@v4
-        if: failure()
+        if: failure() && steps.authed_secrets.outputs.ready == 'true'
         with:
           name: playwright-traces-authed
           path: playwright/artifacts/results/

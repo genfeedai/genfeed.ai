@@ -43,6 +43,11 @@ describe('ArticlesService', () => {
       expect(service.delete).toBeDefined();
       expect(typeof service.delete).toBe('function');
     });
+
+    it('has scoreSeo method for scoring article SEO', () => {
+      expect(service.scoreSeo).toBeDefined();
+      expect(typeof service.scoreSeo).toBe('function');
+    });
   });
 
   describe('article-specific operations', () => {

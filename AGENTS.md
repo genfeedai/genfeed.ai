@@ -42,10 +42,10 @@ Detailed docs: `.agents/README.md`
 2. Maintain strict TypeScript quality (no `any`/inline interface shortcuts).
 3. Use path aliases, not deep relative imports.
 4. Preserve semantic correctness in UI controls (navigation = `Link`, actions = `Button`).
-5. Treat MongoDB `users._id` as the canonical user reference. Never use AuthProvider `user.id` (`authProviderId`) as a DB foreign key.
+5. Treat Prisma `users.id` as the canonical user reference. Never use legacy auth provider IDs (`authProviderId`) as DB foreign keys.
 6. Do not manually edit generated `dist/` artifacts.
 7. Respect package boundaries: shared logic in `packages/*`, app-specific code in `apps/*`.
-8. Enterprise code (`ee/`): enforce multi-tenancy query guards (`{ organization: orgId, isDeleted: false }`).
+8. Enterprise code (`ee/`): enforce multi-tenancy query guards (`{ organizationId: orgId, isDeleted: false }`).
 
 ## Decorator Boundary Rules
 

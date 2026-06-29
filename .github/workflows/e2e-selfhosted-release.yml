@@ -31,6 +31,7 @@ permissions:
 
 env:
   COMPOSE_FILE: docker/docker-compose.selfhosted.yml
+  COMPOSE_ENV_FILE: docker/.env
   # workflow_dispatch supplies image_tag; schedule falls back to latest.
   IMAGE_TAG: ${{ github.event.inputs.image_tag || 'latest' }}
   APP_BASE_URL: http://localhost:3000
@@ -51,10 +52,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Prepare self-hosted env file
+        run: |
+          cp docker/.env.example "${COMPOSE_ENV_FILE}"
+          docker compose --env-file "${COMPOSE_ENV_FILE}" -f "${COMPOSE_FILE}" config >/dev/null
+
       - name: Boot released image + Postgres
         run: |
           echo "Testing image tag: ${IMAGE_TAG}"
-          GENFEED_IMAGE_TAG="${IMAGE_TAG}" docker compose -f "${COMPOSE_FILE}" up -d --quiet-pull
+          GENFEED_IMAGE_TAG="${IMAGE_TAG}" docker compose --env-file "${COMPOSE_ENV_FILE}" -f "${COMPOSE_FILE}" up -d --quiet-pull
 
       # Readiness gate — the #1 false-green risk. Migrate + seed run async on
       # boot, so liveness can be green before the DB is usable. Fail loud on
@@ -102,7 +108,7 @@ jobs:
       - name: Dump container logs (on failure)
         if: failure()
         run: |
-          docker compose -f "${COMPOSE_FILE}" logs --no-color > compose-logs.txt 2>&1 || true
+          docker compose --env-file "${COMPOSE_ENV_FILE}" -f "${COMPOSE_FILE}" logs --no-color > compose-logs.txt 2>&1 || true
           echo "===== compose logs (tail) ====="
           tail -n 200 compose-logs.txt || true
 
@@ -124,7 +130,7 @@ jobs:
 
       - name: Tear down stack
         if: always()
-        run: docker compose -f "${COMPOSE_FILE}" down -v
+        run: docker compose --env-file "${COMPOSE_ENV_FILE}" -f "${COMPOSE_FILE}" down -v
 
   # File a deduped tracking issue when the release E2E fails, so a broken
   # shipped image is visible without watching the Actions tab.

@@ -52,6 +52,7 @@ describe('ApiKeysController', () => {
     patch: vi.fn(),
     remove: vi.fn(),
     revoke: vi.fn(),
+    rotateWithKey: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -282,6 +283,60 @@ describe('ApiKeysController', () => {
       await expect(
         controller.revoke(mockRequest, mockUser, id),
       ).rejects.toThrow(HttpException);
+    });
+  });
+
+  describe('rotate', () => {
+    it('should revoke the old key and create a replacement with the same settings', async () => {
+      const id = '507f1f77bcf86cd799439014';
+      const plainKey = 'plain_rotated_api_key_12345';
+      const rotatedKey = {
+        ...mockApiKey,
+        _id: '507f1f77bcf86cd799439015',
+        id: '507f1f77bcf86cd799439015',
+        label: mockApiKey.label,
+      };
+
+      mockApiKeysService.findOne.mockResolvedValue(mockApiKey);
+      mockApiKeysService.rotateWithKey.mockResolvedValue({
+        apiKey: rotatedKey,
+        plainKey,
+      });
+
+      const result = await controller.rotate(mockRequest, mockUser, id);
+
+      expect(service.findOne).toHaveBeenCalledWith({
+        id,
+        isRevoked: false,
+        organizationId: '507f1f77bcf86cd799439012',
+        userId: '507f1f77bcf86cd799439011',
+      });
+      expect(service.rotateWithKey).toHaveBeenCalledWith(
+        id,
+        expect.objectContaining({
+          category: mockApiKey.category,
+          description: mockApiKey.description,
+          label: mockApiKey.label,
+          organizationId: '507f1f77bcf86cd799439012',
+          scopes: mockApiKey.scopes,
+          userId: '507f1f77bcf86cd799439011',
+        }),
+      );
+      expect(service.revoke).not.toHaveBeenCalled();
+      expect(service.createWithKey).not.toHaveBeenCalled();
+      expect(result).toBeDefined();
+    });
+
+    it('should throw NotFoundException when rotating a missing key', async () => {
+      const id = '507f1f77bcf86cd799439014';
+      mockApiKeysService.findOne.mockResolvedValue(null);
+
+      await expect(
+        controller.rotate(mockRequest, mockUser, id),
+      ).rejects.toThrow(HttpException);
+      expect(service.revoke).not.toHaveBeenCalled();
+      expect(service.createWithKey).not.toHaveBeenCalled();
+      expect(service.rotateWithKey).not.toHaveBeenCalled();
     });
   });
 

@@ -2,6 +2,7 @@ export const TEXT_GENERATION_LIMITS = {
   articleEnhancement: 1000,
   articleImagePrompt: 400,
   articleVirality: 700,
+  hookGeneration: 900,
   newsletterDraft: 1400,
   newsletterTopicProposal: 700,
   postEnhancement: 500,

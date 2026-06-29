@@ -19,6 +19,8 @@ export const articleAttributes = createEntityAttributes([
   'viralityAnalysis',
   'performanceMetrics',
   'evaluation',
+  'seoScore',
+  'seoBreakdown',
   'generationPrompt',
   'xArticleMetadata',
 ]);

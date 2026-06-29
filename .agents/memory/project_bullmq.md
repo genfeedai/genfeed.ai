@@ -1,9 +1,11 @@
 ---
-name: BullMQ Refactor
-description: Issue #84 — move 32 @Processor decorators from API service to Workers service
+name: BullMQ Processor Placement
+description: API no longer owns BullMQ processors; put new processors in workers or the owning service
 type: project
+status: resolved
+last_verified: 2026-06-29
 ---
 
-**Why:** API process runs 32 BullMQ job processors alongside HTTP handlers. Heavy jobs (workflow execution, agent runs, content pipeline) eat CPU that should serve requests. Workers process has zero processors — only @Cron jobs.
+**Why:** The old #84 concern was API process contention from BullMQ processors running beside HTTP handlers. Current source has no `@Processor(...)` decorators in `apps/server/api`; most product processors now live under `apps/server/workers/src/processors/api/**`, while file/clip-specific processors remain in their owning services.
 
-**How to apply:** When adding new processors, put them in Workers (apps/server/workers), not API. Issue #84 tracks the migration of existing processors.
+**How to apply:** Do not add BullMQ processors to `apps/server/api`. Put new product/background processors in `apps/server/workers`, or in a dedicated owning runtime service when the queue is service-local (for example files/clips). Keep the API responsible for HTTP orchestration and queue enqueueing.
