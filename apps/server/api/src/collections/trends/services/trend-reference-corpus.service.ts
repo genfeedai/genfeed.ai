@@ -51,8 +51,11 @@ interface RemixLineagePayload {
 
 interface ReferenceQueryOptions {
   authorHandle?: string;
+  includePaidCreative?: boolean;
+  intendedUse?: TrendSourceIntendedUse;
   limit?: number;
   platform?: string;
+  sourceKind?: TrendSourceKind;
   trendId?: string;
 }
 
@@ -554,13 +557,21 @@ export class TrendReferenceCorpusService {
         .filter((id): id is string => id != null);
     }
 
+    const shouldFilterClassification =
+      options.includePaidCreative !== true ||
+      Boolean(options.sourceKind) ||
+      Boolean(options.intendedUse);
+    const queryLimit = shouldFilterClassification
+      ? this.getExpandedReferenceLimit(limit)
+      : limit;
+
     const docs = await this.prisma.trendSourceReference.findMany({
       orderBy: [
         { currentEngagementTotal: 'desc' },
         { latestTrendViralityScore: 'desc' },
         { lastSeenAt: 'desc' },
       ],
-      take: limit,
+      take: queryLimit,
       where: {
         ...(options.authorHandle ? { authorHandle: options.authorHandle } : {}),
         ...(options.platform ? { platform: options.platform } : {}),
@@ -570,15 +581,23 @@ export class TrendReferenceCorpusService {
         isDeleted: false,
       },
     });
+    const filteredDocs = docs
+      .filter((doc) =>
+        this.shouldIncludeReferenceByClassification(
+          doc.data as unknown as ReferenceRecordData,
+          options,
+        ),
+      )
+      .slice(0, limit);
 
     const remixCounts = await this.getRemixCounts(
-      docs.map((doc) => doc.id),
+      filteredDocs.map((doc) => doc.id),
       organizationId,
       brandId,
     );
 
     return {
-      items: docs.map((doc) =>
+      items: filteredDocs.map((doc) =>
         this.toReferenceRecord(
           doc.id,
           doc.data as unknown as ReferenceRecordData,
@@ -586,7 +605,7 @@ export class TrendReferenceCorpusService {
           remixCounts,
         ),
       ),
-      totalReferences: docs.length,
+      totalReferences: filteredDocs.length,
     };
   }
 
@@ -1246,6 +1265,46 @@ export class TrendReferenceCorpusService {
     }
 
     return Math.min(Math.floor(value), MAX_REFERENCE_QUERY_LIMIT);
+  }
+
+  private getExpandedReferenceLimit(limit: number): number {
+    return Math.min(MAX_REFERENCE_QUERY_LIMIT, Math.max(limit * 4, limit + 20));
+  }
+
+  private shouldIncludeReferenceByClassification(
+    data: ReferenceRecordData,
+    options: ReferenceQueryOptions,
+  ): boolean {
+    const classification = data.sourceClassification;
+    if (
+      options.sourceKind &&
+      classification?.sourceKind !== options.sourceKind
+    ) {
+      return false;
+    }
+    if (
+      options.intendedUse &&
+      classification?.intendedUse !== options.intendedUse
+    ) {
+      return false;
+    }
+
+    const hasExplicitPaidFilter =
+      options.sourceKind === 'paid_creative_reference' ||
+      options.intendedUse === 'paid_creative_analysis';
+    const isPaidCreative =
+      classification?.sourceKind === 'paid_creative_reference' ||
+      classification?.intendedUse === 'paid_creative_analysis';
+
+    if (
+      options.includePaidCreative !== true &&
+      !hasExplicitPaidFilter &&
+      isPaidCreative
+    ) {
+      return false;
+    }
+
+    return true;
   }
 
   private normalizePromptReferencePackTypes(

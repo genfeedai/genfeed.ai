@@ -56,11 +56,44 @@ export type TrendSourceKind =
   | 'paid_creative_reference'
   | 'public_platform_reference';
 
+export type TrendPaidCreativeProvider =
+  | 'google_ads_transparency_center'
+  | 'manual_paid_reference'
+  | 'meta_ads_library'
+  | 'tiktok_creative_center'
+  | 'youtube_ads_library';
+
+export type TrendPaidCreativeType =
+  | 'carousel'
+  | 'image'
+  | 'post'
+  | 'text'
+  | 'unknown'
+  | 'video';
+
+export interface TrendSourceMetrics {
+  comments?: number;
+  likes?: number;
+  shares?: number;
+  views?: number;
+}
+
+export interface TrendPaidCreativeMetadata {
+  adFormat?: string;
+  collectedAt: string;
+  creativeType?: TrendPaidCreativeType;
+  hook?: string;
+  landingIntent?: string;
+  provider: TrendPaidCreativeProvider;
+  visibleEngagementSignals?: TrendSourceMetrics;
+}
+
 export interface TrendSourceClassification {
   capturedAt: string;
   confidence: TrendSourceConfidence;
   freshnessWindowDays: number;
   intendedUse: TrendSourceIntendedUse;
+  paidCreative?: TrendPaidCreativeMetadata;
   sourceKind: TrendSourceKind;
   sourceLabel?: string;
   sourceTopic?: string;
@@ -79,12 +112,7 @@ export interface TrendSourceItem {
   mediaUrl?: string;
   publishedAt?: string;
   sourceClassification?: TrendSourceClassification;
-  metrics?: {
-    comments?: number;
-    likes?: number;
-    shares?: number;
-    views?: number;
-  };
+  metrics?: TrendSourceMetrics;
 }
 
 export interface TrendContentItem extends TrendSourceItem {

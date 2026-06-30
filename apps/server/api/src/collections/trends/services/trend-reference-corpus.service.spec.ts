@@ -93,6 +93,54 @@ describe('TrendReferenceCorpusService', () => {
       latestTrendViralityScore: 35,
       platform: 'instagram',
     },
+    {
+      authorHandle: 'paid-lab',
+      canonicalUrl: 'https://ads.example.com/library/creative-1',
+      createdAt: new Date('2026-06-03T00:00:00.000Z'),
+      currentEngagementTotal: 2400,
+      data: {
+        authorHandle: 'paid-lab',
+        canonicalUrl: 'https://ads.example.com/library/creative-1',
+        contentType: 'video',
+        currentEngagementTotal: 2400,
+        firstSeenAt: '2026-06-03T00:00:00.000Z',
+        lastSeenAt: '2026-06-13T00:00:00.000Z',
+        latestTrendMentions: 500,
+        latestTrendViralityScore: 72,
+        matchedTrendTopics: ['paid creative'],
+        platform: 'meta',
+        sourceClassification: {
+          capturedAt: '2026-06-03T00:00:00.000Z',
+          confidence: 'high',
+          freshnessWindowDays: 30,
+          intendedUse: 'paid_creative_analysis',
+          paidCreative: {
+            adFormat: 'feed',
+            collectedAt: '2026-06-03T00:00:00.000Z',
+            creativeType: 'video',
+            hook: 'Show the before state in the first second',
+            landingIntent: 'trial_signup',
+            provider: 'meta_ads_library',
+            visibleEngagementSignals: {
+              comments: 40,
+              likes: 1800,
+              shares: 160,
+              views: 400,
+            },
+          },
+          sourceKind: 'paid_creative_reference',
+          sourceLabel: 'Meta Ads Library',
+          sourceTopic: 'paid creative',
+        },
+        sourcePreviewState: 'live',
+        title: 'Paid creative reference',
+      },
+      id: 'ref_paid',
+      isDeleted: false,
+      lastSeenAt: new Date('2026-06-13T00:00:00.000Z'),
+      latestTrendViralityScore: 72,
+      platform: 'meta',
+    },
   ];
 
   const trendRows: TrendRow[] = [
@@ -425,7 +473,7 @@ describe('TrendReferenceCorpusService', () => {
     );
     expect(prisma.trendSourceReference.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        take: 5,
+        take: 25,
         where: expect.objectContaining({
           authorHandle: 'creator',
           id: { in: ['ref_tiktok'] },
@@ -433,6 +481,47 @@ describe('TrendReferenceCorpusService', () => {
         }),
       }),
     );
+  });
+
+  it('excludes paid creative references from default corpus reads', async () => {
+    const result = await service.getReferenceCorpus('org_1', 'brand_1', {
+      limit: 10,
+    });
+
+    expect(result.items.map((item) => item.id)).toEqual([
+      'ref_tiktok',
+      'ref_instagram',
+    ]);
+    expect(result.items).not.toContainEqual(
+      expect.objectContaining({ id: 'ref_paid' }),
+    );
+    expect(prisma.trendSourceReference.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        take: 40,
+      }),
+    );
+  });
+
+  it('returns paid creative references through explicit source filters', async () => {
+    const result = await service.getReferenceCorpus('org_1', 'brand_1', {
+      intendedUse: 'paid_creative_analysis',
+      limit: 10,
+      sourceKind: 'paid_creative_reference',
+    });
+
+    expect(result.items).toEqual([
+      expect.objectContaining({
+        id: 'ref_paid',
+        sourceClassification: expect.objectContaining({
+          intendedUse: 'paid_creative_analysis',
+          paidCreative: expect.objectContaining({
+            hook: 'Show the before state in the first second',
+            provider: 'meta_ads_library',
+          }),
+          sourceKind: 'paid_creative_reference',
+        }),
+      }),
+    ]);
   });
 
   it('derives prompt-ready reference packs with source traceability and regeneration metadata', async () => {
@@ -583,7 +672,7 @@ describe('TrendReferenceCorpusService', () => {
     });
 
     expect(result.summary).toMatchObject({
-      skippedSources: 1,
+      skippedSources: 2,
       totalPacks: 1,
       totalSources: 1,
     });
@@ -677,6 +766,78 @@ describe('TrendReferenceCorpusService', () => {
     );
   });
 
+  it('persists paid creative classification metadata when syncing references', async () => {
+    prisma.trendSourceReference.findFirst.mockResolvedValueOnce(null);
+    prisma.trendSourceReference.create.mockResolvedValueOnce({
+      id: 'ref_paid_public',
+    });
+
+    await service.syncTrendReferences([
+      {
+        id: 'trend_paid',
+        mentions: 5400,
+        platform: 'meta',
+        sourcePreview: [
+          {
+            authorHandle: 'paid-lab',
+            contentType: 'video',
+            id: 'meta:paid-lab:creative-1',
+            metrics: {
+              likes: 1800,
+              shares: 160,
+              views: 400,
+            },
+            platform: 'meta',
+            sourceClassification: {
+              capturedAt: '2026-06-09T00:00:00.000Z',
+              confidence: 'high',
+              freshnessWindowDays: 30,
+              intendedUse: 'paid_creative_analysis',
+              paidCreative: {
+                adFormat: 'feed',
+                collectedAt: '2026-06-09T00:00:00.000Z',
+                creativeType: 'video',
+                hook: 'Name the audience pain before the demo',
+                landingIntent: 'trial_signup',
+                provider: 'meta_ads_library',
+                visibleEngagementSignals: {
+                  likes: 1800,
+                  shares: 160,
+                  views: 400,
+                },
+              },
+              sourceKind: 'paid_creative_reference',
+              sourceLabel: 'Meta Ads Library',
+              sourceTopic: 'creative analytics',
+            },
+            sourceUrl: 'https://ads.example.com/library/creative-2',
+            title: 'Paid creative reference',
+          },
+        ],
+        sourcePreviewState: 'live',
+        topic: 'paid creative',
+        viralityScore: 72,
+      },
+    ]);
+
+    expect(prisma.trendSourceReference.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          data: expect.objectContaining({
+            sourceClassification: expect.objectContaining({
+              intendedUse: 'paid_creative_analysis',
+              paidCreative: expect.objectContaining({
+                creativeType: 'video',
+                provider: 'meta_ads_library',
+              }),
+              sourceKind: 'paid_creative_reference',
+            }),
+          }),
+        }),
+      }),
+    );
+  });
+
   it('groups top reference accounts with scalar columns and brand remix counts', async () => {
     const result = await service.getTopReferenceAccounts('org_1', 'brand_1', {
       limit: 10,
@@ -728,10 +889,10 @@ describe('TrendReferenceCorpusService', () => {
     expect(result.summary).toMatchObject({
       activeTrends: 4,
       failingProviders: 2,
-      freshSegments: 2,
-      referenceRecords: 2,
+      freshSegments: 3,
+      referenceRecords: 3,
       staleSegments: 0,
-      totalSegments: 2,
+      totalSegments: 3,
     });
     expect(result.segments).toEqual(
       expect.arrayContaining([

@@ -318,6 +318,9 @@ describe('TrendsController', () => {
         'twitter',
         'trend-1',
         'builder',
+        undefined,
+        undefined,
+        undefined,
         '15',
       );
 
@@ -326,8 +329,11 @@ describe('TrendsController', () => {
         mockUser.publicMetadata.brand,
         {
           authorHandle: 'builder',
+          includePaidCreative: undefined,
+          intendedUse: undefined,
           limit: 15,
           platform: 'twitter',
+          sourceKind: undefined,
           trendId: 'trend-1',
         },
       );
@@ -344,6 +350,53 @@ describe('TrendsController', () => {
           totalReferences: 1,
         },
       });
+    });
+
+    it('passes explicit paid creative filters to the reference corpus service', async () => {
+      mockTrendsService.getReferenceCorpus.mockResolvedValue({
+        items: [],
+        totalReferences: 0,
+      });
+
+      await controller.getReferenceCorpus(
+        mockUser,
+        undefined,
+        undefined,
+        undefined,
+        'paid_creative_reference',
+        'paid_creative_analysis',
+        'true',
+        '10',
+      );
+
+      expect(trendsService.getReferenceCorpus).toHaveBeenCalledWith(
+        mockUser.publicMetadata.organization,
+        mockUser.publicMetadata.brand,
+        {
+          authorHandle: undefined,
+          includePaidCreative: true,
+          intendedUse: 'paid_creative_analysis',
+          limit: 10,
+          platform: undefined,
+          sourceKind: 'paid_creative_reference',
+          trendId: undefined,
+        },
+      );
+    });
+
+    it('rejects unknown source classification filters', async () => {
+      await expect(
+        controller.getReferenceCorpus(
+          mockUser,
+          undefined,
+          undefined,
+          undefined,
+          'unknown_kind',
+          undefined,
+          undefined,
+          '10',
+        ),
+      ).rejects.toThrow('Unknown trend source kind: unknown_kind');
     });
   });
 
