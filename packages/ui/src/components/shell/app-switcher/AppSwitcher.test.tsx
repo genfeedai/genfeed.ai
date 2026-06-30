@@ -73,8 +73,11 @@ vi.mock('../../../primitives/dropdown-menu', () => ({
         {children}
       </button>
     ),
-  DropdownMenuLabel: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
+  DropdownMenuLabel: ({
+    children,
+    ...props
+  }: React.HTMLAttributes<HTMLDivElement> & { children: ReactNode }) => (
+    <div {...props}>{children}</div>
   ),
   DropdownMenuSeparator: () => <hr />,
   DropdownMenuTrigger: ({ children }: { children: ReactNode }) => (
@@ -121,6 +124,14 @@ describe('AppSwitcher', () => {
       'Analytics',
     ]) {
       expect(screen.getByRole('link', { name: label })).toBeInTheDocument();
+    }
+  });
+
+  it('groups the first-level sections by workflow area', () => {
+    render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
+
+    for (const label of ['Workspace', 'Content', 'Distribution']) {
+      expect(screen.getByRole('group', { name: label })).toBeInTheDocument();
     }
   });
 
