@@ -485,7 +485,7 @@ jobs:
     if: >-
       needs.trust.outputs.is-trusted == 'true'
       && needs.test-scope.outputs.app == 'true'
-      && (github.event_name == 'pull_request' || github.event_name == 'push')
+      && github.event_name == 'push'
     steps:
       - uses: actions/checkout@v5
         with:
@@ -510,10 +510,10 @@ jobs:
         env:
           NODE_ENV: test
 
-  # Focused, blocking API tests on every PR and master push: mirrors
-  # test-app-changed for apps/server/api — runs only the API tests whose module
-  # graph touches the diff (vitest --changed), so it stays fast while pinning any
-  # regression to the single PR/merge that introduced it. The full sharded
+  # Focused, blocking API tests on every master push (post-merge only — never on
+  # PRs): mirrors test-app-changed for apps/server/api — runs only the API tests
+  # whose module graph touches the diff (vitest --changed), so it stays fast while
+  # pinning any regression to the single merge that introduced it. The full sharded
   # test-api matrix below still runs the whole suite via workflow_call
   # (full-suite / release / deploy), which catches cross-cutting tests the
   # --changed static graph can miss.
@@ -525,7 +525,7 @@ jobs:
     if: >-
       needs.trust.outputs.is-trusted == 'true'
       && needs.test-scope.outputs.api == 'true'
-      && (github.event_name == 'pull_request' || github.event_name == 'push')
+      && github.event_name == 'push'
     steps:
       - uses: actions/checkout@v5
         with:
