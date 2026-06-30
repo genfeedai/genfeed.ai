@@ -10,7 +10,9 @@ import type {
   TrendDiscoveryItem,
   TrendPatternAnalysis,
   TrendSourceAccountResult,
+  TrendSourceIntendedUse,
   TrendSourceItem,
+  TrendSourceKind,
   TrendSourceReferenceResult,
 } from '@api/collections/trends/interfaces/trend.interfaces';
 import type {
@@ -465,12 +467,29 @@ export class TrendsService {
     brandId?: string,
     options: {
       authorHandle?: string;
+      includePaidCreative?: boolean;
+      intendedUse?: TrendSourceIntendedUse;
       limit?: number;
       platform?: string;
+      sourceKind?: TrendSourceKind;
       trendId?: string;
     } = {},
   ): Promise<TrendSourceReferenceResult> {
     return this.trendReferenceCorpusService.getReferenceCorpus(
+      organizationId,
+      brandId,
+      options,
+    );
+  }
+
+  async getPromptReferencePacks(
+    organizationId?: string,
+    brandId?: string,
+    options: Parameters<
+      TrendReferenceCorpusService['getPromptReferencePacks']
+    >[2] = {},
+  ): ReturnType<TrendReferenceCorpusService['getPromptReferencePacks']> {
+    return this.trendReferenceCorpusService.getPromptReferencePacks(
       organizationId,
       brandId,
       options,

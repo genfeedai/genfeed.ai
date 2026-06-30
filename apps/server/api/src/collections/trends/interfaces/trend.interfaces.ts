@@ -56,11 +56,44 @@ export type TrendSourceKind =
   | 'paid_creative_reference'
   | 'public_platform_reference';
 
+export type TrendPaidCreativeProvider =
+  | 'google_ads_transparency_center'
+  | 'manual_paid_reference'
+  | 'meta_ads_library'
+  | 'tiktok_creative_center'
+  | 'youtube_ads_library';
+
+export type TrendPaidCreativeType =
+  | 'carousel'
+  | 'image'
+  | 'post'
+  | 'text'
+  | 'unknown'
+  | 'video';
+
+export interface TrendSourceMetrics {
+  comments?: number;
+  likes?: number;
+  shares?: number;
+  views?: number;
+}
+
+export interface TrendPaidCreativeMetadata {
+  adFormat?: string;
+  collectedAt: string;
+  creativeType?: TrendPaidCreativeType;
+  hook?: string;
+  landingIntent?: string;
+  provider: TrendPaidCreativeProvider;
+  visibleEngagementSignals?: TrendSourceMetrics;
+}
+
 export interface TrendSourceClassification {
   capturedAt: string;
   confidence: TrendSourceConfidence;
   freshnessWindowDays: number;
   intendedUse: TrendSourceIntendedUse;
+  paidCreative?: TrendPaidCreativeMetadata;
   sourceKind: TrendSourceKind;
   sourceLabel?: string;
   sourceTopic?: string;
@@ -79,12 +112,7 @@ export interface TrendSourceItem {
   mediaUrl?: string;
   publishedAt?: string;
   sourceClassification?: TrendSourceClassification;
-  metrics?: {
-    comments?: number;
-    likes?: number;
-    shares?: number;
-    views?: number;
-  };
+  metrics?: TrendSourceMetrics;
 }
 
 export interface TrendContentItem extends TrendSourceItem {
@@ -147,6 +175,87 @@ export interface TrendSourceReferenceRecord {
 export interface TrendSourceReferenceResult {
   items: TrendSourceReferenceRecord[];
   totalReferences: number;
+}
+
+export type TrendPromptReferenceBrandSuitability =
+  | 'brand_safe'
+  | 'requires_review'
+  | 'unknown';
+
+export type TrendPromptReferenceFreshnessStatus = 'expired' | 'fresh' | 'stale';
+
+export type TrendPromptReferencePackType =
+  | 'constraints'
+  | 'formats'
+  | 'hooks'
+  | 'references';
+
+export interface TrendPromptReferencePackSource {
+  id: string;
+  platform: string;
+  canonicalUrl: string;
+  authorHandle?: string;
+  contentType: TrendSourceItem['contentType'];
+  title?: string;
+  text?: string;
+  sourceClassification?: TrendSourceClassification;
+  freshnessStatus: TrendPromptReferenceFreshnessStatus;
+  lastSeenAt: string;
+  confidence: TrendSourceConfidence;
+}
+
+export interface TrendPromptReferencePackFreshness {
+  status: TrendPromptReferenceFreshnessStatus;
+  freshnessWindowDays: number;
+  lastSourceSeenAt?: string;
+  regenerateAfter?: string;
+  staleSourceIds: string[];
+  expiredSourceIds: string[];
+}
+
+export interface TrendPromptReferencePackRegeneration {
+  cacheKey: string;
+  sourceFingerprint: string;
+  trigger: 'cache_key_changed' | 'source_expired' | 'source_stale';
+  regenerateAfter?: string;
+}
+
+export interface TrendPromptReferencePack {
+  id: string;
+  type: TrendPromptReferencePackType;
+  targetPlatform: string;
+  contentIntent: TrendSourceIntendedUse;
+  title: string;
+  summary: string;
+  instructions: string[];
+  examples: string[];
+  constraints: string[];
+  sourceReferenceIds: string[];
+  sources: TrendPromptReferencePackSource[];
+  confidence: TrendSourceConfidence;
+  brandSuitability: TrendPromptReferenceBrandSuitability;
+  freshness: TrendPromptReferencePackFreshness;
+  regeneration: TrendPromptReferencePackRegeneration;
+  metadata: {
+    generatedAt: string;
+    sourceCount: number;
+    matchedTopics: string[];
+    sourceKinds: TrendSourceKind[];
+    contentTypes: TrendSourceItem['contentType'][];
+  };
+}
+
+export interface TrendPromptReferencePackResult {
+  packs: TrendPromptReferencePack[];
+  summary: {
+    availableTypes: TrendPromptReferencePackType[];
+    contentIntent: TrendSourceIntendedUse;
+    generatedAt: string;
+    skippedSources: number;
+    targetPlatform: string;
+    totalPacks: number;
+    totalSources: number;
+  };
 }
 
 export interface TrendSourceAccountSummary {

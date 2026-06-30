@@ -112,11 +112,11 @@ export default function PostSidebarReviewCard({
           )}
 
           {reviewEvents.length > 0 && (
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 divide-y divide-border">
               {reviewEvents.map((event) => (
                 <div
                   key={`${event.reviewedAt}-${event.decision}`}
-                  className="rounded-lg border border-border bg-background/40 p-3 text-sm"
+                  className="py-3 text-sm first:pt-0 last:pb-0"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <span className="font-medium">

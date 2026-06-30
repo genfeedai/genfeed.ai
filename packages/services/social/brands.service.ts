@@ -6,6 +6,9 @@ import type {
   IActivity,
   IAnalytics,
   IArticle,
+  IBrandKitApplyRequest,
+  IBrandKitApplyResult,
+  IBrandKitDraft,
   IImage,
   IPost,
   IQueryParams,
@@ -253,6 +256,27 @@ export class BrandsService extends BaseService<Brand> {
     },
   ): Promise<void> {
     await this.instance.patch(`/${id}/agent-config`, data);
+  }
+
+  public async crawlBrandKitWebsite(
+    id: string,
+    data: {
+      socialUrls?: string[];
+      url: string;
+    },
+  ): Promise<IBrandKitDraft> {
+    return await this.instance
+      .post<{ data: IBrandKitDraft }>(`/${id}/brand-kit/crawl`, data)
+      .then((res) => res.data.data);
+  }
+
+  public async applyBrandKitDraft(
+    id: string,
+    data: Omit<IBrandKitApplyRequest, 'brandId'>,
+  ): Promise<IBrandKitApplyResult> {
+    return await this.instance
+      .post<{ data: IBrandKitApplyResult }>(`/${id}/brand-kit/apply`, data)
+      .then((res) => res.data.data);
   }
 
   public async findBrandAnalytics(

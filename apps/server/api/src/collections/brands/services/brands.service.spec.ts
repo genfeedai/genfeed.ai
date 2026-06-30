@@ -92,7 +92,7 @@ describe('BrandsService', () => {
         log: vi.fn(),
         warn: vi.fn(),
       } as unknown as LoggerService,
-      {} as CacheService,
+      { invalidateByTags: vi.fn() } as unknown as CacheService,
       brandScraperService as unknown as BrandScraperService,
       llmDispatcher as unknown as LlmDispatcherService,
       cacheInvalidationService as unknown as CacheInvalidationService,
@@ -525,6 +525,147 @@ describe('BrandsService', () => {
     });
   });
 
+  describe('applyBrandKitDraft', () => {
+    const organizationId = 'org_1';
+    const brandId = 'brand_1';
+
+    it('applies selected scalar, voice, and strategy fields to the brand', async () => {
+      delegate.findFirst.mockResolvedValue({
+        agentConfig: {
+          strategy: { frequency: 'weekly' },
+          voice: { style: 'direct' },
+        },
+        id: brandId,
+        isDeleted: false,
+        organizationId,
+      });
+      delegate.update.mockResolvedValue({
+        description: 'Imported description',
+        id: brandId,
+        organizationId,
+      });
+
+      const result = await service.applyBrandKitDraft(brandId, organizationId, {
+        fields: {
+          description: {
+            action: 'accept',
+            value: 'Imported description',
+          },
+          strategyPlatforms: {
+            action: 'accept',
+            value: ['linkedin', 'youtube'],
+          },
+          voiceTone: {
+            action: 'accept',
+            value: 'Confident',
+          },
+        },
+      });
+
+      expect(delegate.findFirst).toHaveBeenCalledWith({
+        where: { id: brandId, isDeleted: false, organizationId },
+      });
+      expect(delegate.update).toHaveBeenCalledWith({
+        data: {
+          agentConfig: {
+            strategy: {
+              frequency: 'weekly',
+              platforms: ['linkedin', 'youtube'],
+            },
+            voice: {
+              style: 'direct',
+              tone: 'Confident',
+            },
+          },
+          description: 'Imported description',
+        },
+        where: { id: brandId },
+      });
+      expect(result).toEqual({
+        appliedFields: ['description', 'strategyPlatforms', 'voiceTone'],
+        brandId,
+        diagnostics: [],
+        preservedFields: [],
+        status: 'accepted',
+      });
+    });
+
+    it('preserves links and assets until the safe asset import child ships', async () => {
+      delegate.findFirst.mockResolvedValue({
+        agentConfig: {},
+        id: brandId,
+        isDeleted: false,
+        organizationId,
+      });
+
+      const result = await service.applyBrandKitDraft(brandId, organizationId, {
+        fields: {
+          logo: {
+            action: 'accept',
+            value: {
+              role: 'logo',
+              sourceType: 'website',
+              url: 'https://acme.test/logo.svg',
+            },
+          },
+          socialLinks: {
+            action: 'accept',
+            value: [{ platform: 'linkedin', url: 'https://linkedin.test' }],
+          },
+        },
+      });
+
+      expect(delegate.update).not.toHaveBeenCalled();
+      expect(result.appliedFields).toEqual([]);
+      expect(result.preservedFields).toEqual(['logo', 'socialLinks']);
+      expect(result.status).toBe('partial');
+      expect(result.diagnostics).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: 'brand_kit_apply_deferred_field',
+            fieldKey: 'logo',
+            severity: 'warning',
+          }),
+          expect.objectContaining({
+            code: 'brand_kit_apply_deferred_field',
+            fieldKey: 'socialLinks',
+            severity: 'warning',
+          }),
+        ]),
+      );
+    });
+
+    it('rejects unsupported font candidates without mutating the brand', async () => {
+      delegate.findFirst.mockResolvedValue({
+        agentConfig: {},
+        id: brandId,
+        isDeleted: false,
+        organizationId,
+      });
+
+      const result = await service.applyBrandKitDraft(brandId, organizationId, {
+        fields: {
+          fontFamily: {
+            action: 'accept',
+            value: 'Inter',
+          },
+        },
+      });
+
+      expect(delegate.update).not.toHaveBeenCalled();
+      expect(result.status).toBe('blocked');
+      expect(result.diagnostics).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: 'brand_kit_apply_invalid_value',
+            fieldKey: 'fontFamily',
+            severity: 'error',
+          }),
+        ]),
+      );
+    });
+  });
+
   describe('generateFastlaneIdeas', () => {
     const organizationId = 'org_1';
     const brandId = 'brand_1';
@@ -630,6 +771,73 @@ describe('BrandsService', () => {
       );
 
       expect(result).toEqual([]);
+    });
+  });
+
+  /**
+   * Regression tests for the onboarding /brand-setup 500: Brand.slug is an
+   * independent global-unique column, so reusing the org's slug without
+   * checking it against the Brand table deterministically threw P2002.
+   */
+  describe('generateUniqueSlug', () => {
+    it('returns the base slug when unused', async () => {
+      delegate.findFirst.mockResolvedValue(null);
+
+      const slug = await service.generateUniqueSlug('Genfeed.ai');
+
+      expect(slug).toBe('genfeed-ai');
+      expect(delegate.findFirst).toHaveBeenCalledTimes(1);
+    });
+
+    it('appends an incrementing counter on collision', async () => {
+      delegate.findFirst
+        .mockResolvedValueOnce({ id: 'brand_other' })
+        .mockResolvedValueOnce({ id: 'brand_other' })
+        .mockResolvedValueOnce(null);
+
+      const slug = await service.generateUniqueSlug('Genfeed.ai');
+
+      expect(slug).toBe('genfeed-ai-3');
+      expect(delegate.findFirst).toHaveBeenCalledTimes(3);
+    });
+
+    it('does not self-collide when excludeBrandId matches the brand holding the slug', async () => {
+      delegate.findFirst.mockImplementation(({ where }) => {
+        if (where.id?.not === 'brand_1') {
+          return Promise.resolve(null);
+        }
+        return Promise.resolve({ id: 'brand_1' });
+      });
+
+      const slug = await service.generateUniqueSlug('Genfeed.ai', 'brand_1');
+
+      expect(slug).toBe('genfeed-ai');
+      expect(delegate.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: { not: 'brand_1' },
+          }),
+        }),
+      );
+    });
+
+    it('checks slug uniqueness against the Brand table independently of any organization slug', async () => {
+      // Same label collides on Organization but the Brand table has it free —
+      // generateUniqueSlug must only consult delegate.brand, never the org table.
+      delegate.findFirst.mockResolvedValue(null);
+
+      const slug = await service.generateUniqueSlug('Genfeed.ai');
+
+      expect(slug).toBe('genfeed-ai');
+      expect(delegate.findFirst).toHaveBeenCalledWith({
+        where: { isDeleted: false, slug: 'genfeed-ai' },
+      });
+    });
+
+    it('throws BadRequestException when the generated slug is too short', async () => {
+      await expect(service.generateUniqueSlug('!!')).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 });

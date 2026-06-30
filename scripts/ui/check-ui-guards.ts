@@ -22,6 +22,11 @@ const checks = [
     required: false,
   },
   {
+    command: ['bun', 'run', 'scripts/check-no-nested-cards.ts'],
+    name: 'Nested card composition',
+    required: true,
+  },
+  {
     command: ['bun', 'run', 'scripts/check-modal-standard-usage.ts'],
     name: 'Modal architecture',
     required: true,

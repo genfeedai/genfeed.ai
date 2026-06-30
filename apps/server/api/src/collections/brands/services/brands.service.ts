@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import type { ApplyBrandKitDto } from '@api/collections/brands/dto/apply-brand-kit.dto';
 import type { CrawlBrandKitDto } from '@api/collections/brands/dto/crawl-brand-kit.dto';
 import { CreateBrandDto } from '@api/collections/brands/dto/create-brand.dto';
 import type {
@@ -11,7 +12,11 @@ import {
 } from '@api/collections/brands/dto/generate-fastlane-ideas.dto';
 import { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import { UpdateBrandAgentConfigDto } from '@api/collections/brands/dto/update-brand-agent-config.dto';
-import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import type {
+  BrandAgentStrategy,
+  BrandAgentVoice,
+  BrandDocument,
+} from '@api/collections/brands/schemas/brand.schema';
 import { buildPromptBrandingFromBrand } from '@api/collections/brands/utils/brand-context.util';
 import {
   CACHE_PATTERNS,
@@ -26,7 +31,7 @@ import { FilesClientService } from '@api/services/files-microservice/client/file
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { FileInputType } from '@genfeedai/enums';
+import { FileInputType, FontFamily } from '@genfeedai/enums';
 import {
   type BrandKitSourceBrand,
   buildBrandKitDraftFromBrand,
@@ -34,8 +39,10 @@ import {
 } from '@genfeedai/helpers';
 import type {
   BrandKitAssetRole,
+  BrandKitFieldKey,
   FastlaneFormat,
   FastlaneIdea,
+  IBrandKitApplyResult,
   IBrandKitAssetImportCandidate,
   IBrandKitAssetImportRequest,
   IBrandKitAssetImportResponse,
@@ -45,6 +52,7 @@ import type {
   IExtractedSocialLinks,
   IScrapedBrandData,
 } from '@genfeedai/interfaces';
+import { BRAND_KIT_FIELD_OWNERSHIP } from '@genfeedai/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -81,6 +89,56 @@ const ASSET_UPLOAD_TYPE_BY_ROLE: Record<BrandKitAssetRole, string> = {
   logo: 'logos',
   reference: 'references',
 };
+
+const BRAND_KIT_SCALAR_FIELDS: Partial<Record<BrandKitFieldKey, string>> = {
+  backgroundColor: 'backgroundColor',
+  description: 'description',
+  fontFamily: 'fontFamily',
+  label: 'label',
+  primaryColor: 'primaryColor',
+  promptGuidelines: 'text',
+  secondaryColor: 'secondaryColor',
+};
+
+const BRAND_KIT_VOICE_FIELDS: Partial<Record<BrandKitFieldKey, string>> = {
+  voiceAudience: 'audience',
+  voiceDoNotSoundLike: 'doNotSoundLike',
+  voiceMessagingPillars: 'messagingPillars',
+  voiceSampleOutput: 'sampleOutput',
+  voiceStyle: 'style',
+  voiceTone: 'tone',
+  voiceValues: 'values',
+};
+
+const BRAND_KIT_STRATEGY_FIELDS: Partial<Record<BrandKitFieldKey, string>> = {
+  strategyContentTypes: 'contentTypes',
+  strategyFrequency: 'frequency',
+  strategyGoals: 'goals',
+  strategyPlatforms: 'platforms',
+};
+
+const BRAND_KIT_DEFERRED_APPLY_FIELDS = new Set<BrandKitFieldKey>([
+  'banner',
+  'logo',
+  'references',
+  'socialLinks',
+]);
+
+const BRAND_KIT_FIELD_KEYS = new Set<BrandKitFieldKey>(
+  BRAND_KIT_FIELD_OWNERSHIP.map((field) => field.key),
+);
+
+const BRAND_KIT_STRING_LIST_FIELDS = new Set<BrandKitFieldKey>([
+  'strategyContentTypes',
+  'strategyGoals',
+  'strategyPlatforms',
+  'voiceAudience',
+  'voiceDoNotSoundLike',
+  'voiceMessagingPillars',
+  'voiceValues',
+]);
+
+const SUPPORTED_FONT_FAMILIES = new Set<string>(Object.values(FontFamily));
 
 @Injectable()
 export class BrandsService extends BaseService<
@@ -194,6 +252,48 @@ export class BrandsService extends BaseService<
     params: Record<string, unknown>,
   ): Promise<BrandDocument | null> {
     return super.findOne(params);
+  }
+
+  /**
+   * Generate a unique slug for a brand, appending a counter if needed.
+   * Brand.slug is unique across all brands (not scoped by organization), so
+   * this cannot reuse a slug validated only against Organization.slug.
+   * Pass `excludeBrandId` when updating an existing brand's slug to avoid
+   * treating the brand's own current slug as a collision.
+   */
+  async generateUniqueSlug(
+    label: string,
+    excludeBrandId?: string,
+  ): Promise<string> {
+    const base = label
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/-{2,}/g, '-')
+      .replace(/^-|-$/g, '');
+
+    if (base.length < 2) {
+      throw new BadRequestException('Label too short to generate a valid slug');
+    }
+
+    let candidate = base;
+    let counter = 2;
+
+    while (true) {
+      const filter: Prisma.BrandWhereInput = {
+        isDeleted: false,
+        slug: candidate,
+      };
+      if (excludeBrandId) {
+        filter.id = { not: excludeBrandId };
+      }
+      if (!(await this.delegate.findFirst({ where: filter }))) {
+        break;
+      }
+      candidate = `${base}-${counter}`;
+      counter++;
+    }
+
+    return candidate;
   }
 
   async updateAgentConfig(
@@ -717,6 +817,217 @@ export class BrandsService extends BaseService<
   private readFileName(url: URL): string | undefined {
     const filename = url.pathname.split('/').filter(Boolean).at(-1);
     return filename ? decodeURIComponent(filename).slice(0, 180) : undefined;
+  }
+
+  async applyBrandKitDraft(
+    brandId: string,
+    organizationId: string,
+    dto: ApplyBrandKitDto,
+  ): Promise<IBrandKitApplyResult> {
+    const brand = await this.delegate.findFirst({
+      where: { id: brandId, isDeleted: false, organizationId },
+    });
+
+    if (!brand) {
+      throw new NotFoundException('Brand', brandId);
+    }
+
+    const diagnostics: IBrandKitDiagnostic[] = [];
+    const appliedFields: BrandKitFieldKey[] = [];
+    const preservedFields: BrandKitFieldKey[] = [];
+    const updateData: Record<string, unknown> = {};
+    const voiceUpdates: Record<string, unknown> = {};
+    const strategyUpdates: Record<string, unknown> = {};
+
+    for (const [rawKey, decision] of Object.entries(dto.fields ?? {})) {
+      if (!this.isBrandKitFieldKey(rawKey)) {
+        diagnostics.push({
+          code: 'brand_kit_apply_unknown_field',
+          message: `${rawKey} is not a supported brand kit field.`,
+          severity: 'warning',
+        });
+        continue;
+      }
+
+      if (decision.action === 'preserve' || decision.action === 'reject') {
+        preservedFields.push(rawKey);
+        continue;
+      }
+
+      if (BRAND_KIT_DEFERRED_APPLY_FIELDS.has(rawKey)) {
+        preservedFields.push(rawKey);
+        diagnostics.push({
+          code: 'brand_kit_apply_deferred_field',
+          fieldKey: rawKey,
+          message:
+            'This field was preserved because safe link and asset import is handled by the dedicated Brand Kit asset child issue.',
+          severity: 'warning',
+        });
+        continue;
+      }
+
+      const value = this.coerceBrandKitApplyValue(rawKey, decision.value);
+
+      if (value === undefined) {
+        diagnostics.push({
+          code: 'brand_kit_apply_invalid_value',
+          fieldKey: rawKey,
+          message: `${rawKey} did not include a supported value.`,
+          severity: 'error',
+        });
+        continue;
+      }
+
+      const scalarField = BRAND_KIT_SCALAR_FIELDS[rawKey];
+      const voiceField = BRAND_KIT_VOICE_FIELDS[rawKey];
+      const strategyField = BRAND_KIT_STRATEGY_FIELDS[rawKey];
+
+      if (scalarField) {
+        updateData[scalarField] = value;
+        appliedFields.push(rawKey);
+        continue;
+      }
+
+      if (voiceField) {
+        voiceUpdates[voiceField] = value;
+        appliedFields.push(rawKey);
+        continue;
+      }
+
+      if (strategyField) {
+        strategyUpdates[strategyField] = value;
+        appliedFields.push(rawKey);
+        continue;
+      }
+
+      preservedFields.push(rawKey);
+      diagnostics.push({
+        code: 'brand_kit_apply_unsupported_field',
+        fieldKey: rawKey,
+        message: `${rawKey} is reviewable but not directly applied yet.`,
+        severity: 'warning',
+      });
+    }
+
+    if (
+      Object.keys(voiceUpdates).length > 0 ||
+      Object.keys(strategyUpdates).length > 0
+    ) {
+      updateData.agentConfig = this.mergeBrandKitAgentConfig(
+        brand.agentConfig,
+        voiceUpdates,
+        strategyUpdates,
+      );
+    }
+
+    if (Object.keys(updateData).length > 0) {
+      await this.patch(brandId, updateData as Partial<UpdateBrandDto>);
+    }
+
+    const hasBlockingDiagnostic = diagnostics.some(
+      (diagnostic) => diagnostic.severity === 'error',
+    );
+
+    return {
+      appliedFields,
+      brandId,
+      diagnostics,
+      preservedFields,
+      status:
+        hasBlockingDiagnostic && appliedFields.length === 0
+          ? 'blocked'
+          : diagnostics.length > 0 || preservedFields.length > 0
+            ? 'partial'
+            : 'accepted',
+    };
+  }
+
+  private isBrandKitFieldKey(value: string): value is BrandKitFieldKey {
+    return BRAND_KIT_FIELD_KEYS.has(value as BrandKitFieldKey);
+  }
+
+  private coerceBrandKitApplyValue(
+    key: BrandKitFieldKey,
+    value: unknown,
+  ): string | string[] | undefined {
+    if (key === 'fontFamily') {
+      return this.coerceBrandKitFontFamily(value);
+    }
+
+    if (BRAND_KIT_STRING_LIST_FIELDS.has(key)) {
+      return this.coerceBrandKitStringList(value);
+    }
+
+    return this.coerceBrandKitString(value);
+  }
+
+  private coerceBrandKitString(value: unknown): string | undefined {
+    if (typeof value !== 'string') {
+      return undefined;
+    }
+
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+
+  private coerceBrandKitFontFamily(value: unknown): string | undefined {
+    const normalized = this.coerceBrandKitString(value)
+      ?.toLowerCase()
+      .replaceAll('_', '-');
+
+    if (!normalized) {
+      return undefined;
+    }
+
+    return SUPPORTED_FONT_FAMILIES.has(normalized) ? normalized : undefined;
+  }
+
+  private coerceBrandKitStringList(value: unknown): string[] | undefined {
+    const values = Array.isArray(value)
+      ? value
+      : typeof value === 'string'
+        ? value.split(/[\n,]+/)
+        : [];
+
+    const normalized = values
+      .filter((item): item is string => typeof item === 'string')
+      .map((item) => item.trim())
+      .filter(
+        (item, index, all) => item.length > 0 && all.indexOf(item) === index,
+      );
+
+    return normalized.length > 0 ? normalized : undefined;
+  }
+
+  private toBrandKitRecord(value: unknown): Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value)
+      ? { ...(value as Record<string, unknown>) }
+      : {};
+  }
+
+  private mergeBrandKitAgentConfig(
+    currentAgentConfig: unknown,
+    voiceUpdates: Record<string, unknown>,
+    strategyUpdates: Record<string, unknown>,
+  ): Prisma.InputJsonValue {
+    const currentConfig = this.toBrandKitRecord(currentAgentConfig);
+    const nextConfig: Record<string, unknown> = { ...currentConfig };
+
+    if (Object.keys(voiceUpdates).length > 0) {
+      nextConfig.voice = {
+        ...this.toBrandKitRecord(currentConfig.voice),
+        ...(voiceUpdates as Partial<BrandAgentVoice>),
+      };
+    }
+
+    if (Object.keys(strategyUpdates).length > 0) {
+      nextConfig.strategy = {
+        ...this.toBrandKitRecord(currentConfig.strategy),
+        ...(strategyUpdates as Partial<BrandAgentStrategy>),
+      };
+    }
+
+    return nextConfig as Prisma.InputJsonValue;
   }
 
   private mergeSocialUrlsIntoScrape(

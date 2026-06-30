@@ -270,6 +270,7 @@ export default defineConfig({
     globals: true,
     include: [
       'packages/pages/analytics/overview/analytics-overview.test.tsx',
+      'brands/components/**/*.test.tsx',
       'studio/generate/utils/**/*.test.ts',
       'studio/fastlane/**/*.test.ts',
       'studio/fastlane/**/*.test.tsx',

@@ -50,7 +50,10 @@ vi.mock('@services/core/base.service', () => {
       return new (MockBaseService as new (token: string) => unknown)(token);
     }
 
-    static getDataServiceInstance(ServiceClass: any, ...args: any[]) {
+    static getDataServiceInstance<T>(
+      ServiceClass: new (...args: unknown[]) => T,
+      ...args: unknown[]
+    ) {
       return new ServiceClass(...args);
     }
   }
@@ -191,6 +194,69 @@ describe('BrandsService', () => {
       await service.findBrandAnalytics(mockBrandId);
 
       expect(mockGet).toHaveBeenCalledWith(`/${mockBrandId}/analytics`);
+    });
+  });
+
+  describe('brand kit review endpoints', () => {
+    it('posts website crawl input and unwraps the draft payload', async () => {
+      const draft = {
+        assetCandidates: [],
+        brandId: mockBrandId,
+        diagnostics: [],
+        evidence: [],
+        fields: {},
+        readiness: {
+          diagnostics: [],
+          missingFields: [],
+          requiredFields: [],
+          score: 80,
+          status: 'partial',
+        },
+        sourceType: 'website',
+        status: 'partial',
+      };
+      mockPost.mockResolvedValue({ data: { data: draft } });
+
+      const result = await service.crawlBrandKitWebsite(mockBrandId, {
+        socialUrls: ['https://linkedin.com/company/acme'],
+        url: 'https://acme.test',
+      });
+
+      expect(mockPost).toHaveBeenCalledWith(`/${mockBrandId}/brand-kit/crawl`, {
+        socialUrls: ['https://linkedin.com/company/acme'],
+        url: 'https://acme.test',
+      });
+      expect(result).toEqual(draft);
+    });
+
+    it('posts selected field decisions and unwraps the apply result', async () => {
+      const applyResult = {
+        appliedFields: ['description'],
+        brandId: mockBrandId,
+        diagnostics: [],
+        preservedFields: [],
+        status: 'accepted',
+      };
+      mockPost.mockResolvedValue({ data: { data: applyResult } });
+
+      const result = await service.applyBrandKitDraft(mockBrandId, {
+        fields: {
+          description: {
+            action: 'accept',
+            value: 'Imported description',
+          },
+        },
+      });
+
+      expect(mockPost).toHaveBeenCalledWith(`/${mockBrandId}/brand-kit/apply`, {
+        fields: {
+          description: {
+            action: 'accept',
+            value: 'Imported description',
+          },
+        },
+      });
+      expect(result).toEqual(applyResult);
     });
   });
 

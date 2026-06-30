@@ -56,6 +56,7 @@ describe('TrendsController', () => {
     fetchAndCacheViralVideos: vi.fn(),
     generateContentIdeas: vi.fn(),
     getCorpusFreshnessHealth: vi.fn(),
+    getPromptReferencePacks: vi.fn(),
     getReferenceCorpus: vi.fn(),
     getTopReferenceAccounts: vi.fn(),
     getTrendContent: vi.fn(),
@@ -317,6 +318,9 @@ describe('TrendsController', () => {
         'twitter',
         'trend-1',
         'builder',
+        undefined,
+        undefined,
+        undefined,
         '15',
       );
 
@@ -325,8 +329,11 @@ describe('TrendsController', () => {
         mockUser.publicMetadata.brand,
         {
           authorHandle: 'builder',
+          includePaidCreative: undefined,
+          intendedUse: undefined,
           limit: 15,
           platform: 'twitter',
+          sourceKind: undefined,
           trendId: 'trend-1',
         },
       );
@@ -343,6 +350,136 @@ describe('TrendsController', () => {
           totalReferences: 1,
         },
       });
+    });
+
+    it('passes explicit paid creative filters to the reference corpus service', async () => {
+      mockTrendsService.getReferenceCorpus.mockResolvedValue({
+        items: [],
+        totalReferences: 0,
+      });
+
+      await controller.getReferenceCorpus(
+        mockUser,
+        undefined,
+        undefined,
+        undefined,
+        'paid_creative_reference',
+        'paid_creative_analysis',
+        'true',
+        '10',
+      );
+
+      expect(trendsService.getReferenceCorpus).toHaveBeenCalledWith(
+        mockUser.publicMetadata.organization,
+        mockUser.publicMetadata.brand,
+        {
+          authorHandle: undefined,
+          includePaidCreative: true,
+          intendedUse: 'paid_creative_analysis',
+          limit: 10,
+          platform: undefined,
+          sourceKind: 'paid_creative_reference',
+          trendId: undefined,
+        },
+      );
+    });
+
+    it('rejects unknown source classification filters', async () => {
+      await expect(
+        controller.getReferenceCorpus(
+          mockUser,
+          undefined,
+          undefined,
+          undefined,
+          'unknown_kind',
+          undefined,
+          undefined,
+          '10',
+        ),
+      ).rejects.toThrow('Unknown trend source kind: unknown_kind');
+    });
+  });
+
+  describe('getPromptReferencePacks', () => {
+    it('should return prompt-ready packs scoped by platform, intent, and type', async () => {
+      mockTrendsService.getPromptReferencePacks.mockResolvedValue({
+        packs: [
+          {
+            confidence: 'medium',
+            constraints: [],
+            contentIntent: 'organic_trend_discovery',
+            examples: ['Hook angle: AI tools clip'],
+            freshness: {
+              expiredSourceIds: [],
+              freshnessWindowDays: 2,
+              regenerateAfter: '2026-06-14T00:00:00.000Z',
+              staleSourceIds: [],
+              status: 'fresh',
+            },
+            id: 'prompt-pack:hooks:tiktok:abc123',
+            instructions: [],
+            metadata: {
+              contentTypes: ['video'],
+              generatedAt: '2026-06-13T00:00:00.000Z',
+              matchedTopics: ['ai tools'],
+              sourceCount: 1,
+              sourceKinds: ['public_platform_reference'],
+            },
+            regeneration: {
+              cacheKey: 'abc123',
+              sourceFingerprint: 'ref_tiktok',
+              trigger: 'cache_key_changed',
+            },
+            sourceReferenceIds: ['ref_tiktok'],
+            sources: [],
+            summary: 'Reusable hook patterns from 1 reference.',
+            targetPlatform: 'tiktok',
+            title: 'Hooks pack from tiktok',
+            type: 'hooks',
+          },
+        ],
+        summary: {
+          availableTypes: ['hooks'],
+          contentIntent: 'organic_trend_discovery',
+          generatedAt: '2026-06-13T00:00:00.000Z',
+          skippedSources: 0,
+          targetPlatform: 'tiktok',
+          totalPacks: 1,
+          totalSources: 1,
+        },
+      });
+
+      const result = await controller.getPromptReferencePacks(
+        mockUser,
+        'tiktok',
+        'organic_trend_discovery',
+        'hooks,unsupported',
+        '8',
+      );
+
+      expect(trendsService.getPromptReferencePacks).toHaveBeenCalledWith(
+        mockUser.publicMetadata.organization,
+        mockUser.publicMetadata.brand,
+        {
+          intent: 'organic_trend_discovery',
+          limit: 8,
+          platform: 'tiktok',
+          types: ['hooks'],
+        },
+      );
+      expect(result).toEqual(
+        expect.objectContaining({
+          packs: [
+            expect.objectContaining({
+              id: 'prompt-pack:hooks:tiktok:abc123',
+              type: 'hooks',
+            }),
+          ],
+          summary: expect.objectContaining({
+            totalPacks: 1,
+          }),
+        }),
+      );
     });
   });
 

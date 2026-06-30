@@ -66,7 +66,7 @@ export default function PostsWritePreviewPanel({
         </span>
       </div>
 
-      <div className="mt-5 grid gap-3">
+      <div className="mt-5 divide-y divide-white/10">
         {draftSegments.map((segment, index) => {
           const count = segment.length;
           const isOverLimit = characterLimit !== null && count > characterLimit;
@@ -74,7 +74,7 @@ export default function PostsWritePreviewPanel({
           return (
             <div
               key={`preview-segment-${index.toString()}`}
-              className="rounded-xl border border-white/10 bg-black/20 p-4"
+              className="py-4 first:pt-0 last:pb-0"
             >
               <div className="mb-3 flex items-center justify-between gap-3 text-xs">
                 <span className="font-medium text-foreground/70">
@@ -104,7 +104,7 @@ export default function PostsWritePreviewPanel({
         })}
       </div>
 
-      <div className="mt-5 rounded-xl border border-white/10 bg-black/10 p-4 text-sm text-foreground/60">
+      <div className="mt-5 border-t border-white/10 pt-4 text-sm text-foreground/60">
         <p className="font-medium text-foreground">Agent context</p>
         <p className="mt-1">
           The co-pilot sees the current draft, selected text, format, account,

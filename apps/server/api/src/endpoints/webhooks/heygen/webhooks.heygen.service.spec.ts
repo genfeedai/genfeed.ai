@@ -29,6 +29,7 @@ function createMockDeps() {
 
   const clipProjectsService = {
     patch: vi.fn(),
+    reconcileTerminalState: vi.fn(),
   };
 
   const clipResultsService = {
@@ -289,7 +290,7 @@ describe('HeygenWebhookService', () => {
       { status: 'failed' },
     ]);
     deps.clipResultsService.patch.mockResolvedValue({});
-    deps.clipProjectsService.patch.mockResolvedValue({});
+    deps.clipProjectsService.reconcileTerminalState.mockResolvedValue({});
 
     await service.handleCallback(body);
 
@@ -298,14 +299,9 @@ describe('HeygenWebhookService', () => {
       status: 'completed',
       videoUrl: 'https://cdn.heygen.com/clip.mp4',
     });
-    expect(deps.clipProjectsService.patch).toHaveBeenCalledWith(projectId, {
-      error: null,
-      failedClipCount: 1,
-      pendingClipCount: 0,
-      progress: 100,
-      readyClipCount: 1,
-      status: 'completed',
-    });
+    expect(
+      deps.clipProjectsService.reconcileTerminalState,
+    ).toHaveBeenCalledWith(projectId, undefined);
   });
 
   it('should fail the parent project when the final clip fails', async () => {
@@ -328,7 +324,7 @@ describe('HeygenWebhookService', () => {
       { status: 'failed' },
     ]);
     deps.clipResultsService.patch.mockResolvedValue({});
-    deps.clipProjectsService.patch.mockResolvedValue({});
+    deps.clipProjectsService.reconcileTerminalState.mockResolvedValue({});
 
     await service.handleCallback(body);
 
@@ -336,14 +332,9 @@ describe('HeygenWebhookService', () => {
       providerJobId: 'provider-job-1',
       status: 'failed',
     });
-    expect(deps.clipProjectsService.patch).toHaveBeenCalledWith(projectId, {
-      error: 'All clip generations failed.',
-      failedClipCount: 1,
-      pendingClipCount: 0,
-      progress: 100,
-      readyClipCount: 0,
-      status: 'failed',
-    });
+    expect(
+      deps.clipProjectsService.reconcileTerminalState,
+    ).toHaveBeenCalledWith(projectId, undefined);
   });
 
   it('should continue to process legacy metadata-backed avatar success callbacks', async () => {

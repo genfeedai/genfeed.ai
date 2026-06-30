@@ -174,6 +174,17 @@ vi.mock('@pages/brands/components/overview/BrandDetailOverview', () => ({
   ),
 }));
 
+vi.mock('@pages/brands/components/brand-kit/BrandKitReviewCard', () => ({
+  default: ({ onRefreshBrand }: { onRefreshBrand: () => Promise<void> }) => (
+    <section>
+      Brand Kit Review
+      <button type="button" onClick={() => void onRefreshBrand()}>
+        Refresh Brand Kit
+      </button>
+    </section>
+  ),
+}));
+
 vi.mock('./BrandDetailLatestArticles', () => ({
   default: ({ articles }: { articles?: Array<unknown> }) => (
     <div>Articles {articles?.length ?? 0}</div>
@@ -379,6 +390,7 @@ describe('BrandDetail', () => {
 
     expect(screen.getByText('Banner')).toBeInTheDocument();
     expect(screen.getByText('Overview')).toBeInTheDocument();
+    expect(screen.getByText('Brand Kit Review')).toBeInTheDocument();
     expect(screen.getByText('Videos 1')).toBeInTheDocument();
     expect(screen.getByText('Images 1')).toBeInTheDocument();
     expect(screen.getByText('Articles 1')).toBeInTheDocument();
@@ -413,6 +425,8 @@ describe('BrandDetail', () => {
     expect(mocks.handleRequestDeleteReference).toHaveBeenCalledWith(
       'reference-1',
     );
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh Brand Kit' }));
+    expect(mocks.handleRefreshBrand).toHaveBeenCalledWith(true);
     fireEvent.click(
       screen.getByRole('button', {
         name: 'Generate modal banner brand-1 9',

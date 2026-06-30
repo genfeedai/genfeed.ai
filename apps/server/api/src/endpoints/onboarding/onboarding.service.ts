@@ -44,6 +44,7 @@ import type {
   OnboardingAccessMode,
   OnboardingRuntimeAccessMode,
 } from '@genfeedai/interfaces';
+import { Prisma } from '@genfeedai/prisma';
 import {
   type IOnboardingJourneyMissionState,
   ONBOARDING_JOURNEY_MISSIONS,
@@ -687,13 +688,20 @@ export class OnboardingService {
 
       // 6b. Sync organization and brand label and slug
       if (resolvedLabel) {
-        const slug =
-          await this.organizationsService.generateUniqueSlug(resolvedLabel);
+        const orgSlug = await this.organizationsService.generateUniqueSlug(
+          resolvedLabel,
+          organizationId.toString(),
+        );
         await this.organizationsService.patch(organizationId.toString(), {
           label: resolvedLabel,
-          slug,
+          slug: orgSlug,
         });
-        await this.brandsService.patch(targetBrand._id, { slug });
+
+        const brandSlug = await this.brandsService.generateUniqueSlug(
+          resolvedLabel,
+          targetBrand._id,
+        );
+        await this.brandsService.patch(targetBrand._id, { slug: brandSlug });
       }
 
       await this.unlockCompanyInfoJourneyReward(organizationId.toString());
@@ -715,6 +723,13 @@ export class OnboardingService {
       this.loggerService.error(`${caller} failed`, error);
 
       if (error instanceof HttpException) {
+        throw error;
+      }
+
+      // Let Prisma errors (e.g. P2002 slug collision) bubble to the global
+      // DatabaseExceptionFilter, which maps them to the correct 4xx status
+      // instead of a generic 500.
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
         throw error;
       }
 
@@ -837,14 +852,20 @@ export class OnboardingService {
 
       // Sync organization and brand label and slug when brand label is updated
       if (dto.label) {
-        const slug = await this.organizationsService.generateUniqueSlug(
+        const orgSlug = await this.organizationsService.generateUniqueSlug(
           dto.label,
+          organizationId.toString(),
         );
         await this.organizationsService.patch(organizationId.toString(), {
           label: dto.label,
-          slug,
+          slug: orgSlug,
         });
-        await this.brandsService.patch(brand._id, { slug });
+
+        const brandSlug = await this.brandsService.generateUniqueSlug(
+          dto.label,
+          brand._id,
+        );
+        await this.brandsService.patch(brand._id, { slug: brandSlug });
       }
 
       // Update canonical brand guidance if voice overrides provided
@@ -862,6 +883,10 @@ export class OnboardingService {
       this.loggerService.error(`${caller} failed`, error);
 
       if (error instanceof HttpException) {
+        throw error;
+      }
+
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
         throw error;
       }
 
@@ -1422,6 +1447,7 @@ export class OnboardingService {
 
       const slug = await this.organizationsService.generateUniqueSlug(
         dto.brandName,
+        organizationId.toString(),
       );
       await this.organizationsService.patch(organizationId.toString(), {
         label: dto.brandName,
@@ -1438,6 +1464,10 @@ export class OnboardingService {
       this.loggerService.error(`${caller} failed`, error);
 
       if (error instanceof HttpException) {
+        throw error;
+      }
+
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
         throw error;
       }
 

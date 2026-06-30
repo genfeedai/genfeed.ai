@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { STRATEGY_TEMPLATES } from '@api/collections/brands/constants/strategy-templates.constant';
+import { ApplyBrandKitDto } from '@api/collections/brands/dto/apply-brand-kit.dto';
 import { CrawlBrandKitDto } from '@api/collections/brands/dto/crawl-brand-kit.dto';
 import { CreateBrandDto } from '@api/collections/brands/dto/create-brand.dto';
 import { GenerateBrandVoiceDto } from '@api/collections/brands/dto/generate-brand-voice.dto';
@@ -391,6 +392,38 @@ export class BrandsController extends BaseCRUDController<
     );
 
     return { data: draft };
+  }
+
+  @Post(':id/brand-kit/apply')
+  @HttpCode(200)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async applyBrandKitDraft(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() dto: ApplyBrandKitDto,
+  ) {
+    await this.verifyBrandAccess(id, user);
+
+    const publicMetadata = getPublicMetadata(user);
+    const organizationId = publicMetadata.organization?.toString();
+
+    if (!organizationId) {
+      throw new HttpException(
+        {
+          detail: 'Organization context is required',
+          title: 'Forbidden',
+        },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    const result = await this.brandsService.applyBrandKitDraft(
+      id,
+      organizationId,
+      dto,
+    );
+
+    return { data: result };
   }
 
   @Post(':id/brand-kit/assets/import')
