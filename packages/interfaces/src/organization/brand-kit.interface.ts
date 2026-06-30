@@ -236,6 +236,44 @@ export interface IBrandKitApplyResult {
   diagnostics: IBrandKitDiagnostic[];
 }
 
+export type BrandKitAssetImportStatus = 'imported' | 'skipped' | 'failed';
+
+export interface IBrandKitAssetImportCandidate {
+  candidateId?: string;
+  role: BrandKitAssetRole;
+  url?: string;
+  sourceUrl?: string;
+  label?: string;
+  mimeType?: string;
+  width?: number;
+  height?: number;
+  sourceType?: BrandKitSourceType;
+  replaceExisting?: boolean;
+}
+
+export interface IBrandKitAssetImportRequest {
+  assets: IBrandKitAssetImportCandidate[];
+}
+
+export interface IBrandKitAssetImportResult {
+  candidateId?: string;
+  role: BrandKitAssetRole;
+  status: BrandKitAssetImportStatus;
+  assetId?: string;
+  url?: string;
+  diagnostics: IBrandKitDiagnostic[];
+}
+
+export interface IBrandKitAssetImportResponse {
+  brandId: string;
+  status: Extract<BrandKitDraftStatus, 'accepted' | 'partial' | 'blocked'>;
+  importedAssetIds: string[];
+  skippedCandidateIds: string[];
+  failedCandidateIds: string[];
+  results: IBrandKitAssetImportResult[];
+  diagnostics: IBrandKitDiagnostic[];
+}
+
 export type IBrandKitVoiceSnapshot = IBrandAgentVoice;
 
 export type IBrandKitStrategySnapshot = IBrandAgentStrategy;

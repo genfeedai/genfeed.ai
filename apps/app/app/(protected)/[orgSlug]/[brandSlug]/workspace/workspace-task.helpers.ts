@@ -79,7 +79,7 @@ export const SECTION_COPY: Record<
   overview: {
     description:
       'Tasks, approvals, live work, and operator handoffs in one control surface.',
-    title: 'Workspace Dashboard',
+    title: 'Dashboard',
   },
 };
 

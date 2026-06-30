@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import { CredentialPlatform } from '@genfeedai/enums';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -62,7 +63,14 @@ function createBrandDetailState(overrides: Record<string, unknown> = {}) {
     selectedLink: null,
     selectLink: mocks.selectLink,
     setGenerateModalType: mocks.setGenerateModalType,
-    socialConnections: [{ id: 'social-1' }],
+    socialConnections: [
+      {
+        credentialId: 'credential-1',
+        handle: 'brand',
+        platform: CredentialPlatform.TWITTER,
+        url: 'https://x.com/brand',
+      },
+    ],
     videos: [{ id: 'video-1' }],
     ...overrides,
   };

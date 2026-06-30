@@ -23,6 +23,7 @@ import { BrandCreditsGuard } from '@api/helpers/guards/brand-credits/brand-credi
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { BrandScraperModule } from '@api/services/brand-scraper/brand-scraper.module';
 import { ByokModule } from '@api/services/byok/byok.module';
+import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { forwardRef, Module } from '@nestjs/common';
 
@@ -36,6 +37,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => ByokModule),
     forwardRef(() => CredentialsCoreModule),
     forwardRef(() => CreditsModule),
+    forwardRef(() => FilesClientModule),
     forwardRef(() => ImagesModule),
     forwardRef(() => IngredientsModule),
     forwardRef(() => LinksModule),

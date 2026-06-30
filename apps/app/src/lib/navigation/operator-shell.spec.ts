@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   appendSearchParamsToHref,
   buildTaskLaunchHref,
+  getCurrentBrandScopedPath,
   normalizeProtectedPathname,
   pickOperatorTaskContextSearchParams,
 } from './operator-shell';
@@ -18,6 +19,18 @@ describe('operator-shell helpers', () => {
     );
     expect(normalizeProtectedPathname('/acme/~/chat/thread-1')).toBe(
       '/chat/thread-1',
+    );
+  });
+
+  it('keeps the current brand-scoped path when switching brands', () => {
+    expect(getCurrentBrandScopedPath('/acme/moonrise/workspace/overview')).toBe(
+      '/workspace/overview',
+    );
+    expect(getCurrentBrandScopedPath('/acme/moonrise/studio/video')).toBe(
+      '/studio/video',
+    );
+    expect(getCurrentBrandScopedPath('/acme/~/overview')).toBe(
+      '/workspace/overview',
     );
   });
 

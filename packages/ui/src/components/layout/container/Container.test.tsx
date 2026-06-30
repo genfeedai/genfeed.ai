@@ -17,6 +17,49 @@ describe('Container', () => {
     const { container } = render(<Container>content</Container>);
     const rootElement = container.firstChild as HTMLElement;
     expect(rootElement).toBeInTheDocument();
+    expect(rootElement).toHaveClass('mx-auto');
+    expect(rootElement).toHaveClass('max-w-[1280px]');
+  });
+
+  it('supports full-width pages without the default content cap', () => {
+    const { container } = render(<Container fullWidth>content</Container>);
+    const rootElement = container.firstChild as HTMLElement;
+
+    expect(rootElement).toHaveClass('mx-0');
+    expect(rootElement).toHaveClass('max-w-none');
+    expect(rootElement).not.toHaveClass('mx-auto');
+    expect(rootElement).not.toHaveClass('max-w-[1280px]');
+  });
+
+  it('can keep the h1 for assistive tech without rendering the visible header row', () => {
+    const { container } = render(
+      <Container label="Dashboard" titleVisibility="sr-only">
+        content
+      </Container>,
+    );
+    const rootElement = container.firstChild as HTMLElement;
+
+    expect(screen.getByRole('heading', { name: 'Dashboard' })).toHaveClass(
+      'sr-only',
+    );
+    expect(rootElement.childElementCount).toBe(1);
+  });
+
+  it('keeps header controls visible when the title is screen-reader only', () => {
+    render(
+      <Container
+        label="Inbox"
+        titleVisibility="sr-only"
+        right={<button type="button">Refresh</button>}
+      >
+        content
+      </Container>,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Inbox' })).toHaveClass(
+      'sr-only',
+    );
+    expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
   });
 
   it('renders header tabs alongside header actions', () => {

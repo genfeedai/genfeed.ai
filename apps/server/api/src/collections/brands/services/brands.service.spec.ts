@@ -25,6 +25,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { FastlaneFormat } from '@genfeedai/interfaces';
@@ -34,10 +35,17 @@ import { BadRequestException } from '@nestjs/common';
 describe('BrandsService', () => {
   let service: BrandsService;
   let delegate: Record<string, ReturnType<typeof vi.fn>>;
+  let assetDelegate: Record<string, ReturnType<typeof vi.fn>>;
   let brandScraperService: {
     scrapeWebsite: ReturnType<typeof vi.fn>;
     validateUrl: ReturnType<typeof vi.fn>;
   };
+  let cacheInvalidationService: {
+    invalidate: ReturnType<typeof vi.fn>;
+    invalidateByTags: ReturnType<typeof vi.fn>;
+    invalidatePattern: ReturnType<typeof vi.fn>;
+  };
+  let filesClientService: { uploadToS3: ReturnType<typeof vi.fn> };
   let llmDispatcher: { chatCompletion: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
@@ -56,8 +64,23 @@ describe('BrandsService', () => {
       update: vi.fn(),
       updateMany: vi.fn(),
     };
+    assetDelegate = {
+      create: vi.fn(),
+      findFirst: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn(),
+    };
+    cacheInvalidationService = {
+      invalidate: vi.fn(),
+      invalidateByTags: vi.fn(),
+      invalidatePattern: vi.fn(),
+    };
+    filesClientService = {
+      uploadToS3: vi.fn(),
+    };
 
     const prisma = {
+      asset: assetDelegate,
       brand: delegate,
     } as unknown as PrismaService;
 
@@ -72,10 +95,8 @@ describe('BrandsService', () => {
       { invalidateByTags: vi.fn() } as unknown as CacheService,
       brandScraperService as unknown as BrandScraperService,
       llmDispatcher as unknown as LlmDispatcherService,
-      {
-        invalidate: vi.fn(),
-        invalidatePattern: vi.fn(),
-      } as unknown as CacheInvalidationService,
+      cacheInvalidationService as unknown as CacheInvalidationService,
+      filesClientService as unknown as FilesClientService,
     );
   });
 
@@ -243,6 +264,264 @@ describe('BrandsService', () => {
         ]),
       );
       expect(delegate.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('importBrandKitAssets', () => {
+    const organizationId = 'org_1';
+    const userId = 'user_1';
+    const brandId = 'brand_1';
+
+    beforeEach(() => {
+      delegate.findFirst.mockResolvedValue({
+        id: brandId,
+        isDeleted: false,
+        organizationId,
+      });
+      assetDelegate.create.mockResolvedValue({
+        id: 'asset_new',
+      });
+      assetDelegate.update.mockResolvedValue({ id: 'asset_new' });
+      assetDelegate.updateMany.mockResolvedValue({ count: 1 });
+      filesClientService.uploadToS3.mockResolvedValue({
+        publicUrl: 'https://cdn.example.com/asset_new',
+        size: 42_000,
+      });
+    });
+
+    it('blocks empty import requests', async () => {
+      const result = await service.importBrandKitAssets(
+        brandId,
+        organizationId,
+        userId,
+        { assets: [] },
+      );
+
+      expect(assetDelegate.create).not.toHaveBeenCalled();
+      expect(filesClientService.uploadToS3).not.toHaveBeenCalled();
+      expect(result).toMatchObject({
+        diagnostics: [
+          expect.objectContaining({ code: 'brand_kit_asset_import_empty' }),
+        ],
+        status: 'blocked',
+      });
+    });
+
+    it('imports an accepted logo candidate and replaces the existing logo after upload succeeds', async () => {
+      assetDelegate.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 'asset_old' });
+
+      const result = await service.importBrandKitAssets(
+        brandId,
+        organizationId,
+        userId,
+        {
+          assets: [
+            {
+              candidateId: 'logo-candidate',
+              label: 'Website logo',
+              mimeType: 'image/png',
+              replaceExisting: true,
+              role: 'logo',
+              sourceType: 'website',
+              url: 'https://acme.example/logo.png',
+            },
+          ],
+        },
+      );
+
+      expect(assetDelegate.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          category: 'LOGO',
+          origin: 'https://acme.example/logo.png',
+          parentBrandId: brandId,
+          parentOrgId: organizationId,
+          parentType: 'BRAND',
+          userId,
+        }),
+      });
+      expect(filesClientService.uploadToS3).toHaveBeenCalledWith(
+        'asset_new',
+        'logos',
+        {
+          type: 'url',
+          url: 'https://acme.example/logo.png',
+        },
+      );
+      expect(assetDelegate.updateMany).toHaveBeenCalledWith({
+        data: { isDeleted: true },
+        where: expect.objectContaining({
+          category: 'LOGO',
+          id: { not: 'asset_new' },
+          parentBrandId: brandId,
+          parentOrgId: organizationId,
+        }),
+      });
+      expect(cacheInvalidationService.invalidate).toHaveBeenCalled();
+      expect(cacheInvalidationService.invalidateByTags).toHaveBeenCalledWith([
+        'brands',
+        'assets',
+        'links',
+        'public',
+      ]);
+      expect(result).toMatchObject({
+        importedAssetIds: ['asset_new'],
+        status: 'accepted',
+      });
+    });
+
+    it('preserves an existing logo unless replacement is explicit', async () => {
+      assetDelegate.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 'asset_old' });
+
+      const result = await service.importBrandKitAssets(
+        brandId,
+        organizationId,
+        userId,
+        {
+          assets: [
+            {
+              candidateId: 'logo-candidate',
+              mimeType: 'image/png',
+              role: 'logo',
+              url: 'https://acme.example/logo.png',
+            },
+          ],
+        },
+      );
+
+      expect(assetDelegate.create).not.toHaveBeenCalled();
+      expect(filesClientService.uploadToS3).not.toHaveBeenCalled();
+      expect(result.status).toBe('blocked');
+      expect(result.results[0]).toMatchObject({
+        status: 'skipped',
+        diagnostics: [
+          expect.objectContaining({
+            code: 'brand_kit_asset_existing_preserved',
+          }),
+        ],
+      });
+    });
+
+    it('skips a candidate that was already imported for the brand', async () => {
+      assetDelegate.findFirst.mockResolvedValueOnce({ id: 'asset_existing' });
+
+      const result = await service.importBrandKitAssets(
+        brandId,
+        organizationId,
+        userId,
+        {
+          assets: [
+            {
+              candidateId: 'logo-candidate',
+              mimeType: 'image/png',
+              role: 'logo',
+              url: 'https://acme.example/logo.png',
+            },
+          ],
+        },
+      );
+
+      expect(assetDelegate.create).not.toHaveBeenCalled();
+      expect(result.results[0]).toMatchObject({
+        assetId: 'asset_existing',
+        status: 'skipped',
+      });
+    });
+
+    it('imports reference candidates without deleting existing references by default', async () => {
+      assetDelegate.findFirst.mockResolvedValueOnce(null);
+
+      const result = await service.importBrandKitAssets(
+        brandId,
+        organizationId,
+        userId,
+        {
+          assets: [
+            {
+              candidateId: 'reference-candidate',
+              mimeType: 'image/webp',
+              role: 'reference',
+              url: 'https://acme.example/reference.webp',
+            },
+          ],
+        },
+      );
+
+      expect(filesClientService.uploadToS3).toHaveBeenCalledWith(
+        'asset_new',
+        'references',
+        {
+          type: 'url',
+          url: 'https://acme.example/reference.webp',
+        },
+      );
+      expect(assetDelegate.updateMany).not.toHaveBeenCalled();
+      expect(result.status).toBe('accepted');
+    });
+
+    it('rejects private asset URLs before creating an asset', async () => {
+      const result = await service.importBrandKitAssets(
+        brandId,
+        organizationId,
+        userId,
+        {
+          assets: [
+            {
+              candidateId: 'private-candidate',
+              mimeType: 'image/png',
+              role: 'logo',
+              url: 'http://127.0.0.1/logo.png',
+            },
+          ],
+        },
+      );
+
+      expect(assetDelegate.findFirst).not.toHaveBeenCalled();
+      expect(assetDelegate.create).not.toHaveBeenCalled();
+      expect(result.status).toBe('blocked');
+      expect(result.results[0]).toMatchObject({
+        status: 'failed',
+        diagnostics: [
+          expect.objectContaining({ code: 'brand_kit_asset_invalid_url' }),
+        ],
+      });
+    });
+
+    it('removes the created asset record when remote upload fails', async () => {
+      assetDelegate.findFirst.mockResolvedValueOnce(null);
+      filesClientService.uploadToS3.mockRejectedValueOnce(
+        new Error('download failed'),
+      );
+
+      const result = await service.importBrandKitAssets(
+        brandId,
+        organizationId,
+        userId,
+        {
+          assets: [
+            {
+              candidateId: 'reference-candidate',
+              mimeType: 'image/jpeg',
+              role: 'reference',
+              url: 'https://acme.example/reference.jpg',
+            },
+          ],
+        },
+      );
+
+      expect(assetDelegate.update).toHaveBeenCalledWith({
+        data: { isDeleted: true },
+        where: { id: 'asset_new' },
+      });
+      expect(result.results[0]).toMatchObject({
+        status: 'failed',
+        diagnostics: [
+          expect.objectContaining({ code: 'brand_kit_asset_import_failed' }),
+        ],
+      });
     });
   });
 

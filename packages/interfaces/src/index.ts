@@ -160,6 +160,7 @@ export * from './models/trainings-context.interface';
 export * from './onboarding/onboarding.interface';
 export * from './onboarding/onboarding-journey.interface';
 export * from './onboarding/onboarding-wizard.interface';
+export * from './organization/account-health.interface';
 export * from './organization/brand.interface';
 export * from './organization/brand-interview.interface';
 export * from './organization/brand-kit.interface';

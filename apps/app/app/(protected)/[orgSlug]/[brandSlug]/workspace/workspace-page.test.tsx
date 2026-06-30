@@ -400,7 +400,12 @@ describe('WorkspacePageContent', () => {
       />,
     );
 
-    expect(await screen.findByText('Workspace Dashboard')).toBeVisible();
+    expect(
+      await screen.findByRole('heading', {
+        level: 1,
+        name: 'Dashboard',
+      }),
+    ).toHaveClass('sr-only');
     await waitFor(() =>
       expect(mocks.agentRunsList).toHaveBeenCalledWith({ page: 1 }),
     );

@@ -1246,6 +1246,18 @@ model Credential {
   refreshTokenExpiry DateTime?
   label              String?
   description        String?
+  warmupState        String             @default("not_started")
+  warmupScore        Int                @default(0)
+  warmupRiskLevel    String             @default("unknown")
+  warmupSignals      Json               @default("{}")
+  warmupThresholds   Json               @default("{}")
+  warmupAssessedAt   DateTime?
+  warmupHoldReason   String?
+  warmupManualOverride Boolean          @default(false)
+  warmupOverrideReason String?
+  warmupOverrideUntil DateTime?
+  warmupOverrideConfirmedAt DateTime?
+  warmupOverrideConfirmedByUserId String?
   isConnected        Boolean            @default(false)
   isDeleted          Boolean            @default(false)
   createdAt          DateTime           @default(now())
@@ -1260,6 +1272,7 @@ model Credential {
   personas          Persona[]          @relation("persona_credentials")
 
   @@index([oauthTokenHash])
+  @@index([organizationId, brandId, isDeleted, warmupState], map: "credentials_warmup_state_idx")
   @@map("credentials")
 }
 

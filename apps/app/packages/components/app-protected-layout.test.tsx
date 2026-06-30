@@ -177,6 +177,12 @@ vi.mock('@ui/menus/sidebar-action-trigger/SidebarActionTrigger', () => ({
   ),
 }));
 
+vi.mock('@ui/menus/switchers/MenuBrandSwitcher', () => ({
+  default: ({ variant }: { variant?: string }) => (
+    <div data-testid="sidebar-brand-switcher">{variant}</div>
+  ),
+}));
+
 vi.mock('@app-config/menu-items.config', () => ({
   APP_LOGO_HREF: '/workspace/overview',
   APP_MENU_ITEMS: [{ href: '/workspace', label: 'Workspace' }],
@@ -202,6 +208,22 @@ vi.mock('@contexts/features/command-palette.provider', () => ({
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: mockBrandState.brandId,
+    brands: [
+      {
+        id: mockBrandState.brandId,
+        label: 'Moonrise Studio',
+        organization: { id: 'org-123', slug: 'org-123' },
+        slug: 'brand-123',
+      },
+    ],
+    selectedBrand: {
+      id: mockBrandState.brandId,
+      label: 'Moonrise Studio',
+      organization: { id: 'org-123', slug: 'org-123' },
+      slug: 'brand-123',
+    },
+    setBrandId: vi.fn(),
+    setOrganizationId: vi.fn(),
   }),
 }));
 
@@ -497,6 +519,9 @@ describe('AppProtectedLayout', () => {
     );
 
     expect(screen.getByText('Protected content')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('sidebar-brand-switcher'),
+    ).not.toBeInTheDocument();
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         bannerComponent: expect.anything(),
