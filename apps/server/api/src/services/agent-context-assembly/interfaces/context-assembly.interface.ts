@@ -1,3 +1,5 @@
+import type { IBrandKitReadiness } from '@genfeedai/interfaces';
+
 export interface AssembleContextParams {
   organizationId: string;
   brandId?: string;
@@ -20,6 +22,8 @@ export interface AssembledBrandContext {
   brandId: string;
   brandName: string;
   brandDescription?: string;
+  promptGuidelines?: string;
+  brandKitReadiness?: IBrandKitReadiness;
   persona?: string;
   defaultModel?: string;
   voice?: {
@@ -65,10 +69,14 @@ export interface AssembledBrandContext {
   visualIdentity?: {
     primaryColor?: string;
     secondaryColor?: string;
+    backgroundColor?: string;
     fontFamily?: string;
+    logoUrl?: string;
+    bannerUrl?: string;
     referenceImages?: Array<{
       category: string;
       label?: string;
+      url: string;
     }>;
   };
   assembledAt: Date;
