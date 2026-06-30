@@ -281,6 +281,7 @@ export default function ProvidersContent() {
         <ProvidersActionBar
           loading={loading}
           pendingMode={pendingMode}
+          selectedMode={readiness.access.selectedMode}
           onByokClick={(event) => {
             void handleByokClick(event);
           }}
