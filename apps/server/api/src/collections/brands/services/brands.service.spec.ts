@@ -34,9 +34,17 @@ import { BadRequestException } from '@nestjs/common';
 describe('BrandsService', () => {
   let service: BrandsService;
   let delegate: Record<string, ReturnType<typeof vi.fn>>;
+  let brandScraperService: {
+    scrapeWebsite: ReturnType<typeof vi.fn>;
+    validateUrl: ReturnType<typeof vi.fn>;
+  };
   let llmDispatcher: { chatCompletion: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
+    brandScraperService = {
+      scrapeWebsite: vi.fn(),
+      validateUrl: vi.fn(),
+    };
     llmDispatcher = { chatCompletion: vi.fn() };
     delegate = {
       count: vi.fn(),
@@ -62,7 +70,7 @@ describe('BrandsService', () => {
         warn: vi.fn(),
       } as unknown as LoggerService,
       {} as CacheService,
-      {} as BrandScraperService,
+      brandScraperService as unknown as BrandScraperService,
       llmDispatcher as unknown as LlmDispatcherService,
       {
         invalidate: vi.fn(),
@@ -134,6 +142,108 @@ describe('BrandsService', () => {
       ),
     ).rejects.toThrow(NotFoundException);
     expect(delegate.updateMany).not.toHaveBeenCalled();
+  });
+
+  describe('crawlWebsiteBrandKitDraft', () => {
+    const organizationId = 'org_1';
+    const brandId = 'brand_1';
+
+    it('returns a website-sourced draft without mutating the brand', async () => {
+      brandScraperService.validateUrl.mockReturnValue({ isValid: true });
+      brandScraperService.scrapeWebsite.mockResolvedValue({
+        bannerUrl: 'https://acme.com/hero.jpg',
+        companyName: 'Acme Website',
+        description: 'Website description',
+        fontCandidates: ['Inter'],
+        logoUrl: 'https://acme.com/logo.svg',
+        primaryColor: '#3366ff',
+        referenceImageUrls: ['https://acme.com/reference.jpg'],
+        scrapedAt: new Date('2026-06-30T10:00:00Z'),
+        sourceUrl: 'https://acme.com',
+      });
+      delegate.findFirst.mockResolvedValue({
+        id: brandId,
+        isDeleted: false,
+        label: 'Current Acme',
+        organization: { id: organizationId },
+        organizationId,
+      });
+
+      const draft = await service.crawlWebsiteBrandKitDraft(
+        brandId,
+        organizationId,
+        {
+          socialUrls: ['https://linkedin.com/company/acme'],
+          url: 'https://acme.com',
+        },
+      );
+
+      expect(delegate.findFirst).toHaveBeenCalledWith({
+        where: { id: brandId, isDeleted: false, organizationId },
+      });
+      expect(brandScraperService.scrapeWebsite).toHaveBeenCalledWith(
+        'https://acme.com',
+      );
+      expect(delegate.update).not.toHaveBeenCalled();
+      expect(delegate.updateMany).not.toHaveBeenCalled();
+      expect(draft.sourceType).toBe('website');
+      expect(draft.fields.label?.currentValue).toBe('Current Acme');
+      expect(draft.fields.label?.proposedValue).toBe('Acme Website');
+      expect(draft.fields.fontFamily?.proposedValue).toBe('Inter');
+      expect(draft.assetCandidates).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ role: 'logo' }),
+          expect.objectContaining({ role: 'banner' }),
+          expect.objectContaining({ role: 'reference' }),
+        ]),
+      );
+    });
+
+    it('rejects invalid website URLs before fetching', async () => {
+      brandScraperService.validateUrl.mockReturnValue({
+        error: 'Local URLs are not allowed',
+        isValid: false,
+      });
+
+      await expect(
+        service.crawlWebsiteBrandKitDraft(brandId, organizationId, {
+          url: 'http://127.0.0.1',
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(brandScraperService.scrapeWebsite).not.toHaveBeenCalled();
+      expect(delegate.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('returns a blocked draft when crawling fails after validation', async () => {
+      brandScraperService.validateUrl.mockReturnValue({ isValid: true });
+      brandScraperService.scrapeWebsite.mockRejectedValue(
+        new Error('Unsupported content type: application/pdf'),
+      );
+      delegate.findFirst.mockResolvedValue({
+        id: brandId,
+        isDeleted: false,
+        label: 'Current Acme',
+        organization: { id: organizationId },
+        organizationId,
+      });
+
+      const draft = await service.crawlWebsiteBrandKitDraft(
+        brandId,
+        organizationId,
+        { url: 'https://acme.com/file.pdf' },
+      );
+
+      expect(draft.status).toBe('blocked');
+      expect(draft.diagnostics).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: 'brand_kit_website_crawl_failed',
+            severity: 'error',
+          }),
+        ]),
+      );
+      expect(delegate.update).not.toHaveBeenCalled();
+    });
   });
 
   describe('generateFastlaneIdeas', () => {

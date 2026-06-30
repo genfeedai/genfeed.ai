@@ -5,6 +5,7 @@ import type {
 import {
   type BrandKitSourceBrand,
   buildBrandKitDraftFromBrand,
+  buildBrandKitDraftFromWebsiteScrape,
   computeBrandKitReadiness,
 } from '@helpers/brand-kit-contract.helper';
 
@@ -234,6 +235,53 @@ describe('brand kit contract helpers', () => {
         expect.objectContaining({
           code: 'brand_kit_private_source_blocked',
           severity: 'error',
+        }),
+      ]),
+    );
+  });
+
+  it('maps a website scrape into proposed brand kit fields and asset candidates', () => {
+    const draft = buildBrandKitDraftFromWebsiteScrape(createCompleteBrand(), {
+      bannerUrl: 'https://acme.example/hero.jpg',
+      companyName: 'Acme Website',
+      description: 'Website-sourced operating system for creators.',
+      fontCandidates: ['Inter', 'Satoshi'],
+      logoUrl: 'https://acme.example/logo.svg',
+      primaryColor: '#3366ff',
+      referenceImageUrls: [
+        'https://acme.example/hero.jpg',
+        'https://acme.example/reference.jpg',
+      ],
+      scrapedAt: new Date('2026-06-30T10:00:00Z'),
+      socialLinks: {
+        linkedin: 'https://linkedin.com/company/acme',
+      },
+      sourceUrl: 'https://acme.example',
+      tagline: 'Create on brand.',
+    });
+
+    expect(draft.sourceType).toBe('website');
+    expect(draft.fields.label?.currentValue).toBe('Acme');
+    expect(draft.fields.label?.proposedValue).toBe('Acme Website');
+    expect(draft.fields.primaryColor?.proposedValue).toBe('#3366ff');
+    expect(draft.fields.fontFamily?.proposedValue).toBe('Inter');
+    expect(draft.fields.promptGuidelines?.proposedValue).toContain(
+      'Create on brand.',
+    );
+    expect(draft.assetCandidates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          role: 'logo',
+          sourceType: 'website',
+          url: 'https://acme.example/logo.svg',
+        }),
+        expect.objectContaining({
+          role: 'banner',
+          url: 'https://acme.example/hero.jpg',
+        }),
+        expect.objectContaining({
+          role: 'reference',
+          url: 'https://acme.example/reference.jpg',
         }),
       ]),
     );
