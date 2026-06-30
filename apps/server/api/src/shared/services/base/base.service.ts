@@ -95,6 +95,7 @@ export interface PrismaFindAllInput {
   where?: PrismaFilter;
   orderBy?: PrismaOrderByInput | PrismaOrderByInput[];
   include?: Record<string, unknown>;
+  select?: Record<string, unknown>;
 }
 
 const PAGINATION_OPTION_KEYS = new Set([
@@ -683,13 +684,15 @@ export abstract class BaseService<
     if (
       'where' in explicitInput ||
       'orderBy' in explicitInput ||
-      'include' in explicitInput
+      'include' in explicitInput ||
+      'select' in explicitInput
     ) {
       return {
         include: explicitInput.include,
         orderBy: explicitInput.orderBy
           ? this.normalizeSort(explicitInput.orderBy)
           : undefined,
+        select: explicitInput.select,
         where: {
           ...(explicitInput.where ?? {}),
           ...optionsWhere,
@@ -781,12 +784,21 @@ export abstract class BaseService<
       );
       this.auditUnknownFilterFields(where);
       const include = findAllInput.include;
+      const select = findAllInput.select;
+      const projection = select ? { select } : include ? { include } : {};
 
       const cacheKey =
         enableCache && this.cacheService
           ? AggregationCacheUtil.generateCacheKey(
               this.collectionName,
-              [{ include: include ?? null, orderBy, where }],
+              [
+                {
+                  include: include ?? null,
+                  orderBy,
+                  select: select ?? null,
+                  where,
+                },
+              ],
               options,
             )
           : null;
@@ -804,7 +816,7 @@ export abstract class BaseService<
           await this.internalDelegate.findMany({
             where,
             orderBy,
-            ...(include ? { include } : {}),
+            ...projection,
           }),
         );
         const result: AggregatePaginateResult<T> = {
@@ -828,7 +840,7 @@ export abstract class BaseService<
           orderBy,
           skip,
           take: limit,
-          ...(include ? { include } : {}),
+          ...projection,
         }),
         this.internalDelegate.count({ where }),
       ]);

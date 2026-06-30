@@ -54,7 +54,7 @@ import {
 } from 'react';
 
 import { useOptionalAuth } from '@/hooks/useOptionalAuth';
-import { isEEEnabled } from '@/lib/config/edition';
+import { isEEEnabled, isHostedCloudApp } from '@/lib/config/edition';
 import {
   normalizeProtectedPathname,
   pickOperatorTaskContextSearchParams,
@@ -89,10 +89,7 @@ export function isProtectedWorkspaceRoute(pathname: string): boolean {
 }
 
 function isTerminalDockAvailable(): boolean {
-  return (
-    process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1' ||
-    process.env.NEXT_PUBLIC_GENFEED_CLOUD !== 'true'
-  );
+  return process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1' || !isHostedCloudApp();
 }
 
 export function useAppProtectedLayout(

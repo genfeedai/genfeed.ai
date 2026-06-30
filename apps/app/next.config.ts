@@ -54,7 +54,14 @@ const workflowUiAliases = {
   '@genfeedai/workflow-ui/ui': path.join(workflowUiRoot, 'src/ui/index.ts'),
 };
 
-const IS_LOCAL_APP_SHELL = !process.env.NEXT_PUBLIC_GENFEED_CLOUD;
+const NEXT_PUBLIC_GENFEED_CLOUD =
+  process.env.NEXT_PUBLIC_GENFEED_CLOUD?.trim() ||
+  process.env.GENFEED_CLOUD?.trim() ||
+  '';
+const IS_CLOUD_APP_SHELL = ['1', 'true'].includes(
+  NEXT_PUBLIC_GENFEED_CLOUD.toLowerCase(),
+);
+const IS_LOCAL_APP_SHELL = !IS_CLOUD_APP_SHELL;
 const DEFAULT_ORG = 'default';
 const DEFAULT_BRAND = 'default';
 const resolvedApiBaseUrl = (
@@ -147,6 +154,12 @@ const config = createAppNextConfig({
   ],
   sentryProject: 'app-genfeed-ai',
 });
+
+config.env = {
+  ...(config.env ?? {}),
+  NEXT_PUBLIC_GENFEED_CLOUD,
+};
+
 config.experimental = {
   ...(config.experimental ?? {}),
   optimizePackageImports: [

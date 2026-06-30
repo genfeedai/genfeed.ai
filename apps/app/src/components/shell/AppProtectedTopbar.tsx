@@ -21,6 +21,7 @@ import { Suspense, useCallback } from 'react';
 import { HiBars3, HiOutlineCommandLine, HiXMark } from 'react-icons/hi2';
 import { PiSidebarSimple } from 'react-icons/pi';
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
+import { isHostedCloudApp } from '@/lib/config/edition';
 import { appendSearchParamsToHref } from '@/lib/navigation/operator-shell';
 
 function getCurrentBrandScopedPath(pathname: string): string {
@@ -94,6 +95,9 @@ function AppProtectedTopbarContent({
   const taskId = searchParams.get('taskId');
   const taskTitle = searchParams.get('taskTitle');
   const ToggleIcon = isMenuOpen ? HiXMark : HiBars3;
+  const shouldRenderAgentToggle =
+    Boolean(onAgentToggle) &&
+    (process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1' || !isHostedCloudApp());
   const backToTaskHref = taskId
     ? href(
         appendSearchParamsToHref(
@@ -179,7 +183,7 @@ function AppProtectedTopbarContent({
             />
           ) : null}
 
-          {onAgentToggle ? (
+          {shouldRenderAgentToggle ? (
             <Button
               type="button"
               variant={ButtonVariant.GHOST}
