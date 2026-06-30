@@ -26,4 +26,10 @@ describe('ADMIN_MENU_ITEMS', () => {
     expect(hrefs).toContain('/admin/administration/subscriptions');
     expect(hrefs).toContain('/admin/overview/analytics/all');
   });
+
+  it('keeps management destinations directly visible in the admin sidebar', () => {
+    expect(ADMIN_MENU_ITEMS).not.toContainEqual(
+      expect.objectContaining({ drillDown: true }),
+    );
+  });
 });

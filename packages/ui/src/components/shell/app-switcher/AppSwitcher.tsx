@@ -13,6 +13,7 @@ import {
   HiOutlineFolder,
   HiOutlinePaperAirplane,
   HiOutlineRectangleGroup,
+  HiOutlineShieldCheck,
   HiOutlineSparkles,
   HiOutlineSquares2X2,
 } from 'react-icons/hi2';
@@ -116,7 +117,19 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
   },
 ];
 
-const SECTION_APPS = APP_SWITCHER_SECTIONS.flatMap((section) => section.apps);
+const ADMIN_APP_SWITCHER_SECTION: AppSwitcherSectionConfig = {
+  id: 'admin',
+  label: 'Administration',
+  apps: [
+    {
+      description: 'Platform management.',
+      icon: HiOutlineShieldCheck,
+      id: 'admin',
+      label: 'Admin',
+      route: () => '/admin',
+    },
+  ],
+};
 
 function withPreservedSearch(path: string, preservedSearch?: string): string {
   if (!preservedSearch) {
@@ -210,6 +223,7 @@ export function AppSwitcher({
   currentApp,
   orgSlug,
   preservedSearch,
+  showAdmin = false,
   variant = 'icon',
 }: AppSwitcherProps) {
   const preventTriggerAutoFocusRef = useRef(false);
@@ -222,7 +236,11 @@ export function AppSwitcher({
     preventTriggerAutoFocusRef.current = true;
   };
 
-  const activeApp = SECTION_APPS.find((app) => isActiveApp(app, currentApp));
+  const sections = showAdmin
+    ? [...APP_SWITCHER_SECTIONS, ADMIN_APP_SWITCHER_SECTION]
+    : APP_SWITCHER_SECTIONS;
+  const apps = sections.flatMap((section) => section.apps);
+  const activeApp = apps.find((app) => isActiveApp(app, currentApp));
   const ActiveIcon = activeApp?.icon ?? HiOutlineSquares2X2;
   const activeLabel = activeApp?.label ?? 'Home';
 
@@ -268,7 +286,7 @@ export function AppSwitcher({
         }}
       >
         <div className="grid gap-2 sm:grid-cols-3">
-          {APP_SWITCHER_SECTIONS.map((section) => (
+          {sections.map((section) => (
             <div
               key={section.id}
               aria-labelledby={`app-switcher-${section.id}`}
