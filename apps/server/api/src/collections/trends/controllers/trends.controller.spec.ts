@@ -55,6 +55,7 @@ describe('TrendsController', () => {
     fetchAndCacheSounds: vi.fn(),
     fetchAndCacheViralVideos: vi.fn(),
     generateContentIdeas: vi.fn(),
+    getCorpusFreshnessHealth: vi.fn(),
     getPromptReferencePacks: vi.fn(),
     getReferenceCorpus: vi.fn(),
     getTopReferenceAccounts: vi.fn(),
@@ -469,6 +470,47 @@ describe('TrendsController', () => {
           totalAccounts: 1,
         },
       });
+    });
+  });
+
+  describe('getCorpusFreshnessHealth', () => {
+    it('should return corpus freshness health with platform filters', async () => {
+      const health = {
+        generatedAt: '2026-06-30T08:00:00.000Z',
+        providerFailures: [],
+        segments: [],
+        status: 'healthy',
+        summary: {
+          activeTrends: 4,
+          failingProviders: 0,
+          freshSegments: 2,
+          platforms: ['tiktok'],
+          referenceRecords: 12,
+          staleSegments: 0,
+          totalSegments: 2,
+        },
+        thresholds: {
+          defaultFreshnessWindowDaysBySourceKind: {
+            manual_curated_reference: 30,
+            owned_brand_reference: 30,
+            paid_creative_reference: 14,
+            public_platform_reference: 7,
+          },
+          recordLimits: {
+            referenceRecords: 5000,
+            trends: 2000,
+          },
+          sourcePreviewStaleAfterDays: 3,
+        },
+      };
+      mockTrendsService.getCorpusFreshnessHealth.mockResolvedValue(health);
+
+      const result = await controller.getCorpusFreshnessHealth('tiktok');
+
+      expect(trendsService.getCorpusFreshnessHealth).toHaveBeenCalledWith({
+        platform: 'tiktok',
+      });
+      expect(result).toEqual(health);
     });
   });
 

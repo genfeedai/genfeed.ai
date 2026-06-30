@@ -309,6 +309,14 @@ export class TrendsController {
     };
   }
 
+  @Get('corpus/freshness')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async getCorpusFreshnessHealth(@Query('platform') platform?: string) {
+    return this.trendsService.getCorpusFreshnessHealth({
+      platform,
+    });
+  }
+
   @Get('ideas')
   @UseGuards(SubscriptionGuard, CreditsGuard)
   @Credits({

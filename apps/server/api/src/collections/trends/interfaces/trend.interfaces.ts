@@ -244,3 +244,61 @@ export interface TrendSourceAccountResult {
   accounts: TrendSourceAccountSummary[];
   totalAccounts: number;
 }
+
+export type TrendCorpusFreshnessStatus =
+  | 'degraded'
+  | 'empty'
+  | 'healthy'
+  | 'stale';
+
+export interface TrendCorpusFreshnessSegment {
+  id: string;
+  platform: string;
+  provider: string;
+  sourceKind: TrendSourceKind;
+  intendedUse: TrendSourceIntendedUse;
+  freshnessWindowDays: number;
+  referenceCount: number;
+  staleReferenceCount: number;
+  latestSeenAt?: string;
+  oldestSeenAt?: string;
+  status: TrendCorpusFreshnessStatus;
+}
+
+export interface TrendProviderFailureSummary {
+  provider: string;
+  platform: string;
+  reason:
+    | 'empty_source_preview'
+    | 'fallback_source_preview'
+    | 'stale_source_preview';
+  affectedTrendCount: number;
+  latestObservedAt?: string;
+  message: string;
+  retryAction: string;
+  severity: 'error' | 'warning';
+}
+
+export interface TrendCorpusFreshnessResult {
+  generatedAt: string;
+  status: TrendCorpusFreshnessStatus;
+  thresholds: {
+    defaultFreshnessWindowDaysBySourceKind: Record<TrendSourceKind, number>;
+    recordLimits: {
+      referenceRecords: number;
+      trends: number;
+    };
+    sourcePreviewStaleAfterDays: number;
+  };
+  summary: {
+    activeTrends: number;
+    failingProviders: number;
+    freshSegments: number;
+    platforms: string[];
+    referenceRecords: number;
+    staleSegments: number;
+    totalSegments: number;
+  };
+  segments: TrendCorpusFreshnessSegment[];
+  providerFailures: TrendProviderFailureSummary[];
+}

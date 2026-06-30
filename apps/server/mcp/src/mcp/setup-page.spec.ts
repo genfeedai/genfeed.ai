@@ -12,9 +12,36 @@ describe('MCP setup page', () => {
 
     const html = renderSetupPage();
     expect(html).toContain('https://mcp.genfeed.ai/mcp');
+    expect(html).toContain('AI agent setup prompt');
+    expect(html).toContain('Copy AI prompt');
     expect(html).toContain('claude mcp add --transport http genfeed');
     expect(html).toContain('codex mcp add genfeed --url');
     expect(html).not.toContain('http://localhost:3014');
+  });
+
+  it('renders a copyable agent prompt that configures MCP without embedding a key', () => {
+    const html = renderSetupPage();
+    const promptStart = html.indexOf('id="agent-setup-prompt"');
+    const promptEnd = html.indexOf('</code></pre>', promptStart);
+    const promptHtml = html.slice(promptStart, promptEnd);
+
+    expect(html).toContain('id="agent-setup-prompt"');
+    expect(html).toContain('data-copy-source="agent-setup-prompt"');
+    expect(promptHtml).toContain(
+      'Set up the Genfeed MCP server on this machine.',
+    );
+    expect(promptHtml).toContain('Authentication env var: GENFEED_API_KEY');
+    expect(promptHtml).toContain(
+      'Do not request or paste the key into source-controlled files',
+    );
+    expect(promptHtml).toContain(
+      'claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp',
+    );
+    expect(promptHtml).toContain(
+      'codex mcp add genfeed --url https://mcp.genfeed.ai/mcp --bearer-token-env-var GENFEED_API_KEY',
+    );
+    expect(promptHtml).toContain('~/.codex/config.toml');
+    expect(promptHtml).not.toContain('gf_live_');
   });
 
   it('uses shared static UI surface primitives instead of local card CSS', () => {
@@ -41,6 +68,9 @@ describe('MCP setup page', () => {
 
     expect(html).toContain(
       'https://preview-mcp.genfeed.ai/mcp?x=&lt;script&gt;',
+    );
+    expect(html).toContain(
+      'Endpoint: https://preview-mcp.genfeed.ai/mcp?x=&lt;script&gt;',
     );
     expect(html).not.toContain('x=<script>');
   });

@@ -163,7 +163,6 @@ export class UsersController {
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
     const data = await this.usersService.findAll(
       {
-        include: { settings: true },
         orderBy: handleQuerySort(query.sort),
         where: { isDeleted },
       },

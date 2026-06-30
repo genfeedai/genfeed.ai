@@ -68,4 +68,22 @@ describe('sql risk audit — real codebase regression gate', () => {
         .join('\n')}`,
     ).toHaveLength(0);
   });
+
+  it('does not report reviewed trend reference corpus lookup queries', () => {
+    const trendReferenceCorpusFindings = result.findings.filter(
+      (finding) =>
+        finding.file ===
+        'apps/server/api/src/collections/trends/services/trend-reference-corpus.service.ts',
+    );
+
+    expect(
+      trendReferenceCorpusFindings,
+      `Trend reference corpus findings should stay documented at the query site and EXPLAIN harness:\n${trendReferenceCorpusFindings
+        .map(
+          (finding) =>
+            `  - ${finding.category} ${finding.file}:${finding.line}`,
+        )
+        .join('\n')}`,
+    ).toHaveLength(0);
+  });
 });

@@ -2,10 +2,32 @@ import { CreateUserDto } from '@api/collections/users/dto/create-user.dto';
 import { UpdateUserDto } from '@api/collections/users/dto/update-user.dto';
 import type { UserDocument } from '@api/collections/users/schemas/user.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BaseService } from '@api/shared/services/base/base.service';
+import {
+  BaseService,
+  type PrismaFindAllInput,
+} from '@api/shared/services/base/base.service';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { PopulateOption } from '@genfeedai/interfaces';
+import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+
+const USER_FIND_ALL_SELECT = {
+  id: true,
+  authProviderId: true,
+  handle: true,
+  firstName: true,
+  lastName: true,
+  email: true,
+  avatar: true,
+  platformRole: true,
+  isOnboardingCompleted: true,
+  onboardingStartedAt: true,
+  onboardingCompletedAt: true,
+  onboardingType: true,
+  onboardingStepsCompleted: true,
+  settings: true,
+};
 
 @Injectable()
 export class UsersService extends BaseService<
@@ -18,6 +40,37 @@ export class UsersService extends BaseService<
     public readonly logger: LoggerService,
   ) {
     super(prisma, 'user', logger);
+  }
+
+  private withSafeFindAllSelect(input: PrismaFindAllInput): PrismaFindAllInput {
+    if (input.select) {
+      return input;
+    }
+
+    const { include, ...query } = input;
+    return {
+      ...query,
+      select: {
+        ...USER_FIND_ALL_SELECT,
+        ...(include ?? {}),
+      },
+    };
+  }
+
+  async findAll(
+    input: unknown,
+    options: AggregationOptions,
+    enableCache: boolean = true,
+  ): Promise<AggregatePaginateResult<UserDocument>> {
+    if (typeof input === 'object' && input !== null && !Array.isArray(input)) {
+      return await super.findAll(
+        this.withSafeFindAllSelect(input as PrismaFindAllInput),
+        options,
+        enableCache,
+      );
+    }
+
+    return await super.findAll(input, options, enableCache);
   }
 
   async findOne(
