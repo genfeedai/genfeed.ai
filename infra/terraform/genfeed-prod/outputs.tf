@@ -43,6 +43,10 @@ output "workflow_backfill_task_definition_arn" {
   value = aws_ecs_task_definition.workflow_backfill.arn
 }
 
+output "credential_backfill_task_definition_arn" {
+  value = aws_ecs_task_definition.credential_backfill.arn
+}
+
 output "boot_smoke_task_definition_arn" {
   value = aws_ecs_task_definition.boot_smoke.arn
 }

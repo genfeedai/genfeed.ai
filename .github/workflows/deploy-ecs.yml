@@ -44,9 +44,6 @@ jobs:
     steps:
       - name: Validate ref is master
         run: |
-          # Check the FULL ref, not GITHUB_REF_NAME: the short name strips the
-          # refs/heads vs refs/tags prefix, so a tag literally named "master"
-          # would satisfy a name-only check and bypass the production gate.
           if [ "${GITHUB_REF}" != "refs/heads/master" ]; then
             echo "::error::Production deploy must run from refs/heads/master (got ${GITHUB_REF})"; exit 1
           fi
