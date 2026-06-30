@@ -143,6 +143,12 @@ describe('UsersController', () => {
       const result = await controller.findMe(mockRequest, mockUser);
 
       expect(usersService.patch).toHaveBeenCalled();
+      expect(requestContextCacheService.invalidateForUser).toHaveBeenCalledWith(
+        userId,
+      );
+      expect(
+        accessBootstrapCacheService.invalidateForUser,
+      ).toHaveBeenCalledWith(userId);
       expect(result).toBeDefined();
     });
   });
@@ -397,6 +403,12 @@ describe('UsersController', () => {
         },
         selectedBrandId,
       );
+      expect(requestContextCacheService.invalidateForUser).toHaveBeenCalledWith(
+        userId,
+      );
+      expect(
+        accessBootstrapCacheService.invalidateForUser,
+      ).toHaveBeenCalledWith(userId);
       expect(result).toBeDefined();
     });
   });
