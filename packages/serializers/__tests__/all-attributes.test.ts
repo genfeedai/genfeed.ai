@@ -33,10 +33,7 @@ import {
   analyticsOrgStatsAttributes,
   analyticsPaginatedStatsAttributes,
 } from '@serializers/attributes/common/analytics-stats.attributes';
-import {
-  analyticsTimeSeriesAttributes,
-  analyticsTimeSeriesWithPlatformsAttributes,
-} from '@serializers/attributes/common/analytics-timeseries.attributes';
+import { analyticsTimeSeriesWithPlatformsAttributes } from '@serializers/attributes/common/analytics-timeseries.attributes';
 import { analyticsTopContentAttributes } from '@serializers/attributes/common/analytics-top-content.attributes';
 import { analyticsTrendAttributes } from '@serializers/attributes/common/analytics-trend.attributes';
 import {
@@ -53,9 +50,6 @@ import { presignedUploadAttributes } from '@serializers/attributes/content/presi
 import { templateAttributes } from '@serializers/attributes/content/template.attributes';
 import { templateMetadataAttributes } from '@serializers/attributes/content/template-metadata.attributes';
 import { transcriptAttributes } from '@serializers/attributes/content/transcript.attributes';
-import { contentPatternAttributes } from '@serializers/attributes/content-intelligence/content-pattern.attributes';
-import { creatorAnalysisAttributes } from '@serializers/attributes/content-intelligence/creator-analysis.attributes';
-import { patternPlaybookAttributes } from '@serializers/attributes/content-intelligence/pattern-playbook.attributes';
 import { elementBlacklistAttributes } from '@serializers/attributes/elements/blacklist.attributes';
 import { elementCameraAttributes } from '@serializers/attributes/elements/camera.attributes';
 import { elementCameraMovementAttributes } from '@serializers/attributes/elements/camera-movement.attributes';
@@ -75,7 +69,6 @@ import { elementStyleAttributes } from '@serializers/attributes/elements/style.a
 import { voiceAttributes } from '@serializers/attributes/elements/voice.attributes';
 import { assetAttributes } from '@serializers/attributes/ingredients/asset.attributes';
 import { avatarAttributes } from '@serializers/attributes/ingredients/avatar.attributes';
-import { gifAttributes } from '@serializers/attributes/ingredients/gif.attributes';
 import {
   imageAttributes,
   imageEditAttributes,
@@ -88,11 +81,6 @@ import {
   videoCaptionAttributes,
   videoEditAttributes,
 } from '@serializers/attributes/ingredients/video.attributes';
-import {
-  heygenAvatarAttributes,
-  heygenServiceAttributes,
-  heygenVoiceAttributes,
-} from '@serializers/attributes/integrations/heygen.attributes';
 import { serviceAttributes } from '@serializers/attributes/integrations/service.attributes';
 import {
   stripeCheckoutAttributes,
@@ -106,11 +94,9 @@ import {
   credentialInstagramAttributes,
   credentialOAuthAttributes,
 } from '@serializers/attributes/organizations/credential.attributes';
-import { knowledgeBaseAttributes } from '@serializers/attributes/organizations/knowledge-base.attributes';
 import { memberAttributes } from '@serializers/attributes/organizations/member.attributes';
 import { organizationAttributes } from '@serializers/attributes/organizations/organization.attributes';
 import { organizationSettingsAttributes } from '@serializers/attributes/organizations/organization-settings.attributes';
-import { threadAttributes } from '@serializers/attributes/threads/thread.attributes';
 import { threadMessageAttributes } from '@serializers/attributes/threads/thread-message.attributes';
 import { settingAttributes } from '@serializers/attributes/users/setting.attributes';
 import { userAttributes } from '@serializers/attributes/users/user.attributes';
@@ -209,33 +195,6 @@ describe('Serializer Attributes', () => {
       expect(Array.isArray(serviceAttributes)).toBe(true);
       expect(serviceAttributes.length).toBeGreaterThan(0);
       for (const attr of serviceAttributes) expect(typeof attr).toBe('string');
-    });
-  });
-
-  describe('heygenServiceAttributes', () => {
-    it('should be a non-empty array of strings', () => {
-      expect(Array.isArray(heygenServiceAttributes)).toBe(true);
-      expect(heygenServiceAttributes.length).toBeGreaterThan(0);
-      for (const attr of heygenServiceAttributes)
-        expect(typeof attr).toBe('string');
-    });
-  });
-
-  describe('heygenVoiceAttributes', () => {
-    it('should be a non-empty array of strings', () => {
-      expect(Array.isArray(heygenVoiceAttributes)).toBe(true);
-      expect(heygenVoiceAttributes.length).toBeGreaterThan(0);
-      for (const attr of heygenVoiceAttributes)
-        expect(typeof attr).toBe('string');
-    });
-  });
-
-  describe('heygenAvatarAttributes', () => {
-    it('should be a non-empty array of strings', () => {
-      expect(Array.isArray(heygenAvatarAttributes)).toBe(true);
-      expect(heygenAvatarAttributes.length).toBeGreaterThan(0);
-      for (const attr of heygenAvatarAttributes)
-        expect(typeof attr).toBe('string');
     });
   });
 
@@ -390,15 +349,6 @@ describe('Serializer Attributes', () => {
     });
   });
 
-  describe('analyticsTimeSeriesAttributes', () => {
-    it('should be a non-empty array of strings', () => {
-      expect(Array.isArray(analyticsTimeSeriesAttributes)).toBe(true);
-      expect(analyticsTimeSeriesAttributes.length).toBeGreaterThan(0);
-      for (const attr of analyticsTimeSeriesAttributes)
-        expect(typeof attr).toBe('string');
-    });
-  });
-
   describe('analyticsTimeSeriesWithPlatformsAttributes', () => {
     it('should be a non-empty array of strings', () => {
       expect(Array.isArray(analyticsTimeSeriesWithPlatformsAttributes)).toBe(
@@ -408,15 +358,6 @@ describe('Serializer Attributes', () => {
         0,
       );
       for (const attr of analyticsTimeSeriesWithPlatformsAttributes)
-        expect(typeof attr).toBe('string');
-    });
-  });
-
-  describe('knowledgeBaseAttributes', () => {
-    it('should be a non-empty array of strings', () => {
-      expect(Array.isArray(knowledgeBaseAttributes)).toBe(true);
-      expect(knowledgeBaseAttributes.length).toBeGreaterThan(0);
-      for (const attr of knowledgeBaseAttributes)
         expect(typeof attr).toBe('string');
     });
   });
@@ -630,14 +571,6 @@ describe('Serializer Attributes', () => {
     });
   });
 
-  describe('gifAttributes', () => {
-    it('should be a non-empty array of strings', () => {
-      expect(Array.isArray(gifAttributes)).toBe(true);
-      expect(gifAttributes.length).toBeGreaterThan(0);
-      for (const attr of gifAttributes) expect(typeof attr).toBe('string');
-    });
-  });
-
   describe('avatarAttributes', () => {
     it('should be a non-empty array of strings', () => {
       expect(Array.isArray(avatarAttributes)).toBe(true);
@@ -743,14 +676,6 @@ describe('Serializer Attributes', () => {
       expect(threadMessageAttributes.length).toBeGreaterThan(0);
       for (const attr of threadMessageAttributes)
         expect(typeof attr).toBe('string');
-    });
-  });
-
-  describe('threadAttributes', () => {
-    it('should be a non-empty array of strings', () => {
-      expect(Array.isArray(threadAttributes)).toBe(true);
-      expect(threadAttributes.length).toBeGreaterThan(0);
-      for (const attr of threadAttributes) expect(typeof attr).toBe('string');
     });
   });
 
@@ -899,33 +824,6 @@ describe('Serializer Attributes', () => {
       expect(Array.isArray(elementCameraAttributes)).toBe(true);
       expect(elementCameraAttributes.length).toBeGreaterThan(0);
       for (const attr of elementCameraAttributes)
-        expect(typeof attr).toBe('string');
-    });
-  });
-
-  describe('patternPlaybookAttributes', () => {
-    it('should be a non-empty array of strings', () => {
-      expect(Array.isArray(patternPlaybookAttributes)).toBe(true);
-      expect(patternPlaybookAttributes.length).toBeGreaterThan(0);
-      for (const attr of patternPlaybookAttributes)
-        expect(typeof attr).toBe('string');
-    });
-  });
-
-  describe('creatorAnalysisAttributes', () => {
-    it('should be a non-empty array of strings', () => {
-      expect(Array.isArray(creatorAnalysisAttributes)).toBe(true);
-      expect(creatorAnalysisAttributes.length).toBeGreaterThan(0);
-      for (const attr of creatorAnalysisAttributes)
-        expect(typeof attr).toBe('string');
-    });
-  });
-
-  describe('contentPatternAttributes', () => {
-    it('should be a non-empty array of strings', () => {
-      expect(Array.isArray(contentPatternAttributes)).toBe(true);
-      expect(contentPatternAttributes.length).toBeGreaterThan(0);
-      for (const attr of contentPatternAttributes)
         expect(typeof attr).toBe('string');
     });
   });

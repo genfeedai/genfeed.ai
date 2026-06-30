@@ -27,7 +27,6 @@ import {
   AnalyticsOrgStatsSerializer,
   AnalyticsOverviewSerializer,
   AnalyticsPlatformSerializer,
-  AnalyticsTimeseriesSerializer,
   AnalyticsTimeseriesWithPlatformsSerializer,
   AnalyticsTopContentSerializer,
   AnalyticsTrendSerializer,
@@ -41,32 +40,25 @@ import { BookmarkSerializer } from '@serializers/server/content/bookmark.seriali
 import { LinkSerializer } from '@serializers/server/content/link.serializer';
 import { NewsSerializer } from '@serializers/server/content/news.serializer';
 import { PersonaSerializer } from '@serializers/server/content/persona.serializer';
-import {
-  PostAnalyticsSerializer,
-  PostSerializer,
-} from '@serializers/server/content/post.serializer';
+import { PostSerializer } from '@serializers/server/content/post.serializer';
 import { PresignedUploadSerializer } from '@serializers/server/content/presigned-upload.serializer';
 import { TemplateSerializer } from '@serializers/server/content/template.serializer';
 import { TranscriptSerializer } from '@serializers/server/content/transcript.serializer';
-import { ContentPatternSerializer } from '@serializers/server/content-intelligence/content-pattern.serializer';
-import { CreatorAnalysisSerializer } from '@serializers/server/content-intelligence/creator-analysis.serializer';
-import { PatternPlaybookSerializer } from '@serializers/server/content-intelligence/pattern-playbook.serializer';
 import { ElementBlacklistSerializer } from '@serializers/server/elements/blacklist.serializer';
 import { ElementCameraSerializer } from '@serializers/server/elements/camera.serializer';
-import { ElementCameraMovementSerializer } from '@serializers/server/elements/camera-movement.serializer';
+import { CameraMovementSerializer } from '@serializers/server/elements/camera-movement.serializer';
 import { CaptionSerializer } from '@serializers/server/elements/caption.serializer';
 import { FontFamilySerializer } from '@serializers/server/elements/font-family.serializer';
 import { ElementLensSerializer } from '@serializers/server/elements/lens.serializer';
 import { ElementLightingSerializer } from '@serializers/server/elements/lighting.serializer';
 import { ElementMoodSerializer } from '@serializers/server/elements/mood.serializer';
 import { PresetSerializer } from '@serializers/server/elements/preset.serializer';
-import { ElementSceneSerializer } from '@serializers/server/elements/scene.serializer';
+import { SceneSerializer } from '@serializers/server/elements/scene.serializer';
 import { SoundSerializer } from '@serializers/server/elements/sound.serializer';
 import { ElementStyleSerializer } from '@serializers/server/elements/style.serializer';
 import { VoiceSerializer } from '@serializers/server/elements/voice.serializer';
 import { AssetSerializer } from '@serializers/server/ingredients/asset.serializer';
 import { AvatarSerializer } from '@serializers/server/ingredients/avatar.serializer';
-import { GifSerializer } from '@serializers/server/ingredients/gif.serializer';
 import {
   ImageEditSerializer,
   ImageSerializer,
@@ -83,11 +75,6 @@ import {
   VideoEditSerializer,
   VideoSerializer,
 } from '@serializers/server/ingredients/video.serializer';
-import {
-  HeyGenAvatarSerializer,
-  HeyGenServiceSerializer,
-  HeyGenVoiceSerializer,
-} from '@serializers/server/integrations/heygen.serializer';
 import { ServiceSerializer } from '@serializers/server/integrations/service.serializer';
 import {
   StripeCheckoutSerializer,
@@ -190,36 +177,6 @@ describe('Server Serializers', () => {
 
     it('should have a serialize method', () => {
       expect(typeof StripeUrlSerializer.serialize).toBe('function');
-    });
-  });
-
-  describe('HeyGenAvatarSerializer', () => {
-    it('should be a function (serializer)', () => {
-      expect(typeof HeyGenAvatarSerializer).toBe('object');
-    });
-
-    it('should have a serialize method', () => {
-      expect(typeof HeyGenAvatarSerializer.serialize).toBe('function');
-    });
-  });
-
-  describe('HeyGenServiceSerializer', () => {
-    it('should be a function (serializer)', () => {
-      expect(typeof HeyGenServiceSerializer).toBe('object');
-    });
-
-    it('should have a serialize method', () => {
-      expect(typeof HeyGenServiceSerializer.serialize).toBe('function');
-    });
-  });
-
-  describe('HeyGenVoiceSerializer', () => {
-    it('should be a function (serializer)', () => {
-      expect(typeof HeyGenVoiceSerializer).toBe('object');
-    });
-
-    it('should have a serialize method', () => {
-      expect(typeof HeyGenVoiceSerializer.serialize).toBe('function');
     });
   });
 
@@ -344,16 +301,6 @@ describe('Server Serializers', () => {
 
     it('should have a serialize method', () => {
       expect(typeof AnalyticsPlatformSerializer.serialize).toBe('function');
-    });
-  });
-
-  describe('AnalyticsTimeseriesSerializer', () => {
-    it('should be a function (serializer)', () => {
-      expect(typeof AnalyticsTimeseriesSerializer).toBe('object');
-    });
-
-    it('should have a serialize method', () => {
-      expect(typeof AnalyticsTimeseriesSerializer.serialize).toBe('function');
     });
   });
 
@@ -671,16 +618,6 @@ describe('Server Serializers', () => {
     });
   });
 
-  describe('GifSerializer', () => {
-    it('should be a function (serializer)', () => {
-      expect(typeof GifSerializer).toBe('object');
-    });
-
-    it('should have a serialize method', () => {
-      expect(typeof GifSerializer.serialize).toBe('function');
-    });
-  });
-
   describe('MusicSerializer', () => {
     it('should be a function (serializer)', () => {
       expect(typeof MusicSerializer).toBe('object');
@@ -728,16 +665,6 @@ describe('Server Serializers', () => {
 
     it('should have a serialize method', () => {
       expect(typeof PostSerializer.serialize).toBe('function');
-    });
-  });
-
-  describe('PostAnalyticsSerializer', () => {
-    it('should be a function (serializer)', () => {
-      expect(typeof PostAnalyticsSerializer).toBe('object');
-    });
-
-    it('should have a serialize method', () => {
-      expect(typeof PostAnalyticsSerializer.serialize).toBe('function');
     });
   });
 
@@ -841,13 +768,13 @@ describe('Server Serializers', () => {
     });
   });
 
-  describe('ElementCameraMovementSerializer', () => {
+  describe('CameraMovementSerializer', () => {
     it('should be a function (serializer)', () => {
-      expect(typeof ElementCameraMovementSerializer).toBe('object');
+      expect(typeof CameraMovementSerializer).toBe('object');
     });
 
     it('should have a serialize method', () => {
-      expect(typeof ElementCameraMovementSerializer.serialize).toBe('function');
+      expect(typeof CameraMovementSerializer.serialize).toBe('function');
     });
   });
 
@@ -881,13 +808,13 @@ describe('Server Serializers', () => {
     });
   });
 
-  describe('ElementSceneSerializer', () => {
+  describe('SceneSerializer', () => {
     it('should be a function (serializer)', () => {
-      expect(typeof ElementSceneSerializer).toBe('object');
+      expect(typeof SceneSerializer).toBe('object');
     });
 
     it('should have a serialize method', () => {
-      expect(typeof ElementSceneSerializer.serialize).toBe('function');
+      expect(typeof SceneSerializer.serialize).toBe('function');
     });
   });
 
@@ -958,36 +885,6 @@ describe('Server Serializers', () => {
 
     it('should have a serialize method', () => {
       expect(typeof ElementBlacklistSerializer.serialize).toBe('function');
-    });
-  });
-
-  describe('ContentPatternSerializer', () => {
-    it('should be a function (serializer)', () => {
-      expect(typeof ContentPatternSerializer).toBe('object');
-    });
-
-    it('should have a serialize method', () => {
-      expect(typeof ContentPatternSerializer.serialize).toBe('function');
-    });
-  });
-
-  describe('CreatorAnalysisSerializer', () => {
-    it('should be a function (serializer)', () => {
-      expect(typeof CreatorAnalysisSerializer).toBe('object');
-    });
-
-    it('should have a serialize method', () => {
-      expect(typeof CreatorAnalysisSerializer.serialize).toBe('function');
-    });
-  });
-
-  describe('PatternPlaybookSerializer', () => {
-    it('should be a function (serializer)', () => {
-      expect(typeof PatternPlaybookSerializer).toBe('object');
-    });
-
-    it('should have a serialize method', () => {
-      expect(typeof PatternPlaybookSerializer.serialize).toBe('function');
     });
   });
 });
