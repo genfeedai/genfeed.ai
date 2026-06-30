@@ -59,12 +59,14 @@ export interface ContainerProps {
   label?: ReactNode;
   description?: ReactNode;
   icon?: ComponentType<{ className?: string }> | ReactNode;
+  titleVisibility?: 'visible' | 'sr-only';
   tabs?: TabItem[] | NavigationTab[];
   headerTabs?: TabsProps;
   activeTab?: string;
   onTabChange?: (tabId: string) => void;
   children: ReactNode;
   className?: string;
+  fullWidth?: boolean;
   left?: ReactNode;
   right?: ReactNode;
   topbarRight?: ReactNode;

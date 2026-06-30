@@ -135,8 +135,8 @@ function WorkspacePageContentContent({
       label={sectionCopy.title}
       description={sectionCopy.description}
       icon={HiOutlineSquares2X2}
-      promoteHeaderToTopbarOnScroll
-      topbarRight={workspaceHeaderActions}
+      fullWidth
+      titleVisibility="sr-only"
       {...(isInboxSection
         ? {
             activeTab: defaultInboxView,
@@ -164,7 +164,7 @@ function WorkspacePageContentContent({
             },
           }
         : {})}
-      right={workspaceHeaderActions}
+      right={isOverviewSection ? undefined : workspaceHeaderActions}
     >
       {workspaceActionError ? (
         <p className="mb-4 rounded-md border border-rose-400/30 bg-rose-400/8 px-3 py-2 text-xs text-rose-200">

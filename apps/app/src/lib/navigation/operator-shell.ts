@@ -58,6 +58,16 @@ export function normalizeProtectedPathname(rawPathname: string): string {
   return rawPathname;
 }
 
+export function getCurrentBrandScopedPath(pathname: string): string {
+  const parts = pathname.split('/').filter(Boolean);
+
+  if (parts.length >= 3 && parts[1] !== '~') {
+    return `/${parts.slice(2).join('/')}`;
+  }
+
+  return APP_ROUTES.WORKSPACE.OVERVIEW;
+}
+
 export function pickOperatorTaskContextSearchParams(
   searchParams: URLSearchParams,
 ): URLSearchParams {

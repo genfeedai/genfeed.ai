@@ -10,6 +10,7 @@ export default function Container({
   label,
   description,
   icon,
+  titleVisibility = 'visible',
   tabs,
   headerTabs,
   activeTab: controlledActiveTab,
@@ -17,6 +18,7 @@ export default function Container({
   left,
   right,
   children,
+  fullWidth = false,
   className = '',
 }: ContainerProps) {
   const [internalActiveTab, setInternalActiveTab] = useState<string>('');
@@ -27,19 +29,29 @@ export default function Container({
   const onTabChange = controlledOnTabChange ?? setInternalActiveTab;
 
   const hasHeaderRight = Boolean(right);
+  const hasVisibleTitle = Boolean(label && titleVisibility !== 'sr-only');
+  const hasScreenReaderTitle = Boolean(label && titleVisibility === 'sr-only');
 
   return (
     <div
-      className={`mx-auto w-full max-w-[1280px] px-5 py-4 sm:px-6 lg:px-6 ${className}`}
+      className={cn(
+        'w-full px-5 py-4 sm:px-6 lg:px-6',
+        fullWidth ? 'mx-0 max-w-none' : 'mx-auto max-w-[1280px]',
+        className,
+      )}
     >
-      {(label || hasHeaderRight) && (
+      {hasScreenReaderTitle ? (
+        <ContainerTitle title={label} titleVisibility="sr-only" />
+      ) : null}
+
+      {(hasVisibleTitle || headerTabs || hasHeaderRight) && (
         <div
           className={cn(
             'mb-4 flex items-center gap-4 border-b border-border pb-3',
-            label ? 'justify-between' : 'justify-end',
+            hasVisibleTitle ? 'justify-between' : 'justify-end',
           )}
         >
-          {label && (
+          {hasVisibleTitle && (
             <ContainerTitle
               title={label}
               description={description}

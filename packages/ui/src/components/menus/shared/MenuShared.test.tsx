@@ -21,6 +21,7 @@ const {
   mockPathname: { value: '/settings/personal' },
   mockPush: vi.fn(),
 }));
+const originalLocation = window.location;
 
 // @genfeedai/auth-client/react is already mocked globally in setup.ts
 // Add UserButton that's not in the global mock
@@ -195,6 +196,11 @@ describe('MenuShared', () => {
 
   afterEach(() => {
     delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: originalLocation,
+      writable: true,
+    });
   });
 
   const config: MenuConfig = {
