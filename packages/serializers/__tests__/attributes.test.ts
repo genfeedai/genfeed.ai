@@ -103,7 +103,6 @@ import { tagAttributes } from '@serializers/attributes/management/tag.attributes
 import { brandAttributes } from '@serializers/attributes/organizations/brand.attributes';
 import {
   credentialAttributes,
-  credentialFullAttributes,
   credentialInstagramAttributes,
   credentialOAuthAttributes,
 } from '@serializers/attributes/organizations/credential.attributes';
@@ -661,21 +660,6 @@ describe('Serializer Attributes', () => {
     it('should not contain duplicates', () => {
       const unique = new Set(organizationSettingsAttributes);
       expect(unique.size).toBe(organizationSettingsAttributes.length);
-    });
-  });
-
-  describe('credentialFullAttributes', () => {
-    it('should be a non-empty array of strings', () => {
-      expect(Array.isArray(credentialFullAttributes)).toBe(true);
-      expect(credentialFullAttributes.length).toBeGreaterThan(0);
-      for (const attr of credentialFullAttributes) {
-        expect(typeof attr).toBe('string');
-      }
-    });
-
-    it('should not contain duplicates', () => {
-      const unique = new Set(credentialFullAttributes);
-      expect(unique.size).toBe(credentialFullAttributes.length);
     });
   });
 
