@@ -21,6 +21,7 @@ import {
   type ReplyGenerationOptions,
   ReplyGenerationService,
 } from '@api/services/reply-bot/reply-generation.service';
+import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import {
   CampaignPlatform,
   CampaignSkipReason,
@@ -490,10 +491,10 @@ export class CampaignExecutorService {
     }
 
     return {
-      accessToken: credential.accessToken,
+      accessToken: EncryptionUtil.decrypt(credential.accessToken),
       accessTokenSecret:
         typeof credential.accessTokenSecret === 'string'
-          ? credential.accessTokenSecret
+          ? EncryptionUtil.decrypt(credential.accessTokenSecret)
           : undefined,
       externalId:
         typeof credential.externalId === 'string'
@@ -507,7 +508,7 @@ export class CampaignExecutorService {
             ) as IReplyBotCredentialData['platform']),
       refreshToken:
         typeof credential.refreshToken === 'string'
-          ? credential.refreshToken
+          ? EncryptionUtil.decrypt(credential.refreshToken)
           : undefined,
       username:
         typeof credential.username === 'string'

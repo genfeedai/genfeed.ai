@@ -21,4 +21,8 @@ export const clipResultAttributes = createEntityAttributes([
   'captionSrt',
   'status',
   'isSelected',
+  'readiness',
+  'terminalAt',
+  'providerJobId',
+  'providerName',
 ]);

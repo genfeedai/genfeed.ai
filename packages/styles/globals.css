@@ -57,15 +57,19 @@
   --color-info-content: hsl(var(--info-foreground));
   --color-error-content: hsl(var(--destructive-foreground));
 
-  /* Radius scale */
-  --radius-sm: 2px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 10px;
-  --radius-2xl: 12px;
-  --radius-3xl: 16px;
-  --radius-xxl: 12px;
-  --radius-xxxl: 16px;
+  /* Radius — references the canonical scale in packages/ui/web-tokens.css.
+     Holds NO values; this block only registers the tokens so Tailwind emits
+     the rounded-* utilities. Values live once in web-tokens.css. */
+  --radius-none: var(--radius-none);
+  --radius-xs: var(--radius-xs);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
+  --radius-3xl: var(--radius-3xl);
+  --radius-full: var(--radius-full);
+  --radius-card: var(--radius-card);
 
   /* Semantic colors layered on shipshitdev/ui ship-* tokens */
   --color-border-strong: var(--ship-border-strong);
@@ -549,7 +553,7 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   border: 1px solid hsl(var(--border));
   background: hsl(var(--background) / 0.44);
   color: hsl(var(--foreground) / 0.66);

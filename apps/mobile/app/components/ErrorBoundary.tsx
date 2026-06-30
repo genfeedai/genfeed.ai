@@ -1,6 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { colors } from '@/constants';
+import { borderRadius, colors } from '@/constants';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
   },
   detailsContainer: {
     backgroundColor: colors.bgSecondary,
-    borderRadius: 12,
+    borderRadius: borderRadius.xxl,
     marginBottom: 24,
     maxHeight: 200,
     padding: 16,
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     backgroundColor: colors.indigo,
-    borderRadius: 12,
+    borderRadius: borderRadius.xxl,
     paddingHorizontal: 32,
     paddingVertical: 14,
   },

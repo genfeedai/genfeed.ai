@@ -30,6 +30,8 @@ function requireString(
   return value;
 }
 
+// NOTE: `accessToken` here is the stored (encrypted-at-rest) value. Callers must
+// run it through `EncryptionUtil.decrypt()` before using it against the Graph API.
 function toInstagramCredentialResponse(
   credential: CredentialDocument,
 ): InstagramCredentialResponse {
@@ -101,7 +103,7 @@ export class InstagramService {
     try {
       const credential = await this.refreshToken(organizationId, brandId);
 
-      const { accessToken } = credential;
+      const accessToken = EncryptionUtil.decrypt(credential.accessToken);
 
       const pages: InstagramPageResponse[] = [];
 
@@ -394,11 +396,8 @@ export class InstagramService {
 
     try {
       const credential = await this.refreshToken(organizationId, brandId);
-      const accessToken = credential.accessToken;
+      const accessToken = EncryptionUtil.decrypt(credential.accessToken);
       const externalId = requireString(credential.externalId, 'externalId');
-
-      // Decrypt access token before use
-      const decryptedAccessToken = EncryptionUtil.decrypt(accessToken);
 
       const response = await firstValueFrom(
         this.httpService.post(
@@ -409,7 +408,7 @@ export class InstagramService {
             messaging_type: 'RESPONSE',
             recipient: { id: recipientId },
           },
-          { params: { access_token: decryptedAccessToken } },
+          { params: { access_token: accessToken } },
         ),
       );
 
@@ -433,7 +432,7 @@ export class InstagramService {
 
     const credential = await this.refreshToken(organizationId, brandId);
     const externalId = requireString(credential.externalId, 'externalId');
-    const accessToken = credential.accessToken;
+    const accessToken = EncryptionUtil.decrypt(credential.accessToken);
     const fullCaption = this.formatCaption(caption, hashtags);
 
     try {
@@ -498,7 +497,7 @@ export class InstagramService {
 
     const credential = await this.refreshToken(organizationId, brandId);
     const externalId = requireString(credential.externalId, 'externalId');
-    const accessToken = credential.accessToken;
+    const accessToken = EncryptionUtil.decrypt(credential.accessToken);
     const fullCaption = this.formatCaption(caption, hashtags);
 
     try {
@@ -565,7 +564,7 @@ export class InstagramService {
 
     const credential = await this.refreshToken(organizationId, brandId);
     const externalId = requireString(credential.externalId, 'externalId');
-    const accessToken = credential.accessToken;
+    const accessToken = EncryptionUtil.decrypt(credential.accessToken);
     const fullCaption = this.formatCaption(caption, hashtags);
 
     try {

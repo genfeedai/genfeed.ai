@@ -58,6 +58,21 @@ vi.mock('@genfeedai/prisma', () => {
     PENDING: 'PENDING',
   } as const;
 
+  const OrganizationCategory = {
+    BUSINESS: 'BUSINESS',
+    PERSONAL: 'PERSONAL',
+  } as const;
+
+  const WarmupAccountStatus = {
+    ARCHIVED: 'ARCHIVED',
+    CLAIMED: 'CLAIMED',
+    DRAFT: 'DRAFT',
+    FAILED: 'FAILED',
+    INVITED: 'INVITED',
+    PROVISIONED: 'PROVISIONED',
+    PROVISIONING: 'PROVISIONING',
+  } as const;
+
   const WorkflowExecutionStatus = {
     CANCELLED: 'CANCELLED',
     COMPLETED: 'COMPLETED',
@@ -81,9 +96,11 @@ vi.mock('@genfeedai/prisma', () => {
 
   return {
     McpApprovalStatus,
+    OrganizationCategory,
     Prisma,
     PrismaClient,
     VoiceProvider,
+    WarmupAccountStatus,
     WorkflowExecutionStatus,
   };
 });

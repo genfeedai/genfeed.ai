@@ -85,6 +85,7 @@ typography:
     letterSpacing: -0.03em
 
 rounded:
+  none: 0px
   sm: 2px
   md: 6px
   lg: 8px
@@ -117,7 +118,7 @@ components:
   card:
     backgroundColor: "{colors.bg-secondary}"
     textColor: "{colors.text-primary}"
-    rounded: "{rounded.md}"
+    rounded: "{rounded.none}"
     shadow: "inset 0 0 0 1px {colors.border}"
   dialog:
     backgroundColor: "{colors.bg-primary}"
@@ -163,7 +164,7 @@ components:
   stat-card:
     backgroundColor: "{colors.bg-secondary}"
     textColor: "{colors.text-primary}"
-    rounded: "{rounded.md}"
+    rounded: "{rounded.none}"
   input:
     backgroundColor: "{colors.bg-tertiary}"
     textColor: "{colors.text-primary}"
@@ -329,6 +330,30 @@ trigger button. Grouped into Content and Tools sections with a subtle divider.
 
 `bg-secondary` with `shadow-dropdown`. Items use `rounded-sm` (2px) with `hover:bg-hover`.
 Inline margin `mx-1` insets items from panel edges.
+
+## Brand OS Surfaces
+
+Brand OS surfaces are product-led acquisition surfaces, not a full visual
+rebrand. The public CTA and preview may use campaign-scale composition, but the
+authenticated review/apply flow stays dense and operational.
+
+### Evidence Labels
+
+Every Brand OS recommendation must be visibly tagged as extracted, inferred,
+candidate, or missing. Source-backed color and voice suggestions can appear in
+public previews, but candidate palettes do not become Genfeed product tokens
+until accepted into the real token source and reflected in this file.
+
+### Scale Roles
+
+Brand OS preview surfaces distinguish four roles:
+- `product` -- 32px control baseline for dense review fields and source rows
+- `block` -- standard public CTA and preview modules
+- `hero` -- primary public promise or conversion proof
+- `monument` -- one large proof artifact per page, used sparingly
+
+Do not use campaign-scale roles inside authenticated settings pages unless the
+screen is explicitly presenting a single launch artifact.
 
 ## Do's and Don'ts
 

@@ -313,7 +313,7 @@ export class IngredientsService extends BaseService<
 
       const updated = await this.prisma.ingredient.update({
         where: { id },
-        data: updateDto as never,
+        data: this.normalizeData(updateDto) as never,
       });
 
       if (!updated) {
@@ -351,11 +351,11 @@ export class IngredientsService extends BaseService<
       this.logger.debug(`${this.constructorName} patchAll`, { filter, update });
 
       const result = await this.prisma.ingredient.updateMany({
-        where: {
+        where: this.normalizeWhere({
           ...filter,
           isDeleted: filter.isDeleted ?? false,
-        } as never,
-        data: update as never,
+        }) as never,
+        data: this.normalizeData(update) as never,
       });
 
       this.logger.debug(`${this.constructorName} patchAll success`, {

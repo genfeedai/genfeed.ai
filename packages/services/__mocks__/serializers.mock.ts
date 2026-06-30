@@ -47,7 +47,6 @@ export const BookmarkSerializer = noop;
 export const LinkSerializer = noop;
 export const NewsSerializer = noop;
 export const PresignedUploadSerializer = noop;
-export const PostAnalyticsSerializer = noop;
 export const EvaluationSerializer = noop;
 export const TrainingSerializer = noop;
 export const WatchlistSerializer = noop;

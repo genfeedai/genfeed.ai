@@ -1,7 +1,10 @@
 // biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { ConfigService } from '@files/config/config.service';
 import type { JobProgress } from '@files/shared/interfaces/job.interface';
-import { parseRedisConnection } from '@libs/redis/redis-connection.utils';
+import {
+  buildNodeRedisClientOptions,
+  parseRedisConnection,
+} from '@libs/redis/redis-connection.utils';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable, Logger } from '@nestjs/common';
 import { createClient, type RedisClientType } from 'redis';
@@ -21,13 +24,11 @@ export class WebSocketService {
     try {
       const config = parseRedisConnection(this.configService);
 
-      this.redisPublisher = createClient({
-        socket: {
+      this.redisPublisher = createClient(
+        buildNodeRedisClientOptions(config, {
           connectTimeout: 3_000,
-          ...(config.tls ? { tls: true as const } : {}),
-        },
-        url: config.url,
-      });
+        }),
+      );
       this.redisPublisher.on('error', (err) => {
         this.logger.error('Redis Publisher Error', err);
       });

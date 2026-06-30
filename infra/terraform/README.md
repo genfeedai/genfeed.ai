@@ -85,8 +85,11 @@ tofu apply -var="image_tag=<sha>"
 - DNS: assumes `genfeed.ai` is a Route53 hosted zone.
 - RDS: looks up `genfeed-data` by identifier and opens its SG to the ECS tasks SG.
 - Secrets: every SSM param under `/genfeed/production/*` is injected as a task
-  secret (env var = last path segment). Ensure `REDIS_URL` points at ElastiCache
-  and provider keys are valid.
+  secret (env var = last path segment), except Terraform-owned runtime values
+  that are injected directly to avoid duplicate ECS env names. Production Redis
+  uses `REDIS_URL=rediss://<elasticache-primary>:6379`,
+  `REDIS_TLS=true`, and Terraform-managed SSM SecureString
+  `/genfeed/production/REDIS_PASSWORD`.
 
 ## Production Deploy Paths
 
@@ -111,6 +114,34 @@ Active services should roll with `min_healthy=100` and `max_percent=200`.
 Workers verify dependent Cloud Map DNS during startup; stop-then-start deploys
 can temporarily remove `files.genfeed.internal` or
 `notifications.genfeed.internal` and make workers exit.
+
+## Redis TLS and Auth
+
+Production ElastiCache is configured with at-rest encryption, in-transit
+encryption, and AUTH. Terraform generates a 64-character auth token with the
+`random` provider, stores it in SSM Parameter Store as
+`/genfeed/production/REDIS_PASSWORD`, and injects that parameter into every ECS
+task definition as a secret. The Redis URL stays a non-secret container
+environment value:
+
+```text
+REDIS_URL=rediss://<elasticache-primary-endpoint>:6379
+REDIS_TLS=true
+REDIS_PASSWORD=<from SSM SecureString>
+```
+
+The app Redis clients accept `REDIS_PASSWORD` separately from `REDIS_URL`, so
+the token does not need to be embedded into a plaintext task-definition
+environment value. The Terraform state is still sensitive infrastructure state:
+the generated token is marked sensitive by the providers, and the S3 state
+bucket must remain private.
+
+Rollout is through the normal `Deploy ECS (production)` workflow from `master`.
+The pre-roll task-definition target references the ElastiCache endpoint and the
+Redis password parameter, so OpenTofu includes those dependencies before the
+boot-smoke task runs. Do not manually set a stale `/genfeed/production/REDIS_URL`
+SSM parameter; Terraform sets `REDIS_URL` and `REDIS_TLS` as task environment
+values.
 
 ## Cutover and Rollback
 

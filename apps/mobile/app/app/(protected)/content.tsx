@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import type { ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { EmptyState, LoadingScreen } from '@/components/ScreenStates';
-import { colors } from '@/constants';
+import { borderRadius, colors } from '@/constants';
 import { useIngredients } from '@/hooks/use-ingredients';
 import type { Ingredient } from '@/services/api/ingredients.service';
 import { formatRelativeDateVerbose } from '@/utils/format-date';
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
   articleBadge: {
     alignSelf: 'flex-start',
     backgroundColor: colors.agent,
-    borderRadius: 999,
+    borderRadius: borderRadius.full,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
   },
   articleCard: {
     backgroundColor: colors.bgTertiary,
-    borderRadius: 16,
+    borderRadius: borderRadius.xxxl,
     gap: 12,
     padding: 20,
   },
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: colors.bgTertiary,
-    borderRadius: 16,
+    borderRadius: borderRadius.xxxl,
     flexDirection: 'row',
     gap: 16,
     padding: 16,
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
   },
   hero: {
     backgroundColor: colors.bgTertiary,
-    borderRadius: 16,
+    borderRadius: borderRadius.xxxl,
     gap: 12,
     padding: 24,
   },
@@ -276,12 +276,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   squareThumbnail: {
-    borderRadius: 12,
+    borderRadius: borderRadius.xxl,
     height: 72,
     width: 72,
   },
   videoThumbnail: {
-    borderRadius: 12,
+    borderRadius: borderRadius.xxl,
     height: 72,
     width: 128,
   },

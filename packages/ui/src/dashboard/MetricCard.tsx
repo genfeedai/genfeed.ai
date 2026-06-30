@@ -32,8 +32,8 @@ export function MetricCard({
   const inner = (
     <div
       className={cn(
-        'h-full rounded-lg bg-card px-4 py-4 shadow-border transition-colors sm:px-5 sm:py-5',
-        isClickable && 'hover:bg-accent/50 cursor-pointer',
+        'h-full rounded-card bg-card px-4 py-4 shadow-border transition-[border-color,background-color] duration-150 ease-out sm:px-5 sm:py-5',
+        isClickable && 'cursor-pointer hover:bg-accent/50',
       )}
     >
       <div className="flex items-start justify-between gap-3">

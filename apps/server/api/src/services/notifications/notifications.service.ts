@@ -8,7 +8,10 @@ import type {
   ITelegramMessageOptions,
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { parseRedisConnection } from '@libs/redis/redis-connection.utils';
+import {
+  buildNodeRedisClientOptions,
+  parseRedisConnection,
+} from '@libs/redis/redis-connection.utils';
 import {
   Injectable,
   type OnModuleDestroy,
@@ -30,14 +33,12 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
     private readonly logger: LoggerService,
   ) {
     const config = parseRedisConnection(this.configService);
-    this.publisher = createClient({
-      socket: {
+    this.publisher = createClient(
+      buildNodeRedisClientOptions(config, {
         connectTimeout: NotificationsService.CONNECT_TIMEOUT_MS,
         reconnectStrategy: () => false as const,
-        ...(config.tls ? { tls: true as const } : {}),
-      },
-      url: config.url,
-    });
+      }),
+    );
 
     this.publisher.on('error', (error: Error) => {
       this.logger.error(`${this.constructorName} Redis publisher error`, error);

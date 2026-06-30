@@ -1,3 +1,5 @@
+import type { AgentClipRunIdentity } from '@genfeedai/interfaces';
+
 /** ClipRunStep — one step in the clip run lifecycle */
 export interface ClipRunStep {
   id: string;
@@ -26,6 +28,7 @@ export interface ClipRunCardState {
   currentStep: string;
   steps: ClipRunStep[];
   modes: ClipRunModes;
+  identity?: AgentClipRunIdentity;
   finalOutputUrl?: string;
   status: 'idle' | 'running' | 'paused' | 'done' | 'failed';
   confirmationPending?: boolean;

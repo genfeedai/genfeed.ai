@@ -5,6 +5,7 @@ import type { CreativePatternDocument } from '@api/collections/creative-patterns
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
+import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { WorkflowStatus, WorkflowTrigger } from '@genfeedai/enums';
 import type {
   AdsAdapterContext,
@@ -763,7 +764,7 @@ export class AdsResearchService {
     }
 
     return {
-      accessToken: credential.accessToken,
+      accessToken: EncryptionUtil.decrypt(credential.accessToken),
       adAccountId: params.adAccountId,
       credentialId: params.credentialId,
       loginCustomerId: params.loginCustomerId,

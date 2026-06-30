@@ -300,7 +300,10 @@ describe('HeygenWebhookService', () => {
     });
     expect(deps.clipProjectsService.patch).toHaveBeenCalledWith(projectId, {
       error: null,
+      failedClipCount: 1,
+      pendingClipCount: 0,
       progress: 100,
+      readyClipCount: 1,
       status: 'completed',
     });
   });
@@ -335,7 +338,10 @@ describe('HeygenWebhookService', () => {
     });
     expect(deps.clipProjectsService.patch).toHaveBeenCalledWith(projectId, {
       error: 'All clip generations failed.',
+      failedClipCount: 1,
+      pendingClipCount: 0,
       progress: 100,
+      readyClipCount: 0,
       status: 'failed',
     });
   });

@@ -16,6 +16,10 @@ export default defineConfig({
       '@genfeedai/pricing': path.resolve(__dirname, '../pricing/src/index.ts'),
       '@genfeedai/enums': path.resolve(__dirname, '../enums/src/index.ts'),
       '@genfeedai/helpers': path.resolve(__dirname, './src/index.ts'),
+      '@genfeedai/interfaces': path.resolve(
+        __dirname,
+        '../interfaces/src/index.ts',
+      ),
       '@helpers': path.resolve(__dirname, './src'),
       '@hooks': path.resolve(__dirname, '../hooks'),
       '@props': path.resolve(__dirname, '../props'),

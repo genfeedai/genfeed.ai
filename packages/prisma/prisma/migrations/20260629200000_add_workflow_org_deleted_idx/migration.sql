@@ -1,0 +1,12 @@
+-- CreateIndex
+-- Narrows predicate locks on the default-recurring-workflow existence re-check
+-- from a relation-level SIReadLock to a page-level lock. Without this index the
+-- in-transaction findFirst does a sequential scan of `workflows` and acquires a
+-- relation-level SIReadLock; any concurrent write to `workflows` by ANY session
+-- (different org/brand, a user editing a workflow) then forms a rw-conflict that
+-- aborts the Serializable transaction with P2034, which was misread as
+-- "already created" and silently left the brand without its default recurring
+-- workflows. With the index Postgres takes a page-level lock scoped to the
+-- matching (organizationId, isDeleted) pages, so unrelated rows no longer
+-- conflict.
+CREATE INDEX "workflows_organizationId_isDeleted_idx" ON "workflows"("organizationId", "isDeleted");

@@ -1,6 +1,25 @@
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 
-vi.mock('@genfeedai/prisma', () => ({ PrismaClient: class {} }));
+vi.mock('@genfeedai/prisma', () => ({
+  PrismaClient: class {},
+  // Brand model has: id, mongoId, organizationId, userId, isDeleted, fontFamily (enum), scope (enum).
+  // getModelMeta is used by BaseService to look up field/enum metadata.
+  getModelMeta: () => ({
+    allFields: [
+      'id',
+      'mongoId',
+      'organizationId',
+      'userId',
+      'isDeleted',
+      'fontFamily',
+      'scope',
+    ],
+    enumFields: {
+      fontFamily: { enumType: 'FontFamily', isRequired: true },
+      scope: { enumType: 'AssetScope', isRequired: true },
+    },
+  }),
+}));
 
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
@@ -31,19 +50,6 @@ describe('BrandsService', () => {
     };
 
     const prisma = {
-      _runtimeDataModel: {
-        models: {
-          Brand: {
-            fields: [
-              { name: 'id' },
-              { name: 'mongoId' },
-              { name: 'organizationId' },
-              { name: 'userId' },
-              { name: 'isDeleted' },
-            ],
-          },
-        },
-      },
       brand: delegate,
     } as unknown as PrismaService;
 

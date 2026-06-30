@@ -296,12 +296,15 @@ describe('FanvueService', () => {
         expect.stringContaining('grant_type=refresh_token'),
         expect.any(Object),
       );
+      // Tokens are passed as plaintext now — CredentialsService encrypts at the
+      // write boundary, so the provider no longer pre-encrypts (which would
+      // double-encrypt).
       expect(credentialsService.patch).toHaveBeenCalledWith(
         mockCredential._id,
         expect.objectContaining({
-          accessToken: 'encrypted_new-access-token',
+          accessToken: 'new-access-token',
           isConnected: true,
-          refreshToken: 'encrypted_new-refresh-token',
+          refreshToken: 'new-refresh-token',
         }),
       );
     });
@@ -388,10 +391,12 @@ describe('FanvueService', () => {
 
       await service.refreshToken(orgId, brandId);
 
+      // The decrypted old refresh token is re-saved as plaintext; the
+      // CredentialsService write boundary re-encrypts it (no double-encrypt).
       expect(credentialsService.patch).toHaveBeenCalledWith(
         mockCredential._id,
         expect.objectContaining({
-          refreshToken: 'encrypted_decrypted_encrypted-old-refresh',
+          refreshToken: 'decrypted_encrypted-old-refresh',
         }),
       );
     });

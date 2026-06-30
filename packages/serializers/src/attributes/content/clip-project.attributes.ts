@@ -15,4 +15,9 @@ export const clipProjectAttributes = createEntityAttributes([
   'progress',
   'settings',
   'error',
+  'readiness',
+  'readyClipCount',
+  'failedClipCount',
+  'pendingClipCount',
+  'terminalAt',
 ]);

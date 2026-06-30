@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { createConsentState, parseMarketingConsent } from './consent';
+import {
+  createConsentState,
+  hasMarketingConsent,
+  parseMarketingConsent,
+} from './consent';
 
 describe('marketing consent', () => {
   it('creates explicit granted or denied consent states', () => {
@@ -26,5 +30,18 @@ describe('marketing consent', () => {
 
     expect(parseMarketingConsent('{"adStorage":"maybe"}')).toBeNull();
     expect(parseMarketingConsent('not-json')).toBeNull();
+  });
+
+  it('requires ad storage consent before marketing tags can run', () => {
+    expect(hasMarketingConsent(null)).toBe(false);
+    expect(hasMarketingConsent(createConsentState('denied'))).toBe(false);
+    expect(
+      hasMarketingConsent({
+        adStorage: 'denied',
+        analyticsStorage: 'granted',
+        updatedAt: '2026-05-03T00:00:00.000Z',
+      }),
+    ).toBe(false);
+    expect(hasMarketingConsent(createConsentState('granted'))).toBe(true);
   });
 });

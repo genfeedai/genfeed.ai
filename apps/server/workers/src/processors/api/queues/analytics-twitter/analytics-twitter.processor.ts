@@ -7,6 +7,7 @@ import {
   createProcessorCircuitBreaker,
   type ProcessorCircuitBreaker,
 } from '@api/shared/utils/circuit-breaker/circuit-breaker.util';
+import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
@@ -42,10 +43,10 @@ export class AnalyticsTwitterProcessor extends WorkerHost {
     }
 
     return {
-      accessToken: credential.accessToken,
+      accessToken: EncryptionUtil.decrypt(credential.accessToken),
       accessTokenSecret:
         typeof credential.accessTokenSecret === 'string'
-          ? credential.accessTokenSecret
+          ? EncryptionUtil.decrypt(credential.accessTokenSecret)
           : undefined,
     };
   }

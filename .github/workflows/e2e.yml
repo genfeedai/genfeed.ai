@@ -152,7 +152,7 @@ jobs:
           NEXT_PUBLIC_BETTER_AUTH_ENABLED: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
 
       - name: Upload blob report (shard ${{ matrix.shard }})
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         # Always upload so the merge job has every shard, even failed ones.
         if: always()
         with:
@@ -177,7 +177,7 @@ jobs:
           cache-turbo: "false"
 
       - name: Download all blob reports
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: blob-report-*
           merge-multiple: true
@@ -187,7 +187,7 @@ jobs:
         run: bunx playwright merge-reports --reporter=html,github ./all-blob-reports
 
       - name: Upload merged HTML report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report-merged
           path: playwright-report/
@@ -301,7 +301,7 @@ jobs:
           E2E_BETTER_AUTH_SESSION_TOKEN: ${{ secrets.E2E_BETTER_AUTH_SESSION_TOKEN }}
 
       - name: Upload authed Playwright report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always() && steps.authed_secrets.outputs.ready == 'true'
         with:
           name: playwright-report-authed
@@ -309,7 +309,7 @@ jobs:
           retention-days: 7
 
       - name: Upload authed traces (on failure)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: failure() && steps.authed_secrets.outputs.ready == 'true'
         with:
           name: playwright-traces-authed

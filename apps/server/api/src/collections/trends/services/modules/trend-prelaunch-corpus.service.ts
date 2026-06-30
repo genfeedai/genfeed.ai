@@ -215,7 +215,7 @@ export class TrendPrelaunchCorpusService {
       ...seed.metadata,
       prelaunchCorpus: true,
       prelaunchCorpusKey: seed.key,
-      source: 'curated',
+      source: 'public-reference',
       sourcePreviewCache: seed.sourcePreview,
       sourcePreviewCachedAt: now.toISOString(),
       sourcePreviewState: 'fallback',

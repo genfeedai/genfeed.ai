@@ -605,7 +605,7 @@ describe('TrendsService', () => {
       expect(result.lockedPlatforms).toEqual(['instagram']);
     });
 
-    it('excludes linkedin from the public content feed', async () => {
+    it('does not synthesize LinkedIn content from a stale curated row without references', async () => {
       vi.spyOn(service, 'getTrendsWithAccessControl').mockResolvedValue({
         connectedPlatforms: [],
         lockedPlatforms: ['linkedin'],
@@ -625,6 +625,66 @@ describe('TrendsService', () => {
       const result = await service.getTrendContent('org-1', 'brand-1');
 
       expect(result.items).toEqual([]);
+    });
+
+    it('returns LinkedIn content when public reference previews are stored', async () => {
+      vi.spyOn(service, 'getTrendsWithAccessControl').mockResolvedValue({
+        connectedPlatforms: [],
+        lockedPlatforms: ['linkedin'],
+        trends: [
+          new TrendEntity({
+            ...mockTrend,
+            id: '507f1f77bcf86cd799439024',
+            metadata: {
+              source: 'public-reference',
+              sourceClassification: {
+                capturedAt: '2026-06-09T00:00:00.000Z',
+                confidence: 'low',
+                freshnessWindowDays: 7,
+                intendedUse: 'organic_trend_discovery',
+                sourceKind: 'public_platform_reference',
+                sourceLabel: 'LinkedIn',
+                sourceTopic: '#openai',
+              },
+              sourcePreviewCache: [
+                {
+                  contentType: 'post',
+                  id: 'linkedin:openai-fallback-primary',
+                  platform: 'linkedin',
+                  sourceClassification: {
+                    capturedAt: '2026-06-09T00:00:00.000Z',
+                    confidence: 'low',
+                    freshnessWindowDays: 7,
+                    intendedUse: 'organic_trend_discovery',
+                    sourceKind: 'public_platform_reference',
+                    sourceLabel: 'LinkedIn',
+                    sourceTopic: '#openai',
+                  },
+                  sourceUrl: 'https://www.linkedin.com/company/openai/',
+                  title: 'OpenAI public reference',
+                },
+              ],
+              sourcePreviewState: 'fallback',
+            },
+            platform: 'linkedin',
+            topic: '#openai',
+            viralityScore: 42,
+          } as never),
+        ],
+      });
+
+      const result = await service.getTrendContent('org-1', 'brand-1');
+
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0]).toMatchObject({
+        platform: 'linkedin',
+        sourceClassification: expect.objectContaining({
+          sourceKind: 'public_platform_reference',
+        }),
+        sourcePreviewState: 'fallback',
+        sourceUrl: 'https://www.linkedin.com/company/openai/',
+        trendTopic: '#openai',
+      });
     });
 
     it('returns bootstrap content when the trend corpus is empty', async () => {

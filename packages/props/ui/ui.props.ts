@@ -45,6 +45,7 @@ export interface CardProps {
   label?: ReactNode;
   description?: string;
   onClick?: () => void;
+  'data-testid'?: string;
 }
 
 export interface CardIconProps {

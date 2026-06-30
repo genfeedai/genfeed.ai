@@ -2,6 +2,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-orchestrator.service';
+import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { ReplyBotPlatform } from '@genfeedai/enums';
 import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -155,11 +156,15 @@ export class CronReplyBotService {
     }
 
     return {
-      accessToken: credential.accessToken ?? '',
-      accessTokenSecret: credential.accessTokenSecret ?? undefined,
+      accessToken: EncryptionUtil.decrypt(credential.accessToken ?? ''),
+      accessTokenSecret: credential.accessTokenSecret
+        ? EncryptionUtil.decrypt(credential.accessTokenSecret)
+        : undefined,
       externalId: credential.externalId ?? undefined,
       platform: credential.platform as ReplyBotPlatform,
-      refreshToken: credential.refreshToken ?? undefined,
+      refreshToken: credential.refreshToken
+        ? EncryptionUtil.decrypt(credential.refreshToken)
+        : undefined,
       username: credential.username ?? undefined,
     };
   }

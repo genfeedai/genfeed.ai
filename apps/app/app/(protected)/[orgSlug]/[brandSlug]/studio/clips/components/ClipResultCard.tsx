@@ -108,7 +108,7 @@ export default function ClipResultCard({
   }, [videoUrl, clip.title]);
 
   return (
-    <div className="group relative flex flex-col rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 transition-all hover:border-zinc-700 hover:bg-zinc-900">
+    <div className="group relative flex flex-col rounded-card border border-zinc-800 bg-zinc-900/50 p-4 transition-all hover:border-zinc-700 hover:bg-zinc-900">
       {/* Header */}
       <div className="mb-3 flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">

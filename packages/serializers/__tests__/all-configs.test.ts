@@ -30,7 +30,6 @@ import {
   analyticsOverviewSerializerConfig,
   analyticsPlatformSerializerConfig,
   analyticsSerializerConfig,
-  analyticsTimeSeriesSerializerConfig,
   analyticsTimeSeriesWithPlatformsSerializerConfig,
   analyticsTopContentSerializerConfig,
   analyticsTrendSerializerConfig,
@@ -50,24 +49,15 @@ import {
 import { linkSerializerConfig } from '@serializers/configs/content/link.config';
 import { newsSerializerConfig } from '@serializers/configs/content/news.config';
 import { personaSerializerConfig } from '@serializers/configs/content/persona.config';
-import {
-  postAnalyticsSerializerConfig,
-  postSerializerConfig,
-} from '@serializers/configs/content/post.config';
+import { postSerializerConfig } from '@serializers/configs/content/post.config';
 import { presignedUploadSerializerConfig } from '@serializers/configs/content/presigned-upload.config';
-import {
-  templateMetadataSerializerConfig,
-  templateSerializerConfig,
-} from '@serializers/configs/content/template.config';
+import { templateSerializerConfig } from '@serializers/configs/content/template.config';
 import { transcriptSerializerConfig } from '@serializers/configs/content/transcript.config';
 import {
   videoCaptionSerializerConfig,
   videoEditSerializerConfig,
   videoSerializerConfig,
 } from '@serializers/configs/content/video.config';
-import { contentPatternSerializerConfig } from '@serializers/configs/content-intelligence/content-pattern.config';
-import { creatorAnalysisSerializerConfig } from '@serializers/configs/content-intelligence/creator-analysis.config';
-import { patternPlaybookSerializerConfig } from '@serializers/configs/content-intelligence/pattern-playbook.config';
 import { elementBlacklistSerializerConfig } from '@serializers/configs/elements/blacklist.config';
 import { elementCameraSerializerConfig } from '@serializers/configs/elements/camera.config';
 import { elementCameraMovementSerializerConfig } from '@serializers/configs/elements/camera-movement.config';
@@ -83,16 +73,9 @@ import { elementStyleSerializerConfig } from '@serializers/configs/elements/styl
 import { voiceSerializerConfig } from '@serializers/configs/elements/voice.config';
 import { assetSerializerConfig } from '@serializers/configs/ingredients/asset.config';
 import { avatarSerializerConfig } from '@serializers/configs/ingredients/avatar.config';
-import { gifSerializerConfig } from '@serializers/configs/ingredients/gif.config';
 import { imageSerializerConfig } from '@serializers/configs/ingredients/image.config';
 import { metadataSerializerConfig } from '@serializers/configs/ingredients/metadata.config';
 import { musicSerializerConfig } from '@serializers/configs/ingredients/music.config';
-import {
-  heygenAvatarSerializerConfig,
-  heygenServiceSerializerConfig,
-  heygenVoiceSerializerConfig,
-} from '@serializers/configs/integrations/heygen.config';
-import { serviceOAuthSerializerConfig } from '@serializers/configs/integrations/service.config';
 import { serviceSerializerConfig } from '@serializers/configs/integrations/service-server.config';
 import {
   stripeCheckoutSerializerConfig,
@@ -101,10 +84,8 @@ import {
 import { folderSerializerConfig } from '@serializers/configs/management/folder.config';
 import { tagSerializerConfig } from '@serializers/configs/management/tag.config';
 import { brandSerializerConfig } from '@serializers/configs/organizations/brand.config';
-import { knowledgeBaseSerializerConfig } from '@serializers/configs/organizations/knowledge-base.config';
 import { organizationSerializerConfig } from '@serializers/configs/organizations/organization.config';
 import { organizationSettingsSerializerConfig } from '@serializers/configs/organizations/organization-settings.config';
-import { threadSerializerConfig } from '@serializers/configs/threads/thread.config';
 import { threadMessageSerializerConfig } from '@serializers/configs/threads/thread-message.config';
 import { settingSerializerConfig } from '@serializers/configs/users/setting.config';
 import { userSerializerConfig } from '@serializers/configs/users/user.config';
@@ -345,98 +326,6 @@ describe('Serializer Configs', () => {
     });
   });
 
-  describe('heygenServiceSerializerConfig', () => {
-    it('should have type and attributes', () => {
-      expect(typeof heygenServiceSerializerConfig.type).toBe('string');
-      expect(heygenServiceSerializerConfig.type.length).toBeGreaterThan(0);
-      expect(Array.isArray(heygenServiceSerializerConfig.attributes)).toBe(
-        true,
-      );
-      expect(heygenServiceSerializerConfig.attributes.length).toBeGreaterThan(
-        0,
-      );
-    });
-
-    it('relationships should have correct structure', () => {
-      for (const [key, val] of Object.entries(heygenServiceSerializerConfig)) {
-        if (key === 'type' || key === 'attributes') continue;
-        const rel = val as any;
-        if (rel && typeof rel === 'object' && 'type' in rel) {
-          expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
-          if ('attributes' in rel)
-            expect(Array.isArray(rel.attributes)).toBe(true);
-        }
-      }
-    });
-  });
-
-  describe('heygenVoiceSerializerConfig', () => {
-    it('should have type and attributes', () => {
-      expect(typeof heygenVoiceSerializerConfig.type).toBe('string');
-      expect(heygenVoiceSerializerConfig.type.length).toBeGreaterThan(0);
-      expect(Array.isArray(heygenVoiceSerializerConfig.attributes)).toBe(true);
-      expect(heygenVoiceSerializerConfig.attributes.length).toBeGreaterThan(0);
-    });
-
-    it('relationships should have correct structure', () => {
-      for (const [key, val] of Object.entries(heygenVoiceSerializerConfig)) {
-        if (key === 'type' || key === 'attributes') continue;
-        const rel = val as any;
-        if (rel && typeof rel === 'object' && 'type' in rel) {
-          expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
-          if ('attributes' in rel)
-            expect(Array.isArray(rel.attributes)).toBe(true);
-        }
-      }
-    });
-  });
-
-  describe('heygenAvatarSerializerConfig', () => {
-    it('should have type and attributes', () => {
-      expect(typeof heygenAvatarSerializerConfig.type).toBe('string');
-      expect(heygenAvatarSerializerConfig.type.length).toBeGreaterThan(0);
-      expect(Array.isArray(heygenAvatarSerializerConfig.attributes)).toBe(true);
-      expect(heygenAvatarSerializerConfig.attributes.length).toBeGreaterThan(0);
-    });
-
-    it('relationships should have correct structure', () => {
-      for (const [key, val] of Object.entries(heygenAvatarSerializerConfig)) {
-        if (key === 'type' || key === 'attributes') continue;
-        const rel = val as any;
-        if (rel && typeof rel === 'object' && 'type' in rel) {
-          expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
-          if ('attributes' in rel)
-            expect(Array.isArray(rel.attributes)).toBe(true);
-        }
-      }
-    });
-  });
-
-  describe('serviceOAuthSerializerConfig', () => {
-    it('should have type and attributes', () => {
-      expect(typeof serviceOAuthSerializerConfig.type).toBe('string');
-      expect(serviceOAuthSerializerConfig.type.length).toBeGreaterThan(0);
-      expect(Array.isArray(serviceOAuthSerializerConfig.attributes)).toBe(true);
-      expect(serviceOAuthSerializerConfig.attributes.length).toBeGreaterThan(0);
-    });
-
-    it('relationships should have correct structure', () => {
-      for (const [key, val] of Object.entries(serviceOAuthSerializerConfig)) {
-        if (key === 'type' || key === 'attributes') continue;
-        const rel = val as any;
-        if (rel && typeof rel === 'object' && 'type' in rel) {
-          expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
-          if ('attributes' in rel)
-            expect(Array.isArray(rel.attributes)).toBe(true);
-        }
-      }
-    });
-  });
-
   describe('activitySerializerConfig', () => {
     it('should have type and attributes', () => {
       expect(typeof activitySerializerConfig.type).toBe('string');
@@ -541,36 +430,6 @@ describe('Serializer Configs', () => {
 
     it('relationships should have correct structure', () => {
       for (const [key, val] of Object.entries(analyticsSerializerConfig)) {
-        if (key === 'type' || key === 'attributes') continue;
-        const rel = val as any;
-        if (rel && typeof rel === 'object' && 'type' in rel) {
-          expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
-          if ('attributes' in rel)
-            expect(Array.isArray(rel.attributes)).toBe(true);
-        }
-      }
-    });
-  });
-
-  describe('analyticsTimeSeriesSerializerConfig', () => {
-    it('should have type and attributes', () => {
-      expect(typeof analyticsTimeSeriesSerializerConfig.type).toBe('string');
-      expect(analyticsTimeSeriesSerializerConfig.type.length).toBeGreaterThan(
-        0,
-      );
-      expect(
-        Array.isArray(analyticsTimeSeriesSerializerConfig.attributes),
-      ).toBe(true);
-      expect(
-        analyticsTimeSeriesSerializerConfig.attributes.length,
-      ).toBeGreaterThan(0);
-    });
-
-    it('relationships should have correct structure', () => {
-      for (const [key, val] of Object.entries(
-        analyticsTimeSeriesSerializerConfig,
-      )) {
         if (key === 'type' || key === 'attributes') continue;
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
@@ -1009,32 +868,6 @@ describe('Serializer Configs', () => {
     });
   });
 
-  describe('knowledgeBaseSerializerConfig', () => {
-    it('should have type and attributes', () => {
-      expect(typeof knowledgeBaseSerializerConfig.type).toBe('string');
-      expect(knowledgeBaseSerializerConfig.type.length).toBeGreaterThan(0);
-      expect(Array.isArray(knowledgeBaseSerializerConfig.attributes)).toBe(
-        true,
-      );
-      expect(knowledgeBaseSerializerConfig.attributes.length).toBeGreaterThan(
-        0,
-      );
-    });
-
-    it('relationships should have correct structure', () => {
-      for (const [key, val] of Object.entries(knowledgeBaseSerializerConfig)) {
-        if (key === 'type' || key === 'attributes') continue;
-        const rel = val as any;
-        if (rel && typeof rel === 'object' && 'type' in rel) {
-          expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
-          if ('attributes' in rel)
-            expect(Array.isArray(rel.attributes)).toBe(true);
-        }
-      }
-    });
-  });
-
   describe('roleSerializerConfig', () => {
     it('should have type and attributes', () => {
       expect(typeof roleSerializerConfig.type).toBe('string');
@@ -1343,28 +1176,6 @@ describe('Serializer Configs', () => {
     });
   });
 
-  describe('gifSerializerConfig', () => {
-    it('should have type and attributes', () => {
-      expect(typeof gifSerializerConfig.type).toBe('string');
-      expect(gifSerializerConfig.type.length).toBeGreaterThan(0);
-      expect(Array.isArray(gifSerializerConfig.attributes)).toBe(true);
-      expect(gifSerializerConfig.attributes.length).toBeGreaterThan(0);
-    });
-
-    it('relationships should have correct structure', () => {
-      for (const [key, val] of Object.entries(gifSerializerConfig)) {
-        if (key === 'type' || key === 'attributes') continue;
-        const rel = val as any;
-        if (rel && typeof rel === 'object' && 'type' in rel) {
-          expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
-          if ('attributes' in rel)
-            expect(Array.isArray(rel.attributes)).toBe(true);
-        }
-      }
-    });
-  });
-
   describe('avatarSerializerConfig', () => {
     it('should have type and attributes', () => {
       expect(typeof avatarSerializerConfig.type).toBe('string');
@@ -1425,34 +1236,6 @@ describe('Serializer Configs', () => {
 
     it('relationships should have correct structure', () => {
       for (const [key, val] of Object.entries(templateSerializerConfig)) {
-        if (key === 'type' || key === 'attributes') continue;
-        const rel = val as any;
-        if (rel && typeof rel === 'object' && 'type' in rel) {
-          expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
-          if ('attributes' in rel)
-            expect(Array.isArray(rel.attributes)).toBe(true);
-        }
-      }
-    });
-  });
-
-  describe('templateMetadataSerializerConfig', () => {
-    it('should have type and attributes', () => {
-      expect(typeof templateMetadataSerializerConfig.type).toBe('string');
-      expect(templateMetadataSerializerConfig.type.length).toBeGreaterThan(0);
-      expect(Array.isArray(templateMetadataSerializerConfig.attributes)).toBe(
-        true,
-      );
-      expect(
-        templateMetadataSerializerConfig.attributes.length,
-      ).toBeGreaterThan(0);
-    });
-
-    it('relationships should have correct structure', () => {
-      for (const [key, val] of Object.entries(
-        templateMetadataSerializerConfig,
-      )) {
         if (key === 'type' || key === 'attributes') continue;
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
@@ -1749,32 +1532,6 @@ describe('Serializer Configs', () => {
     });
   });
 
-  describe('postAnalyticsSerializerConfig', () => {
-    it('should have type and attributes', () => {
-      expect(typeof postAnalyticsSerializerConfig.type).toBe('string');
-      expect(postAnalyticsSerializerConfig.type.length).toBeGreaterThan(0);
-      expect(Array.isArray(postAnalyticsSerializerConfig.attributes)).toBe(
-        true,
-      );
-      expect(postAnalyticsSerializerConfig.attributes.length).toBeGreaterThan(
-        0,
-      );
-    });
-
-    it('relationships should have correct structure', () => {
-      for (const [key, val] of Object.entries(postAnalyticsSerializerConfig)) {
-        if (key === 'type' || key === 'attributes') continue;
-        const rel = val as any;
-        if (rel && typeof rel === 'object' && 'type' in rel) {
-          expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
-          if ('attributes' in rel)
-            expect(Array.isArray(rel.attributes)).toBe(true);
-        }
-      }
-    });
-  });
-
   describe('bookmarkSerializerConfig', () => {
     it('should have type and attributes', () => {
       expect(typeof bookmarkSerializerConfig.type).toBe('string');
@@ -1807,28 +1564,6 @@ describe('Serializer Configs', () => {
 
     it('relationships should have correct structure', () => {
       for (const [key, val] of Object.entries(linkSerializerConfig)) {
-        if (key === 'type' || key === 'attributes') continue;
-        const rel = val as any;
-        if (rel && typeof rel === 'object' && 'type' in rel) {
-          expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
-          if ('attributes' in rel)
-            expect(Array.isArray(rel.attributes)).toBe(true);
-        }
-      }
-    });
-  });
-
-  describe('threadSerializerConfig', () => {
-    it('should have type and attributes', () => {
-      expect(typeof threadSerializerConfig.type).toBe('string');
-      expect(threadSerializerConfig.type.length).toBeGreaterThan(0);
-      expect(Array.isArray(threadSerializerConfig.attributes)).toBe(true);
-      expect(threadSerializerConfig.attributes.length).toBeGreaterThan(0);
-    });
-
-    it('relationships should have correct structure', () => {
-      for (const [key, val] of Object.entries(threadSerializerConfig)) {
         if (key === 'type' || key === 'attributes') continue;
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
@@ -2217,88 +1952,6 @@ describe('Serializer Configs', () => {
 
     it('relationships should have correct structure', () => {
       for (const [key, val] of Object.entries(voiceSerializerConfig)) {
-        if (key === 'type' || key === 'attributes') continue;
-        const rel = val as any;
-        if (rel && typeof rel === 'object' && 'type' in rel) {
-          expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
-          if ('attributes' in rel)
-            expect(Array.isArray(rel.attributes)).toBe(true);
-        }
-      }
-    });
-  });
-
-  describe('creatorAnalysisSerializerConfig', () => {
-    it('should have type and attributes', () => {
-      expect(typeof creatorAnalysisSerializerConfig.type).toBe('string');
-      expect(creatorAnalysisSerializerConfig.type.length).toBeGreaterThan(0);
-      expect(Array.isArray(creatorAnalysisSerializerConfig.attributes)).toBe(
-        true,
-      );
-      expect(creatorAnalysisSerializerConfig.attributes.length).toBeGreaterThan(
-        0,
-      );
-    });
-
-    it('relationships should have correct structure', () => {
-      for (const [key, val] of Object.entries(
-        creatorAnalysisSerializerConfig,
-      )) {
-        if (key === 'type' || key === 'attributes') continue;
-        const rel = val as any;
-        if (rel && typeof rel === 'object' && 'type' in rel) {
-          expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
-          if ('attributes' in rel)
-            expect(Array.isArray(rel.attributes)).toBe(true);
-        }
-      }
-    });
-  });
-
-  describe('patternPlaybookSerializerConfig', () => {
-    it('should have type and attributes', () => {
-      expect(typeof patternPlaybookSerializerConfig.type).toBe('string');
-      expect(patternPlaybookSerializerConfig.type.length).toBeGreaterThan(0);
-      expect(Array.isArray(patternPlaybookSerializerConfig.attributes)).toBe(
-        true,
-      );
-      expect(patternPlaybookSerializerConfig.attributes.length).toBeGreaterThan(
-        0,
-      );
-    });
-
-    it('relationships should have correct structure', () => {
-      for (const [key, val] of Object.entries(
-        patternPlaybookSerializerConfig,
-      )) {
-        if (key === 'type' || key === 'attributes') continue;
-        const rel = val as any;
-        if (rel && typeof rel === 'object' && 'type' in rel) {
-          expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
-          if ('attributes' in rel)
-            expect(Array.isArray(rel.attributes)).toBe(true);
-        }
-      }
-    });
-  });
-
-  describe('contentPatternSerializerConfig', () => {
-    it('should have type and attributes', () => {
-      expect(typeof contentPatternSerializerConfig.type).toBe('string');
-      expect(contentPatternSerializerConfig.type.length).toBeGreaterThan(0);
-      expect(Array.isArray(contentPatternSerializerConfig.attributes)).toBe(
-        true,
-      );
-      expect(contentPatternSerializerConfig.attributes.length).toBeGreaterThan(
-        0,
-      );
-    });
-
-    it('relationships should have correct structure', () => {
-      for (const [key, val] of Object.entries(contentPatternSerializerConfig)) {
         if (key === 'type' || key === 'attributes') continue;
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {

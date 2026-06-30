@@ -16,6 +16,15 @@ EXPO_PUBLIC_API_URL=https://api.genfeed.ai
 ```
 The API base URL for backend requests.
 
+### Google Sign-In
+```bash
+EXPO_PUBLIC_GOOGLE_OAUTH_CLIENT_ID=your-default-google-client-id
+EXPO_PUBLIC_GOOGLE_OAUTH_IOS_CLIENT_ID=your-ios-google-client-id
+EXPO_PUBLIC_GOOGLE_OAUTH_ANDROID_CLIENT_ID=your-android-google-client-id
+EXPO_PUBLIC_GOOGLE_OAUTH_WEB_CLIENT_ID=your-web-google-client-id
+```
+OAuth client IDs used by Expo AuthSession for native Better Auth Google sign-in.
+
 ### Error Tracking (Sentry)
 ```bash
 EXPO_PUBLIC_SENTRY_DSN=https://your-dsn@sentry.io/project-id

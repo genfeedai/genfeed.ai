@@ -129,6 +129,25 @@ export interface IMediaProvenancePackage {
   transcriptSidecar: IMediaTranscriptSidecar;
 }
 
+/** Public API route references for a generated media provenance package. */
+export interface IPublicMediaRouteReference {
+  assetId: string;
+  kind: string;
+  canonicalUrl: string | null;
+  /**
+   * Path to the public page for this asset. `null` for media kinds that do not
+   * have a dedicated public page (mirrors the nullability of `mediaPath`).
+   * Currently only `'video'` produces a non-null value.
+   */
+  publicPagePath: string | null;
+  mediaPath: string | null;
+  provenancePath: string;
+  manifestPath: string;
+  transcriptPath: string;
+  manifestFilename: string;
+  transcriptFilename: string;
+}
+
 export type MediaWatermarkAttributionApproach =
   | 'provenance_manifest'
   | 'visible_watermark'

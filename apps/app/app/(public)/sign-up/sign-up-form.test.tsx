@@ -75,6 +75,9 @@ describe('SignUpForm', () => {
     expect(
       screen.getByRole('button', { name: 'Continue with email' }),
     ).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Continue with GitHub' }),
+    ).toBeInTheDocument();
   });
 
   it('sends a sign-up magic link with the callback URL', async () => {
@@ -128,6 +131,23 @@ describe('SignUpForm', () => {
     expect(localStorage.getItem(ONBOARDING_STORAGE_KEYS.source)).toBe(
       'oss-onboarding',
     );
+  });
+
+  it('starts GitHub sign-up with the callback URL', async () => {
+    window.history.replaceState({}, '', '/sign-up?callbackUrl=%2Fonboarding');
+
+    render(<SignUpForm />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Continue with GitHub' }),
+    );
+
+    await waitFor(() => {
+      expect(authClientMocks.social).toHaveBeenCalledWith({
+        callbackURL: absoluteCallback('/onboarding'),
+        provider: 'github',
+      });
+    });
   });
 
   it('does not persist invalid access mode or malformed credit handoff params', async () => {
