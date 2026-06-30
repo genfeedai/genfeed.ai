@@ -6,8 +6,23 @@ on:
   pull_request:
     branches: [master]
   # Allow this gate to be run as a reusable workflow (e.g. by full-suite.yml,
-  # which chains CI → E2E on demand). No inputs needed; secrets are inherited.
+  # which chains CI → E2E on demand). Secrets are inherited.
   workflow_call:
+    inputs:
+      run_heavy_tests:
+        # Gate for the heavy test matrix (packages, server services,
+        # web/desktop/mobile, extensions, app + api shards). Callers on the
+        # release path (full-suite.yml) pass `true` to run the full suite.
+        #
+        # This is an explicit input — NOT a `github.event_name == 'workflow_call'`
+        # check — because a reusable workflow inherits the CALLER's originating
+        # event (e.g. `workflow_dispatch` from deploy-ecs.yml), so `event_name`
+        # is never `workflow_call` here and the old gate silently skipped every
+        # heavy test job on the release QA path.
+        description: 'Run the full heavy test matrix (release QA path).'
+        type: boolean
+        required: false
+        default: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -383,7 +398,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: trust
-    if: needs.trust.outputs.is-trusted == 'true' && github.event_name == 'workflow_call'
+    if: needs.trust.outputs.is-trusted == 'true' && inputs.run_heavy_tests
     steps:
       - uses: actions/checkout@v5
         with:
@@ -405,7 +420,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: trust
-    if: needs.trust.outputs.is-trusted == 'true' && github.event_name == 'workflow_call'
+    if: needs.trust.outputs.is-trusted == 'true' && inputs.run_heavy_tests
     steps:
       - uses: actions/checkout@v5
         with:
@@ -427,7 +442,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: trust
-    if: needs.trust.outputs.is-trusted == 'true' && github.event_name == 'workflow_call'
+    if: needs.trust.outputs.is-trusted == 'true' && inputs.run_heavy_tests
     steps:
       - uses: actions/checkout@v5
         with:
@@ -449,7 +464,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: trust
-    if: needs.trust.outputs.is-trusted == 'true' && github.event_name == 'workflow_call'
+    if: needs.trust.outputs.is-trusted == 'true' && inputs.run_heavy_tests
     steps:
       - uses: actions/checkout@v5
         with:
@@ -471,7 +486,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [trust, test-scope]
-    if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.app == 'true' && github.event_name == 'workflow_call'
+    if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.app == 'true' && inputs.run_heavy_tests
     strategy:
       fail-fast: false
       matrix:
@@ -535,7 +550,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [trust, test-scope]
-    if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.api == 'true' && github.event_name == 'workflow_call'
+    if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.api == 'true' && inputs.run_heavy_tests
     strategy:
       fail-fast: false
       matrix:
