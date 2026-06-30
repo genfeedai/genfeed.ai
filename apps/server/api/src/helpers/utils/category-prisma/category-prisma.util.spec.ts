@@ -1,7 +1,38 @@
-import { IngredientCategory, OrganizationCategory } from '@genfeedai/enums';
+import {
+  AssetScope,
+  IngredientCategory,
+  IngredientStatus,
+  OrganizationCategory,
+} from '@genfeedai/enums';
 import { BadRequestException } from '@nestjs/common';
 import { describe, expect, it } from 'vitest';
 import { CategoryPrismaUtil } from './category-prisma.util';
+
+/**
+ * Valid Prisma AssetScope values — must stay in sync with
+ * packages/prisma/prisma/schema.prisma enum AssetScope.
+ */
+const PRISMA_ASSET_SCOPE_MEMBERS = [
+  'USER',
+  'BRAND',
+  'ORGANIZATION',
+  'PUBLIC',
+] as const;
+
+/**
+ * Valid Prisma IngredientStatus values — must stay in sync with
+ * packages/prisma/prisma/schema.prisma enum IngredientStatus.
+ */
+const PRISMA_INGREDIENT_STATUS_MEMBERS = [
+  'DRAFT',
+  'PROCESSING',
+  'UPLOADED',
+  'GENERATED',
+  'VALIDATED',
+  'FAILED',
+  'ARCHIVED',
+  'REJECTED',
+] as const;
 
 /**
  * Valid Prisma IngredientCategory values — must stay in sync with
@@ -209,6 +240,98 @@ describe('CategoryPrismaUtil', () => {
     });
   });
 
+  describe('toAssetScope', () => {
+    it('maps AssetScope.PUBLIC (app-form) to Prisma PUBLIC', () => {
+      expect(CategoryPrismaUtil.toAssetScope(AssetScope.PUBLIC)).toBe('PUBLIC');
+    });
+
+    it('maps AssetScope.USER to Prisma USER', () => {
+      expect(CategoryPrismaUtil.toAssetScope(AssetScope.USER)).toBe('USER');
+    });
+
+    it('maps AssetScope.BRAND to Prisma BRAND', () => {
+      expect(CategoryPrismaUtil.toAssetScope(AssetScope.BRAND)).toBe('BRAND');
+    });
+
+    it('maps AssetScope.ORGANIZATION to Prisma ORGANIZATION', () => {
+      expect(CategoryPrismaUtil.toAssetScope(AssetScope.ORGANIZATION)).toBe(
+        'ORGANIZATION',
+      );
+    });
+
+    it('passes through an already-Prisma-form value idempotently', () => {
+      expect(CategoryPrismaUtil.toAssetScope('PUBLIC')).toBe('PUBLIC');
+      expect(CategoryPrismaUtil.toAssetScope('USER')).toBe('USER');
+    });
+
+    it('returns undefined for undefined', () => {
+      expect(CategoryPrismaUtil.toAssetScope(undefined)).toBeUndefined();
+    });
+
+    it('returns undefined for empty string', () => {
+      expect(CategoryPrismaUtil.toAssetScope('')).toBeUndefined();
+    });
+
+    it('throws BadRequestException for a non-empty unmappable value', () => {
+      expect(() => CategoryPrismaUtil.toAssetScope('unknown')).toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('throws BadRequestException with the offending value in the message', () => {
+      expect(() => CategoryPrismaUtil.toAssetScope('private')).toThrow(
+        'Unknown AssetScope: private',
+      );
+    });
+  });
+
+  describe('toIngredientStatus', () => {
+    it('maps IngredientStatus.GENERATED (app-form) to Prisma GENERATED', () => {
+      expect(
+        CategoryPrismaUtil.toIngredientStatus(IngredientStatus.GENERATED),
+      ).toBe('GENERATED');
+    });
+
+    it('maps IngredientStatus.DRAFT to Prisma DRAFT', () => {
+      expect(
+        CategoryPrismaUtil.toIngredientStatus(IngredientStatus.DRAFT),
+      ).toBe('DRAFT');
+    });
+
+    it('maps IngredientStatus.FAILED to Prisma FAILED', () => {
+      expect(
+        CategoryPrismaUtil.toIngredientStatus(IngredientStatus.FAILED),
+      ).toBe('FAILED');
+    });
+
+    it('passes through an already-Prisma-form value idempotently', () => {
+      expect(CategoryPrismaUtil.toIngredientStatus('GENERATED')).toBe(
+        'GENERATED',
+      );
+      expect(CategoryPrismaUtil.toIngredientStatus('DRAFT')).toBe('DRAFT');
+    });
+
+    it('returns undefined for undefined', () => {
+      expect(CategoryPrismaUtil.toIngredientStatus(undefined)).toBeUndefined();
+    });
+
+    it('returns undefined for empty string', () => {
+      expect(CategoryPrismaUtil.toIngredientStatus('')).toBeUndefined();
+    });
+
+    it('throws BadRequestException for a non-empty unmappable value', () => {
+      expect(() => CategoryPrismaUtil.toIngredientStatus('unknown')).toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('throws BadRequestException with the offending value in the message', () => {
+      expect(() => CategoryPrismaUtil.toIngredientStatus('active')).toThrow(
+        'Unknown IngredientStatus: active',
+      );
+    });
+  });
+
   describe('toOrganizationCategoryFilter', () => {
     it('returns { category: "BUSINESS" } for OrganizationCategory.BUSINESS', () => {
       expect(
@@ -295,6 +418,60 @@ describe('CategoryPrismaUtil', () => {
         expect(
           allMappedOrgOutputs,
           `Prisma member '${prismaValue}' is not the output of any app-enum mapping — stale Prisma member list or missing production map entry`,
+        ).toContain(prismaValue);
+      }
+    });
+
+    it('every AssetScope app-enum member maps to a valid Prisma AssetScope member', () => {
+      const prismaSet = new Set<string>(PRISMA_ASSET_SCOPE_MEMBERS);
+      for (const appValue of Object.values(AssetScope)) {
+        const prismaValue = CategoryPrismaUtil.toAssetScope(appValue);
+        expect(
+          prismaValue,
+          `AssetScope.${appValue} produced undefined — add it to APP_TO_PRISMA_ASSET_SCOPE`,
+        ).toBeDefined();
+        expect(
+          prismaSet.has(prismaValue as string),
+          `AssetScope.${appValue} mapped to "${prismaValue}" which is not a valid Prisma AssetScope member`,
+        ).toBe(true);
+      }
+    });
+
+    it('every Prisma AssetScope member is the output of some app-enum mapping', () => {
+      const allMapped = Object.values(AssetScope).map((v) =>
+        CategoryPrismaUtil.toAssetScope(v),
+      );
+      for (const prismaValue of PRISMA_ASSET_SCOPE_MEMBERS) {
+        expect(
+          allMapped,
+          `Prisma AssetScope member '${prismaValue}' is not the output of any app-enum mapping`,
+        ).toContain(prismaValue);
+      }
+    });
+
+    it('every IngredientStatus app-enum member maps to a valid Prisma IngredientStatus member', () => {
+      const prismaSet = new Set<string>(PRISMA_INGREDIENT_STATUS_MEMBERS);
+      for (const appValue of Object.values(IngredientStatus)) {
+        const prismaValue = CategoryPrismaUtil.toIngredientStatus(appValue);
+        expect(
+          prismaValue,
+          `IngredientStatus.${appValue} produced undefined — add it to APP_TO_PRISMA_INGREDIENT_STATUS`,
+        ).toBeDefined();
+        expect(
+          prismaSet.has(prismaValue as string),
+          `IngredientStatus.${appValue} mapped to "${prismaValue}" which is not a valid Prisma IngredientStatus member`,
+        ).toBe(true);
+      }
+    });
+
+    it('every Prisma IngredientStatus member is the output of some app-enum mapping', () => {
+      const allMapped = Object.values(IngredientStatus).map((v) =>
+        CategoryPrismaUtil.toIngredientStatus(v),
+      );
+      for (const prismaValue of PRISMA_INGREDIENT_STATUS_MEMBERS) {
+        expect(
+          allMapped,
+          `Prisma IngredientStatus member '${prismaValue}' is not the output of any app-enum mapping`,
         ).toContain(prismaValue);
       }
     });
