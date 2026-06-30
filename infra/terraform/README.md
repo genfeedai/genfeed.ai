@@ -82,6 +82,8 @@ tofu apply -var="image_tag=<sha>"
 
 - VPC: defaults to `genfeedai-vpc` plus two stack-created private subnets for
   Fargate tasks and ElastiCache.
+- NAT: production pays for one NAT gateway per private subnet AZ so private task
+  egress does not depend on a single public subnet/AZ.
 - DNS: assumes `genfeed.ai` is a Route53 hosted zone.
 - RDS: looks up `genfeed-data` by identifier and opens its SG to the ECS tasks SG.
 - Secrets: every SSM param under `/genfeed/production/*` is injected as a task

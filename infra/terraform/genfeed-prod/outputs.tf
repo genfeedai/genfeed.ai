@@ -52,6 +52,11 @@ output "task_subnets" {
   value = local.private_subnet_ids
 }
 
+output "nat_gateway_ids_by_az" {
+  description = "Production private subnet egress NAT gateways keyed by AZ."
+  value       = { for az, gateway in aws_nat_gateway.main : az => gateway.id }
+}
+
 output "task_security_group" {
   value = aws_security_group.ecs.id
 }

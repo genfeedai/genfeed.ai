@@ -1,6 +1,6 @@
-# Private subnets (2 AZ) for ECS instances + awsvpc task ENIs + ElastiCache.
-# awsvpc-on-EC2 task ENIs get no public IP, so they egress (ECR pull, ElevenLabs/
-# legacy auth provider/Stripe/etc.) via a NAT gateway. ALB stays in the existing public subnets.
+# Private subnets (2 AZ) for ECS tasks + ElastiCache.
+# Fargate task ENIs get no public IP, so each AZ egresses through a same-AZ NAT
+# gateway. ALB stays in the existing public subnets.
 resource "aws_subnet" "private" {
   for_each          = var.private_subnet_cidrs
   vpc_id            = var.vpc_id
@@ -9,28 +9,46 @@ resource "aws_subnet" "private" {
   tags              = { Name = "${local.name_prefix}-private-${each.key}" }
 }
 
+moved {
+  from = aws_eip.nat
+  to   = aws_eip.nat["us-west-1b"]
+}
+
 resource "aws_eip" "nat" {
-  domain = "vpc"
-  tags   = { Name = "${local.name_prefix}-nat" }
+  for_each = var.private_subnet_cidrs
+  domain   = "vpc"
+  tags     = { Name = "${local.name_prefix}-nat-${each.key}" }
+}
+
+moved {
+  from = aws_nat_gateway.main
+  to   = aws_nat_gateway.main["us-west-1b"]
 }
 
 resource "aws_nat_gateway" "main" {
-  allocation_id = aws_eip.nat.id
-  subnet_id     = var.nat_public_subnet_id
-  tags          = { Name = "${local.name_prefix}-nat" }
+  for_each      = var.private_subnet_cidrs
+  allocation_id = aws_eip.nat[each.key].id
+  subnet_id     = var.nat_public_subnet_ids_by_az[each.key]
+  tags          = { Name = "${local.name_prefix}-nat-${each.key}" }
+}
+
+moved {
+  from = aws_route_table.private
+  to   = aws_route_table.private["us-west-1b"]
 }
 
 resource "aws_route_table" "private" {
-  vpc_id = var.vpc_id
+  for_each = var.private_subnet_cidrs
+  vpc_id   = var.vpc_id
   route {
     cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.main.id
+    nat_gateway_id = aws_nat_gateway.main[each.key].id
   }
-  tags = { Name = "${local.name_prefix}-private" }
+  tags = { Name = "${local.name_prefix}-private-${each.key}" }
 }
 
 resource "aws_route_table_association" "private" {
   for_each       = aws_subnet.private
   subnet_id      = each.value.id
-  route_table_id = aws_route_table.private.id
+  route_table_id = aws_route_table.private[each.key].id
 }

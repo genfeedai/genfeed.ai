@@ -19,16 +19,24 @@ variable "vpc_id" {
   default = "vpc-0e7522e453a642bd8" # genfeedai-vpc (10.0.8.0/21)
 }
 
-# Existing public subnets (IGW route) — used for the internet-facing ALB + NAT.
+# Existing public subnets (IGW route) — used for the internet-facing ALB.
 variable "public_subnet_ids" {
   type    = list(string)
   default = ["subnet-04dfe8480e85f0a47", "subnet-07aec43af6ded15f0"] # 1b, 1c
 }
 
-# NAT lives in this public subnet (1b).
-variable "nat_public_subnet_id" {
-  type    = string
-  default = "subnet-04dfe8480e85f0a47"
+# Public subnet for each AZ-local NAT gateway.
+variable "nat_public_subnet_ids_by_az" {
+  type = map(string)
+  default = {
+    "us-west-1b" = "subnet-04dfe8480e85f0a47"
+    "us-west-1c" = "subnet-07aec43af6ded15f0"
+  }
+
+  validation {
+    condition     = length(setsubtract(keys(var.private_subnet_cidrs), keys(var.nat_public_subnet_ids_by_az))) == 0
+    error_message = "nat_public_subnet_ids_by_az must define a public subnet for every private_subnet_cidrs AZ."
+  }
 }
 
 # New private subnets created by this stack for ECS tasks/instances + cache
