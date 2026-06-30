@@ -7,6 +7,7 @@ import { CrawlBrandKitDto } from '@api/collections/brands/dto/crawl-brand-kit.dt
 import { CreateBrandDto } from '@api/collections/brands/dto/create-brand.dto';
 import { GenerateBrandVoiceDto } from '@api/collections/brands/dto/generate-brand-voice.dto';
 import { GenerateFastlaneIdeasDto } from '@api/collections/brands/dto/generate-fastlane-ideas.dto';
+import { ImportBrandKitAssetsDto } from '@api/collections/brands/dto/import-brand-kit-assets.dto';
 import { ToggleBrandSkillDto } from '@api/collections/brands/dto/toggle-brand-skill.dto';
 import { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import { UpdateBrandAgentConfigDto } from '@api/collections/brands/dto/update-brand-agent-config.dto';
@@ -45,6 +46,7 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type {
+  IBrandKitAssetImportResponse,
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
@@ -418,6 +420,40 @@ export class BrandsController extends BaseCRUDController<
     const result = await this.brandsService.applyBrandKitDraft(
       id,
       organizationId,
+      dto,
+    );
+
+    return { data: result };
+  }
+
+  @Post(':id/brand-kit/assets/import')
+  @HttpCode(200)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async importBrandKitAssets(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() dto: ImportBrandKitAssetsDto,
+  ): Promise<{ data: IBrandKitAssetImportResponse }> {
+    await this.verifyBrandAccess(id, user);
+
+    const publicMetadata = getPublicMetadata(user);
+    const organizationId = publicMetadata.organization?.toString();
+    const userId = publicMetadata.user?.toString();
+
+    if (!organizationId || !userId) {
+      throw new HttpException(
+        {
+          detail: 'Organization and user context are required',
+          title: 'Forbidden',
+        },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    const result = await this.brandsService.importBrandKitAssets(
+      id,
+      organizationId,
+      userId,
       dto,
     );
 
