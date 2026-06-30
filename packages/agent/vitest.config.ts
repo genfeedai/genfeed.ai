@@ -70,6 +70,14 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../helpers/src/$1'),
       },
       {
+        find: /^@genfeedai\/hooks$/,
+        replacement: path.resolve(__dirname, '../hooks'),
+      },
+      {
+        find: /^@genfeedai\/hooks\/(.*)$/,
+        replacement: path.resolve(__dirname, '../hooks/$1'),
+      },
+      {
         find: /^@genfeedai\/contexts$/,
         replacement: path.resolve(__dirname, '../contexts'),
       },

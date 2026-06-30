@@ -68,4 +68,35 @@ describe('generation-request', () => {
       width: 1024,
     });
   });
+
+  it('adds HeyGen identity fields when clip identity is resolved', () => {
+    expect(
+      buildAgentGenerationRequestBody({
+        aspectRatio: '16:9',
+        identity: {
+          avatarId: 'avatar-1',
+          avatarProvider: 'heygen',
+          isComplete: true,
+          label: 'Brand clip defaults',
+          missing: [],
+          source: 'brand',
+          useIdentity: true,
+          voiceId: 'voice-1',
+          voiceProvider: 'heygen',
+        },
+        promptId: 'prompt-3',
+        promptText: 'Video prompt',
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        avatarId: 'avatar-1',
+        avatarProvider: 'heygen',
+        heygenAvatarId: 'avatar-1',
+        heygenVoiceId: 'voice-1',
+        useIdentity: true,
+        voiceId: 'voice-1',
+        voiceProvider: 'heygen',
+      }),
+    );
+  });
 });
