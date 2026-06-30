@@ -1,0 +1,153 @@
+# EMERGENCY FASTLANE production deploy — admin-only, QA-skipped.
+#
+# Identical to deploy-ecs.yml in every way EXCEPT it does not run the ~20-40min
+# `qa-before-deploy` gate. Use ONLY during an incident, to redeploy a known-good
+# image (or re-roll current master) fast. The deploy engine, all DB/boot safety
+# gates, Vercel, and post-deploy smoke are the SAME reusable as the normal path
+# (_deploy-ecs-core.yml) — so the only thing traded away is pre-flight QA.
+#
+# Migrations are NOT skipped: the migrate task is `prisma migrate deploy`, which
+# is a no-op when nothing is pending and applies pending migrations when they
+# exist. That self-skipping is exactly the "smart" behavior an emergency wants.
+#
+# Admin gating (defense in depth):
+#   1. workflow_dispatch already requires repo WRITE access (button is hidden
+#      from non-collaborators).
+#   2. `authorize` runs in `environment: production-fastlane` — configure that
+#      environment with Required reviewers = admins for a human approval gate
+#      (see the manual-setup steps in the PR description; cannot be set in YAML).
+#   3. In-YAML exact-token allowlist on the triggering actor (vars.FASTLANE_ADMINS).
+#   4. Typed confirmation input (confirm == DEPLOY).
+name: Deploy ECS — FASTLANE (emergency, no QA)
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "server image tag to deploy (default: current master SHA)"
+        required: false
+        default: ""
+      allow_rollback:
+        description: "allow deploying an image tag different from current SHA (rollback to known-good)"
+        required: false
+        default: false
+        type: boolean
+      reason:
+        description: "Why this emergency deploy is being run (audit trail, required)"
+        required: true
+        default: ""
+      confirm:
+        description: 'Type DEPLOY to confirm you intend an emergency production deploy'
+        required: true
+        default: ""
+
+# Per-workflow group only: dedupes rapid double-dispatch of the fastlane itself.
+# It intentionally does NOT share a group with the normal deploy workflow, so a
+# normal release stuck in QA cannot block this emergency path from starting.
+# Never-roll-two-deploys-at-once is enforced at the job level inside
+# _deploy-ecs-core.yml (group: deploy-ecs-roll).
+concurrency:
+  group: deploy-ecs-fastlane
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  authorize:
+    name: Authorize emergency deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # The human approval gate. Configure Required reviewers on this environment
+    # (GitHub UI) to restrict approval to admins.
+    environment: production-fastlane
+    permissions:
+      contents: read
+    steps:
+      - name: Confirm intent
+        env:
+          CONFIRM: ${{ inputs.confirm }}
+        run: |
+          set -euo pipefail
+          # Exact match only; never inline ${{ inputs.confirm }} into the script.
+          if [ "${CONFIRM}" != "DEPLOY" ]; then
+            echo "::error::Confirmation failed. Type DEPLOY in the 'confirm' input to run an emergency deploy."; exit 1
+          fi
+
+      - name: Authorize triggering actor
+        env:
+          # triggering_actor is whoever initiated THIS attempt (including reruns);
+          # github.actor stays the original dispatcher on reruns and would let a
+          # non-admin rerun an old admin dispatch. Gate on triggering_actor.
+          TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+          FASTLANE_ADMINS: ${{ vars.FASTLANE_ADMINS }}
+        run: |
+          set -euo pipefail
+          if [ -z "${FASTLANE_ADMINS:-}" ]; then
+            echo "::error::Repository variable FASTLANE_ADMINS is not set — refusing to run an unguarded emergency deploy. Set it to a space/comma/newline list of admin GitHub logins."; exit 1
+          fi
+          # Exact-token match. Split on comma/space/newline, then grep -Fx so a
+          # login like 'bob' can never match an allowlist entry 'bobby' (no
+          # substring matching).
+          if ! printf '%s' "${FASTLANE_ADMINS}" | tr ',\n\r\t ' '\n' | grep -Fxq -- "${TRIGGERING_ACTOR}"; then
+            echo "::error::Actor '${TRIGGERING_ACTOR}' is not in FASTLANE_ADMINS. Emergency deploy denied."; exit 1
+          fi
+          echo "Authorized: ${TRIGGERING_ACTOR}"
+
+      - name: Record audit trail
+        env:
+          TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+          # Free text — treat as hostile. Fed via env, sanitized, rendered as a
+          # fenced block so it cannot inject markdown/HTML into the summary.
+          RAW_REASON: ${{ inputs.reason }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          ALLOW_ROLLBACK: ${{ inputs.allow_rollback }}
+        run: |
+          set -euo pipefail
+          # Strip ASCII control chars, cap length, default if blank.
+          REASON="$(printf '%s' "${RAW_REASON}" | tr -d '\000-\037\177' | cut -c1-500)"
+          [ -n "${REASON}" ] || REASON="(none provided)"
+          {
+            echo "## ⚠️ Emergency FASTLANE deploy (QA skipped)"
+            echo ""
+            echo "- Actor: \`${TRIGGERING_ACTOR}\`"
+            echo "- Image tag: \`${IMAGE_TAG:-<current master>}\`"
+            echo "- Allow rollback: \`${ALLOW_ROLLBACK}\`"
+            echo ""
+            echo "Reason:"
+            echo '```text'
+            printf '%s\n' "${REASON}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  validate-production-ref:
+    name: Validate production ref
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate ref is master
+        run: |
+          # Check the FULL ref, not GITHUB_REF_NAME: the short name strips the
+          # refs/heads vs refs/tags prefix, so a tag literally named "master"
+          # would satisfy a name-only check and bypass the production gate.
+          if [ "${GITHUB_REF}" != "refs/heads/master" ]; then
+            echo "::error::Production deploy must run from refs/heads/master (got ${GITHUB_REF})"; exit 1
+          fi
+
+  deploy:
+    name: Deploy
+    needs: validate-production-ref
+    # Reusable workflows cannot elevate permissions — this caller job grant is
+    # the ceiling for every job in _deploy-ecs-core.yml. Must be the UNION of
+    # id-token (OIDC->AWS), packages:read (GHCR), issues:write (smoke reporter).
+    permissions:
+      id-token: write
+      contents: read
+      packages: read
+      issues: write
+    uses: ./.github/workflows/_deploy-ecs-core.yml
+    with:
+      image_tag: ${{ inputs.image_tag }}
+      allow_rollback: ${{ inputs.allow_rollback }}
+    secrets: inherit
