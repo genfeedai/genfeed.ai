@@ -30,6 +30,7 @@ const Card = memo(function Card({
   label,
   description,
   onClick,
+  'data-testid': dataTestId,
 }: CardProps) {
   const cardClasses = cn(
     'relative overflow-hidden rounded-card text-left transition-[border-color,background-color] duration-150 ease-out',
@@ -106,6 +107,7 @@ const Card = memo(function Card({
         tabIndex={0}
         aria-label={typeof label === 'string' ? label : undefined}
         data-card-index={index}
+        data-testid={dataTestId}
         onClick={onClick}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
@@ -121,7 +123,11 @@ const Card = memo(function Card({
   }
 
   return (
-    <div className={cardClasses} data-card-index={index}>
+    <div
+      className={cardClasses}
+      data-card-index={index}
+      data-testid={dataTestId}
+    >
       {cardContent}
     </div>
   );
