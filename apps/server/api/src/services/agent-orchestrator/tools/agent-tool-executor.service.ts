@@ -1210,11 +1210,9 @@ export class AgentToolExecutorService {
     }
 
     const brandId =
-      typeof params.brandId === 'string' && true ? params.brandId : undefined;
+      typeof params.brandId === 'string' ? params.brandId : undefined;
     const campaignId =
-      typeof params.campaignId === 'string' && true
-        ? params.campaignId
-        : undefined;
+      typeof params.campaignId === 'string' ? params.campaignId : undefined;
     const summary =
       typeof params.summary === 'string' ? params.summary.trim() : undefined;
     const capture = await this.agentMemoryCaptureService.capture(
@@ -1370,8 +1368,7 @@ export class AgentToolExecutorService {
     }
 
     const dto: CreateAgentGoalDto = {
-      brand:
-        typeof params.brandId === 'string' && true ? params.brandId : undefined,
+      brand: typeof params.brandId === 'string' ? params.brandId : undefined,
       description:
         typeof params.description === 'string'
           ? params.description.trim()
@@ -2220,9 +2217,9 @@ export class AgentToolExecutorService {
     ctx: ToolExecutionContext,
   ): Promise<Record<string, unknown> | null> {
     const explicitBrandId =
-      typeof params.brandId === 'string' && true
+      typeof params.brandId === 'string'
         ? params.brandId
-        : typeof ctx.brandId === 'string' && true
+        : typeof ctx.brandId === 'string'
           ? ctx.brandId
           : null;
 
@@ -2503,7 +2500,7 @@ export class AgentToolExecutorService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<Record<string, unknown> | null> {
-    if (typeof params.brandId === 'string' && true) {
+    if (typeof params.brandId === 'string') {
       const explicitBrand = await this.brandsService.findOne({
         _id: params.brandId,
         isDeleted: false,
@@ -4330,7 +4327,6 @@ export class AgentToolExecutorService {
       };
     }
     const brandId = String(brand._id);
-    const brandObjectId = brandId;
     const brandLabel = String(brand.label || 'your brand');
     const countLabel = count > 1 ? `${count} ${contentType}s per run` : null;
 
@@ -4414,7 +4410,7 @@ export class AgentToolExecutorService {
       ctx.userId,
       ctx.organizationId,
       {
-        brands: [brandObjectId],
+        brands: [brandId],
         description: taskDescription,
         edges: [],
         inputVariables: [],
@@ -5114,7 +5110,7 @@ export class AgentToolExecutorService {
               ? params.botChannelUrl.trim() || undefined
               : undefined,
           credentialId:
-            typeof params.credentialId === 'string' && true
+            typeof params.credentialId === 'string'
               ? params.credentialId
               : undefined,
           isEnabled: true,
