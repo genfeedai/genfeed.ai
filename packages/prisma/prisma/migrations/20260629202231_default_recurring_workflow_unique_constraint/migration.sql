@@ -38,19 +38,53 @@
 -- Step 1: Add the denormalized nullable column.
 ALTER TABLE "workflows" ADD COLUMN IF NOT EXISTS "defaultRecurringBrandId" TEXT;
 
+-- Step 1b: Pre-flight guard against silent data loss.
+-- The Step 2 dedup partitions by (brandId, organizationId, contentType), so a
+-- default-recurring workflow linked to N>1 brands is evaluated once per brand
+-- and soft-deleted if it loses ANY partition — which could erase the sole live
+-- default-recurring workflow for one of its other brands. System-created rows
+-- are always single-brand (see `createDefaultRecurringWorkflow`), so this can
+-- only arise from non-service writes (admin tooling, imports, manual repairs).
+-- Rather than silently delete, abort loudly: this whole migration runs in a
+-- transaction, so RAISE rolls everything back, leaving the data untouched for
+-- manual resolution before re-applying.
+DO $$
+DECLARE
+  multi_brand_count integer;
+BEGIN
+  SELECT COUNT(*) INTO multi_brand_count
+  FROM (
+    SELECT wf.id
+    FROM "workflows" wf
+    JOIN "_workflow_brands" wb ON wb."B" = wf.id
+    WHERE wf."isDeleted" = false
+      AND wf.metadata->>'taskType' = 'default-recurring-content'
+      AND wf.metadata->'defaultRecurringContent'->>'contentType' IS NOT NULL
+    GROUP BY wf.id
+    HAVING COUNT(DISTINCT wb."A") > 1
+  ) AS multi;
+
+  IF multi_brand_count > 0 THEN
+    RAISE EXCEPTION 'Migration aborted (#892): % default-recurring workflow(s) are linked to multiple brands. Soft-delete all but the canonical duplicate per brand manually, then re-run this migration.', multi_brand_count;
+  END IF;
+END$$;
+
 -- Step 2: Collapse pre-existing duplicates by soft-deleting all but the oldest
 -- default-recurring workflow per (brandId, organizationId, contentType) group.
 -- "Oldest" is defined as minimum createdAt; ties broken by minimum id (CUID
 -- lexicographic order is creation-time order for same-millisecond ties).
+-- Safe by construction: Step 1b guarantees every surviving row is single-brand,
+-- so each workflow appears in exactly one partition and cannot be soft-deleted
+-- on behalf of a brand it does not exclusively serve.
 WITH ranked AS (
   SELECT
     wf.id                                                                   AS workflow_id,
     wb."A"                                                                  AS brand_id,
     wf."organizationId",
-    wf.metadata->>'defaultRecurringContent'->>'contentType'                 AS content_type,
+    wf.metadata->'defaultRecurringContent'->>'contentType'                 AS content_type,
     ROW_NUMBER() OVER (
       PARTITION BY wb."A", wf."organizationId",
-                   wf.metadata->>'defaultRecurringContent'->>'contentType'
+                   wf.metadata->'defaultRecurringContent'->>'contentType'
       ORDER BY wf."createdAt" ASC, wf.id ASC
     )                                                                       AS rn
   FROM "workflows" wf
@@ -88,7 +122,9 @@ DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_indexes
-    WHERE indexname = 'workflows_default_recurring_brand_org_type_uidx'
+    WHERE schemaname = 'public'
+      AND tablename = 'workflows'
+      AND indexname = 'workflows_default_recurring_brand_org_type_uidx'
   ) THEN
     CREATE UNIQUE INDEX "workflows_default_recurring_brand_org_type_uidx"
       ON "workflows" (
