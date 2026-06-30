@@ -1,5 +1,6 @@
 import type { AssetCategory, CredentialPlatform } from '@genfeedai/enums';
 import type {
+  AccountHealthSummary,
   IArticle,
   IBrand,
   IImage,
@@ -41,6 +42,9 @@ export interface BrandDetailLatestArticlesProps {
 }
 
 export interface BrandDetailSocialConnection {
+  accountHealth?: AccountHealthSummary;
+  credentialId: string;
+  label?: string | null;
   platform: CredentialPlatform;
   url?: string | null;
   handle?: string | null;

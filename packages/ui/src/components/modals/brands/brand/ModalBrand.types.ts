@@ -23,38 +23,48 @@ export function buildSocialConnections(
   }
 
   const connections: BrandDetailSocialConnection[] = [];
-  const isPlatformConnected = (platform: CredentialPlatform): boolean =>
-    !!brand.credentials?.some(
+  const findConnectedCredential = (platform: CredentialPlatform) =>
+    brand.credentials?.find(
       (credential) =>
         credential.platform === platform && credential.isConnected === true,
     );
 
-  if (isPlatformConnected(CredentialPlatform.YOUTUBE) && brand.youtubeUrl) {
+  const youtubeCredential = findConnectedCredential(CredentialPlatform.YOUTUBE);
+  if (youtubeCredential && brand.youtubeUrl) {
     connections.push({
+      credentialId: youtubeCredential.id,
       handle: brand.youtubeHandle,
       platform: CredentialPlatform.YOUTUBE,
       url: brand.youtubeUrl,
     });
   }
 
-  if (isPlatformConnected(CredentialPlatform.TIKTOK) && brand.tiktokUrl) {
+  const tiktokCredential = findConnectedCredential(CredentialPlatform.TIKTOK);
+  if (tiktokCredential && brand.tiktokUrl) {
     connections.push({
+      credentialId: tiktokCredential.id,
       handle: brand.tiktokHandle,
       platform: CredentialPlatform.TIKTOK,
       url: brand.tiktokUrl,
     });
   }
 
-  if (isPlatformConnected(CredentialPlatform.INSTAGRAM) && brand.instagramUrl) {
+  const instagramCredential = findConnectedCredential(
+    CredentialPlatform.INSTAGRAM,
+  );
+  if (instagramCredential && brand.instagramUrl) {
     connections.push({
+      credentialId: instagramCredential.id,
       handle: brand.instagramHandle,
       platform: CredentialPlatform.INSTAGRAM,
       url: brand.instagramUrl,
     });
   }
 
-  if (isPlatformConnected(CredentialPlatform.TWITTER) && brand.twitterUrl) {
+  const twitterCredential = findConnectedCredential(CredentialPlatform.TWITTER);
+  if (twitterCredential && brand.twitterUrl) {
     connections.push({
+      credentialId: twitterCredential.id,
       handle: brand.twitterHandle,
       platform: CredentialPlatform.TWITTER,
       url: brand.twitterUrl,
