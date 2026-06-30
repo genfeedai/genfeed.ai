@@ -119,7 +119,7 @@ Follow-up implementation should treat this page as the product contract:
 - `#211` backfills the first credential-free global source set through `seed:prelaunch-corpus`; it clears the runtime cold-start baseline and starts toward the launch-minimum rows without claiming full launch readiness.
 - `#213` replaces curated topics with public reference ingestion while preserving the platform/content-type targets. The first implementation slice classifies reference records with `sourceKind`, `intendedUse`, `confidence`, `sourceLabel`, `sourceTopic`, `capturedAt`, and `freshnessWindowDays`; LinkedIn fallback topics come from configured public source URLs instead of a hardcoded curated topic list.
 - `#214` should make paid/creative references classifiable so they do not pollute organic trend slices.
-- `#215` should derive prompt-ready packs only from references that satisfy prompt-ready metadata.
+- `#215` derives prompt-ready `hooks`, `formats`, `references`, and `constraints` packs only from references that satisfy prompt-ready metadata, and includes source IDs plus regeneration metadata for source updates or expiry.
 - `#216` should automate the health metrics and freshness checks defined here.
 
 ## V1 Boundary

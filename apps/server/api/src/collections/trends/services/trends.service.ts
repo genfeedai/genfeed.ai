@@ -476,6 +476,20 @@ export class TrendsService {
     );
   }
 
+  async getPromptReferencePacks(
+    organizationId?: string,
+    brandId?: string,
+    options: Parameters<
+      TrendReferenceCorpusService['getPromptReferencePacks']
+    >[2] = {},
+  ): ReturnType<TrendReferenceCorpusService['getPromptReferencePacks']> {
+    return this.trendReferenceCorpusService.getPromptReferencePacks(
+      organizationId,
+      brandId,
+      options,
+    );
+  }
+
   async getTopReferenceAccounts(
     organizationId?: string,
     brandId?: string,
