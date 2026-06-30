@@ -39,6 +39,15 @@ describe('TrendReferenceCorpusService', () => {
         latestTrendViralityScore: 91,
         matchedTrendTopics: ['ai tools'],
         platform: 'tiktok',
+        sourceClassification: {
+          capturedAt: '2026-06-01T00:00:00.000Z',
+          confidence: 'medium',
+          freshnessWindowDays: 2,
+          intendedUse: 'organic_trend_discovery',
+          sourceKind: 'public_platform_reference',
+          sourceLabel: 'TikTok',
+          sourceTopic: 'ai tools',
+        },
         sourcePreviewState: 'live',
         title: 'AI tools clip',
       },
@@ -279,6 +288,10 @@ describe('TrendReferenceCorpusService', () => {
     expect(result.items[0]).toMatchObject({
       id: 'ref_tiktok',
       platform: 'tiktok',
+      sourceClassification: expect.objectContaining({
+        intendedUse: 'organic_trend_discovery',
+        sourceKind: 'public_platform_reference',
+      }),
       remixCount: 2,
     });
     expect(prisma.trendSourceReferenceLink.findMany).toHaveBeenCalledWith(
@@ -319,6 +332,57 @@ describe('TrendReferenceCorpusService', () => {
           canonicalUrl: { in: ['https://example.com/a'] },
           isDeleted: false,
         },
+      }),
+    );
+  });
+
+  it('persists source classification when syncing public reference items', async () => {
+    prisma.trendSourceReference.findFirst.mockResolvedValueOnce(null);
+    prisma.trendSourceReference.create.mockResolvedValueOnce({
+      id: 'ref_public',
+    });
+
+    await service.syncTrendReferences([
+      {
+        id: 'trend_public',
+        mentions: 2400,
+        platform: 'linkedin',
+        sourcePreview: [
+          {
+            authorHandle: 'openai',
+            contentType: 'post',
+            id: 'linkedin:openai:primary',
+            platform: 'linkedin',
+            sourceClassification: {
+              capturedAt: '2026-06-09T00:00:00.000Z',
+              confidence: 'low',
+              freshnessWindowDays: 7,
+              intendedUse: 'organic_trend_discovery',
+              sourceKind: 'public_platform_reference',
+              sourceLabel: 'OpenAI',
+              sourceTopic: '#openai',
+            },
+            sourceUrl: 'https://www.linkedin.com/company/openai/',
+            title: 'OpenAI public reference',
+          },
+        ],
+        sourcePreviewState: 'fallback',
+        topic: '#openai',
+        viralityScore: 42,
+      },
+    ]);
+
+    expect(prisma.trendSourceReference.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          data: expect.objectContaining({
+            sourceClassification: expect.objectContaining({
+              intendedUse: 'organic_trend_discovery',
+              sourceKind: 'public_platform_reference',
+              sourceLabel: 'OpenAI',
+            }),
+          }),
+        }),
       }),
     );
   });

@@ -1,5 +1,8 @@
 import { TrendEntity } from '@api/collections/trends/entities/trend.entity';
-import type { TrendSourceItem } from '@api/collections/trends/interfaces/trend.interfaces';
+import type {
+  TrendSourceClassification,
+  TrendSourceItem,
+} from '@api/collections/trends/interfaces/trend.interfaces';
 import { TREND_SOURCE_PREVIEW_LIMIT } from '@api/collections/trends/services/modules/trend-source.constants';
 import type {
   ApifyInstagramPost,
@@ -135,6 +138,9 @@ export class TrendSourceItemsService {
       : [];
     const resolvedSourceUrls =
       sourceUrls.length > 0 ? sourceUrls : mediaUrl ? [mediaUrl] : [];
+    const sourceClassification = this.getTrendSourceClassification(
+      trend.metadata?.sourceClassification,
+    );
 
     return resolvedSourceUrls.map((sourceUrl, index) => ({
       authorHandle:
@@ -152,6 +158,7 @@ export class TrendSourceItemsService {
       platform: trend.platform,
       publishedAt: trend.createdAt?.toISOString(),
       sourceUrl,
+      sourceClassification,
       text:
         typeof trend.metadata?.sampleContent === 'string'
           ? trend.metadata.sampleContent
@@ -392,6 +399,27 @@ export class TrendSourceItemsService {
       typeof item.sourceUrl === 'string' &&
       typeof item.contentType === 'string'
     );
+  }
+
+  private getTrendSourceClassification(
+    value: unknown,
+  ): TrendSourceClassification | undefined {
+    if (!value || typeof value !== 'object') {
+      return undefined;
+    }
+
+    const classification = value as Record<string, unknown>;
+    if (
+      typeof classification.capturedAt !== 'string' ||
+      typeof classification.confidence !== 'string' ||
+      typeof classification.freshnessWindowDays !== 'number' ||
+      typeof classification.intendedUse !== 'string' ||
+      typeof classification.sourceKind !== 'string'
+    ) {
+      return undefined;
+    }
+
+    return classification as unknown as TrendSourceClassification;
   }
 
   private truncateText(
