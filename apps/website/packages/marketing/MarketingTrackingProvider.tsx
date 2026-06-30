@@ -13,6 +13,7 @@ import {
 } from './browser';
 import {
   createConsentState,
+  hasMarketingConsent,
   MARKETING_CONSENT_STORAGE_KEY,
   type MarketingConsentState,
   parseMarketingConsent,
@@ -78,10 +79,7 @@ function MarketingPageTracker({
   consentRef.current = consent;
 
   useEffect(() => {
-    if (
-      consent?.adStorage !== 'granted' &&
-      consent?.analyticsStorage !== 'granted'
-    ) {
+    if (!hasMarketingConsent(consent)) {
       return;
     }
 
@@ -112,10 +110,7 @@ function MarketingPageTracker({
   useEffect(() => {
     const handleTrackedButton = (event: Event) => {
       const currentConsent = consentRef.current;
-      if (
-        currentConsent?.adStorage !== 'granted' &&
-        currentConsent?.analyticsStorage !== 'granted'
-      ) {
+      if (!hasMarketingConsent(currentConsent)) {
         return;
       }
 
@@ -186,10 +181,7 @@ export default function MarketingTrackingProvider({
       analyticsStorage: initialConsent.analyticsStorage,
     });
 
-    if (
-      initialConsent.adStorage === 'granted' ||
-      initialConsent.analyticsStorage === 'granted'
-    ) {
+    if (hasMarketingConsent(initialConsent)) {
       loadMarketingTags(config);
     }
   }, [config, consentDefault]);
@@ -206,10 +198,7 @@ export default function MarketingTrackingProvider({
       analyticsStorage: nextConsent.analyticsStorage,
     });
 
-    if (
-      nextConsent.adStorage === 'granted' ||
-      nextConsent.analyticsStorage === 'granted'
-    ) {
+    if (hasMarketingConsent(nextConsent)) {
       loadMarketingTags(config);
     }
   };
