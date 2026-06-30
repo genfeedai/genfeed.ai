@@ -295,6 +295,7 @@ export class TrendReferenceCorpusService {
     if (trendIds.length > 0) {
       const ownedTrends = await this.prisma.trend.findMany({
         select: { id: true },
+        take: trendIds.length,
         where: {
           id: { in: trendIds },
           isDeleted: false,
@@ -509,6 +510,7 @@ export class TrendReferenceCorpusService {
     );
 
     type AccountKey = string; // `${platform}:${authorHandle}`
+    // sql-risk-audit: ignore aggregate-scan-review -- #629 reviewed aggregate: trend_source_refs_account_lookup_idx bounds isDeleted/platform/author grouping and this returns fixed top-N accounts only.
     const accountRows = await this.prisma.trendSourceReference.groupBy({
       _avg: { latestTrendViralityScore: true },
       _count: { _all: true },
@@ -669,6 +671,7 @@ export class TrendReferenceCorpusService {
       return new Map();
     }
 
+    // sql-risk-audit: ignore raw-sql-review -- #629 EXPLAIN harness covers remixCountsForPage; refs.B ANY is capped by the current reference page and lineage org/brand/isDeleted index constrains tenant rows.
     const rows = await this.prisma.$queryRaw<
       Array<{
         remix_count: bigint | number | string;
@@ -709,6 +712,7 @@ export class TrendReferenceCorpusService {
     const platformFilter = platform
       ? Prisma.sql`AND source_ref."platform" = ${platform}`
       : Prisma.empty;
+    // sql-risk-audit: ignore raw-sql-review -- #629 EXPLAIN harness covers brandRemixCountsByAccount; lineages start from org/brand/isDeleted index and grouped source columns are indexed scalars.
     const rows = await this.prisma.$queryRaw<
       Array<{
         author_handle: string;
