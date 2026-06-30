@@ -1,4 +1,5 @@
 import type { CredentialPlatform } from '@genfeedai/enums';
+import type { AccountHealthSummary } from '../organization/account-health.interface';
 
 export type ContentSurface =
   | 'post'
@@ -57,6 +58,7 @@ export interface AccountPublishingSourceLineage {
 
 export interface AccountPublishingContext {
   account: AccountPublishingContextAccount;
+  accountHealth?: AccountHealthSummary;
   brand: AccountPublishingContextBrand;
   constraints: AccountPublishingConstraints;
   promptHints: string[];

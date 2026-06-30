@@ -2,11 +2,60 @@ import { CredentialPlatform } from '@genfeedai/enums';
 import BrandDetailSocialMediaCard from '@pages/brands/components/sidebar/BrandDetailSocialMediaCard';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getToken = vi.fn(async () => 'token-123');
 const postConnect = vi.fn(async () => ({
   url: 'https://oauth.example/connect',
+}));
+const listBrandAccountHealth = vi.fn(async () => [
+  {
+    assessedAt: '2026-06-30T10:00:00.000Z',
+    credentialId: 'credential-1',
+    holdPublishing: true,
+    holdReason: 'twitter publishing is held because account warmup is warming.',
+    label: 'X Account',
+    override: { isActive: false },
+    platform: CredentialPlatform.TWITTER,
+    riskLevel: 'medium',
+    score: 56,
+    signals: {
+      connectedDays: 1,
+      profileSignals: 2,
+      publishedPosts: 0,
+      recentFailures: 0,
+    },
+    state: 'warming',
+    thresholds: {
+      maxRecentFailures: 0,
+      minConnectedDays: 10,
+      minProfileSignals: 2,
+      minPublishedPosts: 4,
+    },
+  },
+]);
+const overrideAccountHealth = vi.fn(async () => ({
+  assessedAt: '2026-06-30T10:00:00.000Z',
+  credentialId: 'credential-1',
+  holdPublishing: false,
+  label: 'X Account',
+  override: { isActive: true },
+  platform: CredentialPlatform.TWITTER,
+  riskLevel: 'medium',
+  score: 56,
+  signals: {
+    connectedDays: 1,
+    profileSignals: 2,
+    publishedPosts: 0,
+    recentFailures: 0,
+  },
+  state: 'warming',
+  thresholds: {
+    maxRecentFailures: 0,
+    minConnectedDays: 10,
+    minProfileSignals: 2,
+    minPublishedPosts: 4,
+  },
 }));
 
 vi.mock('@genfeedai/auth-client/react', () => ({
@@ -15,9 +64,30 @@ vi.mock('@genfeedai/auth-client/react', () => ({
   }),
 }));
 
+vi.mock('@helpers/auth/auth.helper', () => ({
+  resolveAuthToken: vi.fn(async (getTokenFn: () => Promise<string>) =>
+    getTokenFn(),
+  ),
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => ({
+    getToken,
+  }),
+}));
+
 vi.mock('@services/external/services.service', () => ({
   ServicesService: class {
     postConnect = postConnect;
+  },
+}));
+
+vi.mock('@services/organization/credentials.service', () => ({
+  CredentialsService: {
+    getInstance: () => ({
+      listBrandAccountHealth,
+      overrideAccountHealth,
+    }),
   },
 }));
 
@@ -31,6 +101,7 @@ vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: () => ({
       error: vi.fn(),
+      success: vi.fn(),
     }),
   },
 }));
@@ -56,6 +127,10 @@ Object.defineProperty(window, 'open', {
 });
 
 describe('BrandDetailSocialMediaCard', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('renders the social media card shell', () => {
     render(
       <BrandDetailSocialMediaCard
@@ -78,6 +153,7 @@ describe('BrandDetailSocialMediaCard', () => {
         brandId="brand-1"
         connections={[
           {
+            credentialId: 'credential-1',
             handle: 'genfeed',
             platform: CredentialPlatform.TWITTER,
             url: 'https://x.com/genfeed',
@@ -118,6 +194,7 @@ describe('BrandDetailSocialMediaCard', () => {
         brandId="brand-1"
         connections={[
           {
+            credentialId: 'credential-1',
             handle: 'genfeed',
             platform: CredentialPlatform.TWITTER,
             url: 'https://x.com/genfeed',
@@ -134,5 +211,39 @@ describe('BrandDetailSocialMediaCard', () => {
     expect(
       screen.getByText(/connect channels for this brand/i),
     ).toBeInTheDocument();
+  });
+
+  it('renders account health and confirms a manual override', async () => {
+    render(
+      <BrandDetailSocialMediaCard
+        brandId="brand-1"
+        connections={[
+          {
+            credentialId: 'credential-1',
+            handle: 'genfeed',
+            platform: CredentialPlatform.TWITTER,
+            url: 'https://x.com/genfeed',
+          },
+        ]}
+        connectedPlatformsCount={1}
+      />,
+    );
+
+    expect(await screen.findByText('Account health')).toBeInTheDocument();
+    expect(screen.getByText('Warming')).toBeInTheDocument();
+    expect(screen.getByText(/score 56/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /override 24h/i }));
+    fireEvent.click(screen.getByRole('button', { name: /confirm override/i }));
+
+    await waitFor(() => {
+      expect(overrideAccountHealth).toHaveBeenCalledWith(
+        'credential-1',
+        expect.objectContaining({
+          confirm: true,
+          reason: 'Manual override confirmed from brand social dashboard.',
+        }),
+      );
+    });
   });
 });

@@ -5,12 +5,14 @@ import {
   ButtonVariant,
   CredentialPlatform,
 } from '@genfeedai/enums';
+import type { AccountHealthSummary } from '@genfeedai/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import type { BrandDetailSocialMediaCardProps } from '@props/pages/brand-detail.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ServicesService } from '@services/external/services.service';
+import { CredentialsService } from '@services/organization/credentials.service';
 import Card from '@ui/card/Card';
 import SocialMediaLink from '@ui/media/social-media-link/SocialMediaLink';
 import { Button } from '@ui/primitives/button';
@@ -22,7 +24,7 @@ import {
   DialogTitle,
 } from '@ui/primitives/dialog';
 import type { ReactNode } from 'react';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FaFacebook,
   FaInstagram,
@@ -130,6 +132,37 @@ const OAUTH_PLATFORMS = [
   },
 ];
 
+const STATE_LABELS: Record<AccountHealthSummary['state'], string> = {
+  healthy: 'Healthy',
+  not_started: 'Not started',
+  risky: 'Risky',
+  warming: 'Warming',
+};
+
+function getHealthToneClass(summary: AccountHealthSummary): string {
+  if (summary.override.isActive) {
+    return 'border-info/30 bg-info/10 text-info';
+  }
+
+  if (summary.holdPublishing || summary.riskLevel === 'high') {
+    return 'border-warning/30 bg-warning/10 text-warning';
+  }
+
+  return 'border-success/30 bg-success/10 text-success';
+}
+
+function formatHealthDetail(summary: AccountHealthSummary): string {
+  if (summary.override.isActive) {
+    return 'Manual override active for this account.';
+  }
+
+  if (summary.holdPublishing) {
+    return summary.holdReason ?? 'Scheduled publishing is held for warmup.';
+  }
+
+  return `${summary.signals.publishedPosts} published post${summary.signals.publishedPosts === 1 ? '' : 's'} across ${summary.signals.connectedDays} connected day${summary.signals.connectedDays === 1 ? '' : 's'}.`;
+}
+
 export default function BrandDetailSocialMediaCard({
   brandId,
   connections,
@@ -140,6 +173,14 @@ export default function BrandDetailSocialMediaCard({
   const [connectingPlatform, setConnectingPlatform] = useState<string | null>(
     null,
   );
+  const [accountHealth, setAccountHealth] = useState<AccountHealthSummary[]>(
+    [],
+  );
+  const [isHealthLoading, setIsHealthLoading] = useState(false);
+  const [overrideCredentialId, setOverrideCredentialId] = useState<
+    string | null
+  >(null);
+  const [isOverrideSubmitting, setIsOverrideSubmitting] = useState(false);
 
   const connectedConnections = useMemo(
     () =>
@@ -160,6 +201,64 @@ export default function BrandDetailSocialMediaCard({
     () => OAUTH_PLATFORMS.filter((p) => !connectedPlatforms.has(p.platform)),
     [connectedPlatforms],
   );
+  const connectionHealth = useMemo(
+    () =>
+      connections
+        .map((connection) => connection.accountHealth)
+        .filter(
+          (summary): summary is AccountHealthSummary => summary !== undefined,
+        ),
+    [connections],
+  );
+  const healthRows =
+    accountHealth.length > 0 ? accountHealth : connectionHealth;
+  const selectedOverrideHealth = useMemo(
+    () =>
+      healthRows.find(
+        (summary) => summary.credentialId === overrideCredentialId,
+      ) ?? null,
+    [healthRows, overrideCredentialId],
+  );
+
+  const loadAccountHealth = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!brandId || connectedPlatformsCount === 0) {
+        setAccountHealth([]);
+        return;
+      }
+
+      setIsHealthLoading(true);
+      try {
+        const token = (await resolveAuthToken(getToken)) ?? '';
+        if (signal?.aborted) {
+          return;
+        }
+        const service = CredentialsService.getInstance(token);
+        const summaries = await service.listBrandAccountHealth(brandId);
+        if (!signal?.aborted) {
+          setAccountHealth(summaries);
+        }
+      } catch (error) {
+        if (!signal?.aborted) {
+          logger.error('Failed to load account health', error);
+        }
+      } finally {
+        if (!signal?.aborted) {
+          setIsHealthLoading(false);
+        }
+      }
+    },
+    [brandId, connectedPlatformsCount, getToken],
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadAccountHealth(controller.signal);
+
+    return () => {
+      controller.abort();
+    };
+  }, [loadAccountHealth]);
 
   const handleConnectPlatform = async (platform: string) => {
     try {
@@ -172,6 +271,39 @@ export default function BrandDetailSocialMediaCard({
       logger.error(`Failed to initiate ${platform} OAuth:`, error);
       NotificationsService.getInstance().error(`Connect ${platform}`);
       setConnectingPlatform(null);
+    }
+  };
+
+  const handleConfirmOverride = async () => {
+    if (!selectedOverrideHealth) {
+      return;
+    }
+
+    setIsOverrideSubmitting(true);
+    try {
+      const token = (await resolveAuthToken(getToken)) ?? '';
+      const service = CredentialsService.getInstance(token);
+      const updated = await service.overrideAccountHealth(
+        selectedOverrideHealth.credentialId,
+        {
+          confirm: true,
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          reason: 'Manual override confirmed from brand social dashboard.',
+        },
+      );
+      setAccountHealth((current) => {
+        const withoutUpdated = current.filter(
+          (summary) => summary.credentialId !== updated.credentialId,
+        );
+        return [...withoutUpdated, updated];
+      });
+      NotificationsService.getInstance().success('Warmup override confirmed');
+      setOverrideCredentialId(null);
+    } catch (error) {
+      logger.error('Failed to confirm account health override', error);
+      NotificationsService.getInstance().error('Confirm warmup override');
+    } finally {
+      setIsOverrideSubmitting(false);
     }
   };
 
@@ -233,6 +365,57 @@ export default function BrandDetailSocialMediaCard({
               No social accounts connected yet.
             </div>
           )}
+
+          {healthRows.length > 0 ? (
+            <div className="space-y-3 border-t border-border pt-4">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold">Account health</h3>
+                {isHealthLoading ? (
+                  <span className="text-xs text-muted-foreground">
+                    Checking
+                  </span>
+                ) : null}
+              </div>
+              <div className="space-y-2">
+                {healthRows.map((summary) => (
+                  <div
+                    className="space-y-2 border-t border-border/70 pt-3 first:border-t-0 first:pt-0"
+                    key={summary.credentialId}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">
+                          {summary.label}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {summary.platform} · score {summary.score}
+                        </p>
+                      </div>
+                      <span
+                        className={`shrink-0 rounded-sm border px-2 py-1 text-[10px] font-semibold uppercase ${getHealthToneClass(summary)}`}
+                      >
+                        {STATE_LABELS[summary.state]}
+                      </span>
+                    </div>
+                    <p className="text-xs leading-5 text-muted-foreground">
+                      {formatHealthDetail(summary)}
+                    </p>
+                    {summary.holdPublishing ? (
+                      <Button
+                        size={ButtonSize.SM}
+                        variant={ButtonVariant.OUTLINE}
+                        onClick={() =>
+                          setOverrideCredentialId(summary.credentialId)
+                        }
+                      >
+                        Override 24h
+                      </Button>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       </Card>
 
@@ -283,6 +466,51 @@ export default function BrandDetailSocialMediaCard({
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(selectedOverrideHealth)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setOverrideCredentialId(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm warmup override</DialogTitle>
+            <DialogDescription>
+              This bypasses the account-health publishing hold for 24 hours. Use
+              it only after reviewing the platform warmup guidance.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedOverrideHealth ? (
+            <div className="space-y-4">
+              <div className="rounded-md border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
+                {selectedOverrideHealth.holdReason ??
+                  'This account is currently held by warmup state.'}
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.GHOST}
+                  onClick={() => setOverrideCredentialId(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.SECONDARY}
+                  isLoading={isOverrideSubmitting}
+                  onClick={handleConfirmOverride}
+                >
+                  Confirm override
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </DialogContent>
       </Dialog>
     </>
