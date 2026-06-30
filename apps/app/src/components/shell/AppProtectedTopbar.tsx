@@ -34,6 +34,7 @@ const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
   NonNullable<TopbarProps['currentApp']>,
   string
 > = {
+  admin: 'Admin',
   agent: 'Agent',
   analytics: 'Analytics',
   compose: 'Compose',
@@ -209,6 +210,7 @@ function AppProtectedTopbarContent({
             <AppSwitcher
               variant="icon"
               currentApp={currentApp ?? 'workspace'}
+              currentPath={pathname}
               orgSlug={effectiveOrgSlug}
               brandSlug={effectiveBrandSlug}
               showAdmin={isSuperAdmin}
