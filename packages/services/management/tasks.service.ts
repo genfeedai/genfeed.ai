@@ -20,7 +20,8 @@ export type TaskLinkedEntityModel =
   | 'Article'
   | 'Evaluation'
   | 'Ingredient'
-  | 'Post';
+  | 'Post'
+  | 'Workflow';
 
 export type TaskExecutionPath =
   | 'agent_orchestrator'

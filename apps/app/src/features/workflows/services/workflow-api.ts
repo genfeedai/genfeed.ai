@@ -229,6 +229,32 @@ export interface WorkflowTemplate {
     config: Record<string, unknown>;
     dependsOn?: string[];
   }>;
+  routine?: {
+    inputContract: Array<{
+      key: string;
+      label: string;
+      required: boolean;
+      description: string;
+    }>;
+    outputDestinations: string[];
+    recommendedSkills: string[];
+    requiredSkills: string[];
+    reviewGateDefaults: {
+      enabled: boolean;
+      mode: 'manual' | 'auto';
+      requiredBeforePublish: boolean;
+    };
+    trackingTasks: Array<{
+      id: string;
+      title: string;
+      description: string;
+      status: string;
+      priority: string;
+    }>;
+    defaultSchedule?: string;
+    defaultTimezone?: string;
+    defaultScheduleEnabled?: boolean;
+  };
 }
 
 /** Webhook info returned from the API */

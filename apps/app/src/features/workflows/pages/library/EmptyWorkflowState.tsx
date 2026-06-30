@@ -21,22 +21,22 @@ export default function EmptyWorkflowState() {
       <div>
         <p className="text-lg font-medium">No workflows yet</p>
         <p className="mt-1 text-sm text-foreground/50">
-          Create your first workflow for a fixed, repeatable automation
-          pipeline.
+          Install a routine or start from a template for a fixed, repeatable
+          automation pipeline.
         </p>
       </div>
       <div className="flex flex-wrap items-center justify-center gap-3">
         <Link href={href('/workflows/templates')}>
           <Button
-            label="Browse Templates"
-            variant={ButtonVariant.SECONDARY}
+            label="Install Routine"
+            variant={ButtonVariant.DEFAULT}
             icon={<HiOutlineDocumentDuplicate className="size-4" />}
           />
         </Link>
         <Link href={href('/workflows/new')}>
           <Button
             label="Create Workflow"
-            variant={ButtonVariant.DEFAULT}
+            variant={ButtonVariant.SECONDARY}
             icon={<HiOutlinePlus className="size-4" />}
           />
         </Link>

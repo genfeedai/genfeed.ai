@@ -26,6 +26,24 @@ describe('CreateTaskDto', () => {
       expect(errors).toHaveLength(0);
     });
 
+    it('accepts workflow linked entities for routine tracking tasks', async () => {
+      const dto = plainToInstance(CreateTaskDto, {
+        linkedEntities: [
+          {
+            entityId: '507f1f77bcf86cd799439011',
+            entityModel: 'Workflow',
+          },
+        ],
+        priority: 'medium',
+        status: 'todo',
+        title: 'Review routine output',
+      });
+
+      const errors = await validate(dto);
+
+      expect(errors).toHaveLength(0);
+    });
+
     it('rejects invalid linked entity models', async () => {
       const dto = plainToInstance(CreateTaskDto, {
         linkedEntities: [

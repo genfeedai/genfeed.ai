@@ -15,6 +15,7 @@ import {
 
 const TEMPLATE_CATEGORIES = [
   { id: 'all', label: 'All Templates' },
+  { id: 'routines', label: 'Routines' },
   { id: 'social', label: 'Social Media' },
   { id: 'video', label: 'Video' },
   { id: 'editing', label: 'Editing' },
@@ -179,6 +180,13 @@ function WorkflowTemplatesPageContent() {
     selectedCategory === 'all'
       ? templates
       : templates.filter((t) => t.category === selectedCategory);
+  const sortedTemplates = [...filteredTemplates].sort((a, b) => {
+    if (Boolean(a.routine) !== Boolean(b.routine)) {
+      return a.routine ? -1 : 1;
+    }
+
+    return a.name.localeCompare(b.name);
+  });
 
   if (isLoading || isBootstrapping) {
     return (
@@ -292,7 +300,7 @@ function WorkflowTemplatesPageContent() {
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredTemplates.map((template) => (
+            {sortedTemplates.map((template) => (
               <div
                 key={template.id}
                 className="group relative overflow-hidden border border-white/[0.08] bg-card"
@@ -306,10 +314,49 @@ function WorkflowTemplatesPageContent() {
 
                 {/* Template Info */}
                 <div className="p-4">
-                  <h3 className="mb-1 font-semibold">{template.name}</h3>
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <h3 className="font-semibold">{template.name}</h3>
+                    {template.routine ? (
+                      <span className="shrink-0 border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                        Routine
+                      </span>
+                    ) : null}
+                  </div>
                   <p className="mb-3 text-sm text-muted-foreground line-clamp-2">
                     {template.description}
                   </p>
+                  {template.routine ? (
+                    <div className="mb-3 space-y-2 text-xs text-muted-foreground">
+                      <div className="flex flex-wrap gap-1.5">
+                        {template.routine.requiredSkills.map((skill) => (
+                          <span
+                            key={`${template.id}-${skill}`}
+                            className="border border-white/[0.08] bg-white/[0.03] px-2 py-1"
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <span>
+                          {template.routine.inputContract.length} inputs
+                        </span>
+                        <span>
+                          {template.routine.trackingTasks.length} tasks
+                        </span>
+                        <span>
+                          {template.routine.reviewGateDefaults.enabled
+                            ? 'Review on'
+                            : 'Review off'}
+                        </span>
+                        <span>
+                          {template.routine.defaultScheduleEnabled
+                            ? 'Scheduled'
+                            : 'Manual'}
+                        </span>
+                      </div>
+                    </div>
+                  ) : null}
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">
                       {template.steps.length} steps
@@ -320,7 +367,7 @@ function WorkflowTemplatesPageContent() {
                       )}
                       className=" bg-primary px-4 py-2 text-sm text-primary-foreground opacity-0 transition-opacity hover:bg-primary/90 group-hover:opacity-100"
                     >
-                      Use Template
+                      {template.routine ? 'Install Routine' : 'Use Template'}
                     </Link>
                   </div>
                 </div>

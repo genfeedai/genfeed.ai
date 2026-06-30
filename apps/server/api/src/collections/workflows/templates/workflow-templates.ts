@@ -1,7 +1,37 @@
 import { CONTENT_LOOP_TEMPLATE } from '@api/collections/workflows/templates/content-loop.template';
 import { DAILY_TRENDS_DIGEST_TEMPLATE } from '@api/collections/workflows/templates/daily-trends-digest.template';
 import { GENERATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/generation-templates';
+import { PRODUCTIZED_ROUTINE_TEMPLATES } from '@api/collections/workflows/templates/productized-routines.template';
 import { WorkflowStepCategory } from '@genfeedai/enums';
+
+export interface RoutineTrackingTaskTemplate {
+  id: string;
+  title: string;
+  description: string;
+  status: 'backlog' | 'todo' | 'in_progress' | 'blocked' | 'in_review';
+  priority: 'critical' | 'high' | 'medium' | 'low';
+}
+
+export interface WorkflowRoutineMetadata {
+  inputContract: Array<{
+    key: string;
+    label: string;
+    required: boolean;
+    description: string;
+  }>;
+  outputDestinations: string[];
+  recommendedSkills: string[];
+  requiredSkills: string[];
+  reviewGateDefaults: {
+    enabled: boolean;
+    mode: 'manual' | 'auto';
+    requiredBeforePublish: boolean;
+  };
+  trackingTasks: RoutineTrackingTaskTemplate[];
+  defaultSchedule?: string;
+  defaultTimezone?: string;
+  defaultScheduleEnabled?: boolean;
+}
 
 export interface WorkflowTemplate {
   id: string;
@@ -42,10 +72,12 @@ export interface WorkflowTemplate {
     config: Record<string, unknown>;
     dependsOn?: string[];
   }>;
+  routine?: WorkflowRoutineMetadata;
 }
 
 export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
   ...GENERATION_WORKFLOW_TEMPLATES,
+  ...PRODUCTIZED_ROUTINE_TEMPLATES,
   'content-loop': CONTENT_LOOP_TEMPLATE,
   'daily-trends-digest': DAILY_TRENDS_DIGEST_TEMPLATE,
   'ad-remix-review': {

@@ -20,6 +20,7 @@ export const TASK_LINKED_ENTITY_MODELS = [
   'Post',
   'Article',
   'Evaluation',
+  'Workflow',
 ] as const;
 
 export const TASK_OUTPUT_TYPES = [

@@ -35,6 +35,7 @@ const ENTITY_MODEL_LABELS: Record<TaskLinkedEntityModel, string> = {
   Evaluation: 'Evaluation',
   Ingredient: 'Ingredient',
   Post: 'Post',
+  Workflow: 'Workflow',
 };
 
 const ENTITY_MODEL_COLORS: Record<TaskLinkedEntityModel, string> = {
@@ -42,6 +43,7 @@ const ENTITY_MODEL_COLORS: Record<TaskLinkedEntityModel, string> = {
   Evaluation: 'bg-amber-500/15 text-amber-400',
   Ingredient: 'bg-cyan-500/15 text-cyan-400',
   Post: 'bg-emerald-500/15 text-emerald-400',
+  Workflow: 'bg-blue-500/15 text-blue-400',
 };
 
 const STATUS_LABELS: Record<TaskStatus, string> = {

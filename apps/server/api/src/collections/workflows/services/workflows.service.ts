@@ -28,7 +28,11 @@ import { DAILY_TRENDS_DIGEST_TEMPLATE } from '@api/collections/workflows/templat
 import { LIVESTREAM_BOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/livestream-bot-workflows.template';
 import { REPLY_POLLING_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/reply-polling-workflows.template';
 import { TREND_NOTIFICATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/trend-notification-workflows.template';
-import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
+import {
+  type RoutineTrackingTaskTemplate,
+  WORKFLOW_TEMPLATES,
+  type WorkflowTemplate,
+} from '@api/collections/workflows/templates/workflow-templates';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
@@ -98,19 +102,21 @@ export class WorkflowsService extends BaseService<
     workflowData: CreateWorkflowDto,
   ): Promise<WorkflowEntity> {
     let steps = workflowData.steps || [];
+    const sourceTemplate = workflowData.templateId
+      ? WORKFLOW_TEMPLATES[workflowData.templateId]
+      : undefined;
     const templateMetadata = workflowData.templateId
       ? {
           sourceTemplateId: workflowData.templateId,
           sourceType: 'seeded-template',
         }
       : undefined;
+    const routineMetadata = sourceTemplate?.routine
+      ? this.buildRoutineWorkflowMetadata(sourceTemplate)
+      : undefined;
 
     // If using a template, load predefined steps
-    if (
-      workflowData.templateId &&
-      WORKFLOW_TEMPLATES[workflowData.templateId]
-    ) {
-      const template = WORKFLOW_TEMPLATES[workflowData.templateId];
+    if (sourceTemplate) {
       const shouldUseTemplateEdges =
         !workflowData.edges || workflowData.edges.length === 0;
       const shouldUseTemplateInputVariables =
@@ -121,17 +127,29 @@ export class WorkflowsService extends BaseService<
 
       workflowData = {
         ...workflowData,
-        edges: shouldUseTemplateEdges ? template.edges : workflowData.edges,
+        edges: shouldUseTemplateEdges
+          ? sourceTemplate.edges
+          : workflowData.edges,
         inputVariables: shouldUseTemplateInputVariables
-          ? template.inputVariables
+          ? sourceTemplate.inputVariables
           : workflowData.inputVariables,
+        isScheduleEnabled:
+          workflowData.isScheduleEnabled ??
+          sourceTemplate.routine?.defaultScheduleEnabled,
         metadata: {
           ...templateMetadata,
+          ...(routineMetadata ? { routine: routineMetadata } : {}),
           ...(workflowData.metadata ?? {}),
         },
-        nodes: shouldUseTemplateNodes ? template.nodes : workflowData.nodes,
+        nodes: shouldUseTemplateNodes
+          ? sourceTemplate.nodes
+          : workflowData.nodes,
+        schedule:
+          workflowData.schedule ?? sourceTemplate.routine?.defaultSchedule,
+        timezone:
+          workflowData.timezone ?? sourceTemplate.routine?.defaultTimezone,
       };
-      steps = template.steps.map((step) => ({
+      steps = sourceTemplate.steps.map((step) => ({
         ...step,
         label: step.name,
         status: WorkflowStepStatus.PENDING,
@@ -159,8 +177,32 @@ export class WorkflowsService extends BaseService<
       user: userId,
     });
 
+    const trackingTasks = await this.ensureRoutineTrackingTasks(
+      workflow,
+      sourceTemplate,
+      userId,
+      organizationId,
+    );
+    let responseWorkflow = workflow;
+
+    if (trackingTasks.length > 0) {
+      responseWorkflow = await this.patch(workflow.id, {
+        metadata: {
+          ...(workflow.metadata ?? {}),
+          routine: {
+            ...((workflow.metadata?.routine as Record<string, unknown>) ?? {}),
+            trackingTaskIds: trackingTasks.map((task) => task.id),
+            trackingTasks,
+          },
+        },
+      });
+    }
+
     // If trigger is manual, start execution immediately
-    if ((workflowData.trigger as string) === 'manual') {
+    if (
+      (workflowData.trigger as string) === 'manual' &&
+      !sourceTemplate?.routine
+    ) {
       this.executeWorkflowCompat(
         workflow._id.toString(),
         userId,
@@ -172,7 +214,190 @@ export class WorkflowsService extends BaseService<
       });
     }
 
-    return EntityFactory.fromDocument(WorkflowEntity, workflow);
+    return EntityFactory.fromDocument(WorkflowEntity, responseWorkflow);
+  }
+
+  private buildRoutineWorkflowMetadata(
+    template: WorkflowTemplate,
+  ): Record<string, unknown> {
+    const routine = template.routine;
+
+    if (!routine) {
+      return {};
+    }
+
+    return {
+      inputContract: routine.inputContract,
+      outputDestinations: routine.outputDestinations,
+      recommendedSkills: routine.recommendedSkills,
+      requiredSkills: routine.requiredSkills,
+      reviewGateDefaults: routine.reviewGateDefaults,
+      routineId: template.id,
+      routineName: template.name,
+      sourceIssue: 224,
+      trackingTaskTemplates: routine.trackingTasks,
+    };
+  }
+
+  private async ensureRoutineTrackingTasks(
+    workflow: WorkflowDocument,
+    template: WorkflowTemplate | undefined,
+    userId: string,
+    organizationId: string,
+  ): Promise<
+    Array<{
+      id: string;
+      identifier: string;
+      status: string;
+      title: string;
+    }>
+  > {
+    if (!template?.routine?.trackingTasks.length) {
+      return [];
+    }
+
+    const workflowId = workflow.id;
+    const existing = await this.prisma.task.findMany({
+      orderBy: { createdAt: 'asc' },
+      select: { config: true, id: true, status: true, title: true },
+      where: {
+        config: {
+          equals: workflowId,
+          path: ['routine', 'workflowId'],
+        },
+        isDeleted: false,
+        organizationId,
+      },
+    });
+
+    if (existing.length > 0) {
+      return existing.map((task) => ({
+        id: task.id,
+        identifier: this.readConfigString(task.config, 'identifier') ?? task.id,
+        status: task.status,
+        title: task.title ?? 'Routine task',
+      }));
+    }
+
+    const organization = await this.prisma.organization.findFirst({
+      select: { prefix: true },
+      where: { id: organizationId, isDeleted: false },
+    });
+    const prefix = organization?.prefix?.trim() || 'TASK';
+    const createdTasks: Array<{
+      id: string;
+      identifier: string;
+      status: string;
+      title: string;
+    }> = [];
+
+    for (const trackingTask of template.routine.trackingTasks) {
+      const taskNumber = await this.nextTaskNumber(organizationId);
+      const identifier = `${prefix}-${taskNumber}`;
+      const created = await this.prisma.task.create({
+        data: {
+          config: {
+            identifier,
+            linkedApprovalIds: [],
+            linkedEntities: [
+              {
+                entityId: workflowId,
+                entityModel: 'Workflow',
+              },
+            ],
+            linkedOutputIds: [],
+            linkedRunIds: [],
+            routine: {
+              sourceIssue: 224,
+              taskTemplateId: trackingTask.id,
+              templateId: template.id,
+              workflowId,
+            },
+            taskNumber,
+          },
+          description: trackingTask.description,
+          eventStream: [
+            {
+              id: `${trackingTask.id}-created`,
+              payload: {
+                routineId: template.id,
+                workflowId,
+              },
+              timestamp: new Date().toISOString(),
+              type: 'routine_tracking_task_created',
+              userId,
+            },
+          ],
+          isDeleted: false,
+          organizationId,
+          approvedOutputIds: [],
+          priority: this.mapRoutineTaskPriority(trackingTask),
+          progress: {
+            activeRunCount: 0,
+            message: 'Routine tracking task created.',
+            percent: 0,
+            stage: 'queued',
+          },
+          status: trackingTask.status,
+          title: trackingTask.title,
+          userId,
+        },
+      });
+
+      createdTasks.push({
+        id: created.id,
+        identifier,
+        status: created.status,
+        title: created.title ?? trackingTask.title,
+      });
+    }
+
+    return createdTasks;
+  }
+
+  private async nextTaskNumber(organizationId: string): Promise<number> {
+    const existing = await this.prisma.taskCounter.findFirst({
+      where: { organizationId },
+    });
+
+    if (existing) {
+      const updated = await this.prisma.taskCounter.update({
+        data: { counter: { increment: 1 } },
+        where: { id: existing.id },
+      });
+      return updated.counter;
+    }
+
+    const created = await this.prisma.taskCounter.create({
+      data: { counter: 1, organizationId },
+    });
+    return created.counter;
+  }
+
+  private mapRoutineTaskPriority(
+    task: RoutineTrackingTaskTemplate,
+  ): 'HIGH' | 'LOW' | 'MEDIUM' | 'URGENT' {
+    switch (task.priority) {
+      case 'critical':
+        return 'URGENT';
+      case 'high':
+        return 'HIGH';
+      case 'low':
+        return 'LOW';
+      case 'medium':
+        return 'MEDIUM';
+      default:
+        return 'MEDIUM';
+    }
+  }
+
+  private readConfigString(config: unknown, key: string): string | null {
+    if (!config || typeof config !== 'object' || Array.isArray(config)) {
+      return null;
+    }
+
+    const value = (config as Record<string, unknown>)[key];
+    return typeof value === 'string' ? value : null;
   }
 
   /**
