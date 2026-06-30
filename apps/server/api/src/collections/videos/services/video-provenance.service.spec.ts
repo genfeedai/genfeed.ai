@@ -197,4 +197,35 @@ describe('VideoProvenanceService', () => {
     expect(pkg.transcriptSidecar.segmentCount).toBe(0);
     expect(pkg.transcriptSidecar.vtt).toBe('WEBVTT\n');
   });
+
+  it('builds watermark attribution evaluation from the scoped provenance package', async () => {
+    videosService.findOne.mockResolvedValue(makeVideo());
+    metadataService.findOne.mockResolvedValue({
+      duration: 12,
+      fps: 24,
+      hasAudio: true,
+      height: 1920,
+      resolution: '1080x1920',
+      width: 1080,
+    });
+    captionsService.find.mockResolvedValue([{ content: 'Hello there' }]);
+
+    const evaluation = await service.buildWatermarkAttributionEvaluation(
+      'video-1',
+      { organizationId: 'org-1', userId: 'user-1' },
+    );
+
+    expect(videosService.findOne).toHaveBeenCalledWith({
+      OR: [{ user: 'user-1' }, { organization: 'org-1' }],
+      _id: 'video-1',
+      isDeleted: false,
+    });
+    expect(evaluation.primaryApproach).toBe('provenance_manifest');
+    expect(evaluation.missingSignals).toEqual(['contentHash']);
+    expect(evaluation.approaches[0]).toMatchObject({
+      approach: 'provenance_manifest',
+      readiness: 'ready',
+      tamperDetection: 'low',
+    });
+  });
 });
