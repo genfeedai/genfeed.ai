@@ -7,8 +7,9 @@ their user row has `platformRole = 'SUPERADMIN'`.
 ## Initial Assignment Runbook
 
 The migration `20260624120000_replace_superadmin_flag_with_platform_role`
-backfills legacy `isSuperAdmin = true` rows and assigns
-`vincent@genfeed.ai` as the intended initial platform administrator.
+replaces the removed boolean flag with `platformRole`. The follow-up migration
+`20260630093000_restrict_platform_superadmin_to_vincent` restricts current
+platform-superadmin access to `vincent@genfeed.ai`.
 
 Dry-run verification:
 
@@ -29,7 +30,7 @@ ROLLBACK;
 ```
 
 Expected result: `vincent@genfeed.ai` is present as a `SUPERADMIN`; other rows
-may also appear if they were backfilled from legacy `isSuperAdmin = true`.
+do not have `platformRole = 'SUPERADMIN'`.
 
 If production verification after deploy shows no platform administrator, rerun
 the `UPDATE ... RETURNING` statement above inside a transaction and `COMMIT`

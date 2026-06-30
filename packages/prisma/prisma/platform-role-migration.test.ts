@@ -12,6 +12,13 @@ const migrationSource = readFileSync(
   ),
   'utf8',
 );
+const restrictionMigrationSource = readFileSync(
+  join(
+    prismaDir,
+    'migrations/20260630093000_restrict_platform_superadmin_to_vincent/migration.sql',
+  ),
+  'utf8',
+);
 
 describe('platform role migration', () => {
   it('stores platform authorization as a role instead of a boolean flag', () => {
@@ -34,6 +41,18 @@ describe('platform role migration', () => {
     // stays portable across fresh/community/CI databases instead of raising.
     expect(migrationSource).not.toContain('RAISE EXCEPTION');
     expect(migrationSource).toMatch(
+      /SET "platformRole" = 'SUPERADMIN'\s*\nWHERE lower\("email"\) = lower\('vincent@genfeed\.ai'\)/,
+    );
+  });
+
+  it('restricts current platform superadmin access to the initial admin', () => {
+    expect(restrictionMigrationSource).toContain(
+      'WHERE "platformRole" = \'SUPERADMIN\'',
+    );
+    expect(restrictionMigrationSource).toContain(
+      'AND lower("email") <> lower(\'vincent@genfeed.ai\')',
+    );
+    expect(restrictionMigrationSource).toMatch(
       /SET "platformRole" = 'SUPERADMIN'\s*\nWHERE lower\("email"\) = lower\('vincent@genfeed\.ai'\)/,
     );
   });
