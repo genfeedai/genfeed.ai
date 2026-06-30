@@ -1,5 +1,6 @@
 export * from './brand.interface';
 export * from './brand-interview.interface';
+export * from './brand-kit.interface';
 export * from './byok-key-entry.interface';
 export * from './byok-provider-status.interface';
 export * from './byok-resolution-result.interface';
