@@ -88,8 +88,10 @@ jobs:
           fi
           # Exact-token match. Split on comma/space/newline, then grep -Fx so a
           # login like 'bob' can never match an allowlist entry 'bobby' (no
-          # substring matching).
-          if ! printf '%s' "${FASTLANE_ADMINS}" | tr ',\n\r\t ' '\n' | grep -Fxq -- "${TRIGGERING_ACTOR}"; then
+          # substring matching). -i makes it case-insensitive: GitHub logins are
+          # case-insensitive, and triggering_actor returns the canonical casing,
+          # so the value stored in FASTLANE_ADMINS need not match casing exactly.
+          if ! printf '%s' "${FASTLANE_ADMINS}" | tr ',\n\r\t ' '\n' | grep -Fixq -- "${TRIGGERING_ACTOR}"; then
             echo "::error::Actor '${TRIGGERING_ACTOR}' is not in FASTLANE_ADMINS. Emergency deploy denied."; exit 1
           fi
           echo "Authorized: ${TRIGGERING_ACTOR}"
