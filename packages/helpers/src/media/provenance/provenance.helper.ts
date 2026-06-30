@@ -318,7 +318,13 @@ export function buildMediaWatermarkAttributionEvaluation(
     hasTimestampedTranscript ? null : 'timestampedTranscript',
   ].filter((signal): signal is string => signal !== null);
 
-  const manifestReadiness = hasAddressableAsset ? 'ready' : 'partial';
+  // A required signal for this approach is the timestamped transcript; without
+  // it the manifest path is only partially ready even when the asset is
+  // addressable. contentHash is intentionally NOT a readiness gate — it drives
+  // tamperDetection below, so the manifest can still be 'ready' for attribution
+  // while tamper detection stays 'low' until a hash exists.
+  const manifestReadiness =
+    hasAddressableAsset && hasTimestampedTranscript ? 'ready' : 'partial';
   const manifestTamperDetection = hasContentHash ? 'high' : 'low';
   const manifestAttributionStrength =
     hasAddressableAsset && hasTimestampedTranscript ? 'high' : 'medium';

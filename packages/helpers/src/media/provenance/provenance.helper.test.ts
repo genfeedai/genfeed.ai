@@ -412,4 +412,27 @@ describe('buildMediaWatermarkAttributionEvaluation', () => {
       tamperDetection: 'none',
     });
   });
+
+  it('keeps the manifest path partial when the timestamped transcript is missing', () => {
+    const pkg = buildMediaProvenancePackage(
+      baseInput({
+        canonicalUrl: 'https://cdn.example.com/video-2.mp4',
+        storageKey: 'videos/video-2.mp4',
+      }),
+    );
+
+    const evaluation = buildMediaWatermarkAttributionEvaluation(pkg);
+
+    // Addressable asset is present (canonicalUrl_or_storageKey satisfied), but
+    // the required timestamped transcript is absent — readiness must not claim
+    // 'ready' while a required signal is still in missingSignals.
+    expect(evaluation.missingSignals).toContain('timestampedTranscript');
+    expect(evaluation.missingSignals).not.toContain(
+      'canonicalUrl_or_storageKey',
+    );
+    expect(evaluation.approaches[0]).toMatchObject({
+      approach: 'provenance_manifest',
+      readiness: 'partial',
+    });
+  });
 });
