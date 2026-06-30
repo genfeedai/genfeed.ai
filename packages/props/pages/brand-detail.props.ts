@@ -92,6 +92,12 @@ export interface BrandDetailIdentityCardProps {
   onRefreshBrand: () => Promise<void>;
 }
 
+export interface BrandKitReviewCardProps {
+  brand: IBrand;
+  brandId: string;
+  onRefreshBrand: () => Promise<void>;
+}
+
 export interface BrandDetailReferencesCardProps {
   brand: IBrand;
   deletingRefId: string | null;
