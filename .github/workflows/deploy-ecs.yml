@@ -1,6 +1,6 @@
 # ECS production deploy (replaces the SSH-waves path post-cutover).
-# Dispatch-only. Flow: validate master -> QA before deploy -> production
-# environment approval -> resolve server:<sha> in GHCR -> copy GHCR->ECR ->
+# Dispatch-only. Flow: validate master -> QA before deploy -> resolve
+# server:<sha> in GHCR -> copy GHCR->ECR ->
 # run Prisma migrate task -> run workflow migration/backfill task -> terraform
 # apply rolls services (task defs are TF-managed with image_tag) -> wait
 # services-stable -> deploy Vercel frontends -> live post-deploy smoke.
@@ -63,7 +63,12 @@ jobs:
     needs: qa-before-deploy
     runs-on: ubuntu-latest
     timeout-minutes: 90
-    environment: production # <- requires reviewer approval (the human gate)
+    # `environment: production` scopes prod secrets/vars. NOTE: no required
+    # reviewers are configured, so this is NOT a human approval gate. Deploy
+    # safety comes from the dispatch-only trigger, the ref==master checks, the
+    # migrate + boot-smoke pre-roll gates below, and ECS circuit-breaker
+    # rollback — not manual approval.
+    environment: production
     steps:
       - uses: actions/checkout@v5
         with:
