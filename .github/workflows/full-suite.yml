@@ -23,6 +23,11 @@ jobs:
   ci:
     name: CI Gate
     uses: ./.github/workflows/ci.yml
+    # Release/full-suite path runs the full heavy test matrix. A reusable
+    # workflow inherits the caller's originating event, so this must be an
+    # explicit input — `github.event_name` is never `workflow_call` downstream.
+    with:
+      run_heavy_tests: true
     secrets: inherit
 
   build-verify:
