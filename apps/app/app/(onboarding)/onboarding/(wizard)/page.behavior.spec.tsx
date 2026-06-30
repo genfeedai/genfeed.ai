@@ -1,3 +1,4 @@
+import { ONBOARDING_STEPS } from '@genfeedai/constants';
 import { render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -33,7 +34,7 @@ describe('OnboardingRootPage routing', () => {
     mocks.authUser = { isLoaded: true, user: { publicMetadata: {} } };
     mocks.currentUser = {
       currentUser: {
-        onboardingStepsCompleted: ['brand', 'providers', 'summary'],
+        onboardingStepsCompleted: [...ONBOARDING_STEPS],
       },
       isLoading: false,
     };
