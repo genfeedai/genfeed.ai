@@ -4,6 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
+import Card from '@ui/card/Card';
 import { HStack, VStack } from '@ui/layout/stack';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -271,8 +272,9 @@ export default function BrandOSContent(): React.ReactElement {
                 </form>
               </VStack>
 
-              <div
-                className="border border-edge/5 bg-fill/[0.02]"
+              <Card
+                className="border border-edge/5 bg-fill/[0.02] shadow-none hover:shadow-none"
+                bodyClassName="gap-0 p-0"
                 data-testid="brand-os-preview"
               >
                 <div className="grid border-b border-edge/5 md:grid-cols-[0.9fr_1.1fr]">
@@ -389,7 +391,7 @@ export default function BrandOSContent(): React.ReactElement {
                     </Text>
                   </VStack>
                 </div>
-              </div>
+              </Card>
             </div>
           </div>
         </section>
@@ -444,11 +446,15 @@ export default function BrandOSContent(): React.ReactElement {
                 'Candidate Wada/Sanzo-inspired color outputs are labeled as candidates, never product defaults.',
                 'Authenticated review screens use dense controls, evidence rows, and explicit apply/discard states.',
               ].map((rule) => (
-                <div className="border border-edge/5 p-5" key={rule}>
+                <Card
+                  className="border border-edge/5 bg-fill/[0.02] shadow-none hover:shadow-none"
+                  bodyClassName="p-5"
+                  key={rule}
+                >
                   <Text className="text-sm leading-6 text-surface/60">
                     {rule}
                   </Text>
-                </div>
+                </Card>
               ))}
             </div>
 
