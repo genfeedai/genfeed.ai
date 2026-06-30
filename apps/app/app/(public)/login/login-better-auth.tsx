@@ -314,7 +314,7 @@ export default function LoginBetterAuth({
             className={AUTH_BUTTON_CLASS_NAME}
             withWrapper={false}
           >
-            Sign in with Google
+            Google
           </Button>
 
           <Button
@@ -337,7 +337,7 @@ export default function LoginBetterAuth({
           >
             <Link href={magicLinkHref}>
               <Sparkles className="size-4" aria-hidden="true" />
-              <span>Sign in with a magic link</span>
+              <span>Magic Link</span>
             </Link>
           </Button>
 
@@ -349,7 +349,7 @@ export default function LoginBetterAuth({
           >
             <Link href={passwordHref}>
               <KeyRound className="size-4" aria-hidden="true" />
-              <span>Sign in with email and password</span>
+              <span>Email / Password</span>
             </Link>
           </Button>
         </div>
