@@ -211,6 +211,7 @@ export interface WorkflowTemplate {
   description: string;
   category: string;
   icon?: string;
+  isScheduleEnabled?: boolean;
   inputVariables?: Array<{
     key: string;
     type: string;
@@ -220,6 +221,46 @@ export interface WorkflowTemplate {
     required?: boolean;
     validation?: Record<string, unknown>;
   }>;
+  routine?: {
+    cadence: 'daily';
+    inputContract: Array<{
+      defaultValue?: unknown;
+      description?: string;
+      key: string;
+      label: string;
+      required: boolean;
+      type: 'boolean' | 'number' | 'select' | 'text';
+    }>;
+    kind: 'productized-daily-routine';
+    outputDestinations: Array<{
+      key: string;
+      label: string;
+      required: boolean;
+      type: 'email' | 'social_publish' | 'task' | 'workflow_output';
+    }>;
+    parentIssue: number;
+    recommendedSkills: string[];
+    requiredSkills: string[];
+    reviewDefaults: {
+      autoApproveIfNoResponse: boolean;
+      notifyChannels: string[];
+      requireApproval: boolean;
+      reviewState: 'pending_approval';
+      timeoutHours: number;
+    };
+    sourceIssue: number;
+    trackingTasks: Array<{
+      description: string;
+      key: string;
+      outputType: 'newsletter' | 'post';
+      priority: 'critical' | 'high' | 'low' | 'medium';
+      reviewState: 'pending_approval';
+      status: 'in_review' | 'todo';
+      title: string;
+    }>;
+    version: number;
+  };
+  schedule?: string;
   nodes?: Node[];
   edges?: Edge[];
   steps: Array<{
@@ -229,6 +270,7 @@ export interface WorkflowTemplate {
     config: Record<string, unknown>;
     dependsOn?: string[];
   }>;
+  timezone?: string;
 }
 
 /** Webhook info returned from the API */

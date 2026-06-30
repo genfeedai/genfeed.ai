@@ -111,6 +111,9 @@ export class WorkflowsService extends BaseService<
       WORKFLOW_TEMPLATES[workflowData.templateId]
     ) {
       const template = WORKFLOW_TEMPLATES[workflowData.templateId];
+      const routineMetadata = template.routine
+        ? { productizedRoutine: template.routine }
+        : {};
       const shouldUseTemplateEdges =
         !workflowData.edges || workflowData.edges.length === 0;
       const shouldUseTemplateInputVariables =
@@ -125,11 +128,16 @@ export class WorkflowsService extends BaseService<
         inputVariables: shouldUseTemplateInputVariables
           ? template.inputVariables
           : workflowData.inputVariables,
+        isScheduleEnabled:
+          workflowData.isScheduleEnabled ?? template.isScheduleEnabled,
         metadata: {
           ...templateMetadata,
+          ...routineMetadata,
           ...(workflowData.metadata ?? {}),
         },
         nodes: shouldUseTemplateNodes ? template.nodes : workflowData.nodes,
+        schedule: workflowData.schedule ?? template.schedule,
+        timezone: workflowData.timezone ?? template.timezone,
       };
       steps = template.steps.map((step) => ({
         ...step,
