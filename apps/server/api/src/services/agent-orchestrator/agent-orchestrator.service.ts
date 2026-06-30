@@ -999,7 +999,7 @@ export class AgentOrchestratorService {
           let toolName = requestedToolName;
 
           if (!allowedToolNames.has(requestedToolName)) {
-            const recoveredToolName = this.getUnknownToolRecovery(
+            const recoveredToolName = this.getGenerationPreparationRedirect(
               requestedToolName,
               allowedToolNames,
             );
@@ -1075,7 +1075,7 @@ export class AgentOrchestratorService {
 
           const preRemapToolName = toolName;
           const directGenerationOverride =
-            this.getGenerationPreparationOverride(toolName, allowedToolNames);
+            this.getGenerationPreparationRedirect(toolName, allowedToolNames);
           if (directGenerationOverride) {
             const originalToolName = toolName;
             toolName = directGenerationOverride;
@@ -1755,7 +1755,7 @@ export class AgentOrchestratorService {
           let toolName = requestedToolName;
 
           if (!allowedToolNames.has(requestedToolName)) {
-            const recoveredToolName = this.getUnknownToolRecovery(
+            const recoveredToolName = this.getGenerationPreparationRedirect(
               requestedToolName,
               allowedToolNames,
             );
@@ -1784,7 +1784,7 @@ export class AgentOrchestratorService {
 
           const preRemapToolName = toolName;
           const directGenerationOverride =
-            this.getGenerationPreparationOverride(toolName, allowedToolNames);
+            this.getGenerationPreparationRedirect(toolName, allowedToolNames);
           if (directGenerationOverride) {
             const originalToolName = toolName;
             toolName = directGenerationOverride;
@@ -4086,26 +4086,7 @@ export class AgentOrchestratorService {
     return `Unknown tool requested by model: ${toolName}. Available tools: ${preview}${suffix}`;
   }
 
-  private getUnknownToolRecovery(
-    toolName: AgentToolName,
-    allowedTools: Set<AgentToolName>,
-  ): AgentToolName | null {
-    const canPrepareGeneration = allowedTools.has(
-      AgentToolName.PREPARE_GENERATION,
-    );
-    const isRecoverableGenerationTool =
-      toolName === AgentToolName.GENERATE_IMAGE ||
-      toolName === AgentToolName.GENERATE_VIDEO ||
-      toolName === AgentToolName.GENERATE_AS_IDENTITY;
-
-    if (canPrepareGeneration && isRecoverableGenerationTool) {
-      return AgentToolName.PREPARE_GENERATION;
-    }
-
-    return null;
-  }
-
-  private getGenerationPreparationOverride(
+  private getGenerationPreparationRedirect(
     toolName: AgentToolName,
     allowedTools: Set<AgentToolName>,
   ): AgentToolName | null {
