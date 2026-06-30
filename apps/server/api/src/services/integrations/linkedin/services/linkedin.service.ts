@@ -1,4 +1,5 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import type { TrendSourceClassification } from '@api/collections/trends/interfaces/trend.interfaces';
 import { ConfigService } from '@api/config/config.service';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
@@ -19,7 +20,8 @@ interface LinkedInTrendTopic {
   mentions: number;
   metadata: {
     sampleContent?: string;
-    source: 'curated' | 'public-scrape';
+    source: 'public-reference' | 'public-scrape';
+    sourceClassification?: TrendSourceClassification;
     thumbnailUrl?: string;
     trendType: 'hashtag' | 'topic';
     urls?: string[];
@@ -583,7 +585,7 @@ export class LinkedInService {
    *
    * The official LinkedIn integration does not expose a public trending-topics
    * endpoint, so we derive live-ish signals from recent public posts on known
-   * public pages and fall back to curated evergreen topics only when public
+   * public pages and fall back to the configured public reference sources when
    * scraping does not yield enough signal.
    */
   public async getTrends(
@@ -622,16 +624,16 @@ export class LinkedInService {
       }
 
       this.loggerService.warn(
-        `${url} - public LinkedIn scrape returned no usable topics, falling back to curated topics`,
+        `${url} - public LinkedIn scrape returned no usable topics, falling back to public reference topics`,
       );
     } catch (error: unknown) {
       this.loggerService.warn(
-        `${url} - public LinkedIn scrape failed, falling back to curated topics`,
+        `${url} - public LinkedIn scrape failed, falling back to public reference topics`,
         { error: error instanceof Error ? error.message : String(error) },
       );
     }
 
-    return this.getCuratedTopics();
+    return this.getPublicReferenceTopics(sourceUrls);
   }
 
   private getTrendSourceUrls(): string[] {
@@ -720,6 +722,12 @@ export class LinkedInService {
         metadata: {
           sampleContent: candidate.sampleContent,
           source: 'public-scrape',
+          sourceClassification: this.buildSourceClassification({
+            capturedAt: new Date(),
+            confidence: 'medium',
+            sourceLabel: 'LinkedIn public posts',
+            sourceTopic: topic,
+          }),
           thumbnailUrl: candidate.thumbnailUrl,
           trendType: topic.startsWith('#') ? 'hashtag' : 'topic',
           urls: Array.from(candidate.sourceUrls),
@@ -764,27 +772,74 @@ export class LinkedInService {
     return Math.round(sourceCoverage * 60 + signalStrength * 40);
   }
 
-  private getCuratedTopics(): LinkedInTrendTopic[] {
-    return [
-      '#ai',
-      '#leadership',
-      '#innovation',
-      '#technology',
-      '#digitaltransformation',
-      '#marketing',
-      '#sustainability',
-      '#entrepreneurship',
-      '#careerdevelopment',
-      '#remotework',
-    ].map((topic) => ({
-      growthRate: 35,
-      mentions: 1,
-      metadata: {
-        source: 'curated',
-        trendType: 'hashtag',
-      },
-      topic,
-    }));
+  private getPublicReferenceTopics(sourceUrls: string[]): LinkedInTrendTopic[] {
+    const capturedAt = new Date();
+    const seenTopics = new Set<string>();
+
+    return sourceUrls.flatMap((sourceUrl, index) => {
+      const sourceLabel = this.getPublicReferenceLabel(sourceUrl);
+      const topic = this.toReferenceTopic(sourceLabel, index);
+      if (seenTopics.has(topic)) {
+        return [];
+      }
+      seenTopics.add(topic);
+
+      return [
+        {
+          growthRate: 20,
+          mentions: 1,
+          metadata: {
+            sampleContent: `Public LinkedIn reference source for ${sourceLabel}.`,
+            source: 'public-reference',
+            sourceClassification: this.buildSourceClassification({
+              capturedAt,
+              confidence: 'low',
+              sourceLabel,
+              sourceTopic: topic,
+            }),
+            trendType: 'topic',
+            urls: [sourceUrl],
+          },
+          topic,
+        },
+      ];
+    });
+  }
+
+  private buildSourceClassification(input: {
+    capturedAt: Date;
+    confidence: TrendSourceClassification['confidence'];
+    sourceLabel: string;
+    sourceTopic: string;
+  }): TrendSourceClassification {
+    return {
+      capturedAt: input.capturedAt.toISOString(),
+      confidence: input.confidence,
+      freshnessWindowDays: 7,
+      intendedUse: 'organic_trend_discovery',
+      sourceKind: 'public_platform_reference',
+      sourceLabel: input.sourceLabel,
+      sourceTopic: input.sourceTopic,
+    };
+  }
+
+  private getPublicReferenceLabel(sourceUrl: string): string {
+    try {
+      const parsed = new URL(sourceUrl);
+      const pathParts = parsed.pathname.split('/').filter(Boolean);
+      const slug = pathParts[pathParts.length - 1] || parsed.hostname;
+      return slug
+        .replace(/[-_]+/g, ' ')
+        .replace(/\b[a-z]/g, (letter) => letter.toUpperCase())
+        .trim();
+    } catch {
+      return sourceUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    }
+  }
+
+  private toReferenceTopic(sourceLabel: string, index: number): string {
+    const token = sourceLabel.toLowerCase().replace(/[^a-z0-9]+/g, '');
+    return token ? `#${token}` : `#linkedinreference${index + 1}`;
   }
 
   /**

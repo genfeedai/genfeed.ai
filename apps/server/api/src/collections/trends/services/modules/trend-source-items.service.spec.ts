@@ -222,6 +222,15 @@ describe('TrendSourceItemsService', () => {
       const trend = makeTrend({
         metadata: {
           sampleContent: 'sample',
+          sourceClassification: {
+            capturedAt: '2026-06-09T00:00:00.000Z',
+            confidence: 'low',
+            freshnessWindowDays: 7,
+            intendedUse: 'organic_trend_discovery',
+            sourceKind: 'public_platform_reference',
+            sourceLabel: 'YouTube',
+            sourceTopic: '#ai',
+          },
           urls: ['https://a.com', 'https://b.com'],
         },
         platform: 'youtube',
@@ -233,6 +242,9 @@ describe('TrendSourceItemsService', () => {
       expect(items[0]).toMatchObject({
         contentType: 'post',
         id: 'trend-1-fallback-1',
+        sourceClassification: expect.objectContaining({
+          sourceKind: 'public_platform_reference',
+        }),
         sourceUrl: 'https://a.com',
         text: 'sample',
       });
