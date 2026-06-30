@@ -37,7 +37,7 @@ jobs:
       VERCEL_PROJECT_ID: ${{ matrix.project_id }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - uses: ./.github/actions/setup-bun-env
         with:

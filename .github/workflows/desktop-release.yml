@@ -27,7 +27,7 @@ jobs:
       GENFEED_DESKTOP_RELEASE: ${{ github.sha }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Validate macOS signing secrets
         run: |

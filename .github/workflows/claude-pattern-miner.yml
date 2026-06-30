@@ -31,7 +31,7 @@ jobs:
       DAYS: ${{ inputs.days || '1' }}
       INCLUDE_SUBAGENTS: ${{ inputs.include_subagents || 'false' }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env

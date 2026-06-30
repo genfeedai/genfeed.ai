@@ -70,7 +70,7 @@ jobs:
     # rollback — not manual approval.
     environment: production
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           # Needed when HEAD is a non-server commit: the image resolver can walk
           # recent first-parent ancestors and verify no server-image inputs
@@ -502,7 +502,7 @@ jobs:
       issues: write
     steps:
       - name: Open or update tracking issue
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const label = 'post-deploy-smoke';

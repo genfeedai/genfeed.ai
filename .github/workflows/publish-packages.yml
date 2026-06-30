@@ -29,7 +29,7 @@ jobs:
       PACKAGE_RELEASE_OUTPUT: .package-release-output.json
     steps:
       - name: Checkout master
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           ref: master
           fetch-depth: 0

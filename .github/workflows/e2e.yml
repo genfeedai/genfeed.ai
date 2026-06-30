@@ -29,10 +29,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Node.js 22.x
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: "22.x"
 
@@ -69,7 +69,7 @@ jobs:
       STRIPE_SECRET_KEY: test-mock-key
       BETTER_AUTH_SECRET: test-better-auth-secret
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -93,7 +93,7 @@ jobs:
           NODE_ENV: test
 
       - name: Upload E2E coverage
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: api-e2e
@@ -113,7 +113,7 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -168,7 +168,7 @@ jobs:
     needs: [e2e-frontend]
     if: always()
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -235,7 +235,7 @@ jobs:
     timeout-minutes: 40
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
