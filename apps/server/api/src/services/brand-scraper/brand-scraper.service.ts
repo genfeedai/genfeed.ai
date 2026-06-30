@@ -891,15 +891,21 @@ export class BrandScraperService {
     const images: WebsiteScrapingResult['images'] = [];
     const seen = new Set<string>();
 
-    const addImage = (src: string | undefined, alt?: string): void => {
+    const addImage = (
+      src: string | undefined,
+      alt?: string,
+      isSrcSet = false,
+    ): void => {
       if (!src || src.startsWith('data:')) {
         return;
       }
 
-      const resolved = this.resolveUrl(
-        this.extractSrcFromSrcSet(src),
-        sourceUrl,
-      );
+      // Only treat the value as a srcset (comma-separated candidate list) when
+      // it actually came from a srcset attribute. Plain src/data-src URLs can
+      // legitimately contain commas (e.g. CDN transform params) and must not be
+      // truncated at the first comma.
+      const candidate = isSrcSet ? this.extractSrcFromSrcSet(src) : src;
+      const resolved = this.resolveUrl(candidate, sourceUrl);
       if (!resolved || seen.has(resolved)) {
         return;
       }
@@ -918,10 +924,12 @@ export class BrandScraperService {
     );
 
     $('img[src], img[data-src], img[srcset]').each((_i, el) => {
-      addImage(
-        $(el).attr('src') ?? $(el).attr('data-src') ?? $(el).attr('srcset'),
-        $(el).attr('alt'),
-      );
+      const direct = $(el).attr('src') ?? $(el).attr('data-src');
+      if (direct) {
+        addImage(direct, $(el).attr('alt'));
+      } else {
+        addImage($(el).attr('srcset'), $(el).attr('alt'), true);
+      }
     });
 
     return images.slice(0, MAX_IMAGE_CANDIDATES);

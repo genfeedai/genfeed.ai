@@ -317,23 +317,38 @@ export class BrandsService extends BaseService<
   private detectSocialPlatform(
     url: string,
   ): keyof IExtractedSocialLinks | undefined {
-    const lowerUrl = url.toLowerCase();
-    if (lowerUrl.includes('instagram.com')) {
+    let hostname: string;
+    try {
+      hostname = new URL(url).hostname.toLowerCase();
+    } catch {
+      try {
+        hostname = new URL(`https://${url}`).hostname.toLowerCase();
+      } catch {
+        return undefined;
+      }
+    }
+
+    // Match the registrable host, not a substring, so look-alike domains like
+    // `linkedin.com.evil.test` or `examplex.com` are not misclassified.
+    const isHost = (domain: string): boolean =>
+      hostname === domain || hostname.endsWith(`.${domain}`);
+
+    if (isHost('instagram.com')) {
       return 'instagram';
     }
-    if (lowerUrl.includes('linkedin.com')) {
+    if (isHost('linkedin.com')) {
       return 'linkedin';
     }
-    if (lowerUrl.includes('tiktok.com')) {
+    if (isHost('tiktok.com')) {
       return 'tiktok';
     }
-    if (lowerUrl.includes('twitter.com') || lowerUrl.includes('x.com')) {
+    if (isHost('twitter.com') || isHost('x.com')) {
       return 'twitter';
     }
-    if (lowerUrl.includes('youtube.com') || lowerUrl.includes('youtu.be')) {
+    if (isHost('youtube.com') || isHost('youtu.be')) {
       return 'youtube';
     }
-    if (lowerUrl.includes('facebook.com')) {
+    if (isHost('facebook.com')) {
       return 'facebook';
     }
     return undefined;

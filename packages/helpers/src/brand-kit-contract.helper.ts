@@ -636,6 +636,12 @@ function createWebsiteFieldDiagnostics(
     ];
   }
 
+  if (!hasText(scraped.secondaryColor)) {
+    diagnostics.secondaryColor = [
+      createMissingWebsiteDiagnostic('secondaryColor', 'Secondary color'),
+    ];
+  }
+
   if (!hasText(scraped.fontFamily) && !scraped.fontCandidates?.length) {
     diagnostics.fontFamily = [
       createMissingWebsiteDiagnostic('fontFamily', 'Font family'),
