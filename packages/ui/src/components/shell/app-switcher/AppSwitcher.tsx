@@ -13,6 +13,7 @@ import {
   HiOutlineFolder,
   HiOutlinePaperAirplane,
   HiOutlineRectangleGroup,
+  HiOutlineShieldCheck,
   HiOutlineSparkles,
   HiOutlineSquares2X2,
 } from 'react-icons/hi2';
@@ -81,6 +82,12 @@ const SECTION_APPS: LifecycleAppSwitcherItemConfig[] = [
       brand
         ? `/${org}/${brand}/analytics/overview`
         : `/${org}/~/analytics/overview`,
+  },
+  {
+    icon: HiOutlineShieldCheck,
+    id: 'admin',
+    label: 'Admin',
+    route: () => '/admin',
   },
 ];
 
@@ -162,6 +169,7 @@ export function AppSwitcher({
   currentApp,
   orgSlug,
   preservedSearch,
+  showAdmin = false,
   variant = 'icon',
 }: AppSwitcherProps) {
   const preventTriggerAutoFocusRef = useRef(false);
@@ -174,7 +182,10 @@ export function AppSwitcher({
     preventTriggerAutoFocusRef.current = true;
   };
 
-  const activeApp = SECTION_APPS.find((app) => isActiveApp(app, currentApp));
+  const apps = showAdmin
+    ? SECTION_APPS
+    : SECTION_APPS.filter((app) => app.id !== 'admin');
+  const activeApp = apps.find((app) => isActiveApp(app, currentApp));
   const ActiveIcon = activeApp?.icon ?? HiOutlineSquares2X2;
   const activeLabel = activeApp?.label ?? 'Home';
 
@@ -220,7 +231,7 @@ export function AppSwitcher({
         }}
       >
         <DropdownMenuLabel>Sections</DropdownMenuLabel>
-        {SECTION_APPS.map((app) => (
+        {apps.map((app) => (
           <AppDropdownItem
             key={app.id}
             app={app}

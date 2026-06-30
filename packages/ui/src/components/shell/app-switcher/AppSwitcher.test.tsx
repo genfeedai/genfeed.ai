@@ -122,6 +122,18 @@ describe('AppSwitcher', () => {
     ]) {
       expect(screen.getByRole('link', { name: label })).toBeInTheDocument();
     }
+    expect(
+      screen.queryByRole('link', { name: 'Admin' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders the admin section only when enabled', () => {
+    render(<AppSwitcher orgSlug="acme" currentApp="workspace" showAdmin />);
+
+    expect(screen.getByRole('link', { name: 'Admin' })).toHaveAttribute(
+      'href',
+      '/admin',
+    );
   });
 
   it('marks the active app with aria-current="page"', () => {
@@ -129,6 +141,15 @@ describe('AppSwitcher', () => {
     const activeButton = screen.getByRole('link', { name: 'Automate' });
 
     expect(activeButton).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('marks admin active when the admin shell renders the switcher', () => {
+    render(<AppSwitcher orgSlug="acme" currentApp="admin" showAdmin />);
+
+    expect(screen.getByRole('link', { name: 'Admin' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
   });
 
   it('does not set aria-current on inactive app buttons', () => {

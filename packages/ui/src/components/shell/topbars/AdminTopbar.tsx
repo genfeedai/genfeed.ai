@@ -3,6 +3,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { TopbarProps } from '@genfeedai/props/navigation/topbar.props';
 import { Button } from '@ui/primitives/button';
+import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
 import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
 import { HiBars3, HiOutlineSparkles, HiXMark } from 'react-icons/hi2';
 
@@ -11,6 +12,8 @@ export default function AdminTopbar({
   isMenuOpen,
   isAgentCollapsed,
   onAgentToggle,
+  orgSlug,
+  brandSlug,
 }: TopbarProps = {}) {
   const ToggleIcon = isMenuOpen ? HiXMark : HiBars3;
 
@@ -36,7 +39,17 @@ export default function AdminTopbar({
           <TopbarBreadcrumbs rootLabel="Admin" />
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          {orgSlug ? (
+            <AppSwitcher
+              variant="icon"
+              currentApp="admin"
+              orgSlug={orgSlug}
+              brandSlug={brandSlug}
+              showAdmin
+            />
+          ) : null}
+
           {onAgentToggle ? (
             <Button
               variant={ButtonVariant.OUTLINE}
