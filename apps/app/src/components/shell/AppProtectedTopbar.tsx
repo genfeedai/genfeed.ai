@@ -41,6 +41,8 @@ const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
   editor: 'Editor',
   library: 'Library',
   posts: 'Posts',
+  remix: 'Remix',
+  research: 'Research',
   studio: 'Studio',
   workflows: 'Workflows',
   workspace: 'Workspace',
