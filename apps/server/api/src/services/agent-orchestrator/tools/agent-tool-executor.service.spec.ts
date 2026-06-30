@@ -13,13 +13,6 @@ import { AgentToolName } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Effect } from 'effect';
 
-const CREATE_LIVESTREAM_BOT_TOOL = 'create_livestream_bot' as AgentToolName;
-const MANAGE_LIVESTREAM_BOT_TOOL = 'manage_livestream_bot' as AgentToolName;
-const DRAFT_BRAND_VOICE_PROFILE_TOOL =
-  'draft_brand_voice_profile' as AgentToolName;
-const SAVE_BRAND_VOICE_PROFILE_TOOL =
-  'save_brand_voice_profile' as AgentToolName;
-
 describe('AgentToolExecutorService', () => {
   const createService = () => {
     const recurringWorkflowId = 'test-object-id';
@@ -678,7 +671,7 @@ describe('AgentToolExecutorService', () => {
     const { agentGoalsService, service } = createService();
 
     const result = await service.executeTool(
-      'create_goal' as AgentToolName,
+      AgentToolName.CREATE_GOAL,
       {
         label: 'Grow views',
         metric: 'views',
@@ -704,7 +697,7 @@ describe('AgentToolExecutorService', () => {
     const { service } = createService();
 
     const result = await service.executeTool(
-      'check_goal_progress' as AgentToolName,
+      AgentToolName.CHECK_GOAL_PROGRESS,
       { goalId: 'not-an-object-id' },
       {
         organizationId: '67a123456789012345678901',
@@ -720,7 +713,7 @@ describe('AgentToolExecutorService', () => {
     const { agentGoalsService, service } = createService();
 
     const result = await service.executeTool(
-      'update_goal' as AgentToolName,
+      AgentToolName.UPDATE_GOAL,
       {
         goalId: '67a123456789012345678903',
         targetValue: 1000,
@@ -918,7 +911,7 @@ describe('AgentToolExecutorService', () => {
     const { adsResearchService, service } = createService();
 
     const result = await service.executeTool(
-      'list_ads_research' as AgentToolName,
+      AgentToolName.LIST_ADS_RESEARCH,
       {
         industry: 'fitness',
         platform: 'google',
@@ -947,7 +940,7 @@ describe('AgentToolExecutorService', () => {
     const { adsResearchService, service } = createService();
 
     const result = await service.executeTool(
-      'create_ad_remix_workflow' as AgentToolName,
+      AgentToolName.CREATE_AD_REMIX_WORKFLOW,
       {
         adId: 'public-ad-1',
         objective: 'Conversions',
@@ -974,7 +967,7 @@ describe('AgentToolExecutorService', () => {
     const { adsResearchService, service } = createService();
 
     const result = await service.executeTool(
-      'prepare_ad_launch_review' as AgentToolName,
+      AgentToolName.PREPARE_AD_LAUNCH_REVIEW,
       {
         adId: 'public-ad-1',
         createWorkflow: true,
@@ -1161,7 +1154,7 @@ describe('AgentToolExecutorService', () => {
     const { agentMemoryCaptureService, service } = createService();
 
     const result = await service.executeTool(
-      'capture_memory' as AgentToolName,
+      AgentToolName.CAPTURE_MEMORY,
       {
         brandId: '67a123456789012345678903',
         content: 'Use short, curiosity-driven newsletter openings.',
@@ -1258,7 +1251,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      DRAFT_BRAND_VOICE_PROFILE_TOOL,
+      AgentToolName.DRAFT_BRAND_VOICE_PROFILE,
       {
         examplesToAvoid: ['generic guru tone'],
         examplesToEmulate: ['April Dunford'],
@@ -1314,7 +1307,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      SAVE_BRAND_VOICE_PROFILE_TOOL,
+      AgentToolName.SAVE_BRAND_VOICE_PROFILE,
       {
         brandId: 'brand-voice-1',
         voiceProfile: {
@@ -1431,7 +1424,7 @@ describe('AgentToolExecutorService', () => {
     const { service } = createService();
 
     const result = await service.executeTool(
-      'select_ingredient' as AgentToolName,
+      AgentToolName.SELECT_INGREDIENT,
       {},
       {
         organizationId: '67a123456789012345678901',
@@ -1467,7 +1460,7 @@ describe('AgentToolExecutorService', () => {
     ]);
 
     const result = await service.executeTool(
-      'select_ingredient' as AgentToolName,
+      AgentToolName.SELECT_INGREDIENT,
       { mediaType: 'all' },
       {
         organizationId: '67a123456789012345678901',
@@ -1510,7 +1503,7 @@ describe('AgentToolExecutorService', () => {
     ]);
 
     const result = await service.executeTool(
-      'select_ingredient' as AgentToolName,
+      AgentToolName.SELECT_INGREDIENT,
       { mediaType: 'image' },
       {
         organizationId: '67a123456789012345678901',
@@ -2591,7 +2584,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      CREATE_LIVESTREAM_BOT_TOOL,
+      AgentToolName.CREATE_LIVESTREAM_BOT,
       {
         channelId: 'UC123456789',
         label: 'Launch Live Bot',
@@ -2642,7 +2635,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      CREATE_LIVESTREAM_BOT_TOOL,
+      AgentToolName.CREATE_LIVESTREAM_BOT,
       {
         channelId: 'genfeed-live',
         label: 'Twitch Chat Bot',
@@ -2682,7 +2675,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      MANAGE_LIVESTREAM_BOT_TOOL,
+      AgentToolName.MANAGE_LIVESTREAM_BOT,
       {
         action: 'start_session',
         botId: livestreamBotId,
@@ -2713,7 +2706,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      MANAGE_LIVESTREAM_BOT_TOOL,
+      AgentToolName.MANAGE_LIVESTREAM_BOT,
       {
         action: 'send_now',
         botId: livestreamBotId,
@@ -2768,7 +2761,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      MANAGE_LIVESTREAM_BOT_TOOL,
+      AgentToolName.MANAGE_LIVESTREAM_BOT,
       {
         action: 'start_session',
         botId: livestreamBotId,
@@ -2897,7 +2890,7 @@ describe('AgentToolExecutorService', () => {
     const { contentQualityScorerService, service } = createService();
 
     const result = await service.executeTool(
-      'rate_content' as AgentToolName,
+      AgentToolName.RATE_CONTENT,
       {
         contentId: '507f191e810c19729de860ea',
         contentType: 'image',
@@ -2927,7 +2920,7 @@ describe('AgentToolExecutorService', () => {
     const { contentQualityScorerService, service } = createService();
 
     const result = await service.executeTool(
-      'rate_content' as AgentToolName,
+      AgentToolName.RATE_CONTENT,
       { contentType: 'image' },
       {
         organizationId: '67a123456789012345678901',
@@ -2994,7 +2987,7 @@ describe('AgentToolExecutorService', () => {
     );
 
     const result = await serviceWithoutScorer.executeTool(
-      'rate_content' as AgentToolName,
+      AgentToolName.RATE_CONTENT,
       { contentId: '507f191e810c19729de860ea' },
       {
         organizationId: '67a123456789012345678901',
@@ -3021,7 +3014,7 @@ describe('AgentToolExecutorService', () => {
     ]);
 
     const result = await service.executeTool(
-      'install_official_workflow' as AgentToolName,
+      AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
       {
         contentType: 'video',
         prompt: 'Set me up with a social media video series for LinkedIn',
@@ -3076,7 +3069,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      'install_official_workflow' as AgentToolName,
+      AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
       {
         confirmed: true,
         label: 'Weekly LinkedIn Workflow',
@@ -3280,7 +3273,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      'install_official_workflow' as AgentToolName,
+      AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
       {
         confirmed: true,
         prompt: 'Install the official LinkedIn workflow',
@@ -3484,7 +3477,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      'get_workflow_inputs' as AgentToolName,
+      AgentToolName.GET_WORKFLOW_INPUTS,
       { workflowId: 'wf-3' },
       CTX,
     );
@@ -3509,7 +3502,7 @@ describe('AgentToolExecutorService', () => {
     workflowsService.findOne.mockResolvedValue(null);
 
     const result = await service.executeTool(
-      'get_workflow_inputs' as AgentToolName,
+      AgentToolName.GET_WORKFLOW_INPUTS,
       { workflowId: 'missing' },
       CTX,
     );
