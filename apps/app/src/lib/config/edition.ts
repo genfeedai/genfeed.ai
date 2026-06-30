@@ -5,6 +5,30 @@
  * Server components can also use process.env directly.
  */
 
+const CLOUD_FLAG_VALUES = new Set(['1', 'true']);
+const HOSTED_APP_HOSTNAMES = new Set(['app.genfeed.ai']);
+
+function isTruthyCloudFlag(value: string | undefined): boolean {
+  return CLOUD_FLAG_VALUES.has(value?.trim().toLowerCase() ?? '');
+}
+
+export function isOfficialHostedAppHost(hostname?: string): boolean {
+  const resolvedHostname =
+    hostname ??
+    (typeof window === 'undefined' ? undefined : window.location.hostname);
+
+  return HOSTED_APP_HOSTNAMES.has(resolvedHostname ?? '');
+}
+
+/** True when running as the hosted Genfeed Cloud web app. */
+export function isHostedCloudApp(): boolean {
+  return (
+    isTruthyCloudFlag(process.env.NEXT_PUBLIC_GENFEED_CLOUD) ||
+    isTruthyCloudFlag(process.env.GENFEED_CLOUD) ||
+    isOfficialHostedAppHost()
+  );
+}
+
 /** True when running as Genfeed Cloud (EE features enabled) */
 export function isEEEnabled(): boolean {
   return !!process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
@@ -17,12 +41,12 @@ function _isCoreMode(): boolean {
 
 /** True when running the local app shell. */
 export function isSelfHosted(): boolean {
-  return !process.env.NEXT_PUBLIC_GENFEED_CLOUD;
+  return !isHostedCloudApp();
 }
 
 /** True when the frontend targets Genfeed Cloud services. */
 export function isCloudConnected(): boolean {
-  return process.env.NEXT_PUBLIC_GENFEED_CLOUD === 'true';
+  return isHostedCloudApp();
 }
 
 /**
@@ -34,10 +58,10 @@ export function isBetterAuthEnabled(): boolean {
 
 /** True when local app with optional cloud connection configured. */
 export function isHybridMode(): boolean {
-  return !process.env.NEXT_PUBLIC_GENFEED_CLOUD && isBetterAuthEnabled();
+  return !isHostedCloudApp() && isBetterAuthEnabled();
 }
 
 /** True when fully offline. */
 export function isLocalOnly(): boolean {
-  return !process.env.NEXT_PUBLIC_GENFEED_CLOUD && !isBetterAuthEnabled();
+  return !isHostedCloudApp() && !isBetterAuthEnabled();
 }

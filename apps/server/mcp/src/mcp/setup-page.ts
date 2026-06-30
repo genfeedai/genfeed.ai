@@ -45,6 +45,35 @@ function readPublicUrl(name: string, fallback: string): string {
   return trimTrailingSlash(raw);
 }
 
+function buildAgentSetupPrompt(params: {
+  apiKeysUrl: string;
+  mcpUrl: string;
+}): string {
+  const { apiKeysUrl, mcpUrl } = params;
+
+  return `Set up the Genfeed MCP server on this machine.
+
+Endpoint: ${mcpUrl}
+Authentication env var: GENFEED_API_KEY
+API key settings: ${apiKeysUrl}
+
+Do this end to end:
+1. Detect whether Claude Code, Codex, or both are installed.
+2. Check whether GENFEED_API_KEY is available in the shell environment.
+3. If the key is missing, ask me to export it locally or send me to the API key settings URL above. Do not request or paste the key into source-controlled files, command history, logs, or this chat.
+4. Configure Genfeed as a remote Streamable HTTP MCP server:
+   - Claude Code: claude mcp add --transport http genfeed --scope user ${mcpUrl} --header "Authorization: Bearer $GENFEED_API_KEY"
+   - Codex: codex mcp add genfeed --url ${mcpUrl} --bearer-token-env-var GENFEED_API_KEY
+   - If the Codex CLI is unavailable, update the user-level ~/.codex/config.toml with:
+
+[mcp_servers.genfeed]
+url = "${mcpUrl}"
+bearer_token_env_var = "GENFEED_API_KEY"
+
+5. Verify the server appears in the client's MCP list or config.
+6. Report exactly what changed and any manual step still required.`;
+}
+
 export function getPublicMcpUrl(): string {
   return readPublicUrl('GENFEED_MCP_RESOURCE_URL', DEFAULT_MCP_URL);
 }
@@ -78,6 +107,9 @@ export function renderSetupPage(): string {
   const codexTomlSafe = escapeHtml(`[mcp_servers.genfeed]
 url = "${mcpUrl}"
 bearer_token_env_var = "GENFEED_API_KEY"`);
+  const agentSetupPromptSafe = escapeHtml(
+    buildAgentSetupPrompt({ apiKeysUrl, mcpUrl }),
+  );
 
   return `<!doctype html>
 <html lang="en">
@@ -363,6 +395,43 @@ a { color: inherit; text-decoration: none; }
   padding: 0 26px 6px;
 }
 .tabpanel.is-active { display: block; }
+.agent-prompt-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 230px;
+  gap: 24px;
+  padding: 24px 0 20px;
+}
+.agent-prompt-copy {
+  min-width: 0;
+}
+.agent-prompt-copy p {
+  margin: 0 0 14px;
+  color: var(--gf-text-muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+.prompt-block {
+  max-height: 430px;
+  margin: 0;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+.prompt-actions {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  border-left: 1px solid rgba(255,255,255,0.06);
+  padding-left: 22px;
+}
+.prompt-note {
+  margin: 0;
+  color: var(--gf-text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
 .setup-title-row {
   display: flex;
   flex-wrap: wrap;
@@ -483,8 +552,18 @@ pre.command {
   .section { padding: 56px 0; }
   .section-title { font-size: 34px; }
   .tabpanel { padding: 0 16px 4px; }
+  .agent-prompt-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .prompt-actions {
+    border-left: 0;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding-top: 16px;
+    padding-left: 0;
+  }
   .tab {
-    flex: 1 1 50%;
+    flex: 1 1 100%;
     border-bottom: 1px solid var(--gf-border);
     padding: 0 10px;
   }
@@ -576,11 +655,29 @@ pre.command {
 
     <div class="${ui.card}">
       <div class="tablist" role="tablist" aria-label="Client setup instructions">
-        <button class="tab" id="tab-claude-code" type="button" role="tab" aria-selected="true" aria-controls="panel-claude-code" data-tab="claude-code">Claude Code</button>
+        <button class="tab" id="tab-agent-prompt" type="button" role="tab" aria-selected="true" aria-controls="panel-agent-prompt" data-tab="agent-prompt">AI prompt</button>
+        <button class="tab" id="tab-claude-code" type="button" role="tab" aria-selected="false" aria-controls="panel-claude-code" data-tab="claude-code">Claude Code</button>
         <button class="tab" id="tab-codex" type="button" role="tab" aria-selected="false" aria-controls="panel-codex" data-tab="codex">Codex</button>
       </div>
 
-      <section class="tabpanel is-active" id="panel-claude-code" role="tabpanel" aria-labelledby="tab-claude-code" data-panel="claude-code">
+      <section class="tabpanel is-active" id="panel-agent-prompt" role="tabpanel" aria-labelledby="tab-agent-prompt" data-panel="agent-prompt">
+        <div class="setup-title-row">
+          <h3 class="instruction-title">AI agent setup prompt</h3>
+          <span class="${ui.badge}">Copy/paste</span>
+        </div>
+        <div class="agent-prompt-grid">
+          <div class="agent-prompt-copy">
+            <p>Drop this into Claude Code, Codex, or another local agent with shell access. The agent detects the client, configures Genfeed, protects the API key, and verifies the result.</p>
+            <pre class="${ui.codeBlock} command prompt-block"><code id="agent-setup-prompt">${agentSetupPromptSafe}</code></pre>
+          </div>
+          <div class="prompt-actions">
+            <button class="${ui.buttonPrimary} copy" type="button" data-copy-source="agent-setup-prompt" aria-label="Copy AI setup prompt">Copy AI prompt</button>
+            <p class="prompt-note">The prompt references <code class="${ui.inlineCode}">GENFEED_API_KEY</code> by env var so the key stays out of the page and config files.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="tabpanel" id="panel-claude-code" role="tabpanel" aria-labelledby="tab-claude-code" data-panel="claude-code">
         <div class="setup-title-row">
           <h3 class="instruction-title">Claude Code setup</h3>
           <span class="${ui.badge}">HTTP transport</span>
@@ -707,7 +804,7 @@ pre.command {
 
   document.querySelectorAll('[role="tab"][data-tab]').forEach(function (tab) {
     tab.addEventListener('click', function () {
-      setActiveTab(tab.getAttribute('data-tab') || 'claude-code');
+      setActiveTab(tab.getAttribute('data-tab') || 'agent-prompt');
     });
     tab.addEventListener('keydown', function (event) {
       if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
@@ -718,13 +815,27 @@ pre.command {
         : (index - 1 + tabs.length) % tabs.length;
       event.preventDefault();
       tabs[nextIndex].focus();
-      setActiveTab(tabs[nextIndex].getAttribute('data-tab') || 'claude-code');
+      setActiveTab(tabs[nextIndex].getAttribute('data-tab') || 'agent-prompt');
     });
   });
 
   document.querySelectorAll('button[data-copy]').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var text = btn.getAttribute('data-copy') || '';
+      navigator.clipboard.writeText(text).then(function () {
+        var previous = btn.textContent;
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = previous; }, 1500);
+      });
+    });
+  });
+
+  document.querySelectorAll('button[data-copy-source]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var sourceId = btn.getAttribute('data-copy-source') || '';
+      var source = document.getElementById(sourceId);
+      var text = source ? source.textContent || '' : '';
+      if (!text) return;
       navigator.clipboard.writeText(text).then(function () {
         var previous = btn.textContent;
         btn.textContent = 'Copied';

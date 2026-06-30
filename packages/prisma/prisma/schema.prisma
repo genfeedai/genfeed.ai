@@ -3613,6 +3613,8 @@ model TrendSourceReference {
   @@index([canonicalUrl, platform, isDeleted], map: "trend_source_refs_url_platform_deleted_idx")
   @@index([isDeleted, platform, authorHandle, lastSeenAt(sort: Desc)], map: "trend_source_refs_account_lookup_idx")
   @@index([isDeleted, currentEngagementTotal(sort: Desc), latestTrendViralityScore(sort: Desc)], map: "trend_source_refs_rank_idx")
+  @@index([isDeleted, platform, currentEngagementTotal(sort: Desc), latestTrendViralityScore(sort: Desc), lastSeenAt(sort: Desc)], map: "trend_source_refs_platform_rank_idx")
+  @@index([isDeleted, platform, authorHandle, currentEngagementTotal(sort: Desc), latestTrendViralityScore(sort: Desc), lastSeenAt(sort: Desc)], map: "trend_source_refs_account_rank_idx")
   @@map("trend_source_references")
 }
 

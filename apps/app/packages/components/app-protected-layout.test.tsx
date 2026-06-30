@@ -4,7 +4,7 @@ import {
 } from '@services/core/agent-overlay-coordination.service';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { type ReactNode, useEffect } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import AppProtectedLayout from './app-protected-layout';
 
 const {
@@ -49,6 +49,7 @@ const mockRouteParams = vi.hoisted(() => ({
   brandSlug: 'brand-123',
   orgSlug: 'org-123',
 }));
+const originalLocation = window.location;
 
 // Stable router instance (matches Next's real App Router, which returns the
 // same object across renders). A fresh `push` per render would cascade through
@@ -369,6 +370,15 @@ vi.mock('@providers/protected-providers/protected-providers', () => ({
 
 vi.mock('@/lib/config/edition', () => ({
   isEEEnabled: () => true,
+  isHostedCloudApp: () => {
+    const cloudFlag = process.env.NEXT_PUBLIC_GENFEED_CLOUD?.trim();
+
+    return (
+      cloudFlag === '1' ||
+      cloudFlag?.toLowerCase() === 'true' ||
+      window.location.hostname === 'app.genfeed.ai'
+    );
+  },
 }));
 
 vi.mock('@services/core/environment.service', () => ({
@@ -435,6 +445,11 @@ describe('AppProtectedLayout', () => {
     toggleOpenSpy.mockClear();
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
     delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...originalLocation, hostname: 'localhost' },
+      writable: true,
+    });
 
     Object.defineProperty(globalThis, 'localStorage', {
       configurable: true,
@@ -444,6 +459,14 @@ describe('AppProtectedLayout', () => {
         removeItem: vi.fn(),
         setItem: vi.fn(),
       },
+    });
+  });
+
+  afterEach(() => {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: originalLocation,
+      writable: true,
     });
   });
 
@@ -689,6 +712,29 @@ describe('AppProtectedLayout', () => {
 
   it('hides the terminal dock on hosted cloud', () => {
     process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
+    mockPathname.value = '/workspace';
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(screen.queryByTestId('agent-panel-rail')).not.toBeInTheDocument();
+    expect(appLayoutSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agentPanel: undefined,
+        onAgentToggle: undefined,
+      }),
+    );
+  });
+
+  it('hides the terminal dock on the hosted app hostname without the cloud env', () => {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...originalLocation, hostname: 'app.genfeed.ai' },
+      writable: true,
+    });
     mockPathname.value = '/workspace';
 
     render(

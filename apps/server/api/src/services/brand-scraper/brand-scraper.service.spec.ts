@@ -288,6 +288,43 @@ describe('BrandScraperService', () => {
       expect(result.primaryColor).toBeDefined();
     });
 
+    it('extracts font and asset candidates for brand kit drafts', async () => {
+      const head = [
+        '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700" />',
+        '<style>body { font-family: "Satoshi", sans-serif; color: #123456; }</style>',
+      ].join('\n');
+      const body = [
+        '<img class="logo" src="/logo.svg" alt="Acme logo" />',
+        '<img class="hero" src="/hero.jpg" alt="Hero" />',
+        '<img src="/reference.jpg" alt="Reference" />',
+      ].join('\n');
+      fetchMock.mockResolvedValue(
+        makeResponse(
+          makeHtml({
+            body,
+            head,
+            ogImage: 'https://acme.com/social.jpg',
+            title: 'Acme | Home',
+          }),
+        ),
+      );
+
+      const result = await service.scrapeWebsite('https://acme.com');
+
+      expect(result.fontFamily).toBe('Inter');
+      expect(result.fontCandidates).toEqual(
+        expect.arrayContaining(['Inter', 'Satoshi']),
+      );
+      expect(result.logoUrl).toBe('https://acme.com/logo.svg');
+      expect(result.bannerUrl).toBe('https://acme.com/hero.jpg');
+      expect(result.referenceImageUrls).toEqual(
+        expect.arrayContaining([
+          'https://acme.com/social.jpg',
+          'https://acme.com/reference.jpg',
+        ]),
+      );
+    });
+
     it('extracts value propositions from bullet characters', async () => {
       const body = [
         '<p>&#8226; Ship faster than competitors</p>',
@@ -339,6 +376,19 @@ describe('BrandScraperService', () => {
 
       const result = await service.scrapeWebsite('https://acme.com');
       expect(result).toBeDefined();
+    });
+
+    it('rejects non-HTML responses before parsing', async () => {
+      fetchMock.mockResolvedValue(
+        new Response('not html', {
+          headers: { 'content-type': 'application/pdf' },
+          status: 200,
+        }),
+      );
+
+      await expect(service.scrapeWebsite('https://acme.com')).rejects.toThrow(
+        'Unsupported content type',
+      );
     });
   });
 
