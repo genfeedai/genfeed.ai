@@ -2,10 +2,14 @@ import { CaptionsService } from '@api/collections/captions/services/captions.ser
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { IngredientCategory } from '@genfeedai/enums';
-import { buildMediaProvenancePackage } from '@genfeedai/helpers';
+import {
+  buildMediaProvenancePackage,
+  buildMediaWatermarkAttributionEvaluation,
+} from '@genfeedai/helpers';
 import type {
   IMediaProvenanceInput,
   IMediaProvenancePackage,
+  IMediaWatermarkAttributionEvaluation,
   IMetadataProvenanceRecord,
   IProvenanceScope,
   IVideoProvenanceRecord,
@@ -138,5 +142,14 @@ export class VideoProvenanceService {
     };
 
     return buildMediaProvenancePackage(input);
+  }
+
+  async buildWatermarkAttributionEvaluation(
+    videoId: string,
+    scope: IProvenanceScope = {},
+  ): Promise<IMediaWatermarkAttributionEvaluation> {
+    const mediaPackage = await this.buildProvenance(videoId, scope);
+
+    return buildMediaWatermarkAttributionEvaluation(mediaPackage);
   }
 }

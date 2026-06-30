@@ -2,6 +2,7 @@ import type { IMediaProvenanceInput } from '@genfeedai/interfaces';
 import { describe, expect, it } from 'vitest';
 import {
   buildMediaProvenancePackage,
+  buildMediaWatermarkAttributionEvaluation,
   buildProvenanceManifest,
   buildTranscriptSidecar,
   formatVttTimestamp,
@@ -345,6 +346,70 @@ describe('buildProvenanceManifest', () => {
       hasTimestamps: true,
       language: null,
       segmentCount: 1,
+    });
+  });
+});
+
+describe('buildMediaWatermarkAttributionEvaluation', () => {
+  it('prefers the manifest and transcript sidecar over hidden watermarking', () => {
+    const pkg = buildMediaProvenancePackage(
+      baseInput({
+        canonicalUrl: 'https://cdn.example.com/video-1.mp4',
+        contentHash: 'sha256:abc',
+        storageKey: 'videos/video-1.mp4',
+        transcript: { segments: [{ end: 2, start: 0, text: 'hello' }] },
+      }),
+    );
+
+    const evaluation = buildMediaWatermarkAttributionEvaluation(pkg);
+
+    expect(evaluation).toMatchObject({
+      assetId: 'clvideo123',
+      fallbackBehavior:
+        'Keep exporting the manifest and transcript sidecar; fall back to visible overlay only when the export target needs a viewer-facing brand mark.',
+      missingSignals: [],
+      primaryApproach: 'provenance_manifest',
+      schemaVersion: 1,
+    });
+    expect(evaluation.recommendedAction).toContain('verify the content hash');
+    expect(evaluation.approaches.map((approach) => approach.approach)).toEqual([
+      'provenance_manifest',
+      'visible_watermark',
+      'hidden_watermark',
+      'content_credentials',
+    ]);
+    expect(evaluation.approaches[0]).toMatchObject({
+      attributionStrength: 'high',
+      readiness: 'ready',
+      tamperDetection: 'high',
+      viewerImpact: 'none',
+    });
+    expect(evaluation.approaches[2]).toMatchObject({
+      approach: 'hidden_watermark',
+      readiness: 'blocked',
+    });
+  });
+
+  it('reports missing signals that block tamper-detection claims', () => {
+    const pkg = buildMediaProvenancePackage(baseInput());
+
+    const evaluation = buildMediaWatermarkAttributionEvaluation(pkg);
+
+    expect(evaluation.missingSignals).toEqual([
+      'canonicalUrl_or_storageKey',
+      'contentHash',
+      'timestampedTranscript',
+    ]);
+    expect(evaluation.recommendedAction).toContain('add a content hash');
+    expect(evaluation.approaches[0]).toMatchObject({
+      attributionStrength: 'medium',
+      readiness: 'partial',
+      tamperDetection: 'low',
+    });
+    expect(evaluation.approaches[3]).toMatchObject({
+      approach: 'content_credentials',
+      readiness: 'blocked',
+      tamperDetection: 'none',
     });
   });
 });

@@ -7,11 +7,13 @@ import type {
   IMediaTranscriptInput,
   IMediaTranscriptReference,
   IMediaTranscriptSidecar,
+  IMediaWatermarkAttributionEvaluation,
   IProvenanceTranscriptSegment,
 } from '@genfeedai/interfaces';
 
 /** Current manifest schema version. Bump when the manifest shape changes. */
 export const MEDIA_PROVENANCE_SCHEMA_VERSION = 1;
+export const MEDIA_WATERMARK_ATTRIBUTION_SCHEMA_VERSION = 1;
 
 const DEFAULT_KIND = 'video';
 const VTT_HEADER = 'WEBVTT';
@@ -296,5 +298,121 @@ export function buildMediaProvenancePackage(
     manifest,
     manifestFilename: `${assetId}.manifest.json`,
     transcriptSidecar: sidecar,
+  };
+}
+
+export function buildMediaWatermarkAttributionEvaluation(
+  mediaPackage: IMediaProvenancePackage,
+): IMediaWatermarkAttributionEvaluation {
+  const { manifest, transcriptSidecar } = mediaPackage;
+  const hasAddressableAsset = Boolean(
+    manifest.canonicalUrl ?? manifest.storageKey,
+  );
+  const hasContentHash = Boolean(manifest.contentHash);
+  const hasTimestampedTranscript =
+    transcriptSidecar.hasTimestamps && transcriptSidecar.segmentCount > 0;
+
+  const missingSignals = [
+    hasAddressableAsset ? null : 'canonicalUrl_or_storageKey',
+    hasContentHash ? null : 'contentHash',
+    hasTimestampedTranscript ? null : 'timestampedTranscript',
+  ].filter((signal): signal is string => signal !== null);
+
+  const manifestReadiness = hasAddressableAsset ? 'ready' : 'partial';
+  const manifestTamperDetection = hasContentHash ? 'high' : 'low';
+  const manifestAttributionStrength =
+    hasAddressableAsset && hasTimestampedTranscript ? 'high' : 'medium';
+
+  const recommendedAction = hasContentHash
+    ? 'Use the provenance manifest and transcript sidecar as the primary attribution signal; verify the content hash before claiming tamper detection.'
+    : 'Use the provenance manifest and transcript sidecar as the primary attribution signal; add a content hash before claiming tamper detection.';
+
+  return {
+    approaches: [
+      {
+        approach: 'provenance_manifest',
+        attributionStrength: manifestAttributionStrength,
+        detectionMethod:
+          'Read the manifest, transcript sidecar, canonical URL or storage key, and optional content hash.',
+        fallbackBehavior:
+          'If the package cannot be verified, show manifest/transcript attribution as informational only.',
+        label: 'Manifest and transcript sidecar',
+        rationale:
+          'This path is deterministic, has no viewer impact, and already follows the Genfeed provenance export contract.',
+        readiness: manifestReadiness,
+        requiredSignals: [
+          'assetId',
+          'generatedAt',
+          'canonicalUrl_or_storageKey',
+          'transcriptSidecar',
+          'contentHash_for_tamper_detection',
+        ],
+        tamperDetection: manifestTamperDetection,
+        viewerImpact: 'none',
+      },
+      {
+        approach: 'visible_watermark',
+        attributionStrength: 'low',
+        detectionMethod:
+          'Inspect rendered pixels or visible overlay text such as @genfeedai.',
+        fallbackBehavior:
+          'Use only for preview or social exports where a viewer-facing mark is acceptable.',
+        label: 'Visible overlay watermark',
+        rationale:
+          'The files service can add visible overlays today, but the mark is removable and changes the viewer experience.',
+        readiness: 'ready',
+        requiredSignals: ['watermarkText', 'renderedOutput'],
+        tamperDetection: 'low',
+        viewerImpact: 'medium',
+      },
+      {
+        approach: 'hidden_watermark',
+        attributionStrength: 'medium',
+        detectionMethod:
+          'A future keyed embedder and detector would need to read the media payload and return confidence scores.',
+        fallbackBehavior:
+          'Do not claim hidden-watermark attribution until an embedder, detector, key policy, and false-positive threshold exist.',
+        label: 'Hidden media watermark',
+        rationale:
+          'No hidden-watermark embedder or detector exists in the current Genfeed media pipeline, so this remains an evaluation target rather than a serving dependency.',
+        readiness: 'blocked',
+        requiredSignals: [
+          'watermarkKeyId',
+          'embedderVersion',
+          'detectorVersion',
+          'confidenceThreshold',
+        ],
+        tamperDetection: 'medium',
+        viewerImpact: 'none',
+      },
+      {
+        approach: 'content_credentials',
+        attributionStrength: hasContentHash ? 'high' : 'medium',
+        detectionMethod:
+          'Verify a signed C2PA/content-credentials assertion against the exported media hash.',
+        fallbackBehavior:
+          'Emit the Genfeed manifest package until signing and media embedding are available.',
+        label: 'Content credentials',
+        rationale:
+          'Content credentials are the strongest portable path, but this repo currently has the manifest data contract rather than a signer/embedder.',
+        readiness: hasContentHash ? 'partial' : 'blocked',
+        requiredSignals: [
+          'contentHash',
+          'signingCertificate',
+          'embeddedAssertion',
+          'verificationTooling',
+        ],
+        tamperDetection: hasContentHash ? 'high' : 'none',
+        viewerImpact: 'none',
+      },
+    ],
+    assetId: mediaPackage.assetId,
+    fallbackBehavior:
+      'Keep exporting the manifest and transcript sidecar; fall back to visible overlay only when the export target needs a viewer-facing brand mark.',
+    generatedAt: manifest.generatedAt,
+    missingSignals,
+    primaryApproach: 'provenance_manifest',
+    recommendedAction,
+    schemaVersion: MEDIA_WATERMARK_ATTRIBUTION_SCHEMA_VERSION,
   };
 }
