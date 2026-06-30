@@ -87,8 +87,8 @@ import { BetterAuthMailerService } from './services/better-auth-mailer.service';
 
         const secret = config.get('BETTER_AUTH_SECRET');
         if (!secret) {
-          // Fail fast at boot (surfaced by BOOT_SMOKE) rather than at first
-          // sign-in: a missing secret would silently break auth.
+          // Fail fast at boot (surfaced by the deploy boot-smoke gate) rather
+          // than at first sign-in: a missing secret would silently break auth.
           throw new Error(
             'BETTER_AUTH_SECRET is required when BETTER_AUTH_ENABLED=true',
           );

@@ -306,17 +306,6 @@ async function main() {
 
     expressApp.use('/admin/queues', bullBoardAuth, serverAdapter.getRouter());
 
-    if (process.env.BOOT_SMOKE === '1') {
-      // Boot smoke (used as a pre-roll gate in deploy-ecs before services roll):
-      // fully initialize the app — which surfaces crash-on-boot bugs like the
-      // circular-dependency TDZ that shipped because CI has no boot test — then
-      // exit cleanly without listening. Any boot failure throws into the catch
-      // below, which exits non-zero so the gate fails.
-      await app.init();
-      console.info('Boot smoke OK — API initialized cleanly.');
-      process.exit(0);
-    }
-
     console.info(`API bootstrap: starting listener on port ${port}`);
     await withStartupTimeout(
       app.listen(port),
@@ -339,8 +328,9 @@ async function main() {
 // has loaded. A circular-import TDZ (e.g. #711's "Cannot access 'X' before
 // initialization") throws during that import and crashes the process before this
 // line, so exit 0 here means the compiled graph loads cleanly. We exit BEFORE
-// NestFactory/config so the check needs no env, DB, or Redis — unlike BOOT_SMOKE
-// (the full deploy-time init). Note: vitest can't reproduce this TDZ (its SWC/ESM
+// NestFactory/config so the check needs no env, DB, or Redis — unlike the
+// deploy-time boot-smoke ECS task, which boots the full listener against the
+// migrated DB. Note: vitest can't reproduce this TDZ (its SWC/ESM
 // resolution differs); only the compiled build does, which is what CI runs here.
 if (process.env.BOOT_CHECK === '1') {
   process.exit(0);
