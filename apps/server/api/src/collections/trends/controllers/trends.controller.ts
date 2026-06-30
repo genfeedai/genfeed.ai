@@ -5,6 +5,7 @@ import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { GenerateTrendIdeasDto } from '@api/collections/trends/dto/trend-ideas.dto';
 import { SaveTrendPreferencesDto } from '@api/collections/trends/dto/trend-preferences.dto';
 import type {
+  TrendPromptReferencePackType,
   TrendSourceIntendedUse,
   TrendSourceKind,
 } from '@api/collections/trends/interfaces/trend.interfaces';
@@ -73,6 +74,13 @@ const TREND_SOURCE_INTENDED_USE_VALUES = [
 @UseInterceptors(CreditsInterceptor)
 export class TrendsController {
   private static readonly TEXT_MAX_OVERDRAFT_CREDITS = 5;
+  private static readonly PROMPT_REFERENCE_INTENTS: TrendSourceIntendedUse[] = [
+    'evergreen_prompt_context',
+    'organic_trend_discovery',
+    'paid_creative_analysis',
+  ];
+  private static readonly PROMPT_REFERENCE_PACK_TYPES: TrendPromptReferencePackType[] =
+    ['hooks', 'formats', 'references', 'constraints'];
 
   constructor(
     private readonly trendsService: TrendsService,
@@ -83,6 +91,42 @@ export class TrendsController {
 
   private toSafeNumber(value: unknown): number {
     return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+  }
+
+  private parsePromptReferenceIntent(
+    value?: string,
+  ): TrendSourceIntendedUse | undefined {
+    if (!value) {
+      return undefined;
+    }
+
+    return TrendsController.PROMPT_REFERENCE_INTENTS.includes(
+      value as TrendSourceIntendedUse,
+    )
+      ? (value as TrendSourceIntendedUse)
+      : undefined;
+  }
+
+  private parsePromptReferencePackTypes(
+    value?: string,
+  ): TrendPromptReferencePackType[] | undefined {
+    if (!value) {
+      return undefined;
+    }
+
+    const requested = value
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    const supported = requested.filter(
+      (part): part is TrendPromptReferencePackType =>
+        TrendsController.PROMPT_REFERENCE_PACK_TYPES.includes(
+          part as TrendPromptReferencePackType,
+        ),
+    );
+
+    return supported.length > 0 ? supported : undefined;
   }
 
   @Get()
@@ -223,6 +267,37 @@ export class TrendsController {
     };
   }
 
+  @Get('references/packs')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async getPromptReferencePacks(
+    @CurrentUser() user: User,
+    @Query('platform') platform?: string,
+    @Query('intent') intentParam?: string,
+    @Query('types') typesParam?: string,
+    @Query('limit') limitParam?: string,
+  ) {
+    const publicMetadata = getPublicMetadata(user);
+    const organizationId = publicMetadata?.organization;
+    const brandId = publicMetadata?.brand;
+    const parsedLimit = Number.parseInt(limitParam ?? '12', 10);
+    const limit = Number.isNaN(parsedLimit)
+      ? 12
+      : Math.min(Math.max(parsedLimit, 1), 100);
+
+    const result = await this.trendsService.getPromptReferencePacks(
+      organizationId,
+      brandId,
+      {
+        intent: this.parsePromptReferenceIntent(intentParam),
+        limit,
+        platform,
+        types: this.parsePromptReferencePackTypes(typesParam),
+      },
+    );
+
+    return result;
+  }
+
   private parseBooleanQuery(value: string | undefined): boolean | undefined {
     if (value == null || value.length === 0) {
       return undefined;
@@ -299,6 +374,14 @@ export class TrendsController {
         totalAccounts: result.totalAccounts,
       },
     };
+  }
+
+  @Get('corpus/freshness')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async getCorpusFreshnessHealth(@Query('platform') platform?: string) {
+    return this.trendsService.getCorpusFreshnessHealth({
+      platform,
+    });
   }
 
   @Get('ideas')

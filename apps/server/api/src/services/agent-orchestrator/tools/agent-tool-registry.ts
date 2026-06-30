@@ -2,21 +2,6 @@ import type { AgentToolDefinition } from '@genfeedai/interfaces';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { getToolsForSurface, toAgentTools } from '@genfeedai/tools';
 
-const CREATE_LIVESTREAM_BOT_TOOL = 'create_livestream_bot' as AgentToolName;
-const MANAGE_LIVESTREAM_BOT_TOOL = 'manage_livestream_bot' as AgentToolName;
-const LIST_ADS_RESEARCH_TOOL = 'list_ads_research' as AgentToolName;
-const GET_AD_RESEARCH_DETAIL_TOOL = 'get_ad_research_detail' as AgentToolName;
-const CREATE_AD_REMIX_WORKFLOW_TOOL =
-  'create_ad_remix_workflow' as AgentToolName;
-const GENERATE_AD_PACK_TOOL = 'generate_ad_pack' as AgentToolName;
-const PREPARE_AD_LAUNCH_REVIEW_TOOL =
-  'prepare_ad_launch_review' as AgentToolName;
-const DRAFT_BRAND_VOICE_PROFILE_TOOL =
-  'draft_brand_voice_profile' as AgentToolName;
-const SAVE_BRAND_VOICE_PROFILE_TOOL =
-  'save_brand_voice_profile' as AgentToolName;
-const GET_WORKFLOW_INPUTS_TOOL = 'get_workflow_inputs' as AgentToolName;
-
 const BASE_AGENT_TOOLS: AgentToolDefinition[] = toAgentTools(
   getToolsForSurface('agent'),
 ) as AgentToolDefinition[];
@@ -106,7 +91,7 @@ const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Draft a structured brand voice profile for a brand using website/social context, audience, positioning, and examples the user likes or dislikes.',
-    name: DRAFT_BRAND_VOICE_PROFILE_TOOL,
+    name: AgentToolName.DRAFT_BRAND_VOICE_PROFILE,
     parameters: {
       properties: {
         brandId: {
@@ -146,7 +131,7 @@ const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Save an approved structured brand voice profile to the selected brand agent config.',
-    name: SAVE_BRAND_VOICE_PROFILE_TOOL,
+    name: AgentToolName.SAVE_BRAND_VOICE_PROFILE,
     parameters: {
       properties: {
         brandId: {
@@ -203,7 +188,7 @@ const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Save content, examples, preferences, or winners into agent memory and optionally route them to brand knowledge.',
-    name: 'capture_memory' as AgentToolName,
+    name: AgentToolName.CAPTURE_MEMORY,
     parameters: {
       properties: {
         brandId: {
@@ -295,7 +280,7 @@ const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Resolve the best official workflow source for the request, ask for confirmation, then install it into the current organization. Prefer seeded templates first, official marketplace workflows second, and only generate a new workflow as fallback.',
-    name: 'install_official_workflow' as AgentToolName,
+    name: AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
     parameters: {
       properties: {
         brandId: {
@@ -493,7 +478,7 @@ const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Create a YouTube or Twitch livestream chat bot for the current organization and brand, then return a bot card with links and basic control actions.',
-    name: CREATE_LIVESTREAM_BOT_TOOL,
+    name: AgentToolName.CREATE_LIVESTREAM_BOT,
     parameters: {
       properties: {
         botChannelLabel: {
@@ -588,7 +573,7 @@ const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Manage an existing YouTube or Twitch livestream chat bot session by starting, pausing, resuming, stopping, setting a manual override, or sending a message immediately.',
-    name: MANAGE_LIVESTREAM_BOT_TOOL,
+    name: AgentToolName.MANAGE_LIVESTREAM_BOT,
     parameters: {
       properties: {
         action: {
@@ -648,7 +633,7 @@ const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'List the highest-performing public and connected ads for the current brand niche, platform, source, metric, and timeframe filters.',
-    name: LIST_ADS_RESEARCH_TOOL,
+    name: AgentToolName.LIST_ADS_RESEARCH,
     parameters: {
       properties: {
         adAccountId: {
@@ -720,7 +705,7 @@ const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Inspect one ad from the ads research hub and return the creative, metrics, and pattern explanation.',
-    name: GET_AD_RESEARCH_DETAIL_TOOL,
+    name: AgentToolName.GET_AD_RESEARCH_DETAIL,
     parameters: {
       properties: {
         adAccountId: {
@@ -766,7 +751,7 @@ const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Create an official ad remix workflow from a selected ad. The workflow stays in review and does not auto-publish.',
-    name: CREATE_AD_REMIX_WORKFLOW_TOOL,
+    name: AgentToolName.CREATE_AD_REMIX_WORKFLOW,
     parameters: {
       properties: {
         adAccountId: {
@@ -826,7 +811,7 @@ const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Generate a brand-specific ad pack from a selected ad without creating a launch or publish action.',
-    name: GENERATE_AD_PACK_TOOL,
+    name: AgentToolName.GENERATE_AD_PACK,
     parameters: {
       properties: {
         adAccountId: {
@@ -886,7 +871,7 @@ const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Prepare a paused Meta or Google campaign launch draft for review from a selected ad. This never publishes live.',
-    name: PREPARE_AD_LAUNCH_REVIEW_TOOL,
+    name: AgentToolName.PREPARE_AD_LAUNCH_REVIEW,
     parameters: {
       properties: {
         adAccountId: {
@@ -960,7 +945,7 @@ const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Rate content quality from 1-10 and return actionable feedback and improvement suggestions.',
-    name: 'rate_content' as AgentToolName,
+    name: AgentToolName.RATE_CONTENT,
     parameters: {
       properties: {
         contentId: {
@@ -986,7 +971,7 @@ const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Add or remove a boolean vote on an ingredient (single vote toggle per user).',
-    name: 'rate_ingredient' as AgentToolName,
+    name: AgentToolName.RATE_INGREDIENT,
     parameters: {
       properties: {
         ingredientId: {
@@ -1002,7 +987,7 @@ const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Get the most-voted ingredients for this organization (optionally filtered by brand/category).',
-    name: 'get_top_ingredients' as AgentToolName,
+    name: AgentToolName.GET_TOP_INGREDIENTS,
     parameters: {
       properties: {
         brandId: {
@@ -1027,7 +1012,7 @@ const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Prepare a replication plan for a top ingredient and return source metadata + next actions.',
-    name: 'replicate_top_ingredient' as AgentToolName,
+    name: AgentToolName.REPLICATE_TOP_INGREDIENT,
     parameters: {
       properties: {
         ingredientId: {
@@ -1047,7 +1032,7 @@ const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Create a measurable agent goal for the current organization or brand using one analytics metric.',
-    name: 'create_goal' as AgentToolName,
+    name: AgentToolName.CREATE_GOAL,
     parameters: {
       properties: {
         brandId: { type: 'string' },
@@ -1070,7 +1055,7 @@ const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Check progress for an existing agent goal using current analytics data.',
-    name: 'check_goal_progress' as AgentToolName,
+    name: AgentToolName.CHECK_GOAL_PROGRESS,
     parameters: {
       properties: {
         goalId: { type: 'string' },
@@ -1083,7 +1068,7 @@ const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Update an existing agent goal to change its target, dates, description, or active state.',
-    name: 'update_goal' as AgentToolName,
+    name: AgentToolName.UPDATE_GOAL,
     parameters: {
       properties: {
         description: { type: 'string' },
@@ -1106,7 +1091,7 @@ const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Get the input variable definitions for a workflow. Use this before execute_workflow to discover what inputs a workflow expects.',
-    name: GET_WORKFLOW_INPUTS_TOOL,
+    name: AgentToolName.GET_WORKFLOW_INPUTS,
     parameters: {
       properties: {
         workflowId: {

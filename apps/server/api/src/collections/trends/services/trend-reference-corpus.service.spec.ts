@@ -16,6 +16,17 @@ type ReferenceRow = {
   platform: string | null;
 };
 
+type TrendRow = {
+  createdAt: Date;
+  data: Record<string, unknown>;
+  id: string;
+  isDeleted: boolean;
+  lastSeenAt: Date | null;
+  organizationId: string | null;
+  platform: string | null;
+  updatedAt: Date;
+};
+
 type QueryLike = {
   sql?: string;
   text?: string;
@@ -132,6 +143,86 @@ describe('TrendReferenceCorpusService', () => {
     },
   ];
 
+  const trendRows: TrendRow[] = [
+    {
+      createdAt: new Date('2026-06-12T00:00:00.000Z'),
+      data: {
+        expiresAt: '2026-07-01T00:00:00.000Z',
+        isCurrent: true,
+        metadata: {
+          source: 'apify',
+          sourcePreviewCachedAt: '2026-06-12T00:00:00.000Z',
+          sourcePreviewState: 'live',
+        },
+        platform: 'tiktok',
+      },
+      id: 'trend_1',
+      isDeleted: false,
+      lastSeenAt: new Date('2026-06-12T00:00:00.000Z'),
+      organizationId: 'org_1',
+      platform: 'tiktok',
+      updatedAt: new Date('2026-06-12T00:00:00.000Z'),
+    },
+    {
+      createdAt: new Date('2026-06-13T00:00:00.000Z'),
+      data: {
+        expiresAt: '2026-07-01T00:00:00.000Z',
+        isCurrent: true,
+        metadata: {
+          source: 'apify',
+          sourcePreviewCachedAt: '2026-06-13T00:00:00.000Z',
+          sourcePreviewState: 'empty',
+        },
+        platform: 'youtube',
+      },
+      id: 'trend_empty',
+      isDeleted: false,
+      lastSeenAt: new Date('2026-06-13T00:00:00.000Z'),
+      organizationId: null,
+      platform: 'youtube',
+      updatedAt: new Date('2026-06-13T00:00:00.000Z'),
+    },
+    {
+      createdAt: new Date('2026-06-11T00:00:00.000Z'),
+      data: {
+        expiresAt: '2026-07-01T00:00:00.000Z',
+        isCurrent: true,
+        metadata: {
+          source: 'apify',
+          sourcePreviewCachedAt: '2026-06-11T00:00:00.000Z',
+          sourcePreviewState: 'fallback',
+        },
+        platform: 'instagram',
+      },
+      id: 'trend_fallback',
+      isDeleted: false,
+      lastSeenAt: new Date('2026-06-11T00:00:00.000Z'),
+      organizationId: null,
+      platform: 'instagram',
+      updatedAt: new Date('2026-06-11T00:00:00.000Z'),
+    },
+    {
+      createdAt: new Date('2026-06-09T00:00:00.000Z'),
+      data: {
+        expiresAt: '2026-07-01T00:00:00.000Z',
+        isCurrent: true,
+        metadata: {
+          prelaunchCorpus: true,
+          source: 'public-reference',
+          sourcePreviewCachedAt: '2026-06-01T00:00:00.000Z',
+          sourcePreviewState: 'fallback',
+        },
+        platform: 'linkedin',
+      },
+      id: 'trend_prelaunch',
+      isDeleted: false,
+      lastSeenAt: new Date('2026-06-09T00:00:00.000Z'),
+      organizationId: null,
+      platform: 'linkedin',
+      updatedAt: new Date('2026-06-09T00:00:00.000Z'),
+    },
+  ];
+
   function filterReferences(where: {
     authorHandle?: string;
     canonicalUrl?: { in: string[] };
@@ -171,6 +262,38 @@ describe('TrendReferenceCorpusService', () => {
     });
   }
 
+  function filterTrends(where: {
+    id?: { in: string[] };
+    isDeleted?: boolean;
+    organizationId?: string;
+    platform?: string;
+  }) {
+    return trendRows.filter((row) => {
+      if (
+        typeof where.isDeleted === 'boolean' &&
+        row.isDeleted !== where.isDeleted
+      ) {
+        return false;
+      }
+      if (
+        typeof where.platform === 'string' &&
+        row.platform !== where.platform
+      ) {
+        return false;
+      }
+      if (
+        typeof where.organizationId === 'string' &&
+        row.organizationId !== where.organizationId
+      ) {
+        return false;
+      }
+      if (where.id?.in && !where.id.in.includes(row.id)) {
+        return false;
+      }
+      return true;
+    });
+  }
+
   const prisma = {
     $queryRaw: vi.fn((query: QueryLike) => {
       const sql = String(query.sql ?? query.text ?? '');
@@ -199,11 +322,7 @@ describe('TrendReferenceCorpusService', () => {
         ),
       ),
       findMany: vi.fn(({ where }) =>
-        Promise.resolve(
-          where.id.in.includes('trend_1') && where.organizationId === 'org_1'
-            ? [{ id: 'trend_1' }]
-            : [],
-        ),
+        Promise.resolve(filterTrends(where ?? {})),
       ),
     },
     trendRemixLineage: {
@@ -324,6 +443,10 @@ describe('TrendReferenceCorpusService', () => {
     );
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('filters reference corpus by trend, platform, and author without scanning recent references', async () => {
     const result = await service.getReferenceCorpus('org_1', 'brand_1', {
       authorHandle: 'creator',
@@ -399,6 +522,173 @@ describe('TrendReferenceCorpusService', () => {
         }),
       }),
     ]);
+  });
+
+  it('derives prompt-ready reference packs with source traceability and regeneration metadata', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-13T00:00:00.000Z'));
+
+    const result = await service.getPromptReferencePacks('org_1', 'brand_1', {
+      intent: 'organic_trend_discovery',
+      limit: 5,
+      platform: 'tiktok',
+      types: ['hooks', 'references'],
+    });
+
+    const hookPack = result.packs.find((pack) => pack.type === 'hooks');
+    const referencePack = result.packs.find(
+      (pack) => pack.type === 'references',
+    );
+
+    expect(result.summary).toMatchObject({
+      availableTypes: ['hooks', 'references'],
+      contentIntent: 'organic_trend_discovery',
+      skippedSources: 0,
+      targetPlatform: 'tiktok',
+      totalPacks: 2,
+      totalSources: 1,
+    });
+    expect(hookPack?.sourceReferenceIds).toEqual(['ref_tiktok']);
+    expect(referencePack?.examples).toEqual([
+      'AI tools clip (https://example.com/a)',
+    ]);
+    expect(hookPack?.freshness).toMatchObject({
+      expiredSourceIds: [],
+      freshnessWindowDays: 2,
+      regenerateAfter: '2026-06-14T00:00:00.000Z',
+      staleSourceIds: [],
+      status: 'fresh',
+    });
+    expect(hookPack?.regeneration.trigger).toBe('cache_key_changed');
+    expect(prisma.trendSourceReference.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        take: 20,
+        where: {
+          isDeleted: false,
+          platform: 'tiktok',
+        },
+      }),
+    );
+
+    const stableHookPack = hookPack
+      ? {
+          ...hookPack,
+          id: 'prompt-pack:hooks:tiktok:<cache-key>',
+          regeneration: {
+            ...hookPack.regeneration,
+            cacheKey: '<cache-key>',
+            sourceFingerprint: '<source-fingerprint>',
+          },
+        }
+      : undefined;
+
+    expect(stableHookPack).toMatchInlineSnapshot(`
+      {
+        "brandSuitability": "brand_safe",
+        "confidence": "medium",
+        "constraints": [
+          "Keep the opening claim grounded in the cited source references.",
+          "Do not copy creator wording verbatim when adapting the hook.",
+        ],
+        "contentIntent": "organic_trend_discovery",
+        "examples": [
+          "Hook angle: AI tools clip",
+        ],
+        "freshness": {
+          "expiredSourceIds": [],
+          "freshnessWindowDays": 2,
+          "lastSourceSeenAt": "2026-06-12T00:00:00.000Z",
+          "regenerateAfter": "2026-06-14T00:00:00.000Z",
+          "staleSourceIds": [],
+          "status": "fresh",
+        },
+        "id": "prompt-pack:hooks:tiktok:<cache-key>",
+        "instructions": [
+          "Start with the concrete tension, result, or surprising detail visible in the source.",
+          "Adapt the hook structure to the target brand voice before generation.",
+        ],
+        "metadata": {
+          "contentTypes": [
+            "video",
+          ],
+          "generatedAt": "2026-06-13T00:00:00.000Z",
+          "matchedTopics": [
+            "ai tools",
+          ],
+          "sourceCount": 1,
+          "sourceKinds": [
+            "public_platform_reference",
+          ],
+        },
+        "regeneration": {
+          "cacheKey": "<cache-key>",
+          "regenerateAfter": "2026-06-14T00:00:00.000Z",
+          "sourceFingerprint": "<source-fingerprint>",
+          "trigger": "cache_key_changed",
+        },
+        "sourceReferenceIds": [
+          "ref_tiktok",
+        ],
+        "sources": [
+          {
+            "authorHandle": "creator",
+            "canonicalUrl": "https://example.com/a",
+            "confidence": "medium",
+            "contentType": "video",
+            "freshnessStatus": "fresh",
+            "id": "ref_tiktok",
+            "lastSeenAt": "2026-06-12T00:00:00.000Z",
+            "platform": "tiktok",
+            "sourceClassification": {
+              "capturedAt": "2026-06-01T00:00:00.000Z",
+              "confidence": "medium",
+              "freshnessWindowDays": 2,
+              "intendedUse": "organic_trend_discovery",
+              "sourceKind": "public_platform_reference",
+              "sourceLabel": "TikTok",
+              "sourceTopic": "ai tools",
+            },
+            "title": "AI tools clip",
+          },
+        ],
+        "summary": "Reusable hook patterns from 1 prompt-ready corpus references.",
+        "targetPlatform": "tiktok",
+        "title": "Hooks pack from tiktok",
+        "type": "hooks",
+      }
+    `);
+
+    vi.useRealTimers();
+  });
+
+  it('filters prompt packs by intent and skips references without prompt-ready metadata', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-30T00:00:00.000Z'));
+
+    const result = await service.getPromptReferencePacks('org_1', 'brand_1', {
+      intent: 'organic_trend_discovery',
+      limit: 10,
+      types: ['constraints'],
+    });
+
+    expect(result.summary).toMatchObject({
+      skippedSources: 2,
+      totalPacks: 1,
+      totalSources: 1,
+    });
+    expect(result.packs[0]).toMatchObject({
+      freshness: {
+        expiredSourceIds: ['ref_tiktok'],
+        status: 'expired',
+      },
+      regeneration: {
+        trigger: 'source_expired',
+      },
+      sourceReferenceIds: ['ref_tiktok'],
+      type: 'constraints',
+    });
+
+    vi.useRealTimers();
   });
 
   it('annotates source items through indexed canonical URL lookup', async () => {
@@ -586,6 +876,111 @@ describe('TrendReferenceCorpusService', () => {
     expect(prisma.trendSourceReference.groupBy).toHaveBeenCalledWith(
       expect.objectContaining({
         take: 100,
+      }),
+    );
+  });
+
+  it('reports corpus freshness segments and provider failures', async () => {
+    const result = await service.getCorpusFreshnessHealth({
+      now: new Date('2026-06-14T00:00:00.000Z'),
+    });
+
+    expect(result.status).toBe('stale');
+    expect(result.summary).toMatchObject({
+      activeTrends: 4,
+      failingProviders: 2,
+      freshSegments: 3,
+      referenceRecords: 3,
+      staleSegments: 0,
+      totalSegments: 3,
+    });
+    expect(result.segments).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          platform: 'tiktok',
+          provider: 'TikTok',
+          sourceKind: 'public_platform_reference',
+          status: 'healthy',
+        }),
+        expect.objectContaining({
+          platform: 'instagram',
+          provider: 'instagram',
+          sourceKind: 'public_platform_reference',
+          status: 'healthy',
+        }),
+      ]),
+    );
+    expect(result.providerFailures).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          affectedTrendCount: 1,
+          platform: 'youtube',
+          provider: 'apify',
+          reason: 'empty_source_preview',
+          severity: 'error',
+        }),
+        expect.objectContaining({
+          affectedTrendCount: 1,
+          platform: 'instagram',
+          provider: 'apify',
+          reason: 'fallback_source_preview',
+          severity: 'warning',
+        }),
+      ]),
+    );
+    expect(
+      result.providerFailures.some(
+        (failure) => failure.provider === 'public-reference',
+      ),
+    ).toBe(false);
+  });
+
+  it('marks reference segments stale when last seen exceeds source windows', async () => {
+    const result = await service.getCorpusFreshnessHealth({
+      now: new Date('2026-06-20T00:00:00.000Z'),
+      sourcePreviewStaleAfterDays: 30,
+    });
+
+    expect(result.status).toBe('stale');
+    expect(result.summary.staleSegments).toBe(2);
+    expect(result.segments).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          platform: 'tiktok',
+          referenceCount: 1,
+          staleReferenceCount: 1,
+          status: 'stale',
+        }),
+        expect.objectContaining({
+          platform: 'instagram',
+          referenceCount: 1,
+          staleReferenceCount: 1,
+          status: 'stale',
+        }),
+      ]),
+    );
+  });
+
+  it('filters corpus health by platform', async () => {
+    const result = await service.getCorpusFreshnessHealth({
+      now: new Date('2026-06-14T00:00:00.000Z'),
+      platform: 'tiktok',
+    });
+
+    expect(result.summary.platforms).toEqual(['tiktok']);
+    expect(result.summary.referenceRecords).toBe(1);
+    expect(result.summary.failingProviders).toBe(0);
+    expect(result.segments).toHaveLength(1);
+    expect(result.segments[0]).toMatchObject({
+      platform: 'tiktok',
+      provider: 'TikTok',
+    });
+    expect(prisma.trendSourceReference.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          isDeleted: false,
+          platform: 'tiktok',
+        },
       }),
     );
   });

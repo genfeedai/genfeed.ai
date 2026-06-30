@@ -5,6 +5,7 @@ import { TrendEntity } from '@api/collections/trends/entities/trend.entity';
 import type {
   HistoricalTrendsOptions,
   TrendContentResult,
+  TrendCorpusFreshnessResult,
   TrendData,
   TrendDiscoveryItem,
   TrendPatternAnalysis,
@@ -481,6 +482,20 @@ export class TrendsService {
     );
   }
 
+  async getPromptReferencePacks(
+    organizationId?: string,
+    brandId?: string,
+    options: Parameters<
+      TrendReferenceCorpusService['getPromptReferencePacks']
+    >[2] = {},
+  ): ReturnType<TrendReferenceCorpusService['getPromptReferencePacks']> {
+    return this.trendReferenceCorpusService.getPromptReferencePacks(
+      organizationId,
+      brandId,
+      options,
+    );
+  }
+
   async getTopReferenceAccounts(
     organizationId?: string,
     brandId?: string,
@@ -494,6 +509,12 @@ export class TrendsService {
       brandId,
       options,
     );
+  }
+
+  getCorpusFreshnessHealth(
+    options: { platform?: string } = {},
+  ): Promise<TrendCorpusFreshnessResult> {
+    return this.trendReferenceCorpusService.getCorpusFreshnessHealth(options);
   }
 
   /**

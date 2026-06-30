@@ -205,50 +205,9 @@ export class HeygenWebhookService {
       return;
     }
 
-    const projectClipResults = await this.clipResultsService.findByProject(
+    await this.clipProjectsService.reconcileTerminalState(
       projectId,
       organizationId,
     );
-    const hasPendingClipResults = projectClipResults.some((clipResult) => {
-      const status = this.readString(clipResult.status);
-      return status !== 'completed' && status !== 'failed';
-    });
-
-    if (hasPendingClipResults) {
-      return;
-    }
-
-    const hasCompletedClip = projectClipResults.some(
-      (clipResult) => this.readString(clipResult.status) === 'completed',
-    );
-    const readyClipCount = projectClipResults.filter(
-      (clipResult) => this.readString(clipResult.status) === 'completed',
-    ).length;
-    const failedClipCount = projectClipResults.filter(
-      (clipResult) => this.readString(clipResult.status) === 'failed',
-    ).length;
-    const pendingClipCount =
-      projectClipResults.length - readyClipCount - failedClipCount;
-
-    if (hasCompletedClip) {
-      await this.clipProjectsService.patch(projectId, {
-        error: null,
-        failedClipCount,
-        pendingClipCount,
-        progress: 100,
-        readyClipCount,
-        status: 'completed',
-      });
-      return;
-    }
-
-    await this.clipProjectsService.patch(projectId, {
-      error: 'All clip generations failed.',
-      failedClipCount,
-      pendingClipCount,
-      progress: 100,
-      readyClipCount,
-      status: 'failed',
-    });
   }
 }

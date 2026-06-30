@@ -69,7 +69,7 @@ describe('BrandsService', () => {
         log: vi.fn(),
         warn: vi.fn(),
       } as unknown as LoggerService,
-      {} as CacheService,
+      { invalidateByTags: vi.fn() } as unknown as CacheService,
       brandScraperService as unknown as BrandScraperService,
       llmDispatcher as unknown as LlmDispatcherService,
       {
@@ -243,6 +243,147 @@ describe('BrandsService', () => {
         ]),
       );
       expect(delegate.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('applyBrandKitDraft', () => {
+    const organizationId = 'org_1';
+    const brandId = 'brand_1';
+
+    it('applies selected scalar, voice, and strategy fields to the brand', async () => {
+      delegate.findFirst.mockResolvedValue({
+        agentConfig: {
+          strategy: { frequency: 'weekly' },
+          voice: { style: 'direct' },
+        },
+        id: brandId,
+        isDeleted: false,
+        organizationId,
+      });
+      delegate.update.mockResolvedValue({
+        description: 'Imported description',
+        id: brandId,
+        organizationId,
+      });
+
+      const result = await service.applyBrandKitDraft(brandId, organizationId, {
+        fields: {
+          description: {
+            action: 'accept',
+            value: 'Imported description',
+          },
+          strategyPlatforms: {
+            action: 'accept',
+            value: ['linkedin', 'youtube'],
+          },
+          voiceTone: {
+            action: 'accept',
+            value: 'Confident',
+          },
+        },
+      });
+
+      expect(delegate.findFirst).toHaveBeenCalledWith({
+        where: { id: brandId, isDeleted: false, organizationId },
+      });
+      expect(delegate.update).toHaveBeenCalledWith({
+        data: {
+          agentConfig: {
+            strategy: {
+              frequency: 'weekly',
+              platforms: ['linkedin', 'youtube'],
+            },
+            voice: {
+              style: 'direct',
+              tone: 'Confident',
+            },
+          },
+          description: 'Imported description',
+        },
+        where: { id: brandId },
+      });
+      expect(result).toEqual({
+        appliedFields: ['description', 'strategyPlatforms', 'voiceTone'],
+        brandId,
+        diagnostics: [],
+        preservedFields: [],
+        status: 'accepted',
+      });
+    });
+
+    it('preserves links and assets until the safe asset import child ships', async () => {
+      delegate.findFirst.mockResolvedValue({
+        agentConfig: {},
+        id: brandId,
+        isDeleted: false,
+        organizationId,
+      });
+
+      const result = await service.applyBrandKitDraft(brandId, organizationId, {
+        fields: {
+          logo: {
+            action: 'accept',
+            value: {
+              role: 'logo',
+              sourceType: 'website',
+              url: 'https://acme.test/logo.svg',
+            },
+          },
+          socialLinks: {
+            action: 'accept',
+            value: [{ platform: 'linkedin', url: 'https://linkedin.test' }],
+          },
+        },
+      });
+
+      expect(delegate.update).not.toHaveBeenCalled();
+      expect(result.appliedFields).toEqual([]);
+      expect(result.preservedFields).toEqual(['logo', 'socialLinks']);
+      expect(result.status).toBe('partial');
+      expect(result.diagnostics).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: 'brand_kit_apply_deferred_field',
+            fieldKey: 'logo',
+            severity: 'warning',
+          }),
+          expect.objectContaining({
+            code: 'brand_kit_apply_deferred_field',
+            fieldKey: 'socialLinks',
+            severity: 'warning',
+          }),
+        ]),
+      );
+    });
+
+    it('rejects unsupported font candidates without mutating the brand', async () => {
+      delegate.findFirst.mockResolvedValue({
+        agentConfig: {},
+        id: brandId,
+        isDeleted: false,
+        organizationId,
+      });
+
+      const result = await service.applyBrandKitDraft(brandId, organizationId, {
+        fields: {
+          fontFamily: {
+            action: 'accept',
+            value: 'Inter',
+          },
+        },
+      });
+
+      expect(delegate.update).not.toHaveBeenCalled();
+      expect(result.status).toBe('blocked');
+      expect(result.diagnostics).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: 'brand_kit_apply_invalid_value',
+            fieldKey: 'fontFamily',
+            severity: 'error',
+          }),
+        ]),
+      );
     });
   });
 

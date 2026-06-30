@@ -1,3 +1,4 @@
+import { AgentToolName } from '@genfeedai/interfaces';
 import { getToolsForSurface } from '@genfeedai/tools';
 
 const BASE_AGENT_CREDIT_COSTS: Record<string, number> = Object.fromEntries(
@@ -5,19 +6,19 @@ const BASE_AGENT_CREDIT_COSTS: Record<string, number> = Object.fromEntries(
 );
 
 const EXTRA_AGENT_CREDIT_COSTS: Record<string, number> = {
-  capture_memory: 0,
-  create_ad_remix_workflow: 0,
-  create_livestream_bot: 0,
-  create_post: 0,
-  generate_ad_pack: 0,
-  get_ad_research_detail: 0,
-  get_top_ingredients: 0,
-  list_ads_research: 0,
-  manage_livestream_bot: 0,
-  prepare_ad_launch_review: 0,
-  rate_content: 0,
-  rate_ingredient: 0,
-  replicate_top_ingredient: 0,
+  [AgentToolName.CAPTURE_MEMORY]: 0,
+  [AgentToolName.CREATE_AD_REMIX_WORKFLOW]: 0,
+  [AgentToolName.CREATE_LIVESTREAM_BOT]: 0,
+  [AgentToolName.CREATE_POST]: 0,
+  [AgentToolName.GENERATE_AD_PACK]: 0,
+  [AgentToolName.GET_AD_RESEARCH_DETAIL]: 0,
+  [AgentToolName.GET_TOP_INGREDIENTS]: 0,
+  [AgentToolName.LIST_ADS_RESEARCH]: 0,
+  [AgentToolName.MANAGE_LIVESTREAM_BOT]: 0,
+  [AgentToolName.PREPARE_AD_LAUNCH_REVIEW]: 0,
+  [AgentToolName.RATE_CONTENT]: 0,
+  [AgentToolName.RATE_INGREDIENT]: 0,
+  [AgentToolName.REPLICATE_TOP_INGREDIENT]: 0,
 };
 
 export const AGENT_CREDIT_COSTS: Record<string, number> = {
