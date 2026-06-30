@@ -10,6 +10,7 @@ import {
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TopbarProps } from '@props/navigation/topbar.props';
+import OrganizationSwitcher from '@ui/menus/organization-switcher/OrganizationSwitcher';
 import MenuBrandSwitcher from '@ui/menus/switchers/MenuBrandSwitcher';
 import { Button } from '@ui/primitives/button';
 import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
@@ -95,6 +96,8 @@ function AppProtectedTopbarContent({
   const taskId = searchParams.get('taskId');
   const taskTitle = searchParams.get('taskTitle');
   const ToggleIcon = isMenuOpen ? HiXMark : HiBars3;
+  const shouldRenderOrganizationSwitcher =
+    process.env.NEXT_PUBLIC_GENFEED_CLOUD === 'true';
   const shouldRenderAgentToggle =
     Boolean(onAgentToggle) &&
     (process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1' || !isHostedCloudApp());
@@ -138,6 +141,12 @@ function AppProtectedTopbarContent({
             >
               <PiSidebarSimple className="size-4" />
             </Button>
+          ) : null}
+
+          {shouldRenderOrganizationSwitcher ? (
+            <div className="hidden min-w-0 w-40 sm:block sm:w-56">
+              <OrganizationSwitcher />
+            </div>
           ) : null}
 
           {brands.length > 0 ? (

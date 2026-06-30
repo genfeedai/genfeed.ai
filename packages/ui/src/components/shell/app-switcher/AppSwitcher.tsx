@@ -2,18 +2,16 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { AppSwitcherItemConfig } from '@genfeedai/interfaces';
+import type { AppContext, AppSwitcherItemConfig } from '@genfeedai/interfaces';
 import type { AppSwitcherProps } from '@genfeedai/props/ui/app-switcher.props';
 import Link from 'next/link';
 import { useRef } from 'react';
 import {
   HiChevronDown,
-  HiOutlineChartBar,
   HiOutlineChartBarSquare,
   HiOutlineChatBubbleLeftRight,
-  HiOutlineDocumentText,
   HiOutlineFolder,
-  HiOutlinePencilSquare,
+  HiOutlinePaperAirplane,
   HiOutlineRectangleGroup,
   HiOutlineSparkles,
   HiOutlineSquares2X2,
@@ -25,32 +23,18 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../../../primitives/dropdown-menu';
 
-const CONTENT_APPS: AppSwitcherItemConfig[] = [
-  {
-    icon: HiOutlineFolder,
-    id: 'library',
-    label: 'Library',
-    route: (org, brand) =>
-      brand ? `/${org}/${brand}/library/ingredients` : `/${org}/~/library`,
-  },
-  {
-    icon: HiOutlineDocumentText,
-    id: 'posts',
-    label: 'Posts',
-    route: (org, brand) =>
-      brand ? `/${org}/${brand}/posts` : `/${org}/~/posts`,
-  },
-];
+type LifecycleAppSwitcherItemConfig = AppSwitcherItemConfig & {
+  activeIds?: AppContext[];
+};
 
-const PLATFORM_APPS: AppSwitcherItemConfig[] = [
+const SECTION_APPS: LifecycleAppSwitcherItemConfig[] = [
   {
     icon: HiOutlineSquares2X2,
     id: 'workspace',
-    label: 'Workspace',
+    label: 'Home',
     route: (org, brand) =>
       brand ? `/${org}/${brand}/workspace` : `/${org}/~/overview`,
   },
@@ -61,32 +45,33 @@ const PLATFORM_APPS: AppSwitcherItemConfig[] = [
     route: (org) => `/${org}/~/chat`,
   },
   {
+    activeIds: ['studio', 'compose', 'editor'],
     icon: HiOutlineSparkles,
     id: 'studio',
-    label: 'Studio',
+    label: 'Create',
     route: (org, brand) =>
       brand ? `/${org}/${brand}/studio/image` : `/${org}/~/studio/image`,
   },
   {
-    icon: HiOutlineChartBar,
-    id: 'workflows',
-    label: 'Workflows',
+    icon: HiOutlineFolder,
+    id: 'library',
+    label: 'Library',
     route: (org, brand) =>
-      brand ? `/${org}/${brand}/workflows` : `/${org}/~/workflows`,
+      brand ? `/${org}/${brand}/library/ingredients` : `/${org}/~/library`,
   },
   {
-    icon: HiOutlinePencilSquare,
-    id: 'editor',
-    label: 'Editor',
+    icon: HiOutlinePaperAirplane,
+    id: 'posts',
+    label: 'Publish',
     route: (org, brand) =>
-      brand ? `/${org}/${brand}/editor` : `/${org}/~/editor`,
+      brand ? `/${org}/${brand}/posts` : `/${org}/~/posts`,
   },
   {
     icon: HiOutlineRectangleGroup,
-    id: 'compose',
-    label: 'Write',
+    id: 'workflows',
+    label: 'Automate',
     route: (org, brand) =>
-      brand ? `/${org}/${brand}/compose/post` : `/${org}/~/posts`,
+      brand ? `/${org}/${brand}/workflows` : `/${org}/~/workflows`,
   },
   {
     icon: HiOutlineChartBarSquare,
@@ -98,8 +83,6 @@ const PLATFORM_APPS: AppSwitcherItemConfig[] = [
         : `/${org}/~/analytics/overview`,
   },
 ];
-
-const ALL_APPS: AppSwitcherItemConfig[] = [...PLATFORM_APPS, ...CONTENT_APPS];
 
 function withPreservedSearch(path: string, preservedSearch?: string): string {
   if (!preservedSearch) {
@@ -127,13 +110,20 @@ function withPreservedSearch(path: string, preservedSearch?: string): string {
   return nextSearch ? `${pathname}?${nextSearch}` : pathname;
 }
 
+function isActiveApp(
+  app: LifecycleAppSwitcherItemConfig,
+  currentApp: AppContext,
+): boolean {
+  return app.id === currentApp || app.activeIds?.includes(currentApp) === true;
+}
+
 function AppDropdownItem({
   app,
   isActive,
   href,
   onNavigateStart,
 }: {
-  app: AppSwitcherItemConfig;
+  app: LifecycleAppSwitcherItemConfig;
   isActive: boolean;
   href: string;
   onNavigateStart: () => void;
@@ -184,9 +174,9 @@ export function AppSwitcher({
     preventTriggerAutoFocusRef.current = true;
   };
 
-  const activeApp = ALL_APPS.find((app) => app.id === currentApp);
+  const activeApp = SECTION_APPS.find((app) => isActiveApp(app, currentApp));
   const ActiveIcon = activeApp?.icon ?? HiOutlineSquares2X2;
-  const activeLabel = activeApp?.label ?? 'Workspace';
+  const activeLabel = activeApp?.label ?? 'Home';
 
   return (
     <DropdownMenu modal={false}>
@@ -210,7 +200,7 @@ export function AppSwitcher({
             variant={ButtonVariant.GHOST}
             size={ButtonSize.ICON}
             className="size-7 focus-visible:!outline-none focus-visible:!ring-0 focus-visible:!ring-offset-0"
-            ariaLabel="Switch app"
+            ariaLabel="Switch section"
           >
             <TbGridDots className="size-4" />
           </Button>
@@ -229,25 +219,12 @@ export function AppSwitcher({
           preventTriggerAutoFocusRef.current = false;
         }}
       >
-        <DropdownMenuLabel>Content</DropdownMenuLabel>
-        {CONTENT_APPS.map((app) => (
+        <DropdownMenuLabel>Sections</DropdownMenuLabel>
+        {SECTION_APPS.map((app) => (
           <AppDropdownItem
             key={app.id}
             app={app}
-            isActive={app.id === currentApp}
-            href={getAppHref(app)}
-            onNavigateStart={handleNavigateStart}
-          />
-        ))}
-
-        <DropdownMenuSeparator />
-
-        <DropdownMenuLabel>Tools</DropdownMenuLabel>
-        {PLATFORM_APPS.map((app) => (
-          <AppDropdownItem
-            key={app.id}
-            app={app}
-            isActive={app.id === currentApp}
+            isActive={isActiveApp(app, currentApp)}
             href={getAppHref(app)}
             onNavigateStart={handleNavigateStart}
           />

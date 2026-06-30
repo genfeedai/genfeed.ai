@@ -171,10 +171,6 @@ vi.mock('@ui/buttons/credits/ButtonCredits', () => ({
   default: () => <div data-testid="button-credits" />,
 }));
 
-vi.mock('@ui/menus/organization-switcher/OrganizationSwitcher', () => ({
-  default: () => <div data-testid="organization-switcher" />,
-}));
-
 vi.mock('@ui/shell/app-switcher/AppSwitcher', () => ({
   AppSwitcher: () => <div data-testid="app-switcher" />,
 }));
@@ -252,16 +248,7 @@ describe('MenuShared', () => {
     ).toBeTruthy();
   });
 
-  it('renders the organization switcher inside the sidebar header shell', () => {
-    render(<MenuShared config={config} />);
-
-    expect(screen.getByTestId('sidebar-header-shell')).toBeInTheDocument();
-    expect(screen.getByTestId('organization-switcher')).toBeInTheDocument();
-  });
-
-  it('hides the organization switcher outside SaaS cloud mode', () => {
-    delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
-
+  it('keeps organization switching out of the sidebar header shell', () => {
     render(<MenuShared config={config} />);
 
     expect(screen.getByTestId('sidebar-header-shell')).toBeInTheDocument();

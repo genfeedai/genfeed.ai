@@ -79,6 +79,10 @@ vi.mock('@ui/menus/switchers/MenuBrandSwitcher', () => ({
   ),
 }));
 
+vi.mock('@ui/menus/organization-switcher/OrganizationSwitcher', () => ({
+  default: () => <div data-testid="organization-switcher" />,
+}));
+
 vi.mock('@ui/shell/app-switcher/AppSwitcher', () => ({
   AppSwitcher: (props: {
     brandSlug?: string;
@@ -165,6 +169,29 @@ describe('AppProtectedTopbar', () => {
       switcher.compareDocumentPosition(cloudSyncIndicator) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  it('renders the organization switcher in the topbar for SaaS cloud mode', () => {
+    process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
+
+    render(<AppProtectedTopbar orgSlug="acme" currentApp="studio" />);
+
+    const organizationSwitcher = screen.getByTestId('organization-switcher');
+    const brandSwitcher = screen.getByTestId('brand-switcher');
+
+    expect(organizationSwitcher).toBeInTheDocument();
+    expect(
+      organizationSwitcher.compareDocumentPosition(brandSwitcher) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('hides the organization switcher outside SaaS cloud mode', () => {
+    render(<AppProtectedTopbar orgSlug="acme" currentApp="studio" />);
+
+    expect(
+      screen.queryByTestId('organization-switcher'),
+    ).not.toBeInTheDocument();
   });
 
   it('does not inject the context brand into explicit org-scoped routes', () => {
