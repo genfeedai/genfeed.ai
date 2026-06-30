@@ -29,8 +29,13 @@ export default function OnboardingRootPage() {
       completedSteps.includes(step),
     );
 
+    // An already-onboarded user who navigates to /onboarding replays the full
+    // wizard from the first step rather than jumping to the summary. Replaying
+    // is non-destructive: the brand step updates the existing brand (never
+    // duplicates) and the summary step only persists an access preference.
+    // Mid-onboarding users still resume at their first incomplete step.
     if (hasCompletedAllOnboardingSteps) {
-      replace('/onboarding/summary');
+      replace('/onboarding/brand');
       return;
     }
 

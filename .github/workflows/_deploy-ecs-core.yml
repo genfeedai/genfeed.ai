@@ -241,7 +241,7 @@ jobs:
         working-directory: ${{ env.TF_DIR }}
         run: tofu init -input=false
 
-      - name: Register migration, workflow migration + boot-smoke task definitions
+      - name: Register migration, workflow migration, boot-smoke + credential-backfill task definitions
         working-directory: ${{ env.TF_DIR }}
         run: |
           tofu apply -input=false -auto-approve \
@@ -251,6 +251,8 @@ jobs:
             -target=aws_ecs_task_definition.workflow_backfill \
             -target=aws_cloudwatch_log_group.boot_smoke \
             -target=aws_ecs_task_definition.boot_smoke \
+            -target=aws_cloudwatch_log_group.credential_backfill \
+            -target=aws_ecs_task_definition.credential_backfill \
             -var="image_tag=${{ steps.image.outputs.sha }}" \
             -var="enable_dns_cutover=true"
 
@@ -418,6 +420,52 @@ jobs:
             aws ecs wait services-stable --cluster "$CLUSTER" --services "$svc"
           done
           echo "All services stable."
+
+      - name: Run credential-encryption backfill (post-rollout, gated after services stable)
+        # ORDERING: this step intentionally runs AFTER services are stable on the new image.
+        # The backfill writes ciphertext to the credentials table. Only the new app code
+        # (post-#900 boundary) can read ciphertext — running before rollout would cause
+        # old pods to choke on rows they cannot decrypt. Running post-rollout is safe because
+        # the script is idempotent: rows already in ciphertext format are skipped, so re-running
+        # on every deploy has no side effects.
+        # TOKEN_ENCRYPTION_KEY is injected automatically from SSM via local.service_task_secrets
+        # (the same mechanism that feeds the live api service). If that SSM param is absent,
+        # this task will exit non-zero AND the api service's own encrypt boundary will also fail
+        # at runtime — so a missing key is a deploy-blocking signal either way.
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          set -euo pipefail
+          CLUSTER=$(tofu output -raw cluster_name)
+          TASK_DEFINITION=$(tofu output -raw credential_backfill_task_definition_arn)
+          SUBNETS=$(tofu output -json task_subnets | jq -r 'join(",")')
+          SG=$(tofu output -raw task_security_group)
+          echo "Running credential-encryption backfill task on $CLUSTER ($TASK_DEFINITION)..."
+          TASK_ARN=$(aws ecs run-task --cluster "$CLUSTER" --task-definition "$TASK_DEFINITION" \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SG],assignPublicIp=DISABLED}" \
+            --query 'tasks[0].taskArn' --output text)
+          if [ -z "$TASK_ARN" ] || [ "$TASK_ARN" = "None" ]; then
+            echo "::error::ECS run-task launched no credential backfill task (capacity, IAM, or quota failure)"; exit 1
+          fi
+          DEADLINE=$((SECONDS + 1200))
+          while :; do
+            STATUS=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
+              --query 'tasks[0].lastStatus' --output text)
+            [ "$STATUS" = "STOPPED" ] && break
+            if [ "$SECONDS" -ge "$DEADLINE" ]; then
+              REASON=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
+                --query 'tasks[0].stoppedReason' --output text)
+              aws ecs stop-task --cluster "$CLUSTER" --task "$TASK_ARN" \
+                --reason "deploy credential-encryption backfill timed out" >/dev/null || true
+              echo "::error::credential backfill task did not stop within 20m (last status: $STATUS, reason: $REASON)"; exit 1
+            fi
+            echo "  credential backfill task status: $STATUS ($((DEADLINE - SECONDS))s remaining)"
+            sleep 6
+          done
+          CODE=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
+            --query 'tasks[0].containers[0].exitCode' --output text)
+          echo "credential backfill exit code: $CODE"
+          [ "$CODE" = "0" ] || { echo "::error::credential-encryption backfill failed"; exit 1; }
 
   deploy-vercel-frontends:
     name: Deploy Vercel frontends

@@ -18,6 +18,25 @@
  * The integration-layer assertion is covered by organizations.service.spec.ts.
  */
 
+vi.mock('@genfeedai/prisma', () => ({
+  // BaseService.getPrismaEnumValues reads enum value sets off this namespace directly.
+  OrganizationCategory: {
+    AGENCY: 'AGENCY',
+    BUSINESS: 'BUSINESS',
+    CREATOR: 'CREATOR',
+  },
+  PrismaClient: class {},
+  // Organization model has: id, slug, label, category (enum), accountType (enum), isDeleted.
+  // getModelMeta is used by BaseService to look up field/enum metadata.
+  getModelMeta: () => ({
+    allFields: ['id', 'slug', 'label', 'category', 'accountType', 'isDeleted'],
+    enumFields: {
+      accountType: { enumType: 'OrganizationCategory', isRequired: false },
+      category: { enumType: 'OrganizationCategory', isRequired: true },
+    },
+  }),
+}));
+
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { OrganizationCategory } from '@genfeedai/enums';

@@ -127,6 +127,46 @@ resource "aws_ecs_task_definition" "workflow_backfill" {
   }])
 }
 
+# ── One-off credential-encryption backfill (run AFTER services reach steady ──
+# state with the new image, so new pods — which know how to read ciphertext —
+# are already live before any row is written. Skips rows already encrypted
+# (idempotent); safe on every deploy. Requires TOKEN_ENCRYPTION_KEY in SSM
+# under the prod path — the same mechanism that feeds the running api service.
+resource "aws_cloudwatch_log_group" "credential_backfill" {
+  name              = "/ecs/${local.name_prefix}/credential-backfill"
+  retention_in_days = 30
+}
+
+resource "aws_ecs_task_definition" "credential_backfill" {
+  family                   = "${local.name_prefix}-credential-backfill"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = local.services.api.cpu
+  memory                   = local.services.api.mem
+  execution_role_arn       = aws_iam_role.execution.arn
+  task_role_arn            = aws_iam_role.task.arn
+
+  container_definitions = jsonencode([{
+    name      = "credential-backfill"
+    image     = local.image
+    essential = true
+    command   = ["bun", "run", "apps/server/api/scripts/backfill-credential-encryption.ts", "--live"]
+    secrets   = local.service_task_secrets
+    environment = concat(local.internal_env, [
+      { name = "PORT", value = tostring(local.services.api.port) },
+      { name = "SERVICE_NAME", value = "api" },
+    ])
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        "awslogs-group"         = aws_cloudwatch_log_group.credential_backfill.name
+        "awslogs-region"        = var.region
+        "awslogs-stream-prefix" = "credential-backfill"
+      }
+    }
+  }])
+}
+
 # ── One-off boot smoke (run via `aws ecs run-task` BEFORE services roll) ─
 # Starts the production api command and requires localhost /v1/health to answer.
 # This catches both crash-on-boot bugs and "loads but never binds the port"

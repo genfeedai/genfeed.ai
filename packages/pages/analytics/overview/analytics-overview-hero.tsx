@@ -43,7 +43,7 @@ export default function AnalyticsOverviewHero({
   orgHref,
 }: AnalyticsOverviewHeroProps) {
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(280px,0.9fr)]">
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,1.7fr)_minmax(280px,0.9fr)]">
       <div className="space-y-5">
         <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-foreground/60">
           {dashboardState === 'active' ? (
@@ -87,7 +87,7 @@ export default function AnalyticsOverviewHero({
         </div>
       </div>
 
-      <div className="grid gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4 lg:p-5">
+      <aside className="border-t border-white/[0.08] pt-5 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
         <div className="flex items-center justify-between gap-3">
           <div>
             <div className="text-sm font-medium text-foreground">
@@ -100,22 +100,22 @@ export default function AnalyticsOverviewHero({
           <HiOutlineSquares2X2 className="size-5 text-foreground/45" />
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+        <div className="mt-4 divide-y divide-white/[0.08]">
           {heroContent.progressItems.map((item) => (
             <div
               key={item.label}
-              className="rounded-xl border border-white/[0.08] bg-black/10 p-4"
+              className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4 py-4 first:pt-0 last:pb-0 lg:block"
             >
-              <div className="text-xs uppercase tracking-[0.22em] text-foreground/40">
+              <div className="text-xs uppercase tracking-[0.22em] text-foreground/40 lg:mb-2">
                 {item.label}
               </div>
-              <div className="mt-2 text-3xl font-serif text-foreground">
+              <div className="text-3xl font-serif text-foreground">
                 {item.value}
               </div>
             </div>
           ))}
         </div>
-      </div>
+      </aside>
     </div>
   );
 }

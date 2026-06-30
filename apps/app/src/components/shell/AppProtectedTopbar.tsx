@@ -1,6 +1,7 @@
 'use client';
 
 import { APP_ROUTES } from '@genfeedai/constants';
+import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   getBrandEntityId,
@@ -10,6 +11,7 @@ import {
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TopbarProps } from '@props/navigation/topbar.props';
+import OrganizationSwitcher from '@ui/menus/organization-switcher/OrganizationSwitcher';
 import MenuBrandSwitcher from '@ui/menus/switchers/MenuBrandSwitcher';
 import { Button } from '@ui/primitives/button';
 import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
@@ -59,6 +61,7 @@ function AppProtectedTopbarContent({
   const { push } = useRouter();
   const { brandId, brands, selectedBrand, setBrandId, setOrganizationId } =
     useBrand();
+  const { isSuperAdmin } = useAccessState();
   // Route props are authoritative; only fall back to useOrgUrl when the shell is
   // rendered without route context. On org-level `/:org/~/...` pages
   // effectiveBrandSlug stays undefined so the app switcher links into org-scoped
@@ -104,6 +107,11 @@ function AppProtectedTopbarContent({
   const taskId = searchParams.get('taskId');
   const taskTitle = searchParams.get('taskTitle');
   const ToggleIcon = isMenuOpen ? HiXMark : HiBars3;
+  const isHostedCloudHostname =
+    typeof window !== 'undefined' &&
+    window.location.hostname === 'app.genfeed.ai';
+  const shouldRenderOrganizationSwitcher =
+    process.env.NEXT_PUBLIC_GENFEED_CLOUD === 'true' || isHostedCloudHostname;
   const shouldRenderAgentToggle =
     Boolean(onAgentToggle) &&
     (process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1' || !isHostedCloudApp());
@@ -147,6 +155,12 @@ function AppProtectedTopbarContent({
             >
               <PiSidebarSimple className="size-4" />
             </Button>
+          ) : null}
+
+          {shouldRenderOrganizationSwitcher ? (
+            <div className="hidden min-w-0 w-40 sm:block sm:w-56">
+              <OrganizationSwitcher />
+            </div>
           ) : null}
 
           {brands.length > 0 ? (
@@ -197,6 +211,7 @@ function AppProtectedTopbarContent({
               currentApp={currentApp ?? 'workspace'}
               orgSlug={effectiveOrgSlug}
               brandSlug={effectiveBrandSlug}
+              showAdmin={isSuperAdmin}
             />
           ) : null}
 

@@ -963,23 +963,9 @@ export class WorkflowExecutorService {
       id: executionId,
       isDeleted: false,
     });
-    const baselineEstimatedDurationMs =
-      typeof existingExecution?.metadata === 'object' &&
-      existingExecution?.metadata !== null &&
-      typeof (existingExecution.metadata as Record<string, unknown>).eta ===
-        'object' &&
-      (existingExecution.metadata as Record<string, unknown>).eta !== null &&
-      typeof (
-        (existingExecution.metadata as Record<string, unknown>).eta as Record<
-          string,
-          unknown
-        >
-      ).estimatedDurationMs === 'number'
-        ? ((
-            (existingExecution.metadata as Record<string, unknown>)
-              .eta as Record<string, unknown>
-          ).estimatedDurationMs as number)
-        : undefined;
+    const baselineEstimatedDurationMs = this.extractEstimatedDurationMs(
+      existingExecution?.metadata,
+    );
     const resumedCompletedNodeIds = new Set(Object.keys(nodeOutputCache));
     const resumedSkippedNodeIds = new Set<string>();
 

@@ -4,6 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mockSearchParams = new URLSearchParams();
 const appSwitcherSpy = vi.hoisted(() => vi.fn());
+const mockAccessState = vi.hoisted(() => ({
+  isSuperAdmin: false,
+}));
 const originalLocation = window.location;
 
 vi.mock('@genfeedai/enums', () => ({
@@ -50,6 +53,13 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   }),
 }));
 
+vi.mock(
+  '@genfeedai/contexts/providers/access-state/access-state.provider',
+  () => ({
+    useAccessState: () => mockAccessState,
+  }),
+);
+
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
     children,
@@ -79,11 +89,16 @@ vi.mock('@ui/menus/switchers/MenuBrandSwitcher', () => ({
   ),
 }));
 
+vi.mock('@ui/menus/organization-switcher/OrganizationSwitcher', () => ({
+  default: () => <div data-testid="organization-switcher" />,
+}));
+
 vi.mock('@ui/shell/app-switcher/AppSwitcher', () => ({
   AppSwitcher: (props: {
     brandSlug?: string;
     currentApp?: string;
     orgSlug: string;
+    showAdmin?: boolean;
     variant?: string;
   }) => {
     appSwitcherSpy(props);
@@ -129,6 +144,7 @@ const { default: AppProtectedTopbar } = await import('./AppProtectedTopbar');
 describe('AppProtectedTopbar', () => {
   beforeEach(() => {
     mockSearchParams = new URLSearchParams();
+    mockAccessState.isSuperAdmin = false;
     appSwitcherSpy.mockClear();
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
     delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
@@ -175,6 +191,41 @@ describe('AppProtectedTopbar', () => {
     ).toBeTruthy();
   });
 
+  it('renders the organization switcher in the topbar for SaaS cloud mode', () => {
+    process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
+
+    render(<AppProtectedTopbar orgSlug="acme" currentApp="studio" />);
+
+    const organizationSwitcher = screen.getByTestId('organization-switcher');
+    const brandSwitcher = screen.getByTestId('brand-switcher');
+
+    expect(organizationSwitcher).toBeInTheDocument();
+    expect(
+      organizationSwitcher.compareDocumentPosition(brandSwitcher) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('hides the organization switcher outside SaaS cloud mode', () => {
+    render(<AppProtectedTopbar orgSlug="acme" currentApp="studio" />);
+
+    expect(
+      screen.queryByTestId('organization-switcher'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows the organization switcher on the official hosted app hostname', () => {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...originalLocation, hostname: 'app.genfeed.ai' },
+      writable: true,
+    });
+
+    render(<AppProtectedTopbar orgSlug="acme" currentApp="studio" />);
+
+    expect(screen.getByTestId('organization-switcher')).toBeInTheDocument();
+  });
+
   it('does not inject the context brand into explicit org-scoped routes', () => {
     render(<AppProtectedTopbar orgSlug="acme" currentApp="workspace" />);
 
@@ -201,6 +252,28 @@ describe('AppProtectedTopbar', () => {
         brandSlug: 'brand',
         currentApp: 'workspace',
         orgSlug: 'acme',
+      }),
+    );
+  });
+
+  it('enables the admin app switcher item for platform admins', () => {
+    mockAccessState.isSuperAdmin = true;
+
+    render(<AppProtectedTopbar orgSlug="acme" currentApp="workspace" />);
+
+    expect(appSwitcherSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        showAdmin: true,
+      }),
+    );
+  });
+
+  it('hides the admin app switcher item for non-admin users', () => {
+    render(<AppProtectedTopbar orgSlug="acme" currentApp="workspace" />);
+
+    expect(appSwitcherSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        showAdmin: false,
       }),
     );
   });
