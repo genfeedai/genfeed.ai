@@ -147,18 +147,26 @@ describe('AppProtectedTopbar', () => {
     });
   });
 
-  it('renders the brand switcher on the left and app switcher with right-side controls', () => {
+  it('renders brand scope on the left, breadcrumb title in the middle, and controls on the right', () => {
     render(<AppProtectedTopbar orgSlug="acme" currentApp="studio" />);
 
     const brandSwitcher = screen.getByTestId('brand-switcher');
+    const breadcrumbs = screen.getByRole('navigation', {
+      name: 'Breadcrumb',
+    });
     const switcher = screen.getByTestId('app-switcher');
     const cloudSyncIndicator = screen.getByTestId('cloud-sync-indicator');
 
     expect(brandSwitcher).toHaveTextContent('labeled');
+    expect(breadcrumbs).toHaveTextContent('Studio');
     expect(switcher).toHaveTextContent('icon');
     expect(switcher).toBeInTheDocument();
     expect(
-      brandSwitcher.compareDocumentPosition(switcher) &
+      brandSwitcher.compareDocumentPosition(breadcrumbs) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      breadcrumbs.compareDocumentPosition(switcher) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(

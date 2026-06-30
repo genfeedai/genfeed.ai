@@ -274,7 +274,9 @@ describe('WorkspacePageContent', () => {
       expect(listMock).toHaveBeenCalledWith({});
     });
 
-    expect(screen.getByText('Workspace Dashboard')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Dashboard' }),
+    ).toHaveClass('sr-only');
     expect(screen.getByTestId('dashboard-stats-strip')).toBeInTheDocument();
     expect(screen.queryByTestId('workspace-nav')).not.toBeInTheDocument();
   });

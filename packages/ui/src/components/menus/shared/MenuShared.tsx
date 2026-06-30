@@ -77,8 +77,11 @@ export default function MenuShared({
     ? (prefixHref({ href: backHref }) ?? backHref)
     : undefined;
   const prefetchBackHref = useNavigationPrefetch(resolvedBackHref);
+  const isHostedCloudHostname =
+    typeof window !== 'undefined' &&
+    window.location.hostname === 'app.genfeed.ai';
   const shouldRenderOrganizationSwitcher =
-    process.env.NEXT_PUBLIC_GENFEED_CLOUD === 'true';
+    process.env.NEXT_PUBLIC_GENFEED_CLOUD === 'true' || isHostedCloudHostname;
 
   const secondaryNavigationContent =
     secondaryItems.length > 0 ? (

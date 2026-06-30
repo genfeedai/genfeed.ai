@@ -21,6 +21,7 @@ const {
   mockPathname: { value: '/settings/personal' },
   mockPush: vi.fn(),
 }));
+const originalLocation = window.location;
 
 // @genfeedai/auth-client/react is already mocked globally in setup.ts
 // Add UserButton that's not in the global mock
@@ -199,6 +200,11 @@ describe('MenuShared', () => {
 
   afterEach(() => {
     delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: originalLocation,
+      writable: true,
+    });
   });
 
   const config: MenuConfig = {
@@ -268,6 +274,19 @@ describe('MenuShared', () => {
     expect(
       screen.queryByTestId('organization-switcher'),
     ).not.toBeInTheDocument();
+  });
+
+  it('shows the organization switcher on the official hosted app hostname', () => {
+    delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...originalLocation, hostname: 'app.genfeed.ai' },
+      writable: true,
+    });
+
+    render(<MenuShared config={config} />);
+
+    expect(screen.getByTestId('organization-switcher')).toBeInTheDocument();
   });
 
   it('attaches the actionable inbox count to the workspace inbox row', () => {

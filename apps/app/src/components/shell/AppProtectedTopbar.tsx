@@ -13,6 +13,7 @@ import type { TopbarProps } from '@props/navigation/topbar.props';
 import MenuBrandSwitcher from '@ui/menus/switchers/MenuBrandSwitcher';
 import { Button } from '@ui/primitives/button';
 import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
+import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
 import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
 import TopbarEnd from '@ui/topbars/end/TopbarEnd';
 import Link from 'next/link';
@@ -22,17 +23,25 @@ import { HiBars3, HiOutlineCommandLine, HiXMark } from 'react-icons/hi2';
 import { PiSidebarSimple } from 'react-icons/pi';
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
 import { isHostedCloudApp } from '@/lib/config/edition';
-import { appendSearchParamsToHref } from '@/lib/navigation/operator-shell';
+import {
+  appendSearchParamsToHref,
+  getCurrentBrandScopedPath,
+} from '@/lib/navigation/operator-shell';
 
-function getCurrentBrandScopedPath(pathname: string): string {
-  const parts = pathname.split('/').filter(Boolean);
-
-  if (parts.length >= 3 && parts[1] !== '~') {
-    return `/${parts.slice(2).join('/')}`;
-  }
-
-  return APP_ROUTES.WORKSPACE.OVERVIEW;
-}
+const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
+  NonNullable<TopbarProps['currentApp']>,
+  string
+> = {
+  agent: 'Agent',
+  analytics: 'Analytics',
+  compose: 'Compose',
+  editor: 'Editor',
+  library: 'Library',
+  posts: 'Posts',
+  studio: 'Studio',
+  workflows: 'Workflows',
+  workspace: 'Workspace',
+};
 
 function AppProtectedTopbarContent({
   isMenuOpen,
@@ -109,8 +118,8 @@ function AppProtectedTopbarContent({
 
   return (
     <header className="ship-ui h-full w-full bg-transparent">
-      <div className="flex h-full w-full items-center justify-between gap-2.5 pl-3 pr-2 sm:px-4 lg:px-5">
-        <div className="flex min-w-0 items-center gap-2.5">
+      <div className="grid h-full w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2.5 pl-3 pr-2 sm:px-4 lg:px-5">
+        <div className="flex min-w-0 items-center gap-2.5 justify-self-start">
           {onMenuToggle ? (
             <Button
               type="button"
@@ -141,7 +150,7 @@ function AppProtectedTopbarContent({
           ) : null}
 
           {brands.length > 0 ? (
-            <div className="min-w-0 w-40 sm:w-56">
+            <div className="w-40 min-w-0 sm:w-56 md:w-[14.5rem]">
               <MenuBrandSwitcher
                 variant="labeled"
                 brands={brands}
@@ -152,7 +161,15 @@ function AppProtectedTopbarContent({
           ) : null}
         </div>
 
-        <div className="flex min-w-0 items-center gap-1.5">
+        <div className="hidden min-w-0 justify-center md:flex">
+          <TopbarBreadcrumbs
+            fallbackRootLabel={
+              TOPBAR_BREADCRUMB_ROOT_LABELS[currentApp ?? 'workspace']
+            }
+          />
+        </div>
+
+        <div className="flex min-w-0 items-center justify-end gap-1.5">
           {taskId ? (
             <div className="hidden items-center gap-2 rounded border border-border bg-background-secondary px-2 py-1 text-[11px] lg:flex">
               <span className="font-semibold uppercase tracking-[0.14em] text-emerald-200/80">
