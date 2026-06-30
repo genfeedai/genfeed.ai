@@ -1,6 +1,7 @@
 'use client';
 
 import { APP_ROUTES } from '@genfeedai/constants';
+import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   getBrandEntityId,
@@ -51,6 +52,7 @@ function AppProtectedTopbarContent({
   const { push } = useRouter();
   const { brandId, brands, selectedBrand, setBrandId, setOrganizationId } =
     useBrand();
+  const { isSuperAdmin } = useAccessState();
   // Route props are authoritative; only fall back to useOrgUrl when the shell is
   // rendered without route context. On org-level `/:org/~/...` pages
   // effectiveBrandSlug stays undefined so the app switcher links into org-scoped
@@ -189,6 +191,7 @@ function AppProtectedTopbarContent({
               currentApp={currentApp ?? 'workspace'}
               orgSlug={effectiveOrgSlug}
               brandSlug={effectiveBrandSlug}
+              showAdmin={isSuperAdmin}
             />
           ) : null}
 
