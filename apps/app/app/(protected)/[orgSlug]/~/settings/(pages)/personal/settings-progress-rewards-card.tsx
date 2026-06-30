@@ -59,17 +59,14 @@ export default function SettingsProgressRewardsCard({
         )}
       </div>
 
-      <div className="mt-6 space-y-3">
+      <div className="mt-6 divide-y divide-white/10">
         {milestoneStates.map((milestone) => (
           <div
             key={milestone.days}
             className={cn(
-              'rounded-2xl border p-4',
-              milestone.isAchieved
-                ? 'border-emerald-400/20 bg-emerald-400/8'
-                : milestone.isNext
-                  ? 'border-orange-400/20 bg-orange-400/8'
-                  : 'border-white/10 bg-black/10',
+              'py-4 first:pt-0 last:pb-0',
+              milestone.isAchieved && 'text-emerald-100',
+              milestone.isNext && 'text-orange-100',
             )}
           >
             <div className="flex items-start justify-between gap-3">

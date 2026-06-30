@@ -128,16 +128,13 @@ export default function AnalyticsOverview({
       <div
         className={cn('flex flex-col gap-6', showAgentDashboard && 'hidden')}
       >
-        <Card
-          variant={CardVariant.DEFAULT}
-          bodyClassName="overflow-hidden p-6 lg:p-8"
-        >
+        <section className="border-y border-white/[0.08] bg-card/70 px-6 py-8 lg:px-8">
           <AnalyticsOverviewHero
             dashboardState={dashboardState}
             heroContent={heroContent}
             orgHref={orgHref}
           />
-        </Card>
+        </section>
 
         <AnalyticsOverviewAlerts
           cachedLabel={cachedLabel}

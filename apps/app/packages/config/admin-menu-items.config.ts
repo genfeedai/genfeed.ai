@@ -45,7 +45,6 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiChatBubbleLeftRight,
   },
   {
-    drillDown: true,
     group: 'Overview',
     href: APP_ROUTES.ADMIN.ROOT,
     label: 'Dashboard',
@@ -70,7 +69,6 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiClipboardDocumentList,
   },
   {
-    drillDown: true,
     group: 'Content',
     href: APP_ROUTES.ADMIN.CONTENT.POSTS,
     label: 'Posts',
@@ -103,7 +101,6 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiPhoto,
   },
   {
-    drillDown: true,
     group: 'AI & Automation',
     href: APP_ROUTES.ADMIN.AUTOMATION.MODELS_ALL,
     label: 'Models',
@@ -144,7 +141,6 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiClipboardDocumentList,
   },
   {
-    drillDown: true,
     group: 'Configuration',
     href: APP_ROUTES.ADMIN.CONFIGURATION.ELEMENTS_BLACKLISTS,
     label: 'Elements',
@@ -177,7 +173,6 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiTag,
   },
   {
-    drillDown: true,
     group: 'Administration',
     href: APP_ROUTES.ADMIN.ORGANIZATION,
     label: 'Organizations',
@@ -226,7 +221,6 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiMegaphone,
   },
   {
-    drillDown: true,
     group: 'Fleet',
     hasDividerAbove: true,
     href: APP_ROUTES.ADMIN.FLEET.CHARACTERS,

@@ -689,14 +689,8 @@ export class AgentToolExecutorService {
     }
 
     const brand = await this.resolveWorkflowBrand(params, ctx);
-    const schedule =
-      typeof params.schedule === 'string' && params.schedule.trim()
-        ? params.schedule.trim()
-        : undefined;
-    const timezone =
-      typeof params.timezone === 'string' && params.timezone.trim()
-        ? params.timezone.trim()
-        : 'UTC';
+    const schedule = this.readOptionalString(params.schedule);
+    const timezone = this.readOptionalString(params.timezone) ?? 'UTC';
 
     await this.workflowsService.patch(workflowId, {
       brands: brand && brand._id ? [String(brand._id)] : workflow.brands,
@@ -4289,10 +4283,7 @@ export class AgentToolExecutorService {
       requestedContentType === 'newsletter'
         ? requestedContentType
         : 'image';
-    const timezone =
-      typeof params.timezone === 'string' && params.timezone.trim()
-        ? params.timezone.trim()
-        : 'UTC';
+    const timezone = this.readOptionalString(params.timezone) ?? 'UTC';
     const requestedCount =
       typeof params.count === 'number'
         ? params.count
@@ -4515,14 +4506,8 @@ export class AgentToolExecutorService {
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     const confirmed = params.confirmed === true;
-    const schedule =
-      typeof params.schedule === 'string' && params.schedule.trim()
-        ? params.schedule.trim()
-        : undefined;
-    const timezone =
-      typeof params.timezone === 'string' && params.timezone.trim()
-        ? params.timezone.trim()
-        : 'UTC';
+    const schedule = this.readOptionalString(params.schedule);
+    const timezone = this.readOptionalString(params.timezone) ?? 'UTC';
 
     let source: OfficialWorkflowSource | null =
       typeof params.sourceId === 'string' &&
@@ -5290,18 +5275,12 @@ export class AgentToolExecutorService {
       !hasGraphPayload &&
       typeof params.description === 'string' &&
       params.description.trim().length > 0;
-    const timezone =
-      typeof params.timezone === 'string' && params.timezone.trim()
-        ? params.timezone.trim()
-        : 'UTC';
+    const timezone = this.readOptionalString(params.timezone) ?? 'UTC';
     const trigger =
       typeof params.trigger === 'string' && params.trigger.trim()
         ? params.trigger
         : WorkflowTrigger.MANUAL;
-    const schedule =
-      typeof params.schedule === 'string' && params.schedule.trim()
-        ? params.schedule.trim()
-        : undefined;
+    const schedule = this.readOptionalString(params.schedule);
     const isScheduleEnabled =
       typeof params.isScheduleEnabled === 'boolean'
         ? params.isScheduleEnabled

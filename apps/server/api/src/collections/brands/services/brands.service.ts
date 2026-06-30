@@ -223,6 +223,48 @@ export class BrandsService extends BaseService<
     return super.findOne(params);
   }
 
+  /**
+   * Generate a unique slug for a brand, appending a counter if needed.
+   * Brand.slug is unique across all brands (not scoped by organization), so
+   * this cannot reuse a slug validated only against Organization.slug.
+   * Pass `excludeBrandId` when updating an existing brand's slug to avoid
+   * treating the brand's own current slug as a collision.
+   */
+  async generateUniqueSlug(
+    label: string,
+    excludeBrandId?: string,
+  ): Promise<string> {
+    const base = label
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/-{2,}/g, '-')
+      .replace(/^-|-$/g, '');
+
+    if (base.length < 2) {
+      throw new BadRequestException('Label too short to generate a valid slug');
+    }
+
+    let candidate = base;
+    let counter = 2;
+
+    while (true) {
+      const filter: Prisma.BrandWhereInput = {
+        isDeleted: false,
+        slug: candidate,
+      };
+      if (excludeBrandId) {
+        filter.id = { not: excludeBrandId };
+      }
+      if (!(await this.delegate.findFirst({ where: filter }))) {
+        break;
+      }
+      candidate = `${base}-${counter}`;
+      counter++;
+    }
+
+    return candidate;
+  }
+
   async updateAgentConfig(
     brandId: string,
     orgId: string,

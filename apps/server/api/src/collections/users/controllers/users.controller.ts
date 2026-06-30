@@ -148,6 +148,13 @@ export class UsersController {
     return getIsSuperAdmin(currentUser) || publicMetadata.user === targetUserId;
   }
 
+  private async invalidateUserAccessCaches(userId: string): Promise<void> {
+    await Promise.all([
+      this.requestContextCacheService.invalidateForUser(userId),
+      this.accessBootstrapCacheService.invalidateForUser(userId),
+    ]);
+  }
+
   @Get()
   @SetMetadata('roles', ['superadmin'])
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -224,10 +231,7 @@ export class UsersController {
 
         const userIdString = data._id?.toString();
         if (userIdString) {
-          await Promise.all([
-            this.requestContextCacheService.invalidateForUser(userIdString),
-            this.accessBootstrapCacheService.invalidateForUser(userIdString),
-          ]);
+          await this.invalidateUserAccessCaches(userIdString);
         }
       }
     }
@@ -409,10 +413,7 @@ export class UsersController {
       await this.usersService.patch(publicMetadata.user, {
         lastUsedOrganizationId: String(data._id),
       });
-      await Promise.all([
-        this.requestContextCacheService.invalidateForUser(publicMetadata.user),
-        this.accessBootstrapCacheService.invalidateForUser(publicMetadata.user),
-      ]);
+      await this.invalidateUserAccessCaches(publicMetadata.user);
     }
 
     return serializeSingle(request, OrganizationSerializer, data);
@@ -438,10 +439,7 @@ export class UsersController {
     // Active brand is persisted to the member's lastUsedBrandId below, which the
     // identity resolvers read (epic #735, Phase C — no legacy auth provider write-back).
     if (publicMetadata.user) {
-      await Promise.all([
-        this.requestContextCacheService.invalidateForUser(publicMetadata.user),
-        this.accessBootstrapCacheService.invalidateForUser(publicMetadata.user),
-      ]);
+      await this.invalidateUserAccessCaches(publicMetadata.user);
     }
 
     // Persist last-used brand on the member for org-switch recall
@@ -481,10 +479,7 @@ export class UsersController {
       null,
     );
 
-    await Promise.all([
-      this.requestContextCacheService.invalidateForUser(user.id),
-      this.accessBootstrapCacheService.invalidateForUser(user.id),
-    ]);
+    await this.invalidateUserAccessCaches(user.id);
   }
 
   @Post('me/avatar')
@@ -614,10 +609,7 @@ export class UsersController {
 
     const existingUserId = existingUser._id?.toString();
     if (existingUserId) {
-      await Promise.all([
-        this.requestContextCacheService.invalidateForUser(existingUserId),
-        this.accessBootstrapCacheService.invalidateForUser(existingUserId),
-      ]);
+      await this.invalidateUserAccessCaches(existingUserId);
     }
 
     return data

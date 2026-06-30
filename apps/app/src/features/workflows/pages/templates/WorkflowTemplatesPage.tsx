@@ -22,6 +22,7 @@ const TEMPLATE_CATEGORIES = [
   { id: 'integration', label: 'Integration' },
   { id: 'generation', label: 'Generation' },
   { id: 'real-estate', label: 'Real Estate' },
+  { id: 'routines', label: 'Routines' },
 ];
 
 type PageState = {

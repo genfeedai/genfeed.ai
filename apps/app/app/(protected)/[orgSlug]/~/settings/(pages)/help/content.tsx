@@ -1,7 +1,6 @@
 'use client';
 
 import { EnvironmentService } from '@services/core/environment.service';
-import Card from '@ui/card/Card';
 import type { ComponentType } from 'react';
 import {
   FaDiscord,
@@ -16,6 +15,7 @@ import {
   HiDocumentText,
 } from 'react-icons/hi2';
 import { SiSubstack } from 'react-icons/si';
+import { LinkCard } from '@/components/ui/link-card';
 
 interface LinkItem {
   label: string;
@@ -69,42 +69,40 @@ const COMMUNITY: LinkItem[] = [
   },
 ];
 
-function LinkCard({ item }: { item: LinkItem }) {
-  const Icon = item.icon;
+function HelpLinkCard({ item }: { item: LinkItem }) {
   return (
-    <a
+    <LinkCard
       href={item.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex items-center gap-3 rounded-lg border border-border p-4 no-underline text-foreground transition-colors hover:bg-muted/50"
-    >
-      <Icon className="size-5 shrink-0 text-muted-foreground" />
-      <span className="flex-1 text-sm font-medium">{item.label}</span>
-      <HiArrowTopRightOnSquare className="size-4 shrink-0 text-muted-foreground" />
-    </a>
+      icon={item.icon}
+      title={item.label}
+      className="p-4 no-underline text-sm"
+      trailingIcon={
+        <HiArrowTopRightOnSquare className="size-4 shrink-0 text-muted-foreground" />
+      }
+    />
   );
 }
 
 export default function SettingsHelpPage() {
   return (
     <div className="space-y-6">
-      <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-4">Resources</h2>
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold">Resources</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {RESOURCES.map((item) => (
-            <LinkCard key={item.label} item={item} />
+            <HelpLinkCard key={item.label} item={item} />
           ))}
         </div>
-      </Card>
+      </section>
 
-      <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-4">Community</h2>
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold">Community</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {COMMUNITY.map((item) => (
-            <LinkCard key={item.label} item={item} />
+            <HelpLinkCard key={item.label} item={item} />
           ))}
         </div>
-      </Card>
+      </section>
     </div>
   );
 }

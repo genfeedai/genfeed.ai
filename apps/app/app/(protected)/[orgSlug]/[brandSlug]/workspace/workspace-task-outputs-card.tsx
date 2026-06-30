@@ -62,13 +62,16 @@ export function WorkspaceTaskOutputsCard({
       ) : null}
 
       {linkedOutputGroups.length > 0 ? (
-        <div className="space-y-3" data-testid="workspace-task-linked-outputs">
+        <div
+          className="divide-y divide-white/10"
+          data-testid="workspace-task-linked-outputs"
+        >
           {linkedOutputGroups.map((group) => {
             const outputs = [group.root, ...group.children];
             return (
               <article
                 key={group.root.id}
-                className="rounded-xl border border-white/10 bg-white/[0.03] p-3"
+                className="py-3 first:pt-0 last:pb-0"
               >
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <p className="font-medium text-foreground">
@@ -79,7 +82,7 @@ export function WorkspaceTaskOutputsCard({
                   </span>
                 </div>
 
-                <div className="space-y-3">
+                <div className="divide-y divide-white/10">
                   {outputs.map((output) => {
                     const description =
                       getWorkspaceLinkedOutputDescription(output);
@@ -88,7 +91,7 @@ export function WorkspaceTaskOutputsCard({
                     return (
                       <div
                         key={output.id}
-                        className="rounded-lg border border-white/10 bg-black/30 p-3"
+                        className="py-3 first:pt-0 last:pb-0"
                       >
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="space-y-1">

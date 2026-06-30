@@ -2,7 +2,8 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { IngredientCategory } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsArray, IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class IngredientsQueryDto extends BaseQueryDto {
   @ApiProperty({
@@ -22,12 +23,25 @@ export class IngredientsQueryDto extends BaseQueryDto {
   parent?: string;
 
   @ApiProperty({
-    description: 'Filter ingredients by status',
+    description:
+      'Filter by status using repeated query keys (e.g., ?status=generated&status=validated).',
+    example: ['generated', 'validated'],
     required: false,
+    type: [String],
+  })
+  @Transform(({ value }) => {
+    if (!value) {
+      return undefined;
+    }
+    if (Array.isArray(value)) {
+      return value;
+    }
+    return [value];
   })
   @IsOptional()
-  @IsString()
-  status?: string;
+  @IsArray()
+  @IsString({ each: true })
+  status?: string[];
 
   @ApiProperty({
     description: 'Filter ingredients by category',

@@ -317,7 +317,19 @@ describe('WorkflowApiService', () => {
           },
         },
       })
-      .mockResolvedValueOnce({ data: { data: [{ id: 'template-1' }] } })
+      .mockResolvedValueOnce({
+        data: {
+          data: [
+            {
+              id: 'template-1',
+              routine: {
+                kind: 'productized-daily-routine',
+                trackingTasks: [{ key: 'review-trend-brief' }],
+              },
+            },
+          ],
+        },
+      })
       .mockResolvedValueOnce({ data: { data: { _id: 'batch-1', items: [] } } })
       .mockResolvedValueOnce({ data: { data: [{ _id: 'batch-1' }] } });
     mocks.delete.mockResolvedValueOnce({ data: undefined });
@@ -340,7 +352,13 @@ describe('WorkflowApiService', () => {
       service().submitApproval('workflow-1', 'execution-1', 'review-1', true),
     ).resolves.toMatchObject({ status: 'approved' });
     await expect(service().listTemplates()).resolves.toEqual([
-      { id: 'template-1' },
+      {
+        id: 'template-1',
+        routine: {
+          kind: 'productized-daily-routine',
+          trackingTasks: [{ key: 'review-trend-brief' }],
+        },
+      },
     ]);
     await expect(service().listBrands()).resolves.toEqual([
       {

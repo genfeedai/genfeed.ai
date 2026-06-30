@@ -568,4 +568,71 @@ describe('BrandsService', () => {
       expect(result).toEqual([]);
     });
   });
+
+  /**
+   * Regression tests for the onboarding /brand-setup 500: Brand.slug is an
+   * independent global-unique column, so reusing the org's slug without
+   * checking it against the Brand table deterministically threw P2002.
+   */
+  describe('generateUniqueSlug', () => {
+    it('returns the base slug when unused', async () => {
+      delegate.findFirst.mockResolvedValue(null);
+
+      const slug = await service.generateUniqueSlug('Genfeed.ai');
+
+      expect(slug).toBe('genfeed-ai');
+      expect(delegate.findFirst).toHaveBeenCalledTimes(1);
+    });
+
+    it('appends an incrementing counter on collision', async () => {
+      delegate.findFirst
+        .mockResolvedValueOnce({ id: 'brand_other' })
+        .mockResolvedValueOnce({ id: 'brand_other' })
+        .mockResolvedValueOnce(null);
+
+      const slug = await service.generateUniqueSlug('Genfeed.ai');
+
+      expect(slug).toBe('genfeed-ai-3');
+      expect(delegate.findFirst).toHaveBeenCalledTimes(3);
+    });
+
+    it('does not self-collide when excludeBrandId matches the brand holding the slug', async () => {
+      delegate.findFirst.mockImplementation(({ where }) => {
+        if (where.id?.not === 'brand_1') {
+          return Promise.resolve(null);
+        }
+        return Promise.resolve({ id: 'brand_1' });
+      });
+
+      const slug = await service.generateUniqueSlug('Genfeed.ai', 'brand_1');
+
+      expect(slug).toBe('genfeed-ai');
+      expect(delegate.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: { not: 'brand_1' },
+          }),
+        }),
+      );
+    });
+
+    it('checks slug uniqueness against the Brand table independently of any organization slug', async () => {
+      // Same label collides on Organization but the Brand table has it free —
+      // generateUniqueSlug must only consult delegate.brand, never the org table.
+      delegate.findFirst.mockResolvedValue(null);
+
+      const slug = await service.generateUniqueSlug('Genfeed.ai');
+
+      expect(slug).toBe('genfeed-ai');
+      expect(delegate.findFirst).toHaveBeenCalledWith({
+        where: { isDeleted: false, slug: 'genfeed-ai' },
+      });
+    });
+
+    it('throws BadRequestException when the generated slug is too short', async () => {
+      await expect(service.generateUniqueSlug('!!')).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
 });
