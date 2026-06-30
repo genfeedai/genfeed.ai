@@ -113,13 +113,6 @@ body::before {
   content: "";
   opacity: 0.55;
 }
-body::after {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  background: linear-gradient(180deg, rgba(0,0,0,0.18), #000 86%);
-  content: "";
-}
 button, input { font: inherit; }
 button { cursor: pointer; }
 a { color: inherit; text-decoration: none; }
@@ -147,7 +140,7 @@ a { color: inherit; text-decoration: none; }
   height: 24px;
   place-items: center;
   border: 1px solid var(--gf-border);
-  border-radius: var(--gf-radius-sm);
+  border-radius: var(--gf-surface-radius);
   background: var(--gf-bg-primary);
   color: var(--gf-text-primary);
   font-size: 12px;

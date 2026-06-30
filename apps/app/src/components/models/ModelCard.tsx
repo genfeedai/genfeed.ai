@@ -31,7 +31,7 @@ export function ModelCard({ model, onSelect, isRecent }: ModelCardProps) {
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
       onClick={() => onSelect(model)}
-      className="group w-full rounded-xl border border-border bg-card text-left transition hover:border-primary overflow-hidden"
+      className="group w-full rounded-card border border-border bg-card text-left transition hover:border-primary overflow-hidden"
     >
       <div className="flex items-stretch">
         {/* Thumbnail or placeholder - full height */}

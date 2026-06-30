@@ -14,7 +14,7 @@ import {
   View,
 } from 'react-native';
 import { ErrorScreen, LoadingScreen } from '@/components/ScreenStates';
-import { CONTENT_TYPE_LABELS, colors } from '@/constants';
+import { borderRadius, CONTENT_TYPE_LABELS, colors } from '@/constants';
 import { useApproval, useApprovalActions } from '@/hooks/use-approvals';
 import { formatShortDate } from '@/utils/format-date';
 
@@ -248,7 +248,7 @@ export default function ApprovalDetail() {
 const styles = StyleSheet.create({
   actionButton: {
     alignItems: 'center',
-    borderRadius: 12,
+    borderRadius: borderRadius.xxl,
     flex: 1,
     paddingVertical: 16,
   },
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
   badge: {
     alignSelf: 'flex-start',
     backgroundColor: colors.bgTertiary,
-    borderRadius: 8,
+    borderRadius: borderRadius.lg,
     paddingHorizontal: 12,
     paddingVertical: 4,
   },
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
   },
   metadata: {
     backgroundColor: colors.bgSecondary,
-    borderRadius: 12,
+    borderRadius: borderRadius.xxl,
     gap: 12,
     marginTop: 8,
     padding: 16,
@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     alignItems: 'center',
-    borderRadius: 12,
+    borderRadius: borderRadius.xxl,
     minWidth: 80,
     paddingHorizontal: 20,
     paddingVertical: 12,

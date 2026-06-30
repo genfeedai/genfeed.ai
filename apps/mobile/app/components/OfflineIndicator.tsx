@@ -5,7 +5,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { colors } from '@/constants';
+import { borderRadius, colors } from '@/constants';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { useOfflineQueue } from '@/hooks/use-offline-queue';
 
@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
   content: {
     alignItems: 'center',
     backgroundColor: colors.bgTertiary,
-    borderRadius: 10,
+    borderRadius: borderRadius.xl,
     flexDirection: 'row',
     gap: 10,
     paddingHorizontal: 16,
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
   },
   dot: {
     backgroundColor: colors.error,
-    borderRadius: 4,
+    borderRadius: borderRadius.sm,
     height: 8,
     width: 8,
   },

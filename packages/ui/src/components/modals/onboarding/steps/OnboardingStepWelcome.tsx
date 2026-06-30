@@ -50,9 +50,9 @@ export default function OnboardingStepWelcome() {
         {features.map((feature) => (
           <div
             key={feature.title}
-            className="group relative flex items-start gap-4 p-5 bg-gradient-to-br from-white/[0.07] to-white/[0.03] border border-white/[0.08] hover:border-white/[0.15] transition-all duration-300 hover:-translate-y-0.5"
+            className="group relative flex items-start gap-4 p-5 bg-white/[0.05] border border-white/[0.08] hover:border-white/[0.15] transition-all duration-300 hover:-translate-y-0.5"
           >
-            <div className="flex-shrink-0 size-12 bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 border border-primary/10 group-hover:border-primary/20 transition-colors flex items-center justify-center">
+            <div className="flex-shrink-0 size-12 bg-primary/10 border border-primary/10 group-hover:border-primary/20 transition-colors flex items-center justify-center">
               <feature.icon className="size-6 text-primary" />
             </div>
             <div>

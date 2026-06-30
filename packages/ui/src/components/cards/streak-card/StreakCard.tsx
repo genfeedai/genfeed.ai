@@ -3,6 +3,7 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useStreak } from '@genfeedai/hooks/data/streaks/use-streak/use-streak';
 import { STREAK_CELEBRATION_EVENT } from '@genfeedai/services/engagement/streak-events';
+import Card from '@ui/card/Card';
 import StreakCelebrationBurst from '@ui/feedback/streak-celebration/StreakCelebrationBurst';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -46,7 +47,10 @@ export default function StreakCard() {
   );
 
   return (
-    <div className="relative mx-3 mb-3 border border-orange-500/15 bg-orange-500/[0.06] p-3">
+    <Card
+      className="mx-3 mb-3 overflow-visible shadow-[inset_0_0_0_1px_rgba(249,115,22,0.15)] bg-orange-500/[0.06]"
+      bodyClassName="gap-0 p-3"
+    >
       <StreakCelebrationBurst isVisible={isCelebrating} />
       <div className="mb-2 flex items-center justify-between">
         <div>
@@ -99,6 +103,6 @@ export default function StreakCard() {
         </span>
         <span className="text-white/40">View</span>
       </Link>
-    </div>
+    </Card>
   );
 }

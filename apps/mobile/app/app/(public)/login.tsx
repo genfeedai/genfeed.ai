@@ -11,7 +11,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { colors } from '@/constants';
+import { borderRadius, colors } from '@/constants';
 import { useMobileAuth } from '@/contexts/auth-context';
 
 export default function Login() {
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: colors.bgTertiary,
     borderColor: colors.bgBorder,
-    borderRadius: 10,
+    borderRadius: borderRadius.xl,
     borderWidth: 1,
     color: colors.textPrimary,
     fontSize: 16,
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   signInButton: {
     alignItems: 'center',
     backgroundColor: colors.indigo,
-    borderRadius: 12,
+    borderRadius: borderRadius.xxl,
     marginTop: 8,
     paddingVertical: 14,
   },
