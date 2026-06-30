@@ -47,4 +47,16 @@ resource "aws_elasticache_replication_group" "redis" {
   # connects over TLS without AUTH; enable auth_token in a follow-up once all
   # clients are confirmed on rediss://.
   apply_immediately          = true
+
+  # AUTH is deferred (see above). Terraform state still carries
+  # auth_token_update_strategy = "SET" from an earlier partial apply, so ANY plan
+  # touching the auth fields (even resetting the strategy to its default) is
+  # rejected by AWS with "AUTH token modification is only supported when
+  # encryption-in-transit is enabled" until transit_encryption_mode is "required".
+  # Ignore the auth fields so terraform stops planning an auth modification and the
+  # deploy can roll. Remove this in the follow-up that enables AUTH (switch to
+  # "required" mode + set auth_token).
+  lifecycle {
+    ignore_changes = [auth_token, auth_token_update_strategy]
+  }
 }
