@@ -5,6 +5,10 @@ import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { GenerateTrendIdeasDto } from '@api/collections/trends/dto/trend-ideas.dto';
 import { SaveTrendPreferencesDto } from '@api/collections/trends/dto/trend-preferences.dto';
 import type {
+  TrendSourceIntendedUse,
+  TrendSourceKind,
+} from '@api/collections/trends/interfaces/trend.interfaces';
+import type {
   TrendTimelineEntry,
   TrendTurnoverResponse,
 } from '@api/collections/trends/interfaces/trend-turnover.interface';
@@ -36,6 +40,7 @@ import {
 import { ActivitySource, Timeframe } from '@genfeedai/enums';
 import { TrendSerializer } from '@genfeedai/serializers';
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -49,6 +54,19 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import type { Request } from 'express';
+
+const TREND_SOURCE_KIND_VALUES = [
+  'manual_curated_reference',
+  'owned_brand_reference',
+  'paid_creative_reference',
+  'public_platform_reference',
+] as const satisfies readonly TrendSourceKind[];
+
+const TREND_SOURCE_INTENDED_USE_VALUES = [
+  'evergreen_prompt_context',
+  'organic_trend_discovery',
+  'paid_creative_analysis',
+] as const satisfies readonly TrendSourceIntendedUse[];
 
 @AutoSwagger()
 @Controller('trends')
@@ -170,6 +188,9 @@ export class TrendsController {
     @Query('platform') platform?: string,
     @Query('trendId') trendId?: string,
     @Query('authorHandle') authorHandle?: string,
+    @Query('sourceKind') sourceKindParam?: string,
+    @Query('intendedUse') intendedUseParam?: string,
+    @Query('includePaidCreative') includePaidCreativeParam?: string,
     @Query('limit') limitParam?: string,
   ) {
     const publicMetadata = getPublicMetadata(user);
@@ -185,8 +206,11 @@ export class TrendsController {
       brandId,
       {
         authorHandle,
+        includePaidCreative: this.parseBooleanQuery(includePaidCreativeParam),
+        intendedUse: this.parseIntendedUseQuery(intendedUseParam),
         limit,
         platform,
+        sourceKind: this.parseSourceKindQuery(sourceKindParam),
         trendId,
       },
     );
@@ -197,6 +221,52 @@ export class TrendsController {
         totalReferences: result.totalReferences,
       },
     };
+  }
+
+  private parseBooleanQuery(value: string | undefined): boolean | undefined {
+    if (value == null || value.length === 0) {
+      return undefined;
+    }
+    if (value === 'true') {
+      return true;
+    }
+    if (value === 'false') {
+      return false;
+    }
+
+    throw new BadRequestException(
+      'includePaidCreative must be "true" or "false"',
+    );
+  }
+
+  private parseSourceKindQuery(
+    value: string | undefined,
+  ): TrendSourceKind | undefined {
+    if (value == null || value.length === 0) {
+      return undefined;
+    }
+    if (TREND_SOURCE_KIND_VALUES.includes(value as TrendSourceKind)) {
+      return value as TrendSourceKind;
+    }
+
+    throw new BadRequestException(`Unknown trend source kind: ${value}`);
+  }
+
+  private parseIntendedUseQuery(
+    value: string | undefined,
+  ): TrendSourceIntendedUse | undefined {
+    if (value == null || value.length === 0) {
+      return undefined;
+    }
+    if (
+      TREND_SOURCE_INTENDED_USE_VALUES.includes(value as TrendSourceIntendedUse)
+    ) {
+      return value as TrendSourceIntendedUse;
+    }
+
+    throw new BadRequestException(
+      `Unknown trend source intended use: ${value}`,
+    );
   }
 
   @Get('references/accounts')

@@ -9,7 +9,9 @@ import type {
   TrendDiscoveryItem,
   TrendPatternAnalysis,
   TrendSourceAccountResult,
+  TrendSourceIntendedUse,
   TrendSourceItem,
+  TrendSourceKind,
   TrendSourceReferenceResult,
 } from '@api/collections/trends/interfaces/trend.interfaces';
 import type {
@@ -464,8 +466,11 @@ export class TrendsService {
     brandId?: string,
     options: {
       authorHandle?: string;
+      includePaidCreative?: boolean;
+      intendedUse?: TrendSourceIntendedUse;
       limit?: number;
       platform?: string;
+      sourceKind?: TrendSourceKind;
       trendId?: string;
     } = {},
   ): Promise<TrendSourceReferenceResult> {
