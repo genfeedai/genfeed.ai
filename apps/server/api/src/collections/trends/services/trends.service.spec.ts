@@ -29,6 +29,7 @@ type MockCacheService = {
 };
 
 type MockTrendReferenceCorpusService = {
+  getCorpusFreshnessHealth: ReturnType<typeof vi.fn>;
   syncTrendReferences: ReturnType<typeof vi.fn>;
 };
 
@@ -178,6 +179,7 @@ describe('TrendsService', () => {
               })),
             ),
             getReferenceCorpus: vi.fn(),
+            getCorpusFreshnessHealth: vi.fn(),
             getTopReferenceAccounts: vi.fn(),
             recordDraftRemixLineage: vi.fn(),
             syncTrendReferences: vi.fn().mockResolvedValue({
@@ -223,6 +225,47 @@ describe('TrendsService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  it('delegates corpus freshness health to the reference corpus owner', async () => {
+    const health = {
+      generatedAt: '2026-06-30T08:00:00.000Z',
+      providerFailures: [],
+      segments: [],
+      status: 'healthy',
+      summary: {
+        activeTrends: 3,
+        failingProviders: 0,
+        freshSegments: 1,
+        platforms: ['tiktok'],
+        referenceRecords: 9,
+        staleSegments: 0,
+        totalSegments: 1,
+      },
+      thresholds: {
+        defaultFreshnessWindowDaysBySourceKind: {
+          manual_curated_reference: 30,
+          owned_brand_reference: 30,
+          paid_creative_reference: 14,
+          public_platform_reference: 7,
+        },
+        recordLimits: {
+          referenceRecords: 5000,
+          trends: 2000,
+        },
+        sourcePreviewStaleAfterDays: 3,
+      },
+    };
+    trendReferenceCorpusService.getCorpusFreshnessHealth.mockResolvedValue(
+      health,
+    );
+
+    await expect(
+      service.getCorpusFreshnessHealth({ platform: 'tiktok' }),
+    ).resolves.toEqual(health);
+    expect(
+      trendReferenceCorpusService.getCorpusFreshnessHealth,
+    ).toHaveBeenCalledWith({ platform: 'tiktok' });
   });
 
   describe('backfillPrelaunchReferenceCorpus', () => {
