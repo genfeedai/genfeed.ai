@@ -9,6 +9,7 @@ import type {
   IBrandKitApplyRequest,
   IBrandKitApplyResult,
   IBrandKitDraft,
+  IBrandKitManualInput,
   IImage,
   IPost,
   IQueryParams,
@@ -321,5 +322,14 @@ export class BrandsService extends BaseService<Brand> {
     return await this.instance
       .post<{ data: FastlaneIdea[] }>(`/${id}/fastlane/ideas`, dto)
       .then((res) => res.data?.data ?? []);
+  }
+
+  public async createManualBrandKitDraft(
+    id: string,
+    data: IBrandKitManualInput,
+  ): Promise<IBrandKitDraft> {
+    return await this.instance
+      .post<JsonApiResponseDocument>(`/${id}/brand-kit/manual`, data)
+      .then((res) => deserializeResource<IBrandKitDraft>(res.data));
   }
 }

@@ -132,6 +132,40 @@ export interface IBrandKitAssetCandidate extends IBrandKitAssetValue {
   diagnostics?: IBrandKitDiagnostic[];
 }
 
+export interface IBrandKitManualAssetInput {
+  role: BrandKitAssetRole;
+  id?: string;
+  url?: string;
+  label?: string;
+  mimeType?: string;
+  width?: number;
+  height?: number;
+  sourceType?: Extract<BrandKitSourceType, 'manual' | 'uploaded_guidance'>;
+}
+
+export interface IBrandKitManualInput {
+  label?: string;
+  description?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  backgroundColor?: string;
+  fontFamily?: string;
+  guidanceText?: string;
+  guidanceDocumentName?: string;
+  voiceTone?: string;
+  voiceStyle?: string;
+  voiceAudience?: string[];
+  voiceValues?: string[];
+  voiceMessagingPillars?: string[];
+  voiceDoNotSoundLike?: string[];
+  voiceSampleOutput?: string;
+  strategyContentTypes?: string[];
+  strategyPlatforms?: string[];
+  strategyGoals?: string[];
+  strategyFrequency?: string;
+  assets?: IBrandKitManualAssetInput[];
+}
+
 export interface IBrandKitDraftField<TValue = unknown> {
   key: BrandKitFieldKey;
   label: string;

@@ -3,6 +3,10 @@ import type { BrandDetailSidebarProps } from '@props/pages/brand-detail.props';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('@ui/cards/brand-completeness-card/BrandCompletenessCard', () => ({
+  default: () => <div>Brand Completeness Card</div>,
+}));
+
 vi.mock(
   '@pages/brands/components/sidebar/BrandDetailAccountSettingsCard',
   () => ({
@@ -36,6 +40,10 @@ vi.mock('@pages/brands/components/sidebar/BrandDetailIdentityCard', () => ({
   default: () => <div>Identity Card</div>,
 }));
 
+vi.mock('@pages/brands/components/sidebar/BrandDetailManualKitCard', () => ({
+  default: () => <div>Manual Kit Card</div>,
+}));
+
 vi.mock('@pages/brands/components/sidebar/BrandDetailReferencesCard', () => ({
   default: () => <div>References Card</div>,
 }));
@@ -55,6 +63,8 @@ describe('BrandDetailSidebar', () => {
     onOpenLinkModal: vi.fn(),
     onRefreshBrand: vi.fn().mockResolvedValue(undefined),
     onTogglePublicProfile: vi.fn(),
+    onUploadBanner: vi.fn(),
+    onUploadLogo: vi.fn(),
     onUploadReference: vi.fn(),
     socialConnections: [],
   };
@@ -65,6 +75,7 @@ describe('BrandDetailSidebar', () => {
     expect(screen.getByText('Account Settings Card')).toBeInTheDocument();
     expect(screen.getByText('Social Media Card')).toBeInTheDocument();
     expect(screen.getByText('External Links Card')).toBeInTheDocument();
+    expect(screen.getByText('Manual Kit Card')).toBeInTheDocument();
     expect(screen.getByText('Default Models Card')).toBeInTheDocument();
     expect(screen.getByText('Agent Profile Card')).toBeInTheDocument();
     expect(screen.getByText('Identity Card')).toBeInTheDocument();

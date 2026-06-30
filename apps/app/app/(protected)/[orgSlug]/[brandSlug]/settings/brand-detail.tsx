@@ -287,6 +287,8 @@ export default function BrandDetail() {
             }
             onRefreshBrand={() => handleRefreshBrand(true)}
             onOpenLinkModal={handleOpenLinkModal}
+            onUploadBanner={() => handleOpenUploadModal(AssetCategory.BANNER)}
+            onUploadLogo={() => handleOpenUploadModal(AssetCategory.LOGO)}
             onUploadReference={() =>
               handleOpenUploadModal(AssetCategory.REFERENCE)
             }

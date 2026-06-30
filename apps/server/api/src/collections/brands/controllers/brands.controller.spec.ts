@@ -96,6 +96,7 @@ describe('BrandsController', () => {
           provide: BrandsService,
           useValue: {
             applyBrandKitDraft: vi.fn(),
+            buildManualBrandKitDraft: vi.fn(),
             crawlWebsiteBrandKitDraft: vi.fn(),
             create: vi.fn(),
             findAll: vi.fn(),
@@ -410,6 +411,84 @@ describe('BrandsController', () => {
         }),
       });
       expect(brandsService.applyBrandKitDraft).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('createManualBrandKitDraft', () => {
+    it('verifies brand access and passes manual intake to the service', async () => {
+      const brandId = '507f191e810c19729de860ee'.toString();
+      const dto = {
+        description: 'Manual description',
+        guidanceText: 'Write with practical proof.',
+      };
+      const draft = {
+        assetCandidates: [],
+        brandId,
+        diagnostics: [],
+        evidence: [],
+        fields: {},
+        readiness: {
+          diagnostics: [],
+          missingFields: [],
+          requiredFields: [],
+          score: 100,
+          status: 'complete',
+        },
+        sourceType: 'manual',
+        status: 'ready',
+      };
+      brandsService.findOne.mockResolvedValue(
+        mockBrand as unknown as BrandEntity,
+      );
+      brandsService.buildManualBrandKitDraft.mockResolvedValue(
+        draft as Awaited<ReturnType<BrandsService['buildManualBrandKitDraft']>>,
+      );
+
+      const result = await controller.createManualBrandKitDraft(
+        mockUser,
+        brandId,
+        dto,
+      );
+
+      expect(brandsService.findOne).toHaveBeenCalledWith({
+        OR: [
+          { user: '507f191e810c19729de860ee' },
+          { organization: '507f191e810c19729de860ee' },
+        ],
+        _id: brandId,
+        isDeleted: false,
+      });
+      expect(brandsService.buildManualBrandKitDraft).toHaveBeenCalledWith(
+        brandId,
+        '507f191e810c19729de860ee',
+        dto,
+      );
+      expect(result).toEqual({ data: draft });
+    });
+
+    it('rejects manual intake without organization context', async () => {
+      const brandId = '507f191e810c19729de860ee'.toString();
+      const userWithoutOrganization = {
+        ...mockUser,
+        publicMetadata: {
+          ...(mockUser.publicMetadata as IAuthPublicMetadata),
+          organization: undefined,
+        },
+      } as unknown as User;
+      brandsService.findOne.mockResolvedValue(
+        mockBrand as unknown as BrandEntity,
+      );
+
+      await expect(
+        controller.createManualBrandKitDraft(userWithoutOrganization, brandId, {
+          description: 'Manual description',
+        }),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          detail: 'Organization context is required',
+        }),
+      });
+      expect(brandsService.buildManualBrandKitDraft).not.toHaveBeenCalled();
     });
   });
 });
