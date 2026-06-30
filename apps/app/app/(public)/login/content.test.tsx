@@ -62,15 +62,14 @@ describe('LoginPage', () => {
       screen.getByRole('heading', { name: 'Welcome Back' }),
     ).toBeInTheDocument();
     expect(screen.queryByRole('textbox', { name: /^Email/ })).toBeNull();
-    expect(
-      screen.getByRole('button', { name: 'Sign in with Google' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: 'Sign in with a magic link' }),
-    ).toHaveAttribute('href', '/login/magic-link');
+    expect(screen.getByRole('button', { name: 'Google' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Magic Link' })).toHaveAttribute(
+      'href',
+      '/login/magic-link',
+    );
     expect(
       screen.getByRole('link', {
-        name: 'Sign in with email and password',
+        name: 'Email / Password',
       }),
     ).toHaveAttribute('href', '/login/password');
   });
@@ -84,15 +83,13 @@ describe('LoginPage', () => {
 
     render(<LoginPage />);
 
-    expect(
-      screen.getByRole('link', { name: 'Sign in with a magic link' }),
-    ).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Magic Link' })).toHaveAttribute(
       'href',
       '/login/magic-link?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321',
     );
     expect(
       screen.getByRole('link', {
-        name: 'Sign in with email and password',
+        name: 'Email / Password',
       }),
     ).toHaveAttribute(
       'href',
@@ -103,9 +100,7 @@ describe('LoginPage', () => {
   it('starts Google sign-in with the default callback URL', async () => {
     render(<LoginPage />);
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Sign in with Google' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Google' }));
 
     await waitFor(() => {
       expect(authClientMocks.social).toHaveBeenCalledWith({
@@ -120,9 +115,7 @@ describe('LoginPage', () => {
 
     render(<LoginPage />);
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Sign in with Google' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Google' }));
 
     await waitFor(() => {
       expect(authClientMocks.social).toHaveBeenCalledWith({
