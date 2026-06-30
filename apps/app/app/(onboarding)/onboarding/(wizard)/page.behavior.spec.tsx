@@ -10,7 +10,6 @@ const mocks = vi.hoisted(() => ({
     isLoading: boolean;
     currentUser?: { onboardingStepsCompleted: string[] };
   },
-  isOnboardingPreview: false,
   replace: vi.fn(),
 }));
 
@@ -26,20 +25,11 @@ vi.mock('@hooks/auth/use-auth-user/use-auth-user', () => ({
   useAuthUser: () => mocks.authUser,
 }));
 
-vi.mock('@services/core/environment.service', () => ({
-  EnvironmentService: {
-    get isOnboardingPreview() {
-      return mocks.isOnboardingPreview;
-    },
-  },
-}));
-
 import OnboardingRootPage from './page';
 
 describe('OnboardingRootPage routing', () => {
   beforeEach(() => {
     mocks.replace.mockClear();
-    mocks.isOnboardingPreview = false;
     mocks.authUser = { isLoaded: true, user: { publicMetadata: {} } };
     mocks.currentUser = {
       currentUser: {
@@ -53,17 +43,7 @@ describe('OnboardingRootPage routing', () => {
     vi.clearAllMocks();
   });
 
-  it('sends a fully-onboarded user to summary when preview is disabled', async () => {
-    render(<OnboardingRootPage />);
-
-    await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/summary');
-    });
-  });
-
-  it('sends any user to the first step (brand) when preview is enabled', async () => {
-    mocks.isOnboardingPreview = true;
-
+  it('replays the full wizard from the first step for a fully-onboarded user', async () => {
     render(<OnboardingRootPage />);
 
     await waitFor(() => {
@@ -72,8 +52,20 @@ describe('OnboardingRootPage routing', () => {
     expect(mocks.replace).not.toHaveBeenCalledWith('/onboarding/summary');
   });
 
-  it('prioritizes the proactive-lead path over preview mode', async () => {
-    mocks.isOnboardingPreview = true;
+  it('resumes at the first incomplete step for a mid-onboarding user', async () => {
+    mocks.currentUser = {
+      currentUser: { onboardingStepsCompleted: ['brand'] },
+      isLoading: false,
+    };
+
+    render(<OnboardingRootPage />);
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/providers');
+    });
+  });
+
+  it('prioritizes the proactive-lead path over the wizard replay', async () => {
     mocks.authUser = {
       isLoaded: true,
       user: { publicMetadata: { proactiveLeadId: 'lead_123' } },

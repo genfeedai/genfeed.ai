@@ -3,7 +3,6 @@
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { getResumeStep, ONBOARDING_STEPS } from '@genfeedai/constants';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
-import { EnvironmentService } from '@services/core/environment.service';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
@@ -25,22 +24,18 @@ export default function OnboardingRootPage() {
       return;
     }
 
-    // Preview mode (NEXT_PUBLIC_ONBOARDING_PREVIEW=1): let any signed-in user
-    // replay the full wizard from the first step, regardless of completion
-    // status, so the flow can be exercised in any environment. Disable the flag
-    // to restore the normal completed → summary routing.
-    if (EnvironmentService.isOnboardingPreview) {
-      replace('/onboarding/brand');
-      return;
-    }
-
     const completedSteps = currentUser.onboardingStepsCompleted ?? [];
     const hasCompletedAllOnboardingSteps = ONBOARDING_STEPS.every((step) =>
       completedSteps.includes(step),
     );
 
+    // An already-onboarded user who navigates to /onboarding replays the full
+    // wizard from the first step rather than jumping to the summary. Replaying
+    // is non-destructive: the brand step updates the existing brand (never
+    // duplicates) and the summary step only persists an access preference.
+    // Mid-onboarding users still resume at their first incomplete step.
     if (hasCompletedAllOnboardingSteps) {
-      replace('/onboarding/summary');
+      replace('/onboarding/brand');
       return;
     }
 

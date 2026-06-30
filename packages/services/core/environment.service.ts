@@ -161,19 +161,6 @@ export const EnvironmentService = {
     return process.env.NEXT_PUBLIC_LAUNCH_MODE !== 'open';
   },
 
-  /**
-   * Onboarding preview: lets any signed-in user replay the full /onboarding
-   * wizard from the first step even after they have completed it. The wizard
-   * steps are idempotent — the brand step updates the user's existing brand
-   * (it never creates a duplicate) and the summary step only persists an
-   * access-mode preference — so replaying is non-destructive. Intended as a
-   * temporary testing aid: set NEXT_PUBLIC_ONBOARDING_PREVIEW=1 to enable,
-   * unset it to restore normal first-login-only gating.
-   */
-  get isOnboardingPreview(): boolean {
-    return process.env.NEXT_PUBLIC_ONBOARDING_PREVIEW === '1';
-  },
-
   GA_ID: process.env.NEXT_PUBLIC_GA_ID || '',
 
   marketing: {
