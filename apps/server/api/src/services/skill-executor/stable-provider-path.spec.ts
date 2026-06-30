@@ -5,6 +5,7 @@ import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-fac
 import { FalService } from '@api/services/integrations/fal/fal.service';
 import { LeonardoAIService } from '@api/services/integrations/leonardoai/leonardoai.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import { ContentGeoOptimizerHandler } from '@api/services/skill-executor/handlers/content-geo-optimizer.handler';
 import { ContentWritingHandler } from '@api/services/skill-executor/handlers/content-writing.handler';
 import { ImageGenerationHandler } from '@api/services/skill-executor/handlers/image-generation.handler';
 import { TrendDiscoveryHandler } from '@api/services/skill-executor/handlers/trend-discovery.handler';
@@ -106,6 +107,10 @@ describe('stable provider path smoke', () => {
         {
           provide: ManagedInferenceClientService,
           useValue: managedInferenceClientService,
+        },
+        {
+          provide: ContentGeoOptimizerHandler,
+          useValue: { execute: vi.fn() },
         },
         {
           provide: ContentWritingHandler,
