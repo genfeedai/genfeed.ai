@@ -1,9 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mockSearchParams = new URLSearchParams();
 const appSwitcherSpy = vi.hoisted(() => vi.fn());
+const originalLocation = window.location;
 
 vi.mock('@genfeedai/enums', () => ({
   ButtonSize: { ICON: 'icon' },
@@ -129,6 +130,21 @@ describe('AppProtectedTopbar', () => {
   beforeEach(() => {
     mockSearchParams = new URLSearchParams();
     appSwitcherSpy.mockClear();
+    delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
+    delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...originalLocation, hostname: 'localhost' },
+      writable: true,
+    });
+  });
+
+  afterEach(() => {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: originalLocation,
+      writable: true,
+    });
   });
 
   it('renders the brand switcher on the left and app switcher with right-side controls', () => {
@@ -193,6 +209,20 @@ describe('AppProtectedTopbar', () => {
       terminalButton.compareDocumentPosition(cloudSyncIndicator) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  it('does not render the terminal dock control on the hosted app hostname', () => {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...originalLocation, hostname: 'app.genfeed.ai' },
+      writable: true,
+    });
+
+    render(<AppProtectedTopbar isAgentCollapsed onAgentToggle={vi.fn()} />);
+
+    expect(
+      screen.queryByRole('button', { name: 'Open terminal dock' }),
+    ).not.toBeInTheDocument();
   });
 
   it('renders credit balances before the topbar end slot', () => {
