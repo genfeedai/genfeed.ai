@@ -2306,8 +2306,8 @@ describe('AgentToolExecutorService', () => {
             type: 'ai-generate-post',
           },
         ],
-        schedule: '0 9 * * 1',
-        timezone: 'Europe/Malta',
+        schedule: ' 0 9 * * 1 ',
+        timezone: ' Europe/Malta ',
       },
       {
         organizationId: '67a123456789012345678901',
