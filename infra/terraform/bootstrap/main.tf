@@ -270,6 +270,14 @@ data "aws_iam_policy_document" "gha_deploy" {
       "ssm:GetParameters",
       "ssm:GetParametersByPath",
       "ssm:GetParameter",
+      # Write + tag actions for Terraform-managed SSM SecureStrings (e.g. the
+      # ElastiCache REDIS_PASSWORD auth token created in genfeed-prod). Scoped to
+      # genfeed_ssm_arns via the resources block below — never account-wide.
+      "ssm:PutParameter",
+      "ssm:DeleteParameter",
+      "ssm:AddTagsToResource",
+      "ssm:RemoveTagsFromResource",
+      "ssm:ListTagsForResource",
       "route53:*",
     ]
     resources = concat(
