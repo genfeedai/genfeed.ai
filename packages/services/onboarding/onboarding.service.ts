@@ -96,6 +96,7 @@ export interface InstallReadinessResponse {
     showBilling: boolean;
     showCloudUpgradeCta: boolean;
     showCredits: boolean;
+    showLocalTools: boolean;
     showPricing: boolean;
   };
   workspace: {

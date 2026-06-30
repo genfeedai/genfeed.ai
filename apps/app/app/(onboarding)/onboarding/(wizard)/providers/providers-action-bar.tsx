@@ -77,6 +77,7 @@ export default function ProvidersActionBar({
                     : 'Continue with server defaults'
               }
               disabled={loading || pendingMode !== null}
+              wrapperClassName="w-full md:w-auto"
               className={`w-full md:w-auto ${
                 selectedMode === 'server' ? CURRENT_RING : ''
               }`}
@@ -97,6 +98,7 @@ export default function ProvidersActionBar({
                   : 'Use Genfeed Cloud'
               }
               disabled={loading || pendingMode !== null}
+              wrapperClassName="w-full md:w-auto"
               className={`w-full rounded-full border border-white/10 bg-white/[0.03] text-white/75 hover:border-white/15 hover:bg-white/[0.06] hover:text-white md:w-auto ${
                 selectedMode === 'cloud' ? CURRENT_RING : ''
               }`}

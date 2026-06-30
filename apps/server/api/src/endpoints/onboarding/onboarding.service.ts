@@ -29,7 +29,7 @@ import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.s
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
 import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
-import { isEEEnabled } from '@genfeedai/config';
+import { IS_CLOUD, isEEEnabled } from '@genfeedai/config';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   FileInputType,
@@ -95,6 +95,7 @@ export interface InstallReadinessResponse {
     showBilling: boolean;
     showCloudUpgradeCta: boolean;
     showCredits: boolean;
+    showLocalTools: boolean;
     showPricing: boolean;
   };
   workspace: {
@@ -281,6 +282,10 @@ export class OnboardingService {
   }
 
   private getLocalToolReadiness() {
+    if (IS_CLOUD) {
+      return { anyDetected: false, claude: false, codex: false, detected: [] };
+    }
+
     const claude = this.isCommandAvailable('claude');
     const codex = this.isCommandAvailable('codex');
     const detected = [claude ? 'claude' : null, codex ? 'codex' : null].filter(
@@ -1026,6 +1031,7 @@ export class OnboardingService {
         showBilling: showBillingUi,
         showCloudUpgradeCta: !showBillingUi,
         showCredits: showBillingUi,
+        showLocalTools: !IS_CLOUD,
         showPricing: showBillingUi,
       },
       workspace: {
