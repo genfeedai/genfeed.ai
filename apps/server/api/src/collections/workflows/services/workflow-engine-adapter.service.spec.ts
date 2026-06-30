@@ -842,6 +842,67 @@ describe('WorkflowEngineAdapterService', () => {
         },
       );
     });
+
+    it('fails image generation workflows when brandId is missing', async () => {
+      const imageWorkflowService = new WorkflowEngineAdapterService(
+        {
+          ingredientsEndpoint: 'https://ingredients.example.com',
+        } as never,
+        loggerService as never,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {} as never,
+        {} as never,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { saveDocumentsInternal: vi.fn() } as never,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { runModel: vi.fn() } as never,
+        {
+          buildPrompt: vi.fn().mockResolvedValue({
+            input: { prompt: 'resolved prompt' },
+          }),
+        } as never,
+        undefined,
+      );
+
+      const workflow = imageWorkflowService.convertToExecutableWorkflow({
+        _id: { toString: () => 'wf-missing-brand' },
+        edges: [],
+        nodes: [
+          {
+            data: {
+              config: {
+                model: 'qwen/qwen-image',
+                prompt: 'make an image',
+              },
+              label: 'Image',
+            },
+            id: 'image',
+            type: 'imageGen',
+          },
+        ],
+        organization: { toString: () => 'org-1' },
+        user: { toString: () => 'user-1' },
+      });
+
+      const result = await imageWorkflowService.executeWorkflow(workflow);
+
+      expect(result.status).toBe('failed');
+      expect(result.error).toBe('imageGen requires a brandId in node config');
+      expect(result.nodeResults.get('image')?.error).toBe(
+        'imageGen requires a brandId in node config',
+      );
+    });
   });
 
   describe('node type to executor mapping', () => {
