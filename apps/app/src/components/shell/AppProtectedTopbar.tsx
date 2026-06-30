@@ -187,6 +187,7 @@ function AppProtectedTopbarContent({
             <AppSwitcher
               variant="icon"
               currentApp={currentApp ?? 'workspace'}
+              currentPath={pathname}
               orgSlug={effectiveOrgSlug}
               brandSlug={effectiveBrandSlug}
             />

@@ -113,6 +113,7 @@ export function useAppProtectedLayout(
     APP_ROUTES.CHAT.ONBOARDING,
   );
   const isComposeRoute = pathname.startsWith(COMPOSE_ROUTES.ROOT);
+  const isResearchRoute = pathname.startsWith('/research');
   const isLibraryLandingRoute = pathname === APP_ROUTES.LIBRARY.INGREDIENTS;
   const isLibraryRoute = pathname.startsWith(APP_ROUTE_PREFIXES.LIBRARY);
   const isStudioPromptBarRoute =
@@ -120,6 +121,7 @@ export function useAppProtectedLayout(
     /^\/studio\/(avatar|image|music|video)(?:\/|$)/.test(pathname);
   const isStudioRoute = pathname.startsWith(APP_ROUTE_PREFIXES.STUDIO);
   const isPostsPromptBarRoute = pathname === APP_ROUTES.POSTS.ROOT;
+  const isRemixRoute = pathname.startsWith('/posts/remix');
   const isPostsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.POSTS);
   const isMissionControlPromptBarRoute =
     pathname === APP_ROUTES.WORKFLOWS.EXECUTIONS ||
@@ -151,19 +153,23 @@ export function useAppProtectedLayout(
     ? 'studio'
     : isLibraryRoute
       ? 'library'
-      : isPostsRoute
-        ? 'posts'
-        : isComposeRoute
-          ? 'compose'
-          : isWorkflowsRoute
-            ? 'workflows'
-            : isEditorRoute
-              ? 'editor'
-              : isAnalyticsRoute
-                ? 'analytics'
-                : isChatRoute
-                  ? 'agent'
-                  : 'workspace';
+      : isResearchRoute
+        ? 'research'
+        : isRemixRoute
+          ? 'remix'
+          : isPostsRoute
+            ? 'posts'
+            : isComposeRoute
+              ? 'compose'
+              : isWorkflowsRoute
+                ? 'workflows'
+                : isEditorRoute
+                  ? 'editor'
+                  : isAnalyticsRoute
+                    ? 'analytics'
+                    : isChatRoute
+                      ? 'agent'
+                      : 'workspace';
 
   const shouldMountAgentPanel =
     isTerminalDockAvailable() &&

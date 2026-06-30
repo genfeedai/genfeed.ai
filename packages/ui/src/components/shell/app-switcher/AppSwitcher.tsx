@@ -8,13 +8,15 @@ import Link from 'next/link';
 import { useRef } from 'react';
 import {
   HiChevronDown,
+  HiOutlineArrowPathRoundedSquare,
+  HiOutlineArrowTrendingUp,
   HiOutlineChartBarSquare,
-  HiOutlineChatBubbleLeftRight,
-  HiOutlineFolder,
+  HiOutlineCheckCircle,
+  HiOutlineClock,
   HiOutlinePaperAirplane,
-  HiOutlineRectangleGroup,
-  HiOutlineSparkles,
+  HiOutlineRectangleStack,
   HiOutlineSquares2X2,
+  HiOutlineViewColumns,
 } from 'react-icons/hi2';
 import { TbGridDots } from 'react-icons/tb';
 import { Button } from '../../../primitives/button';
@@ -29,6 +31,7 @@ import {
 type LifecycleAppSwitcherItemConfig = AppSwitcherItemConfig & {
   activeIds?: AppContext[];
   description: string;
+  itemKey: string;
 };
 
 type AppSwitcherSectionConfig = {
@@ -39,78 +42,169 @@ type AppSwitcherSectionConfig = {
 
 const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
   {
-    id: 'workspace',
-    label: 'Workspace',
+    id: 'trends',
+    label: 'Trends',
     apps: [
       {
-        description: 'Dashboard and context.',
-        icon: HiOutlineSquares2X2,
-        id: 'workspace',
-        label: 'Home',
+        description: 'Find winners.',
+        icon: HiOutlineArrowTrendingUp,
+        id: 'research',
+        itemKey: 'trends-discovery',
+        label: 'Discovery',
         route: (org, brand) =>
-          brand ? `/${org}/${brand}/workspace` : `/${org}/~/overview`,
+          brand ? `/${org}/${brand}/research/discovery` : `/${org}/~/overview`,
       },
       {
-        description: 'Chat and delegated work.',
-        icon: HiOutlineChatBubbleLeftRight,
-        id: 'agent',
-        label: 'Agent',
-        route: (org) => `/${org}/~/chat`,
+        description: 'Watch platforms.',
+        icon: HiOutlineSquares2X2,
+        id: 'research',
+        itemKey: 'trends-socials',
+        label: 'Socials',
+        route: (org, brand) =>
+          brand ? `/${org}/${brand}/research/socials` : `/${org}/~/overview`,
+      },
+      {
+        description: 'Study ads.',
+        icon: HiOutlineViewColumns,
+        id: 'research',
+        itemKey: 'trends-ads',
+        label: 'Ads',
+        route: (org, brand) =>
+          brand ? `/${org}/${brand}/research/ads` : `/${org}/~/overview`,
       },
     ],
   },
   {
-    id: 'content',
-    label: 'Content',
+    id: 'create',
+    label: 'Create',
     apps: [
       {
         activeIds: ['studio', 'compose', 'editor'],
-        description: 'Generate and refine media.',
-        icon: HiOutlineSparkles,
+        description: 'Generate media.',
+        icon: HiOutlineSquares2X2,
         id: 'studio',
-        label: 'Create',
+        itemKey: 'create-studio',
+        label: 'Studio',
         route: (org, brand) =>
           brand ? `/${org}/${brand}/studio/image` : `/${org}/~/studio/image`,
       },
       {
-        description: 'Assets and source material.',
-        icon: HiOutlineFolder,
+        description: 'Adapt winners.',
+        icon: HiOutlineArrowPathRoundedSquare,
+        id: 'remix',
+        itemKey: 'create-remix',
+        label: 'Remix',
+        route: (org, brand) =>
+          brand ? `/${org}/${brand}/posts/remix` : `/${org}/~/posts`,
+      },
+      {
+        description: 'Use source assets.',
+        icon: HiOutlineRectangleStack,
         id: 'library',
+        itemKey: 'create-library',
         label: 'Library',
         route: (org, brand) =>
           brand ? `/${org}/${brand}/library/ingredients` : `/${org}/~/library`,
       },
+      {
+        description: 'Scale creation.',
+        icon: HiOutlineRectangleStack,
+        id: 'studio',
+        itemKey: 'create-batch',
+        label: 'Batch',
+        route: (org, brand) =>
+          brand ? `/${org}/${brand}/studio/batch` : `/${org}/~/studio/batch`,
+      },
     ],
   },
   {
-    id: 'distribution',
-    label: 'Distribution',
+    id: 'publish',
+    label: 'Publish',
     apps: [
       {
-        description: 'Posts and scheduling.',
+        description: 'Drafts and posts.',
         icon: HiOutlinePaperAirplane,
         id: 'posts',
-        label: 'Publish',
+        itemKey: 'publish-posts',
+        label: 'Posts',
         route: (org, brand) =>
           brand ? `/${org}/${brand}/posts` : `/${org}/~/posts`,
       },
       {
-        description: 'Workflows and batches.',
-        icon: HiOutlineRectangleGroup,
-        id: 'workflows',
-        label: 'Automate',
+        description: 'Approve content.',
+        icon: HiOutlineCheckCircle,
+        id: 'posts',
+        itemKey: 'publish-review',
+        label: 'Review',
         route: (org, brand) =>
-          brand ? `/${org}/${brand}/workflows` : `/${org}/~/workflows`,
+          brand ? `/${org}/${brand}/posts/review` : `/${org}/~/posts`,
       },
       {
-        description: 'Performance and trends.',
+        description: 'Plan schedule.',
+        icon: HiOutlineViewColumns,
+        id: 'posts',
+        itemKey: 'publish-calendar',
+        label: 'Calendar',
+        route: (org, brand) =>
+          brand ? `/${org}/${brand}/posts/calendar` : `/${org}/~/posts`,
+      },
+      {
+        description: 'Queued posts.',
+        icon: HiOutlineClock,
+        id: 'posts',
+        itemKey: 'publish-scheduled',
+        label: 'Scheduled',
+        route: (org, brand) =>
+          brand ? `/${org}/${brand}/posts/scheduled` : `/${org}/~/posts`,
+      },
+    ],
+  },
+  {
+    id: 'analytics',
+    label: 'Analytics',
+    apps: [
+      {
+        description: 'Measure results.',
         icon: HiOutlineChartBarSquare,
         id: 'analytics',
-        label: 'Analytics',
+        itemKey: 'analytics-overview',
+        label: 'Overview',
         route: (org, brand) =>
           brand
             ? `/${org}/${brand}/analytics/overview`
             : `/${org}/~/analytics/overview`,
+      },
+      {
+        description: 'Inspect posts.',
+        icon: HiOutlinePaperAirplane,
+        id: 'analytics',
+        itemKey: 'analytics-posts',
+        label: 'Post Analytics',
+        route: (org, brand) =>
+          brand
+            ? `/${org}/${brand}/analytics/posts`
+            : `/${org}/~/analytics/overview`,
+      },
+      {
+        description: 'Spot patterns.',
+        icon: HiOutlineArrowTrendingUp,
+        id: 'analytics',
+        itemKey: 'analytics-trends',
+        label: 'Trend Analytics',
+        route: (org, brand) =>
+          brand
+            ? `/${org}/${brand}/analytics/trends`
+            : `/${org}/~/analytics/overview`,
+      },
+      {
+        activeIds: ['workflows'],
+        description: 'Systematize wins.',
+        icon: HiOutlineArrowPathRoundedSquare,
+        id: 'workflows',
+        itemKey: 'analytics-repeat',
+        label: 'Repeat',
+        route: (org, brand) =>
+          brand ? `/${org}/${brand}/workflows` : `/${org}/~/workflows`,
       },
     ],
   },
@@ -149,6 +243,73 @@ function isActiveApp(
   currentApp: AppContext,
 ): boolean {
   return app.id === currentApp || app.activeIds?.includes(currentApp) === true;
+}
+
+function normalizePath(path?: string): string | undefined {
+  if (!path) {
+    return undefined;
+  }
+
+  const [pathname] = path.split('?', 1);
+  const normalizedPathname = pathname.replace(/\/+$/, '');
+
+  return normalizedPathname || '/';
+}
+
+function getPathMatchScore(currentPath: string, targetPath: string): number {
+  const normalizedCurrentPath = normalizePath(currentPath);
+  const normalizedTargetPath = normalizePath(targetPath);
+
+  if (!(normalizedCurrentPath && normalizedTargetPath)) {
+    return 0;
+  }
+
+  if (normalizedCurrentPath === normalizedTargetPath) {
+    return normalizedTargetPath.length + 1000;
+  }
+
+  if (normalizedCurrentPath.startsWith(`${normalizedTargetPath}/`)) {
+    return normalizedTargetPath.length;
+  }
+
+  return 0;
+}
+
+function getActiveItemKey({
+  brandSlug,
+  currentApp,
+  currentPath,
+  orgSlug,
+}: {
+  brandSlug?: string;
+  currentApp: AppContext;
+  currentPath?: string;
+  orgSlug: string;
+}): string | undefined {
+  const normalizedCurrentPath = normalizePath(currentPath);
+
+  if (normalizedCurrentPath) {
+    let activeItemKey: string | undefined;
+    let activeScore = 0;
+
+    for (const app of SECTION_APPS) {
+      const score = getPathMatchScore(
+        normalizedCurrentPath,
+        app.route(orgSlug, brandSlug),
+      );
+
+      if (score > activeScore) {
+        activeItemKey = app.itemKey;
+        activeScore = score;
+      }
+    }
+
+    if (activeItemKey) {
+      return activeItemKey;
+    }
+  }
+
+  return SECTION_APPS.find((app) => isActiveApp(app, currentApp))?.itemKey;
 }
 
 function AppDropdownItem({
@@ -208,6 +369,7 @@ function AppDropdownItem({
 export function AppSwitcher({
   brandSlug,
   currentApp,
+  currentPath,
   orgSlug,
   preservedSearch,
   variant = 'icon',
@@ -222,9 +384,17 @@ export function AppSwitcher({
     preventTriggerAutoFocusRef.current = true;
   };
 
-  const activeApp = SECTION_APPS.find((app) => isActiveApp(app, currentApp));
+  const activeItemKey = getActiveItemKey({
+    brandSlug,
+    currentApp,
+    currentPath,
+    orgSlug,
+  });
+  const activeApp =
+    SECTION_APPS.find((app) => app.itemKey === activeItemKey) ??
+    SECTION_APPS.find((app) => isActiveApp(app, currentApp));
   const ActiveIcon = activeApp?.icon ?? HiOutlineSquares2X2;
-  const activeLabel = activeApp?.label ?? 'Home';
+  const activeLabel = activeApp?.label ?? 'Apps';
 
   return (
     <DropdownMenu modal={false}>
@@ -257,7 +427,7 @@ export function AppSwitcher({
       <DropdownMenuContent
         align="end"
         sideOffset={8}
-        className="max-h-[80vh] w-[calc(100vw-2rem)] overflow-y-auto p-2 sm:w-[42rem]"
+        className="max-h-[80vh] w-[calc(100vw-2rem)] overflow-y-auto p-2 sm:w-[44rem]"
         onCloseAutoFocus={(event) => {
           if (!preventTriggerAutoFocusRef.current) {
             return;
@@ -267,7 +437,7 @@ export function AppSwitcher({
           preventTriggerAutoFocusRef.current = false;
         }}
       >
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div className="grid gap-2 sm:grid-cols-4">
           {APP_SWITCHER_SECTIONS.map((section) => (
             <div
               key={section.id}
@@ -284,9 +454,9 @@ export function AppSwitcher({
               <div className="space-y-1">
                 {section.apps.map((app) => (
                   <AppDropdownItem
-                    key={app.id}
+                    key={app.itemKey}
                     app={app}
-                    isActive={isActiveApp(app, currentApp)}
+                    isActive={app.itemKey === activeItemKey}
                     href={getAppHref(app)}
                     onNavigateStart={handleNavigateStart}
                   />
