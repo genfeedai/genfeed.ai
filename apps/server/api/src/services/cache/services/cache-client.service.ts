@@ -1,6 +1,9 @@
 import { ConfigService } from '@api/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { parseRedisConnection } from '@libs/redis/redis-connection.utils';
+import {
+  buildNodeRedisClientOptions,
+  parseRedisConnection,
+} from '@libs/redis/redis-connection.utils';
 import {
   Injectable,
   type OnModuleDestroy,
@@ -24,8 +27,8 @@ export class CacheClientService implements OnModuleInit, OnModuleDestroy {
   ) {
     const config = parseRedisConnection(this.configService);
 
-    this.client = createClient({
-      socket: {
+    this.client = createClient(
+      buildNodeRedisClientOptions(config, {
         connectTimeout: 3_000,
         reconnectStrategy: (retries: number) => {
           if (retries >= CacheClientService.MAX_RECONNECT_RETRIES) {
@@ -43,10 +46,8 @@ export class CacheClientService implements OnModuleInit, OnModuleDestroy {
           );
           return delay;
         },
-        ...(config.tls && { tls: true }),
-      },
-      url: config.url,
-    });
+      }),
+    );
 
     this.client.on('error', (error: Error) => {
       this.logger.error(`${this.constructorName} Redis client error`, error);

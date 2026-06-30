@@ -1,5 +1,6 @@
 import {
   buildBullMQConnection,
+  buildNodeRedisClientOptions,
   buildNodeRedisSocketOptions,
   parseRedisConnection,
 } from '@libs/redis/redis-connection.utils';
@@ -48,6 +49,36 @@ describe('redis connection utilities', () => {
     expect(buildNodeRedisSocketOptions(config)).toEqual({
       connectTimeout: 3000,
       tls: true,
+    });
+  });
+
+  it('passes separately injected Redis passwords to node-redis clients', () => {
+    const config = parseRedisConnection({
+      get: (key) => {
+        if (key === 'REDIS_URL') {
+          return 'rediss://redis.internal:6379';
+        }
+        if (key === 'REDIS_PASSWORD') {
+          return 'secret-from-ssm';
+        }
+        return false;
+      },
+    });
+
+    expect(config).toEqual({
+      host: 'redis.internal',
+      password: 'secret-from-ssm',
+      port: 6379,
+      tls: true,
+      url: 'rediss://redis.internal:6379',
+    });
+    expect(buildNodeRedisClientOptions(config)).toEqual({
+      password: 'secret-from-ssm',
+      socket: {
+        connectTimeout: 3000,
+        tls: true,
+      },
+      url: 'rediss://redis.internal:6379',
     });
   });
 });

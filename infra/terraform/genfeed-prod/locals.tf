@@ -26,10 +26,10 @@ locals {
   # segment (e.g. /genfeed/production/DATABASE_URL -> DATABASE_URL).
   # ECS forbids a `secrets` entry sharing a name with an `environment` entry, so
   # any SSM param we also set as a container env var (the Cloud Map inter-service
-  # URLs, REDIS_URL, NODE_ENV, VERSION, PORT, SERVICE_NAME) must be filtered out
-  # of the injected secrets — the env value wins. REDIS_PASSWORD is dropped too:
-  # ElastiCache is no-auth (private + SG-locked) and redis-connection.utils.ts
-  # would otherwise send AUTH (which a no-auth server rejects).
+  # URLs, REDIS_URL, REDIS_TLS, NODE_ENV, VERSION, PORT, SERVICE_NAME) must be
+  # filtered out of the injected secrets — the env value wins. REDIS_PASSWORD is
+  # injected below from the Terraform-managed SecureString so stale/manual params
+  # cannot create duplicate ECS secret names.
   reserved_env_names = toset(concat(
     [for e in local.internal_env : e.name],
     ["PORT", "SERVICE_NAME", "REDIS_PASSWORD"],
@@ -46,6 +46,13 @@ locals {
       valueFrom = data.aws_ssm_parameters_by_path.prod.arns[i]
     } if !contains(local.excluded_ssm_secret_names, element(reverse(split("/", name)), 0))
   ]
+  redis_task_secrets = [
+    {
+      name      = "REDIS_PASSWORD"
+      valueFrom = aws_ssm_parameter.redis_password.arn
+    },
+  ]
+  service_task_secrets = concat(local.task_secrets, local.redis_task_secrets)
 
   # ── Service catalogue (mirrors docker-compose.production.yml) ─────────
   # Fargate launch type: cpu/mem MUST be valid Fargate task pairs (256→512-2048,
