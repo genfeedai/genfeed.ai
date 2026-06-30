@@ -26,6 +26,8 @@ const MAX_RETRY_ATTEMPTS = 3;
 
 /** Base delay in ms for exponential backoff on 429 responses */
 const RETRY_BASE_DELAY_MS = 1_000;
+const MAX_IMAGE_CANDIDATES = 12;
+const MAX_FONT_CANDIDATES = 8;
 
 /**
  * BrandScraperService
@@ -76,8 +78,10 @@ export class BrandScraperService {
 
         return {
           aboutText: undefined,
+          bannerUrl: fallback.ogImage,
           companyName: companyName || fallback.siteName,
           description: fallback.description || fallback.ogDescription,
+          fontCandidates: [],
           fontFamily: undefined,
           heroText: undefined,
           logoUrl: undefined,
@@ -412,6 +416,7 @@ export class BrandScraperService {
       );
     }
 
+    this.assertHtmlResponse(response);
     const html = await response.text();
     const $ = cheerio.load(html);
 
@@ -491,6 +496,7 @@ export class BrandScraperService {
       );
     }
 
+    this.assertHtmlResponse(response);
     const html = await response.text();
     const $ = cheerio.load(html);
 
@@ -543,6 +549,7 @@ export class BrandScraperService {
 
     // Extract colors from theme-color meta, <style> tags, inline styles
     const colors = this.extractColorsFromDom($);
+    const fonts = this.extractFontsFromDom($);
 
     // Extract headings
     const headings = this.extractHeadingsFromDom($);
@@ -556,17 +563,20 @@ export class BrandScraperService {
 
     // Extract logo
     const logoUrl = this.extractLogoFromDom($, sourceUrl);
+    const images = this.extractImagesFromDom($, sourceUrl);
+    const bannerUrl = this.extractBannerFromDom($, sourceUrl, ogImage, images);
 
     return {
       aboutText,
+      bannerUrl,
       canonical,
       colors,
       description,
       favicon,
-      fonts: [],
+      fonts,
       headings,
       heroText: headings[0],
-      images: [],
+      images,
       logoUrl,
       ogDescription,
       ogImage,
@@ -599,14 +609,25 @@ export class BrandScraperService {
 
     return {
       aboutText: scrapedContent.aboutText,
+      bannerUrl: scrapedContent.bannerUrl,
       companyName,
       description: scrapedContent.description || scrapedContent.ogDescription,
+      fontCandidates: scrapedContent.fonts,
       fontFamily: scrapedContent.fonts[0],
       heroText: scrapedContent.heroText,
       logoUrl: scrapedContent.logoUrl,
       metaDescription: scrapedContent.description,
       ogImage: scrapedContent.ogImage,
       primaryColor: scrapedContent.colors.primary,
+      referenceImageUrls: scrapedContent.images
+        .map((image) => image.src)
+        .filter(
+          (src, index, all) =>
+            src !== scrapedContent.logoUrl &&
+            src !== scrapedContent.bannerUrl &&
+            all.indexOf(src) === index,
+        )
+        .slice(0, MAX_IMAGE_CANDIDATES),
       scrapedAt: scrapedContent.scrapedAt,
       secondaryColor: scrapedContent.colors.secondary,
       socialLinks: scrapedContent.socialLinks,
@@ -745,6 +766,74 @@ export class BrandScraperService {
     };
   }
 
+  private extractFontsFromDom($: cheerio.CheerioAPI): string[] {
+    const candidates: string[] = [];
+    const seen = new Set<string>();
+
+    const addFont = (font: string): void => {
+      const normalized = font
+        .split(',')
+        .map((part) => part.trim().replace(/^['"]|['"]$/g, ''))
+        .find((part) => part.length > 0);
+
+      if (
+        !normalized ||
+        /^(system-ui|sans-serif|serif|monospace|inherit|initial|var\()/i.test(
+          normalized,
+        ) ||
+        seen.has(normalized)
+      ) {
+        return;
+      }
+
+      seen.add(normalized);
+      candidates.push(normalized);
+    };
+
+    $('link[href*="fonts.googleapis.com"]').each((_i, el) => {
+      const href = $(el).attr('href');
+      if (!href) {
+        return;
+      }
+      try {
+        const family = new URL(
+          href,
+          'https://fonts.googleapis.com',
+        ).searchParams
+          .get('family')
+          ?.split(':')[0]
+          ?.replace(/\+/g, ' ');
+        if (family) {
+          addFont(family);
+        }
+      } catch {
+        // Ignore malformed stylesheet URLs; inline declarations still apply.
+      }
+    });
+
+    const cssText: string[] = [];
+    $('style').each((_i, el) => {
+      cssText.push($(el).text());
+    });
+    $('[style]').each((_i, el) => {
+      const style = $(el).attr('style');
+      if (style) {
+        cssText.push(style);
+      }
+    });
+
+    const fontMatches = cssText
+      .join(' ')
+      .matchAll(/font-family\s*:\s*([^;{}]+)/gi);
+    for (const match of fontMatches) {
+      if (match[1]) {
+        addFont(match[1]);
+      }
+    }
+
+    return candidates.slice(0, MAX_FONT_CANDIDATES);
+  }
+
   /**
    * Extract headings from DOM
    */
@@ -795,6 +884,82 @@ export class BrandScraperService {
     return undefined;
   }
 
+  private extractImagesFromDom(
+    $: cheerio.CheerioAPI,
+    sourceUrl: string,
+  ): WebsiteScrapingResult['images'] {
+    const images: WebsiteScrapingResult['images'] = [];
+    const seen = new Set<string>();
+
+    const addImage = (src: string | undefined, alt?: string): void => {
+      if (!src || src.startsWith('data:')) {
+        return;
+      }
+
+      const resolved = this.resolveUrl(
+        this.extractSrcFromSrcSet(src),
+        sourceUrl,
+      );
+      if (!resolved || seen.has(resolved)) {
+        return;
+      }
+
+      seen.add(resolved);
+      images.push({
+        alt: alt?.trim() || undefined,
+        src: resolved,
+      });
+    };
+
+    $('meta[property="og:image"], meta[name="twitter:image"]').each(
+      (_i, el) => {
+        addImage($(el).attr('content'), 'Social preview image');
+      },
+    );
+
+    $('img[src], img[data-src], img[srcset]').each((_i, el) => {
+      addImage(
+        $(el).attr('src') ?? $(el).attr('data-src') ?? $(el).attr('srcset'),
+        $(el).attr('alt'),
+      );
+    });
+
+    return images.slice(0, MAX_IMAGE_CANDIDATES);
+  }
+
+  private extractBannerFromDom(
+    $: cheerio.CheerioAPI,
+    sourceUrl: string,
+    ogImage: string | undefined,
+    images: WebsiteScrapingResult['images'],
+  ): string | undefined {
+    const bannerSelectors = [
+      'img[class*="hero"]',
+      'img[class*="banner"]',
+      'img[id*="hero"]',
+      'img[id*="banner"]',
+      '[class*="hero"] img',
+      '[class*="banner"] img',
+    ];
+
+    for (const selector of bannerSelectors) {
+      const src = $(selector).first().attr('src');
+      if (src) {
+        return this.resolveUrl(src, sourceUrl);
+      }
+    }
+
+    if (ogImage) {
+      return this.resolveUrl(ogImage, sourceUrl);
+    }
+
+    return images[0]?.src;
+  }
+
+  private extractSrcFromSrcSet(value: string): string {
+    return value.split(',')[0]?.trim().split(/\s+/)[0] ?? value;
+  }
+
   /**
    * Resolve a potentially relative URL against a base URL
    */
@@ -803,6 +968,17 @@ export class BrandScraperService {
       return new URL(href, base).href;
     } catch {
       return href;
+    }
+  }
+
+  private assertHtmlResponse(response: Response): void {
+    const contentType = response.headers.get('content-type');
+    if (
+      contentType &&
+      !contentType.includes('text/html') &&
+      !contentType.includes('application/xhtml+xml')
+    ) {
+      throw new Error(`Unsupported content type: ${contentType}`);
     }
   }
 

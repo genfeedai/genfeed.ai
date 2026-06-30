@@ -95,6 +95,7 @@ describe('BrandsController', () => {
         {
           provide: BrandsService,
           useValue: {
+            crawlWebsiteBrandKitDraft: vi.fn(),
             create: vi.fn(),
             findAll: vi.fn(),
             findOne: vi.fn(),
@@ -254,6 +255,80 @@ describe('BrandsController', () => {
       );
 
       expect(cacheMetadata).toBeUndefined();
+    });
+  });
+
+  describe('crawlBrandKitWebsite', () => {
+    it('verifies brand access and passes organization context to the service', async () => {
+      const brandId = '507f191e810c19729de860ee'.toString();
+      const draft = {
+        assetCandidates: [],
+        brandId,
+        diagnostics: [],
+        evidence: [],
+        fields: {},
+        readiness: {
+          diagnostics: [],
+          missingFields: [],
+          requiredFields: [],
+          score: 100,
+          status: 'complete',
+        },
+        sourceType: 'website',
+        status: 'ready',
+      };
+      brandsService.findOne.mockResolvedValue(
+        mockBrand as unknown as BrandEntity,
+      );
+      brandsService.crawlWebsiteBrandKitDraft.mockResolvedValue(
+        draft as Awaited<
+          ReturnType<BrandsService['crawlWebsiteBrandKitDraft']>
+        >,
+      );
+
+      const result = await controller.crawlBrandKitWebsite(mockUser, brandId, {
+        url: 'https://acme.com',
+      });
+
+      expect(brandsService.findOne).toHaveBeenCalledWith({
+        OR: [
+          { user: '507f191e810c19729de860ee' },
+          { organization: '507f191e810c19729de860ee' },
+        ],
+        _id: brandId,
+        isDeleted: false,
+      });
+      expect(brandsService.crawlWebsiteBrandKitDraft).toHaveBeenCalledWith(
+        brandId,
+        '507f191e810c19729de860ee',
+        { url: 'https://acme.com' },
+      );
+      expect(result).toEqual({ data: draft });
+    });
+
+    it('rejects crawl requests without organization context', async () => {
+      const brandId = '507f191e810c19729de860ee'.toString();
+      const userWithoutOrganization = {
+        ...mockUser,
+        publicMetadata: {
+          ...(mockUser.publicMetadata as IAuthPublicMetadata),
+          organization: undefined,
+        },
+      } as unknown as User;
+      brandsService.findOne.mockResolvedValue(
+        mockBrand as unknown as BrandEntity,
+      );
+
+      await expect(
+        controller.crawlBrandKitWebsite(userWithoutOrganization, brandId, {
+          url: 'https://acme.com',
+        }),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          detail: 'Organization context is required',
+        }),
+      });
+      expect(brandsService.crawlWebsiteBrandKitDraft).not.toHaveBeenCalled();
     });
   });
 });

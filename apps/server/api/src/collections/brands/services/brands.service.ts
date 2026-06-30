@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import type { CrawlBrandKitDto } from '@api/collections/brands/dto/crawl-brand-kit.dto';
 import { CreateBrandDto } from '@api/collections/brands/dto/create-brand.dto';
 import type {
   GenerateBrandVoiceDto,
@@ -23,7 +24,18 @@ import { CacheService } from '@api/services/cache/services/cache.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import type { FastlaneFormat, FastlaneIdea } from '@genfeedai/interfaces';
+import {
+  type BrandKitSourceBrand,
+  buildBrandKitDraftFromBrand,
+  buildBrandKitDraftFromWebsiteScrape,
+} from '@genfeedai/helpers';
+import type {
+  FastlaneFormat,
+  FastlaneIdea,
+  IBrandKitDraft,
+  IExtractedSocialLinks,
+  IScrapedBrandData,
+} from '@genfeedai/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -180,6 +192,151 @@ export class BrandsService extends BaseService<
         agentConfig: updatedConfig as Record<string, unknown>,
       },
     }) as Promise<BrandDocument>;
+  }
+
+  async crawlWebsiteBrandKitDraft(
+    brandId: string,
+    organizationId: string,
+    dto: CrawlBrandKitDto,
+  ): Promise<IBrandKitDraft> {
+    const validation = this.brandScraperService.validateUrl(dto.url);
+    if (!validation.isValid) {
+      throw new BadRequestException({
+        code: 'brand_kit_invalid_website_url',
+        detail: validation.error ?? 'Invalid website URL',
+        title: 'Bad Request',
+      });
+    }
+
+    const brand = await this.findOne({
+      id: brandId,
+      isDeleted: false,
+      organizationId,
+    });
+
+    if (!brand) {
+      throw new NotFoundException('Brand', brandId);
+    }
+
+    try {
+      const scraped = await this.brandScraperService.scrapeWebsite(dto.url);
+      const diagnostics = this.readSocialUrlDiagnostics(dto.socialUrls);
+      const enrichedScrape = this.mergeSocialUrlsIntoScrape(
+        scraped,
+        dto.socialUrls,
+      );
+
+      return buildBrandKitDraftFromWebsiteScrape(
+        brand as unknown as BrandKitSourceBrand,
+        enrichedScrape,
+        {
+          diagnostics,
+        },
+      );
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Website crawl failed';
+
+      return buildBrandKitDraftFromBrand(
+        brand as unknown as BrandKitSourceBrand,
+        {
+          diagnostics: [
+            {
+              code: 'brand_kit_website_crawl_failed',
+              message: `Website crawl failed: ${message}`,
+              severity: 'error',
+            },
+          ],
+          evidence: [
+            {
+              excerpt: message,
+              label: 'Website crawl failed',
+              sourceType: 'website',
+              url: dto.url,
+            },
+          ],
+          sourceType: 'website',
+        },
+      );
+    }
+  }
+
+  private mergeSocialUrlsIntoScrape(
+    scraped: IScrapedBrandData,
+    socialUrls: string[] | undefined,
+  ): IScrapedBrandData {
+    if (!socialUrls?.length) {
+      return scraped;
+    }
+
+    const socialLinks: IExtractedSocialLinks = {
+      ...(scraped.socialLinks ?? {}),
+    };
+
+    for (const url of socialUrls) {
+      const validation = this.brandScraperService.validateUrl(url);
+      if (!validation.isValid) {
+        continue;
+      }
+
+      const platform = this.detectSocialPlatform(url);
+      if (platform) {
+        socialLinks[platform] = url;
+      }
+    }
+
+    return {
+      ...scraped,
+      socialLinks,
+    };
+  }
+
+  private readSocialUrlDiagnostics(
+    socialUrls: string[] | undefined,
+  ): IBrandKitDraft['diagnostics'] {
+    if (!socialUrls?.length) {
+      return [];
+    }
+
+    return socialUrls.flatMap((url) => {
+      const validation = this.brandScraperService.validateUrl(url);
+      if (!validation.isValid) {
+        return [
+          {
+            code: 'brand_kit_invalid_social_url',
+            message: `${url} was skipped: ${validation.error ?? 'invalid URL'}.`,
+            severity: 'warning' as const,
+          },
+        ];
+      }
+
+      return [];
+    });
+  }
+
+  private detectSocialPlatform(
+    url: string,
+  ): keyof IExtractedSocialLinks | undefined {
+    const lowerUrl = url.toLowerCase();
+    if (lowerUrl.includes('instagram.com')) {
+      return 'instagram';
+    }
+    if (lowerUrl.includes('linkedin.com')) {
+      return 'linkedin';
+    }
+    if (lowerUrl.includes('tiktok.com')) {
+      return 'tiktok';
+    }
+    if (lowerUrl.includes('twitter.com') || lowerUrl.includes('x.com')) {
+      return 'twitter';
+    }
+    if (lowerUrl.includes('youtube.com') || lowerUrl.includes('youtu.be')) {
+      return 'youtube';
+    }
+    if (lowerUrl.includes('facebook.com')) {
+      return 'facebook';
+    }
+    return undefined;
   }
 
   /**

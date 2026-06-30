@@ -3,6 +3,7 @@ import {
   type BrandKitAssetRole,
   type BrandKitFieldKey,
   type BrandKitSourceType,
+  type IBrandKitAssetCandidate,
   type IBrandKitAssetValue,
   type IBrandKitDiagnostic,
   type IBrandKitDraft,
@@ -11,6 +12,7 @@ import {
   type IBrandKitReadiness,
   type IBrandKitSocialLink,
   type IBrandKitSourceEvidence,
+  type IScrapedBrandData,
 } from '@genfeedai/interfaces';
 
 interface BrandKitAssetSource {
@@ -75,6 +77,10 @@ export interface BuildBrandKitDraftOptions {
   sourceType?: BrandKitSourceType;
   evidence?: IBrandKitSourceEvidence[];
   diagnostics?: IBrandKitDiagnostic[];
+  proposedValues?: Partial<Record<BrandKitFieldKey, unknown>>;
+  fieldDiagnostics?: Partial<Record<BrandKitFieldKey, IBrandKitDiagnostic[]>>;
+  fieldConfidence?: Partial<Record<BrandKitFieldKey, number>>;
+  assetCandidates?: IBrandKitAssetCandidate[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -389,17 +395,34 @@ function buildDraftField(
   brand: BrandKitSourceBrand,
   owner: IBrandKitFieldOwner,
   evidence: IBrandKitSourceEvidence[],
+  options: BuildBrandKitDraftOptions,
 ): IBrandKitDraftField {
-  return {
+  const proposedValue = options.proposedValues?.[owner.key];
+  const currentValue = readCurrentValue(brand, owner.key);
+  const diagnostics = options.fieldDiagnostics?.[owner.key] ?? [];
+  const confidence = options.fieldConfidence?.[owner.key];
+
+  const field: IBrandKitDraftField = {
     applyActionDefault: owner.applyActionDefault,
-    currentValue: readCurrentValue(brand, owner.key),
-    diagnostics: [],
+    diagnostics,
     evidence,
     group: owner.group,
     key: owner.key,
     label: owner.label,
     ownerPath: owner.ownerPath,
   };
+
+  if (currentValue !== undefined) {
+    field.currentValue = currentValue;
+  }
+  if (proposedValue !== undefined) {
+    field.proposedValue = proposedValue;
+  }
+  if (confidence !== undefined) {
+    field.confidence = confidence;
+  }
+
+  return field;
 }
 
 export function buildBrandKitDraftFromBrand(
@@ -420,14 +443,15 @@ export function buildBrandKitDraftFromBrand(
   const fields: Partial<Record<BrandKitFieldKey, IBrandKitDraftField>> = {};
 
   for (const owner of BRAND_KIT_FIELD_OWNERSHIP) {
-    fields[owner.key] = buildDraftField(brand, owner, evidence);
+    fields[owner.key] = buildDraftField(brand, owner, evidence, options);
   }
 
-  const diagnostics = options.diagnostics ?? [];
+  const fieldDiagnostics = Object.values(options.fieldDiagnostics ?? {}).flat();
+  const diagnostics = [...(options.diagnostics ?? []), ...fieldDiagnostics];
   const readiness = buildReadiness(fields, diagnostics);
 
   return {
-    assetCandidates: [],
+    assetCandidates: options.assetCandidates ?? [],
     brandId: brand.id,
     createdAt: options.createdAt,
     diagnostics,
@@ -452,4 +476,246 @@ export function getBrandKitFieldOwner(
   key: BrandKitFieldKey,
 ): IBrandKitFieldOwner {
   return findOwner(key);
+}
+
+function createWebsiteEvidence(
+  scraped: IScrapedBrandData,
+): IBrandKitSourceEvidence[] {
+  const excerpt =
+    scraped.description ??
+    scraped.heroText ??
+    scraped.aboutText ??
+    scraped.valuePropositions?.[0];
+
+  const evidence: IBrandKitSourceEvidence = {
+    label: 'Website crawl',
+    sourceType: 'website',
+    url: scraped.sourceUrl,
+  };
+
+  if (excerpt !== undefined) {
+    evidence.excerpt = excerpt;
+  }
+
+  return [evidence];
+}
+
+function compactTextParts(
+  parts: Array<string | undefined>,
+): string | undefined {
+  const text = parts
+    .filter(hasText)
+    .map((part) => part.trim())
+    .filter((part, index, all) => all.indexOf(part) === index)
+    .join('\n');
+
+  return hasText(text) ? text : undefined;
+}
+
+function buildWebsiteGuidance(scraped: IScrapedBrandData): string | undefined {
+  return compactTextParts([
+    scraped.tagline && `Tagline: ${scraped.tagline}`,
+    scraped.description && `Description: ${scraped.description}`,
+    scraped.heroText && `Hero: ${scraped.heroText}`,
+    scraped.aboutText && `About: ${scraped.aboutText}`,
+    scraped.valuePropositions && scraped.valuePropositions.length > 0
+      ? `Value propositions: ${scraped.valuePropositions.join(' | ')}`
+      : undefined,
+  ]);
+}
+
+function readWebsiteSocialLinks(
+  scraped: IScrapedBrandData,
+): IBrandKitSocialLink[] | undefined {
+  const links: IBrandKitSocialLink[] = [];
+
+  for (const [platform, url] of Object.entries(scraped.socialLinks ?? {})) {
+    if (!hasText(url)) {
+      continue;
+    }
+    links.push({
+      platform,
+      sourceType: 'website',
+      url,
+    });
+  }
+
+  return links.length > 0 ? links : undefined;
+}
+
+function createWebsiteAssetValue(
+  role: BrandKitAssetRole,
+  url: string | undefined,
+  label: string,
+): IBrandKitAssetValue | undefined {
+  if (!hasText(url)) {
+    return undefined;
+  }
+
+  return {
+    label,
+    role,
+    sourceType: 'website',
+    url,
+  };
+}
+
+function uniqueTextValues(values: Array<string | undefined>): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const value of values) {
+    if (!hasText(value) || seen.has(value)) {
+      continue;
+    }
+    seen.add(value);
+    result.push(value);
+  }
+
+  return result;
+}
+
+function createWebsiteAssetCandidates(
+  scraped: IScrapedBrandData,
+): IBrandKitAssetCandidate[] {
+  const candidates: IBrandKitAssetCandidate[] = [];
+  const sourceUrls = uniqueTextValues([
+    scraped.logoUrl,
+    scraped.bannerUrl,
+    scraped.ogImage,
+    ...(scraped.referenceImageUrls ?? []),
+  ]);
+
+  for (const url of sourceUrls) {
+    const role: BrandKitAssetRole =
+      url === scraped.logoUrl
+        ? 'logo'
+        : url === (scraped.bannerUrl ?? scraped.ogImage)
+          ? 'banner'
+          : 'reference';
+
+    candidates.push({
+      candidateId: `${role}:${candidates.length + 1}:${url}`,
+      label:
+        role === 'logo'
+          ? 'Website logo'
+          : role === 'banner'
+            ? 'Website banner'
+            : 'Website reference image',
+      role,
+      sourceType: 'website',
+      sourceUrl: scraped.sourceUrl,
+      url,
+    });
+  }
+
+  return candidates;
+}
+
+function createMissingWebsiteDiagnostic(
+  fieldKey: BrandKitFieldKey,
+  label: string,
+): IBrandKitDiagnostic {
+  return {
+    code: `brand_kit_website_missing_${fieldKey}`,
+    fieldKey,
+    message: `${label} was not found in the static website crawl.`,
+    severity: 'warning',
+  };
+}
+
+function createWebsiteFieldDiagnostics(
+  scraped: IScrapedBrandData,
+): Partial<Record<BrandKitFieldKey, IBrandKitDiagnostic[]>> {
+  const diagnostics: Partial<Record<BrandKitFieldKey, IBrandKitDiagnostic[]>> =
+    {};
+
+  if (!hasText(scraped.primaryColor)) {
+    diagnostics.primaryColor = [
+      createMissingWebsiteDiagnostic('primaryColor', 'Primary color'),
+    ];
+  }
+
+  if (!hasText(scraped.fontFamily) && !scraped.fontCandidates?.length) {
+    diagnostics.fontFamily = [
+      createMissingWebsiteDiagnostic('fontFamily', 'Font family'),
+    ];
+  }
+
+  if (!hasText(scraped.logoUrl)) {
+    diagnostics.logo = [createMissingWebsiteDiagnostic('logo', 'Logo')];
+  }
+
+  if (!hasText(buildWebsiteGuidance(scraped))) {
+    diagnostics.promptGuidelines = [
+      createMissingWebsiteDiagnostic(
+        'promptGuidelines',
+        'Voice and guidance source text',
+      ),
+    ];
+  }
+
+  return diagnostics;
+}
+
+export function buildBrandKitDraftFromWebsiteScrape(
+  brand: BrandKitSourceBrand,
+  scraped: IScrapedBrandData,
+  options: Omit<
+    BuildBrandKitDraftOptions,
+    'assetCandidates' | 'evidence' | 'fieldDiagnostics' | 'proposedValues'
+  > = {},
+): IBrandKitDraft {
+  const referenceValues = uniqueTextValues(scraped.referenceImageUrls ?? [])
+    .filter(
+      (url) =>
+        url !== scraped.logoUrl &&
+        url !== scraped.bannerUrl &&
+        url !== scraped.ogImage,
+    )
+    .map((url) =>
+      createWebsiteAssetValue('reference', url, 'Website reference image'),
+    )
+    .filter((value): value is IBrandKitAssetValue => Boolean(value));
+
+  const bannerValue = createWebsiteAssetValue(
+    'banner',
+    scraped.bannerUrl ?? scraped.ogImage,
+    'Website banner',
+  );
+
+  const proposedValues: Partial<Record<BrandKitFieldKey, unknown>> = {};
+  const setProposedValue = (key: BrandKitFieldKey, value: unknown): void => {
+    if (value !== undefined) {
+      proposedValues[key] = value;
+    }
+  };
+
+  setProposedValue('banner', bannerValue);
+  setProposedValue('description', scraped.description ?? scraped.aboutText);
+  setProposedValue(
+    'fontFamily',
+    scraped.fontFamily ?? scraped.fontCandidates?.[0],
+  );
+  setProposedValue('label', scraped.companyName);
+  setProposedValue(
+    'logo',
+    createWebsiteAssetValue('logo', scraped.logoUrl, 'Website logo'),
+  );
+  setProposedValue('primaryColor', scraped.primaryColor);
+  setProposedValue('promptGuidelines', buildWebsiteGuidance(scraped));
+  if (referenceValues.length > 0) {
+    setProposedValue('references', referenceValues);
+  }
+  setProposedValue('secondaryColor', scraped.secondaryColor);
+  setProposedValue('socialLinks', readWebsiteSocialLinks(scraped));
+
+  return buildBrandKitDraftFromBrand(brand, {
+    ...options,
+    assetCandidates: createWebsiteAssetCandidates(scraped),
+    evidence: createWebsiteEvidence(scraped),
+    fieldDiagnostics: createWebsiteFieldDiagnostics(scraped),
+    proposedValues,
+    sourceType: 'website',
+  });
 }
