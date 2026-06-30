@@ -15,6 +15,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AdsGatewayController } from '@api/services/ads-gateway/ads-gateway.controller';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
+import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import type { AdsAdapterContext } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
@@ -155,6 +156,18 @@ describe('AdsGatewayController', () => {
           validAdAccountId,
         ),
       ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('decrypts the stored access token before passing it to the adapter', async () => {
+      const encrypted = EncryptionUtil.encrypt('plaintext-meta-token');
+      credentialsService.findOne.mockResolvedValue({ accessToken: encrypted });
+      mockAdapter.getAdAccounts.mockResolvedValue([]);
+
+      await controller.getAdAccounts(mockUser, 'meta', validCredentialId);
+
+      expect(mockAdapter.getAdAccounts).toHaveBeenCalledWith(
+        expect.objectContaining({ accessToken: 'plaintext-meta-token' }),
+      );
     });
   });
 

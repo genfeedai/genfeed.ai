@@ -2,6 +2,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
+import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform } from '@genfeedai/enums';
 import type {
   IReplyBotCredentialData,
@@ -38,10 +39,14 @@ export class TwitterPipelineService {
     }
 
     return {
-      accessToken: credential.accessToken,
-      accessTokenSecret: credential.accessTokenSecret ?? undefined,
+      accessToken: EncryptionUtil.decrypt(credential.accessToken),
+      accessTokenSecret: credential.accessTokenSecret
+        ? EncryptionUtil.decrypt(credential.accessTokenSecret)
+        : undefined,
       externalId: credential.externalId ?? undefined,
-      refreshToken: credential.refreshToken ?? undefined,
+      refreshToken: credential.refreshToken
+        ? EncryptionUtil.decrypt(credential.refreshToken)
+        : undefined,
       username: credential.externalHandle ?? undefined,
     };
   }

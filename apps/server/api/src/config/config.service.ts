@@ -178,6 +178,22 @@ export class ConfigService extends BaseConfigService<ApiEnvConfig> {
     return this.envConfig.GENFEEDAI_API_URL ?? 'https://api.genfeed.ai';
   }
 
+  /**
+   * Symmetric key used to encrypt credential secrets at rest (OAuth access /
+   * refresh tokens, token secrets). Sourced from validated env config — never
+   * read `process.env` directly. Throws when unset so encryption can never
+   * silently fall back to persisting plaintext.
+   */
+  public get tokenEncryptionKey(): string {
+    const key = this.envConfig.TOKEN_ENCRYPTION_KEY;
+    if (!key) {
+      throw new Error(
+        'TOKEN_ENCRYPTION_KEY is required to encrypt credential secrets but is not set',
+      );
+    }
+    return key;
+  }
+
   private isLocalDevFlagEnabled(
     key:
       | 'GF_DEV_ENABLE_OPTIONAL_INIT'

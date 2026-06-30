@@ -5,6 +5,7 @@ import type {
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { ConfigService } from '@api/config/config.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import { google } from 'googleapis';
@@ -93,7 +94,17 @@ export class BotsLivestreamDeliveryService {
       );
     }
 
-    return credential as unknown as CredentialDocument;
+    // Secrets are encrypted at rest by CredentialsService; this path reads via
+    // Prisma directly, so decrypt before the tokens reach the livestream APIs.
+    return {
+      ...credential,
+      accessToken: credential.accessToken
+        ? EncryptionUtil.decrypt(credential.accessToken)
+        : credential.accessToken,
+      refreshToken: credential.refreshToken
+        ? EncryptionUtil.decrypt(credential.refreshToken)
+        : credential.refreshToken,
+    } as unknown as CredentialDocument;
   }
 
   private async resolveYoutubeLiveChatId(

@@ -55,10 +55,6 @@ export class YoutubeAuthService {
     );
 
     try {
-      const refreshTokenPreview = credentials.refreshToken
-        ? `${credentials.refreshToken.substring(0, 10)}...${credentials.refreshToken.substring(credentials.refreshToken.length - 10)}`
-        : 'MISSING';
-
       this.loggerService.log('Refreshing YouTube token', {
         brandId,
         // @ts-expect-error TS2339
@@ -67,8 +63,6 @@ export class YoutubeAuthService {
         organizationId,
         redirectUri: this.configService.get<string>('YOUTUBE_REDIRECT_URI'),
         refreshTokenExpiry: credentials.refreshTokenExpiry,
-        refreshTokenLength: credentials.refreshToken?.length || 0,
-        refreshTokenPreview,
       });
 
       const decryptedRefreshToken = credentials.refreshToken
@@ -79,16 +73,10 @@ export class YoutubeAuthService {
         throw new Error('Failed to decrypt refresh token');
       }
 
-      this.loggerService.log('Decrypted refresh token', {
-        decryptedLength: decryptedRefreshToken.length,
-        decryptedPreview: `${decryptedRefreshToken.substring(0, 10)}...${decryptedRefreshToken.substring(decryptedRefreshToken.length - 10)}`,
-        encryptedLength: credentials.refreshToken.length,
-      });
-
+      // Never log token previews (plaintext or ciphertext) — only safe signals.
       if (decryptedRefreshToken.length < 50) {
         this.loggerService.warn('Refresh token seems too short', {
           length: decryptedRefreshToken.length,
-          preview: refreshTokenPreview,
         });
       }
 

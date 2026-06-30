@@ -1,6 +1,5 @@
 import { ConfigService } from '@api/config/config.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { ReplyBotPlatform } from '@genfeedai/enums';
 import type {
   IReplyBotContentData,
@@ -24,19 +23,17 @@ export class BotActionExecutorService {
   ) {}
 
   /**
-   * Create a Twitter client with user credentials
+   * Create a Twitter client with user credentials.
+   * Tokens are expected to be plaintext — callers must decrypt before building
+   * IReplyBotCredentialData (decrypt at the credential-loading boundary).
    */
   private createTwitterClient(credential: IReplyBotCredentialData): TwitterApi {
-    const decryptedAccessToken = EncryptionUtil.decrypt(credential.accessToken);
-    const decryptedAccessSecret = credential.accessTokenSecret
-      ? EncryptionUtil.decrypt(credential.accessTokenSecret)
-      : credential.refreshToken
-        ? EncryptionUtil.decrypt(credential.refreshToken)
-        : null;
+    const accessSecret =
+      credential.accessTokenSecret ?? credential.refreshToken ?? null;
 
     return new TwitterApi({
-      accessSecret: decryptedAccessSecret,
-      accessToken: decryptedAccessToken,
+      accessSecret,
+      accessToken: credential.accessToken,
       appKey: this.configService.get('TWITTER_CONSUMER_KEY'),
       appSecret: this.configService.get('TWITTER_CONSUMER_SECRET'),
     } as unknown as ConstructorParameters<typeof TwitterApi>[0]);

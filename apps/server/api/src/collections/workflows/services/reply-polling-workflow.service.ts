@@ -13,6 +13,7 @@ import {
   ReplyBotOrchestratorService,
 } from '@api/services/reply-bot/reply-bot-orchestrator.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { ReplyBotPlatform, WorkflowStatus } from '@genfeedai/enums';
 import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
 import type { Workflow } from '@genfeedai/prisma';
@@ -251,11 +252,15 @@ export class ReplyPollingWorkflowService {
     }
 
     return {
-      accessToken: credential.accessToken ?? '',
-      accessTokenSecret: credential.accessTokenSecret ?? undefined,
+      accessToken: EncryptionUtil.decrypt(credential.accessToken ?? ''),
+      accessTokenSecret: credential.accessTokenSecret
+        ? EncryptionUtil.decrypt(credential.accessTokenSecret)
+        : undefined,
       externalId: credential.externalId ?? undefined,
       platform: credential.platform as ReplyBotPlatform,
-      refreshToken: credential.refreshToken ?? undefined,
+      refreshToken: credential.refreshToken
+        ? EncryptionUtil.decrypt(credential.refreshToken)
+        : undefined,
       username: credential.username ?? undefined,
     };
   }

@@ -15,6 +15,7 @@ import {
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
+import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import {
   CampaignSkipReason,
   CampaignStatus,
@@ -338,10 +339,10 @@ export class DmCampaignExecutorService {
     }
 
     return {
-      accessToken: credential.accessToken,
+      accessToken: EncryptionUtil.decrypt(credential.accessToken),
       accessTokenSecret:
         typeof credential.accessTokenSecret === 'string'
-          ? credential.accessTokenSecret
+          ? EncryptionUtil.decrypt(credential.accessTokenSecret)
           : undefined,
       externalId:
         typeof credential.externalId === 'string'
@@ -355,7 +356,7 @@ export class DmCampaignExecutorService {
             ) as IReplyBotCredentialData['platform']),
       refreshToken:
         typeof credential.refreshToken === 'string'
-          ? credential.refreshToken
+          ? EncryptionUtil.decrypt(credential.refreshToken)
           : undefined,
       username:
         typeof credential.username === 'string'
