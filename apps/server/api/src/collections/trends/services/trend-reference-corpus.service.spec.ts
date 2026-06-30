@@ -16,6 +16,17 @@ type ReferenceRow = {
   platform: string | null;
 };
 
+type TrendRow = {
+  createdAt: Date;
+  data: Record<string, unknown>;
+  id: string;
+  isDeleted: boolean;
+  lastSeenAt: Date | null;
+  organizationId: string | null;
+  platform: string | null;
+  updatedAt: Date;
+};
+
 type QueryLike = {
   sql?: string;
   text?: string;
@@ -84,6 +95,86 @@ describe('TrendReferenceCorpusService', () => {
     },
   ];
 
+  const trendRows: TrendRow[] = [
+    {
+      createdAt: new Date('2026-06-12T00:00:00.000Z'),
+      data: {
+        expiresAt: '2026-07-01T00:00:00.000Z',
+        isCurrent: true,
+        metadata: {
+          source: 'apify',
+          sourcePreviewCachedAt: '2026-06-12T00:00:00.000Z',
+          sourcePreviewState: 'live',
+        },
+        platform: 'tiktok',
+      },
+      id: 'trend_1',
+      isDeleted: false,
+      lastSeenAt: new Date('2026-06-12T00:00:00.000Z'),
+      organizationId: 'org_1',
+      platform: 'tiktok',
+      updatedAt: new Date('2026-06-12T00:00:00.000Z'),
+    },
+    {
+      createdAt: new Date('2026-06-13T00:00:00.000Z'),
+      data: {
+        expiresAt: '2026-07-01T00:00:00.000Z',
+        isCurrent: true,
+        metadata: {
+          source: 'apify',
+          sourcePreviewCachedAt: '2026-06-13T00:00:00.000Z',
+          sourcePreviewState: 'empty',
+        },
+        platform: 'youtube',
+      },
+      id: 'trend_empty',
+      isDeleted: false,
+      lastSeenAt: new Date('2026-06-13T00:00:00.000Z'),
+      organizationId: null,
+      platform: 'youtube',
+      updatedAt: new Date('2026-06-13T00:00:00.000Z'),
+    },
+    {
+      createdAt: new Date('2026-06-11T00:00:00.000Z'),
+      data: {
+        expiresAt: '2026-07-01T00:00:00.000Z',
+        isCurrent: true,
+        metadata: {
+          source: 'apify',
+          sourcePreviewCachedAt: '2026-06-11T00:00:00.000Z',
+          sourcePreviewState: 'fallback',
+        },
+        platform: 'instagram',
+      },
+      id: 'trend_fallback',
+      isDeleted: false,
+      lastSeenAt: new Date('2026-06-11T00:00:00.000Z'),
+      organizationId: null,
+      platform: 'instagram',
+      updatedAt: new Date('2026-06-11T00:00:00.000Z'),
+    },
+    {
+      createdAt: new Date('2026-06-09T00:00:00.000Z'),
+      data: {
+        expiresAt: '2026-07-01T00:00:00.000Z',
+        isCurrent: true,
+        metadata: {
+          prelaunchCorpus: true,
+          source: 'public-reference',
+          sourcePreviewCachedAt: '2026-06-01T00:00:00.000Z',
+          sourcePreviewState: 'fallback',
+        },
+        platform: 'linkedin',
+      },
+      id: 'trend_prelaunch',
+      isDeleted: false,
+      lastSeenAt: new Date('2026-06-09T00:00:00.000Z'),
+      organizationId: null,
+      platform: 'linkedin',
+      updatedAt: new Date('2026-06-09T00:00:00.000Z'),
+    },
+  ];
+
   function filterReferences(where: {
     authorHandle?: string;
     canonicalUrl?: { in: string[] };
@@ -123,6 +214,38 @@ describe('TrendReferenceCorpusService', () => {
     });
   }
 
+  function filterTrends(where: {
+    id?: { in: string[] };
+    isDeleted?: boolean;
+    organizationId?: string;
+    platform?: string;
+  }) {
+    return trendRows.filter((row) => {
+      if (
+        typeof where.isDeleted === 'boolean' &&
+        row.isDeleted !== where.isDeleted
+      ) {
+        return false;
+      }
+      if (
+        typeof where.platform === 'string' &&
+        row.platform !== where.platform
+      ) {
+        return false;
+      }
+      if (
+        typeof where.organizationId === 'string' &&
+        row.organizationId !== where.organizationId
+      ) {
+        return false;
+      }
+      if (where.id?.in && !where.id.in.includes(row.id)) {
+        return false;
+      }
+      return true;
+    });
+  }
+
   const prisma = {
     $queryRaw: vi.fn((query: QueryLike) => {
       const sql = String(query.sql ?? query.text ?? '');
@@ -151,11 +274,7 @@ describe('TrendReferenceCorpusService', () => {
         ),
       ),
       findMany: vi.fn(({ where }) =>
-        Promise.resolve(
-          where.id.in.includes('trend_1') && where.organizationId === 'org_1'
-            ? [{ id: 'trend_1' }]
-            : [],
-        ),
+        Promise.resolve(filterTrends(where ?? {})),
       ),
     },
     trendRemixLineage: {
@@ -425,6 +544,111 @@ describe('TrendReferenceCorpusService', () => {
     expect(prisma.trendSourceReference.groupBy).toHaveBeenCalledWith(
       expect.objectContaining({
         take: 100,
+      }),
+    );
+  });
+
+  it('reports corpus freshness segments and provider failures', async () => {
+    const result = await service.getCorpusFreshnessHealth({
+      now: new Date('2026-06-14T00:00:00.000Z'),
+    });
+
+    expect(result.status).toBe('stale');
+    expect(result.summary).toMatchObject({
+      activeTrends: 4,
+      failingProviders: 2,
+      freshSegments: 2,
+      referenceRecords: 2,
+      staleSegments: 0,
+      totalSegments: 2,
+    });
+    expect(result.segments).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          platform: 'tiktok',
+          provider: 'TikTok',
+          sourceKind: 'public_platform_reference',
+          status: 'healthy',
+        }),
+        expect.objectContaining({
+          platform: 'instagram',
+          provider: 'instagram',
+          sourceKind: 'public_platform_reference',
+          status: 'healthy',
+        }),
+      ]),
+    );
+    expect(result.providerFailures).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          affectedTrendCount: 1,
+          platform: 'youtube',
+          provider: 'apify',
+          reason: 'empty_source_preview',
+          severity: 'error',
+        }),
+        expect.objectContaining({
+          affectedTrendCount: 1,
+          platform: 'instagram',
+          provider: 'apify',
+          reason: 'fallback_source_preview',
+          severity: 'warning',
+        }),
+      ]),
+    );
+    expect(
+      result.providerFailures.some(
+        (failure) => failure.provider === 'public-reference',
+      ),
+    ).toBe(false);
+  });
+
+  it('marks reference segments stale when last seen exceeds source windows', async () => {
+    const result = await service.getCorpusFreshnessHealth({
+      now: new Date('2026-06-20T00:00:00.000Z'),
+      sourcePreviewStaleAfterDays: 30,
+    });
+
+    expect(result.status).toBe('stale');
+    expect(result.summary.staleSegments).toBe(2);
+    expect(result.segments).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          platform: 'tiktok',
+          referenceCount: 1,
+          staleReferenceCount: 1,
+          status: 'stale',
+        }),
+        expect.objectContaining({
+          platform: 'instagram',
+          referenceCount: 1,
+          staleReferenceCount: 1,
+          status: 'stale',
+        }),
+      ]),
+    );
+  });
+
+  it('filters corpus health by platform', async () => {
+    const result = await service.getCorpusFreshnessHealth({
+      now: new Date('2026-06-14T00:00:00.000Z'),
+      platform: 'tiktok',
+    });
+
+    expect(result.summary.platforms).toEqual(['tiktok']);
+    expect(result.summary.referenceRecords).toBe(1);
+    expect(result.summary.failingProviders).toBe(0);
+    expect(result.segments).toHaveLength(1);
+    expect(result.segments[0]).toMatchObject({
+      platform: 'tiktok',
+      provider: 'TikTok',
+    });
+    expect(prisma.trendSourceReference.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          isDeleted: false,
+          platform: 'tiktok',
+        },
       }),
     );
   });

@@ -5,6 +5,7 @@ import { TrendEntity } from '@api/collections/trends/entities/trend.entity';
 import type {
   HistoricalTrendsOptions,
   TrendContentResult,
+  TrendCorpusFreshnessResult,
   TrendData,
   TrendDiscoveryItem,
   TrendPatternAnalysis,
@@ -489,6 +490,12 @@ export class TrendsService {
       brandId,
       options,
     );
+  }
+
+  getCorpusFreshnessHealth(
+    options: { platform?: string } = {},
+  ): Promise<TrendCorpusFreshnessResult> {
+    return this.trendReferenceCorpusService.getCorpusFreshnessHealth(options);
   }
 
   /**
