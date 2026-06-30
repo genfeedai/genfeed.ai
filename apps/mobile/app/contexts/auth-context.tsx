@@ -8,8 +8,8 @@ import {
   useState,
 } from 'react';
 import {
-  mobileAuthService,
   type MobileAuthUser,
+  mobileAuthService,
 } from '@/services/auth.service';
 
 interface MobileAuthContextValue {
@@ -20,6 +20,11 @@ interface MobileAuthContextValue {
   signInWithEmail: (input: {
     email: string;
     password: string;
+  }) => Promise<void>;
+  signInWithGoogleIdToken: (input: {
+    accessToken?: string | null;
+    idToken: string;
+    nonce?: string | null;
   }) => Promise<void>;
   signOut: () => Promise<void>;
   user: MobileAuthUser | null;
@@ -107,6 +112,19 @@ export function MobileAuthProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const signInWithGoogleIdToken = useCallback(
+    async (input: {
+      accessToken?: string | null;
+      idToken: string;
+      nonce?: string | null;
+    }) => {
+      const result = await mobileAuthService.signInWithGoogleIdToken(input);
+      setCookieHeader(result.cookieHeader);
+      setUser(result.user);
+    },
+    [],
+  );
+
   const signOut = useCallback(async () => {
     await mobileAuthService.signOut(cookieHeader);
     setCookieHeader(null);
@@ -120,6 +138,7 @@ export function MobileAuthProvider({ children }: { children: ReactNode }) {
       isSignedIn: Boolean(cookieHeader && user),
       refreshSession,
       signInWithEmail,
+      signInWithGoogleIdToken,
       signOut,
       user,
     }),
@@ -129,6 +148,7 @@ export function MobileAuthProvider({ children }: { children: ReactNode }) {
       isLoaded,
       refreshSession,
       signInWithEmail,
+      signInWithGoogleIdToken,
       signOut,
       user,
     ],

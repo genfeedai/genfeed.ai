@@ -3,8 +3,8 @@
  */
 import type { PrismaClient } from '@genfeedai/prisma';
 
-/** Google OAuth credentials for the day-one social sign-in. */
-export interface IBetterAuthGoogleConfig {
+/** OAuth credentials for first-party social sign-in providers. */
+export interface IBetterAuthSocialProviderConfig {
   clientId: string;
   clientSecret: string;
 }
@@ -47,6 +47,15 @@ export interface IBetterAuthMagicLinkParams {
   token: string;
 }
 
+/** Arguments handed to Better Auth's email-verification delivery callback. */
+export interface IBetterAuthVerificationEmailParams {
+  token: string;
+  url: string;
+  user: {
+    email: string;
+  };
+}
+
 /**
  * Minimal shared KV (Redis) used to back Better Auth's rate-limit counters
  * across stateless API instances. Implementations must fail open — a Redis
@@ -71,7 +80,9 @@ export interface ICreateBetterAuthOptions {
   secret: string;
   baseURL: string;
   trustedOrigins: string[];
-  google?: IBetterAuthGoogleConfig;
+  google?: IBetterAuthSocialProviderConfig;
+  github?: IBetterAuthSocialProviderConfig;
+  requireEmailVerification?: boolean;
   /**
    * Root cookie domain (e.g. `.genfeed.ai`) for sharing the session cookie set
    * on the API host with sibling frontend subdomains. When set, enables
@@ -97,6 +108,9 @@ export interface ICreateBetterAuthOptions {
    */
   rateLimitStore?: IBetterAuthRateLimitStore;
   sendMagicLink: (params: IBetterAuthMagicLinkParams) => Promise<void>;
+  sendVerificationEmail: (
+    params: IBetterAuthVerificationEmailParams,
+  ) => Promise<void>;
   /**
    * Invoked (and awaited) from the `user.create.after` hook so a newly created
    * user is provisioned — org / settings / brand / member / credits — before the
