@@ -173,7 +173,7 @@ export class AccountHealthService {
   ): Promise<AccountHealthSummary> {
     const credential = await this.findCredential(params);
     const thresholds = this.mergeThresholds(
-      credential.platform,
+      credential.platform as CredentialPlatform,
       params.request?.thresholds,
       credential.warmupThresholds,
     );
