@@ -34,6 +34,12 @@ resource "aws_elasticache_replication_group" "redis" {
   automatic_failover_enabled = false
   at_rest_encryption_enabled = true
   transit_encryption_enabled = true
+  # AWS requires a transit_encryption_mode when enabling in-transit encryption on
+  # an existing replication group. "preferred" accepts both encrypted and
+  # unencrypted client connections during the migration, so existing non-TLS
+  # clients keep working while services roll over to TLS+AUTH. Tighten to
+  # "required" in a follow-up once all clients use rediss://.
+  transit_encryption_mode    = "preferred"
   auth_token                 = random_password.redis_auth_token.result
   auth_token_update_strategy = "SET"
   apply_immediately          = true
