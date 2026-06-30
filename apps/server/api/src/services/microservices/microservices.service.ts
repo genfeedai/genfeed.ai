@@ -1,7 +1,10 @@
 import process from 'node:process';
 import { ConfigService } from '@api/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { parseRedisConnection } from '@libs/redis/redis-connection.utils';
+import {
+  buildNodeRedisClientOptions,
+  parseRedisConnection,
+} from '@libs/redis/redis-connection.utils';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import {
@@ -105,14 +108,12 @@ export class MicroservicesService implements OnModuleInit {
     );
 
     try {
-      this.redisClient = createClient({
-        socket: {
+      this.redisClient = createClient(
+        buildNodeRedisClientOptions(config, {
           connectTimeout: MicroservicesService.REDIS_CONNECT_TIMEOUT_MS,
           reconnectStrategy: () => false as const,
-          ...(config.tls ? { tls: true as const } : {}),
-        },
-        url: config.url,
-      });
+        }),
+      );
 
       this.redisClient.on('error', (err: Error) => {
         this.loggerService.error('Redis Client Error', err);

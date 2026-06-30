@@ -1,5 +1,9 @@
 import type { Server as HttpServer } from 'node:http';
 import type { LoggerService } from '@libs/logger/logger.service';
+import {
+  buildNodeRedisClientOptions,
+  parseRedisConnection,
+} from '@libs/redis/redis-connection.utils';
 import type { INestApplicationContext } from '@nestjs/common';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
@@ -16,6 +20,7 @@ export class RedisIoAdapter extends IoAdapter {
     private readonly redisUrl: string,
     private readonly loggerService: LoggerService,
     private readonly redisTls: boolean = false,
+    private readonly redisPassword?: string,
   ) {
     // Don't pass app to parent - we'll handle server creation ourselves
     super();
@@ -23,15 +28,22 @@ export class RedisIoAdapter extends IoAdapter {
   }
 
   async connectToRedis(): Promise<void> {
-    const tlsFromUrl = this.redisUrl.startsWith('rediss://');
-    const useTls = this.redisTls || tlsFromUrl;
-
-    const pubClient = createClient({
-      socket: {
-        ...(useTls && { tls: true }),
+    const config = parseRedisConnection({
+      get: (key) => {
+        if (key === 'REDIS_URL') {
+          return this.redisUrl;
+        }
+        if (key === 'REDIS_TLS') {
+          return this.redisTls;
+        }
+        if (key === 'REDIS_PASSWORD') {
+          return this.redisPassword;
+        }
+        return undefined;
       },
-      url: this.redisUrl,
     });
+
+    const pubClient = createClient(buildNodeRedisClientOptions(config));
     const subClient = pubClient.duplicate();
 
     try {

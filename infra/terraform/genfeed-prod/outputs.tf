@@ -23,7 +23,7 @@ output "public_backend_urls" {
 }
 
 output "redis_primary_endpoint" {
-  description = "Set SSM /genfeed/production/REDIS_URL to redis://<this>:6379 after apply."
+  description = "Production Redis endpoint. ECS tasks connect with REDIS_URL=rediss://<this>:6379 and REDIS_PASSWORD from SSM."
   value       = aws_elasticache_replication_group.redis.primary_endpoint_address
 }
 
