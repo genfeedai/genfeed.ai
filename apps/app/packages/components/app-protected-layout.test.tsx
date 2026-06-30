@@ -798,11 +798,13 @@ describe('AppProtectedLayout', () => {
 
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        backHref: '/org-123/brand-123/library/ingredients',
-        backLabel: 'Library',
-        sectionLabel: 'Studio',
+        sectionLabel: 'Library',
         shellChromeVariant: 'default',
       }),
+    );
+    expect(appSidebarSpy.mock.calls.at(-1)?.[0]).not.toHaveProperty('backHref');
+    expect(appSidebarSpy.mock.calls.at(-1)?.[0]).not.toHaveProperty(
+      'backLabel',
     );
     expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
   });
