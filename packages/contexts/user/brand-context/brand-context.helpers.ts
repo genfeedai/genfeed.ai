@@ -44,6 +44,21 @@ export function getBrandOrganizationId(
     return organization._id;
   }
 
+  // The protected bootstrap serializer nests `organization` as `{ slug }` only,
+  // exposing the organization id as the brand's top-level `organizationId`
+  // field. Fall back to it so the org scope resolves — otherwise
+  // `scopedOrganizationId` stays empty, the access-state query never enables,
+  // `accessState` is null, and OnboardingGuard/SubscriptionGuard spin forever.
+  const brandWithOrgId = brand as unknown as {
+    organizationId?: unknown;
+  } | null;
+  if (
+    typeof brandWithOrgId?.organizationId === 'string' &&
+    brandWithOrgId.organizationId.length > 0
+  ) {
+    return brandWithOrgId.organizationId;
+  }
+
   return '';
 }
 
