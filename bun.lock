@@ -521,6 +521,7 @@
         "@genfeedai/config": "workspace:*",
         "@genfeedai/interfaces": "workspace:*",
         "@genfeedai/tools": "workspace:*",
+        "@genfeedai/ui": "workspace:*",
       },
       "devDependencies": {
         "ts-loader": "9.6.2",
