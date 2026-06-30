@@ -73,7 +73,12 @@ export class HeygenWebhookService {
           return;
         }
 
-        await this.handleClipResultCallback(projectId, callbackId, body);
+        await this.handleClipResultCallback(
+          projectId,
+          callbackId,
+          body,
+          this.readString(clipResult.organizationId),
+        );
         return;
       }
 
@@ -173,6 +178,7 @@ export class HeygenWebhookService {
     projectId: string,
     clipResultId: string,
     body: HeygenWebhookPayload,
+    organizationId?: string,
   ): Promise<void> {
     const videoUrl = this.getSuccessVideoUrl(body);
     const providerJobId = body.event_data?.video_id;
@@ -199,8 +205,10 @@ export class HeygenWebhookService {
       return;
     }
 
-    const projectClipResults =
-      await this.clipResultsService.findByProject(projectId);
+    const projectClipResults = await this.clipResultsService.findByProject(
+      projectId,
+      organizationId,
+    );
     const hasPendingClipResults = projectClipResults.some((clipResult) => {
       const status = this.readString(clipResult.status);
       return status !== 'completed' && status !== 'failed';
@@ -213,11 +221,22 @@ export class HeygenWebhookService {
     const hasCompletedClip = projectClipResults.some(
       (clipResult) => this.readString(clipResult.status) === 'completed',
     );
+    const readyClipCount = projectClipResults.filter(
+      (clipResult) => this.readString(clipResult.status) === 'completed',
+    ).length;
+    const failedClipCount = projectClipResults.filter(
+      (clipResult) => this.readString(clipResult.status) === 'failed',
+    ).length;
+    const pendingClipCount =
+      projectClipResults.length - readyClipCount - failedClipCount;
 
     if (hasCompletedClip) {
       await this.clipProjectsService.patch(projectId, {
         error: null,
+        failedClipCount,
+        pendingClipCount,
         progress: 100,
+        readyClipCount,
         status: 'completed',
       });
       return;
@@ -225,7 +244,10 @@ export class HeygenWebhookService {
 
     await this.clipProjectsService.patch(projectId, {
       error: 'All clip generations failed.',
+      failedClipCount,
+      pendingClipCount,
       progress: 100,
+      readyClipCount,
       status: 'failed',
     });
   }

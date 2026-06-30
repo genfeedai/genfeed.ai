@@ -3899,11 +3899,20 @@ model ClipProject {
   organization   Organization @relation(fields: [organizationId], references: [id])
   brandId        String?
   brand          Brand?       @relation(fields: [brandId], references: [id])
+  status         String       @default("pending")
+  progress       Int          @default(0)
+  error          String?
+  readyClipCount Int          @default(0)
+  failedClipCount Int         @default(0)
+  pendingClipCount Int        @default(0)
+  readiness      Json         @default("{\"state\":\"pending\",\"terminal\":false,\"readyActions\":[],\"blockingReasons\":[]}")
+  terminalAt     DateTime?
   config         Json         @default("{}")
   isDeleted      Boolean      @default(false)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, status, isDeleted])
   @@map("clip_projects")
 }
 
@@ -3915,12 +3924,17 @@ model ClipResult {
   projectId      String?
   providerJobId  String?
   viralityScore  Float?
+  status         String       @default("pending")
+  isSelected     Boolean      @default(false)
+  readiness      Json         @default("{\"state\":\"pending\",\"terminal\":false,\"readyActions\":[],\"blockingReasons\":[]}")
+  terminalAt     DateTime?
   data           Json         @default("{}")
   isDeleted      Boolean      @default(false)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
   @@index([organizationId, projectId])
+  @@index([organizationId, projectId, status, isDeleted])
   @@index([providerJobId])
   @@map("clip_results")
 }

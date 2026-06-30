@@ -72,8 +72,10 @@ export class ClipResultsController {
     const resolvedProjectId = projectId || filterProjectId;
 
     if (resolvedProjectId) {
-      const data =
-        await this.clipResultsService.findByProject(resolvedProjectId);
+      const data = await this.clipResultsService.findByProject(
+        resolvedProjectId,
+        publicMetadata.organization,
+      );
       return serializeCollection(request, ClipResultSerializer, {
         docs: data,
         hasNextPage: false,
