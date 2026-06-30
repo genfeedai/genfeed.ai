@@ -455,6 +455,8 @@ jobs:
             if [ "$SECONDS" -ge "$DEADLINE" ]; then
               REASON=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
                 --query 'tasks[0].stoppedReason' --output text)
+              aws ecs stop-task --cluster "$CLUSTER" --task "$TASK_ARN" \
+                --reason "deploy credential-encryption backfill timed out" >/dev/null || true
               echo "::error::credential backfill task did not stop within 20m (last status: $STATUS, reason: $REASON)"; exit 1
             fi
             echo "  credential backfill task status: $STATUS ($((DEADLINE - SECONDS))s remaining)"
