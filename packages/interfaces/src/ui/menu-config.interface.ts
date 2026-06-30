@@ -2,6 +2,7 @@ import type { ComponentType, ReactNode } from 'react';
 import type { ILabeledItem } from '../index';
 
 export type AppContext =
+  | 'admin'
   | 'workspace'
   | 'agent'
   | 'research'

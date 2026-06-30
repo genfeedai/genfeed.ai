@@ -4,6 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mockSearchParams = new URLSearchParams();
 const appSwitcherSpy = vi.hoisted(() => vi.fn());
+const mockAccessState = vi.hoisted(() => ({
+  isSuperAdmin: false,
+}));
 const originalLocation = window.location;
 
 vi.mock('@genfeedai/enums', () => ({
@@ -50,6 +53,13 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   }),
 }));
 
+vi.mock(
+  '@genfeedai/contexts/providers/access-state/access-state.provider',
+  () => ({
+    useAccessState: () => mockAccessState,
+  }),
+);
+
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
     children,
@@ -88,6 +98,7 @@ vi.mock('@ui/shell/app-switcher/AppSwitcher', () => ({
     brandSlug?: string;
     currentApp?: string;
     orgSlug: string;
+    showAdmin?: boolean;
     variant?: string;
   }) => {
     appSwitcherSpy(props);
@@ -133,6 +144,7 @@ const { default: AppProtectedTopbar } = await import('./AppProtectedTopbar');
 describe('AppProtectedTopbar', () => {
   beforeEach(() => {
     mockSearchParams = new URLSearchParams();
+    mockAccessState.isSuperAdmin = false;
     appSwitcherSpy.mockClear();
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
     delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
@@ -220,6 +232,28 @@ describe('AppProtectedTopbar', () => {
         brandSlug: 'brand',
         currentApp: 'workspace',
         orgSlug: 'acme',
+      }),
+    );
+  });
+
+  it('enables the admin app switcher item for platform admins', () => {
+    mockAccessState.isSuperAdmin = true;
+
+    render(<AppProtectedTopbar orgSlug="acme" currentApp="workspace" />);
+
+    expect(appSwitcherSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        showAdmin: true,
+      }),
+    );
+  });
+
+  it('hides the admin app switcher item for non-admin users', () => {
+    render(<AppProtectedTopbar orgSlug="acme" currentApp="workspace" />);
+
+    expect(appSwitcherSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        showAdmin: false,
       }),
     );
   });

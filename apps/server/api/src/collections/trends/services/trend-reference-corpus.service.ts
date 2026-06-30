@@ -156,11 +156,12 @@ const DEFAULT_FRESHNESS_WINDOW_DAYS_BY_SOURCE_KIND: Record<
   paid_creative_reference: 14,
   public_platform_reference: 7,
 };
-const TREND_SOURCE_INTENDED_USES = new Set<TrendSourceIntendedUse>([
-  'evergreen_prompt_context',
-  'organic_trend_discovery',
-  'paid_creative_analysis',
-]);
+const TREND_SOURCE_INTENDED_USES: ReadonlySet<string> =
+  new Set<TrendSourceIntendedUse>([
+    'evergreen_prompt_context',
+    'organic_trend_discovery',
+    'paid_creative_analysis',
+  ]);
 
 @Injectable()
 export class TrendReferenceCorpusService {
@@ -859,7 +860,7 @@ export class TrendReferenceCorpusService {
     const bySegment = new Map<string, FreshnessSegmentAccumulator>();
 
     for (const doc of referenceDocs) {
-      const data = this.asRecord(doc.data) as ReferenceRecordData;
+      const data = this.asRecord(doc.data) as unknown as ReferenceRecordData;
       const classification = this.resolveSourceClassification(
         data.sourceClassification,
       );

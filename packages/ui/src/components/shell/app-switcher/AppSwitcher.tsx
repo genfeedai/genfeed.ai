@@ -15,6 +15,7 @@ import {
   HiOutlineClock,
   HiOutlinePaperAirplane,
   HiOutlineRectangleStack,
+  HiOutlineShieldCheck,
   HiOutlineSquares2X2,
   HiOutlineViewColumns,
 } from 'react-icons/hi2';
@@ -210,7 +211,20 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
   },
 ];
 
-const SECTION_APPS = APP_SWITCHER_SECTIONS.flatMap((section) => section.apps);
+const ADMIN_APP_SWITCHER_SECTION: AppSwitcherSectionConfig = {
+  id: 'admin',
+  label: 'Administration',
+  apps: [
+    {
+      description: 'Platform management.',
+      icon: HiOutlineShieldCheck,
+      id: 'admin',
+      itemKey: 'admin',
+      label: 'Admin',
+      route: () => '/admin',
+    },
+  ],
+};
 
 function withPreservedSearch(path: string, preservedSearch?: string): string {
   if (!preservedSearch) {
@@ -276,11 +290,13 @@ function getPathMatchScore(currentPath: string, targetPath: string): number {
 }
 
 function getActiveItemKey({
+  apps,
   brandSlug,
   currentApp,
   currentPath,
   orgSlug,
 }: {
+  apps: LifecycleAppSwitcherItemConfig[];
   brandSlug?: string;
   currentApp: AppContext;
   currentPath?: string;
@@ -292,7 +308,7 @@ function getActiveItemKey({
     let activeItemKey: string | undefined;
     let activeScore = 0;
 
-    for (const app of SECTION_APPS) {
+    for (const app of apps) {
       const score = getPathMatchScore(
         normalizedCurrentPath,
         app.route(orgSlug, brandSlug),
@@ -309,7 +325,7 @@ function getActiveItemKey({
     }
   }
 
-  return SECTION_APPS.find((app) => isActiveApp(app, currentApp))?.itemKey;
+  return apps.find((app) => isActiveApp(app, currentApp))?.itemKey;
 }
 
 function AppDropdownItem({
@@ -372,6 +388,7 @@ export function AppSwitcher({
   currentPath,
   orgSlug,
   preservedSearch,
+  showAdmin = false,
   variant = 'icon',
 }: AppSwitcherProps) {
   const preventTriggerAutoFocusRef = useRef(false);
@@ -384,15 +401,20 @@ export function AppSwitcher({
     preventTriggerAutoFocusRef.current = true;
   };
 
+  const sections = showAdmin
+    ? [...APP_SWITCHER_SECTIONS, ADMIN_APP_SWITCHER_SECTION]
+    : APP_SWITCHER_SECTIONS;
+  const apps = sections.flatMap((section) => section.apps);
   const activeItemKey = getActiveItemKey({
+    apps,
     brandSlug,
     currentApp,
     currentPath,
     orgSlug,
   });
   const activeApp =
-    SECTION_APPS.find((app) => app.itemKey === activeItemKey) ??
-    SECTION_APPS.find((app) => isActiveApp(app, currentApp));
+    apps.find((app) => app.itemKey === activeItemKey) ??
+    apps.find((app) => isActiveApp(app, currentApp));
   const ActiveIcon = activeApp?.icon ?? HiOutlineSquares2X2;
   const activeLabel = activeApp?.label ?? 'Apps';
 
@@ -438,7 +460,7 @@ export function AppSwitcher({
         }}
       >
         <div className="grid gap-2 sm:grid-cols-4">
-          {APP_SWITCHER_SECTIONS.map((section) => (
+          {sections.map((section) => (
             <div
               key={section.id}
               aria-labelledby={`app-switcher-${section.id}`}
