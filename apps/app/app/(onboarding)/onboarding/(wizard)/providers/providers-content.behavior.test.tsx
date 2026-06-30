@@ -270,6 +270,57 @@ describe('ProvidersContent behavior', () => {
     expect(pushMock).toHaveBeenCalledWith('/settings/api-keys');
   });
 
+  it('marks the saved access choice as the current selection', async () => {
+    getInstallReadinessMock.mockResolvedValue({
+      access: {
+        byokConfiguredProviders: [],
+        byokEnabled: false,
+        runtimeMode: 'server',
+        selectedMode: 'cloud',
+        serverDefaultsReady: true,
+      },
+      authMode: 'better_auth',
+      billingMode: 'oss_local',
+      localTools: {
+        anyDetected: false,
+        claude: false,
+        codex: false,
+        detected: [],
+      },
+      providers: {
+        anyConfigured: true,
+        configured: ['openai'],
+        fal: false,
+        imageGenerationReady: true,
+        openai: true,
+        replicate: false,
+        textGenerationReady: true,
+      },
+      ui: {
+        showBilling: false,
+        showCloudUpgradeCta: true,
+        showCredits: false,
+        showPricing: false,
+      },
+      workspace: {
+        brandId: 'brand-123',
+        hasBrand: true,
+        hasOrganization: true,
+        organizationId: 'org-123',
+      },
+    });
+
+    render(<ProvidersContent />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: 'Use Genfeed Cloud' }),
+      ).toBeEnabled();
+    });
+
+    expect(screen.getByText('Current')).toBeInTheDocument();
+  });
+
   it('persists cloud mode and redirects to cloud signup with brand context', async () => {
     render(<ProvidersContent />);
 

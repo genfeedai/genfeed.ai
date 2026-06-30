@@ -1,3 +1,4 @@
+import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
 import type {
   DashboardPreferences,
   ISetting,
@@ -6,6 +7,44 @@ import type {
 import { EnvironmentService } from '@services/core/environment.service';
 
 export const ONBOARDING_ACCESS_SOURCE = 'oss-onboarding';
+
+const SUBSCRIPTION_TIER_LABELS: Record<string, string> = {
+  [SubscriptionTier.FREE]: 'Free',
+  [SubscriptionTier.BYOK]: 'BYOK (free)',
+  [SubscriptionTier.CREATOR]: 'Creator',
+  [SubscriptionTier.PRO]: 'Pro',
+  [SubscriptionTier.SCALE]: 'Scale',
+  [SubscriptionTier.ENTERPRISE]: 'Enterprise',
+};
+
+const SUBSCRIPTION_STATUS_LABELS: Record<string, string> = {
+  [SubscriptionStatus.ACTIVE]: 'Active',
+  [SubscriptionStatus.TRIALING]: 'Trialing',
+  [SubscriptionStatus.PAST_DUE]: 'Past due',
+  [SubscriptionStatus.CANCELED]: 'Canceled',
+  [SubscriptionStatus.INCOMPLETE]: 'Incomplete',
+  [SubscriptionStatus.INCOMPLETE_EXPIRED]: 'Incomplete (expired)',
+  [SubscriptionStatus.UNPAID]: 'Unpaid',
+  [SubscriptionStatus.PAUSED]: 'Paused',
+};
+
+/** Human-readable label for a subscription tier value; falls back to a humanized raw value. */
+export function formatSubscriptionTierLabel(tier?: string | null): string {
+  if (!tier) {
+    return 'None';
+  }
+
+  return SUBSCRIPTION_TIER_LABELS[tier] ?? tier;
+}
+
+/** Human-readable label for a subscription status value; falls back to a humanized raw value. */
+export function formatSubscriptionStatusLabel(status?: string | null): string {
+  if (!status) {
+    return 'No active subscription';
+  }
+
+  return SUBSCRIPTION_STATUS_LABELS[status] ?? status;
+}
 
 export const ONBOARDING_STORAGE_KEYS = {
   accessMode: 'gf_onboarding_access_mode',
