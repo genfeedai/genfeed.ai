@@ -1,6 +1,7 @@
 {
   "dependencies": {
-    "@genfeedai/config": "workspace:*"
+    "@genfeedai/config": "workspace:*",
+    "@genfeedai/workflows": "workspace:*"
   },
   "description": "Genfeed Images Service",
   "devDependencies": {},

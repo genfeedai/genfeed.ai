@@ -6,6 +6,8 @@ import { GenerationController } from '@images/controllers/generation.controller'
 import { HealthController } from '@images/controllers/health.controller';
 import { LoraController } from '@images/controllers/lora.controller';
 import { TrainingController } from '@images/controllers/training.controller';
+import { GenerationRateLimitGuard } from '@images/guards/generation-rate-limit.guard';
+import { InternalApiKeyGuard } from '@images/guards/internal-api-key.guard';
 import { ComfyUIService } from '@images/services/comfyui.service';
 import { DatasetService } from '@images/services/dataset.service';
 import { GenerationService } from '@images/services/generation.service';
@@ -44,6 +46,8 @@ import { Module } from '@nestjs/common';
     ComfyUIService,
     DatasetService,
     GenerationService,
+    GenerationRateLimitGuard,
+    InternalApiKeyGuard,
     JobService,
     LoraService,
     TrainingService,

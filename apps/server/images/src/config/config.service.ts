@@ -7,6 +7,10 @@ export class ConfigService extends getDefaultConfigService() {
     return this.get('COMFYUI_URL') || 'http://localhost:8188';
   }
 
+  get COMFYUI_OUTPUT_PATH(): string {
+    return this.get('COMFYUI_OUTPUT_PATH') || '/opt/ComfyUI/output';
+  }
+
   get REDIS_URL(): string {
     return this.get('REDIS_URL') || 'redis://localhost:6379';
   }

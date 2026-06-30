@@ -7,6 +7,9 @@ export interface GenerateImageRequest {
   height?: number;
   seed?: number;
   lora?: string;
+  cfg?: number;
+  guidance?: number;
+  steps?: number;
 }
 
 export interface GeneratePulidRequest {
@@ -16,6 +19,12 @@ export interface GeneratePulidRequest {
   model?: string;
   width?: number;
   height?: number;
+  cfg?: number;
+  guidance?: number;
+  pulidStrength?: number;
+  seed?: number;
+  steps?: number;
+  upscaleModel?: string;
 }
 
 export interface GenerationJob {

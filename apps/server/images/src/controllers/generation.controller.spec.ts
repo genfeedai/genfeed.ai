@@ -1,6 +1,8 @@
+import { ConfigService } from '@images/config/config.service';
 import type { GenerationJob } from '@images/interfaces/images.interfaces';
 import { GenerationService } from '@images/services/generation.service';
 import { JobService } from '@images/services/job.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { GenerationController } from './generation.controller';
 
@@ -38,6 +40,19 @@ describe('GenerationController', () => {
           provide: JobService,
           useValue: {
             getJob: vi.fn().mockReturnValue(mockJob),
+          },
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            API_KEY: 'test-api-key',
+            isDevelopment: false,
+          },
+        },
+        {
+          provide: LoggerService,
+          useValue: {
+            warn: vi.fn(),
           },
         },
       ],
