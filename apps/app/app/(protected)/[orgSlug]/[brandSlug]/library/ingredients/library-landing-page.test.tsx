@@ -60,6 +60,7 @@ describe('LibraryLandingPage', () => {
     expect(videosTile.tagName).toBe('A');
     expect(imagesTile.tagName).toBe('A');
     expect(voicesTile.tagName).toBe('A');
+    expect(videosTile).toHaveClass('rounded-card');
     expect(screen.getAllByRole('link')).toHaveLength(7);
   });
 });

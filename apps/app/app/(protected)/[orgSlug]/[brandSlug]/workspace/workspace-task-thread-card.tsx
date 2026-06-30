@@ -20,7 +20,10 @@ export function WorkspaceTaskThreadCard({
       label="Task thread"
       bodyClassName="space-y-3 border-l border-sky-400/30 p-4 text-sm text-foreground/75"
     >
-      <div className="space-y-3" data-testid="workspace-task-events">
+      <div
+        className="divide-y divide-white/10"
+        data-testid="workspace-task-events"
+      >
         {[...eventStream]
           .slice()
           .sort((left, right) =>
@@ -30,10 +33,7 @@ export function WorkspaceTaskThreadCard({
             const message = getWorkspaceEventMessage(event);
 
             return (
-              <article
-                key={event.id}
-                className="rounded-xl border border-white/10 bg-white/[0.03] p-3"
-              >
+              <article key={event.id} className="py-3 first:pt-0 last:pb-0">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="font-medium text-foreground">
                     {formatWorkspaceEventLabel(event)}

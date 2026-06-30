@@ -117,7 +117,7 @@ function LibraryCategoryTile({
       aria-describedby={descriptionId}
       data-testid={testId}
       className={cn(
-        'group block h-full rounded border border-white/[0.08] bg-card text-card-foreground shadow-[0_24px_60px_-40px_rgba(0,0,0,0.8)] transition-[border-color,background-color,box-shadow,transform] duration-200 ease-out',
+        'group block h-full rounded-card border border-white/[0.08] bg-card text-card-foreground shadow-[0_24px_60px_-40px_rgba(0,0,0,0.8)] transition-[border-color,background-color,box-shadow,transform] duration-200 ease-out',
         'hover:-translate-y-0.5 hover:border-white/[0.16] hover:bg-white/[0.02] hover:shadow-[0_28px_70px_-44px_rgba(0,0,0,0.9)]',
         'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
       )}
