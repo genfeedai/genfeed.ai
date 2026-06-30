@@ -1,6 +1,7 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import type { ClipResult } from '@props/studio/clips.props';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import ClipResultCard, { type ClipResult } from './ClipResultCard';
+import ClipResultCard from './ClipResultCard';
 import '@testing-library/jest-dom/vitest';
 
 const pushSpy = vi.fn();
@@ -8,6 +9,12 @@ const pushSpy = vi.fn();
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: pushSpy,
+  }),
+}));
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    href: (path: string) => `/acme/brand${path}`,
   }),
 }));
 
@@ -30,8 +37,29 @@ function makeClip(overrides?: Partial<ClipResult>): ClipResult {
 }
 
 describe('ClipResultCard', () => {
-  const mockGetToken = vi.fn().mockResolvedValue('test-token');
-  const apiEndpoint = 'https://api.example.com';
+  const clipsService = {
+    createEditorHandoff: vi.fn().mockResolvedValue({
+      editorPath: '/editor/editor-1',
+      editorProjectId: 'editor-1',
+      videoUrl: 'https://cdn.example.com/video.mp4',
+    }),
+    createPublishHandoff: vi.fn().mockResolvedValue({
+      payload: {
+        assets: [
+          {
+            assetId: 'clip-1',
+            mediaUrl: 'https://cdn.example.com/video.mp4',
+            mimeType: 'video/mp4',
+          },
+        ],
+        metadata: {
+          clipResultId: 'clip-1',
+          summary: 'Clip summary for publish handoff',
+          title: 'My Great Clip',
+        },
+      },
+    }),
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -41,8 +69,8 @@ describe('ClipResultCard', () => {
     render(
       <ClipResultCard
         clip={makeClip()}
-        apiEndpoint={apiEndpoint}
-        getToken={mockGetToken}
+        clipsService={clipsService as never}
+        projectId="project-1"
       />,
     );
 
@@ -54,8 +82,8 @@ describe('ClipResultCard', () => {
     render(
       <ClipResultCard
         clip={makeClip({ status: 'extracting' })}
-        apiEndpoint={apiEndpoint}
-        getToken={mockGetToken}
+        clipsService={clipsService as never}
+        projectId="project-1"
       />,
     );
 
@@ -66,8 +94,8 @@ describe('ClipResultCard', () => {
     const { rerender } = render(
       <ClipResultCard
         clip={makeClip({ status: 'pending' })}
-        apiEndpoint={apiEndpoint}
-        getToken={mockGetToken}
+        clipsService={clipsService as never}
+        projectId="project-1"
       />,
     );
 
@@ -77,11 +105,18 @@ describe('ClipResultCard', () => {
     rerender(
       <ClipResultCard
         clip={makeClip({
+          readiness: {
+            blockingReasons: [],
+            readyActions: ['download', 'edit', 'publish'],
+            state: 'ready',
+            terminal: true,
+            terminalAt: '2026-06-30T00:00:00Z',
+          },
           status: 'completed',
           videoUrl: 'https://cdn.example.com/video.mp4',
         })}
-        apiEndpoint={apiEndpoint}
-        getToken={mockGetToken}
+        clipsService={clipsService as never}
+        projectId="project-1"
       />,
     );
 
@@ -89,39 +124,100 @@ describe('ClipResultCard', () => {
     expect(screen.getByText('Publish')).toBeInTheDocument();
   });
 
-  it('should navigate to publish page with correct params when Publish is clicked', () => {
+  it('should create publish handoff before navigating to compose', async () => {
     render(
       <ClipResultCard
         clip={makeClip({
+          readiness: {
+            blockingReasons: [],
+            readyActions: ['download', 'edit', 'publish'],
+            state: 'ready',
+            terminal: true,
+            terminalAt: '2026-06-30T00:00:00Z',
+          },
           status: 'completed',
           summary: 'Clip summary for publish handoff',
           title: 'My Great Clip',
           videoUrl: 'https://cdn.example.com/video.mp4',
         })}
-        apiEndpoint={apiEndpoint}
-        getToken={mockGetToken}
+        clipsService={clipsService as never}
+        projectId="project-1"
       />,
     );
 
     fireEvent.click(screen.getByText('Publish'));
 
-    expect(pushSpy).toHaveBeenCalledWith(
-      expect.stringContaining('/compose/post?'),
+    await waitFor(() =>
+      expect(clipsService.createPublishHandoff).toHaveBeenCalledWith(
+        'project-1',
+        'clip-1',
+      ),
     );
     expect(pushSpy).toHaveBeenCalledWith(
-      expect.stringContaining('title=My+Great+Clip'),
+      expect.stringContaining('/acme/brand/compose/post?'),
     );
-    expect(pushSpy).toHaveBeenCalledWith(
-      expect.stringContaining('description=Clip+summary+for+publish+handoff'),
+  });
+
+  it('should create editor handoff before navigating to the editor project', async () => {
+    render(
+      <ClipResultCard
+        clip={makeClip({
+          readiness: {
+            blockingReasons: [],
+            readyActions: ['download', 'edit', 'publish'],
+            state: 'ready',
+            terminal: true,
+            terminalAt: '2026-06-30T00:00:00Z',
+          },
+          status: 'completed',
+          videoUrl: 'https://cdn.example.com/video.mp4',
+        })}
+        clipsService={clipsService as never}
+        projectId="project-1"
+      />,
     );
+
+    fireEvent.click(screen.getByText('Edit'));
+
+    await waitFor(() =>
+      expect(clipsService.createEditorHandoff).toHaveBeenCalledWith(
+        'project-1',
+        'clip-1',
+      ),
+    );
+    expect(pushSpy).toHaveBeenCalledWith('/acme/brand/editor/editor-1');
+  });
+
+  it('should respect ready actions when readiness metadata is present', () => {
+    render(
+      <ClipResultCard
+        clip={makeClip({
+          readiness: {
+            blockingReasons: [],
+            readyActions: ['download'],
+            state: 'ready',
+            terminal: true,
+            terminalAt: '2026-06-30T00:00:00Z',
+          },
+          status: 'completed',
+          videoUrl: 'https://cdn.example.com/video.mp4',
+        })}
+        clipsService={clipsService as never}
+        projectId="project-1"
+      />,
+    );
+
+    expect(screen.queryByText('Edit')).not.toBeInTheDocument();
+    expect(screen.queryByText('Publish')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Download video')).toBeInTheDocument();
   });
 
   it('should display virality score', () => {
     render(
       <ClipResultCard
         clip={makeClip({ viralityScore: 92 })}
-        apiEndpoint={apiEndpoint}
-        getToken={mockGetToken}
+        clipsService={clipsService as never}
+        projectId="project-1"
       />,
     );
 
@@ -132,8 +228,8 @@ describe('ClipResultCard', () => {
     render(
       <ClipResultCard
         clip={makeClip({ tags: ['ai', 'tech', 'startup', 'viral', 'growth'] })}
-        apiEndpoint={apiEndpoint}
-        getToken={mockGetToken}
+        clipsService={clipsService as never}
+        projectId="project-1"
       />,
     );
 
@@ -148,8 +244,8 @@ describe('ClipResultCard', () => {
     render(
       <ClipResultCard
         clip={makeClip({ status: 'failed' })}
-        apiEndpoint={apiEndpoint}
-        getToken={mockGetToken}
+        clipsService={clipsService as never}
+        projectId="project-1"
       />,
     );
 

@@ -35,6 +35,28 @@ interface ProjectResponse {
   status?: string;
 }
 
+interface EditorHandoffResponse {
+  editorPath: string;
+  editorProjectId: string;
+  videoUrl: string;
+}
+
+interface PublishHandoffResponse {
+  payload: {
+    assets: Array<{
+      assetId: string;
+      caption?: string;
+      mediaUrl: string;
+      mimeType: string;
+    }>;
+    metadata?: {
+      clipResultId?: string;
+      summary?: string | null;
+      title?: string | null;
+    };
+  };
+}
+
 interface RewriteHighlightPayload {
   platform: string;
   tone: string;
@@ -233,5 +255,25 @@ export class ClipsApiService {
       },
     );
     return data?.data?.id ?? data?.data?._id;
+  }
+
+  async createEditorHandoff(
+    projectId: string,
+    clipResultId: string,
+  ): Promise<EditorHandoffResponse> {
+    return this.fetchJson<EditorHandoffResponse>(
+      `${this.apiEndpoint}/clip-projects/${projectId}/results/${clipResultId}/editor-handoff`,
+      { method: 'POST' },
+    );
+  }
+
+  async createPublishHandoff(
+    projectId: string,
+    clipResultId: string,
+  ): Promise<PublishHandoffResponse> {
+    return this.fetchJson<PublishHandoffResponse>(
+      `${this.apiEndpoint}/clip-projects/${projectId}/results/${clipResultId}/publish-handoff`,
+      { method: 'POST' },
+    );
   }
 }

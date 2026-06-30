@@ -93,7 +93,10 @@ describe('ClipResultsController', () => {
 
       await controller.findAll(mockReq, 'project-1', '', mockUser);
 
-      expect(service.findByProject).toHaveBeenCalledWith('project-1');
+      expect(service.findByProject).toHaveBeenCalledWith(
+        'project-1',
+        organizationId,
+      );
       expect(service.findAllByOrganization).not.toHaveBeenCalled();
     });
 
@@ -103,7 +106,10 @@ describe('ClipResultsController', () => {
 
       await controller.findAll(mockReq, '', 'project-2', mockUser);
 
-      expect(service.findByProject).toHaveBeenCalledWith('project-2');
+      expect(service.findByProject).toHaveBeenCalledWith(
+        'project-2',
+        organizationId,
+      );
     });
 
     it('should find all by organization when no project filter is given', async () => {
