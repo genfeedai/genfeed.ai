@@ -1,3 +1,4 @@
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -406,13 +407,15 @@ export class BusinessAnalyticsService {
         now.getTime() - 14 * 24 * 60 * 60 * 1000,
       );
 
+      // Map app-layer enum values to Prisma UPPER_SNAKE form before passing to
+      // a direct prisma call (bypasses BaseService normalization).
       const supportedCategories = [
         IngredientCategory.IMAGE,
         IngredientCategory.VIDEO,
         IngredientCategory.MUSIC,
         IngredientCategory.VOICE,
         IngredientCategory.AVATAR,
-      ];
+      ].map((c) => CategoryPrismaUtil.toIngredientCategory(c)!);
 
       // Fetch all matching ingredients in last 30 days and aggregate in memory
       const allIngredients = await this.prisma.ingredient.findMany({

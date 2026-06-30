@@ -8,6 +8,7 @@ import { AggregationCacheUtil } from '@api/shared/utils/aggregation-cache/aggreg
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import * as PrismaEnums from '@genfeedai/prisma';
+import { getModelMeta } from '@genfeedai/prisma';
 import { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
@@ -39,6 +40,13 @@ type PopulateInput = (string | PopulateOption)[] | 'none';
 type PrismaOrderDirection = 'asc' | 'desc' | number;
 type PrismaOrderByInput = Record<string, PrismaOrderDirection>;
 type PrismaOrderBy = Record<string, 'asc' | 'desc'>;
+/**
+ * @deprecated Internal shape kept only for backward-compatible method signatures.
+ * All runtime field lookups now use the static PRISMA_MODEL_METADATA map via
+ * `getModelMeta()` from `@genfeedai/prisma`. The `_runtimeDataModel` property
+ * on PrismaService is NOT populated by the PrismaPg driver adapter (Prisma 7)
+ * and must not be relied on.
+ */
 type RuntimeModelField = {
   isList?: boolean;
   isRequired?: boolean;
@@ -47,13 +55,39 @@ type RuntimeModelField = {
   type?: string;
 };
 
+/**
+ * Explicit app-value → Prisma-enum-value overrides, keyed by Prisma enum type name.
+ *
+ * Only needed for values that the generic `toUpperCase().replace(/[^A-Z0-9]+/g, '_')`
+ * algorithm cannot derive correctly.  The key must be the **lower-cased** form of the
+ * incoming app value (after `.trim().toLowerCase()`).
+ *
+ * Leave out cases that are already handled by the algorithm:
+ *   'image'       → IMAGE       ✓ (straight uppercase)
+ *   'image-edit'  → IMAGE_EDIT  ✓ (hyphen replaced by _)
+ *   'Ingredient'  → INGREDIENT  ✓ (PascalCase uppercased, no separator)
+ */
 const PRISMA_ENUM_ALIASES: Record<string, Record<string, string>> = {
   ArticleStatus: {
+    // 'public' is a legacy app alias for the Prisma value PUBLISHED.
     public: 'PUBLISHED',
     published: 'PUBLISHED',
   },
+  ApiKeyCategory: {
+    // 'opuspro' does not split into OPUS_PRO via the generic algorithm.
+    opuspro: 'OPUS_PRO',
+  },
   IngredientStatus: {
+    // 'completed' was the legacy status name; Prisma stores GENERATED.
     completed: 'GENERATED',
+  },
+  PromptCategory: {
+    // Full slug used in older client code that differs from the derived form.
+    'models-prompt-genfeedai': 'MODELS_PROMPT_TRAINING',
+  },
+  SubscriptionStatus: {
+    // Stripe sends 'canceled' (US spelling); Prisma stores CANCELLED (UK).
+    canceled: 'CANCELLED',
   },
 };
 
@@ -208,34 +242,52 @@ export abstract class BaseService<
     )[this.modelName];
   }
 
-  private get runtimeModel(): { fields?: RuntimeModelField[] } | undefined {
-    const runtimeModels = (
-      this.prisma as PrismaService & {
-        _runtimeDataModel?: {
-          models?: Record<string, { fields?: RuntimeModelField[] }>;
-        };
-      }
-    )._runtimeDataModel?.models;
-
-    if (!runtimeModels) {
-      return undefined;
-    }
-
-    const prismaModelName = `${this.modelName[0]?.toUpperCase() ?? ''}${this.modelName.slice(1)}`;
-    return runtimeModels[prismaModelName];
+  /**
+   * Returns the static model metadata for this service's model.
+   *
+   * Uses the committed `PRISMA_MODEL_METADATA` map generated from the Prisma
+   * schema instead of `prisma._runtimeDataModel`, which is not populated by
+   * the PrismaPg driver adapter under Prisma 7.
+   */
+  private get staticModelMeta() {
+    return getModelMeta(this.modelName);
   }
 
   protected modelHasField(fieldName: string): boolean {
-    const fields = this.runtimeModel?.fields;
-    if (!fields) {
+    const meta = this.staticModelMeta;
+    if (!meta) {
+      // Model not in static map (shouldn't happen in production; fail open).
       return true;
     }
-
-    return fields.some((field) => field.name === fieldName);
+    return (meta.allFields as ReadonlyArray<string>).includes(fieldName);
   }
 
+  /**
+   * Returns a RuntimeModelField-shaped object for `fieldName` when the field
+   * exists in the static metadata, or `undefined` when it does not.
+   */
   private getRuntimeField(fieldName: string): RuntimeModelField | undefined {
-    return this.runtimeModel?.fields?.find((field) => field.name === fieldName);
+    const meta = this.staticModelMeta;
+    if (!meta) {
+      return undefined;
+    }
+
+    const enumMeta = meta.enumFields[fieldName];
+    if (enumMeta) {
+      return {
+        kind: 'enum',
+        name: fieldName,
+        type: enumMeta.enumType,
+        isRequired: enumMeta.isRequired,
+      };
+    }
+
+    // Field exists but is not an enum.
+    if ((meta.allFields as ReadonlyArray<string>).includes(fieldName)) {
+      return { kind: 'scalar', name: fieldName };
+    }
+
+    return undefined;
   }
 
   /**
@@ -248,7 +300,7 @@ export abstract class BaseService<
    * verifiable runtime net until then. No-op when model metadata is unavailable.
    */
   protected auditUnknownFilterFields(where: PrismaFilter = {}): void {
-    if (!this.runtimeModel?.fields) {
+    if (!this.staticModelMeta) {
       return;
     }
 
@@ -538,7 +590,7 @@ export abstract class BaseService<
     return Object.keys(normalized).length ? normalized : value;
   }
 
-  private normalizeWhere(where: PrismaFilter = {}): PrismaFilter {
+  protected normalizeWhere(where: PrismaFilter = {}): PrismaFilter {
     const normalized = this.processSearchParams(where);
     const result: PrismaFilter = {};
 
@@ -577,7 +629,7 @@ export abstract class BaseService<
     return result;
   }
 
-  private normalizeData(data: unknown): PrismaUpdate {
+  protected normalizeData(data: unknown): PrismaUpdate {
     if (!this.isPlainObject(data)) {
       return data as PrismaUpdate;
     }

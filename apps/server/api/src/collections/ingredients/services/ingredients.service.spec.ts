@@ -6,6 +6,116 @@ import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
+// Provide static model metadata so BaseService normalizeData/normalizeWhere work
+// without the PrismaPg runtime data model (which is not populated under Prisma 7).
+vi.mock('@genfeedai/prisma', () => ({
+  getModelMeta: (modelName: string) => {
+    if (modelName === 'ingredient') {
+      return {
+        allFields: [
+          'id',
+          'userId',
+          'organizationId',
+          'brandId',
+          'folderId',
+          'parentId',
+          'metadataId',
+          'promptId',
+          'trainingId',
+          'bookmarkId',
+          'personaId',
+          'agentRunId',
+          'agentStrategyId',
+          'category',
+          'status',
+          'scope',
+          'contentRating',
+          'reviewStatus',
+          'assetLabel',
+          'qualityStatus',
+          'voiceProvider',
+          'cloneStatus',
+          'transformations',
+          'isDeleted',
+          'isHighlighted',
+          'isDefault',
+          'isFavorite',
+          'isPublic',
+          'mongoId',
+          'order',
+          'version',
+          'groupId',
+          'groupIndex',
+          'isMergeEnabled',
+          'promptTemplate',
+          'templateVersion',
+          's3Key',
+          'cdnUrl',
+          'generationSource',
+          'campaign',
+          'modelUsed',
+          'qualityScore',
+          'qualityFeedback',
+          'voiceSource',
+          'externalVoiceId',
+          'language',
+          'createdAt',
+          'updatedAt',
+          'postedTo',
+        ],
+        enumFields: {
+          category: { enumType: 'IngredientCategory', isRequired: true },
+          status: { enumType: 'IngredientStatus', isRequired: true },
+          scope: { enumType: 'AssetScope', isRequired: true },
+          contentRating: { enumType: 'ContentRating', isRequired: false },
+          reviewStatus: { enumType: 'DarkroomReviewStatus', isRequired: false },
+          assetLabel: { enumType: 'DarkroomAssetLabel', isRequired: false },
+          qualityStatus: { enumType: 'QualityStatus', isRequired: true },
+          voiceProvider: { enumType: 'VoiceProvider', isRequired: false },
+          cloneStatus: { enumType: 'VoiceCloneStatus', isRequired: false },
+          transformations: {
+            enumType: 'TransformationCategory',
+            isRequired: true,
+          },
+        },
+      };
+    }
+    return undefined;
+  },
+  // Ingredient enum values used by normalizeEnumScalarValue → getPrismaEnumValues
+  IngredientCategory: {
+    AUDIO: 'AUDIO',
+    AVATAR: 'AVATAR',
+    GIF: 'GIF',
+    IMAGE: 'IMAGE',
+    IMAGE_EDIT: 'IMAGE_EDIT',
+    INGREDIENT: 'INGREDIENT',
+    MUSIC: 'MUSIC',
+    SOURCE: 'SOURCE',
+    TEXT: 'TEXT',
+    VIDEO: 'VIDEO',
+    VIDEO_EDIT: 'VIDEO_EDIT',
+    VOICE: 'VOICE',
+  },
+  IngredientStatus: {
+    ARCHIVED: 'ARCHIVED',
+    DRAFT: 'DRAFT',
+    FAILED: 'FAILED',
+    GENERATED: 'GENERATED',
+    PROCESSING: 'PROCESSING',
+    REJECTED: 'REJECTED',
+    UPLOADED: 'UPLOADED',
+    VALIDATED: 'VALIDATED',
+  },
+  AssetScope: {
+    BRAND: 'BRAND',
+    ORGANIZATION: 'ORGANIZATION',
+    PUBLIC: 'PUBLIC',
+    USER: 'USER',
+  },
+  PrismaClient: class {},
+}));
+
 describe('IngredientsService', () => {
   let service: IngredientsService;
   let ingredientDelegate: {
@@ -119,6 +229,42 @@ describe('IngredientsService', () => {
       expect(result).toBeDefined();
     });
 
+    it('normalizes app-form category to Prisma UPPERCASE before calling prisma.ingredient.update', async () => {
+      const id = 'ing-1';
+      // IngredientStatus.GENERATED = 'generated' (app-form lowercase)
+      const updateDto: UpdateIngredientDto = {
+        status: IngredientStatus.GENERATED, // 'generated' → should become 'GENERATED'
+        category: IngredientCategory.VIDEO, // 'video' → should become 'VIDEO'
+      };
+
+      await service.patch(id, updateDto);
+
+      expect(ingredientDelegate.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id },
+          data: expect.objectContaining({
+            status: 'GENERATED',
+            category: 'VIDEO',
+          }),
+        }),
+      );
+    });
+
+    it('normalizes kebab category image-edit to IMAGE_EDIT before calling prisma.ingredient.update', async () => {
+      const id = 'ing-2';
+      const updateDto: UpdateIngredientDto = {
+        category: IngredientCategory.IMAGE_EDIT, // 'image-edit' → 'IMAGE_EDIT'
+      };
+
+      await service.patch(id, updateDto);
+
+      expect(ingredientDelegate.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ category: 'IMAGE_EDIT' }),
+        }),
+      );
+    });
+
     it('should handle update errors', async () => {
       const id = 'test-id';
       const updateDto: UpdateIngredientDto = {
@@ -131,6 +277,25 @@ describe('IngredientsService', () => {
 
       await expect(service.patch(id, updateDto)).rejects.toThrow(
         'Update failed',
+      );
+    });
+  });
+
+  describe('patchAll', () => {
+    it('normalizes app-form status to Prisma UPPERCASE before calling prisma.ingredient.updateMany', async () => {
+      const updateManyMock = vi.fn().mockResolvedValue({ count: 2 });
+      ingredientDelegate.updateMany = updateManyMock;
+
+      await service.patchAll(
+        { category: IngredientCategory.IMAGE }, // 'image' → 'IMAGE'
+        { status: IngredientStatus.GENERATED }, // 'generated' → 'GENERATED'
+      );
+
+      expect(updateManyMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ category: 'IMAGE' }),
+          data: expect.objectContaining({ status: 'GENERATED' }),
+        }),
       );
     });
   });
