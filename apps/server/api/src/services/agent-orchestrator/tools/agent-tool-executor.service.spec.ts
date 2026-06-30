@@ -403,6 +403,16 @@ describe('AgentToolExecutorService', () => {
         suggestions: ['Increase contrast for better readability'],
       }),
     };
+    const seoScorerService = {
+      scoreArticle: vi.fn().mockResolvedValue({
+        score: 7,
+        suggestions: ['Add a meta description'],
+      }),
+      scorePost: vi.fn().mockResolvedValue({
+        score: 7,
+        suggestions: ['Add a meta description'],
+      }),
+    };
     const ingredientsService = {
       findOne: vi.fn().mockResolvedValue(null),
     };
@@ -614,12 +624,12 @@ describe('AgentToolExecutorService', () => {
       organizationSettingsService as never,
       agentMemoryCaptureService as never,
       usersService as never,
-      authProviderService as never,
       streamPublisher as never,
       undefined as never, // agentSpawnService
       imagesService as never,
       voicesService as never,
       contentQualityScorerService as never,
+      seoScorerService as never,
       agentGoalsService as never,
       ingredientsService as never,
       {} as never, // votesService
@@ -2526,23 +2536,13 @@ describe('AgentToolExecutorService', () => {
     );
   });
 
-  it('should fall back to legacy auth provider metadata brand when selected brand is missing', async () => {
-    const {
-      brandsService,
-      authProviderService,
-      recurringWorkflowId,
-      service,
-      usersService,
-      workflowsService,
-    } = createService();
+  it('should fall back to an available brand when the selected brand is missing', async () => {
+    const { brandsService, recurringWorkflowId, service, workflowsService } =
+      createService();
 
     brandsService.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce({
       _id: '67a1234567890123456789ab',
       label: 'Fallback Brand',
-    });
-    usersService.findOne.mockResolvedValue({
-      _id: '67a123456789012345678902',
-      authProviderId: 'authProvider_abc123',
     });
 
     const result = await service.executeTool(
@@ -2559,9 +2559,6 @@ describe('AgentToolExecutorService', () => {
       },
     );
 
-    expect(authProviderService.getUser).toHaveBeenCalledWith(
-      'authProvider_abc123',
-    );
     expect(workflowsService.createWorkflow).toHaveBeenCalledWith(
       '67a123456789012345678902',
       '67a123456789012345678901',
@@ -2983,16 +2980,17 @@ describe('AgentToolExecutorService', () => {
       { findOne: vi.fn().mockResolvedValue({}) } as never,
       { findOne: vi.fn().mockResolvedValue({}) } as never,
       usersService as never,
-      authProviderService as never,
-      undefined as never,
-      undefined as never,
+      undefined as never, // streamPublisher
+      undefined as never, // agentSpawnService
       imagesService as never,
       { findAll: vi.fn().mockResolvedValue({ docs: [] }) } as never,
-      undefined as never,
-      undefined as never,
-      undefined as never,
-      undefined as never,
-      undefined as never,
+      undefined as never, // contentQualityScorerService (intentionally absent)
+      undefined as never, // seoScorerService
+      undefined as never, // agentGoalsService
+      undefined as never, // ingredientsService
+      undefined as never, // votesService
+      undefined as never, // adsResearchService
+      undefined as never, // brandInterviewService
     );
 
     const result = await serviceWithoutScorer.executeTool(
