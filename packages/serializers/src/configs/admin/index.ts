@@ -14,3 +14,4 @@ export * from '@serializers/configs/admin/darkroom-pipeline-stats.config';
 export * from '@serializers/configs/admin/darkroom-service-status.config';
 export * from '@serializers/configs/admin/darkroom-upload-dataset-result.config';
 export * from '@serializers/configs/admin/darkroom-voice.config';
+export * from '@serializers/configs/admin/warmup-account.config';

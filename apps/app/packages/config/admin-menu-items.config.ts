@@ -195,6 +195,14 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Administration',
+    href: APP_ROUTES.ADMIN.ADMINISTRATION.WARMUP_ACCOUNTS,
+    label: 'Warm-up accounts',
+    matchPaths: [APP_ROUTES.ADMIN.ADMINISTRATION.WARMUP_ACCOUNTS],
+    outline: HiOutlineUserGroup,
+    solid: HiUserGroup,
+  },
+  {
+    group: 'Administration',
     href: APP_ROUTES.ADMIN.ADMINISTRATION.ROLES,
     label: 'Roles',
     matchPaths: [APP_ROUTES.ADMIN.ADMINISTRATION.ROLES],

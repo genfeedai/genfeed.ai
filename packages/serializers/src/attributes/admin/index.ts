@@ -14,3 +14,4 @@ export * from '@serializers/attributes/admin/darkroom-pipeline-stats.attributes'
 export * from '@serializers/attributes/admin/darkroom-service-status.attributes';
 export * from '@serializers/attributes/admin/darkroom-upload-dataset-result.attributes';
 export * from '@serializers/attributes/admin/darkroom-voice.attributes';
+export * from '@serializers/attributes/admin/warmup-account.attributes';

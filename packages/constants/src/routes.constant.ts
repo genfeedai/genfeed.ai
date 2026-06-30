@@ -13,6 +13,7 @@ export const APP_ROUTES = {
       ROLES: '/admin/administration/roles',
       SUBSCRIPTIONS: '/admin/administration/subscriptions',
       USERS: '/admin/administration/users',
+      WARMUP_ACCOUNTS: '/admin/administration/warmup-accounts',
     },
     AGENT: '/admin/agent',
     AUTOMATION: {

@@ -28,3 +28,4 @@ export * from '@serializers/server/admin/darkroom-upload-dataset-result.serializ
 export { DarkroomUploadDatasetResultSerializer as FleetUploadDatasetResultSerializer } from '@serializers/server/admin/darkroom-upload-dataset-result.serializer';
 export * from '@serializers/server/admin/darkroom-voice.serializer';
 export { DarkroomVoiceSerializer as FleetVoiceSerializer } from '@serializers/server/admin/darkroom-voice.serializer';
+export * from '@serializers/server/admin/warmup-account.serializer';
