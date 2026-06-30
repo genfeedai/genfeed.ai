@@ -107,9 +107,23 @@ Then verify through the existing read surfaces:
 - trends can load from the global cached corpus without tenant credentials
 - trend-content reads include `sourcePreviewState = "fallback"` rows
 - reference-corpus reads return prompt-ready source records
+- `GET /trends/references/packs` returns prompt packs for `hooks`, `formats`, `references`, and `constraints` when filtered by platform, intent, and type
 
 Local validation for automation PRs may be skipped when the active policy requires GitHub CI as the verification path.
 
+## Prompt Reference Packs
+
+`TrendReferenceCorpusService.getPromptReferencePacks()` derives compact packs from the same reference rows written by the backfill and provider ingestion. The reader is deterministic and does not call an LLM or fetch provider APIs.
+
+The first pack surface supports:
+
+- `hooks` for source-backed opening angles
+- `formats` for observed platform/content-type structures
+- `references` for traceable canonical source examples
+- `constraints` for prompt assembly rules grounded in source metadata
+
+Every pack carries source reference IDs, canonical URLs, content intent, target platform, confidence, brand-suitability status, freshness status, and a regeneration cache key. Callers can regenerate when the cache key changes after source references update, or when `freshness.status` becomes `stale` or `expired`.
+
 ## Boundary
 
-This backfill clears the existing cold-start baseline and starts the corpus toward the launch-minimum targets in the health contract. It does not claim the full `480` trend and `1,440` reference launch floor. The first `#213` slice now replaces the LinkedIn curated-topic fallback with configured public reference topics and preserves `sourceClassification` through the reference-corpus read path; provider-specific ingestion depth remains tracked by the follow-up corpus issues.
+This backfill clears the existing cold-start baseline and starts the corpus toward the launch-minimum targets in the health contract. It does not claim the full `480` trend and `1,440` reference launch floor. The `#213` slice replaced the LinkedIn curated-topic fallback with configured public reference topics and preserves `sourceClassification` through the reference-corpus read path. The `#215` slice derives prompt-ready packs only from classified references with prompt-ready metadata. Provider-specific ingestion depth remains tracked by the follow-up corpus issues.

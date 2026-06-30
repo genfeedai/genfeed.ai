@@ -56,6 +56,7 @@ describe('TrendsController', () => {
     fetchAndCacheViralVideos: vi.fn(),
     generateContentIdeas: vi.fn(),
     getCorpusFreshnessHealth: vi.fn(),
+    getPromptReferencePacks: vi.fn(),
     getReferenceCorpus: vi.fn(),
     getTopReferenceAccounts: vi.fn(),
     getTrendContent: vi.fn(),
@@ -343,6 +344,89 @@ describe('TrendsController', () => {
           totalReferences: 1,
         },
       });
+    });
+  });
+
+  describe('getPromptReferencePacks', () => {
+    it('should return prompt-ready packs scoped by platform, intent, and type', async () => {
+      mockTrendsService.getPromptReferencePacks.mockResolvedValue({
+        packs: [
+          {
+            confidence: 'medium',
+            constraints: [],
+            contentIntent: 'organic_trend_discovery',
+            examples: ['Hook angle: AI tools clip'],
+            freshness: {
+              expiredSourceIds: [],
+              freshnessWindowDays: 2,
+              regenerateAfter: '2026-06-14T00:00:00.000Z',
+              staleSourceIds: [],
+              status: 'fresh',
+            },
+            id: 'prompt-pack:hooks:tiktok:abc123',
+            instructions: [],
+            metadata: {
+              contentTypes: ['video'],
+              generatedAt: '2026-06-13T00:00:00.000Z',
+              matchedTopics: ['ai tools'],
+              sourceCount: 1,
+              sourceKinds: ['public_platform_reference'],
+            },
+            regeneration: {
+              cacheKey: 'abc123',
+              sourceFingerprint: 'ref_tiktok',
+              trigger: 'cache_key_changed',
+            },
+            sourceReferenceIds: ['ref_tiktok'],
+            sources: [],
+            summary: 'Reusable hook patterns from 1 reference.',
+            targetPlatform: 'tiktok',
+            title: 'Hooks pack from tiktok',
+            type: 'hooks',
+          },
+        ],
+        summary: {
+          availableTypes: ['hooks'],
+          contentIntent: 'organic_trend_discovery',
+          generatedAt: '2026-06-13T00:00:00.000Z',
+          skippedSources: 0,
+          targetPlatform: 'tiktok',
+          totalPacks: 1,
+          totalSources: 1,
+        },
+      });
+
+      const result = await controller.getPromptReferencePacks(
+        mockUser,
+        'tiktok',
+        'organic_trend_discovery',
+        'hooks,unsupported',
+        '8',
+      );
+
+      expect(trendsService.getPromptReferencePacks).toHaveBeenCalledWith(
+        mockUser.publicMetadata.organization,
+        mockUser.publicMetadata.brand,
+        {
+          intent: 'organic_trend_discovery',
+          limit: 8,
+          platform: 'tiktok',
+          types: ['hooks'],
+        },
+      );
+      expect(result).toEqual(
+        expect.objectContaining({
+          packs: [
+            expect.objectContaining({
+              id: 'prompt-pack:hooks:tiktok:abc123',
+              type: 'hooks',
+            }),
+          ],
+          summary: expect.objectContaining({
+            totalPacks: 1,
+          }),
+        }),
+      );
     });
   });
 

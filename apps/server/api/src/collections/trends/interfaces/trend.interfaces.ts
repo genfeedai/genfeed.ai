@@ -149,6 +149,87 @@ export interface TrendSourceReferenceResult {
   totalReferences: number;
 }
 
+export type TrendPromptReferenceBrandSuitability =
+  | 'brand_safe'
+  | 'requires_review'
+  | 'unknown';
+
+export type TrendPromptReferenceFreshnessStatus = 'expired' | 'fresh' | 'stale';
+
+export type TrendPromptReferencePackType =
+  | 'constraints'
+  | 'formats'
+  | 'hooks'
+  | 'references';
+
+export interface TrendPromptReferencePackSource {
+  id: string;
+  platform: string;
+  canonicalUrl: string;
+  authorHandle?: string;
+  contentType: TrendSourceItem['contentType'];
+  title?: string;
+  text?: string;
+  sourceClassification?: TrendSourceClassification;
+  freshnessStatus: TrendPromptReferenceFreshnessStatus;
+  lastSeenAt: string;
+  confidence: TrendSourceConfidence;
+}
+
+export interface TrendPromptReferencePackFreshness {
+  status: TrendPromptReferenceFreshnessStatus;
+  freshnessWindowDays: number;
+  lastSourceSeenAt?: string;
+  regenerateAfter?: string;
+  staleSourceIds: string[];
+  expiredSourceIds: string[];
+}
+
+export interface TrendPromptReferencePackRegeneration {
+  cacheKey: string;
+  sourceFingerprint: string;
+  trigger: 'cache_key_changed' | 'source_expired' | 'source_stale';
+  regenerateAfter?: string;
+}
+
+export interface TrendPromptReferencePack {
+  id: string;
+  type: TrendPromptReferencePackType;
+  targetPlatform: string;
+  contentIntent: TrendSourceIntendedUse;
+  title: string;
+  summary: string;
+  instructions: string[];
+  examples: string[];
+  constraints: string[];
+  sourceReferenceIds: string[];
+  sources: TrendPromptReferencePackSource[];
+  confidence: TrendSourceConfidence;
+  brandSuitability: TrendPromptReferenceBrandSuitability;
+  freshness: TrendPromptReferencePackFreshness;
+  regeneration: TrendPromptReferencePackRegeneration;
+  metadata: {
+    generatedAt: string;
+    sourceCount: number;
+    matchedTopics: string[];
+    sourceKinds: TrendSourceKind[];
+    contentTypes: TrendSourceItem['contentType'][];
+  };
+}
+
+export interface TrendPromptReferencePackResult {
+  packs: TrendPromptReferencePack[];
+  summary: {
+    availableTypes: TrendPromptReferencePackType[];
+    contentIntent: TrendSourceIntendedUse;
+    generatedAt: string;
+    skippedSources: number;
+    targetPlatform: string;
+    totalPacks: number;
+    totalSources: number;
+  };
+}
+
 export interface TrendSourceAccountSummary {
   platform: string;
   authorHandle: string;

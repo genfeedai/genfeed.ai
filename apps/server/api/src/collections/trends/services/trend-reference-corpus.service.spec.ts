@@ -395,6 +395,10 @@ describe('TrendReferenceCorpusService', () => {
     );
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('filters reference corpus by trend, platform, and author without scanning recent references', async () => {
     const result = await service.getReferenceCorpus('org_1', 'brand_1', {
       authorHandle: 'creator',
@@ -429,6 +433,173 @@ describe('TrendReferenceCorpusService', () => {
         }),
       }),
     );
+  });
+
+  it('derives prompt-ready reference packs with source traceability and regeneration metadata', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-13T00:00:00.000Z'));
+
+    const result = await service.getPromptReferencePacks('org_1', 'brand_1', {
+      intent: 'organic_trend_discovery',
+      limit: 5,
+      platform: 'tiktok',
+      types: ['hooks', 'references'],
+    });
+
+    const hookPack = result.packs.find((pack) => pack.type === 'hooks');
+    const referencePack = result.packs.find(
+      (pack) => pack.type === 'references',
+    );
+
+    expect(result.summary).toMatchObject({
+      availableTypes: ['hooks', 'references'],
+      contentIntent: 'organic_trend_discovery',
+      skippedSources: 0,
+      targetPlatform: 'tiktok',
+      totalPacks: 2,
+      totalSources: 1,
+    });
+    expect(hookPack?.sourceReferenceIds).toEqual(['ref_tiktok']);
+    expect(referencePack?.examples).toEqual([
+      'AI tools clip (https://example.com/a)',
+    ]);
+    expect(hookPack?.freshness).toMatchObject({
+      expiredSourceIds: [],
+      freshnessWindowDays: 2,
+      regenerateAfter: '2026-06-14T00:00:00.000Z',
+      staleSourceIds: [],
+      status: 'fresh',
+    });
+    expect(hookPack?.regeneration.trigger).toBe('cache_key_changed');
+    expect(prisma.trendSourceReference.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        take: 20,
+        where: {
+          isDeleted: false,
+          platform: 'tiktok',
+        },
+      }),
+    );
+
+    const stableHookPack = hookPack
+      ? {
+          ...hookPack,
+          id: 'prompt-pack:hooks:tiktok:<cache-key>',
+          regeneration: {
+            ...hookPack.regeneration,
+            cacheKey: '<cache-key>',
+            sourceFingerprint: '<source-fingerprint>',
+          },
+        }
+      : undefined;
+
+    expect(stableHookPack).toMatchInlineSnapshot(`
+      {
+        "brandSuitability": "brand_safe",
+        "confidence": "medium",
+        "constraints": [
+          "Keep the opening claim grounded in the cited source references.",
+          "Do not copy creator wording verbatim when adapting the hook.",
+        ],
+        "contentIntent": "organic_trend_discovery",
+        "examples": [
+          "Hook angle: AI tools clip",
+        ],
+        "freshness": {
+          "expiredSourceIds": [],
+          "freshnessWindowDays": 2,
+          "lastSourceSeenAt": "2026-06-12T00:00:00.000Z",
+          "regenerateAfter": "2026-06-14T00:00:00.000Z",
+          "staleSourceIds": [],
+          "status": "fresh",
+        },
+        "id": "prompt-pack:hooks:tiktok:<cache-key>",
+        "instructions": [
+          "Start with the concrete tension, result, or surprising detail visible in the source.",
+          "Adapt the hook structure to the target brand voice before generation.",
+        ],
+        "metadata": {
+          "contentTypes": [
+            "video",
+          ],
+          "generatedAt": "2026-06-13T00:00:00.000Z",
+          "matchedTopics": [
+            "ai tools",
+          ],
+          "sourceCount": 1,
+          "sourceKinds": [
+            "public_platform_reference",
+          ],
+        },
+        "regeneration": {
+          "cacheKey": "<cache-key>",
+          "regenerateAfter": "2026-06-14T00:00:00.000Z",
+          "sourceFingerprint": "<source-fingerprint>",
+          "trigger": "cache_key_changed",
+        },
+        "sourceReferenceIds": [
+          "ref_tiktok",
+        ],
+        "sources": [
+          {
+            "authorHandle": "creator",
+            "canonicalUrl": "https://example.com/a",
+            "confidence": "medium",
+            "contentType": "video",
+            "freshnessStatus": "fresh",
+            "id": "ref_tiktok",
+            "lastSeenAt": "2026-06-12T00:00:00.000Z",
+            "platform": "tiktok",
+            "sourceClassification": {
+              "capturedAt": "2026-06-01T00:00:00.000Z",
+              "confidence": "medium",
+              "freshnessWindowDays": 2,
+              "intendedUse": "organic_trend_discovery",
+              "sourceKind": "public_platform_reference",
+              "sourceLabel": "TikTok",
+              "sourceTopic": "ai tools",
+            },
+            "title": "AI tools clip",
+          },
+        ],
+        "summary": "Reusable hook patterns from 1 prompt-ready corpus references.",
+        "targetPlatform": "tiktok",
+        "title": "Hooks pack from tiktok",
+        "type": "hooks",
+      }
+    `);
+
+    vi.useRealTimers();
+  });
+
+  it('filters prompt packs by intent and skips references without prompt-ready metadata', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-30T00:00:00.000Z'));
+
+    const result = await service.getPromptReferencePacks('org_1', 'brand_1', {
+      intent: 'organic_trend_discovery',
+      limit: 10,
+      types: ['constraints'],
+    });
+
+    expect(result.summary).toMatchObject({
+      skippedSources: 1,
+      totalPacks: 1,
+      totalSources: 1,
+    });
+    expect(result.packs[0]).toMatchObject({
+      freshness: {
+        expiredSourceIds: ['ref_tiktok'],
+        status: 'expired',
+      },
+      regeneration: {
+        trigger: 'source_expired',
+      },
+      sourceReferenceIds: ['ref_tiktok'],
+      type: 'constraints',
+    });
+
+    vi.useRealTimers();
   });
 
   it('annotates source items through indexed canonical URL lookup', async () => {
