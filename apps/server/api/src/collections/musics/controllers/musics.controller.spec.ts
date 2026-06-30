@@ -112,8 +112,12 @@ describe('MusicsController', () => {
         inputQuery as never,
       );
 
+      // Ingredient.isDefault is a non-nullable Boolean column — { not: null } is
+      // not a valid Prisma filter shape for it and crashes with
+      // PrismaClientValidationError ("Argument `not` is missing"). { equals: true }
+      // is both valid and matches this branch's intent (surface default musics).
       expect(query.where.OR[1]).toMatchObject({
-        isDefault: { not: null },
+        isDefault: { equals: true },
       });
       expect(query.where.OR[1]).not.toHaveProperty('scope');
     });

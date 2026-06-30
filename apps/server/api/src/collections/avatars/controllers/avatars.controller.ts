@@ -21,7 +21,7 @@ import { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenl
 import { HedraService } from '@api/services/integrations/hedra/services/hedra.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { ActivitySource } from '@genfeedai/enums';
+import { ActivitySource, IngredientCategory } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -259,8 +259,8 @@ export class AvatarsController {
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
     const aggregate = {
       where: {
+        category: IngredientCategory.AVATAR,
         isDeleted,
-        type: 'avatar',
         user: publicMetadata.user,
       },
       orderBy: handleQuerySort(query.sort),
