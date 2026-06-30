@@ -16,13 +16,7 @@ import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
-import {
-  type ChangeEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { type ChangeEvent, useCallback, useMemo, useState } from 'react';
 import { HiArrowUpTray, HiCheckCircle, HiDocumentText } from 'react-icons/hi2';
 
 type ManualKitFormState = {
@@ -197,17 +191,19 @@ export default function BrandDetailManualKitCard({
   const [error, setError] = useState<string | null>(null);
   const [isDrafting, setIsDrafting] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
+  const [renderedBrandId, setRenderedBrandId] = useState(brandId);
 
   const getBrandsService = useAuthedService((token: string) =>
     BrandsService.getInstance(token),
   );
 
-  useEffect(() => {
+  if (brandId !== renderedBrandId) {
+    setRenderedBrandId(brandId);
     setForm(toFormState(brand));
     setDraft(null);
     setSelectedFields([]);
     setError(null);
-  }, [brand]);
+  }
 
   const attachedAssetCount = useMemo(
     () =>
