@@ -40,7 +40,11 @@ resource "aws_elasticache_replication_group" "redis" {
   # clients keep working while services roll over to TLS+AUTH. Tighten to
   # "required" in a follow-up once all clients use rediss://.
   transit_encryption_mode    = "preferred"
-  auth_token                 = random_password.redis_auth_token.result
-  auth_token_update_strategy = "SET"
+  # AUTH deferred: AWS only allows setting auth_token once transit_encryption_mode
+  # is "required", which in turn requires every client to already be on TLS. That
+  # is a staged migration (app -> rediss:// first, then "required" + auth_token),
+  # not a single apply. Transit encryption is enabled here (preferred) and the app
+  # connects over TLS without AUTH; enable auth_token in a follow-up once all
+  # clients are confirmed on rediss://.
   apply_immediately          = true
 }

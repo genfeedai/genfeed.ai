@@ -46,12 +46,10 @@ locals {
       valueFrom = data.aws_ssm_parameters_by_path.prod.arns[i]
     } if !contains(local.excluded_ssm_secret_names, element(reverse(split("/", name)), 0))
   ]
-  redis_task_secrets = [
-    {
-      name      = "REDIS_PASSWORD"
-      valueFrom = aws_ssm_parameter.redis_password.arn
-    },
-  ]
+  # AUTH deferred (see elasticache.tf): the app connects over TLS without a
+  # password while Redis AUTH is off. Re-add the REDIS_PASSWORD secret here when
+  # auth_token is enabled in the follow-up migration.
+  redis_task_secrets   = []
   service_task_secrets = concat(local.task_secrets, local.redis_task_secrets)
 
   # ── Service catalogue (mirrors docker-compose.production.yml) ─────────
