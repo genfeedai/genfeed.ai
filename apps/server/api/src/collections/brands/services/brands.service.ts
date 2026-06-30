@@ -10,6 +10,7 @@ import {
   FASTLANE_FORMATS,
   type GenerateFastlaneIdeasDto,
 } from '@api/collections/brands/dto/generate-fastlane-ideas.dto';
+import type { ManualBrandKitDto } from '@api/collections/brands/dto/manual-brand-kit.dto';
 import { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import { UpdateBrandAgentConfigDto } from '@api/collections/brands/dto/update-brand-agent-config.dto';
 import type {
@@ -33,6 +34,7 @@ import { FontFamily } from '@genfeedai/enums';
 import {
   type BrandKitSourceBrand,
   buildBrandKitDraftFromBrand,
+  buildBrandKitDraftFromManualInput,
   buildBrandKitDraftFromWebsiteScrape,
 } from '@genfeedai/helpers';
 import type {
@@ -107,6 +109,14 @@ export class BrandsService extends BaseService<
   UpdateBrandDto,
   Prisma.BrandWhereInput
 > {
+  private static readonly SUPPORTED_GUIDANCE_EXTENSIONS = new Set([
+    '.csv',
+    '.json',
+    '.md',
+    '.markdown',
+    '.txt',
+  ]);
+
   private readonly constructorName = this.constructor.name;
 
   constructor(
@@ -530,6 +540,90 @@ export class BrandsService extends BaseService<
     }
 
     return nextConfig as Prisma.InputJsonValue;
+  }
+
+  async buildManualBrandKitDraft(
+    brandId: string,
+    organizationId: string,
+    dto: ManualBrandKitDto,
+  ): Promise<IBrandKitDraft> {
+    this.validateManualGuidanceDocument(dto.guidanceDocumentName);
+
+    if (!this.hasManualBrandKitInput(dto)) {
+      throw new BadRequestException({
+        code: 'brand_kit_manual_input_required',
+        detail:
+          'Provide at least one manual brand field, guidance text, or assigned asset.',
+        title: 'Bad Request',
+      });
+    }
+
+    const brand = await this.delegate.findFirst({
+      where: { id: brandId, isDeleted: false, organizationId },
+    });
+
+    if (!brand) {
+      throw new NotFoundException('Brand', brandId);
+    }
+
+    return buildBrandKitDraftFromManualInput(
+      brand as unknown as BrandKitSourceBrand,
+      dto,
+    );
+  }
+
+  private validateManualGuidanceDocument(
+    guidanceDocumentName: string | undefined,
+  ): void {
+    if (!guidanceDocumentName) {
+      return;
+    }
+
+    const lower = guidanceDocumentName.toLowerCase();
+    const isSupported = [...BrandsService.SUPPORTED_GUIDANCE_EXTENSIONS].some(
+      (extension) => lower.endsWith(extension),
+    );
+
+    if (!isSupported) {
+      throw new BadRequestException({
+        code: 'brand_kit_unsupported_guidance_document',
+        detail:
+          'Upload a text-like guidance file: .txt, .md, .markdown, .json, or .csv.',
+        title: 'Bad Request',
+      });
+    }
+  }
+
+  private hasManualBrandKitInput(dto: ManualBrandKitDto): boolean {
+    const stringValues = [
+      dto.label,
+      dto.description,
+      dto.primaryColor,
+      dto.secondaryColor,
+      dto.backgroundColor,
+      dto.fontFamily,
+      dto.guidanceText,
+      dto.voiceTone,
+      dto.voiceStyle,
+      dto.voiceSampleOutput,
+      dto.strategyFrequency,
+    ];
+    const arrayValues = [
+      dto.voiceAudience,
+      dto.voiceValues,
+      dto.voiceMessagingPillars,
+      dto.voiceDoNotSoundLike,
+      dto.strategyContentTypes,
+      dto.strategyPlatforms,
+      dto.strategyGoals,
+      dto.assets,
+    ];
+
+    return (
+      stringValues.some(
+        (value) => value !== undefined && value.trim() !== '',
+      ) || arrayValues.some((value) => Array.isArray(value) && value.length > 0)
+    );
   }
 
   private mergeSocialUrlsIntoScrape(

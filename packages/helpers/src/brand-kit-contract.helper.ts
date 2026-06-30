@@ -9,6 +9,8 @@ import {
   type IBrandKitDraft,
   type IBrandKitDraftField,
   type IBrandKitFieldOwner,
+  type IBrandKitManualAssetInput,
+  type IBrandKitManualInput,
   type IBrandKitReadiness,
   type IBrandKitSocialLink,
   type IBrandKitSourceEvidence,
@@ -610,6 +612,199 @@ function createWebsiteAssetCandidates(
   }
 
   return candidates;
+}
+
+function createManualEvidence(
+  input: IBrandKitManualInput,
+): IBrandKitSourceEvidence[] {
+  const evidence: IBrandKitSourceEvidence[] = [];
+
+  if (hasText(input.guidanceText)) {
+    evidence.push({
+      excerpt: input.guidanceText.trim().slice(0, 500),
+      label: input.guidanceDocumentName
+        ? `Uploaded guidance: ${input.guidanceDocumentName}`
+        : 'Pasted brand guidance',
+      sourceId: input.guidanceDocumentName,
+      sourceType: input.guidanceDocumentName ? 'uploaded_guidance' : 'manual',
+    });
+  }
+
+  evidence.push({
+    label: 'Manual brand kit intake',
+    sourceType: 'manual',
+  });
+
+  return evidence;
+}
+
+function createManualAssetValue(
+  input: IBrandKitManualAssetInput,
+): IBrandKitAssetValue | undefined {
+  if (!hasText(input.id) && !hasText(input.url)) {
+    return undefined;
+  }
+
+  return {
+    height: input.height,
+    id: input.id,
+    label: input.label,
+    mimeType: input.mimeType,
+    role: input.role,
+    sourceType: input.sourceType ?? 'manual',
+    url: input.url,
+    width: input.width,
+  };
+}
+
+function createManualAssetCandidates(
+  inputs: IBrandKitManualAssetInput[] | undefined,
+): IBrandKitAssetCandidate[] {
+  const candidates: IBrandKitAssetCandidate[] = [];
+
+  for (const input of inputs ?? []) {
+    const value = createManualAssetValue(input);
+    if (!value) {
+      continue;
+    }
+
+    candidates.push({
+      ...value,
+      candidateId: `${value.role}:${value.id ?? value.url ?? candidates.length}`,
+      sourceUrl: value.url,
+    });
+  }
+
+  return candidates;
+}
+
+function createManualFieldDiagnostics(
+  input: IBrandKitManualInput,
+): Partial<Record<BrandKitFieldKey, IBrandKitDiagnostic[]>> {
+  if (hasText(input.guidanceText)) {
+    return {};
+  }
+
+  return {
+    promptGuidelines: [
+      {
+        code: 'brand_kit_manual_guidance_missing',
+        fieldKey: 'promptGuidelines',
+        message:
+          'Add pasted guidance or a supported text document to seed prompt and voice fields.',
+        severity: 'warning',
+      },
+    ],
+  };
+}
+
+function setManualProposedValue(
+  values: Partial<Record<BrandKitFieldKey, unknown>>,
+  key: BrandKitFieldKey,
+  value: unknown,
+): void {
+  if (Array.isArray(value)) {
+    if (value.length > 0) {
+      values[key] = value;
+    }
+    return;
+  }
+
+  if (hasText(value)) {
+    values[key] = value.trim();
+  }
+}
+
+export function buildBrandKitDraftFromManualInput(
+  brand: BrandKitSourceBrand,
+  input: IBrandKitManualInput,
+  options: Omit<
+    BuildBrandKitDraftOptions,
+    'assetCandidates' | 'evidence' | 'fieldDiagnostics' | 'proposedValues'
+  > = {},
+): IBrandKitDraft {
+  const proposedValues: Partial<Record<BrandKitFieldKey, unknown>> = {};
+
+  setManualProposedValue(proposedValues, 'label', input.label);
+  setManualProposedValue(proposedValues, 'description', input.description);
+  setManualProposedValue(proposedValues, 'primaryColor', input.primaryColor);
+  setManualProposedValue(
+    proposedValues,
+    'secondaryColor',
+    input.secondaryColor,
+  );
+  setManualProposedValue(
+    proposedValues,
+    'backgroundColor',
+    input.backgroundColor,
+  );
+  setManualProposedValue(proposedValues, 'fontFamily', input.fontFamily);
+  setManualProposedValue(
+    proposedValues,
+    'promptGuidelines',
+    input.guidanceText,
+  );
+  setManualProposedValue(proposedValues, 'voiceTone', input.voiceTone);
+  setManualProposedValue(proposedValues, 'voiceStyle', input.voiceStyle);
+  setManualProposedValue(proposedValues, 'voiceAudience', input.voiceAudience);
+  setManualProposedValue(proposedValues, 'voiceValues', input.voiceValues);
+  setManualProposedValue(
+    proposedValues,
+    'voiceMessagingPillars',
+    input.voiceMessagingPillars,
+  );
+  setManualProposedValue(
+    proposedValues,
+    'voiceDoNotSoundLike',
+    input.voiceDoNotSoundLike,
+  );
+  setManualProposedValue(
+    proposedValues,
+    'voiceSampleOutput',
+    input.voiceSampleOutput,
+  );
+  setManualProposedValue(
+    proposedValues,
+    'strategyContentTypes',
+    input.strategyContentTypes,
+  );
+  setManualProposedValue(
+    proposedValues,
+    'strategyPlatforms',
+    input.strategyPlatforms,
+  );
+  setManualProposedValue(proposedValues, 'strategyGoals', input.strategyGoals);
+  setManualProposedValue(
+    proposedValues,
+    'strategyFrequency',
+    input.strategyFrequency,
+  );
+
+  const assetValues = (input.assets ?? [])
+    .map(createManualAssetValue)
+    .filter((value): value is IBrandKitAssetValue => Boolean(value));
+  const logo = assetValues.find((value) => value.role === 'logo');
+  const banner = assetValues.find((value) => value.role === 'banner');
+  const references = assetValues.filter((value) => value.role === 'reference');
+
+  if (logo) {
+    proposedValues.logo = logo;
+  }
+  if (banner) {
+    proposedValues.banner = banner;
+  }
+  if (references.length > 0) {
+    proposedValues.references = references;
+  }
+
+  return buildBrandKitDraftFromBrand(brand, {
+    ...options,
+    assetCandidates: createManualAssetCandidates(input.assets),
+    evidence: createManualEvidence(input),
+    fieldDiagnostics: createManualFieldDiagnostics(input),
+    proposedValues,
+    sourceType: 'manual',
+  });
 }
 
 function createMissingWebsiteDiagnostic(

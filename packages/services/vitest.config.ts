@@ -18,6 +18,14 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '.'),
       },
       {
+        find: '@genfeedai/services',
+        replacement: path.resolve(__dirname, '.'),
+      },
+      {
+        find: /^@genfeedai\/services\/(.*)$/,
+        replacement: path.resolve(__dirname, '$1'),
+      },
+      {
         find: '@genfeedai/constants',
         replacement: CONSTANTS_SRC,
       },

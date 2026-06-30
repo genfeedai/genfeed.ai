@@ -387,6 +387,80 @@ describe('BrandsService', () => {
     });
   });
 
+  describe('buildManualBrandKitDraft', () => {
+    const organizationId = 'org_1';
+    const brandId = 'brand_1';
+
+    it('returns a manual-sourced draft without mutating the brand', async () => {
+      delegate.findFirst.mockResolvedValue({
+        id: brandId,
+        isDeleted: false,
+        label: 'Current Acme',
+        organization: { id: organizationId },
+        organizationId,
+        primaryColor: '#000000',
+      });
+
+      const draft = await service.buildManualBrandKitDraft(
+        brandId,
+        organizationId,
+        {
+          assets: [
+            {
+              id: 'logo-upload',
+              label: 'Uploaded logo',
+              role: 'logo',
+              url: 'https://cdn.example.com/logo.png',
+            },
+          ],
+          description: 'Manual description',
+          guidanceDocumentName: 'brand-guide.txt',
+          guidanceText: 'Write with proof and short sentences.',
+          primaryColor: '#3355ff',
+          voiceTone: 'confident',
+        },
+      );
+
+      expect(delegate.findFirst).toHaveBeenCalledWith({
+        where: { id: brandId, isDeleted: false, organizationId },
+      });
+      expect(delegate.update).not.toHaveBeenCalled();
+      expect(delegate.updateMany).not.toHaveBeenCalled();
+      expect(draft.sourceType).toBe('manual');
+      expect(draft.fields.description?.proposedValue).toBe(
+        'Manual description',
+      );
+      expect(draft.fields.primaryColor?.proposedValue).toBe('#3355ff');
+      expect(draft.fields.promptGuidelines?.proposedValue).toContain(
+        'short sentences',
+      );
+      expect(draft.fields.voiceTone?.proposedValue).toBe('confident');
+      expect(draft.fields.logo?.proposedValue).toMatchObject({
+        id: 'logo-upload',
+        role: 'logo',
+      });
+    });
+
+    it('rejects empty manual intake before loading the brand', async () => {
+      await expect(
+        service.buildManualBrandKitDraft(brandId, organizationId, {}),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(delegate.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('rejects unsupported guidance document names', async () => {
+      await expect(
+        service.buildManualBrandKitDraft(brandId, organizationId, {
+          guidanceDocumentName: 'brand-guide.pdf',
+          guidanceText: 'Guidance',
+        }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(delegate.findFirst).not.toHaveBeenCalled();
+    });
+  });
+
   describe('generateFastlaneIdeas', () => {
     const organizationId = 'org_1';
     const brandId = 'brand_1';

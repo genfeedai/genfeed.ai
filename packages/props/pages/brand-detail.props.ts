@@ -56,6 +56,8 @@ export interface BrandDetailSidebarProps {
   onTogglePublicProfile: (isPublic: boolean) => void;
   onRefreshBrand: () => Promise<void>;
   onOpenLinkModal: (link?: ILink) => void;
+  onUploadBanner: () => void;
+  onUploadLogo: () => void;
   onUploadReference: () => void;
   onDeleteReference: (assetId: string) => void;
 }
@@ -96,6 +98,15 @@ export interface BrandKitReviewCardProps {
   brand: IBrand;
   brandId: string;
   onRefreshBrand: () => Promise<void>;
+}
+
+export interface BrandDetailManualKitCardProps {
+  brand: IBrand;
+  brandId: string;
+  onRefreshBrand: () => Promise<void>;
+  onUploadBanner: () => void;
+  onUploadLogo: () => void;
+  onUploadReference: () => void;
 }
 
 export interface BrandDetailReferencesCardProps {
