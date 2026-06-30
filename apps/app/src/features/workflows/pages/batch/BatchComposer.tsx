@@ -276,13 +276,13 @@ export default function BatchComposer({
             No recent batch jobs yet.
           </InsetSurface>
         ) : (
-          <div className="space-y-3">
+          <div className="divide-y divide-white/[0.08]">
             {recentJobs.map((job) => (
               <Button
                 key={job._id}
                 variant={ButtonVariant.UNSTYLED}
                 onClick={() => void onOpenRecentJob(job._id)}
-                className="w-full rounded-xl border border-white/10 bg-background/40 p-4 text-left transition hover:border-white/20 hover:bg-background/60"
+                className="w-full py-4 text-left transition hover:bg-foreground/[0.03]"
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
