@@ -13,6 +13,7 @@ export * from '@workflow-engine/executors/saas/delay-executor';
 export * from '@workflow-engine/executors/saas/engagement-trigger-executor';
 export * from '@workflow-engine/executors/saas/film-grain-executor';
 // AI generation executors
+export * from '@workflow-engine/executors/saas/hook-generator-executor';
 export * from '@workflow-engine/executors/saas/image-gen-executor';
 // SEO score -> rewrite -> re-score loop executor
 export * from '@workflow-engine/executors/saas/iterative-seo-refine-executor';

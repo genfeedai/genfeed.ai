@@ -84,6 +84,7 @@ import {
   createAnalyticsFeedbackExecutor,
   createBrandAssetExecutor,
   createBrandContextExecutor,
+  createHookGeneratorExecutor,
   createImageGenExecutor,
   createIterativeSeoRefineExecutor,
   createLipSyncExecutor,
@@ -311,6 +312,7 @@ export class WorkflowEngineAdapterService {
     this.registerAvatarVideoExecutor();
     this.registerImageGenExecutor();
     this.registerPromptConstructorExecutor();
+    this.registerHookGeneratorExecutor();
     this.registerPostExecutor();
     this.registerNewsletterExecutor();
     this.registerCaptionsExecutor();
@@ -1786,6 +1788,15 @@ export class WorkflowEngineAdapterService {
     this.engine.registerExecutor(
       'promptConstructor',
       this.wrapEngineExecutor(promptConstructorExecutor),
+    );
+  }
+
+  private registerHookGeneratorExecutor(): void {
+    const hookGeneratorExecutor = createHookGeneratorExecutor();
+
+    this.engine.registerExecutor(
+      'hookGenerator',
+      this.wrapEngineExecutor(hookGeneratorExecutor),
     );
   }
 

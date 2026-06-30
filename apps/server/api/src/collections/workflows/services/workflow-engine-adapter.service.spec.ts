@@ -386,6 +386,46 @@ describe('WorkflowEngineAdapterService', () => {
       );
     });
 
+    it('executes hook generator without invoking fallback behavior', async () => {
+      const workflow = service.convertToExecutableWorkflow({
+        _id: { toString: () => 'wf-hook-generator' },
+        nodes: [
+          {
+            data: {
+              config: {
+                hookFormula: 'list_reveal',
+                niche: 'AI founders',
+                product: 'content loops',
+                toneStyle: 'educational',
+              },
+              label: 'Hook Generator',
+            },
+            id: 'hook',
+            type: 'hookGenerator',
+          },
+        ],
+        organization: { toString: () => 'org-1' },
+        user: { toString: () => 'user-1' },
+      });
+
+      const result = await service.executeWorkflow(workflow);
+      const output = result.nodeResults.get('hook')?.output as {
+        captionHook: string;
+        hashtags: string[];
+        hookText: string;
+        slidePrompts: string[];
+      };
+
+      expect(result.status).toBe('completed');
+      expect(output.hookText).toContain('Here is what matters');
+      expect(output.hashtags).toContain('#aifounders');
+      expect(output.slidePrompts).toHaveLength(6);
+      expect(loggerService.warn).not.toHaveBeenCalledWith(
+        expect.stringContaining('fallback executor invoked'),
+        expect.objectContaining({ nodeType: 'hookGenerator' }),
+      );
+    });
+
     it('executes trend trigger with analytics keywords when no social trend adapter is available', async () => {
       const workflow = service.convertToExecutableWorkflow({
         _id: { toString: () => 'wf-trend' },
