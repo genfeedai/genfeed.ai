@@ -23,8 +23,16 @@ function OnboardingLayoutInner({ children }: LayoutProps) {
     !!segment && (ONBOARDING_STEPS as readonly string[]).includes(segment);
   const showCloudFooter = isCountedStep && segment !== 'summary';
 
+  const isPreview = EnvironmentService.isOnboardingPreview;
+
   return (
     <div className="min-h-screen bg-background">
+      {isPreview ? (
+        <div className="border-b border-amber-400/20 bg-amber-400/10 px-6 py-2 text-center text-xs font-medium text-amber-200/90">
+          Preview mode — replaying onboarding. Steps update your existing
+          workspace; nothing is duplicated.
+        </div>
+      ) : null}
       <div className="container mx-auto px-6 py-8">
         {/* Logo */}
         <div className="flex items-center gap-3 mb-12">
