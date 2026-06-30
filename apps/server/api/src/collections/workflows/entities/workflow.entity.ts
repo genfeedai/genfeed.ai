@@ -33,6 +33,7 @@ export class WorkflowStepEntity {
 export class WorkflowEntity extends BaseEntity implements WorkflowDocument {
   declare id: string;
   declare mongoId: string | null;
+  declare defaultRecurringBrandId: string | null;
   declare organizationId: string;
   declare userId: string;
   user?: string;

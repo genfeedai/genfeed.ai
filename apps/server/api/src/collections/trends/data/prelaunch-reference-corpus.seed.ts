@@ -1,4 +1,7 @@
-import type { TrendSourceItem } from '@api/collections/trends/interfaces/trend.interfaces';
+import type {
+  TrendSourceClassification,
+  TrendSourceItem,
+} from '@api/collections/trends/interfaces/trend.interfaces';
 
 export interface PrelaunchReferenceCorpusSeed {
   growthRate: number;
@@ -8,6 +11,7 @@ export interface PrelaunchReferenceCorpusSeed {
     angle: string;
     hashtags: string[];
     launchCorpusSlice: string;
+    sourceClassification: TrendSourceClassification;
   };
   platform: string;
   sourcePreview: TrendSourceItem[];
@@ -26,6 +30,7 @@ interface CorpusTheme {
 interface CorpusPlatform {
   accountPrefix: string;
   contentType: TrendSourceItem['contentType'];
+  freshnessWindowDays: number;
   key: string;
   label: string;
   sourcePath: (theme: CorpusTheme) => string;
@@ -116,6 +121,7 @@ const PLATFORMS: CorpusPlatform[] = [
   {
     accountPrefix: 'tiktok',
     contentType: 'video',
+    freshnessWindowDays: 2,
     key: 'tiktok',
     label: 'TikTok',
     sourcePath: (theme) => `https://www.tiktok.com/tag/${theme.hashtag}`,
@@ -124,6 +130,7 @@ const PLATFORMS: CorpusPlatform[] = [
   {
     accountPrefix: 'instagram',
     contentType: 'video',
+    freshnessWindowDays: 2,
     key: 'instagram',
     label: 'Instagram',
     sourcePath: (theme) =>
@@ -134,6 +141,7 @@ const PLATFORMS: CorpusPlatform[] = [
   {
     accountPrefix: 'x',
     contentType: 'tweet',
+    freshnessWindowDays: 2,
     key: 'twitter',
     label: 'X / Twitter',
     sourcePath: (theme) => `https://x.com/hashtag/${theme.hashtag}`,
@@ -142,6 +150,7 @@ const PLATFORMS: CorpusPlatform[] = [
   {
     accountPrefix: 'youtube',
     contentType: 'video',
+    freshnessWindowDays: 7,
     key: 'youtube',
     label: 'YouTube',
     sourcePath: (theme) => `https://www.youtube.com/hashtag/${theme.hashtag}`,
@@ -150,6 +159,7 @@ const PLATFORMS: CorpusPlatform[] = [
   {
     accountPrefix: 'reddit',
     contentType: 'post',
+    freshnessWindowDays: 7,
     key: 'reddit',
     label: 'Reddit',
     sourcePath: (theme) => `https://www.reddit.com/r/${theme.hashtag}/`,
@@ -158,6 +168,7 @@ const PLATFORMS: CorpusPlatform[] = [
   {
     accountPrefix: 'pinterest',
     contentType: 'image',
+    freshnessWindowDays: 30,
     key: 'pinterest',
     label: 'Pinterest',
     sourcePath: (theme) =>
@@ -168,6 +179,7 @@ const PLATFORMS: CorpusPlatform[] = [
   {
     accountPrefix: 'linkedin',
     contentType: 'post',
+    freshnessWindowDays: 7,
     key: 'linkedin',
     label: 'LinkedIn',
     sourcePath: (theme) =>
@@ -186,6 +198,13 @@ export function buildPrelaunchReferenceCorpusSeeds(
       const publishedAt = new Date(
         capturedAt.getTime() - (themeIndex + platformIndex + 1) * 86_400_000,
       ).toISOString();
+      const sourceClassification = buildPublicReferenceClassification({
+        capturedAt,
+        confidence: themeIndex < 4 ? 'medium' : 'low',
+        freshnessWindowDays: platform.freshnessWindowDays,
+        sourceLabel: platform.label,
+        sourceTopic: theme.title,
+      });
 
       return {
         growthRate: 35 + themeIndex * 3 + platformIndex,
@@ -195,13 +214,14 @@ export function buildPrelaunchReferenceCorpusSeeds(
           angle: theme.angle,
           hashtags: [`#${theme.hashtag}`, `#${theme.key.replace(/-/g, '')}`],
           launchCorpusSlice: 'organic-reference',
+          sourceClassification,
         },
         platform: platform.key,
         sourcePreview: [
           {
             authorHandle: `${platform.accountPrefix}-${theme.key}`,
             contentType: platform.contentType,
-            id: `${trendKey}:primary`,
+            id: `${trendKey}-fallback-primary`,
             metrics: {
               comments: 80 + themeIndex * 12,
               likes: 1_200 + platformIndex * 140 + themeIndex * 90,
@@ -210,6 +230,7 @@ export function buildPrelaunchReferenceCorpusSeeds(
             },
             platform: platform.key,
             publishedAt,
+            sourceClassification,
             sourceUrl: platform.sourcePath(theme),
             text: theme.angle,
             title: `${theme.shortTitle} on ${platform.label}`,
@@ -217,7 +238,7 @@ export function buildPrelaunchReferenceCorpusSeeds(
           {
             authorHandle: `${platform.accountPrefix}-reference-${themeIndex + 1}`,
             contentType: platform.contentType,
-            id: `${trendKey}:secondary`,
+            id: `${trendKey}-fallback-secondary`,
             metrics: {
               comments: 45 + platformIndex * 8,
               likes: 760 + themeIndex * 75,
@@ -226,6 +247,7 @@ export function buildPrelaunchReferenceCorpusSeeds(
             },
             platform: platform.key,
             publishedAt,
+            sourceClassification,
             sourceUrl: platform.sourcePathAlt(theme),
             text: `Reference example for ${theme.title.toLowerCase()} in the ${platform.label} launch corpus.`,
             title: `${theme.title}: ${platform.label} reference`,
@@ -236,4 +258,22 @@ export function buildPrelaunchReferenceCorpusSeeds(
       };
     }),
   );
+}
+
+function buildPublicReferenceClassification(input: {
+  capturedAt: Date;
+  confidence: TrendSourceClassification['confidence'];
+  freshnessWindowDays: number;
+  sourceLabel: string;
+  sourceTopic: string;
+}): TrendSourceClassification {
+  return {
+    capturedAt: input.capturedAt.toISOString(),
+    confidence: input.confidence,
+    freshnessWindowDays: input.freshnessWindowDays,
+    intendedUse: 'organic_trend_discovery',
+    sourceKind: 'public_platform_reference',
+    sourceLabel: input.sourceLabel,
+    sourceTopic: input.sourceTopic,
+  };
 }

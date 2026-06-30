@@ -15,6 +15,13 @@ export interface ParsedRedisConfig {
   url: string;
 }
 
+export type RedisReconnectStrategy = (retries: number) => number | false;
+
+export interface NodeRedisConnectionOptions {
+  connectTimeout?: number;
+  reconnectStrategy?: RedisReconnectStrategy;
+}
+
 /**
  * Parse Redis connection from config service.
  * TLS is enabled if EITHER:
@@ -73,6 +80,29 @@ export function buildNodeRedisSocketOptions(
     return { connectTimeout, tls: true };
   }
   return { connectTimeout };
+}
+
+/**
+ * Build node-redis v4 createClient options.
+ * Keep REDIS_PASSWORD separate from REDIS_URL so production can inject the
+ * password as an ECS secret without placing it in a plaintext env value.
+ */
+export function buildNodeRedisClientOptions(
+  config: ParsedRedisConfig,
+  options: NodeRedisConnectionOptions = {},
+) {
+  const socket = {
+    ...buildNodeRedisSocketOptions(config, options.connectTimeout ?? 3_000),
+    ...(options.reconnectStrategy && {
+      reconnectStrategy: options.reconnectStrategy,
+    }),
+  };
+
+  return {
+    ...(config.password && { password: config.password }),
+    socket,
+    url: config.url,
+  };
 }
 
 /**

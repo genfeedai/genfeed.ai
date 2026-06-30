@@ -11,7 +11,7 @@ import {
   ErrorScreen,
   LoadingScreen,
 } from '@/components/ScreenStates';
-import { colors } from '@/constants';
+import { borderRadius, colors } from '@/constants';
 import { useAnalytics } from '@/hooks/use-analytics';
 import { formatNumber, formatPercentage } from '@/utils/format-date';
 
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   engagementBar: {
-    borderRadius: 4,
+    borderRadius: borderRadius.sm,
     flexDirection: 'row',
     height: 8,
     marginBottom: 16,
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
   },
   engagementSection: {
     backgroundColor: colors.bgTertiary,
-    borderRadius: 12,
+    borderRadius: borderRadius.xxl,
     padding: 16,
   },
   engagementSegment: {
@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
   platformCard: {
     alignItems: 'center',
     backgroundColor: colors.bgTertiary,
-    borderRadius: 12,
+    borderRadius: borderRadius.xxl,
     flexDirection: 'row',
     marginBottom: 8,
     padding: 14,
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
   platformIconContainer: {
     alignItems: 'center',
     backgroundColor: colors.bgBorder,
-    borderRadius: 10,
+    borderRadius: borderRadius.xl,
     height: 40,
     justifyContent: 'center',
     width: 40,
@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
   rankBadge: {
     alignItems: 'center',
     backgroundColor: colors.indigo,
-    borderRadius: 8,
+    borderRadius: borderRadius.lg,
     height: 32,
     justifyContent: 'center',
     width: 32,
@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
   },
   statIcon: {
     backgroundColor: colors.bgTertiary,
-    borderRadius: 8,
+    borderRadius: borderRadius.lg,
     color: colors.indigo,
     fontSize: 20,
     height: 36,
@@ -514,7 +514,7 @@ const styles = StyleSheet.create({
   topContentCard: {
     alignItems: 'center',
     backgroundColor: colors.bgTertiary,
-    borderRadius: 12,
+    borderRadius: borderRadius.xxl,
     flexDirection: 'row',
     marginBottom: 8,
     padding: 14,

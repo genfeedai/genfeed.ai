@@ -1,16 +1,19 @@
 import { TelegramBotService } from '@api/services/telegram-bot/telegram-bot.service';
+import { Bot } from 'grammy';
 
 // Mock grammy
 vi.mock('grammy', () => ({
-  Bot: vi.fn().mockImplementation(() => ({
-    command: vi.fn(),
-    handleUpdate: vi.fn(),
-    on: vi.fn(),
-    start: vi.fn(),
-    stop: vi.fn(),
-    token: 'test-token',
-    use: vi.fn(),
-  })),
+  Bot: vi.fn().mockImplementation(function Bot() {
+    return {
+      command: vi.fn(),
+      handleUpdate: vi.fn(),
+      on: vi.fn(),
+      start: vi.fn(),
+      stop: vi.fn(),
+      token: 'test-token',
+      use: vi.fn(),
+    };
+  }),
   InlineKeyboard: vi.fn().mockImplementation(() => ({
     row: vi.fn().mockReturnThis(),
     text: vi.fn().mockReturnThis(),
@@ -141,6 +144,31 @@ describe('TelegramBotService', () => {
       expect(startPollingSpy).not.toHaveBeenCalled();
       expect(mockLoggerService.log).toHaveBeenCalledWith(
         'TelegramBotService: polling disabled for local development',
+      );
+    });
+
+    it('registers audio and video workflow input handlers', async () => {
+      await service.onModuleInit();
+
+      const botInstance = vi.mocked(Bot).mock.results.at(-1)?.value as
+        | { on: ReturnType<typeof vi.fn> }
+        | undefined;
+
+      expect(botInstance?.on).toHaveBeenCalledWith(
+        'message:audio',
+        expect.any(Function),
+      );
+      expect(botInstance?.on).toHaveBeenCalledWith(
+        'message:voice',
+        expect.any(Function),
+      );
+      expect(botInstance?.on).toHaveBeenCalledWith(
+        'message:video',
+        expect.any(Function),
+      );
+      expect(botInstance?.on).toHaveBeenCalledWith(
+        'message:document',
+        expect.any(Function),
       );
     });
   });

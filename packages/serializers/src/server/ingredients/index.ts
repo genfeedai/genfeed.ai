@@ -1,7 +1,6 @@
 // Auto-generated barrel file
 export * from '@serializers/server/ingredients/asset.serializer';
 export * from '@serializers/server/ingredients/avatar.serializer';
-export * from '@serializers/server/ingredients/gif.serializer';
 export * from '@serializers/server/ingredients/image.serializer';
 export * from '@serializers/server/ingredients/ingredient.serializer';
 export * from '@serializers/server/ingredients/metadata.serializer';

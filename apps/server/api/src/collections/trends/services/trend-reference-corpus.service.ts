@@ -1,6 +1,7 @@
 import type {
   TrendSourceAccountResult,
   TrendSourceAccountSummary,
+  TrendSourceClassification,
   TrendSourceItem,
   TrendSourceReferenceRecord,
   TrendSourceReferenceResult,
@@ -54,6 +55,7 @@ interface ReferenceRecordData {
   platform: string;
   publishedAt?: string;
   sourcePreviewState: 'live' | 'fallback' | 'empty';
+  sourceClassification?: TrendSourceClassification;
   text?: string;
   thumbnailUrl?: string;
   title?: string;
@@ -129,6 +131,9 @@ export class TrendReferenceCorpusService {
                 publishedAt: sourceItem.publishedAt
                   ? new Date(sourceItem.publishedAt).toISOString()
                   : undefined,
+                sourceClassification:
+                  sourceItem.sourceClassification ??
+                  existingData.sourceClassification,
                 sourcePreviewState: trend.sourcePreviewState,
                 text: sourceItem.text,
                 thumbnailUrl: sourceItem.thumbnailUrl,
@@ -164,6 +169,7 @@ export class TrendReferenceCorpusService {
                 publishedAt: sourceItem.publishedAt
                   ? new Date(sourceItem.publishedAt).toISOString()
                   : undefined,
+                sourceClassification: sourceItem.sourceClassification,
                 sourcePreviewState: trend.sourcePreviewState,
                 text: sourceItem.text,
                 thumbnailUrl: sourceItem.thumbnailUrl,
@@ -760,6 +766,7 @@ export class TrendReferenceCorpusService {
       publishedAt: data.publishedAt,
       remixCount: remixCounts.get(id) || 0,
       sourcePreviewState: data.sourcePreviewState,
+      sourceClassification: data.sourceClassification,
       text: data.text,
       thumbnailUrl: data.thumbnailUrl,
       title: data.title,

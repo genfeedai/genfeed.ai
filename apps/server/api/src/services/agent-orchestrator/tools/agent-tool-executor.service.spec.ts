@@ -1799,6 +1799,140 @@ describe('AgentToolExecutorService', () => {
     );
   });
 
+  it('should resolve brand HeyGen defaults for prepare_clip_workflow_run', async () => {
+    const { brandsService, service, workflowsService } = createService();
+
+    brandsService.findOne.mockResolvedValue({
+      _id: '67a1234567890123456789aa',
+      agentConfig: {
+        heygenAvatarId: 'brand-avatar-1',
+        heygenVoiceId: 'brand-voice-1',
+      },
+    });
+    workflowsService.findAll.mockResolvedValue({ docs: [] });
+
+    const result = await service.executeTool(
+      AgentToolName.PREPARE_CLIP_WORKFLOW_RUN,
+      {
+        prompt: 'Generate a defaulted clip',
+      },
+      {
+        organizationId: '67a123456789012345678901',
+        userId: '67a123456789012345678902',
+      },
+    );
+
+    expect(result.success).toBe(true);
+    const action = result.nextActions?.[0];
+    expect(action?.clipRun?.identity).toEqual(
+      expect.objectContaining({
+        avatarId: 'brand-avatar-1',
+        isComplete: true,
+        source: 'brand',
+        voiceId: 'brand-voice-1',
+      }),
+    );
+    expect(action?.clipRun?.inputValues).toEqual(
+      expect.objectContaining({
+        avatarId: 'brand-avatar-1',
+        heygenAvatarId: 'brand-avatar-1',
+        heygenVoiceId: 'brand-voice-1',
+        identityStatus: 'ready',
+        voiceId: 'brand-voice-1',
+      }),
+    );
+    expect(action?.clipRunState).toEqual(
+      expect.objectContaining({
+        identity: expect.objectContaining({
+          avatarId: 'brand-avatar-1',
+          voiceId: 'brand-voice-1',
+        }),
+      }),
+    );
+  });
+
+  it('should merge brand avatar with organization HeyGen voice fallback', async () => {
+    const {
+      brandsService,
+      organizationSettingsService,
+      service,
+      workflowsService,
+    } = createService();
+
+    brandsService.findOne.mockResolvedValue({
+      _id: '67a1234567890123456789aa',
+      agentConfig: {
+        heygenAvatarId: 'brand-avatar-2',
+      },
+    });
+    organizationSettingsService.findOne.mockResolvedValue({
+      _id: 'settings-1',
+      defaultVoiceRef: {
+        externalVoiceId: 'org-heygen-voice-2',
+        provider: 'heygen',
+        source: 'catalog',
+      },
+    });
+    workflowsService.findAll.mockResolvedValue({ docs: [] });
+
+    const result = await service.executeTool(
+      AgentToolName.PREPARE_CLIP_WORKFLOW_RUN,
+      {
+        prompt: 'Generate a mixed-default clip',
+      },
+      {
+        organizationId: '67a123456789012345678901',
+        userId: '67a123456789012345678902',
+      },
+    );
+
+    const identity = result.nextActions?.[0].clipRun?.identity;
+    expect(identity).toEqual(
+      expect.objectContaining({
+        avatarId: 'brand-avatar-2',
+        isComplete: true,
+        source: 'brand',
+        voiceId: 'org-heygen-voice-2',
+      }),
+    );
+  });
+
+  it('should surface missing clip identity defaults before generation', async () => {
+    const { brandsService, service, workflowsService } = createService();
+
+    brandsService.findOne.mockResolvedValue(null);
+    workflowsService.findAll.mockResolvedValue({ docs: [] });
+
+    const result = await service.executeTool(
+      AgentToolName.PREPARE_CLIP_WORKFLOW_RUN,
+      {
+        prompt: 'Generate a clip without defaults',
+      },
+      {
+        organizationId: '67a123456789012345678901',
+        userId: '67a123456789012345678902',
+      },
+    );
+
+    const action = result.nextActions?.[0];
+    expect(action?.description).toContain(
+      'Clip identity defaults are incomplete',
+    );
+    expect(action?.clipRun?.identity).toEqual(
+      expect.objectContaining({
+        isComplete: false,
+        missing: ['avatar', 'voice'],
+        source: 'missing',
+      }),
+    );
+    expect(action?.clipRun?.inputValues).toEqual(
+      expect.objectContaining({
+        identityStatus: 'missing_identity',
+        missingIdentity: ['avatar', 'voice'],
+      }),
+    );
+  });
+
   it('should sanitize colon-prefixed batch ids for list_review_queue and return a conversation card', async () => {
     const { batchGenerationService, service } = createService();
     batchGenerationService.getBatch = vi.fn().mockResolvedValue({

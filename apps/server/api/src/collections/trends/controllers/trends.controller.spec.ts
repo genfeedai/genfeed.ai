@@ -296,6 +296,15 @@ describe('TrendsController', () => {
             matchedTrendTopics: ['#AIAgents'],
             platform: 'twitter',
             remixCount: 2,
+            sourceClassification: {
+              capturedAt: '2026-03-25T00:00:00.000Z',
+              confidence: 'medium',
+              freshnessWindowDays: 2,
+              intendedUse: 'organic_trend_discovery',
+              sourceKind: 'public_platform_reference',
+              sourceLabel: 'X / Twitter',
+              sourceTopic: '#AIAgents',
+            },
             sourcePreviewState: 'live',
           },
         ],
@@ -324,6 +333,9 @@ describe('TrendsController', () => {
         items: [
           expect.objectContaining({
             id: 'ref-1',
+            sourceClassification: expect.objectContaining({
+              sourceKind: 'public_platform_reference',
+            }),
           }),
         ],
         summary: {

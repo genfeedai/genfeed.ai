@@ -1,7 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type { IHeyGen } from '@genfeedai/interfaces';
 import { HeyGen } from '@genfeedai/models/integrations/heygen.model';
-import { HeyGenServiceSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
 import { EnvironmentService } from '@services/core/environment.service';
 
@@ -15,7 +14,7 @@ import { EnvironmentService } from '@services/core/environment.service';
 
 export class HeyGenService extends BaseService<IHeyGen> {
   constructor(token: string) {
-    super(API_ENDPOINTS.HEYGEN, token, HeyGen, HeyGenServiceSerializer);
+    super(API_ENDPOINTS.HEYGEN, token, HeyGen, { serialize: (d) => d });
   }
 
   public static getInstance(token: string): HeyGenService {

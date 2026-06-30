@@ -6,8 +6,23 @@ on:
   pull_request:
     branches: [master]
   # Allow this gate to be run as a reusable workflow (e.g. by full-suite.yml,
-  # which chains CI → E2E on demand). No inputs needed; secrets are inherited.
+  # which chains CI → E2E on demand). Secrets are inherited.
   workflow_call:
+    inputs:
+      run_heavy_tests:
+        # Gate for the heavy test matrix (packages, server services,
+        # web/desktop/mobile, extensions, app + api shards). Callers on the
+        # release path (full-suite.yml) pass `true` to run the full suite.
+        #
+        # This is an explicit input — NOT a `github.event_name == 'workflow_call'`
+        # check — because a reusable workflow inherits the CALLER's originating
+        # event (e.g. `workflow_dispatch` from deploy-ecs.yml), so `event_name`
+        # is never `workflow_call` here and the old gate silently skipped every
+        # heavy test job on the release QA path.
+        description: 'Run the full heavy test matrix (release QA path).'
+        type: boolean
+        required: false
+        default: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -84,7 +99,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: gitleaks/gitleaks-action@v2
+      - uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
@@ -203,10 +218,19 @@ jobs:
             bunx react-doctor@0.4.2 . --blocking error --project '*' --diff false
           fi
 
-  architecture-guards:
-    name: Architecture Guards
+  # Consolidated static guards — these four checks each do ~10-20s of actual
+  # work but previously ran as four separate jobs, each paying a full
+  # checkout + bun install (~2 min) on its own runner. Merged into one job they
+  # share a single setup, cutting ~3 runners (~6-8 runner-min) per run with no
+  # critical-path impact (they sit well under the test jobs). None of these are
+  # required status checks, so collapsing their individual names is safe.
+  # React Doctor is intentionally NOT folded in: it skips on draft PRs and runs
+  # its own diff-detection, so its trigger semantics differ from these always-on
+  # guards.
+  guards:
+    name: Guards
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     needs: trust
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
@@ -218,41 +242,14 @@ jobs:
         with:
           bun-version: '1.3.14'
           cache-turbo: 'false'
-      - run: bun run check:architecture
-
-  sql-risk-audit:
-    name: SQL Risk Audit
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: trust
-    if: needs.trust.outputs.is-trusted == 'true'
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
-        with:
-          bun-version: '1.3.14'
-          cache-turbo: 'false'
-      - run: bun run audit:api:sql:ci
-
-  ui-guards:
-    name: UI Guards
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: trust
-    if: needs.trust.outputs.is-trusted == 'true'
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
-        with:
-          bun-version: '1.3.14'
-          cache-turbo: 'false'
-      - run: bun run check:ui-guards
+      - name: Architecture Guards
+        run: bun run check:architecture
+      - name: SQL Risk Audit
+        run: bun run audit:api:sql:ci
+      - name: UI Guards
+        run: bun run check:ui-guards
+      - name: Design System
+        run: bun run design:check
 
   format:
     name: Format
@@ -292,23 +289,6 @@ jobs:
           else
             bun run lint
           fi
-
-  design:
-    name: Design System
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: trust
-    if: needs.trust.outputs.is-trusted == 'true'
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
-        with:
-          bun-version: '1.3.14'
-          cache-turbo: 'false'
-      - run: bun run design:check
 
   typecheck:
     name: Typecheck
@@ -383,7 +363,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: trust
-    if: needs.trust.outputs.is-trusted == 'true' && github.event_name == 'workflow_call'
+    if: needs.trust.outputs.is-trusted == 'true' && inputs.run_heavy_tests
     steps:
       - uses: actions/checkout@v5
         with:
@@ -405,7 +385,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: trust
-    if: needs.trust.outputs.is-trusted == 'true' && github.event_name == 'workflow_call'
+    if: needs.trust.outputs.is-trusted == 'true' && inputs.run_heavy_tests
     steps:
       - uses: actions/checkout@v5
         with:
@@ -427,7 +407,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: trust
-    if: needs.trust.outputs.is-trusted == 'true' && github.event_name == 'workflow_call'
+    if: needs.trust.outputs.is-trusted == 'true' && inputs.run_heavy_tests
     steps:
       - uses: actions/checkout@v5
         with:
@@ -449,7 +429,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: trust
-    if: needs.trust.outputs.is-trusted == 'true' && github.event_name == 'workflow_call'
+    if: needs.trust.outputs.is-trusted == 'true' && inputs.run_heavy_tests
     steps:
       - uses: actions/checkout@v5
         with:
@@ -471,7 +451,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [trust, test-scope]
-    if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.app == 'true' && github.event_name == 'workflow_call'
+    if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.app == 'true' && inputs.run_heavy_tests
     strategy:
       fail-fast: false
       matrix:
@@ -505,7 +485,7 @@ jobs:
     if: >-
       needs.trust.outputs.is-trusted == 'true'
       && needs.test-scope.outputs.app == 'true'
-      && (github.event_name == 'pull_request' || github.event_name == 'push')
+      && github.event_name == 'push'
     steps:
       - uses: actions/checkout@v5
         with:
@@ -530,12 +510,53 @@ jobs:
         env:
           NODE_ENV: test
 
+  # Focused, blocking API tests on every master push (post-merge only — never on
+  # PRs): mirrors test-app-changed for apps/server/api — runs only the API tests
+  # whose module graph touches the diff (vitest --changed), so it stays fast while
+  # pinning any regression to the single merge that introduced it. The full sharded
+  # test-api matrix below still runs the whole suite via workflow_call
+  # (full-suite / release / deploy), which catches cross-cutting tests the
+  # --changed static graph can miss.
+  test-api-changed:
+    name: Test API (changed)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [trust, test-scope]
+    if: >-
+      needs.trust.outputs.is-trusted == 'true'
+      && needs.test-scope.outputs.api == 'true'
+      && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          bun-version: '1.3.14'
+      - name: Build API dependencies
+        run: bunx turbo run build --filter=./packages/**
+      - name: Run changed API tests
+        run: |
+          BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
+          # Force-push / new-branch pushes report an all-zero "before"; fall back
+          # to the previous commit so --changed always has a valid diff base.
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            BASE="HEAD~1"
+          fi
+          echo "Running API tests changed since $BASE"
+          cd apps/server/api && bunx vitest run --config vitest.config.ts \
+            --maxWorkers=2 --passWithNoTests --changed "$BASE"
+        env:
+          NODE_ENV: test
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
+
   test-api:
     name: Test API (Shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [trust, test-scope]
-    if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.api == 'true' && github.event_name == 'workflow_call'
+    if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.api == 'true' && inputs.run_heavy_tests
     strategy:
       fail-fast: false
       matrix:
@@ -560,7 +581,7 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: [trust, format, lint, design, typecheck]
+    needs: [trust, format, lint, guards, typecheck]
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
       - uses: actions/checkout@v5

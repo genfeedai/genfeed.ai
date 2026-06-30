@@ -8,7 +8,10 @@ import {
   type OnModuleInit,
 } from '@nestjs/common';
 import { createClient, type RedisClientType } from 'redis';
-import { parseRedisConnection } from './redis-connection.utils';
+import {
+  buildNodeRedisClientOptions,
+  parseRedisConnection,
+} from './redis-connection.utils';
 
 @Injectable()
 export class RedisService
@@ -48,17 +51,13 @@ export class RedisService
     }
 
     const config = parseRedisConnection(this.configService);
-    const socketOptions = {
+    const clientOptions = buildNodeRedisClientOptions(config, {
       connectTimeout: RedisService.CONNECT_TIMEOUT_MS,
       reconnectStrategy: () => false as const, // Don't retry - fail fast
-      ...(config.tls ? { tls: true as const } : {}),
-    };
+    });
 
     try {
-      this.publisher = createClient({
-        socket: socketOptions,
-        url: config.url,
-      });
+      this.publisher = createClient(clientOptions);
       this.publisher.on('error', (err) =>
         this.logger.error('Redis Publisher Error', err, this.context),
       );
@@ -72,10 +71,7 @@ export class RedisService
         ),
       ]);
 
-      this.subscriber = createClient({
-        socket: socketOptions,
-        url: config.url,
-      });
+      this.subscriber = createClient(clientOptions);
       this.subscriber.on('error', (err) =>
         this.logger.error('Redis Subscriber Error', err, this.context),
       );

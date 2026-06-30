@@ -15,6 +15,7 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
+import { FaGithub } from 'react-icons/fa6';
 import { persistOnboardingHandoffParams } from '@/lib/onboarding/onboarding-access.util';
 import {
   getAuthCallbackURL,
@@ -69,9 +70,22 @@ export default function SignUpBetterAuth() {
     }
   }
 
-  async function handleGoogleSignUp() {
+  async function handleSocialSignUp(provider: 'github' | 'google') {
     setErrorMessage(null);
-    await signIn.social({ callbackURL: authCallbackURL, provider: 'google' });
+    try {
+      const result = await signIn.social({
+        callbackURL: authCallbackURL,
+        provider,
+      });
+      if (result?.error) {
+        setErrorMessage(
+          result.error.message ??
+            `Failed to sign up with ${provider}. Please try again.`,
+        );
+      }
+    } catch {
+      setErrorMessage(`Failed to sign up with ${provider}. Please try again.`);
+    }
   }
 
   if (!isMounted) {
@@ -137,11 +151,22 @@ export default function SignUpBetterAuth() {
         <Button
           type="button"
           variant={ButtonVariant.OUTLINE}
-          onClick={handleGoogleSignUp}
+          onClick={() => handleSocialSignUp('google')}
           className="w-full"
           withWrapper={false}
         >
           Continue with Google
+        </Button>
+
+        <Button
+          type="button"
+          variant={ButtonVariant.OUTLINE}
+          onClick={() => handleSocialSignUp('github')}
+          icon={<FaGithub className="size-4" aria-hidden="true" />}
+          className="w-full"
+          withWrapper={false}
+        >
+          Continue with GitHub
         </Button>
 
         <p className="text-center text-sm text-muted-foreground">

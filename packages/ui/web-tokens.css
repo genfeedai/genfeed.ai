@@ -35,14 +35,22 @@
   --space-xxxl: 32px;
   --space-xxxxl: 48px;
 
+  /* Canonical radius scale — THE single source of truth for radius values.
+     Mirrored 1:1 in packages/ui/src/core/radius.ts (TS consumers) and locked
+     by scripts/check-design-system.ts. globals.css @theme only references
+     these vars; it never re-declares the values. */
   --radius-none: 0px;
+  --radius-xs: 2px;
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
   --radius-xl: 10px;
-  --radius-xxl: 12px;
-  --radius-xxxl: 16px;
+  --radius-2xl: 12px;
+  --radius-3xl: 16px;
   --radius-full: 9999px;
+  /* Semantic: canonical card/surface radius — sharp 0px, matching the Brand OS
+     editorial direction. This single knob drives every card; retune here once. */
+  --radius-card: 0px;
 
   --motion-duration-fast: 200ms;
   --motion-duration-normal: 300ms;

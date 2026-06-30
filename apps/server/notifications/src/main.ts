@@ -34,6 +34,7 @@ async function main() {
     configService.get('REDIS_URL') || 'redis://localhost:6379',
     logger,
     redisTls,
+    configService.get('REDIS_PASSWORD'),
   );
 
   try {

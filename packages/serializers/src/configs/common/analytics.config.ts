@@ -9,7 +9,6 @@ import {
   analyticsOrgStatsAttributes,
   analyticsOverviewAttributes,
   analyticsPlatformAttributes,
-  analyticsTimeSeriesAttributes,
   analyticsTimeSeriesWithPlatformsAttributes,
   analyticsTopContentAttributes,
   analyticsTrendAttributes,
@@ -19,11 +18,6 @@ import { simpleConfig } from '@serializers/builders';
 export const analyticsSerializerConfig = simpleConfig(
   'analytic',
   analyticsAttributes,
-);
-
-export const analyticsTimeSeriesSerializerConfig = simpleConfig(
-  'analytics-timeseries',
-  analyticsTimeSeriesAttributes,
 );
 
 export const analyticsTimeSeriesWithPlatformsSerializerConfig = simpleConfig(

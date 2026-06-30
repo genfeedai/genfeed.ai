@@ -423,13 +423,34 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
     baseURL,
     trustedOrigins,
     google,
+    github,
+    requireEmailVerification = false,
     cookieDomain,
     ipAddressHeaders,
     experimentalJoins,
     rateLimitStore,
     sendMagicLink,
+    sendVerificationEmail,
     onUserCreated,
   } = options;
+  const socialProviders = {
+    ...(google
+      ? {
+          google: {
+            clientId: google.clientId,
+            clientSecret: google.clientSecret,
+          },
+        }
+      : {}),
+    ...(github
+      ? {
+          github: {
+            clientId: github.clientId,
+            clientSecret: github.clientSecret,
+          },
+        }
+      : {}),
+  };
 
   return betterAuth({
     appName: 'Genfeed.ai',
@@ -438,27 +459,54 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
     secret,
     trustedOrigins,
     database: prismaAdapter(prisma, { provider: 'postgresql' }),
+    account: {
+      accountLinking: {
+        enabled: true,
+        requireLocalEmailVerified: true,
+        trustedProviders: ['google', 'github'],
+        updateUserInfoOnLink: true,
+      },
+    },
     emailAndPassword: {
       enabled: true,
-      // Email-verification flow lands in Phase 3 (#738); off for dual-run.
-      requireEmailVerification: false,
+      requireEmailVerification,
     },
-    ...(google
+    emailVerification: {
+      autoSignInAfterVerification: true,
+      sendOnSignIn: requireEmailVerification,
+      sendOnSignUp: requireEmailVerification,
+      sendVerificationEmail: async ({ token, url, user }) => {
+        // Guard: this callback should only be invoked when email verification is
+        // required (SMTP is configured). If it fires without that flag, the
+        // deployment is misconfigured — throw so the error surfaces rather than
+        // silently swallowing a verification that was never sent.
+        if (!requireEmailVerification) {
+          throw new Error(
+            'sendVerificationEmail called but requireEmailVerification is false. ' +
+              'Configure SMTP and enable requireEmailVerification before sending verification emails.',
+          );
+        }
+        await sendVerificationEmail({
+          token,
+          url,
+          user: { email: user.email },
+        });
+      },
+    },
+    ...(Object.keys(socialProviders).length > 0
       ? {
-          socialProviders: {
-            google: {
-              clientId: google.clientId,
-              clientSecret: google.clientSecret,
-            },
-          },
+          socialProviders,
         }
       : {}),
     // Share rate-limit counters across stateless API instances via Redis;
     // `customStorage` scopes Redis to rate limiting only (sessions stay in
     // Postgres). Omitted when no store is wired so the in-memory default holds.
-    ...(rateLimitStore
-      ? { rateLimit: { customStorage: buildRateLimitStorage(rateLimitStore) } }
-      : {}),
+    rateLimit: {
+      enabled: true,
+      ...(rateLimitStore
+        ? { customStorage: buildRateLimitStorage(rateLimitStore) }
+        : {}),
+    },
     // Experimental single-query joins (Prisma adapter). Env-gated; off unless
     // explicitly enabled after staging verification.
     ...(experimentalJoins ? { experimental: { joins: true } } : {}),

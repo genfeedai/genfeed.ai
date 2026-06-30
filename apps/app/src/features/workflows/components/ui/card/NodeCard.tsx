@@ -19,7 +19,7 @@ export function NodeCard({
   return (
     <div
       className={cn(
-        'space-y-3 border border-[var(--border)] bg-card p-4',
+        'space-y-3 rounded-card border border-[var(--border)] bg-card p-4',
         className,
       )}
       style={{ minWidth }}

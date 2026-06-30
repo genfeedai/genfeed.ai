@@ -230,12 +230,13 @@ export class FanvueService {
       const updatedCredential = await this.credentialsService.patch(
         credential._id,
         {
-          accessToken: EncryptionUtil.encrypt(access_token),
+          // Stored plaintext here — CredentialsService encrypts secrets at rest.
+          accessToken: access_token,
           accessTokenExpiry: expires_in
             ? new Date(Date.now() + expires_in * 1000)
             : undefined,
           isConnected: true,
-          refreshToken: EncryptionUtil.encrypt(newRefreshToken),
+          refreshToken: newRefreshToken,
         },
       );
 

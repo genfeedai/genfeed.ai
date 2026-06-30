@@ -1,10 +1,25 @@
+import { ClipResultStatus } from '@api/collections/clip-results/schemas/clip-result.schema';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsOptional, IsString } from 'class-validator';
+import {
+  IsBoolean,
+  IsDateString,
+  IsIn,
+  IsObject,
+  IsOptional,
+  IsString,
+  ValidateIf,
+} from 'class-validator';
 
 export class UpdateClipResultDto {
   @IsString()
   @IsOptional()
-  @ApiProperty({ description: 'Clip status', required: false })
+  @IsIn([...ClipResultStatus])
+  @ApiProperty({
+    description: 'Clip status',
+    enum: ClipResultStatus,
+    enumName: 'ClipResultStatus',
+    required: false,
+  })
   readonly status?: string;
 
   @IsString()
@@ -66,4 +81,21 @@ export class UpdateClipResultDto {
   @IsOptional()
   @ApiProperty({ description: 'Avatar video provider name', required: false })
   readonly providerName?: string;
+
+  @IsObject()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Readiness contract for clip handoff actions',
+    required: false,
+  })
+  readonly readiness?: Record<string, unknown>;
+
+  @IsOptional()
+  @ValidateIf((_object, value) => value !== null)
+  @IsDateString()
+  @ApiProperty({
+    description: 'Timestamp when the clip reached a terminal status',
+    required: false,
+  })
+  readonly terminalAt?: string | null;
 }

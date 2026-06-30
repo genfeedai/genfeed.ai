@@ -10,7 +10,6 @@ import {
   analyticsOverviewSerializerConfig,
   analyticsPlatformSerializerConfig,
   analyticsSerializerConfig,
-  analyticsTimeSeriesSerializerConfig,
   analyticsTimeSeriesWithPlatformsSerializerConfig,
   analyticsTopContentSerializerConfig,
   analyticsTrendSerializerConfig,
@@ -64,11 +63,6 @@ export const { AnalyticsOverviewSerializer } = buildSerializer(
 export const { AnalyticsPlatformSerializer } = buildSerializer(
   'server',
   analyticsPlatformSerializerConfig,
-);
-
-export const { AnalyticsTimeseriesSerializer } = buildSerializer(
-  'server',
-  analyticsTimeSeriesSerializerConfig,
 );
 
 export const { AnalyticsTimeseriesWithPlatformsSerializer } = buildSerializer(

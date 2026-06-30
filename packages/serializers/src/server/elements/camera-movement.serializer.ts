@@ -1,7 +1,7 @@
 import { buildSerializer } from '@serializers/builders';
 import { elementCameraMovementSerializerConfig } from '@serializers/configs';
 
-export const { ElementCameraMovementSerializer } = buildSerializer(
+const { ElementCameraMovementSerializer } = buildSerializer(
   'server',
   elementCameraMovementSerializerConfig,
 );

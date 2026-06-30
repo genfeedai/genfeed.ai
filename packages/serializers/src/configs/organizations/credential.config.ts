@@ -1,6 +1,5 @@
 import {
   credentialAttributes,
-  credentialFullAttributes,
   credentialInstagramAttributes,
   credentialOAuthAttributes,
 } from '@serializers/attributes/organizations/credential.attributes';
@@ -22,12 +21,6 @@ const baseRelationships = {
 export const credentialSerializerConfig = {
   attributes: credentialAttributes,
   type: 'credential',
-  ...baseRelationships,
-};
-
-export const credentialFullSerializerConfig = {
-  attributes: credentialFullAttributes,
-  type: 'credential-full',
   ...baseRelationships,
 };
 

@@ -321,15 +321,34 @@ export class TelegramConversationService {
     let summary = `✅ **Ready to run: ${state.workflowName}**\n\n`;
     for (const input of state.requiredInputs) {
       const value = state.collectedInputs.get(input.nodeId);
-      if (input.inputType === 'image') {
-        summary += `📸 ${input.label}: Image received ✓\n`;
-      } else {
-        const displayValue = value
-          ? value.length > 80
-            ? `${value.substring(0, 80)}...`
-            : value
-          : '(empty)';
-        summary += `✏️ ${input.label}: "${displayValue}"\n`;
+      switch (input.inputType) {
+        case 'audio':
+          summary += `🎵 ${input.label}: Audio received ✓\n`;
+          break;
+        case 'image':
+          summary += `📸 ${input.label}: Image received ✓\n`;
+          break;
+        case 'text': {
+          const displayValue = value
+            ? value.length > 80
+              ? `${value.substring(0, 80)}...`
+              : value
+            : '(empty)';
+          summary += `✏️ ${input.label}: "${displayValue}"\n`;
+          break;
+        }
+        case 'video':
+          summary += `🎬 ${input.label}: Video received ✓\n`;
+          break;
+        default: {
+          const displayFallback = value
+            ? value.length > 80
+              ? `${value.substring(0, 80)}...`
+              : value
+            : '(received)';
+          summary += `📎 ${input.label}: ${displayFallback}\n`;
+          break;
+        }
       }
     }
 

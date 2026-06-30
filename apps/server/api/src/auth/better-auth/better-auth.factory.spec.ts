@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   buildBetterAuthOrganizationOptions,
   buildRateLimitStorage,
+  createBetterAuthInstance,
   resolveBetterAuthJwtAccess,
   resolveBetterAuthJwtIsSuperAdmin,
   resolveBetterAuthJwtOrganizationId,
@@ -380,5 +381,20 @@ describe('buildRateLimitStorage', () => {
     const storage = buildRateLimitStorage(createFakeRateLimitStore());
 
     expect(await storage.get('missing')).toBeNull();
+  });
+});
+
+describe('createBetterAuthInstance source', () => {
+  it('wires social provider and email-verification options into Better Auth', () => {
+    const source = createBetterAuthInstance.toString();
+
+    expect(source).toContain('socialProviders');
+    expect(source).toContain('github');
+    expect(source).toContain('google');
+    expect(source).toContain('requireEmailVerification');
+    expect(source).toContain('sendVerificationEmail');
+    expect(source).toContain('accountLinking');
+    expect(source).toContain('trustedProviders');
+    expect(source).toContain('enabled: true');
   });
 });

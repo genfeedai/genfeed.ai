@@ -43,6 +43,29 @@ export interface TrendPreferencesFilter {
   platforms?: string[];
 }
 
+export type TrendSourceConfidence = 'high' | 'low' | 'medium';
+
+export type TrendSourceIntendedUse =
+  | 'evergreen_prompt_context'
+  | 'organic_trend_discovery'
+  | 'paid_creative_analysis';
+
+export type TrendSourceKind =
+  | 'manual_curated_reference'
+  | 'owned_brand_reference'
+  | 'paid_creative_reference'
+  | 'public_platform_reference';
+
+export interface TrendSourceClassification {
+  capturedAt: string;
+  confidence: TrendSourceConfidence;
+  freshnessWindowDays: number;
+  intendedUse: TrendSourceIntendedUse;
+  sourceKind: TrendSourceKind;
+  sourceLabel?: string;
+  sourceTopic?: string;
+}
+
 export interface TrendSourceItem {
   id: string;
   sourceReferenceId?: string;
@@ -55,6 +78,7 @@ export interface TrendSourceItem {
   thumbnailUrl?: string;
   mediaUrl?: string;
   publishedAt?: string;
+  sourceClassification?: TrendSourceClassification;
   metrics?: {
     comments?: number;
     likes?: number;
@@ -116,6 +140,7 @@ export interface TrendSourceReferenceRecord {
   currentMetrics?: TrendSourceItem['metrics'];
   matchedTrendTopics: string[];
   sourcePreviewState: 'live' | 'fallback' | 'empty';
+  sourceClassification?: TrendSourceClassification;
   remixCount: number;
 }
 

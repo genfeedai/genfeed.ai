@@ -5,11 +5,8 @@ import { metadataAttributes } from '@serializers/attributes/ingredients/metadata
 import { credentialAttributes } from '@serializers/attributes/organizations/credential.attributes';
 import { nestedRel, rel } from '@serializers/builders';
 import {
-  BRAND_MINIMAL_REL,
   CONTENT_ENTITY_RELS,
   MINIMAL_ENTITY_RELS,
-  ORGANIZATION_MINIMAL_REL,
-  USER_REL,
 } from '@serializers/relationships';
 
 export const postSerializerConfig = {
@@ -29,14 +26,4 @@ export const postListSerializerConfig = {
   attributes: postAttributes,
   type: 'post',
   ...MINIMAL_ENTITY_RELS,
-};
-
-export const postAnalyticsSerializerConfig = {
-  attributes: postAttributes,
-  brand: BRAND_MINIMAL_REL,
-  ingredients: rel('ingredient', ingredientAttributes),
-  organization: ORGANIZATION_MINIMAL_REL,
-  post: rel('post', postAttributes),
-  type: 'post-analytics',
-  user: USER_REL,
 };

@@ -1,7 +1,18 @@
+import { ClipResultStatus } from '@api/collections/clip-results/schemas/clip-result.schema';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { OrganizationalCreateDto } from '@api/shared/dto/base/base.dto';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsIn,
+  IsNumber,
+  IsObject,
+  IsOptional,
+  IsString,
+  ValidateIf,
+} from 'class-validator';
 
 export class CreateClipResultDto extends OrganizationalCreateDto {
   @IsEntityId()
@@ -70,4 +81,37 @@ export class CreateClipResultDto extends OrganizationalCreateDto {
   @IsOptional()
   @ApiProperty({ description: 'Avatar video provider name', required: false })
   readonly providerName?: string;
+
+  @IsString()
+  @IsOptional()
+  @IsIn([...ClipResultStatus])
+  @ApiProperty({
+    description: 'Clip terminal processing status',
+    enum: ClipResultStatus,
+    enumName: 'ClipResultStatus',
+    required: false,
+  })
+  readonly status?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({ description: 'Whether the clip is selected', required: false })
+  readonly isSelected?: boolean;
+
+  @IsObject()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Readiness contract for clip handoff actions',
+    required: false,
+  })
+  readonly readiness?: Record<string, unknown>;
+
+  @IsOptional()
+  @ValidateIf((_object, value) => value !== null)
+  @IsDateString()
+  @ApiProperty({
+    description: 'Timestamp when the clip reached a terminal status',
+    required: false,
+  })
+  readonly terminalAt?: string | null;
 }

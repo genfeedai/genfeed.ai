@@ -44,6 +44,16 @@ export const betterAuthSchema = {
   BETTER_AUTH_TRUSTED_ORIGINS: Joi.string().optional().allow(''),
 
   /**
+   * Require users to verify their email before email/password sign-in.
+   * Disabled by default so Community/local installs without mailer config can
+   * still use password auth; SaaS/staging can enable it with Resend configured.
+   */
+  BETTER_AUTH_REQUIRE_EMAIL_VERIFICATION: Joi.string()
+    .valid('true', 'false')
+    .optional()
+    .default('false'),
+
+  /**
    * Root cookie domain (e.g. `.genfeed.ai`) for sharing the session cookie
    * across sibling subdomains (api ↔ app). Leave unset for single-host /
    * Community deployments so the cookie stays host-scoped.
@@ -72,4 +82,6 @@ export const betterAuthSchema = {
    */
   GOOGLE_CLIENT_ID: Joi.string().optional().allow(''),
   GOOGLE_CLIENT_SECRET: Joi.string().optional().allow(''),
+  GITHUB_CLIENT_ID: Joi.string().optional().allow(''),
+  GITHUB_CLIENT_SECRET: Joi.string().optional().allow(''),
 };

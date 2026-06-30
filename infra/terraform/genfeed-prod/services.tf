@@ -5,7 +5,8 @@ locals {
     { name = "GENFEEDAI_MICROSERVICES_MCP_URL", value = "http://mcp.genfeed.internal:${local.services.mcp.port}" },
     { name = "GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL", value = "http://notifications.genfeed.internal:${local.services.notifications.port}" },
     { name = "GENFEEDAI_API_URL", value = "http://api.genfeed.internal:${local.services.api.port}" },
-    { name = "REDIS_URL", value = "redis://${aws_elasticache_replication_group.redis.primary_endpoint_address}:6379" },
+    { name = "REDIS_URL", value = "rediss://${aws_elasticache_replication_group.redis.primary_endpoint_address}:6379" },
+    { name = "REDIS_TLS", value = "true" },
     { name = "NODE_ENV", value = "production" },
     { name = "VERSION", value = "1.0.0" },
   ]
@@ -33,7 +34,7 @@ module "service" {
   security_group_ids = [aws_security_group.ecs.id]
   namespace_id       = aws_service_discovery_private_dns_namespace.internal.id
 
-  secrets = local.task_secrets
+  secrets = local.service_task_secrets
   environment = concat(local.internal_env, [
     { name = "PORT", value = tostring(each.value.port) },
     { name = "SERVICE_NAME", value = each.key },
@@ -77,7 +78,7 @@ resource "aws_ecs_task_definition" "migrate" {
     # the node entrypoint (`Cannot find module .../packages/prisma/bunx`) and the
     # migrate task exited 1. Matches the services' `["bun", ...]` invocation.
     command     = ["bun", "x", "prisma", "migrate", "deploy"]
-    secrets     = local.task_secrets
+    secrets     = local.service_task_secrets
     environment = [{ name = "NODE_ENV", value = "production" }]
     logConfiguration = {
       logDriver = "awslogs"
@@ -110,7 +111,7 @@ resource "aws_ecs_task_definition" "workflow_backfill" {
     image     = local.image
     essential = true
     command   = ["bun", "--filter", local.services.api.filter, "migrate:workflows"]
-    secrets   = local.task_secrets
+    secrets   = local.service_task_secrets
     environment = concat(local.internal_env, [
       { name = "PORT", value = tostring(local.services.api.port) },
       { name = "SERVICE_NAME", value = "api" },
@@ -180,7 +181,7 @@ resource "aws_ecs_task_definition" "boot_smoke" {
       exit 1
       EOT
     ]
-    secrets = local.task_secrets
+    secrets = local.service_task_secrets
     environment = concat(local.internal_env, [
       { name = "PORT", value = tostring(local.services.api.port) },
       { name = "SERVICE_NAME", value = "api" },

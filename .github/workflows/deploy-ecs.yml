@@ -1,6 +1,6 @@
 # ECS production deploy (replaces the SSH-waves path post-cutover).
-# Dispatch-only. Flow: validate master -> QA before deploy -> production
-# environment approval -> resolve server:<sha> in GHCR -> copy GHCR->ECR ->
+# Dispatch-only. Flow: validate master -> QA before deploy -> resolve
+# server:<sha> in GHCR -> copy GHCR->ECR ->
 # run Prisma migrate task -> run workflow migration/backfill task -> terraform
 # apply rolls services (task defs are TF-managed with image_tag) -> wait
 # services-stable -> deploy Vercel frontends -> live post-deploy smoke.
@@ -63,7 +63,12 @@ jobs:
     needs: qa-before-deploy
     runs-on: ubuntu-latest
     timeout-minutes: 90
-    environment: production # <- requires reviewer approval (the human gate)
+    # `environment: production` scopes prod secrets/vars. NOTE: no required
+    # reviewers are configured, so this is NOT a human approval gate. Deploy
+    # safety comes from the dispatch-only trigger, the ref==master checks, the
+    # migrate + boot-smoke pre-roll gates below, and ECS circuit-breaker
+    # rollback — not manual approval.
+    environment: production
     steps:
       - uses: actions/checkout@v5
         with:
@@ -115,7 +120,7 @@ jobs:
           echo "explicit=$EXPLICIT_TAG" >> "$GITHUB_OUTPUT"
 
       - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
@@ -157,14 +162,23 @@ jobs:
             return 1
           }
 
-          if wait_for_image "$REQUESTED_TAG"; then
-            echo "sha=$REQUESTED_TAG" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
+          # Explicit tag (rollback / pinned deploy): it must already exist.
+          # Wait in case a build is still in flight, then fail closed.
           if [ "$EXPLICIT_TAG" = "true" ]; then
+            if wait_for_image "$REQUESTED_TAG"; then
+              echo "sha=$REQUESTED_TAG" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
             echo "::error::Requested server image ${REQUESTED_TAG} was not found in GHCR after waiting. Build it first or choose an existing image tag."
             exit 1
+          fi
+
+          # Deploying current HEAD. Fast path: server:<HEAD> already published —
+          # use it immediately with no wait loop.
+          if image_exists "$REQUESTED_TAG"; then
+            echo "Server image ready: ${REQUESTED_TAG}"
+            echo "sha=$REQUESTED_TAG" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
           server_image_paths=(
@@ -178,21 +192,45 @@ jobs:
             ".github/actions/build-unified-image/**"
           )
 
+          # No image for HEAD yet. Find the newest first-parent ancestor that has
+          # an image, then branch on whether server-image inputs changed since it:
+          #   unchanged -> frontend/workflow-only commit. build-server-image is
+          #     paths-gated and NEVER builds a server:<HEAD> for it, so waiting
+          #     would burn ~10m for an image that will never appear. Reuse the
+          #     ancestor's immutable image immediately.
+          #   changed   -> a server:<HEAD> build is expected/in-flight; wait for
+          #     it (up to ~10m), then fail closed if it never lands.
           echo "No image for HEAD (${HEAD_SHA}); checking recent first-parent ancestors..."
+          ANCESTOR=""
           for sha in $(git rev-list --first-parent -n 50 "$HEAD_SHA" | tail -n +2); do
-            if ! image_exists "$sha"; then
-              continue
+            if image_exists "$sha"; then
+              ANCESTOR="$sha"
+              break
             fi
-            if git diff --quiet "${sha}..${HEAD_SHA}" -- "${server_image_paths[@]}"; then
-              echo "::warning::server:${HEAD_SHA} was not built, but server-image inputs are unchanged since ${sha}; deploying ${sha}."
-              echo "sha=$sha" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-            echo "::error::server:${HEAD_SHA} was not found, and server-image inputs changed after newest available ancestor ${sha}. Wait for the Build Server Image workflow for ${HEAD_SHA}, then re-dispatch."
-            exit 1
           done
 
-          echo "::error::No server image found for HEAD or its recent first-parent ancestors."
+          if [ -z "$ANCESTOR" ]; then
+            echo "No first-parent ancestor image found; waiting for server:${HEAD_SHA}..."
+            if wait_for_image "$REQUESTED_TAG"; then
+              echo "sha=$REQUESTED_TAG" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "::error::No server image found for HEAD or its recent first-parent ancestors."
+            exit 1
+          fi
+
+          if git diff --quiet "${ANCESTOR}..${HEAD_SHA}" -- "${server_image_paths[@]}"; then
+            echo "::warning::server:${HEAD_SHA} was not built, but server-image inputs are unchanged since ${ANCESTOR}; deploying ${ANCESTOR} (no wait)."
+            echo "sha=$ANCESTOR" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Server-image inputs changed since ${ANCESTOR}; waiting for server:${HEAD_SHA} build..."
+          if wait_for_image "$REQUESTED_TAG"; then
+            echo "sha=$REQUESTED_TAG" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "::error::server:${HEAD_SHA} was not found, and server-image inputs changed after newest available ancestor ${ANCESTOR}. Wait for the Build Server Image workflow for ${HEAD_SHA}, then re-dispatch."
           exit 1
 
       - name: Copy server:<sha> GHCR -> ECR (no rebuild)

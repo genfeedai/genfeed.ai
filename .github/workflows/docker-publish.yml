@@ -44,9 +44,42 @@ jobs:
         env:
           RELEASE_TARGET_COMMITISH: ${{ github.event.release.target_commitish || '' }}
 
+  # Full-suite gate — the community image users `docker run` must not publish
+  # until the ENTIRE suite is green: the ci.yml unit matrix (sharded app + api +
+  # packages + server services + web/desktop/mobile + extensions), the prod-image
+  # build-verify boot check, and the e2e suite. full-suite chains all three via
+  # workflow_call. Mirrors the qa-before-deploy gate in deploy-ecs.yml so a
+  # release publishes the same verification bar a production deploy clears.
+  verify-suite:
+    name: Full Suite (pre-publish gate)
+    needs: validate-master-ref
+    # Mirror deploy-ecs.yml's qa-before-deploy grant: ci.yml requests
+    # pull-requests/statuses write, build-verify needs packages:write (GHCR
+    # cache login). A reusable workflow is capped by the caller's job-level
+    # permissions, so they must be declared here, not just at workflow top-level.
+    permissions:
+      contents: read
+      packages: write
+      pull-requests: write
+      statuses: write
+    uses: ./.github/workflows/full-suite.yml
+    secrets: inherit
+
+  # Community-image boot gate — full-suite's build-verify covers the MICROSERVICE
+  # (prod) image, not docker/Dockerfile.selfhosted. This is the all-in-one
+  # community image this workflow is about to push, so its dedicated build/boot
+  # guard (previously wired into nothing automated) must gate the publish too.
+  verify-selfhosted:
+    name: Self-Hosted Build Verify (pre-publish gate)
+    needs: validate-master-ref
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/build-verify-selfhosted.yml
+
   build-and-push:
     name: Build & Push Self-Hosted Image
-    needs: validate-master-ref
+    needs: [validate-master-ref, verify-suite, verify-selfhosted]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -62,7 +95,7 @@ jobs:
 
       - name: Extract metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
@@ -72,7 +105,7 @@ jobs:
             type=raw,value=${{ github.event.inputs.tag }},enable=${{ github.event_name == 'workflow_dispatch' }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build and push
         uses: docker/build-push-action@v7
