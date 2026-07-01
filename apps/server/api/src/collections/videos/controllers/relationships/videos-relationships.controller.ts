@@ -20,6 +20,7 @@ import { CreateMergedVideoDto } from '@api/collections/videos/dto/create-video.d
 import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
 import type { Video } from '@api/collections/videos/schemas/video.schema';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { requireVideoOutputPath } from '@api/collections/videos/utils/video-processing-result.util';
 import { ConfigService } from '@api/config/config.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -96,14 +97,6 @@ export class VideosRelationshipsController {
     private readonly websocketService: NotificationsPublisherService,
     private readonly whisperService: WhisperService,
   ) {}
-
-  private requireOutputPath(value: unknown): string {
-    if (typeof value !== 'string' || value.length === 0) {
-      throw new Error('Video processing result missing outputPath');
-    }
-
-    return value;
-  }
 
   @Get(':videoId/children')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -274,7 +267,7 @@ export class VideosRelationshipsController {
           job.jobId,
           300_000,
         );
-        let output = this.requireOutputPath(result.outputPath);
+        let output = requireVideoOutputPath(result.outputPath);
 
         if (isResizeEnabled) {
           // Queue portrait conversion in files.genfeed service
@@ -296,7 +289,7 @@ export class VideosRelationshipsController {
             portraitJob.jobId,
             180000, // 3 minutes for portrait conversion
           );
-          output = this.requireOutputPath(result.outputPath);
+          output = requireVideoOutputPath(result.outputPath);
         }
 
         // Upload to S3 the first version of the video
@@ -344,7 +337,7 @@ export class VideosRelationshipsController {
               captionsJob.jobId,
               180000, // 3 minutes for adding captions
             );
-            output = this.requireOutputPath(result.outputPath);
+            output = requireVideoOutputPath(result.outputPath);
           } catch (error: unknown) {
             this.loggerService.error(
               `Failed to generate or add captions for merged video ${ingredientId}`,
