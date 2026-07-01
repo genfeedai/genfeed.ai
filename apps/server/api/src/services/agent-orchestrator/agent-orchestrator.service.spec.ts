@@ -35,6 +35,7 @@ describe('AgentOrchestratorService', () => {
   let settingsService: vi.Mocked<SettingsService>;
   let agentStrategiesService: vi.Mocked<AgentStrategiesService>;
   let agentRunsService: vi.Mocked<AgentRunsService>;
+  let agentMemoriesService: vi.Mocked<AgentMemoriesService>;
   let creditsUtilsService: vi.Mocked<CreditsUtilsService>;
   let toolExecutorService: vi.Mocked<AgentToolExecutorService>;
   let streamPublisher: vi.Mocked<AgentStreamPublisherService>;
@@ -72,6 +73,7 @@ describe('AgentOrchestratorService', () => {
       getRecentMessages: vi.fn().mockResolvedValue([]),
     };
     const agentMemoriesServiceMock = {
+      getFeedbackMemoriesForGeneration: vi.fn().mockResolvedValue([]),
       getMemoriesForPrompt: vi.fn().mockResolvedValue([]),
       listForUser: vi.fn().mockResolvedValue([]),
     };
@@ -369,6 +371,7 @@ describe('AgentOrchestratorService', () => {
 
     service = module.get(AgentOrchestratorService);
     agentThreadsService = module.get(AgentThreadsService);
+    agentMemoriesService = module.get(AgentMemoriesService);
     llmDispatcher = module.get(LlmDispatcherService);
     creditsUtilsService = module.get(CreditsUtilsService);
     organizationsService = module.get(OrganizationsService);
@@ -621,6 +624,99 @@ describe('AgentOrchestratorService', () => {
         webSearchEnabled: true,
       }),
     );
+  });
+
+  it('injects ranked feedback memory and exposes generation influence metadata', async () => {
+    organizationsService.findOne.mockResolvedValue({
+      onboardingCompleted: true,
+    } as never);
+    agentMemoriesService.getFeedbackMemoriesForGeneration.mockResolvedValueOnce(
+      [
+        {
+          _id: 'memory-1',
+          confidence: 0.91,
+          content:
+            'Launch posts perform best when the first line names the customer pain.',
+          contentType: 'post',
+          createdAt: new Date('2026-03-01T00:00:00.000Z'),
+          generationInfluence: {
+            matchedPromptTerms: ['launch', 'post'],
+            rankingFactors: {
+              confidence: 3.64,
+              contentType: 7,
+              performance: 5,
+              platform: 8,
+            },
+            reasons: [
+              'Matches the requested platform linkedin',
+              'Prior winning pattern',
+            ],
+            score: 30.5,
+          },
+          id: 'memory-1',
+          importance: 0.8,
+          kind: 'winner',
+          organization: ORG_ID,
+          organizationId: ORG_ID,
+          platform: 'linkedin',
+          scope: 'brand',
+          summary: 'Lead with customer pain before product claims.',
+          tags: ['launch'],
+          updatedAt: new Date('2026-03-02T00:00:00.000Z'),
+          user: USER_ID,
+          userId: USER_ID,
+        },
+      ] as never,
+    );
+
+    const result = await service.chat(
+      { content: 'Write a LinkedIn launch post' },
+      { organizationId: ORG_ID, userId: USER_ID },
+    );
+
+    expect(
+      agentMemoriesService.getFeedbackMemoriesForGeneration,
+    ).toHaveBeenCalledWith(
+      USER_ID,
+      ORG_ID,
+      expect.objectContaining({
+        contentType: 'post',
+        limit: 8,
+        query: 'Write a LinkedIn launch post',
+      }),
+    );
+    expect(llmDispatcher.chatCompletion).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messages: expect.arrayContaining([
+          expect.objectContaining({
+            content: expect.stringContaining('Saved memory to consider'),
+            role: 'system',
+          }),
+          expect.objectContaining({
+            content: expect.stringContaining(
+              'score 30.5; Matches the requested platform linkedin',
+            ),
+            role: 'system',
+          }),
+        ]),
+      }),
+      ORG_ID,
+    );
+    expect(result.message.metadata).toMatchObject({
+      memoryInfluence: {
+        mode: 'prior_winning_patterns',
+        summary: 'Using 1 prior feedback memory before generation.',
+      },
+    });
+    expect(result.message.metadata.memoryEntries).toEqual([
+      expect.objectContaining({
+        generationInfluence: expect.objectContaining({
+          reasons: expect.arrayContaining(['Prior winning pattern']),
+          score: 30.5,
+        }),
+        id: 'memory-1',
+      }),
+    ]);
   });
 
   it('records requested and actual models into agent run metadata when a run id is present', async () => {
