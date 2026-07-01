@@ -3,9 +3,11 @@
 import type { Task, TasksService } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
 import { WorkspaceTaskCard } from './workspace-task-card';
+import { WorkspaceTaskRowsSkeleton } from './workspace-task-loading';
 
 interface WorkspaceTaskQueueCardProps {
   busyTaskId: string | null;
+  isLoading?: boolean;
   items: Task[];
   mutateTask: (
     taskId: string,
@@ -16,18 +18,25 @@ interface WorkspaceTaskQueueCardProps {
 
 export function WorkspaceTaskQueueCard({
   busyTaskId,
+  isLoading = false,
   items,
   mutateTask,
   openPlanningConversation,
 }: WorkspaceTaskQueueCardProps) {
   return (
-    <section id="task-queue" data-testid="workspace-task-list">
+    <section
+      aria-busy={isLoading}
+      id="task-queue"
+      data-testid="workspace-task-list"
+    >
       <Card
         label="Task queue"
         description="Recent task requests across triage, active work, review, and completed output."
         bodyClassName="space-y-3 p-4"
       >
-        {items.length > 0 ? (
+        {isLoading && items.length === 0 ? (
+          <WorkspaceTaskRowsSkeleton rows={4} />
+        ) : items.length > 0 ? (
           <div className="divide-y divide-white/[0.06]">
             {items.map((task) => (
               <WorkspaceTaskCard

@@ -12,6 +12,7 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import type { Task } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
 import { DashboardGrid } from '@ui/dashboard/DashboardGrid';
+import { Skeleton } from '@ui/display/skeleton/skeleton';
 import { OverviewTrendsPanel } from '@ui/overview/OverviewTrendsPanel';
 import { Button } from '@ui/primitives/button';
 import {
@@ -26,6 +27,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useMemo } from 'react';
 import { HiOutlineArrowRight, HiOutlineCpuChip } from 'react-icons/hi2';
+import { WorkspaceTaskRowsSkeleton } from './workspace-task-loading';
 
 const Bar = dynamic(() => import('recharts').then((module) => module.Bar), {
   ssr: false,
@@ -64,6 +66,8 @@ interface ReviewInboxSummary {
 
 interface DashboardProps {
   activeRuns: IAgentRun[];
+  isRunsLoading?: boolean;
+  isTasksLoading?: boolean;
   isTrendsLoading?: boolean;
   reviewInbox: ReviewInboxSummary;
   runs: IAgentRun[];
@@ -177,9 +181,11 @@ function AgentRunCard({ run }: { run: IAgentRun }) {
 
 export function DashboardAgentCards({
   activeRuns,
+  isLoading = false,
   runs,
 }: {
   activeRuns: IAgentRun[];
+  isLoading?: boolean;
   runs: IAgentRun[];
 }) {
   const displayRuns = useMemo(() => {
@@ -197,7 +203,7 @@ export function DashboardAgentCards({
     return [...liveRuns, ...recentCompleted];
   }, [activeRuns, runs]);
 
-  if (displayRuns.length === 0) {
+  if (displayRuns.length === 0 && !isLoading) {
     return null;
   }
 
@@ -218,9 +224,20 @@ export function DashboardAgentCards({
         )}
       </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {displayRuns.map((run) => (
-          <AgentRunCard key={run.id} run={run} />
-        ))}
+        {isLoading && displayRuns.length === 0
+          ? [
+              'agent-run-skeleton-1',
+              'agent-run-skeleton-2',
+              'agent-run-skeleton-3',
+            ].map((key) => (
+              <div
+                key={key}
+                className="rounded-md border border-border bg-background-secondary p-3"
+              >
+                <WorkspaceTaskRowsSkeleton rows={1} />
+              </div>
+            ))
+          : displayRuns.map((run) => <AgentRunCard key={run.id} run={run} />)}
       </div>
     </section>
   );
@@ -232,17 +249,22 @@ export function DashboardAgentCards({
 
 interface StatItem {
   accent?: string;
+  isLoading?: boolean;
   label: string;
   value: string;
 }
 
 export function DashboardStatsStrip({
   activeRuns,
+  isRunsLoading = false,
+  isTasksLoading = false,
   reviewInbox,
   stats,
   workspaceTasks,
 }: {
   activeRuns: IAgentRun[];
+  isRunsLoading?: boolean;
+  isTasksLoading?: boolean;
   reviewInbox: ReviewInboxSummary;
   stats: AgentRunStats | null;
   workspaceTasks: Task[];
@@ -254,16 +276,19 @@ export function DashboardStatsStrip({
     () => [
       {
         accent: `${stats?.activeRuns ?? activeRuns.length} running, ${activeRuns.filter((r) => r.status === AgentExecutionStatus.PENDING).length} queued`,
+        isLoading: isRunsLoading,
         label: 'Agents Active',
         value: String(stats?.activeRuns ?? activeRuns.length),
       },
       {
         accent: `${stats?.completedToday ?? 0} completed, ${stats?.failedToday ?? 0} failed`,
+        isLoading: isTasksLoading,
         label: 'Tasks In Progress',
         value: String(inProgressTaskCount),
       },
       {
         accent: 'current period',
+        isLoading: isRunsLoading,
         label: 'Credits Used',
         value: `${(stats?.totalCreditsToday ?? 0).toFixed(2)}`,
       },
@@ -273,7 +298,14 @@ export function DashboardStatsStrip({
         value: String(reviewInbox.pendingCount),
       },
     ],
-    [activeRuns, inProgressTaskCount, reviewInbox, stats],
+    [
+      activeRuns,
+      inProgressTaskCount,
+      isRunsLoading,
+      isTasksLoading,
+      reviewInbox,
+      stats,
+    ],
   );
 
   return (
@@ -285,13 +317,19 @@ export function DashboardStatsStrip({
             className="rounded-md border-border bg-background-secondary shadow-none"
             bodyClassName="p-4"
           >
-            <div className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
-              {item.value}
-            </div>
+            {item.isLoading ? (
+              <Skeleton variant="text" height={32} className="w-16" />
+            ) : (
+              <div className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
+                {item.value}
+              </div>
+            )}
             <p className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-foreground/55">
               {item.label}
             </p>
-            {item.accent ? (
+            {item.isLoading ? (
+              <Skeleton variant="text" height={12} className="mt-2 w-28" />
+            ) : item.accent ? (
               <p className="mt-1.5 text-[11px] text-foreground/45">
                 {item.accent}
               </p>
@@ -604,8 +642,10 @@ function formatTaskEventLabel(task: Task): string {
 }
 
 export function DashboardRecentActivity({
+  isLoading = false,
   workspaceTasks,
 }: {
+  isLoading?: boolean;
   workspaceTasks: Task[];
 }) {
   const sortedTasks = useMemo(
@@ -621,7 +661,7 @@ export function DashboardRecentActivity({
   );
 
   return (
-    <div>
+    <div aria-busy={isLoading}>
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold text-foreground">
           Recent Activity
@@ -639,7 +679,11 @@ export function DashboardRecentActivity({
         className="rounded-md border-border bg-background-secondary shadow-none"
         bodyClassName="p-0"
       >
-        {sortedTasks.length > 0 ? (
+        {isLoading && sortedTasks.length === 0 ? (
+          <div className="px-4 py-2">
+            <WorkspaceTaskRowsSkeleton rows={4} />
+          </div>
+        ) : sortedTasks.length > 0 ? (
           <Table>
             <TableHeader className="sr-only">
               <TableRow>
@@ -707,8 +751,10 @@ export function DashboardRecentActivity({
 }
 
 export function DashboardRecentTasks({
+  isLoading = false,
   workspaceTasks,
 }: {
+  isLoading?: boolean;
   workspaceTasks: Task[];
 }) {
   const sortedTasks = useMemo(
@@ -724,7 +770,7 @@ export function DashboardRecentTasks({
   );
 
   return (
-    <div>
+    <div aria-busy={isLoading}>
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold text-foreground">Recent Tasks</h2>
         <Button
@@ -740,7 +786,11 @@ export function DashboardRecentTasks({
         className="rounded-md border-border bg-background-secondary shadow-none"
         bodyClassName="p-0"
       >
-        {sortedTasks.length > 0 ? (
+        {isLoading && sortedTasks.length === 0 ? (
+          <div className="px-4 py-2">
+            <WorkspaceTaskRowsSkeleton rows={4} />
+          </div>
+        ) : sortedTasks.length > 0 ? (
           <Table>
             <TableHeader className="sr-only">
               <TableRow>
@@ -804,6 +854,8 @@ export function DashboardRecentTasks({
 
 export function WorkspaceDashboard({
   activeRuns,
+  isRunsLoading = false,
+  isTasksLoading = false,
   isTrendsLoading = false,
   reviewInbox,
   runs,
@@ -814,10 +866,16 @@ export function WorkspaceDashboard({
 }: DashboardProps) {
   return (
     <div className="flex flex-col gap-4">
-      <DashboardAgentCards activeRuns={activeRuns} runs={runs} />
+      <DashboardAgentCards
+        activeRuns={activeRuns}
+        isLoading={isRunsLoading}
+        runs={runs}
+      />
 
       <DashboardStatsStrip
         activeRuns={activeRuns}
+        isRunsLoading={isRunsLoading}
+        isTasksLoading={isTasksLoading}
         reviewInbox={reviewInbox}
         stats={stats}
         workspaceTasks={workspaceTasks}
@@ -826,8 +884,14 @@ export function WorkspaceDashboard({
       <DashboardChartsGrid runs={runs} stats={stats} />
 
       <DashboardGrid cols={2}>
-        <DashboardRecentActivity workspaceTasks={workspaceTasks} />
-        <DashboardRecentTasks workspaceTasks={workspaceTasks} />
+        <DashboardRecentActivity
+          isLoading={isTasksLoading}
+          workspaceTasks={workspaceTasks}
+        />
+        <DashboardRecentTasks
+          isLoading={isTasksLoading}
+          workspaceTasks={workspaceTasks}
+        />
       </DashboardGrid>
 
       <OverviewTrendsPanel
