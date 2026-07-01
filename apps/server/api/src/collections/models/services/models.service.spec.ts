@@ -1,3 +1,42 @@
+// `@genfeedai/prisma` re-exports the generated PrismaClient, unavailable/heavy
+// in unit tests (see font-families.service.spec.ts for full rationale). Stub
+// `PrismaClient` and inline the real `Model` entry from
+// packages/prisma/src/enum-field-map.ts (PRISMA_MODEL_METADATA.Model) so
+// BaseService's `getModelMeta('model')` call sees genuine field metadata.
+vi.mock('@genfeedai/prisma', () => ({
+  getModelMeta: (modelName: string) => {
+    const pascal = modelName.charAt(0).toUpperCase() + modelName.slice(1);
+    const metadata: Record<
+      string,
+      {
+        allFields: readonly string[];
+        enumFields: Readonly<
+          Record<string, { enumType: string; isRequired: boolean }>
+        >;
+      }
+    > = {
+      Model: {
+        allFields: [
+          'config',
+          'externalId',
+          'id',
+          'label',
+          'mongoId',
+          'organization',
+          'organizationId',
+          'parentModel',
+          'parentModelId',
+          'training',
+          'trainingId',
+        ],
+        enumFields: {},
+      },
+    };
+    return metadata[pascal];
+  },
+  PrismaClient: class {},
+}));
+
 import { ModelsService } from '@api/collections/models/services/models.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
