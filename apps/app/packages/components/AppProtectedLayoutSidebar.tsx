@@ -116,7 +116,7 @@ export default function AppProtectedLayoutSidebar({
           taskContextSearchParams,
         )}
         currentApp={currentApp}
-        sectionLabel="Library"
+        sectionLabel="Studio"
         shellChromeVariant={shellChromeVariant}
       />
     );

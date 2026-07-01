@@ -823,7 +823,7 @@ describe('AppProtectedLayout', () => {
 
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        sectionLabel: 'Library',
+        sectionLabel: 'Studio',
         shellChromeVariant: 'default',
       }),
     );
