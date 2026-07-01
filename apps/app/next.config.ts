@@ -112,6 +112,13 @@ const config = createAppNextConfig({
       source: '/workspace/inbox',
     },
     {
+      // Cloud org/brand-scoped inbox index has no page (only [view]); redirect
+      // to the unread view so `/:org/:brand/workspace/inbox` doesn't 404.
+      destination: '/:orgSlug/:brandSlug/workspace/inbox/unread',
+      permanent: false,
+      source: '/:orgSlug/:brandSlug/workspace/inbox',
+    },
+    {
       destination: '/research/discovery',
       permanent: false,
       source: '/research',
