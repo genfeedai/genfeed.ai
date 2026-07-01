@@ -577,6 +577,157 @@ describe('ClientService (MCP)', () => {
     });
   });
 
+  // ==================== AGENT RUN TESTS ====================
+
+  describe('listAgentRuns', () => {
+    it('should list active agent runs', async () => {
+      const mockResponse = {
+        data: {
+          data: [
+            {
+              attributes: { label: 'Active run', status: 'RUNNING' },
+              id: 'run-1',
+            },
+          ],
+        },
+      };
+
+      (mockAxiosInstance.get as Mock).mockResolvedValue(mockResponse);
+
+      const result = await service.listAgentRuns({ active: true, limit: 5 });
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/runs/active', {
+        params: { limit: 5 },
+      });
+      expect(result).toEqual([
+        { id: 'run-1', label: 'Active run', status: 'RUNNING' },
+      ]);
+    });
+
+    it('should filter historical agent runs', async () => {
+      const mockResponse = { data: { data: [] } };
+
+      (mockAxiosInstance.get as Mock).mockResolvedValue(mockResponse);
+
+      await service.listAgentRuns({
+        historyOnly: true,
+        limit: 10,
+        q: 'draft',
+        status: 'FAILED',
+      });
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/runs', {
+        params: {
+          'page[limit]': 10,
+          historyOnly: true,
+          q: 'draft',
+          status: 'FAILED',
+        },
+      });
+    });
+  });
+
+  describe('getAgentRun', () => {
+    it('should return a single agent run', async () => {
+      const mockResponse = {
+        data: {
+          data: {
+            attributes: { label: 'Run detail', status: 'COMPLETED' },
+            id: 'run-1',
+          },
+        },
+      };
+
+      (mockAxiosInstance.get as Mock).mockResolvedValue(mockResponse);
+
+      const result = await service.getAgentRun('run-1');
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/runs/run-1');
+      expect(result).toEqual({
+        id: 'run-1',
+        label: 'Run detail',
+        status: 'COMPLETED',
+      });
+    });
+  });
+
+  describe('getAgentRunContent', () => {
+    it('should return content produced by a run', async () => {
+      const mockResponse = {
+        data: { ingredients: [], posts: [{ id: 'post-1' }] },
+      };
+
+      (mockAxiosInstance.get as Mock).mockResolvedValue(mockResponse);
+
+      const result = await service.getAgentRunContent('run-1');
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/runs/run-1/content');
+      expect(result).toEqual({ ingredients: [], posts: [{ id: 'post-1' }] });
+    });
+  });
+
+  describe('cancelAgentRun', () => {
+    it('should cancel an agent run', async () => {
+      const mockResponse = {
+        data: {
+          data: {
+            attributes: { status: 'CANCELLED' },
+            id: 'run-1',
+          },
+        },
+      };
+
+      (mockAxiosInstance.post as Mock).mockResolvedValue(mockResponse);
+
+      const result = await service.cancelAgentRun('run-1');
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/runs/run-1/cancellations',
+      );
+      expect(result).toEqual({ id: 'run-1', status: 'CANCELLED' });
+    });
+  });
+
+  describe('retryAgentRun', () => {
+    it('retries a run by sending a follow-up message to its thread', async () => {
+      (mockAxiosInstance.get as Mock).mockResolvedValueOnce({
+        data: {
+          data: {
+            attributes: { metadata: { threadId: 'thread-1' } },
+            id: 'run-1',
+          },
+        },
+      });
+      (mockAxiosInstance.post as Mock).mockResolvedValueOnce({
+        data: { data: { id: 'turn-1' } },
+      });
+
+      const result = await service.retryAgentRun('run-1', 'Retry this run');
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/runs/run-1');
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/threads/thread-1/messages',
+        { content: 'Retry this run' },
+      );
+      expect(result).toEqual({ id: 'turn-1' });
+    });
+
+    it('rejects retry when the run has no persisted thread', async () => {
+      (mockAxiosInstance.get as Mock).mockResolvedValueOnce({
+        data: {
+          data: {
+            attributes: { status: 'FAILED' },
+            id: 'run-1',
+          },
+        },
+      });
+
+      await expect(service.retryAgentRun('run-1')).rejects.toThrow(
+        'Agent run has no persisted thread to retry',
+      );
+    });
+  });
+
   // ==================== WORKFLOW TESTS ====================
 
   describe('createWorkflow', () => {

@@ -25,6 +25,7 @@ const EXPECTED_TOOL_NAMES = [
   'analyze_performance',
   'batch_approve_reject',
   'benchmark_ad_performance',
+  'cancel_agent_run',
   'capture_memory',
   'check_goal_progress',
   'check_onboarding_status',
@@ -63,6 +64,8 @@ const EXPECTED_TOOL_NAMES = [
   'generate_voice',
   'get_account_info',
   'get_ad_performance_insights',
+  'get_agent_run',
+  'get_agent_run_content',
   'get_analytics',
   'get_approval_summary',
   'get_article',
@@ -97,6 +100,7 @@ const EXPECTED_TOOL_NAMES = [
   'get_workflow_status',
   'initiate_oauth_connect',
   'install_official_workflow',
+  'list_agent_runs',
   'list_avatars',
   'list_brands',
   'list_google_ads_campaigns',
@@ -129,6 +133,7 @@ const EXPECTED_TOOL_NAMES = [
   'request_asset',
   'resolve_approval',
   'resolve_handle',
+  'retry_agent_run',
   'run_captioning',
   'schedule_post',
   'score_seo',
@@ -192,7 +197,7 @@ describe('SOURCE_TOOLS registry split (#692)', () => {
   it('partitions tools by their declared surface', () => {
     expect(OVERLAP_TOOLS).toHaveLength(11);
     expect(AGENT_ONLY_TOOLS).toHaveLength(55);
-    expect(MCP_ONLY_TOOLS).toHaveLength(55);
+    expect(MCP_ONLY_TOOLS).toHaveLength(60);
     expect(BRAND_INTERVIEW_TOOLS).toHaveLength(4);
     expect(
       OVERLAP_TOOLS.every((tool) => tool.surfaces.agent && tool.surfaces.mcp),
