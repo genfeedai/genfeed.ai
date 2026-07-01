@@ -48,6 +48,10 @@ import {
   FilmGrainExecutor,
 } from '@workflow-engine/executors/saas/film-grain-executor';
 import {
+  createHookGeneratorExecutor,
+  HookGeneratorExecutor,
+} from '@workflow-engine/executors/saas/hook-generator-executor';
+import {
   createImageGenExecutor,
   ImageGenExecutor,
 } from '@workflow-engine/executors/saas/image-gen-executor';
@@ -198,6 +202,7 @@ import {
  * | cinematicColorGrade | CinematicColorGradeExecutor | ./saas/cinematic-color-grade-executor.ts |
  * | filmGrain       | FilmGrainExecutor        | ./saas/film-grain-executor.ts         |
  * | lensEffects     | LensEffectsExecutor      | ./saas/lens-effects-executor.ts       |
+ * | hookGenerator   | HookGeneratorExecutor    | ./saas/hook-generator-executor.ts     |
  * | promptConstructor | PromptConstructorExecutor | ./saas/prompt-constructor-executor.ts |
  * | voiceChange     | VoiceChangeExecutor      | ./saas/voice-change-executor.ts       |
  * | lipSync         | LipSyncExecutor          | ./saas/lip-sync-executor.ts           |
@@ -306,6 +311,14 @@ export const EXECUTOR_REGISTRY: Record<string, ExecutorRegistryEntry> = {
     factory: () => createFilmGrainExecutor(),
     nodeType: 'filmGrain',
     requiresResolver: true,
+  },
+  hookGenerator: {
+    description:
+      'Generates hook text, caption openings, hashtags, and slide prompts from trend and brand context',
+    executorClass: HookGeneratorExecutor,
+    factory: () => createHookGeneratorExecutor(),
+    nodeType: 'hookGenerator',
+    requiresResolver: false,
   },
   imageGen: {
     description:
