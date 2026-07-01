@@ -93,7 +93,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: trust
-    if: needs.trust.outputs.is-trusted == 'true'
+    # gitleaks-action does not support the `release` event ("The [release] event is
+    # not yet supported") and hard-fails on it. Release-triggered runs (self-hosted
+    # publish) skip it — the same commit was already secret-scanned on push to master.
+    if: needs.trust.outputs.is-trusted == 'true' && github.event_name != 'release'
     steps:
       - uses: actions/checkout@v5
         with:
