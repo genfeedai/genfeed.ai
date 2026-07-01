@@ -189,6 +189,7 @@ describe('SummaryContent behavior', () => {
         showBilling: false,
         showCloudUpgradeCta: true,
         showCredits: false,
+        showLocalTools: true,
         showPricing: false,
       },
       workspace: {
@@ -294,6 +295,7 @@ describe('SummaryContent behavior', () => {
         showBilling: true,
         showCloudUpgradeCta: false,
         showCredits: true,
+        showLocalTools: false,
         showPricing: true,
       },
       workspace: {

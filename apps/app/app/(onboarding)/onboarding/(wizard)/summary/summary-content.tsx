@@ -82,6 +82,7 @@ const EMPTY_READINESS: InstallReadinessResponse = {
     showBilling: false,
     showCloudUpgradeCta: true,
     showCredits: false,
+    showLocalTools: false,
     showPricing: false,
   },
   workspace: {
