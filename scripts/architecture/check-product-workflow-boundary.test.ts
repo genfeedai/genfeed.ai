@@ -105,6 +105,36 @@ describe('check-product-workflow-boundary', () => {
     );
   });
 
+  it('rejects workflow adapter exceptions without a replacement workflow id', () => {
+    writeFixture(
+      'apps/server/api/src/services/campaign/campaign-executor.service.ts',
+      `
+        export class CampaignExecutor {
+          async run(): Promise<void> {
+            await this.botActionExecutorService.postReply({}, {}, 'hello');
+          }
+        }
+      `,
+    );
+
+    const exceptions: ProductWorkflowBoundaryException[] = [
+      {
+        classification: 'workflow-adapter',
+        file: 'apps/server/api/src/services/campaign/campaign-executor.service.ts',
+        id: 'campaign-reply',
+        reason: 'Fixture workflow adapter.',
+      },
+    ];
+
+    const result = runCheckProductWorkflowBoundary({ exceptions });
+
+    expect(result.violations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: 'incomplete-exception' }),
+      ]),
+    );
+  });
+
   it('detects stale exception entries', () => {
     const exceptions: ProductWorkflowBoundaryException[] = [
       {

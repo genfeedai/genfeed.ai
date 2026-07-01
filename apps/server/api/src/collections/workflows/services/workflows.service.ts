@@ -14,6 +14,7 @@ import {
   type WorkflowStep,
   type WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
+import { SYSTEM_WORKFLOW_ACTION_DEFINITIONS } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import {
@@ -1138,6 +1139,98 @@ export class WorkflowsService extends BaseService<
           this.logger?.debug(
             'ensureLivestreamBotWorkflows: serialization conflict - workflow already seeded by concurrent request',
             { organizationId, templateId: template.id },
+          );
+          continue;
+        }
+        throw error;
+      }
+    }
+  }
+
+  /**
+   * Idempotently seeds action-level system workflows that wrap historical
+   * hardcoded product actions. Runtime callers still create-on-demand as a
+   * fail-closed backstop, but seeded orgs can inspect/duplicate these workflows
+   * before the first action execution.
+   */
+  async ensureSystemActionWorkflows(
+    userId: string,
+    organizationId: string,
+  ): Promise<void> {
+    for (const definition of SYSTEM_WORKFLOW_ACTION_DEFINITIONS) {
+      const where = {
+        isDeleted: false,
+        metadata: {
+          equals: definition.canonicalId,
+          path: ['sourceTemplateId'],
+        },
+        organizationId,
+      };
+
+      const preCheck = await this.prisma.workflow.findFirst({
+        select: { id: true },
+        where,
+      });
+
+      if (preCheck) {
+        continue;
+      }
+
+      try {
+        await this.prisma.$transaction(
+          async (tx) => {
+            const existing = await tx.workflow.findFirst({
+              select: { id: true },
+              where,
+            });
+
+            if (existing) {
+              return;
+            }
+
+            await tx.workflow.create({
+              data: {
+                description: definition.description,
+                edges: [],
+                executionCount: 0,
+                inputVariables: [],
+                isDeleted: false,
+                isScheduleEnabled: Boolean(definition.schedule),
+                label: definition.label,
+                metadata: this.buildSeededSystemWorkflowMetadata({
+                  sourceIssue: 1011,
+                  sourceTemplateId: definition.canonicalId,
+                  sourceType: 'system-action-workflow',
+                }),
+                nodes: [
+                  {
+                    data: {
+                      config: { canonicalId: definition.canonicalId },
+                      label: definition.label,
+                    },
+                    id: 'system-action',
+                    position: { x: 0, y: 120 },
+                    type: 'systemWorkflowAction',
+                  },
+                ],
+                organizationId,
+                progress: 0,
+                schedule: definition.schedule,
+                status: WorkflowStatus.ACTIVE,
+                steps: [],
+                timezone: 'UTC',
+                userId,
+              } as never,
+            });
+          },
+          { isolationLevel: 'Serializable' },
+        );
+      } catch (error) {
+        const errorCode = (error as { code?: string }).code;
+        if (errorCode === 'P2034') {
+          this.logger?.debug(
+            'ensureSystemActionWorkflows: serialization conflict - workflow already seeded by concurrent request',
+            { definitionId: definition.canonicalId, organizationId },
           );
           continue;
         }

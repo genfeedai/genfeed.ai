@@ -6,6 +6,7 @@ import type {
   OutreachCampaignDocument,
 } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
+import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { CampaignExecutorService } from '@api/services/campaign/campaign-executor.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
@@ -59,6 +60,26 @@ describe('CampaignExecutorService', () => {
   const mockBotActionExecutorService = {
     execute: vi.fn(),
     postReply: vi.fn(),
+  };
+
+  const mockSystemWorkflowProvenanceService = {
+    runAction: vi.fn(
+      async (
+        _input: unknown,
+        action: (provenance: {
+          executionId: string;
+          workflowId: string;
+          workflowLabel: string;
+        }) => Promise<unknown>,
+      ) => {
+        const provenance = {
+          executionId: 'execution-1',
+          workflowId: 'workflow-1',
+          workflowLabel: 'Campaign Reply Automation',
+        };
+        return { provenance, result: await action(provenance) };
+      },
+    ),
   };
 
   const campaignId = 'test-object-id';
@@ -132,6 +153,10 @@ describe('CampaignExecutorService', () => {
         {
           provide: BotActionExecutorService,
           useValue: mockBotActionExecutorService,
+        },
+        {
+          provide: SystemWorkflowProvenanceService,
+          useValue: mockSystemWorkflowProvenanceService,
         },
       ],
     }).compile();

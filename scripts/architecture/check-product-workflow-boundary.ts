@@ -3,6 +3,7 @@ import path from 'node:path';
 import { globSync } from 'glob';
 
 const DEFAULT_INCLUDE_GLOBS = [
+  'apps/server/api/src/services/campaign/**/*.ts',
   'apps/server/api/src/services/reply-bot/**/*.ts',
   'apps/server/api/src/services/twitter-pipeline/**/*.ts',
   'apps/server/workers/src/crons/**/*.ts',
@@ -89,40 +90,52 @@ type ProductWorkflowBoundaryRule = {
 export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryException[] =
   [
     {
-      classification: 'pending-system-workflow-migration',
+      classification: 'workflow-adapter',
       file: 'apps/server/workers/src/crons/posts/cron.posts.service.ts',
       id: 'scheduled-post-publishing',
-      issue: 1011,
       reason:
-        'Scheduled post publishing is still a hardcoded product action path; migrate publish dispatch through system workflows with run provenance.',
+        'Scheduled publish dispatch is wrapped by scheduled-post-publishing system workflow executions with post provenance.',
       systemWorkflowIds: ['scheduled-post-publishing'],
     },
     {
-      classification: 'pending-system-workflow-migration',
+      classification: 'workflow-adapter',
       file: 'apps/server/api/src/services/reply-bot/reply-bot-orchestrator.service.ts',
       id: 'reply-bot-orchestration',
-      issue: 1011,
       reason:
-        'Reply/DM orchestration still posts directly through the bot action executor; migrate reply and DM behavior into workflow nodes.',
+        'Reply/DM social actions are wrapped by reply-dm-automation system workflow executions.',
       systemWorkflowIds: ['reply-dm-automation'],
     },
     {
-      classification: 'pending-system-workflow-migration',
+      classification: 'workflow-adapter',
       file: 'apps/server/api/src/services/reply-bot/bot-action-executor.service.ts',
       id: 'reply-bot-action-executor',
-      issue: 1011,
       reason:
-        'Low-level reply/DM executor is shared by hardcoded paths today; keep documented until all callers route through workflow execution.',
+        'Low-level social client adapter used by workflow-backed action callers; it must not schedule product behavior itself.',
       systemWorkflowIds: ['reply-dm-automation'],
     },
     {
-      classification: 'pending-system-workflow-migration',
+      classification: 'workflow-adapter',
       file: 'apps/server/api/src/services/twitter-pipeline/twitter-pipeline.service.ts',
       id: 'twitter-pipeline-publish',
-      issue: 1011,
       reason:
-        'Twitter pipeline exposes direct original/reply/quote publishing; migrate this action surface through workflow runs.',
+        'Twitter original/reply/quote publish actions are wrapped by twitter-publish-action system workflow executions.',
       systemWorkflowIds: ['twitter-publish-action'],
+    },
+    {
+      classification: 'workflow-adapter',
+      file: 'apps/server/api/src/services/campaign/campaign-executor.service.ts',
+      id: 'campaign-reply-automation',
+      reason:
+        'Outreach campaign replies are wrapped by campaign-reply-automation system workflow executions.',
+      systemWorkflowIds: ['campaign-reply-automation'],
+    },
+    {
+      classification: 'workflow-adapter',
+      file: 'apps/server/api/src/services/campaign/dm-campaign-executor.service.ts',
+      id: 'campaign-dm-automation',
+      reason:
+        'Outreach campaign DMs are wrapped by campaign-dm-automation system workflow executions.',
+      systemWorkflowIds: ['campaign-dm-automation'],
     },
     {
       classification: 'pending-system-workflow-migration',
@@ -210,7 +223,7 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
   {
     id: 'reply-bot-action-call',
     matches: (_file, source) =>
-      /\bbotActionExecutorService\.(?:postReply|sendDm|postTweet|postQuoteTweet)\s*\(/.test(
+      /\bbotActionExecutorService\s*\.\s*(?:postReply|sendDm|postTweet|postQuoteTweet)\s*\(/.test(
         source,
       ),
     message:
@@ -253,6 +266,19 @@ function validateException(
   exception: ProductWorkflowBoundaryException,
   violations: ProductWorkflowBoundaryViolation[],
 ): void {
+  if (
+    exception.classification === 'workflow-adapter' &&
+    !hasSystemWorkflowReplacement(exception)
+  ) {
+    violations.push({
+      exception,
+      kind: 'incomplete-exception',
+      message:
+        'Workflow adapter exceptions must name at least one system workflow id.',
+    });
+    return;
+  }
+
   if (exception.classification !== 'pending-system-workflow-migration') {
     return;
   }
