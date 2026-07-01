@@ -17,7 +17,11 @@ export class AdInsightsAggregationProcessor extends WorkerHost {
   }
 
   async process(job: Job<AdInsightsAggregationJobData>): Promise<void> {
-    const { aggregationWindow = 'legacy', insightTypes, scope } = job.data;
+    const {
+      aggregationWindow = 'legacy',
+      insightTypes,
+      scope = AD_INSIGHTS_PLATFORM_SCOPE,
+    } = job.data;
 
     try {
       if (scope !== AD_INSIGHTS_PLATFORM_SCOPE) {
