@@ -1,3 +1,4 @@
+import { AgentMemoriesModule } from '@api/collections/agent-memories/agent-memories.module';
 import { AgentMessagesModule } from '@api/collections/agent-messages/agent-messages.module';
 import { AgentRunsModule } from '@api/collections/agent-runs/agent-runs.module';
 import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
@@ -23,6 +24,7 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [TasksService],
   imports: [
     forwardRef(() => AgentMessagesModule),
+    forwardRef(() => AgentMemoriesModule),
     forwardRef(() => AgentOrchestratorModule),
     forwardRef(() => AgentRunsModule),
     forwardRef(() => AgentThreadsModule),

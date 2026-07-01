@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { TaskFeedbackMemoryAdapterService } from '@api/collections/agent-memories/services/task-feedback-memory-adapter.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { type TaskDocument } from '@api/collections/tasks/schemas/task.schema';
 import type { TasksService } from '@api/collections/tasks/services/tasks.service';
@@ -59,13 +60,18 @@ export class TaskActionsService {
     private readonly prisma: PrismaService,
     private readonly ingredientsService: IngredientsService,
     private readonly notificationsPublisher: NotificationsPublisherService,
+    private readonly taskFeedbackMemoryAdapter: TaskFeedbackMemoryAdapterService,
   ) {}
 
   private get delegate(): TaskDelegate {
     return (this.prisma as unknown as Record<string, TaskDelegate>).task;
   }
 
-  async approve(id: string, organizationId: string): Promise<TaskDocument> {
+  async approve(
+    id: string,
+    organizationId: string,
+    userId?: string,
+  ): Promise<TaskDocument> {
     const task = await this.tasksService.requireTask(id, organizationId);
     const updated = await this.applyReviewTransition(id, {
       completedAt: new Date(),
@@ -75,9 +81,15 @@ export class TaskActionsService {
       failureReason: null,
       requestedChangesReason: null,
     });
-    const userId = task.assigneeUserId ?? '';
-    await this.appendEventAndBroadcast(updated, organizationId, userId, {
+    const actorUserId = userId ?? task.assigneeUserId ?? '';
+    await this.appendEventAndBroadcast(updated, organizationId, actorUserId, {
       type: 'task_approved',
+    });
+    await this.taskFeedbackMemoryAdapter.captureFromTaskReview({
+      decision: 'approved',
+      organizationId,
+      task: updated,
+      userId: actorUserId,
     });
     return updated;
   }
@@ -98,6 +110,13 @@ export class TaskActionsService {
     await this.appendEventAndBroadcast(updated, organizationId, userId, {
       payload: { reason },
       type: 'task_changes_requested',
+    });
+    await this.taskFeedbackMemoryAdapter.captureFromTaskReview({
+      decision: 'changes_requested',
+      note: reason,
+      organizationId,
+      task: updated,
+      userId,
     });
     return updated;
   }
@@ -121,6 +140,13 @@ export class TaskActionsService {
       payload: reason ? { reason } : undefined,
       type: 'task_dismissed',
     });
+    await this.taskFeedbackMemoryAdapter.captureFromTaskReview({
+      decision: 'dismissed',
+      note: reason,
+      organizationId,
+      task: updated,
+      userId,
+    });
     return updated;
   }
 
@@ -128,6 +154,7 @@ export class TaskActionsService {
     id: string,
     outputId: string,
     organizationId: string,
+    userId?: string,
   ): Promise<TaskDocument> {
     const task = await this.requireLinkedOutputTask(
       id,
@@ -141,10 +168,17 @@ export class TaskActionsService {
       'add',
       outputId,
     );
-    const userId = task.assigneeUserId ?? '';
-    await this.appendEventAndBroadcast(updated, organizationId, userId, {
+    const actorUserId = userId ?? task.assigneeUserId ?? '';
+    await this.appendEventAndBroadcast(updated, organizationId, actorUserId, {
       payload: { outputId },
       type: 'output_kept',
+    });
+    await this.taskFeedbackMemoryAdapter.captureFromTaskReview({
+      decision: 'output_kept',
+      organizationId,
+      outputId,
+      task: updated,
+      userId: actorUserId,
     });
     return updated;
   }
@@ -178,6 +212,7 @@ export class TaskActionsService {
     id: string,
     outputId: string,
     organizationId: string,
+    userId?: string,
   ): Promise<TaskDocument> {
     const task = await this.requireLinkedOutputTask(
       id,
@@ -198,10 +233,17 @@ export class TaskActionsService {
       'remove',
       outputId,
     );
-    const userId = task.assigneeUserId ?? '';
-    await this.appendEventAndBroadcast(updated, organizationId, userId, {
+    const actorUserId = userId ?? task.assigneeUserId ?? '';
+    await this.appendEventAndBroadcast(updated, organizationId, actorUserId, {
       payload: { outputId },
       type: 'output_trashed',
+    });
+    await this.taskFeedbackMemoryAdapter.captureFromTaskReview({
+      decision: 'output_trashed',
+      organizationId,
+      outputId,
+      task: updated,
+      userId: actorUserId,
     });
     return updated;
   }

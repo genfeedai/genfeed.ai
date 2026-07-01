@@ -342,8 +342,8 @@ export class TasksController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Param('id') id: string,
   ) {
-    const { organization } = getPublicMetadata(user);
-    const doc = await this.tasksService.approve(id, organization);
+    const { organization, user: userId } = getPublicMetadata(user);
+    const doc = await this.tasksService.approve(id, organization, userId);
     return serializeSingle(request, TaskSerializer, doc);
   }
 
@@ -388,8 +388,13 @@ export class TasksController extends BaseCRUDController<
     @Param('id') id: string,
     @Param('outputId') outputId: string,
   ) {
-    const { organization } = getPublicMetadata(user);
-    const doc = await this.tasksService.keepOutput(id, outputId, organization);
+    const { organization, user: userId } = getPublicMetadata(user);
+    const doc = await this.tasksService.keepOutput(
+      id,
+      outputId,
+      organization,
+      userId,
+    );
     return serializeSingle(request, TaskSerializer, doc);
   }
 
@@ -416,8 +421,13 @@ export class TasksController extends BaseCRUDController<
     @Param('id') id: string,
     @Param('outputId') outputId: string,
   ) {
-    const { organization } = getPublicMetadata(user);
-    const doc = await this.tasksService.trashOutput(id, outputId, organization);
+    const { organization, user: userId } = getPublicMetadata(user);
+    const doc = await this.tasksService.trashOutput(
+      id,
+      outputId,
+      organization,
+      userId,
+    );
     return serializeSingle(request, TaskSerializer, doc);
   }
 
