@@ -144,4 +144,43 @@ describe('BetterAuthIdentityResolverService', () => {
     expect(identity.organizationId).toBe('org_pref');
     expect(identity.brandId).toBe('brand_pref');
   });
+
+  // Library-loading bug (images/videos/gifs/agent-* list endpoints): an
+  // active membership row whose organization can no longer be resolved (e.g.
+  // soft-deleted org, orphaned member row) must not silently resolve to
+  // `organizationId: undefined`. Downstream, every
+  // `{ organization: publicMetadata.organization } OR { userId: currentUser }`
+  // list filter treats an `undefined` organization branch as a no-op entry
+  // that BaseService.normalizeWhere drops from the OR array — collapsing the
+  // query to "created by me only" and returning 200 OK with 0 results for
+  // teammate-created content, with no visible error anywhere. Fail loudly
+  // instead so the real data problem (an inaccessible org for a live member
+  // row) surfaces immediately rather than presenting as a silent empty list.
+  it('throws Unauthorized instead of silently returning an undefined organizationId when every membership organization fails to resolve', async () => {
+    usersService.findOne.mockResolvedValue({ id: 'user_orphaned' });
+    membersService.find.mockResolvedValue([
+      { organizationId: 'org_soft_deleted' },
+    ]);
+    // Owner lookup → null; membership lookup for the only membership → null
+    // (organization soft-deleted or otherwise inaccessible).
+    organizationsService.findOne
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
+
+    await expect(resolver.resolve('user_orphaned')).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+    expect(brandsService.findOne).not.toHaveBeenCalled();
+  });
+
+  it('does not throw when a user genuinely has no memberships at all (new/unassigned account)', async () => {
+    usersService.findOne.mockResolvedValue({ id: 'user_no_memberships' });
+    membersService.find.mockResolvedValue([]);
+    organizationsService.findOne.mockResolvedValue(null);
+
+    const identity = await resolver.resolve('user_no_memberships');
+
+    expect(identity.organizationId).toBeUndefined();
+    expect(identity.brandId).toBeUndefined();
+  });
 });
