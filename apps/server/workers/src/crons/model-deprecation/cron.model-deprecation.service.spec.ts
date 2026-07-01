@@ -52,7 +52,7 @@ describe('CronModelDeprecationService', () => {
 
   beforeEach(async () => {
     modelsService = {
-      count: vi.fn().mockResolvedValue(10),
+      count: vi.fn().mockResolvedValue(100),
       find: vi.fn().mockResolvedValue([]),
       findAll: vi.fn().mockResolvedValue({ docs: [{ total: 5 }] }),
       findOne: vi.fn().mockResolvedValue(null),
