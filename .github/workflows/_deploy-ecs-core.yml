@@ -422,16 +422,19 @@ jobs:
           echo "All services stable."
 
       - name: Run credential-encryption backfill (post-rollout, gated after services stable)
-        # ORDERING: this step intentionally runs AFTER services are stable on the new image.
-        # The backfill writes ciphertext to the credentials table. Only the new app code
-        # (post-#900 boundary) can read ciphertext — running before rollout would cause
-        # old pods to choke on rows they cannot decrypt. Running post-rollout is safe because
-        # the script is idempotent: rows already in ciphertext format are skipped, so re-running
-        # on every deploy has no side effects.
-        # TOKEN_ENCRYPTION_KEY is injected automatically from SSM via local.service_task_secrets
-        # (the same mechanism that feeds the live api service). If that SSM param is absent,
-        # this task will exit non-zero AND the api service's own encrypt boundary will also fail
-        # at runtime — so a missing key is a deploy-blocking signal either way.
+        # NON-BLOCKING: this is post-rollout data hygiene (encrypting legacy plaintext
+        # credential secrets at rest). It runs AFTER services are stable, and its failure
+        # must NOT gate the Vercel frontend deploy or fail the whole production deploy —
+        # otherwise a backfill hiccup leaves prod backend/frontend out of sync. The
+        # encrypt-on-write boundary already protects all NEW writes, and these rows were
+        # plaintext before this deploy, so deferring the at-rest backfill does not regress
+        # security. Tracked follow-up: the task currently runs a loose source .ts
+        # (apps/server/api/scripts/backfill-credential-encryption.ts) that is NOT shipped
+        # in the compiled prod image — it needs a compiled build target (like
+        # api-workflow-backfill) before it can succeed. See follow-up issue.
+        # ORDERING: runs AFTER services are stable — only the new app code can read the
+        # ciphertext it writes. Idempotent: rows already in ciphertext are skipped.
+        continue-on-error: true
         working-directory: ${{ env.TF_DIR }}
         run: |
           set -euo pipefail
