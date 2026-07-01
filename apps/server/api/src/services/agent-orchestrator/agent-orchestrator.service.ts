@@ -1,6 +1,10 @@
 import { AgentCampaignsService } from '@api/collections/agent-campaigns/services/agent-campaigns.service';
 import { type AgentMemoryDocument } from '@api/collections/agent-memories/schemas/agent-memory.schema';
-import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
+import {
+  type AgentFeedbackMemoryDocument,
+  type AgentFeedbackMemoryInfluence,
+  AgentMemoriesService,
+} from '@api/collections/agent-memories/services/agent-memories.service';
 import { type AgentMessageDocument } from '@api/collections/agent-messages/schemas/agent-message.schema';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { CreateAgentRunDto } from '@api/collections/agent-runs/dto/create-agent-run.dto';
@@ -896,6 +900,8 @@ export class AgentOrchestratorService {
             );
           const memoryEntriesForResponse =
             this.buildMemoryEntriesForResponse(resolvedMemories);
+          const memoryInfluence =
+            this.buildMemoryInfluenceMetadata(resolvedMemories);
           const reasoning = assistantMessage.reasoning_content ?? null;
           const enhancedUiActions = this.buildAssistantUiActions({
             reviewRequired,
@@ -910,6 +916,7 @@ export class AgentOrchestratorService {
             }),
             isFallbackContent: normalizedContent.isFallback,
             memoryEntries: memoryEntriesForResponse,
+            memoryInfluence,
             ...this.buildResolvedModelMetadata(model, Array.from(actualModels)),
             reasoning,
             reviewRequired,
@@ -1495,6 +1502,7 @@ export class AgentOrchestratorService {
       const allUiActions: AgentUiAction[] = [];
       const memoryEntriesForResponse =
         this.buildMemoryEntriesForResponse(memoryEntries);
+      const memoryInfluence = this.buildMemoryInfluenceMetadata(memoryEntries);
       let highestRiskLevel: 'low' | 'medium' | 'high' = 'low';
       let reviewRequired = false;
       let latestUiBlocks: {
@@ -1650,6 +1658,7 @@ export class AgentOrchestratorService {
               creditsRemaining,
               isFallbackContent: normalizedContent.isFallback,
               memoryEntries: memoryEntriesForResponse,
+              memoryInfluence,
               ...this.buildResolvedModelMetadata(
                 model,
                 Array.from(actualModels),
@@ -1703,6 +1712,7 @@ export class AgentOrchestratorService {
               completionMetadata: {
                 isFallbackContent: normalizedContent.isFallback,
                 memoryEntries: memoryEntriesForResponse,
+                memoryInfluence,
                 ...this.buildResolvedModelMetadata(
                   model,
                   Array.from(actualModels),
@@ -3615,17 +3625,20 @@ export class AgentOrchestratorService {
       })) as { systemPrompt?: string; memoryEntryIds?: string[] } | null;
     }
 
-    const memories = await this.agentMemoriesService.getMemoriesForPrompt(
-      context.userId,
-      context.organizationId,
-      {
-        campaignId: context.campaignId,
-        contentType: this.inferMemoryContentType(request.content),
-        limit: 8,
-        pinnedMemoryIds: thread?.memoryEntryIds,
-        query: request.content,
-      },
-    );
+    const memories =
+      await this.agentMemoriesService.getFeedbackMemoriesForGeneration(
+        context.userId,
+        context.organizationId,
+        {
+          brandId: policy.brandId,
+          campaignId: context.campaignId,
+          contentType: this.inferMemoryContentType(request.content),
+          limit: 8,
+          pinnedMemoryIds: thread?.memoryEntryIds,
+          platform: policy.platform,
+          query: request.content,
+        },
+      );
 
     const replyStyle = orgSettings?.agentReplyStyle;
     const subscriptionDefaultModel =
@@ -4559,13 +4572,15 @@ export class AgentOrchestratorService {
   private buildMemoryEntriesForResponse(memoryEntries: AgentMemoryDocument[]) {
     return memoryEntries.map((memory) => {
       const timedMemory = memory as AgentMemoryDocument & { createdAt?: Date };
+      const influence = this.readMemoryInfluence(memory);
 
       return {
         confidence: memory.confidence,
         content: memory.content,
         contentType: memory.contentType,
         createdAt: timedMemory.createdAt?.toISOString(),
-        id: memory._id,
+        generationInfluence: influence,
+        id: memory.id ?? memory._id,
         importance: memory.importance,
         kind: memory.kind,
         platform: memory.platform,
@@ -4578,6 +4593,58 @@ export class AgentOrchestratorService {
         tags: memory.tags ?? [],
       };
     });
+  }
+
+  private buildMemoryInfluenceMetadata(memoryEntries: AgentMemoryDocument[]) {
+    const entries = this.buildMemoryEntriesForResponse(memoryEntries)
+      .filter((entry) => entry.generationInfluence)
+      .map((entry) => ({
+        confidence: entry.confidence,
+        contentType: entry.contentType,
+        id: entry.id,
+        kind: entry.kind,
+        platform: entry.platform,
+        reasons: entry.generationInfluence?.reasons ?? [],
+        score: entry.generationInfluence?.score ?? 0,
+        sourceType: entry.sourceType,
+        summary: entry.summary || entry.content?.slice(0, 160),
+      }));
+
+    if (entries.length === 0) {
+      return {
+        entries: [],
+        mode: 'new_exploration',
+        rankingStrategy: [
+          'platform',
+          'contentType',
+          'recency',
+          'confidence',
+          'performanceRelevance',
+        ],
+        summary:
+          'No relevant prior feedback memory matched this generation request.',
+      };
+    }
+
+    const winningCount = entries.filter((entry) =>
+      ['pattern', 'winner', 'positive_example'].includes(String(entry.kind)),
+    ).length;
+
+    return {
+      entries,
+      mode: winningCount > 0 ? 'prior_winning_patterns' : 'prior_feedback',
+      rankingStrategy: [
+        'platform',
+        'contentType',
+        'recency',
+        'confidence',
+        'performanceRelevance',
+        'queryTerms',
+      ],
+      summary: `Using ${entries.length} prior feedback ${
+        entries.length === 1 ? 'memory' : 'memories'
+      } before generation.`,
+    };
   }
 
   private buildMemoryPromptSections(memories: AgentMemoryDocument[]): string {
@@ -4651,7 +4718,18 @@ export class AgentOrchestratorService {
 
     const prefix = qualifiers.length ? `[${qualifiers.join(' / ')}] ` : '';
     const snippet = base.length > 220 ? `${base.slice(0, 217)}...` : base;
-    return `- ${prefix}${snippet}`;
+    const influence = this.readMemoryInfluence(memory);
+    const topReason = influence?.reasons[0];
+    const influenceSuffix = influence
+      ? ` (score ${influence.score.toFixed(1)}${topReason ? `; ${topReason}` : ''})`
+      : '';
+    return `- ${prefix}${snippet}${influenceSuffix}`;
+  }
+
+  private readMemoryInfluence(
+    memory: AgentMemoryDocument,
+  ): AgentFeedbackMemoryInfluence | undefined {
+    return (memory as Partial<AgentFeedbackMemoryDocument>).generationInfluence;
   }
 
   private inferMemoryContentType(content: string): string {
