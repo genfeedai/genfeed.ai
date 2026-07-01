@@ -57,6 +57,7 @@ export default function ClipsProgressView({
               key={clip._id}
               clip={clip}
               clipsService={clipsService}
+              projectId={project.projectId}
             />
           ))}
         </div>

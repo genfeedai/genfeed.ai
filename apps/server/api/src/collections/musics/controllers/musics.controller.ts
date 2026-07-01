@@ -59,8 +59,13 @@ export class MusicsController extends BaseCRUDController<
       'user',
     );
 
+    // Ingredient.isDefault is a non-nullable Boolean column; { not: null } is not
+    // a valid Prisma filter shape for it (only nullable fields accept `not: null`)
+    // and crashed this endpoint with PrismaClientValidationError. This OR branch
+    // exists specifically to surface the org's default music tracks, so default
+    // to { equals: true } when the caller doesn't filter explicitly.
     const isDefault = CollectionFilterUtil.buildBooleanFilter(query.isDefault, {
-      not: null,
+      equals: true,
     });
 
     const scope = CollectionFilterUtil.buildScopeFilter(query.scope);

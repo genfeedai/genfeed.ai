@@ -6,6 +6,8 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 
 interface TopbarBreadcrumbsProps {
+  /** Used when the active sidebar item has no group (e.g. workspace root nav). */
+  fallbackRootLabel?: string;
   /** Override the first segment label (e.g. "Admin" when no BrandProvider) */
   rootLabel?: string;
 }
@@ -16,12 +18,14 @@ interface TopbarBreadcrumbsProps {
  * Format: Group / Page
  */
 export default function TopbarBreadcrumbs({
+  fallbackRootLabel,
   rootLabel,
 }: TopbarBreadcrumbsProps) {
   const { activeGroupId, activePageLabel, exitNestedGroup } =
     useSidebarNavigation();
 
-  const groupLabel = rootLabel || activeGroupId;
+  const groupLabel = rootLabel || activeGroupId || fallbackRootLabel;
+  const canExitNestedGroup = Boolean(activeGroupId && activePageLabel);
 
   if (!groupLabel && !activePageLabel) {
     return null;
@@ -32,7 +36,7 @@ export default function TopbarBreadcrumbs({
       className="flex items-center gap-1.5 text-[13px]"
       aria-label="Breadcrumb"
     >
-      {groupLabel && activePageLabel ? (
+      {groupLabel && activePageLabel && canExitNestedGroup ? (
         <Button
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
@@ -45,7 +49,7 @@ export default function TopbarBreadcrumbs({
           {groupLabel}
         </Button>
       ) : groupLabel ? (
-        <span className="text-foreground font-semibold truncate max-w-truncate-lg">
+        <span className="max-w-truncate-lg truncate font-semibold text-foreground/50">
           {groupLabel}
         </span>
       ) : null}

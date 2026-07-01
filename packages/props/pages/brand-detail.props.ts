@@ -1,5 +1,6 @@
 import type { AssetCategory, CredentialPlatform } from '@genfeedai/enums';
 import type {
+  AccountHealthSummary,
   IArticle,
   IBrand,
   IImage,
@@ -41,6 +42,9 @@ export interface BrandDetailLatestArticlesProps {
 }
 
 export interface BrandDetailSocialConnection {
+  accountHealth?: AccountHealthSummary;
+  credentialId: string;
+  label?: string | null;
   platform: CredentialPlatform;
   url?: string | null;
   handle?: string | null;
@@ -56,6 +60,8 @@ export interface BrandDetailSidebarProps {
   onTogglePublicProfile: (isPublic: boolean) => void;
   onRefreshBrand: () => Promise<void>;
   onOpenLinkModal: (link?: ILink) => void;
+  onUploadBanner: () => void;
+  onUploadLogo: () => void;
   onUploadReference: () => void;
   onDeleteReference: (assetId: string) => void;
 }
@@ -90,6 +96,21 @@ export interface BrandDetailIdentityCardProps {
   brand: IBrand;
   brandId: string;
   onRefreshBrand: () => Promise<void>;
+}
+
+export interface BrandKitReviewCardProps {
+  brand: IBrand;
+  brandId: string;
+  onRefreshBrand: () => Promise<void>;
+}
+
+export interface BrandDetailManualKitCardProps {
+  brand: IBrand;
+  brandId: string;
+  onRefreshBrand: () => Promise<void>;
+  onUploadBanner: () => void;
+  onUploadLogo: () => void;
+  onUploadReference: () => void;
 }
 
 export interface BrandDetailReferencesCardProps {

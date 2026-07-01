@@ -10,6 +10,7 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { AppModule } from '@api/app.module';
 import { BetterAuthService } from '@api/auth/better-auth/better-auth.service';
+import { shouldBypassBetterAuthHandler } from '@api/auth/better-auth/better-auth-route-bypass.util';
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
 import { ConfigService } from '@api/config/config.service';
 import { DocsService } from '@api/endpoints/docs/docs.service';
@@ -150,7 +151,13 @@ async function main() {
     // BEFORE express.json().
     const betterAuthService = app.get(BetterAuthService, { strict: false });
     if (betterAuthService?.isEnabled) {
-      app.use(betterAuthService.basePath, betterAuthService.nodeHandler);
+      app.use(betterAuthService.basePath, (req, res, next) => {
+        if (shouldBypassBetterAuthHandler(req.method, req.path)) {
+          return next();
+        }
+
+        return betterAuthService.nodeHandler(req, res, next);
+      });
       logger.debug(
         `Better Auth handler mounted at ${betterAuthService.basePath}`,
       );

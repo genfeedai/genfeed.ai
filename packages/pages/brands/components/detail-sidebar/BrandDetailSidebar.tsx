@@ -7,6 +7,7 @@ import BrandDetailAgentProfileCard from '@pages/brands/components/sidebar/BrandD
 import BrandDetailDefaultModelsCard from '@pages/brands/components/sidebar/BrandDetailDefaultModelsCard';
 import BrandDetailExternalLinksCard from '@pages/brands/components/sidebar/BrandDetailExternalLinksCard';
 import BrandDetailIdentityCard from '@pages/brands/components/sidebar/BrandDetailIdentityCard';
+import BrandDetailManualKitCard from '@pages/brands/components/sidebar/BrandDetailManualKitCard';
 import BrandDetailReferencesCard from '@pages/brands/components/sidebar/BrandDetailReferencesCard';
 import BrandDetailSocialMediaCard from '@pages/brands/components/sidebar/BrandDetailSocialMediaCard';
 import type { BrandDetailSidebarProps } from '@props/pages/brand-detail.props';
@@ -22,6 +23,8 @@ export default function BrandDetailSidebar({
   onTogglePublicProfile,
   onRefreshBrand,
   onOpenLinkModal,
+  onUploadBanner,
+  onUploadLogo,
   onUploadReference,
   onDeleteReference,
 }: BrandDetailSidebarProps) {
@@ -43,6 +46,15 @@ export default function BrandDetailSidebar({
       <BrandDetailExternalLinksCard
         links={links}
         onOpenLinkModal={onOpenLinkModal}
+      />
+
+      <BrandDetailManualKitCard
+        brand={brand}
+        brandId={brandId}
+        onRefreshBrand={onRefreshBrand}
+        onUploadBanner={onUploadBanner}
+        onUploadLogo={onUploadLogo}
+        onUploadReference={onUploadReference}
       />
 
       <BrandDetailDefaultModelsCard brand={brand} />

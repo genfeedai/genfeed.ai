@@ -1,8 +1,11 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { AssessAccountHealthDto } from '@api/collections/credentials/dto/assess-account-health.dto';
+import { ManualAccountHealthOverrideDto } from '@api/collections/credentials/dto/manual-account-health-override.dto';
 import { UpdateCredentialDto } from '@api/collections/credentials/dto/update-credential.dto';
 import { CredentialEntity } from '@api/collections/credentials/entities/credential.entity';
 import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
+import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
@@ -37,6 +40,7 @@ import { QuotaService } from '@api/services/quota/quota.service';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { CredentialPlatform } from '@genfeedai/enums';
 import type {
+  AccountHealthSummary,
   ContentSurface,
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -110,6 +114,7 @@ export class CredentialsController {
   >;
 
   constructor(
+    private readonly accountHealthService: AccountHealthService,
     private readonly accountPublishingContextService: AccountPublishingContextService,
     private readonly brandsService: BrandsService,
     private readonly credentialsService: CredentialsService,
@@ -144,6 +149,20 @@ export class CredentialsController {
     ]);
   }
 
+  @Get('brand/:brandId/account-health')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async listBrandAccountHealth(
+    @Param('brandId') brandId: string,
+    @CurrentUser() user: User,
+  ): Promise<AccountHealthSummary[]> {
+    const publicMetadata = getPublicMetadata(user);
+
+    return this.accountHealthService.listBrandHealth(
+      publicMetadata.organization,
+      brandId,
+    );
+  }
+
   @Get(':credentialId/publishing-context')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getPublishingContext(
@@ -158,6 +177,40 @@ export class CredentialsController {
       credentialId,
       organizationId: publicMetadata.organization,
       surface: toContentSurface(surface),
+    });
+  }
+
+  @Post(':credentialId/account-health/assess')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async assessAccountHealth(
+    @Param('credentialId') credentialId: string,
+    @Body() dto: AssessAccountHealthDto,
+    @CurrentUser() user: User,
+  ): Promise<AccountHealthSummary> {
+    const publicMetadata = getPublicMetadata(user);
+
+    return this.accountHealthService.assessCredentialHealth({
+      brandId: publicMetadata.brand,
+      credentialId,
+      organizationId: publicMetadata.organization,
+      request: dto,
+    });
+  }
+
+  @Post(':credentialId/account-health/override')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async overrideAccountHealth(
+    @Param('credentialId') credentialId: string,
+    @Body() dto: ManualAccountHealthOverrideDto,
+    @CurrentUser() user: User,
+  ): Promise<AccountHealthSummary> {
+    const publicMetadata = getPublicMetadata(user);
+
+    return this.accountHealthService.confirmManualOverride({
+      credentialId,
+      organizationId: publicMetadata.organization,
+      request: dto,
+      userId: publicMetadata.user,
     });
   }
 

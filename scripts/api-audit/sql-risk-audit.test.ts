@@ -168,6 +168,42 @@ describe('sql risk audit', () => {
     ).toBe(true);
     expect(result.summary.high).toBe(0);
   });
+
+  it('allows reviewed aggregate/groupBy suppressions with local rationale', () => {
+    writeFixture(
+      'apps/server/api/src/analytics/analytics.service.ts',
+      `
+      export class AnalyticsService {
+        constructor(private readonly prisma: PrismaService) {}
+
+        async reviewedByDate(organizationId: string) {
+          // sql-risk-audit: ignore aggregate-scan-review -- Group key is index-backed and result cardinality is bounded by platform taxonomy.
+          return this.prisma.postAnalytics.groupBy({
+            _avg: { engagementRate: true },
+            by: ['platform'],
+            where: { organizationId },
+          });
+        }
+
+        async unreviewedByDate(organizationId: string) {
+          return this.prisma.postAnalytics.groupBy({
+            _avg: { engagementRate: true },
+            by: ['date'],
+            where: { organizationId },
+          });
+        }
+      }
+      `,
+    );
+
+    const result = runSqlRiskAudit({ rootDir: testDir });
+
+    expect(
+      result.findings.filter(
+        (finding) => finding.category === 'aggregate-scan-review',
+      ),
+    ).toHaveLength(1);
+  });
 });
 
 function writeFixture(relativePath: string, content: string): void {

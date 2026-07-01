@@ -1,4 +1,9 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import type {
+  AccountHealthSummary,
+  AssessAccountHealthRequest,
+  ManualAccountHealthOverrideRequest,
+} from '@genfeedai/interfaces';
 import type { QuotaStatus } from '@genfeedai/interfaces/organization/quota-status.interface';
 import {
   Credential,
@@ -38,6 +43,37 @@ export class CredentialsService extends BaseService<Credential> {
         const data = this.extractResource<Partial<Credential>>(res.data);
         return new Credential(data);
       });
+  }
+
+  public async listBrandAccountHealth(
+    brandId: string,
+  ): Promise<AccountHealthSummary[]> {
+    const response = await this.instance.get<AccountHealthSummary[]>(
+      `/brand/${brandId}/account-health`,
+    );
+    return response.data;
+  }
+
+  public async assessAccountHealth(
+    credentialId: string,
+    data: AssessAccountHealthRequest = {},
+  ): Promise<AccountHealthSummary> {
+    const response = await this.instance.post<AccountHealthSummary>(
+      `/${credentialId}/account-health/assess`,
+      data,
+    );
+    return response.data;
+  }
+
+  public async overrideAccountHealth(
+    credentialId: string,
+    data: ManualAccountHealthOverrideRequest,
+  ): Promise<AccountHealthSummary> {
+    const response = await this.instance.post<AccountHealthSummary>(
+      `/${credentialId}/account-health/override`,
+      data,
+    );
+    return response.data;
   }
 
   public async getQuotaStatus(

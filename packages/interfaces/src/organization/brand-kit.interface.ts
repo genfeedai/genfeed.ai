@@ -132,6 +132,40 @@ export interface IBrandKitAssetCandidate extends IBrandKitAssetValue {
   diagnostics?: IBrandKitDiagnostic[];
 }
 
+export interface IBrandKitManualAssetInput {
+  role: BrandKitAssetRole;
+  id?: string;
+  url?: string;
+  label?: string;
+  mimeType?: string;
+  width?: number;
+  height?: number;
+  sourceType?: Extract<BrandKitSourceType, 'manual' | 'uploaded_guidance'>;
+}
+
+export interface IBrandKitManualInput {
+  label?: string;
+  description?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  backgroundColor?: string;
+  fontFamily?: string;
+  guidanceText?: string;
+  guidanceDocumentName?: string;
+  voiceTone?: string;
+  voiceStyle?: string;
+  voiceAudience?: string[];
+  voiceValues?: string[];
+  voiceMessagingPillars?: string[];
+  voiceDoNotSoundLike?: string[];
+  voiceSampleOutput?: string;
+  strategyContentTypes?: string[];
+  strategyPlatforms?: string[];
+  strategyGoals?: string[];
+  strategyFrequency?: string;
+  assets?: IBrandKitManualAssetInput[];
+}
+
 export interface IBrandKitDraftField<TValue = unknown> {
   key: BrandKitFieldKey;
   label: string;
@@ -199,6 +233,44 @@ export interface IBrandKitApplyResult {
   status: Extract<BrandKitDraftStatus, 'accepted' | 'partial' | 'blocked'>;
   appliedFields: BrandKitFieldKey[];
   preservedFields: BrandKitFieldKey[];
+  diagnostics: IBrandKitDiagnostic[];
+}
+
+export type BrandKitAssetImportStatus = 'imported' | 'skipped' | 'failed';
+
+export interface IBrandKitAssetImportCandidate {
+  candidateId?: string;
+  role: BrandKitAssetRole;
+  url?: string;
+  sourceUrl?: string;
+  label?: string;
+  mimeType?: string;
+  width?: number;
+  height?: number;
+  sourceType?: BrandKitSourceType;
+  replaceExisting?: boolean;
+}
+
+export interface IBrandKitAssetImportRequest {
+  assets: IBrandKitAssetImportCandidate[];
+}
+
+export interface IBrandKitAssetImportResult {
+  candidateId?: string;
+  role: BrandKitAssetRole;
+  status: BrandKitAssetImportStatus;
+  assetId?: string;
+  url?: string;
+  diagnostics: IBrandKitDiagnostic[];
+}
+
+export interface IBrandKitAssetImportResponse {
+  brandId: string;
+  status: Extract<BrandKitDraftStatus, 'accepted' | 'partial' | 'blocked'>;
+  importedAssetIds: string[];
+  skippedCandidateIds: string[];
+  failedCandidateIds: string[];
+  results: IBrandKitAssetImportResult[];
   diagnostics: IBrandKitDiagnostic[];
 }
 

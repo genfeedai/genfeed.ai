@@ -64,6 +64,36 @@ describe('TopbarBreadcrumbs', () => {
     expect(screen.queryByText('Library')).not.toBeInTheDocument();
   });
 
+  it('uses a fallback root label when the active page has no group', () => {
+    mockNavigationState = {
+      activeGroupId: '',
+      activePageLabel: 'Dashboard',
+      exitNestedGroup: mockExitNestedGroup,
+    };
+
+    render(<TopbarBreadcrumbs fallbackRootLabel="Workspace" />);
+
+    expect(screen.getByText('Workspace')).toBeInTheDocument();
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Workspace' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not render the current page as a heading', () => {
+    mockNavigationState = {
+      activeGroupId: '',
+      activePageLabel: 'Dashboard',
+      exitNestedGroup: mockExitNestedGroup,
+    };
+
+    render(<TopbarBreadcrumbs fallbackRootLabel="Workspace" />);
+
+    expect(
+      screen.queryByRole('heading', { name: 'Dashboard' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('exits nested mode when the group breadcrumb is clicked', () => {
     mockNavigationState = {
       activeGroupId: 'Library',

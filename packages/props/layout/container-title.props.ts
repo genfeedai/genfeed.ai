@@ -4,4 +4,5 @@ export interface ContainerTitleProps {
   title: ReactNode;
   description?: ReactNode;
   icon?: ComponentType<{ className?: string }> | ReactNode;
+  titleVisibility?: 'visible' | 'sr-only';
 }

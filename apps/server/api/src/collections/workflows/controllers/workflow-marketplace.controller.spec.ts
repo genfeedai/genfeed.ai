@@ -50,7 +50,14 @@ describe('WorkflowMarketplaceController', () => {
     it('should return workflow templates', async () => {
       const templates = [
         { name: 'Social Media Automation', steps: [] },
-        { name: 'Content Publishing', steps: [] },
+        {
+          name: 'Daily Trend Loop',
+          routine: {
+            kind: 'productized-daily-routine',
+            trackingTasks: [{ key: 'review-trend-brief' }],
+          },
+          steps: [],
+        },
       ];
 
       mockWorkflowsService.getWorkflowTemplates.mockResolvedValue(templates);
@@ -59,6 +66,13 @@ describe('WorkflowMarketplaceController', () => {
 
       expect(service.getWorkflowTemplates).toHaveBeenCalled();
       expect(result.data).toEqual(templates);
+      expect(result.data[1]).toMatchObject({
+        name: 'Daily Trend Loop',
+        routine: {
+          kind: 'productized-daily-routine',
+          trackingTasks: [{ key: 'review-trend-brief' }],
+        },
+      });
     });
   });
 });

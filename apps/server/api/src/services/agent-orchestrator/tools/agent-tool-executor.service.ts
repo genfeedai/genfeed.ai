@@ -186,20 +186,6 @@ type LivestreamBotMessageType =
   | 'context_aware_question';
 type RecurringTaskContentType = 'image' | 'video' | 'post' | 'newsletter';
 
-const CREATE_LIVESTREAM_BOT_TOOL = 'create_livestream_bot' as AgentToolName;
-const MANAGE_LIVESTREAM_BOT_TOOL = 'manage_livestream_bot' as AgentToolName;
-const LIST_ADS_RESEARCH_TOOL = 'list_ads_research' as AgentToolName;
-const GET_AD_RESEARCH_DETAIL_TOOL = 'get_ad_research_detail' as AgentToolName;
-const CREATE_AD_REMIX_WORKFLOW_TOOL =
-  'create_ad_remix_workflow' as AgentToolName;
-const GENERATE_AD_PACK_TOOL = 'generate_ad_pack' as AgentToolName;
-const PREPARE_AD_LAUNCH_REVIEW_TOOL =
-  'prepare_ad_launch_review' as AgentToolName;
-const DRAFT_BRAND_VOICE_PROFILE_TOOL =
-  'draft_brand_voice_profile' as AgentToolName;
-const SAVE_BRAND_VOICE_PROFILE_TOOL =
-  'save_brand_voice_profile' as AgentToolName;
-const GET_WORKFLOW_INPUTS_TOOL = 'get_workflow_inputs' as AgentToolName;
 const LIVESTREAM_BOT_CATEGORY = 'livestream_chat';
 const ROUTE_HREF_KEYS = new Set(['href', 'ctaHref', 'editorUrl']);
 const ORG_LEVEL_ROUTE_PREFIXES = new Set([
@@ -703,14 +689,8 @@ export class AgentToolExecutorService {
     }
 
     const brand = await this.resolveWorkflowBrand(params, ctx);
-    const schedule =
-      typeof params.schedule === 'string' && params.schedule.trim()
-        ? params.schedule.trim()
-        : undefined;
-    const timezone =
-      typeof params.timezone === 'string' && params.timezone.trim()
-        ? params.timezone.trim()
-        : 'UTC';
+    const schedule = this.readOptionalString(params.schedule);
+    const timezone = this.readOptionalString(params.timezone) ?? 'UTC';
 
     await this.workflowsService.patch(workflowId, {
       brands: brand && brand._id ? [String(brand._id)] : workflow.brands,
@@ -941,6 +921,14 @@ export class AgentToolExecutorService {
     return value ? this.readOptionalString(value[key]) : undefined;
   }
 
+  private readResponseEnvelopeString(
+    response: Record<string, unknown>,
+    key: string,
+  ): string | undefined {
+    const data = this.isPlainRecord(response.data) ? response.data : undefined;
+    return this.readOptionalString(data?.[key] ?? response[key]);
+  }
+
   private async dispatch(
     toolName: AgentToolName,
     params: Record<string, unknown>,
@@ -965,7 +953,7 @@ export class AgentToolExecutorService {
       case AgentToolName.SCHEDULE_POST:
         return this.schedulePost(params, ctx);
 
-      case 'install_official_workflow' as AgentToolName:
+      case AgentToolName.INSTALL_OFFICIAL_WORKFLOW:
         return this.installOfficialWorkflow(params, ctx);
 
       case AgentToolName.LIST_WORKFLOWS:
@@ -974,16 +962,16 @@ export class AgentToolExecutorService {
       case AgentToolName.CREATE_WORKFLOW:
         return this.createWorkflow(params, ctx);
 
-      case CREATE_LIVESTREAM_BOT_TOOL:
+      case AgentToolName.CREATE_LIVESTREAM_BOT:
         return this.createLivestreamBot(params, ctx);
 
-      case MANAGE_LIVESTREAM_BOT_TOOL:
+      case AgentToolName.MANAGE_LIVESTREAM_BOT:
         return this.manageLivestreamBot(params, ctx);
 
       case AgentToolName.EXECUTE_WORKFLOW:
         return this.executeWorkflow(params, ctx);
 
-      case GET_WORKFLOW_INPUTS_TOOL:
+      case AgentToolName.GET_WORKFLOW_INPUTS:
         return this.getWorkflowInputs(params, ctx);
 
       case AgentToolName.GET_ANALYTICS:
@@ -998,19 +986,19 @@ export class AgentToolExecutorService {
       case AgentToolName.GET_TRENDS:
         return this.getTrends(params, ctx);
 
-      case LIST_ADS_RESEARCH_TOOL:
+      case AgentToolName.LIST_ADS_RESEARCH:
         return this.listAdsResearch(params, ctx);
 
-      case GET_AD_RESEARCH_DETAIL_TOOL:
+      case AgentToolName.GET_AD_RESEARCH_DETAIL:
         return this.getAdResearchDetail(params, ctx);
 
-      case CREATE_AD_REMIX_WORKFLOW_TOOL:
+      case AgentToolName.CREATE_AD_REMIX_WORKFLOW:
         return this.createAdRemixWorkflow(params, ctx);
 
-      case GENERATE_AD_PACK_TOOL:
+      case AgentToolName.GENERATE_AD_PACK:
         return this.generateAdPack(params, ctx);
 
-      case PREPARE_AD_LAUNCH_REVIEW_TOOL:
+      case AgentToolName.PREPARE_AD_LAUNCH_REVIEW:
         return this.prepareAdLaunchReview(params, ctx);
 
       case AgentToolName.AI_ACTION:
@@ -1089,10 +1077,10 @@ export class AgentToolExecutorService {
       case AgentToolName.GENERATE_MONTHLY_CONTENT:
         return this.generateMonthlyContent(params, ctx);
 
-      case DRAFT_BRAND_VOICE_PROFILE_TOOL:
+      case AgentToolName.DRAFT_BRAND_VOICE_PROFILE:
         return this.draftBrandVoiceProfile(params, ctx);
 
-      case SAVE_BRAND_VOICE_PROFILE_TOOL:
+      case AgentToolName.SAVE_BRAND_VOICE_PROFILE:
         return this.saveBrandVoiceProfile(params, ctx);
 
       // Proactive agent tools
@@ -1151,33 +1139,33 @@ export class AgentToolExecutorService {
         return this.requestAsset(params, ctx);
 
       // Content quality scoring
-      case 'rate_content':
+      case AgentToolName.RATE_CONTENT:
         return this.rateContent(params, ctx);
 
       // SEO scoring
-      case 'score_seo':
+      case AgentToolName.SCORE_SEO:
         return this.scoreSeo(params, ctx);
 
       // Ingredient voting & replication tools
-      case 'rate_ingredient':
+      case AgentToolName.RATE_INGREDIENT:
         return this.rateIngredient(params, ctx);
 
-      case 'get_top_ingredients':
+      case AgentToolName.GET_TOP_INGREDIENTS:
         return this.getTopIngredients(params, ctx);
 
-      case 'replicate_top_ingredient':
+      case AgentToolName.REPLICATE_TOP_INGREDIENT:
         return this.replicateTopIngredient(params, ctx);
 
-      case 'capture_memory':
+      case AgentToolName.CAPTURE_MEMORY:
         return this.captureMemory(params, ctx);
 
-      case 'create_goal':
+      case AgentToolName.CREATE_GOAL:
         return this.createGoal(params, ctx);
 
-      case 'check_goal_progress':
+      case AgentToolName.CHECK_GOAL_PROGRESS:
         return this.checkGoalProgress(params, ctx);
 
-      case 'update_goal':
+      case AgentToolName.UPDATE_GOAL:
         return this.updateGoal(params, ctx);
 
       // Brand context interview tools
@@ -2726,7 +2714,7 @@ export class AgentToolExecutorService {
               label: 'Open bot',
             },
             {
-              action: MANAGE_LIVESTREAM_BOT_TOOL,
+              action: AgentToolName.MANAGE_LIVESTREAM_BOT,
               label: 'Start session',
               payload: {
                 action: 'start_session',
@@ -2734,7 +2722,7 @@ export class AgentToolExecutorService {
               },
             },
             {
-              action: MANAGE_LIVESTREAM_BOT_TOOL,
+              action: AgentToolName.MANAGE_LIVESTREAM_BOT,
               label: 'Send message now',
               payload: {
                 action: 'send_now',
@@ -2767,7 +2755,7 @@ export class AgentToolExecutorService {
     const nextControlCta =
       params.session.status === 'active'
         ? {
-            action: MANAGE_LIVESTREAM_BOT_TOOL,
+            action: AgentToolName.MANAGE_LIVESTREAM_BOT,
             label: 'Pause session',
             payload: {
               action: 'pause_session',
@@ -2776,7 +2764,7 @@ export class AgentToolExecutorService {
           }
         : params.session.status === 'paused'
           ? {
-              action: MANAGE_LIVESTREAM_BOT_TOOL,
+              action: AgentToolName.MANAGE_LIVESTREAM_BOT,
               label: 'Resume session',
               payload: {
                 action: 'resume_session',
@@ -2784,7 +2772,7 @@ export class AgentToolExecutorService {
               },
             }
           : {
-              action: MANAGE_LIVESTREAM_BOT_TOOL,
+              action: AgentToolName.MANAGE_LIVESTREAM_BOT,
               label: 'Start session',
               payload: {
                 action: 'start_session',
@@ -2812,7 +2800,7 @@ export class AgentToolExecutorService {
             },
             nextControlCta,
             {
-              action: MANAGE_LIVESTREAM_BOT_TOOL,
+              action: AgentToolName.MANAGE_LIVESTREAM_BOT,
               label: 'Stop session',
               payload: {
                 action: 'stop_session',
@@ -2820,7 +2808,7 @@ export class AgentToolExecutorService {
               },
             },
             {
-              action: MANAGE_LIVESTREAM_BOT_TOOL,
+              action: AgentToolName.MANAGE_LIVESTREAM_BOT,
               label: 'Send message now',
               payload: {
                 action: 'send_now',
@@ -4303,10 +4291,7 @@ export class AgentToolExecutorService {
       requestedContentType === 'newsletter'
         ? requestedContentType
         : 'image';
-    const timezone =
-      typeof params.timezone === 'string' && params.timezone.trim()
-        ? params.timezone.trim()
-        : 'UTC';
+    const timezone = this.readOptionalString(params.timezone) ?? 'UTC';
     const requestedCount =
       typeof params.count === 'number'
         ? params.count
@@ -4529,14 +4514,8 @@ export class AgentToolExecutorService {
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     const confirmed = params.confirmed === true;
-    const schedule =
-      typeof params.schedule === 'string' && params.schedule.trim()
-        ? params.schedule.trim()
-        : undefined;
-    const timezone =
-      typeof params.timezone === 'string' && params.timezone.trim()
-        ? params.timezone.trim()
-        : 'UTC';
+    const schedule = this.readOptionalString(params.schedule);
+    const timezone = this.readOptionalString(params.timezone) ?? 'UTC';
 
     let source: OfficialWorkflowSource | null =
       typeof params.sourceId === 'string' &&
@@ -5304,18 +5283,12 @@ export class AgentToolExecutorService {
       !hasGraphPayload &&
       typeof params.description === 'string' &&
       params.description.trim().length > 0;
-    const timezone =
-      typeof params.timezone === 'string' && params.timezone.trim()
-        ? params.timezone.trim()
-        : 'UTC';
+    const timezone = this.readOptionalString(params.timezone) ?? 'UTC';
     const trigger =
       typeof params.trigger === 'string' && params.trigger.trim()
         ? params.trigger
         : WorkflowTrigger.MANUAL;
-    const schedule =
-      typeof params.schedule === 'string' && params.schedule.trim()
-        ? params.schedule.trim()
-        : undefined;
+    const schedule = this.readOptionalString(params.schedule);
     const isScheduleEnabled =
       typeof params.isScheduleEnabled === 'boolean'
         ? params.isScheduleEnabled
@@ -5797,9 +5770,7 @@ export class AgentToolExecutorService {
       };
     }
 
-    const id =
-      (response.data as Record<string, unknown>)?.id ??
-      (response as Record<string, unknown>).id;
+    const id = this.readResponseEnvelopeString(response, 'id');
     const cdnUrl = id
       ? `${this.configService.ingredientsEndpoint}/images/${id}`
       : undefined;
@@ -5807,7 +5778,7 @@ export class AgentToolExecutorService {
     // Fire-and-forget quality check — don't block the generation response
     if (id && this.contentQualityScorerService) {
       this.contentQualityScorerService
-        .scoreAndTag(String(id), 'image', {
+        .scoreAndTag(id, 'image', {
           organizationId: ctx.organizationId,
         })
         .catch((err) =>
@@ -5868,9 +5839,7 @@ export class AgentToolExecutorService {
       ctx,
     );
 
-    const id =
-      (response.data as Record<string, unknown>)?.id ??
-      (response as Record<string, unknown>).id;
+    const id = this.readResponseEnvelopeString(response, 'id');
     const cdnUrl = id
       ? `${this.configService.ingredientsEndpoint}/images/${id}`
       : undefined;
@@ -5916,9 +5885,7 @@ export class AgentToolExecutorService {
       ctx,
     );
 
-    const id =
-      (response.data as Record<string, unknown>)?.id ??
-      (response as Record<string, unknown>).id;
+    const id = this.readResponseEnvelopeString(response, 'id');
     const cdnUrl = id
       ? `${this.configService.ingredientsEndpoint}/images/${id}`
       : undefined;
@@ -5992,9 +5959,7 @@ export class AgentToolExecutorService {
       ctx,
     );
 
-    const id =
-      (response.data as Record<string, unknown>)?.id ??
-      (response as Record<string, unknown>).id;
+    const id = this.readResponseEnvelopeString(response, 'id');
     const cdnUrl = id
       ? `${this.configService.ingredientsEndpoint}/videos/${id}`
       : undefined;
@@ -6002,7 +5967,7 @@ export class AgentToolExecutorService {
     // Fire-and-forget quality check — don't block the generation response
     if (id && this.contentQualityScorerService) {
       this.contentQualityScorerService
-        .scoreAndTag(String(id), 'video', {
+        .scoreAndTag(id, 'video', {
           organizationId: ctx.organizationId,
         })
         .catch((err) =>
@@ -6059,9 +6024,7 @@ export class AgentToolExecutorService {
       ctx,
     );
 
-    const id =
-      (response.data as Record<string, unknown>)?.id ??
-      (response as Record<string, unknown>).id;
+    const id = this.readResponseEnvelopeString(response, 'id');
     const cdnUrl = id
       ? `${this.configService.ingredientsEndpoint}/musics/${id}`
       : undefined;
@@ -6103,14 +6066,10 @@ export class AgentToolExecutorService {
       ctx,
     );
 
-    const id =
-      (response.data as Record<string, unknown>)?.id ??
-      (response as Record<string, unknown>).id;
-    const audioUrl =
-      (response.data as Record<string, unknown>)?.audioUrl ??
-      (response as Record<string, unknown>).audioUrl;
+    const id = this.readResponseEnvelopeString(response, 'id');
+    const audioUrl = this.readResponseEnvelopeString(response, 'audioUrl');
     const cdnUrl = audioUrl
-      ? String(audioUrl)
+      ? audioUrl
       : id
         ? `${this.configService.ingredientsEndpoint}/voices/${id}`
         : undefined;
@@ -7331,9 +7290,7 @@ export class AgentToolExecutorService {
       ctx,
     );
 
-    const id =
-      (response.data as Record<string, unknown>)?.id ??
-      (response as Record<string, unknown>).id;
+    const id = this.readResponseEnvelopeString(response, 'id');
 
     return {
       creditsUsed: 0,

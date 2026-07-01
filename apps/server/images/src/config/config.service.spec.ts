@@ -1,3 +1,4 @@
+import process from 'node:process';
 import { ConfigService } from '@images/config/config.service';
 
 vi.mock('fs');
@@ -37,6 +38,18 @@ describe('ConfigService (Images)', () => {
     process.env.COMFYUI_URL = 'http://comfyui:8188';
     const service = new ConfigService();
     expect(service.COMFYUI_URL).toBe('http://comfyui:8188');
+  });
+
+  it('should return default COMFYUI_OUTPUT_PATH when not set', () => {
+    delete process.env.COMFYUI_OUTPUT_PATH;
+    const service = new ConfigService();
+    expect(service.COMFYUI_OUTPUT_PATH).toBe('/opt/ComfyUI/output');
+  });
+
+  it('should return configured COMFYUI_OUTPUT_PATH when set', () => {
+    process.env.COMFYUI_OUTPUT_PATH = '/custom/comfy/output';
+    const service = new ConfigService();
+    expect(service.COMFYUI_OUTPUT_PATH).toBe('/custom/comfy/output');
   });
 
   it('should return default REDIS_URL when not set', () => {

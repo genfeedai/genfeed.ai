@@ -132,6 +132,8 @@ export default function BrandOverviewPanel({
               }
               onRefreshBrand={onRefreshBrand}
               onOpenLinkModal={onOpenLinkModal}
+              onUploadBanner={onUploadBanner}
+              onUploadLogo={onUploadLogo}
               onUploadReference={onUploadReference}
               onDeleteReference={onDeleteReference}
             />

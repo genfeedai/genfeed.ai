@@ -8,9 +8,24 @@ export default function ContainerTitle({
   title,
   description,
   icon,
+  titleVisibility = 'visible',
 }: ContainerTitleProps) {
   const { activeGroupId, activePageLabel } = useSidebarNavigation();
-  const hasBreadcrumb = Boolean(activeGroupId || activePageLabel);
+  if (titleVisibility === 'sr-only') {
+    return <h1 className="sr-only">{title}</h1>;
+  }
+
+  const normalizedTitle =
+    typeof title === 'string' ? title.trim().toLowerCase() : null;
+  const normalizedPageLabel = activePageLabel?.trim().toLowerCase() ?? null;
+  const isDuplicatePageLabel =
+    !activeGroupId &&
+    normalizedTitle !== null &&
+    normalizedPageLabel !== null &&
+    normalizedTitle === normalizedPageLabel;
+  const hasBreadcrumb = Boolean(
+    activeGroupId || (activePageLabel && !isDuplicatePageLabel),
+  );
 
   const isTextDescription =
     typeof description === 'number' || typeof description === 'string';

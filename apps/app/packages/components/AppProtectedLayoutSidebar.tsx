@@ -110,18 +110,13 @@ export default function AppProtectedLayoutSidebar({
   if (isStudioRoute) {
     return (
       <AppSidebar
-        backHref={withTaskContextHref(
-          buildHref(STUDIO_LOGO_HREF),
-          taskContextSearchParams,
-        )}
-        backLabel="Library"
         items={studioMenuItems}
         logoHref={withTaskContextHref(
           buildHref(STUDIO_LOGO_HREF),
           taskContextSearchParams,
         )}
         currentApp={currentApp}
-        sectionLabel="Studio"
+        sectionLabel="Library"
         shellChromeVariant={shellChromeVariant}
       />
     );

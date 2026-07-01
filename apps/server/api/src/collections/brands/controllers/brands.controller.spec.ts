@@ -95,6 +95,9 @@ describe('BrandsController', () => {
         {
           provide: BrandsService,
           useValue: {
+            applyBrandKitDraft: vi.fn(),
+            buildManualBrandKitDraft: vi.fn(),
+            crawlWebsiteBrandKitDraft: vi.fn(),
             create: vi.fn(),
             findAll: vi.fn(),
             findOne: vi.fn(),
@@ -254,6 +257,238 @@ describe('BrandsController', () => {
       );
 
       expect(cacheMetadata).toBeUndefined();
+    });
+  });
+
+  describe('crawlBrandKitWebsite', () => {
+    it('verifies brand access and passes organization context to the service', async () => {
+      const brandId = '507f191e810c19729de860ee'.toString();
+      const draft = {
+        assetCandidates: [],
+        brandId,
+        diagnostics: [],
+        evidence: [],
+        fields: {},
+        readiness: {
+          diagnostics: [],
+          missingFields: [],
+          requiredFields: [],
+          score: 100,
+          status: 'complete',
+        },
+        sourceType: 'website',
+        status: 'ready',
+      };
+      brandsService.findOne.mockResolvedValue(
+        mockBrand as unknown as BrandEntity,
+      );
+      brandsService.crawlWebsiteBrandKitDraft.mockResolvedValue(
+        draft as Awaited<
+          ReturnType<BrandsService['crawlWebsiteBrandKitDraft']>
+        >,
+      );
+
+      const result = await controller.crawlBrandKitWebsite(mockUser, brandId, {
+        url: 'https://acme.com',
+      });
+
+      expect(brandsService.findOne).toHaveBeenCalledWith({
+        OR: [
+          { user: '507f191e810c19729de860ee' },
+          { organization: '507f191e810c19729de860ee' },
+        ],
+        _id: brandId,
+        isDeleted: false,
+      });
+      expect(brandsService.crawlWebsiteBrandKitDraft).toHaveBeenCalledWith(
+        brandId,
+        '507f191e810c19729de860ee',
+        { url: 'https://acme.com' },
+      );
+      expect(result).toEqual({ data: draft });
+    });
+
+    it('rejects crawl requests without organization context', async () => {
+      const brandId = '507f191e810c19729de860ee'.toString();
+      const userWithoutOrganization = {
+        ...mockUser,
+        publicMetadata: {
+          ...(mockUser.publicMetadata as IAuthPublicMetadata),
+          organization: undefined,
+        },
+      } as unknown as User;
+      brandsService.findOne.mockResolvedValue(
+        mockBrand as unknown as BrandEntity,
+      );
+
+      await expect(
+        controller.crawlBrandKitWebsite(userWithoutOrganization, brandId, {
+          url: 'https://acme.com',
+        }),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          detail: 'Organization context is required',
+        }),
+      });
+      expect(brandsService.crawlWebsiteBrandKitDraft).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('applyBrandKitDraft', () => {
+    it('verifies brand access and passes organization context to the service', async () => {
+      const brandId = '507f191e810c19729de860ee'.toString();
+      const applyResult = {
+        appliedFields: ['description'],
+        brandId,
+        diagnostics: [],
+        preservedFields: [],
+        status: 'accepted',
+      };
+      brandsService.findOne.mockResolvedValue(
+        mockBrand as unknown as BrandEntity,
+      );
+      brandsService.applyBrandKitDraft.mockResolvedValue(
+        applyResult as Awaited<ReturnType<BrandsService['applyBrandKitDraft']>>,
+      );
+
+      const result = await controller.applyBrandKitDraft(mockUser, brandId, {
+        fields: {
+          description: {
+            action: 'accept',
+            value: 'Updated brand description',
+          },
+        },
+      });
+
+      expect(brandsService.findOne).toHaveBeenCalledWith({
+        OR: [
+          { user: '507f191e810c19729de860ee' },
+          { organization: '507f191e810c19729de860ee' },
+        ],
+        _id: brandId,
+        isDeleted: false,
+      });
+      expect(brandsService.applyBrandKitDraft).toHaveBeenCalledWith(
+        brandId,
+        '507f191e810c19729de860ee',
+        {
+          fields: {
+            description: {
+              action: 'accept',
+              value: 'Updated brand description',
+            },
+          },
+        },
+      );
+      expect(result).toEqual({ data: applyResult });
+    });
+
+    it('rejects apply requests without organization context', async () => {
+      const brandId = '507f191e810c19729de860ee'.toString();
+      const userWithoutOrganization = {
+        ...mockUser,
+        publicMetadata: {
+          ...(mockUser.publicMetadata as IAuthPublicMetadata),
+          organization: undefined,
+        },
+      } as unknown as User;
+      brandsService.findOne.mockResolvedValue(
+        mockBrand as unknown as BrandEntity,
+      );
+
+      await expect(
+        controller.applyBrandKitDraft(userWithoutOrganization, brandId, {
+          fields: {
+            description: {
+              action: 'accept',
+              value: 'Updated brand description',
+            },
+          },
+        }),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          detail: 'Organization context is required',
+        }),
+      });
+      expect(brandsService.applyBrandKitDraft).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('createManualBrandKitDraft', () => {
+    it('verifies brand access and passes manual intake to the service', async () => {
+      const brandId = '507f191e810c19729de860ee'.toString();
+      const dto = {
+        description: 'Manual description',
+        guidanceText: 'Write with practical proof.',
+      };
+      const draft = {
+        assetCandidates: [],
+        brandId,
+        diagnostics: [],
+        evidence: [],
+        fields: {},
+        readiness: {
+          diagnostics: [],
+          missingFields: [],
+          requiredFields: [],
+          score: 100,
+          status: 'complete',
+        },
+        sourceType: 'manual',
+        status: 'ready',
+      };
+      brandsService.findOne.mockResolvedValue(
+        mockBrand as unknown as BrandEntity,
+      );
+      brandsService.buildManualBrandKitDraft.mockResolvedValue(
+        draft as Awaited<ReturnType<BrandsService['buildManualBrandKitDraft']>>,
+      );
+
+      const result = await controller.createManualBrandKitDraft(
+        mockUser,
+        brandId,
+        dto,
+      );
+
+      expect(brandsService.findOne).toHaveBeenCalledWith({
+        OR: [
+          { user: '507f191e810c19729de860ee' },
+          { organization: '507f191e810c19729de860ee' },
+        ],
+        _id: brandId,
+        isDeleted: false,
+      });
+      expect(brandsService.buildManualBrandKitDraft).toHaveBeenCalledWith(
+        brandId,
+        '507f191e810c19729de860ee',
+        dto,
+      );
+      expect(result).toEqual({ data: draft });
+    });
+
+    it('rejects manual intake without organization context', async () => {
+      const brandId = '507f191e810c19729de860ee'.toString();
+      const userWithoutOrganization = {
+        ...mockUser,
+        publicMetadata: {
+          ...(mockUser.publicMetadata as IAuthPublicMetadata),
+          organization: undefined,
+        },
+      } as unknown as User;
+      brandsService.findOne.mockResolvedValue(
+        mockBrand as unknown as BrandEntity,
+      );
+
+      await expect(
+        controller.createManualBrandKitDraft(userWithoutOrganization, brandId, {
+          description: 'Manual description',
+        }),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          detail: 'Organization context is required',
+        }),
+      });
+      expect(brandsService.buildManualBrandKitDraft).not.toHaveBeenCalled();
     });
   });
 });

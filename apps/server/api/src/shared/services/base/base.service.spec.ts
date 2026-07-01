@@ -365,6 +365,37 @@ describe('BaseService', () => {
       });
     });
 
+    it('applies explicit Prisma select options', async () => {
+      delegate.findMany.mockResolvedValue([{ id: '1', platformRole: 'USER' }]);
+      delegate.count.mockResolvedValue(1);
+
+      await service.findAll(
+        {
+          orderBy: { id: 'asc' },
+          select: { id: true, platformRole: true },
+          where: { organization: 'org-1' },
+        },
+        { page: 1, limit: 10 },
+      );
+
+      expect(delegate.findMany).toHaveBeenCalledWith({
+        orderBy: [{ id: 'asc' }],
+        select: { id: true, platformRole: true },
+        skip: 0,
+        take: 10,
+        where: {
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
+      });
+      expect(delegate.count).toHaveBeenCalledWith({
+        where: {
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
+      });
+    });
+
     it('normalizes app enum filters to Prisma enum values', async () => {
       getModelMetaMock.mockReturnValue(
         makeModelMeta(

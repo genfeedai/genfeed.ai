@@ -5,6 +5,7 @@ import { cloudNodeTypes } from './merged-node-types';
 const TEMPLATE_NODE_TYPES = [
   'ai-avatar-video',
   'effect-captions',
+  'hookGenerator',
   'imageGen',
   'musicSource',
   'promptConstructor',

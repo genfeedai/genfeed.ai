@@ -6,6 +6,10 @@ import type {
   IActivity,
   IAnalytics,
   IArticle,
+  IBrandKitApplyRequest,
+  IBrandKitApplyResult,
+  IBrandKitDraft,
+  IBrandKitManualInput,
   IImage,
   IPost,
   IQueryParams,
@@ -255,6 +259,27 @@ export class BrandsService extends BaseService<Brand> {
     await this.instance.patch(`/${id}/agent-config`, data);
   }
 
+  public async crawlBrandKitWebsite(
+    id: string,
+    data: {
+      socialUrls?: string[];
+      url: string;
+    },
+  ): Promise<IBrandKitDraft> {
+    return await this.instance
+      .post<{ data: IBrandKitDraft }>(`/${id}/brand-kit/crawl`, data)
+      .then((res) => res.data.data);
+  }
+
+  public async applyBrandKitDraft(
+    id: string,
+    data: Omit<IBrandKitApplyRequest, 'brandId'>,
+  ): Promise<IBrandKitApplyResult> {
+    return await this.instance
+      .post<{ data: IBrandKitApplyResult }>(`/${id}/brand-kit/apply`, data)
+      .then((res) => res.data.data);
+  }
+
   public async findBrandAnalytics(
     id: string,
     query?: {
@@ -297,5 +322,14 @@ export class BrandsService extends BaseService<Brand> {
     return await this.instance
       .post<{ data: FastlaneIdea[] }>(`/${id}/fastlane/ideas`, dto)
       .then((res) => res.data?.data ?? []);
+  }
+
+  public async createManualBrandKitDraft(
+    id: string,
+    data: IBrandKitManualInput,
+  ): Promise<IBrandKitDraft> {
+    return await this.instance
+      .post<JsonApiResponseDocument>(`/${id}/brand-kit/manual`, data)
+      .then((res) => deserializeResource<IBrandKitDraft>(res.data));
   }
 }

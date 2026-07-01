@@ -112,6 +112,27 @@ export class ClipResultsService extends BaseService<
     return result ? this.normalizeDocument(result) : null;
   }
 
+  async findProjectResultForHandoff(input: {
+    clipResultId: string;
+    organizationId: string;
+    projectId: string;
+  }): Promise<ClipResultDocument | null> {
+    const result = await this.delegate.findFirst({
+      where: {
+        OR: [
+          { id: input.clipResultId },
+          { mongoId: input.clipResultId },
+          { providerJobId: input.clipResultId },
+        ],
+        isDeleted: false,
+        organizationId: input.organizationId,
+        projectId: input.projectId,
+      },
+    });
+
+    return result ? this.normalizeDocument(result) : null;
+  }
+
   private toPrismaWriteData(
     dto: ClipResultWriteDto,
     mode: 'create' | 'update',

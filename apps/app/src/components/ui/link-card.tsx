@@ -1,21 +1,26 @@
+import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 export interface LinkCardProps {
+  className?: string;
+  description?: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   title: string;
-  description: string;
   /** Large icon style (for prominent cards) */
   prominent?: boolean;
+  trailingIcon?: ReactNode;
 }
 
 /** Clickable external link card */
 export function LinkCard({
+  className,
+  description,
   href,
   icon: Icon,
   title,
-  description,
   prominent,
+  trailingIcon,
 }: LinkCardProps) {
   return (
     <a
@@ -25,6 +30,7 @@ export function LinkCard({
       className={cn(
         'flex items-center gap-3 rounded-card border border-border transition hover:border-primary/50 hover:bg-secondary/30',
         prominent ? 'p-4' : 'p-3',
+        className,
       )}
     >
       {prominent ? (
@@ -32,19 +38,22 @@ export function LinkCard({
           <Icon className="size-5 text-primary" />
         </div>
       ) : (
-        <Icon className="size-5 text-muted-foreground" />
+        <Icon className="size-5 shrink-0 text-muted-foreground" />
       )}
-      <div>
+      <div className="min-w-0 flex-1">
         <div className="font-medium text-foreground">{title}</div>
-        <p
-          className={cn(
-            prominent ? 'text-sm' : 'text-xs',
-            'text-muted-foreground',
-          )}
-        >
-          {description}
-        </p>
+        {description ? (
+          <p
+            className={cn(
+              prominent ? 'text-sm' : 'text-xs',
+              'text-muted-foreground',
+            )}
+          >
+            {description}
+          </p>
+        ) : null}
       </div>
+      {trailingIcon}
     </a>
   );
 }

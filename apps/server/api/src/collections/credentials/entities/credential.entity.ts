@@ -31,5 +31,18 @@ export class CredentialEntity extends BaseEntity implements Credential {
   declare readonly label: Credential['label'];
   declare readonly description: Credential['description'];
 
+  declare readonly warmupState: Credential['warmupState'];
+  declare readonly warmupScore: Credential['warmupScore'];
+  declare readonly warmupRiskLevel: Credential['warmupRiskLevel'];
+  declare readonly warmupSignals: Credential['warmupSignals'];
+  declare readonly warmupThresholds: Credential['warmupThresholds'];
+  declare readonly warmupAssessedAt: Credential['warmupAssessedAt'];
+  declare readonly warmupHoldReason: Credential['warmupHoldReason'];
+  declare readonly warmupManualOverride: Credential['warmupManualOverride'];
+  declare readonly warmupOverrideReason: Credential['warmupOverrideReason'];
+  declare readonly warmupOverrideUntil: Credential['warmupOverrideUntil'];
+  declare readonly warmupOverrideConfirmedAt: Credential['warmupOverrideConfirmedAt'];
+  declare readonly warmupOverrideConfirmedByUserId: Credential['warmupOverrideConfirmedByUserId'];
+
   declare readonly isConnected: boolean;
 }

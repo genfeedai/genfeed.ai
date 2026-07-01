@@ -1,11 +1,27 @@
+import { createHash } from 'node:crypto';
 import type {
+  TrendCorpusFreshnessResult,
+  TrendCorpusFreshnessSegment,
+  TrendCorpusFreshnessStatus,
+  TrendPromptReferenceBrandSuitability,
+  TrendPromptReferenceFreshnessStatus,
+  TrendPromptReferencePack,
+  TrendPromptReferencePackFreshness,
+  TrendPromptReferencePackResult,
+  TrendPromptReferencePackSource,
+  TrendPromptReferencePackType,
+  TrendProviderFailureSummary,
   TrendSourceAccountResult,
   TrendSourceAccountSummary,
   TrendSourceClassification,
+  TrendSourceConfidence,
+  TrendSourceIntendedUse,
   TrendSourceItem,
+  TrendSourceKind,
   TrendSourceReferenceRecord,
   TrendSourceReferenceResult,
 } from '@api/collections/trends/interfaces/trend.interfaces';
+import { SecurityUtil } from '@api/helpers/utils/security/security.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -35,9 +51,65 @@ interface RemixLineagePayload {
 
 interface ReferenceQueryOptions {
   authorHandle?: string;
+  includePaidCreative?: boolean;
+  intendedUse?: TrendSourceIntendedUse;
   limit?: number;
   platform?: string;
+  sourceKind?: TrendSourceKind;
   trendId?: string;
+}
+
+interface PromptReferencePackQueryOptions {
+  intent?: TrendSourceClassification['intendedUse'];
+  limit?: number;
+  platform?: string;
+  types?: TrendPromptReferencePackType[];
+}
+
+interface CorpusFreshnessHealthOptions {
+  now?: Date;
+  platform?: string;
+  sourcePreviewStaleAfterDays?: number;
+}
+
+interface ReferenceHealthDoc {
+  createdAt: Date;
+  data: unknown;
+  id: string;
+  lastSeenAt?: Date | null;
+  platform?: string | null;
+}
+
+interface TrendHealthDoc {
+  createdAt?: Date;
+  data: unknown;
+  id: string;
+  lastSeenAt?: Date | null;
+  platform?: string | null;
+  updatedAt?: Date;
+}
+
+interface FreshnessSegmentAccumulator {
+  freshnessWindowDays: number;
+  intendedUse: TrendSourceIntendedUse;
+  latestSeenAt?: Date;
+  oldestSeenAt?: Date;
+  platform: string;
+  provider: string;
+  referenceCount: number;
+  sourceKind: TrendSourceKind;
+  staleReferenceCount: number;
+}
+
+interface ProviderFailureAccumulator {
+  affectedTrendCount: number;
+  latestObservedAt?: Date;
+  message: string;
+  platform: string;
+  provider: string;
+  reason: TrendProviderFailureSummary['reason'];
+  retryAction: string;
+  severity: TrendProviderFailureSummary['severity'];
 }
 
 interface ReferenceRecordData {
@@ -63,7 +135,33 @@ interface ReferenceRecordData {
 
 const DEFAULT_REFERENCE_CORPUS_LIMIT = 30;
 const DEFAULT_REFERENCE_ACCOUNT_LIMIT = 20;
+const DEFAULT_PROMPT_REFERENCE_PACK_LIMIT = 12;
+const DEFAULT_PROMPT_REFERENCE_FRESHNESS_DAYS = 7;
 const MAX_REFERENCE_QUERY_LIMIT = 100;
+const PROMPT_REFERENCE_PACK_TYPES: TrendPromptReferencePackType[] = [
+  'hooks',
+  'formats',
+  'references',
+  'constraints',
+];
+const DEFAULT_SOURCE_PREVIEW_STALE_AFTER_DAYS = 3;
+const MAX_CORPUS_FRESHNESS_REFERENCE_RECORDS = 5000;
+const MAX_CORPUS_FRESHNESS_TREND_RECORDS = 2000;
+const DEFAULT_FRESHNESS_WINDOW_DAYS_BY_SOURCE_KIND: Record<
+  TrendSourceKind,
+  number
+> = {
+  manual_curated_reference: 30,
+  owned_brand_reference: 30,
+  paid_creative_reference: 14,
+  public_platform_reference: 7,
+};
+const TREND_SOURCE_INTENDED_USES: ReadonlySet<string> =
+  new Set<TrendSourceIntendedUse>([
+    'evergreen_prompt_context',
+    'organic_trend_discovery',
+    'paid_creative_analysis',
+  ]);
 
 @Injectable()
 export class TrendReferenceCorpusService {
@@ -295,6 +393,7 @@ export class TrendReferenceCorpusService {
     if (trendIds.length > 0) {
       const ownedTrends = await this.prisma.trend.findMany({
         select: { id: true },
+        take: trendIds.length,
         where: {
           id: { in: trendIds },
           isDeleted: false,
@@ -459,19 +558,83 @@ export class TrendReferenceCorpusService {
         .filter((id): id is string => id != null);
     }
 
+    const shouldFilterClassification =
+      options.includePaidCreative !== true ||
+      Boolean(options.sourceKind) ||
+      Boolean(options.intendedUse);
+    const queryLimit = shouldFilterClassification
+      ? this.getExpandedReferenceLimit(limit)
+      : limit;
+
     const docs = await this.prisma.trendSourceReference.findMany({
       orderBy: [
         { currentEngagementTotal: 'desc' },
         { latestTrendViralityScore: 'desc' },
         { lastSeenAt: 'desc' },
       ],
-      take: limit,
+      take: queryLimit,
       where: {
         ...(options.authorHandle ? { authorHandle: options.authorHandle } : {}),
         ...(options.platform ? { platform: options.platform } : {}),
         ...(sourceReferenceIds != null
           ? { id: { in: sourceReferenceIds } }
           : {}),
+        isDeleted: false,
+      },
+    });
+    const filteredDocs = docs
+      .filter((doc) =>
+        this.shouldIncludeReferenceByClassification(
+          doc.data as unknown as ReferenceRecordData,
+          options,
+        ),
+      )
+      .slice(0, limit);
+
+    const remixCounts = await this.getRemixCounts(
+      filteredDocs.map((doc) => doc.id),
+      organizationId,
+      brandId,
+    );
+
+    return {
+      items: filteredDocs.map((doc) =>
+        this.toReferenceRecord(
+          doc.id,
+          doc.data as unknown as ReferenceRecordData,
+          doc.createdAt,
+          remixCounts,
+        ),
+      ),
+      totalReferences: filteredDocs.length,
+    };
+  }
+
+  async getPromptReferencePacks(
+    organizationId: string | undefined,
+    brandId: string | undefined,
+    options: PromptReferencePackQueryOptions = {},
+  ): Promise<TrendPromptReferencePackResult> {
+    const generatedAt = new Date();
+    const limit = this.normalizeLimit(
+      options.limit,
+      DEFAULT_PROMPT_REFERENCE_PACK_LIMIT,
+    );
+    const targetPlatform = options.platform ?? 'multi_platform';
+    const contentIntent = options.intent ?? 'organic_trend_discovery';
+    const requestedTypes = this.normalizePromptReferencePackTypes(
+      options.types,
+    );
+
+    const docs = await this.prisma.trendSourceReference.findMany({
+      orderBy: [
+        { currentEngagementTotal: 'desc' },
+        { latestTrendViralityScore: 'desc' },
+        { lastSeenAt: 'desc' },
+      ],
+      take: Math.min(limit * 4, MAX_REFERENCE_QUERY_LIMIT),
+      where: {
+        ...(options.platform ? { platform: options.platform } : {}),
         isDeleted: false,
       },
     });
@@ -482,16 +645,43 @@ export class TrendReferenceCorpusService {
       brandId,
     );
 
-    return {
-      items: docs.map((doc) =>
+    const promptReadyReferences = docs
+      .map((doc) =>
         this.toReferenceRecord(
           doc.id,
           doc.data as unknown as ReferenceRecordData,
           doc.createdAt,
           remixCounts,
         ),
-      ),
-      totalReferences: docs.length,
+      )
+      .filter((reference) =>
+        this.isPromptReadyReference(reference, contentIntent),
+      );
+    const selectedReferences = promptReadyReferences.slice(0, limit);
+
+    const packs = requestedTypes
+      .map((type) =>
+        this.toPromptReferencePack({
+          contentIntent,
+          generatedAt,
+          references: selectedReferences,
+          targetPlatform,
+          type,
+        }),
+      )
+      .filter((pack): pack is TrendPromptReferencePack => pack != null);
+
+    return {
+      packs,
+      summary: {
+        availableTypes: packs.map((pack) => pack.type),
+        contentIntent,
+        generatedAt: generatedAt.toISOString(),
+        skippedSources: docs.length - promptReadyReferences.length,
+        targetPlatform,
+        totalPacks: packs.length,
+        totalSources: selectedReferences.length,
+      },
     };
   }
 
@@ -509,6 +699,7 @@ export class TrendReferenceCorpusService {
     );
 
     type AccountKey = string; // `${platform}:${authorHandle}`
+    // sql-risk-audit: ignore aggregate-scan-review -- #629 reviewed aggregate: trend_source_refs_account_lookup_idx bounds isDeleted/platform/author grouping and this returns fixed top-N accounts only.
     const accountRows = await this.prisma.trendSourceReference.groupBy({
       _avg: { latestTrendViralityScore: true },
       _count: { _all: true },
@@ -564,6 +755,438 @@ export class TrendReferenceCorpusService {
       accounts,
       totalAccounts: accounts.length,
     };
+  }
+
+  async getCorpusFreshnessHealth(
+    options: CorpusFreshnessHealthOptions = {},
+  ): Promise<TrendCorpusFreshnessResult> {
+    const now = options.now ?? new Date();
+    const sourcePreviewStaleAfterDays =
+      options.sourcePreviewStaleAfterDays ??
+      DEFAULT_SOURCE_PREVIEW_STALE_AFTER_DAYS;
+
+    const [referenceDocs, trendDocs] = await Promise.all([
+      this.prisma.trendSourceReference.findMany({
+        orderBy: [{ platform: 'asc' }, { lastSeenAt: 'asc' }],
+        select: {
+          createdAt: true,
+          data: true,
+          id: true,
+          lastSeenAt: true,
+          platform: true,
+        },
+        take: MAX_CORPUS_FRESHNESS_REFERENCE_RECORDS,
+        where: {
+          ...(options.platform ? { platform: options.platform } : {}),
+          isDeleted: false,
+        },
+      }) as Promise<ReferenceHealthDoc[]>,
+      this.prisma.trend.findMany({
+        orderBy: [{ platform: 'asc' }, { updatedAt: 'asc' }],
+        select: {
+          createdAt: true,
+          data: true,
+          id: true,
+          lastSeenAt: true,
+          platform: true,
+          updatedAt: true,
+        },
+        take: MAX_CORPUS_FRESHNESS_TREND_RECORDS,
+        where: {
+          ...(options.platform ? { platform: options.platform } : {}),
+          isDeleted: false,
+        },
+      }) as Promise<TrendHealthDoc[]>,
+    ]);
+
+    const segments = this.buildFreshnessSegments(referenceDocs, now);
+    const providerFailures = this.buildProviderFailures(
+      trendDocs,
+      now,
+      sourcePreviewStaleAfterDays,
+    );
+    const activeTrends = trendDocs.filter((doc) =>
+      this.isCurrentTrend(doc, now),
+    ).length;
+    const status = this.resolveCorpusFreshnessStatus(
+      referenceDocs.length,
+      segments,
+      providerFailures,
+    );
+    const platforms = Array.from(
+      new Set(
+        [
+          ...segments.map((segment) => segment.platform),
+          ...providerFailures.map((failure) => failure.platform),
+        ].filter(Boolean),
+      ),
+    ).sort();
+
+    return {
+      generatedAt: now.toISOString(),
+      providerFailures,
+      segments,
+      status,
+      summary: {
+        activeTrends,
+        failingProviders: providerFailures.length,
+        freshSegments: segments.filter(
+          (segment) => segment.status === 'healthy',
+        ).length,
+        platforms,
+        referenceRecords: referenceDocs.length,
+        staleSegments: segments.filter(
+          (segment) =>
+            segment.status === 'stale' || segment.status === 'degraded',
+        ).length,
+        totalSegments: segments.length,
+      },
+      thresholds: {
+        defaultFreshnessWindowDaysBySourceKind:
+          DEFAULT_FRESHNESS_WINDOW_DAYS_BY_SOURCE_KIND,
+        recordLimits: {
+          referenceRecords: MAX_CORPUS_FRESHNESS_REFERENCE_RECORDS,
+          trends: MAX_CORPUS_FRESHNESS_TREND_RECORDS,
+        },
+        sourcePreviewStaleAfterDays,
+      },
+    };
+  }
+
+  private buildFreshnessSegments(
+    referenceDocs: ReferenceHealthDoc[],
+    now: Date,
+  ): TrendCorpusFreshnessSegment[] {
+    const bySegment = new Map<string, FreshnessSegmentAccumulator>();
+
+    for (const doc of referenceDocs) {
+      const data = this.asRecord(doc.data) as unknown as ReferenceRecordData;
+      const classification = this.resolveSourceClassification(
+        data.sourceClassification,
+      );
+      const platform =
+        this.readString(doc.platform) ??
+        this.readString(data.platform) ??
+        'unknown';
+      const sourceKind =
+        classification?.sourceKind ?? 'public_platform_reference';
+      const intendedUse =
+        classification?.intendedUse ?? 'organic_trend_discovery';
+      const provider = classification?.sourceLabel ?? platform;
+      const freshnessWindowDays =
+        classification?.freshnessWindowDays ??
+        DEFAULT_FRESHNESS_WINDOW_DAYS_BY_SOURCE_KIND[sourceKind];
+      const segmentId = [
+        'reference-corpus',
+        sourceKind,
+        intendedUse,
+        platform,
+        provider,
+      ].join(':');
+      const seenAt =
+        this.readDate(doc.lastSeenAt) ??
+        this.readDate(data.lastSeenAt) ??
+        this.readDate(doc.createdAt) ??
+        now;
+      const stale = this.calculateAgeDays(now, seenAt) > freshnessWindowDays;
+      const accumulator = bySegment.get(segmentId) ?? {
+        freshnessWindowDays,
+        intendedUse,
+        platform,
+        provider,
+        referenceCount: 0,
+        sourceKind,
+        staleReferenceCount: 0,
+      };
+
+      accumulator.referenceCount += 1;
+      accumulator.staleReferenceCount += stale ? 1 : 0;
+      accumulator.latestSeenAt =
+        accumulator.latestSeenAt == null || seenAt > accumulator.latestSeenAt
+          ? seenAt
+          : accumulator.latestSeenAt;
+      accumulator.oldestSeenAt =
+        accumulator.oldestSeenAt == null || seenAt < accumulator.oldestSeenAt
+          ? seenAt
+          : accumulator.oldestSeenAt;
+      bySegment.set(segmentId, accumulator);
+    }
+
+    return Array.from(bySegment.entries())
+      .map(([id, segment]) => ({
+        freshnessWindowDays: segment.freshnessWindowDays,
+        id,
+        intendedUse: segment.intendedUse,
+        latestSeenAt: segment.latestSeenAt?.toISOString(),
+        oldestSeenAt: segment.oldestSeenAt?.toISOString(),
+        platform: segment.platform,
+        provider: segment.provider,
+        referenceCount: segment.referenceCount,
+        sourceKind: segment.sourceKind,
+        staleReferenceCount: segment.staleReferenceCount,
+        status: this.resolveSegmentStatus(
+          segment.referenceCount,
+          segment.staleReferenceCount,
+        ),
+      }))
+      .sort((left, right) => left.id.localeCompare(right.id));
+  }
+
+  private buildProviderFailures(
+    trendDocs: TrendHealthDoc[],
+    now: Date,
+    sourcePreviewStaleAfterDays: number,
+  ): TrendProviderFailureSummary[] {
+    const failures = new Map<string, ProviderFailureAccumulator>();
+
+    for (const doc of trendDocs) {
+      if (!this.isCurrentTrend(doc, now)) {
+        continue;
+      }
+
+      const data = this.asRecord(doc.data);
+      const metadata = this.asRecord(data.metadata);
+      if (metadata.prelaunchCorpus === true) {
+        continue;
+      }
+
+      const sourcePreviewState = this.readString(metadata.sourcePreviewState);
+      const cachedAt = this.readDate(metadata.sourcePreviewCachedAt);
+      const observedAt =
+        cachedAt ??
+        this.readDate(doc.updatedAt) ??
+        this.readDate(doc.lastSeenAt) ??
+        this.readDate(doc.createdAt);
+      const platform =
+        this.readString(doc.platform) ??
+        this.readString(data.platform) ??
+        'unknown';
+      const provider =
+        this.readString(metadata.source) ??
+        this.readString(metadata.sourceProvider) ??
+        platform;
+
+      if (sourcePreviewState === 'empty') {
+        this.recordProviderFailure(failures, {
+          message:
+            'The trend source preview produced no usable source references.',
+          observedAt,
+          platform,
+          provider,
+          reason: 'empty_source_preview',
+          retryAction: `Refresh ${platform} trends and inspect provider fetch logs.`,
+          severity: 'error',
+        });
+        continue;
+      }
+
+      if (sourcePreviewState === 'fallback') {
+        this.recordProviderFailure(failures, {
+          message:
+            'The trend source preview is using fallback references instead of live provider data.',
+          observedAt,
+          platform,
+          provider,
+          reason: 'fallback_source_preview',
+          retryAction: `Refresh ${platform} trends and verify provider credentials or rate limits.`,
+          severity: 'warning',
+        });
+      }
+
+      if (
+        cachedAt &&
+        this.calculateAgeDays(now, cachedAt) > sourcePreviewStaleAfterDays
+      ) {
+        this.recordProviderFailure(failures, {
+          message:
+            'The cached trend source preview is older than the freshness threshold.',
+          observedAt: cachedAt,
+          platform,
+          provider,
+          reason: 'stale_source_preview',
+          retryAction: `Run source-preview precompute or refresh ${platform} trends.`,
+          severity: 'warning',
+        });
+      }
+    }
+
+    return Array.from(failures.values())
+      .map((failure) => ({
+        affectedTrendCount: failure.affectedTrendCount,
+        latestObservedAt: failure.latestObservedAt?.toISOString(),
+        message: failure.message,
+        platform: failure.platform,
+        provider: failure.provider,
+        reason: failure.reason,
+        retryAction: failure.retryAction,
+        severity: failure.severity,
+      }))
+      .sort((left, right) =>
+        `${left.platform}:${left.provider}:${left.reason}`.localeCompare(
+          `${right.platform}:${right.provider}:${right.reason}`,
+        ),
+      );
+  }
+
+  private recordProviderFailure(
+    failures: Map<string, ProviderFailureAccumulator>,
+    input: {
+      message: string;
+      observedAt?: Date;
+      platform: string;
+      provider: string;
+      reason: TrendProviderFailureSummary['reason'];
+      retryAction: string;
+      severity: TrendProviderFailureSummary['severity'];
+    },
+  ): void {
+    const key = [input.platform, input.provider, input.reason].join(':');
+    const existing = failures.get(key) ?? {
+      affectedTrendCount: 0,
+      message: input.message,
+      platform: input.platform,
+      provider: input.provider,
+      reason: input.reason,
+      retryAction: input.retryAction,
+      severity: input.severity,
+    };
+
+    existing.affectedTrendCount += 1;
+    existing.latestObservedAt =
+      input.observedAt != null &&
+      (existing.latestObservedAt == null ||
+        input.observedAt > existing.latestObservedAt)
+        ? input.observedAt
+        : existing.latestObservedAt;
+    failures.set(key, existing);
+  }
+
+  private resolveSegmentStatus(
+    referenceCount: number,
+    staleReferenceCount: number,
+  ): TrendCorpusFreshnessStatus {
+    if (referenceCount === 0) {
+      return 'empty';
+    }
+
+    if (staleReferenceCount === 0) {
+      return 'healthy';
+    }
+
+    return staleReferenceCount === referenceCount ? 'stale' : 'degraded';
+  }
+
+  private resolveCorpusFreshnessStatus(
+    referenceCount: number,
+    segments: TrendCorpusFreshnessSegment[],
+    providerFailures: TrendProviderFailureSummary[],
+  ): TrendCorpusFreshnessStatus {
+    if (referenceCount === 0) {
+      return 'empty';
+    }
+
+    if (
+      providerFailures.some((failure) => failure.severity === 'error') ||
+      segments.some((segment) => segment.status === 'stale')
+    ) {
+      return 'stale';
+    }
+
+    if (
+      providerFailures.length > 0 ||
+      segments.some((segment) => segment.status === 'degraded')
+    ) {
+      return 'degraded';
+    }
+
+    return 'healthy';
+  }
+
+  private resolveSourceClassification(
+    value: unknown,
+  ): TrendSourceClassification | undefined {
+    const record = this.asRecord(value);
+    const sourceKind = this.readString(record.sourceKind);
+    const intendedUse = this.readString(record.intendedUse);
+    const freshnessWindowDays = this.readNumber(record.freshnessWindowDays);
+
+    if (
+      !this.isTrendSourceKind(sourceKind) ||
+      !this.isTrendSourceIntendedUse(intendedUse)
+    ) {
+      return undefined;
+    }
+
+    return {
+      capturedAt: this.readString(record.capturedAt) ?? '',
+      confidence:
+        record.confidence === 'high' ||
+        record.confidence === 'low' ||
+        record.confidence === 'medium'
+          ? record.confidence
+          : 'medium',
+      freshnessWindowDays:
+        freshnessWindowDays ??
+        DEFAULT_FRESHNESS_WINDOW_DAYS_BY_SOURCE_KIND[sourceKind],
+      intendedUse,
+      sourceKind,
+      sourceLabel: this.readString(record.sourceLabel),
+      sourceTopic: this.readString(record.sourceTopic),
+    };
+  }
+
+  private isTrendSourceKind(value: unknown): value is TrendSourceKind {
+    return (
+      typeof value === 'string' &&
+      value in DEFAULT_FRESHNESS_WINDOW_DAYS_BY_SOURCE_KIND
+    );
+  }
+
+  private isTrendSourceIntendedUse(
+    value: unknown,
+  ): value is TrendSourceIntendedUse {
+    return typeof value === 'string' && TREND_SOURCE_INTENDED_USES.has(value);
+  }
+
+  private isCurrentTrend(doc: TrendHealthDoc, now: Date): boolean {
+    const data = this.asRecord(doc.data);
+    const expiresAt = this.readDate(data.expiresAt);
+    return data.isCurrent === true && (!expiresAt || expiresAt > now);
+  }
+
+  private calculateAgeDays(now: Date, date: Date): number {
+    return (now.getTime() - date.getTime()) / (24 * 60 * 60 * 1000);
+  }
+
+  private asRecord(value: unknown): Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private readDate(value: unknown): Date | undefined {
+    if (value instanceof Date && !Number.isNaN(value.getTime())) {
+      return value;
+    }
+
+    if (typeof value !== 'string' || value.length === 0) {
+      return undefined;
+    }
+
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? undefined : date;
+  }
+
+  private readNumber(value: unknown): number | undefined {
+    return typeof value === 'number' && Number.isFinite(value)
+      ? value
+      : undefined;
+  }
+
+  private readString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.trim().length > 0
+      ? value
+      : undefined;
   }
 
   private async resolveSourceReferenceIds(
@@ -645,6 +1268,479 @@ export class TrendReferenceCorpusService {
     return Math.min(Math.floor(value), MAX_REFERENCE_QUERY_LIMIT);
   }
 
+  private getExpandedReferenceLimit(limit: number): number {
+    return Math.min(MAX_REFERENCE_QUERY_LIMIT, Math.max(limit * 4, limit + 20));
+  }
+
+  private shouldIncludeReferenceByClassification(
+    data: ReferenceRecordData,
+    options: ReferenceQueryOptions,
+  ): boolean {
+    const classification = data.sourceClassification;
+    if (
+      options.sourceKind &&
+      classification?.sourceKind !== options.sourceKind
+    ) {
+      return false;
+    }
+    if (
+      options.intendedUse &&
+      classification?.intendedUse !== options.intendedUse
+    ) {
+      return false;
+    }
+
+    const hasExplicitPaidFilter =
+      options.sourceKind === 'paid_creative_reference' ||
+      options.intendedUse === 'paid_creative_analysis';
+    const isPaidCreative =
+      classification?.sourceKind === 'paid_creative_reference' ||
+      classification?.intendedUse === 'paid_creative_analysis';
+
+    if (
+      options.includePaidCreative !== true &&
+      !hasExplicitPaidFilter &&
+      isPaidCreative
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
+  private normalizePromptReferencePackTypes(
+    types: TrendPromptReferencePackType[] | undefined,
+  ): TrendPromptReferencePackType[] {
+    if (!types || types.length === 0) {
+      return PROMPT_REFERENCE_PACK_TYPES;
+    }
+
+    return PROMPT_REFERENCE_PACK_TYPES.filter((type) => types.includes(type));
+  }
+
+  private isPromptReadyReference(
+    reference: TrendSourceReferenceRecord,
+    contentIntent: TrendSourceClassification['intendedUse'],
+  ): boolean {
+    return (
+      reference.sourceClassification?.intendedUse === contentIntent &&
+      reference.canonicalUrl.length > 0 &&
+      reference.platform.length > 0 &&
+      reference.contentType.length > 0 &&
+      Number.isFinite(reference.currentEngagementTotal) &&
+      this.getReferenceLabel(reference).length > 0
+    );
+  }
+
+  private toPromptReferencePack(input: {
+    contentIntent: TrendSourceClassification['intendedUse'];
+    generatedAt: Date;
+    references: TrendSourceReferenceRecord[];
+    targetPlatform: string;
+    type: TrendPromptReferencePackType;
+  }): TrendPromptReferencePack | undefined {
+    if (input.references.length === 0) {
+      return undefined;
+    }
+
+    const topReferences = input.references.slice(0, 6);
+    const sourceReferenceIds = topReferences.map((reference) => reference.id);
+    const freshness = this.buildPromptPackFreshness(topReferences);
+    const sourceFingerprint =
+      this.buildPromptPackSourceFingerprint(topReferences);
+    const cacheKey = this.hashPromptPackKey([
+      input.type,
+      input.targetPlatform,
+      input.contentIntent,
+      sourceFingerprint,
+    ]);
+    const confidence = this.aggregateConfidence(topReferences);
+    const sourceKinds = this.getUniqueSourceKinds(topReferences);
+    const contentTypes = this.getUniqueContentTypes(topReferences);
+    const matchedTopics = this.getUniqueMatchedTopics(topReferences);
+    const sourceLabel = this.describePromptPackSources(topReferences);
+    const promptContent = this.buildPromptPackContent(
+      input.type,
+      topReferences,
+    );
+
+    return {
+      brandSuitability: this.getBrandSuitability(topReferences),
+      confidence,
+      constraints: promptContent.constraints,
+      contentIntent: input.contentIntent,
+      examples: promptContent.examples,
+      freshness,
+      id: `prompt-pack:${input.type}:${input.targetPlatform}:${cacheKey}`,
+      instructions: promptContent.instructions,
+      metadata: {
+        contentTypes,
+        generatedAt: input.generatedAt.toISOString(),
+        matchedTopics,
+        sourceCount: topReferences.length,
+        sourceKinds,
+      },
+      regeneration: {
+        cacheKey,
+        regenerateAfter: freshness.regenerateAfter,
+        sourceFingerprint,
+        trigger: this.getRegenerationTrigger(freshness),
+      },
+      sourceReferenceIds,
+      sources: topReferences.map((reference) =>
+        this.toPromptReferencePackSource(reference),
+      ),
+      summary: promptContent.summary,
+      targetPlatform: input.targetPlatform,
+      title: `${this.toTitleCase(input.type)} pack from ${sourceLabel}`,
+      type: input.type,
+    };
+  }
+
+  private buildPromptPackContent(
+    type: TrendPromptReferencePackType,
+    references: TrendSourceReferenceRecord[],
+  ): {
+    constraints: string[];
+    examples: string[];
+    instructions: string[];
+    summary: string;
+  } {
+    switch (type) {
+      case 'hooks':
+        return {
+          constraints: [
+            'Keep the opening claim grounded in the cited source references.',
+            'Do not copy creator wording verbatim when adapting the hook.',
+          ],
+          examples: references.map(
+            (reference) => `Hook angle: ${this.deriveHook(reference)}`,
+          ),
+          instructions: [
+            'Start with the concrete tension, result, or surprising detail visible in the source.',
+            'Adapt the hook structure to the target brand voice before generation.',
+          ],
+          summary: `Reusable hook patterns from ${references.length} prompt-ready corpus references.`,
+        };
+      case 'formats':
+        return {
+          constraints: [
+            'Use the observed format as structure, not as a copied creative.',
+            'Match the target platform constraints before publishing.',
+          ],
+          examples: this.deriveFormatExamples(references),
+          instructions: [
+            'Choose the format that matches the requested platform and creative intent.',
+            'Preserve the source-backed sequence of setup, proof, and payoff when present.',
+          ],
+          summary: `Observed content formats across ${this.getUniqueContentTypes(references).join(', ')} references.`,
+        };
+      case 'references':
+        return {
+          constraints: [
+            'Keep reference URLs available for audit and remix lineage.',
+            'Treat sources as inspiration and evidence, not generated output.',
+          ],
+          examples: references.map(
+            (reference) =>
+              `${this.getReferenceLabel(reference)} (${reference.canonicalUrl})`,
+          ),
+          instructions: [
+            'Use these references to ground examples, claims, and creative direction.',
+            'Prefer newer or higher-confidence sources when the pack contains conflicts.',
+          ],
+          summary: `Traceable source-reference set with ${references.length} canonical corpus records.`,
+        };
+      case 'constraints':
+        return {
+          constraints: this.deriveSourceBackedConstraints(references),
+          examples: references.map(
+            (reference) =>
+              `${reference.platform}: ${this.getReferenceLabel(reference)}`,
+          ),
+          instructions: [
+            'Apply these constraints before drafting generation prompts.',
+            'Regenerate the pack when freshness metadata marks the source set stale or expired.',
+          ],
+          summary: `Source-backed generation constraints from ${references.length} classified references.`,
+        };
+      default: {
+        const exhaustive: never = type;
+        return exhaustive;
+      }
+    }
+  }
+
+  private deriveHook(reference: TrendSourceReferenceRecord): string {
+    const label = this.getReferenceLabel(reference);
+    const firstSentence = label.split(/[.!?]/)[0]?.trim();
+    return SecurityUtil.sanitizePromptInput(firstSentence || label, 160);
+  }
+
+  private deriveFormatExamples(
+    references: TrendSourceReferenceRecord[],
+  ): string[] {
+    const examples = references.map((reference) => {
+      const topic = reference.matchedTrendTopics[0] ?? 'source-backed topic';
+      return `${reference.platform} ${reference.contentType}: lead with ${SecurityUtil.sanitizePromptInput(topic, 80)}, then adapt "${this.getReferenceLabel(reference)}".`;
+    });
+
+    return this.uniqueStrings(examples).slice(0, 6);
+  }
+
+  private deriveSourceBackedConstraints(
+    references: TrendSourceReferenceRecord[],
+  ): string[] {
+    const sourceLabels = this.uniqueStrings(
+      references
+        .map((reference) => reference.sourceClassification?.sourceLabel)
+        .filter((value): value is string => Boolean(value)),
+    );
+    const topics = this.getUniqueMatchedTopics(references);
+    const platforms = this.uniqueStrings(
+      references.map((reference) => reference.platform),
+    );
+
+    return [
+      `Use only references classified for ${references[0]?.sourceClassification?.intendedUse ?? 'prompt context'}.`,
+      `Target platform evidence comes from ${platforms.join(', ')}.`,
+      sourceLabels.length > 0
+        ? `Source labels represented: ${sourceLabels.join(', ')}.`
+        : 'Source labels are unavailable; keep claims generic.',
+      topics.length > 0
+        ? `Ground angles in matched topics: ${topics.slice(0, 6).join(', ')}.`
+        : 'No matched trend topics are available; avoid trend-specific claims.',
+    ];
+  }
+
+  private buildPromptPackFreshness(
+    references: TrendSourceReferenceRecord[],
+  ): TrendPromptReferencePackFreshness {
+    const sourceFreshness = references.map((reference) => ({
+      id: reference.id,
+      status: this.getReferenceFreshnessStatus(reference),
+    }));
+    const freshnessWindowDays = Math.max(
+      ...references.map(
+        (reference) =>
+          reference.sourceClassification?.freshnessWindowDays ??
+          DEFAULT_PROMPT_REFERENCE_FRESHNESS_DAYS,
+      ),
+    );
+    const lastSourceSeenAt = references
+      .map((reference) => reference.lastSeenAt)
+      .sort()
+      .at(-1);
+    const regenerateAfter = references
+      .map((reference) => this.getRegenerateAfter(reference))
+      .filter((value): value is string => Boolean(value))
+      .sort()[0];
+    const expiredSourceIds = sourceFreshness
+      .filter((source) => source.status === 'expired')
+      .map((source) => source.id);
+    const staleSourceIds = sourceFreshness
+      .filter((source) => source.status === 'stale')
+      .map((source) => source.id);
+
+    return {
+      expiredSourceIds,
+      freshnessWindowDays,
+      lastSourceSeenAt,
+      regenerateAfter,
+      staleSourceIds,
+      status:
+        expiredSourceIds.length > 0
+          ? 'expired'
+          : staleSourceIds.length > 0
+            ? 'stale'
+            : 'fresh',
+    };
+  }
+
+  private getReferenceFreshnessStatus(
+    reference: TrendSourceReferenceRecord,
+  ): TrendPromptReferenceFreshnessStatus {
+    const freshnessWindowDays =
+      reference.sourceClassification?.freshnessWindowDays ??
+      DEFAULT_PROMPT_REFERENCE_FRESHNESS_DAYS;
+    const lastSeenAt = new Date(reference.lastSeenAt).getTime();
+    if (!Number.isFinite(lastSeenAt)) {
+      return 'expired';
+    }
+
+    const ageMs = Date.now() - lastSeenAt;
+    const freshnessWindowMs = freshnessWindowDays * 24 * 60 * 60 * 1000;
+
+    if (ageMs <= freshnessWindowMs) {
+      return 'fresh';
+    }
+
+    return ageMs <= freshnessWindowMs * 2 ? 'stale' : 'expired';
+  }
+
+  private getRegenerateAfter(
+    reference: TrendSourceReferenceRecord,
+  ): string | undefined {
+    const lastSeenAt = new Date(reference.lastSeenAt).getTime();
+    if (!Number.isFinite(lastSeenAt)) {
+      return undefined;
+    }
+
+    const freshnessWindowDays =
+      reference.sourceClassification?.freshnessWindowDays ??
+      DEFAULT_PROMPT_REFERENCE_FRESHNESS_DAYS;
+    return new Date(
+      lastSeenAt + freshnessWindowDays * 24 * 60 * 60 * 1000,
+    ).toISOString();
+  }
+
+  private getRegenerationTrigger(
+    freshness: TrendPromptReferencePackFreshness,
+  ): TrendPromptReferencePack['regeneration']['trigger'] {
+    if (freshness.expiredSourceIds.length > 0) {
+      return 'source_expired';
+    }
+    if (freshness.staleSourceIds.length > 0) {
+      return 'source_stale';
+    }
+    return 'cache_key_changed';
+  }
+
+  private toPromptReferencePackSource(
+    reference: TrendSourceReferenceRecord,
+  ): TrendPromptReferencePackSource {
+    const source: TrendPromptReferencePackSource = {
+      authorHandle: reference.authorHandle,
+      canonicalUrl: reference.canonicalUrl,
+      confidence: reference.sourceClassification?.confidence ?? 'low',
+      contentType: reference.contentType,
+      freshnessStatus: this.getReferenceFreshnessStatus(reference),
+      id: reference.id,
+      lastSeenAt: reference.lastSeenAt,
+      platform: reference.platform,
+      sourceClassification: reference.sourceClassification,
+    };
+
+    if (reference.text) {
+      source.text = reference.text;
+    }
+    if (reference.title) {
+      source.title = reference.title;
+    }
+
+    return source;
+  }
+
+  private buildPromptPackSourceFingerprint(
+    references: TrendSourceReferenceRecord[],
+  ): string {
+    return references
+      .map(
+        (reference) =>
+          `${reference.id}:${reference.lastSeenAt}:${reference.latestTrendViralityScore}:${reference.currentEngagementTotal}`,
+      )
+      .sort()
+      .join('|');
+  }
+
+  private hashPromptPackKey(parts: string[]): string {
+    return createHash('sha256')
+      .update(parts.join('|'))
+      .digest('hex')
+      .slice(0, 16);
+  }
+
+  private aggregateConfidence(
+    references: TrendSourceReferenceRecord[],
+  ): TrendSourceConfidence {
+    const confidences = references.map(
+      (reference) => reference.sourceClassification?.confidence ?? 'low',
+    );
+
+    if (confidences.every((confidence) => confidence === 'high')) {
+      return 'high';
+    }
+    if (confidences.some((confidence) => confidence !== 'low')) {
+      return 'medium';
+    }
+    return 'low';
+  }
+
+  private getBrandSuitability(
+    references: TrendSourceReferenceRecord[],
+  ): TrendPromptReferenceBrandSuitability {
+    if (
+      references.some(
+        (reference) =>
+          reference.sourceClassification?.sourceKind ===
+            'paid_creative_reference' ||
+          reference.sourceClassification?.confidence === 'low',
+      )
+    ) {
+      return 'requires_review';
+    }
+
+    return references.every((reference) => reference.sourceClassification)
+      ? 'brand_safe'
+      : 'unknown';
+  }
+
+  private getUniqueSourceKinds(
+    references: TrendSourceReferenceRecord[],
+  ): TrendSourceKind[] {
+    return this.uniqueStrings(
+      references
+        .map((reference) => reference.sourceClassification?.sourceKind)
+        .filter((value): value is TrendSourceKind => Boolean(value)),
+    ) as TrendSourceKind[];
+  }
+
+  private getUniqueContentTypes(
+    references: TrendSourceReferenceRecord[],
+  ): TrendSourceItem['contentType'][] {
+    return this.uniqueStrings(
+      references.map((reference) => reference.contentType),
+    ) as TrendSourceItem['contentType'][];
+  }
+
+  private getUniqueMatchedTopics(
+    references: TrendSourceReferenceRecord[],
+  ): string[] {
+    return this.uniqueStrings(
+      references.flatMap((reference) => reference.matchedTrendTopics),
+    ).slice(0, 12);
+  }
+
+  private describePromptPackSources(
+    references: TrendSourceReferenceRecord[],
+  ): string {
+    const platforms = this.uniqueStrings(
+      references.map((reference) => reference.platform),
+    );
+    return platforms.length === 1
+      ? platforms[0]
+      : `${platforms.length} platforms`;
+  }
+
+  private getReferenceLabel(reference: TrendSourceReferenceRecord): string {
+    return SecurityUtil.sanitizePromptInput(
+      reference.title || reference.text || reference.canonicalUrl,
+      180,
+    );
+  }
+
+  private toTitleCase(value: string): string {
+    return value
+      .split(/[-_\s]+/)
+      .filter(Boolean)
+      .map((part) => `${part[0]?.toUpperCase() ?? ''}${part.slice(1)}`)
+      .join(' ');
+  }
+
+  private uniqueStrings(values: string[]): string[] {
+    return Array.from(new Set(values.filter((value) => value.length > 0)));
+  }
+
   private getEngagementTotal(metrics?: TrendSourceItem['metrics']): number {
     return (
       (metrics?.comments || 0) +
@@ -669,6 +1765,7 @@ export class TrendReferenceCorpusService {
       return new Map();
     }
 
+    // sql-risk-audit: ignore raw-sql-review -- #629 EXPLAIN harness covers remixCountsForPage; refs.B ANY is capped by the current reference page and lineage org/brand/isDeleted index constrains tenant rows.
     const rows = await this.prisma.$queryRaw<
       Array<{
         remix_count: bigint | number | string;
@@ -709,6 +1806,7 @@ export class TrendReferenceCorpusService {
     const platformFilter = platform
       ? Prisma.sql`AND source_ref."platform" = ${platform}`
       : Prisma.empty;
+    // sql-risk-audit: ignore raw-sql-review -- #629 EXPLAIN harness covers brandRemixCountsByAccount; lineages start from org/brand/isDeleted index and grouped source columns are indexed scalars.
     const rows = await this.prisma.$queryRaw<
       Array<{
         author_handle: string;

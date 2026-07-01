@@ -255,8 +255,12 @@ export class TasksService extends BaseService<
   // Review / output actions — thin delegators to TaskActionsService.
   // ===========================================================================
 
-  async approve(id: string, organizationId: string): Promise<TaskDocument> {
-    return this.taskActionsService.approve(id, organizationId);
+  async approve(
+    id: string,
+    organizationId: string,
+    userId?: string,
+  ): Promise<TaskDocument> {
+    return this.taskActionsService.approve(id, organizationId, userId);
   }
 
   async requestChanges(
@@ -286,8 +290,14 @@ export class TasksService extends BaseService<
     id: string,
     outputId: string,
     organizationId: string,
+    userId?: string,
   ): Promise<TaskDocument> {
-    return this.taskActionsService.keepOutput(id, outputId, organizationId);
+    return this.taskActionsService.keepOutput(
+      id,
+      outputId,
+      organizationId,
+      userId,
+    );
   }
 
   async unkeepOutput(
@@ -302,8 +312,14 @@ export class TasksService extends BaseService<
     id: string,
     outputId: string,
     organizationId: string,
+    userId?: string,
   ): Promise<TaskDocument> {
-    return this.taskActionsService.trashOutput(id, outputId, organizationId);
+    return this.taskActionsService.trashOutput(
+      id,
+      outputId,
+      organizationId,
+      userId,
+    );
   }
 
   async attachOutput(

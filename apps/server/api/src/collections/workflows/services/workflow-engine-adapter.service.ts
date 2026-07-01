@@ -84,6 +84,7 @@ import {
   createAnalyticsFeedbackExecutor,
   createBrandAssetExecutor,
   createBrandContextExecutor,
+  createHookGeneratorExecutor,
   createImageGenExecutor,
   createIterativeSeoRefineExecutor,
   createLipSyncExecutor,
@@ -311,6 +312,7 @@ export class WorkflowEngineAdapterService {
     this.registerAvatarVideoExecutor();
     this.registerImageGenExecutor();
     this.registerPromptConstructorExecutor();
+    this.registerHookGeneratorExecutor();
     this.registerPostExecutor();
     this.registerNewsletterExecutor();
     this.registerCaptionsExecutor();
@@ -460,10 +462,7 @@ export class WorkflowEngineAdapterService {
         undefined,
       );
 
-      const brandId = await this.resolveBrandIdFromConfigOrFail(
-        params.brandId,
-        'imageGen',
-      );
+      const brandId = this.requireBrandId(params.brandId, 'imageGen');
       const pendingOutput = await this.createWorkflowOutputIngredient({
         brandId,
         category: IngredientCategory.IMAGE,
@@ -1792,6 +1791,15 @@ export class WorkflowEngineAdapterService {
     );
   }
 
+  private registerHookGeneratorExecutor(): void {
+    const hookGeneratorExecutor = createHookGeneratorExecutor();
+
+    this.engine.registerExecutor(
+      'hookGenerator',
+      this.wrapEngineExecutor(hookGeneratorExecutor),
+    );
+  }
+
   private registerLlmExecutor(): void {
     const openRouterService = this.openRouterService;
 
@@ -2392,7 +2400,7 @@ export class WorkflowEngineAdapterService {
       const elevenLabsService = this.elevenLabsService;
 
       ttsExecutor.setResolver(async (text, voiceId, context, node) => {
-        const brandId = await this.resolveBrandIdFromConfigOrFail(
+        const brandId = this.requireBrandId(
           this.readConfigString(node.config, 'brandId'),
           'textToSpeech',
         );
@@ -2885,12 +2893,10 @@ export class WorkflowEngineAdapterService {
   }
 
   private getRequiredBrandId(node: ExecutableNode): string {
-    const brandId = this.readConfigString(node.config, 'brandId');
-    if (!brandId) {
-      throw new Error(`${node.type} requires a brandId in node config`);
-    }
-
-    return brandId;
+    return this.requireBrandId(
+      this.readConfigString(node.config, 'brandId'),
+      node.type,
+    );
   }
 
   private getVideoResultInput(
@@ -2975,10 +2981,7 @@ export class WorkflowEngineAdapterService {
     return { ingredientId, metadataId };
   }
 
-  private async resolveBrandIdFromConfigOrFail(
-    configuredBrandId: unknown,
-    nodeType: string,
-  ): Promise<string> {
+  private requireBrandId(configuredBrandId: unknown, nodeType: string): string {
     if (typeof configuredBrandId === 'string' && configuredBrandId.length > 0) {
       return configuredBrandId;
     }

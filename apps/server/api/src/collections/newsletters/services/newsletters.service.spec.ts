@@ -1,3 +1,64 @@
+// `@genfeedai/prisma` re-exports the generated PrismaClient (packages/prisma/
+// src/index.ts -> ../generated/prisma/client/client), unavailable until
+// `prisma generate` runs and heavy to load in a unit test regardless. Stub
+// PrismaClient as a no-op and inline the real `Newsletter` entry from
+// packages/prisma/src/enum-field-map.ts (PRISMA_MODEL_METADATA.Newsletter) so
+// BaseService's `getModelMeta('newsletter')` call (base.service.ts) sees
+// genuine field metadata instead of throwing "no getModelMeta export". Status
+// is a plain string column (enumFields: {}), not a true Prisma enum, so this
+// also keeps enum-normalization a no-op pass-through for the lowercase status
+// strings (`approved`/`published`/`archived`) the tests assert on below.
+vi.mock('@genfeedai/prisma', () => ({
+  getModelMeta: (modelName: string) => {
+    const pascal = modelName.charAt(0).toUpperCase() + modelName.slice(1);
+    const metadata: Record<
+      string,
+      {
+        allFields: readonly string[];
+        enumFields: Readonly<
+          Record<string, { enumType: string; isRequired: boolean }>
+        >;
+      }
+    > = {
+      Newsletter: {
+        allFields: [
+          'agentRun',
+          'agentRunId',
+          'angle',
+          'approvedAt',
+          'approvedByUser',
+          'approvedByUserId',
+          'brand',
+          'brandId',
+          'content',
+          'createdAt',
+          'generationPrompt',
+          'id',
+          'isDeleted',
+          'label',
+          'mongoId',
+          'organization',
+          'organizationId',
+          'publishedAt',
+          'publishedByUser',
+          'publishedByUserId',
+          'scheduledFor',
+          'sourceRefs',
+          'status',
+          'summary',
+          'topic',
+          'updatedAt',
+          'user',
+          'userId',
+        ],
+        enumFields: {},
+      },
+    };
+    return metadata[pascal];
+  },
+  PrismaClient: class {},
+}));
+
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import type { CreateNewsletterDto } from '@api/collections/newsletters/dto/create-newsletter.dto';
 import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';

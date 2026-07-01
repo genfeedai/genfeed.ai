@@ -51,6 +51,8 @@ export class PostsService extends BaseService<
       organization: string;
       brand: string;
       platform: CredentialPlatform;
+      publishIntent?: string;
+      reviewFeedback?: string;
     },
     populate: PopulateOption[] = [
       PopulatePatterns.ingredientsMinimal,

@@ -134,14 +134,27 @@ export interface ImageProcessingParams {
   images?: string[];
   duration?: number;
   fps?: number;
+  slideText?: Array<{
+    duration: number;
+    voiceText: string;
+    overlayText?: string;
+  }>;
+  fontFamily?: string;
+  dimensions?: { width: number; height: number };
+  isWatermarkEnabled?: boolean;
 
   // Ken Burns params
   zoomLevel?: number;
   panDirection?: 'left' | 'right' | 'up' | 'down';
+  isClipSelected?: boolean;
 
   // Split screen params
   layout?: 'horizontal' | 'vertical' | 'grid';
   videos?: string[];
+
+  // Portrait blur params
+  inputType?: string;
+  videoFile?: string;
 
   // Resize params
   width?: number;

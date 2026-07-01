@@ -1,6 +1,7 @@
 import { CreateClipProjectDto } from '@api/collections/clip-projects/dto/create-clip-project.dto';
 import { UpdateClipProjectDto } from '@api/collections/clip-projects/dto/update-clip-project.dto';
 import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
+import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import {
   buildClipProjectReadiness,
   isTerminalClipStatus,
@@ -47,6 +48,7 @@ export class ClipProjectsService extends BaseService<
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
+    private readonly clipResultsService: ClipResultsService,
   ) {
     super(prisma, 'clipProject', logger);
   }
@@ -83,6 +85,64 @@ export class ClipProjectsService extends BaseService<
       this.toPrismaWriteData(updateDto, 'update', existingConfig),
       populate,
     );
+  }
+
+  async reconcileTerminalState(
+    projectId: string,
+    organizationId?: string,
+  ): Promise<ClipProjectDocument | null> {
+    const project = await this.findOne({
+      _id: projectId,
+      isDeleted: false,
+      ...(organizationId ? { organization: organizationId } : {}),
+    });
+
+    if (!project) {
+      return null;
+    }
+
+    const canonicalProjectId =
+      this.readString(project._id) ?? this.readString(project.id) ?? projectId;
+    const results = await this.clipResultsService.findByProject(
+      canonicalProjectId,
+      organizationId,
+    );
+
+    if (results.length === 0) {
+      return project;
+    }
+
+    const readyClipCount = results.filter(
+      (result) => this.readString(result.status) === 'completed',
+    ).length;
+    const failedClipCount = results.filter(
+      (result) => this.readString(result.status) === 'failed',
+    ).length;
+    const pendingClipCount = results.length - readyClipCount - failedClipCount;
+
+    const update: Record<string, unknown> = {
+      failedClipCount,
+      pendingClipCount,
+      readyClipCount,
+    };
+
+    if (pendingClipCount === 0) {
+      update.progress = 100;
+
+      if (readyClipCount > 0) {
+        update.error = null;
+        update.status = 'completed';
+      } else {
+        update.error = 'All clip generations failed.';
+        update.status = 'failed';
+      }
+    }
+
+    if (!this.hasReconciliationChange(project, update)) {
+      return project;
+    }
+
+    return this.patch(canonicalProjectId, update);
   }
 
   private toPrismaWriteData(
@@ -188,6 +248,15 @@ export class ClipProjectsService extends BaseService<
 
   private readString(value: unknown): string | null {
     return typeof value === 'string' && value.length > 0 ? value : null;
+  }
+
+  private hasReconciliationChange(
+    project: ClipProjectDocument,
+    update: Record<string, unknown>,
+  ): boolean {
+    return Object.entries(update).some(
+      ([key, value]) => project[key] !== value,
+    );
   }
 
   private readTerminalAt(value: unknown): Date | string | null {

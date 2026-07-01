@@ -1,3 +1,24 @@
+vi.mock('@genfeedai/prisma', () => ({
+  PrismaClient: class {},
+  getModelMeta: () => ({
+    allFields: [
+      'id',
+      'mongoId',
+      'organizationId',
+      'projectId',
+      'providerJobId',
+      'viralityScore',
+      'status',
+      'isSelected',
+      'readiness',
+      'terminalAt',
+      'data',
+      'isDeleted',
+    ],
+    enumFields: {},
+  }),
+}));
+
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import type { CreateClipResultDto } from '@api/collections/clip-results/dto/create-clip-result.dto';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -182,6 +203,46 @@ describe('ClipResultsService', () => {
       },
     });
     expect(result[0]).toEqual(
+      expect.objectContaining({
+        _id: 'clip-1',
+        title: 'Clip',
+      }),
+    );
+  });
+
+  it('resolves a project clip result by id, mongo id, or provider job id for handoff', async () => {
+    prisma.clipResult.findFirst.mockResolvedValue({
+      data: { title: 'Clip' },
+      id: 'clip-1',
+      isSelected: false,
+      organizationId: 'org-1',
+      projectId: 'project-1',
+      readiness: {
+        readyActions: ['download', 'edit', 'publish'],
+        state: 'ready',
+      },
+      status: 'completed',
+    });
+
+    const result = await service.findProjectResultForHandoff({
+      clipResultId: 'provider-job-1',
+      organizationId: 'org-1',
+      projectId: 'project-1',
+    });
+
+    expect(prisma.clipResult.findFirst).toHaveBeenCalledWith({
+      where: {
+        OR: [
+          { id: 'provider-job-1' },
+          { mongoId: 'provider-job-1' },
+          { providerJobId: 'provider-job-1' },
+        ],
+        isDeleted: false,
+        organizationId: 'org-1',
+        projectId: 'project-1',
+      },
+    });
+    expect(result).toEqual(
       expect.objectContaining({
         _id: 'clip-1',
         title: 'Clip',

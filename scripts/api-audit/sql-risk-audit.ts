@@ -322,7 +322,10 @@ function createFindingsForCall(call: PrismaCall): SqlRiskFinding[] {
   // before this rule existed) produced false positives against the exact
   // SQL-aggregation pattern the analytics services were migrated to. The real
   // residual risk is an unindexed scan, so surface that at low severity instead.
-  if (isAggregateRead(call.method)) {
+  if (
+    isAggregateRead(call.method) &&
+    !hasSuppression(call, 'aggregate-scan-review')
+  ) {
     findings.push(
       createFinding(
         call,
