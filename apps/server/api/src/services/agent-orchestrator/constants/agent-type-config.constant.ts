@@ -21,6 +21,7 @@ const SHARED_READ_TOOLS: AgentToolName[] = [
   AgentToolName.GET_APPROVAL_SUMMARY,
   AgentToolName.ANALYZE_PERFORMANCE,
   AgentToolName.GET_CONTENT_CALENDAR,
+  AgentToolName.LIST_GENFEED_TOOLS,
   AgentToolName.CAPTURE_MEMORY,
   AgentToolName.CREATE_WORKFLOW,
   AgentToolName.CREATE_LIVESTREAM_BOT,

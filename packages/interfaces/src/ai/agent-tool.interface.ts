@@ -90,6 +90,8 @@ export enum AgentToolName {
   SUBMIT_BRAND_INTERVIEW_ANSWER = 'submit_brand_interview_answer',
   SKIP_BRAND_INTERVIEW_QUESTION = 'skip_brand_interview_question',
   GET_BRAND_COMPLETENESS = 'get_brand_completeness',
+  // Operator tools
+  LIST_GENFEED_TOOLS = 'list_genfeed_tools',
 }
 
 /** @deprecated Prefer canonical tool metadata from @genfeedai/tools. */

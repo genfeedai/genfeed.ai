@@ -3,6 +3,7 @@ import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { AGENT_ONLY_TOOLS } from './agent-only/index.js';
+import { BRAND_INTERVIEW_TOOLS } from './brand-interview.tools.js';
 import { SOURCE_TOOLS } from './index.js';
 import { MCP_ADMIN_TOOLS } from './mcp-only/admin.tools.js';
 import { MCP_ONLY_TOOLS } from './mcp-only/index.js';
@@ -66,6 +67,7 @@ const EXPECTED_TOOL_NAMES = [
   'get_approval_summary',
   'get_article',
   'get_brand',
+  'get_brand_completeness',
   'get_campaign_analytics',
   'get_connection_status',
   'get_content_analytics',
@@ -97,6 +99,7 @@ const EXPECTED_TOOL_NAMES = [
   'install_official_workflow',
   'list_avatars',
   'list_brands',
+  'list_genfeed_tools',
   'list_google_ads_campaigns',
   'list_google_ads_customers',
   'list_gpu_personas',
@@ -129,12 +132,16 @@ const EXPECTED_TOOL_NAMES = [
   'resolve_handle',
   'run_captioning',
   'schedule_post',
+  'score_seo',
   'search_articles',
   'select_ingredient',
   'send_chat_message',
+  'skip_brand_interview_question',
   'spawn_content_agent',
+  'start_brand_interview',
   'start_campaign',
   'start_training',
+  'submit_brand_interview_answer',
   'suggest_ad_headlines',
   'suggest_ingredient_alternatives',
   'update_goal',
@@ -160,7 +167,7 @@ function countLines(filePath: string): number {
 }
 
 describe('SOURCE_TOOLS registry split (#692)', () => {
-  it('exposes exactly 120 tool definitions', () => {
+  it('exposes exactly 126 tool definitions', () => {
     expect(SOURCE_TOOLS).toHaveLength(EXPECTED_TOOL_NAMES.length);
   });
 
@@ -179,13 +186,15 @@ describe('SOURCE_TOOLS registry split (#692)', () => {
       ...OVERLAP_TOOLS,
       ...AGENT_ONLY_TOOLS,
       ...MCP_ONLY_TOOLS,
+      ...BRAND_INTERVIEW_TOOLS,
     ]);
   });
 
   it('partitions tools by their declared surface', () => {
     expect(OVERLAP_TOOLS).toHaveLength(11);
-    expect(AGENT_ONLY_TOOLS).toHaveLength(54);
+    expect(AGENT_ONLY_TOOLS).toHaveLength(56);
     expect(MCP_ONLY_TOOLS).toHaveLength(55);
+    expect(BRAND_INTERVIEW_TOOLS).toHaveLength(4);
     expect(
       OVERLAP_TOOLS.every((tool) => tool.surfaces.agent && tool.surfaces.mcp),
     ).toBe(true);
@@ -196,6 +205,11 @@ describe('SOURCE_TOOLS registry split (#692)', () => {
     ).toBe(true);
     expect(
       MCP_ONLY_TOOLS.every((tool) => !tool.surfaces.agent && tool.surfaces.mcp),
+    ).toBe(true);
+    expect(
+      BRAND_INTERVIEW_TOOLS.every(
+        (tool) => tool.surfaces.agent && tool.surfaces.mcp,
+      ),
     ).toBe(true);
   });
 

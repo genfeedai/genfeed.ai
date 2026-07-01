@@ -25,6 +25,7 @@ describe('agent-tool-registry', () => {
     expect(names).toContain(AgentToolName.GET_TOP_INGREDIENTS);
     expect(names).toContain(AgentToolName.REPLICATE_TOP_INGREDIENT);
     expect(names).toContain(AgentToolName.CAPTURE_MEMORY);
+    expect(names).toContain(AgentToolName.LIST_GENFEED_TOOLS);
   });
 
   it('should not contain duplicate tool names after merging extensions', () => {
@@ -60,5 +61,6 @@ describe('agent-tool-registry', () => {
     expect(AGENT_CREDIT_COSTS[AgentToolName.GET_TOP_INGREDIENTS]).toBe(0);
     expect(AGENT_CREDIT_COSTS[AgentToolName.REPLICATE_TOP_INGREDIENT]).toBe(0);
     expect(AGENT_CREDIT_COSTS[AgentToolName.CAPTURE_MEMORY]).toBe(0);
+    expect(AGENT_CREDIT_COSTS[AgentToolName.LIST_GENFEED_TOOLS]).toBe(0);
   });
 });
