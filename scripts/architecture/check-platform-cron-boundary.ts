@@ -144,6 +144,13 @@ export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
     reason: 'Platform publish-status reconciliation.',
   },
   {
+    file: 'apps/server/workers/src/crons/youtube/cron.youtube-messages.service.ts',
+    id: 'youtube-messages-ingestion',
+    methodName: 'syncYoutubeMessages',
+    reason:
+      'Platform social-inbox message ingestion across connected credentials.',
+  },
+  {
     file: 'apps/server/workers/src/crons/streaks/cron.streaks.service.ts',
     id: 'streaks',
     methodName: 'processStreaks',

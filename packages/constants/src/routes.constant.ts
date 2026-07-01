@@ -116,6 +116,9 @@ export const APP_ROUTES = {
     VIDEOS: '/library/videos',
     VOICES: '/library/voices',
   },
+  MESSAGES: {
+    ROOT: '/messages',
+  },
   ONBOARDING: {
     BRAND: '/onboarding/brand',
     POST_SIGNUP: '/onboarding/post-signup',
@@ -214,6 +217,7 @@ export const APP_ROUTE_PREFIXES = {
   COMPOSE: APP_ROUTES.COMPOSE.ROOT,
   EDITOR: APP_ROUTES.EDITOR.ROOT,
   LIBRARY: '/library',
+  MESSAGES: APP_ROUTES.MESSAGES.ROOT,
   ORCHESTRATION: APP_ROUTES.ORCHESTRATION.ROOT,
   POSTS: APP_ROUTES.POSTS.ROOT,
   SETTINGS: APP_ROUTES.SETTINGS.ROOT,

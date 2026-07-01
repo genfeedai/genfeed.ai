@@ -39,6 +39,7 @@ const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
   compose: 'Compose',
   editor: 'Editor',
   library: 'Library',
+  messages: 'Messages',
   posts: 'Posts',
   remix: 'Remix',
   research: 'Research',

@@ -12,5 +12,6 @@ export * from '@serializers/server/integrations';
 export * from '@serializers/server/management';
 
 export * from '@serializers/server/organizations';
+export * from '@serializers/server/social';
 export * from '@serializers/server/threads';
 export * from '@serializers/server/users';

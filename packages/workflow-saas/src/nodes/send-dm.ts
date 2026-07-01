@@ -31,6 +31,8 @@ export interface SendDmNodeData extends BaseNodeData {
   text: string;
   /** Optional media URL to attach */
   mediaUrl: string;
+  /** Durable social inbox conversation id */
+  conversationId: string;
 
   /** Output - sent message ID */
   messageId: string | null;
@@ -41,6 +43,7 @@ export interface SendDmNodeData extends BaseNodeData {
  */
 export const DEFAULT_SEND_DM_DATA: Partial<SendDmNodeData> = {
   label: 'Send DM',
+  conversationId: '',
   mediaUrl: '',
   messageId: null,
   platform: 'twitter',
