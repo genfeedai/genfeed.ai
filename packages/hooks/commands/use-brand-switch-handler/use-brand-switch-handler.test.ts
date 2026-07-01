@@ -1,8 +1,8 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@genfeedai/auth-client/react', () => ({
-  useUser: vi.fn(),
+vi.mock('@hooks/auth/use-auth-user/use-auth-user', () => ({
+  useAuthUser: vi.fn(),
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -23,8 +23,8 @@ vi.mock('@genfeedai/services/organization/users.service', () => ({
   },
 }));
 
-import { useUser } from '@genfeedai/auth-client/react';
 import { logger } from '@genfeedai/services/core/logger.service';
+import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useBrandSwitchHandler } from '@hooks/commands/use-brand-switch-handler/use-brand-switch-handler';
 
@@ -41,7 +41,7 @@ describe('useBrandSwitchHandler', () => {
   });
 
   it('logs an error when user is not authenticated', async () => {
-    (useUser as ReturnType<typeof vi.fn>).mockReturnValue({ user: null });
+    (useAuthUser as ReturnType<typeof vi.fn>).mockReturnValue({ user: null });
     (useAuthedService as ReturnType<typeof vi.fn>).mockReturnValue(
       mockGetUsersService,
     );
@@ -59,7 +59,7 @@ describe('useBrandSwitchHandler', () => {
   });
 
   it('switches brand and calls onBrandChange', async () => {
-    (useUser as ReturnType<typeof vi.fn>).mockReturnValue({
+    (useAuthUser as ReturnType<typeof vi.fn>).mockReturnValue({
       user: { reload: mockReload },
     });
 
@@ -91,7 +91,7 @@ describe('useBrandSwitchHandler', () => {
   it('handles errors when switching brand', async () => {
     const error = new Error('Switch failed');
 
-    (useUser as ReturnType<typeof vi.fn>).mockReturnValue({
+    (useAuthUser as ReturnType<typeof vi.fn>).mockReturnValue({
       user: { reload: mockReload },
     });
 

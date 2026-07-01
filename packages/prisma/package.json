@@ -16,7 +16,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "db:generate": "prisma generate",
+    "check:model-metadata": "node scripts/generate-model-metadata.mjs && bunx biome check --write src/enum-field-map.ts && git diff --exit-code src/enum-field-map.ts",
+    "db:generate": "prisma generate && node scripts/generate-model-metadata.mjs && bunx biome check --write src/enum-field-map.ts",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",

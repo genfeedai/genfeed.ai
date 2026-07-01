@@ -129,7 +129,11 @@ describe('CredentialsService', () => {
 
       // oauthState is a callback lookup key — must remain plaintext.
       expect(data.oauthState).toBe('state-lookup-key');
-      expect(data.platform).toBe('twitter');
+      // BaseService normalizes enum scalars app-form → Prisma-form at the write
+      // boundary (CredentialPlatform 'twitter' → schema enum 'TWITTER'), so the
+      // value persisted to the enum column is upper-case. Encryption still leaves
+      // this non-secret field otherwise untouched.
+      expect(data.platform).toBe('TWITTER');
       expect(data.isConnected).toBe(true);
     });
 
