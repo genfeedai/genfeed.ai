@@ -1,6 +1,23 @@
 import { render } from '@testing-library/react';
 import MenuAppSwitcher from '@ui/menus/switchers/MenuAppSwitcher';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock(
+  '@genfeedai/contexts/providers/access-state/access-state.provider',
+  () => ({
+    useAccessState: () => ({
+      accessState: null,
+      canAccessApp: true,
+      hasPaygCredits: false,
+      isByok: false,
+      isLoading: false,
+      isSubscribed: false,
+      isSuperAdmin: false,
+      needsOnboarding: false,
+      refreshAccessState: vi.fn(),
+    }),
+  }),
+);
 
 describe('MenuAppSwitcher', () => {
   it('should render without crashing', () => {
