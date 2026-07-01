@@ -4895,48 +4895,6 @@ export class AgentOrchestratorService {
     return runEffectPromise(this.runInThreadLaneEffect(threadId, run));
   }
 
-  private async flushThreadMemory(
-    threadId: string,
-    context: AgentChatContext,
-    reason: 'archive' | 'branch',
-  ): Promise<void> {
-    if (!this.agentThreadEngineService) {
-      return;
-    }
-
-    const recentMessages = await this.agentMessagesService.getMessagesByRoom(
-      threadId,
-      context.organizationId,
-      { limit: 12, page: 1 },
-    );
-    const summary = recentMessages
-      .slice()
-      .reverse()
-      .filter(
-        (message) =>
-          message.role === AgentMessageRole.USER ||
-          message.role === AgentMessageRole.ASSISTANT,
-      )
-      .map((message) => `${message.role}: ${message.content ?? ''}`.trim())
-      .filter((entry) => entry.length > 0)
-      .join('\n')
-      .slice(0, 4000);
-
-    if (!summary) {
-      return;
-    }
-
-    await runEffectPromise(
-      this.recordThreadMemoryFlushEffect(
-        threadId,
-        context.organizationId,
-        context.userId,
-        summary,
-        ['agent-thread', reason],
-      ),
-    );
-  }
-
   private async recordThreadTurnStarted(params: {
     context: AgentChatContext;
     threadId: string;
@@ -5632,26 +5590,6 @@ export class AgentOrchestratorService {
     return this.agentThreadEngineService
       .recordProfileSnapshotEffect(threadId, organizationId, userId, profile)
       .pipe(Effect.asVoid);
-  }
-
-  private recordThreadMemoryFlushEffect(
-    threadId: string,
-    organizationId: string,
-    userId: string,
-    content: string,
-    tags: string[],
-  ): Effect.Effect<string | null, unknown> {
-    if (!this.agentThreadEngineService) {
-      return Effect.succeed(null);
-    }
-
-    return this.agentThreadEngineService.recordMemoryFlushEffect(
-      threadId,
-      organizationId,
-      userId,
-      content,
-      tags,
-    );
   }
 
   private runInThreadLaneEffect<T>(
