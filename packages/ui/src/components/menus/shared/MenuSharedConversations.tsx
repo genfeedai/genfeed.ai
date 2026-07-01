@@ -12,7 +12,7 @@ interface MenuSharedConversationsProps {
   afterNavigationContent: ReactNode;
   conversationActions?: ReactNode;
   isConversationsCollapsed: boolean;
-  newChatHref: string;
+  newAgentThreadHref: string;
   onCollapsedChange: (collapsed: boolean) => void;
 }
 
@@ -20,10 +20,10 @@ export default function MenuSharedConversations({
   afterNavigationContent,
   conversationActions,
   isConversationsCollapsed,
-  newChatHref,
+  newAgentThreadHref,
   onCollapsedChange,
 }: MenuSharedConversationsProps) {
-  const prefetchNewChatHref = useNavigationPrefetch(newChatHref);
+  const prefetchNewAgentThreadHref = useNavigationPrefetch(newAgentThreadHref);
 
   return (
     <div
@@ -49,14 +49,14 @@ export default function MenuSharedConversations({
       >
         <div className="pb-1">
           <Link
-            href={newChatHref}
-            onFocus={prefetchNewChatHref}
-            onMouseEnter={prefetchNewChatHref}
+            href={newAgentThreadHref}
+            onFocus={prefetchNewAgentThreadHref}
+            onMouseEnter={prefetchNewAgentThreadHref}
             className="group flex h-8 w-full items-center gap-3 rounded px-3 py-1.5 text-left text-foreground/72 transition-colors duration-150 cursor-pointer hover:bg-foreground/[0.035] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
           >
             <HiPlus className="size-4 text-foreground/42 group-hover:text-foreground/78" />
             <span className="text-[13px] font-medium tracking-[-0.01em] text-foreground/88">
-              New Chat
+              New Thread
             </span>
             <Kbd
               variant="ghost"

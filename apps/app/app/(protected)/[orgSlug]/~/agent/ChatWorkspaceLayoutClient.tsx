@@ -6,6 +6,7 @@ import {
   useAgentChatStore,
   useAgentChatStream,
 } from '@genfeedai/agent';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import {
   getPlaywrightAuthState,
@@ -32,7 +33,7 @@ import {
 import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
 import { ChatWorkspaceContext } from './chat-workspace-context';
 
-const UNSET_THREAD_BASELINE = Symbol('chat-new-route-baseline');
+const UNSET_THREAD_BASELINE = Symbol('agent-new-route-baseline');
 
 function ChatWorkspaceLayoutClientContent({ children }: PropsWithChildren) {
   const rawPathname = usePathname();
@@ -54,10 +55,11 @@ function ChatWorkspaceLayoutClientContent({ children }: PropsWithChildren) {
     string | null | typeof UNSET_THREAD_BASELINE
   >(UNSET_THREAD_BASELINE);
   const pendingNavigationThreadRef = useRef<string | null>(null);
-  const isJourneyRoute = pathname.startsWith('/chat/journey');
-  const isOnboarding = pathname.startsWith('/chat/onboarding');
-  const isOnboardingEntryRoute = pathname === '/chat/onboarding';
-  const isStandardNewRoute = pathname === '/chat' || pathname === '/chat/new';
+  const isJourneyRoute = pathname.startsWith(APP_ROUTES.AGENT.JOURNEY);
+  const isOnboarding = pathname.startsWith(APP_ROUTES.AGENT.ONBOARDING);
+  const isOnboardingEntryRoute = pathname === APP_ROUTES.AGENT.ONBOARDING;
+  const isStandardNewRoute =
+    pathname === APP_ROUTES.AGENT.ROOT || pathname === APP_ROUTES.AGENT.NEW;
   const isUnthreadedRoute = isOnboardingEntryRoute || isStandardNewRoute;
   const prefillPrompt = searchParams.get('prompt')?.trim() || '';
   const effectiveIsLoaded = isLoaded || playwrightAuth?.isLoaded === true;
@@ -105,18 +107,18 @@ function ChatWorkspaceLayoutClientContent({ children }: PropsWithChildren) {
           return;
         }
 
-        // Brand is optional for chat OAuth — uses active brand if available
+        // Brand is optional for agent OAuth; uses active brand if available.
         const service = new ServicesService(platform, token);
         const credential = await service.postConnect({
           ...(selectedBrand ? { brand: selectedBrand.id } : {}),
         });
         const returnTo = isOnboarding
           ? threadId
-            ? orgHref(`/chat/onboarding/${threadId}`)
-            : orgHref('/chat/onboarding')
+            ? orgHref(`${APP_ROUTES.AGENT.ONBOARDING}/${threadId}`)
+            : orgHref(APP_ROUTES.AGENT.ONBOARDING)
           : threadId
-            ? orgHref(`/chat/${threadId}`)
-            : orgHref('/chat/new');
+            ? orgHref(`${APP_ROUTES.AGENT.ROOT}/${threadId}`)
+            : orgHref(APP_ROUTES.AGENT.NEW);
         const separator = credential.url.includes('?') ? '&' : '?';
         window.open(
           `${credential.url}${separator}return_to=${encodeURIComponent(returnTo)}`,
@@ -191,8 +193,8 @@ function ChatWorkspaceLayoutClientContent({ children }: PropsWithChildren) {
       pendingNavigationThreadRef.current !== activeThreadId
     ) {
       const nextRoute = isOnboarding
-        ? orgHref(`/chat/onboarding/${activeThreadId}`)
-        : orgHref(`/chat/${activeThreadId}`);
+        ? orgHref(`${APP_ROUTES.AGENT.ONBOARDING}/${activeThreadId}`)
+        : orgHref(`${APP_ROUTES.AGENT.ROOT}/${activeThreadId}`);
       newRouteBaselineThreadRef.current = activeThreadId;
       pendingNavigationThreadRef.current = activeThreadId;
       replace(nextRoute);

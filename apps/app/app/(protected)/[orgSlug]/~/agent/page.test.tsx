@@ -18,10 +18,10 @@ vi.mock('./ChatWorkspacePageShell', () => ({
   ChatWorkspacePageShell: () => <div data-testid="chat-workspace-page-shell" />,
 }));
 
-runPageModuleTests('app/(protected)/[orgSlug]/~/chat/page', PageModule);
+runPageModuleTests('app/(protected)/[orgSlug]/~/agent/page', PageModule);
 
 describe('ChatPage', () => {
-  it('renders the org-scoped chat workspace', () => {
+  it('renders the org-scoped agent workspace', () => {
     render(<ChatPage />);
 
     expect(screen.getByTestId('chat-workspace-page-shell')).toBeInTheDocument();

@@ -104,13 +104,13 @@ export function useAppProtectedLayout(
     [rawPathname],
   );
 
-  const isChatRoute = /^\/chat(?:\/|$)/.test(pathname);
-  const isConversationRoute = isChatRoute;
+  const isAgentRoute = /^\/agent(?:\/|$)/.test(pathname);
+  const isConversationRoute = isAgentRoute;
   const isAdminRoute =
     pathname === APP_ROUTES.ADMIN.ROOT ||
     pathname.startsWith(`${APP_ROUTE_PREFIXES.ADMIN}/`);
   const isFocusedOnboardingRoute = pathname.startsWith(
-    APP_ROUTES.CHAT.ONBOARDING,
+    APP_ROUTES.AGENT.ONBOARDING,
   );
   const isComposeRoute = pathname.startsWith(COMPOSE_ROUTES.ROOT);
   const isResearchRoute = pathname.startsWith('/research');
@@ -167,7 +167,7 @@ export function useAppProtectedLayout(
                   ? 'editor'
                   : isAnalyticsRoute
                     ? 'analytics'
-                    : isChatRoute
+                    : isAgentRoute
                       ? 'agent'
                       : 'workspace';
 

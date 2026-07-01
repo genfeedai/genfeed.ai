@@ -1,6 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useBrandEnabledSkills } from '@hooks/data/skills/use-brand-enabled-skills';
@@ -293,7 +294,9 @@ export default function OrchestrationSkillsPage() {
     }
 
     const prompt = buildSkillTestPrompt(selectedSkill);
-    push(orgHref(`/chat/new?prompt=${encodeURIComponent(prompt)}`));
+    push(
+      orgHref(`${APP_ROUTES.AGENT.NEW}?prompt=${encodeURIComponent(prompt)}`),
+    );
   }, [orgHref, push, selectedSkill]);
 
   const handleSkillSelect = useCallback(

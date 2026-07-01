@@ -82,11 +82,11 @@ export const APP_ROUTES = {
     TREND_TURNOVER: '/analytics/trend-turnover',
     TRENDS: '/analytics/trends',
   },
-  CHAT: {
-    ROOT: '/chat',
-    JOURNEY: '/chat/journey',
-    NEW: '/chat/new',
-    ONBOARDING: '/chat/onboarding',
+  AGENT: {
+    ROOT: '/agent',
+    JOURNEY: '/agent/journey',
+    NEW: '/agent/new',
+    ONBOARDING: '/agent/onboarding',
   },
   COMPOSE: {
     ARTICLE: '/compose/article',
@@ -210,7 +210,7 @@ export const APP_ROUTES = {
 export const APP_ROUTE_PREFIXES = {
   ADMIN: APP_ROUTES.ADMIN.ROOT,
   ANALYTICS: APP_ROUTES.ANALYTICS.ROOT,
-  CHAT: APP_ROUTES.CHAT.ROOT,
+  AGENT: APP_ROUTES.AGENT.ROOT,
   COMPOSE: APP_ROUTES.COMPOSE.ROOT,
   EDITOR: APP_ROUTES.EDITOR.ROOT,
   LIBRARY: '/library',

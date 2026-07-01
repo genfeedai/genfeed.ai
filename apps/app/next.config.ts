@@ -87,7 +87,7 @@ const selfHostedRewrites = IS_LOCAL_APP_SHELL
   : [];
 
 const selfHostedOrgRewrites = IS_LOCAL_APP_SHELL
-  ? ['chat', 'settings'].map((segment) => ({
+  ? ['agent', 'settings'].map((segment) => ({
       destination: `/${DEFAULT_ORG}/~/${segment}/:path*`,
       source: `/${segment}/:path*`,
     }))
@@ -142,9 +142,9 @@ const config = createAppNextConfig({
       source: '/compose',
     },
     {
-      destination: '/:orgSlug/~/chat/:path*',
+      destination: '/:orgSlug/~/agent/:path*',
       permanent: false,
-      source: '/:orgSlug/:brandSlug([^~/][^/]*)/chat/:path*',
+      source: '/:orgSlug/:brandSlug([^~/][^/]*)/agent/:path*',
     },
     {
       destination: '/studio/image',

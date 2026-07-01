@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IAgentRun } from '@genfeedai/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -222,7 +223,7 @@ export function WorkspaceOverviewSidebar({
               <Link
                 key={tool.href}
                 href={
-                  tool.href.startsWith('/chat')
+                  tool.href.startsWith(APP_ROUTES.AGENT.ROOT)
                     ? orgHref(tool.href)
                     : href(tool.href)
                 }

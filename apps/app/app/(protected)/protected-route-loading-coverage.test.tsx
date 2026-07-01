@@ -8,7 +8,7 @@ const protectedLoadingRoutes = [
   { route: 'admin/loading.tsx', variant: 'grid' },
   { route: '[orgSlug]/loading.tsx', variant: 'minimal' },
   { route: '[orgSlug]/~/loading.tsx', variant: 'grid' },
-  { route: '[orgSlug]/~/chat/loading.tsx', variant: 'minimal' },
+  { route: '[orgSlug]/~/agent/loading.tsx', variant: 'minimal' },
   { route: '[orgSlug]/~/overview/loading.tsx', variant: 'grid' },
   { route: '[orgSlug]/~/settings/loading.tsx', variant: 'grid' },
   { route: '[orgSlug]/[brandSlug]/loading.tsx', variant: 'grid' },

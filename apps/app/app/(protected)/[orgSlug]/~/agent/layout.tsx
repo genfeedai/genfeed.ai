@@ -4,7 +4,7 @@ import { ChatWorkspaceLayoutClient } from './ChatWorkspaceLayoutClient';
 
 export default function ChatLayout({ children }: { children: ReactNode }) {
   return (
-    <FeatureGate flagKey="chat">
+    <FeatureGate flagKey="agent">
       <ChatWorkspaceLayoutClient>{children}</ChatWorkspaceLayoutClient>
     </FeatureGate>
   );

@@ -461,7 +461,7 @@ describe('WorkspacePageContent', () => {
       expect(ensurePlanningThreadMock).toHaveBeenCalledWith('task-plan-1');
     });
 
-    expect(routerPushMock).toHaveBeenCalledWith('/chat/thread-plan-123');
+    expect(routerPushMock).toHaveBeenCalledWith('/agent/thread-plan-123');
   });
 
   it('renders unread, recent, and all inbox routes on the dedicated inbox page', async () => {
@@ -585,12 +585,12 @@ describe('WorkspacePageContent', () => {
       within(screen.getByTestId('workspace-task-inspector')).getByRole('link', {
         name: 'Open Report',
       }),
-    ).toHaveAttribute('href', '/chat/thread-report-123');
+    ).toHaveAttribute('href', '/agent/thread-report-123');
     expect(
       within(screen.getByTestId('workspace-task-inspector')).getByRole('link', {
         name: 'Open report thread',
       }),
-    ).toHaveAttribute('href', '/chat/thread-report-123');
+    ).toHaveAttribute('href', '/agent/thread-report-123');
   });
 
   it('renders linked ingredient outputs inside the task inspector', async () => {
