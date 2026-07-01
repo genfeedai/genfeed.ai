@@ -54,7 +54,7 @@ export class WorkflowWebhookManagementController {
     };
   }> {
     const publicMetadata = getPublicMetadata(user);
-    await this.workflowsService.findOwnedOrThrow(workflowId, {
+    await this.workflowsService.findMutableOwnedOrThrow(workflowId, {
       organization: publicMetadata.organization,
       user: publicMetadata.user,
     });
@@ -74,10 +74,13 @@ export class WorkflowWebhookManagementController {
     @CurrentUser() user: User,
   ): Promise<{ data: { webhookSecret: string } }> {
     const publicMetadata = getPublicMetadata(user);
-    const workflow = await this.workflowsService.findOwnedOrThrow(workflowId, {
-      organization: publicMetadata.organization,
-      user: publicMetadata.user,
-    });
+    const workflow = await this.workflowsService.findMutableOwnedOrThrow(
+      workflowId,
+      {
+        organization: publicMetadata.organization,
+        user: publicMetadata.user,
+      },
+    );
 
     if (!workflow.webhookId) {
       throw new HttpException(
@@ -98,7 +101,7 @@ export class WorkflowWebhookManagementController {
     @CurrentUser() user: User,
   ): Promise<{ data: { message: string } }> {
     const publicMetadata = getPublicMetadata(user);
-    await this.workflowsService.findOwnedOrThrow(workflowId, {
+    await this.workflowsService.findMutableOwnedOrThrow(workflowId, {
       organization: publicMetadata.organization,
       user: publicMetadata.user,
     });

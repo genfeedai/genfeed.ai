@@ -65,7 +65,7 @@ export class WorkflowExecutionController {
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
-    await this.workflowsService.findOwnedOrThrow(workflowId, {
+    await this.workflowsService.findMutableOwnedOrThrow(workflowId, {
       organization: publicMetadata.organization,
       user: publicMetadata.user,
     });
@@ -92,7 +92,7 @@ export class WorkflowExecutionController {
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
-    await this.workflowsService.findOwnedOrThrow(workflowId, {
+    await this.workflowsService.findMutableOwnedOrThrow(workflowId, {
       organization: publicMetadata.organization,
       user: publicMetadata.user,
     });
@@ -282,6 +282,11 @@ export class WorkflowExecutionController {
   ): Promise<JsonApiSingleResponse> {
     return wrapError(async () => {
       const publicMetadata = getPublicMetadata(user);
+      await this.workflowsService.findMutableOwnedOrThrow(workflowId, {
+        organization: publicMetadata.organization,
+        user: publicMetadata.user,
+      });
+
       const workflow = await this.workflowsService.lockNodes(
         workflowId,
         dto.nodeIds,
@@ -302,6 +307,11 @@ export class WorkflowExecutionController {
   ): Promise<JsonApiSingleResponse> {
     return wrapError(async () => {
       const publicMetadata = getPublicMetadata(user);
+      await this.workflowsService.findMutableOwnedOrThrow(workflowId, {
+        organization: publicMetadata.organization,
+        user: publicMetadata.user,
+      });
+
       const workflow = await this.workflowsService.unlockNodes(
         workflowId,
         dto.nodeIds,
@@ -322,6 +332,11 @@ export class WorkflowExecutionController {
   ): Promise<JsonApiSingleResponse> {
     return wrapError(async () => {
       const publicMetadata = getPublicMetadata(user);
+      await this.workflowsService.findMutableOwnedOrThrow(workflowId, {
+        organization: publicMetadata.organization,
+        user: publicMetadata.user,
+      });
+
       const workflow = await this.workflowsService.setThumbnail(
         workflowId,
         dto.thumbnailUrl,

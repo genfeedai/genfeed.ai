@@ -45,11 +45,22 @@ describe('WorkflowsService seeded livestream bot workflows', () => {
       data: expect.objectContaining({
         isScheduleEnabled: true,
         label: 'Livestream Bot Session Processing',
-        metadata: {
+        metadata: expect.objectContaining({
           sourceIssue: 793,
           sourceTemplateId: 'livestream-bot-session-processing',
           sourceType: 'seeded-template',
-        },
+          systemWorkflow: expect.objectContaining({
+            canonicalId: 'livestream-bot-session-processing',
+            credentialPolicy: 'tenant-connected-account',
+            duplicable: true,
+            immutable: true,
+            kind: 'system-workflow',
+            owner: 'genfeed',
+            productizationIssue: 1011,
+            sourceIssue: 793,
+            visibility: 'organization',
+          }),
+        }),
         organizationId: 'org-1',
         schedule: '*/1 * * * *',
         status: WorkflowStatus.ACTIVE,

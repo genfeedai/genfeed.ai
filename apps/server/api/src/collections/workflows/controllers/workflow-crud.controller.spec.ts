@@ -39,7 +39,9 @@ describe('WorkflowCrudController', () => {
     cloneWorkflow: vi.fn(),
     createWorkflow: vi.fn(),
     findAll: vi.fn(),
+    findMutableOwnedOrThrow: vi.fn(),
     findOwnedOrThrow: vi.fn(),
+    findVisibleOrThrow: vi.fn(),
     getWorkflowStatistics: vi.fn(),
     patch: vi.fn(),
     remove: vi.fn(),
@@ -132,11 +134,11 @@ describe('WorkflowCrudController', () => {
   describe('findOne', () => {
     it('should return a workflow by id via the ownership guard', async () => {
       const id = '507f1f77bcf86cd799439014';
-      mockWorkflowsService.findOwnedOrThrow.mockResolvedValue(mockWorkflow);
+      mockWorkflowsService.findVisibleOrThrow.mockResolvedValue(mockWorkflow);
 
       const result = await controller.findOne(mockRequest, id, mockUser);
 
-      expect(service.findOwnedOrThrow).toHaveBeenCalledWith(id, {
+      expect(service.findVisibleOrThrow).toHaveBeenCalledWith(id, {
         organization: mockUser.publicMetadata.organization,
         user: mockUser.publicMetadata.user,
       });
@@ -169,7 +171,9 @@ describe('WorkflowCrudController', () => {
       const id = '507f1f77bcf86cd799439014';
       const updateDto: UpdateWorkflowDto = { label: 'Updated Workflow' };
 
-      mockWorkflowsService.findOwnedOrThrow.mockResolvedValue(mockWorkflow);
+      mockWorkflowsService.findMutableOwnedOrThrow.mockResolvedValue(
+        mockWorkflow,
+      );
       mockWorkflowsService.patch.mockResolvedValue({
         ...mockWorkflow,
         ...updateDto,
@@ -182,7 +186,7 @@ describe('WorkflowCrudController', () => {
         mockUser,
       );
 
-      expect(service.findOwnedOrThrow).toHaveBeenCalledWith(id, {
+      expect(service.findMutableOwnedOrThrow).toHaveBeenCalledWith(id, {
         organization: mockUser.publicMetadata.organization,
         user: mockUser.publicMetadata.user,
       });
@@ -194,11 +198,17 @@ describe('WorkflowCrudController', () => {
   describe('remove', () => {
     it('should remove a workflow', async () => {
       const id = '507f1f77bcf86cd799439014';
-      mockWorkflowsService.findOwnedOrThrow.mockResolvedValue(mockWorkflow);
+      mockWorkflowsService.findMutableOwnedOrThrow.mockResolvedValue(
+        mockWorkflow,
+      );
       mockWorkflowsService.remove.mockResolvedValue(mockWorkflow);
 
       const result = await controller.remove(mockRequest, id, mockUser);
 
+      expect(service.findMutableOwnedOrThrow).toHaveBeenCalledWith(id, {
+        organization: mockUser.publicMetadata.organization,
+        user: mockUser.publicMetadata.user,
+      });
       expect(service.remove).toHaveBeenCalledWith(id);
       expect(result).toBeDefined();
     });
