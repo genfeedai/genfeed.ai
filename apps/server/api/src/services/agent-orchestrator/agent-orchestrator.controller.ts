@@ -14,6 +14,7 @@ import {
 import { AGENT_MODEL_TURN_COSTS } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -54,34 +55,67 @@ export class AgentOrchestratorController {
     private readonly loggerService: LoggerService,
   ) {}
 
-  @Post('chat')
-  @ApiOperation({ summary: 'Send a message to the agent orchestrator' })
-  async chat(
+  @Post('threads/turns')
+  @ApiOperation({ summary: 'Start an agent turn in a new or provided thread' })
+  async createTurn(
     @Body() body: AgentChatBody,
     @CurrentUser() user: User,
     @Headers('authorization') authorization?: string,
   ) {
+    return this.runAgentTurn(body, user, authorization);
+  }
+
+  @Post('threads/:threadId/turns')
+  @ApiOperation({ summary: 'Start an agent turn in a thread' })
+  async createThreadTurn(
+    @Param('threadId') threadId: string,
+    @Body() body: AgentChatBody,
+    @CurrentUser() user: User,
+    @Headers('authorization') authorization?: string,
+  ) {
+    return this.runAgentTurn(body, user, authorization, threadId);
+  }
+
+  @Post('threads/turns/stream')
+  @ApiOperation({
+    summary: 'Start a streaming agent turn in a new or provided thread',
+  })
+  async createTurnStream(
+    @Body() body: AgentChatBody,
+    @CurrentUser() user: User,
+    @Headers('authorization') authorization?: string,
+  ) {
+    return this.runAgentTurnStream(body, user, authorization);
+  }
+
+  @Post('threads/:threadId/turns/stream')
+  @ApiOperation({ summary: 'Start a streaming agent turn in a thread' })
+  async createThreadTurnStream(
+    @Param('threadId') threadId: string,
+    @Body() body: AgentChatBody,
+    @CurrentUser() user: User,
+    @Headers('authorization') authorization?: string,
+  ) {
+    return this.runAgentTurnStream(body, user, authorization, threadId);
+  }
+
+  private async runAgentTurn(
+    body: AgentChatBody,
+    user: User,
+    authorization?: string,
+    routeThreadId?: string,
+  ) {
     try {
+      const request = this.resolveAgentChatBody(body, routeThreadId);
       const organization = this.resolveOrganizationId(user);
       const dbUserId = await this.resolveMongoUserId(user);
       const authToken = authorization?.replace('Bearer ', '');
 
-      const result = await this.orchestratorService.chat(
-        {
-          attachments: body.attachments,
-          content: body.content,
-          model: body.model,
-          pageContext: body.pageContext,
-          planModeEnabled: body.planModeEnabled,
-          source: body.source,
-          threadId: body.threadId,
-        },
-        {
-          authToken,
-          organizationId: organization,
-          userId: dbUserId,
-        },
-      );
+      const result = await this.orchestratorService.chat(request, {
+        authToken,
+        organizationId: organization,
+        userId: dbUserId,
+      });
 
       return result;
     } catch (error: unknown) {
@@ -89,39 +123,49 @@ export class AgentOrchestratorController {
     }
   }
 
-  @Post('chat/stream')
-  @ApiOperation({ summary: 'Start a streaming agent chat' })
-  async chatStream(
-    @Body() body: AgentChatBody,
-    @CurrentUser() user: User,
-    @Headers('authorization') authorization?: string,
+  private async runAgentTurnStream(
+    body: AgentChatBody,
+    user: User,
+    authorization?: string,
+    routeThreadId?: string,
   ) {
     try {
+      const request = this.resolveAgentChatBody(body, routeThreadId);
       const organization = this.resolveOrganizationId(user);
       const dbUserId = await this.resolveMongoUserId(user);
       const authToken = authorization?.replace('Bearer ', '');
 
-      const result = await this.orchestratorService.chatStream(
-        {
-          attachments: body.attachments,
-          content: body.content,
-          model: body.model,
-          pageContext: body.pageContext,
-          planModeEnabled: body.planModeEnabled,
-          source: body.source,
-          threadId: body.threadId,
-        },
-        {
-          authToken,
-          organizationId: organization,
-          userId: dbUserId,
-        },
-      );
+      const result = await this.orchestratorService.chatStream(request, {
+        authToken,
+        organizationId: organization,
+        userId: dbUserId,
+      });
 
       return result;
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'agentChatStream');
     }
+  }
+
+  private resolveAgentChatBody(
+    body: AgentChatBody,
+    routeThreadId?: string,
+  ): AgentChatBody {
+    if (routeThreadId && body.threadId && body.threadId !== routeThreadId) {
+      throw new BadRequestException(
+        'Request body threadId must match route threadId.',
+      );
+    }
+
+    return {
+      attachments: body.attachments,
+      content: body.content,
+      model: body.model,
+      pageContext: body.pageContext,
+      planModeEnabled: body.planModeEnabled,
+      source: body.source,
+      threadId: routeThreadId ?? body.threadId,
+    };
   }
 
   @Get('credits')

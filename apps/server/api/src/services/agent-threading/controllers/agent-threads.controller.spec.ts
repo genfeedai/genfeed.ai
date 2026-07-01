@@ -1,12 +1,16 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { UsersService } from '@api/collections/users/services/users.service';
-import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
+import type { UsersService } from '@api/collections/users/services/users.service';
+import type { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentThreadsController } from '@api/services/agent-threading/controllers/agent-threads.controller';
-import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Effect } from 'effect';
 
+vi.mock('@genfeedai/tools', () => ({
+  getToolsForSurface: vi.fn(() => []),
+  toAgentTools: vi.fn(() => []),
+}));
 vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
   ErrorResponse: {
     handle: vi.fn((error: unknown) => {

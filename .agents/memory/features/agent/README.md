@@ -41,7 +41,7 @@ The agent system is a multi-turn LLM chat orchestrator with tool execution, even
 ## High-Level Flow
 
 ```
-POST /agent/chat/stream
+POST /agent/threads/:threadId/turns/stream
   |
 AgentOrchestratorController
   |
