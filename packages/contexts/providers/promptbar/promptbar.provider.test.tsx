@@ -10,8 +10,8 @@ const useAuthMock = vi.fn();
 const useBrandMock = vi.fn();
 const useAuthedServiceMock = vi.fn();
 
-vi.mock('@genfeedai/auth-client/react', () => ({
-  useAuth: () => useAuthMock(),
+vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => useAuthMock(),
 }));
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
