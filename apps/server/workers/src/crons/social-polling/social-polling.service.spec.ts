@@ -1,8 +1,10 @@
 import { SocialPollingService } from '@workers/crons/social-polling/social-polling.service';
 
-const mockWorkflowModel = {
-  find: vi.fn(),
-  updateOne: vi.fn(),
+const mockPrisma = {
+  workflow: {
+    findMany: vi.fn(),
+    update: vi.fn(),
+  },
 };
 
 const mockExecutionQueue = {
@@ -19,6 +21,9 @@ const mockTwitterAdapter = {
 };
 
 const mockInstagramAdapter = {};
+const mockYoutubeAdapter = {
+  createCommentChecker: vi.fn(),
+};
 
 const mockLogger = {
   debug: vi.fn(),
@@ -37,12 +42,13 @@ type SocialPollingConstructorArgs = ConstructorParameters<
 
 function createService() {
   return new SocialPollingService(
-    mockWorkflowModel as unknown as SocialPollingConstructorArgs[0],
+    mockPrisma as unknown as SocialPollingConstructorArgs[0],
     mockExecutionQueue as unknown as SocialPollingConstructorArgs[1],
     mockTwitterAdapter as unknown as SocialPollingConstructorArgs[2],
     mockInstagramAdapter as unknown as SocialPollingConstructorArgs[3],
-    mockConfigService as unknown as SocialPollingConstructorArgs[4],
-    mockLogger as unknown as SocialPollingConstructorArgs[5],
+    mockYoutubeAdapter as unknown as SocialPollingConstructorArgs[4],
+    mockConfigService as unknown as SocialPollingConstructorArgs[5],
+    mockLogger as unknown as SocialPollingConstructorArgs[6],
   );
 }
 
@@ -53,10 +59,8 @@ describe('SocialPollingService', () => {
     vi.clearAllMocks();
     mockConfigService.isDevSchedulersEnabled = true;
     service = createService();
-    mockWorkflowModel.find.mockReturnValue({
-      limit: vi.fn().mockReturnValue({ exec: vi.fn().mockResolvedValue([]) }),
-    });
-    mockWorkflowModel.updateOne.mockResolvedValue({});
+    mockPrisma.workflow.findMany.mockResolvedValue([]);
+    mockPrisma.workflow.update.mockResolvedValue({});
   });
 
   it('should be defined', () => {
@@ -65,15 +69,9 @@ describe('SocialPollingService', () => {
 
   it('should skip if already running', async () => {
     // Start first poll
-    mockWorkflowModel.find.mockReturnValue({
-      limit: vi.fn().mockReturnValue({
-        exec: vi
-          .fn()
-          .mockImplementation(
-            () => new Promise((resolve) => setTimeout(() => resolve([]), 100)),
-          ),
-      }),
-    });
+    mockPrisma.workflow.findMany.mockImplementationOnce(
+      () => new Promise((resolve) => setTimeout(() => resolve([]), 100)),
+    );
 
     const poll1 = service.pollSocialTriggers();
     const poll2 = service.pollSocialTriggers();
@@ -87,16 +85,18 @@ describe('SocialPollingService', () => {
   });
 
   it('should find workflows with social trigger nodes', async () => {
-    mockWorkflowModel.find.mockReturnValue({
-      limit: vi.fn().mockReturnValue({ exec: vi.fn().mockResolvedValue([]) }),
-    });
+    mockPrisma.workflow.findMany.mockResolvedValue([]);
 
     await service.pollSocialTriggers();
 
-    expect(mockWorkflowModel.find).toHaveBeenCalledWith(
+    expect(mockPrisma.workflow.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        isDeleted: false,
-        status: 'active',
+        take: 200,
+        where: expect.objectContaining({
+          isDeleted: false,
+          lifecycle: 'published',
+          status: 'active',
+        }),
       }),
     );
   });
@@ -106,7 +106,7 @@ describe('SocialPollingService', () => {
 
     await service.pollSocialTriggers();
 
-    expect(mockWorkflowModel.find).not.toHaveBeenCalled();
+    expect(mockPrisma.workflow.findMany).not.toHaveBeenCalled();
   });
 
   it('should trigger workflow execution when mention found', async () => {
@@ -121,8 +121,8 @@ describe('SocialPollingService', () => {
     };
 
     const mockWorkflow = {
-      _id: 'wf1',
-      metadata: {},
+      config: {},
+      id: 'wf1',
       nodes: [
         {
           data: { config: { platform: 'twitter' } },
@@ -130,15 +130,11 @@ describe('SocialPollingService', () => {
           type: 'mentionTrigger',
         },
       ],
-      organization: { toString: () => 'org1' },
-      user: { toString: () => 'user1' },
+      organizationId: 'org1',
+      userId: 'user1',
     };
 
-    mockWorkflowModel.find.mockReturnValue({
-      limit: vi.fn().mockReturnValue({
-        exec: vi.fn().mockResolvedValue([mockWorkflow]),
-      }),
-    });
+    mockPrisma.workflow.findMany.mockResolvedValue([mockWorkflow]);
 
     mockTwitterAdapter.createMentionChecker.mockReturnValue(
       vi.fn().mockResolvedValue(mockMention),
@@ -156,7 +152,7 @@ describe('SocialPollingService', () => {
     );
 
     // Should update poll state
-    expect(prisma.workflow.update).toHaveBeenCalledWith(
+    expect(mockPrisma.workflow.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           config: expect.objectContaining({
@@ -174,8 +170,8 @@ describe('SocialPollingService', () => {
 
   it('should not trigger when checker returns null', async () => {
     const mockWorkflow = {
-      _id: 'wf2',
-      metadata: {},
+      config: {},
+      id: 'wf2',
       nodes: [
         {
           data: { config: { platform: 'twitter' } },
@@ -183,15 +179,11 @@ describe('SocialPollingService', () => {
           type: 'mentionTrigger',
         },
       ],
-      organization: { toString: () => 'org1' },
-      user: { toString: () => 'user1' },
+      organizationId: 'org1',
+      userId: 'user1',
     };
 
-    mockWorkflowModel.find.mockReturnValue({
-      limit: vi.fn().mockReturnValue({
-        exec: vi.fn().mockResolvedValue([mockWorkflow]),
-      }),
-    });
+    mockPrisma.workflow.findMany.mockResolvedValue([mockWorkflow]);
 
     mockTwitterAdapter.createMentionChecker.mockReturnValue(
       vi.fn().mockResolvedValue(null),
@@ -205,8 +197,8 @@ describe('SocialPollingService', () => {
   it('should handle errors per-workflow without stopping cycle', async () => {
     const workflows = [
       {
-        _id: 'wf-good',
-        metadata: {},
+        config: {},
+        id: 'wf-good',
         nodes: [
           {
             data: { config: { platform: 'twitter' } },
@@ -214,12 +206,12 @@ describe('SocialPollingService', () => {
             type: 'mentionTrigger',
           },
         ],
-        organization: { toString: () => 'org1' },
-        user: { toString: () => 'user1' },
+        organizationId: 'org1',
+        userId: 'user1',
       },
       {
-        _id: 'wf-bad',
-        metadata: {},
+        config: {},
+        id: 'wf-bad',
         nodes: [
           {
             data: { config: { platform: 'twitter' } },
@@ -227,16 +219,12 @@ describe('SocialPollingService', () => {
             type: 'mentionTrigger',
           },
         ],
-        organization: { toString: () => 'org2' },
-        user: { toString: () => 'user2' },
+        organizationId: 'org2',
+        userId: 'user2',
       },
     ];
 
-    mockWorkflowModel.find.mockReturnValue({
-      limit: vi.fn().mockReturnValue({
-        exec: vi.fn().mockResolvedValue(workflows),
-      }),
-    });
+    mockPrisma.workflow.findMany.mockResolvedValue(workflows);
 
     let callCount = 0;
     mockTwitterAdapter.createMentionChecker.mockReturnValue(
@@ -257,6 +245,6 @@ describe('SocialPollingService', () => {
       expect.any(Object),
     );
     // Should still update poll state for second workflow
-    expect(mockWorkflowModel.updateOne).toHaveBeenCalled();
+    expect(mockPrisma.workflow.update).toHaveBeenCalled();
   });
 });

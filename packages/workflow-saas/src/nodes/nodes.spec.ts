@@ -4,6 +4,7 @@ import {
   DEFAULT_BRAND_ASSET_DATA,
   DEFAULT_BRAND_CONTEXT_DATA,
   DEFAULT_BRAND_DATA,
+  DEFAULT_COMMENT_TRIGGER_DATA,
   DEFAULT_ENGAGEMENT_TRIGGER_DATA,
   DEFAULT_HOOK_GENERATOR_DATA,
   DEFAULT_IMAGE_TEXT_OVERLAY_DATA,
@@ -23,12 +24,17 @@ import {
 } from '@workflow-saas/nodes';
 import { describe, expect, it } from 'vitest';
 
-const allDefaults: Record<string, unknown> = {
+type NodeDefaultData = {
+  label?: unknown;
+};
+
+const allDefaults: Record<string, NodeDefaultData> = {
   beatAnalysis: DEFAULT_BEAT_ANALYSIS_DATA,
   beatSyncEditor: DEFAULT_BEAT_SYNC_EDITOR_DATA,
   brand: DEFAULT_BRAND_DATA,
   brandAsset: DEFAULT_BRAND_ASSET_DATA,
   brandContext: DEFAULT_BRAND_CONTEXT_DATA,
+  commentTrigger: DEFAULT_COMMENT_TRIGGER_DATA,
   engagementTrigger: DEFAULT_ENGAGEMENT_TRIGGER_DATA,
   hookGenerator: DEFAULT_HOOK_GENERATOR_DATA,
   imageTextOverlay: DEFAULT_IMAGE_TEXT_OVERLAY_DATA,
@@ -52,7 +58,7 @@ describe('node default data', () => {
     describe(name, () => {
       it('is defined and has label', () => {
         expect(data).toBeDefined();
-        expect((data as any).label).toBeTruthy();
+        expect(data.label).toBeTruthy();
       });
     });
   }

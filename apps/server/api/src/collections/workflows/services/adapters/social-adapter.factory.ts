@@ -1,7 +1,9 @@
 import { InstagramSocialAdapter } from '@api/collections/workflows/services/adapters/instagram-social.adapter';
 import { TwitterSocialAdapter } from '@api/collections/workflows/services/adapters/twitter-social.adapter';
 import type {
+  CommentChecker,
   DmSender,
+  EngagementChecker,
   KeywordChecker,
   MentionChecker,
   NewFollowerChecker,
@@ -19,11 +21,13 @@ export type SocialPlatformKey = 'twitter' | 'instagram';
 export interface SocialAdapterInterface {
   createReplyPublisher(): ReplyPublisher;
   createDmSender(): DmSender;
-  createFollowerChecker(): NewFollowerChecker;
-  createMentionChecker(): MentionChecker;
-  createLikeChecker(): NewLikeChecker;
-  createRepostChecker(): NewRepostChecker;
+  createFollowerChecker?(): NewFollowerChecker;
+  createMentionChecker?(): MentionChecker;
+  createLikeChecker?(): NewLikeChecker;
+  createRepostChecker?(): NewRepostChecker;
+  createCommentChecker?(): CommentChecker;
   createKeywordChecker?(): KeywordChecker;
+  createEngagementChecker?(): EngagementChecker;
 }
 
 /**

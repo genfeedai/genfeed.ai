@@ -94,6 +94,26 @@ describe('SendDmExecutor', () => {
     expect(result.data).toMatchObject({ success: true });
   });
 
+  it('uses input values when config defaults are empty strings', async () => {
+    const input = makeInput(
+      { platform: 'instagram', recipientId: '', text: '' },
+      {
+        recipientId: 'user-from-edge',
+        text: 'From edge',
+      },
+    );
+
+    await executor.execute(input);
+
+    expect(mockSender).toHaveBeenCalledWith(
+      expect.objectContaining({
+        platform: 'instagram',
+        recipientId: 'user-from-edge',
+        text: 'From edge',
+      }),
+    );
+  });
+
   it('throws if recipientId missing', async () => {
     const input = makeInput({ platform: 'twitter', text: 'hello' });
     await expect(executor.execute(input)).rejects.toThrow(

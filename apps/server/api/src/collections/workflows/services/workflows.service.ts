@@ -334,6 +334,7 @@ export class WorkflowsService extends BaseService<
                 isDeleted: false,
                 isScheduleEnabled: true,
                 label: template.name,
+                lifecycle: WorkflowLifecycle.PUBLISHED,
                 metadata: {
                   sourceIssue: 782,
                   sourceTemplateId: template.id,

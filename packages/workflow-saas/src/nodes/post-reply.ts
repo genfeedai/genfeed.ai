@@ -11,7 +11,8 @@ export type PostReplyPlatform =
   | 'twitter'
   | 'instagram'
   | 'threads'
-  | 'facebook';
+  | 'facebook'
+  | 'youtube';
 
 /**
  * Post Reply Node Data
