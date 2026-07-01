@@ -70,6 +70,10 @@ import type {
   WorkflowExecutionResult,
   WorkflowListParams,
   WorkflowResponse,
+  WorkflowRunListParams,
+  WorkflowRunResponse,
+  WorkflowScheduleParams,
+  WorkflowScheduleResponse,
   WorkflowTemplate,
 } from '@mcp/shared/interfaces/workflow.interface';
 import { HttpService } from '@nestjs/axios';
@@ -367,8 +371,33 @@ export class ClientService {
     return this.workflows.getWorkflowStatus(workflowId);
   }
 
+  inspectWorkflow(workflowId: string): Promise<WorkflowResponse> {
+    return this.workflows.inspectWorkflow(workflowId);
+  }
+
+  duplicateWorkflow(workflowId: string): Promise<WorkflowResponse> {
+    return this.workflows.duplicateWorkflow(workflowId);
+  }
+
+  setWorkflowSchedule(
+    workflowId: string,
+    params: WorkflowScheduleParams,
+  ): Promise<WorkflowScheduleResponse> {
+    return this.workflows.setWorkflowSchedule(workflowId, params);
+  }
+
   listWorkflows(params: WorkflowListParams = {}): Promise<WorkflowResponse[]> {
     return this.workflows.listWorkflows(params);
+  }
+
+  listWorkflowRuns(
+    params: WorkflowRunListParams = {},
+  ): Promise<WorkflowRunResponse[]> {
+    return this.workflows.listWorkflowRuns(params);
+  }
+
+  getWorkflowRun(runId: string): Promise<WorkflowRunResponse> {
+    return this.workflows.getWorkflowRun(runId);
   }
 
   listWorkflowTemplates(): Promise<WorkflowTemplate[]> {

@@ -856,6 +856,195 @@ describe('ClientService (MCP)', () => {
     });
   });
 
+  describe('inspectWorkflow', () => {
+    it('should inspect a workflow with schedule and graph summary fields', async () => {
+      const mockResponse = {
+        data: {
+          data: {
+            attributes: {
+              edges: [{ id: 'edge-1' }],
+              inputVariables: [{ key: 'topic', required: true }],
+              isScheduleEnabled: true,
+              label: 'System workflow',
+              lifecycle: 'published',
+              metadata: { systemWorkflow: true },
+              nodes: [{ id: 'node-1' }, { id: 'node-2' }],
+              schedule: '0 9 * * *',
+              status: 'draft',
+              timezone: 'UTC',
+            },
+            id: 'workflow-123',
+          },
+        },
+      };
+
+      (mockAxiosInstance.get as Mock).mockResolvedValue(mockResponse);
+
+      const result = await service.inspectWorkflow('workflow-123');
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+        '/workflows/workflow-123',
+      );
+      expect(result).toMatchObject({
+        edgeCount: 1,
+        id: 'workflow-123',
+        isScheduleEnabled: true,
+        name: 'System workflow',
+        nodeCount: 2,
+        schedule: '0 9 * * *',
+      });
+    });
+  });
+
+  describe('duplicateWorkflow', () => {
+    it('should duplicate a workflow through the clone endpoint', async () => {
+      const mockResponse = {
+        data: {
+          data: {
+            attributes: { label: 'System workflow (Copy)', status: 'draft' },
+            id: 'workflow-copy',
+          },
+        },
+      };
+
+      (mockAxiosInstance.post as Mock).mockResolvedValue(mockResponse);
+
+      const result = await service.duplicateWorkflow('workflow-123');
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/workflows/workflow-123/clone',
+      );
+      expect(result.id).toBe('workflow-copy');
+      expect(result.name).toBe('System workflow (Copy)');
+    });
+  });
+
+  describe('setWorkflowSchedule', () => {
+    it('should enable or update a workflow schedule', async () => {
+      (mockAxiosInstance.post as Mock).mockResolvedValue({
+        data: { data: { id: 'workflow-123', message: 'Schedule updated' } },
+      });
+
+      const result = await service.setWorkflowSchedule('workflow-123', {
+        enabled: true,
+        schedule: '0 9 * * *',
+        timezone: 'UTC',
+      });
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/workflows/workflow-123/schedule',
+        { enabled: true, schedule: '0 9 * * *', timezone: 'UTC' },
+      );
+      expect(result).toMatchObject({
+        enabled: true,
+        id: 'workflow-123',
+        schedule: '0 9 * * *',
+      });
+    });
+
+    it('should disable a workflow schedule through the delete endpoint when no new schedule is provided', async () => {
+      (mockAxiosInstance.delete as Mock).mockResolvedValue({
+        data: { data: { id: 'workflow-123', message: 'Schedule removed' } },
+      });
+
+      const result = await service.setWorkflowSchedule('workflow-123', {
+        enabled: false,
+      });
+
+      expect(mockAxiosInstance.delete).toHaveBeenCalledWith(
+        '/workflows/workflow-123/schedule',
+      );
+      expect(result).toMatchObject({ enabled: false, id: 'workflow-123' });
+    });
+  });
+
+  describe('listWorkflowRuns', () => {
+    it('should list workflow execution history with filters', async () => {
+      const mockResponse = {
+        data: {
+          data: [
+            {
+              attributes: {
+                progress: 100,
+                status: 'completed',
+                trigger: 'manual',
+                workflow: 'workflow-123',
+              },
+              id: 'run-1',
+            },
+          ],
+        },
+      };
+
+      (mockAxiosInstance.get as Mock).mockResolvedValue(mockResponse);
+
+      const result = await service.listWorkflowRuns({
+        limit: 5,
+        status: 'completed',
+        workflowId: 'workflow-123',
+      });
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+        '/workflow-executions',
+        {
+          params: {
+            limit: 5,
+            offset: 0,
+            status: 'completed',
+            workflow: 'workflow-123',
+          },
+        },
+      );
+      expect(result).toEqual([
+        {
+          completedAt: undefined,
+          createdAt: undefined,
+          durationMs: undefined,
+          error: undefined,
+          id: 'run-1',
+          metadata: {},
+          nodeResults: [],
+          progress: 100,
+          startedAt: undefined,
+          status: 'completed',
+          trigger: 'manual',
+          updatedAt: undefined,
+          workflow: 'workflow-123',
+        },
+      ]);
+    });
+  });
+
+  describe('getWorkflowRun', () => {
+    it('should inspect one workflow execution', async () => {
+      const mockResponse = {
+        data: {
+          data: {
+            attributes: {
+              progress: 50,
+              status: 'running',
+              workflow: 'workflow-123',
+            },
+            id: 'run-1',
+          },
+        },
+      };
+
+      (mockAxiosInstance.get as Mock).mockResolvedValue(mockResponse);
+
+      const result = await service.getWorkflowRun('run-1');
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+        '/workflow-executions/run-1',
+      );
+      expect(result).toMatchObject({
+        id: 'run-1',
+        progress: 50,
+        status: 'running',
+      });
+    });
+  });
+
   describe('listWorkflowTemplates', () => {
     it('should return list of workflow templates', async () => {
       const mockResponse = {

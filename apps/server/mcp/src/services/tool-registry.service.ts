@@ -21,6 +21,7 @@ import { handleDarkroomGenerationTool } from '@mcp/tools/darkroom-generation.too
 import { handleGoogleAdsTool } from '@mcp/tools/google-ads.tool';
 import { handleMetaAdsTool } from '@mcp/tools/meta-ads.tool';
 import { handleTrainingPipelineTool } from '@mcp/tools/training-pipeline.tool';
+import { handleWorkflowControlTool } from '@mcp/tools/workflow-control.tool';
 import { Injectable, Optional } from '@nestjs/common';
 
 interface ToolCallParams {
@@ -44,6 +45,14 @@ const AGENT_CHAT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   'list_agent_runs',
   'retry_agent_run',
   'send_chat_message',
+]);
+
+const WORKFLOW_CONTROL_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
+  'duplicate_workflow',
+  'get_workflow_run',
+  'inspect_workflow',
+  'list_workflow_runs',
+  'set_workflow_schedule',
 ]);
 
 /**
@@ -160,6 +169,10 @@ export class ToolRegistryService {
   private async executeTool(name: string, args: Record<string, unknown>) {
     if (AGENT_CHAT_TOOL_NAMES.has(name)) {
       return handleAgentChatTool(this.clientService, name, args);
+    }
+
+    if (WORKFLOW_CONTROL_TOOL_NAMES.has(name)) {
+      return handleWorkflowControlTool(this.clientService, name, args);
     }
 
     if (AGENT_EXECUTOR_TOOL_NAMES.has(name)) {

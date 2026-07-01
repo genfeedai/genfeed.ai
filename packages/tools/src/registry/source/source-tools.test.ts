@@ -46,6 +46,7 @@ const EXPECTED_TOOL_NAMES = [
   'delete_dataset',
   'discover_engagements',
   'draft_engagement_reply',
+  'duplicate_workflow',
   'execute_workflow',
   'generate_ad_variations',
   'generate_as_identity',
@@ -97,8 +98,10 @@ const EXPECTED_TOOL_NAMES = [
   'get_usage_stats',
   'get_video_analytics',
   'get_video_status',
+  'get_workflow_run',
   'get_workflow_status',
   'initiate_oauth_connect',
+  'inspect_workflow',
   'install_official_workflow',
   'list_agent_runs',
   'list_avatars',
@@ -116,6 +119,7 @@ const EXPECTED_TOOL_NAMES = [
   'list_posts',
   'list_review_queue',
   'list_videos',
+  'list_workflow_runs',
   'list_workflow_templates',
   'list_workflows',
   'manage_livestream_bot',
@@ -141,6 +145,7 @@ const EXPECTED_TOOL_NAMES = [
   'search_articles',
   'select_ingredient',
   'send_chat_message',
+  'set_workflow_schedule',
   'skip_brand_interview_question',
   'spawn_content_agent',
   'start_brand_interview',
@@ -172,7 +177,7 @@ function countLines(filePath: string): number {
 }
 
 describe('SOURCE_TOOLS registry split (#692)', () => {
-  it('exposes exactly 126 tool definitions', () => {
+  it('exposes exactly the canonical tool definitions', () => {
     expect(SOURCE_TOOLS).toHaveLength(EXPECTED_TOOL_NAMES.length);
   });
 
@@ -196,7 +201,7 @@ describe('SOURCE_TOOLS registry split (#692)', () => {
   });
 
   it('partitions tools by their declared surface', () => {
-    expect(OVERLAP_TOOLS).toHaveLength(11);
+    expect(OVERLAP_TOOLS).toHaveLength(16);
     expect(AGENT_ONLY_TOOLS).toHaveLength(56);
     expect(MCP_ONLY_TOOLS).toHaveLength(60);
     expect(BRAND_INTERVIEW_TOOLS).toHaveLength(4);
