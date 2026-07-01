@@ -15,7 +15,6 @@ import {
   HiOutlineCheckCircle,
   HiOutlineClock,
   HiOutlineCommandLine,
-  HiOutlineInboxStack,
   HiOutlinePaperAirplane,
   HiOutlineRectangleStack,
   HiOutlineShieldCheck,
@@ -69,15 +68,13 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         route: (org) => `/${org}/~/agent`,
       },
       {
-        description: 'Social inbox.',
-        icon: HiOutlineInboxStack,
-        id: 'workspace',
+        description: 'Reply to audience.',
+        icon: HiOutlineChatBubbleLeftRight,
+        id: 'messages',
         itemKey: 'home-messages',
         label: 'Messages',
         route: (org, brand) =>
-          brand
-            ? `/${org}/${brand}/workspace/inbox/unread`
-            : `/${org}/~/workspace/inbox/unread`,
+          brand ? `/${org}/${brand}/messages` : `/${org}/~/overview`,
       },
     ],
   },
@@ -169,15 +166,6 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         label: 'Posts',
         route: (org, brand) =>
           brand ? `/${org}/${brand}/posts` : `/${org}/~/posts`,
-      },
-      {
-        description: 'Reply to audience.',
-        icon: HiOutlineChatBubbleLeftRight,
-        id: 'messages',
-        itemKey: 'publish-messages',
-        label: 'Messages',
-        route: (org, brand) =>
-          brand ? `/${org}/${brand}/messages` : `/${org}/~/overview`,
       },
       {
         description: 'Approve content.',

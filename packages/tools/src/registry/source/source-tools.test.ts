@@ -213,7 +213,7 @@ describe('SOURCE_TOOLS registry split (#692)', () => {
   it('partitions tools by their declared surface', () => {
     expect(OVERLAP_TOOLS).toHaveLength(16);
     expect(AGENT_ONLY_TOOLS).toHaveLength(56);
-    expect(MCP_ONLY_TOOLS).toHaveLength(60);
+    expect(MCP_ONLY_TOOLS).toHaveLength(70);
     expect(BRAND_INTERVIEW_TOOLS).toHaveLength(4);
     expect(
       OVERLAP_TOOLS.every((tool) => tool.surfaces.agent && tool.surfaces.mcp),

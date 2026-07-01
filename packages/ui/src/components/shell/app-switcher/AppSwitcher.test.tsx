@@ -289,7 +289,7 @@ describe('AppSwitcher', () => {
       );
       expect(screen.getByRole('link', { name: 'Messages' })).toHaveAttribute(
         'href',
-        '/acme/my-brand/workspace/inbox/unread',
+        '/acme/my-brand/messages',
       );
     });
 
@@ -302,27 +302,8 @@ describe('AppSwitcher', () => {
       );
       expect(screen.getByRole('link', { name: 'Messages' })).toHaveAttribute(
         'href',
-        '/acme/~/workspace/inbox/unread',
+        '/acme/~/overview',
       );
-    });
-
-    it('uses the inbox path to mark messages active inside the workspace app', () => {
-      render(
-        <AppSwitcher
-          orgSlug="acme"
-          currentApp="workspace"
-          brandSlug="my-brand"
-          currentPath="/acme/my-brand/workspace/inbox/unread"
-        />,
-      );
-
-      expect(screen.getByRole('link', { name: 'Messages' })).toHaveAttribute(
-        'aria-current',
-        'page',
-      );
-      expect(
-        screen.getByRole('link', { name: 'Workspace' }),
-      ).not.toHaveAttribute('aria-current');
     });
 
     it('links to org-scoped create fallbacks when brandSlug is absent', () => {
