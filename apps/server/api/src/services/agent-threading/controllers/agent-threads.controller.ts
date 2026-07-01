@@ -25,7 +25,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
 @ApiTags('Agent Threads')
-@Controller('threads')
+@Controller('agent/threads')
 export class AgentThreadsController {
   constructor(
     private readonly agentThreadEngineService: AgentThreadEngineService,

@@ -470,7 +470,7 @@ describe('AgentFullPage', () => {
   it('prefers latest assistant completion recos over static page-context actions', () => {
     storeState.pageContext = {
       placeholder: 'Ask about this page...',
-      route: '/chat',
+      route: '/agent',
       suggestedActions: [
         {
           id: 'page-context-action',
@@ -667,7 +667,7 @@ describe('AgentFullPage', () => {
     expect(screen.getByText('surface-fixed')).toBeInTheDocument();
   });
 
-  it('does not clear draft conversation state again while waiting to navigate away from /chat/new', async () => {
+  it('does not clear draft conversation state again while waiting to navigate away from /agent/new', async () => {
     const apiService = createApiService();
 
     const { rerender } = render(

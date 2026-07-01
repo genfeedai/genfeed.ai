@@ -30,7 +30,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
 @ApiTags('Agent Threads')
-@Controller('threads')
+@Controller('agent/threads')
 export class AgentThreadsController {
   constructor(
     private readonly agentThreadsService: AgentThreadsService,
@@ -93,6 +93,29 @@ export class AgentThreadsController {
       });
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'getMessages');
+    }
+  }
+
+  @Get(':threadId/messages/:messageId')
+  @ApiOperation({ summary: 'Get a single thread message' })
+  async getMessage(
+    @Req() req: Request,
+    @Param('threadId') threadId: string,
+    @Param('messageId') messageId: string,
+    @CurrentUser() user: User,
+  ) {
+    try {
+      const organizationId = this.resolveOrganizationId(user);
+      const message = await this.agentMessagesService.findOne({
+        _id: messageId,
+        isDeleted: false,
+        organization: organizationId,
+        room: threadId,
+      });
+
+      return serializeSingle(req, ThreadMessageSerializer, message);
+    } catch (error: unknown) {
+      return ErrorResponse.handle(error, this.loggerService, 'getMessage');
     }
   }
 

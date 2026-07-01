@@ -693,6 +693,54 @@ describe('AgentToolExecutorService', () => {
     );
   });
 
+  it('should list the live Genfeed tool catalog for operator questions', async () => {
+    const { service } = createService();
+
+    const result = await service.executeTool(
+      AgentToolName.LIST_GENFEED_TOOLS,
+      {
+        category: 'workflow',
+        includeParameters: true,
+        limit: 5,
+        query: 'workflow',
+        surface: 'mcp',
+      },
+      {
+        organizationId: '67a123456789012345678901',
+        userId: '67a123456789012345678902',
+      },
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.creditsUsed).toBe(0);
+
+    const data = result.data as {
+      counts: {
+        bySurface: Record<string, number>;
+        total: number;
+      };
+      returned: number;
+      surface: string;
+      tools: Array<{
+        category: string;
+        name: string;
+        parameters?: Record<string, unknown>;
+        surfaces: Record<string, boolean>;
+      }>;
+      truncated: boolean;
+    };
+
+    expect(data.surface).toBe('mcp');
+    expect(data.returned).toBeLessThanOrEqual(5);
+    expect(data.tools.length).toBeGreaterThan(0);
+    expect(data.tools.every((tool) => tool.category === 'workflow')).toBe(true);
+    expect(data.tools.every((tool) => tool.surfaces.mcp)).toBe(true);
+    expect(data.tools.every((tool) => Boolean(tool.parameters))).toBe(true);
+    expect(data.counts.bySurface.mcp).toBeGreaterThan(0);
+    expect(data.counts.total).toBeGreaterThanOrEqual(data.returned);
+    expect(typeof data.truncated).toBe('boolean');
+  });
+
   it('should reject invalid goal ids for progress checks', async () => {
     const { service } = createService();
 

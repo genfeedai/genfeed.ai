@@ -3,7 +3,7 @@
 import type { AgentApiService } from '@genfeedai/agent';
 import { createContext, use } from 'react';
 
-export interface ChatWorkspaceContextValue {
+export interface AgentWorkspaceContextValue {
   agentApiService: AgentApiService;
   isLoaded: boolean;
   isOnboarding: boolean;
@@ -11,14 +11,14 @@ export interface ChatWorkspaceContextValue {
   completeOnboardingFlow: () => Promise<void>;
 }
 
-export const ChatWorkspaceContext =
-  createContext<ChatWorkspaceContextValue | null>(null);
+export const AgentWorkspaceContext =
+  createContext<AgentWorkspaceContextValue | null>(null);
 
-export function useChatWorkspace(): ChatWorkspaceContextValue {
-  const ctx = use(ChatWorkspaceContext);
+export function useAgentWorkspace(): AgentWorkspaceContextValue {
+  const ctx = use(AgentWorkspaceContext);
   if (!ctx) {
     throw new Error(
-      'useChatWorkspace must be used within ChatWorkspaceLayoutClient',
+      'useAgentWorkspace must be used within AgentWorkspaceLayoutClient',
     );
   }
   return ctx;

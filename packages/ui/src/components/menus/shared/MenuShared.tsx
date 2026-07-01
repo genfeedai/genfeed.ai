@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { MenuSharedProps } from '@genfeedai/props/navigation/menu.props';
@@ -276,7 +277,7 @@ export default function MenuShared({
                     afterNavigationContent={afterNavigationContent}
                     conversationActions={conversationActions}
                     isConversationsCollapsed={isConversationsCollapsed}
-                    newChatHref={orgHref('/chat/new')}
+                    newAgentThreadHref={orgHref(APP_ROUTES.AGENT.NEW)}
                     onCollapsedChange={setIsConversationsCollapsed}
                   />
                 )}

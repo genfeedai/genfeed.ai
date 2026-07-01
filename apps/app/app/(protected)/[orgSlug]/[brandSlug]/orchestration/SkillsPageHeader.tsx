@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
@@ -57,9 +58,9 @@ export default function SkillsPageHeader({
             className="rounded-full"
             variant={ButtonVariant.OUTLINE}
           >
-            <Link href="/chat">
+            <Link href={APP_ROUTES.AGENT.ROOT}>
               <HiOutlineSparkles className="size-4" />
-              Open Chat
+              Open Agent
             </Link>
           </Button>
         </div>

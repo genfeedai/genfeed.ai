@@ -1,7 +1,7 @@
 import { act, render, waitFor } from '@testing-library/react';
 import type { PropsWithChildren } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ChatWorkspaceLayoutClient } from './ChatWorkspaceLayoutClient';
+import { AgentWorkspaceLayoutClient } from './AgentWorkspaceLayoutClient';
 
 const routerReplace = vi.fn();
 const sendMessage = vi.fn();
@@ -13,7 +13,7 @@ const navigationState = {
     orgSlug: 'acme-org',
     brandSlug: 'acme-creator',
   } as { id?: string; threadId?: string; orgSlug?: string; brandSlug?: string },
-  pathname: '/chat/new',
+  pathname: '/agent/new',
   searchParams: new URLSearchParams(),
 };
 
@@ -94,10 +94,10 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => navigationState.searchParams,
 }));
 
-describe('ChatWorkspaceLayoutClient', () => {
+describe('AgentWorkspaceLayoutClient', () => {
   beforeEach(() => {
     navigationState.params = { orgSlug: 'acme-org', brandSlug: 'acme-creator' };
-    navigationState.pathname = '/chat/new';
+    navigationState.pathname = '/agent/new';
     navigationState.searchParams = new URLSearchParams();
     storeState.activeThreadId = 'thread-existing';
     routerReplace.mockReset();
@@ -107,11 +107,11 @@ describe('ChatWorkspaceLayoutClient', () => {
     touchSession.mockReset();
   });
 
-  it('does not immediately redirect /chat/new back to the previously active thread', async () => {
+  it('does not immediately redirect /agent/new back to the previously active thread', async () => {
     render(
-      <ChatWorkspaceLayoutClient>
+      <AgentWorkspaceLayoutClient>
         <div>child</div>
-      </ChatWorkspaceLayoutClient>,
+      </AgentWorkspaceLayoutClient>,
     );
 
     await act(async () => {
@@ -121,11 +121,11 @@ describe('ChatWorkspaceLayoutClient', () => {
     expect(routerReplace).not.toHaveBeenCalled();
   });
 
-  it('navigates to the newly created thread after /chat/new produces a different active thread id', async () => {
+  it('navigates to the newly created thread after /agent/new produces a different active thread id', async () => {
     const view = render(
-      <ChatWorkspaceLayoutClient>
+      <AgentWorkspaceLayoutClient>
         <div>child</div>
-      </ChatWorkspaceLayoutClient>,
+      </AgentWorkspaceLayoutClient>,
     );
 
     await act(async () => {
@@ -135,24 +135,26 @@ describe('ChatWorkspaceLayoutClient', () => {
     storeState.activeThreadId = 'thread-new';
 
     view.rerender(
-      <ChatWorkspaceLayoutClient>
+      <AgentWorkspaceLayoutClient>
         <div>child</div>
-      </ChatWorkspaceLayoutClient>,
+      </AgentWorkspaceLayoutClient>,
     );
 
     await waitFor(() => {
-      expect(routerReplace).toHaveBeenCalledWith('/acme-org/~/chat/thread-new');
+      expect(routerReplace).toHaveBeenCalledWith(
+        '/acme-org/~/agent/thread-new',
+      );
     });
   });
 
-  it('recognizes org-scoped /chat/new routes when bootstrapping prefills', async () => {
-    navigationState.pathname = '/org-123/~/chat/new';
+  it('recognizes org-scoped /agent/new routes when bootstrapping prefills', async () => {
+    navigationState.pathname = '/org-123/~/agent/new';
     navigationState.searchParams = new URLSearchParams('prompt=hello');
 
     render(
-      <ChatWorkspaceLayoutClient>
+      <AgentWorkspaceLayoutClient>
         <div>child</div>
-      </ChatWorkspaceLayoutClient>,
+      </AgentWorkspaceLayoutClient>,
     );
 
     await waitFor(() => {
@@ -164,12 +166,12 @@ describe('ChatWorkspaceLayoutClient', () => {
     });
   });
 
-  it('navigates to the onboarding thread route after /chat/onboarding produces a different active thread id', async () => {
-    navigationState.pathname = '/chat/onboarding';
+  it('navigates to the onboarding thread route after /agent/onboarding produces a different active thread id', async () => {
+    navigationState.pathname = '/agent/onboarding';
     const view = render(
-      <ChatWorkspaceLayoutClient>
+      <AgentWorkspaceLayoutClient>
         <div>child</div>
-      </ChatWorkspaceLayoutClient>,
+      </AgentWorkspaceLayoutClient>,
     );
 
     await act(async () => {
@@ -179,14 +181,14 @@ describe('ChatWorkspaceLayoutClient', () => {
     storeState.activeThreadId = 'thread-new';
 
     view.rerender(
-      <ChatWorkspaceLayoutClient>
+      <AgentWorkspaceLayoutClient>
         <div>child</div>
-      </ChatWorkspaceLayoutClient>,
+      </AgentWorkspaceLayoutClient>,
     );
 
     await waitFor(() => {
       expect(routerReplace).toHaveBeenCalledWith(
-        '/acme-org/~/chat/onboarding/thread-new',
+        '/acme-org/~/agent/onboarding/thread-new',
       );
     });
   });
@@ -194,9 +196,9 @@ describe('ChatWorkspaceLayoutClient', () => {
   it('boots a prefilled prompt only once per query string', async () => {
     navigationState.searchParams = new URLSearchParams('prompt=hello');
     const view = render(
-      <ChatWorkspaceLayoutClient>
+      <AgentWorkspaceLayoutClient>
         <div>child</div>
-      </ChatWorkspaceLayoutClient>,
+      </AgentWorkspaceLayoutClient>,
     );
 
     await waitFor(() => {
@@ -208,24 +210,24 @@ describe('ChatWorkspaceLayoutClient', () => {
     });
 
     view.rerender(
-      <ChatWorkspaceLayoutClient>
+      <AgentWorkspaceLayoutClient>
         <div>child</div>
-      </ChatWorkspaceLayoutClient>,
+      </AgentWorkspaceLayoutClient>,
     );
 
     expect(sendMessage).toHaveBeenCalledTimes(1);
   });
 
   it('boots onboarding prefills with onboarding source on the onboarding route', async () => {
-    navigationState.pathname = '/chat/onboarding';
+    navigationState.pathname = '/agent/onboarding';
     navigationState.searchParams = new URLSearchParams(
       'prompt=help%20me%20define%20my%20brand%20voice',
     );
 
     render(
-      <ChatWorkspaceLayoutClient>
+      <AgentWorkspaceLayoutClient>
         <div>child</div>
-      </ChatWorkspaceLayoutClient>,
+      </AgentWorkspaceLayoutClient>,
     );
 
     await waitFor(() => {

@@ -18,6 +18,13 @@ vi.mock('@ui/menus/sidebar-search-trigger/SidebarSearchTrigger', () => ({
   },
 }));
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    href: (path: string) => `/test-org/test-brand${path}`,
+    orgHref: (path: string) => `/test-org/~${path}`,
+  }),
+}));
+
 vi.mock('next/link', () => ({
   default: function MockLink(props: {
     children?: ReactNode;
@@ -40,25 +47,25 @@ vi.mock('next/link', () => ({
 }));
 
 describe('AgentSidebarContent', () => {
-  it('renders semantic links for overview and new chat', () => {
+  it('renders semantic links for overview and new thread', () => {
     render(<AgentSidebarContent apiService={{} as never} />);
 
     expect(
       screen.getByRole('link', { name: 'Back to overview' }),
     ).toHaveAttribute('href', '/test-org/test-brand/overview');
-    expect(screen.getByRole('link', { name: /New Chat/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /New Thread/ })).toHaveAttribute(
       'href',
-      '/test-org/~/chat/new',
+      '/test-org/~/agent/new',
     );
   });
 
-  it('shows keyboard shortcut badge on the new chat link', () => {
+  it('shows keyboard shortcut badge on the new thread link', () => {
     render(<AgentSidebarContent apiService={{} as never} />);
 
     expect(screen.getByText('⌘⇧N')).toBeInTheDocument();
   });
 
-  it('keeps the sidebar focused on chat actions and threads', () => {
+  it('keeps the sidebar focused on agent actions and threads', () => {
     render(<AgentSidebarContent apiService={{} as never} />);
 
     expect(screen.getByRole('button', { name: 'Search' })).toBeInTheDocument();

@@ -1,6 +1,6 @@
 import type { Page, Route } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
-import { ChatPage } from '../../pages/chat.page';
+import { AgentPage } from '../../pages/agent.page';
 
 function wrapCollectionInJsonApi<T>(
   items: T[],
@@ -142,7 +142,7 @@ test.describe('Agent Plan Mode', () => {
   test('proposes a plan, waits for approval, then executes after approve', async ({
     authenticatedPage,
   }) => {
-    const agentPage = new ChatPage(authenticatedPage);
+    const agentPage = new AgentPage(authenticatedPage);
     const proposedPlan = {
       awaitingApproval: true,
       content:
@@ -228,7 +228,7 @@ test.describe('Agent Plan Mode', () => {
     await agentPage.goto();
     await agentPage.enablePlanMode();
     await agentPage.sendPrompt('Add plan mode to the agent workspace');
-    await expect(authenticatedPage).toHaveURL(/\/chat\/thread-plan-mode-e2e$/);
+    await expect(authenticatedPage).toHaveURL(/\/agent\/thread-plan-mode-e2e$/);
 
     await expect(agentPage.planReviewCard).toBeVisible();
     await expect(agentPage.planReviewCard).toContainText(
@@ -259,7 +259,7 @@ test.describe('Agent Plan Mode', () => {
   test('requests plan changes and keeps execution paused', async ({
     authenticatedPage,
   }) => {
-    const agentPage = new ChatPage(authenticatedPage);
+    const agentPage = new AgentPage(authenticatedPage);
     const initialPlan = {
       awaitingApproval: true,
       content: '1. Add a plan mode toggle.\n2. Add approval controls.',
@@ -345,7 +345,7 @@ test.describe('Agent Plan Mode', () => {
     await agentPage.enablePlanMode();
     await agentPage.sendPrompt('Add plan mode to the agent workspace');
     await expect(authenticatedPage).toHaveURL(
-      /\/chat\/thread-plan-mode-revise-e2e$/,
+      /\/agent\/thread-plan-mode-revise-e2e$/,
     );
 
     await expect(agentPage.planReviewCard).toBeVisible();

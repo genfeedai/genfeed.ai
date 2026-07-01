@@ -11,18 +11,14 @@ vi.mock('@genfeedai/auth-client/react', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  useParams: () => ({
-    brandSlug: 'test-brand',
-    orgSlug: 'test-org',
-    threadId: 'thread-123',
-  }),
+  useParams: () => ({ brandSlug: 'test-brand', orgSlug: 'test-org' }),
   useRouter: () => ({
     push: vi.fn(),
   }),
 }));
 
-vi.mock('../../chat-workspace-context', () => ({
-  useChatWorkspace: () => ({
+vi.mock('../agent-workspace-context', () => ({
+  useAgentWorkspace: () => ({
     agentApiService: {},
     completeOnboardingFlow: vi.fn(),
     handleOAuthConnect: vi.fn(),
@@ -33,16 +29,13 @@ vi.mock('../../chat-workspace-context', () => ({
 
 import { runPageModuleTests } from '@shared/pages/pageTestUtils';
 import { render } from '@testing-library/react';
-import ChatOnboardingThreadPage, * as PageModule from './page';
+import ChatOnboardingPage, * as PageModule from './page';
 
-runPageModuleTests(
-  'app/(protected)/chat/onboarding/[threadId]/page',
-  PageModule,
-);
+runPageModuleTests('app/(protected)/agent/onboarding/page', PageModule);
 
-describe('ChatOnboardingThreadPage', () => {
+describe('ChatOnboardingPage', () => {
   it('renders only the workspace shell container and no inline page content', () => {
-    const { container } = render(<ChatOnboardingThreadPage />);
+    const { container } = render(<ChatOnboardingPage />);
     expect(container.firstChild).toHaveClass(
       'flex',
       'min-h-[calc(100vh-4rem)]',

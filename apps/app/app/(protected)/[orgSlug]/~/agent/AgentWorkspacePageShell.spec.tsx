@@ -2,7 +2,7 @@ import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { TasksService } from '@services/management/tasks.service';
 import { render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ChatWorkspacePageShell } from './ChatWorkspacePageShell';
+import { AgentWorkspacePageShell } from './AgentWorkspacePageShell';
 
 const agentFullPageSpy = vi.fn();
 const getTokenMock = vi.fn();
@@ -59,8 +59,8 @@ vi.mock('@services/management/tasks.service', async () => {
 const completeOnboardingFlowMock = vi.fn();
 const handleOAuthConnectMock = vi.fn();
 
-vi.mock('./chat-workspace-context', () => ({
-  useChatWorkspace: () => ({
+vi.mock('./agent-workspace-context', () => ({
+  useAgentWorkspace: () => ({
     agentApiService: { kind: 'service' },
     completeOnboardingFlow: completeOnboardingFlowMock,
     handleOAuthConnect: handleOAuthConnectMock,
@@ -69,7 +69,7 @@ vi.mock('./chat-workspace-context', () => ({
   }),
 }));
 
-describe('ChatWorkspacePageShell', () => {
+describe('AgentWorkspacePageShell', () => {
   beforeEach(() => {
     agentFullPageSpy.mockClear();
     pushMock.mockClear();
@@ -85,7 +85,7 @@ describe('ChatWorkspacePageShell', () => {
   });
 
   it('renders the shared shell container', () => {
-    const { container } = render(<ChatWorkspacePageShell />);
+    const { container } = render(<AgentWorkspacePageShell />);
 
     expect(container.firstChild).toHaveClass(
       'flex',
@@ -96,7 +96,7 @@ describe('ChatWorkspacePageShell', () => {
   });
 
   it('passes workspace wiring through to AgentFullPage', () => {
-    render(<ChatWorkspacePageShell threadId="thread-123" />);
+    render(<AgentWorkspacePageShell threadId="thread-123" />);
 
     expect(agentFullPageSpy).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -112,7 +112,7 @@ describe('ChatWorkspacePageShell', () => {
   });
 
   it('routes billing actions to api keys in OSS mode', () => {
-    render(<ChatWorkspacePageShell />);
+    render(<AgentWorkspacePageShell />);
 
     const props = agentFullPageSpy.mock.calls[0]?.[0] as {
       onNavigateToBilling: () => void;
@@ -123,7 +123,7 @@ describe('ChatWorkspacePageShell', () => {
   });
 
   it('routes credit pack selection to api keys in OSS mode', () => {
-    render(<ChatWorkspacePageShell />);
+    render(<AgentWorkspacePageShell />);
 
     const props = agentFullPageSpy.mock.calls[0]?.[0] as {
       onSelectCreditPack: (pack: { label: string }) => void;
@@ -134,7 +134,7 @@ describe('ChatWorkspacePageShell', () => {
   });
 
   it('creates workspace follow-up tasks through the shared workspace service', async () => {
-    render(<ChatWorkspacePageShell />);
+    render(<AgentWorkspacePageShell />);
 
     const props = agentFullPageSpy.mock.calls[0]?.[0] as {
       onCreateFollowUpTasks: (

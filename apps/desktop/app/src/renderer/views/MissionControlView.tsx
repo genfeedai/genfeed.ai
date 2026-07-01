@@ -603,7 +603,7 @@ export function MissionControlView({
         icon={HiOutlineBeaker}
         right={
           <Button variant={ButtonVariant.SECONDARY} onClick={onStartNewThread}>
-            Open Chat Workspace
+            Open Agent Workspace
           </Button>
         }
       >

@@ -1,9 +1,9 @@
 import type { Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 
-export class ChatPage {
+export class AgentPage {
   readonly page: Page;
-  readonly url = '/chat/new';
+  readonly url = '/agent/new';
   readonly heading: Locator;
   readonly chatInput: Locator;
   readonly planModeButton: Locator;
@@ -64,7 +64,7 @@ export class ChatPage {
             .innerText()
             .catch(() => '');
           throw new Error(
-            `ChatPage.waitForPageLoad failed at ${this.page.url()}\nBODY:\n${bodyText}\nMAIN:\n${mainHtml}`,
+            `AgentPage.waitForPageLoad failed at ${this.page.url()}\nBODY:\n${bodyText}\nMAIN:\n${mainHtml}`,
             { cause: error },
           );
         }

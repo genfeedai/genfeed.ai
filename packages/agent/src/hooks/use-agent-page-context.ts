@@ -159,7 +159,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  [APP_ROUTES.CHAT.ROOT]: {
+  [APP_ROUTES.AGENT.ROOT]: {
     placeholder: 'Ask me anything...',
     suggestedActions: [
       {

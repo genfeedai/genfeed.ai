@@ -453,7 +453,7 @@ describe('MenuShared', () => {
     }
   });
 
-  it('routes the conversations new chat CTA directly to /chat/new', () => {
+  it('routes the conversations new agent thread CTA directly to /agent/new', () => {
     render(
       <MenuShared
         config={config}
@@ -461,13 +461,13 @@ describe('MenuShared', () => {
       />,
     );
 
-    expect(screen.getByRole('link', { name: /New Chat/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /New Thread/i })).toHaveAttribute(
       'href',
-      '/acme/~/chat/new',
+      '/acme/~/agent/new',
     );
   });
 
-  it('does not add an extra inner horizontal gutter around the new chat row', () => {
+  it('does not add an extra inner horizontal gutter around the new agent thread row', () => {
     render(
       <MenuShared
         config={config}
@@ -476,7 +476,7 @@ describe('MenuShared', () => {
     );
 
     expect(
-      screen.getByRole('link', { name: /New Chat/i }).parentElement,
+      screen.getByRole('link', { name: /New Thread/i }).parentElement,
     ).not.toHaveClass('px-2');
   });
 
@@ -503,7 +503,7 @@ describe('MenuShared', () => {
     const primaryConfig: MenuConfig = {
       items: [
         {
-          href: '/chat',
+          href: '/agent',
           isPrimary: true,
           label: 'Chat',
         },

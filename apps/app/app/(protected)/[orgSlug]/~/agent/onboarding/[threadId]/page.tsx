@@ -1,10 +1,10 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { ChatWorkspacePageShell } from '../../ChatWorkspacePageShell';
+import { AgentWorkspacePageShell } from '../../AgentWorkspacePageShell';
 
 export default function ChatOnboardingThreadPage() {
   const params = useParams<{ threadId: string }>();
 
-  return <ChatWorkspacePageShell threadId={params.threadId} />;
+  return <AgentWorkspacePageShell threadId={params.threadId} />;
 }

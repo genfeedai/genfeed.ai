@@ -1,6 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import type { IAgentRun, IAnalytics } from '@genfeedai/interfaces';
 import type { AgentRunStats } from '@genfeedai/types';
@@ -444,7 +445,7 @@ export function useWorkspacePageContent({
         );
       });
 
-      push(`/chat/${planningThread.threadId}`);
+      push(`${APP_ROUTES.AGENT.ROOT}/${planningThread.threadId}`);
     } catch (error) {
       setWorkspaceActionError(
         error instanceof Error

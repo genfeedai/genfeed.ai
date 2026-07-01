@@ -95,6 +95,12 @@ import {
   serializeAgentBrands,
 } from '@genfeedai/serializers';
 import {
+  type CanonicalToolDefinition,
+  getToolsForRole,
+  type ToolCategory,
+  type ToolRequiredRole,
+} from '@genfeedai/tools';
+import {
   type IOnboardingJourneyMissionState,
   ONBOARDING_JOURNEY_MISSIONS,
   ONBOARDING_JOURNEY_TOTAL_CREDITS,
@@ -185,9 +191,28 @@ type LivestreamBotMessageType =
   | 'scheduled_host_prompt'
   | 'context_aware_question';
 type RecurringTaskContentType = 'image' | 'video' | 'post' | 'newsletter';
+type ToolCatalogSurface = 'agent' | 'mcp' | 'cli' | 'all';
 
 const LIVESTREAM_BOT_CATEGORY = 'livestream_chat';
 const ROUTE_HREF_KEYS = new Set(['href', 'ctaHref', 'editorUrl']);
+const TOOL_CATALOG_SURFACES = ['agent', 'mcp', 'cli'] as const;
+const TOOL_CATALOG_CATEGORIES: ToolCategory[] = [
+  'ads',
+  'admin',
+  'agent-control',
+  'analytics',
+  'campaign',
+  'content',
+  'generation',
+  'identity',
+  'onboarding',
+  'other',
+  'proactive',
+  'social',
+  'ui',
+  'workflow',
+];
+const TOOL_CATALOG_ROLES: ToolRequiredRole[] = ['user', 'admin', 'superadmin'];
 const ORG_LEVEL_ROUTE_PREFIXES = new Set([
   'agent',
   'chat',
@@ -935,6 +960,9 @@ export class AgentToolExecutorService {
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     switch (toolName) {
+      case AgentToolName.LIST_GENFEED_TOOLS:
+        return this.listGenfeedTools(params);
+
       case AgentToolName.GET_CREDITS_BALANCE:
         return this.getCreditsBalance(ctx);
 
@@ -1193,6 +1221,146 @@ export class AgentToolExecutorService {
   // ──────────────────────────────────────────────
   // READ-ONLY TOOLS (0 credits)
   // ──────────────────────────────────────────────
+
+  private async listGenfeedTools(
+    params: Record<string, unknown>,
+  ): Promise<AgentToolResult> {
+    const surface = this.readToolCatalogSurface(params.surface);
+    const role = this.readToolRequiredRole(params.role);
+    const category = this.readToolCategory(params.category);
+    const includeParameters = params.includeParameters === true;
+    const limit = this.readToolCatalogLimit(params.limit);
+    const query = this.readOptionalString(params.query)?.toLowerCase();
+
+    let tools = this.resolveToolCatalogTools(surface, role);
+
+    if (category) {
+      tools = tools.filter((tool) => tool.category === category);
+    }
+
+    if (query) {
+      tools = tools.filter(
+        (tool) =>
+          tool.name.toLowerCase().includes(query) ||
+          tool.description.toLowerCase().includes(query),
+      );
+    }
+
+    const total = tools.length;
+    const visibleTools = tools.slice(0, limit);
+
+    return {
+      creditsUsed: 0,
+      data: {
+        availableFilters: {
+          categories: TOOL_CATALOG_CATEGORIES,
+          roles: TOOL_CATALOG_ROLES,
+          surfaces: ['agent', 'mcp', 'cli', 'all'],
+        },
+        category: category ?? null,
+        counts: this.buildToolCatalogCounts(role),
+        includeParameters,
+        query: query ?? null,
+        returned: visibleTools.length,
+        role,
+        surface,
+        tools: visibleTools.map((tool) =>
+          this.serializeToolCatalogRow(tool, includeParameters),
+        ),
+        total,
+        truncated: total > visibleTools.length,
+      },
+      success: true,
+    };
+  }
+
+  private resolveToolCatalogTools(
+    surface: ToolCatalogSurface,
+    role: ToolRequiredRole,
+  ): CanonicalToolDefinition[] {
+    if (surface !== 'all') {
+      return getToolsForRole(surface, role);
+    }
+
+    const toolsByName = new Map<string, CanonicalToolDefinition>();
+    for (const itemSurface of TOOL_CATALOG_SURFACES) {
+      for (const tool of getToolsForRole(itemSurface, role)) {
+        toolsByName.set(tool.name, tool);
+      }
+    }
+
+    return [...toolsByName.values()].sort((a, b) =>
+      a.name.localeCompare(b.name),
+    );
+  }
+
+  private buildToolCatalogCounts(role: ToolRequiredRole): {
+    byCategory: Record<string, number>;
+    bySurface: Record<(typeof TOOL_CATALOG_SURFACES)[number], number>;
+    total: number;
+  } {
+    const allTools = this.resolveToolCatalogTools('all', role);
+    return {
+      byCategory: Object.fromEntries(
+        TOOL_CATALOG_CATEGORIES.map((category) => [
+          category,
+          allTools.filter((tool) => tool.category === category).length,
+        ]),
+      ),
+      bySurface: {
+        agent: getToolsForRole('agent', role).length,
+        cli: getToolsForRole('cli', role).length,
+        mcp: getToolsForRole('mcp', role).length,
+      },
+      total: allTools.length,
+    };
+  }
+
+  private serializeToolCatalogRow(
+    tool: CanonicalToolDefinition,
+    includeParameters: boolean,
+  ): Record<string, unknown> {
+    return {
+      category: tool.category,
+      creditCost: tool.creditCost,
+      description: tool.description,
+      name: tool.name,
+      ...(includeParameters ? { parameters: tool.parameters } : {}),
+      requiredRole: tool.requiredRole,
+      surfaces: tool.surfaces,
+    };
+  }
+
+  private readToolCatalogSurface(value: unknown): ToolCatalogSurface {
+    return value === 'agent' ||
+      value === 'mcp' ||
+      value === 'cli' ||
+      value === 'all'
+      ? value
+      : 'all';
+  }
+
+  private readToolRequiredRole(value: unknown): ToolRequiredRole {
+    return value === 'admin' || value === 'superadmin' || value === 'user'
+      ? value
+      : 'user';
+  }
+
+  private readToolCategory(value: unknown): ToolCategory | undefined {
+    return typeof value === 'string' &&
+      (TOOL_CATALOG_CATEGORIES as string[]).includes(value)
+      ? (value as ToolCategory)
+      : undefined;
+  }
+
+  private readToolCatalogLimit(value: unknown): number {
+    const explicitLimit = this.readOptionalNumber(value);
+    if (explicitLimit === undefined) {
+      return 80;
+    }
+
+    return Math.max(1, Math.min(200, Math.floor(explicitLimit)));
+  }
 
   private async captureMemory(
     params: Record<string, unknown>,

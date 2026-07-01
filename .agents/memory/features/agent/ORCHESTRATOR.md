@@ -8,8 +8,10 @@
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `POST` | `/agent/chat` | Synchronous chat (waits for full response) |
-| `POST` | `/agent/chat/stream` | Streaming chat (returns `{ threadId, runId, startedAt }`, events via Redis) |
+| `POST` | `/agent/threads/turns` | Synchronous agent turn for a new or body-scoped thread |
+| `POST` | `/agent/threads/:threadId/turns` | Synchronous agent turn for an existing thread |
+| `POST` | `/agent/threads/turns/stream` | Streaming agent turn for a new or body-scoped thread (returns `{ threadId, runId, startedAt }`, events via Redis) |
+| `POST` | `/agent/threads/:threadId/turns/stream` | Streaming agent turn for an existing thread (returns `{ threadId, runId, startedAt }`, events via Redis) |
 | `GET` | `/agent/credits` | Credits balance + per-model turn costs |
 
 **Request DTO (`AgentChatBody`):**

@@ -1,0 +1,67 @@
+### Genfeed API - Agent Thread Resource Endpoints
+### Canonical namespace: /agent/threads.
+
+########################################
+# Threads
+########################################
+
+### List Agent Threads
+GET {{apiBaseUrl}}/agent/threads?status=active
+Authorization: Bearer {{bearerToken}}
+
+
+### Create Agent Thread
+POST {{apiBaseUrl}}/agent/threads
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "title": "Operator Planning",
+  "source": "web"
+}
+
+
+### Get Agent Thread
+GET {{apiBaseUrl}}/agent/threads/{{testAgentThreadId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Update Agent Thread
+PATCH {{apiBaseUrl}}/agent/threads/{{testAgentThreadId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "title": "Operator Planning",
+  "isPinned": true
+}
+
+
+### Archive All Active Agent Threads
+POST {{apiBaseUrl}}/agent/threads/archive-all
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Messages
+########################################
+
+### List Thread Messages
+GET {{apiBaseUrl}}/agent/threads/{{testAgentThreadId}}/messages?limit=50
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Thread Message
+GET {{apiBaseUrl}}/agent/threads/{{testAgentThreadId}}/messages/{{testAgentMessageId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Add Thread Message
+POST {{apiBaseUrl}}/agent/threads/{{testAgentThreadId}}/messages
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "content": "Manual note on this thread.",
+  "role": "user"
+}
