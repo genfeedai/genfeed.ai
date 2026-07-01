@@ -131,7 +131,11 @@ export class SystemWorkflowProvenanceService {
     };
 
     if (input.postIds?.length) {
-      await this.linkPostsToExecution(input.postIds, provenance);
+      await this.linkPostsToExecution(
+        input.postIds,
+        provenance,
+        input.organizationId,
+      );
     }
 
     try {
@@ -355,6 +359,7 @@ export class SystemWorkflowProvenanceService {
   private async linkPostsToExecution(
     postIds: string[],
     provenance: SystemWorkflowProvenance,
+    organizationId: string,
   ): Promise<void> {
     await this.prisma.post.updateMany({
       data: {
@@ -362,7 +367,7 @@ export class SystemWorkflowProvenanceService {
         sourceWorkflowName: provenance.workflowLabel,
         workflowExecutionId: provenance.executionId,
       },
-      where: { id: { in: postIds }, organizationId: provenance.organizationId },
+      where: { id: { in: postIds }, organizationId },
     });
   }
 
