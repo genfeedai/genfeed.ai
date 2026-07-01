@@ -249,6 +249,31 @@ describe('VideoMusicOrchestrationService', () => {
     });
   });
 
+  // ─── mergeVideoWithMusic ──────────────────────────────────────────────────
+
+  describe('mergeVideoWithMusic', () => {
+    it('uploads the completed merge output path', async () => {
+      const result = await service.mergeVideoWithMusic(
+        'video-ingredient-id',
+        'music-ingredient-id',
+        75,
+        true,
+        makeContext(),
+      );
+
+      expect(result).toBe('test-object-id');
+      expect(fileQueueService.waitForJob).toHaveBeenCalledWith('job-1', 300000);
+      expect(filesClientService.uploadToS3).toHaveBeenCalledWith(
+        'test-object-id',
+        'videos',
+        {
+          path: '/tmp/output.mp4',
+          type: 'file',
+        },
+      );
+    });
+  });
+
   // ─── orchestrateVideoWithMusic ────────────────────────────────────────────
 
   describe('orchestrateVideoWithMusic', () => {
