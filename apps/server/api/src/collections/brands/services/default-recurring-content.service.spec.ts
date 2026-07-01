@@ -1,4 +1,9 @@
-vi.mock('@genfeedai/prisma', () => ({ PrismaClient: class {} }));
+vi.mock('@genfeedai/prisma', async () => {
+  const { canonicalPrismaMock } = await import(
+    '@api/shared/testing/prisma-mock'
+  );
+  return canonicalPrismaMock();
+});
 
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';

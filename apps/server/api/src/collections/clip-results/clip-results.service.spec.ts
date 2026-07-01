@@ -1,23 +1,14 @@
-vi.mock('@genfeedai/prisma', () => ({
-  PrismaClient: class {},
-  getModelMeta: () => ({
-    allFields: [
-      'id',
-      'mongoId',
-      'organizationId',
-      'projectId',
-      'providerJobId',
-      'viralityScore',
-      'status',
-      'isSelected',
-      'readiness',
-      'terminalAt',
-      'data',
-      'isDeleted',
-    ],
-    enumFields: {},
-  }),
-}));
+// This spec constructs ClipResultsService directly with a hand-built
+// `_runtimeDataModel`/delegate fake (see createPrisma() below) rather than
+// going through BaseService's getModelMeta() normalization path, so the
+// real, schema-derived getModelMeta/PRISMA_MODEL_METADATA.ClipResult this
+// swap provides is never read by these assertions — only PrismaClient is.
+vi.mock('@genfeedai/prisma', async () => {
+  const { canonicalPrismaMock } = await import(
+    '@api/shared/testing/prisma-mock'
+  );
+  return canonicalPrismaMock();
+});
 
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import type { CreateClipResultDto } from '@api/collections/clip-results/dto/create-clip-result.dto';
