@@ -46,6 +46,7 @@ apps/desktop/app/release/
 *.dump
 .env.*.bak
 .claude/worktrees/
+.codex/worktrees/
 .claude/skills/
 .worktrees/
 .agents/SESSIONS/
