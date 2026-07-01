@@ -153,13 +153,7 @@ describe('AppSwitcher', () => {
   it('groups the first-level sections by workflow area', () => {
     render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
 
-    for (const label of [
-      'Operate',
-      'Trends',
-      'Create',
-      'Publish',
-      'Analytics',
-    ]) {
+    for (const label of ['Home', 'Trends', 'Create', 'Publish', 'Analytics']) {
       expect(screen.getByRole('group', { name: label })).toBeInTheDocument();
     }
   });

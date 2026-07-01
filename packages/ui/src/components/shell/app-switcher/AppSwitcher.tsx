@@ -45,14 +45,14 @@ type AppSwitcherSectionConfig = {
 
 const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
   {
-    id: 'operate',
-    label: 'Operate',
+    id: 'home',
+    label: 'Home',
     apps: [
       {
         description: 'Command center.',
         icon: HiOutlineSquares2X2,
         id: 'workspace',
-        itemKey: 'operate-workspace',
+        itemKey: 'home-workspace',
         label: 'Workspace',
         route: (org, brand) =>
           brand
@@ -63,7 +63,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         description: 'Ask and execute.',
         icon: HiOutlineCommandLine,
         id: 'agent',
-        itemKey: 'operate-agent',
+        itemKey: 'home-agent',
         label: 'Agent',
         route: (org) => `/${org}/~/agent`,
       },
@@ -71,7 +71,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         description: 'Social inbox.',
         icon: HiOutlineInboxStack,
         id: 'workspace',
-        itemKey: 'operate-messages',
+        itemKey: 'home-messages',
         label: 'Messages',
         route: (org, brand) =>
           brand
