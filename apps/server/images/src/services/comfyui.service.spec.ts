@@ -11,6 +11,7 @@ import axios from 'axios';
 
 const mockedAxios = axios as unknown as {
   get: ReturnType<typeof vi.fn>;
+  post: ReturnType<typeof vi.fn>;
 };
 
 describe('ComfyUIService', () => {
@@ -73,9 +74,12 @@ describe('ComfyUIService', () => {
 
       await service.getStatus();
 
-      expect(mockedAxios.get).toHaveBeenCalledWith('http://localhost:8188', {
-        timeout: 5000,
-      });
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        'http://localhost:8188/system_stats',
+        {
+          timeout: 5000,
+        },
+      );
     });
 
     it('should log a warning when offline', async () => {
@@ -131,6 +135,138 @@ describe('ComfyUIService', () => {
       await service.restart();
 
       expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('queuePrompt', () => {
+    it('should post a workflow to ComfyUI and return the prompt id', async () => {
+      mockedAxios.post = vi.fn().mockResolvedValue({
+        data: { prompt_id: 'prompt-123' },
+      });
+
+      const workflow = { node: { class_type: 'SaveImage' } };
+      const result = await service.queuePrompt(workflow);
+
+      expect(result).toBe('prompt-123');
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        'http://localhost:8188/prompt',
+        { prompt: workflow },
+        { timeout: 10000 },
+      );
+    });
+
+    it('should return null when queueing fails', async () => {
+      mockedAxios.post = vi.fn().mockRejectedValue(new Error('queue failed'));
+
+      const result = await service.queuePrompt({ node: {} });
+
+      expect(result).toBeNull();
+      expect(loggerService.error).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ message: 'Failed to queue image workflow' }),
+      );
+    });
+  });
+
+  describe('getHistory', () => {
+    it('should return the matching prompt history entry', async () => {
+      mockedAxios.get = vi.fn().mockResolvedValue({
+        data: {
+          'prompt-123': {
+            outputs: {
+              node: { images: [{ filename: 'output.png', type: 'output' }] },
+            },
+            status: { completed: true },
+          },
+        },
+      });
+
+      const result = await service.getHistory('prompt-123');
+
+      expect(result).toEqual({
+        outputs: {
+          node: { images: [{ filename: 'output.png', type: 'output' }] },
+        },
+        status: { completed: true },
+      });
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        'http://localhost:8188/history/prompt-123',
+        { timeout: 5000 },
+      );
+    });
+
+    it('should return null when history lookup fails', async () => {
+      mockedAxios.get = vi.fn().mockRejectedValue(new Error('not ready'));
+
+      const result = await service.getHistory('prompt-123');
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('queueAndWait', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('should return the first completed output image', async () => {
+      vi.spyOn(service, 'queuePrompt').mockResolvedValue('prompt-123');
+      vi.spyOn(service, 'getHistory').mockResolvedValue({
+        outputs: {
+          node: {
+            images: [
+              {
+                filename: 'output.png',
+                subfolder: 'runs',
+                type: 'output',
+              },
+            ],
+          },
+        },
+        status: { completed: true },
+      });
+
+      const resultPromise = service.queueAndWait({ node: {} }, 1000, 10);
+
+      await vi.advanceTimersByTimeAsync(10);
+
+      await expect(resultPromise).resolves.toEqual({
+        filename: 'output.png',
+        subfolder: 'runs',
+        type: 'output',
+      });
+    });
+
+    it('should return null when queueing does not produce a prompt id', async () => {
+      vi.spyOn(service, 'queuePrompt').mockResolvedValue(null);
+
+      const result = await service.queueAndWait({ node: {} }, 1000, 10);
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when the workflow reports an error status', async () => {
+      vi.spyOn(service, 'queuePrompt').mockResolvedValue('prompt-123');
+      vi.spyOn(service, 'getHistory').mockResolvedValue({
+        outputs: {},
+        status: { status_str: 'error' },
+      });
+
+      const resultPromise = service.queueAndWait({ node: {} }, 1000, 10);
+
+      await vi.advanceTimersByTimeAsync(10);
+
+      await expect(resultPromise).resolves.toBeNull();
+      expect(loggerService.error).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          message: 'ComfyUI image workflow failed',
+        }),
+      );
     });
   });
 });

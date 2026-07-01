@@ -33,6 +33,27 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, '../../../packages/config/src'),
       },
       {
+        find: '@genfeedai/enums',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/enums/src/index.ts',
+        ),
+      },
+      {
+        find: '@genfeedai/interfaces',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/interfaces/src/index.ts',
+        ),
+      },
+      {
+        find: '@genfeedai/pricing',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/pricing/src/index.ts',
+        ),
+      },
+      {
         find: '@genfeedai/storage',
         replacement: path.resolve(serviceDir, '../../../packages/storage/src'),
       },
