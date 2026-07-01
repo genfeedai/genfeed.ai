@@ -362,7 +362,7 @@ export class SystemWorkflowProvenanceService {
         sourceWorkflowName: provenance.workflowLabel,
         workflowExecutionId: provenance.executionId,
       },
-      where: { id: { in: postIds } },
+      where: { id: { in: postIds }, organizationId: provenance.organizationId },
     });
   }
 
