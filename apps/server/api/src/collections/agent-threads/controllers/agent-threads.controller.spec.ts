@@ -101,13 +101,7 @@ describe('AgentThreadsController', () => {
       expect(args[0]).toEqual(expect.any(String));
       expect(args[1]).toEqual(expect.any(String));
       expect(args[2]).toBeUndefined();
-      expect(usersService.findOne).toHaveBeenCalledWith(
-        {
-          _id: expect.any(String),
-          authProviderId: 'authProvider_123',
-        },
-        [],
-      );
+      expect(usersService.findOne).not.toHaveBeenCalled();
     });
 
     it('should pass explicit status when provided', async () => {
@@ -119,18 +113,25 @@ describe('AgentThreadsController', () => {
       expect(args[0]).toEqual(expect.any(String));
       expect(args[1]).toEqual(expect.any(String));
       expect(args[2]).toBe('active');
-      expect(usersService.findOne).toHaveBeenCalledWith(
-        {
-          _id: expect.any(String),
-          authProviderId: 'authProvider_123',
-        },
-        [],
+      expect(usersService.findOne).not.toHaveBeenCalled();
+    });
+
+    it('should trust publicMetadata.user directly with no DB re-lookup (no 401 for authenticated user)', async () => {
+      service.getUserThreads.mockResolvedValue([]);
+
+      await controller.listThreads({} as never, mockUser);
+
+      expect(usersService.findOne).not.toHaveBeenCalled();
+      expect(service.getUserThreads).toHaveBeenCalledWith(
+        mockUser.publicMetadata.user,
+        mockUser.publicMetadata.organization,
+        undefined,
       );
     });
 
     it('should resolve user id from users collection when metadata id is missing', async () => {
-      const resolvedMongoUserId = 'user_resolved';
-      usersService.findOne.mockResolvedValueOnce({ _id: resolvedMongoUserId });
+      const resolvedUserId = 'user_resolved';
+      usersService.findOne.mockResolvedValueOnce({ id: resolvedUserId });
       service.getUserThreads.mockResolvedValue([]);
 
       await controller.listThreads(
@@ -149,6 +150,29 @@ describe('AgentThreadsController', () => {
         { authProviderId: 'authProvider_123' },
         [],
       );
+      expect(service.getUserThreads).toHaveBeenCalledWith(
+        resolvedUserId,
+        expect.any(String),
+        undefined,
+      );
+    });
+
+    it('should not throw 401 when metadata user id is missing but a legacy _id is found', async () => {
+      const resolvedMongoUserId = 'legacy_mongo_id';
+      usersService.findOne.mockResolvedValueOnce({ _id: resolvedMongoUserId });
+      service.getUserThreads.mockResolvedValue([]);
+
+      await controller.listThreads(
+        {} as never,
+        {
+          ...mockUser,
+          publicMetadata: {
+            ...mockUser.publicMetadata,
+            user: '',
+          },
+        } as unknown as User,
+      );
+
       expect(service.getUserThreads).toHaveBeenCalledWith(
         resolvedMongoUserId,
         expect.any(String),
