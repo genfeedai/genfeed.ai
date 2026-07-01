@@ -32,6 +32,7 @@
 - [Console managed inference control plane](console_managed_inference_control_plane.md) — Private console owns Genfeed-managed Fleet/model/customer assignment
 - [Shared checkout automation](shared_checkout_automation.md) — Treat shared checkout state as moving; path-scope git add
 - [Genfeed project kanban](genfeed_project_kanban.md) — Use project #12 Genfeed.ai as canonical
+- [System Workflows Content OS](system_workflows_content_os.md) — Content automation uses immutable system workflows instead of hard-coded publish/action/cron paths
 - [Positive memory framing](positive_memory_framing.md) — Write memory as target-state guidance with active sources of truth
 - [Epic status on child start](epic_status_on_child_start.md) — Move parent epics to In Progress as soon as a child starts
 - [Production deploys master-only](production_deploy_master_only.md) — Never deploy any non-master ref to production unless Vincent explicitly overrides; production deploys run from GitHub CI on master
