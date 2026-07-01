@@ -120,7 +120,7 @@ describe('SystemWorkflowProvenanceService', () => {
         sourceWorkflowName: 'Scheduled Post Publishing',
         workflowExecutionId: 'execution-1',
       },
-      where: { id: { in: ['post-1'] } },
+      where: { id: { in: ['post-1'] }, organizationId: 'org-1' },
     });
     expect(mockPrisma.workflowExecution.update).toHaveBeenCalledWith(
       expect.objectContaining({
