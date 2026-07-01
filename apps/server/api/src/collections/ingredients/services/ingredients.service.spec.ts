@@ -6,115 +6,18 @@ import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
-// Provide static model metadata so BaseService normalizeData/normalizeWhere work
-// without the PrismaPg runtime data model (which is not populated under Prisma 7).
-vi.mock('@genfeedai/prisma', () => ({
-  getModelMeta: (modelName: string) => {
-    if (modelName === 'ingredient') {
-      return {
-        allFields: [
-          'id',
-          'userId',
-          'organizationId',
-          'brandId',
-          'folderId',
-          'parentId',
-          'metadataId',
-          'promptId',
-          'trainingId',
-          'bookmarkId',
-          'personaId',
-          'agentRunId',
-          'agentStrategyId',
-          'category',
-          'status',
-          'scope',
-          'contentRating',
-          'reviewStatus',
-          'assetLabel',
-          'qualityStatus',
-          'voiceProvider',
-          'cloneStatus',
-          'transformations',
-          'isDeleted',
-          'isHighlighted',
-          'isDefault',
-          'isFavorite',
-          'isPublic',
-          'mongoId',
-          'order',
-          'version',
-          'groupId',
-          'groupIndex',
-          'isMergeEnabled',
-          'promptTemplate',
-          'templateVersion',
-          's3Key',
-          'cdnUrl',
-          'generationSource',
-          'campaign',
-          'modelUsed',
-          'qualityScore',
-          'qualityFeedback',
-          'voiceSource',
-          'externalVoiceId',
-          'language',
-          'createdAt',
-          'updatedAt',
-          'postedTo',
-        ],
-        enumFields: {
-          category: { enumType: 'IngredientCategory', isRequired: true },
-          status: { enumType: 'IngredientStatus', isRequired: true },
-          scope: { enumType: 'AssetScope', isRequired: true },
-          contentRating: { enumType: 'ContentRating', isRequired: false },
-          reviewStatus: { enumType: 'DarkroomReviewStatus', isRequired: false },
-          assetLabel: { enumType: 'DarkroomAssetLabel', isRequired: false },
-          qualityStatus: { enumType: 'QualityStatus', isRequired: true },
-          voiceProvider: { enumType: 'VoiceProvider', isRequired: false },
-          cloneStatus: { enumType: 'VoiceCloneStatus', isRequired: false },
-          transformations: {
-            enumType: 'TransformationCategory',
-            isRequired: true,
-          },
-        },
-      };
-    }
-    return undefined;
-  },
-  // Ingredient enum values used by normalizeEnumScalarValue → getPrismaEnumValues
-  IngredientCategory: {
-    AUDIO: 'AUDIO',
-    AVATAR: 'AVATAR',
-    GIF: 'GIF',
-    IMAGE: 'IMAGE',
-    IMAGE_EDIT: 'IMAGE_EDIT',
-    INGREDIENT: 'INGREDIENT',
-    MUSIC: 'MUSIC',
-    SOURCE: 'SOURCE',
-    TEXT: 'TEXT',
-    VIDEO: 'VIDEO',
-    VIDEO_EDIT: 'VIDEO_EDIT',
-    VOICE: 'VOICE',
-  },
-  IngredientStatus: {
-    ARCHIVED: 'ARCHIVED',
-    DRAFT: 'DRAFT',
-    FAILED: 'FAILED',
-    GENERATED: 'GENERATED',
-    PROCESSING: 'PROCESSING',
-    REJECTED: 'REJECTED',
-    UPLOADED: 'UPLOADED',
-    VALIDATED: 'VALIDATED',
-  },
-  AssetScope: {
-    BRAND: 'BRAND',
-    ORGANIZATION: 'ORGANIZATION',
-    PUBLIC: 'PUBLIC',
-    USER: 'USER',
-  },
-  PrismaClient: class {},
-}));
+// Real, schema-derived getModelMeta/PRISMA_MODEL_METADATA.Ingredient (category/
+// status/scope/etc enum fields) plus real, complete IngredientCategory/
+// IngredientStatus/AssetScope enum value objects (used by
+// normalizeEnumScalarValue → getPrismaEnumValues) via the light
+// @genfeedai/prisma/testing subpath — no heavy PrismaClient/runtime import
+// required for BaseService's getModelMeta('ingredient') call.
+vi.mock('@genfeedai/prisma', async () => {
+  const { canonicalPrismaMock } = await import(
+    '@api/shared/testing/prisma-mock'
+  );
+  return canonicalPrismaMock();
+});
 
 describe('IngredientsService', () => {
   let service: IngredientsService;

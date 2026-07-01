@@ -17,7 +17,8 @@ function isSqlFragment(value: unknown): value is MockSql {
   return (
     typeof value === 'object' &&
     value !== null &&
-    ('sql' in value || 'text' in value)
+    ('sql' in value || 'text' in value) &&
+    'values' in value
   );
 }
 
@@ -25,9 +26,19 @@ function createSql(sql: string, values: unknown[] = []): MockSql {
   return { sql, text: sql, values };
 }
 
-function getSqlText(value: unknown): string {
-  if (!isSqlFragment(value)) return '?';
-  return value.sql || value.text;
+/**
+ * Flatten one interpolated template value into (sqlText, boundValues).
+ * Nested `Prisma.sql`/`Prisma.raw`/`Prisma.join` fragments contribute both
+ * their own SQL text AND their own bound parameter values — dropping the
+ * latter would silently desync `values` from the `?` placeholders in `sql`
+ * for any template that composes fragments (e.g. a WHERE-clause builder
+ * interpolating `Prisma.sql\`AND col = ${value}\`` into an outer query).
+ */
+function flattenSqlValue(value: unknown): { sql: string; values: unknown[] } {
+  if (isSqlFragment(value)) {
+    return { sql: value.sql || value.text, values: value.values };
+  }
+  return { sql: '?', values: [value] };
 }
 
 /**
@@ -61,17 +72,27 @@ export class MockPrismaClientKnownRequestError extends Error {
 
 export const mockPrismaNamespace = {
   empty: createSql(''),
-  join: (values: unknown[], separator = ',') =>
-    createSql(values.map((value) => getSqlText(value)).join(separator), values),
+  join: (values: unknown[], separator = ',') => {
+    const flattened = values.map((value) => flattenSqlValue(value));
+    return createSql(
+      flattened.map((part) => part.sql).join(separator),
+      flattened.flatMap((part) => part.values),
+    );
+  },
   PrismaClientKnownRequestError: MockPrismaClientKnownRequestError,
   raw: (sql: string) => createSql(sql),
   sql: (strings: TemplateStringsArray, ...values: unknown[]) => {
+    const boundValues: unknown[] = [];
     const sql = strings.reduce((acc, part, index) => {
-      const value = index < values.length ? getSqlText(values[index]) : '';
-      return `${acc}${part}${value}`;
+      if (index >= values.length) return `${acc}${part}`;
+      const { sql: valueSql, values: valueValues } = flattenSqlValue(
+        values[index],
+      );
+      boundValues.push(...valueValues);
+      return `${acc}${part}${valueSql}`;
     }, '');
 
-    return createSql(sql, values);
+    return createSql(sql, boundValues);
   },
   Sql: class MockSqlClass {
     sql: string;
