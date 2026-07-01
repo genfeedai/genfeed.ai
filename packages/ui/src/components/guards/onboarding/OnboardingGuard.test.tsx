@@ -20,9 +20,9 @@ vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
   useCurrentUser: () => useCurrentUserMock(),
 }));
 
-const useAuthMock = vi.fn();
-vi.mock('@genfeedai/auth-client/react', () => ({
-  useAuth: () => useAuthMock(),
+const useAuthIdentityMock = vi.fn();
+vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => useAuthIdentityMock(),
 }));
 
 const useAccessStateMock = vi.fn();
@@ -43,9 +43,13 @@ describe('OnboardingGuard', () => {
     process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'pk_test_fake';
     delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
     pathnameMock.mockReturnValue('/dashboard');
-    useAuthMock.mockReturnValue({
+    useAuthIdentityMock.mockReturnValue({
+      getToken: vi.fn(),
       isLoaded: true,
       isSignedIn: true,
+      orgId: null,
+      sessionId: 'session_1',
+      userId: 'user_1',
     });
   });
 
@@ -176,9 +180,13 @@ describe('OnboardingGuard', () => {
   });
 
   it('should redirect unsigned users to login', async () => {
-    useAuthMock.mockReturnValue({
+    useAuthIdentityMock.mockReturnValue({
+      getToken: vi.fn(),
       isLoaded: true,
       isSignedIn: false,
+      orgId: null,
+      sessionId: null,
+      userId: null,
     });
     useCurrentUserMock.mockReturnValue({
       currentUser: null,

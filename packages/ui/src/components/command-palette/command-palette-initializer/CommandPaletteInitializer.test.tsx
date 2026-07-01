@@ -1,5 +1,3 @@
-import { useUser } from '@genfeedai/auth-client/react';
-import { getAuthPublicData } from '@genfeedai/helpers/auth/auth.helper';
 import { useAdminCommandRegistration } from '@genfeedai/hooks/commands/use-admin-command-registration/use-admin-command-registration';
 import { useDefaultCommandsRegistration } from '@genfeedai/hooks/commands/use-default-commands-registration/use-default-commands-registration';
 import { useCommandPalette } from '@genfeedai/hooks/ui/use-command-palette/use-command-palette';
@@ -7,13 +5,14 @@ import { render } from '@testing-library/react';
 import { CommandPaletteInitializer } from '@ui/command-palette/command-palette-initializer/CommandPaletteInitializer';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@genfeedai/auth-client/react', () => ({
-  useUser: vi.fn(),
-}));
+const useAccessStateMock = vi.fn();
 
-vi.mock('@genfeedai/helpers/auth/auth.helper', () => ({
-  getAuthPublicData: vi.fn(),
-}));
+vi.mock(
+  '@genfeedai/contexts/providers/access-state/access-state.provider',
+  () => ({
+    useAccessState: () => useAccessStateMock(),
+  }),
+);
 
 vi.mock('@genfeedai/hooks/ui/use-command-palette/use-command-palette', () => ({
   useCommandPalette: vi.fn(),
@@ -33,8 +32,6 @@ vi.mock(
   }),
 );
 
-const useUserMock = vi.mocked(useUser);
-const getAuthPublicDataMock = vi.mocked(getAuthPublicData);
 const useCommandPaletteMock = vi.mocked(useCommandPalette);
 const useDefaultCommandsRegistrationMock = vi.mocked(
   useDefaultCommandsRegistration,
@@ -43,8 +40,17 @@ const useAdminCommandRegistrationMock = vi.mocked(useAdminCommandRegistration);
 
 describe('CommandPaletteInitializer', () => {
   beforeEach(() => {
-    useUserMock.mockReturnValue({ isLoaded: true, user: { id: 'user' } });
-    getAuthPublicDataMock.mockReturnValue({ isSuperAdmin: true });
+    useAccessStateMock.mockReturnValue({
+      accessState: null,
+      canAccessApp: true,
+      hasPaygCredits: false,
+      isByok: false,
+      isLoading: false,
+      isSubscribed: false,
+      isSuperAdmin: true,
+      needsOnboarding: false,
+      refreshAccessState: vi.fn(),
+    });
     useCommandPaletteMock.mockReturnValue({
       registerCommand: vi.fn(),
       unregisterCommand: vi.fn(),
@@ -64,7 +70,17 @@ describe('CommandPaletteInitializer', () => {
   });
 
   it('handles non super admin users', () => {
-    getAuthPublicDataMock.mockReturnValue({ isSuperAdmin: false });
+    useAccessStateMock.mockReturnValue({
+      accessState: null,
+      canAccessApp: false,
+      hasPaygCredits: false,
+      isByok: false,
+      isLoading: false,
+      isSubscribed: false,
+      isSuperAdmin: false,
+      needsOnboarding: false,
+      refreshAccessState: vi.fn(),
+    });
     render(<CommandPaletteInitializer />);
 
     expect(useAdminCommandRegistrationMock).toHaveBeenCalledWith(
