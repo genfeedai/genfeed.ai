@@ -39,6 +39,7 @@ export default function MenuShared({
   conversationActions,
   renderFooterSlot,
   showUserProfile = true,
+  orgSwitcherSlot,
 }: MenuSharedProps) {
   const { push } = useRouter();
 
@@ -207,6 +208,10 @@ export default function MenuShared({
             isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100',
           )}
         >
+          {orgSwitcherSlot ? (
+            <div className="px-3 pt-2">{orgSwitcherSlot}</div>
+          ) : null}
+
           {topSlotContent ? (
             <div className="px-3 pt-2">{topSlotContent}</div>
           ) : null}

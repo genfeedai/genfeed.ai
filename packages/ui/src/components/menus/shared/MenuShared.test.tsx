@@ -263,6 +263,38 @@ describe('MenuShared', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('renders the org switcher slot at the top of the sidebar body, above the top slot and nav', () => {
+    render(
+      <MenuShared
+        config={config}
+        orgSwitcherSlot={<div data-testid="organization-switcher">Acme</div>}
+        renderTopSlot={() => <div data-testid="sidebar-top-slot">Search</div>}
+      />,
+    );
+
+    const orgSwitcher = screen.getByTestId('organization-switcher');
+    const topSlot = screen.getByTestId('sidebar-top-slot');
+    const firstMenuItem = screen.getByText('Dashboard');
+
+    expect(orgSwitcher).toBeInTheDocument();
+    expect(
+      orgSwitcher.compareDocumentPosition(topSlot) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      topSlot.compareDocumentPosition(firstMenuItem) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('omits the org switcher slot when not provided', () => {
+    render(<MenuShared config={config} />);
+
+    expect(
+      screen.queryByTestId('organization-switcher'),
+    ).not.toBeInTheDocument();
+  });
+
   it('attaches the actionable inbox count to the workspace inbox row', () => {
     const inboxConfig: MenuShellConfig = {
       items: [
