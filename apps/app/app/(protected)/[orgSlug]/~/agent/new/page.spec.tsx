@@ -40,7 +40,7 @@ import { runPageModuleTests } from '@shared/pages/pageTestUtils';
 import { render } from '@testing-library/react';
 import ChatNewPage, * as PageModule from './page';
 
-runPageModuleTests('app/(protected)/chat/new/page', PageModule);
+runPageModuleTests('app/(protected)/agent/new/page', PageModule);
 
 describe('ChatNewPage', () => {
   beforeEach(() => {

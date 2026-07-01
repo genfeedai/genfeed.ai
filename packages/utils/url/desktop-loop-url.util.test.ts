@@ -35,7 +35,7 @@ describe('desktop-loop-url.util', () => {
 
   it('builds an agent prompt href', () => {
     expect(buildAgentPromptHref('Test prompt')).toBe(
-      '/chat/new?prompt=Test+prompt',
+      '/agent/new?prompt=Test+prompt',
     );
   });
 

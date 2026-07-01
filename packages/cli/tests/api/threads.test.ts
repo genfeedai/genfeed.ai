@@ -37,12 +37,11 @@ describe('api/threads', () => {
       threadId: 'thread-1',
     });
 
-    expect(mockPost).toHaveBeenCalledWith('/agent/chat/stream', {
+    expect(mockPost).toHaveBeenCalledWith('/agent/threads/thread-1/turns/stream', {
       attachments: [{ kind: 'image', url: 'https://cdn.genfeed.ai/example.png' }],
       content: 'hello',
       model: 'claude-3-7-sonnet',
       source: 'agent',
-      threadId: 'thread-1',
     });
   });
 
@@ -53,7 +52,7 @@ describe('api/threads', () => {
     const { archiveThread } = await import('../../src/api/threads');
     const result = await archiveThread('thread-1');
 
-    expect(mockPatch).toHaveBeenCalledWith('/threads/thread-1', {
+    expect(mockPatch).toHaveBeenCalledWith('/agent/threads/thread-1', {
       status: 'archived',
     });
     expect(result).toEqual({ id: 'thread-1', status: 'archived' });

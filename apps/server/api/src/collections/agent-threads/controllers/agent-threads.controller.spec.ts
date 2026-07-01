@@ -23,6 +23,7 @@ describe('AgentThreadsController', () => {
   };
   let messagesService: {
     addMessage: ReturnType<typeof vi.fn>;
+    findOne: ReturnType<typeof vi.fn>;
     getMessagesByRoom: ReturnType<typeof vi.fn>;
     getRecentMessages: ReturnType<typeof vi.fn>;
   };
@@ -47,6 +48,7 @@ describe('AgentThreadsController', () => {
     };
     messagesService = {
       addMessage: vi.fn(),
+      findOne: vi.fn(),
       getMessagesByRoom: vi.fn().mockResolvedValue([]),
       getRecentMessages: vi.fn().mockResolvedValue([]),
     };
@@ -78,7 +80,7 @@ describe('AgentThreadsController', () => {
     it('should return threads as JSON:API collection', async () => {
       service.getUserThreads.mockResolvedValue([]);
       const result = await controller.listThreads(
-        { originalUrl: '/v1/threads' } as never,
+        { originalUrl: '/v1/agent/threads' } as never,
         mockUser,
       );
       expect(service.getUserThreads).toHaveBeenCalled();
@@ -86,7 +88,7 @@ describe('AgentThreadsController', () => {
         expect.objectContaining({
           data: [],
           links: expect.objectContaining({
-            self: '/v1/threads',
+            self: '/v1/agent/threads',
           }),
         }),
       );
@@ -186,6 +188,28 @@ describe('AgentThreadsController', () => {
       service.findOne.mockResolvedValue({ _id: 'test' });
       await controller.getThread({} as never, 'test-id', mockUser);
       expect(service.findOne).toHaveBeenCalled();
+    });
+  });
+
+  describe('getMessage', () => {
+    it('gets a thread message by id within the current organization', async () => {
+      messagesService.findOne.mockResolvedValue({ _id: 'message-id' });
+
+      await controller.getMessage(
+        {
+          originalUrl: '/v1/agent/threads/thread-id/messages/message-id',
+        } as never,
+        'thread-id',
+        'message-id',
+        mockUser,
+      );
+
+      expect(messagesService.findOne).toHaveBeenCalledWith({
+        _id: 'message-id',
+        isDeleted: false,
+        organization: 'org_current',
+        room: 'thread-id',
+      });
     });
   });
 

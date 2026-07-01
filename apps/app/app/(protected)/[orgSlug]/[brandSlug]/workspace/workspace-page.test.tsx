@@ -323,7 +323,7 @@ describe('WorkspacePageContent', () => {
     await waitFor(() =>
       expect(mocks.ensurePlanningThread).toHaveBeenCalledWith('task-1'),
     );
-    expect(mocks.push).toHaveBeenCalledWith('/chat/thread-1');
+    expect(mocks.push).toHaveBeenCalledWith('/agent/thread-1');
   });
 
   it('refreshes tasks and applies realtime workspace updates', async () => {

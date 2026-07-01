@@ -20,12 +20,32 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../enums/src/index.ts'),
       },
       {
-        find: /^@genfeedai\/serializers$/,
-        replacement: path.resolve(__dirname, '../serializers/src/index.ts'),
+        find: /^@genfeedai\/enums\/(.*)$/,
+        replacement: path.resolve(__dirname, '../enums/src/$1'),
       },
       {
-        find: /^@serializers\/(.*)$/,
-        replacement: path.resolve(__dirname, '../serializers/src/$1'),
+        find: /^@genfeedai\/errors$/,
+        replacement: path.resolve(__dirname, '../errors/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/helpers$/,
+        replacement: path.resolve(__dirname, '../helpers/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/helpers\/(.*)$/,
+        replacement: path.resolve(__dirname, '../helpers/src/$1'),
+      },
+      {
+        find: /^@genfeedai\/interfaces\/(.*)$/,
+        replacement: path.resolve(__dirname, '../interfaces/src/$1'),
+      },
+      {
+        find: /^@genfeedai\/serializers$/,
+        replacement: path.resolve(__dirname, '../helpers/src/deserializer/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/tools$/,
+        replacement: path.resolve(__dirname, '../tools/src/index.ts'),
       },
       {
         find: '@',

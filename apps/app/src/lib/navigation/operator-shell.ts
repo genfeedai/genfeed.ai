@@ -25,7 +25,7 @@ const KNOWN_PROTECTED_PREFIXES = [
   'analytics',
   'workflows',
   'library',
-  'chat',
+  'agent',
   'compose',
   'editor',
   'research',

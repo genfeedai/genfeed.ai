@@ -103,6 +103,7 @@ const EXPECTED_TOOL_NAMES = [
   'list_agent_runs',
   'list_avatars',
   'list_brands',
+  'list_genfeed_tools',
   'list_google_ads_campaigns',
   'list_google_ads_customers',
   'list_gpu_personas',
@@ -171,7 +172,7 @@ function countLines(filePath: string): number {
 }
 
 describe('SOURCE_TOOLS registry split (#692)', () => {
-  it('exposes exactly 125 tool definitions', () => {
+  it('exposes exactly 126 tool definitions', () => {
     expect(SOURCE_TOOLS).toHaveLength(EXPECTED_TOOL_NAMES.length);
   });
 
@@ -196,7 +197,7 @@ describe('SOURCE_TOOLS registry split (#692)', () => {
 
   it('partitions tools by their declared surface', () => {
     expect(OVERLAP_TOOLS).toHaveLength(11);
-    expect(AGENT_ONLY_TOOLS).toHaveLength(55);
+    expect(AGENT_ONLY_TOOLS).toHaveLength(56);
     expect(MCP_ONLY_TOOLS).toHaveLength(60);
     expect(BRAND_INTERVIEW_TOOLS).toHaveLength(4);
     expect(
@@ -209,6 +210,11 @@ describe('SOURCE_TOOLS registry split (#692)', () => {
     ).toBe(true);
     expect(
       MCP_ONLY_TOOLS.every((tool) => !tool.surfaces.agent && tool.surfaces.mcp),
+    ).toBe(true);
+    expect(
+      BRAND_INTERVIEW_TOOLS.every(
+        (tool) => tool.surfaces.agent && tool.surfaces.mcp,
+      ),
     ).toBe(true);
   });
 

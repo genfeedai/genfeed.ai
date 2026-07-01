@@ -32,7 +32,7 @@ describe('AgentApiService', () => {
       );
       expect(result).toEqual(conv);
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://api.test/threads',
+        'http://api.test/agent/threads',
         expect.objectContaining({ method: 'POST' }),
       );
     });
@@ -87,7 +87,7 @@ describe('AgentApiService', () => {
       );
       expect(result).toEqual({ ...msg, threadId: 'c-1' });
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://api.test/threads/c-1/messages',
+        'http://api.test/agent/threads/c-1/messages',
         expect.objectContaining({ method: 'POST' }),
       );
     });
@@ -143,7 +143,7 @@ describe('AgentApiService', () => {
 
       expect(result).toEqual(resp);
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://api.test/threads/c-1/ui-actions',
+        'http://api.test/agent/threads/c-1/ui-actions',
         expect.objectContaining({ method: 'POST' }),
       );
     });
@@ -188,7 +188,25 @@ describe('AgentApiService', () => {
       );
       expect(result).toEqual(resp);
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://api.test/agent/chat',
+        'http://api.test/agent/threads/turns',
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
+
+    it('sends an existing thread turn to the thread-scoped endpoint', async () => {
+      const resp = {
+        message: { content: 'hi', role: 'assistant' },
+        threadId: 'c-1',
+      };
+      mockOk(resp);
+      const service = makeService();
+
+      await Effect.runPromise(
+        service.chatEffect({ content: 'hello', threadId: 'c-1' }),
+      );
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://api.test/agent/threads/c-1/turns',
         expect.objectContaining({ method: 'POST' }),
       );
     });
@@ -233,7 +251,26 @@ describe('AgentApiService', () => {
 
       expect(result).toEqual(resp);
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://api.test/agent/chat/stream',
+        'http://api.test/agent/threads/turns/stream',
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
+
+    it('starts an existing thread stream through the thread-scoped endpoint', async () => {
+      const resp = {
+        channel: 'socket',
+        runId: 'run-1',
+        threadId: 'c-1',
+      };
+      mockOk(resp);
+      const service = makeService();
+
+      await Effect.runPromise(
+        service.chatStreamEffect({ content: 'hello', threadId: 'c-1' }),
+      );
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://api.test/agent/threads/c-1/turns/stream',
         expect.objectContaining({ method: 'POST' }),
       );
     });
@@ -248,7 +285,7 @@ describe('AgentApiService', () => {
       );
       expect(result).toEqual([{ id: 'c-1' }]);
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/threads?page=1'),
+        expect.stringContaining('/agent/threads?page=1'),
         expect.anything(),
       );
     });
@@ -298,7 +335,7 @@ describe('AgentApiService', () => {
       ).resolves.toEqual({ archivedCount: 7 });
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://api.test/threads/archive-all',
+        'http://api.test/agent/threads/archive-all',
         expect.objectContaining({ method: 'POST' }),
       );
     });
@@ -342,7 +379,7 @@ describe('AgentApiService', () => {
 
       expect(result).toEqual(snapshot);
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://api.test/threads/c-1/snapshot',
+        'http://api.test/agent/threads/c-1/snapshot',
         expect.anything(),
       );
     });
@@ -426,7 +463,7 @@ describe('AgentApiService', () => {
       ).resolves.toEqual(payload);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://api.test/threads/thread-1/input-requests/input-1/responses',
+        'http://api.test/agent/threads/thread-1/input-requests/input-1/responses',
         expect.objectContaining({ method: 'POST' }),
       );
     });

@@ -115,6 +115,9 @@ describe('AppSwitcher', () => {
   it('renders the first-level workspace sections', () => {
     render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
     for (const label of [
+      'Workspace',
+      'Agent',
+      'Messages',
       'Discovery',
       'Socials',
       'Ads',
@@ -150,7 +153,7 @@ describe('AppSwitcher', () => {
   it('groups the first-level sections by workflow area', () => {
     render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
 
-    for (const label of ['Trends', 'Create', 'Publish', 'Analytics']) {
+    for (const label of ['Home', 'Trends', 'Create', 'Publish', 'Analytics']) {
       expect(screen.getByRole('group', { name: label })).toBeInTheDocument();
     }
   });
@@ -160,6 +163,15 @@ describe('AppSwitcher', () => {
     const activeButton = screen.getByRole('link', { name: 'Posts' });
 
     expect(activeButton).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('marks the operator agent item active on the agent surface', () => {
+    render(<AppSwitcher orgSlug="acme" currentApp="agent" />);
+
+    expect(screen.getByRole('link', { name: 'Agent' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
   });
 
   it('marks admin active when the admin shell renders the switcher', () => {
@@ -244,6 +256,61 @@ describe('AppSwitcher', () => {
         'href',
         '/acme/my-brand/studio/image',
       );
+    });
+
+    it('links the operate section to workspace, agent, and messages', () => {
+      render(
+        <AppSwitcher
+          orgSlug="acme"
+          currentApp="workspace"
+          brandSlug="my-brand"
+        />,
+      );
+
+      expect(screen.getByRole('link', { name: 'Workspace' })).toHaveAttribute(
+        'href',
+        '/acme/my-brand/workspace/overview',
+      );
+      expect(screen.getByRole('link', { name: 'Agent' })).toHaveAttribute(
+        'href',
+        '/acme/~/agent',
+      );
+      expect(screen.getByRole('link', { name: 'Messages' })).toHaveAttribute(
+        'href',
+        '/acme/my-brand/workspace/inbox/unread',
+      );
+    });
+
+    it('uses org-scoped operate fallbacks when brandSlug is absent', () => {
+      render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
+
+      expect(screen.getByRole('link', { name: 'Workspace' })).toHaveAttribute(
+        'href',
+        '/acme/~/workspace/overview',
+      );
+      expect(screen.getByRole('link', { name: 'Messages' })).toHaveAttribute(
+        'href',
+        '/acme/~/workspace/inbox/unread',
+      );
+    });
+
+    it('uses the inbox path to mark messages active inside the workspace app', () => {
+      render(
+        <AppSwitcher
+          orgSlug="acme"
+          currentApp="workspace"
+          brandSlug="my-brand"
+          currentPath="/acme/my-brand/workspace/inbox/unread"
+        />,
+      );
+
+      expect(screen.getByRole('link', { name: 'Messages' })).toHaveAttribute(
+        'aria-current',
+        'page',
+      );
+      expect(
+        screen.getByRole('link', { name: 'Workspace' }),
+      ).not.toHaveAttribute('aria-current');
     });
 
     it('links to org-scoped create fallbacks when brandSlug is absent', () => {

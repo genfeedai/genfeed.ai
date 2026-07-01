@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import { IngredientCategory } from '@genfeedai/enums';
 import type {
   TrendItem,
@@ -50,7 +51,7 @@ export function buildTrendStudioHref(
 }
 
 export function buildAgentPromptHref(prompt: string): string {
-  return `/chat/new${buildQuery({ prompt })}`;
+  return `${APP_ROUTES.AGENT.NEW}${buildQuery({ prompt })}`;
 }
 
 export function buildTrendAgentHref(

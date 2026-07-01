@@ -30,6 +30,12 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    href: (path: string) => `/test-org/test-brand${path}`,
+  }),
+}));
+
 vi.mock('socket.io-client', () => ({
   io: vi.fn(() => ({
     connected: false,
@@ -205,7 +211,7 @@ describe('AgentPanel', () => {
     ).not.toBeInTheDocument();
     expect(screen.getByText('genfeed')).toBeInTheDocument();
     expect(
-      screen.getByLabelText('Open full chat workspace'),
+      screen.getByLabelText('Open full agent workspace'),
     ).toBeInTheDocument();
     expect(
       screen.getByLabelText('Terminal working directory'),
@@ -276,10 +282,10 @@ describe('AgentPanel', () => {
   it('opens the active thread in the full workspace', () => {
     render(<AgentPanel apiService={createCreditsInfoApiService() as never} />);
 
-    screen.getByLabelText('Open full chat workspace').click();
+    screen.getByLabelText('Open full agent workspace').click();
 
     expect(mockPush).toHaveBeenCalledWith(
-      '/test-org/test-brand/chat/thread-123',
+      '/test-org/test-brand/agent/thread-123',
     );
   });
 });

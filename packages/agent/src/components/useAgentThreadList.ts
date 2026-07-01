@@ -2,6 +2,7 @@ import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { AgentThreadStatus } from '@genfeedai/enums';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -57,10 +58,10 @@ export function useAgentThreadList({
   const renameInputRef = useRef<HTMLInputElement | null>(null);
 
   const getThreadHref = useCallback(
-    (threadId: string) => `/chat/${threadId}`,
+    (threadId: string) => `${APP_ROUTES.AGENT.ROOT}/${threadId}`,
     [],
   );
-  const getNewThreadHref = useCallback(() => '/chat/new', []);
+  const getNewThreadHref = useCallback(() => APP_ROUTES.AGENT.NEW, []);
 
   useEffect(() => {
     if (renamingThreadId) {
