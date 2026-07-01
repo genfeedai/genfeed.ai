@@ -3,59 +3,16 @@ import { describe, expect, it, vi } from 'vitest';
 // `@genfeedai/prisma` re-exports the generated PrismaClient (packages/prisma/
 // src/index.ts -> ../generated/prisma/client/client), which only exists after
 // `prisma generate` runs and is heavy to load in a unit test (real driver
-// adapter wiring). We can't use `vi.mock(..., async (importOriginal) => ...)`
-// here because `importOriginal` evaluates that same generated-client
-// re-export, which is unavailable/expensive in this environment. Instead we
-// stub `PrismaClient` and inline the real `Article` entry from
-// packages/prisma/src/enum-field-map.ts (PRISMA_MODEL_METADATA.Article) so
-// BaseService's `getModelMeta('article')` call (base.service.ts) sees genuine
-// field/enum metadata instead of throwing "no getModelMeta export".
-vi.mock('@genfeedai/prisma', () => ({
-  getModelMeta: (modelName: string) => {
-    const pascal = modelName.charAt(0).toUpperCase() + modelName.slice(1);
-    const metadata: Record<
-      string,
-      {
-        allFields: readonly string[];
-        enumFields: Readonly<
-          Record<string, { enumType: string; isRequired: boolean }>
-        >;
-      }
-    > = {
-      Article: {
-        allFields: [
-          'brand',
-          'brandId',
-          'category',
-          'content',
-          'coverImageUrl',
-          'createdAt',
-          'excerpt',
-          'id',
-          'isDeleted',
-          'mongoId',
-          'organization',
-          'organizationId',
-          'publishedAt',
-          'scope',
-          'seoBreakdown',
-          'seoScore',
-          'slug',
-          'status',
-          'title',
-          'updatedAt',
-          'user',
-          'userId',
-        ],
-        enumFields: {
-          status: { enumType: 'ArticleStatus', isRequired: true },
-        },
-      },
-    };
-    return metadata[pascal];
-  },
-  PrismaClient: class {},
-}));
+// adapter wiring). canonicalPrismaMock() spreads the real, schema-derived
+// getModelMeta/PRISMA_MODEL_METADATA (from the light @genfeedai/prisma/testing
+// subpath) so BaseService's `getModelMeta('article')` call (base.service.ts)
+// sees genuine field/enum metadata without ever importing the heavy client.
+vi.mock('@genfeedai/prisma', async () => {
+  const { canonicalPrismaMock } = await import(
+    '@api/shared/testing/prisma-mock'
+  );
+  return canonicalPrismaMock();
+});
 
 import type { CreateArticleDto } from '@api/collections/articles/dto/create-article.dto';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
