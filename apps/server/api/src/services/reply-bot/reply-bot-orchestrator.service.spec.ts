@@ -2,6 +2,7 @@ import { BotActivitiesService } from '@api/collections/bot-activities/services/b
 import { MonitoredAccountsService } from '@api/collections/monitored-accounts/services/monitored-accounts.service';
 import { ProcessedTweetsService } from '@api/collections/processed-tweets/services/processed-tweets.service';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
+import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { ConfigService } from '@api/config/config.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { RateLimitService } from '@api/services/reply-bot/rate-limit.service';
@@ -79,6 +80,26 @@ describe('ReplyBotOrchestratorService', () => {
     markAsProcessed: vi.fn(),
   };
 
+  const mockSystemWorkflowProvenanceService = {
+    runAction: vi.fn(
+      async (
+        _input: unknown,
+        action: (provenance: {
+          executionId: string;
+          workflowId: string;
+          workflowLabel: string;
+        }) => Promise<unknown>,
+      ) => {
+        const provenance = {
+          executionId: 'execution-1',
+          workflowId: 'workflow-1',
+          workflowLabel: 'Reply and DM Automation',
+        };
+        return { provenance, result: await action(provenance) };
+      },
+    ),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -111,6 +132,10 @@ describe('ReplyBotOrchestratorService', () => {
         {
           provide: ProcessedTweetsService,
           useValue: mockProcessedTweetsService,
+        },
+        {
+          provide: SystemWorkflowProvenanceService,
+          useValue: mockSystemWorkflowProvenanceService,
         },
       ],
     }).compile();

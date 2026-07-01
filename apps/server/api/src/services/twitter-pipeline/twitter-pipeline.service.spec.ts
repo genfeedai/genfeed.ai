@@ -1,4 +1,5 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
@@ -38,6 +39,26 @@ describe('TwitterPipelineService', () => {
 
   const mockCredentialsService = {
     findOne: vi.fn(),
+  };
+
+  const mockSystemWorkflowProvenanceService = {
+    runAction: vi.fn(
+      async (
+        _input: unknown,
+        action: (provenance: {
+          executionId: string;
+          workflowId: string;
+          workflowLabel: string;
+        }) => Promise<unknown>,
+      ) => {
+        const provenance = {
+          executionId: 'execution-1',
+          workflowId: 'workflow-1',
+          workflowLabel: 'Twitter Publish Action',
+        };
+        return { provenance, result: await action(provenance) };
+      },
+    ),
   };
 
   const orgId = 'test-object-id';
@@ -85,6 +106,10 @@ describe('TwitterPipelineService', () => {
           useValue: mockBotActionExecutorService,
         },
         { provide: CredentialsService, useValue: mockCredentialsService },
+        {
+          provide: SystemWorkflowProvenanceService,
+          useValue: mockSystemWorkflowProvenanceService,
+        },
       ],
     }).compile();
 
