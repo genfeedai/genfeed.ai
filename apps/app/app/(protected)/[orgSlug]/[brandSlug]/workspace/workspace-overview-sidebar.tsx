@@ -21,6 +21,7 @@ import {
   WORKSPACE_SECTION_STACK_CLASS,
 } from './workspace-task.helpers';
 import { WorkspaceTaskCard } from './workspace-task-card';
+import { WorkspaceTaskRowsSkeleton } from './workspace-task-loading';
 import { WorkspaceTaskRow } from './workspace-task-row';
 
 interface WorkspaceOverviewSidebarProps {
@@ -29,6 +30,7 @@ interface WorkspaceOverviewSidebarProps {
   initialActiveRuns: IAgentRun[];
   initialReviewInbox: ReviewInboxSummary;
   inProgressTasks: Task[];
+  isTasksLoading?: boolean;
   mutateTask: (
     taskId: string,
     operation: (service: TasksService) => Promise<Task>,
@@ -44,6 +46,7 @@ export function WorkspaceOverviewSidebar({
   initialActiveRuns,
   initialReviewInbox,
   inProgressTasks,
+  isTasksLoading = false,
   mutateTask,
   openPlanningConversation,
   replaceTaskSearchParam,
@@ -51,7 +54,9 @@ export function WorkspaceOverviewSidebar({
 }: WorkspaceOverviewSidebarProps) {
   const { href, orgHref } = useOrgUrl();
   const taskStreamContent =
-    inProgressTasks.length > 0 ? (
+    isTasksLoading && inProgressTasks.length === 0 ? (
+      <WorkspaceTaskRowsSkeleton />
+    ) : inProgressTasks.length > 0 ? (
       <div className="divide-y divide-white/[0.06]">
         {inProgressTasks.map((task) => (
           <WorkspaceTaskCard
@@ -83,7 +88,9 @@ export function WorkspaceOverviewSidebar({
     );
 
   const historyContent =
-    historyPreviewItems.length > 0 ? (
+    isTasksLoading && historyPreviewItems.length === 0 ? (
+      <WorkspaceTaskRowsSkeleton rows={3} />
+    ) : historyPreviewItems.length > 0 ? (
       <div className="divide-y divide-white/[0.06]">
         {historyPreviewItems.map((task) => (
           <WorkspaceTaskRow
@@ -106,7 +113,7 @@ export function WorkspaceOverviewSidebar({
 
   return (
     <div className={WORKSPACE_SECTION_STACK_CLASS}>
-      <section data-testid="workspace-in-progress">
+      <section aria-busy={isTasksLoading} data-testid="workspace-in-progress">
         <Card
           label="In progress"
           description="Active workspace tasks and live execution state."
@@ -167,7 +174,10 @@ export function WorkspaceOverviewSidebar({
         </Card>
       </section>
 
-      <section data-testid="workspace-history-preview">
+      <section
+        aria-busy={isTasksLoading}
+        data-testid="workspace-history-preview"
+      >
         <Card
           label="Recent activity"
           description="Execution logs stay available without owning the main navigation."

@@ -8,6 +8,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import type { Task } from '@services/management/tasks.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
+import { Skeleton } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
@@ -71,6 +72,8 @@ function WorkspacePageContentContent({
     isOverviewSection,
     isTaskComposerOpen,
     isWorkspaceRefreshing,
+    isWorkspaceRunsLoading,
+    isWorkspaceTasksLoading,
     mutateTask,
     openPlanningConversation,
     queueTasks,
@@ -151,7 +154,14 @@ function WorkspacePageContentContent({
                       ? recentInboxTasks.length
                       : queueTasks.length;
                 return {
-                  badge: (
+                  badge: isWorkspaceTasksLoading ? (
+                    <Skeleton
+                      variant="text"
+                      width={14}
+                      height={12}
+                      className="opacity-70"
+                    />
+                  ) : (
                     <span className="text-[11px] opacity-70">{count}</span>
                   ),
                   href: `/workspace/inbox/${option.id}`,
@@ -187,6 +197,8 @@ function WorkspacePageContentContent({
       {isOverviewSection ? (
         <WorkspaceDashboard
           activeRuns={initialActiveRuns}
+          isRunsLoading={isWorkspaceRunsLoading}
+          isTasksLoading={isWorkspaceTasksLoading}
           isTrendsLoading={isTrendsLoading}
           reviewInbox={initialReviewInbox}
           runs={initialRuns}
@@ -198,7 +210,10 @@ function WorkspacePageContentContent({
       ) : null}
 
       {shouldShowSectionSnapshot ? (
-        <WorkspaceSnapshotSection summaryItems={summaryItems} />
+        <WorkspaceSnapshotSection
+          isLoading={isWorkspaceTasksLoading}
+          summaryItems={summaryItems}
+        />
       ) : null}
 
       <div className={WORKSPACE_SECTION_STACK_CLASS}>
@@ -206,6 +221,7 @@ function WorkspacePageContentContent({
           {isOverviewSection ? (
             <WorkspaceTaskQueueCard
               busyTaskId={busyTaskId}
+              isLoading={isWorkspaceTasksLoading}
               items={activityItems}
               mutateTask={mutateTask}
               openPlanningConversation={openPlanningConversation}
@@ -213,7 +229,11 @@ function WorkspacePageContentContent({
           ) : null}
 
           {shouldShowInbox ? (
-            <section data-testid="workspace-inbox" className="space-y-3">
+            <section
+              aria-busy={isWorkspaceTasksLoading}
+              data-testid="workspace-inbox"
+              className="space-y-3"
+            >
               <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/35">
                 {section === 'inbox' ? defaultInboxView : 'Inbox'}
               </h2>
@@ -223,6 +243,7 @@ function WorkspacePageContentContent({
                     ? visibleInboxTasks
                     : reviewInboxTasks.slice(0, 5)
                 }
+                isLoading={isWorkspaceTasksLoading}
                 emptyLabel={
                   section === 'inbox' && defaultInboxView === 'unread'
                     ? 'No unread inbox items right now.'
@@ -240,12 +261,17 @@ function WorkspacePageContentContent({
           ) : null}
 
           {shouldShowHistory ? (
-            <section data-testid="workspace-activity" className="space-y-3">
+            <section
+              aria-busy={isWorkspaceTasksLoading}
+              data-testid="workspace-activity"
+              className="space-y-3"
+            >
               <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/35">
                 Activity
               </h2>
               <AppTable<Task>
                 items={activityItems}
+                isLoading={isWorkspaceTasksLoading}
                 emptyLabel="Activity will appear here once tasks start running."
                 getRowKey={(task) => task.id}
                 getItemId={(task) => task.id}
@@ -266,6 +292,7 @@ function WorkspacePageContentContent({
             initialActiveRuns={initialActiveRuns}
             initialReviewInbox={initialReviewInbox}
             inProgressTasks={inProgressTasks}
+            isTasksLoading={isWorkspaceTasksLoading}
             mutateTask={mutateTask}
             openPlanningConversation={openPlanningConversation}
             replaceTaskSearchParam={replaceTaskSearchParam}

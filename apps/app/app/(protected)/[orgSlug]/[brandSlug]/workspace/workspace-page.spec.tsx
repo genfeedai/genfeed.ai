@@ -293,6 +293,48 @@ describe('WorkspacePageContent', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('keeps the inbox content mounted while the first task list loads', async () => {
+    let resolveTasks: (tasks: ReturnType<typeof buildTask>[]) => void;
+    listMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveTasks = resolve;
+      }),
+    );
+
+    render(<WorkspacePageContent section="inbox" defaultInboxView="all" />);
+
+    expect(screen.getByTestId('workspace-inbox')).toHaveAttribute(
+      'aria-busy',
+      'true',
+    );
+    expect(screen.getByTestId('workspace-snapshot')).toHaveAttribute(
+      'aria-busy',
+      'true',
+    );
+    expect(screen.queryByText('No inbox items yet.')).not.toBeInTheDocument();
+
+    resolveTasks?.([
+      buildTask({
+        id: 'task-first-load',
+        reviewState: 'pending_approval',
+        status: 'needs_review',
+        title: 'Loaded after first fetch',
+      }),
+    ]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Loaded after first fetch')).toBeInTheDocument();
+    });
+    expect(screen.getByTestId('workspace-inbox')).toHaveAttribute(
+      'aria-busy',
+      'false',
+    );
+    expect(screen.getByTestId('workspace-snapshot')).toHaveAttribute(
+      'aria-busy',
+      'false',
+    );
+  });
+
   it('opens the task composer modal when the sidebar requests a new task', async () => {
     render(<WorkspacePageContent section="overview" />);
 
