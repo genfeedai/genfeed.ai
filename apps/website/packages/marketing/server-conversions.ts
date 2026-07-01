@@ -21,6 +21,10 @@ export interface ServerConversionContext {
 }
 
 export interface ServerConversionConfig {
+  linkedinAccessToken?: string;
+  linkedinApiEndpoint?: string;
+  linkedinApiVersion?: string;
+  linkedinConversionUrns?: Partial<Record<WebsiteMarketingEventName, string>>;
   metaAccessToken?: string;
   metaGraphVersion?: string;
   metaPixelId?: string;
@@ -30,6 +34,7 @@ export interface ServerConversionConfig {
 }
 
 export interface ServerConversionResult {
+  linkedin: 'configured' | 'failed' | 'skipped';
   meta: 'configured' | 'failed' | 'skipped';
   x: 'configured' | 'failed' | 'skipped';
 }
@@ -87,6 +92,32 @@ function getUserData(
   return userData;
 }
 
+function getPayloadString(
+  payload: MarketingEventPayload | undefined,
+  key: string,
+): string | null {
+  const value = payload?.[key];
+
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function isIpv4Address(value: string): boolean {
+  const parts = value.split('.');
+
+  return (
+    parts.length === 4 &&
+    parts.every((part) => {
+      if (!/^\d{1,3}$/.test(part)) {
+        return false;
+      }
+
+      const octet = Number(part);
+
+      return octet >= 0 && octet <= 255;
+    })
+  );
+}
+
 function getMetaEndpoint(config: ServerConversionConfig): string | null {
   if (!config.metaPixelId || !config.metaAccessToken) {
     return null;
@@ -97,6 +128,16 @@ function getMetaEndpoint(config: ServerConversionConfig): string | null {
   return `https://graph.facebook.com/${version}/${config.metaPixelId}/events?access_token=${encodeURIComponent(
     config.metaAccessToken,
   )}`;
+}
+
+function getLinkedinConversionUrns(): Partial<
+  Record<WebsiteMarketingEventName, string>
+> {
+  return {
+    book_call: process.env.LINKEDIN_CONVERSION_URN_BOOK_CALL,
+    lead_submit: process.env.LINKEDIN_CONVERSION_URN_LEAD_SUBMIT,
+    signup_complete: process.env.LINKEDIN_CONVERSION_URN_SIGNUP_COMPLETE,
+  };
 }
 
 function getDefaultXEventIds(): Partial<
@@ -127,10 +168,59 @@ function fetchWithTimeout(
   });
 }
 
+function getLinkedinEndpoint(config: ServerConversionConfig): string | null {
+  if (!config.linkedinAccessToken) {
+    return null;
+  }
+
+  return (
+    config.linkedinApiEndpoint ||
+    'https://api.linkedin.com/rest/conversionEvents'
+  );
+}
+
+function getLinkedinUserIds(
+  event: ServerConversionRequest,
+  context: ServerConversionContext,
+): Array<{ idType: string; idValue: string }> {
+  const userIds: Array<{ idType: string; idValue: string }> = [];
+  const email = getPayloadString(event.payload, 'email');
+  const liFatId =
+    getPayloadString(event.payload, 'liFatId') ||
+    getPayloadString(event.payload, 'li_fat_id');
+
+  if (email) {
+    userIds.push({
+      idType: 'SHA256_EMAIL',
+      idValue: sha256(email),
+    });
+  }
+
+  if (liFatId) {
+    userIds.push({
+      idType: 'LINKEDIN_FIRST_PARTY_ADS_TRACKING_UUID',
+      idValue: liFatId,
+    });
+  }
+
+  if (context.clientIp && isIpv4Address(context.clientIp)) {
+    userIds.push({
+      idType: 'PLAINTEXT_IP_ADDRESS',
+      idValue: context.clientIp,
+    });
+  }
+
+  return userIds;
+}
+
 export async function sendServerConversions(
   event: ServerConversionRequest,
   context: ServerConversionContext,
   config: ServerConversionConfig = {
+    linkedinAccessToken: process.env.LINKEDIN_CONVERSIONS_API_ACCESS_TOKEN,
+    linkedinApiEndpoint: process.env.LINKEDIN_CONVERSIONS_API_ENDPOINT,
+    linkedinApiVersion: process.env.LINKEDIN_CONVERSIONS_API_VERSION,
+    linkedinConversionUrns: getLinkedinConversionUrns(),
     metaAccessToken: process.env.META_CONVERSIONS_API_ACCESS_TOKEN,
     metaGraphVersion: process.env.META_CONVERSIONS_API_GRAPH_VERSION,
     metaPixelId: process.env.NEXT_PUBLIC_META_PIXEL_ID,
@@ -145,10 +235,12 @@ export async function sendServerConversions(
     request: Promise<Response>;
   }> = [];
   const result: ServerConversionResult = {
+    linkedin: 'skipped',
     meta: 'skipped',
     x: 'skipped',
   };
   const metaEndpoint = getMetaEndpoint(config);
+  const linkedinEndpoint = getLinkedinEndpoint(config);
 
   if (metaEndpoint) {
     result.meta = 'configured';
@@ -171,6 +263,33 @@ export async function sendServerConversions(
         method: 'POST',
       }),
     });
+  }
+
+  if (linkedinEndpoint) {
+    const linkedinConversion = config.linkedinConversionUrns?.[event.name];
+    const userIds = getLinkedinUserIds(event, context);
+
+    if (linkedinConversion && userIds.length > 0) {
+      result.linkedin = 'configured';
+      calls.push({
+        provider: 'linkedin',
+        request: fetchWithTimeout(linkedinEndpoint, {
+          body: JSON.stringify({
+            conversion: linkedinConversion,
+            conversionHappenedAt: Date.now(),
+            eventId: event.eventId,
+            user: { userIds },
+          }),
+          headers: {
+            Authorization: `Bearer ${config.linkedinAccessToken}`,
+            'Content-Type': 'application/json',
+            'Linkedin-Version': config.linkedinApiVersion || '202606',
+            'X-Restli-Protocol-Version': '2.0.0',
+          },
+          method: 'POST',
+        }),
+      });
+    }
   }
 
   if (config.xApiEndpoint && config.xBearerToken) {
