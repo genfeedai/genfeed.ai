@@ -121,10 +121,13 @@ export class WorkflowMarketplaceController {
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
-    const workflow = await this.workflowsService.findOwnedOrThrow(workflowId, {
-      organization: publicMetadata.organization,
-      user: publicMetadata.user,
-    });
+    const workflow = await this.workflowsService.findMutableOwnedOrThrow(
+      workflowId,
+      {
+        organization: publicMetadata.organization,
+        user: publicMetadata.user,
+      },
+    );
 
     // Mark workflow as public/template
     await this.workflowsService.patch(workflowId, {
@@ -209,7 +212,7 @@ export class WorkflowMarketplaceController {
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
-    await this.workflowsService.findOwnedOrThrow(workflowId, {
+    await this.workflowsService.findMutableOwnedOrThrow(workflowId, {
       organization: publicMetadata.organization,
       user: publicMetadata.user,
     });

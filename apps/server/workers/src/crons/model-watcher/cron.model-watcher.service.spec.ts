@@ -7,6 +7,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@workers/config/config.service';
 import { CronModelWatcherService } from '@workers/crons/model-watcher/cron.model-watcher.service';
 import { FalDiscoveryService } from '@workers/services/fal-discovery.service';
+import { HuggingFaceDiscoveryService } from '@workers/services/hugging-face-discovery.service';
 import { ModelDiscoveryService } from '@workers/services/model-discovery.service';
 import { ModelPricingService } from '@workers/services/model-pricing.service';
 
@@ -64,6 +65,7 @@ describe('CronModelWatcherService', () => {
             createDraftModel: vi.fn(),
             detectCategory: vi.fn().mockReturnValue(ModelCategory.IMAGE),
             fetchReplicateSchema: vi.fn(),
+            touchLastSyncedAt: vi.fn().mockResolvedValue(undefined),
           },
         },
         {
@@ -85,6 +87,12 @@ describe('CronModelWatcherService', () => {
             discoverModels: vi.fn().mockResolvedValue([]),
             getModelPricing: vi.fn().mockResolvedValue(0),
             isConfigured: vi.fn().mockReturnValue(false),
+          },
+        },
+        {
+          provide: HuggingFaceDiscoveryService,
+          useValue: {
+            discoverModels: vi.fn().mockResolvedValue([]),
           },
         },
         {

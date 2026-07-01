@@ -16,6 +16,10 @@ import {
   type OutreachCampaignDocument,
 } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
+import {
+  SYSTEM_WORKFLOW_ACTION_IDS,
+  SystemWorkflowProvenanceService,
+} from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import {
   type ReplyGenerationOptions,
@@ -28,6 +32,7 @@ import {
   CampaignStatus,
   ReplyLength,
   ReplyTone,
+  WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
 import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -54,6 +59,7 @@ export class CampaignExecutorService {
     private readonly credentialsService: CredentialsService,
     private readonly replyGenerationService: ReplyGenerationService,
     private readonly botActionExecutorService: BotActionExecutorService,
+    private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
   ) {}
 
   /**
@@ -153,12 +159,38 @@ export class CampaignExecutorService {
         };
       }
 
-      const postResult = await this.postReply(
-        campaign.platform,
-        credentialData,
-        target,
-        replyText,
-      );
+      const { result: postResult } =
+        await this.systemWorkflowProvenanceService.runAction(
+          {
+            actionType: 'campaign-reply',
+            canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.CAMPAIGN_REPLY_AUTOMATION,
+            description:
+              'Generates and posts outreach campaign replies through connected brand credentials.',
+            failureMessage: (replyResult) =>
+              replyResult.success
+                ? undefined
+                : replyResult.error || 'Campaign reply failed',
+            inputValues: {
+              campaignId: campaign._id.toString(),
+              platform: campaign.platform,
+              targetId: target._id.toString(),
+            },
+            label: 'Campaign Reply Automation',
+            organizationId: campaign.organization.toString(),
+            source: 'CampaignExecutorService.executeTarget',
+            trigger: WorkflowExecutionTrigger.SCHEDULED,
+            userId: campaign.user?.toString(),
+          },
+          () =>
+            Promise.resolve(
+              this.postReply(
+                campaign.platform,
+                credentialData,
+                target,
+                replyText,
+              ),
+            ),
+        );
 
       if (!postResult.success) {
         await this.campaignTargetsService.markAsFailed(
@@ -318,17 +350,28 @@ export class CampaignExecutorService {
       } {
     switch (this.normalizeCampaignPlatform(platform)) {
       case CampaignPlatform.TWITTER:
-        return this.botActionExecutorService.postReply(
-          credential,
-          {
-            authorId: this.asString(target.authorId) ?? '',
-            authorUsername: this.asString(target.authorUsername) ?? '',
-            createdAt: this.asDate(target.contentCreatedAt),
-            id: this.asString(target.externalId) ?? '',
-            text: this.asString(target.contentText) ?? '',
-          },
-          replyText,
-        );
+        return this.botActionExecutorService
+          .postReply(
+            credential,
+            {
+              authorId: this.asString(target.authorId) ?? '',
+              authorUsername: this.asString(target.authorUsername) ?? '',
+              createdAt: this.asDate(target.contentCreatedAt),
+              id: this.asString(target.externalId) ?? '',
+              text: this.asString(target.contentText) ?? '',
+            },
+            replyText,
+          )
+          .then((replyResult) => ({
+            error: replyResult.error,
+            success: replyResult.success,
+            tweetId:
+              replyResult.contentId ??
+              (replyResult as unknown as { tweetId?: string }).tweetId,
+            tweetUrl:
+              replyResult.contentUrl ??
+              (replyResult as unknown as { tweetUrl?: string }).tweetUrl,
+          }));
 
       case CampaignPlatform.REDDIT:
         // Reddit reply would be implemented similarly
