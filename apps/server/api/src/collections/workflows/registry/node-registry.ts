@@ -675,6 +675,47 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
     },
   },
 
+  reviewGate: {
+    category: 'control',
+    configSchema: {
+      autoApproveIfNoResponse: {
+        default: false,
+        description: 'Auto-approve if no reviewer response before timeout',
+        label: 'Auto-approve On Timeout',
+        type: 'boolean',
+      },
+      notifyChannels: {
+        description: 'Channels to notify for pending review (e.g. task-inbox)',
+        label: 'Notify Channels',
+        type: 'string',
+      },
+      requireApproval: {
+        default: true,
+        description: 'Pause execution until a reviewer approves or rejects',
+        label: 'Require Approval',
+        type: 'boolean',
+      },
+      timeoutHours: {
+        default: 24,
+        description: 'Hours to wait for reviewer response before timeout',
+        label: 'Timeout (hours)',
+        type: 'number',
+      },
+    },
+    description:
+      'Pause the workflow for human review/approval of upstream media and caption before continuing',
+    icon: 'HiOutlineClipboardDocumentCheck',
+    inputs: {
+      caption: { label: 'Caption', type: 'text' },
+      media: { label: 'Media', type: 'any' },
+    },
+    label: 'Review Gate',
+    outputs: {
+      outputCaption: { label: 'Approved Caption', type: 'text' },
+      outputMedia: { label: 'Approved Media', type: 'any' },
+    },
+  },
+
   'control-delay': {
     category: 'control',
     configSchema: {
