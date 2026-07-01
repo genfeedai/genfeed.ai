@@ -147,8 +147,6 @@ const EVENT_TYPE_TO_NODE_TYPE: Record<string, string> = {
   newLikeTrigger: 'newLikeTrigger',
   newRepost: 'newRepostTrigger',
   newRepostTrigger: 'newRepostTrigger',
-  comment: 'commentTrigger',
-  commentTrigger: 'commentTrigger',
   keyword: 'keywordTrigger',
   keywordTrigger: 'keywordTrigger',
   engagement: 'engagementTrigger',
@@ -1829,7 +1827,6 @@ export class WorkflowExecutorService {
     const NODE_TYPE_MAP: Record<string, string> = {
       'trigger-comment': 'commentTrigger',
       'trigger-mention': 'mentionTrigger',
-      'trigger-comment': 'commentTrigger',
       'trigger-new-follower': 'newFollowerTrigger',
       'trigger-new-like': 'newLikeTrigger',
       'trigger-new-repost': 'newRepostTrigger',

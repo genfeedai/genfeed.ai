@@ -9,8 +9,9 @@ import { WorkflowExecutionQueueService } from '@api/collections/workflows/servic
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
+import { PostStatus } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
+import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
 import {
   BadRequestException,
   Injectable,
@@ -77,7 +78,7 @@ export interface SocialActionInput {
   messageType?: 'dm' | 'reply';
 }
 
-export interface SocialInboxPage<T> {
+export type SocialInboxPage<T> = {
   docs: T[];
   total: number;
   totalDocs: number;
@@ -87,7 +88,7 @@ export interface SocialInboxPage<T> {
   totalPages: number;
   hasNextPage: boolean;
   hasPrevPage: boolean;
-}
+};
 
 type JsonRecord = Record<string, unknown>;
 
@@ -676,7 +677,7 @@ export class SocialInboxService {
         isConnected: true,
         isDeleted: false,
         organizationId: scope.organizationId,
-        platform: CredentialPlatform.YOUTUBE,
+        platform: PrismaCredentialPlatform.YOUTUBE,
       },
     });
   }

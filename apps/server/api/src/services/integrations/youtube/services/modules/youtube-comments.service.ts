@@ -265,7 +265,7 @@ export class YoutubeCommentsService {
         const authorChannelId =
           typeof snippet?.authorChannelId === 'object' &&
           snippet.authorChannelId
-            ? snippet.authorChannelId.value
+            ? (snippet.authorChannelId.value ?? undefined)
             : undefined;
 
         return [
