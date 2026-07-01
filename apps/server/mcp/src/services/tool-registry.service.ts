@@ -36,6 +36,16 @@ const AGENT_EXECUTOR_TOOL_NAMES: ReadonlySet<string> = new Set<string>(
   Object.values(AgentToolName),
 );
 
+const AGENT_CHAT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
+  'cancel_agent_run',
+  'create_chat',
+  'get_agent_run',
+  'get_agent_run_content',
+  'list_agent_runs',
+  'retry_agent_run',
+  'send_chat_message',
+]);
+
 /**
  * Mutating MCP tools that must NOT execute immediately — instead they persist a
  * pending approval (human-in-the-loop) and only run once approved. Names are the
@@ -148,6 +158,10 @@ export class ToolRegistryService {
    * and for executing an approved deferred action.
    */
   private async executeTool(name: string, args: Record<string, unknown>) {
+    if (AGENT_CHAT_TOOL_NAMES.has(name)) {
+      return handleAgentChatTool(this.clientService, name, args);
+    }
+
     if (AGENT_EXECUTOR_TOOL_NAMES.has(name)) {
       const result = await this.clientService.executeAgentTool(name, args);
       return this.toMcpResult(result);
@@ -721,10 +735,6 @@ export class ToolRegistryService {
       name === 'get_darkroom_job_status'
     ) {
       return handleDarkroomGenerationTool(this.clientService, name, args);
-    }
-
-    if (['create_chat', 'send_chat_message'].includes(name)) {
-      return handleAgentChatTool(this.clientService, name, args);
     }
 
     if (

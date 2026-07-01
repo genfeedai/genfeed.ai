@@ -2,7 +2,11 @@ import type { AgentToolResult } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
 import { AdsClient } from '@mcp/services/client/ads.client';
-import { AgentClient } from '@mcp/services/client/agent.client';
+import {
+  AgentClient,
+  type AgentRunListParams,
+  type AgentRunResponse,
+} from '@mcp/services/client/agent.client';
 import { AnalyticsClient } from '@mcp/services/client/analytics.client';
 import { BaseApiClient } from '@mcp/services/client/base-api-client';
 import type {
@@ -160,6 +164,22 @@ export class ClientService {
     return this.agent.attachApprovalResult(approvalId, result);
   }
 
+  listAgentRuns(params: AgentRunListParams = {}): Promise<AgentRunResponse[]> {
+    return this.agent.listAgentRuns(params);
+  }
+
+  getAgentRun(runId: string): Promise<AgentRunResponse> {
+    return this.agent.getAgentRun(runId);
+  }
+
+  getAgentRunContent(runId: string): Promise<Record<string, unknown>> {
+    return this.agent.getAgentRunContent(runId);
+  }
+
+  cancelAgentRun(runId: string): Promise<AgentRunResponse> {
+    return this.agent.cancelAgentRun(runId);
+  }
+
   // ── Media (video / image / avatar / music) ──
 
   createVideo(params: VideoCreationParams): Promise<VideoResponse> {
@@ -286,6 +306,49 @@ export class ClientService {
     message: string,
   ): Promise<Record<string, unknown>> {
     return this.workspace.sendChatMessage(threadId, message);
+  }
+
+  async retryAgentRun(
+    runId: string,
+    message?: string,
+  ): Promise<Record<string, unknown>> {
+    const run = await this.getAgentRun(runId);
+    const threadId = this.resolveAgentRunThreadId(run);
+
+    if (!threadId) {
+      throw new Error('Agent run has no persisted thread to retry');
+    }
+
+    const retryMessage =
+      message ??
+      `Retry agent run ${runId}. Continue from the prior run context and explain what changed before taking action.`;
+
+    return this.sendChatMessage(threadId, retryMessage);
+  }
+
+  private resolveAgentRunThreadId(run: AgentRunResponse): string | null {
+    const thread = run.thread;
+    if (typeof thread === 'string' && thread.length > 0) {
+      return thread;
+    }
+
+    if (thread && typeof thread === 'object') {
+      const threadRecord = thread as Record<string, unknown>;
+      const id = threadRecord.id ?? threadRecord._id;
+      if (typeof id === 'string' && id.length > 0) {
+        return id;
+      }
+    }
+
+    const metadata = run.metadata;
+    if (metadata && typeof metadata === 'object') {
+      const threadId = (metadata as Record<string, unknown>).threadId;
+      if (typeof threadId === 'string' && threadId.length > 0) {
+        return threadId;
+      }
+    }
+
+    return null;
   }
 
   // ── Workflows ──
