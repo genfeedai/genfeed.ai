@@ -87,7 +87,7 @@ const selfHostedRewrites = IS_LOCAL_APP_SHELL
   : [];
 
 const selfHostedOrgRewrites = IS_LOCAL_APP_SHELL
-  ? ['chat', 'settings'].map((segment) => ({
+  ? ['agent', 'settings'].map((segment) => ({
       destination: `/${DEFAULT_ORG}/~/${segment}/:path*`,
       source: `/${segment}/:path*`,
     }))
@@ -110,6 +110,13 @@ const config = createAppNextConfig({
       destination: '/workspace/inbox/unread',
       permanent: false,
       source: '/workspace/inbox',
+    },
+    {
+      // Cloud org/brand-scoped inbox index has no page (only [view]); redirect
+      // to the unread view so `/:org/:brand/workspace/inbox` doesn't 404.
+      destination: '/:orgSlug/:brandSlug/workspace/inbox/unread',
+      permanent: false,
+      source: '/:orgSlug/:brandSlug/workspace/inbox',
     },
     {
       destination: '/research/discovery',
@@ -142,9 +149,9 @@ const config = createAppNextConfig({
       source: '/compose',
     },
     {
-      destination: '/:orgSlug/~/chat/:path*',
+      destination: '/:orgSlug/~/agent/:path*',
       permanent: false,
-      source: '/:orgSlug/:brandSlug([^~/][^/]*)/chat/:path*',
+      source: '/:orgSlug/:brandSlug([^~/][^/]*)/agent/:path*',
     },
     {
       destination: '/studio/image',

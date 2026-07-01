@@ -263,6 +263,38 @@ describe('MenuShared', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('renders the org switcher slot at the top of the sidebar body, above the top slot and nav', () => {
+    render(
+      <MenuShared
+        config={config}
+        orgSwitcherSlot={<div data-testid="organization-switcher">Acme</div>}
+        renderTopSlot={() => <div data-testid="sidebar-top-slot">Search</div>}
+      />,
+    );
+
+    const orgSwitcher = screen.getByTestId('organization-switcher');
+    const topSlot = screen.getByTestId('sidebar-top-slot');
+    const firstMenuItem = screen.getByText('Dashboard');
+
+    expect(orgSwitcher).toBeInTheDocument();
+    expect(
+      orgSwitcher.compareDocumentPosition(topSlot) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      topSlot.compareDocumentPosition(firstMenuItem) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('omits the org switcher slot when not provided', () => {
+    render(<MenuShared config={config} />);
+
+    expect(
+      screen.queryByTestId('organization-switcher'),
+    ).not.toBeInTheDocument();
+  });
+
   it('attaches the actionable inbox count to the workspace inbox row', () => {
     const inboxConfig: MenuShellConfig = {
       items: [
@@ -421,7 +453,7 @@ describe('MenuShared', () => {
     }
   });
 
-  it('routes the conversations new chat CTA directly to /chat/new', () => {
+  it('routes the conversations new agent thread CTA directly to /agent/new', () => {
     render(
       <MenuShared
         config={config}
@@ -429,13 +461,13 @@ describe('MenuShared', () => {
       />,
     );
 
-    expect(screen.getByRole('link', { name: /New Chat/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /New Thread/i })).toHaveAttribute(
       'href',
-      '/acme/~/chat/new',
+      '/acme/~/agent/new',
     );
   });
 
-  it('does not add an extra inner horizontal gutter around the new chat row', () => {
+  it('does not add an extra inner horizontal gutter around the new agent thread row', () => {
     render(
       <MenuShared
         config={config}
@@ -444,7 +476,7 @@ describe('MenuShared', () => {
     );
 
     expect(
-      screen.getByRole('link', { name: /New Chat/i }).parentElement,
+      screen.getByRole('link', { name: /New Thread/i }).parentElement,
     ).not.toHaveClass('px-2');
   });
 
@@ -471,7 +503,7 @@ describe('MenuShared', () => {
     const primaryConfig: MenuConfig = {
       items: [
         {
-          href: '/chat',
+          href: '/agent',
           isPrimary: true,
           label: 'Chat',
         },

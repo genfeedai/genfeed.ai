@@ -5,8 +5,11 @@
 ### Layer 1: Canonical Definitions (`@genfeedai/tools`)
 
 **Directory:** `packages/tools/src/registry/`
-- `source.agent.ts` -- agent surface tool definitions
-- `source.mcp.ts` -- MCP surface tool definitions
+- `source/agent-only/*.tools.ts` -- agent-only tool definitions
+- `source/mcp-only/*.tools.ts` -- MCP-only tool definitions
+- `source/overlap.tools.ts` -- shared agent + MCP tool definitions
+- `source/brand-interview.tools.ts` -- brand interview tool definitions
+- `source/index.ts` -- concatenates the source buckets
 - `tool-registry.ts` -- merges sources, provides lookup functions
 
 **Key exports:**
@@ -25,8 +28,13 @@ toAgentTools(tools): AgentToolDefinition[]  // adapter to agent format
   description: string
   parameters: { type: 'object', properties: Record<string, unknown>, required?: string[] }
   creditCost: number
+  requiredRole: 'user' | 'admin' | 'superadmin'
+  surfaces: { agent: boolean, mcp: boolean, cliAgentVisible: boolean }
+  category: ToolCategory
 }
 ```
+
+**Operator catalog tool:** `list_genfeed_tools` is available on the agent/CLI-agent surfaces and executes in the API orchestrator by reading the live `@genfeedai/tools` catalog. Use it for questions like "what tools are available?", "what can MCP do?", or "which Genfeed capabilities exist?" It supports `surface`, `role`, `category`, `query`, `limit`, and `includeParameters`.
 
 ### Layer 2: Server Registry
 
@@ -121,8 +129,8 @@ interface AgentTypeConfig {
 | `AI_AVATAR` | 600 | anthropic/claude-sonnet-4-5-20250929 | Identity gen + video + image + voice + clips |
 | `ARTICLE_WRITER` | 500 | anthropic/claude-sonnet-4-5-20250929 | Content gen + post + schedule |
 
-**SHARED_READ_TOOLS** (18 tools, available to all agent types):
-`GET_ANALYTICS`, `GET_CREDITS_BALANCE`, `GET_TRENDS`, `LIST_BRANDS`, `LIST_POSTS`, `LIST_REVIEW_QUEUE`, `GET_CONNECTION_STATUS`, `UPDATE_STRATEGY_STATE`, `GET_APPROVAL_SUMMARY`, `ANALYZE_PERFORMANCE`, `GET_CONTENT_CALENDAR`, `capture_memory`, `create_recurring_task`, `rate_content`, `rate_ingredient`, `get_top_ingredients`, `replicate_top_ingredient`
+**SHARED_READ_TOOLS** (26 tools, available to all agent types):
+`GET_ANALYTICS`, `GET_CREDITS_BALANCE`, `GET_TRENDS`, `LIST_BRANDS`, `LIST_POSTS`, `LIST_REVIEW_QUEUE`, `GET_CONNECTION_STATUS`, `UPDATE_STRATEGY_STATE`, `GET_APPROVAL_SUMMARY`, `ANALYZE_PERFORMANCE`, `GET_CONTENT_CALENDAR`, `LIST_GENFEED_TOOLS`, `CAPTURE_MEMORY`, `CREATE_WORKFLOW`, `CREATE_LIVESTREAM_BOT`, `MANAGE_LIVESTREAM_BOT`, `LIST_ADS_RESEARCH`, `GET_AD_RESEARCH_DETAIL`, `CREATE_AD_REMIX_WORKFLOW`, `GENERATE_AD_PACK`, `PREPARE_AD_LAUNCH_REVIEW`, `RATE_CONTENT`, `SCORE_SEO`, `RATE_INGREDIENT`, `GET_TOP_INGREDIENTS`, `REPLICATE_TOP_INGREDIENT`
 
 ## Credit Costs
 

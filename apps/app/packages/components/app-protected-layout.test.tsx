@@ -615,8 +615,8 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('keeps shared shell chrome on standard chat workspace routes', async () => {
-    mockPathname.value = '/chat/new';
+  it('keeps shared shell chrome on standard agent workspace routes', async () => {
+    mockPathname.value = '/agent/new';
 
     render(
       <AppProtectedLayout>
@@ -637,8 +637,8 @@ describe('AppProtectedLayout', () => {
     expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
   });
 
-  it('renders a focused chat sidebar instead of the workspace navigation', () => {
-    mockPathname.value = '/chat/new';
+  it('renders a focused agent sidebar instead of the workspace navigation', () => {
+    mockPathname.value = '/agent/new';
 
     render(
       <AppProtectedLayout>
@@ -665,8 +665,8 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('passes conversation header actions through to the focused chat sidebar', () => {
-    mockPathname.value = '/chat/new';
+  it('passes conversation header actions through to the focused agent sidebar', () => {
+    mockPathname.value = '/agent/new';
 
     render(
       <AppProtectedLayout>
@@ -682,8 +682,8 @@ describe('AppProtectedLayout', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('marks the focused chat route as the Agent app', async () => {
-    mockPathname.value = '/chat/new';
+  it('marks the focused agent route as the Agent app', async () => {
+    mockPathname.value = '/agent/new';
 
     render(
       <AppProtectedLayout>
@@ -700,8 +700,8 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('hides sidebar and topbar chrome for focused onboarding chat routes', () => {
-    mockPathname.value = '/chat/onboarding';
+  it('hides sidebar and topbar chrome for focused onboarding agent routes', () => {
+    mockPathname.value = '/agent/onboarding';
 
     render(
       <AppProtectedLayout>
@@ -721,7 +721,7 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('mounts the embedded agent rail outside /chat routes', () => {
+  it('mounts the embedded agent rail outside /agent routes', () => {
     mockPathname.value = '/workspace';
 
     render(
@@ -823,7 +823,7 @@ describe('AppProtectedLayout', () => {
 
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        sectionLabel: 'Library',
+        sectionLabel: 'Studio',
         shellChromeVariant: 'default',
       }),
     );
@@ -856,7 +856,7 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('keeps chat-specific navigation out of the base sidebar menu items', () => {
+  it('keeps agent-specific navigation out of the base sidebar menu items', () => {
     render(
       <AppProtectedLayout>
         <div>Protected content</div>
@@ -867,7 +867,7 @@ describe('AppProtectedLayout', () => {
       expect.objectContaining({
         items: expect.not.arrayContaining([
           expect.objectContaining({
-            href: '/chat',
+            href: '/agent',
             label: 'Conversations',
           }),
         ]),

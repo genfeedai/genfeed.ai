@@ -1,4 +1,4 @@
-import type { IApiKey, IApiKeyAttributes } from '@genfeedai/interfaces';
+import type { IApiKey, IApiKeyAttributes } from '@genfeedai/interfaces/core/api-key.interface';
 import { del, get, post } from './client';
 import {
   flattenCollection,

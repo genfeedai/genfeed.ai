@@ -3,6 +3,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { requireVideoOutputPath } from '@api/collections/videos/utils/video-processing-result.util';
 import { ConfigService } from '@api/config/config.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -51,14 +52,6 @@ export class VideosResizeController {
     private readonly videosService: VideosService,
     private readonly websocketService: NotificationsPublisherService,
   ) {}
-
-  private requireOutputPath(value: unknown): string {
-    if (typeof value !== 'string' || value.length === 0) {
-      throw new Error('Video processing result missing outputPath');
-    }
-
-    return value;
-  }
 
   @Post(':videoId/resize')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -111,7 +104,7 @@ export class VideosResizeController {
       })
       .then(async (job) => {
         const result = await this.fileQueueService.waitForJob(job.jobId, 60000);
-        const output = this.requireOutputPath(result.outputPath);
+        const output = requireVideoOutputPath(result.outputPath);
         const ingredientId = String(ingredientData._id);
 
         return this.filesClientService
@@ -186,7 +179,7 @@ export class VideosResizeController {
       })
       .then(async (job) => {
         const result = await this.fileQueueService.waitForJob(job.jobId, 60000);
-        const output = this.requireOutputPath(result.outputPath);
+        const output = requireVideoOutputPath(result.outputPath);
         const meta = await this.filesClientService.uploadToS3(
           ingredientData._id,
           `videos`,

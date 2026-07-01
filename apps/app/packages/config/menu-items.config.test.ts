@@ -100,7 +100,7 @@ describe('APP_MENU_ITEMS', () => {
     expect(hrefs).not.toContain('/orchestration/workflows');
     expect(hrefs).not.toContain('/orchestration/autopilot');
     expect(hrefs).not.toContain('/orchestration/configuration');
-    expect(hrefs).not.toContain('/chat');
+    expect(hrefs).not.toContain('/agent');
     expect(hrefs).not.toContain('/posts/composer');
     expect(hrefs).not.toContain('/posts/articles');
     expect(hrefs).not.toContain('/posts/newsletters');

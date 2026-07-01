@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { Task } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
@@ -123,7 +124,9 @@ export function WorkspaceTaskInspectorBody({
             size={ButtonSize.SM}
             className="font-semibold"
           >
-            <Link href={`/chat/${linkedRunSummary.reportThreadId}`}>
+            <Link
+              href={`${APP_ROUTES.AGENT.ROOT}/${linkedRunSummary.reportThreadId}`}
+            >
               Open report thread
             </Link>
           </Button>

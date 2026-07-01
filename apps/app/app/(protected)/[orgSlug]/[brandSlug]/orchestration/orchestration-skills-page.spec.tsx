@@ -110,7 +110,7 @@ describe('OrchestrationSkillsPage', () => {
     updateSkillMock.mockResolvedValue({});
   });
 
-  it('renders the brand skill catalog and routes skill testing into /chat', async () => {
+  it('renders the brand skill catalog and routes skill testing into /agent', async () => {
     render(<OrchestrationSkillsPage />);
 
     expect(
@@ -130,11 +130,11 @@ describe('OrchestrationSkillsPage', () => {
     expect(skillButtons.length).toBeGreaterThan(0);
     expect(screen.getByText(/built in/i)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /test in chat/i }));
+    fireEvent.click(screen.getByRole('button', { name: /test with Agent/i }));
 
     await waitFor(() => {
       expect(pushMock).toHaveBeenCalledWith(
-        '/acme-org/~/chat/new?prompt=Use%20my%20YouTube%20Script%20Setup%20setup%20to%20create%20a%20small%20sample%20for%20youtube.%20Explain%20how%20the%20skill%20affects%20the%20output.',
+        '/acme-org/~/agent/new?prompt=Use%20my%20YouTube%20Script%20Setup%20setup%20to%20create%20a%20small%20sample%20for%20youtube.%20Explain%20how%20the%20skill%20affects%20the%20output.',
       );
     });
   });

@@ -8,10 +8,96 @@ import type {
   WorkflowExecutionResult,
   WorkflowListParams,
   WorkflowResponse,
+  WorkflowRunListParams,
+  WorkflowRunResponse,
+  WorkflowScheduleParams,
+  WorkflowScheduleResponse,
   WorkflowTemplate,
 } from '@mcp/shared/interfaces/workflow.interface';
 import type { BaseApiClient } from './base-api-client';
-import { CONTENT_STATUS } from './client.types';
+import { CONTENT_STATUS, type JsonApiResource } from './client.types';
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object'
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function asString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function asNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? value
+    : undefined;
+}
+
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function resourceId(resource: JsonApiResource | undefined): string {
+  const attrs = asRecord(resource?.attributes);
+  return String(resource?.id ?? attrs.id ?? attrs._id ?? '');
+}
+
+function mapWorkflowResource(
+  resource: JsonApiResource | undefined,
+): WorkflowResponse {
+  const attrs = asRecord(resource?.attributes);
+  const nodes = asArray(attrs.nodes);
+  const edges = asArray(attrs.edges);
+  const status = asString(attrs.status) ?? CONTENT_STATUS.DRAFT;
+
+  return {
+    createdAt: asString(attrs.createdAt) ?? new Date().toISOString(),
+    currentStepIndex: asNumber(attrs.currentStepIndex),
+    description: asString(attrs.description),
+    edgeCount: edges.length,
+    id: resourceId(resource),
+    inputVariables: asArray(attrs.inputVariables) as Array<
+      Record<string, unknown>
+    >,
+    isScheduleEnabled:
+      typeof attrs.isScheduleEnabled === 'boolean'
+        ? attrs.isScheduleEnabled
+        : undefined,
+    lastRunAt: asString(attrs.lastRunAt),
+    lifecycle: asString(attrs.lifecycle),
+    metadata: asRecord(attrs.metadata),
+    name: asString(attrs.name) ?? asString(attrs.label) ?? 'Untitled workflow',
+    nextRunAt: asString(attrs.nextRunAt),
+    nodeCount: nodes.length,
+    schedule: asString(attrs.schedule),
+    status: status as WorkflowResponse['status'],
+    steps: asArray(attrs.steps) as WorkflowResponse['steps'],
+    timezone: asString(attrs.timezone),
+    updatedAt: asString(attrs.updatedAt),
+  };
+}
+
+function mapWorkflowRunResource(
+  resource: JsonApiResource | undefined,
+): WorkflowRunResponse {
+  const attrs = asRecord(resource?.attributes);
+
+  return {
+    completedAt: asString(attrs.completedAt),
+    createdAt: asString(attrs.createdAt),
+    durationMs: asNumber(attrs.durationMs),
+    error: asString(attrs.error),
+    id: resourceId(resource),
+    metadata: asRecord(attrs.metadata),
+    nodeResults: asArray(attrs.nodeResults),
+    progress: asNumber(attrs.progress),
+    startedAt: asString(attrs.startedAt),
+    status: asString(attrs.status),
+    trigger: asString(attrs.trigger),
+    updatedAt: asString(attrs.updatedAt),
+    workflow: attrs.workflow,
+  };
+}
 
 /** Workflow authoring, execution, and template discovery. */
 export class WorkflowClient {
@@ -36,7 +122,7 @@ export class WorkflowClient {
           },
         });
 
-        const workflow = response.data?.data;
+        const workflow = response.data?.data ?? {};
         return {
           createdAt:
             workflow?.attributes?.createdAt || new Date().toISOString(),
@@ -92,20 +178,92 @@ export class WorkflowClient {
         const response = await http.get(`/workflows/${workflowId}`);
         const workflow = response.data?.data;
 
-        return {
-          createdAt: workflow?.attributes?.createdAt,
-          currentStepIndex: workflow?.attributes?.currentStepIndex,
-          description: workflow?.attributes?.description,
-          id: workflow?.id,
-          lastRunAt: workflow?.attributes?.lastRunAt,
-          name: workflow?.attributes?.name,
-          nextRunAt: workflow?.attributes?.nextRunAt,
-          status: workflow?.attributes?.status || CONTENT_STATUS.DRAFT,
-          steps: workflow?.attributes?.steps || [],
-          updatedAt: workflow?.attributes?.updatedAt,
-        };
+        return mapWorkflowResource(workflow);
       },
       this.base.failWith('Failed to get workflow status'),
+    );
+  }
+
+  inspectWorkflow(workflowId: string): Promise<WorkflowResponse> {
+    this.base.logger.debug(`Inspecting workflow ID: ${workflowId}`);
+
+    return this.base.request(
+      'inspecting workflow',
+      async (http) => {
+        const response = await http.get(
+          `/workflows/${encodeURIComponent(workflowId)}`,
+        );
+        return mapWorkflowResource(
+          this.base.unwrapData<JsonApiResource>(response),
+        );
+      },
+      this.base.failWithDetail('Failed to inspect workflow'),
+    );
+  }
+
+  duplicateWorkflow(workflowId: string): Promise<WorkflowResponse> {
+    this.base.logger.debug(`Duplicating workflow ID: ${workflowId}`);
+
+    return this.base.request(
+      'duplicating workflow',
+      async (http) => {
+        const response = await http.post(
+          `/workflows/${encodeURIComponent(workflowId)}/clone`,
+        );
+        return mapWorkflowResource(
+          this.base.unwrapData<JsonApiResource>(response),
+        );
+      },
+      this.base.failWithDetail('Failed to duplicate workflow'),
+    );
+  }
+
+  setWorkflowSchedule(
+    workflowId: string,
+    params: WorkflowScheduleParams,
+  ): Promise<WorkflowScheduleResponse> {
+    this.base.logger.debug(`Updating workflow schedule for ID: ${workflowId}`, {
+      params,
+    });
+
+    return this.base.request(
+      'updating workflow schedule',
+      async (http) => {
+        if (params.enabled === false && !params.schedule) {
+          const response = await http.delete(
+            `/workflows/${encodeURIComponent(workflowId)}/schedule`,
+          );
+          const data =
+            this.base.unwrapObject<Record<string, unknown>>(response);
+          return {
+            enabled: false,
+            id: String(data.id ?? workflowId),
+            message: asString(data.message),
+          };
+        }
+
+        if (!params.schedule) {
+          throw new Error('schedule is required when enabling a workflow');
+        }
+
+        const response = await http.post(
+          `/workflows/${encodeURIComponent(workflowId)}/schedule`,
+          {
+            enabled: params.enabled,
+            schedule: params.schedule,
+            timezone: params.timezone ?? 'UTC',
+          },
+        );
+        const data = this.base.unwrapObject<Record<string, unknown>>(response);
+        return {
+          enabled: params.enabled,
+          id: String(data.id ?? workflowId),
+          message: asString(data.message),
+          schedule: params.schedule,
+          timezone: params.timezone ?? 'UTC',
+        };
+      },
+      this.base.failWithDetail('Failed to update workflow schedule'),
     );
   }
 
@@ -129,21 +287,58 @@ export class WorkflowClient {
         });
 
         return (
-          response.data?.data?.map((workflow: WorkflowResource) => ({
-            createdAt: workflow.attributes?.createdAt,
-            currentStepIndex: workflow.attributes?.currentStepIndex,
-            description: workflow.attributes?.description,
-            id: workflow.id,
-            lastRunAt: workflow.attributes?.lastRunAt,
-            name: workflow.attributes?.name,
-            nextRunAt: workflow.attributes?.nextRunAt,
-            status: workflow.attributes?.status || CONTENT_STATUS.DRAFT,
-            steps: workflow.attributes?.steps || [],
-            updatedAt: workflow.attributes?.updatedAt,
-          })) || []
+          response.data?.data?.map((workflow: WorkflowResource) =>
+            mapWorkflowResource(workflow),
+          ) || []
         );
       },
       this.base.failWith('Failed to list workflows'),
+    );
+  }
+
+  listWorkflowRuns(
+    params: WorkflowRunListParams = {},
+  ): Promise<WorkflowRunResponse[]> {
+    this.base.logger.debug('Listing workflow runs', { params });
+
+    return this.base.request(
+      'listing workflow runs',
+      async (http) => {
+        const queryParams: Record<string, string | number> = {
+          limit: params.limit ?? 20,
+          offset: params.offset ?? 0,
+        };
+
+        if (params.workflowId) queryParams.workflow = params.workflowId;
+        if (params.status) queryParams.status = params.status;
+        if (params.trigger) queryParams.trigger = params.trigger;
+
+        const response = await http.get('/workflow-executions', {
+          params: queryParams,
+        });
+
+        return this.base
+          .unwrapList<JsonApiResource>(response)
+          .map(mapWorkflowRunResource);
+      },
+      this.base.failWithDetail('Failed to list workflow runs'),
+    );
+  }
+
+  getWorkflowRun(runId: string): Promise<WorkflowRunResponse> {
+    this.base.logger.debug(`Getting workflow run ID: ${runId}`);
+
+    return this.base.request(
+      'getting workflow run',
+      async (http) => {
+        const response = await http.get(
+          `/workflow-executions/${encodeURIComponent(runId)}`,
+        );
+        return mapWorkflowRunResource(
+          this.base.unwrapData<JsonApiResource>(response),
+        );
+      },
+      this.base.failWithDetail('Failed to get workflow run'),
     );
   }
 

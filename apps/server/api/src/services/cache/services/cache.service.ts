@@ -22,12 +22,19 @@ export class CacheService {
     return this.cacheClientService.instance;
   }
 
+  private logOperationError(
+    operation: string,
+    details: Parameters<LoggerService['error']>[1],
+  ): void {
+    this.logger.error(`${this.constructorName} ${operation} error`, details);
+  }
+
   async get<T = unknown>(key: string): Promise<T | null> {
     try {
       const value = await this.client.get(key);
       return value === null ? null : (JSON.parse(value) as T);
     } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} get error`, { error, key });
+      this.logOperationError('get', { error, key });
       return null;
     }
   }
@@ -45,7 +52,7 @@ export class CacheService {
       await this.cacheTagsService.setTags(key, options.tags ?? []);
       return true;
     } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} set error`, { error, key });
+      this.logOperationError('set', { error, key });
       return false;
     }
   }
@@ -54,7 +61,7 @@ export class CacheService {
     try {
       return (await this.client.del(key)) > 0;
     } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} del error`, { error, key });
+      this.logOperationError('del', { error, key });
       return false;
     }
   }
@@ -63,7 +70,7 @@ export class CacheService {
     try {
       return (await this.client.exists(key)) === 1;
     } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} exists error`, { error, key });
+      this.logOperationError('exists', { error, key });
       return false;
     }
   }
@@ -72,7 +79,7 @@ export class CacheService {
     try {
       return await this.client.incrBy(key, by);
     } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} incr error`, {
+      this.logOperationError('incr', {
         by,
         error,
         key,
@@ -85,7 +92,7 @@ export class CacheService {
     try {
       return (await this.client.expire(key, ttl)) === 1;
     } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} expire error`, {
+      this.logOperationError('expire', {
         error,
         key,
         ttl,
@@ -99,7 +106,7 @@ export class CacheService {
       const values = await this.client.mGet(keys);
       return values.map((value) => (value ? (JSON.parse(value) as T) : null));
     } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} mget error`, { error, keys });
+      this.logOperationError('mget', { error, keys });
       return keys.map(() => null);
     }
   }
@@ -123,7 +130,7 @@ export class CacheService {
       await pipeline.exec();
       return true;
     } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} mset error`, {
+      this.logOperationError('mset', {
         error,
         keyValues,
       });
@@ -150,7 +157,7 @@ export class CacheService {
       await this.set(key, value, options);
       return value;
     } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} getOrSet error`, {
+      this.logOperationError('getOrSet', {
         error,
         key,
       });
@@ -211,7 +218,7 @@ export class CacheService {
       this.logger.warn(`${this.constructorName} cache flushed`);
       return true;
     } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} flush error`, error);
+      this.logOperationError('flush', error);
       return false;
     }
   }
@@ -240,7 +247,7 @@ export class CacheService {
       });
       return result === 'OK';
     } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} acquireLock error`, {
+      this.logOperationError('acquireLock', {
         error,
         lockKey,
       });
@@ -258,7 +265,7 @@ export class CacheService {
       const key = `lock:${lockKey}`;
       return (await this.client.del(key)) > 0;
     } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} releaseLock error`, {
+      this.logOperationError('releaseLock', {
         error,
         lockKey,
       });

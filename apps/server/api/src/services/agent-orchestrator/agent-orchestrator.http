@@ -1,0 +1,63 @@
+### Genfeed API - Agent Orchestrator Endpoints
+### Starts agent turns and exposes agent account-level resources.
+
+########################################
+# Agent Turns
+########################################
+
+### Start Agent Turn In New Thread
+POST {{apiBaseUrl}}/agent/threads/turns
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "content": "Plan my next content sprint.",
+  "source": "agent"
+}
+
+
+### Start Agent Turn In Existing Thread
+POST {{apiBaseUrl}}/agent/threads/{{testAgentThreadId}}/turns
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "content": "Continue from the last plan.",
+  "source": "agent"
+}
+
+
+### Start Streaming Agent Turn In New Thread
+POST {{apiBaseUrl}}/agent/threads/turns/stream
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "content": "Generate a content plan for this week.",
+  "source": "agent"
+}
+
+
+### Start Streaming Agent Turn In Existing Thread
+POST {{apiBaseUrl}}/agent/threads/{{testAgentThreadId}}/turns/stream
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "content": "Turn this into tasks.",
+  "source": "agent"
+}
+
+
+########################################
+# Agent Resources
+########################################
+
+### Get Agent Credits
+GET {{apiBaseUrl}}/agent/credits
+Authorization: Bearer {{bearerToken}}
+
+
+### List Agent Goals
+GET {{apiBaseUrl}}/agent/goals
+Authorization: Bearer {{bearerToken}}

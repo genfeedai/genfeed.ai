@@ -20,11 +20,7 @@ describe('SocialAdapterFactory', () => {
 
     instagramAdapter = {
       createDmSender: vi.fn(),
-      createFollowerChecker: vi.fn(),
-      createLikeChecker: vi.fn(),
-      createMentionChecker: vi.fn(),
       createReplyPublisher: vi.fn(),
-      createRepostChecker: vi.fn(),
     } as unknown as InstagramSocialAdapter;
 
     factory = new SocialAdapterFactory(twitterAdapter, instagramAdapter);

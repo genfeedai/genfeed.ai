@@ -21,6 +21,7 @@ import { handleDarkroomGenerationTool } from '@mcp/tools/darkroom-generation.too
 import { handleGoogleAdsTool } from '@mcp/tools/google-ads.tool';
 import { handleMetaAdsTool } from '@mcp/tools/meta-ads.tool';
 import { handleTrainingPipelineTool } from '@mcp/tools/training-pipeline.tool';
+import { handleWorkflowControlTool } from '@mcp/tools/workflow-control.tool';
 import { Injectable, Optional } from '@nestjs/common';
 
 interface ToolCallParams {
@@ -35,6 +36,24 @@ interface ResourceReadParams {
 const AGENT_EXECUTOR_TOOL_NAMES: ReadonlySet<string> = new Set<string>(
   Object.values(AgentToolName),
 );
+
+const AGENT_CHAT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
+  'cancel_agent_run',
+  'create_chat',
+  'get_agent_run',
+  'get_agent_run_content',
+  'list_agent_runs',
+  'retry_agent_run',
+  'send_chat_message',
+]);
+
+const WORKFLOW_CONTROL_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
+  'duplicate_workflow',
+  'get_workflow_run',
+  'inspect_workflow',
+  'list_workflow_runs',
+  'set_workflow_schedule',
+]);
 
 /**
  * Mutating MCP tools that must NOT execute immediately — instead they persist a
@@ -148,6 +167,14 @@ export class ToolRegistryService {
    * and for executing an approved deferred action.
    */
   private async executeTool(name: string, args: Record<string, unknown>) {
+    if (AGENT_CHAT_TOOL_NAMES.has(name)) {
+      return handleAgentChatTool(this.clientService, name, args);
+    }
+
+    if (WORKFLOW_CONTROL_TOOL_NAMES.has(name)) {
+      return handleWorkflowControlTool(this.clientService, name, args);
+    }
+
     if (AGENT_EXECUTOR_TOOL_NAMES.has(name)) {
       const result = await this.clientService.executeAgentTool(name, args);
       return this.toMcpResult(result);
@@ -721,10 +748,6 @@ export class ToolRegistryService {
       name === 'get_darkroom_job_status'
     ) {
       return handleDarkroomGenerationTool(this.clientService, name, args);
-    }
-
-    if (['create_chat', 'send_chat_message'].includes(name)) {
-      return handleAgentChatTool(this.clientService, name, args);
     }
 
     if (

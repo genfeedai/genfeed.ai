@@ -10,10 +10,20 @@
     "noEmit": true,
     "outDir": "dist",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@genfeedai/constants": ["../constants/src/index.ts"],
+      "@genfeedai/constants/*": ["../constants/src/*"],
+      "@genfeedai/enums": ["../enums/src/index.ts"],
+      "@genfeedai/enums/*": ["../enums/src/*"],
+      "@genfeedai/errors": ["../errors/src/index.ts"],
+      "@genfeedai/helpers": ["../helpers/src/index.ts"],
+      "@genfeedai/helpers/*": ["../helpers/src/*"],
+      "@genfeedai/interfaces/*": ["../interfaces/src/*"],
+      "@genfeedai/serializers": ["../helpers/src/deserializer/index.ts"],
+      "@genfeedai/tools": ["../tools/src/index.ts"]
     },
     "resolveJsonModule": true,
-    "rootDir": "src",
+    "rootDir": "..",
     "skipLibCheck": true,
     "strict": true,
     "target": "es2022",

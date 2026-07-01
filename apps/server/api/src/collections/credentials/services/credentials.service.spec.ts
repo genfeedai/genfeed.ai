@@ -1,61 +1,12 @@
-// `@genfeedai/prisma` re-exports the generated PrismaClient, unavailable/heavy
-// in unit tests (see font-families.service.spec.ts for full rationale). Stub
-// `PrismaClient` and inline the real `Credential` entry from
-// packages/prisma/src/enum-field-map.ts (PRISMA_MODEL_METADATA.Credential) so
-// BaseService's `getModelMeta('credential')` call sees genuine field metadata.
-vi.mock('@genfeedai/prisma', () => ({
-  getModelMeta: (modelName: string) => {
-    const pascal = modelName.charAt(0).toUpperCase() + modelName.slice(1);
-    const metadata: Record<
-      string,
-      {
-        allFields: readonly string[];
-        enumFields: Readonly<
-          Record<string, { enumType: string; isRequired: boolean }>
-        >;
-      }
-    > = {
-      Credential: {
-        allFields: [
-          'accessToken',
-          'accessTokenExpiry',
-          'accessTokenSecret',
-          'brand',
-          'brandId',
-          'createdAt',
-          'description',
-          'externalAvatar',
-          'externalHandle',
-          'externalId',
-          'externalName',
-          'id',
-          'isConnected',
-          'isDeleted',
-          'label',
-          'mongoId',
-          'oauthState',
-          'oauthToken',
-          'oauthTokenHash',
-          'oauthTokenSecret',
-          'organization',
-          'organizationId',
-          'platform',
-          'refreshToken',
-          'refreshTokenExpiry',
-          'updatedAt',
-          'user',
-          'userId',
-          'username',
-        ],
-        enumFields: {
-          platform: { enumType: 'CredentialPlatform', isRequired: true },
-        },
-      },
-    };
-    return metadata[pascal];
-  },
-  PrismaClient: class {},
-}));
+// Real, schema-derived getModelMeta/PRISMA_MODEL_METADATA.Credential via the
+// light @genfeedai/prisma/testing subpath — no heavy PrismaClient/runtime
+// import required for BaseService's getModelMeta('credential') call.
+vi.mock('@genfeedai/prisma', async () => {
+  const { canonicalPrismaMock } = await import(
+    '@api/shared/testing/prisma-mock'
+  );
+  return canonicalPrismaMock();
+});
 
 import process from 'node:process';
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
@@ -178,7 +129,11 @@ describe('CredentialsService', () => {
 
       // oauthState is a callback lookup key — must remain plaintext.
       expect(data.oauthState).toBe('state-lookup-key');
-      expect(data.platform).toBe('twitter');
+      // BaseService normalizes enum scalars app-form → Prisma-form at the write
+      // boundary (CredentialPlatform 'twitter' → schema enum 'TWITTER'), so the
+      // value persisted to the enum column is upper-case. Encryption still leaves
+      // this non-secret field otherwise untouched.
+      expect(data.platform).toBe('TWITTER');
       expect(data.isConnected).toBe(true);
     });
 

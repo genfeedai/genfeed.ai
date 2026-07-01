@@ -9,8 +9,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const useAuthMock = vi.fn();
 const useAuthedServiceMock = vi.fn();
 
-vi.mock('@genfeedai/auth-client/react', () => ({
-  useAuth: () => useAuthMock(),
+vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => useAuthMock(),
 }));
 
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({

@@ -1,9 +1,12 @@
 vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
   PrismaService: class {},
 }));
-vi.mock('@genfeedai/prisma', () => ({
-  PrismaClient: class {},
-}));
+vi.mock('@genfeedai/prisma', async () => {
+  const { canonicalPrismaMock } = await import(
+    '@api/shared/testing/prisma-mock'
+  );
+  return canonicalPrismaMock();
+});
 vi.mock(
   '@api/collections/agent-threads/services/agent-threads.service',
   () => ({

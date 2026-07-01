@@ -119,14 +119,14 @@ describe('AgentPanelShell', () => {
   it('calls onExpand when expand button clicked', () => {
     const onExpand = vi.fn();
     render(<AgentPanelShell {...defaultProps} onExpand={onExpand} />);
-    fireEvent.click(screen.getByLabelText('Open full chat workspace'));
+    fireEvent.click(screen.getByLabelText('Open full agent workspace'));
     expect(onExpand).toHaveBeenCalledTimes(1);
   });
 
   it('does not render expand button when onExpand not provided', () => {
     render(<AgentPanelShell {...defaultProps} />);
     expect(
-      screen.queryByLabelText('Open full chat workspace'),
+      screen.queryByLabelText('Open full agent workspace'),
     ).not.toBeInTheDocument();
   });
 

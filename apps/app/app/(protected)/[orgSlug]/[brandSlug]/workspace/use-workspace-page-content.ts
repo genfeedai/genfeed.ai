@@ -1,6 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import type { IAgentRun, IAnalytics } from '@genfeedai/interfaces';
 import type { AgentRunStats } from '@genfeedai/types';
@@ -78,6 +79,10 @@ export function useWorkspacePageContent({
   const [agentStats, setAgentStats] = useState<AgentRunStats | null>(
     initialStats,
   );
+  const [isWorkspaceRunsLoading, setWorkspaceRunsLoading] = useState(
+    section === 'overview',
+  );
+  const [isWorkspaceTasksLoading, setWorkspaceTasksLoading] = useState(true);
   const [workspaceTasks, setWorkspaceTasks] = useState<Task[]>([]);
 
   const reviewInboxTasks = useMemo(
@@ -237,17 +242,28 @@ export function useWorkspacePageContent({
 
   useEffect(() => {
     const controller = new AbortController();
+    setWorkspaceTasksLoading(true);
 
     const loadWorkspaceTasks = async () => {
-      const token = await resolveAuthToken(getToken);
-      if (!token || controller.signal.aborted) {
-        return;
-      }
+      try {
+        const token = await resolveAuthToken(getToken);
+        if (!token || controller.signal.aborted) {
+          return;
+        }
 
-      const service = TasksService.getInstance(token);
-      const tasks = await service.list({});
-      if (!controller.signal.aborted) {
-        setWorkspaceTasks(tasks);
+        const service = TasksService.getInstance(token);
+        const tasks = await service.list({});
+        if (!controller.signal.aborted) {
+          setWorkspaceTasks(tasks);
+        }
+      } catch {
+        if (!controller.signal.aborted) {
+          setWorkspaceTasks([]);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setWorkspaceTasksLoading(false);
+        }
       }
     };
 
@@ -260,40 +276,50 @@ export function useWorkspacePageContent({
 
   useEffect(() => {
     if (section !== 'overview') {
+      setWorkspaceRunsLoading(false);
       return;
     }
 
     let isMounted = true;
+    setWorkspaceRunsLoading(true);
 
     const loadWorkspaceRuns = async () => {
-      const token = await resolveAuthToken(getToken);
-      if (!token || !isMounted) {
-        return;
+      try {
+        const token = await resolveAuthToken(getToken);
+        if (!token || !isMounted) {
+          return;
+        }
+
+        const service = AgentRunsService.getInstance(token);
+        const [runsResult, activeRunsResult, statsResult] =
+          await Promise.allSettled([
+            service.list({ page: 1 }),
+            service.getActive(),
+            service.getStats(),
+          ]);
+
+        if (!isMounted) {
+          return;
+        }
+
+        startTransition(() => {
+          if (runsResult.status === 'fulfilled') {
+            setAgentRuns(runsResult.value);
+          }
+          if (activeRunsResult.status === 'fulfilled') {
+            setActiveRuns(activeRunsResult.value);
+          }
+          if (statsResult.status === 'fulfilled') {
+            setAgentStats(statsResult.value);
+          }
+        });
+      } catch {
+        // Keep the dashboard shell mounted; empty run state already renders safely.
+      } finally {
+        if (isMounted) {
+          setWorkspaceRunsLoading(false);
+        }
       }
-
-      const service = AgentRunsService.getInstance(token);
-      const [runsResult, activeRunsResult, statsResult] =
-        await Promise.allSettled([
-          service.list({ page: 1 }),
-          service.getActive(),
-          service.getStats(),
-        ]);
-
-      if (!isMounted) {
-        return;
-      }
-
-      startTransition(() => {
-        if (runsResult.status === 'fulfilled') {
-          setAgentRuns(runsResult.value);
-        }
-        if (activeRunsResult.status === 'fulfilled') {
-          setActiveRuns(activeRunsResult.value);
-        }
-        if (statsResult.status === 'fulfilled') {
-          setAgentStats(statsResult.value);
-        }
-      });
     };
 
     void loadWorkspaceRuns();
@@ -419,7 +445,7 @@ export function useWorkspacePageContent({
         );
       });
 
-      push(`/chat/${planningThread.threadId}`);
+      push(`${APP_ROUTES.AGENT.ROOT}/${planningThread.threadId}`);
     } catch (error) {
       setWorkspaceActionError(
         error instanceof Error
@@ -453,6 +479,8 @@ export function useWorkspacePageContent({
     isOverviewSection,
     isTaskComposerOpen,
     isWorkspaceRefreshing,
+    isWorkspaceRunsLoading,
+    isWorkspaceTasksLoading,
     mutateTask,
     openPlanningConversation,
     queueTasks,

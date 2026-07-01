@@ -5,6 +5,7 @@ import {
   DEFAULT_BRAND_ASSET_DATA,
   DEFAULT_BRAND_CONTEXT_DATA,
   DEFAULT_BRAND_DATA,
+  DEFAULT_COMMENT_TRIGGER_DATA,
   DEFAULT_CONDITION_DATA,
   DEFAULT_DELAY_DATA,
   DEFAULT_ENGAGEMENT_TRIGGER_DATA,
@@ -50,6 +51,7 @@ export type SaaSNodeType =
   | 'brandAsset'
   | 'brandContext'
   | 'patternContext'
+  | 'commentTrigger'
   // control flow
   | 'condition'
   | 'delay'
@@ -165,6 +167,24 @@ export const SAAS_NODE_DEFINITIONS: Record<SaaSNodeType, SaaSNodeDefinition> = {
       { id: 'models', label: 'Default Models', type: 'text' },
     ],
     type: 'brandContext',
+  },
+  commentTrigger: {
+    category: 'automation',
+    defaultData: DEFAULT_COMMENT_TRIGGER_DATA as Record<string, unknown>,
+    description: 'Start workflow when a social comment is detected',
+    icon: 'MessageCircle',
+    inputs: [],
+    label: 'Comment Trigger',
+    outputs: [
+      { id: 'commentId', label: 'Comment ID', type: 'text' },
+      { id: 'contentId', label: 'Content ID', type: 'text' },
+      { id: 'contentUrl', label: 'Content URL', type: 'text' },
+      { id: 'text', label: 'Comment Text', type: 'text' },
+      { id: 'authorId', label: 'Author ID', type: 'text' },
+      { id: 'authorUsername', label: 'Author Username', type: 'text' },
+      { id: 'platform', label: 'Platform', type: 'text' },
+    ],
+    type: 'commentTrigger',
   },
   condition: {
     category: 'processing',

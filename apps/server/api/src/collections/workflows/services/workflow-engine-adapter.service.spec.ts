@@ -1027,6 +1027,11 @@ describe('WorkflowEngineAdapterService', () => {
             id: 'n4',
             type: 'trigger-new-repost',
           },
+          {
+            data: { config: {} },
+            id: 'n5',
+            type: 'trigger-comment',
+          },
         ],
         organization: { toString: () => 'org-1' },
         user: { toString: () => 'user-1' },
@@ -1038,6 +1043,7 @@ describe('WorkflowEngineAdapterService', () => {
       expect(result.nodes[1].type).toBe('newFollowerTrigger');
       expect(result.nodes[2].type).toBe('newLikeTrigger');
       expect(result.nodes[3].type).toBe('newRepostTrigger');
+      expect(result.nodes[4].type).toBe('commentTrigger');
     });
 
     it('should map control nodes', () => {

@@ -25,6 +25,7 @@ const EXPECTED_TOOL_NAMES = [
   'analyze_performance',
   'batch_approve_reject',
   'benchmark_ad_performance',
+  'cancel_agent_run',
   'capture_memory',
   'check_goal_progress',
   'check_onboarding_status',
@@ -45,6 +46,7 @@ const EXPECTED_TOOL_NAMES = [
   'delete_dataset',
   'discover_engagements',
   'draft_engagement_reply',
+  'duplicate_workflow',
   'execute_workflow',
   'generate_ad_variations',
   'generate_as_identity',
@@ -63,6 +65,8 @@ const EXPECTED_TOOL_NAMES = [
   'generate_voice',
   'get_account_info',
   'get_ad_performance_insights',
+  'get_agent_run',
+  'get_agent_run_content',
   'get_analytics',
   'get_approval_summary',
   'get_article',
@@ -94,11 +98,15 @@ const EXPECTED_TOOL_NAMES = [
   'get_usage_stats',
   'get_video_analytics',
   'get_video_status',
+  'get_workflow_run',
   'get_workflow_status',
   'initiate_oauth_connect',
+  'inspect_workflow',
   'install_official_workflow',
+  'list_agent_runs',
   'list_avatars',
   'list_brands',
+  'list_genfeed_tools',
   'list_google_ads_campaigns',
   'list_google_ads_customers',
   'list_gpu_personas',
@@ -111,6 +119,7 @@ const EXPECTED_TOOL_NAMES = [
   'list_posts',
   'list_review_queue',
   'list_videos',
+  'list_workflow_runs',
   'list_workflow_templates',
   'list_workflows',
   'manage_livestream_bot',
@@ -129,12 +138,14 @@ const EXPECTED_TOOL_NAMES = [
   'request_asset',
   'resolve_approval',
   'resolve_handle',
+  'retry_agent_run',
   'run_captioning',
   'schedule_post',
   'score_seo',
   'search_articles',
   'select_ingredient',
   'send_chat_message',
+  'set_workflow_schedule',
   'skip_brand_interview_question',
   'spawn_content_agent',
   'start_brand_interview',
@@ -166,7 +177,7 @@ function countLines(filePath: string): number {
 }
 
 describe('SOURCE_TOOLS registry split (#692)', () => {
-  it('exposes exactly 125 tool definitions', () => {
+  it('exposes exactly the canonical tool definitions', () => {
     expect(SOURCE_TOOLS).toHaveLength(EXPECTED_TOOL_NAMES.length);
   });
 
@@ -190,9 +201,9 @@ describe('SOURCE_TOOLS registry split (#692)', () => {
   });
 
   it('partitions tools by their declared surface', () => {
-    expect(OVERLAP_TOOLS).toHaveLength(11);
-    expect(AGENT_ONLY_TOOLS).toHaveLength(55);
-    expect(MCP_ONLY_TOOLS).toHaveLength(55);
+    expect(OVERLAP_TOOLS).toHaveLength(16);
+    expect(AGENT_ONLY_TOOLS).toHaveLength(56);
+    expect(MCP_ONLY_TOOLS).toHaveLength(60);
     expect(BRAND_INTERVIEW_TOOLS).toHaveLength(4);
     expect(
       OVERLAP_TOOLS.every((tool) => tool.surfaces.agent && tool.surfaces.mcp),
@@ -204,6 +215,11 @@ describe('SOURCE_TOOLS registry split (#692)', () => {
     ).toBe(true);
     expect(
       MCP_ONLY_TOOLS.every((tool) => !tool.surfaces.agent && tool.surfaces.mcp),
+    ).toBe(true);
+    expect(
+      BRAND_INTERVIEW_TOOLS.every(
+        (tool) => tool.surfaces.agent && tool.surfaces.mcp,
+      ),
     ).toBe(true);
   });
 

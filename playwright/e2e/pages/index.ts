@@ -5,10 +5,10 @@
  */
 
 export { AdminPage } from './admin.page';
+export { AgentPage } from './agent.page';
 export { AnalyticsPage } from './analytics.page';
 export { BrandsPage } from './brands.page';
 export { CalendarPage } from './calendar.page';
-export { ChatPage } from './chat.page';
 export { ComposePage } from './compose.page';
 export { DashboardPage } from './dashboard.page';
 export { LoginPage } from './login.page';

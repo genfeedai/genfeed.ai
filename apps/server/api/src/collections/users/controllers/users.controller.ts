@@ -442,7 +442,11 @@ export class UsersController {
       await this.invalidateUserAccessCaches(publicMetadata.user);
     }
 
-    // Persist last-used brand on the member for org-switch recall
+    // Persist last-used brand on the member for org-switch recall.
+    // Use the canonical cuid `data.id`, NOT `data._id` — normalizeDocument sets
+    // `_id = mongoId ?? id`, so for any brand carrying a legacy mongoId, `_id`
+    // is that mongoId and writing it into member.lastUsedBrandId (an FK to
+    // Brand.id) fails with P2003 "Invalid Relationship" and blocks brand switch.
     await this.membersService.setLastUsedBrand(
       {
         isActive: true,
@@ -450,7 +454,7 @@ export class UsersController {
         organization: publicMetadata.organization,
         user: publicMetadata.user,
       },
-      data._id,
+      data.id,
     );
 
     return serializeSingle(request, BrandSerializer, data);

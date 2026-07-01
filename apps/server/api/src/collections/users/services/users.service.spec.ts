@@ -1,10 +1,13 @@
-vi.mock('@genfeedai/prisma', () => ({
-  PrismaClient: class {},
-  getModelMeta: () => ({
-    allFields: ['id', 'isDeleted'],
-    enumFields: {},
-  }),
-}));
+// UsersService.findAll's select-projection logic doesn't read getModelMeta's
+// field/enum contents for these assertions — only PrismaClient is exercised.
+// Real, schema-derived getModelMeta/PRISMA_MODEL_METADATA.User via the light
+// @genfeedai/prisma/testing subpath replaces the placeholder above.
+vi.mock('@genfeedai/prisma', async () => {
+  const { canonicalPrismaMock } = await import(
+    '@api/shared/testing/prisma-mock'
+  );
+  return canonicalPrismaMock();
+});
 
 import { UsersService } from '@api/collections/users/services/users.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';

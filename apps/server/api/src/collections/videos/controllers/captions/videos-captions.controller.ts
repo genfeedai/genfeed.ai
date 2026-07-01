@@ -6,6 +6,7 @@ import { MetadataEntity } from '@api/collections/metadata/entities/metadata.enti
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { CreateVideoWithCaptionsDto } from '@api/collections/videos/dto/create-video.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { requireVideoOutputPath } from '@api/collections/videos/utils/video-processing-result.util';
 import { ConfigService } from '@api/config/config.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -82,14 +83,6 @@ export class VideosCaptionsController {
     private readonly videosService: VideosService,
     private readonly websocketService: NotificationsPublisherService,
   ) {}
-
-  private requireOutputPath(value: unknown): string {
-    if (typeof value !== 'string' || value.length === 0) {
-      throw new Error('Video processing result missing outputPath');
-    }
-
-    return value;
-  }
 
   @Get(':videoId/captions')
   @Cache({
@@ -201,7 +194,7 @@ export class VideosCaptionsController {
       })
       .then(async (job) => {
         const result = await this.fileQueueService.waitForJob(job.jobId, 60000);
-        const output = this.requireOutputPath(result.outputPath);
+        const output = requireVideoOutputPath(result.outputPath);
         const ingredientId = String(ingredientData._id);
 
         this.filesClientService

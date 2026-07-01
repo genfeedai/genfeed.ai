@@ -1,0 +1,47 @@
+### Genfeed API - Agent Thread Runtime Endpoints
+### Canonical namespace: /agent/threads.
+
+########################################
+# Thread Runtime State
+########################################
+
+### Get Thread Snapshot
+GET {{apiBaseUrl}}/agent/threads/{{testAgentThreadId}}/snapshot
+Authorization: Bearer {{bearerToken}}
+
+
+### List Thread Events
+GET {{apiBaseUrl}}/agent/threads/{{testAgentThreadId}}/events?afterSequence=0
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Thread Interactions
+########################################
+
+### Respond To Pending Input Request
+POST {{apiBaseUrl}}/agent/threads/{{testAgentThreadId}}/input-requests/{{testAgentInputRequestId}}/responses
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "answer": "Use the recommended option."
+}
+
+
+### Respond To UI Action
+POST {{apiBaseUrl}}/agent/threads/{{testAgentThreadId}}/ui-actions
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "action": "confirm_install_official_workflow",
+  "payload": {
+    "sourceId": "{{testWorkflowTemplateId}}"
+  }
+}
+
+
+### Branch Thread
+POST {{apiBaseUrl}}/agent/threads/{{testAgentThreadId}}/branches
+Authorization: Bearer {{bearerToken}}

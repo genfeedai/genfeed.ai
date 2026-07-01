@@ -94,6 +94,25 @@ describe('PostReplyExecutor', () => {
     expect(result.data).toMatchObject({ success: true });
   });
 
+  it('uses input values when config defaults are empty strings', async () => {
+    const input = makeInput(
+      { platform: 'twitter', postId: '', text: '' },
+      {
+        postId: 'tweet-from-edge',
+        text: 'From edge',
+      },
+    );
+
+    await executor.execute(input);
+
+    expect(mockPublisher).toHaveBeenCalledWith(
+      expect.objectContaining({
+        postId: 'tweet-from-edge',
+        text: 'From edge',
+      }),
+    );
+  });
+
   it('throws if postId missing', async () => {
     const input = makeInput({ platform: 'twitter', text: 'hello' });
     await expect(executor.execute(input)).rejects.toThrow(
@@ -125,7 +144,7 @@ describe('PostReplyExecutor', () => {
 
   it('validates valid platform', () => {
     const node: ExecutableNode = {
-      config: { platform: 'twitter' },
+      config: { platform: 'youtube' },
       id: 'r1',
       inputs: [],
       label: 'Reply',

@@ -77,6 +77,21 @@ export class BetterAuthIdentityResolverService {
       members,
       lastUsedOrganizationId,
     );
+
+    // A user with active membership rows must resolve to SOME organization.
+    // Silently returning `organizationId: undefined` here let every
+    // downstream `{ organization: publicMetadata.organization }` OR-branch
+    // (images/videos/gifs/agent-* controllers) collapse to `{}` and get
+    // dropped by BaseService.normalizeWhere's empty-entry filter — silently
+    // narrowing list queries to self-created records only (200 OK, 0 results)
+    // instead of surfacing the real problem: an orphaned/inaccessible
+    // organization for a live membership row.
+    if (!organizationId && members.length > 0) {
+      throw new UnauthorizedException(
+        'Unable to resolve an accessible organization for this account',
+      );
+    }
+
     const brandId = organizationId
       ? await this.resolveBrandId(organizationId, members)
       : undefined;

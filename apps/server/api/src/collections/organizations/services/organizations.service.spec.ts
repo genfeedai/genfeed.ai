@@ -1,17 +1,13 @@
-vi.mock('@genfeedai/prisma', () => ({
-  // BaseService.getPrismaEnumValues reads enum value sets off this namespace directly.
-  OrganizationCategory: { BUSINESS: 'BUSINESS', CREATOR: 'CREATOR' },
-  PrismaClient: class {},
-  // Organization model has: id, slug, label, category (enum), accountType (enum), isDeleted.
-  // getModelMeta is used by BaseService to look up field/enum metadata.
-  getModelMeta: () => ({
-    allFields: ['id', 'slug', 'label', 'category', 'accountType', 'isDeleted'],
-    enumFields: {
-      accountType: { enumType: 'OrganizationCategory', isRequired: false },
-      category: { enumType: 'OrganizationCategory', isRequired: true },
-    },
-  }),
-}));
+// Real, complete OrganizationCategory (BaseService.getPrismaEnumValues reads
+// enum value sets off this namespace directly — the hand-rolled version here
+// was missing AGENCY) plus real getModelMeta/PRISMA_MODEL_METADATA.Organization
+// via the light @genfeedai/prisma/testing subpath.
+vi.mock('@genfeedai/prisma', async () => {
+  const { canonicalPrismaMock } = await import(
+    '@api/shared/testing/prisma-mock'
+  );
+  return canonicalPrismaMock();
+});
 
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';

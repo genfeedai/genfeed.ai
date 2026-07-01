@@ -370,6 +370,7 @@ export class WorkflowsService extends BaseService<
                 isDeleted: false,
                 isScheduleEnabled: true,
                 label: template.name,
+                lifecycle: WorkflowLifecycle.PUBLISHED,
                 metadata: this.buildSeededSystemWorkflowMetadata({
                   sourceIssue: 782,
                   sourceTemplateId: template.id,
@@ -1768,6 +1769,7 @@ export class WorkflowsService extends BaseService<
     workflowId: string,
     userId: string,
     organizationId: string,
+    targetBrandId?: string,
   ): Promise<WorkflowEntity> {
     const workflowDoc = await this.findVisibleOrThrow(workflowId, {
       organization: organizationId,
@@ -1781,8 +1783,15 @@ export class WorkflowsService extends BaseService<
 
     const clonedWorkflow = await this.create({
       ...workflowDoc,
+      brands: isProtectedSystemWorkflow
+        ? workflowDoc.brands
+        : targetBrandId
+          ? [targetBrandId]
+          : workflowDoc.brands,
       completedAt: undefined,
-      defaultRecurringBrandId: undefined,
+      defaultRecurringBrandId: isProtectedSystemWorkflow
+        ? undefined
+        : targetBrandId || workflowDoc.defaultRecurringBrandId,
       executionCount: 0,
       isScheduleEnabled: isProtectedSystemWorkflow
         ? false

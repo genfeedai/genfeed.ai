@@ -7,7 +7,32 @@ import { Test, TestingModule } from '@nestjs/testing';
 const MOCK_TOOLS = [
   { name: 'generate_video', requiredRole: undefined, surfaces: { mcp: true } },
   {
+    name: 'cancel_agent_run',
+    requiredRole: undefined,
+    surfaces: { mcp: true },
+  },
+  {
+    name: 'get_agent_run',
+    requiredRole: undefined,
+    surfaces: { mcp: true },
+  },
+  {
+    name: 'get_agent_run_content',
+    requiredRole: undefined,
+    surfaces: { mcp: true },
+  },
+  {
     name: 'get_video_status',
+    requiredRole: undefined,
+    surfaces: { mcp: true },
+  },
+  {
+    name: 'list_agent_runs',
+    requiredRole: undefined,
+    surfaces: { mcp: true },
+  },
+  {
+    name: 'retry_agent_run',
     requiredRole: undefined,
     surfaces: { mcp: true },
   },
@@ -29,6 +54,31 @@ const MOCK_TOOLS = [
     surfaces: { mcp: true },
   },
   { name: 'list_workflows', requiredRole: undefined, surfaces: { mcp: true } },
+  {
+    name: 'inspect_workflow',
+    requiredRole: undefined,
+    surfaces: { mcp: true },
+  },
+  {
+    name: 'duplicate_workflow',
+    requiredRole: undefined,
+    surfaces: { mcp: true },
+  },
+  {
+    name: 'set_workflow_schedule',
+    requiredRole: undefined,
+    surfaces: { mcp: true },
+  },
+  {
+    name: 'list_workflow_runs',
+    requiredRole: undefined,
+    surfaces: { mcp: true },
+  },
+  {
+    name: 'get_workflow_run',
+    requiredRole: undefined,
+    surfaces: { mcp: true },
+  },
   {
     name: 'get_workflow_status',
     requiredRole: undefined,
@@ -70,15 +120,25 @@ vi.mock('@mcp/guards/mcp-auth.guard', () => ({
 describe('ToolRegistryService', () => {
   let service: ToolRegistryService;
   let clientService: {
+    cancelAgentRun: ReturnType<typeof vi.fn>;
     executeAgentTool: ReturnType<typeof vi.fn>;
+    getAgentRun: ReturnType<typeof vi.fn>;
+    getAgentRunContent: ReturnType<typeof vi.fn>;
     getVideoStatus: ReturnType<typeof vi.fn>;
     listVideos: ReturnType<typeof vi.fn>;
+    listAgentRuns: ReturnType<typeof vi.fn>;
     getVideoAnalytics: ReturnType<typeof vi.fn>;
     listImages: ReturnType<typeof vi.fn>;
     createArticle: ReturnType<typeof vi.fn>;
     createApproval: ReturnType<typeof vi.fn>;
     getWorkflowStatus: ReturnType<typeof vi.fn>;
+    inspectWorkflow: ReturnType<typeof vi.fn>;
+    duplicateWorkflow: ReturnType<typeof vi.fn>;
+    setWorkflowSchedule: ReturnType<typeof vi.fn>;
+    listWorkflowRuns: ReturnType<typeof vi.fn>;
+    getWorkflowRun: ReturnType<typeof vi.fn>;
     getOrganizationAnalytics: ReturnType<typeof vi.fn>;
+    retryAgentRun: ReturnType<typeof vi.fn>;
     setBearerToken: ReturnType<typeof vi.fn>;
   };
   let logger: {
@@ -93,6 +153,10 @@ describe('ToolRegistryService', () => {
         {
           provide: ClientService,
           useValue: {
+            cancelAgentRun: vi.fn().mockResolvedValue({
+              id: 'run-1',
+              status: 'CANCELLED',
+            }),
             createApproval: vi.fn().mockResolvedValue({
               id: 'apr-art-1',
               status: 'PENDING',
@@ -114,6 +178,14 @@ describe('ToolRegistryService', () => {
             getOrganizationAnalytics: vi
               .fn()
               .mockResolvedValue({ totalViews: 9999 }),
+            getAgentRun: vi.fn().mockResolvedValue({
+              id: 'run-1',
+              label: 'Agent run',
+              status: 'RUNNING',
+            }),
+            getAgentRunContent: vi.fn().mockResolvedValue({
+              posts: [{ id: 'post-1' }],
+            }),
             getVideoAnalytics: vi.fn().mockResolvedValue({ views: 1000 }),
             getVideoStatus: vi
               .fn()
@@ -125,10 +197,42 @@ describe('ToolRegistryService', () => {
               status: 'active',
               steps: [],
             }),
+            inspectWorkflow: vi.fn().mockResolvedValue({
+              id: 'wf-1',
+              name: 'System Flow',
+              nodeCount: 2,
+              status: 'draft',
+            }),
+            duplicateWorkflow: vi.fn().mockResolvedValue({
+              id: 'wf-copy-1',
+              name: 'System Flow (Copy)',
+              status: 'draft',
+            }),
+            setWorkflowSchedule: vi.fn().mockResolvedValue({
+              enabled: true,
+              id: 'wf-copy-1',
+              schedule: '0 9 * * *',
+              timezone: 'UTC',
+            }),
+            listWorkflowRuns: vi
+              .fn()
+              .mockResolvedValue([{ id: 'run-1', status: 'completed' }]),
+            getWorkflowRun: vi.fn().mockResolvedValue({
+              id: 'run-1',
+              progress: 100,
+              status: 'completed',
+            }),
             listImages: vi.fn().mockResolvedValue([]),
+            listAgentRuns: vi
+              .fn()
+              .mockResolvedValue([{ id: 'run-1', status: 'RUNNING' }]),
             listVideos: vi
               .fn()
               .mockResolvedValue([{ id: 'vid-1', title: 'Test' }]),
+            retryAgentRun: vi.fn().mockResolvedValue({
+              runId: 'run-2',
+              threadId: 'thread-1',
+            }),
             setBearerToken: vi.fn(),
           },
         },
@@ -215,6 +319,154 @@ describe('ToolRegistryService', () => {
     expect(
       (result as { content: { text: string }[] }).content[0].text,
     ).toContain('vid-1');
+  });
+
+  it('handleToolCall list_agent_runs returns bounded agent runs', async () => {
+    const result = await service.handleToolCall({
+      arguments: { active: true, limit: 5 },
+      name: 'list_agent_runs',
+    });
+
+    expect(clientService.listAgentRuns).toHaveBeenCalledWith({
+      active: true,
+      cursor: undefined,
+      historyOnly: undefined,
+      limit: 5,
+      q: undefined,
+      status: undefined,
+    });
+    expect(
+      (result as { content: { text: string }[] }).content[0].text,
+    ).toContain('run-1');
+  });
+
+  it('handleToolCall get_agent_run inspects one run', async () => {
+    const result = await service.handleToolCall({
+      arguments: { runId: 'run-1' },
+      name: 'get_agent_run',
+    });
+
+    expect(clientService.getAgentRun).toHaveBeenCalledWith('run-1');
+    expect(
+      (result as { content: { text: string }[] }).content[0].text,
+    ).toContain('Agent run');
+  });
+
+  it('handleToolCall get_agent_run_content returns produced content', async () => {
+    const result = await service.handleToolCall({
+      arguments: { runId: 'run-1' },
+      name: 'get_agent_run_content',
+    });
+
+    expect(clientService.getAgentRunContent).toHaveBeenCalledWith('run-1');
+    expect(
+      (result as { content: { text: string }[] }).content[0].text,
+    ).toContain('post-1');
+  });
+
+  it('handleToolCall cancel_agent_run cancels through the API client', async () => {
+    const result = await service.handleToolCall({
+      arguments: { runId: 'run-1' },
+      name: 'cancel_agent_run',
+    });
+
+    expect(clientService.cancelAgentRun).toHaveBeenCalledWith('run-1');
+    expect(
+      (result as { content: { text: string }[] }).content[0].text,
+    ).toContain('CANCELLED');
+  });
+
+  it('handleToolCall retry_agent_run continues the persisted thread', async () => {
+    const result = await service.handleToolCall({
+      arguments: { message: 'Try again with less scope', runId: 'run-1' },
+      name: 'retry_agent_run',
+    });
+
+    expect(clientService.retryAgentRun).toHaveBeenCalledWith(
+      'run-1',
+      'Try again with less scope',
+    );
+    expect(
+      (result as { content: { text: string }[] }).content[0].text,
+    ).toContain('run-2');
+  });
+
+  it('handleToolCall inspect_workflow uses bounded workflow client inspect', async () => {
+    const result = await service.handleToolCall({
+      arguments: { workflowId: 'wf-1' },
+      name: 'inspect_workflow',
+    });
+
+    expect(clientService.inspectWorkflow).toHaveBeenCalledWith('wf-1');
+    expect(
+      (result as { content: { text: string }[] }).content[0].text,
+    ).toContain('System Flow');
+  });
+
+  it('handleToolCall duplicate_workflow duplicates without deleting or mutating the source', async () => {
+    const result = await service.handleToolCall({
+      arguments: { workflowId: 'wf-1' },
+      name: 'duplicate_workflow',
+    });
+
+    expect(clientService.duplicateWorkflow).toHaveBeenCalledWith('wf-1');
+    expect(
+      (result as { content: { text: string }[] }).content[0].text,
+    ).toContain('wf-copy-1');
+  });
+
+  it('handleToolCall set_workflow_schedule forwards schedule enablement', async () => {
+    const result = await service.handleToolCall({
+      arguments: {
+        enabled: true,
+        schedule: '0 9 * * *',
+        timezone: 'UTC',
+        workflowId: 'wf-copy-1',
+      },
+      name: 'set_workflow_schedule',
+    });
+
+    expect(clientService.setWorkflowSchedule).toHaveBeenCalledWith(
+      'wf-copy-1',
+      {
+        enabled: true,
+        schedule: '0 9 * * *',
+        timezone: 'UTC',
+      },
+    );
+    expect(
+      (result as { content: { text: string }[] }).content[0].text,
+    ).toContain('0 9 * * *');
+  });
+
+  it('handleToolCall list_workflow_runs returns workflow run history', async () => {
+    const result = await service.handleToolCall({
+      arguments: { limit: 5, workflowId: 'wf-1' },
+      name: 'list_workflow_runs',
+    });
+
+    expect(clientService.listWorkflowRuns).toHaveBeenCalledWith({
+      limit: 5,
+      offset: undefined,
+      status: undefined,
+      trigger: undefined,
+      workflowId: 'wf-1',
+    });
+    expect(
+      (result as { content: { text: string }[] }).content[0].text,
+    ).toContain('run-1');
+  });
+
+  it('handleToolCall get_workflow_run inspects one workflow run', async () => {
+    const result = await service.handleToolCall({
+      arguments: { runId: 'run-1' },
+      name: 'get_workflow_run',
+    });
+
+    expect(clientService.getWorkflowRun).toHaveBeenCalledWith('run-1');
+    expect(
+      (result as { content: { text: string }[] }).content[0].text,
+    ).toContain('completed');
   });
 
   describe('role gating', () => {

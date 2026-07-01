@@ -13,6 +13,8 @@ import {
   HiOutlineChartBarSquare,
   HiOutlineCheckCircle,
   HiOutlineClock,
+  HiOutlineCommandLine,
+  HiOutlineInboxStack,
   HiOutlinePaperAirplane,
   HiOutlineRectangleStack,
   HiOutlineShieldCheck,
@@ -42,6 +44,42 @@ type AppSwitcherSectionConfig = {
 };
 
 const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
+  {
+    id: 'home',
+    label: 'Home',
+    apps: [
+      {
+        description: 'Command center.',
+        icon: HiOutlineSquares2X2,
+        id: 'workspace',
+        itemKey: 'home-workspace',
+        label: 'Workspace',
+        route: (org, brand) =>
+          brand
+            ? `/${org}/${brand}/workspace/overview`
+            : `/${org}/~/workspace/overview`,
+      },
+      {
+        description: 'Ask and execute.',
+        icon: HiOutlineCommandLine,
+        id: 'agent',
+        itemKey: 'home-agent',
+        label: 'Agent',
+        route: (org) => `/${org}/~/agent`,
+      },
+      {
+        description: 'Social inbox.',
+        icon: HiOutlineInboxStack,
+        id: 'workspace',
+        itemKey: 'home-messages',
+        label: 'Messages',
+        route: (org, brand) =>
+          brand
+            ? `/${org}/${brand}/workspace/inbox/unread`
+            : `/${org}/~/workspace/inbox/unread`,
+      },
+    ],
+  },
   {
     id: 'trends',
     label: 'Trends',
@@ -459,7 +497,7 @@ export function AppSwitcher({
           preventTriggerAutoFocusRef.current = false;
         }}
       >
-        <div className="grid gap-2 sm:grid-cols-4">
+        <div className="grid gap-2 sm:grid-cols-5">
           {sections.map((section) => (
             <div
               key={section.id}

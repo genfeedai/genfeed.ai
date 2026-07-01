@@ -124,18 +124,18 @@ describe('AdInsightsAggregationProcessor', () => {
     );
   });
 
-  it('rejects missing aggregation scope', async () => {
+  it('processes legacy jobs with missing aggregation scope as platform scope', async () => {
     const job = makeJob({
       insightTypes: ['ctr'],
     } as AdInsightsAggregationJobData);
 
-    await expect(processor.process(job)).rejects.toThrow(
-      'Unsupported ad insights aggregation scope: undefined',
+    await expect(processor.process(job)).resolves.toBeUndefined();
+    expect(loggerService.log).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'platform ad insights aggregation for window legacy',
+      ),
     );
-    expect(loggerService.error).toHaveBeenCalledWith(
-      'Ad insights aggregation failed',
-      'Unsupported ad insights aggregation scope: undefined',
-    );
+    expect(job.updateProgress).toHaveBeenCalledWith(100);
   });
 
   it('should log error and re-throw if a top-level exception occurs', async () => {

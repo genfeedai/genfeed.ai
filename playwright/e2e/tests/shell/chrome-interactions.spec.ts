@@ -114,7 +114,7 @@ test.describe('Shell — chrome interactions', () => {
   test('agent panel toggles via Cmd+L and composer accepts input', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(`${BRAND_BASE}/chat`, {
+    await authenticatedPage.goto(`${BRAND_BASE}/agent`, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);

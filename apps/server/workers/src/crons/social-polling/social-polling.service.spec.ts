@@ -1,4 +1,4 @@
-import { WorkflowStatus } from '@genfeedai/enums';
+import { WorkflowLifecycle, WorkflowStatus } from '@genfeedai/enums';
 import { SocialPollingService } from '@workers/crons/social-polling/social-polling.service';
 
 const mockPrismaService = {
@@ -22,6 +22,9 @@ const mockTwitterAdapter = {
 };
 
 const mockInstagramAdapter = {};
+const mockYoutubeAdapter = {
+  createCommentChecker: vi.fn(),
+};
 
 const mockLogger = {
   debug: vi.fn(),
@@ -44,8 +47,9 @@ function createService() {
     mockExecutionQueue as unknown as SocialPollingConstructorArgs[1],
     mockTwitterAdapter as unknown as SocialPollingConstructorArgs[2],
     mockInstagramAdapter as unknown as SocialPollingConstructorArgs[3],
-    mockConfigService as unknown as SocialPollingConstructorArgs[4],
-    mockLogger as unknown as SocialPollingConstructorArgs[5],
+    mockYoutubeAdapter as unknown as SocialPollingConstructorArgs[4],
+    mockConfigService as unknown as SocialPollingConstructorArgs[5],
+    mockLogger as unknown as SocialPollingConstructorArgs[6],
   );
 }
 
@@ -66,7 +70,7 @@ describe('SocialPollingService', () => {
 
   it('should skip if already running', async () => {
     // Start first poll
-    mockPrismaService.workflow.findMany.mockImplementation(
+    mockPrismaService.workflow.findMany.mockImplementationOnce(
       () => new Promise((resolve) => setTimeout(() => resolve([]), 100)),
     );
 
@@ -91,6 +95,7 @@ describe('SocialPollingService', () => {
         take: 200,
         where: expect.objectContaining({
           isDeleted: false,
+          lifecycle: WorkflowLifecycle.PUBLISHED,
           status: WorkflowStatus.ACTIVE,
         }),
       }),

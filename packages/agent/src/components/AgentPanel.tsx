@@ -16,6 +16,7 @@ import {
   buildAgentRuntimeCatalog,
   resolveThreadRuntimeOption,
 } from '@genfeedai/agent/utils/agent-runtime-options.util';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { AgentPanelShell } from '@ui/agent-panel';
 import { useRouter } from 'next/navigation';
@@ -204,7 +205,13 @@ export function AgentPanel({
   }, [activeThreadId, apiService, draftRuntime, threads, updateThread]);
 
   const handleExpand = useCallback(() => {
-    router.push(href(activeThreadId ? `/chat/${activeThreadId}` : '/chat/new'));
+    router.push(
+      href(
+        activeThreadId
+          ? `${APP_ROUTES.AGENT.ROOT}/${activeThreadId}`
+          : APP_ROUTES.AGENT.NEW,
+      ),
+    );
   }, [activeThreadId, router, href]);
 
   const handleTabChange = useCallback((tab: AgentRailTab) => {

@@ -12,6 +12,7 @@ import { PostStatus } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Effect } from 'effect';
+import { of } from 'rxjs';
 
 describe('AgentToolExecutorService', () => {
   const createService = () => {
@@ -26,7 +27,11 @@ describe('AgentToolExecutorService', () => {
       get: vi.fn().mockReturnValue('http://localhost:3010'),
     };
 
-    const httpService = {} as never;
+    const httpService = {
+      delete: vi.fn(),
+      get: vi.fn(),
+      post: vi.fn(),
+    };
     const postsService = {
       create: vi.fn(),
       findAll: vi.fn(),
@@ -136,6 +141,12 @@ describe('AgentToolExecutorService', () => {
       createWorkflow: vi.fn().mockResolvedValue({
         _id: recurringWorkflowId,
         schedule: '0 17 * * *',
+      }),
+      cloneWorkflow: vi.fn().mockResolvedValue({
+        _id: 'workflow-copy-1',
+        isScheduleEnabled: false,
+        label: 'System Workflow (Copy)',
+        status: 'draft',
       }),
       findAll: vi.fn().mockResolvedValue({ docs: [] }),
       findOne: vi.fn(),
@@ -594,7 +605,7 @@ describe('AgentToolExecutorService', () => {
     const service = new AgentToolExecutorService(
       loggerService,
       configService as never,
-      httpService,
+      httpService as never,
       postsService as never,
       brandsService as never,
       botsService as never,
@@ -645,6 +656,7 @@ describe('AgentToolExecutorService', () => {
       contentQualityScorerService,
       credentialsService,
       creditsUtilsService,
+      httpService,
       imagesService,
       ingredientsService,
       marketplaceApiClient,
@@ -691,6 +703,54 @@ describe('AgentToolExecutorService', () => {
         progressPercent: 25,
       }),
     );
+  });
+
+  it('should list the live Genfeed tool catalog for operator questions', async () => {
+    const { service } = createService();
+
+    const result = await service.executeTool(
+      AgentToolName.LIST_GENFEED_TOOLS,
+      {
+        category: 'workflow',
+        includeParameters: true,
+        limit: 5,
+        query: 'workflow',
+        surface: 'mcp',
+      },
+      {
+        organizationId: '67a123456789012345678901',
+        userId: '67a123456789012345678902',
+      },
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.creditsUsed).toBe(0);
+
+    const data = result.data as {
+      counts: {
+        bySurface: Record<string, number>;
+        total: number;
+      };
+      returned: number;
+      surface: string;
+      tools: Array<{
+        category: string;
+        name: string;
+        parameters?: Record<string, unknown>;
+        surfaces: Record<string, boolean>;
+      }>;
+      truncated: boolean;
+    };
+
+    expect(data.surface).toBe('mcp');
+    expect(data.returned).toBeLessThanOrEqual(5);
+    expect(data.tools.length).toBeGreaterThan(0);
+    expect(data.tools.every((tool) => tool.category === 'workflow')).toBe(true);
+    expect(data.tools.every((tool) => tool.surfaces.mcp)).toBe(true);
+    expect(data.tools.every((tool) => Boolean(tool.parameters))).toBe(true);
+    expect(data.counts.bySurface.mcp).toBeGreaterThan(0);
+    expect(data.counts.total).toBeGreaterThanOrEqual(data.returned);
+    expect(typeof data.truncated).toBe('boolean');
   });
 
   it('should reject invalid goal ids for progress checks', async () => {
@@ -3438,6 +3498,65 @@ describe('AgentToolExecutorService', () => {
     expect(result.data.workflows).toEqual([]);
   });
 
+  it('inspect_workflow returns one workflow without mutating it', async () => {
+    const { service, workflowsService } = createService();
+
+    workflowsService.findOne.mockResolvedValue({
+      _id: 'wf-1',
+      inputVariables: [{ key: 'topic', required: true, type: 'text' }],
+      isScheduleEnabled: true,
+      label: 'System Workflow',
+      metadata: { systemWorkflow: true },
+      nodes: [{ id: 'node-1' }, { id: 'node-2' }],
+      organization: CTX.organizationId,
+      schedule: '0 9 * * *',
+      status: 'draft',
+      timezone: 'UTC',
+      updatedAt: new Date('2026-07-01T00:00:00.000Z'),
+    });
+
+    const result = await service.executeTool(
+      AgentToolName.INSPECT_WORKFLOW,
+      { workflowId: 'wf-1' },
+      CTX,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data.workflow).toEqual(
+      expect.objectContaining({
+        id: 'wf-1',
+        isScheduleEnabled: true,
+        label: 'System Workflow',
+        nodeCount: 2,
+        schedule: '0 9 * * *',
+      }),
+    );
+  });
+
+  it('duplicate_workflow clones through WorkflowsService with user and organization scope', async () => {
+    const { service, workflowsService } = createService();
+
+    const result = await service.executeTool(
+      AgentToolName.DUPLICATE_WORKFLOW,
+      { workflowId: 'wf-1' },
+      CTX,
+    );
+
+    expect(result.success).toBe(true);
+    expect(workflowsService.cloneWorkflow).toHaveBeenCalledWith(
+      'wf-1',
+      CTX.userId,
+      CTX.organizationId,
+      CTX.brandId,
+    );
+    expect(result.data.workflow).toEqual(
+      expect.objectContaining({
+        id: 'workflow-copy-1',
+        label: 'System Workflow (Copy)',
+      }),
+    );
+  });
+
   it('execute_workflow triggers workflow and returns execution id', async () => {
     const { service, workflowsService, workflowExecutorService } =
       createService();
@@ -3523,6 +3642,122 @@ describe('AgentToolExecutorService', () => {
     );
 
     expect(result.success).toBe(true);
+  });
+
+  it('set_workflow_schedule enables a duplicate through the existing schedule endpoint', async () => {
+    const { httpService, service } = createService();
+    httpService.post.mockReturnValue(
+      of({
+        data: { data: { id: 'wf-copy-1', message: 'Schedule updated' } },
+      }),
+    );
+
+    const result = await service.executeTool(
+      AgentToolName.SET_WORKFLOW_SCHEDULE,
+      {
+        enabled: true,
+        schedule: '0 9 * * *',
+        timezone: 'UTC',
+        workflowId: 'wf-copy-1',
+      },
+      { ...CTX, authToken: 'token-1' },
+    );
+
+    expect(result.success).toBe(true);
+    expect(httpService.post).toHaveBeenCalledWith(
+      'http://localhost:3010/v1/workflows/wf-copy-1/schedule',
+      { enabled: true, schedule: '0 9 * * *', timezone: 'UTC' },
+      {
+        headers: {
+          Authorization: 'Bearer token-1',
+          'Content-Type': 'application/json',
+        },
+      },
+    );
+  });
+
+  it('set_workflow_schedule disables a duplicate through the existing schedule endpoint', async () => {
+    const { httpService, service } = createService();
+    httpService.delete.mockReturnValue(
+      of({
+        data: { data: { id: 'wf-copy-1', message: 'Schedule removed' } },
+      }),
+    );
+
+    const result = await service.executeTool(
+      AgentToolName.SET_WORKFLOW_SCHEDULE,
+      { enabled: false, workflowId: 'wf-copy-1' },
+      CTX,
+    );
+
+    expect(result.success).toBe(true);
+    expect(httpService.delete).toHaveBeenCalledWith(
+      'http://localhost:3010/v1/workflows/wf-copy-1/schedule',
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      },
+    );
+  });
+
+  it('list_workflow_runs returns scoped run history from the existing executions endpoint', async () => {
+    const { httpService, service } = createService();
+    httpService.get.mockReturnValue(
+      of({
+        data: {
+          data: [{ id: 'run-1', attributes: { status: 'completed' } }],
+        },
+      }),
+    );
+
+    const result = await service.executeTool(
+      AgentToolName.LIST_WORKFLOW_RUNS,
+      { limit: 5, status: 'completed', workflowId: 'wf-1' },
+      CTX,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data.count).toBe(1);
+    expect(httpService.get).toHaveBeenCalledWith(
+      'http://localhost:3010/v1/workflow-executions?limit=5&offset=0&workflow=wf-1&status=completed',
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      },
+    );
+  });
+
+  it('get_workflow_run returns one workflow run from the existing executions endpoint', async () => {
+    const { httpService, service } = createService();
+    httpService.get.mockReturnValue(
+      of({
+        data: {
+          data: { id: 'run-1', attributes: { progress: 100 } },
+        },
+      }),
+    );
+
+    const result = await service.executeTool(
+      AgentToolName.GET_WORKFLOW_RUN,
+      { runId: 'run-1' },
+      CTX,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data.run).toEqual({
+      id: 'run-1',
+      attributes: { progress: 100 },
+    });
+    expect(httpService.get).toHaveBeenCalledWith(
+      'http://localhost:3010/v1/workflow-executions/run-1',
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      },
+    );
   });
 
   it('get_workflow_inputs returns input variable definitions', async () => {

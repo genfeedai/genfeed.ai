@@ -8,101 +8,18 @@ import 'reflect-metadata';
 import process from 'node:process';
 import { vi } from 'vitest';
 
-// Mock @genfeedai/prisma so unit tests never need the generated Prisma client
-vi.mock('@genfeedai/prisma', () => {
-  type MockSql = {
-    sql: string;
-    text: string;
-    values: unknown[];
-  };
-
-  const createSql = (sql: string, values: unknown[] = []): MockSql => ({
-    sql,
-    text: sql,
-    values,
-  });
-
-  const getSqlText = (value: unknown) => {
-    if (typeof value !== 'object' || value === null) return '?';
-    if ('sql' in value) return String(value.sql);
-    if ('text' in value) return String(value.text);
-    return '?';
-  };
-
-  class PrismaClient {
-    $connect = vi.fn().mockResolvedValue(undefined);
-    $disconnect = vi.fn().mockResolvedValue(undefined);
-    $queryRaw = vi.fn().mockResolvedValue([]);
-    $executeRaw = vi.fn().mockResolvedValue(0);
-    $transaction = vi
-      .fn()
-      .mockImplementation((arg) =>
-        Array.isArray(arg) ? Promise.all(arg) : arg(new PrismaClient()),
-      );
-  }
-
-  // Prisma 7 generates enums as const objects (member name === value), not TS
-  // enums. Code that reads these at module load (e.g. the provider-casing maps
-  // in voices.controller.ts) needs the value present on the mock, or the import
-  // throws "No export is defined on the mock".
-  const VoiceProvider = {
-    ELEVENLABS: 'ELEVENLABS',
-    GENFEED_AI: 'GENFEED_AI',
-    HEDRA: 'HEDRA',
-    HEYGEN: 'HEYGEN',
-  } as const;
-
-  const McpApprovalStatus = {
-    APPROVED: 'APPROVED',
-    DECLINED: 'DECLINED',
-    PENDING: 'PENDING',
-  } as const;
-
-  const OrganizationCategory = {
-    BUSINESS: 'BUSINESS',
-    PERSONAL: 'PERSONAL',
-  } as const;
-
-  const WarmupAccountStatus = {
-    ARCHIVED: 'ARCHIVED',
-    CLAIMED: 'CLAIMED',
-    DRAFT: 'DRAFT',
-    FAILED: 'FAILED',
-    INVITED: 'INVITED',
-    PROVISIONED: 'PROVISIONED',
-    PROVISIONING: 'PROVISIONING',
-  } as const;
-
-  const WorkflowExecutionStatus = {
-    CANCELLED: 'CANCELLED',
-    COMPLETED: 'COMPLETED',
-    FAILED: 'FAILED',
-    PENDING: 'PENDING',
-    RUNNING: 'RUNNING',
-  } as const;
-
-  const Prisma = {
-    empty: createSql(''),
-    raw: (sql: string) => createSql(sql),
-    sql: (strings: TemplateStringsArray, ...values: unknown[]) => {
-      const sql = strings.reduce((acc, part, index) => {
-        const value = index < values.length ? getSqlText(values[index]) : '';
-        return `${acc}${part}${value}`;
-      }, '');
-
-      return createSql(sql, values);
-    },
-  };
-
-  return {
-    McpApprovalStatus,
-    OrganizationCategory,
-    Prisma,
-    PrismaClient,
-    VoiceProvider,
-    WarmupAccountStatus,
-    WorkflowExecutionStatus,
-  };
+// Mock @genfeedai/prisma so unit tests never need the generated Prisma
+// client. Global fallback for any spec that doesn't set up its own
+// vi.mock('@genfeedai/prisma', ...) — uses the same canonical, schema-derived
+// mock every converted spec uses, so this fallback can never drift from real
+// enum membership again (the hand-rolled version this replaces had a real
+// bug: OrganizationCategory: {BUSINESS, PERSONAL} — PERSONAL isn't a real
+// enum member; the real schema is BUSINESS/CREATOR/AGENCY).
+vi.mock('@genfeedai/prisma', async () => {
+  const { canonicalPrismaMock } = await import(
+    '@api/shared/testing/prisma-mock'
+  );
+  return canonicalPrismaMock();
 });
 
 // Mock @prisma/adapter-pg so PrismaService constructor doesn't require DATABASE_URL

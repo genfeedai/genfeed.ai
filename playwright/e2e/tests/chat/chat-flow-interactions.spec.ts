@@ -55,18 +55,18 @@ async function assertHealthy(page: Page): Promise<void> {
 test.describe('Chat flow interactions', () => {
   test.setTimeout(90_000);
 
-  test('composer accepts a typed prompt on /chat', async ({
+  test('composer accepts a typed prompt on /agent', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, `${ORG}/chat`);
+    await assertRouteRenders(authenticatedPage, `${ORG}/agent`);
     await typeInComposer(authenticatedPage, 'Draft a launch post');
     await assertHealthy(authenticatedPage);
   });
 
-  test('composer sends a prompt on /chat/new', async ({
+  test('composer sends a prompt on /agent/new', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, `${ORG}/chat/new`);
+    await assertRouteRenders(authenticatedPage, `${ORG}/agent/new`);
     const wasTyped = await typeInComposer(authenticatedPage, 'Hello agent');
     if (wasTyped) {
       await submitComposer(authenticatedPage);
@@ -77,7 +77,7 @@ test.describe('Chat flow interactions', () => {
   test('new chat surface exposes prompt suggestions', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, `${ORG}/chat/new`);
+    await assertRouteRenders(authenticatedPage, `${ORG}/agent/new`);
     await tryClick(authenticatedPage, '[class*="suggestion"] button');
     await tryClick(authenticatedPage, '[class*="prompt-bar"] button');
     await assertHealthy(authenticatedPage);
@@ -86,14 +86,14 @@ test.describe('Chat flow interactions', () => {
   test('existing thread view stays interactive with composer', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, `${ORG}/chat/thread-1`);
+    await assertRouteRenders(authenticatedPage, `${ORG}/agent/thread-1`);
     await typeInComposer(authenticatedPage, 'Follow up on this thread');
     await tryClick(authenticatedPage, 'button');
     await assertHealthy(authenticatedPage);
   });
 
   test('thread view replies via send button', async ({ authenticatedPage }) => {
-    await assertRouteRenders(authenticatedPage, `${ORG}/chat/thread-1`);
+    await assertRouteRenders(authenticatedPage, `${ORG}/agent/thread-1`);
     const wasTyped = await typeInComposer(authenticatedPage, 'Reply please');
     if (wasTyped) {
       await submitComposer(authenticatedPage);
@@ -104,19 +104,19 @@ test.describe('Chat flow interactions', () => {
   test('thread list and new-chat navigation are reachable', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, `${ORG}/chat/thread-1`);
+    await assertRouteRenders(authenticatedPage, `${ORG}/agent/thread-1`);
     await tryClick(
       authenticatedPage,
       '[data-testid="agent-thread-list-content"] a',
     );
-    await tryClick(authenticatedPage, 'a[href*="/chat/new"]');
+    await tryClick(authenticatedPage, 'a[href*="/agent/new"]');
     await assertHealthy(authenticatedPage);
   });
 
   test('model or agent selector toggles when present', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, `${ORG}/chat/new`);
+    await assertRouteRenders(authenticatedPage, `${ORG}/agent/new`);
     await tryClick(authenticatedPage, '[aria-haspopup="menu"]');
     await tryClick(authenticatedPage, '[role="menuitem"]');
     await assertHealthy(authenticatedPage);
@@ -125,7 +125,7 @@ test.describe('Chat flow interactions', () => {
   test('onboarding entry renders the chat composer', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, `${ORG}/chat/onboarding`);
+    await assertRouteRenders(authenticatedPage, `${ORG}/agent/onboarding`);
     await typeInComposer(authenticatedPage, 'I make short-form videos');
     await assertHealthy(authenticatedPage);
   });
@@ -133,7 +133,7 @@ test.describe('Chat flow interactions', () => {
   test('onboarding composer submits an answer', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, `${ORG}/chat/onboarding`);
+    await assertRouteRenders(authenticatedPage, `${ORG}/agent/onboarding`);
     const wasTyped = await typeInComposer(
       authenticatedPage,
       'My brand is about cooking',
@@ -147,7 +147,7 @@ test.describe('Chat flow interactions', () => {
   test('onboarding wizard advances when steps are present', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, `${ORG}/chat/onboarding`);
+    await assertRouteRenders(authenticatedPage, `${ORG}/agent/onboarding`);
     await tryClick(authenticatedPage, 'button:has-text("Next")');
     await tryClick(authenticatedPage, 'button:has-text("Continue")');
     await tryClick(authenticatedPage, 'button:has-text("Get started")');
@@ -159,7 +159,7 @@ test.describe('Chat flow interactions', () => {
   }) => {
     await assertRouteRenders(
       authenticatedPage,
-      `${ORG}/chat/onboarding/thread-1`,
+      `${ORG}/agent/onboarding/thread-1`,
     );
     await typeInComposer(authenticatedPage, 'Continuing onboarding');
     await assertHealthy(authenticatedPage);
@@ -170,7 +170,7 @@ test.describe('Chat flow interactions', () => {
   }) => {
     await assertRouteRenders(
       authenticatedPage,
-      `${ORG}/chat/onboarding/thread-1`,
+      `${ORG}/agent/onboarding/thread-1`,
     );
     await tryClick(authenticatedPage, 'button');
     await tryClick(authenticatedPage, 'a');

@@ -32,6 +32,10 @@ import {
   createColorGradeExecutor,
 } from '@workflow-engine/executors/saas/color-grade-executor';
 import {
+  CommentTriggerExecutor,
+  createCommentTriggerExecutor,
+} from '@workflow-engine/executors/saas/comment-trigger-executor';
+import {
   ConditionExecutor,
   createConditionExecutor,
 } from '@workflow-engine/executors/saas/condition-executor';
@@ -278,6 +282,13 @@ export const EXECUTOR_REGISTRY: Record<string, ExecutorRegistryEntry> = {
     executorClass: ColorGradeExecutor,
     factory: () => createColorGradeExecutor(),
     nodeType: 'colorGrade',
+    requiresResolver: true,
+  },
+  commentTrigger: {
+    description: 'Starts workflow when a social comment is detected',
+    executorClass: CommentTriggerExecutor,
+    factory: () => createCommentTriggerExecutor(),
+    nodeType: 'commentTrigger',
     requiresResolver: true,
   },
   condition: {
@@ -910,6 +921,14 @@ export class ExecutorRegistryInstance {
   getEngagementTriggerExecutor(): EngagementTriggerExecutor | undefined {
     const executor = this.executors.get('engagementTrigger');
     return executor instanceof EngagementTriggerExecutor ? executor : undefined;
+  }
+
+  /**
+   * Get the comment trigger executor for checker injection
+   */
+  getCommentTriggerExecutor(): CommentTriggerExecutor | undefined {
+    const executor = this.executors.get('commentTrigger');
+    return executor instanceof CommentTriggerExecutor ? executor : undefined;
   }
 
   /**

@@ -5,9 +5,14 @@ export enum AgentToolName {
   GENERATE_IMAGE = 'generate_image',
   REFRAME_IMAGE = 'reframe_image',
   LIST_WORKFLOWS = 'list_workflows',
+  INSPECT_WORKFLOW = 'inspect_workflow',
+  DUPLICATE_WORKFLOW = 'duplicate_workflow',
   CREATE_WORKFLOW = 'create_workflow',
   INSTALL_OFFICIAL_WORKFLOW = 'install_official_workflow',
   EXECUTE_WORKFLOW = 'execute_workflow',
+  SET_WORKFLOW_SCHEDULE = 'set_workflow_schedule',
+  LIST_WORKFLOW_RUNS = 'list_workflow_runs',
+  GET_WORKFLOW_RUN = 'get_workflow_run',
   GET_ANALYTICS = 'get_analytics',
   CREATE_POST = 'create_post',
   LIST_POSTS = 'list_posts',
@@ -90,6 +95,8 @@ export enum AgentToolName {
   SUBMIT_BRAND_INTERVIEW_ANSWER = 'submit_brand_interview_answer',
   SKIP_BRAND_INTERVIEW_QUESTION = 'skip_brand_interview_question',
   GET_BRAND_COMPLETENESS = 'get_brand_completeness',
+  // Operator tools
+  LIST_GENFEED_TOOLS = 'list_genfeed_tools',
 }
 
 /** @deprecated Prefer canonical tool metadata from @genfeedai/tools. */

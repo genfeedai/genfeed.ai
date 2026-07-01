@@ -1,6 +1,6 @@
 import type { Page, Route } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
-import { ChatPage } from '../../pages/chat.page';
+import { AgentPage } from '../../pages/agent.page';
 
 function wrapInJsonApi<T>(data: T, type: string, id: string) {
   return {
@@ -194,7 +194,7 @@ test.describe('Agent Chat', () => {
   test('publishes from chat and renders follow-up CTAs', async ({
     authenticatedPage,
   }) => {
-    const agentPage = new ChatPage(authenticatedPage);
+    const agentPage = new AgentPage(authenticatedPage);
     const assistantContent = 'Ready to publish this post from chat.';
     const publishUiActions = [
       {
@@ -339,7 +339,7 @@ test.describe('Agent Chat', () => {
   test('renders normalized analytics snapshot metrics for a published post', async ({
     authenticatedPage,
   }) => {
-    const agentPage = new ChatPage(authenticatedPage);
+    const agentPage = new AgentPage(authenticatedPage);
     const assistantContent = 'Here is the latest post performance snapshot.';
     const analyticsUiActions = [
       {
@@ -406,7 +406,7 @@ test.describe('Agent Chat', () => {
   test('shows publish fallback when selected content has no post analytics yet', async ({
     authenticatedPage,
   }) => {
-    const agentPage = new ChatPage(authenticatedPage);
+    const agentPage = new AgentPage(authenticatedPage);
     const assistantContent =
       'No post analytics yet for this ingredient. Publish it first.';
     const fallbackUiActions = [

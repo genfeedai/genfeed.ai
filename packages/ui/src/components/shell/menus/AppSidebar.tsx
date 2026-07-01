@@ -32,6 +32,7 @@ export interface AppSidebarProps extends BaseMenuProps {
   conversationActions?: MenuSharedProps['conversationActions'];
   renderFooterSlot?: MenuSharedProps['renderFooterSlot'];
   showUserProfile?: MenuSharedProps['showUserProfile'];
+  orgSwitcherSlot?: MenuSharedProps['orgSwitcherSlot'];
   items: MenuShellConfig['items'];
   logoHref?: string;
 }
@@ -58,6 +59,7 @@ export default function AppSidebar({
   conversationActions,
   renderFooterSlot,
   showUserProfile = false,
+  orgSwitcherSlot,
   items,
   logoHref = '/',
 }: AppSidebarProps) {
@@ -92,6 +94,7 @@ export default function AppSidebar({
       conversationActions={conversationActions}
       renderFooterSlot={renderFooterSlot}
       showUserProfile={showUserProfile}
+      orgSwitcherSlot={orgSwitcherSlot}
     />
   );
 }

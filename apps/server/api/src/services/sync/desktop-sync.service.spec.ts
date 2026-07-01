@@ -31,15 +31,15 @@ vi.mock('@genfeedai/enums', () => ({
   },
 }));
 
-vi.mock('@genfeedai/prisma', () => ({
-  AssetCategory: {
-    REFERENCE: 'REFERENCE',
-  },
-  AssetParent: {
-    BRAND: 'BRAND',
-    ORGANIZATION: 'ORGANIZATION',
-  },
-}));
+// Real, complete AssetCategory/AssetParent enums (this file previously
+// hand-rolled a partial subset) via the light @genfeedai/prisma/testing
+// subpath — no heavy PrismaClient/runtime import required.
+vi.mock('@genfeedai/prisma', async () => {
+  const { canonicalPrismaMock } = await import(
+    '@api/shared/testing/prisma-mock'
+  );
+  return canonicalPrismaMock();
+});
 
 const { DesktopSyncService } = await import('./desktop-sync.service.ts');
 

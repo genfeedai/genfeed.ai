@@ -4,6 +4,31 @@ import type {
   McpApprovalResource,
 } from '@mcp/shared/interfaces/approval.interface';
 import type { BaseApiClient } from './base-api-client';
+import type { JsonApiResource } from './client.types';
+
+export interface AgentRunListParams {
+  active?: boolean;
+  cursor?: string;
+  historyOnly?: boolean;
+  limit?: number;
+  q?: string;
+  status?: string;
+}
+
+export type AgentRunResponse = Record<string, unknown>;
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object'
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function mapAgentRunResource(resource: JsonApiResource): AgentRunResponse {
+  return {
+    ...asRecord(resource.attributes),
+    id: resource.id ?? asRecord(resource.attributes).id,
+  };
+}
 
 /**
  * Agent-tool proxying and the human-in-the-loop approval lifecycle for mutating
@@ -29,6 +54,82 @@ export class AgentClient {
         return response.data as AgentToolResult;
       },
       this.base.failWithDetail(`Failed to execute ${name}`),
+    );
+  }
+
+  listAgentRuns(params: AgentRunListParams = {}): Promise<AgentRunResponse[]> {
+    const limit = params.limit ?? 20;
+    const endpoint = params.active ? '/runs/active' : '/runs';
+    const queryParams: Record<string, boolean | number | string> = params.active
+      ? { limit }
+      : { 'page[limit]': limit };
+
+    if (params.cursor) {
+      queryParams.cursor = params.cursor;
+    }
+
+    if (!params.active) {
+      if (params.historyOnly !== undefined) {
+        queryParams.historyOnly = params.historyOnly;
+      }
+      if (params.q) {
+        queryParams.q = params.q;
+      }
+      if (params.status) {
+        queryParams.status = params.status;
+      }
+    }
+
+    return this.base.request(
+      'listing agent runs',
+      async (http) => {
+        const response = await http.get(endpoint, { params: queryParams });
+        return this.base
+          .unwrapList<JsonApiResource>(response)
+          .map(mapAgentRunResource);
+      },
+      this.base.failWithDetail('Failed to list agent runs'),
+    );
+  }
+
+  getAgentRun(runId: string): Promise<AgentRunResponse> {
+    return this.base.request(
+      `fetching agent run ${runId}`,
+      async (http) => {
+        const response = await http.get(`/runs/${encodeURIComponent(runId)}`);
+        return mapAgentRunResource(
+          this.base.unwrapData<JsonApiResource>(response),
+        );
+      },
+      this.base.failWithDetail('Failed to fetch agent run'),
+    );
+  }
+
+  getAgentRunContent(runId: string): Promise<Record<string, unknown>> {
+    return this.base.request(
+      `fetching agent run content ${runId}`,
+      async (http) => {
+        const response = await http.get(
+          `/runs/${encodeURIComponent(runId)}/content`,
+        );
+        return this.base.unwrapObject(response);
+      },
+      this.base.failWithDetail('Failed to fetch agent run content'),
+    );
+  }
+
+  cancelAgentRun(runId: string): Promise<AgentRunResponse> {
+    return this.base.request(
+      `cancelling agent run ${runId}`,
+      async (http) => {
+        const response = await http.post(
+          `/runs/${encodeURIComponent(runId)}/cancellations`,
+        );
+        return mapAgentRunResource(
+          this.base.unwrapData<JsonApiResource>(response),
+        );
+      },
+      this.base.failWithDetail('Failed to cancel agent run'),
     );
   }
 

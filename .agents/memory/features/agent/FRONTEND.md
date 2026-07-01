@@ -79,7 +79,7 @@ interface AgentChatState {
 ### `useAgentChatStream` (Streaming Mode)
 **File:** `packages/agent/src/hooks/use-agent-chat-stream.ts`
 
-1. Calls `apiService.chatStream()` → returns `{ threadId, runId, startedAt }`
+1. Calls `apiService.chatStream()` → `POST /agent/threads/:threadId/turns/stream` or `POST /agent/threads/turns/stream`; returns `{ threadId, runId, startedAt }`
 2. Subscribes to WebSocket events via `useSocketManager`:
    - `agent:stream_start` → `setActiveRun` with timestamp
    - `agent:token` → `appendStreamToken` (words, not incremental model output)
@@ -95,12 +95,12 @@ interface AgentChatState {
 
 **Event buffering:** Events arriving before `threadId` is resolved are buffered in `bufferedEventsRef`, flushed once thread becomes active. Events filtered by `threadId` for multi-thread safety.
 
-**Completion watchdog:** If stream doesn't complete within 90s grace period, polls `GET /threads/{id}/messages` every 10s to recover the latest assistant message.
+**Completion watchdog:** If stream doesn't complete within 90s grace period, polls `GET /agent/threads/{id}/messages` every 10s to recover the latest assistant message.
 
 ### `useAgentChat` (Non-Streaming Mode)
 **File:** `packages/agent/src/hooks/use-agent-chat.ts`
 
-Simpler flow: `POST /agent/chat` → waits for full response → adds assistant message.
+Simpler flow: `POST /agent/threads/:threadId/turns` → waits for full response → adds assistant message.
 
 **`useAgentChatStream` returns:**
 ```typescript
@@ -124,14 +124,14 @@ Simpler flow: `POST /agent/chat` → waits for full response → adds assistant 
 **File:** `packages/agent/src/services/agent-api.service.ts`
 
 ### Chat
-- `chat(payload, signal?)` → `POST /agent/chat` — full response
-- `chatStream(payload, signal?)` → `POST /agent/chat/stream` — returns `{ threadId, runId, startedAt }`
+- `chat(payload, signal?)` → `POST /agent/threads/:threadId/turns` or `POST /agent/threads/turns` — full response
+- `chatStream(payload, signal?)` → `POST /agent/threads/:threadId/turns/stream` or `POST /agent/threads/turns/stream` — returns `{ threadId, runId, startedAt }`
 - `sendMessage(payload, signal?)` → add message to thread
 - `respondToInputRequest(threadId, requestId, answer, signal?)` → resolve input request
 
 ### Threads
-- `createThread(payload, signal?)` / `getThreads(params?, signal?)` / `getThread(threadId, signal?)`
-- `getMessages(threadId, params?, signal?)` — paginated message list
+- `createThread(payload, signal?)` / `getThreads(params?, signal?)` / `getThread(threadId, signal?)` → `/agent/threads`
+- `getMessages(threadId, params?, signal?)` — paginated message list from `/agent/threads/:threadId/messages`
 - `updateThread(threadId, payload, signal?)` / `archiveThread(threadId, signal?)` / `unarchiveThread(threadId, signal?)`
 - `branchThread(threadId, signal?)` — fork thread
 

@@ -95,6 +95,12 @@ import {
   serializeAgentBrands,
 } from '@genfeedai/serializers';
 import {
+  type CanonicalToolDefinition,
+  getToolsForRole,
+  type ToolCategory,
+  type ToolRequiredRole,
+} from '@genfeedai/tools';
+import {
   type IOnboardingJourneyMissionState,
   ONBOARDING_JOURNEY_MISSIONS,
   ONBOARDING_JOURNEY_TOTAL_CREDITS,
@@ -185,9 +191,28 @@ type LivestreamBotMessageType =
   | 'scheduled_host_prompt'
   | 'context_aware_question';
 type RecurringTaskContentType = 'image' | 'video' | 'post' | 'newsletter';
+type ToolCatalogSurface = 'agent' | 'mcp' | 'cli' | 'all';
 
 const LIVESTREAM_BOT_CATEGORY = 'livestream_chat';
 const ROUTE_HREF_KEYS = new Set(['href', 'ctaHref', 'editorUrl']);
+const TOOL_CATALOG_SURFACES = ['agent', 'mcp', 'cli'] as const;
+const TOOL_CATALOG_CATEGORIES: ToolCategory[] = [
+  'ads',
+  'admin',
+  'agent-control',
+  'analytics',
+  'campaign',
+  'content',
+  'generation',
+  'identity',
+  'onboarding',
+  'other',
+  'proactive',
+  'social',
+  'ui',
+  'workflow',
+];
+const TOOL_CATALOG_ROLES: ToolRequiredRole[] = ['user', 'admin', 'superadmin'];
 const ORG_LEVEL_ROUTE_PREFIXES = new Set([
   'agent',
   'chat',
@@ -935,6 +960,9 @@ export class AgentToolExecutorService {
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     switch (toolName) {
+      case AgentToolName.LIST_GENFEED_TOOLS:
+        return this.listGenfeedTools(params);
+
       case AgentToolName.GET_CREDITS_BALANCE:
         return this.getCreditsBalance(ctx);
 
@@ -959,6 +987,12 @@ export class AgentToolExecutorService {
       case AgentToolName.LIST_WORKFLOWS:
         return this.listWorkflows(params, ctx);
 
+      case AgentToolName.INSPECT_WORKFLOW:
+        return this.inspectWorkflow(params, ctx);
+
+      case AgentToolName.DUPLICATE_WORKFLOW:
+        return this.duplicateWorkflow(params, ctx);
+
       case AgentToolName.CREATE_WORKFLOW:
         return this.createWorkflow(params, ctx);
 
@@ -970,6 +1004,15 @@ export class AgentToolExecutorService {
 
       case AgentToolName.EXECUTE_WORKFLOW:
         return this.executeWorkflow(params, ctx);
+
+      case AgentToolName.SET_WORKFLOW_SCHEDULE:
+        return this.setWorkflowSchedule(params, ctx);
+
+      case AgentToolName.LIST_WORKFLOW_RUNS:
+        return this.listWorkflowRuns(params, ctx);
+
+      case AgentToolName.GET_WORKFLOW_RUN:
+        return this.getWorkflowRun(params, ctx);
 
       case AgentToolName.GET_WORKFLOW_INPUTS:
         return this.getWorkflowInputs(params, ctx);
@@ -1193,6 +1236,146 @@ export class AgentToolExecutorService {
   // ──────────────────────────────────────────────
   // READ-ONLY TOOLS (0 credits)
   // ──────────────────────────────────────────────
+
+  private async listGenfeedTools(
+    params: Record<string, unknown>,
+  ): Promise<AgentToolResult> {
+    const surface = this.readToolCatalogSurface(params.surface);
+    const role = this.readToolRequiredRole(params.role);
+    const category = this.readToolCategory(params.category);
+    const includeParameters = params.includeParameters === true;
+    const limit = this.readToolCatalogLimit(params.limit);
+    const query = this.readOptionalString(params.query)?.toLowerCase();
+
+    let tools = this.resolveToolCatalogTools(surface, role);
+
+    if (category) {
+      tools = tools.filter((tool) => tool.category === category);
+    }
+
+    if (query) {
+      tools = tools.filter(
+        (tool) =>
+          tool.name.toLowerCase().includes(query) ||
+          tool.description.toLowerCase().includes(query),
+      );
+    }
+
+    const total = tools.length;
+    const visibleTools = tools.slice(0, limit);
+
+    return {
+      creditsUsed: 0,
+      data: {
+        availableFilters: {
+          categories: TOOL_CATALOG_CATEGORIES,
+          roles: TOOL_CATALOG_ROLES,
+          surfaces: ['agent', 'mcp', 'cli', 'all'],
+        },
+        category: category ?? null,
+        counts: this.buildToolCatalogCounts(role),
+        includeParameters,
+        query: query ?? null,
+        returned: visibleTools.length,
+        role,
+        surface,
+        tools: visibleTools.map((tool) =>
+          this.serializeToolCatalogRow(tool, includeParameters),
+        ),
+        total,
+        truncated: total > visibleTools.length,
+      },
+      success: true,
+    };
+  }
+
+  private resolveToolCatalogTools(
+    surface: ToolCatalogSurface,
+    role: ToolRequiredRole,
+  ): CanonicalToolDefinition[] {
+    if (surface !== 'all') {
+      return getToolsForRole(surface, role);
+    }
+
+    const toolsByName = new Map<string, CanonicalToolDefinition>();
+    for (const itemSurface of TOOL_CATALOG_SURFACES) {
+      for (const tool of getToolsForRole(itemSurface, role)) {
+        toolsByName.set(tool.name, tool);
+      }
+    }
+
+    return [...toolsByName.values()].sort((a, b) =>
+      a.name.localeCompare(b.name),
+    );
+  }
+
+  private buildToolCatalogCounts(role: ToolRequiredRole): {
+    byCategory: Record<string, number>;
+    bySurface: Record<(typeof TOOL_CATALOG_SURFACES)[number], number>;
+    total: number;
+  } {
+    const allTools = this.resolveToolCatalogTools('all', role);
+    return {
+      byCategory: Object.fromEntries(
+        TOOL_CATALOG_CATEGORIES.map((category) => [
+          category,
+          allTools.filter((tool) => tool.category === category).length,
+        ]),
+      ),
+      bySurface: {
+        agent: getToolsForRole('agent', role).length,
+        cli: getToolsForRole('cli', role).length,
+        mcp: getToolsForRole('mcp', role).length,
+      },
+      total: allTools.length,
+    };
+  }
+
+  private serializeToolCatalogRow(
+    tool: CanonicalToolDefinition,
+    includeParameters: boolean,
+  ): Record<string, unknown> {
+    return {
+      category: tool.category,
+      creditCost: tool.creditCost,
+      description: tool.description,
+      name: tool.name,
+      ...(includeParameters ? { parameters: tool.parameters } : {}),
+      requiredRole: tool.requiredRole,
+      surfaces: tool.surfaces,
+    };
+  }
+
+  private readToolCatalogSurface(value: unknown): ToolCatalogSurface {
+    return value === 'agent' ||
+      value === 'mcp' ||
+      value === 'cli' ||
+      value === 'all'
+      ? value
+      : 'all';
+  }
+
+  private readToolRequiredRole(value: unknown): ToolRequiredRole {
+    return value === 'admin' || value === 'superadmin' || value === 'user'
+      ? value
+      : 'user';
+  }
+
+  private readToolCategory(value: unknown): ToolCategory | undefined {
+    return typeof value === 'string' &&
+      (TOOL_CATALOG_CATEGORIES as string[]).includes(value)
+      ? (value as ToolCategory)
+      : undefined;
+  }
+
+  private readToolCatalogLimit(value: unknown): number {
+    const explicitLimit = this.readOptionalNumber(value);
+    if (explicitLimit === undefined) {
+      return 80;
+    }
+
+    return Math.max(1, Math.min(200, Math.floor(explicitLimit)));
+  }
 
   private async captureMemory(
     params: Record<string, unknown>,
@@ -2984,6 +3167,221 @@ export class AgentToolExecutorService {
           }) ?? [],
       },
       success: true,
+    };
+  }
+
+  private async inspectWorkflow(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const workflowId = this.readOptionalString(params.workflowId);
+    if (!workflowId) {
+      return {
+        creditsUsed: 0,
+        error: 'workflowId is required',
+        success: false,
+      };
+    }
+
+    const workflow = await this.workflowsService.findOne({
+      _id: workflowId,
+      isDeleted: false,
+      organization: ctx.organizationId,
+    });
+
+    if (!workflow) {
+      return {
+        creditsUsed: 0,
+        error: `Workflow ${workflowId} not found`,
+        success: false,
+      };
+    }
+
+    return {
+      creditsUsed: 0,
+      data: {
+        workflow: this.mapWorkflowForTool(
+          workflow as unknown as Record<string, unknown>,
+        ),
+      },
+      success: true,
+    };
+  }
+
+  private async duplicateWorkflow(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const workflowId = this.readOptionalString(params.workflowId);
+    if (!workflowId) {
+      return {
+        creditsUsed: 0,
+        error: 'workflowId is required',
+        success: false,
+      };
+    }
+
+    const workflow = await this.workflowsService.cloneWorkflow(
+      workflowId,
+      ctx.userId,
+      ctx.organizationId,
+      ctx.brandId,
+    );
+
+    return {
+      creditsUsed: 0,
+      data: {
+        workflow: this.mapWorkflowForTool(
+          workflow as unknown as Record<string, unknown>,
+        ),
+      },
+      success: true,
+    };
+  }
+
+  private async setWorkflowSchedule(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const workflowId = this.readOptionalString(params.workflowId);
+    const enabled =
+      typeof params.enabled === 'boolean' ? params.enabled : undefined;
+
+    if (!workflowId || enabled === undefined) {
+      return {
+        creditsUsed: 0,
+        error: 'workflowId and enabled are required',
+        success: false,
+      };
+    }
+
+    const schedule = this.readOptionalString(params.schedule);
+    const timezone = this.readOptionalString(params.timezone) ?? 'UTC';
+    if (enabled === true && !schedule) {
+      return {
+        creditsUsed: 0,
+        error: 'schedule is required when enabling a workflow schedule',
+        success: false,
+      };
+    }
+
+    const response =
+      enabled === false && !schedule
+        ? await this.callInternalApi(
+            'DELETE',
+            `/v1/workflows/${encodeURIComponent(workflowId)}/schedule`,
+            undefined,
+            ctx,
+          )
+        : await this.callInternalApi(
+            'POST',
+            `/v1/workflows/${encodeURIComponent(workflowId)}/schedule`,
+            {
+              enabled,
+              schedule,
+              timezone,
+            },
+            ctx,
+          );
+
+    return {
+      creditsUsed: 0,
+      data: {
+        enabled,
+        response,
+        schedule: schedule ?? null,
+        timezone,
+        workflowId,
+      },
+      success: true,
+    };
+  }
+
+  private async listWorkflowRuns(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const query = new URLSearchParams();
+    const workflowId = this.readOptionalString(params.workflowId);
+    const status = this.readOptionalString(params.status);
+    const trigger = this.readOptionalString(params.trigger);
+    const limit = this.readOptionalNumber(params.limit) ?? 20;
+    const offset = this.readOptionalNumber(params.offset) ?? 0;
+
+    query.set('limit', String(limit));
+    query.set('offset', String(offset));
+    if (workflowId) query.set('workflow', workflowId);
+    if (status) query.set('status', status);
+    if (trigger) query.set('trigger', trigger);
+
+    const response = await this.callInternalApi(
+      'GET',
+      `/v1/workflow-executions?${query.toString()}`,
+      undefined,
+      ctx,
+    );
+
+    return {
+      creditsUsed: 0,
+      data: {
+        count: Array.isArray(response.data) ? response.data.length : 0,
+        runs: response.data ?? [],
+      },
+      success: true,
+    };
+  }
+
+  private async getWorkflowRun(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const runId = this.readOptionalString(params.runId);
+    if (!runId) {
+      return {
+        creditsUsed: 0,
+        error: 'runId is required',
+        success: false,
+      };
+    }
+
+    const response = await this.callInternalApi(
+      'GET',
+      `/v1/workflow-executions/${encodeURIComponent(runId)}`,
+      undefined,
+      ctx,
+    );
+
+    return {
+      creditsUsed: 0,
+      data: {
+        run: response.data ?? response,
+      },
+      success: true,
+    };
+  }
+
+  private mapWorkflowForTool(
+    workflow: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const nodes = Array.isArray(workflow.nodes) ? workflow.nodes : [];
+    const edges = Array.isArray(workflow.edges) ? workflow.edges : [];
+
+    return {
+      description: workflow.description,
+      edgeCount: edges.length,
+      id: String(workflow._id ?? workflow.id ?? ''),
+      inputVariables: Array.isArray(workflow.inputVariables)
+        ? workflow.inputVariables
+        : [],
+      isScheduleEnabled: workflow.isScheduleEnabled,
+      label: workflow.label ?? workflow.name,
+      lifecycle: workflow.lifecycle,
+      metadata: workflow.metadata,
+      nodeCount: nodes.length,
+      schedule: workflow.schedule,
+      status: workflow.status,
+      timezone: workflow.timezone,
+      updatedAt: workflow.updatedAt,
     };
   }
 
@@ -8270,7 +8668,7 @@ export class AgentToolExecutorService {
   // ──────────────────────────────────────────────
 
   private async callInternalApi(
-    method: 'GET' | 'POST',
+    method: 'DELETE' | 'GET' | 'POST',
     path: string,
     body: Record<string, unknown> | undefined,
     ctx: ToolExecutionContext,
@@ -8287,7 +8685,9 @@ export class AgentToolExecutorService {
     const response = await firstValueFrom(
       method === 'POST'
         ? this.httpService.post(url, body, { headers })
-        : this.httpService.get(url, { headers }),
+        : method === 'DELETE'
+          ? this.httpService.delete(url, { headers })
+          : this.httpService.get(url, { headers }),
     );
 
     return response.data as Record<string, unknown>;

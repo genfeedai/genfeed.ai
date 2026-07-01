@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { MenuSharedProps } from '@genfeedai/props/navigation/menu.props';
@@ -39,6 +40,7 @@ export default function MenuShared({
   conversationActions,
   renderFooterSlot,
   showUserProfile = true,
+  orgSwitcherSlot,
 }: MenuSharedProps) {
   const { push } = useRouter();
 
@@ -207,6 +209,10 @@ export default function MenuShared({
             isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100',
           )}
         >
+          {orgSwitcherSlot ? (
+            <div className="px-3 pt-2">{orgSwitcherSlot}</div>
+          ) : null}
+
           {topSlotContent ? (
             <div className="px-3 pt-2">{topSlotContent}</div>
           ) : null}
@@ -271,7 +277,7 @@ export default function MenuShared({
                     afterNavigationContent={afterNavigationContent}
                     conversationActions={conversationActions}
                     isConversationsCollapsed={isConversationsCollapsed}
-                    newChatHref={orgHref('/chat/new')}
+                    newAgentThreadHref={orgHref(APP_ROUTES.AGENT.NEW)}
                     onCollapsedChange={setIsConversationsCollapsed}
                   />
                 )}

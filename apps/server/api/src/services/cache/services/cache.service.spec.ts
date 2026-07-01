@@ -102,10 +102,14 @@ describe('CacheService', () => {
     });
 
     it('gracefully handles errors', async () => {
-      mockRedisClient.setEx.mockRejectedValue(new Error('oops'));
+      const error = new Error('oops');
+      mockRedisClient.setEx.mockRejectedValue(error);
       const result = await service.set('key', {});
       expect(result).toBe(false);
-      expect(loggerService.error).toHaveBeenCalled();
+      expect(loggerService.error).toHaveBeenCalledWith(
+        'CacheService set error',
+        { error, key: 'key' },
+      );
     });
   });
 
@@ -130,6 +134,16 @@ describe('CacheService', () => {
     it('flushes redis DB', async () => {
       mockRedisClient.flushDb.mockResolvedValue('OK' as unknown as string);
       await expect(service.flush()).resolves.toBe(true);
+    });
+
+    it('logs flush errors with the existing payload shape', async () => {
+      const error = new Error('flush failed');
+      mockRedisClient.flushDb.mockRejectedValue(error);
+      await expect(service.flush()).resolves.toBe(false);
+      expect(loggerService.error).toHaveBeenCalledWith(
+        'CacheService flush error',
+        error,
+      );
     });
   });
 });

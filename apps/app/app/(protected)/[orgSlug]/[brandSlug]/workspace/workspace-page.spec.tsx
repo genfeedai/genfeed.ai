@@ -293,6 +293,48 @@ describe('WorkspacePageContent', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('keeps the inbox content mounted while the first task list loads', async () => {
+    let resolveTasks: (tasks: ReturnType<typeof buildTask>[]) => void;
+    listMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveTasks = resolve;
+      }),
+    );
+
+    render(<WorkspacePageContent section="inbox" defaultInboxView="all" />);
+
+    expect(screen.getByTestId('workspace-inbox')).toHaveAttribute(
+      'aria-busy',
+      'true',
+    );
+    expect(screen.getByTestId('workspace-snapshot')).toHaveAttribute(
+      'aria-busy',
+      'true',
+    );
+    expect(screen.queryByText('No inbox items yet.')).not.toBeInTheDocument();
+
+    resolveTasks?.([
+      buildTask({
+        id: 'task-first-load',
+        reviewState: 'pending_approval',
+        status: 'needs_review',
+        title: 'Loaded after first fetch',
+      }),
+    ]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Loaded after first fetch')).toBeInTheDocument();
+    });
+    expect(screen.getByTestId('workspace-inbox')).toHaveAttribute(
+      'aria-busy',
+      'false',
+    );
+    expect(screen.getByTestId('workspace-snapshot')).toHaveAttribute(
+      'aria-busy',
+      'false',
+    );
+  });
+
   it('opens the task composer modal when the sidebar requests a new task', async () => {
     render(<WorkspacePageContent section="overview" />);
 
@@ -461,7 +503,7 @@ describe('WorkspacePageContent', () => {
       expect(ensurePlanningThreadMock).toHaveBeenCalledWith('task-plan-1');
     });
 
-    expect(routerPushMock).toHaveBeenCalledWith('/chat/thread-plan-123');
+    expect(routerPushMock).toHaveBeenCalledWith('/agent/thread-plan-123');
   });
 
   it('renders unread, recent, and all inbox routes on the dedicated inbox page', async () => {
@@ -585,12 +627,12 @@ describe('WorkspacePageContent', () => {
       within(screen.getByTestId('workspace-task-inspector')).getByRole('link', {
         name: 'Open Report',
       }),
-    ).toHaveAttribute('href', '/chat/thread-report-123');
+    ).toHaveAttribute('href', '/agent/thread-report-123');
     expect(
       within(screen.getByTestId('workspace-task-inspector')).getByRole('link', {
         name: 'Open report thread',
       }),
-    ).toHaveAttribute('href', '/chat/thread-report-123');
+    ).toHaveAttribute('href', '/agent/thread-report-123');
   });
 
   it('renders linked ingredient outputs inside the task inspector', async () => {

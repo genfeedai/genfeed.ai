@@ -59,7 +59,7 @@ describe('AgentOverlay', () => {
   });
 
   it('returns null on dedicated agent routes', () => {
-    mockUsePathname.mockReturnValue('/chat/thread-123');
+    mockUsePathname.mockReturnValue('/agent/thread-123');
 
     const { container } = render(<AgentOverlay apiService={{} as never} />);
 
