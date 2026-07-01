@@ -55,6 +55,7 @@ export interface WorkflowTemplate {
   name: string;
   description: string;
   category: string;
+  changeSummary?: string;
   icon?: string;
   isScheduleEnabled?: boolean;
   inputVariables?: Array<{
@@ -93,6 +94,7 @@ export interface WorkflowTemplate {
     dependsOn?: string[];
   }>;
   timezone?: string;
+  version?: number;
 }
 
 export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
