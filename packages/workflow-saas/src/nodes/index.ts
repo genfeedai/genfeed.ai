@@ -4,6 +4,7 @@ export * from './beat-sync-editor';
 export * from './brand';
 export * from './brand-asset';
 export * from './brand-context';
+export * from './comment-trigger';
 export * from './condition';
 export * from './delay';
 export * from './engagement-trigger';

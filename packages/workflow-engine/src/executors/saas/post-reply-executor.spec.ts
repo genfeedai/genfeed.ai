@@ -94,10 +94,36 @@ describe('PostReplyExecutor', () => {
     expect(result.data).toMatchObject({ success: true });
   });
 
+  it('uses conversationId as the durable reply target', async () => {
+    const input = makeInput({
+      conversationId: 'conversation-1',
+      platform: 'youtube',
+      text: 'From inbox',
+    });
+
+    const result = await executor.execute(input);
+
+    expect(mockPublisher).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversationId: 'conversation-1',
+        platform: 'youtube',
+        postId: 'conversation-1',
+        sourceMessageId: undefined,
+        workflowId: 'wf-1',
+        workflowRunId: 'run-1',
+      }),
+    );
+    expect(result.data).toMatchObject({
+      originalPostId: 'conversation-1',
+      platform: 'youtube',
+      success: true,
+    });
+  });
+
   it('throws if postId missing', async () => {
     const input = makeInput({ platform: 'twitter', text: 'hello' });
     await expect(executor.execute(input)).rejects.toThrow(
-      'Post ID is required',
+      'Post ID or social inbox conversation ID is required',
     );
   });
 

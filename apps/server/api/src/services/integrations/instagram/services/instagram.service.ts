@@ -895,4 +895,40 @@ export class InstagramService {
       throw error;
     }
   }
+
+  public async replyToComment(
+    organizationId: string,
+    brandId: string,
+    commentId: string,
+    text: string,
+  ): Promise<{ commentId: string }> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    try {
+      const credential = await this.refreshToken(organizationId, brandId);
+      const decryptedAccessToken = EncryptionUtil.decrypt(
+        credential.accessToken,
+      );
+
+      const response = await firstValueFrom(
+        this.httpService.post(
+          `${this.graphUrl}/${this.apiVersion}/${commentId}/replies`,
+          null,
+          {
+            params: {
+              access_token: decryptedAccessToken,
+              message: text,
+            },
+          },
+        ),
+      );
+
+      this.loggerService.log(`${url} succeeded`, response.data);
+
+      return { commentId: response.data.id };
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, error);
+      throw error;
+    }
+  }
 }

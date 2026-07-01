@@ -109,6 +109,9 @@ export class TwitterSocialAdapter {
       } = params;
 
       const brandId = explicitBrandId ?? userId;
+      if (!recipientId) {
+        throw new Error('recipientId is required for Twitter DM sending');
+      }
 
       this.loggerService.debug(`${this.logContext} sending DM`, {
         brandId,

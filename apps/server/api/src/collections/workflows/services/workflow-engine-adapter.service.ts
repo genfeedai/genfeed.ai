@@ -15,6 +15,7 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
@@ -230,6 +231,7 @@ const NODE_TYPE_TO_EXECUTOR: Record<string, string> = {
   // Social interaction nodes
   'social-post-reply': 'postReply',
   'social-send-dm': 'sendDm',
+  'trigger-comment': 'commentTrigger',
   'trigger-mention': 'mentionTrigger',
   'trigger-new-follower': 'newFollowerTrigger',
   'trigger-new-like': 'newLikeTrigger',
@@ -251,6 +253,7 @@ export class WorkflowEngineAdapterService {
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
     @Optional() private readonly socialAdapterFactory?: SocialAdapterFactory,
+    @Optional() private readonly socialInboxService?: SocialInboxService,
     @Optional()
     private readonly avatarVideoGenerationService?: AvatarVideoGenerationService,
     @Optional() private readonly captionsService?: CaptionsService,
@@ -1864,12 +1867,54 @@ export class WorkflowEngineAdapterService {
       const socialAdapterFactory = this.socialAdapterFactory;
 
       // Wire dispatching publishers/checkers that route to the correct platform adapter
-      postReplyExecutor.setPublisher((params) => {
+      postReplyExecutor.setPublisher(async (params) => {
+        if (params.conversationId && this.socialInboxService) {
+          const message = await this.socialInboxService.postReply(
+            {
+              brandId: params.brandId,
+              organizationId: params.organizationId,
+              userId: params.userId,
+            },
+            params.conversationId,
+            {
+              agentRunId: params.agentRunId,
+              idempotencyKey: this.socialActionIdempotencyKey('reply', params),
+              text: params.text,
+              workflowRunId: params.workflowRunId,
+            },
+          );
+
+          return {
+            replyId: message.externalMessageId ?? message.id,
+            replyUrl: message.sourceUrl ?? '',
+          };
+        }
+
         const adapter = socialAdapterFactory.getAdapter(params.platform);
         return adapter.createReplyPublisher()(params);
       });
 
-      sendDmExecutor.setSender((params) => {
+      sendDmExecutor.setSender(async (params) => {
+        if (params.conversationId && this.socialInboxService) {
+          const message = await this.socialInboxService.sendDm(
+            {
+              brandId: params.brandId,
+              organizationId: params.organizationId,
+              userId: params.userId,
+            },
+            params.conversationId,
+            {
+              agentRunId: params.agentRunId,
+              idempotencyKey: this.socialActionIdempotencyKey('dm', params),
+              recipientId: params.recipientId,
+              text: params.text,
+              workflowRunId: params.workflowRunId,
+            },
+          );
+
+          return { messageId: message.externalMessageId ?? message.id };
+        }
+
         const adapter = socialAdapterFactory.getAdapter(params.platform);
         return adapter.createDmSender()(params);
       });
@@ -1924,6 +1969,31 @@ export class WorkflowEngineAdapterService {
       repostTriggerExecutor.nodeType,
       this.wrapEngineExecutor(repostTriggerExecutor),
     );
+    this.engine.registerExecutor('commentTrigger', async () => ({
+      data: null,
+      metadata: { matched: false, platform: 'social' },
+    }));
+  }
+
+  private socialActionIdempotencyKey(
+    action: 'dm' | 'reply',
+    params: {
+      conversationId?: string;
+      nodeId?: string;
+      sourceMessageId?: string;
+      userId: string;
+      workflowId?: string;
+      workflowRunId?: string;
+    },
+  ): string {
+    return [
+      'workflow',
+      params.workflowId ?? params.workflowRunId ?? params.userId,
+      params.nodeId ?? action,
+      params.conversationId ?? 'conversation',
+      params.sourceMessageId ?? params.workflowRunId ?? action,
+      action,
+    ].join(':');
   }
 
   /**

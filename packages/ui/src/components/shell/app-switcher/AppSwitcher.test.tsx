@@ -123,6 +123,7 @@ describe('AppSwitcher', () => {
       'Library',
       'Batch',
       'Posts',
+      'Messages',
       'Review',
       'Calendar',
       'Scheduled',
@@ -160,6 +161,17 @@ describe('AppSwitcher', () => {
     const activeButton = screen.getByRole('link', { name: 'Posts' });
 
     expect(activeButton).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('marks messages active when the messages shell is current', () => {
+    render(
+      <AppSwitcher orgSlug="acme" brandSlug="my-brand" currentApp="messages" />,
+    );
+
+    expect(screen.getByRole('link', { name: 'Messages' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
   });
 
   it('marks admin active when the admin shell renders the switcher', () => {
@@ -259,6 +271,7 @@ describe('AppSwitcher', () => {
 
       for (const [label, href] of [
         ['Posts', '/acme/~/posts'],
+        ['Messages', '/acme/~/overview'],
         ['Remix', '/acme/~/posts'],
         ['Discovery', '/acme/~/overview'],
         ['Studio', '/acme/~/studio/image'],
@@ -382,6 +395,10 @@ describe('AppSwitcher', () => {
       expect(screen.getByRole('link', { name: 'Posts' })).toHaveAttribute(
         'href',
         '/acme/my-brand/posts',
+      );
+      expect(screen.getByRole('link', { name: 'Messages' })).toHaveAttribute(
+        'href',
+        '/acme/my-brand/messages',
       );
       expect(screen.getByRole('link', { name: 'Review' })).toHaveAttribute(
         'href',

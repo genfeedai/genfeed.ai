@@ -11,6 +11,7 @@ import {
   HiOutlineArrowPathRoundedSquare,
   HiOutlineArrowTrendingUp,
   HiOutlineChartBarSquare,
+  HiOutlineChatBubbleLeftRight,
   HiOutlineCheckCircle,
   HiOutlineClock,
   HiOutlinePaperAirplane,
@@ -130,6 +131,15 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         label: 'Posts',
         route: (org, brand) =>
           brand ? `/${org}/${brand}/posts` : `/${org}/~/posts`,
+      },
+      {
+        description: 'Reply to audience.',
+        icon: HiOutlineChatBubbleLeftRight,
+        id: 'messages',
+        itemKey: 'publish-messages',
+        label: 'Messages',
+        route: (org, brand) =>
+          brand ? `/${org}/${brand}/messages` : `/${org}/~/overview`,
       },
       {
         description: 'Approve content.',

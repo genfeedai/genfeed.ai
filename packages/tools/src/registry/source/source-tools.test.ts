@@ -23,6 +23,8 @@ const REQUIRED_ROLES = new Set(['user', 'admin', 'superadmin']);
 const EXPECTED_TOOL_NAMES = [
   'ai_action',
   'analyze_performance',
+  'approve_social_draft',
+  'assign_social_conversation',
   'batch_approve_reject',
   'benchmark_ad_performance',
   'capture_memory',
@@ -41,6 +43,7 @@ const EXPECTED_TOOL_NAMES = [
   'create_goal',
   'create_livestream_bot',
   'create_post',
+  'create_social_reply_draft',
   'create_workflow',
   'delete_dataset',
   'discover_engagements',
@@ -88,6 +91,7 @@ const EXPECTED_TOOL_NAMES = [
   'get_meta_adset_insights',
   'get_meta_campaign_insights',
   'get_meta_top_performers',
+  'get_social_conversation',
   'get_top_ingredients',
   'get_training_status',
   'get_trends',
@@ -110,12 +114,15 @@ const EXPECTED_TOOL_NAMES = [
   'list_music',
   'list_posts',
   'list_review_queue',
+  'list_social_conversations',
   'list_videos',
   'list_workflow_templates',
   'list_workflows',
   'manage_livestream_bot',
+  'mark_social_conversation_resolved',
   'open_studio_handoff',
   'pause_campaign',
+  'post_social_reply',
   'prepare_clip_workflow_run',
   'prepare_generation',
   'prepare_voice_clone',
@@ -124,6 +131,7 @@ const EXPECTED_TOOL_NAMES = [
   'rate_content',
   'rate_ingredient',
   'reframe_image',
+  'reject_social_draft',
   'render_dashboard',
   'replicate_top_ingredient',
   'request_asset',
@@ -135,6 +143,7 @@ const EXPECTED_TOOL_NAMES = [
   'search_articles',
   'select_ingredient',
   'send_chat_message',
+  'send_social_dm',
   'skip_brand_interview_question',
   'spawn_content_agent',
   'start_brand_interview',
@@ -143,6 +152,7 @@ const EXPECTED_TOOL_NAMES = [
   'submit_brand_interview_answer',
   'suggest_ad_headlines',
   'suggest_ingredient_alternatives',
+  'tag_social_conversation',
   'update_goal',
   'update_strategy_state',
   'upscale_image',
@@ -166,7 +176,7 @@ function countLines(filePath: string): number {
 }
 
 describe('SOURCE_TOOLS registry split (#692)', () => {
-  it('exposes exactly 125 tool definitions', () => {
+  it('exposes exactly 135 tool definitions', () => {
     expect(SOURCE_TOOLS).toHaveLength(EXPECTED_TOOL_NAMES.length);
   });
 
@@ -192,7 +202,7 @@ describe('SOURCE_TOOLS registry split (#692)', () => {
   it('partitions tools by their declared surface', () => {
     expect(OVERLAP_TOOLS).toHaveLength(11);
     expect(AGENT_ONLY_TOOLS).toHaveLength(55);
-    expect(MCP_ONLY_TOOLS).toHaveLength(55);
+    expect(MCP_ONLY_TOOLS).toHaveLength(65);
     expect(BRAND_INTERVIEW_TOOLS).toHaveLength(4);
     expect(
       OVERLAP_TOOLS.every((tool) => tool.surfaces.agent && tool.surfaces.mcp),

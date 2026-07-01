@@ -193,4 +193,32 @@ export class YoutubeService {
       text,
     );
   }
+
+  listVideoComments(
+    organizationId: string,
+    brandId: string,
+    videoId: string,
+    maxResults?: number,
+  ) {
+    return this.commentsService.listVideoComments(
+      organizationId,
+      brandId,
+      videoId,
+      maxResults,
+    );
+  }
+
+  postCommentReply(
+    organizationId: string,
+    brandId: string,
+    parentCommentId: string,
+    text: string,
+  ) {
+    return this.commentsService.postCommentReply(
+      organizationId,
+      brandId,
+      parentCommentId,
+      text,
+    );
+  }
 }

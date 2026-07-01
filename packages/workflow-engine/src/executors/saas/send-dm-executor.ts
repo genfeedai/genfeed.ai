@@ -20,6 +20,8 @@ export interface SendDmConfig {
   text?: string;
   /** Optional media URL to attach */
   mediaUrl?: string;
+  /** Durable social inbox conversation id, when replying from an ingested thread */
+  conversationId?: string;
 }
 
 export interface SendDmResult {
@@ -45,9 +47,15 @@ export type DmSender = (params: {
   /** The brand ID associated with this action. Use this instead of userId for brand-scoped operations. */
   brandId?: string;
   platform: DmPlatform;
-  recipientId: string;
+  recipientId?: string;
   text: string;
   mediaUrl?: string;
+  conversationId?: string;
+  workflowRunId?: string;
+  agentRunId?: string;
+  workflowId?: string;
+  nodeId?: string;
+  sourceMessageId?: string;
 }) => Promise<{ messageId: string }>;
 
 // =============================================================================
@@ -100,12 +108,21 @@ export class SendDmExecutor extends BaseExecutor {
     const recipientId =
       (node.config.recipientId as string) ??
       (inputs.get('recipientId') as string | undefined);
+    const conversationId =
+      (node.config.conversationId as string) ??
+      (inputs.get('conversationId') as string | undefined);
+    const sourceMessageId =
+      (node.config.sourceMessageId as string) ??
+      (inputs.get('messageId') as string | undefined);
     const text =
       (node.config.text as string) ??
       (inputs.get('text') as string | undefined);
 
-    if (!recipientId) {
-      throw new Error('Recipient ID is required (via config or input)');
+    const recipientTargetId = recipientId ?? conversationId;
+    if (!recipientTargetId) {
+      throw new Error(
+        'Recipient ID or social inbox conversation ID is required (via config or input)',
+      );
     }
     if (!text) {
       throw new Error('DM text is required (via config or input)');
@@ -117,18 +134,24 @@ export class SendDmExecutor extends BaseExecutor {
 
     const result = await this.sender({
       brandId: node.config.brandId as string | undefined,
+      conversationId,
+      agentRunId: node.config.agentRunId as string | undefined,
       mediaUrl,
+      nodeId: node.id,
       organizationId: context.organizationId,
       platform,
       recipientId,
+      sourceMessageId,
       text,
       userId: context.userId,
+      workflowId: context.workflowId,
+      workflowRunId: context.runId,
     });
 
     const dmResult: SendDmResult = {
       messageId: result.messageId,
       platform,
-      recipientId,
+      recipientId: recipientTargetId,
       success: true,
     };
 

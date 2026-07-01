@@ -8,6 +8,7 @@ export type AppContext =
   | 'research'
   | 'remix'
   | 'library'
+  | 'messages'
   | 'posts'
   | 'studio'
   | 'workflows'

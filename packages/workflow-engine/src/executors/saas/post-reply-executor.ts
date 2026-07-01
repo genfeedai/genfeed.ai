@@ -9,7 +9,12 @@ import type { ExecutableNode } from '@workflow-engine/types';
 // TYPES
 // =============================================================================
 
-export type ReplyPlatform = 'twitter' | 'instagram' | 'threads' | 'facebook';
+export type ReplyPlatform =
+  | 'twitter'
+  | 'instagram'
+  | 'threads'
+  | 'facebook'
+  | 'youtube';
 
 export interface PostReplyConfig {
   /** Platform to reply on */
@@ -20,6 +25,8 @@ export interface PostReplyConfig {
   text?: string;
   /** Optional media URL to attach */
   mediaUrl?: string;
+  /** Durable social inbox conversation id, when replying to an ingested message */
+  conversationId?: string;
 }
 
 export interface PostReplyResult {
@@ -50,6 +57,12 @@ export type ReplyPublisher = (params: {
   postId: string;
   text: string;
   mediaUrl?: string;
+  conversationId?: string;
+  workflowRunId?: string;
+  agentRunId?: string;
+  workflowId?: string;
+  nodeId?: string;
+  sourceMessageId?: string;
 }) => Promise<{ replyId: string; replyUrl: string }>;
 
 // =============================================================================
@@ -82,6 +95,7 @@ export class PostReplyExecutor extends BaseExecutor {
       'instagram',
       'threads',
       'facebook',
+      'youtube',
     ];
     if (!platform || !validPlatforms.includes(platform as ReplyPlatform)) {
       errors.push(
@@ -108,12 +122,21 @@ export class PostReplyExecutor extends BaseExecutor {
     const postId =
       (node.config.postId as string) ??
       (inputs.get('postId') as string | undefined);
+    const conversationId =
+      (node.config.conversationId as string) ??
+      (inputs.get('conversationId') as string | undefined);
+    const sourceMessageId =
+      (node.config.sourceMessageId as string) ??
+      (inputs.get('messageId') as string | undefined);
     const text =
       (node.config.text as string) ??
       (inputs.get('text') as string | undefined);
 
-    if (!postId) {
-      throw new Error('Post ID is required (via config or input)');
+    const replyTargetId = postId ?? conversationId;
+    if (!replyTargetId) {
+      throw new Error(
+        'Post ID or social inbox conversation ID is required (via config or input)',
+      );
     }
     if (!text) {
       throw new Error('Reply text is required (via config or input)');
@@ -125,16 +148,22 @@ export class PostReplyExecutor extends BaseExecutor {
 
     const result = await this.publisher({
       brandId: node.config.brandId as string | undefined,
+      conversationId,
+      agentRunId: node.config.agentRunId as string | undefined,
       mediaUrl,
+      nodeId: node.id,
       organizationId: context.organizationId,
       platform,
-      postId,
+      postId: replyTargetId,
+      sourceMessageId,
       text,
       userId: context.userId,
+      workflowId: context.workflowId,
+      workflowRunId: context.runId,
     });
 
     const replyResult: PostReplyResult = {
-      originalPostId: postId,
+      originalPostId: replyTargetId,
       platform,
       replyId: result.replyId,
       replyUrl: result.replyUrl,

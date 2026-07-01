@@ -121,6 +121,7 @@ interface ReviewGateApprovalResult {
 
 /** Trigger node types that start a workflow */
 const TRIGGER_NODE_TYPES = new Set([
+  'commentTrigger',
   'mentionTrigger',
   'newFollowerTrigger',
   'newLikeTrigger',
@@ -134,6 +135,8 @@ const MAX_EXECUTION_NODES = 500;
 
 /** Map from trigger event types to executor node types */
 const EVENT_TYPE_TO_NODE_TYPE: Record<string, string> = {
+  comment: 'commentTrigger',
+  commentTrigger: 'commentTrigger',
   mention: 'mentionTrigger',
   mentionTrigger: 'mentionTrigger',
   newFollower: 'newFollowerTrigger',
@@ -1255,9 +1258,7 @@ export class WorkflowExecutorService {
     // Inject trigger data for trigger nodes
     const triggerNodeType =
       EVENT_TYPE_TO_NODE_TYPE[triggerEvent.type] ?? triggerEvent.type;
-    const triggerNode = workflow.nodes.find(
-      (n) => n.type === triggerNodeType || TRIGGER_NODE_TYPES.has(n.type),
-    );
+    const triggerNode = workflow.nodes.find((n) => n.type === triggerNodeType);
     if (triggerNode) {
       nodeCache.set(triggerNode.id, triggerEvent.data);
       completedNodes.add(triggerNode.id);
@@ -1818,6 +1819,7 @@ export class WorkflowExecutorService {
   private resolveNodeType(visualNodeType: string): string {
     const NODE_TYPE_MAP: Record<string, string> = {
       'trigger-mention': 'mentionTrigger',
+      'trigger-comment': 'commentTrigger',
       'trigger-new-follower': 'newFollowerTrigger',
       'trigger-new-like': 'newLikeTrigger',
       'trigger-new-repost': 'newRepostTrigger',

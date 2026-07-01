@@ -12,6 +12,7 @@ import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { MusicsModule } from '@api/collections/musics/musics.module';
 import { NewslettersModule } from '@api/collections/newsletters/newsletters.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
+import { SocialInboxModule } from '@api/collections/social-inbox/social-inbox.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
 import { VideoGenerationModule } from '@api/collections/videos/video-generation.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
@@ -97,6 +98,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => NotificationsPublisherModule),
     forwardRef(() => OpenRouterModule),
     forwardRef(() => PostsModule),
+    forwardRef(() => SocialInboxModule),
     forwardRef(() => SharedModule),
     forwardRef(() => TrendsModule),
     forwardRef(() => TwitterModule),

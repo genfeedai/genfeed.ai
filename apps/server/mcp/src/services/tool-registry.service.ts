@@ -20,6 +20,10 @@ import { handleAgentChatTool } from '@mcp/tools/agent-chat.tool';
 import { handleDarkroomGenerationTool } from '@mcp/tools/darkroom-generation.tool';
 import { handleGoogleAdsTool } from '@mcp/tools/google-ads.tool';
 import { handleMetaAdsTool } from '@mcp/tools/meta-ads.tool';
+import {
+  handleSocialMessagesTool,
+  SOCIAL_MESSAGES_TOOL_NAMES,
+} from '@mcp/tools/social-messages.tool';
 import { handleTrainingPipelineTool } from '@mcp/tools/training-pipeline.tool';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -60,6 +64,10 @@ const APPROVAL_REQUIRED_TOOLS: ReadonlySet<string> = new Set<string>([
   'start_brand_interview',
   'submit_brand_interview_answer',
   'skip_brand_interview_question',
+  // Social messages — external sends require approval
+  'approve_social_draft',
+  'post_social_reply',
+  'send_social_dm',
 ]);
 
 @Injectable()
@@ -725,6 +733,10 @@ export class ToolRegistryService {
 
     if (['create_chat', 'send_chat_message'].includes(name)) {
       return handleAgentChatTool(this.clientService, name, args);
+    }
+
+    if (SOCIAL_MESSAGES_TOOL_NAMES.has(name)) {
+      return handleSocialMessagesTool(this.clientService, name, args);
     }
 
     if (

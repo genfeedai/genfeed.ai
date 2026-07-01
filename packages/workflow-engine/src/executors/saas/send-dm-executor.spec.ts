@@ -94,10 +94,35 @@ describe('SendDmExecutor', () => {
     expect(result.data).toMatchObject({ success: true });
   });
 
+  it('uses conversationId as the durable DM target', async () => {
+    const input = makeInput({
+      conversationId: 'conversation-1',
+      platform: 'instagram',
+      text: 'From inbox',
+    });
+
+    const result = await executor.execute(input);
+
+    expect(mockSender).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversationId: 'conversation-1',
+        platform: 'instagram',
+        recipientId: undefined,
+        workflowId: 'wf-1',
+        workflowRunId: 'run-1',
+      }),
+    );
+    expect(result.data).toMatchObject({
+      platform: 'instagram',
+      recipientId: 'conversation-1',
+      success: true,
+    });
+  });
+
   it('throws if recipientId missing', async () => {
     const input = makeInput({ platform: 'twitter', text: 'hello' });
     await expect(executor.execute(input)).rejects.toThrow(
-      'Recipient ID is required',
+      'Recipient ID or social inbox conversation ID is required',
     );
   });
 
