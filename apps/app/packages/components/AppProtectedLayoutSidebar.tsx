@@ -13,12 +13,14 @@ import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import type { MenuSharedProps } from '@genfeedai/props/navigation/menu.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import OrganizationSwitcher from '@ui/menus/organization-switcher/OrganizationSwitcher';
 import SidebarActionTrigger from '@ui/menus/sidebar-action-trigger/SidebarActionTrigger';
 import SidebarSearchTrigger from '@ui/menus/sidebar-search-trigger/SidebarSearchTrigger';
 import AdminSidebar from '@ui/shell/menus/AdminSidebar';
 import AppSidebar from '@ui/shell/menus/AppSidebar';
 import type { ReactNode } from 'react';
 import { HiPlus } from 'react-icons/hi2';
+import { isHostedCloudApp } from '@/lib/config/edition';
 import { withTaskContextHref } from '@/lib/navigation/operator-shell';
 import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
 import ChatSidebarContent from './AppProtectedLayoutChatSidebar';
@@ -87,6 +89,10 @@ export default function AppProtectedLayoutSidebar({
   onOpenCommandPalette,
 }: Props) {
   const { href: buildHref, orgHref } = useOrgUrl();
+  const shouldRenderOrganizationSwitcher = isHostedCloudApp();
+  const orgSwitcherSlot = shouldRenderOrganizationSwitcher ? (
+    <OrganizationSwitcher />
+  ) : undefined;
 
   if (isFocusedOnboardingRoute) {
     return null;
@@ -103,6 +109,7 @@ export default function AppProtectedLayoutSidebar({
         currentApp={currentApp}
         sectionLabel="Library"
         shellChromeVariant={shellChromeVariant}
+        orgSwitcherSlot={orgSwitcherSlot}
       />
     );
   }
@@ -118,6 +125,7 @@ export default function AppProtectedLayoutSidebar({
         currentApp={currentApp}
         sectionLabel="Studio"
         shellChromeVariant={shellChromeVariant}
+        orgSwitcherSlot={orgSwitcherSlot}
       />
     );
   }
@@ -142,6 +150,7 @@ export default function AppProtectedLayoutSidebar({
         currentApp={currentApp}
         sectionLabel="Compose"
         shellChromeVariant={shellChromeVariant}
+        orgSwitcherSlot={orgSwitcherSlot}
       />
     );
   }
@@ -157,6 +166,7 @@ export default function AppProtectedLayoutSidebar({
         currentApp={currentApp}
         sectionLabel="Workflows"
         shellChromeVariant={shellChromeVariant}
+        orgSwitcherSlot={orgSwitcherSlot}
       />
     );
   }
@@ -172,6 +182,7 @@ export default function AppProtectedLayoutSidebar({
         currentApp={currentApp}
         sectionLabel="Editor"
         shellChromeVariant={shellChromeVariant}
+        orgSwitcherSlot={orgSwitcherSlot}
       />
     );
   }
@@ -187,6 +198,7 @@ export default function AppProtectedLayoutSidebar({
         currentApp={currentApp}
         sectionLabel="Analytics"
         shellChromeVariant={shellChromeVariant}
+        orgSwitcherSlot={orgSwitcherSlot}
       />
     );
   }
@@ -202,6 +214,7 @@ export default function AppProtectedLayoutSidebar({
         currentApp={currentApp}
         sectionLabel="Organization"
         shellChromeVariant={shellChromeVariant}
+        orgSwitcherSlot={orgSwitcherSlot}
       />
     );
   }
@@ -217,6 +230,7 @@ export default function AppProtectedLayoutSidebar({
         currentApp={currentApp}
         sectionLabel="Settings"
         shellChromeVariant={shellChromeVariant}
+        orgSwitcherSlot={orgSwitcherSlot}
       />
     );
   }
@@ -232,6 +246,7 @@ export default function AppProtectedLayoutSidebar({
       sectionLabel={undefined}
       collapsedSidebarWidth={0}
       mobileSidebarWidth={isConversationRoute ? undefined : 304}
+      orgSwitcherSlot={orgSwitcherSlot}
       renderTopSlot={
         isConversationRoute
           ? undefined

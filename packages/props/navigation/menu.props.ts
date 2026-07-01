@@ -70,6 +70,8 @@ export interface MenuSharedProps extends BaseMenuProps, SidebarSizingProps {
   renderFooterSlot?: () => ReactNode;
   /** Shows the signed-in user profile footer in the sidebar */
   showUserProfile?: boolean;
+  /** Renders the organization switcher above `renderTopSlot`, at the very top of the sidebar body */
+  orgSwitcherSlot?: ReactNode;
 }
 
 export interface MenuItemProps {
