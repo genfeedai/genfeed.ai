@@ -176,6 +176,7 @@ export class WorkflowCrudController {
         workflowId,
         publicMetadata.user,
         publicMetadata.organization,
+        publicMetadata.brand || undefined,
       );
 
       return serializeSingle(request, WorkflowSerializer, clonedWorkflow);

@@ -1648,6 +1648,7 @@ export class WorkflowsService extends BaseService<
     workflowId: string,
     userId: string,
     organizationId: string,
+    targetBrandId?: string,
   ): Promise<WorkflowEntity> {
     const workflowDoc = await this.findOne({
       _id: workflowId,
@@ -1662,7 +1663,10 @@ export class WorkflowsService extends BaseService<
     const clonedWorkflow = await this.create({
       ...workflow,
       completedAt: undefined,
+      defaultRecurringBrandId:
+        targetBrandId || workflow.defaultRecurringBrandId,
       executionCount: 0,
+      brands: targetBrandId ? [targetBrandId] : workflow.brands,
       label: `${workflow.label} (Copy)`,
       lastExecutedAt: undefined,
       organization: organizationId,
