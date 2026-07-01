@@ -1,9 +1,12 @@
 vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
   PrismaService: class {},
 }));
-vi.mock('@genfeedai/prisma', () => ({
-  PrismaClient: class {},
-}));
+vi.mock('@genfeedai/prisma', async () => {
+  const { canonicalPrismaMock } = await import(
+    '@api/shared/testing/prisma-mock'
+  );
+  return canonicalPrismaMock();
+});
 
 import type { AgentSessionBindingDocument } from '@api/services/agent-threading/schemas/agent-session-binding.schema';
 import { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
