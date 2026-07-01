@@ -30,6 +30,7 @@ import type {
 } from '@api/collections/workflows/schemas/workflow.schema';
 import { AdAutomationWorkflowService } from '@api/collections/workflows/services/ad-automation-workflow.service';
 import { SocialAdapterFactory } from '@api/collections/workflows/services/adapters/social-adapter.factory';
+import { YoutubeSocialAdapter } from '@api/collections/workflows/services/adapters/youtube-social.adapter';
 import { AgentAutopilotWorkflowService } from '@api/collections/workflows/services/agent-autopilot-workflow.service';
 import { AnalyticsSyncWorkflowService } from '@api/collections/workflows/services/analytics-sync-workflow.service';
 import { CampaignOrchestrationWorkflowService } from '@api/collections/workflows/services/campaign-orchestration-workflow.service';
@@ -84,9 +85,12 @@ import {
   createAnalyticsFeedbackExecutor,
   createBrandAssetExecutor,
   createBrandContextExecutor,
+  createCommentTriggerExecutor,
+  createEngagementTriggerExecutor,
   createHookGeneratorExecutor,
   createImageGenExecutor,
   createIterativeSeoRefineExecutor,
+  createKeywordTriggerExecutor,
   createLipSyncExecutor,
   createMentionTriggerExecutor,
   createNewFollowerTriggerExecutor,
@@ -230,6 +234,7 @@ const NODE_TYPE_TO_EXECUTOR: Record<string, string> = {
   // Social interaction nodes
   'social-post-reply': 'postReply',
   'social-send-dm': 'sendDm',
+  'trigger-comment': 'commentTrigger',
   'trigger-mention': 'mentionTrigger',
   'trigger-new-follower': 'newFollowerTrigger',
   'trigger-new-like': 'newLikeTrigger',
@@ -301,6 +306,7 @@ export class WorkflowEngineAdapterService {
     @Optional() private readonly seoScorerService?: SeoScorerService,
     @Optional()
     private readonly workflowExecutionQueueService?: WorkflowExecutionQueueService,
+    @Optional() private readonly youtubeSocialAdapter?: YoutubeSocialAdapter,
   ) {
     this.engine = new WorkflowEngine({
       maxConcurrency: 3,
@@ -1837,7 +1843,7 @@ export class WorkflowEngineAdapterService {
         throw new Error('LLM executor returned empty content');
       }
 
-      return { content, model: response.model };
+      return { content, model: response.model, text: content };
     });
   }
 
@@ -1859,44 +1865,173 @@ export class WorkflowEngineAdapterService {
     const mentionTriggerExecutor = createMentionTriggerExecutor();
     const likeTriggerExecutor = createNewLikeTriggerExecutor();
     const repostTriggerExecutor = createNewRepostTriggerExecutor();
+    const keywordTriggerExecutor = createKeywordTriggerExecutor();
+    const engagementTriggerExecutor = createEngagementTriggerExecutor();
+    const commentTriggerExecutor = createCommentTriggerExecutor();
 
-    if (this.socialAdapterFactory && platforms.length > 0) {
+    // Wire dispatching publishers/checkers that route to the correct platform adapter.
+    // YouTube is backed by its own adapter because it uses the YouTube Data API,
+    // not the Twitter/Instagram social adapter factory.
+    if (this.socialAdapterFactory || this.youtubeSocialAdapter) {
       const socialAdapterFactory = this.socialAdapterFactory;
+      const youtubeSocialAdapter = this.youtubeSocialAdapter;
 
-      // Wire dispatching publishers/checkers that route to the correct platform adapter
       postReplyExecutor.setPublisher((params) => {
+        if (params.platform === 'youtube') {
+          if (!youtubeSocialAdapter) {
+            throw new Error('YouTube social adapter is not available');
+          }
+          return youtubeSocialAdapter.createReplyPublisher()(params);
+        }
+
+        if (!socialAdapterFactory) {
+          throw new Error(
+            `${params.platform} social adapter factory is not available`,
+          );
+        }
+
         const adapter = socialAdapterFactory.getAdapter(params.platform);
         return adapter.createReplyPublisher()(params);
       });
 
       sendDmExecutor.setSender((params) => {
+        if (!socialAdapterFactory) {
+          throw new Error(
+            `${params.platform} social adapter factory is not available`,
+          );
+        }
+
         const adapter = socialAdapterFactory.getAdapter(params.platform);
         return adapter.createDmSender()(params);
       });
 
       followerTriggerExecutor.setChecker((params) => {
+        if (!socialAdapterFactory) {
+          throw new Error(
+            `${params.platform} social adapter factory is not available`,
+          );
+        }
+
         const adapter = socialAdapterFactory.getAdapter(params.platform);
+        if (!adapter.createFollowerChecker) {
+          throw new Error(
+            `${params.platform} follower trigger is not supported by the configured social adapter`,
+          );
+        }
         return adapter.createFollowerChecker()(params);
       });
 
       mentionTriggerExecutor.setChecker((params) => {
+        if (!socialAdapterFactory) {
+          throw new Error(
+            `${params.platform} social adapter factory is not available`,
+          );
+        }
+
         const adapter = socialAdapterFactory.getAdapter(params.platform);
+        if (!adapter.createMentionChecker) {
+          throw new Error(
+            `${params.platform} mention trigger is not supported by the configured social adapter`,
+          );
+        }
         return adapter.createMentionChecker()(params);
       });
 
       likeTriggerExecutor.setChecker((params) => {
+        if (!socialAdapterFactory) {
+          throw new Error(
+            `${params.platform} social adapter factory is not available`,
+          );
+        }
+
         const adapter = socialAdapterFactory.getAdapter(params.platform);
+        if (!adapter.createLikeChecker) {
+          throw new Error(
+            `${params.platform} like trigger is not supported by the configured social adapter`,
+          );
+        }
         return adapter.createLikeChecker()(params);
       });
 
       repostTriggerExecutor.setChecker((params) => {
+        if (!socialAdapterFactory) {
+          throw new Error(
+            `${params.platform} social adapter factory is not available`,
+          );
+        }
+
         const adapter = socialAdapterFactory.getAdapter(params.platform);
+        if (!adapter.createRepostChecker) {
+          throw new Error(
+            `${params.platform} repost trigger is not supported by the configured social adapter`,
+          );
+        }
         return adapter.createRepostChecker()(params);
       });
 
-      this.loggerService.log(
-        `${this.logContext} social executors wired for platforms: ${platforms.join(', ')}`,
-      );
+      keywordTriggerExecutor.setChecker((params) => {
+        if (!socialAdapterFactory) {
+          throw new Error(
+            `${params.platform} social adapter factory is not available`,
+          );
+        }
+
+        const adapter = socialAdapterFactory.getAdapter(params.platform);
+        if (!adapter.createKeywordChecker) {
+          throw new Error(
+            `${params.platform} keyword trigger is not supported by the configured social adapter`,
+          );
+        }
+        return adapter.createKeywordChecker()(params);
+      });
+
+      engagementTriggerExecutor.setChecker((params) => {
+        if (!socialAdapterFactory) {
+          throw new Error(
+            `${params.platform} social adapter factory is not available`,
+          );
+        }
+
+        const adapter = socialAdapterFactory.getAdapter(params.platform);
+        if (!adapter.createEngagementChecker) {
+          throw new Error(
+            `${params.platform} engagement trigger is not supported by the configured social adapter`,
+          );
+        }
+        return adapter.createEngagementChecker()(params);
+      });
+
+      commentTriggerExecutor.setChecker((params) => {
+        if (params.platform === 'youtube') {
+          if (!youtubeSocialAdapter) {
+            throw new Error('YouTube social adapter is not available');
+          }
+          return youtubeSocialAdapter.createCommentChecker()(params);
+        }
+
+        if (!socialAdapterFactory) {
+          throw new Error(
+            `${params.platform} social adapter factory is not available`,
+          );
+        }
+
+        const adapter = socialAdapterFactory.getAdapter(params.platform);
+        if (!adapter.createCommentChecker) {
+          throw new Error(
+            `${params.platform} comment trigger is not supported by the configured social adapter`,
+          );
+        }
+        return adapter.createCommentChecker()(params);
+      });
+
+      const wiredPlatforms = youtubeSocialAdapter
+        ? [...new Set([...platforms, 'youtube'])]
+        : platforms;
+      if (wiredPlatforms.length > 0) {
+        this.loggerService.log(
+          `${this.logContext} social executors wired for platforms: ${wiredPlatforms.join(', ')}`,
+        );
+      }
     }
 
     // Wrap class executors as NodeExecutor functions
@@ -1923,6 +2058,18 @@ export class WorkflowEngineAdapterService {
     this.engine.registerExecutor(
       repostTriggerExecutor.nodeType,
       this.wrapEngineExecutor(repostTriggerExecutor),
+    );
+    this.engine.registerExecutor(
+      keywordTriggerExecutor.nodeType,
+      this.wrapEngineExecutor(keywordTriggerExecutor),
+    );
+    this.engine.registerExecutor(
+      engagementTriggerExecutor.nodeType,
+      this.wrapEngineExecutor(engagementTriggerExecutor),
+    );
+    this.engine.registerExecutor(
+      commentTriggerExecutor.nodeType,
+      this.wrapEngineExecutor(commentTriggerExecutor),
     );
   }
 

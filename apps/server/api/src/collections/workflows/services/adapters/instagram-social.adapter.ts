@@ -1,24 +1,22 @@
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
-import type {
-  DmSender,
-  MentionChecker,
-  NewFollowerChecker,
-  NewLikeChecker,
-  NewRepostChecker,
-  ReplyPublisher,
-} from '@genfeedai/workflow-engine';
+import type { DmSender, ReplyPublisher } from '@genfeedai/workflow-engine';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 /**
  * Instagram Social Adapter
  *
- * Implements all 6 social workflow resolver interfaces using InstagramService.
+ * Implements only Instagram workflow capabilities backed by real APIs.
  * Each method is a bound function that can be injected directly into executors.
  */
 @Injectable()
 export class InstagramSocialAdapter {
   private readonly logContext = 'InstagramSocialAdapter';
+
+  readonly createFollowerChecker?: undefined;
+  readonly createMentionChecker?: undefined;
+  readonly createLikeChecker?: undefined;
+  readonly createRepostChecker?: undefined;
 
   constructor(
     private readonly instagramService: InstagramService,
@@ -90,73 +88,6 @@ export class InstagramSocialAdapter {
       );
 
       return { messageId: messageId ?? `ig_dm_${Date.now()}` };
-    };
-  }
-
-  /**
-   * Creates a NewFollowerChecker for NewFollowerTriggerExecutor.
-   * NOTE: Instagram Graph API doesn't provide a follower list endpoint
-   * for business accounts in a way that supports polling.
-   */
-  createFollowerChecker(): NewFollowerChecker {
-    return async (params) => {
-      this.loggerService.debug(`${this.logContext} checking new followers`, {
-        organizationId: params.organizationId,
-        platform: params.platform,
-      });
-
-      throw new Error(
-        'Instagram follower trigger not yet implemented — requires Instagram webhooks or periodic follower count diff.',
-      );
-    };
-  }
-
-  /**
-   * Creates a MentionChecker for MentionTriggerExecutor.
-   * NOTE: Instagram Graph API supports mentioned_media endpoint.
-   */
-  createMentionChecker(): MentionChecker {
-    return async (params) => {
-      this.loggerService.debug(`${this.logContext} checking mentions`, {
-        organizationId: params.organizationId,
-        platform: params.platform,
-      });
-
-      throw new Error(
-        'Instagram mention trigger not yet implemented — requires Instagram Graph API GET /{ig-user-id}/tags.',
-      );
-    };
-  }
-
-  /**
-   * Creates a NewLikeChecker for NewLikeTriggerExecutor.
-   */
-  createLikeChecker(): NewLikeChecker {
-    return async (params) => {
-      this.loggerService.debug(`${this.logContext} checking new likes`, {
-        organizationId: params.organizationId,
-        platform: params.platform,
-      });
-
-      throw new Error(
-        'Instagram like trigger not yet implemented — requires Instagram webhooks or media insights polling.',
-      );
-    };
-  }
-
-  /**
-   * Creates a NewRepostChecker for NewRepostTriggerExecutor.
-   */
-  createRepostChecker(): NewRepostChecker {
-    return async (params) => {
-      this.loggerService.debug(`${this.logContext} checking new reposts`, {
-        organizationId: params.organizationId,
-        platform: params.platform,
-      });
-
-      throw new Error(
-        'Instagram repost trigger not yet implemented — Instagram does not natively support repost detection.',
-      );
     };
   }
 }

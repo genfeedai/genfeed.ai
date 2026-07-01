@@ -120,11 +120,14 @@ interface ReviewGateApprovalResult {
 // =============================================================================
 
 /** Trigger node types that start a workflow */
-const TRIGGER_NODE_TYPES = new Set([
+const _TRIGGER_NODE_TYPES = new Set([
   'mentionTrigger',
   'newFollowerTrigger',
   'newLikeTrigger',
   'newRepostTrigger',
+  'commentTrigger',
+  'keywordTrigger',
+  'engagementTrigger',
   'postPublishTrigger',
   'trendTrigger',
 ]);
@@ -142,6 +145,12 @@ const EVENT_TYPE_TO_NODE_TYPE: Record<string, string> = {
   newLikeTrigger: 'newLikeTrigger',
   newRepost: 'newRepostTrigger',
   newRepostTrigger: 'newRepostTrigger',
+  comment: 'commentTrigger',
+  commentTrigger: 'commentTrigger',
+  keyword: 'keywordTrigger',
+  keywordTrigger: 'keywordTrigger',
+  engagement: 'engagementTrigger',
+  engagementTrigger: 'engagementTrigger',
   'post-published': 'postPublishTrigger',
   postPublishTrigger: 'postPublishTrigger',
   trend: 'trendTrigger',
@@ -630,6 +639,9 @@ export class WorkflowExecutorService {
         (workflowDoc as unknown as { id: string }).id,
     );
     const startedAt = new Date();
+    const keepsWorkflowActive =
+      trigger === WorkflowExecutionTrigger.SCHEDULED ||
+      trigger === WorkflowExecutionTrigger.EVENT;
 
     let executableWorkflow =
       this.engineAdapter.convertToExecutableWorkflow(workflowDoc);
@@ -699,10 +711,9 @@ export class WorkflowExecutorService {
             executionCount: { increment: 1 },
           }),
           lastExecutedAt: new Date(),
-          status:
-            trigger === WorkflowExecutionTrigger.SCHEDULED
-              ? WorkflowStatus.ACTIVE
-              : WorkflowStatus.RUNNING,
+          status: keepsWorkflowActive
+            ? WorkflowStatus.ACTIVE
+            : WorkflowStatus.RUNNING,
         },
         where: { id: workflowId },
       });
@@ -767,12 +778,11 @@ export class WorkflowExecutorService {
         await this.prisma.workflow.update({
           data: {
             completedAt: new Date(),
-            status:
-              trigger === WorkflowExecutionTrigger.SCHEDULED
-                ? WorkflowStatus.ACTIVE
-                : finalStatus === WorkflowExecutionStatus.COMPLETED
-                  ? WorkflowStatus.COMPLETED
-                  : WorkflowStatus.FAILED,
+            status: keepsWorkflowActive
+              ? WorkflowStatus.ACTIVE
+              : finalStatus === WorkflowExecutionStatus.COMPLETED
+                ? WorkflowStatus.COMPLETED
+                : WorkflowStatus.FAILED,
           } as never,
           where: { id: workflowId },
         });
@@ -863,10 +873,9 @@ export class WorkflowExecutorService {
         // scheduler retries on the next tick; the failure is recorded on the
         // WorkflowExecution record.
         data: {
-          status:
-            trigger === WorkflowExecutionTrigger.SCHEDULED
-              ? WorkflowStatus.ACTIVE
-              : WorkflowStatus.FAILED,
+          status: keepsWorkflowActive
+            ? WorkflowStatus.ACTIVE
+            : WorkflowStatus.FAILED,
         } as never,
         where: { id: workflowId },
       });
@@ -1255,9 +1264,7 @@ export class WorkflowExecutorService {
     // Inject trigger data for trigger nodes
     const triggerNodeType =
       EVENT_TYPE_TO_NODE_TYPE[triggerEvent.type] ?? triggerEvent.type;
-    const triggerNode = workflow.nodes.find(
-      (n) => n.type === triggerNodeType || TRIGGER_NODE_TYPES.has(n.type),
-    );
+    const triggerNode = workflow.nodes.find((n) => n.type === triggerNodeType);
     if (triggerNode) {
       nodeCache.set(triggerNode.id, triggerEvent.data);
       completedNodes.add(triggerNode.id);
@@ -1781,6 +1788,7 @@ export class WorkflowExecutorService {
         isDeleted: false,
         lifecycle: WorkflowLifecycle.PUBLISHED,
         organizationId: event.organizationId,
+        status: WorkflowStatus.ACTIVE,
       },
     });
     const normalizedWorkflows = workflows.map((workflow) =>
@@ -1817,6 +1825,7 @@ export class WorkflowExecutorService {
    */
   private resolveNodeType(visualNodeType: string): string {
     const NODE_TYPE_MAP: Record<string, string> = {
+      'trigger-comment': 'commentTrigger',
       'trigger-mention': 'mentionTrigger',
       'trigger-new-follower': 'newFollowerTrigger',
       'trigger-new-like': 'newLikeTrigger',
@@ -2201,7 +2210,7 @@ export class WorkflowExecutorService {
     branch: string,
     edges: ExecutableEdge[],
     skippedNodes: Set<string>,
-    executionOrder: string[],
+    _executionOrder: string[],
     completedNodes: Set<string>,
   ): void {
     // Find edges from the condition node that DON'T match the taken branch
@@ -2286,7 +2295,7 @@ export class WorkflowExecutorService {
   private skipDownstreamNodes(
     failedNodeId: string,
     edges: ExecutableEdge[],
-    executionOrder: string[],
+    _executionOrder: string[],
     skippedNodes: Set<string>,
     completedNodes: Set<string>,
   ): void {

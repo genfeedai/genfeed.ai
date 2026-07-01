@@ -72,48 +72,11 @@ describe('InstagramSocialAdapter', () => {
   });
 
   describe('trigger checkers', () => {
-    it('createFollowerChecker should throw not implemented error', async () => {
-      const checker = adapter.createFollowerChecker();
-      await expect(
-        checker({
-          lastFollowerId: null,
-          organizationId: 'org1',
-          platform: 'instagram',
-        }),
-      ).rejects.toThrow('Instagram follower trigger not yet implemented');
-    });
-
-    it('createMentionChecker should throw not implemented error', async () => {
-      const checker = adapter.createMentionChecker();
-      await expect(
-        checker({
-          lastMentionId: null,
-          organizationId: 'org1',
-          platform: 'instagram',
-        }),
-      ).rejects.toThrow('Instagram mention trigger not yet implemented');
-    });
-
-    it('createLikeChecker should throw not implemented error', async () => {
-      const checker = adapter.createLikeChecker();
-      await expect(
-        checker({
-          lastLikeId: null,
-          organizationId: 'org1',
-          platform: 'instagram',
-        }),
-      ).rejects.toThrow('Instagram like trigger not yet implemented');
-    });
-
-    it('createRepostChecker should throw not implemented error', async () => {
-      const checker = adapter.createRepostChecker();
-      await expect(
-        checker({
-          lastRepostId: null,
-          organizationId: 'org1',
-          platform: 'instagram',
-        }),
-      ).rejects.toThrow('Instagram repost trigger not yet implemented');
+    it('does not expose trigger checkers without real backing APIs', () => {
+      expect(adapter.createFollowerChecker).toBeUndefined();
+      expect(adapter.createMentionChecker).toBeUndefined();
+      expect(adapter.createLikeChecker).toBeUndefined();
+      expect(adapter.createRepostChecker).toBeUndefined();
     });
   });
 
