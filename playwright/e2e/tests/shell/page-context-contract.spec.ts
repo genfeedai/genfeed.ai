@@ -36,7 +36,10 @@ const CONTRACTS: PageContextContract[] = [
     route: `${BRAND_BASE}/studio/image`,
     currentApp: 'studio',
     sectionLabel: 'Studio',
-    sidebarLabels: ['Library', 'Image', 'Video', 'Batch'],
+    // Studio nav lists generation types (Image/Video/Avatar/Music/Batch). The old
+    // 'Library' entry only matched the section-header text back when the studio
+    // shell mislabeled its section 'Library'; that header is now 'Studio'.
+    sidebarLabels: ['Image', 'Video', 'Batch'],
   },
   {
     route: `${BRAND_BASE}/posts/scheduled`,
