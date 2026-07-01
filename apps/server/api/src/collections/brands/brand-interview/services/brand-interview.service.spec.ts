@@ -4,7 +4,12 @@
  * All Prisma delegates and external services are mocked so no DB or Redis is needed.
  */
 
-vi.mock('@genfeedai/prisma', () => ({ PrismaClient: class {} }));
+vi.mock('@genfeedai/prisma', async () => {
+  const { canonicalPrismaMock } = await import(
+    '@api/shared/testing/prisma-mock'
+  );
+  return canonicalPrismaMock();
+});
 
 import { BrandInterviewService } from '@api/collections/brands/brand-interview/services/brand-interview.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';

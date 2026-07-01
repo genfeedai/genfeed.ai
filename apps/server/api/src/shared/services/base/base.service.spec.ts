@@ -29,75 +29,27 @@ const BASE_META: ModelFieldMeta = {
 
 // ---------------------------------------------------------------------------
 // Module mock — must run before any imports that pull in BaseService.
-// We expose `getModelMeta` as a vi.fn so individual tests can call
-// mockReturnValue() to inject specific field sets for that test.
+// Spreads the canonical, schema-derived enum set (real ArticleStatus,
+// AssetScope, IngredientCategory, IngredientStatus, OrganizationCategory,
+// ApiKeyCategory, SubscriptionStatus, PromptCategory, etc. — no more
+// hand-rolled partial copies), then overrides two keys AFTER the spread so
+// object-literal key order lets the overrides win:
+//   - getModelMeta: backed by the vi.hoisted vi.fn so individual tests can
+//     call mockReturnValue() to inject specific field sets for that test.
+//   - TaskStatus: intentionally undefined (the real schema DOES define a
+//     TaskStatus enum) — lets the diverged-enum test below verify that
+//     getPrismaEnumValues returns null → candidate passes through as-is.
 // ---------------------------------------------------------------------------
-vi.mock('@genfeedai/prisma', () => ({
-  ArticleStatus: {
-    ARCHIVED: 'ARCHIVED',
-    DRAFT: 'DRAFT',
-    PUBLISHED: 'PUBLISHED',
-  },
-  AssetScope: {
-    BRAND: 'BRAND',
-    ORGANIZATION: 'ORGANIZATION',
-    PUBLIC: 'PUBLIC',
-    USER: 'USER',
-  },
-  IngredientCategory: {
-    AUDIO: 'AUDIO',
-    AVATAR: 'AVATAR',
-    GIF: 'GIF',
-    IMAGE: 'IMAGE',
-    IMAGE_EDIT: 'IMAGE_EDIT',
-    INGREDIENT: 'INGREDIENT',
-    MUSIC: 'MUSIC',
-    SOURCE: 'SOURCE',
-    TEXT: 'TEXT',
-    VIDEO: 'VIDEO',
-    VIDEO_EDIT: 'VIDEO_EDIT',
-    VOICE: 'VOICE',
-  },
-  IngredientStatus: {
-    ARCHIVED: 'ARCHIVED',
-    DRAFT: 'DRAFT',
-    FAILED: 'FAILED',
-    GENERATED: 'GENERATED',
-    PROCESSING: 'PROCESSING',
-    REJECTED: 'REJECTED',
-    UPLOADED: 'UPLOADED',
-    VALIDATED: 'VALIDATED',
-  },
-  OrganizationCategory: {
-    AGENCY: 'AGENCY',
-    BUSINESS: 'BUSINESS',
-    CREATOR: 'CREATOR',
-  },
-  ApiKeyCategory: {
-    GENFEEDAI: 'GENFEEDAI',
-    ELEVENLABS: 'ELEVENLABS',
-    HEDRA: 'HEDRA',
-    HEYGEN: 'HEYGEN',
-    OPUS_PRO: 'OPUS_PRO',
-  },
-  SubscriptionStatus: {
-    ACTIVE: 'ACTIVE',
-    CANCELLED: 'CANCELLED',
-    PAST_DUE: 'PAST_DUE',
-    TRIALING: 'TRIALING',
-    INCOMPLETE: 'INCOMPLETE',
-  },
-  PromptCategory: {
-    MODELS_PROMPT_TRAINING: 'MODELS_PROMPT_TRAINING',
-    MODELS_PROMPT_IMAGE: 'MODELS_PROMPT_IMAGE',
-  },
-  // TaskStatus intentionally undefined — lets the diverged-enum test verify
-  // that getPrismaEnumValues returns null → candidate passes through as-is.
-  TaskStatus: undefined,
-  PrismaClient: class {},
-  // The critical export — backed by the vi.fn above so tests can override it.
-  getModelMeta: getModelMetaMock,
-}));
+vi.mock('@genfeedai/prisma', async () => {
+  const { canonicalPrismaMock } = await import(
+    '@api/shared/testing/prisma-mock'
+  );
+  return {
+    ...canonicalPrismaMock(),
+    getModelMeta: getModelMetaMock,
+    TaskStatus: undefined,
+  };
+});
 
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';

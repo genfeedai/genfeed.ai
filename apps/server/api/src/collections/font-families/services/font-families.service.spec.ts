@@ -1,44 +1,12 @@
-// `@genfeedai/prisma` re-exports the generated PrismaClient (packages/prisma/
-// src/index.ts -> ../generated/prisma/client/client), which only exists after
-// `prisma generate` runs and is heavy to load in a unit test (real driver
-// adapter wiring). We can't use `vi.mock(..., async (importOriginal) => ...)`
-// here because `importOriginal` evaluates that same generated-client
-// re-export, which is unavailable/expensive in this environment. Instead we
-// stub `PrismaClient` and inline the real `FontFamilyRecord` entry from
-// packages/prisma/src/enum-field-map.ts (PRISMA_MODEL_METADATA.FontFamilyRecord)
-// so BaseService's `getModelMeta('fontFamilyRecord')` call (base.service.ts)
-// sees genuine field metadata instead of throwing "no getModelMeta export".
-vi.mock('@genfeedai/prisma', () => ({
-  getModelMeta: (modelName: string) => {
-    const pascal = modelName.charAt(0).toUpperCase() + modelName.slice(1);
-    const metadata: Record<
-      string,
-      {
-        allFields: readonly string[];
-        enumFields: Readonly<
-          Record<string, { enumType: string; isRequired: boolean }>
-        >;
-      }
-    > = {
-      FontFamilyRecord: {
-        allFields: [
-          'createdAt',
-          'description',
-          'id',
-          'isDeleted',
-          'key',
-          'label',
-          'mongoId',
-          'organizationId',
-          'updatedAt',
-        ],
-        enumFields: {},
-      },
-    };
-    return metadata[pascal];
-  },
-  PrismaClient: class {},
-}));
+// Real, schema-derived getModelMeta/PRISMA_MODEL_METADATA.FontFamilyRecord via the
+// light @genfeedai/prisma/testing subpath — no heavy PrismaClient/runtime
+// import required for BaseService's getModelMeta('fontFamilyRecord') call.
+vi.mock('@genfeedai/prisma', async () => {
+  const { canonicalPrismaMock } = await import(
+    '@api/shared/testing/prisma-mock'
+  );
+  return canonicalPrismaMock();
+});
 
 import { CreateFontFamilyDto } from '@api/collections/font-families/dto/create-font-family.dto';
 import { UpdateFontFamilyDto } from '@api/collections/font-families/dto/update-font-family.dto';

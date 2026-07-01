@@ -1,33 +1,15 @@
-vi.mock('@genfeedai/prisma', () => ({
-  Prisma: {
-    empty: { sql: '', values: [] },
-    raw: (sql: string) => ({ sql, values: [] }),
-    sql: (strings: TemplateStringsArray, ...values: unknown[]) => {
-      const parts: string[] = [];
-      const parameters: unknown[] = [];
-
-      strings.forEach((part, index) => {
-        parts.push(part);
-        if (index >= values.length) {
-          return;
-        }
-
-        const value = values[index];
-        if (isSqlFragment(value)) {
-          parts.push(value.sql);
-          parameters.push(...value.values);
-          return;
-        }
-
-        parts.push('?');
-        parameters.push(value);
-      });
-
-      return { sql: parts.join(''), values: parameters };
-    },
-  },
-  PrismaClient: class {},
-}));
+// canonicalPrismaMock()'s Prisma.sql/raw/empty tagged-template implementation
+// is algorithmically equivalent to the hand-rolled version this replaces (both
+// walk `strings`/`values`, flatten nested sql fragments, join with `?`
+// placeholders) — every assertion below reads `.sql`/`.values` off the
+// captured query, never an exact-shape `toEqual`, so the extra `.text` field
+// canonicalPrismaMock()'s fragments carry is inert.
+vi.mock('@genfeedai/prisma', async () => {
+  const { canonicalPrismaMock } = await import(
+    '@api/shared/testing/prisma-mock'
+  );
+  return canonicalPrismaMock();
+});
 
 interface SqlFragmentMock {
   sql: string;

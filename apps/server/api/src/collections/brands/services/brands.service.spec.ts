@@ -1,25 +1,14 @@
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 
-vi.mock('@genfeedai/prisma', () => ({
-  PrismaClient: class {},
-  // Brand model has: id, mongoId, organizationId, userId, isDeleted, fontFamily (enum), scope (enum).
-  // getModelMeta is used by BaseService to look up field/enum metadata.
-  getModelMeta: () => ({
-    allFields: [
-      'id',
-      'mongoId',
-      'organizationId',
-      'userId',
-      'isDeleted',
-      'fontFamily',
-      'scope',
-    ],
-    enumFields: {
-      fontFamily: { enumType: 'FontFamily', isRequired: true },
-      scope: { enumType: 'AssetScope', isRequired: true },
-    },
-  }),
-}));
+// Real, schema-derived getModelMeta/PRISMA_MODEL_METADATA.Brand (fontFamily +
+// scope enum fields) via the light @genfeedai/prisma/testing subpath — no
+// heavy PrismaClient/runtime import required.
+vi.mock('@genfeedai/prisma', async () => {
+  const { canonicalPrismaMock } = await import(
+    '@api/shared/testing/prisma-mock'
+  );
+  return canonicalPrismaMock();
+});
 
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
