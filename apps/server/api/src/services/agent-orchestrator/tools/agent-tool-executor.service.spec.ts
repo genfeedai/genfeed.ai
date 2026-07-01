@@ -2831,6 +2831,11 @@ describe('AgentToolExecutorService', () => {
     );
 
     expect(result.success).toBe(true);
+    expect(result.data).toEqual(
+      expect.objectContaining({
+        id: 'img-123',
+      }),
+    );
     expect(callInternalApiSpy).toHaveBeenCalledWith(
       'POST',
       '/v1/images',
@@ -2840,6 +2845,76 @@ describe('AgentToolExecutorService', () => {
       }),
       expect.any(Object),
     );
+  });
+
+  it('should read generate_image id from a root response envelope', async () => {
+    const { service } = createService();
+
+    vi.spyOn(
+      service as unknown as {
+        callInternalApi: (...args: unknown[]) => Promise<unknown>;
+      },
+      'callInternalApi',
+    ).mockResolvedValue({
+      id: 'img-root-123',
+    });
+
+    const result = await service.executeTool(
+      AgentToolName.GENERATE_IMAGE,
+      { prompt: 'product photo' },
+      {
+        organizationId: '67a123456789012345678901',
+        userId: '67a123456789012345678902',
+      },
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual(
+      expect.objectContaining({
+        id: 'img-root-123',
+      }),
+    );
+    expect(result.nextActions?.[0]).toMatchObject({
+      ctas: [{ href: '/g/image/img-root-123', label: 'View in gallery' }],
+      id: 'image-gen-img-root-123',
+    });
+  });
+
+  it('should prefer voice audioUrl from the response envelope', async () => {
+    const { service } = createService();
+
+    vi.spyOn(
+      service as unknown as {
+        callInternalApi: (...args: unknown[]) => Promise<unknown>;
+      },
+      'callInternalApi',
+    ).mockResolvedValue({
+      data: {
+        audioUrl: 'https://cdn.example.test/voice-123.mp3',
+        id: 'voice-123',
+      },
+    });
+
+    const result = await service.executeTool(
+      AgentToolName.GENERATE_VOICE,
+      { text: 'Read this in the brand voice', voiceId: 'voice-default' },
+      {
+        organizationId: '67a123456789012345678901',
+        userId: '67a123456789012345678902',
+      },
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual(
+      expect.objectContaining({
+        id: 'voice-123',
+        url: 'https://cdn.example.test/voice-123.mp3',
+      }),
+    );
+    expect(result.nextActions?.[0]).toMatchObject({
+      audio: ['https://cdn.example.test/voice-123.mp3'],
+      ctas: [{ href: '/g/voice/voice-123', label: 'View in gallery' }],
+    });
   });
 
   it('should map hashtags ai_action alias to add-hashtags DTO action', async () => {

@@ -921,6 +921,14 @@ export class AgentToolExecutorService {
     return value ? this.readOptionalString(value[key]) : undefined;
   }
 
+  private readResponseEnvelopeString(
+    response: Record<string, unknown>,
+    key: string,
+  ): string | undefined {
+    const data = this.isPlainRecord(response.data) ? response.data : undefined;
+    return this.readOptionalString(data?.[key] ?? response[key]);
+  }
+
   private async dispatch(
     toolName: AgentToolName,
     params: Record<string, unknown>,
@@ -5762,9 +5770,7 @@ export class AgentToolExecutorService {
       };
     }
 
-    const id =
-      (response.data as Record<string, unknown>)?.id ??
-      (response as Record<string, unknown>).id;
+    const id = this.readResponseEnvelopeString(response, 'id');
     const cdnUrl = id
       ? `${this.configService.ingredientsEndpoint}/images/${id}`
       : undefined;
@@ -5772,7 +5778,7 @@ export class AgentToolExecutorService {
     // Fire-and-forget quality check — don't block the generation response
     if (id && this.contentQualityScorerService) {
       this.contentQualityScorerService
-        .scoreAndTag(String(id), 'image', {
+        .scoreAndTag(id, 'image', {
           organizationId: ctx.organizationId,
         })
         .catch((err) =>
@@ -5833,9 +5839,7 @@ export class AgentToolExecutorService {
       ctx,
     );
 
-    const id =
-      (response.data as Record<string, unknown>)?.id ??
-      (response as Record<string, unknown>).id;
+    const id = this.readResponseEnvelopeString(response, 'id');
     const cdnUrl = id
       ? `${this.configService.ingredientsEndpoint}/images/${id}`
       : undefined;
@@ -5881,9 +5885,7 @@ export class AgentToolExecutorService {
       ctx,
     );
 
-    const id =
-      (response.data as Record<string, unknown>)?.id ??
-      (response as Record<string, unknown>).id;
+    const id = this.readResponseEnvelopeString(response, 'id');
     const cdnUrl = id
       ? `${this.configService.ingredientsEndpoint}/images/${id}`
       : undefined;
@@ -5957,9 +5959,7 @@ export class AgentToolExecutorService {
       ctx,
     );
 
-    const id =
-      (response.data as Record<string, unknown>)?.id ??
-      (response as Record<string, unknown>).id;
+    const id = this.readResponseEnvelopeString(response, 'id');
     const cdnUrl = id
       ? `${this.configService.ingredientsEndpoint}/videos/${id}`
       : undefined;
@@ -5967,7 +5967,7 @@ export class AgentToolExecutorService {
     // Fire-and-forget quality check — don't block the generation response
     if (id && this.contentQualityScorerService) {
       this.contentQualityScorerService
-        .scoreAndTag(String(id), 'video', {
+        .scoreAndTag(id, 'video', {
           organizationId: ctx.organizationId,
         })
         .catch((err) =>
@@ -6024,9 +6024,7 @@ export class AgentToolExecutorService {
       ctx,
     );
 
-    const id =
-      (response.data as Record<string, unknown>)?.id ??
-      (response as Record<string, unknown>).id;
+    const id = this.readResponseEnvelopeString(response, 'id');
     const cdnUrl = id
       ? `${this.configService.ingredientsEndpoint}/musics/${id}`
       : undefined;
@@ -6068,14 +6066,10 @@ export class AgentToolExecutorService {
       ctx,
     );
 
-    const id =
-      (response.data as Record<string, unknown>)?.id ??
-      (response as Record<string, unknown>).id;
-    const audioUrl =
-      (response.data as Record<string, unknown>)?.audioUrl ??
-      (response as Record<string, unknown>).audioUrl;
+    const id = this.readResponseEnvelopeString(response, 'id');
+    const audioUrl = this.readResponseEnvelopeString(response, 'audioUrl');
     const cdnUrl = audioUrl
-      ? String(audioUrl)
+      ? audioUrl
       : id
         ? `${this.configService.ingredientsEndpoint}/voices/${id}`
         : undefined;
@@ -7296,9 +7290,7 @@ export class AgentToolExecutorService {
       ctx,
     );
 
-    const id =
-      (response.data as Record<string, unknown>)?.id ??
-      (response as Record<string, unknown>).id;
+    const id = this.readResponseEnvelopeString(response, 'id');
 
     return {
       creditsUsed: 0,
