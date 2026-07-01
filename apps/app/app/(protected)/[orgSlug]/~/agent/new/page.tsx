@@ -2,7 +2,7 @@
 
 import { useAgentChatStore } from '@genfeedai/agent';
 import { useLayoutEffect } from 'react';
-import { ChatWorkspacePageShell } from '../ChatWorkspacePageShell';
+import { AgentWorkspacePageShell } from '../AgentWorkspacePageShell';
 
 export default function ChatNewPage() {
   useLayoutEffect(() => {
@@ -13,5 +13,5 @@ export default function ChatNewPage() {
     resetActiveConversationState();
   }, []);
 
-  return <ChatWorkspacePageShell />;
+  return <AgentWorkspacePageShell />;
 }

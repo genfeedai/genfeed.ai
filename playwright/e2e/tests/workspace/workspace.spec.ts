@@ -251,7 +251,7 @@ test.describe('Workspace', () => {
 
     await expect(
       authenticatedPage.getByRole('link', { name: 'Chat' }),
-    ).toHaveAttribute('href', '/chat');
+    ).toHaveAttribute('href', '/agent');
     await expect(
       authenticatedPage.getByRole('link', { name: 'Studio Image' }),
     ).toHaveAttribute('href', '/studio/image');
@@ -281,7 +281,7 @@ test.describe('Workspace', () => {
     await inProgressPlanningButton.click();
 
     await expect(authenticatedPage).toHaveURL(
-      /\/chat\/thread-plan-workspace-task-progress-1$/,
+      /\/agent\/thread-plan-workspace-task-progress-1$/,
     );
     await expect(
       authenticatedPage.getByText(/Completed work so far:/),
@@ -303,7 +303,7 @@ test.describe('Workspace', () => {
       .click();
 
     await expect(authenticatedPage).toHaveURL(
-      /\/chat\/thread-plan-workspace-task-progress-1$/,
+      /\/agent\/thread-plan-workspace-task-progress-1$/,
     );
 
     const createFollowUpTasksButton = authenticatedPage.getByRole('button', {

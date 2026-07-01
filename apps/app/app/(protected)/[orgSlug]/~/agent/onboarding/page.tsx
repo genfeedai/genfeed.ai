@@ -1,7 +1,7 @@
 'use client';
 
-import { ChatWorkspacePageShell } from '../ChatWorkspacePageShell';
+import { AgentWorkspacePageShell } from '../AgentWorkspacePageShell';
 
 export default function ChatOnboardingPage() {
-  return <ChatWorkspacePageShell />;
+  return <AgentWorkspacePageShell />;
 }

@@ -13,7 +13,7 @@ type Props = {
   renderConversations: () => ReactNode;
 };
 
-export default function ChatSidebarContent({
+export default function AgentSidebarContent({
   conversationActions,
   renderConversations,
 }: Props) {

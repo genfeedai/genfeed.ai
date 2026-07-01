@@ -1,7 +1,7 @@
 import { act, render, waitFor } from '@testing-library/react';
 import type { PropsWithChildren } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ChatWorkspaceLayoutClient } from './ChatWorkspaceLayoutClient';
+import { AgentWorkspaceLayoutClient } from './AgentWorkspaceLayoutClient';
 
 const routerReplace = vi.fn();
 const sendMessage = vi.fn();
@@ -94,7 +94,7 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => navigationState.searchParams,
 }));
 
-describe('ChatWorkspaceLayoutClient', () => {
+describe('AgentWorkspaceLayoutClient', () => {
   beforeEach(() => {
     navigationState.params = { orgSlug: 'acme-org', brandSlug: 'acme-creator' };
     navigationState.pathname = '/agent/new';
@@ -109,9 +109,9 @@ describe('ChatWorkspaceLayoutClient', () => {
 
   it('does not immediately redirect /agent/new back to the previously active thread', async () => {
     render(
-      <ChatWorkspaceLayoutClient>
+      <AgentWorkspaceLayoutClient>
         <div>child</div>
-      </ChatWorkspaceLayoutClient>,
+      </AgentWorkspaceLayoutClient>,
     );
 
     await act(async () => {
@@ -123,9 +123,9 @@ describe('ChatWorkspaceLayoutClient', () => {
 
   it('navigates to the newly created thread after /agent/new produces a different active thread id', async () => {
     const view = render(
-      <ChatWorkspaceLayoutClient>
+      <AgentWorkspaceLayoutClient>
         <div>child</div>
-      </ChatWorkspaceLayoutClient>,
+      </AgentWorkspaceLayoutClient>,
     );
 
     await act(async () => {
@@ -135,9 +135,9 @@ describe('ChatWorkspaceLayoutClient', () => {
     storeState.activeThreadId = 'thread-new';
 
     view.rerender(
-      <ChatWorkspaceLayoutClient>
+      <AgentWorkspaceLayoutClient>
         <div>child</div>
-      </ChatWorkspaceLayoutClient>,
+      </AgentWorkspaceLayoutClient>,
     );
 
     await waitFor(() => {
@@ -152,9 +152,9 @@ describe('ChatWorkspaceLayoutClient', () => {
     navigationState.searchParams = new URLSearchParams('prompt=hello');
 
     render(
-      <ChatWorkspaceLayoutClient>
+      <AgentWorkspaceLayoutClient>
         <div>child</div>
-      </ChatWorkspaceLayoutClient>,
+      </AgentWorkspaceLayoutClient>,
     );
 
     await waitFor(() => {
@@ -169,9 +169,9 @@ describe('ChatWorkspaceLayoutClient', () => {
   it('navigates to the onboarding thread route after /agent/onboarding produces a different active thread id', async () => {
     navigationState.pathname = '/agent/onboarding';
     const view = render(
-      <ChatWorkspaceLayoutClient>
+      <AgentWorkspaceLayoutClient>
         <div>child</div>
-      </ChatWorkspaceLayoutClient>,
+      </AgentWorkspaceLayoutClient>,
     );
 
     await act(async () => {
@@ -181,9 +181,9 @@ describe('ChatWorkspaceLayoutClient', () => {
     storeState.activeThreadId = 'thread-new';
 
     view.rerender(
-      <ChatWorkspaceLayoutClient>
+      <AgentWorkspaceLayoutClient>
         <div>child</div>
-      </ChatWorkspaceLayoutClient>,
+      </AgentWorkspaceLayoutClient>,
     );
 
     await waitFor(() => {
@@ -196,9 +196,9 @@ describe('ChatWorkspaceLayoutClient', () => {
   it('boots a prefilled prompt only once per query string', async () => {
     navigationState.searchParams = new URLSearchParams('prompt=hello');
     const view = render(
-      <ChatWorkspaceLayoutClient>
+      <AgentWorkspaceLayoutClient>
         <div>child</div>
-      </ChatWorkspaceLayoutClient>,
+      </AgentWorkspaceLayoutClient>,
     );
 
     await waitFor(() => {
@@ -210,9 +210,9 @@ describe('ChatWorkspaceLayoutClient', () => {
     });
 
     view.rerender(
-      <ChatWorkspaceLayoutClient>
+      <AgentWorkspaceLayoutClient>
         <div>child</div>
-      </ChatWorkspaceLayoutClient>,
+      </AgentWorkspaceLayoutClient>,
     );
 
     expect(sendMessage).toHaveBeenCalledTimes(1);
@@ -225,9 +225,9 @@ describe('ChatWorkspaceLayoutClient', () => {
     );
 
     render(
-      <ChatWorkspaceLayoutClient>
+      <AgentWorkspaceLayoutClient>
         <div>child</div>
-      </ChatWorkspaceLayoutClient>,
+      </AgentWorkspaceLayoutClient>,
     );
 
     await waitFor(() => {

@@ -31,11 +31,11 @@ import {
   useRef,
 } from 'react';
 import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
-import { ChatWorkspaceContext } from './chat-workspace-context';
+import { AgentWorkspaceContext } from './agent-workspace-context';
 
 const UNSET_THREAD_BASELINE = Symbol('agent-new-route-baseline');
 
-function ChatWorkspaceLayoutClientContent({ children }: PropsWithChildren) {
+function AgentWorkspaceLayoutClientContent({ children }: PropsWithChildren) {
   const rawPathname = usePathname();
   const pathname = useMemo(
     () => normalizeProtectedPathname(rawPathname),
@@ -226,18 +226,18 @@ function ChatWorkspaceLayoutClientContent({ children }: PropsWithChildren) {
   );
 
   return (
-    <ChatWorkspaceContext.Provider value={contextValue}>
+    <AgentWorkspaceContext.Provider value={contextValue}>
       {children}
-    </ChatWorkspaceContext.Provider>
+    </AgentWorkspaceContext.Provider>
   );
 }
 
-export function ChatWorkspaceLayoutClient({ children }: PropsWithChildren) {
+export function AgentWorkspaceLayoutClient({ children }: PropsWithChildren) {
   return (
     <Suspense fallback={null}>
-      <ChatWorkspaceLayoutClientContent>
+      <AgentWorkspaceLayoutClientContent>
         {children}
-      </ChatWorkspaceLayoutClientContent>
+      </AgentWorkspaceLayoutClientContent>
     </Suspense>
   );
 }

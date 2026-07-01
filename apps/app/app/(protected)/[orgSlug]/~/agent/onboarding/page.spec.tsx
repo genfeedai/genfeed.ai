@@ -17,8 +17,8 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-vi.mock('../chat-workspace-context', () => ({
-  useChatWorkspace: () => ({
+vi.mock('../agent-workspace-context', () => ({
+  useAgentWorkspace: () => ({
     agentApiService: {},
     completeOnboardingFlow: vi.fn(),
     handleOAuthConnect: vi.fn(),

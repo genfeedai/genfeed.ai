@@ -21,7 +21,7 @@ import type { ReactNode } from 'react';
 import { HiPlus } from 'react-icons/hi2';
 import { withTaskContextHref } from '@/lib/navigation/operator-shell';
 import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
-import ChatSidebarContent from './AppProtectedLayoutChatSidebar';
+import AgentSidebarContent from './AppProtectedLayoutAgentSidebar';
 
 type ShellChromeVariant = 'default';
 
@@ -252,7 +252,7 @@ export default function AppProtectedLayoutSidebar({
       renderBody={
         isConversationRoute
           ? () => (
-              <ChatSidebarContent
+              <AgentSidebarContent
                 conversationActions={conversationActions}
                 renderConversations={renderConversations}
               />

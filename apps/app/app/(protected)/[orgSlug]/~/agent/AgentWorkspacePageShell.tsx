@@ -8,15 +8,15 @@ import { TasksService } from '@services/management/tasks.service';
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
 import { isEEEnabled } from '@/lib/config/edition';
-import { useChatWorkspace } from './chat-workspace-context';
+import { useAgentWorkspace } from './agent-workspace-context';
 
-interface ChatWorkspacePageShellProps {
+interface AgentWorkspacePageShellProps {
   threadId?: string;
 }
 
-export function ChatWorkspacePageShell({
+export function AgentWorkspacePageShell({
   threadId,
-}: ChatWorkspacePageShellProps) {
+}: AgentWorkspacePageShellProps) {
   const { push } = useRouter();
   const { orgHref } = useOrgUrl();
   const { getToken } = useAuthIdentity();
@@ -26,7 +26,7 @@ export function ChatWorkspacePageShell({
     handleOAuthConnect,
     completeOnboardingFlow,
     isOnboarding,
-  } = useChatWorkspace();
+  } = useAgentWorkspace();
 
   const handleCreateFollowUpTasks = useCallback(
     async (taskId: string) => {
