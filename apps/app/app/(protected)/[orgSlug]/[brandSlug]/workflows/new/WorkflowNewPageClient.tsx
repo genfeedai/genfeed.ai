@@ -24,7 +24,8 @@ import {
   selectNodes,
   useWorkflowStore,
 } from '@genfeedai/workflow-ui/stores';
-import { useCallback, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import '@genfeedai/workflow-ui/styles';
 import '@/features/workflows/styles/workflow-scope.css';
 
@@ -45,12 +46,65 @@ import {
 } from '@/features/workflows/utils/workflow-graph';
 import WorkflowEditorToolbarNavigation from '../components/WorkflowEditorToolbarNavigation';
 
+type WorkflowStoreState = ReturnType<typeof useWorkflowStore.getState>;
+type WorkflowSeed = Pick<WorkflowStoreState, 'edges' | 'nodes'> & {
+  workflowName: string;
+};
+
+function buildMessagesAutomationSeed(
+  searchParams: URLSearchParams,
+): WorkflowSeed | null {
+  if (searchParams.get('source') !== 'messages') {
+    return null;
+  }
+
+  const conversationId = searchParams.get('conversationId');
+  if (!conversationId) {
+    return null;
+  }
+
+  const credentialId = searchParams.get('credentialId') ?? '';
+  const platform = searchParams.get('platform') ?? 'youtube';
+  const sourceContentId = searchParams.get('sourceContentId') ?? '';
+
+  const nodes = [
+    {
+      data: {
+        config: {
+          conversationId,
+          credentialId,
+          platform,
+          sourceContentId,
+        },
+        conversationId,
+        credentialId,
+        label: 'Comment Trigger',
+        platform,
+        sourceContentId,
+        status: 'idle',
+        type: 'commentTrigger',
+      },
+      id: 'messages-comment-trigger',
+      position: { x: 120, y: 160 },
+      type: 'commentTrigger',
+    },
+  ] as unknown as WorkflowStoreState['nodes'];
+
+  return {
+    edges: [] as unknown as WorkflowStoreState['edges'],
+    nodes,
+    workflowName: 'Social Comment Automation',
+  };
+}
+
 /**
  * New workflow page - same inlined composition as the detail page,
  * but without a workflowId (creates a new workflow on first save).
  */
 export default function WorkflowNewPageClient() {
   const { href } = useOrgUrl();
+  const searchParams = useSearchParams();
+  const hasSeededMessagesAutomationRef = useRef(false);
   const [isRunning, setIsRunning] = useState(false);
   const [showExecutionPanel, setShowExecutionPanel] = useState(false);
   const [activeExecutionId, setActiveExecutionId] = useState<
@@ -68,6 +122,36 @@ export default function WorkflowNewPageClient() {
     archive,
   } = useCloudWorkflow({ autoSave: true });
   const currentWorkflowId = useWorkflowStore((state) => state.workflowId);
+
+  const messagesAutomationSeed = useMemo(
+    () =>
+      buildMessagesAutomationSeed(new URLSearchParams(searchParams.toString())),
+    [searchParams],
+  );
+
+  useEffect(() => {
+    if (
+      isLoading ||
+      hasSeededMessagesAutomationRef.current ||
+      !messagesAutomationSeed
+    ) {
+      return;
+    }
+
+    const currentState = useWorkflowStore.getState();
+    if (currentState.nodes.length > 0) {
+      hasSeededMessagesAutomationRef.current = true;
+      return;
+    }
+
+    useWorkflowStore.setState({
+      edges: messagesAutomationSeed.edges,
+      isDirty: true,
+      nodes: messagesAutomationSeed.nodes,
+      workflowName: messagesAutomationSeed.workflowName,
+    });
+    hasSeededMessagesAutomationRef.current = true;
+  }, [isLoading, messagesAutomationSeed]);
 
   const nodes = useWorkflowStore(selectNodes);
   const edges = useWorkflowStore(selectEdges);

@@ -1,6 +1,9 @@
 vi.mock('@api/collections/posts/posts.module', () => ({
   PostsModule: class PostsModule {},
 }));
+vi.mock('@api/collections/social-inbox/social-inbox.module', () => ({
+  SocialInboxModule: class SocialInboxModule {},
+}));
 vi.mock('@api/services/integrations/youtube/youtube.module', () => ({
   YoutubeModule: class YoutubeModule {},
 }));

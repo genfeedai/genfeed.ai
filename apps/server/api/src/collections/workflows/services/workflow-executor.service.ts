@@ -137,6 +137,8 @@ const MAX_EXECUTION_NODES = 500;
 
 /** Map from trigger event types to executor node types */
 const EVENT_TYPE_TO_NODE_TYPE: Record<string, string> = {
+  comment: 'commentTrigger',
+  commentTrigger: 'commentTrigger',
   mention: 'mentionTrigger',
   mentionTrigger: 'mentionTrigger',
   newFollower: 'newFollowerTrigger',
@@ -1827,6 +1829,7 @@ export class WorkflowExecutorService {
     const NODE_TYPE_MAP: Record<string, string> = {
       'trigger-comment': 'commentTrigger',
       'trigger-mention': 'mentionTrigger',
+      'trigger-comment': 'commentTrigger',
       'trigger-new-follower': 'newFollowerTrigger',
       'trigger-new-like': 'newLikeTrigger',
       'trigger-new-repost': 'newRepostTrigger',

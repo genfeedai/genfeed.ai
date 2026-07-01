@@ -209,6 +209,20 @@ export class YoutubeService {
     );
   }
 
+  listVideoComments(
+    organizationId: string,
+    brandId: string,
+    videoId: string,
+    maxResults?: number,
+  ) {
+    return this.commentsService.listVideoComments(
+      organizationId,
+      brandId,
+      videoId,
+      maxResults,
+    );
+  }
+
   replyToComment(
     organizationId: string,
     brandId: string,
@@ -216,6 +230,20 @@ export class YoutubeService {
     text: string,
   ) {
     return this.commentsService.replyToComment(
+      organizationId,
+      brandId,
+      parentCommentId,
+      text,
+    );
+  }
+
+  postCommentReply(
+    organizationId: string,
+    brandId: string,
+    parentCommentId: string,
+    text: string,
+  ) {
+    return this.commentsService.postCommentReply(
       organizationId,
       brandId,
       parentCommentId,
