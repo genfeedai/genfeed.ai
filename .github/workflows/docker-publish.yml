@@ -29,6 +29,9 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Require master for self-hosted publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || '' }}
         run: |
           set -euo pipefail
 
@@ -37,12 +40,19 @@ jobs:
             exit 1
           fi
 
-          if [ "${GITHUB_EVENT_NAME}" = "release" ] && [ "${RELEASE_TARGET_COMMITISH}" != "master" ]; then
-            echo "::error::Self-hosted releases must target master. Current target: ${RELEASE_TARGET_COMMITISH}"
-            exit 1
+          if [ "${GITHUB_EVENT_NAME}" = "release" ]; then
+            # Verify the released tag's commit is contained in master. target_commitish is
+            # unreliable — GitHub ignores it once the tag exists, and it never equals "master"
+            # when a SHA target is used — so compare the tag against master via the API instead.
+            status="$(gh api "repos/${GITHUB_REPOSITORY}/compare/master...${RELEASE_TAG}" --jq '.status')"
+            case "${status}" in
+              identical|behind)
+                echo "Release tag ${RELEASE_TAG} is on master (compare status: ${status})." ;;
+              *)
+                echo "::error::Self-hosted releases must be cut from a commit on master. Tag ${RELEASE_TAG} vs master compare status: ${status}"
+                exit 1 ;;
+            esac
           fi
-        env:
-          RELEASE_TARGET_COMMITISH: ${{ github.event.release.target_commitish || '' }}
 
   # Full-suite gate — the community image users `docker run` must not publish
   # until the ENTIRE suite is green: the ci.yml unit matrix (sharded app + api +
