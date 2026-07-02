@@ -120,7 +120,7 @@ vi.mock('@/lib/api', () => ({
   },
 }));
 
-vi.mock('@/lib/logger', () => ({
+vi.mock('@services/core/logger.service', () => ({
   logger: { debug: vi.fn(), error: vi.fn(), info: vi.fn(), warn: vi.fn() },
 }));
 
@@ -139,6 +139,7 @@ vi.mock('@/components/context-menu/menus', () => ({
   ]),
 }));
 
+import { logger } from '@services/core/logger.service';
 import {
   getEdgeMenuItems,
   getNodeMenuItems,
@@ -146,7 +147,6 @@ import {
   getSelectionMenuItems,
 } from '@/components/context-menu/menus';
 import { workflowsApi } from '@/lib/api';
-import { logger } from '@/lib/logger';
 import { useContextMenuStore } from '@/store/contextMenuStore';
 
 const mockedUseContextMenuStore = vi.mocked(useContextMenuStore);
@@ -296,11 +296,11 @@ describe('useContextMenu', () => {
       };
       await args.onSetAsThumbnail?.('node-1');
 
-      expect(logger.error).toHaveBeenCalledWith(
-        'Failed to set thumbnail',
-        expect.any(Error),
-        { nodeId: 'node-1', workflowId: 'workflow-1' },
-      );
+      expect(logger.error).toHaveBeenCalledWith('Failed to set thumbnail', {
+        error: expect.any(Error),
+        nodeId: 'node-1',
+        workflowId: 'workflow-1',
+      });
     });
 
     it('should return edge menu items when menuType is edge', () => {

@@ -26,7 +26,7 @@ vi.mock('@/lib/api/client', () => ({
   },
 }));
 
-vi.mock('@/lib/logger', () => ({
+vi.mock('@services/core/logger.service', () => ({
   logger: {
     error: mocks.loggerError,
   },
@@ -382,8 +382,7 @@ describe('createExecutionSlice', () => {
     });
     expect(mocks.loggerError).toHaveBeenCalledWith(
       'Failed to save workflow before execution',
-      saveError,
-      { context: 'ExecutionStore' },
+      { context: 'ExecutionStore', error: saveError },
     );
 
     currentWorkflow.isDirty = false;

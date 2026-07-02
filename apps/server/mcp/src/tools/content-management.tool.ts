@@ -1,5 +1,5 @@
 import type { ClientService } from '@mcp/services/client.service';
-import { isSocialPlatform } from '@mcp/tools/tool-validators';
+import { isPlatform } from '@mcp/tools/tool-validators';
 
 export function createContentListTool(client: ClientService) {
   return {
@@ -56,7 +56,7 @@ export function createPostListTool(client: ClientService) {
         platform: params.platform
           ? params.platform === 'all'
             ? 'all'
-            : isSocialPlatform(params.platform)
+            : isPlatform(params.platform)
               ? params.platform
               : undefined
           : undefined,

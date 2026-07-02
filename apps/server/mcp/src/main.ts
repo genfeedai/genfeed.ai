@@ -1,4 +1,8 @@
-import { bootstrap, setupGracefulShutdown } from '@libs/bootstrap';
+import {
+  bootstrap,
+  setupGracefulShutdown,
+  setupServiceShell,
+} from '@libs/bootstrap';
 import '@mcp/instrument';
 
 bootstrap({ app: 'mcp' });
@@ -53,6 +57,8 @@ async function main(): Promise<void> {
   const streamableHttpService = app.get(StreamableHttpService);
 
   const port = configService.get('PORT');
+
+  setupServiceShell(app);
 
   app.enableCors({
     ...getGenfeedCorsOptions({
