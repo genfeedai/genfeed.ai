@@ -13,6 +13,10 @@ import { CommonModule } from '@api/common/common.module';
 import { OnboardingController } from '@api/endpoints/onboarding/onboarding.controller';
 import { OnboardingService } from '@api/endpoints/onboarding/onboarding.service';
 import { ProactiveOnboardingService } from '@api/endpoints/onboarding/proactive-onboarding.service';
+import { BrandDataMapper } from '@api/endpoints/onboarding/services/brand-data.mapper';
+import { BrandPersistenceService } from '@api/endpoints/onboarding/services/brand-persistence.service';
+import { OnboardingPreviewService } from '@api/endpoints/onboarding/services/onboarding-preview.service';
+import { OnboardingReadinessService } from '@api/endpoints/onboarding/services/onboarding-readiness.service';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
 import { BrandScraperModule } from '@api/services/brand-scraper/brand-scraper.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
@@ -47,6 +51,10 @@ import { forwardRef, Module } from '@nestjs/common';
     OnboardingService,
     MasterPromptGeneratorService,
     ProactiveOnboardingService,
+    BrandDataMapper,
+    BrandPersistenceService,
+    OnboardingPreviewService,
+    OnboardingReadinessService,
   ],
 })
 export class OnboardingModule {}
