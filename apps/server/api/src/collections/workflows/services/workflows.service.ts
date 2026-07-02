@@ -104,12 +104,12 @@ export class WorkflowsService extends BaseService<
 
   private buildSeededSystemWorkflowMetadata(input: {
     changeSummary?: string;
-    extra?: Record<string, unknown>;
+    extra?: Prisma.InputJsonObject;
     sourceIssue: number;
     sourceTemplateId: string;
     sourceType?: string;
     version?: number;
-  }): Prisma.InputJsonValue {
+  }): Prisma.InputJsonObject {
     const sourceTemplateVersion =
       input.version ?? SYSTEM_WORKFLOW_TEMPLATE_VERSION;
     const sourceTemplateChangeSummary =
@@ -128,7 +128,7 @@ export class WorkflowsService extends BaseService<
         sourceIssue: input.sourceIssue,
         version: sourceTemplateVersion,
       }),
-    } as Prisma.InputJsonValue;
+    };
   }
 
   private assertWorkflowMutable(workflow: Pick<WorkflowDocument, 'metadata'>) {

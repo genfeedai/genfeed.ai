@@ -34,7 +34,7 @@ export type SystemWorkflowActionDefinition = {
   version?: number;
 };
 
-export const SYSTEM_WORKFLOW_ACTION_DEFINITIONS: SystemWorkflowActionDefinition[] =
+export const SYSTEM_WORKFLOW_ACTION_DEFINITIONS: readonly SystemWorkflowActionDefinition[] =
   [
     {
       canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.SCHEDULED_POST_PUBLISHING,
