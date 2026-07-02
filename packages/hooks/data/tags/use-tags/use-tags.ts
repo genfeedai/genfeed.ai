@@ -1,10 +1,10 @@
 'use client';
 
-import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { TagCategory } from '@genfeedai/enums';
 import type { ITag } from '@genfeedai/interfaces';
 import { TagsService } from '@genfeedai/services/content/tags.service';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useQuery } from '@tanstack/react-query';
 

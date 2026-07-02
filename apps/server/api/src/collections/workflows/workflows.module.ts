@@ -54,6 +54,7 @@ import { TwitterModule } from '@api/services/integrations/twitter/twitter.module
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
+import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
 import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { WorkflowExecutorModule } from '@api/services/workflow-executor/workflow-executor.module';
 import { SharedModule } from '@api/shared/shared.module';
@@ -103,6 +104,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => OpenRouterModule),
     forwardRef(() => PostsModule),
     forwardRef(() => ReplyBotConfigsModule),
+    forwardRef(() => ReplyBotModule),
     forwardRef(() => SocialInboxModule),
     forwardRef(() => SharedModule),
     forwardRef(() => TrendsModule),

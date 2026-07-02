@@ -1,3 +1,4 @@
+import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import { ConfigService } from '@api/config/config.service';
 import {
   type UnipileAccount,
@@ -23,13 +24,11 @@ import {
   IntegrationPlatform as PrismaIntegrationPlatform,
   IntegrationStatus as PrismaIntegrationStatus,
 } from '@genfeedai/prisma';
-import { CryptoService } from '@libs/crypto/crypto.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import {
   BadRequestException,
-  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -52,8 +51,7 @@ export class UnipileService {
     private readonly prisma: PrismaService,
     private readonly httpService: HttpService,
     private readonly loggerService: LoggerService,
-    @Inject('CryptoService')
-    private readonly cryptoService: CryptoService,
+    private readonly cryptoService: CredentialCryptoService,
   ) {
     this.integrationHttpClient = new IntegrationHttpClient({
       fetch: (input, init) => this.fetchViaHttpService(input, init),

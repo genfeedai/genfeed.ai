@@ -277,7 +277,6 @@ export class ModelsService extends BaseService<
 
       if (MODEL_CONFIG_FIELDS.has(key)) {
         nextConfig[key] = value;
-        continue;
       }
     }
 

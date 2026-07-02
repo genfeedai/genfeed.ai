@@ -10,7 +10,6 @@ import { CLIP_ANALYZE_QUEUE } from '@api/queues/clip-analyze/clip-analyze.consta
 import { CLIP_FACTORY_QUEUE } from '@api/queues/clip-factory/clip-factory.constants';
 import { QueueService } from '@api/queues/core/queue.service';
 import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
-import { WorkflowQueueService } from '@api/queues/workflow/workflow-queue.service';
 import {
   CAMPAIGN_MEMORY_EXTRACTION_QUEUE,
   ORCHESTRATOR_RUN_QUEUE,
@@ -28,12 +27,7 @@ import { ConfigModule } from '@workers/config/config.module';
 import { ConfigService } from '@workers/config/config.service';
 
 @Module({
-  exports: [
-    QueueService,
-    WorkflowQueueService,
-    WorkspaceTaskQueueService,
-    HeygenPollQueueService,
-  ],
+  exports: [QueueService, WorkspaceTaskQueueService, HeygenPollQueueService],
   imports: [
     LoggerModule,
     BullModule.forRootAsync({
@@ -204,15 +198,6 @@ import { ConfigService } from '@workers/config/config.service';
       {
         defaultJobOptions: {
           attempts: 3,
-          backoff: { delay: 10000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: 'workflow-delay',
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
           backoff: { delay: 5000, type: 'exponential' },
           removeOnComplete: 100,
           removeOnFail: 50,
@@ -367,11 +352,6 @@ import { ConfigService } from '@workers/config/config.service';
       },
     ),
   ],
-  providers: [
-    QueueService,
-    WorkflowQueueService,
-    WorkspaceTaskQueueService,
-    HeygenPollQueueService,
-  ],
+  providers: [QueueService, WorkspaceTaskQueueService, HeygenPollQueueService],
 })
 export class WorkersQueuesModule {}

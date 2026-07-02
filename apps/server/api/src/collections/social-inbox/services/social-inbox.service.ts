@@ -219,30 +219,52 @@ export class SocialInboxService {
       return this.toMessageDocument(existing);
     }
 
-    const message = await this.prisma.socialMessage.create({
-      data: {
-        body,
-        brandId: input.brandId,
-        conversationId: conversation.id,
-        createdAt: messageCreatedAt,
-        credentialId: input.credentialId,
-        direction: 'inbound',
-        externalMessageId: input.externalMessageId,
-        externalParentMessageId: input.externalParentMessageId,
-        metadata: (input.metadata ?? {}) as Prisma.InputJsonValue,
-        messageType: input.conversationType === 'dm' ? 'dm' : 'comment',
-        organizationId: input.organizationId,
-        platform,
-        postId: input.postId,
-        senderAvatarUrl: this.clamp(input.participantAvatarUrl, 2048),
-        senderExternalId: this.clamp(input.participantExternalId, 512),
-        senderHandle: this.clamp(input.participantHandle, 280),
-        senderName: this.clamp(input.participantName, 280),
-        sourceUrl: this.clamp(input.sourceContentUrl, 2048),
-        status: 'received',
-        userId: input.userId,
-      },
-    });
+    let message: Awaited<ReturnType<typeof this.prisma.socialMessage.create>>;
+    try {
+      message = await this.prisma.socialMessage.create({
+        data: {
+          body,
+          brandId: input.brandId,
+          conversationId: conversation.id,
+          createdAt: messageCreatedAt,
+          credentialId: input.credentialId,
+          direction: 'inbound',
+          externalMessageId: input.externalMessageId,
+          externalParentMessageId: input.externalParentMessageId,
+          metadata: (input.metadata ?? {}) as Prisma.InputJsonValue,
+          messageType: input.conversationType === 'dm' ? 'dm' : 'comment',
+          organizationId: input.organizationId,
+          platform,
+          postId: input.postId,
+          senderAvatarUrl: this.clamp(input.participantAvatarUrl, 2048),
+          senderExternalId: this.clamp(input.participantExternalId, 512),
+          senderHandle: this.clamp(input.participantHandle, 280),
+          senderName: this.clamp(input.participantName, 280),
+          sourceUrl: this.clamp(input.sourceContentUrl, 2048),
+          status: 'received',
+          userId: input.userId,
+        },
+      });
+    } catch (error) {
+      // Same ingestion race as conversations: unique
+      // (organizationId, platform, externalMessageId) makes the losing
+      // concurrent create throw P2002 — return the winner's row.
+      if ((error as { code?: string })?.code !== 'P2002') {
+        throw error;
+      }
+      const winner = await this.prisma.socialMessage.findFirst({
+        where: {
+          externalMessageId: input.externalMessageId,
+          isDeleted: false,
+          organizationId: input.organizationId,
+          platform,
+        },
+      });
+      if (!winner) {
+        throw error;
+      }
+      return this.toMessageDocument(winner);
+    }
 
     await this.prisma.socialConversation.update({
       data: {
@@ -703,39 +725,63 @@ export class SocialInboxService {
       return this.toConversationDocument(existing);
     }
 
-    const created = await this.prisma.socialConversation.create({
-      data: {
-        accountExternalId: this.clamp(input.accountExternalId, 512),
-        accountHandle: this.clamp(input.accountHandle, 280),
-        accountName: this.clamp(input.accountName, 280),
-        availability: input.availability as unknown as Prisma.InputJsonValue,
-        automationState: 'manual',
-        brandId: input.brandId,
-        conversationType: input.conversationType,
-        credentialId: input.credentialId,
-        externalConversationId: input.externalConversationId,
-        externalParentId: this.clamp(input.externalParentId, 512),
-        externalThreadId: this.clamp(input.externalThreadId, 512),
-        lastInboundAt: input.createdAt,
-        latestMessageAt: input.createdAt,
-        latestMessageText: this.clamp(input.body, 500),
-        metadata: (input.metadata ?? {}) as Prisma.InputJsonValue,
-        organizationId: input.organizationId,
-        participantAvatarUrl: this.clamp(input.participantAvatarUrl, 2048),
-        participantExternalId: this.clamp(input.participantExternalId, 512),
-        participantHandle: this.clamp(input.participantHandle, 280),
-        participantName: this.clamp(input.participantName, 280),
-        platform: input.platform,
-        postId: input.postId,
-        sourceContentId: this.clamp(input.sourceContentId, 512),
-        sourceContentTitle: this.clamp(input.sourceContentTitle, 500),
-        sourceContentType: this.clamp(input.sourceContentType, 100),
-        sourceContentUrl: this.clamp(input.sourceContentUrl, 2048),
-        status: 'open',
-        unreadCount: 0,
-        userId: input.userId,
-      },
-    });
+    let created: Awaited<
+      ReturnType<typeof this.prisma.socialConversation.create>
+    >;
+    try {
+      created = await this.prisma.socialConversation.create({
+        data: {
+          accountExternalId: this.clamp(input.accountExternalId, 512),
+          accountHandle: this.clamp(input.accountHandle, 280),
+          accountName: this.clamp(input.accountName, 280),
+          availability: input.availability as unknown as Prisma.InputJsonValue,
+          automationState: 'manual',
+          brandId: input.brandId,
+          conversationType: input.conversationType,
+          credentialId: input.credentialId,
+          externalConversationId: input.externalConversationId,
+          externalParentId: this.clamp(input.externalParentId, 512),
+          externalThreadId: this.clamp(input.externalThreadId, 512),
+          lastInboundAt: input.createdAt,
+          latestMessageAt: input.createdAt,
+          latestMessageText: this.clamp(input.body, 500),
+          metadata: (input.metadata ?? {}) as Prisma.InputJsonValue,
+          organizationId: input.organizationId,
+          participantAvatarUrl: this.clamp(input.participantAvatarUrl, 2048),
+          participantExternalId: this.clamp(input.participantExternalId, 512),
+          participantHandle: this.clamp(input.participantHandle, 280),
+          participantName: this.clamp(input.participantName, 280),
+          platform: input.platform,
+          postId: input.postId,
+          sourceContentId: this.clamp(input.sourceContentId, 512),
+          sourceContentTitle: this.clamp(input.sourceContentTitle, 500),
+          sourceContentType: this.clamp(input.sourceContentType, 100),
+          sourceContentUrl: this.clamp(input.sourceContentUrl, 2048),
+          status: 'open',
+          unreadCount: 0,
+          userId: input.userId,
+        },
+      });
+    } catch (error) {
+      // Concurrent ingestion (webhook + cron) can race the findFirst above;
+      // the unique (organizationId, platform, externalConversationId) makes
+      // the loser throw P2002 — recover by returning the winner's row.
+      if ((error as { code?: string })?.code !== 'P2002') {
+        throw error;
+      }
+      const winner = await this.prisma.socialConversation.findFirst({
+        where: {
+          externalConversationId: input.externalConversationId,
+          isDeleted: false,
+          organizationId: input.organizationId,
+          platform: input.platform,
+        },
+      });
+      if (!winner) {
+        throw error;
+      }
+      return this.toConversationDocument(winner);
+    }
 
     return this.toConversationDocument(created);
   }

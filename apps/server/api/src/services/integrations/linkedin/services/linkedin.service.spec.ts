@@ -13,9 +13,7 @@ const mockAuthClientInstance = {
 };
 
 vi.mock('linkedin-api-client', () => ({
-  AuthClient: vi.fn().mockImplementation(function () {
-    return mockAuthClientInstance;
-  }),
+  AuthClient: vi.fn().mockImplementation(() => mockAuthClientInstance),
 }));
 
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';

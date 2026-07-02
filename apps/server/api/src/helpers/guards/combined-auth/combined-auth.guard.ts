@@ -9,7 +9,7 @@ import type {
   Organization,
   User as PrismaUser,
 } from '@genfeedai/prisma';
-import { IS_PUBLIC_KEY } from '@libs/decorators/public.decorator';
+import { isPublicRoute } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   type CanActivate,
@@ -140,15 +140,6 @@ export class CombinedAuthGuard implements CanActivate {
     return this.cachedIdentity;
   }
 
-  private isPublicRoute(context: ExecutionContext): boolean {
-    return (
-      this.reflector?.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
-        context.getHandler(),
-        context.getClass(),
-      ]) ?? false
-    );
-  }
-
   private requiresCloudAuth(context: ExecutionContext): boolean {
     return (
       this.reflector?.getAllAndOverride<boolean>(REQUIRES_CLOUD_AUTH_KEY, [
@@ -170,7 +161,7 @@ export class CombinedAuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // 1. Public routes bypass all auth
-    if (this.isPublicRoute(context)) {
+    if (isPublicRoute(this.reflector, context)) {
       return true;
     }
 
