@@ -5,7 +5,7 @@ import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { IngredientCategory } from '@genfeedai/enums';
 import { Public } from '@libs/decorators/public.decorator';
-import { OpusProWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
+import type { OpusProWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Body, Controller, HttpCode, Post, Req } from '@nestjs/common';

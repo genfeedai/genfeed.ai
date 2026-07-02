@@ -85,6 +85,7 @@
     "test:e2e:ci": "vitest run --config vitest.config.e2e.ts test/e2e/integrations.e2e-spec.ts test/integration/payment-processing.integration.spec.ts test/integration/health.e2e-spec.spec.ts",
     "test:e2e:cov": "vitest run --coverage --config vitest.config.e2e.ts",
     "test:file": "vitest run --config vitest.config.ts",
+    "type-check": "tsc -p tsconfig.typecheck.json",
     "test:file:cov": "vitest run --coverage --config vitest.config.ts",
     "test:watch": "vitest watch --config vitest.config.ts"
   },

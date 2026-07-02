@@ -6,6 +6,7 @@ export class MemberEntity extends BaseEntity implements Member {
   declare readonly organizationId: string;
   declare readonly userId: string;
   declare readonly roleId: string;
+  declare readonly roleKey: string | null;
   declare readonly lastUsedBrandId: string | null;
   declare readonly organization: string;
   declare readonly brands: string[];

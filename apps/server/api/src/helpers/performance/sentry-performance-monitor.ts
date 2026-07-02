@@ -103,7 +103,7 @@ export function recordApiPerformanceTelemetry(
         'none',
         activeSpan,
       );
-      Sentry.setContext('api.database', databaseMetrics);
+      Sentry.setContext('api.database', { ...databaseMetrics });
     }
 
     if (errorMessage) {
@@ -117,10 +117,10 @@ export function recordApiPerformanceTelemetry(
     }
 
     Sentry.metrics.count('api.request.count', 1, {
-      attributes,
+      attributes: { ...attributes },
     });
     Sentry.metrics.distribution('api.request.duration', metrics.duration, {
-      attributes,
+      attributes: { ...attributes },
       unit: 'millisecond',
     });
 
@@ -129,7 +129,7 @@ export function recordApiPerformanceTelemetry(
         'api.db.query_duration',
         databaseMetrics.queryDuration,
         {
-          attributes,
+          attributes: { ...attributes },
           unit: 'millisecond',
         },
       );
@@ -137,7 +137,7 @@ export function recordApiPerformanceTelemetry(
         'api.db.query_count',
         databaseMetrics.queryCount,
         {
-          attributes,
+          attributes: { ...attributes },
           unit: 'none',
         },
       );

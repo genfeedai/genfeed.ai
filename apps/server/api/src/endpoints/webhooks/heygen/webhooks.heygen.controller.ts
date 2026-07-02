@@ -3,7 +3,7 @@ import { HeygenWebhookService } from '@api/endpoints/webhooks/heygen/webhooks.he
 import { assertWebhookToken } from '@api/endpoints/webhooks/webhook-token.util';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { Public } from '@libs/decorators/public.decorator';
-import { HeygenWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
+import type { HeygenWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Body, Controller, HttpCode, Post, Req } from '@nestjs/common';

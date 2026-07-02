@@ -11,6 +11,9 @@
       "@api-test/*": ["../api/test/*"],
       "@api-types/*": ["../../../packages/api-types/src/*"],
       "@api/*": ["../api/src/*"],
+      "@billing-providers": [
+        "../api/src/common/subscriptions/billing.providers.oss.ts"
+      ],
       "@clips/*": ["../clips/src/*"],
       "@config/*": ["../../../packages/config/src/*"],
       "@discord/*": ["../discord/src/*"],

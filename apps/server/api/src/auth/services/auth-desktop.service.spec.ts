@@ -171,7 +171,7 @@ describe('AuthDesktopService', () => {
     expect(result.token).toBe('gf_desktop_key');
     expect(apiKeysService.createWithKey).toHaveBeenCalledWith(
       expect.objectContaining({
-        expiresAt: expect.any(Date),
+        expiresAt: expect.any(String),
         metadata: { kind: 'desktop-session' },
         organizationId,
         userId,

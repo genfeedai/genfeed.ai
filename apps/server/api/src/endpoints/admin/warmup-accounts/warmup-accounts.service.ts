@@ -97,6 +97,10 @@ export class AdminWarmupAccountsService {
     private readonly logger: LoggerService,
   ) {}
 
+  private toJsonValue(value: unknown): Prisma.InputJsonValue {
+    return JSON.parse(JSON.stringify(value ?? null)) as Prisma.InputJsonValue;
+  }
+
   async create(
     operatorUserId: string,
     dto: CreateWarmupAccountDto,
@@ -195,23 +199,23 @@ export class AdminWarmupAccountsService {
 
     return tx.warmupAccount.create({
       data: {
-        auditEvents: [
+        auditEvents: this.toJsonValue([
           createAuditEvent(
             operatorUserId,
             'Provisioned warm-up organization and first brand.',
           ),
-        ] as Prisma.InputJsonValue,
+        ]),
         brandId: brand.id,
         brandName: dto.brandName.trim(),
         customerUserId: customerUser.id,
-        diagnostics: {
+        diagnostics: this.toJsonValue({
           steps: [
             createDiagnosticStep('done', 'Created or reused lead user.'),
             createDiagnosticStep('done', 'Created warm-up organization.'),
             createDiagnosticStep('done', 'Created first brand workspace.'),
             createDiagnosticStep('done', 'Granted operator member access.'),
           ],
-        } as Prisma.InputJsonValue,
+        }),
         guidance: trimOptional(dto.guidance),
         leadEmail,
         leadFirstName: trimOptional(dto.leadFirstName),
@@ -247,16 +251,20 @@ export class AdminWarmupAccountsService {
 
       const updated = await this.prisma.warmupAccount.update({
         data: {
-          auditEvents: this.appendAuditEvent(
-            account,
-            operatorUserId,
-            `Created pending invitation ${invitation.id}.`,
-          ) as Prisma.InputJsonValue,
-          diagnostics: this.appendDiagnosticStep(
-            account,
-            'done',
-            'Created pending customer invitation.',
-          ) as Prisma.InputJsonValue,
+          auditEvents: this.toJsonValue(
+            this.appendAuditEvent(
+              account,
+              operatorUserId,
+              `Created pending invitation ${invitation.id}.`,
+            ),
+          ),
+          diagnostics: this.toJsonValue(
+            this.appendDiagnosticStep(
+              account,
+              'done',
+              'Created pending customer invitation.',
+            ),
+          ),
           invitationId: invitation.id,
           status: WarmupAccountStatus.INVITED,
         },
@@ -273,17 +281,21 @@ export class AdminWarmupAccountsService {
 
       const failed = await this.prisma.warmupAccount.update({
         data: {
-          auditEvents: this.appendAuditEvent(
-            account,
-            operatorUserId,
-            'Invitation provisioning failed.',
-          ) as Prisma.InputJsonValue,
-          diagnostics: this.appendDiagnosticStep(
-            account,
-            'failed',
-            'Failed to create pending customer invitation.',
-            error,
-          ) as Prisma.InputJsonValue,
+          auditEvents: this.toJsonValue(
+            this.appendAuditEvent(
+              account,
+              operatorUserId,
+              'Invitation provisioning failed.',
+            ),
+          ),
+          diagnostics: this.toJsonValue(
+            this.appendDiagnosticStep(
+              account,
+              'failed',
+              'Failed to create pending customer invitation.',
+              error,
+            ),
+          ),
           status: WarmupAccountStatus.FAILED,
         },
         where: { id: account.id },

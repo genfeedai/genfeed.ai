@@ -150,9 +150,12 @@ describe('AdOptimizationProcessor', () => {
 
     expect(auditLogService.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        adsAnalyzed: 0,
-        recommendationsGenerated: 0,
-        runId: RUN_ID,
+        data: expect.objectContaining({
+          adsAnalyzed: 0,
+          recommendationsGenerated: 0,
+          runId: RUN_ID,
+        }),
+        organizationId: ORG_ID,
       }),
     );
   });
@@ -178,7 +181,9 @@ describe('AdOptimizationProcessor', () => {
       ]),
     );
     expect(auditLogService.create).toHaveBeenCalledWith(
-      expect.objectContaining({ recommendationsGenerated: 1 }),
+      expect.objectContaining({
+        data: expect.objectContaining({ recommendationsGenerated: 1 }),
+      }),
     );
   });
 
@@ -254,11 +259,13 @@ describe('AdOptimizationProcessor', () => {
 
     expect(auditLogService.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        errors: expect.arrayContaining([
-          expect.objectContaining({
-            message: expect.stringContaining('DB insert failed'),
-          }),
-        ]),
+        data: expect.objectContaining({
+          errors: expect.arrayContaining([
+            expect.objectContaining({
+              message: expect.stringContaining('DB insert failed'),
+            }),
+          ]),
+        }),
       }),
     );
   });
@@ -277,10 +284,13 @@ describe('AdOptimizationProcessor', () => {
 
     expect(auditLogService.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        adsAnalyzed: 0,
-        errors: expect.arrayContaining([
-          expect.objectContaining({ message: 'config fetch failed' }),
-        ]),
+        data: expect.objectContaining({
+          adsAnalyzed: 0,
+          errors: expect.arrayContaining([
+            expect.objectContaining({ message: 'config fetch failed' }),
+          ]),
+        }),
+        organizationId: ORG_ID,
       }),
     );
     expect(mockLogger.error).toHaveBeenCalled();
@@ -305,7 +315,9 @@ describe('AdOptimizationProcessor', () => {
 
     expect(recommendationService.createBatch).not.toHaveBeenCalled();
     expect(auditLogService.create).toHaveBeenCalledWith(
-      expect.objectContaining({ adsAnalyzed: 0 }),
+      expect.objectContaining({
+        data: expect.objectContaining({ adsAnalyzed: 0 }),
+      }),
     );
   });
 });

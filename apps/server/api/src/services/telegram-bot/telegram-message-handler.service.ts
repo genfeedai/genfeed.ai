@@ -158,10 +158,7 @@ export class TelegramMessageHandlerService {
     }
 
     const currentInput = state.requiredInputs[state.currentInputIndex];
-    if (
-      !currentInput ||
-      (currentInput.inputType !== 'audio' && currentInput.inputType !== 'video')
-    ) {
+    if (!currentInput || !this.isMediaWorkflowInput(currentInput)) {
       await ctx.reply(this.getExpectedInputMessage(currentInput?.inputType));
       return;
     }
@@ -290,6 +287,12 @@ export class TelegramMessageHandlerService {
     return undefined;
   }
 
+  private isMediaWorkflowInput(
+    input: WorkflowInput,
+  ): input is TelegramMediaWorkflowInput {
+    return input.inputType === 'audio' || input.inputType === 'video';
+  }
+
   private async handleMedia(
     ctx: Context,
     mediaType: TelegramMediaInputType,
@@ -306,7 +309,11 @@ export class TelegramMessageHandlerService {
     }
 
     const currentInput = state.requiredInputs[state.currentInputIndex];
-    if (!currentInput || currentInput.inputType !== mediaType) {
+    if (
+      !currentInput ||
+      !this.isMediaWorkflowInput(currentInput) ||
+      currentInput.inputType !== mediaType
+    ) {
       await ctx.reply(this.getExpectedInputMessage(currentInput?.inputType));
       return;
     }

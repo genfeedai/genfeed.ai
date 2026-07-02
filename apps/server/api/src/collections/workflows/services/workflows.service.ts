@@ -57,6 +57,7 @@ import {
   WorkflowStepCategory,
   WorkflowStepStatus,
 } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
 import type { CreditEstimate } from '@genfeedai/workflow-engine';
 import {
   calculateCreditEstimate,
@@ -108,7 +109,7 @@ export class WorkflowsService extends BaseService<
     sourceTemplateId: string;
     sourceType?: string;
     version?: number;
-  }): Record<string, unknown> {
+  }): Prisma.InputJsonValue {
     const sourceTemplateVersion =
       input.version ?? SYSTEM_WORKFLOW_TEMPLATE_VERSION;
     const sourceTemplateChangeSummary =
@@ -127,7 +128,7 @@ export class WorkflowsService extends BaseService<
         sourceIssue: input.sourceIssue,
         version: sourceTemplateVersion,
       }),
-    };
+    } as Prisma.InputJsonValue;
   }
 
   private assertWorkflowMutable(workflow: Pick<WorkflowDocument, 'metadata'>) {

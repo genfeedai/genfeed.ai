@@ -16,7 +16,7 @@ import {
   TrainingStatus,
 } from '@genfeedai/enums';
 import { Public } from '@libs/decorators/public.decorator';
-import { ReplicateWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
+import type { ReplicateWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
