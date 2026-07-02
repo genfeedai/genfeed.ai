@@ -90,12 +90,6 @@ export type CronBoundaryOptions = {
 
 export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
   {
-    file: 'apps/server/api/src/collections/workflows/services/workflow-scheduler.service.ts',
-    id: 'workflow-scheduler-reconciler',
-    methodName: 'syncScheduledWorkflows',
-    reason: 'Platform workflow scheduler reconciliation.',
-  },
-  {
     file: 'apps/server/api/src/collections/trends/services/trends-warmup.service.ts',
     id: 'trends-warmup',
     methodName: 'warmGlobalTrendDatasets',

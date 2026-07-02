@@ -140,6 +140,10 @@ export class OrganizationSettingsService extends BaseService<
         organization.userId,
         organizationId,
       );
+
+      // Seeded schedules fire via BullMQ job schedulers; register them now so
+      // they don't wait for the next service restart.
+      await workflowsService.syncOrganizationWorkflowSchedulers(organizationId);
     } catch (error) {
       // Swallowed so a non-critical provisioning step never fails org creation,
       // but reported to Sentry as well as the log: otherwise new-org workflow

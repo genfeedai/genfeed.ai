@@ -313,5 +313,9 @@ export class WorkflowDeploymentBackfillService {
     );
     await workflowsService.ensureLivestreamBotWorkflows(userId, organizationId);
     await workflowsService.ensureSystemActionWorkflows(userId, organizationId);
+
+    // Seeded schedules fire via BullMQ job schedulers; register them now so
+    // they don't wait for the next service restart.
+    await workflowsService.syncOrganizationWorkflowSchedulers(organizationId);
   }
 }

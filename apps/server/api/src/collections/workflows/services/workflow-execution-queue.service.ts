@@ -12,9 +12,30 @@ import { Queue } from 'bullmq';
 // =============================================================================
 
 export interface WorkflowExecutionJobData {
-  type: 'trigger' | 'delay-resume';
+  type: 'trigger' | 'delay-resume' | 'scheduled-fire';
   triggerEvent?: TriggerEvent;
   delayResumeData?: DelayResumeJobData;
+  workflowId?: string;
+}
+
+export interface WorkflowSchedulerUpsertInput {
+  workflowId: string;
+  cronExpression: string;
+  timezone: string;
+}
+
+/**
+ * Minimal workflow-row shape needed to decide whether its BullMQ job
+ * scheduler should exist (upsert) or not (remove).
+ */
+export interface WorkflowSchedulerSyncRow {
+  id?: string;
+  _id?: unknown;
+  schedule?: string | null;
+  timezone?: string | null;
+  isScheduleEnabled?: boolean | null;
+  isDeleted?: boolean | null;
+  status?: string | null;
 }
 
 // =============================================================================
@@ -22,6 +43,15 @@ export interface WorkflowExecutionJobData {
 // =============================================================================
 
 export const WORKFLOW_EXECUTION_QUEUE = 'workflow-execution';
+
+/**
+ * BullMQ Job Scheduler id for a workflow's cron schedule. One scheduler per
+ * workflow: upserting the same id from any number of API replicas is
+ * idempotent, so BullMQ guarantees exactly one delayed fire per tick.
+ */
+export function workflowSchedulerId(workflowId: string): string {
+  return `workflow-schedule:${workflowId}`;
+}
 
 // =============================================================================
 // SERVICE
@@ -102,6 +132,54 @@ export class WorkflowExecutionQueueService {
     });
 
     return job.id!;
+  }
+
+  /**
+   * Upsert the BullMQ Job Scheduler that fires a workflow's cron schedule.
+   * Replica-safe: BullMQ keys the scheduler on its id, so concurrent upserts
+   * from multiple producers converge on a single scheduler and one delayed job.
+   */
+  async upsertWorkflowScheduler(
+    input: WorkflowSchedulerUpsertInput,
+  ): Promise<void> {
+    await this.executionQueue.upsertJobScheduler(
+      workflowSchedulerId(input.workflowId),
+      {
+        pattern: input.cronExpression,
+        tz: input.timezone,
+      },
+      {
+        data: {
+          type: 'scheduled-fire',
+          workflowId: input.workflowId,
+        },
+        name: 'scheduled-fire',
+        opts: {
+          attempts: 1, // Scheduled fires must not auto-retry (next tick covers it)
+          removeOnComplete: 200,
+          removeOnFail: 100,
+        },
+      },
+    );
+
+    this.logger.log(`${this.logContext} upserted workflow scheduler`, {
+      cronExpression: input.cronExpression,
+      timezone: input.timezone,
+      workflowId: input.workflowId,
+    });
+  }
+
+  /**
+   * Remove the BullMQ Job Scheduler for a workflow. Idempotent.
+   */
+  async removeWorkflowScheduler(workflowId: string): Promise<void> {
+    await this.executionQueue.removeJobScheduler(
+      workflowSchedulerId(workflowId),
+    );
+
+    this.logger.log(`${this.logContext} removed workflow scheduler`, {
+      workflowId,
+    });
   }
 
   /**

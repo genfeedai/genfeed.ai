@@ -16,6 +16,10 @@ import {
 } from '@api/collections/workflows/schemas/workflow.schema';
 import { SYSTEM_WORKFLOW_ACTION_DEFINITIONS } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
+import {
+  WorkflowExecutionQueueService,
+  type WorkflowSchedulerSyncRow,
+} from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import {
   buildSystemWorkflowDuplicateMetadata,
@@ -97,8 +101,88 @@ export class WorkflowsService extends BaseService<
     private readonly workflowExecutionsService?: WorkflowExecutionsService,
     @Optional()
     private readonly workflowExecutorService?: WorkflowExecutorService,
+    @Optional()
+    private readonly workflowExecutionQueueService?: WorkflowExecutionQueueService,
   ) {
     super(prisma, 'workflow', logger);
+  }
+
+  /**
+   * Upsert or remove the BullMQ job scheduler for one workflow row based on
+   * its current schedule/enabled/status state. No-ops when the queue service
+   * is not wired (tests, contexts without BullMQ).
+   */
+  private async syncWorkflowScheduler(
+    workflow: WorkflowSchedulerSyncRow,
+  ): Promise<void> {
+    if (!this.workflowExecutionQueueService) {
+      return;
+    }
+
+    const workflowId = String(workflow.id ?? workflow._id ?? '');
+    if (!workflowId) {
+      return;
+    }
+
+    const isSchedulable =
+      !workflow.isDeleted &&
+      Boolean(workflow.schedule) &&
+      workflow.isScheduleEnabled === true &&
+      workflow.status === WorkflowStatus.ACTIVE;
+
+    try {
+      if (isSchedulable) {
+        await this.workflowExecutionQueueService.upsertWorkflowScheduler({
+          cronExpression: workflow.schedule as string,
+          timezone: workflow.timezone || 'UTC',
+          workflowId,
+        });
+      } else {
+        await this.workflowExecutionQueueService.removeWorkflowScheduler(
+          workflowId,
+        );
+      }
+    } catch (error) {
+      this.logger?.error('Failed to sync workflow job scheduler', {
+        error,
+        workflowId,
+      });
+    }
+  }
+
+  /**
+   * Upsert job schedulers for every enabled scheduled workflow of an
+   * organization. Called after seeding batches (`ensure*Workflows`) so newly
+   * seeded schedules fire without waiting for a service restart.
+   */
+  async syncOrganizationWorkflowSchedulers(
+    organizationId: string,
+  ): Promise<void> {
+    if (!this.workflowExecutionQueueService) {
+      return;
+    }
+
+    const workflows = await this.prisma.workflow.findMany({
+      select: {
+        id: true,
+        isDeleted: true,
+        isScheduleEnabled: true,
+        schedule: true,
+        status: true,
+        timezone: true,
+      },
+      where: {
+        isDeleted: false,
+        isScheduleEnabled: true,
+        organizationId,
+        schedule: { not: null },
+        status: WorkflowStatus.ACTIVE,
+      },
+    });
+
+    for (const workflow of workflows) {
+      await this.syncWorkflowScheduler(workflow);
+    }
   }
 
   private buildSeededSystemWorkflowMetadata(input: {
@@ -216,6 +300,12 @@ export class WorkflowsService extends BaseService<
       user: userId,
     });
 
+    // Register the BullMQ job scheduler when the workflow is created with an
+    // enabled schedule (template-seeded or explicit).
+    await this.syncWorkflowScheduler(
+      workflow as unknown as WorkflowSchedulerSyncRow,
+    );
+
     // If trigger is manual, start execution immediately
     if ((workflowData.trigger as string) === 'manual') {
       this.executeWorkflowCompat(
@@ -230,6 +320,27 @@ export class WorkflowsService extends BaseService<
     }
 
     return EntityFactory.fromDocument(WorkflowEntity, workflow);
+  }
+
+  /**
+   * Soft-delete a workflow and drop its BullMQ job scheduler so the schedule
+   * stops firing immediately.
+   */
+  override async remove(id: string): Promise<WorkflowDocument | null> {
+    const removed = await super.remove(id);
+
+    if (removed && this.workflowExecutionQueueService) {
+      try {
+        await this.workflowExecutionQueueService.removeWorkflowScheduler(id);
+      } catch (error) {
+        this.logger?.error('Failed to remove workflow job scheduler', {
+          error,
+          workflowId: id,
+        });
+      }
+    }
+
+    return removed;
   }
 
   /**
@@ -796,10 +907,11 @@ export class WorkflowsService extends BaseService<
     const data = this.buildContentScheduleWorkflowData(schedule);
 
     if (existing) {
-      await this.prisma.workflow.update({
+      const updated = await this.prisma.workflow.update({
         data,
         where: { id: existing.id },
       });
+      await this.syncWorkflowScheduler(updated);
       return;
     }
 
@@ -845,27 +957,57 @@ export class WorkflowsService extends BaseService<
       }
       throw error;
     }
+
+    // Sync the job scheduler for the row this method just created (or the
+    // concurrent update inside the transaction).
+    const synced = await this.prisma.workflow.findFirst({
+      select: {
+        id: true,
+        isDeleted: true,
+        isScheduleEnabled: true,
+        schedule: true,
+        status: true,
+        timezone: true,
+      },
+      where,
+    });
+
+    if (synced) {
+      await this.syncWorkflowScheduler(synced);
+    }
   }
 
   async disableContentScheduleWorkflow(
     organizationId: string,
     contentScheduleId: string,
   ): Promise<void> {
+    const where = {
+      isDeleted: false,
+      metadata: {
+        equals: contentScheduleId,
+        path: ['contentScheduleId'],
+      },
+      organizationId,
+    };
+
+    const affected = await this.prisma.workflow.findMany({
+      select: { id: true },
+      where,
+    });
+
     await this.prisma.workflow.updateMany({
       data: {
         isDeleted: true,
         isScheduleEnabled: false,
         status: WorkflowStatus.PAUSED,
       },
-      where: {
-        isDeleted: false,
-        metadata: {
-          equals: contentScheduleId,
-          path: ['contentScheduleId'],
-        },
-        organizationId,
-      },
+      where,
     });
+
+    // Drop the BullMQ job schedulers so the disabled schedules stop firing.
+    for (const workflow of affected) {
+      await this.syncWorkflowScheduler({ id: workflow.id, isDeleted: true });
+    }
   }
 
   private buildContentScheduleWorkflowData(schedule: {
