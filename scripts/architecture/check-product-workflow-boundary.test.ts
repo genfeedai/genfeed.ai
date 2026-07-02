@@ -74,6 +74,75 @@ describe('check-product-workflow-boundary', () => {
     expect(result.documentedDetections).toHaveLength(1);
   });
 
+  it('flags undocumented social inbox platform reply and DM actions', () => {
+    writeFixture(
+      'apps/server/api/src/collections/social-inbox/services/social-inbox.service.ts',
+      `
+        export class SocialInboxService {
+          async postReply(): Promise<void> {
+            await this.youtubeService.postCommentReply('org-1', 'brand-1', 'comment-1', 'hello');
+          }
+
+          async sendDm(): Promise<void> {
+            await this.instagramService.sendCommentReplyDm('org-1', 'brand-1', 'user-1', 'hello');
+          }
+        }
+      `,
+    );
+
+    const result = runCheckProductWorkflowBoundary({ exceptions: [] });
+
+    expect(result.violations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: 'undocumented-product-workflow-boundary',
+        }),
+      ]),
+    );
+    expect(result.detections).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          ruleId: 'social-inbox-direct-platform-action',
+        }),
+      ]),
+    );
+  });
+
+  it('allows documented social inbox action migration exceptions', () => {
+    writeFixture(
+      'apps/server/api/src/collections/social-inbox/services/social-inbox.service.ts',
+      `
+        export class SocialInboxService {
+          async postReply(): Promise<void> {
+            await this.instagramService.replyToComment('org-1', 'brand-1', 'comment-1', 'hello');
+          }
+        }
+      `,
+    );
+
+    const exceptions: ProductWorkflowBoundaryException[] = [
+      {
+        classification: 'pending-system-workflow-migration',
+        file: 'apps/server/api/src/collections/social-inbox/services/social-inbox.service.ts',
+        id: 'social-inbox-actions',
+        issue: 1032,
+        reason: 'Fixture social inbox action migration.',
+        systemWorkflowIds: ['reply-dm-automation'],
+      },
+    ];
+
+    const result = runCheckProductWorkflowBoundary({ exceptions });
+
+    expect(result.violations).toHaveLength(0);
+    expect(result.documentedDetections).toEqual([
+      expect.objectContaining({
+        detection: expect.objectContaining({
+          ruleId: 'social-inbox-direct-platform-action',
+        }),
+      }),
+    ]);
+  });
+
   it('rejects pending migration exceptions without a replacement workflow id', () => {
     writeFixture(
       'apps/server/api/src/services/reply-bot/orchestrator.service.ts',
