@@ -7,10 +7,6 @@
  * - Updates campaign statistics
  */
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
-import type {
-  CampaignProcessingJobData,
-  CampaignProcessingResult,
-} from '@api/queues/campaign/campaign-job.interface';
 import { CampaignExecutorService } from '@api/services/campaign/campaign-executor.service';
 import { DmCampaignExecutorService } from '@api/services/campaign/dm-campaign-executor.service';
 import {
@@ -19,11 +15,16 @@ import {
   type ProcessorCircuitBreaker,
 } from '@api/shared/utils/circuit-breaker/circuit-breaker.util';
 import { CampaignStatus, CampaignType } from '@genfeedai/enums';
+import {
+  CAMPAIGN_PROCESSING_QUEUE,
+  CampaignProcessingJobData,
+  CampaignProcessingResult,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 
-@Processor('campaign-processing')
+@Processor(CAMPAIGN_PROCESSING_QUEUE)
 export class CampaignProcessor extends WorkerHost {
   private readonly circuitBreaker: ProcessorCircuitBreaker;
 

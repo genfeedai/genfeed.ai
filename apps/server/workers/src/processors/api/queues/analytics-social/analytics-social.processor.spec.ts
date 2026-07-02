@@ -6,7 +6,7 @@ import { MastodonService } from '@api/services/integrations/mastodon/services/ma
 import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { CredentialPlatform } from '@genfeedai/enums';
-import type { SocialAnalyticsJobData } from '@genfeedai/interfaces';
+import type { SocialAnalyticsJobData } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { AnalyticsSocialProcessor } from '@workers/processors/api/queues/analytics-social/analytics-social.processor';
 import { Job } from 'bullmq';

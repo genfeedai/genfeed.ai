@@ -1,13 +1,16 @@
 import * as crypto from 'node:crypto';
-import type { WebhookJobData } from '@api/services/webhook-client/webhook-client-job.interface';
 import { assertSafeWebhookEndpoint } from '@api/services/webhook-client/webhook-endpoint.validator';
+import {
+  WEBHOOK_CLIENT_QUEUE,
+  WebhookJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
 
-@Processor('webhook-client')
+@Processor(WEBHOOK_CLIENT_QUEUE)
 export class WebhookClientProcessor extends WorkerHost {
   private readonly constructorName = 'WebhookClientProcessor';
 

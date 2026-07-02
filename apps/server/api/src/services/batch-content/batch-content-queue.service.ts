@@ -6,6 +6,7 @@ import type {
 } from '@api/services/batch-content/interfaces/batch-content.interfaces';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { ContentDraft } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
+import { BATCH_CONTENT_QUEUE } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -25,7 +26,7 @@ export class BatchContentQueueService {
   private readonly batchTrackers = new Map<string, BatchTracker>();
 
   constructor(
-    @InjectQueue('batch-content')
+    @InjectQueue(BATCH_CONTENT_QUEUE)
     private readonly batchContentQueue: Queue,
     private readonly logger: LoggerService,
     private readonly notificationsPublisherService: NotificationsPublisherService,

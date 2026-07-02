@@ -2,14 +2,12 @@ import { CredentialsModule } from '@api/collections/credentials/credentials.modu
 import { InstagramSocialAdapter } from '@api/collections/workflows/services/adapters/instagram-social.adapter';
 import { TwitterSocialAdapter } from '@api/collections/workflows/services/adapters/twitter-social.adapter';
 import { YoutubeSocialAdapter } from '@api/collections/workflows/services/adapters/youtube-social.adapter';
-import {
-  WORKFLOW_EXECUTION_QUEUE,
-  WorkflowExecutionQueueService,
-} from '@api/collections/workflows/services/workflow-execution-queue.service';
+import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { ConfigModule } from '@api/config/config.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
+import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/queue-contracts';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';

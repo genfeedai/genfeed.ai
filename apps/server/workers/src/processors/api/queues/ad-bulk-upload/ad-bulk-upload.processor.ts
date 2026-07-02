@@ -3,8 +3,11 @@ import {
   AdCreativeMappingsService,
   type CreateAdCreativeMappingInput,
 } from '@api/collections/ad-creative-mappings/services/ad-creative-mappings.service';
-import type { AdBulkUploadJobData } from '@api/queues/ad-bulk-upload/ad-bulk-upload-job.interface';
 import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
+import {
+  AD_BULK_UPLOAD_QUEUE,
+  AdBulkUploadJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
@@ -18,7 +21,7 @@ interface BulkPermutation {
 }
 
 @Injectable()
-@Processor('ad-bulk-upload')
+@Processor(AD_BULK_UPLOAD_QUEUE)
 export class AdBulkUploadProcessor extends WorkerHost {
   private readonly DELAY_MS = 2000;
 

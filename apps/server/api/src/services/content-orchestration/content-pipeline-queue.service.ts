@@ -2,6 +2,7 @@ import type {
   BatchPipelineConfig,
   PipelineConfig,
 } from '@api/services/content-orchestration/content-orchestration.service';
+import { CONTENT_PIPELINE_QUEUE } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
@@ -17,7 +18,7 @@ export interface ContentqueryJobData {
 @Injectable()
 export class ContentqueryQueueService {
   constructor(
-    @InjectQueue('content-pipeline')
+    @InjectQueue(CONTENT_PIPELINE_QUEUE)
     private readonly contentqueryQueue: Queue,
     private readonly logger: LoggerService,
   ) {}

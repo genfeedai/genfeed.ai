@@ -30,17 +30,11 @@ import { SocialAdapterFactory } from '@api/collections/workflows/services/adapte
 import { TwitterSocialAdapter } from '@api/collections/workflows/services/adapters/twitter-social.adapter';
 import { YoutubeSocialAdapter } from '@api/collections/workflows/services/adapters/youtube-social.adapter';
 import { BatchWorkflowService } from '@api/collections/workflows/services/batch-workflow.service';
-import {
-  BATCH_WORKFLOW_QUEUE,
-  BatchWorkflowQueueService,
-} from '@api/collections/workflows/services/batch-workflow-queue.service';
+import { BatchWorkflowQueueService } from '@api/collections/workflows/services/batch-workflow-queue.service';
 import { LegacyWorkflowStepRunner } from '@api/collections/workflows/services/legacy-workflow-step-runner.service';
 import { ReplyPollingWorkflowService } from '@api/collections/workflows/services/reply-polling-workflow.service';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
-import {
-  WORKFLOW_EXECUTION_QUEUE,
-  WorkflowExecutionQueueService,
-} from '@api/collections/workflows/services/workflow-execution-queue.service';
+import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowFormatConverterService } from '@api/collections/workflows/services/workflow-format-converter.service';
 import { WorkflowGenerationService } from '@api/collections/workflows/services/workflow-generation.service';
@@ -62,6 +56,10 @@ import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
 import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { WorkflowExecutorModule } from '@api/services/workflow-executor/workflow-executor.module';
 import { SharedModule } from '@api/shared/shared.module';
+import {
+  BATCH_WORKFLOW_QUEUE,
+  WORKFLOW_EXECUTION_QUEUE,
+} from '@genfeedai/queue-contracts';
 import { BullModule } from '@nestjs/bullmq';
 import { forwardRef, Module } from '@nestjs/common';
 

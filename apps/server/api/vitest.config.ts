@@ -202,6 +202,20 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, '../../../packages/config/src'),
       },
       {
+        find: /^@genfeedai\/queue-contracts\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/queue-contracts/src/$1',
+        ),
+      },
+      {
+        find: '@genfeedai/queue-contracts',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/queue-contracts/src',
+        ),
+      },
+      {
         find: '@genfeedai/pricing',
         replacement: path.resolve(serviceDir, '../../../packages/pricing/src'),
       },

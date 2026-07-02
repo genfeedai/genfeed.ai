@@ -1,8 +1,11 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
-import type { ReplyBotPollingJobData } from '@api/queues/reply-bot/reply-bot-polling-job.interface';
 import { CredentialPlatform } from '@genfeedai/enums';
+import {
+  REPLY_BOT_POLLING_QUEUE,
+  ReplyBotPollingJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -14,7 +17,7 @@ export class ReplyBotQueueService implements OnModuleInit {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
-    @InjectQueue('reply-bot-polling')
+    @InjectQueue(REPLY_BOT_POLLING_QUEUE)
     private readonly pollingQueue: Queue<ReplyBotPollingJobData>,
     @Optional() private readonly organizationsService: OrganizationsService,
     @Optional()

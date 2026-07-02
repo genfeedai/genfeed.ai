@@ -1,7 +1,6 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import type { FacebookAnalyticsJobData } from '@api/queues/analytics-facebook/analytics-facebook-job.interface';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import {
   BrokenCircuitError,
@@ -10,11 +9,15 @@ import {
 } from '@api/shared/utils/circuit-breaker/circuit-breaker.util';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform } from '@genfeedai/enums';
+import {
+  ANALYTICS_FACEBOOK_QUEUE,
+  FacebookAnalyticsJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 
-@Processor('analytics-facebook')
+@Processor(ANALYTICS_FACEBOOK_QUEUE)
 export class AnalyticsFacebookProcessor extends WorkerHost {
   private readonly DEFAULT_DELAY_MS = 2000;
   private readonly circuitBreaker: ProcessorCircuitBreaker;
