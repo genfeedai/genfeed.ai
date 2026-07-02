@@ -9,6 +9,7 @@ import {
 } from '@api/collections/workflows/dto/execute-workflow.dto';
 import { SetThumbnailDto } from '@api/collections/workflows/dto/set-thumbnail.dto';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
+import { WorkflowRunControlService } from '@api/collections/workflows/services/workflow-run-control.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -52,6 +53,7 @@ export class WorkflowExecutionController {
 
   constructor(
     private readonly workflowsService: WorkflowsService,
+    private readonly workflowRunControlService: WorkflowRunControlService,
     private readonly workflowExecutorService: WorkflowExecutorService,
     private readonly workflowSchedulerService: WorkflowSchedulerService,
     readonly _loggerService: LoggerService,
@@ -125,7 +127,7 @@ export class WorkflowExecutionController {
   > {
     return wrapError(async () => {
       const publicMetadata = getPublicMetadata(user);
-      const result = await this.workflowsService.executePartial(
+      const result = await this.workflowRunControlService.executePartial(
         workflowId,
         dto.nodeIds,
         publicMetadata.user,
@@ -153,7 +155,7 @@ export class WorkflowExecutionController {
   ): Promise<{ data: { runId: string; status: string; message: string } }> {
     return wrapError(async () => {
       const publicMetadata = getPublicMetadata(user);
-      const result = await this.workflowsService.resumeFromFailed(
+      const result = await this.workflowRunControlService.resumeFromFailed(
         workflowId,
         runId,
         publicMetadata.user,
@@ -173,7 +175,7 @@ export class WorkflowExecutionController {
   ): Promise<{ data: CreditEstimate }> {
     return wrapError(async () => {
       const publicMetadata = getPublicMetadata(user);
-      const estimate = await this.workflowsService.validateCredits(
+      const estimate = await this.workflowRunControlService.validateCredits(
         workflowId,
         publicMetadata.organization,
         query.nodeIds,
@@ -228,7 +230,7 @@ export class WorkflowExecutionController {
   ): Promise<{ data: unknown }> {
     return wrapError(async () => {
       const publicMetadata = getPublicMetadata(user);
-      const logs = await this.workflowsService.getExecutionLogs(
+      const logs = await this.workflowRunControlService.getExecutionLogs(
         workflowId,
         runId,
         publicMetadata.organization,
