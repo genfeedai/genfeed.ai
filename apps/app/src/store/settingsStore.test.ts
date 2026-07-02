@@ -13,7 +13,7 @@ vi.mock('@/store/workflowStore', () => ({
   },
 }));
 
-vi.mock('@/lib/logger', () => ({
+vi.mock('@services/core/logger.service', () => ({
   logger: {
     debug: vi.fn(),
     error: vi.fn(),

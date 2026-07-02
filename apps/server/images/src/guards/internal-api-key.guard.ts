@@ -1,55 +1,21 @@
-import { timingSafeEqual } from 'node:crypto';
 import { ConfigService } from '@images/config/config.service';
+import { InternalApiKeyGuard as SharedInternalApiKeyGuard } from '@libs/auth/internal-api-key.guard';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  type CanActivate,
-  type ExecutionContext,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
-import type { Request } from 'express';
+import { Injectable } from '@nestjs/common';
 
+/**
+ * Thin wiring over the shared @libs/auth guard core — see
+ * packages/libs/auth/internal-api-key.guard.ts for the behavior contract.
+ */
 @Injectable()
-export class InternalApiKeyGuard implements CanActivate {
-  constructor(
-    private readonly configService: ConfigService,
-    private readonly logger: LoggerService,
-  ) {}
-
-  canActivate(context: ExecutionContext): boolean {
-    const configuredKey = this.configService.API_KEY;
-
-    if (!configuredKey) {
-      if (this.configService.isDevelopment) {
-        this.logger.warn(
-          'InternalApiKeyGuard GENFEEDAI_API_KEY not configured - allowing request in development',
-        );
-        return true;
-      }
-
-      throw new UnauthorizedException('Service API key is not configured');
-    }
-
-    const request = context.switchToHttp().getRequest<Request>();
-    const authHeader = request.headers.authorization ?? '';
-    const provided = authHeader.startsWith('Bearer ')
-      ? authHeader.slice('Bearer '.length)
-      : '';
-
-    if (!provided) {
-      throw new UnauthorizedException('Missing bearer token');
-    }
-
-    const providedBuffer = Buffer.from(provided);
-    const expectedBuffer = Buffer.from(configuredKey);
-
-    if (
-      providedBuffer.length !== expectedBuffer.length ||
-      !timingSafeEqual(providedBuffer, expectedBuffer)
-    ) {
-      throw new UnauthorizedException('Invalid bearer token');
-    }
-
-    return true;
+export class InternalApiKeyGuard extends SharedInternalApiKeyGuard {
+  constructor(configService: ConfigService, logger: LoggerService) {
+    super({
+      devBypassLogMessage:
+        'InternalApiKeyGuard GENFEEDAI_API_KEY not configured - allowing request in development',
+      getConfiguredKey: () => configService.API_KEY,
+      isDevelopment: () => configService.isDevelopment,
+      logger,
+    });
   }
 }

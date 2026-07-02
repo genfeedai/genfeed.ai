@@ -1,3 +1,8 @@
+import {
+  hydrateContentRun,
+  isContentRunRecord,
+  toContentRunJsonValue,
+} from '@api/collections/content-runs/utils/content-run-data.util';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
@@ -5,7 +10,6 @@ import type {
   ContentRunRecommendation,
   ContentRunVariant,
 } from '@genfeedai/interfaces';
-import { Prisma } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
 
 type ContentRunRow = {
@@ -65,35 +69,14 @@ type VariantAccumulator = {
 export class ContentRunRecommendationsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
-  }
-
-  private toJsonValue(value: unknown): Prisma.InputJsonValue {
-    return JSON.parse(JSON.stringify(value ?? null)) as Prisma.InputJsonValue;
-  }
-
-  private hydrateRun(run: Record<string, unknown>): Record<string, unknown> {
-    const config = this.isRecord(run.config) ? run.config : {};
-
-    return {
-      ...run,
-      ...config,
-      _id: run.id,
-      brand: run.brandId ?? config.brand,
-      organization: run.organizationId ?? config.organization,
-      status: run.status ?? config.status,
-    };
-  }
-
   private readConfig(run: ContentRunRow): Record<string, unknown> {
-    return this.isRecord(run.config) ? run.config : {};
+    return isContentRunRecord(run.config) ? run.config : {};
   }
 
   private readVariants(config: Record<string, unknown>): ContentRunVariant[] {
     return Array.isArray(config.variants)
       ? config.variants.filter((variant): variant is ContentRunVariant =>
-          this.isRecord(variant),
+          isContentRunRecord(variant),
         )
       : [];
   }
@@ -112,7 +95,7 @@ export class ContentRunRecommendationsService {
     return (
       this.readString(row.variantId) ??
       this.readString(
-        this.isRecord((row as Record<string, unknown>).data)
+        isContentRunRecord((row as Record<string, unknown>).data)
           ? ((row as Record<string, unknown>).data as Record<string, unknown>)
               .variantId
           : undefined,
@@ -257,7 +240,7 @@ export class ContentRunRecommendationsService {
     const lowPerformers = scores.filter(
       (score) => score.rank > 1 && score.score < winner.score * 0.5,
     );
-    const brief = this.isRecord(config.brief) ? config.brief : {};
+    const brief = isContentRunRecord(config.brief) ? config.brief : {};
     const hook =
       this.readString(brief.hypothesis) ??
       this.readString(brief.angle) ??
@@ -352,7 +335,7 @@ export class ContentRunRecommendationsService {
     };
 
     const updatedRun = (await this.prisma.contentRun.update({
-      data: { config: this.toJsonValue(nextConfig) },
+      data: { config: toContentRunJsonValue(nextConfig) },
       where: { id: runId },
     })) as unknown as Record<string, unknown>;
 
@@ -360,7 +343,7 @@ export class ContentRunRecommendationsService {
       analyticsSummary,
       recommendations,
       scores,
-      updatedRun: this.hydrateRun(updatedRun),
+      updatedRun: hydrateContentRun(updatedRun) ?? updatedRun,
     };
   }
 }

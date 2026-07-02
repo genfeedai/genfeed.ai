@@ -1,8 +1,9 @@
 import type { ContentPerformanceDocument } from '@api/collections/content-performance/schemas/content-performance.schema';
 import { PerformanceSource } from '@api/collections/content-performance/schemas/content-performance.schema';
+import { mapPostCategoryToContentType } from '@api/collections/content-performance/utils/content-performance-category.util';
 import { BrandMemorySyncService } from '@api/services/brand-memory/brand-memory-sync.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ContentType, PostCategory } from '@genfeedai/enums';
+import { ContentType } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -59,24 +60,6 @@ export class AnalyticsSyncService {
     private readonly brandMemorySyncService: BrandMemorySyncService,
     private readonly logger: LoggerService,
   ) {}
-
-  /**
-   * Map PostCategory to ContentType
-   */
-  private mapCategoryToContentType(category?: string): ContentType {
-    const mapping: Record<string, ContentType> = {
-      [PostCategory.VIDEO]: ContentType.VIDEO,
-      [PostCategory.REEL]: ContentType.VIDEO,
-      [PostCategory.IMAGE]: ContentType.IMAGE,
-      [PostCategory.ARTICLE]: ContentType.ARTICLE,
-      [PostCategory.TEXT]: ContentType.CAPTION,
-      [PostCategory.POST]: ContentType.CAPTION,
-      [PostCategory.STORY]: ContentType.IMAGE,
-    };
-    return category
-      ? (mapping[category] ?? ContentType.CAPTION)
-      : ContentType.CAPTION;
-  }
 
   /**
    * Compute engagement rate from analytics metrics
@@ -154,7 +137,7 @@ export class AnalyticsSyncService {
       clicks: metrics.clicks,
       comments: metrics.comments,
       contentRunId: post?.contentRunId ?? undefined,
-      contentType: this.mapCategoryToContentType(post?.category ?? undefined),
+      contentType: mapPostCategoryToContentType(post?.category),
       creativeVersion: post?.creativeVersion ?? undefined,
       engagementRate: this.computeEngagementRate(metrics),
       externalPostId: post?.externalId ?? undefined,

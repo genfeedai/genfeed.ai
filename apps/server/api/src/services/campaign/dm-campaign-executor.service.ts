@@ -17,16 +17,15 @@ import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
+import { toReplyBotCredentialData } from '@api/services/campaign/reply-bot-credential.util';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import {
   CampaignSkipReason,
   CampaignStatus,
   CampaignTargetStatus,
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
-import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -167,7 +166,7 @@ export class DmCampaignExecutorService {
         return { error: errorMessage, success: false };
       }
 
-      const credentialData = this.toReplyBotCredentialData(
+      const credentialData = toReplyBotCredentialData(
         credential as Record<string, unknown>,
       );
 
@@ -357,40 +356,6 @@ export class DmCampaignExecutorService {
 
   private getTargetId(target: CampaignTargetDocument): string {
     return String(target.id ?? target._id);
-  }
-
-  private toReplyBotCredentialData(
-    credential: Record<string, unknown>,
-  ): IReplyBotCredentialData | null {
-    if (typeof credential.accessToken !== 'string') {
-      return null;
-    }
-
-    return {
-      accessToken: EncryptionUtil.decrypt(credential.accessToken),
-      accessTokenSecret:
-        typeof credential.accessTokenSecret === 'string'
-          ? EncryptionUtil.decrypt(credential.accessTokenSecret)
-          : undefined,
-      externalId:
-        typeof credential.externalId === 'string'
-          ? credential.externalId
-          : undefined,
-      platform:
-        credential.platform === null || credential.platform === undefined
-          ? undefined
-          : (String(
-              credential.platform,
-            ) as IReplyBotCredentialData['platform']),
-      refreshToken:
-        typeof credential.refreshToken === 'string'
-          ? EncryptionUtil.decrypt(credential.refreshToken)
-          : undefined,
-      username:
-        typeof credential.username === 'string'
-          ? credential.username
-          : undefined,
-    };
   }
 
   private delay(ms: number): Promise<void> {

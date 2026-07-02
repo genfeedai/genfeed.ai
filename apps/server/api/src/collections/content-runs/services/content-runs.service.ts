@@ -1,4 +1,10 @@
 import type { CreateContentRunBriefDto } from '@api/collections/content-runs/dto/create-content-run-brief.dto';
+import {
+  hydrateContentRun,
+  hydrateContentRuns,
+  isContentRunRecord,
+  toContentRunJsonValue,
+} from '@api/collections/content-runs/utils/content-run-data.util';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentRunSource, ContentRunStatus } from '@genfeedai/enums';
@@ -9,50 +15,11 @@ import type {
   CreateContentRunInput,
   UpdateContentRunInput,
 } from '@genfeedai/interfaces';
-import { Prisma } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class ContentRunsService {
   constructor(private readonly prisma: PrismaService) {}
-
-  private isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
-  }
-
-  private hydrateRun(
-    run: Record<string, unknown> | null,
-  ): Record<string, unknown> | null {
-    if (!run) {
-      return null;
-    }
-
-    const config = this.isRecord(run.config) ? run.config : {};
-    const brand = run.brandId ?? config.brand;
-    const organization = run.organizationId ?? config.organization;
-
-    return {
-      ...run,
-      ...config,
-      _id: run.id,
-      brand,
-      organization,
-      status: run.status ?? config.status,
-    };
-  }
-
-  private hydrateRuns(
-    runs: Record<string, unknown>[],
-  ): Record<string, unknown>[] {
-    return runs.flatMap((run) => {
-      const hydrated = this.hydrateRun(run);
-      return hydrated ? [hydrated] : [];
-    });
-  }
-
-  private toJsonValue(value: unknown): Prisma.InputJsonValue {
-    return JSON.parse(JSON.stringify(value ?? null)) as Prisma.InputJsonValue;
-  }
 
   private getString(value: unknown): string | undefined {
     return typeof value === 'string' && value.trim().length > 0
@@ -135,10 +102,10 @@ export class ContentRunsService {
   private buildRemixPackVariants(
     run: Record<string, unknown>,
   ): ContentRunVariant[] {
-    const brief = this.isRecord(run.brief)
+    const brief = isContentRunRecord(run.brief)
       ? (run.brief as unknown as ContentRunBrief)
       : {};
-    const publish = this.isRecord(run.publish)
+    const publish = isContentRunRecord(run.publish)
       ? (run.publish as unknown as ContentRunPublishContext)
       : undefined;
     const platform =
@@ -219,14 +186,14 @@ export class ContentRunsService {
     const run = await this.prisma.contentRun.create({
       data: {
         brandId: brand,
-        config: this.toJsonValue(config),
+        config: toContentRunJsonValue(config),
         isDeleted: false,
         organizationId: organization,
         status,
       },
     });
 
-    return this.hydrateRun(run as unknown as Record<string, unknown>) ?? run;
+    return hydrateContentRun(run as unknown as Record<string, unknown>) ?? run;
   }
 
   async createBriefRun(
@@ -266,7 +233,7 @@ export class ContentRunsService {
     const updated = await this.prisma.contentRun.update({
       data: {
         ...(patch.status ? { status: patch.status } : {}),
-        config: this.toJsonValue({
+        config: toContentRunJsonValue({
           ...(existing.config &&
           typeof existing.config === 'object' &&
           !Array.isArray(existing.config)
@@ -279,7 +246,8 @@ export class ContentRunsService {
     });
 
     return (
-      this.hydrateRun(updated as unknown as Record<string, unknown>) ?? updated
+      hydrateContentRun(updated as unknown as Record<string, unknown>) ??
+      updated
     );
   }
 
@@ -296,9 +264,11 @@ export class ContentRunsService {
     }
 
     const hydrated =
-      this.hydrateRun(existing as unknown as Record<string, unknown>) ??
+      hydrateContentRun(existing as unknown as Record<string, unknown>) ??
       existing;
-    const currentConfig = this.isRecord(existing.config) ? existing.config : {};
+    const currentConfig = isContentRunRecord(existing.config)
+      ? existing.config
+      : {};
     const existingVariants = Array.isArray(
       (hydrated as Record<string, unknown>).variants,
     )
@@ -312,7 +282,7 @@ export class ContentRunsService {
 
     const updated = await this.prisma.contentRun.update({
       data: {
-        config: this.toJsonValue({
+        config: toContentRunJsonValue({
           ...currentConfig,
           variants,
         }),
@@ -321,7 +291,8 @@ export class ContentRunsService {
     });
 
     return (
-      this.hydrateRun(updated as unknown as Record<string, unknown>) ?? updated
+      hydrateContentRun(updated as unknown as Record<string, unknown>) ??
+      updated
     );
   }
 
@@ -341,7 +312,7 @@ export class ContentRunsService {
       },
     });
 
-    const hydratedRuns = this.hydrateRuns(
+    const hydratedRuns = hydrateContentRuns(
       runs as unknown as Record<string, unknown>[],
     );
 
@@ -364,6 +335,6 @@ export class ContentRunsService {
       },
     });
 
-    return this.hydrateRun(run as unknown as Record<string, unknown> | null);
+    return hydrateContentRun(run as unknown as Record<string, unknown> | null);
   }
 }

@@ -1,6 +1,8 @@
 import {
   buildSystemWorkflowMetadata,
   SYSTEM_WORKFLOW_METADATA_KEY,
+  SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
+  SYSTEM_WORKFLOW_TEMPLATE_VERSION,
 } from '@api/collections/workflows/system-workflow.contract';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -25,14 +27,17 @@ export type SystemWorkflowActionId =
 
 export type SystemWorkflowActionDefinition = {
   canonicalId: SystemWorkflowActionId;
+  changeSummary?: string;
   description: string;
   label: string;
   schedule?: string;
+  version?: number;
 };
 
 export const SYSTEM_WORKFLOW_ACTION_DEFINITIONS = [
   {
     canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.SCHEDULED_POST_PUBLISHING,
+    changeSummary: 'Initial scheduled publish system workflow action wrapper.',
     description:
       'Publishes due scheduled posts through the connected brand credential.',
     label: 'Scheduled Post Publishing',
@@ -40,24 +45,30 @@ export const SYSTEM_WORKFLOW_ACTION_DEFINITIONS = [
   },
   {
     canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.REPLY_DM_AUTOMATION,
+    changeSummary: 'Initial reply and DM system workflow action wrapper.',
     description:
       'Generates and sends reply bot replies and optional DMs through connected social credentials.',
     label: 'Reply and DM Automation',
   },
   {
     canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.TWITTER_PUBLISH_ACTION,
+    changeSummary: 'Initial Twitter publish system workflow action wrapper.',
     description:
       'Publishes Twitter original, reply, and quote actions through connected brand credentials.',
     label: 'Twitter Publish Action',
   },
   {
     canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.CAMPAIGN_REPLY_AUTOMATION,
+    changeSummary:
+      'Initial outreach campaign reply system workflow action wrapper.',
     description:
       'Generates and posts outreach campaign replies through connected brand credentials.',
     label: 'Campaign Reply Automation',
   },
   {
     canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.CAMPAIGN_DM_AUTOMATION,
+    changeSummary:
+      'Initial outreach campaign DM system workflow action wrapper.',
     description:
       'Generates and sends outreach campaign DMs through connected brand credentials.',
     label: 'Campaign DM Automation',
@@ -73,6 +84,7 @@ export type SystemWorkflowProvenance = {
 type SystemWorkflowActionInput<T> = {
   actionType: string;
   canonicalId: SystemWorkflowActionId;
+  changeSummary?: string;
   description: string;
   failureMessage?: (result: T) => string | undefined;
   inputValues?: Record<string, unknown>;
@@ -84,6 +96,7 @@ type SystemWorkflowActionInput<T> = {
   source: string;
   trigger?: WorkflowExecutionTrigger;
   userId?: string;
+  version?: number;
 };
 
 type SystemWorkflowActionResult<T> = {
@@ -110,11 +123,13 @@ export class SystemWorkflowProvenanceService {
     const userId = await this.resolveUserId(input.organizationId, input.userId);
     const workflow = await this.ensureSystemWorkflow({
       canonicalId: input.canonicalId,
+      changeSummary: input.changeSummary,
       description: input.description,
       label: input.label,
       organizationId: input.organizationId,
       schedule: input.schedule,
       userId,
+      version: input.version,
     });
 
     const execution = await this.createExecution({
@@ -164,11 +179,13 @@ export class SystemWorkflowProvenanceService {
 
   private async ensureSystemWorkflow(input: {
     canonicalId: SystemWorkflowActionId;
+    changeSummary?: string;
     description: string;
     label: string;
     organizationId: string;
     schedule?: string;
     userId: string;
+    version?: number;
   }): Promise<WorkflowRecord> {
     const where = {
       isDeleted: false,
@@ -209,11 +226,18 @@ export class SystemWorkflowProvenanceService {
               label: input.label,
               metadata: {
                 sourceIssue: 1011,
+                sourceTemplateChangeSummary:
+                  input.changeSummary ??
+                  SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
                 sourceTemplateId: input.canonicalId,
+                sourceTemplateVersion:
+                  input.version ?? SYSTEM_WORKFLOW_TEMPLATE_VERSION,
                 sourceType: 'system-action-workflow',
                 [SYSTEM_WORKFLOW_METADATA_KEY]: buildSystemWorkflowMetadata({
                   canonicalId: input.canonicalId,
+                  changeSummary: input.changeSummary,
                   sourceIssue: 1011,
+                  version: input.version,
                 }),
               },
               nodes: [
