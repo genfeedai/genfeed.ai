@@ -53,6 +53,7 @@ describe('TrendPreferencesService', () => {
       const result = await service.getPreferences(organizationId);
 
       expect(result).toEqual({
+        autoRequeueWinners: false,
         categories: ['tech'],
         hashtags: [],
         keywords: ['ai'],
@@ -75,6 +76,7 @@ describe('TrendPreferencesService', () => {
       const result = await service.getPreferences(organizationId, brandId);
 
       expect(result).toEqual({
+        autoRequeueWinners: false,
         brandId: 'brand1',
         categories: ['fashion'],
         hashtags: [],
@@ -100,6 +102,7 @@ describe('TrendPreferencesService', () => {
       const result = await service.getPreferences(organizationId, brandId);
 
       expect(result).toEqual({
+        autoRequeueWinners: false,
         categories: ['general'],
         hashtags: [],
         keywords: [],
@@ -134,6 +137,17 @@ describe('TrendPreferencesService', () => {
 
       expect(result).toBeNull();
     });
+
+    it('should normalize the autoRequeueWinners flag from config', async () => {
+      prisma.trendPreferences.findFirst.mockResolvedValue({
+        config: { autoRequeueWinners: true, keywords: ['ai'] },
+      });
+
+      const result = await service.getPreferences(organizationId);
+
+      expect(result?.autoRequeueWinners).toBe(true);
+      expect(result?.keywords).toEqual(['ai']);
+    });
   });
 
   describe('savePreferences', () => {
@@ -162,6 +176,7 @@ describe('TrendPreferencesService', () => {
         }),
       );
       expect(result).toEqual({
+        autoRequeueWinners: false,
         categories: ['tech'],
         hashtags: [],
         keywords: ['ai'],
@@ -194,6 +209,7 @@ describe('TrendPreferencesService', () => {
         }),
       );
       expect(result).toEqual({
+        autoRequeueWinners: false,
         categories: ['tech'],
         hashtags: [],
         keywords: ['ai'],
@@ -236,6 +252,87 @@ describe('TrendPreferencesService', () => {
           categories: ['tech'],
         }),
       ).rejects.toThrow('save failed');
+    });
+
+    it('should persist autoRequeueWinners into config when provided', async () => {
+      prisma.trendPreferences.findFirst.mockResolvedValue(null);
+      prisma.trendPreferences.create.mockResolvedValue({});
+
+      await service.savePreferences(organizationId, {
+        autoRequeueWinners: true,
+        keywords: ['ai'],
+      });
+
+      expect(prisma.trendPreferences.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            config: {
+              autoRequeueWinners: true,
+              categories: [],
+              hashtags: [],
+              keywords: ['ai'],
+              platforms: [],
+            },
+          }),
+        }),
+      );
+    });
+
+    it('should omit autoRequeueWinners from config when not provided', async () => {
+      prisma.trendPreferences.findFirst.mockResolvedValue(null);
+      prisma.trendPreferences.create.mockResolvedValue({});
+
+      await service.savePreferences(organizationId, { keywords: ['ai'] });
+
+      const createArg = prisma.trendPreferences.create.mock.calls[0][0];
+      expect(createArg.data.config).not.toHaveProperty('autoRequeueWinners');
+    });
+  });
+
+  describe('mergeWinnerSignals', () => {
+    it('should union winner signals into existing preferences and preserve the opt-in flag', async () => {
+      prisma.trendPreferences.findFirst.mockResolvedValue({
+        config: {
+          autoRequeueWinners: true,
+          keywords: ['ai'],
+          platforms: ['twitter'],
+        },
+        id: 'pref-1',
+      });
+      prisma.trendPreferences.update.mockResolvedValue({});
+
+      await service.mergeWinnerSignals(organizationId, brandId, {
+        keywords: ['ai', 'proof', 'thread'],
+        platforms: ['instagram'],
+      });
+
+      const updateArg = prisma.trendPreferences.update.mock.calls[0][0];
+      expect(updateArg.data.config.autoRequeueWinners).toBe(true);
+      expect(updateArg.data.config.keywords).toEqual(['ai', 'proof', 'thread']);
+      expect(updateArg.data.config.platforms).toEqual(['twitter', 'instagram']);
+    });
+
+    it('should create preferences from signals when none exist', async () => {
+      prisma.trendPreferences.findFirst.mockResolvedValue(null);
+      prisma.trendPreferences.create.mockResolvedValue({});
+
+      await service.mergeWinnerSignals(organizationId, undefined, {
+        keywords: ['founder', 'proof'],
+        platforms: ['linkedin'],
+      });
+
+      expect(prisma.trendPreferences.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            brandId: null,
+            config: expect.objectContaining({
+              keywords: ['founder', 'proof'],
+              platforms: ['linkedin'],
+            }),
+            organizationId,
+          }),
+        }),
+      );
     });
   });
 });
