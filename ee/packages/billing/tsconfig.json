@@ -37,6 +37,7 @@
       "@genfeedai/integrations": [
         "../../../packages/integrations/src/index.ts"
       ],
+      "@genfeedai/integrations/*": ["../../../packages/integrations/src/*"],
       "@genfeedai/workflow-engine": [
         "../../../packages/workflow-engine/src/index.ts"
       ],

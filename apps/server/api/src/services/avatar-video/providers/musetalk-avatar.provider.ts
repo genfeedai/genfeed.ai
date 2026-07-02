@@ -2,8 +2,8 @@ import type {
   AvatarVideoJobInput,
   AvatarVideoJobResult,
   AvatarVideoProvider,
-  AvatarVideoProviderName,
 } from '@api/services/avatar-video/avatar-video-provider.interface';
+import type { AvatarVideoProviderName } from '@genfeedai/queue-contracts';
 import { Injectable, NotImplementedException } from '@nestjs/common';
 
 /**

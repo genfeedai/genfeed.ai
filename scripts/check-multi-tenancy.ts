@@ -72,7 +72,6 @@ const EXEMPT_FROM_ORG_FILTER = [
   '/models/',
   '/announcements/',
   '/trends/',
-  '/ad-insights/',
   '/tracked-links/',
   '/template-metadata/',
   // Base service (provides safe helpers)
@@ -97,7 +96,6 @@ const FULLY_EXEMPT = [
   '/roles/',
   '/models/',
   '/announcements/',
-  '/ad-insights/',
   '/tracked-links/',
   '/template-metadata/',
   '/trends/',

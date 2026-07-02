@@ -1,4 +1,5 @@
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
+import { CREDIT_DEDUCTION_QUEUE } from '@genfeedai/queue-contracts';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 
@@ -15,7 +16,7 @@ import { Module } from '@nestjs/common';
         removeOnComplete: 100,
         removeOnFail: 200,
       },
-      name: 'credit-deduction',
+      name: CREDIT_DEDUCTION_QUEUE,
     }),
   ],
   providers: [CreditDeductionQueueService],

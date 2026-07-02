@@ -1,7 +1,23 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsEnum, IsOptional, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class SaveTrendPreferencesDto {
+  @ApiProperty({
+    description:
+      'Automatically feed winning content-run signals back into trend ingestion (opt-in)',
+    example: true,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  autoRequeueWinners?: boolean;
+
   @ApiProperty({
     description: 'Brand ID (optional, for brand-specific preferences)',
     required: false,

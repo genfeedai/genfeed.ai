@@ -3,7 +3,7 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { CreateOrganizationSettingDto } from '@api/collections/organization-settings/dto/create-organization-setting.dto';
 import { UpdateOrganizationSettingDto } from '@api/collections/organization-settings/dto/update-organization-setting.dto';
 import type { OrganizationSettingDocument } from '@api/collections/organization-settings/schemas/organization-setting.schema';
-import type { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import type { WorkflowTemplateSeederService } from '@api/collections/workflows/services/workflow-template-seeder.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import {
@@ -89,54 +89,54 @@ export class OrganizationSettingsService extends BaseService<
       }
 
       // Load the class for the ModuleRef token via a relative dynamic import.
-      // A top-level value import of workflows.service here completes a module
-      // cycle (workflows → … → organization-settings) that TDZ-crashes the API
-      // on boot: "Cannot access 'OrganizationSettingsService' before
+      // A top-level value import of the workflows collection here completes a
+      // module cycle (workflows → … → organization-settings) that TDZ-crashes
+      // the API on boot: "Cannot access 'OrganizationSettingsService' before
       // initialization". Deferring the load to call time breaks the cycle.
-      const { WorkflowsService } = await import(
-        '../../workflows/services/workflows.service'
+      const { WorkflowTemplateSeederService } = await import(
+        '../../workflows/services/workflow-template-seeder.service'
       );
-      const workflowsService = this.moduleRef.get<WorkflowsService>(
-        WorkflowsService,
+      const workflowSeeder: WorkflowTemplateSeederService = this.moduleRef.get(
+        WorkflowTemplateSeederService,
         { strict: false },
       );
-      await workflowsService.ensureDailyTrendsDigestWorkflow(
+      await workflowSeeder.ensureDailyTrendsDigestWorkflow(
         organization.userId,
         organizationId,
       );
-      await workflowsService.ensureAdAutomationWorkflows(
+      await workflowSeeder.ensureAdAutomationWorkflows(
         organization.userId,
         organizationId,
       );
-      await workflowsService.ensureCampaignOrchestrationWorkflows(
+      await workflowSeeder.ensureCampaignOrchestrationWorkflows(
         organization.userId,
         organizationId,
       );
-      await workflowsService.ensureAgentAutopilotWorkflows(
+      await workflowSeeder.ensureAgentAutopilotWorkflows(
         organization.userId,
         organizationId,
       );
-      await workflowsService.ensureAnalyticsSyncWorkflows(
+      await workflowSeeder.ensureAnalyticsSyncWorkflows(
         organization.userId,
         organizationId,
       );
-      await workflowsService.ensureContentProductionWorkflows(
+      await workflowSeeder.ensureContentProductionWorkflows(
         organization.userId,
         organizationId,
       );
-      await workflowsService.ensureReplyPollingWorkflows(
+      await workflowSeeder.ensureReplyPollingWorkflows(
         organization.userId,
         organizationId,
       );
-      await workflowsService.ensureTrendNotificationWorkflows(
+      await workflowSeeder.ensureTrendNotificationWorkflows(
         organization.userId,
         organizationId,
       );
-      await workflowsService.ensureLivestreamBotWorkflows(
+      await workflowSeeder.ensureLivestreamBotWorkflows(
         organization.userId,
         organizationId,
       );
-      await workflowsService.ensureSystemActionWorkflows(
+      await workflowSeeder.ensureSystemActionWorkflows(
         organization.userId,
         organizationId,
       );

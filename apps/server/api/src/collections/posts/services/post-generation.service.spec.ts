@@ -289,6 +289,29 @@ Tweet 3: Tech innovation is changing the world.`,
       expect(mockWebsocketService.emit).toHaveBeenCalled();
     });
 
+    it('still marks posts FAILED when the activity cleanup patch itself throws', async () => {
+      mockReplicateService.generateTextCompletionSync.mockResolvedValue('');
+      // The failure-cleanup path marks the activity FAILED; that write itself
+      // throwing must NOT short-circuit cleanup and leave placeholder posts
+      // stuck in PROCESSING (issue #861).
+      mockActivitiesService.patch.mockRejectedValueOnce(
+        new Error('activity store down'),
+      );
+
+      await service.generateAccountContentAsync(
+        { count: 1, credential: credentialId, format: 'post', topic: 'AI' },
+        [mockPost],
+        publicMetadata,
+        mockPublishingContext,
+      );
+
+      expect(mockActivitiesService.patch).toHaveBeenCalled();
+      expect(mockPostsService.patch).toHaveBeenCalledWith(
+        String(mockPost._id),
+        expect.objectContaining({ status: PostStatus.FAILED }),
+      );
+    });
+
     it('marks every created post FAILED when activity creation throws (issue #861)', async () => {
       mockActivitiesService.create.mockRejectedValueOnce(
         new Error('activity store down'),

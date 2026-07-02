@@ -1,8 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { AdOptimizationConfigsService } from '@api/collections/ad-optimization-configs/services/ad-optimization-configs.service';
-import type { AdOptimizationJobData } from '@api/queues/ad-optimization/ad-optimization-job.interface';
 import { QueueService } from '@api/queues/core/queue.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
+import {
+  AD_OPTIMIZATION_QUEUE,
+  AdOptimizationJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -10,7 +13,7 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class CronAdOptimizationService {
   private readonly constructorName: string = String(this.constructor.name);
-  private readonly QUEUE_NAME = 'ad-optimization';
+  private readonly QUEUE_NAME = AD_OPTIMIZATION_QUEUE;
   private readonly LOCK_KEY = 'cron:ad-optimization';
   private readonly LOCK_TTL_SECONDS = 900;
   private readonly MAX_JITTER_MS = 15 * 60 * 1000;

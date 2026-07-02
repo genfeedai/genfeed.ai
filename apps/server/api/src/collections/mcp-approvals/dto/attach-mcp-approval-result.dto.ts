@@ -3,6 +3,7 @@ import { IsObject } from 'class-validator';
 
 export class AttachMcpApprovalResultDto {
   @ApiProperty({
+    additionalProperties: true,
     description: 'Execution result payload to persist on the approved approval',
     type: 'object',
   })

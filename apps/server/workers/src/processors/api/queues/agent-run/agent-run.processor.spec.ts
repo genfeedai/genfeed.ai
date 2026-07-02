@@ -1,5 +1,5 @@
-import type { AgentRunJobData } from '@api/queues/agent-run/agent-run-queue.service';
 import { AgentRunStatus } from '@genfeedai/enums';
+import type { AgentRunJobData } from '@genfeedai/queue-contracts';
 import { AgentRunProcessor } from '@workers/processors/api/queues/agent-run/agent-run.processor';
 import { Job } from 'bullmq';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

@@ -1,9 +1,8 @@
 import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
-  createSendDmExecutor,
   type DmSender,
-  type SendDmExecutor,
+  SendDmExecutor,
 } from '@workflow-engine/executors/saas/send-dm-executor';
 import type { ExecutableNode } from '@workflow-engine/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -39,7 +38,7 @@ describe('SendDmExecutor', () => {
   let mockSender: DmSender;
 
   beforeEach(() => {
-    executor = createSendDmExecutor();
+    executor = new SendDmExecutor();
     mockSender = vi.fn().mockResolvedValue({ messageId: 'msg-123' });
     executor.setSender(mockSender);
   });
@@ -49,7 +48,7 @@ describe('SendDmExecutor', () => {
   });
 
   it('throws if sender not configured', async () => {
-    const fresh = createSendDmExecutor();
+    const fresh = new SendDmExecutor();
     const input = makeInput({
       platform: 'twitter',
       recipientId: 'u1',
@@ -110,6 +109,25 @@ describe('SendDmExecutor', () => {
         platform: 'instagram',
         recipientId: 'user-from-edge',
         text: 'From edge',
+      }),
+    );
+  });
+
+  it('forwards social inbox provenance metadata to the sender', async () => {
+    const input = makeInput({
+      conversationId: 'conversation-1',
+      platform: 'instagram',
+      recipientId: 'recipient-1',
+      text: 'Thanks for reaching out',
+    });
+
+    await executor.execute(input);
+
+    expect(mockSender).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversationId: 'conversation-1',
+        idempotencyKey: 'workflow:run-1:dm-1',
+        workflowRunId: 'run-1',
       }),
     );
   });

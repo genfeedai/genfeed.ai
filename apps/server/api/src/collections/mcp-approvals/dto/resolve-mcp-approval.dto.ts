@@ -10,6 +10,7 @@ export class ResolveMcpApprovalDto {
   decision!: 'approve' | 'decline';
 
   @ApiPropertyOptional({
+    additionalProperties: true,
     description: 'Optional result payload for approved actions',
     type: 'object',
   })

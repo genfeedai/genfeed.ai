@@ -45,11 +45,16 @@ export default function MenuBrandSwitcher({
         const service = await getUsersService();
         await service.patchMeBrand(id, { isSelected: true });
         logger.info(`${url} success`);
-        await user?.reload();
         onBrandChange?.(id);
-        setIsUpdatingBrand(false);
+        const reloadPromise = user?.reload();
+        if (reloadPromise) {
+          void reloadPromise.catch((reloadError: unknown) => {
+            logger.warn(`${url} reload failed`, reloadError);
+          });
+        }
       } catch (error) {
         logger.error(`${url} failed`, error);
+      } finally {
         setIsUpdatingBrand(false);
       }
     },

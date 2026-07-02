@@ -1,5 +1,8 @@
-import type { TikTokAdSyncJobData } from '@api/queues/ad-sync-tiktok/ad-sync-tiktok-job.interface';
 import { QueueService } from '@api/queues/core/queue.service';
+import {
+  AD_SYNC_TIKTOK_QUEUE,
+  TikTokAdSyncJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -7,7 +10,7 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class CronAdSyncTikTokService {
   private readonly constructorName: string = String(this.constructor.name);
-  private readonly QUEUE_NAME = 'ad-sync-tiktok';
+  private readonly QUEUE_NAME = AD_SYNC_TIKTOK_QUEUE;
 
   constructor(
     private readonly logger: LoggerService,

@@ -5,6 +5,7 @@ import * as path from 'node:path';
 import type {
   FileEntry,
   ListOptions,
+  StorageObject,
   StorageProvider,
 } from './storage.provider';
 
@@ -58,6 +59,23 @@ export class LocalStorageProvider implements StorageProvider {
     await fs.mkdir(dir, { recursive: true });
     await fs.writeFile(fullPath, file);
     return filePath;
+  }
+
+  async uploadFromFile(
+    filePath: string,
+    localPath: string,
+    _contentType?: string,
+  ): Promise<string> {
+    const fullPath = path.join(this.baseDir, filePath);
+    await fs.mkdir(path.dirname(fullPath), { recursive: true });
+    await fs.copyFile(localPath, fullPath);
+    return filePath;
+  }
+
+  async download(filePath: string, localPath: string): Promise<void> {
+    const fullPath = path.join(this.baseDir, filePath);
+    await fs.mkdir(path.dirname(localPath), { recursive: true });
+    await fs.copyFile(fullPath, localPath);
   }
 
   getUrl(filePath: string): string {
@@ -115,6 +133,35 @@ export class LocalStorageProvider implements StorageProvider {
     const offset = options?.offset ?? 0;
     const limit = options?.limit ?? fileEntries.length;
     return fileEntries.slice(offset, offset + limit);
+  }
+
+  async listObjects(prefix: string): Promise<StorageObject[]> {
+    const dirPath = path.join(this.baseDir, prefix);
+    if (!existsSync(dirPath)) {
+      return [];
+    }
+
+    const entries = await fs.readdir(dirPath, {
+      recursive: true,
+      withFileTypes: true,
+    });
+    const objects: StorageObject[] = [];
+
+    for (const entry of entries) {
+      if (!entry.isFile()) {
+        continue;
+      }
+
+      const fullPath = path.join(entry.parentPath, entry.name);
+      const stat = await fs.stat(fullPath);
+      objects.push({
+        key: path.relative(this.baseDir, fullPath),
+        lastModified: stat.mtime,
+        size: stat.size,
+      });
+    }
+
+    return objects;
   }
 
   async exists(filePath: string): Promise<boolean> {

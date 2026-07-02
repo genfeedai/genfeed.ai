@@ -152,18 +152,6 @@ export class ContentSchedulesService extends BaseService<
     return removed;
   }
 
-  getActiveSchedules(
-    now: Date = new Date(),
-  ): Promise<ContentScheduleDocument[]> {
-    return this.delegate.findMany({
-      where: {
-        isDeleted: false,
-        isEnabled: true,
-        nextRunAt: { lte: now },
-      },
-    }) as Promise<ContentScheduleDocument[]>;
-  }
-
   async markScheduleRan(
     scheduleId: string,
     organizationId: string,
@@ -207,8 +195,8 @@ export class ContentSchedulesService extends BaseService<
     organizationId: string,
     scheduleId: string,
   ): Promise<void> {
-    const workflowsService = await this.getWorkflowsService();
-    if (!workflowsService) {
+    const workflowSeeder = await this.getWorkflowTemplateSeeder();
+    if (!workflowSeeder) {
       return;
     }
 
@@ -221,7 +209,7 @@ export class ContentSchedulesService extends BaseService<
       return;
     }
 
-    await workflowsService.ensureContentScheduleWorkflow(
+    await workflowSeeder.ensureContentScheduleWorkflow(
       userId,
       organizationId,
       scheduleId,
@@ -232,12 +220,12 @@ export class ContentSchedulesService extends BaseService<
     organizationId: string,
     scheduleId: string,
   ): Promise<void> {
-    const workflowsService = await this.getWorkflowsService();
-    if (!workflowsService) {
+    const workflowSeeder = await this.getWorkflowTemplateSeeder();
+    if (!workflowSeeder) {
       return;
     }
 
-    await workflowsService.disableContentScheduleWorkflow(
+    await workflowSeeder.disableContentScheduleWorkflow(
       organizationId,
       scheduleId,
     );
@@ -254,7 +242,7 @@ export class ContentSchedulesService extends BaseService<
     return organization?.userId ?? undefined;
   }
 
-  private async getWorkflowsService(): Promise<
+  private async getWorkflowTemplateSeeder(): Promise<
     | {
         disableContentScheduleWorkflow: (
           organizationId: string,
@@ -272,9 +260,11 @@ export class ContentSchedulesService extends BaseService<
       return undefined;
     }
 
-    const { WorkflowsService } = await import(
-      '../../workflows/services/workflows.service'
+    const { WorkflowTemplateSeederService } = await import(
+      '../../workflows/services/workflow-template-seeder.service'
     );
-    return this.moduleRef.get(WorkflowsService, { strict: false });
+    return this.moduleRef.get(WorkflowTemplateSeederService, {
+      strict: false,
+    });
   }
 }

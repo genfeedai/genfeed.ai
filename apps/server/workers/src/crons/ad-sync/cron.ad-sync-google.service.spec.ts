@@ -1,5 +1,5 @@
 import { QueueService } from '@api/queues/core/queue.service';
-import type { GoogleAdSyncJobData } from '@genfeedai/interfaces';
+import type { GoogleAdSyncJobData } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronAdSyncGoogleService } from '@workers/crons/ad-sync/cron.ad-sync-google.service';
