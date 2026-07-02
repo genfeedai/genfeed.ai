@@ -311,6 +311,11 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             TURBO_SCM_BASE="${{ github.event.pull_request.base.sha }}" bunx turbo run type-check --affected
+            # ee-billing type-checks apps/server/api sources through @api/* TS path
+            # aliases, a coupling invisible to --affected's package graph (see #1105).
+            # Run it explicitly; its turbo.json $TURBO_ROOT$ inputs keep this a cache
+            # hit unless the aliased backend sources actually changed.
+            bunx turbo run type-check --filter=@genfeedai/ee-billing
           else
             bun run type-check
           fi
