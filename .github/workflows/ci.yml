@@ -216,9 +216,9 @@ jobs:
               exit 0
             fi
 
-            REACT_DOCTOR_BASE_SHA="$BASE" bunx react-doctor@0.4.2 . --blocking error --project '*' --changed-files-from "$CHANGED_FILES"
+            REACT_DOCTOR_BASE_SHA="$BASE" bunx react-doctor@0.5.6 . --blocking error --project '*' --changed-files-from "$CHANGED_FILES"
           else
-            bunx react-doctor@0.4.2 . --blocking error --project '*' --diff false
+            bunx react-doctor@0.5.6 . --blocking error --project '*' --diff false
           fi
 
   # Consolidated static guards — these four checks each do ~10-20s of actual
