@@ -1,4 +1,3 @@
-import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import {
   useConfirmModal,
   usePostModal,
@@ -12,6 +11,7 @@ import {
 } from '@genfeedai/enums';
 import { formatNumberWithCommas } from '@genfeedai/helpers/formatting/format/format.helper';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { stopAndResetVideo } from '@genfeedai/hooks/media/video-utils/video.utils';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';

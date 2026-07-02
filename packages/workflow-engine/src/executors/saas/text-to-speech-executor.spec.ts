@@ -1,8 +1,7 @@
 import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
-  createTextToSpeechExecutor,
-  type TextToSpeechExecutor,
+  TextToSpeechExecutor,
   type TtsResolver,
 } from '@workflow-engine/executors/saas/text-to-speech-executor';
 import type { ExecutableNode } from '@workflow-engine/types';
@@ -45,7 +44,7 @@ describe('TextToSpeechExecutor', () => {
   let mockResolver: TtsResolver;
 
   beforeEach(() => {
-    executor = createTextToSpeechExecutor();
+    executor = new TextToSpeechExecutor();
     mockResolver = vi.fn().mockResolvedValue({
       audioUrl: 'https://cdn.example.com/speech.mp3',
       duration: 5.2,
@@ -96,7 +95,7 @@ describe('TextToSpeechExecutor', () => {
 
   describe('execute', () => {
     it('should throw when resolver is not configured', async () => {
-      const noResolverExecutor = createTextToSpeechExecutor();
+      const noResolverExecutor = new TextToSpeechExecutor();
       const input = makeInput({}, [['text', 'Hello world']]);
 
       await expect(noResolverExecutor.execute(input)).rejects.toThrow(

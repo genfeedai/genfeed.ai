@@ -25,9 +25,7 @@ const { mockApp } = vi.hoisted(() => ({
 }));
 
 vi.mock('@slack/bolt', () => ({
-  App: vi.fn(function () {
-    return mockApp;
-  }),
+  App: vi.fn(() => mockApp),
 }));
 
 describe('Slack Bot Manager Integration Flow', () => {

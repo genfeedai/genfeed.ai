@@ -1,9 +1,11 @@
+import { SELF_SERVICE_API_KEY_SCOPES } from '@genfeedai/constants';
 import { ApiKeyCategory } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
   IsDateString,
   IsEnum,
+  IsIn,
   IsNumber,
   IsObject,
   IsOptional,
@@ -43,13 +45,18 @@ export class CreateApiKeyDto {
 
   @ApiProperty({
     default: ['videos:create', 'videos:read', 'analytics:read'],
-    description: 'Scopes/permissions for this key',
+    description:
+      'Scopes/permissions for this key. Must be a subset of the self-service ' +
+      'scope presets; privileged and wildcard ("*") scopes are rejected.',
+    enum: SELF_SERVICE_API_KEY_SCOPES,
     example: ['videos:create', 'videos:read'],
+    isArray: true,
     required: false,
   })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
+  @IsIn([...SELF_SERVICE_API_KEY_SCOPES], { each: true })
   readonly scopes?: string[];
 
   @ApiProperty({

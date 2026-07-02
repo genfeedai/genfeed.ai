@@ -14,6 +14,7 @@ import type {
   CronRunTrigger,
 } from '@api/collections/cron-jobs/schemas/cron-run.schema';
 import { validateCronPayload } from '@api/collections/cron-jobs/utils/cron-payload-validation.util';
+import { LegacyWorkflowStepRunner } from '@api/collections/workflows/services/legacy-workflow-step-runner.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
@@ -133,6 +134,7 @@ export class CronJobsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly workflowsService: WorkflowsService,
+    private readonly legacyWorkflowStepRunner: LegacyWorkflowStepRunner,
     private readonly agentRunsService: AgentRunsService,
     private readonly agentRunQueueService: AgentRunQueueService,
     private readonly openRouterService: OpenRouterService,
@@ -1033,7 +1035,7 @@ export class CronJobsService {
           throw new Error('Workflow not found for this tenant');
         }
 
-        await this.workflowsService.executeWorkflow(workflowId);
+        await this.legacyWorkflowStepRunner.executeWorkflow(workflowId);
         return { workflowId };
       }
 

@@ -178,7 +178,3 @@ export class SendDmExecutor extends BaseExecutor {
       : undefined;
   }
 }
-
-export function createSendDmExecutor(): SendDmExecutor {
-  return new SendDmExecutor();
-}

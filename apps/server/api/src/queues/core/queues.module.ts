@@ -14,7 +14,6 @@ import { CampaignQueueService } from '@api/queues/campaign/campaign-queue.servic
 import { QueueService } from '@api/queues/core/queue.service';
 import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
 import { ReplyBotQueueService } from '@api/queues/reply-bot/reply-bot-queue.service';
-import { WorkflowQueueService } from '@api/queues/workflow/workflow-queue.service';
 import { WorkspaceTaskQueueService } from '@api/services/task-orchestration/workspace-task-queue.service';
 import {
   buildBullMQConnection,
@@ -30,7 +29,6 @@ import { Module } from '@nestjs/common';
     QueueService,
     ReplyBotQueueService,
     CampaignQueueService,
-    WorkflowQueueService,
     WorkspaceTaskQueueService,
   ],
   imports: [
@@ -104,24 +102,6 @@ import { Module } from '@nestjs/common';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'workflow-execution',
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 10000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: 'workflow-delay',
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 5000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
         name: 'ad-sync-meta',
       },
       {
@@ -141,15 +121,6 @@ import { Module } from '@nestjs/common';
           removeOnFail: 50,
         },
         name: 'ad-sync-tiktok',
-      },
-      {
-        defaultJobOptions: {
-          attempts: 2,
-          backoff: { delay: 10000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: 'ad-insights-aggregation',
       },
       {
         defaultJobOptions: {
@@ -256,7 +227,6 @@ import { Module } from '@nestjs/common';
     QueueService,
     ReplyBotQueueService,
     CampaignQueueService,
-    WorkflowQueueService,
     AgentRunQueueService,
     WorkspaceTaskQueueService,
     HeygenPollQueueService,

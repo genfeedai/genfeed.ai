@@ -44,7 +44,6 @@ describe('KlingWebhookController', () => {
             error: vi.fn(),
             log: vi.fn(),
             warn: vi.fn(),
-            warn: vi.fn(),
           },
         },
         {

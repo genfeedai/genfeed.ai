@@ -57,7 +57,9 @@ describe('ObjectIdUtil', () => {
       const result = ObjectIdUtil.validateMany(validIds);
 
       expect(result).toHaveLength(3);
-      result.forEach((id) => expect(id).toEqual(expect.any(String)));
+      result.forEach((id) => {
+        expect(id).toEqual(expect.any(String));
+      });
     });
 
     it('should throw error for non-array input', () => {
@@ -201,7 +203,9 @@ describe('ObjectIdUtil', () => {
       const result = ObjectIdUtil.validateBulkIds(ids);
 
       expect(result).toHaveLength(3);
-      result.forEach((id) => expect(id).toEqual(expect.any(String)));
+      result.forEach((id) => {
+        expect(id).toEqual(expect.any(String));
+      });
     });
 
     it('should throw error for non-array', () => {
@@ -364,9 +368,9 @@ describe('ObjectIdUtil', () => {
       );
 
       expect(Array.isArray(result.user)).toBe(true);
-      (result.user as string[]).forEach((id) =>
-        expect(id).toEqual(expect.any(String)),
-      );
+      (result.user as string[]).forEach((id) => {
+        expect(id).toEqual(expect.any(String));
+      });
     });
 
     it('should keep non-ObjectId fields unchanged', async () => {

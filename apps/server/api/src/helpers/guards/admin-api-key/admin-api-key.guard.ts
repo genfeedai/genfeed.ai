@@ -1,5 +1,5 @@
-import { timingSafeEqual } from 'node:crypto';
 import { ConfigService } from '@api/config/config.service';
+import { isBearerTokenValid } from '@libs/auth/internal-api-key.guard';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   CanActivate,
@@ -12,6 +12,11 @@ import type { Request } from 'express';
 /**
  * Guard that validates requests using the admin API key
  * Used for server-to-server communication where legacy auth provider auth is not available
+ *
+ * Unlike the internal-api-key guards (clips/images) this guard has NO
+ * development-mode bypass and uses split-based header parsing with its own
+ * error messages — those differences are intentional and preserved. Only
+ * the timing-safe comparison core is shared, via @libs/auth.
  */
 @Injectable()
 export class AdminApiKeyGuard implements CanActivate {
@@ -43,12 +48,7 @@ export class AdminApiKeyGuard implements CanActivate {
       throw new UnauthorizedException('Server configuration error');
     }
 
-    const tokenBuf = Buffer.from(token);
-    const keyBuf = Buffer.from(adminApiKey);
-    if (
-      tokenBuf.length !== keyBuf.length ||
-      !timingSafeEqual(tokenBuf, keyBuf)
-    ) {
+    if (!isBearerTokenValid(token, adminApiKey)) {
       throw new UnauthorizedException('Invalid admin API key');
     }
 

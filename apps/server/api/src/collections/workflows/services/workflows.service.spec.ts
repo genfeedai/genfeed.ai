@@ -136,7 +136,9 @@ describe('WorkflowsService system workflow guardrails', () => {
       metadata: {
         systemWorkflow: buildSystemWorkflowMetadata({
           canonicalId: 'daily-trends-digest',
+          changeSummary: 'Initial daily digest version.',
           sourceIssue: 1011,
+          version: 2,
         }),
       },
     } as never);
@@ -163,7 +165,9 @@ describe('WorkflowsService system workflow guardrails', () => {
         sourceType: 'seeded-template',
         systemWorkflow: buildSystemWorkflowMetadata({
           canonicalId: 'daily-trends-digest',
+          changeSummary: 'Initial daily digest version.',
           sourceIssue: 1011,
+          version: 2,
         }),
       },
       nodes: [],
@@ -203,8 +207,15 @@ describe('WorkflowsService system workflow guardrails', () => {
     expect(createInput.metadata?.duplicatedFromSystemWorkflow).toEqual(
       expect.objectContaining({
         canonicalId: 'daily-trends-digest',
+        currentSystemWorkflowChangeSummary: 'Initial daily digest version.',
+        currentSystemWorkflowVersion: 2,
         credentialPolicy: 'tenant-connected-account',
+        sourceWorkflowChangeSummary: 'Initial daily digest version.',
         sourceWorkflowId: 'system-workflow-1',
+        sourceWorkflowVersion: 2,
+        upgradeEligible: false,
+        upgradePolicy: 'manual',
+        upgradeStatus: 'current',
       }),
     );
   });

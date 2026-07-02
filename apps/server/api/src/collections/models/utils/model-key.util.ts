@@ -47,8 +47,10 @@ export function isReplicateDestination(key?: string): boolean {
   if (isFalDestination(key) || isGenfeedAiDestination(key)) {
     return false;
   }
-  // Matches owner/model or owner/model:version
-  return /^(?:[\w-]+\/[\w-]+(?::[\w-]+)?)$/.test(key);
+  // Matches owner/model or owner/model:version. The model/version segments
+  // allow dots for dot-versioned Replicate keys (e.g. "bytedance/seedream-4.5"),
+  // but the owner segment stays dot-free to avoid over-matching arbitrary strings.
+  return /^(?:[\w-]+\/[\w.-]+(?::[\w.-]+)?)$/.test(key);
 }
 
 export function isReplicateVersionId(key?: string): boolean {

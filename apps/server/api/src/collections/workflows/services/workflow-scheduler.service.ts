@@ -1,8 +1,9 @@
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
+import { LegacyWorkflowStepRunner } from '@api/collections/workflows/services/legacy-workflow-step-runner.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
-import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { ConfigService } from '@api/config/config.service';
+import { CacheService } from '@api/services/cache/services/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -24,6 +25,13 @@ function toWorkflowDocument(workflow: unknown): WorkflowDocument {
 
 @Injectable()
 export class WorkflowSchedulerService implements OnModuleInit {
+  /**
+   * Fire-window lock TTL. Must outlive clock skew between API replicas within
+   * the same minute bucket; the lock is intentionally never released early so
+   * a slow replica arriving late in the same window still skips.
+   */
+  private static readonly FIRE_LOCK_TTL_SECONDS = 600;
+
   private scheduledWorkflows: Map<string, CronJob> = new Map();
 
   constructor(
@@ -32,9 +40,10 @@ export class WorkflowSchedulerService implements OnModuleInit {
     private readonly logger: LoggerService,
     private readonly schedulerRegistry: SchedulerRegistry,
     private readonly configService: ConfigService,
-    private readonly workflowsService: WorkflowsService,
+    private readonly legacyWorkflowStepRunner: LegacyWorkflowStepRunner,
     private readonly workflowExecutionsService: WorkflowExecutionsService,
     private readonly workflowExecutorService: WorkflowExecutorService,
+    private readonly cacheService: CacheService,
   ) {}
 
   async onModuleInit() {
@@ -162,6 +171,24 @@ export class WorkflowSchedulerService implements OnModuleInit {
    * Execute a scheduled workflow
    */
   private async executeScheduledWorkflow(workflowId: string): Promise<void> {
+    // Every API replica holds its own in-process CronJob for this workflow,
+    // so the same schedule fires once per replica. The first replica to claim
+    // the minute bucket runs it; the rest skip. SET NX + TTL, never released
+    // early (the lock marks the fire window as claimed, not work-in-progress).
+    const fireBucket = Math.floor(Date.now() / 60_000);
+    const acquired = await this.cacheService.acquireLock(
+      `workflow-schedule-fire:${workflowId}:${fireBucket}`,
+      WorkflowSchedulerService.FIRE_LOCK_TTL_SECONDS,
+    );
+
+    if (!acquired) {
+      this.logger.log(
+        `Scheduled fire for workflow ${workflowId} already claimed by another instance (bucket ${fireBucket})`,
+        'WorkflowSchedulerService',
+      );
+      return;
+    }
+
     try {
       const workflow = await this.prisma.workflow.findFirst({
         where: {
@@ -231,7 +258,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
             { triggeredBy: 'schedule' },
             WorkflowExecutionTrigger.SCHEDULED,
           )
-        : this.workflowsService.executeWorkflow(workflowId);
+        : this.legacyWorkflowStepRunner.executeWorkflow(workflowId);
 
       executePromise.catch((error) => {
         this.logger.error(

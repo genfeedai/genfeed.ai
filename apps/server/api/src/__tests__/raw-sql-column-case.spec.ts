@@ -75,9 +75,10 @@ function buildSnakeAllowlist(): Set<string> {
   const schema = readFileSync(SCHEMA_PATH, 'utf-8');
   const allow = new Set<string>();
   const mapPattern = /@@?map\(\s*"([^"]+)"\s*\)/g;
-  let match: RegExpExecArray | null;
-  while ((match = mapPattern.exec(schema)) !== null) {
+  let match: RegExpExecArray | null = mapPattern.exec(schema);
+  while (match !== null) {
     allow.add(match[1]);
+    match = mapPattern.exec(schema);
   }
   return allow;
 }
@@ -227,8 +228,8 @@ function skipWhitespace(src: string, start: number): number {
 function extractSqlRegions(content: string): string[] {
   const regions: string[] = [];
   MARKER_PATTERN.lastIndex = 0;
-  let marker: RegExpExecArray | null;
-  while ((marker = MARKER_PATTERN.exec(content)) !== null) {
+  let marker: RegExpExecArray | null = MARKER_PATTERN.exec(content);
+  while (marker !== null) {
     let i = marker.index + marker[0].length;
     i = skipGenerics(content, i);
     i = skipWhitespace(content, i);
@@ -241,6 +242,7 @@ function extractSqlRegions(content: string): string[] {
     } else if (c === "'" || c === '"') {
       regions.push(content.slice(i + 1, readStringLiteral(content, i) - 1));
     }
+    marker = MARKER_PATTERN.exec(content);
   }
   return regions;
 }
@@ -249,8 +251,11 @@ function findViolationsInRegion(region: string, file: string): SqlViolation[] {
   const violations: SqlViolation[] = [];
   // Double-quoted identifiers, excluding `${...}` interpolations (they carry `$`).
   const idPattern = /"([^"$]+)"/g;
-  let match: RegExpExecArray | null;
-  while ((match = idPattern.exec(region)) !== null) {
+  for (
+    let match: RegExpExecArray | null = idPattern.exec(region);
+    match !== null;
+    match = idPattern.exec(region)
+  ) {
     const id = match[1];
     // camelCase / single lowercase word — folding is a no-op, resolves fine.
     if (!id.includes('_')) continue;

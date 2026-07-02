@@ -1,3 +1,4 @@
+import { PostStatus } from '@genfeedai/enums';
 import type {
   ArticleResource,
   PostResource,
@@ -13,10 +14,10 @@ import type {
   PostListParams,
   PostResponse,
   PublishContentParams,
-  SocialPlatform,
   TrendingTopic,
   TrendingTopicsParams,
 } from '@mcp/shared/interfaces/post.interface';
+import { toPlatform, toPostStatus } from '@mcp/tools/tool-validators';
 import type { BaseApiClient } from './base-api-client';
 import { CONTENT_STATUS } from './client.types';
 
@@ -136,14 +137,13 @@ export class ContentClient {
             createdAt: post.attributes?.createdAt || new Date().toISOString(),
             id: post.id,
             platform:
-              (post.attributes?.platform as SocialPlatform) ||
-              params.platforms[index] ||
+              toPlatform(post.attributes?.platform) ??
+              params.platforms[index] ??
               params.platforms[0],
             publishedAt: post.attributes?.publishedAt,
             publishedUrl: post.attributes?.publishedUrl,
             scheduledAt: post.attributes?.scheduledAt,
-            status:
-              (post.attributes?.status as PostResponse['status']) || 'pending',
+            status: toPostStatus(post.attributes?.status) ?? PostStatus.PENDING,
           }));
         }
 
@@ -153,14 +153,12 @@ export class ContentClient {
             createdAt: posts?.attributes?.createdAt || new Date().toISOString(),
             id: posts?.id,
             platform:
-              (posts?.attributes?.platform as SocialPlatform) ||
-              params.platforms[0],
+              toPlatform(posts?.attributes?.platform) ?? params.platforms[0],
             publishedAt: posts?.attributes?.publishedAt,
             publishedUrl: posts?.attributes?.publishedUrl,
             scheduledAt: posts?.attributes?.scheduledAt,
             status:
-              (posts?.attributes?.status as PostResponse['status']) ||
-              'pending',
+              toPostStatus(posts?.attributes?.status) ?? PostStatus.PENDING,
           },
         ];
       },
@@ -190,11 +188,11 @@ export class ContentClient {
             contentId: post.attributes?.contentId,
             createdAt: post.attributes?.createdAt,
             id: post.id,
-            platform: post.attributes?.platform,
+            platform: toPlatform(post.attributes?.platform),
             publishedAt: post.attributes?.publishedAt,
             publishedUrl: post.attributes?.publishedUrl,
             scheduledAt: post.attributes?.scheduledAt,
-            status: post.attributes?.status || CONTENT_STATUS.PUBLISHED,
+            status: toPostStatus(post.attributes?.status) ?? PostStatus.PENDING,
           })) || []
         );
       },

@@ -1,3 +1,4 @@
+import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ConfigService } from '@api/config/config.service';
 import { TelegramAuthUtil } from '@api/shared/utils/telegram-auth/telegram-auth.util';
@@ -120,7 +121,7 @@ export class TelegramService {
         user: userId,
       };
 
-      let credential;
+      let credential: CredentialDocument;
       if (existingCredential) {
         // Update existing credential
         credential = await this.credentialsService.patch(

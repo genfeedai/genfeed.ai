@@ -91,10 +91,6 @@ type PostingTimeAnalysisRow = {
 export class PerformanceSummaryService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private parseDateRange(startDate?: Date | string, endDate?: Date | string) {
-    return DateRangeUtil.parseDateRange(startDate, endDate);
-  }
-
   private buildMatchFilter(
     organizationId: string,
     brandId: string,
@@ -133,7 +129,7 @@ export class PerformanceSummaryService {
     const { topN = 5, worstN = 5 } = options;
 
     const { startDate, endDate, previousStartDate, previousEndDate } =
-      this.parseDateRange(options.startDate, options.endDate);
+      DateRangeUtil.parseDateRange(options.startDate, options.endDate);
 
     const matchFilter = this.buildMatchFilter(
       organizationId,
@@ -183,7 +179,7 @@ export class PerformanceSummaryService {
     limit: number = 10,
     dateRange?: { startDate?: Date | string; endDate?: Date | string },
   ): Promise<PerformanceContentItem[]> {
-    const { startDate, endDate } = this.parseDateRange(
+    const { startDate, endDate } = DateRangeUtil.parseDateRange(
       dateRange?.startDate,
       dateRange?.endDate,
     );
@@ -207,10 +203,8 @@ export class PerformanceSummaryService {
     startDate?: Date | string,
     endDate?: Date | string,
   ): Promise<PromptPerformanceItem[]> {
-    const { startDate: parsedStart, endDate: parsedEnd } = this.parseDateRange(
-      startDate,
-      endDate,
-    );
+    const { startDate: parsedStart, endDate: parsedEnd } =
+      DateRangeUtil.parseDateRange(startDate, endDate);
 
     const matchFilter = this.buildMatchFilter(
       organizationId,
@@ -285,7 +279,7 @@ export class PerformanceSummaryService {
     brandId: string,
   ): Promise<string> {
     const { startDate, endDate, previousStartDate, previousEndDate } =
-      this.parseDateRange();
+      DateRangeUtil.parseDateRange();
 
     const matchFilter = this.buildMatchFilter(
       organizationId,
