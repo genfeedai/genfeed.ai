@@ -65,6 +65,13 @@ function make429Response(retryAfter = '0'): Response {
   });
 }
 
+function makeRedirect(location: string, status = 302): Response {
+  return new Response(null, {
+    headers: { location },
+    status,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
@@ -824,6 +831,63 @@ describe('BrandScraperService', () => {
         service.scrapeAndAnalyze('https://acme.com'),
       ).rejects.toThrow('boom');
       expect(mockLogger.error).toHaveBeenCalled();
+    });
+  });
+
+  // =========================================================================
+  // Redirect SSRF protection
+  // =========================================================================
+  describe('redirect SSRF protection', () => {
+    it('follows a redirect to a public URL and re-validates each hop', async () => {
+      fetchMock
+        .mockResolvedValueOnce(makeRedirect('https://www.acme.com/'))
+        .mockResolvedValueOnce(
+          makeResponse(makeHtml({ title: 'Acme Corp | Home' })),
+        );
+
+      const result = await service.scrapeWebsite('https://acme.com');
+
+      expect(result.companyName).toBe('Acme Corp');
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(fetchMock.mock.calls[1][0]).toBe('https://www.acme.com/');
+    });
+
+    it('rejects a redirect that points at a cloud-metadata / private address', async () => {
+      fetchMock.mockResolvedValue(
+        makeRedirect('http://169.254.169.254/latest/meta-data/'),
+      );
+
+      await expect(service.scrapeWebsite('https://acme.com')).rejects.toThrow(
+        /private IP range|blocked address/,
+      );
+
+      // The private redirect target is never fetched (blocked before connect).
+      expect(
+        fetchMock.mock.calls.some((call) =>
+          String(call[0]).includes('169.254.169.254'),
+        ),
+      ).toBe(false);
+    });
+
+    it('rejects a redirect to a loopback host', async () => {
+      fetchMock.mockResolvedValue(makeRedirect('http://localhost:9200/'));
+
+      await expect(service.scrapeWebsite('https://acme.com')).rejects.toThrow(
+        /blocked address/,
+      );
+      expect(
+        fetchMock.mock.calls.some((call) =>
+          String(call[0]).includes('localhost'),
+        ),
+      ).toBe(false);
+    });
+
+    it('stops after too many redirect hops', async () => {
+      fetchMock.mockResolvedValue(makeRedirect('https://acme.com/loop'));
+
+      await expect(service.scrapeWebsite('https://acme.com')).rejects.toThrow(
+        /Too many redirects/,
+      );
     });
   });
 
