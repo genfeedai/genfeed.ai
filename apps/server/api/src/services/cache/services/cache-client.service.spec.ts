@@ -4,32 +4,27 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-/* ---------- mock redis ---------- */
+/* ---------- mock ioredis ---------- */
 const mockPipeline = { exec: vi.fn().mockResolvedValue([]) };
 const mockRedisClient = {
   connect: vi.fn().mockResolvedValue(undefined),
   disconnect: vi.fn().mockResolvedValue(undefined),
-  destroy: vi.fn(),
-  isReady: true,
   multi: vi.fn().mockReturnValue(mockPipeline),
   on: vi.fn().mockReturnThis(),
   quit: vi.fn().mockResolvedValue(undefined),
   removeAllListeners: vi.fn().mockReturnThis(),
+  status: 'ready',
 };
 
-let capturedReconnectStrategy:
-  | ((retries: number) => number | false)
-  | undefined;
+let capturedRetryStrategy: ((retries: number) => number | null) | undefined;
 
-vi.mock('redis', () => ({
-  createClient: vi.fn(
-    (opts: {
-      socket?: { reconnectStrategy?: (retries: number) => number | false };
-    }) => {
-      capturedReconnectStrategy = opts?.socket?.reconnectStrategy;
-      return mockRedisClient;
-    },
-  ),
+vi.mock('ioredis', () => ({
+  default: vi.fn(function mockRedisConstructor(opts?: {
+    retryStrategy?: (retries: number) => number | null;
+  }) {
+    capturedRetryStrategy = opts?.retryStrategy;
+    return mockRedisClient;
+  }),
 }));
 
 describe('CacheClientService', () => {
@@ -75,37 +70,37 @@ describe('CacheClientService', () => {
   });
 
   it('should expose isReady reflecting the client state', () => {
-    mockRedisClient.isReady = true;
+    mockRedisClient.status = 'ready';
     expect(service.isReady).toBe(true);
-    mockRedisClient.isReady = false;
+    mockRedisClient.status = 'connecting';
     expect(service.isReady).toBe(false);
-    mockRedisClient.isReady = true;
+    mockRedisClient.status = 'ready';
   });
 
   it('should read REDIS_URL from ConfigService', () => {
     expect(mockConfigService.get).toHaveBeenCalledWith('REDIS_URL');
   });
 
-  /* ---------- reconnect strategy ---------- */
+  /* ---------- retry strategy ---------- */
 
-  it('should pass a reconnect strategy to createClient', () => {
-    expect(capturedReconnectStrategy).toBeTypeOf('function');
+  it('should pass a retry strategy to the ioredis constructor', () => {
+    expect(capturedRetryStrategy).toBeTypeOf('function');
   });
 
-  it('reconnect strategy returns exponential delay for early retries', () => {
-    const delay = capturedReconnectStrategy!(0);
+  it('retry strategy returns exponential delay for early retries', () => {
+    const delay = capturedRetryStrategy?.(0);
     expect(typeof delay).toBe('number');
     expect(delay as number).toBeGreaterThan(0);
     expect(delay as number).toBeLessThanOrEqual(30_000);
   });
 
-  it('reconnect strategy returns false after max retries', () => {
-    const result = capturedReconnectStrategy!(10);
-    expect(result).toBe(false);
+  it('retry strategy returns null after max retries', () => {
+    const result = capturedRetryStrategy?.(10);
+    expect(result).toBeNull();
   });
 
-  it('reconnect strategy caps delay at 30 seconds', () => {
-    const delay = capturedReconnectStrategy!(8);
+  it('retry strategy caps delay at 30 seconds', () => {
+    const delay = capturedRetryStrategy?.(8);
     expect(delay as number).toBeLessThanOrEqual(30_000);
   });
 
@@ -177,7 +172,7 @@ describe('CacheClientService', () => {
       expect.stringContaining('disconnect error'),
       expect.any(Error),
     );
-    expect(mockRedisClient.destroy).toHaveBeenCalled();
+    expect(mockRedisClient.disconnect).toHaveBeenCalled();
     vi.useRealTimers();
   });
 });

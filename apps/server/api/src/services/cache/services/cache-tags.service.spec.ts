@@ -10,13 +10,13 @@ describe('CacheTagsService', () => {
   const mockPipeline = {
     del: vi.fn().mockReturnThis(),
     exec: vi.fn().mockResolvedValue([]),
-    sAdd: vi.fn().mockReturnThis(),
+    sadd: vi.fn().mockReturnThis(),
   };
 
   const mockRedisClient = {
     del: vi.fn().mockResolvedValue(1),
     multi: vi.fn().mockReturnValue(mockPipeline),
-    sMembers: vi.fn().mockResolvedValue([]),
+    smembers: vi.fn().mockResolvedValue([]),
   };
 
   const mockCacheClientService = {
@@ -33,7 +33,7 @@ describe('CacheTagsService', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     mockPipeline.exec.mockResolvedValue([]);
-    mockRedisClient.sMembers.mockResolvedValue([]);
+    mockRedisClient.smembers.mockResolvedValue([]);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -58,8 +58,8 @@ describe('CacheTagsService', () => {
   it('should add key to each tag set via pipeline', async () => {
     await service.setTags('posts:123', ['org:abc', 'brand:xyz']);
     expect(mockRedisClient.multi).toHaveBeenCalledOnce();
-    expect(mockPipeline.sAdd).toHaveBeenCalledWith('tag:org:abc', 'posts:123');
-    expect(mockPipeline.sAdd).toHaveBeenCalledWith(
+    expect(mockPipeline.sadd).toHaveBeenCalledWith('tag:org:abc', 'posts:123');
+    expect(mockPipeline.sadd).toHaveBeenCalledWith(
       'tag:brand:xyz',
       'posts:123',
     );
@@ -76,13 +76,13 @@ describe('CacheTagsService', () => {
   });
 
   it('should return 0 when tag has no associated keys', async () => {
-    mockRedisClient.sMembers.mockResolvedValueOnce([]);
+    mockRedisClient.smembers.mockResolvedValueOnce([]);
     const count = await service.invalidateByTags(['empty-tag']);
     expect(count).toBe(0);
   });
 
   it('should delete all keys associated with a tag and the tag set itself', async () => {
-    mockRedisClient.sMembers.mockResolvedValueOnce(['key:1', 'key:2']);
+    mockRedisClient.smembers.mockResolvedValueOnce(['key:1', 'key:2']);
     const count = await service.invalidateByTags(['my-tag']);
     expect(count).toBe(2);
     expect(mockPipeline.del).toHaveBeenCalledWith('key:1');
@@ -92,7 +92,7 @@ describe('CacheTagsService', () => {
   });
 
   it('should sum counts across multiple tags', async () => {
-    mockRedisClient.sMembers
+    mockRedisClient.smembers
       .mockResolvedValueOnce(['a:1'])
       .mockResolvedValueOnce(['b:1', 'b:2', 'b:3']);
     const count = await service.invalidateByTags(['tag-a', 'tag-b']);
@@ -100,7 +100,7 @@ describe('CacheTagsService', () => {
   });
 
   it('should log debug when keys were invalidated', async () => {
-    mockRedisClient.sMembers.mockResolvedValueOnce(['k1']);
+    mockRedisClient.smembers.mockResolvedValueOnce(['k1']);
     await service.invalidateByTags(['t1']);
     expect(mockLogger.debug).toHaveBeenCalledWith(
       expect.stringContaining('invalidated 1 keys'),
@@ -109,7 +109,7 @@ describe('CacheTagsService', () => {
   });
 
   it('should return 0 and log error when invalidation fails', async () => {
-    mockRedisClient.sMembers.mockRejectedValueOnce(new Error('redis down'));
+    mockRedisClient.smembers.mockRejectedValueOnce(new Error('redis down'));
     const count = await service.invalidateByTags(['bad-tag']);
     expect(count).toBe(0);
     expect(mockLogger.error).toHaveBeenCalledWith(

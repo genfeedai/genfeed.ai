@@ -3,13 +3,13 @@ import { WebSocketService } from '@files/services/websocket/websocket.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 // Mock Redis client
-vi.mock('redis', () => ({
-  createClient: vi.fn(() => ({
+vi.mock('ioredis', () => ({
+  default: vi.fn(() => ({
     connect: vi.fn(),
     disconnect: vi.fn(),
-    isOpen: true,
     on: vi.fn(),
     publish: vi.fn(),
+    status: 'ready',
   })),
 }));
 

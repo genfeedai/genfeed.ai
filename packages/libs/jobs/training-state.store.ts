@@ -1,7 +1,7 @@
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { RedisService } from '@libs/redis/redis.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import type { RedisClientType } from 'redis';
+import type Redis from 'ioredis';
 
 /** Redis record linking a training job to its spawned OS process. */
 export interface TrainingProcessRecord {
@@ -105,7 +105,7 @@ export class TrainingStateStore<TJob extends { jobId: string }> {
     }
 
     try {
-      await publisher.setEx(
+      await publisher.setex(
         key,
         TRAINING_STATE_TTL_SECONDS,
         JSON.stringify(value),
@@ -161,21 +161,23 @@ export class TrainingStateStore<TJob extends { jobId: string }> {
   }
 
   private async collectKeys(
-    publisher: RedisClientType,
+    publisher: Redis,
     pattern: string,
   ): Promise<string[]> {
     const keys: string[] = [];
+    let cursor = '0';
 
-    for await (const key of publisher.scanIterator({
-      COUNT: 100,
-      MATCH: pattern,
-    })) {
-      if (Array.isArray(key)) {
-        keys.push(...key);
-      } else {
-        keys.push(key);
-      }
-    }
+    do {
+      const [nextCursor, foundKeys] = await publisher.scan(
+        cursor,
+        'MATCH',
+        pattern,
+        'COUNT',
+        100,
+      );
+      cursor = nextCursor;
+      keys.push(...foundKeys);
+    } while (cursor !== '0');
 
     return keys;
   }

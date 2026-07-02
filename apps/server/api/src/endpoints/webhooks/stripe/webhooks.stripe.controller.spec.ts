@@ -142,7 +142,9 @@ describe('StripeWebhookController', () => {
       expect(mockPublisher.set).toHaveBeenCalledWith(
         'stripe:webhook:evt_nx',
         expect.any(String),
-        expect.objectContaining({ NX: true, EX: expect.any(Number) }),
+        'EX',
+        expect.any(Number),
+        'NX',
       );
       expect(stripeWebhookService.handleWebhookEvent).toHaveBeenCalledTimes(1);
     });

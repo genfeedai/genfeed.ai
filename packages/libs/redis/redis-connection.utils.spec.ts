@@ -1,7 +1,6 @@
 import {
   buildBullMQConnection,
-  buildNodeRedisClientOptions,
-  buildNodeRedisSocketOptions,
+  buildIoRedisClientOptions,
   parseRedisConnection,
 } from '@libs/redis/redis-connection.utils';
 import { describe, expect, it } from 'vitest';
@@ -33,7 +32,7 @@ describe('redis connection utilities', () => {
     expect(connection.retryStrategy()).toBeNull();
   });
 
-  it('enables node-redis TLS when the URL uses rediss', () => {
+  it('enables TLS when the URL uses rediss', () => {
     const config = parseRedisConnection({
       get: (key) =>
         key === 'REDIS_URL' ? 'rediss://:secret@redis.internal:6380' : false,
@@ -46,13 +45,17 @@ describe('redis connection utilities', () => {
       tls: true,
       url: 'rediss://:secret@redis.internal:6380',
     });
-    expect(buildNodeRedisSocketOptions(config)).toEqual({
+    expect(buildIoRedisClientOptions(config)).toEqual({
       connectTimeout: 3000,
-      tls: true,
+      host: 'redis.internal',
+      lazyConnect: true,
+      password: 'secret',
+      port: 6380,
+      tls: {},
     });
   });
 
-  it('passes separately injected Redis passwords to node-redis clients', () => {
+  it('passes separately injected Redis passwords to ioredis clients', () => {
     const config = parseRedisConnection({
       get: (key) => {
         if (key === 'REDIS_URL') {
@@ -72,13 +75,39 @@ describe('redis connection utilities', () => {
       tls: true,
       url: 'rediss://redis.internal:6379',
     });
-    expect(buildNodeRedisClientOptions(config)).toEqual({
+    expect(buildIoRedisClientOptions(config)).toEqual({
+      connectTimeout: 3000,
+      host: 'redis.internal',
+      lazyConnect: true,
       password: 'secret-from-ssm',
-      socket: {
-        connectTimeout: 3000,
-        tls: true,
-      },
-      url: 'rediss://redis.internal:6379',
+      port: 6379,
+      tls: {},
+    });
+  });
+
+  it('supports a custom retryStrategy for resilient clients', () => {
+    const config = {
+      host: 'localhost',
+      port: 6379,
+      tls: false,
+      url: 'redis://localhost:6379',
+    };
+
+    const retryStrategy = (retries: number) =>
+      retries > 3 ? null : retries * 100;
+
+    const options = buildIoRedisClientOptions(config, {
+      connectTimeout: 5000,
+      lazyConnect: false,
+      retryStrategy,
+    });
+
+    expect(options).toEqual({
+      connectTimeout: 5000,
+      host: 'localhost',
+      lazyConnect: false,
+      port: 6379,
+      retryStrategy,
     });
   });
 });

@@ -2,7 +2,7 @@ import process from 'node:process';
 import { ConfigService } from '@api/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
-  buildNodeRedisClientOptions,
+  buildIoRedisClientOptions,
   parseRedisConnection,
 } from '@libs/redis/redis-connection.utils';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -13,7 +13,7 @@ import {
   Injectable,
   type OnModuleInit,
 } from '@nestjs/common';
-import { createClient, type RedisClientType } from 'redis';
+import Redis from 'ioredis';
 import { firstValueFrom } from 'rxjs';
 
 export interface ServiceHealth {
@@ -28,7 +28,7 @@ export interface ServiceHealth {
 export class MicroservicesService implements OnModuleInit {
   private readonly constructorName: string = String(this.constructor.name);
   private static readonly REDIS_CONNECT_TIMEOUT_MS = 5_000;
-  private redisClient: RedisClientType | null = null;
+  private redisClient: Redis | null = null;
   private servicesConfig!: Map<string, { url: string; required: boolean }>;
 
   constructor(
@@ -108,10 +108,10 @@ export class MicroservicesService implements OnModuleInit {
     );
 
     try {
-      this.redisClient = createClient(
-        buildNodeRedisClientOptions(config, {
+      this.redisClient = new Redis(
+        buildIoRedisClientOptions(config, {
           connectTimeout: MicroservicesService.REDIS_CONNECT_TIMEOUT_MS,
-          reconnectStrategy: () => false as const,
+          retryStrategy: () => null,
         }),
       );
 
@@ -494,7 +494,7 @@ export class MicroservicesService implements OnModuleInit {
     if (this.redisClient) {
       // Remove all event listeners to prevent memory leaks
       this.redisClient.removeAllListeners();
-      await this.redisClient.disconnect();
+      this.redisClient.disconnect();
     }
   }
 }

@@ -112,7 +112,11 @@ import { BetterAuthMailerService } from './services/better-auth-mailer.service';
               return;
             }
             try {
-              await cacheClient.instance.set(key, value, { EX: ttlSeconds });
+              if (ttlSeconds === undefined) {
+                await cacheClient.instance.set(key, value);
+              } else {
+                await cacheClient.instance.set(key, value, 'EX', ttlSeconds);
+              }
             } catch {
               // Fail open: never let a Redis error break auth rate limiting.
               return;
