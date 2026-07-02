@@ -165,7 +165,3 @@ export class KeywordTriggerExecutor extends BaseExecutor {
     return 0;
   }
 }
-
-export function createKeywordTriggerExecutor(): KeywordTriggerExecutor {
-  return new KeywordTriggerExecutor();
-}

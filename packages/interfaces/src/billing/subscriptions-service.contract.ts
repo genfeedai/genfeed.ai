@@ -1,39 +1,11 @@
 /**
  * Contract for the subscriptions service, as consumed by OSS core code.
  *
- * Layer 1 of the Phase C EE extraction split (see issue #87 and
- * `.claude-genfeedai/plans/delegated-churning-sifakis.md` §5.1b).
- *
- * ## Read surface (what OSS actually reads)
- *
- * Verified via repo-wide grep on `apps/server/api/src/`:
- *
- * | Consumer | Method | Fields read |
- * |---|---|---|
- * | `common/middleware/request-context.middleware.ts:121` | `findOne({organization, isDeleted})` | `status` |
- * | `collections/users/controllers/users.controller.ts:141` | `findOne({isDeleted, user})` then `findOne({isDeleted, organization: ObjectId})` | `status` |
- * | `collections/organizations/controllers/organizations-settings.controller.ts:206` | `findOne({organization: ObjectId})` | entire doc, passed to `serializeSingle(req, SubscriptionSerializer, data)` |
- * | `collections/credits/services/credits.utils.service.ts:275,373,569,656` | `findByOrganizationId(orgId)` | `user` (passed to `usersService.findOne({_id: subscription.user})`) |
- * | `endpoints/analytics/analytics.controller.ts:164` | `findAll({ where }, options)` | `total` |
- *
- * ## Why a narrow read model
- *
- * The concrete `SubscriptionsService` extends `BaseService<SubscriptionDocument>`
- * and inherits `findOne()` returning `Promise<SubscriptionDocument | null>`.
- * `SubscriptionDocument` is a database document type with raw identifier
- * fields — **not** the full JSON:API `ISubscription` shape which uses nested
- * `IOrganization` / `IUser` objects and string timestamps.
- *
- * An earlier draft of this contract (commit `374841ef`) returned `ISubscription`.
- * Codex adversarial review on 2026-04-11 flagged this as a type lie:
- * `SubscriptionDocument` is not assignable to `ISubscription` because it lacks
- * the populated relations and some required fields. The compiler was accepting
- * `implements ISubscriptionsService` via structural subtyping quirks around
- * inherited generic methods, not because the types actually matched.
- *
- * The fix is a minimal **OSS read model** that describes only what OSS
- * consumers read. Both the enterprise document and a POJO OSS no-op can
- * satisfy it without either side lying about its shape.
+ * Deliberately a narrow OSS read model rather than the full JSON:API
+ * `ISubscription` shape: the concrete enterprise service returns raw database
+ * documents (bare identifier fields, no populated relations), so this contract
+ * only describes the fields OSS consumers actually read. Both the enterprise
+ * document and the OSS no-op satisfy it without either lying about its shape.
  */
 
 /**
@@ -137,23 +109,14 @@ export interface ISubscriptionsService {
   ): Promise<ISubscriptionOssReadModel | null>;
 
   /**
-   * Aggregation pipeline query. OSS analytics endpoint reads `.total`.
-   * OSS no-op returns `{ total: 0 }`.
+   * Aggregation query; OSS reads `.total`. OSS no-op returns `{ total: 0 }`.
    *
-   * `options` is **required**, not optional. `BaseService.findAll` (inherited
-   * by the concrete `SubscriptionsService`) dereferences `options.pagination`
-   * unconditionally, so a Layer 2 no-op accepting a plain `findAll(input)`
-   * would expose callers to a `TypeError` on the EE path. Greptile flagged
-   * this as a P1 mismatch in PR #163 review — contract now matches runtime.
-   *
-   * Signature mirrors `BaseService.findAll(input, options, enableCache = true)`:
-   * `input` is `unknown`, not `unknown[]` — post-Prisma `BaseService.findAll`
-   * accepts a Prisma query object (`{ where }`), and the analytics consumer
-   * calls `findAll({ where: {} }, options)`. The Stripe webhook passes a legacy
-   * MongoDB aggregation array, still accepted at runtime but no longer the typed
-   * shape. `enableCache` is optional (third positional arg): the webhook calls
-   * `findAll(aggregate, options, false)` to bypass the read cache during
-   * reconciliation, so the third arg must be part of the contract.
+   * `options` is required (not optional): the concrete `BaseService.findAll`
+   * dereferences `options.pagination` unconditionally, so omitting it would
+   * TypeError on the EE path. `input` is `unknown` because callers pass a
+   * Prisma query object (`{ where }`) or a legacy aggregation array.
+   * `enableCache` must stay in the contract: the Stripe webhook passes `false`
+   * to bypass the read cache during reconciliation.
    */
   findAll(
     input: unknown,

@@ -3529,17 +3529,6 @@ model AdCreativeMapping {
   @@map("ad_creative_mappings")
 }
 
-model AdInsights {
-  id        String   @id @default(cuid())
-  mongoId   String?  @unique
-  data      Json     @default("{}")
-  isDeleted Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("ad_insights")
-}
-
 model AdOptimizationAuditLog {
   id             String       @id @default(cuid())
   mongoId        String?      @unique

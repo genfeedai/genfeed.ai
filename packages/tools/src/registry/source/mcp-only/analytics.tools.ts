@@ -56,50 +56,6 @@ export const MCP_ANALYTICS_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Get aggregated ad performance insights from the performing ads database across all connected customers',
-    name: 'get_ad_performance_insights',
-    parameters: {
-      properties: {
-        industry: {
-          description: 'Filter by industry',
-          type: 'string',
-        },
-        platform: {
-          description: 'Filter by ad platform',
-          enum: ['meta', 'google'],
-          type: 'string',
-        },
-      },
-      type: 'object',
-    },
-    requiredRole: 'user',
-    surfaces: { agent: false, cliAgentVisible: false, mcp: true },
-  },
-  {
-    creditCost: 0,
-    description:
-      'Compare your ad metrics against industry benchmarks from the performing ads database',
-    name: 'benchmark_ad_performance',
-    parameters: {
-      properties: {
-        industry: {
-          description: 'Industry to benchmark against',
-          type: 'string',
-        },
-        platform: {
-          description: 'Ad platform to benchmark',
-          enum: ['meta', 'google'],
-          type: 'string',
-        },
-      },
-      type: 'object',
-    },
-    requiredRole: 'user',
-    surfaces: { agent: false, cliAgentVisible: false, mcp: true },
-  },
-  {
-    creditCost: 0,
-    description:
       'Get keyword performance report with quality scores, clicks, impressions, and cost',
     name: 'get_google_ads_keyword_performance',
     parameters: {

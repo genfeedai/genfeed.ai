@@ -95,7 +95,3 @@ export class PostPublishTriggerExecutor extends BaseExecutor {
     };
   }
 }
-
-export function createPostPublishTriggerExecutor(): PostPublishTriggerExecutor {
-  return new PostPublishTriggerExecutor();
-}

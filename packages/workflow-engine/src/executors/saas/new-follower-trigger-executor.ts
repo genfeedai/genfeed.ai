@@ -121,7 +121,3 @@ export class NewFollowerTriggerExecutor extends BaseExecutor {
     return 0;
   }
 }
-
-export function createNewFollowerTriggerExecutor(): NewFollowerTriggerExecutor {
-  return new NewFollowerTriggerExecutor();
-}

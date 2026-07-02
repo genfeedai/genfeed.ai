@@ -1,8 +1,7 @@
 import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
-  createVoiceChangeExecutor,
-  type VoiceChangeExecutor,
+  VoiceChangeExecutor,
   type VoiceChangeResolver,
 } from '@workflow-engine/executors/saas/voice-change-executor';
 import type { ExecutableNode } from '@workflow-engine/types';
@@ -45,7 +44,7 @@ describe('VoiceChangeExecutor', () => {
   let mockResolver: VoiceChangeResolver;
 
   beforeEach(() => {
-    executor = createVoiceChangeExecutor();
+    executor = new VoiceChangeExecutor();
     mockResolver = vi.fn().mockResolvedValue({
       audioUrl: 'https://cdn.example.com/changed-voice.mp3',
     });
@@ -136,7 +135,7 @@ describe('VoiceChangeExecutor', () => {
 
   describe('execute', () => {
     it('should throw when resolver is not configured', async () => {
-      const noResolverExecutor = createVoiceChangeExecutor();
+      const noResolverExecutor = new VoiceChangeExecutor();
       const input = makeInput({}, [
         ['audio', 'https://cdn.example.com/audio.mp3'],
       ]);

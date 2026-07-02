@@ -1,9 +1,8 @@
 import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
-  createNewFollowerTriggerExecutor,
   type NewFollowerChecker,
-  type NewFollowerTriggerExecutor,
+  NewFollowerTriggerExecutor,
 } from '@workflow-engine/executors/saas/new-follower-trigger-executor';
 import type { ExecutableNode } from '@workflow-engine/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -30,7 +29,7 @@ describe('NewFollowerTriggerExecutor', () => {
   let mockChecker: NewFollowerChecker;
 
   beforeEach(() => {
-    executor = createNewFollowerTriggerExecutor();
+    executor = new NewFollowerTriggerExecutor();
     mockChecker = vi.fn().mockResolvedValue({
       followedAt: '2026-02-21T20:00:00Z',
       followerId: 'f-1',
@@ -45,7 +44,7 @@ describe('NewFollowerTriggerExecutor', () => {
   });
 
   it('throws if checker not configured', async () => {
-    const fresh = createNewFollowerTriggerExecutor();
+    const fresh = new NewFollowerTriggerExecutor();
     const input = makeInput({ platform: 'twitter' });
     await expect(fresh.execute(input)).rejects.toThrow(
       'checker not configured',

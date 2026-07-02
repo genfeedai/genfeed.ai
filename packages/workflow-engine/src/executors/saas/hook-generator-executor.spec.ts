@@ -1,8 +1,7 @@
 import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
-  createHookGeneratorExecutor,
-  type HookGeneratorExecutor,
+  HookGeneratorExecutor,
   type HookGeneratorOutput,
 } from '@workflow-engine/executors/saas/hook-generator-executor';
 import type { ExecutableNode } from '@workflow-engine/types';
@@ -50,7 +49,7 @@ describe('HookGeneratorExecutor', () => {
   let executor: HookGeneratorExecutor;
 
   beforeEach(() => {
-    executor = createHookGeneratorExecutor();
+    executor = new HookGeneratorExecutor();
   });
 
   describe('validate', () => {

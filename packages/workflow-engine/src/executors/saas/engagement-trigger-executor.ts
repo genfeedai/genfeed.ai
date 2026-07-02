@@ -166,7 +166,3 @@ export class EngagementTriggerExecutor extends BaseExecutor {
     return 0;
   }
 }
-
-export function createEngagementTriggerExecutor(): EngagementTriggerExecutor {
-  return new EngagementTriggerExecutor();
-}

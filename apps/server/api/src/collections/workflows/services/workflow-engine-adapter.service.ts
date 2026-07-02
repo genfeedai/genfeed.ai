@@ -82,41 +82,41 @@ import type {
 } from '@genfeedai/workflow-engine';
 import {
   type AnalyticsFeedbackOutput,
+  CommentTriggerExecutor,
   createAnalyticsFeedbackExecutor,
   createBrandAssetExecutor,
   createBrandContextExecutor,
-  createCommentTriggerExecutor,
-  createEngagementTriggerExecutor,
-  createHookGeneratorExecutor,
-  createImageGenExecutor,
   createIterativeSeoRefineExecutor,
-  createKeywordTriggerExecutor,
-  createLipSyncExecutor,
-  createMentionTriggerExecutor,
-  createNewFollowerTriggerExecutor,
-  createNewLikeTriggerExecutor,
-  createNewRepostTriggerExecutor,
-  createPostPublishTriggerExecutor,
-  createPostReplyExecutor,
-  createPromptConstructorExecutor,
   createPublishExecutor,
-  createReframeExecutor,
-  createSendDmExecutor,
   createSendEmailExecutor,
   createSeoRewriteExecutor,
   createSeoScoreExecutor,
-  createTextToSpeechExecutor,
-  createTrendDigestExecutor,
   createTrendTriggerExecutor,
-  createUpscaleExecutor,
+  EngagementTriggerExecutor,
+  HookGeneratorExecutor,
+  ImageGenExecutor,
+  KeywordTriggerExecutor,
   type KeywordTriggerPlatform,
+  LipSyncExecutor,
+  MentionTriggerExecutor,
+  NewFollowerTriggerExecutor,
+  NewLikeTriggerExecutor,
+  NewRepostTriggerExecutor,
   type NodeExecutor,
+  PostPublishTriggerExecutor,
+  PostReplyExecutor,
+  PromptConstructorExecutor,
+  ReframeExecutor,
+  SendDmExecutor,
   type SeoRewriteResolver,
   type SeoScoreResolver,
   type SocialPlatform,
+  TextToSpeechExecutor,
   type TrendDigestEntry,
+  TrendDigestExecutor,
   type TrendPlatform,
   type TrendTriggerOutput,
+  UpscaleExecutor,
   WorkflowEngine,
 } from '@genfeedai/workflow-engine';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -428,7 +428,7 @@ export class WorkflowEngineAdapterService {
       return;
     }
 
-    const imageGenExecutor = createImageGenExecutor();
+    const imageGenExecutor = new ImageGenExecutor();
     const promptBuilderService = this.promptBuilderService;
     const replicateService = this.replicateService;
 
@@ -777,7 +777,7 @@ export class WorkflowEngineAdapterService {
       this.wrapEngineExecutor(iterativeSeoRefineExecutor),
     );
 
-    const postPublishTriggerExecutor = createPostPublishTriggerExecutor();
+    const postPublishTriggerExecutor = new PostPublishTriggerExecutor();
     this.engine.registerExecutor(
       postPublishTriggerExecutor.nodeType,
       this.wrapEngineExecutor(postPublishTriggerExecutor),
@@ -1375,7 +1375,7 @@ export class WorkflowEngineAdapterService {
     const credits = this.creditsUtilsService;
     const appUrl = String(this.configService.get('GENFEEDAI_APP_URL') ?? '');
 
-    const executor = createTrendDigestExecutor();
+    const executor = new TrendDigestExecutor();
 
     executor.setOwnerResolver(async (organizationId) => {
       const organization = await prisma.organization.findFirst({
@@ -1789,7 +1789,7 @@ export class WorkflowEngineAdapterService {
   }
 
   private registerPromptConstructorExecutor(): void {
-    const promptConstructorExecutor = createPromptConstructorExecutor();
+    const promptConstructorExecutor = new PromptConstructorExecutor();
 
     this.engine.registerExecutor(
       'promptConstructor',
@@ -1798,7 +1798,7 @@ export class WorkflowEngineAdapterService {
   }
 
   private registerHookGeneratorExecutor(): void {
-    const hookGeneratorExecutor = createHookGeneratorExecutor();
+    const hookGeneratorExecutor = new HookGeneratorExecutor();
 
     this.engine.registerExecutor(
       'hookGenerator',
@@ -1859,15 +1859,15 @@ export class WorkflowEngineAdapterService {
     // Register one executor per social node type.
     // The executor's platform is resolved at execution time from node config,
     // so we register a single executor per type that dispatches to the correct adapter.
-    const postReplyExecutor = createPostReplyExecutor();
-    const sendDmExecutor = createSendDmExecutor();
-    const followerTriggerExecutor = createNewFollowerTriggerExecutor();
-    const mentionTriggerExecutor = createMentionTriggerExecutor();
-    const likeTriggerExecutor = createNewLikeTriggerExecutor();
-    const repostTriggerExecutor = createNewRepostTriggerExecutor();
-    const keywordTriggerExecutor = createKeywordTriggerExecutor();
-    const engagementTriggerExecutor = createEngagementTriggerExecutor();
-    const commentTriggerExecutor = createCommentTriggerExecutor();
+    const postReplyExecutor = new PostReplyExecutor();
+    const sendDmExecutor = new SendDmExecutor();
+    const followerTriggerExecutor = new NewFollowerTriggerExecutor();
+    const mentionTriggerExecutor = new MentionTriggerExecutor();
+    const likeTriggerExecutor = new NewLikeTriggerExecutor();
+    const repostTriggerExecutor = new NewRepostTriggerExecutor();
+    const keywordTriggerExecutor = new KeywordTriggerExecutor();
+    const engagementTriggerExecutor = new EngagementTriggerExecutor();
+    const commentTriggerExecutor = new CommentTriggerExecutor();
 
     // Wire dispatching publishers/checkers that route to the correct platform adapter.
     // YouTube is backed by its own adapter because it uses the YouTube Data API,
@@ -2077,7 +2077,7 @@ export class WorkflowEngineAdapterService {
    * Registers the lip sync executor with HeyGen as the backend provider.
    */
   private registerLipSyncExecutor(): void {
-    const lipSyncExecutor = createLipSyncExecutor();
+    const lipSyncExecutor = new LipSyncExecutor();
 
     if (this.heyGenService && this.metadataService) {
       const heyGenService = this.heyGenService;
@@ -2536,7 +2536,7 @@ export class WorkflowEngineAdapterService {
    * Registers the text-to-speech executor with ElevenLabs as the backend provider.
    */
   private registerTextToSpeechExecutor(): void {
-    const ttsExecutor = createTextToSpeechExecutor();
+    const ttsExecutor = new TextToSpeechExecutor();
 
     if (
       this.elevenLabsService &&
@@ -2599,7 +2599,7 @@ export class WorkflowEngineAdapterService {
    * Registers the reframe executor with Replicate (Luma) as the backend provider.
    */
   private registerReframeExecutor(): void {
-    const reframeExecutor = createReframeExecutor();
+    const reframeExecutor = new ReframeExecutor();
 
     if (this.replicateService && this.metadataService) {
       const replicateService = this.replicateService;
@@ -2676,7 +2676,7 @@ export class WorkflowEngineAdapterService {
    * Registers the upscale executor with Replicate (Topaz) as the backend provider.
    */
   private registerUpscaleExecutor(): void {
-    const upscaleExecutor = createUpscaleExecutor();
+    const upscaleExecutor = new UpscaleExecutor();
 
     if (this.replicateService && this.metadataService) {
       const replicateService = this.replicateService;

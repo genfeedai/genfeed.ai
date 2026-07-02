@@ -106,10 +106,6 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     enumFields: {},
   },
-  AdInsights: {
-    allFields: ['createdAt', 'data', 'id', 'isDeleted', 'mongoId', 'updatedAt'],
-    enumFields: {},
-  },
   AdOptimizationAuditLog: {
     allFields: [
       'createdAt',
