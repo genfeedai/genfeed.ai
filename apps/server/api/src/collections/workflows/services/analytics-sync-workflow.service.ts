@@ -1,15 +1,17 @@
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
-import type { FacebookAnalyticsJobData } from '@api/queues/analytics-facebook/analytics-facebook-job.interface';
-import type { AnalyticsSyncJobData } from '@api/queues/analytics-sync/analytics-sync-job.interface';
-import type { ThreadsAnalyticsJobData } from '@api/queues/analytics-threads/analytics-threads-job.interface';
-import type { TwitterAnalyticsJobData } from '@api/queues/analytics-twitter/analytics-twitter-job.interface';
-import type { YouTubeAnalyticsJobData } from '@api/queues/analytics-youtube/analytics-youtube-job.interface';
 import { QueueService } from '@api/queues/core/queue.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
-import type { SocialAnalyticsJobData } from '@genfeedai/interfaces';
+import type {
+  AnalyticsSyncJobData,
+  FacebookAnalyticsJobData,
+  SocialAnalyticsJobData,
+  ThreadsAnalyticsJobData,
+  TwitterAnalyticsJobData,
+  YouTubeAnalyticsJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

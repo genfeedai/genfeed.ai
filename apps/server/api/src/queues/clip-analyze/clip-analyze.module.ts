@@ -1,5 +1,5 @@
-import { CLIP_ANALYZE_QUEUE } from '@api/queues/clip-analyze/clip-analyze.constants';
 import { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
+import { CLIP_ANALYZE_QUEUE } from '@genfeedai/queue-contracts';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 

@@ -1,5 +1,4 @@
 import {
-  WORKFLOW_EXECUTION_QUEUE,
   WorkflowExecutionJobData,
   WorkflowExecutionQueueService,
 } from '@api/collections/workflows/services/workflow-execution-queue.service';
@@ -8,6 +7,7 @@ import {
   WorkflowExecutorService,
 } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
+import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';

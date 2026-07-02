@@ -696,18 +696,16 @@ export class WorkflowTemplateSeederService {
     organizationId: string,
     contentScheduleId: string,
   ): Promise<void> {
-    const where = {
-      isDeleted: false,
-      metadata: {
-        equals: contentScheduleId,
-        path: ['contentScheduleId'],
-      },
-      organizationId,
-    } as const;
-
     const affected = await this.prisma.workflow.findMany({
       select: { id: true },
-      where,
+      where: {
+        isDeleted: false,
+        metadata: {
+          equals: contentScheduleId,
+          path: ['contentScheduleId'],
+        },
+        organizationId,
+      },
     });
 
     await this.prisma.workflow.updateMany({
@@ -716,7 +714,14 @@ export class WorkflowTemplateSeederService {
         isScheduleEnabled: false,
         status: WorkflowStatus.PAUSED,
       },
-      where,
+      where: {
+        isDeleted: false,
+        metadata: {
+          equals: contentScheduleId,
+          path: ['contentScheduleId'],
+        },
+        organizationId,
+      },
     });
 
     // Drop the BullMQ job schedulers so the disabled schedules stop firing.

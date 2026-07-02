@@ -1,11 +1,14 @@
-import type { GoogleAdSyncJobData } from '@genfeedai/interfaces';
+import {
+  AD_SYNC_GOOGLE_QUEUE,
+  GoogleAdSyncJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Job } from 'bullmq';
 
 @Injectable()
-@Processor('ad-sync-google')
+@Processor(AD_SYNC_GOOGLE_QUEUE)
 export class AdSyncGoogleProcessor extends WorkerHost {
   private readonly DEFAULT_DELAY_MS = 2000;
 

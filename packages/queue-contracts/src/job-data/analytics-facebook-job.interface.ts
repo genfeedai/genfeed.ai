@@ -1,4 +1,4 @@
-import { CredentialPlatform } from '@genfeedai/enums';
+import type { CredentialPlatform } from '@genfeedai/enums';
 
 export interface FacebookAnalyticsJobData {
   posts: Array<{

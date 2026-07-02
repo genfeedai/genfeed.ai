@@ -2,7 +2,6 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { DistributionsService } from '@api/collections/distributions/services/distributions.service';
 import { ConfigService } from '@api/config/config.service';
 import { QueueService } from '@api/queues/core/queue.service';
-import type { TelegramDistributeJobData } from '@api/queues/telegram-distribute/telegram-distribute-job.interface';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import {
   CredentialPlatform,
@@ -11,6 +10,10 @@ import {
   ParseMode,
   PublishStatus,
 } from '@genfeedai/enums';
+import {
+  TELEGRAM_DISTRIBUTE_QUEUE,
+  TelegramDistributeJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
@@ -158,7 +161,7 @@ export class TelegramDistributionService {
       platform: DistributionPlatform.TELEGRAM,
     };
 
-    await this.queueService.add('telegram-distribute', queueData, {
+    await this.queueService.add(TELEGRAM_DISTRIBUTE_QUEUE, queueData, {
       delay: delayMs,
       jobId: `telegram-distribute-${distributionId}`,
       removeOnComplete: 100,

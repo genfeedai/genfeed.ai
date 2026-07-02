@@ -3,6 +3,7 @@ import type {
   TriggerEvent,
 } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowStatus } from '@genfeedai/enums';
+import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
@@ -40,10 +41,8 @@ export interface WorkflowSchedulerSyncRow {
 }
 
 // =============================================================================
-// QUEUE NAME
+// SCHEDULER ID
 // =============================================================================
-
-export const WORKFLOW_EXECUTION_QUEUE = 'workflow-execution';
 
 /**
  * BullMQ Job Scheduler id for a workflow's cron schedule. One scheduler per

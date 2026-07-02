@@ -1,26 +1,11 @@
+import {
+  BATCH_WORKFLOW_QUEUE,
+  BatchWorkflowItemJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
-
-// =============================================================================
-// TYPES
-// =============================================================================
-
-export interface BatchWorkflowItemJobData {
-  batchJobId: string;
-  itemId: string;
-  workflowId: string;
-  ingredientId: string;
-  userId: string;
-  organizationId: string;
-}
-
-// =============================================================================
-// QUEUE NAME
-// =============================================================================
-
-export const BATCH_WORKFLOW_QUEUE = 'batch-workflow';
 
 // =============================================================================
 // SERVICE

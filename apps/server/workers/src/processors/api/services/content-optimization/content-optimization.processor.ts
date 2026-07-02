@@ -1,10 +1,13 @@
 import { ContentOptimizationService } from '@api/services/content-optimization/content-optimization.service';
-import { ContentOptimizationJobData } from '@api/services/content-optimization/content-optimization-queue.service';
+import {
+  CONTENT_OPTIMIZATION_QUEUE,
+  ContentOptimizationJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 
-@Processor('content-optimization', {
+@Processor(CONTENT_OPTIMIZATION_QUEUE, {
   concurrency: 2,
   limiter: { duration: 60000, max: 5 },
 })

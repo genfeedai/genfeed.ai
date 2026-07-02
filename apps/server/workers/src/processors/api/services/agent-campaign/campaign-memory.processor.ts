@@ -1,6 +1,8 @@
-import { CampaignMemoryExtractionJobData } from '@api/services/agent-campaign/campaign-memory-queue.service';
 import { ContentEngineService } from '@api/services/agent-campaign/content-engine.service';
-import { CAMPAIGN_MEMORY_EXTRACTION_QUEUE } from '@api/services/agent-campaign/orchestrator.constants';
+import {
+  CAMPAIGN_MEMORY_EXTRACTION_QUEUE,
+  CampaignMemoryExtractionJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
