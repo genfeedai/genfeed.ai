@@ -92,6 +92,33 @@ export interface WorkflowUILogger {
 }
 
 // =============================================================================
+// Execution HTTP
+// =============================================================================
+
+/**
+ * HTTP client the execution store issues its POST requests through
+ * (workflow execute, execution stop). The consuming app injects a credentialed
+ * client — one that resolves the correct API base URL and carries auth cookies —
+ * so runs are attributed to the signed-in user. When absent the package falls
+ * back to a bare `fetch` against `NEXT_PUBLIC_API_URL` (its standalone default).
+ */
+export interface WorkflowUIHttpClient {
+  post: <T>(
+    path: string,
+    body?: Record<string, unknown>,
+    options?: { headers?: Record<string, string> },
+  ) => Promise<T>;
+}
+
+/**
+ * Supplies the per-request provider auth headers (Replicate / Fal / HuggingFace
+ * BYOK keys) attached to workflow-execute requests. Returns an empty record when
+ * the user has not configured BYOK keys. Defaults to no headers so the package
+ * stays provider-agnostic standalone.
+ */
+export type ExecutionHeaderProvider = () => Record<string, string>;
+
+// =============================================================================
 // Config
 // =============================================================================
 
@@ -106,6 +133,17 @@ export interface WorkflowUIConfig {
   workflowsApi?: WorkflowsApiService;
   /** Execution-store error reporting (SSE failures, failed runs). No-op if omitted. */
   logger?: WorkflowUILogger;
+  /**
+   * HTTP client the execution store posts through (execute / stop). Defaults to a
+   * bare `fetch` against `NEXT_PUBLIC_API_URL` when omitted; the app injects a
+   * credentialed client so runs carry the signed-in user's session.
+   */
+  executionHttpClient?: WorkflowUIHttpClient;
+  /**
+   * Provider auth headers (Replicate / Fal / HuggingFace BYOK keys) attached to
+   * execute requests. Returns no headers when omitted.
+   */
+  executionHeaders?: ExecutionHeaderProvider;
   /** Injected ModelBrowserModal component (complex, app-specific) */
   ModelBrowserModal?: ComponentType<ModelBrowserModalProps> | null;
   /** Injected PromptPicker component (complex, app-specific) */

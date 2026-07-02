@@ -37,16 +37,24 @@ export { BaseNode, nodeTypes } from './nodes';
 // Panels
 export { DebugPanel, NodePalette, PanelContainer } from './panels';
 export type {
+  ExecutionHeaderProvider,
   ModelBrowserModalProps,
   PromptLibraryService,
   PromptPickerProps,
   WorkflowUIConfig,
+  WorkflowUIHttpClient,
   WorkflowUILogger,
 } from './provider';
 // Provider
 export { useWorkflowUIConfig, WorkflowUIProvider } from './provider';
 export { useAnnotationStore } from './stores/annotationStore';
 export { useExecutionStore } from './stores/execution';
+export {
+  configureExecutionHeaders,
+  configureExecutionHttpClient,
+  getExecutionHeaders,
+  getExecutionHttpClient,
+} from './stores/execution/executionApi';
 export {
   configureWorkflowLogger,
   getWorkflowLogger,
