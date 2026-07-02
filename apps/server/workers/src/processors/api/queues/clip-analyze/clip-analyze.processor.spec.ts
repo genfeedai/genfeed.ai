@@ -1,7 +1,7 @@
 import type { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import type { ConfigService } from '@api/config/config.service';
-import type { ClipAnalyzeJobData } from '@api/queues/clip-analyze/clip-analyze.constants';
 import type { WhisperService } from '@api/services/whisper/whisper.service';
+import type { ClipAnalyzeJobData } from '@genfeedai/queue-contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { HttpService } from '@nestjs/axios';
 import { ClipAnalyzeProcessor } from '@workers/processors/api/queues/clip-analyze/clip-analyze.processor';

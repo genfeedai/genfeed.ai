@@ -3,7 +3,10 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueueService } from '@api/queues/core/queue.service';
 import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
-import type { SocialAnalyticsJobData } from '@genfeedai/interfaces';
+import {
+  ANALYTICS_SOCIAL_QUEUE,
+  SocialAnalyticsJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -16,7 +19,7 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class CronAnalyticsSocialService {
   private readonly constructorName: string = String(this.constructor.name);
-  private readonly QUEUE_NAME = 'analytics-social';
+  private readonly QUEUE_NAME = ANALYTICS_SOCIAL_QUEUE;
   private readonly CHUNK_SIZE = 50; // Process 50 posts per job for better parallelization
 
   constructor(

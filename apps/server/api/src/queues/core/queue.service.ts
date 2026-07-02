@@ -1,3 +1,20 @@
+import {
+  AD_BULK_UPLOAD_QUEUE,
+  AD_INSIGHTS_AGGREGATION_QUEUE,
+  AD_OPTIMIZATION_QUEUE,
+  AD_SYNC_GOOGLE_QUEUE,
+  AD_SYNC_META_QUEUE,
+  AD_SYNC_TIKTOK_QUEUE,
+  ANALYTICS_FACEBOOK_QUEUE,
+  ANALYTICS_SOCIAL_QUEUE,
+  ANALYTICS_SYNC_QUEUE,
+  ANALYTICS_THREADS_QUEUE,
+  ANALYTICS_TWITTER_QUEUE,
+  ANALYTICS_YOUTUBE_QUEUE,
+  DEFAULT_QUEUE,
+  EMAIL_DIGEST_QUEUE,
+  TELEGRAM_DISTRIBUTE_QUEUE,
+} from '@genfeedai/queue-contracts';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Job, JobsOptions, Queue } from 'bullmq';
@@ -11,34 +28,34 @@ export interface QueueJob<T = Record<string, unknown>> {
 @Injectable()
 export class QueueService {
   constructor(
-    @InjectQueue('default') private readonly defaultQueue: Queue,
-    @InjectQueue('analytics-twitter')
+    @InjectQueue(DEFAULT_QUEUE) private readonly defaultQueue: Queue,
+    @InjectQueue(ANALYTICS_TWITTER_QUEUE)
     private readonly analyticsTwitterQueue: Queue,
-    @InjectQueue('analytics-youtube')
+    @InjectQueue(ANALYTICS_YOUTUBE_QUEUE)
     private readonly analyticsYouTubeQueue: Queue,
-    @InjectQueue('analytics-social')
+    @InjectQueue(ANALYTICS_SOCIAL_QUEUE)
     private readonly analyticsSocialQueue: Queue,
-    @InjectQueue('ad-sync-meta')
+    @InjectQueue(AD_SYNC_META_QUEUE)
     private readonly adSyncMetaQueue: Queue,
-    @InjectQueue('ad-sync-google')
+    @InjectQueue(AD_SYNC_GOOGLE_QUEUE)
     private readonly adSyncGoogleQueue: Queue,
-    @InjectQueue('ad-sync-tiktok')
+    @InjectQueue(AD_SYNC_TIKTOK_QUEUE)
     private readonly adSyncTikTokQueue: Queue,
-    @InjectQueue('ad-insights-aggregation')
+    @InjectQueue(AD_INSIGHTS_AGGREGATION_QUEUE)
     private readonly adInsightsAggregationQueue: Queue,
-    @InjectQueue('analytics-sync')
+    @InjectQueue(ANALYTICS_SYNC_QUEUE)
     private readonly analyticsSyncQueue: Queue,
-    @InjectQueue('email-digest')
+    @InjectQueue(EMAIL_DIGEST_QUEUE)
     private readonly emailDigestQueue: Queue,
-    @InjectQueue('ad-bulk-upload')
+    @InjectQueue(AD_BULK_UPLOAD_QUEUE)
     private readonly adBulkUploadQueue: Queue,
-    @InjectQueue('ad-optimization')
+    @InjectQueue(AD_OPTIMIZATION_QUEUE)
     private readonly adOptimizationQueue: Queue,
-    @InjectQueue('telegram-distribute')
+    @InjectQueue(TELEGRAM_DISTRIBUTE_QUEUE)
     private readonly telegramDistributeQueue: Queue,
-    @InjectQueue('analytics-facebook')
+    @InjectQueue(ANALYTICS_FACEBOOK_QUEUE)
     private readonly analyticsFacebookQueue: Queue,
-    @InjectQueue('analytics-threads')
+    @InjectQueue(ANALYTICS_THREADS_QUEUE)
     private readonly analyticsThreadsQueue: Queue,
   ) {}
 
@@ -53,33 +70,33 @@ export class QueueService {
 
   private getQueue(queueName: string): Queue {
     switch (queueName) {
-      case 'analytics-twitter':
+      case ANALYTICS_TWITTER_QUEUE:
         return this.analyticsTwitterQueue;
-      case 'analytics-youtube':
+      case ANALYTICS_YOUTUBE_QUEUE:
         return this.analyticsYouTubeQueue;
-      case 'analytics-social':
+      case ANALYTICS_SOCIAL_QUEUE:
         return this.analyticsSocialQueue;
-      case 'ad-sync-meta':
+      case AD_SYNC_META_QUEUE:
         return this.adSyncMetaQueue;
-      case 'ad-sync-google':
+      case AD_SYNC_GOOGLE_QUEUE:
         return this.adSyncGoogleQueue;
-      case 'ad-sync-tiktok':
+      case AD_SYNC_TIKTOK_QUEUE:
         return this.adSyncTikTokQueue;
-      case 'ad-insights-aggregation':
+      case AD_INSIGHTS_AGGREGATION_QUEUE:
         return this.adInsightsAggregationQueue;
-      case 'analytics-sync':
+      case ANALYTICS_SYNC_QUEUE:
         return this.analyticsSyncQueue;
-      case 'email-digest':
+      case EMAIL_DIGEST_QUEUE:
         return this.emailDigestQueue;
-      case 'ad-bulk-upload':
+      case AD_BULK_UPLOAD_QUEUE:
         return this.adBulkUploadQueue;
-      case 'ad-optimization':
+      case AD_OPTIMIZATION_QUEUE:
         return this.adOptimizationQueue;
-      case 'telegram-distribute':
+      case TELEGRAM_DISTRIBUTE_QUEUE:
         return this.telegramDistributeQueue;
-      case 'analytics-facebook':
+      case ANALYTICS_FACEBOOK_QUEUE:
         return this.analyticsFacebookQueue;
-      case 'analytics-threads':
+      case ANALYTICS_THREADS_QUEUE:
         return this.analyticsThreadsQueue;
       default:
         return this.defaultQueue;
@@ -88,7 +105,7 @@ export class QueueService {
 
   getJob<T = Record<string, unknown>>(
     jobId: string,
-    queueName: string = 'default',
+    queueName: string = DEFAULT_QUEUE,
   ): Promise<Job<T> | undefined> {
     const queue = this.getQueue(queueName);
     return queue.getJob(jobId) as Promise<Job<T> | undefined>;
@@ -98,7 +115,7 @@ export class QueueService {
     status: 'waiting' | 'active' | 'completed' | 'failed' | 'delayed',
     start?: number,
     end?: number,
-    queueName: string = 'default',
+    queueName: string = DEFAULT_QUEUE,
   ): Promise<Job<T>[]> {
     const queue = this.getQueue(queueName);
     return queue.getJobs([status], start, end) as Promise<Job<T>[]>;
@@ -107,64 +124,64 @@ export class QueueService {
   clean(
     grace: number,
     status: 'completed' | 'failed',
-    queueName: string = 'default',
+    queueName: string = DEFAULT_QUEUE,
   ): Promise<string[]> {
     const queue = this.getQueue(queueName);
     // BullMQ clean method returns array of removed job IDs
     return queue.clean(grace, 0, status);
   }
 
-  async pause(queueName: string = 'default'): Promise<void> {
+  async pause(queueName: string = DEFAULT_QUEUE): Promise<void> {
     const queue = this.getQueue(queueName);
     await queue.pause();
   }
 
-  async resume(queueName: string = 'default'): Promise<void> {
+  async resume(queueName: string = DEFAULT_QUEUE): Promise<void> {
     const queue = this.getQueue(queueName);
     await queue.resume();
   }
 
-  isPaused(queueName: string = 'default'): Promise<boolean> {
+  isPaused(queueName: string = DEFAULT_QUEUE): Promise<boolean> {
     const queue = this.getQueue(queueName);
     return queue.isPaused();
   }
 
   getWaiting<T = Record<string, unknown>>(
-    queueName: string = 'default',
+    queueName: string = DEFAULT_QUEUE,
   ): Promise<Job<T>[]> {
     const queue = this.getQueue(queueName);
     return queue.getWaiting() as Promise<Job<T>[]>;
   }
 
   getActive<T = Record<string, unknown>>(
-    queueName: string = 'default',
+    queueName: string = DEFAULT_QUEUE,
   ): Promise<Job<T>[]> {
     const queue = this.getQueue(queueName);
     return queue.getActive() as Promise<Job<T>[]>;
   }
 
   getCompleted<T = Record<string, unknown>>(
-    queueName: string = 'default',
+    queueName: string = DEFAULT_QUEUE,
   ): Promise<Job<T>[]> {
     const queue = this.getQueue(queueName);
     return queue.getCompleted() as Promise<Job<T>[]>;
   }
 
   getFailed<T = Record<string, unknown>>(
-    queueName: string = 'default',
+    queueName: string = DEFAULT_QUEUE,
   ): Promise<Job<T>[]> {
     const queue = this.getQueue(queueName);
     return queue.getFailed() as Promise<Job<T>[]>;
   }
 
   getDelayed<T = Record<string, unknown>>(
-    queueName: string = 'default',
+    queueName: string = DEFAULT_QUEUE,
   ): Promise<Job<T>[]> {
     const queue = this.getQueue(queueName);
     return queue.getDelayed() as Promise<Job<T>[]>;
   }
 
-  async getCounts(queueName: string = 'default'): Promise<{
+  async getCounts(queueName: string = DEFAULT_QUEUE): Promise<{
     waiting: number;
     active: number;
     completed: number;

@@ -8,7 +8,10 @@ import type {
 import { AdOptimizationRecommendationsService } from '@api/collections/ad-optimization-recommendations/services/ad-optimization-recommendations.service';
 import { type AdPerformanceDocument } from '@api/collections/ad-performance/schemas/ad-performance.schema';
 import { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
-import type { AdOptimizationJobData } from '@api/queues/ad-optimization/ad-optimization-job.interface';
+import {
+  AD_OPTIMIZATION_QUEUE,
+  AdOptimizationJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
@@ -27,7 +30,7 @@ interface AggregatedAdMetrics {
 }
 
 @Injectable()
-@Processor('ad-optimization')
+@Processor(AD_OPTIMIZATION_QUEUE)
 export class AdOptimizationProcessor extends WorkerHost {
   private readonly EXPIRY_HOURS = 72;
 

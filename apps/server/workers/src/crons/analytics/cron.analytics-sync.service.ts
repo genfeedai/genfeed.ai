@@ -1,6 +1,9 @@
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import type { AnalyticsSyncJobData } from '@api/queues/analytics-sync/analytics-sync-job.interface';
 import { QueueService } from '@api/queues/core/queue.service';
+import {
+  ANALYTICS_SYNC_QUEUE,
+  AnalyticsSyncJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -8,7 +11,7 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class CronAnalyticsSyncService {
   private readonly constructorName: string = String(this.constructor.name);
-  private readonly QUEUE_NAME = 'analytics-sync';
+  private readonly QUEUE_NAME = ANALYTICS_SYNC_QUEUE;
 
   constructor(
     private readonly logger: LoggerService,

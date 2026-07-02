@@ -39,6 +39,12 @@
       "@genfeedai/workflows/*": ["../../../packages/workflows/src/*"],
       "@genfeedai/prisma": ["../../../packages/prisma/src/index.ts"],
       "@genfeedai/prisma/*": ["../../../packages/prisma/src/*"],
+      "@genfeedai/queue-contracts": [
+        "../../../packages/queue-contracts/src/index.ts"
+      ],
+      "@genfeedai/queue-contracts/*": [
+        "../../../packages/queue-contracts/src/*"
+      ],
       "@config/*": ["../../../packages/config/src/*"],
       "@files/*": ["../files/src/*"],
       "@genfeedai/constants": ["../../../packages/constants/dist/index"],

@@ -1104,6 +1104,16 @@
         "vitest": "4.1.9",
       },
     },
+    "packages/queue-contracts": {
+      "name": "@genfeedai/queue-contracts",
+      "version": "0.1.0",
+      "dependencies": {
+        "@genfeedai/enums": "workspace:*",
+      },
+      "devDependencies": {
+        "typescript": "6.0.2",
+      },
+    },
     "packages/serializers": {
       "name": "@genfeedai/serializers",
       "version": "2.3.0",
@@ -2039,6 +2049,8 @@
     "@genfeedai/prompts": ["@genfeedai/prompts@workspace:packages/prompts"],
 
     "@genfeedai/props": ["@genfeedai/props@workspace:packages/props"],
+
+    "@genfeedai/queue-contracts": ["@genfeedai/queue-contracts@workspace:packages/queue-contracts"],
 
     "@genfeedai/serializers": ["@genfeedai/serializers@workspace:packages/serializers"],
 

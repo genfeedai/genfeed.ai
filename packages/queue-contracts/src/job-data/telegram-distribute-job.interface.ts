@@ -1,4 +1,4 @@
-import { DistributionPlatform } from '@genfeedai/enums';
+import type { DistributionPlatform } from '@genfeedai/enums';
 
 export interface TelegramDistributeJobData {
   distributionId: string;

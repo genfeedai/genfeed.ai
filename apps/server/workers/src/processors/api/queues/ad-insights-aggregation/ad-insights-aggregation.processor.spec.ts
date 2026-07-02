@@ -1,4 +1,4 @@
-import type { AdInsightsAggregationJobData } from '@genfeedai/interfaces';
+import type { AdInsightsAggregationJobData } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { AD_INSIGHTS_PLATFORM_SCOPE } from '@workers/crons/ad-insights/ad-insights-scheduling.config';

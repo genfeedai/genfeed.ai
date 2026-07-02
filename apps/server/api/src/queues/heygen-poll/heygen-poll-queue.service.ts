@@ -9,36 +9,22 @@
  * In cloud deployments, HeyGen delivers completion via webhook
  * (POST /v1/webhooks/heygen/callback) and this queue is a no-op.
  */
+import {
+  HEYGEN_POLL_DELAY_MS,
+  HEYGEN_POLL_QUEUE,
+  HeygenPollJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Optional } from '@nestjs/common';
 import { Queue } from 'bullmq';
-
-export interface HeygenPollJobData {
-  /** Ingredient ID that owns the HeyGen generation (used as callbackId). */
-  ingredientId: string;
-  /** HeyGen external task/video id returned by generatePhotoAvatarVideo. */
-  externalId: string;
-  /** Organization context for BYOK resolution. */
-  organizationId: string;
-  /** Workspace task ID so we can broadcast completion events to the UI. */
-  taskId: string;
-  /** User who submitted the task (for task event attribution). */
-  userId: string;
-  /** Attempt counter — job reschedules itself with this incremented. */
-  attempt: number;
-}
-
-export const HEYGEN_POLL_QUEUE_NAME = 'heygen-poll';
-export const HEYGEN_POLL_DELAY_MS = 15_000;
-export const HEYGEN_POLL_MAX_ATTEMPTS = 40; // ≈10 min ceiling at 15s cadence
 
 @Injectable()
 export class HeygenPollQueueService {
   private readonly logContext = 'HeygenPollQueueService';
 
   constructor(
-    @InjectQueue(HEYGEN_POLL_QUEUE_NAME)
+    @InjectQueue(HEYGEN_POLL_QUEUE)
     @Optional()
     private readonly queue: Queue<HeygenPollJobData>,
     private readonly logger: LoggerService,

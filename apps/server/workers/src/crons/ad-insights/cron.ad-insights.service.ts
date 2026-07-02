@@ -1,11 +1,13 @@
 import { QueueService } from '@api/queues/core/queue.service';
-import type { AdInsightsAggregationJobData } from '@genfeedai/interfaces';
+import {
+  AD_INSIGHTS_AGGREGATION_QUEUE,
+  AdInsightsAggregationJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import {
-  AD_INSIGHTS_AGGREGATION_QUEUE,
   AD_INSIGHTS_INSIGHT_TYPES,
   AD_INSIGHTS_PLATFORM_SCOPE,
   AD_INSIGHTS_SCHEDULE_CRON,

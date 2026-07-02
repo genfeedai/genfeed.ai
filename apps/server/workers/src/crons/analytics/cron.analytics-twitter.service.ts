@@ -1,8 +1,11 @@
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
-import type { TwitterAnalyticsJobData } from '@api/queues/analytics-twitter/analytics-twitter-job.interface';
 import { QueueService } from '@api/queues/core/queue.service';
 import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
+import {
+  ANALYTICS_TWITTER_QUEUE,
+  TwitterAnalyticsJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -24,7 +27,7 @@ export class CronAnalyticsTwitterService {
   private readonly constructorName: string = String(this.constructor.name);
 
   private readonly BATCH_SIZE = 100; // Twitter API max batch size
-  private readonly QUEUE_NAME = 'analytics-twitter';
+  private readonly QUEUE_NAME = ANALYTICS_TWITTER_QUEUE;
 
   constructor(
     private readonly logger: LoggerService,

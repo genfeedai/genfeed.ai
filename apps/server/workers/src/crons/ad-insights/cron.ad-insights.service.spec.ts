@@ -1,8 +1,8 @@
 import { QueueService } from '@api/queues/core/queue.service';
+import { AD_INSIGHTS_AGGREGATION_QUEUE } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import {
-  AD_INSIGHTS_AGGREGATION_QUEUE,
   AD_INSIGHTS_PLATFORM_SCOPE,
   AD_INSIGHTS_SOURCE_ISSUE,
   buildAdInsightsAggregationJobId,

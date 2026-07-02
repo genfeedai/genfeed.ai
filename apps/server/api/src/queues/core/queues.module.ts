@@ -16,6 +16,29 @@ import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queu
 import { ReplyBotQueueService } from '@api/queues/reply-bot/reply-bot-queue.service';
 import { WorkspaceTaskQueueService } from '@api/services/task-orchestration/workspace-task-queue.service';
 import {
+  AD_BULK_UPLOAD_QUEUE,
+  AD_INSIGHTS_AGGREGATION_QUEUE,
+  AD_OPTIMIZATION_QUEUE,
+  AD_SYNC_GOOGLE_QUEUE,
+  AD_SYNC_META_QUEUE,
+  AD_SYNC_TIKTOK_QUEUE,
+  AGENT_RUN_QUEUE,
+  ANALYTICS_FACEBOOK_QUEUE,
+  ANALYTICS_SOCIAL_QUEUE,
+  ANALYTICS_SYNC_QUEUE,
+  ANALYTICS_THREADS_QUEUE,
+  ANALYTICS_TWITTER_QUEUE,
+  ANALYTICS_YOUTUBE_QUEUE,
+  CAMPAIGN_PROCESSING_QUEUE,
+  DEFAULT_QUEUE,
+  EMAIL_DIGEST_QUEUE,
+  HEYGEN_POLL_QUEUE,
+  PATTERN_EXTRACTION_QUEUE,
+  REPLY_BOT_POLLING_QUEUE,
+  TELEGRAM_DISTRIBUTE_QUEUE,
+  WORKSPACE_TASK_QUEUE,
+} from '@genfeedai/queue-contracts';
+import {
   buildBullMQConnection,
   parseRedisConnection,
 } from '@libs/redis/redis-connection.utils';
@@ -48,7 +71,7 @@ import { Module } from '@nestjs/common';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'default',
+        name: DEFAULT_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -57,7 +80,7 @@ import { Module } from '@nestjs/common';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'analytics-twitter',
+        name: ANALYTICS_TWITTER_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -66,7 +89,7 @@ import { Module } from '@nestjs/common';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'analytics-youtube',
+        name: ANALYTICS_YOUTUBE_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -75,7 +98,7 @@ import { Module } from '@nestjs/common';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'analytics-social',
+        name: ANALYTICS_SOCIAL_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -84,7 +107,7 @@ import { Module } from '@nestjs/common';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'reply-bot-polling',
+        name: REPLY_BOT_POLLING_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -93,7 +116,7 @@ import { Module } from '@nestjs/common';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'campaign-processing',
+        name: CAMPAIGN_PROCESSING_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -102,7 +125,7 @@ import { Module } from '@nestjs/common';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'ad-sync-meta',
+        name: AD_SYNC_META_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -111,7 +134,7 @@ import { Module } from '@nestjs/common';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'ad-sync-google',
+        name: AD_SYNC_GOOGLE_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -120,7 +143,7 @@ import { Module } from '@nestjs/common';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'ad-sync-tiktok',
+        name: AD_SYNC_TIKTOK_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -129,7 +152,7 @@ import { Module } from '@nestjs/common';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'ad-insights-aggregation',
+        name: AD_INSIGHTS_AGGREGATION_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -138,7 +161,7 @@ import { Module } from '@nestjs/common';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'analytics-sync',
+        name: ANALYTICS_SYNC_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -147,7 +170,7 @@ import { Module } from '@nestjs/common';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'email-digest',
+        name: EMAIL_DIGEST_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -156,7 +179,7 @@ import { Module } from '@nestjs/common';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'ad-bulk-upload',
+        name: AD_BULK_UPLOAD_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -165,7 +188,7 @@ import { Module } from '@nestjs/common';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'ad-optimization',
+        name: AD_OPTIMIZATION_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -174,7 +197,7 @@ import { Module } from '@nestjs/common';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'telegram-distribute',
+        name: TELEGRAM_DISTRIBUTE_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -183,7 +206,7 @@ import { Module } from '@nestjs/common';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'agent-run',
+        name: AGENT_RUN_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -192,7 +215,7 @@ import { Module } from '@nestjs/common';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'pattern-extraction',
+        name: PATTERN_EXTRACTION_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -201,7 +224,7 @@ import { Module } from '@nestjs/common';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'workspace-task',
+        name: WORKSPACE_TASK_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -210,7 +233,7 @@ import { Module } from '@nestjs/common';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'heygen-poll',
+        name: HEYGEN_POLL_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -219,7 +242,7 @@ import { Module } from '@nestjs/common';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'analytics-facebook',
+        name: ANALYTICS_FACEBOOK_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -228,7 +251,7 @@ import { Module } from '@nestjs/common';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'analytics-threads',
+        name: ANALYTICS_THREADS_QUEUE,
       },
     ),
   ],

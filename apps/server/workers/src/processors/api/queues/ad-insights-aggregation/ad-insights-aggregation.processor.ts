@@ -1,9 +1,11 @@
-import type { AdInsightsAggregationJobData } from '@genfeedai/interfaces';
+import {
+  AD_INSIGHTS_AGGREGATION_QUEUE,
+  AdInsightsAggregationJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import {
-  AD_INSIGHTS_AGGREGATION_QUEUE,
   AD_INSIGHTS_MIN_ORGS_FOR_AGGREGATION,
   AD_INSIGHTS_PLATFORM_SCOPE,
 } from '@workers/crons/ad-insights/ad-insights-scheduling.config';

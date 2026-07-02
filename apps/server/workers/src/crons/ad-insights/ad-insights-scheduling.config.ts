@@ -1,4 +1,4 @@
-export const AD_INSIGHTS_AGGREGATION_QUEUE = 'ad-insights-aggregation';
+import { AD_INSIGHTS_AGGREGATION_QUEUE } from '@genfeedai/queue-contracts';
 export const AD_INSIGHTS_PLATFORM_SCOPE = 'platform';
 export const AD_INSIGHTS_SCHEDULE_CRON = '0 6 * * 0';
 export const AD_INSIGHTS_SOURCE_ISSUE = 796;
