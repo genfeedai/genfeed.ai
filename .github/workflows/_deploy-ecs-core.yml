@@ -422,19 +422,14 @@ jobs:
           echo "All services stable."
 
       - name: Run credential-encryption backfill (post-rollout, gated after services stable)
-        # NON-BLOCKING: this is post-rollout data hygiene (encrypting legacy plaintext
-        # credential secrets at rest). It runs AFTER services are stable, and its failure
-        # must NOT gate the Vercel frontend deploy or fail the whole production deploy —
-        # otherwise a backfill hiccup leaves prod backend/frontend out of sync. The
-        # encrypt-on-write boundary already protects all NEW writes, and these rows were
-        # plaintext before this deploy, so deferring the at-rest backfill does not regress
-        # security. Tracked follow-up: the task currently runs a loose source .ts
-        # (apps/server/api/scripts/backfill-credential-encryption.ts) that is NOT shipped
-        # in the compiled prod image — it needs a compiled build target (like
-        # api-workflow-backfill) before it can succeed. See follow-up issue.
+        # BLOCKING: encrypts legacy plaintext credential secrets at rest via the compiled
+        # `migrate:credentials` target (dist/apps/api-credential-backfill/main), which now
+        # ships in the prod image alongside api-workflow-backfill. A real failure here
+        # (missing TOKEN_ENCRYPTION_KEY, crypto error, DB error) SHOULD fail the deploy:
+        # the encrypt-on-write boundary already protects NEW writes, but a silently-failing
+        # backfill would leave legacy secrets plaintext at rest indefinitely.
         # ORDERING: runs AFTER services are stable — only the new app code can read the
         # ciphertext it writes. Idempotent: rows already in ciphertext are skipped.
-        continue-on-error: true
         working-directory: ${{ env.TF_DIR }}
         run: |
           set -euo pipefail
