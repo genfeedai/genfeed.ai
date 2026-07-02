@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AGENT_REFRESH_CONVERSATIONS_EVENT,
   getErrorMessage,
+  hasRenderableThreadId,
   isAuthError,
   sortThreads,
 } from './agent-thread-list.helpers';
@@ -88,20 +89,22 @@ export function useAgentThreadList({
       );
       setAuthError(null);
       setLoadError(null);
+      const renderableData = data.filter(hasRenderableThreadId);
       const { threads: current, activeThreadId: currentActiveId } =
         useAgentChatStore.getState();
-      const apiIds = new Set(data.map((item) => item.id));
+      const renderableCurrent = current.filter(hasRenderableThreadId);
+      const apiIds = new Set(renderableData.map((item) => item.id));
 
       const activeThread =
         currentActiveId && !apiIds.has(currentActiveId)
-          ? current.find((t) => t.id === currentActiveId)
+          ? renderableCurrent.find((t) => t.id === currentActiveId)
           : null;
 
       const RECENT_THRESHOLD_MS = 15_000;
       const now = Date.now();
       const recentLocalThreads =
         viewStatus === AgentThreadStatus.ACTIVE
-          ? current.filter(
+          ? renderableCurrent.filter(
               (thread) =>
                 !apiIds.has(thread.id) &&
                 thread.id !== currentActiveId &&
@@ -114,7 +117,7 @@ export function useAgentThreadList({
       const preserved = activeThread
         ? [activeThread, ...recentLocalThreads]
         : recentLocalThreads;
-      setThreads(sortThreads([...preserved, ...data]));
+      setThreads(sortThreads([...preserved, ...renderableData]));
       return true;
     } catch (error) {
       if (abortRef.current?.signal.aborted) {
@@ -486,20 +489,27 @@ export function useAgentThreadList({
 
   const isArchivedView = viewStatus === AgentThreadStatus.ARCHIVED;
 
-  const pinnedThreads = useMemo(
-    () => threads.filter((thread) => thread.isPinned),
+  const renderableThreads = useMemo(
+    () => threads.filter(hasRenderableThreadId),
     [threads],
   );
+  const pinnedThreads = useMemo(
+    () => renderableThreads.filter((thread) => thread.isPinned),
+    [renderableThreads],
+  );
   const regularThreads = useMemo(
-    () => threads.filter((thread) => !thread.isPinned),
-    [threads],
+    () => renderableThreads.filter((thread) => !thread.isPinned),
+    [renderableThreads],
   );
 
   const shouldShowEmptyState =
-    !isLoading && !authError && !loadError && threads.length === 0;
+    !isLoading && !authError && !loadError && renderableThreads.length === 0;
 
   const shouldShowLoadFailureState =
-    !isLoading && !authError && Boolean(loadError) && threads.length === 0;
+    !isLoading &&
+    !authError &&
+    Boolean(loadError) &&
+    renderableThreads.length === 0;
 
   const shouldShowHeader =
     !authError && !shouldShowLoadFailureState && !isLoading;
@@ -517,7 +527,7 @@ export function useAgentThreadList({
   }, [loadThreads]);
 
   return {
-    threads,
+    threads: renderableThreads,
     activeThreadId,
     activeRunStatus,
     isStreaming,

@@ -123,6 +123,17 @@ export function sortThreads(threads: AgentThread[]): AgentThread[] {
   });
 }
 
+export function hasRenderableThreadId(thread: AgentThread): boolean {
+  const threadId = thread.id;
+
+  return (
+    typeof threadId === 'string' &&
+    threadId.trim().length > 0 &&
+    threadId !== 'undefined' &&
+    threadId !== 'null'
+  );
+}
+
 export function isAuthError(error: unknown): boolean {
   if (!(error instanceof Error)) {
     return false;

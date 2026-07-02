@@ -17,6 +17,15 @@ export interface UseAgentThreadCommandsOptions {
   enabled?: boolean;
 }
 
+function hasCommandThreadId(thread: AgentThreadCommandItem): boolean {
+  return (
+    typeof thread.id === 'string' &&
+    thread.id.trim().length > 0 &&
+    thread.id !== 'undefined' &&
+    thread.id !== 'null'
+  );
+}
+
 export function useAgentThreadCommands({
   threads,
   onNavigate,
@@ -28,7 +37,7 @@ export function useAgentThreadCommands({
 
   const commands = useMemo<ICommand[]>(
     () =>
-      threads.map((thread) => {
+      threads.filter(hasCommandThreadId).map((thread) => {
         const title = thread.title || 'Untitled Thread';
         const titleWords = title.toLowerCase().split(/\s+/);
 
