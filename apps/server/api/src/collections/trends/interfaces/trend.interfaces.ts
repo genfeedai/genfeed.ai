@@ -174,7 +174,19 @@ export interface TrendSourceReferenceRecord {
 
 export interface TrendSourceReferenceResult {
   items: TrendSourceReferenceRecord[];
+  /**
+   * Count of references on THIS page (== items.length), not a corpus-wide
+   * total: classification is filtered post-fetch on a JSON column, so a true
+   * SQL count isn't available without over-scanning. Use `hasMore` to decide
+   * whether to page further.
+   */
   totalReferences: number;
+  /**
+   * True when more matching references exist beyond this page — either the
+   * post-classification set exceeded `limit`, or the over-fetch window hit its
+   * cap (so additional matches may lie past it).
+   */
+  hasMore: boolean;
 }
 
 export type TrendPromptReferenceBrandSuitability =

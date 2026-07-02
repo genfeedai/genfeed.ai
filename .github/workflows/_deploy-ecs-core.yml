@@ -434,6 +434,7 @@ jobs:
         # api-workflow-backfill) before it can succeed. See follow-up issue.
         # ORDERING: runs AFTER services are stable — only the new app code can read the
         # ciphertext it writes. Idempotent: rows already in ciphertext are skipped.
+        id: credential_backfill
         continue-on-error: true
         working-directory: ${{ env.TF_DIR }}
         run: |
@@ -469,6 +470,23 @@ jobs:
             --query 'tasks[0].containers[0].exitCode' --output text)
           echo "credential backfill exit code: $CODE"
           [ "$CODE" = "0" ] || { echo "::error::credential-encryption backfill failed"; exit 1; }
+
+      # The backfill above is intentionally non-blocking (continue-on-error), so a
+      # failure would otherwise look identical to a green deploy. Surface a loud,
+      # distinct signal (annotation + job summary) without failing the deploy so an
+      # operator knows to re-run it. Tracked in #1044.
+      - name: Alert on credential-backfill failure (non-blocking)
+        if: steps.credential_backfill.outcome == 'failure'
+        run: |
+          echo "::error title=Credential-encryption backfill failed::Post-rollout credential-encryption backfill did NOT complete. Deploy was not blocked (by design); new writes are still encrypted, but legacy at-rest rows were not backfilled this run. Re-run once fixed — see #1044."
+          {
+            echo "### ⚠️ Credential-encryption backfill FAILED (non-blocking)"
+            echo ""
+            echo "The post-rollout credential-encryption backfill step failed. The production deploy was **not** blocked (by design), but legacy plaintext credential rows were **not** encrypted at rest this run."
+            echo ""
+            echo "- Encrypt-on-write still protects all new writes."
+            echo "- Re-run the backfill once the task is fixed. Tracked in #1044."
+          } >> "$GITHUB_STEP_SUMMARY"
 
   deploy-vercel-frontends:
     name: Deploy Vercel frontends
