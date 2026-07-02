@@ -128,7 +128,3 @@ export class NewLikeTriggerExecutor extends BaseExecutor {
     return 0;
   }
 }
-
-export function createNewLikeTriggerExecutor(): NewLikeTriggerExecutor {
-  return new NewLikeTriggerExecutor();
-}

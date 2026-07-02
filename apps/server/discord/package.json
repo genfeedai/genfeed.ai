@@ -11,7 +11,8 @@
   "scripts": {
     "build": "cd .. && nest build discord",
     "dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start discord --watch",
-    "start:prod": "node -r tsconfig-paths/register --max-old-space-size=8192 --expose-gc ../dist/apps/discord/main"
+    "start:prod": "node -r tsconfig-paths/register --max-old-space-size=8192 --expose-gc ../dist/apps/discord/main",
+    "type-check": "tsc --noEmit -p tsconfig.typecheck.json"
   },
   "version": "1.0.0",
   "type": "module"

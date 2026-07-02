@@ -54,15 +54,17 @@ describe('ElevenLabsService', () => {
 
     (
       ElevenLabsClient as unknown as ReturnType<typeof vi.fn>
-    ).mockImplementation(() => ({
-      forcedAlignment: { create: forcedAlignmentMock },
-      textToSpeech: { convertWithTimestamps: ttsConvertMock },
-      voices: {
-        delete: voicesDeleteMock,
-        getAll: voicesGetAllMock,
-        ivc: { create: voicesAddMock },
-      },
-    }));
+    ).mockImplementation(function ElevenLabsClientMock() {
+      return {
+        forcedAlignment: { create: forcedAlignmentMock },
+        textToSpeech: { convertWithTimestamps: ttsConvertMock },
+        voices: {
+          delete: voicesDeleteMock,
+          getAll: voicesGetAllMock,
+          ivc: { create: voicesAddMock },
+        },
+      };
+    });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [

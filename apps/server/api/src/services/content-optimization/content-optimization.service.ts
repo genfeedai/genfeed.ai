@@ -8,6 +8,7 @@ import {
   PerformanceSummaryService,
   type WeeklySummary,
 } from '@api/collections/content-performance/services/performance-summary.service';
+import { TrendPreferencesService } from '@api/collections/trends/services/trend-preferences.service';
 import { OpenAiLlmService } from '@api/services/integrations/openai-llm/services/openai-llm.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -78,6 +79,67 @@ export interface AutoApplyResult {
   reason?: string;
 }
 
+/**
+ * A winning content-run signal, extracted at the point a run's winning variant
+ * is identified (issue #166). Used to feed insights back into trend ingestion.
+ */
+export interface WinnerContentSignal {
+  variantId: string;
+  contentRunId?: string;
+  hook?: string;
+  format?: string;
+  platform?: string;
+  avgEngagementRate?: number;
+  keywords?: string[];
+  hashtags?: string[];
+}
+
+export interface RequeueWinnerResult {
+  requeued: boolean;
+  reason?: string;
+  trendPreferencesId?: string;
+  addedKeywords?: string[];
+  addedPlatforms?: string[];
+}
+
+// Common English tokens with no signal value as trend keywords.
+const HOOK_STOP_WORDS = new Set([
+  'about',
+  'after',
+  'again',
+  'and',
+  'are',
+  'but',
+  'for',
+  'from',
+  'has',
+  'have',
+  'how',
+  'into',
+  'its',
+  'new',
+  'not',
+  'our',
+  'out',
+  'that',
+  'the',
+  'their',
+  'them',
+  'they',
+  'this',
+  'was',
+  'were',
+  'what',
+  'when',
+  'why',
+  'will',
+  'with',
+  'you',
+  'your',
+]);
+
+const MAX_WINNER_KEYWORDS = 8;
+
 // ─── Service ─────────────────────────────────────────────────────────
 
 @Injectable()
@@ -90,6 +152,7 @@ export class ContentOptimizationService {
     private readonly optimizationCycleService: OptimizationCycleService,
     private readonly openAiLlmService: OpenAiLlmService,
     private readonly brandMemoryService: BrandMemoryService,
+    private readonly trendPreferencesService: TrendPreferencesService,
   ) {}
 
   // ─── 1. Content Performance Analysis ─────────────────────────────
@@ -365,6 +428,126 @@ export class ContentOptimizationService {
     });
 
     return { applied: true, suggestionId };
+  }
+
+  // ─── 4. Winner → Trend Feedback (issue #166) ─────────────────────
+
+  /**
+   * Close the core loop: when a content run's winning variant is identified,
+   * feed its signals (platform, hook keywords, format) back into the org/brand's
+   * trend preferences so future trend ingestion is biased toward what worked.
+   *
+   * Gated per-org/brand by the `autoRequeueWinners` trend preference (opt-in).
+   */
+  async requeueWinnerIntoTrends(
+    organizationId: string,
+    brandId: string | undefined,
+    winner: WinnerContentSignal,
+  ): Promise<RequeueWinnerResult> {
+    const caller = `${this.logContext}.requeueWinnerIntoTrends`;
+
+    const preferences = await this.trendPreferencesService.getPreferences(
+      organizationId,
+      brandId,
+    );
+
+    if (!preferences?.autoRequeueWinners) {
+      this.logger.log(`${caller} skipped — opt-in disabled or unset`, {
+        brandId,
+        contentRunId: winner.contentRunId,
+      });
+      return {
+        reason: 'winner_trend_enrichment_disabled_or_missing',
+        requeued: false,
+      };
+    }
+
+    const signals = this.deriveWinnerTrendSignals(winner);
+
+    if (signals.keywords.length === 0 && signals.platforms.length === 0) {
+      this.logger.log(`${caller} skipped — no usable trend signal`, {
+        brandId,
+        contentRunId: winner.contentRunId,
+      });
+      return { reason: 'no_signal', requeued: false };
+    }
+
+    const updated = await this.trendPreferencesService.mergeWinnerSignals(
+      organizationId,
+      brandId,
+      signals,
+    );
+
+    this.logger.log(caller, {
+      addedKeywords: signals.keywords,
+      addedPlatforms: signals.platforms,
+      brandId,
+      contentRunId: winner.contentRunId,
+    });
+
+    return {
+      addedKeywords: signals.keywords,
+      addedPlatforms: signals.platforms,
+      requeued: true,
+      trendPreferencesId: updated.id,
+    };
+  }
+
+  private deriveWinnerTrendSignals(winner: WinnerContentSignal): {
+    keywords: string[];
+    hashtags: string[];
+    platforms: string[];
+    categories: string[];
+  } {
+    const platform = this.normalizeToken(winner.platform);
+    const format = this.normalizeToken(winner.format);
+
+    const keywords = [
+      ...new Set(
+        [
+          ...this.tokenizeHook(winner.hook),
+          ...(format ? [format] : []),
+          ...(winner.keywords ?? []).map((keyword) =>
+            this.normalizeToken(keyword),
+          ),
+        ].filter((token): token is string => token.length > 0),
+      ),
+    ].slice(0, MAX_WINNER_KEYWORDS);
+
+    const hashtags = [
+      ...new Set(
+        (winner.hashtags ?? [])
+          .map((tag) => tag.trim())
+          .filter((tag) => tag.length > 0),
+      ),
+    ];
+
+    return {
+      categories: [],
+      hashtags,
+      keywords,
+      platforms: platform ? [platform] : [],
+    };
+  }
+
+  private tokenizeHook(hook: string | undefined): string[] {
+    if (!hook) {
+      return [];
+    }
+
+    return hook
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter(
+        (token) =>
+          token.length >= 3 &&
+          !HOOK_STOP_WORDS.has(token) &&
+          !/^\d+$/.test(token),
+      );
+  }
+
+  private normalizeToken(value: string | undefined): string {
+    return typeof value === 'string' ? value.trim().toLowerCase() : '';
   }
 
   // ─── Private Helpers ─────────────────────────────────────────────

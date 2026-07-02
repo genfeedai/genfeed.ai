@@ -558,12 +558,42 @@ describe('TrendsController', () => {
       };
       mockTrendsService.getCorpusFreshnessHealth.mockResolvedValue(health);
 
-      const result = await controller.getCorpusFreshnessHealth('tiktok');
+      const result = await controller.getCorpusFreshnessHealth(
+        mockUser,
+        'tiktok',
+      );
 
       expect(trendsService.getCorpusFreshnessHealth).toHaveBeenCalledWith({
+        isPlatformAdmin: false,
+        organizationId: mockUser.publicMetadata.organization,
         platform: 'tiktok',
       });
       expect(result).toEqual(health);
+    });
+
+    it('requests the global cross-org view for platform admins', async () => {
+      mockTrendsService.getCorpusFreshnessHealth.mockResolvedValue({
+        generatedAt: '2026-06-30T08:00:00.000Z',
+        providerFailures: [],
+        segments: [],
+        status: 'healthy',
+        summary: {},
+      });
+      const adminUser = {
+        id: 'admin_1',
+        publicMetadata: {
+          isSuperAdmin: true,
+          organization: '507f1f77bcf86cd799439012',
+        },
+      } as unknown as User;
+
+      await controller.getCorpusFreshnessHealth(adminUser, undefined);
+
+      expect(trendsService.getCorpusFreshnessHealth).toHaveBeenCalledWith({
+        isPlatformAdmin: true,
+        organizationId: adminUser.publicMetadata.organization,
+        platform: undefined,
+      });
     });
   });
 

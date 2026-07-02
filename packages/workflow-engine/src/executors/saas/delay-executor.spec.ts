@@ -1,8 +1,7 @@
 import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
-  createDelayExecutor,
-  type DelayExecutor,
+  DelayExecutor,
   durationToMs,
   type OptimalTimeResolver,
 } from '@workflow-engine/executors/saas/delay-executor';
@@ -55,7 +54,7 @@ describe('DelayExecutor', () => {
   let executor: DelayExecutor;
 
   beforeEach(() => {
-    executor = createDelayExecutor();
+    executor = new DelayExecutor();
   });
 
   describe('fixed mode', () => {

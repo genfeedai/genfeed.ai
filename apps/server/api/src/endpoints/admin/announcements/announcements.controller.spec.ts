@@ -8,12 +8,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AnnouncementsController } from './announcements.controller';
 import { AdminAnnouncementsService } from './announcements.service';
 
-vi.mock('@api/endpoints/admin/guards/ip-whitelist.guard', () => ({
-  IpWhitelistGuard: vi
-    .fn()
-    .mockImplementation(() => ({ canActivate: vi.fn().mockReturnValue(true) })),
-}));
-
 vi.mock('@api/helpers/decorators/user/current-user.decorator', () => ({
   CurrentUser:
     () => (_target: unknown, _key: string, descriptor: PropertyDescriptor) =>
@@ -89,10 +83,10 @@ describe('AnnouncementsController', () => {
         { provide: LoggerService, useValue: mockLoggerService },
       ],
     })
-      .overrideGuard('IpWhitelistGuard')
-      .useValue({ canActivate: () => true })
+      .overrideGuard(IpWhitelistGuard)
+      .useValue({ canActivate: vi.fn().mockReturnValue(true) })
       .overrideGuard(SuperAdminGuard)
-      .useValue({ canActivate: () => true })
+      .useValue({ canActivate: vi.fn().mockReturnValue(true) })
       .compile();
 
     controller = module.get<AnnouncementsController>(AnnouncementsController);

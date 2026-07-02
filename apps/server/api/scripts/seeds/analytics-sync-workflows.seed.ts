@@ -18,7 +18,7 @@ import { resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { AppModule } from '@api/app.module';
-import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import { WorkflowTemplateSeederService } from '@api/collections/workflows/services/workflow-template-seeder.service';
 import { ANALYTICS_SYNC_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/analytics-sync-workflows.template';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Logger } from '@nestjs/common';
@@ -82,7 +82,7 @@ async function main(): Promise<void> {
   });
 
   try {
-    const workflowsService = app.get(WorkflowsService);
+    const workflowSeeder = app.get(WorkflowTemplateSeederService);
     const prisma = app.get(PrismaService);
 
     const where: Record<string, unknown> = { isDeleted: false };
@@ -150,7 +150,7 @@ async function main(): Promise<void> {
         continue;
       }
 
-      await workflowsService.ensureAnalyticsSyncWorkflows(
+      await workflowSeeder.ensureAnalyticsSyncWorkflows(
         organization.userId,
         organization.id,
       );

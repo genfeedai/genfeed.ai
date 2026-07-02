@@ -17,6 +17,20 @@ describe('model-key.util', () => {
     expect(isReplicateDestination('google/imagen-4')).toBe(true);
   });
 
+  it('treats dot-versioned Replicate model keys as Replicate', () => {
+    expect(isReplicateDestination('bytedance/seedream-4.5')).toBe(true);
+  });
+
+  it('treats dot-versioned owner/model:version Replicate keys as Replicate', () => {
+    expect(isReplicateDestination('bytedance/seedance-2.0')).toBe(true);
+    expect(isReplicateDestination('owner/model:1.2.3')).toBe(true);
+  });
+
+  it('still excludes fal-ai destinations even when dot-versioned', () => {
+    expect(isReplicateDestination('fal-ai/veo3.1')).toBe(false);
+    expect(isReplicateDestination('fal-ai/seedance-2.0')).toBe(false);
+  });
+
   describe('isTrainingKey', () => {
     it('returns true for new genfeed-ai/owner/model format', () => {
       expect(isTrainingKey('genfeed-ai/663a1b/6721cf')).toBe(true);

@@ -1,8 +1,7 @@
 import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
-  createLipSyncExecutor,
-  type LipSyncExecutor,
+  LipSyncExecutor,
   type LipSyncResolver,
 } from '@workflow-engine/executors/saas/lip-sync-executor';
 import type { ExecutableNode } from '@workflow-engine/types';
@@ -45,7 +44,7 @@ describe('LipSyncExecutor', () => {
   let mockResolver: LipSyncResolver;
 
   beforeEach(() => {
-    executor = createLipSyncExecutor();
+    executor = new LipSyncExecutor();
     mockResolver = vi
       .fn()
       .mockResolvedValue({ videoUrl: 'https://cdn.example.com/synced.mp4' });
@@ -92,7 +91,7 @@ describe('LipSyncExecutor', () => {
 
   describe('execute', () => {
     it('should throw when resolver is not configured', async () => {
-      const noResolverExecutor = createLipSyncExecutor();
+      const noResolverExecutor = new LipSyncExecutor();
       const input = makeInput({}, [
         ['video', 'https://cdn.example.com/video.mp4'],
         ['audio', 'https://cdn.example.com/audio.mp3'],

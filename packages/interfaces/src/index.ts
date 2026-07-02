@@ -141,6 +141,7 @@ export * from './integrations/ads-gateway.interface';
 export * from './integrations/ads-research.interface';
 export * from './integrations/facebook.interface';
 export * from './integrations/ghost.interface';
+export * from './integrations/google-search-console.interface';
 export * from './integrations/heygen.interface';
 export * from './integrations/instagram.interface';
 export * from './integrations/integration.interface';

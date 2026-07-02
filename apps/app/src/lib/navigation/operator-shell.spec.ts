@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   appendSearchParamsToHref,
   buildTaskLaunchHref,
+  getBrandSwitchHref,
   getCurrentBrandScopedPath,
   normalizeProtectedPathname,
   pickOperatorTaskContextSearchParams,
@@ -32,6 +33,34 @@ describe('operator-shell helpers', () => {
     expect(getCurrentBrandScopedPath('/acme/~/overview')).toBe(
       '/workspace/overview',
     );
+  });
+
+  it('keeps org-scoped app surfaces when switching brands', () => {
+    expect(
+      getBrandSwitchHref({
+        nextBrandSlug: 'sunrise',
+        nextOrgSlug: 'acme',
+        pathname: '/acme/~/agent',
+      }),
+    ).toBe('/acme/~/agent');
+
+    expect(
+      getBrandSwitchHref({
+        nextBrandSlug: 'sunrise',
+        nextOrgSlug: 'acme',
+        pathname: '/acme/~/agent/thread-1',
+      }),
+    ).toBe('/acme/~/agent/thread-1');
+  });
+
+  it('keeps brand-scoped app paths when switching brands', () => {
+    expect(
+      getBrandSwitchHref({
+        nextBrandSlug: 'sunrise',
+        nextOrgSlug: 'acme',
+        pathname: '/acme/moonrise/studio/video',
+      }),
+    ).toBe('/acme/sunrise/studio/video');
   });
 
   it('picks and appends only task context params', () => {

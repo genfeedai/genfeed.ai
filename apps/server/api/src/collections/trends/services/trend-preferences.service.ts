@@ -44,16 +44,23 @@ export class TrendPreferencesService {
       keywords?: string[];
       platforms?: string[];
       hashtags?: string[];
+      autoRequeueWinners?: boolean;
     },
   ): Promise<TrendPreferencesDocument> {
     try {
       const brandId = preferences.brandId ?? null;
-      const normalizedPreferences = {
+      const normalizedPreferences: Record<string, unknown> = {
         categories: preferences.categories ?? [],
         hashtags: preferences.hashtags ?? [],
         keywords: preferences.keywords ?? [],
         platforms: preferences.platforms ?? [],
       };
+      // Only persist the opt-in flag when the caller supplied it, so callers that
+      // never touch it (the common case) leave the stored config shape untouched.
+      if (preferences.autoRequeueWinners !== undefined) {
+        normalizedPreferences.autoRequeueWinners =
+          preferences.autoRequeueWinners;
+      }
       const updateData = {
         config: normalizedPreferences,
         updatedAt: new Date(),
@@ -100,6 +107,10 @@ export class TrendPreferencesService {
 
     return {
       ...(doc as TrendPreferencesDocument),
+      autoRequeueWinners: this.readBoolean(
+        docRecord.autoRequeueWinners ?? config?.autoRequeueWinners,
+        false,
+      ),
       categories: this.readStringArray(
         docRecord.categories ?? config?.categories,
       ),
@@ -107,6 +118,65 @@ export class TrendPreferencesService {
       keywords: this.readStringArray(docRecord.keywords ?? config?.keywords),
       platforms: this.readStringArray(docRecord.platforms ?? config?.platforms),
     };
+  }
+
+  /**
+   * Merge winning content-run signals into an org/brand's trend preferences so
+   * future trend ingestion is biased toward what already performed (issue #166).
+   * Signals are unioned into the existing arrays; the opt-in flag is preserved.
+   */
+  async mergeWinnerSignals(
+    organizationId: string,
+    brandId: string | undefined,
+    signals: {
+      categories?: string[];
+      hashtags?: string[];
+      keywords?: string[];
+      platforms?: string[];
+    },
+  ): Promise<TrendPreferencesDocument> {
+    const existing = await this.getPreferences(organizationId, brandId);
+
+    return this.savePreferences(organizationId, {
+      autoRequeueWinners: existing?.autoRequeueWinners,
+      brandId,
+      categories: this.unionSignals(existing?.categories, signals.categories),
+      hashtags: this.unionSignals(existing?.hashtags, signals.hashtags),
+      keywords: this.unionSignals(existing?.keywords, signals.keywords),
+      platforms: this.unionSignals(existing?.platforms, signals.platforms),
+    });
+  }
+
+  private unionSignals(
+    existing: string[] | undefined,
+    additions: string[] | undefined,
+  ): string[] {
+    return [
+      ...new Set(
+        [...(existing ?? []), ...(additions ?? [])].filter(
+          (entry): entry is string =>
+            typeof entry === 'string' && entry.length > 0,
+        ),
+      ),
+    ];
+  }
+
+  private readBoolean(value: unknown, fallback: boolean): boolean {
+    if (typeof value === 'boolean') {
+      return value;
+    }
+
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      if (normalized === 'true') {
+        return true;
+      }
+      if (normalized === 'false') {
+        return false;
+      }
+    }
+
+    return fallback;
   }
 
   private readObjectRecord(value: unknown): Record<string, unknown> | null {

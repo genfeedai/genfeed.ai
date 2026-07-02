@@ -1,9 +1,8 @@
 import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
-  createKeywordTriggerExecutor,
   type KeywordChecker,
-  type KeywordTriggerExecutor,
+  KeywordTriggerExecutor,
 } from '@workflow-engine/executors/saas/keyword-trigger-executor';
 import type { ExecutableNode } from '@workflow-engine/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -30,7 +29,7 @@ describe('KeywordTriggerExecutor', () => {
   let mockChecker: KeywordChecker;
 
   beforeEach(() => {
-    executor = createKeywordTriggerExecutor();
+    executor = new KeywordTriggerExecutor();
     mockChecker = vi.fn().mockResolvedValue({
       authorId: 'a-1',
       authorUsername: 'poster',
@@ -49,7 +48,7 @@ describe('KeywordTriggerExecutor', () => {
   });
 
   it('throws if checker not configured', async () => {
-    const fresh = createKeywordTriggerExecutor();
+    const fresh = new KeywordTriggerExecutor();
     const input = makeInput({ keywords: ['genfeed'], platform: 'twitter' });
     await expect(fresh.execute(input)).rejects.toThrow(
       'checker not configured',

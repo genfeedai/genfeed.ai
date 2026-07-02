@@ -1,4 +1,3 @@
-export * from '@serializers/attributes/collections/ad-insight.attributes';
 export * from '@serializers/attributes/collections/model.attributes';
 export * from '@serializers/attributes/collections/prompt.attributes';
 export * from '@serializers/attributes/collections/role.attributes';

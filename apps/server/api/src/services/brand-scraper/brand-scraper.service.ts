@@ -26,6 +26,13 @@ const MAX_RETRY_ATTEMPTS = 3;
 
 /** Base delay in ms for exponential backoff on 429 responses */
 const RETRY_BASE_DELAY_MS = 1_000;
+
+/** Maximum redirect hops followed (each re-validated against the SSRF blocklist) */
+const MAX_REDIRECTS = 5;
+
+/** HTTP status codes we follow as redirects (re-validating each Location) */
+const REDIRECT_STATUS_CODES = new Set([301, 302, 303, 307, 308]);
+
 const MAX_IMAGE_CANDIDATES = 12;
 const MAX_FONT_CANDIDATES = 8;
 
@@ -431,6 +438,64 @@ export class BrandScraperService {
     url: string,
     options: RequestInit,
   ): Promise<Response> {
+    let currentUrl = url;
+
+    for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+      // Re-validate EVERY hop, not just the initial URL. A validated public URL
+      // can 3xx to a private/loopback/cloud-metadata target, so following
+      // redirects blindly (redirect: 'follow') reopens the SSRF hole the
+      // initial validateUrl check closed. We follow manually and re-check each
+      // Location against the shared blocklist. (Connection-level IP pinning to
+      // defeat DNS rebinding of a public hostname is a separate follow-up.)
+      this.assertFetchTargetAllowed(currentUrl);
+
+      const response = await this.fetchOnce(currentUrl, options);
+
+      if (
+        REDIRECT_STATUS_CODES.has(response.status) &&
+        response.headers.has('location')
+      ) {
+        const location = response.headers.get('location') as string;
+        let nextUrl: string;
+        try {
+          nextUrl = new URL(location, currentUrl).href;
+        } catch {
+          throw new Error(`Invalid redirect target "${location}" from ${url}`);
+        }
+        currentUrl = nextUrl;
+        continue;
+      }
+
+      return response;
+    }
+
+    throw new Error(`Too many redirects (>${MAX_REDIRECTS}) for ${url}`);
+  }
+
+  /**
+   * Throw if the URL's host is an SSRF target (loopback, RFC-1918, link-local /
+   * cloud metadata, internal TLDs). Applied to the initial URL and every
+   * redirect hop.
+   */
+  private assertFetchTargetAllowed(url: string): void {
+    let hostname: string;
+    try {
+      hostname = new URL(url).hostname;
+    } catch {
+      throw new Error(`Invalid fetch URL: ${url}`);
+    }
+    // Throws BadRequestException on a blocked host.
+    assertHostNotPrivate(hostname);
+  }
+
+  /**
+   * Fetch a single URL with 429 backoff. Redirects are NOT auto-followed
+   * (redirect: 'manual') so the caller can re-validate each hop.
+   */
+  private async fetchOnce(
+    url: string,
+    options: RequestInit,
+  ): Promise<Response> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     for (let attempt = 0; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
@@ -440,6 +505,7 @@ export class BrandScraperService {
       try {
         const response = await fetch(url, {
           ...options,
+          redirect: 'manual',
           signal: controller.signal,
         });
 

@@ -56,10 +56,10 @@ function subscribeCollapsedGroups(onStoreChange: () => void): () => void {
   };
 }
 
-/** Collapsible group with label header and toggle */
 export default function CollapsibleGroup({
   label,
   isDrillDown,
+  isCollapsible = false,
   children,
   storageKey,
   actions,
@@ -70,6 +70,7 @@ export default function CollapsibleGroup({
 }: {
   label: string;
   isDrillDown: boolean;
+  isCollapsible?: boolean;
   children: React.ReactNode;
   storageKey?: string;
   actions?: React.ReactNode;
@@ -105,6 +106,25 @@ export default function CollapsibleGroup({
   // Ungrouped items (empty label) render flat without a collapsible header
   if (!label) {
     return <div className={cn('mt-1', className)}>{children}</div>;
+  }
+
+  if (!isCollapsible) {
+    return (
+      <div className={cn('mt-2', className)}>
+        <div
+          className={cn(
+            'flex w-full items-center p-1 text-foreground/30',
+            headerClassName,
+          )}
+        >
+          <span className="text-[10px] font-bold uppercase tracking-[0.15em]">
+            {label}
+          </span>
+          {actions && <div className="ml-auto">{actions}</div>}
+        </div>
+        <div className={contentClassName}>{children}</div>
+      </div>
+    );
   }
 
   return (

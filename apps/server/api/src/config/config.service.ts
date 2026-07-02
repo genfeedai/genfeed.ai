@@ -42,10 +42,14 @@ interface ApiEnvConfig extends IEnvConfig {
   BETTER_AUTH_URL?: string;
   BETTER_AUTH_TRUSTED_ORIGINS?: string;
   BETTER_AUTH_REQUIRE_EMAIL_VERIFICATION?: 'true' | 'false';
+  BETTER_AUTH_COOKIE_DOMAIN?: string;
+  BETTER_AUTH_EXPERIMENTAL_JOINS?: string;
+  BETTER_AUTH_IP_HEADERS?: string;
   GITHUB_CLIENT_ID?: string;
   GITHUB_CLIENT_SECRET?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
+  API_LISTEN_TIMEOUT_MS?: string;
   API_PERFORMANCE_AUDIT?: 'true' | 'false';
   API_QUERY_METRICS?: 'true' | 'false';
   API_SENTRY_PERFORMANCE_METRICS?: 'true' | 'false';

@@ -2,6 +2,7 @@ import type { CreateApiKeyDto } from '@api/collections/api-keys/dto/create-api-k
 import type { ApiKeyDocument } from '@api/collections/api-keys/schemas/api-key.schema';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { ApiKeyCategory } from '@genfeedai/enums';
+import { BadRequestException } from '@nestjs/common';
 
 type MockFn = ReturnType<typeof vi.fn>;
 
@@ -9,6 +10,29 @@ type ApiKeysServiceHarness = ApiKeysService & {
   createWithKey: MockFn;
   revoke: MockFn;
 };
+
+type ApiKeysValidationHarness = ApiKeysService & {
+  create: MockFn;
+};
+
+/**
+ * Harness that leaves createWithKey/assertValidScopes REAL (only stubs the
+ * downstream BaseService.create + key-gen helpers) so scope validation is
+ * exercised end-to-end.
+ */
+function createValidationHarness(): ApiKeysValidationHarness {
+  const service = Object.create(
+    ApiKeysService.prototype,
+  ) as ApiKeysValidationHarness;
+  service.create = vi
+    .fn()
+    .mockResolvedValue({ id: 'key-new' } as ApiKeyDocument);
+  service.generateApiKey = vi.fn().mockReturnValue('gf_test_plain');
+  service.hashApiKey = vi.fn().mockResolvedValue('hashed');
+  service.computeFingerprint = vi.fn().mockReturnValue('fingerprint');
+  Object.defineProperty(service, 'logger', { value: { error: vi.fn() } });
+  return service;
+}
 
 type MockCacheInvalidationService = {
   invalidate: MockFn;
@@ -99,6 +123,117 @@ describe('ApiKeysService', () => {
       expect(service.revoke).toHaveBeenNthCalledWith(2, 'key-2');
       expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
       expect(cacheInvalidationService.invalidateByTags).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('assertValidScopes', () => {
+    const { service } = createHarness();
+
+    it('rejects the wildcard scope', () => {
+      expect(() => service.assertValidScopes(['*'])).toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('rejects unknown scopes', () => {
+      expect(() => service.assertValidScopes(['not-a-real-scope'])).toThrow(
+        BadRequestException,
+      );
+      expect(() =>
+        service.assertValidScopes(['videos:read', 'bogus:scope']),
+      ).toThrow(/bogus:scope/);
+    });
+
+    it('accepts defined self-service scopes', () => {
+      expect(() =>
+        service.assertValidScopes(['videos:read', 'images:create']),
+      ).not.toThrow();
+    });
+
+    it('accepts privileged managed scopes defined in the enum', () => {
+      expect(() =>
+        service.assertValidScopes([
+          'credits:provision',
+          'managed-inference:execute',
+        ]),
+      ).not.toThrow();
+    });
+  });
+
+  describe('createWithKey scope validation', () => {
+    it('rejects a wildcard scope before persisting', async () => {
+      const service = createValidationHarness();
+
+      await expect(
+        service.createWithKey({
+          category: ApiKeyCategory.GENFEEDAI,
+          label: 'k',
+          organizationId: 'org-1',
+          scopes: ['*'],
+          userId: 'user-1',
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(service.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects an unknown scope before persisting', async () => {
+      const service = createValidationHarness();
+
+      await expect(
+        service.createWithKey({
+          category: ApiKeyCategory.GENFEEDAI,
+          label: 'k',
+          organizationId: 'org-1',
+          scopes: ['videos:read', 'made-up:scope'],
+          userId: 'user-1',
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(service.create).not.toHaveBeenCalled();
+    });
+
+    it('persists when every scope is valid', async () => {
+      const service = createValidationHarness();
+
+      await service.createWithKey({
+        category: ApiKeyCategory.GENFEEDAI,
+        label: 'k',
+        organizationId: 'org-1',
+        scopes: ['videos:read', 'images:create'],
+        userId: 'user-1',
+      });
+
+      expect(service.create).toHaveBeenCalledTimes(1);
+      expect(service.create).toHaveBeenCalledWith(
+        expect.objectContaining({ scopes: ['videos:read', 'images:create'] }),
+      );
+    });
+  });
+
+  describe('hasScope', () => {
+    const { service } = createHarness();
+
+    it('matches an explicitly granted scope', () => {
+      expect(
+        service.hasScope(
+          { scopes: ['videos:read'] } as ApiKeyDocument,
+          'videos:read',
+        ),
+      ).toBe(true);
+    });
+
+    it('does not match a scope the key was not granted', () => {
+      expect(
+        service.hasScope(
+          { scopes: ['videos:read'] } as ApiKeyDocument,
+          'images:read',
+        ),
+      ).toBe(false);
+    });
+
+    it('does NOT honor a wildcard scope', () => {
+      expect(
+        service.hasScope({ scopes: ['*'] } as ApiKeyDocument, 'videos:read'),
+      ).toBe(false);
     });
   });
 });

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://v2-9-12.turborepo.dev/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "type-check": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/apps/server/tsconfig.typecheck.base.json",
+        "$TURBO_ROOT$/apps/server/api/src/**",
+        "$TURBO_ROOT$/apps/server/files/src/**"
+      ]
+    }
+  }
+}

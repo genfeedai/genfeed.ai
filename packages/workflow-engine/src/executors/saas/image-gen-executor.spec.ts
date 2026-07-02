@@ -1,9 +1,6 @@
 import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
-import {
-  createImageGenExecutor,
-  type ImageGenExecutor,
-} from '@workflow-engine/executors/saas/image-gen-executor';
+import { ImageGenExecutor } from '@workflow-engine/executors/saas/image-gen-executor';
 import type { ExecutableNode } from '@workflow-engine/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -33,7 +30,7 @@ describe('ImageGenExecutor', () => {
   let executor: ImageGenExecutor;
 
   beforeEach(() => {
-    executor = createImageGenExecutor();
+    executor = new ImageGenExecutor();
     executor.setResolver(
       vi.fn().mockResolvedValue({
         filename: 'out.png',
@@ -94,7 +91,7 @@ describe('ImageGenExecutor', () => {
 
   describe('execute', () => {
     it('throws without resolver', async () => {
-      const exec = createImageGenExecutor();
+      const exec = new ImageGenExecutor();
       await expect(exec.execute(makeInput({ model: 'flux' }))).rejects.toThrow(
         'resolver',
       );

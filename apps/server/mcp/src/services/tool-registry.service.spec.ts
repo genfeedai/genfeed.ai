@@ -90,7 +90,7 @@ const MOCK_TOOLS = [
     surfaces: { mcp: true },
   },
   {
-    name: 'get_ad_performance_insights',
+    name: 'get_google_ads_keyword_performance',
     // Matches production (source.ts) — this tool is user-tier, not admin.
     requiredRole: 'user',
     surfaces: { mcp: true },

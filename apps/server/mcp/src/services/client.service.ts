@@ -638,46 +638,6 @@ export class ClientService {
     );
   }
 
-  // ── Ad Insights (Content Loop) ──
-
-  getAdPerformanceInsights(params?: {
-    industry?: string;
-    platform?: string;
-  }): Promise<unknown> {
-    return this.ads.getAdPerformanceInsights(params);
-  }
-
-  getTopHeadlines(params?: {
-    industry?: string;
-    platform?: string;
-  }): Promise<unknown[]> {
-    return this.ads.getTopHeadlines(params);
-  }
-
-  suggestAdHeadlines(params: {
-    industry?: string;
-    platform?: string;
-    product?: string;
-  }): Promise<unknown> {
-    return this.ads.suggestAdHeadlines(params);
-  }
-
-  generateAdVariations(params: {
-    headline?: string;
-    body?: string;
-    platform?: string;
-    count?: number;
-  }): Promise<unknown> {
-    return this.ads.generateAdVariations(params);
-  }
-
-  benchmarkAdPerformance(params?: {
-    industry?: string;
-    platform?: string;
-  }): Promise<unknown> {
-    return this.ads.benchmarkAdPerformance(params);
-  }
-
   // ── Darkroom / Training ──
 
   getDarkroomHealth(): Promise<Record<string, unknown>> {
