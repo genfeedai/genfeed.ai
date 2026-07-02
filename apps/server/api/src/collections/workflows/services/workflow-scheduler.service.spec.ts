@@ -1,4 +1,6 @@
+import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
+import { buildSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
 import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -149,6 +151,24 @@ describe('WorkflowSchedulerService — scheduled fire locking', () => {
       { triggeredBy: 'schedule' },
       WorkflowExecutionTrigger.SCHEDULED,
     );
+  });
+
+  it('never registers cron jobs for system workflows (their actions fire from the workers sweep scheduler)', () => {
+    const { service } = createService({});
+
+    service.scheduleWorkflow({
+      id: 'wf-system',
+      isScheduleEnabled: true,
+      metadata: {
+        systemWorkflow: buildSystemWorkflowMetadata({
+          canonicalId: 'scheduled-post-publishing',
+        }),
+      },
+      schedule: '*/15 * * * *',
+    } as unknown as WorkflowDocument);
+
+    expect(service.getNextRunTime('wf-system')).toBeNull();
+    expect(service.getScheduledWorkflowsInfo()).toEqual([]);
   });
 
   it('does not execute a workflow that is missing or inactive, even with the lock', async () => {

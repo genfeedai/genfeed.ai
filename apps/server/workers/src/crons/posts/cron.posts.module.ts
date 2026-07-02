@@ -17,6 +17,7 @@ import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
     PublishersModule,
     QuotaModule,
   ],
+  exports: [CronPostsService],
   providers: [CronPostsService, SystemWorkflowProvenanceService],
 })
 export class CronPostsModule {}

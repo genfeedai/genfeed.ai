@@ -105,7 +105,9 @@ describe('WorkflowsService seeded livestream bot workflows', () => {
     );
     expect(tx.workflow.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        isScheduleEnabled: true,
+        // System action schedules are display metadata; firing happens in the
+        // workers sweep scheduler (issue #1092).
+        isScheduleEnabled: false,
         label: 'Scheduled Post Publishing',
         metadata: expect.objectContaining({
           sourceIssue: 1011,
