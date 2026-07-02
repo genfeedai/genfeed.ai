@@ -28,20 +28,14 @@ const { mockClient, mockRest } = vi.hoisted(() => ({
 }));
 
 vi.mock('discord.js', () => ({
-  ActionRowBuilder: vi.fn(function () {
-    return { addComponents: vi.fn().mockReturnThis() };
-  }),
-  ButtonBuilder: vi.fn(function () {
-    return {
-      setCustomId: vi.fn().mockReturnThis(),
-      setLabel: vi.fn().mockReturnThis(),
-      setStyle: vi.fn().mockReturnThis(),
-    };
-  }),
+  ActionRowBuilder: vi.fn(() => ({ addComponents: vi.fn().mockReturnThis() })),
+  ButtonBuilder: vi.fn(() => ({
+    setCustomId: vi.fn().mockReturnThis(),
+    setLabel: vi.fn().mockReturnThis(),
+    setStyle: vi.fn().mockReturnThis(),
+  })),
   ButtonStyle: { Danger: 4, Primary: 1, Secondary: 2, Success: 3 },
-  Client: vi.fn(function () {
-    return mockClient;
-  }),
+  Client: vi.fn(() => mockClient),
   Events: { ClientReady: 'clientReady' },
   GatewayIntentBits: {
     DirectMessages: 4,
@@ -49,17 +43,13 @@ vi.mock('discord.js', () => ({
     Guilds: 1,
     MessageContent: 3,
   },
-  REST: vi.fn(function () {
-    return mockRest;
-  }),
+  REST: vi.fn(() => mockRest),
   Routes: { applicationCommands: vi.fn().mockReturnValue('/commands') },
-  SlashCommandBuilder: vi.fn(function () {
-    return {
-      setDescription: vi.fn().mockReturnThis(),
-      setName: vi.fn().mockReturnThis(),
-      toJSON: vi.fn().mockReturnValue({}),
-    };
-  }),
+  SlashCommandBuilder: vi.fn(() => ({
+    setDescription: vi.fn().mockReturnThis(),
+    setName: vi.fn().mockReturnThis(),
+    toJSON: vi.fn().mockReturnValue({}),
+  })),
 }));
 
 describe('Discord Bot Manager Integration Flow', () => {

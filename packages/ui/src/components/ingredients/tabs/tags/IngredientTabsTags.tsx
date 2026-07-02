@@ -1,7 +1,7 @@
 'use client';
 
-import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { ITag } from '@genfeedai/interfaces';
 import type { ExtendedIngredientTabsTagsProps } from '@genfeedai/props/content/ingredient-tabs.props';

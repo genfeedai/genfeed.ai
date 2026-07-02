@@ -25,8 +25,19 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Body, Controller, Get, Post, Req } from '@nestjs/common';
+import type { AxiosResponse } from 'axios';
 import type { Request } from 'express';
 import { firstValueFrom } from 'rxjs';
+
+interface ThreadsShortLivedTokenResponse {
+  access_token: string;
+  user_id?: string;
+}
+
+interface ThreadsLongLivedTokenResponse {
+  access_token: string;
+  expires_in?: number;
+}
 
 @AutoSwagger()
 @Controller('services/threads')
@@ -158,7 +169,7 @@ export class ThreadsController {
       }
 
       // Exchange code for short-lived token
-      let tokenRes;
+      let tokenRes: AxiosResponse<ThreadsShortLivedTokenResponse>;
       try {
         tokenRes = await firstValueFrom(
           this.httpService.post(
@@ -208,7 +219,7 @@ export class ThreadsController {
       }
 
       // Exchange short-lived token for long-lived token
-      let longTokenRes;
+      let longTokenRes: AxiosResponse<ThreadsLongLivedTokenResponse>;
       try {
         longTokenRes = await firstValueFrom(
           this.httpService.get(`${this.graphUrl}/access_token`, {

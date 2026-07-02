@@ -1,8 +1,8 @@
-import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import {
   getAuthPublicData,
   getPlaywrightAuthState,
 } from '@helpers/auth/auth.helper';
+import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { useMemo } from 'react';
 
 /**
