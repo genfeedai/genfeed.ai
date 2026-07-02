@@ -55,6 +55,7 @@ import {
   WorkflowStepCategory,
   WorkflowStepStatus,
 } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
 import type { CreditEstimate } from '@genfeedai/workflow-engine';
 import {
   calculateCreditEstimate,
@@ -100,11 +101,11 @@ export class WorkflowsService extends BaseService<
   }
 
   private buildSeededSystemWorkflowMetadata(input: {
-    extra?: Record<string, unknown>;
+    extra?: Prisma.InputJsonObject;
     sourceIssue: number;
     sourceTemplateId: string;
     sourceType?: string;
-  }): Record<string, unknown> {
+  }): Prisma.InputJsonObject {
     return {
       ...(input.extra ?? {}),
       sourceIssue: input.sourceIssue,

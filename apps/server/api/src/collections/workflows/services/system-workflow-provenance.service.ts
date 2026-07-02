@@ -257,8 +257,8 @@ export class SystemWorkflowProvenanceService {
     }
   }
 
-  private async createExecution(
-    input: SystemWorkflowActionInput<unknown> & {
+  private async createExecution<T>(
+    input: SystemWorkflowActionInput<T> & {
       userId: string;
       workflowId: string;
       workflowLabel: string;
@@ -300,10 +300,10 @@ export class SystemWorkflowProvenanceService {
     });
   }
 
-  private async completeExecution(input: {
+  private async completeExecution<T>(input: {
     error?: string;
     executionId: string;
-    input: SystemWorkflowActionInput<unknown>;
+    input: SystemWorkflowActionInput<T>;
     result: unknown;
     workflowId: string;
   }): Promise<void> {
