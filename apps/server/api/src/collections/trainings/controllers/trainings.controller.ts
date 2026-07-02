@@ -61,7 +61,6 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
 interface TrainingSourceImage {
-  _id: string;
   id: string;
   metadata: {
     extension?: string;
@@ -225,13 +224,13 @@ export class TrainingsController extends BaseCRUDController<
   public canUserModifyEntity(user: User, entity: unknown): boolean {
     const publicMetadata = getPublicMetadata(user);
     const entityRecord = entity as {
-      user?: { _id?: { toString?: () => string } } | string | null;
-      organization?: { _id?: { toString?: () => string } } | string | null;
+      user?: { id?: { toString?: () => string } } | string | null;
+      organization?: { id?: { toString?: () => string } } | string | null;
     };
 
     const entityUserId =
       (typeof entityRecord.user === 'object' && entityRecord.user !== null
-        ? entityRecord.user._id?.toString?.()
+        ? entityRecord.user.id?.toString?.()
         : undefined) ||
       (typeof entityRecord.user === 'string' ? entityRecord.user : undefined);
     if (entityUserId === publicMetadata.user) {
@@ -241,7 +240,7 @@ export class TrainingsController extends BaseCRUDController<
     const entityOrgId =
       (typeof entityRecord.organization === 'object' &&
       entityRecord.organization !== null
-        ? entityRecord.organization._id?.toString?.()
+        ? entityRecord.organization.id?.toString?.()
         : undefined) ||
       (typeof entityRecord.organization === 'string'
         ? entityRecord.organization
@@ -315,8 +314,8 @@ export class TrainingsController extends BaseCRUDController<
       const sourceImages = (
         (sourceResult.docs as TrainingSourceImage[]) ?? []
       ).map((image) => ({
-        _id: image._id,
-        id: image.id ?? image._id,
+        _id: image.id,
+        id: image.id,
         metadata: image.metadata ?? {},
       }));
 
@@ -380,11 +379,11 @@ export class TrainingsController extends BaseCRUDController<
 
       await Promise.all(
         sourceImages.map((img) =>
-          this.ingredientsService.patch(img._id, {
+          this.ingredientsService.patch(img.id, {
             category: CategoryPrismaUtil.toIngredientCategory(
               IngredientCategory.SOURCE,
             ),
-            training: training._id as string,
+            training: training.id as string,
           }),
         ),
       );
@@ -432,18 +431,18 @@ export class TrainingsController extends BaseCRUDController<
       }));
 
       uploadedUrl = await this.trainingsService.createTrainingZip(
-        training._id.toString(),
+        training.id.toString(),
         minimal,
       );
     } catch (error: unknown) {
-      await this.trainingsService.patch(training._id, {
+      await this.trainingsService.patch(training.id, {
         status: IngredientStatus.FAILED,
       });
       this.loggerService.error('Failed to create training zip', error);
 
       // Emit WebSocket event for training failure
       await this.websocketService.publishTrainingStatus(
-        training._id.toString(),
+        training.id.toString(),
         IngredientStatus.FAILED,
         training.user?.toString() || 'unknown',
         {
@@ -460,14 +459,14 @@ export class TrainingsController extends BaseCRUDController<
     try {
       await this.trainingsService.launchTraining(training, uploadedUrl);
     } catch (error: unknown) {
-      await this.trainingsService.patch(training._id, {
+      await this.trainingsService.patch(training.id, {
         status: IngredientStatus.FAILED,
       });
       this.loggerService.error('Failed to launch training', error);
 
       // Emit WebSocket event for training failure
       await this.websocketService.publishTrainingStatus(
-        training._id.toString(),
+        training.id.toString(),
         IngredientStatus.FAILED,
         training.user?.toString() || 'unknown',
         {

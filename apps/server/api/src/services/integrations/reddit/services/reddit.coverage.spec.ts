@@ -42,7 +42,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const makeCredential = (overrides: Record<string, unknown> = {}) =>
   ({
-    _id: 'cred-id-1',
+    id: 'cred-id-1',
     accessToken: 'enc-access-token',
     isConnected: true,
     isDeleted: false,

@@ -60,7 +60,6 @@ export class WebhooksService {
   private getDocumentId(
     value:
       | {
-          _id?: string | { toString(): string };
           id?: string | { toString(): string };
         }
       | null
@@ -68,14 +67,6 @@ export class WebhooksService {
   ): string | undefined {
     if (!value) {
       return undefined;
-    }
-
-    if (typeof value._id === 'string') {
-      return value._id;
-    }
-
-    if (value._id && typeof value._id.toString === 'function') {
-      return value._id.toString();
     }
 
     if (typeof value.id === 'string') {
@@ -96,7 +87,7 @@ export class WebhooksService {
       return ref;
     }
 
-    return ref?._id?.toString() ?? ref?.id?.toString();
+    return ref?.id?.toString() ?? ref?.id?.toString();
   }
 
   private toUserReference(
@@ -187,10 +178,9 @@ export class WebhooksService {
     const metadataId =
       ingredient.metadata &&
       typeof ingredient.metadata === 'object' &&
-      '_id' in ingredient.metadata
+      'id' in ingredient.metadata
         ? String(
-            (ingredient.metadata as { _id: string | { toString(): string } })
-              ._id,
+            (ingredient.metadata as { id: string | { toString(): string } }).id,
           )
         : String(ingredient.metadata);
 
@@ -261,11 +251,11 @@ export class WebhooksService {
 
     // 4. Post-processing (fire-and-forget)
     this.postProcessingOrchestrator.notifyBotGatewayIfNeeded(
-      String(ingredient._id),
+      String(ingredient.id),
       input.categoryValue,
     );
     this.schedulePostUploadNotifications(
-      String(ingredient._id),
+      String(ingredient.id),
       input.categoryValue,
       input.integration,
     );
@@ -308,7 +298,7 @@ export class WebhooksService {
         brandId: this.getRefId(ingredient.brand),
         category: ingredient.category as IngredientCategory | string,
         dbUserId,
-        ingredientId: ingredient._id.toString(),
+        ingredientId: ingredient.id.toString(),
         metadataExtension: metadata?.extension,
         organizationId: this.getRefId(ingredient.organization),
         transformations: ingredient.transformations || [],
@@ -318,14 +308,14 @@ export class WebhooksService {
     }
 
     // 7. WebSocket publish
-    const ingredientId = ingredient._id.toString();
+    const ingredientId = ingredient.id.toString();
     const websocketUrl = `/${categoryToPlural(input.categoryValue)}/${ingredientId}`;
     const roomValidation = validateRoomMatch(authProviderUserId, dbUserId);
 
     if (!roomValidation.isValid && dbUserId) {
       this.loggerService.warn(`${logContext} ${roomValidation.warning}`, {
         dbUserId,
-        ingredientId: ingredient._id,
+        ingredientId: ingredient.id,
       });
     }
 
@@ -359,7 +349,7 @@ export class WebhooksService {
 
     this.loggerService.log(
       `${logContext} generated successfully`,
-      `${this.configService.ingredientsEndpoint}/${categoryToPlural(input.categoryValue)}/${String(ingredient._id)}`,
+      `${this.configService.ingredientsEndpoint}/${categoryToPlural(input.categoryValue)}/${String(ingredient.id)}`,
     );
   }
 
@@ -401,7 +391,7 @@ export class WebhooksService {
         return;
       }
 
-      await this.ingredientsService.patch(ingredient._id.toString(), {
+      await this.ingredientsService.patch(ingredient.id.toString(), {
         status: IngredientStatus.FAILED,
       });
 
@@ -416,7 +406,7 @@ export class WebhooksService {
           category: ingredient.category as IngredientCategory | string,
           dbUserId,
           errorMessage,
-          ingredientId: ingredient._id.toString(),
+          ingredientId: ingredient.id.toString(),
           organizationId: this.getRefId(ingredient.organization),
           userId,
           userRoom,
@@ -424,7 +414,7 @@ export class WebhooksService {
       }
 
       // WebSocket failure notification
-      const websocketUrl = `/${categoryToPlural(ingredient.category)}/${String(ingredient._id)}`;
+      const websocketUrl = `/${categoryToPlural(ingredient.category)}/${String(ingredient.id)}`;
 
       if (userId) {
         await this.websocketService.publishMediaFailed(
@@ -438,7 +428,7 @@ export class WebhooksService {
       this.loggerService.log(`${logContext} marked as failed`, {
         error: errorMessage,
         externalId,
-        ingredientId: ingredient._id,
+        ingredientId: ingredient.id,
       });
 
       await this.cacheService.invalidateByTags([

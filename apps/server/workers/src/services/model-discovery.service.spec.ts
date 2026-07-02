@@ -118,7 +118,7 @@ describe('ModelDiscoveryService', () => {
     });
 
     it('should create draft model when it does not exist', async () => {
-      const draftDoc = { _id: 'draft-id', key: 'acme-labs/test-model' };
+      const draftDoc = { id: 'draft-id', key: 'acme-labs/test-model' };
       mockModelsService.create.mockResolvedValue(draftDoc);
 
       const result = await service.createDraftModel(modelInfo as any);
@@ -136,7 +136,7 @@ describe('ModelDiscoveryService', () => {
     });
 
     it('uses provider cost pricing when a provider cost is available', async () => {
-      const draftDoc = { _id: 'draft-id' };
+      const draftDoc = { id: 'draft-id' };
       mockModelsService.create.mockResolvedValue(draftDoc);
 
       await service.createDraftModel({
@@ -157,7 +157,7 @@ describe('ModelDiscoveryService', () => {
     });
 
     it('should patch model with pricing after creation', async () => {
-      const draftDoc = { _id: 'draft-id' };
+      const draftDoc = { id: 'draft-id' };
       mockModelsService.create.mockResolvedValue(draftDoc);
 
       await service.createDraftModel(modelInfo as any);
@@ -178,7 +178,7 @@ describe('ModelDiscoveryService', () => {
     });
 
     it('should build label from owner/name in title case', async () => {
-      const draftDoc = { _id: 'x' };
+      const draftDoc = { id: 'x' };
       mockModelsService.create.mockResolvedValue(draftDoc);
 
       await service.createDraftModel({

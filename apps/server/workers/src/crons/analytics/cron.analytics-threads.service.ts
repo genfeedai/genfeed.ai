@@ -70,7 +70,7 @@ export class CronAnalyticsThreadsService {
         const chunk = chunks[i];
         const jobData: ThreadsAnalyticsJobData = {
           posts: chunk.map((post: PostEntity) => ({
-            _id: post._id.toString(),
+            id: post.id.toString(),
             brand: post.brand.toString(),
             credential: post.credential?.toString(),
             externalId: post.externalId!,

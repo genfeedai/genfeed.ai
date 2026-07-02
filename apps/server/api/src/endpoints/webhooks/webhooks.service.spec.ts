@@ -666,7 +666,7 @@ describe('WebhooksService', () => {
         externalId,
         isDeleted: false,
       });
-      expect(metadataService.patch).toHaveBeenCalledWith(mockMetadata._id, {
+      expect(metadataService.patch).toHaveBeenCalledWith(mockMetadata.id, {
         error: errorMessage,
       });
       expect(ingredientsService.patch).toHaveBeenCalledWith(
@@ -692,7 +692,7 @@ describe('WebhooksService', () => {
 
       await service.handleFailedGeneration(externalId, errorMessage);
 
-      expect(metadataService.patch).toHaveBeenCalledWith(mockMetadata._id, {
+      expect(metadataService.patch).toHaveBeenCalledWith(mockMetadata.id, {
         error: errorMessage,
       });
       expect(ingredientsService.patch).not.toHaveBeenCalled();

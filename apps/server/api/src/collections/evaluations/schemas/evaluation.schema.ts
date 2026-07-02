@@ -21,7 +21,6 @@ export interface IActualPerformance {
 }
 
 export interface EvaluationDocument extends PrismaEvaluation {
-  _id: string;
   actualPerformance?: IActualPerformance;
   analysis?: IEvaluationAnalysis;
   brand?: string | null;

@@ -177,7 +177,7 @@ export class FacebookService {
 
         const { access_token, expires_in } = response.data;
 
-        return await this.credentialsService.patch(credentials._id, {
+        return await this.credentialsService.patch(credentials.id, {
           accessToken: access_token,
           accessTokenExpiry: expires_in
             ? new Date(Date.now() + expires_in * 1000)
@@ -191,7 +191,7 @@ export class FacebookService {
     } catch (error: unknown) {
       this.loggerService.error('Refresh token failed', error);
       // Mark credential as disconnected if refresh fails
-      await this.credentialsService.patch(credentials._id, {
+      await this.credentialsService.patch(credentials.id, {
         isConnected: false,
       });
       throw error;

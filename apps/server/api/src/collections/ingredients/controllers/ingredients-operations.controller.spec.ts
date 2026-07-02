@@ -43,11 +43,11 @@ describe('IngredientsOperationsController', () => {
   } as unknown as Request;
 
   const mockIngredient = {
-    _id: '507f1f77bcf86cd799439014',
+    id: '507f1f77bcf86cd799439014',
     brand: '507f1f77bcf86cd799439013',
     category: 'image',
     metadata: {
-      _id: '507f1f77bcf86cd799439015',
+      id: '507f1f77bcf86cd799439015',
       extension: 'jpg',
       height: 1080,
       width: 1920,
@@ -96,10 +96,10 @@ describe('IngredientsOperationsController', () => {
     sharedService: {
       saveDocuments: vi.fn().mockResolvedValue({
         ingredientData: {
-          _id: '507f1f77bcf86cd799439016',
+          id: '507f1f77bcf86cd799439016',
         },
         metadataData: {
-          _id: '507f1f77bcf86cd799439017',
+          id: '507f1f77bcf86cd799439017',
         },
       }),
     },
@@ -252,7 +252,7 @@ describe('IngredientsOperationsController', () => {
         })
         .mockResolvedValueOnce({
           ...mockIngredient,
-          _id: '507f1f77bcf86cd799439015',
+          id: '507f1f77bcf86cd799439015',
           user: { id: '507f1f77bcf86cd799439011' },
         });
 

@@ -397,7 +397,7 @@ export class AdminFleetTrainingService {
       return;
     }
 
-    await this.personasService.patch(persona._id.toString(), {
+    await this.personasService.patch(persona.id.toString(), {
       loraModelPath,
       loraStatus,
     });

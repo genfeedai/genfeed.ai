@@ -148,7 +148,7 @@ export class TrendInspirationProcessor {
     let selectedVideo: TrendingVideoDocument = filteredVideos[0];
     if (input.trendId && !input.auto) {
       const found = filteredVideos.find(
-        (v: TrendingVideoDocument) => v._id?.toString() === input.trendId,
+        (v: TrendingVideoDocument) => v.id?.toString() === input.trendId,
       );
       if (found) {
         selectedVideo = found;
@@ -286,7 +286,7 @@ export class TrendInspirationProcessor {
       coverUrl: selectedSound.coverUrl || null,
       duration: selectedSound.duration || 0,
       growthRate: selectedSound.growthRate || 0,
-      soundId: selectedSound.soundId ?? selectedSound._id?.toString() ?? '',
+      soundId: selectedSound.soundId ?? selectedSound.id?.toString() ?? '',
       soundName: selectedSound.soundName ?? 'Unknown sound',
       soundUrl: selectedSound.playUrl || '',
       usageCount: selectedSound.usageCount ?? 0,

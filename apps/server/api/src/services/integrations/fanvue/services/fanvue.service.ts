@@ -174,7 +174,7 @@ export class FanvueService {
     }
 
     if (!credential.accessToken || !credential.refreshToken) {
-      await this.credentialsService.patch(credential._id, {
+      await this.credentialsService.patch(credential.id, {
         isConnected: false,
       });
       throw new Error(
@@ -228,7 +228,7 @@ export class FanvueService {
       const newRefreshToken = refresh_token || decryptedRefreshToken;
 
       const updatedCredential = await this.credentialsService.patch(
-        credential._id,
+        credential.id,
         {
           // Stored plaintext here — CredentialsService encrypts secrets at rest.
           accessToken: access_token,
@@ -251,7 +251,7 @@ export class FanvueService {
           (error as { response?: { data?: unknown } })?.response?.data ||
           (error as Error)?.message,
       });
-      await this.credentialsService.patch(credential._id, {
+      await this.credentialsService.patch(credential.id, {
         isConnected: false,
       });
       throw error;

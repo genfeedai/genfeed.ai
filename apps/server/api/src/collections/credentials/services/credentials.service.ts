@@ -108,7 +108,7 @@ export class CredentialsService extends BaseService<
     platform: CredentialPlatform,
     fields: Partial<Record<string, unknown>>,
   ): Promise<CredentialDocument> {
-    const brandId = String(brand.id ?? brand._id);
+    const brandId = String(brand.id);
     const organizationId = String(brand.organizationId ?? brand.organization);
     const userId = String(brand.userId ?? brand.user);
 

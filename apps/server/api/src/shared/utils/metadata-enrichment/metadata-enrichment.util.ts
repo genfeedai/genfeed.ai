@@ -160,7 +160,7 @@ export class MetadataEnrichmentUtil {
    * @returns String user ID or undefined
    */
   static extractUserId(source: {
-    user?: string | { _id?: string };
+    user?: string | { id?: string };
   }): string | undefined {
     if (!source.user) {
       return undefined;
@@ -170,8 +170,8 @@ export class MetadataEnrichmentUtil {
       return source.user;
     }
 
-    if (typeof source.user === 'object' && source.user._id) {
-      return source.user._id;
+    if (typeof source.user === 'object' && source.user.id) {
+      return source.user.id;
     }
 
     return undefined;

@@ -140,7 +140,7 @@ export class AdminFleetGenerationService {
             generationSource: model,
             modelUsed: model,
             organization: EntityIdUtil.toValidId(organizationId)!,
-            persona: persona._id,
+            persona: persona.id,
             personaSlug,
             s3Key: `darkroom/${personaSlug}/${filename}`,
             status: IngredientStatus.GENERATED,
@@ -160,7 +160,7 @@ export class AdminFleetGenerationService {
           });
 
     this.loggerService.log(caller, {
-      ingredientId: ingredient._id.toString(),
+      ingredientId: ingredient.id.toString(),
       message: 'Image generated successfully',
     });
 
@@ -195,14 +195,14 @@ export class AdminFleetGenerationService {
       modelUsed: dto.model || MODEL_KEYS.GENFEED_AI_FLUX2_DEV,
       negativePrompt: dto.negativePrompt,
       organization: EntityIdUtil.toValidId(organizationId)!,
-      persona: persona._id,
+      persona: persona.id,
       personaSlug: dto.personaSlug,
       status: IngredientStatus.PROCESSING,
       user: EntityIdUtil.toValidId(userId)!,
     } as Parameters<IngredientsService['create']>[0]);
 
     void this.processGenerationJob(
-      ingredient._id.toString(),
+      ingredient.id.toString(),
       organizationId,
       brandId,
       userId,
@@ -296,7 +296,7 @@ export class AdminFleetGenerationService {
       clearInterval(pulse);
       await this.updateGenerationJob(jobId, {
         cdnUrl: ingredient.cdnUrl ?? undefined,
-        ingredientId: ingredient._id.toString(),
+        ingredientId: ingredient.id.toString(),
         progress: 100,
         stage: 'completed',
         status: 'completed',

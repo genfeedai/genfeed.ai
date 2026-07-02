@@ -162,7 +162,7 @@ describe('ContentEngineService', () => {
     } = createService();
     const strategy = createStrategy();
     const campaign = createCampaign({
-      agents: [strategy._id],
+      agents: [strategy.id],
       creditsAllocated: 10,
       creditsUsed: 10,
     });
@@ -226,7 +226,7 @@ describe('ContentEngineService', () => {
       topics: ['ai marketing', 'creator growth'],
     });
     const runId = 'test-object-id';
-    const campaign = createCampaign({ agents: [strategy._id] });
+    const campaign = createCampaign({ agents: [strategy.id] });
 
     agentCampaignsService.findOne.mockResolvedValue(campaign);
     agentCampaignsService.patch.mockResolvedValue(undefined);
@@ -269,7 +269,7 @@ describe('ContentEngineService', () => {
         creditBudget: 24,
         organizationId,
         runId,
-        strategyId: String(strategy._id),
+        strategyId: String(strategy.id),
         userId,
       }),
     );
@@ -317,7 +317,7 @@ describe('ContentEngineService', () => {
       topics: ['education'],
     });
     const campaign = createCampaign({
-      agents: [launchStrategy._id, educationStrategy._id],
+      agents: [launchStrategy.id, educationStrategy.id],
       contentRotation: {
         enabled: true,
         targets: [
@@ -417,7 +417,7 @@ describe('ContentEngineService', () => {
       }),
     );
     const campaign = createCampaign({
-      agents: strategies.map((s) => s._id),
+      agents: strategies.map((s) => s.id),
       contentRotation: {
         enabled: true,
         targets: strategies.map((s, i) => ({
@@ -431,7 +431,7 @@ describe('ContentEngineService', () => {
     agentCampaignsService.findOne.mockResolvedValue(campaign);
     agentCampaignsService.patch.mockResolvedValue(undefined);
     agentStrategiesService.findOneById.mockImplementation((strategyId) =>
-      Promise.resolve(strategies.find((s) => s._id === strategyId)),
+      Promise.resolve(strategies.find((s) => s.id === strategyId)),
     );
     agentGoalsService.getGoalSummary.mockResolvedValue('Increase engagement');
     analyticsService.getOverview.mockResolvedValue({

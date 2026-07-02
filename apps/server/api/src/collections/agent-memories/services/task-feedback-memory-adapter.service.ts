@@ -185,7 +185,7 @@ export class TaskFeedbackMemoryAdapterService {
   }
 
   private extractId(task: TaskDocument): string {
-    return this.normalizeId((task as Record<string, unknown>).id) ?? task._id;
+    return this.normalizeId((task as Record<string, unknown>).id) ?? task.id;
   }
 
   private humanizeDecision(decision: TaskFeedbackMemoryDecision): string {
@@ -210,7 +210,7 @@ export class TaskFeedbackMemoryAdapterService {
 
     if (value && typeof value === 'object') {
       const record = value as Record<string, unknown>;
-      return this.normalizeId(record.id ?? record._id);
+      return this.normalizeId(record.id);
     }
 
     return undefined;

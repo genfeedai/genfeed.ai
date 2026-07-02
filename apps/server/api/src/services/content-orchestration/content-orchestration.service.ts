@@ -182,7 +182,7 @@ export class ContentOrchestrationService {
           });
 
         const s3Meta = await this.filesClientService.uploadToS3(
-          ingredientData._id,
+          ingredientData.id,
           category === IngredientCategory.VIDEO
             ? 'videos'
             : category === IngredientCategory.IMAGE
@@ -194,21 +194,21 @@ export class ContentOrchestrationService {
           },
         );
 
-        await this.metadataService.patch(metadataData._id, {
+        await this.metadataService.patch(metadataData.id, {
           ...(s3Meta.duration != null ? { duration: s3Meta.duration } : {}),
           ...(s3Meta.height != null ? { height: s3Meta.height } : {}),
           ...(s3Meta.size != null ? { size: s3Meta.size } : {}),
           ...(s3Meta.width != null ? { width: s3Meta.width } : {}),
         });
 
-        await this.ingredientsService.patch(ingredientData._id, {
+        await this.ingredientsService.patch(ingredientData.id, {
           status: IngredientStatus.UPLOADED,
         });
 
-        allIngredientIds.push(ingredientData._id);
+        allIngredientIds.push(ingredientData.id);
 
         stepOutcomes.push({
-          ingredientId: ingredientData._id.toString(),
+          ingredientId: ingredientData.id.toString(),
           result,
           step,
           stepIndex: i,

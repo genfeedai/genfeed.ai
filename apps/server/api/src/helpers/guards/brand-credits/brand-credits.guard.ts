@@ -72,7 +72,7 @@ export class BrandCreditsGuard extends CreditsGuard implements CanActivate {
 
     (request as unknown as Record<string, unknown>).brandsLimit = {
       current: brandCount, // Pass the actual current count, not the limit
-      id: settings._id.toString(),
+      id: settings.id.toString(),
     };
 
     return super.canActivate(context);

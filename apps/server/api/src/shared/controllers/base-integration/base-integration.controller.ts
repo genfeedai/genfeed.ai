@@ -10,7 +10,7 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 type IntegrationBrand = {
-  _id: string;
+  id: string;
   organization: string;
 };
 
@@ -147,11 +147,11 @@ export abstract class BaseIntegrationController {
    * @returns The credential (existing or newly created)
    */
   protected async getOrCreateCredential(
-    brand: { _id: string; organization: string },
+    brand: { id: string; organization: string },
     initialData: Record<string, unknown> = {},
   ) {
     const existingCredential = await this.credentialsService.findOne({
-      brand: brand._id,
+      brand: brand.id,
       organization: brand.organization,
       platform: this.platform,
     });
@@ -166,7 +166,7 @@ export abstract class BaseIntegrationController {
     });
 
     return this.credentialsService.findOne({
-      brand: brand._id,
+      brand: brand.id,
       organization: brand.organization,
       platform: this.platform,
     });
@@ -206,7 +206,7 @@ export abstract class BaseIntegrationController {
 
       // Generate OAuth URL
       const oauthResult = await this.generateOAuthUrl(
-        brand._id.toString(),
+        brand.id.toString(),
         publicMetadata,
       );
 

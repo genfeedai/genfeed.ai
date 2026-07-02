@@ -1,7 +1,6 @@
 import { type PostAnalytics } from '@genfeedai/prisma';
 
 export class PostAnalyticsEntity implements PostAnalytics {
-  declare readonly _id: string;
   declare readonly id: string;
   declare readonly mongoId: string | null;
   declare readonly postId: string;

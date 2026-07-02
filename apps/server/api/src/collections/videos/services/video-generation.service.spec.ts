@@ -46,19 +46,19 @@ describe('VideoGenerationService', () => {
         const n = savedDocCount++;
         return Promise.resolve({
           ingredientData: {
-            _id: `ing-${n}`,
+            id: `ing-${n}`,
             toString: () => `ing-${n}`,
           },
-          metadataData: { _id: `meta-${n}` },
+          metadataData: { id: `meta-${n}` },
         });
       }),
     };
 
     const brandsService = {
       findOne: vi.fn().mockResolvedValue({
-        _id: RESOLVED_BRAND,
         defaultVideoModel: NON_BATCH_MODEL,
         description: 'desc',
+        id: RESOLVED_BRAND,
         label: 'Brand',
         organization: ORG,
         primaryColor: '#fff',
@@ -81,7 +81,7 @@ describe('VideoGenerationService', () => {
       getOrganizationCreditsBalance: vi.fn().mockResolvedValue(1000),
     };
     const promptsService = {
-      create: vi.fn().mockResolvedValue({ _id: 'prompt-doc' }),
+      create: vi.fn().mockResolvedValue({ id: 'prompt-doc' }),
       findOne: vi.fn(),
     };
     const promptBuilderService = {
@@ -104,7 +104,7 @@ describe('VideoGenerationService', () => {
       patch: vi.fn().mockResolvedValue(undefined),
     };
     const activitiesService = {
-      create: vi.fn().mockResolvedValue({ _id: { toString: () => 'act' } }),
+      create: vi.fn().mockResolvedValue({ id: { toString: () => 'act' } }),
     };
     const websocketService = {
       publishBackgroundTaskUpdate: vi.fn().mockResolvedValue(undefined),
@@ -220,7 +220,7 @@ describe('VideoGenerationService', () => {
     it('scopes the prompt lookup to the caller organization', async () => {
       const { service, promptsService } = createService();
       promptsService.findOne.mockResolvedValue({
-        _id: 'prompt-id',
+        id: 'prompt-id',
         original: 'stored prompt',
       });
 
@@ -257,7 +257,7 @@ describe('VideoGenerationService', () => {
     it('omits the org filter for single-tenant deployments', async () => {
       const { service, promptsService } = createService();
       promptsService.findOne.mockResolvedValue({
-        _id: 'prompt-id',
+        id: 'prompt-id',
         original: 'stored prompt',
       });
 

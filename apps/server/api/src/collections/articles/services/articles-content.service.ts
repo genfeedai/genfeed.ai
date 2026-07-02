@@ -523,7 +523,7 @@ export class ArticlesContentService {
       );
 
       this.logger.log(`${this.constructorName} X Article generation complete`, {
-        articleId: article._id,
+        articleId: article.id,
         wordCount,
       });
 
@@ -556,7 +556,7 @@ export class ArticlesContentService {
   ): Promise<ArticleDocument> {
     try {
       this.logger.debug(`${this.constructorName} enhance`, {
-        articleId: article._id,
+        articleId: article.id,
         prompt: editDto.prompt,
         templateKey,
       });
@@ -587,7 +587,7 @@ export class ArticlesContentService {
       });
 
       this.logger.log('Article enhancement started', {
-        articleId: article._id,
+        articleId: article.id,
         prompt: editDto.prompt.substring(0, 50),
       });
 
@@ -639,20 +639,20 @@ export class ArticlesContentService {
 
       // Fetch and return updated article
       const updatedArticle = await this.articlesService?.findOne({
-        _id: article._id,
+        _id: article.id,
       });
       if (!updatedArticle) {
         throw new Error('Article not found after enhancement');
       }
 
       this.logger.log(`${this.constructorName} enhancement complete`, {
-        articleId: article._id,
+        articleId: article.id,
       });
 
       return updatedArticle;
     } catch (error: unknown) {
       this.logger.error(`${this.constructorName} enhance failed`, {
-        articleId: article._id,
+        articleId: article.id,
         error,
       });
       throw error;
@@ -667,7 +667,7 @@ export class ArticlesContentService {
   ): Promise<TwitterThreadResponse> {
     try {
       this.logger.debug(`${this.constructorName} convertToTwitterThread`, {
-        articleId: article._id,
+        articleId: article.id,
       });
 
       // Resolve the public/preview article URL for the trailing link tweet
@@ -692,7 +692,7 @@ export class ArticlesContentService {
 
       this.logger.log(
         `${this.constructorName} converted article to ${tweets.length} tweets`,
-        { articleId: article._id, totalTweets: tweets.length },
+        { articleId: article.id, totalTweets: tweets.length },
       );
 
       return Promise.resolve({
@@ -703,7 +703,7 @@ export class ArticlesContentService {
       this.logger.error(
         `${this.constructorName} convertToTwitterThread failed`,
         {
-          articleId: article._id,
+          articleId: article.id,
           error,
         },
       );
@@ -1371,14 +1371,14 @@ Return strict JSON only:
       }
 
       // Update article
-      await this.articlesService?.patch(article._id, updateData);
+      await this.articlesService?.patch(article.id, updateData);
 
       // Create a prompt record to track this edit
       if (this.promptsService) {
         await this.promptsService.create(
           new PromptEntity({
             articleId: String(
-              (article as Record<string, unknown>).id ?? article._id,
+              (article as Record<string, unknown>).id ?? article.id,
             ),
             brandId: brandId,
             category: PromptCategory.ARTICLE,
@@ -1398,7 +1398,7 @@ Return strict JSON only:
       // Publish websocket event for article completion
       if (this.websocketService) {
         await this.websocketService.publishArticleStatus(
-          article._id.toString(),
+          article.id.toString(),
           'completed',
           userId,
           {
@@ -1411,12 +1411,12 @@ Return strict JSON only:
       }
 
       this.logger.log(`${this.constructorName} enhanced article with AI`, {
-        articleId: article._id,
+        articleId: article.id,
         prompt,
       });
     } catch (error: unknown) {
       this.logger.error('Failed to update article with enhanced content', {
-        articleId: article._id,
+        articleId: article.id,
         error: {
           message: (error as Error)?.message || 'Unknown error',
           stack: (error as Error)?.stack,
@@ -1439,8 +1439,7 @@ Return strict JSON only:
     userId: string,
   ): Promise<void> {
     await this.articlesService?.patch(
-      ((article as Record<string, unknown>).id as string) ??
-        String(article._id),
+      ((article as Record<string, unknown>).id as string) ?? String(article.id),
       {
         aiGenerationCompletedAt: new Date(),
         aiGenerationError: errorMessage,
@@ -1451,7 +1450,7 @@ Return strict JSON only:
     // Publish websocket event for article failure
     if (this.websocketService) {
       await this.websocketService.publishArticleStatus(
-        article._id.toString(),
+        article.id.toString(),
         'failed',
         userId,
         {
@@ -1461,7 +1460,7 @@ Return strict JSON only:
     }
 
     this.logger.error('Article enhancement failed', {
-      articleId: article._id,
+      articleId: article.id,
       error: errorMessage,
     });
   }

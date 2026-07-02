@@ -48,7 +48,7 @@ export class CronContentSchedulesService {
 
       for (const schedule of schedules) {
         try {
-          const scheduleId = String(schedule._id ?? schedule.id);
+          const scheduleId = String(schedule.id);
           const organizationId = String(
             schedule.organization ?? schedule.organizationId,
           );
@@ -79,7 +79,7 @@ export class CronContentSchedulesService {
           const message =
             error instanceof Error ? error.message : 'Unknown error';
           this.logger.error(
-            `Failed content schedule ${String(schedule._id ?? schedule.id)}: ${message}`,
+            `Failed content schedule ${String(schedule.id)}: ${message}`,
             'CronContentSchedulesService',
           );
         }

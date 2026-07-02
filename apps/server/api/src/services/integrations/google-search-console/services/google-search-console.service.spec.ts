@@ -28,10 +28,10 @@ describe('GoogleSearchConsoleService', () => {
   beforeEach(async () => {
     credentialsService = {
       findOne: vi.fn().mockResolvedValue({
-        _id: 'credential-id',
+        id: 'credential-id',
         refreshToken: 'encrypted-refresh-token',
       }),
-      patch: vi.fn().mockResolvedValue({ _id: 'credential-id' }),
+      patch: vi.fn().mockResolvedValue({ id: 'credential-id' }),
     };
     oauthService = {
       refreshAccessToken: vi.fn().mockResolvedValue({

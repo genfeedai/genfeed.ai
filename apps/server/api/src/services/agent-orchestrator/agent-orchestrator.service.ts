@@ -1355,7 +1355,7 @@ export class AgentOrchestratorService {
       trigger: AgentExecutionTrigger.MANUAL,
       user: context.userId,
     } as unknown as CreateAgentRunDto);
-    const runId = String((createdRun as { _id: string })._id);
+    const runId = String((createdRun as { id: string }).id);
     const startedRun = await this.agentRunsService.start(
       runId,
       context.organizationId,
@@ -2172,7 +2172,7 @@ export class AgentOrchestratorService {
     } as Record<string, unknown>);
     return {
       seedTitle,
-      threadId: String(thread._id ?? thread.id),
+      threadId: String(thread.id),
     };
   }
 
@@ -2336,7 +2336,7 @@ export class AgentOrchestratorService {
       user: { in: [userId] },
     });
 
-    return thread ? String(thread._id ?? thread.id) : null;
+    return thread ? String(thread.id) : null;
   }
 
   private async resolveThreadUiActionModel(
@@ -4581,7 +4581,7 @@ export class AgentOrchestratorService {
         contentType: memory.contentType,
         createdAt: timedMemory.createdAt?.toISOString(),
         generationInfluence: influence,
-        id: memory.id ?? memory._id,
+        id: memory.id,
         importance: memory.importance,
         kind: memory.kind,
         platform: memory.platform,

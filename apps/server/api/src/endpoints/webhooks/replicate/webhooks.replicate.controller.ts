@@ -122,7 +122,7 @@ export class ReplicateWebhookController {
 
             // Update training with completed status and model URL
             const updatedTraining = await this.trainingsService.patch(
-              training._id,
+              training.id,
               {
                 config: {
                   ...trainingConfig,
@@ -136,7 +136,7 @@ export class ReplicateWebhookController {
 
             // Publish websocket event for training completion
             await this.websocketService.publishTrainingStatus(
-              String(training._id),
+              String(training.id),
               IngredientStatus.GENERATED,
               String(training.user),
               {
@@ -157,7 +157,7 @@ export class ReplicateWebhookController {
             } catch (err: unknown) {
               // Non-fatal: reconciliation job will retry
               this.loggerService.error(
-                `Failed to register model from training ${training._id}: ${(err as Error).message}`,
+                `Failed to register model from training ${training.id}: ${(err as Error).message}`,
               );
             }
 
@@ -176,7 +176,7 @@ export class ReplicateWebhookController {
               !Array.isArray(training.config)
                 ? (training.config as Record<string, unknown>)
                 : {};
-            await this.trainingsService.patch(training._id, {
+            await this.trainingsService.patch(training.id, {
               config: {
                 ...trainingConfig,
                 error: payload.error || 'Training failed',
@@ -187,7 +187,7 @@ export class ReplicateWebhookController {
 
             // Publish websocket event for training failure
             await this.websocketService.publishTrainingStatus(
-              String(training._id),
+              String(training.id),
               IngredientStatus.FAILED,
               String(training.user),
               {
@@ -250,14 +250,14 @@ export class ReplicateWebhookController {
           if (imageUrl && typeof imageUrl === 'string') {
             await this.webhooksService.processAssetFromWebhook(
               'replicate',
-              asset._id,
+              asset.id,
               imageUrl,
             );
           } else {
             this.loggerService.warn(
               'Replicate webhook: no output URL for asset',
               {
-                assetId: asset._id,
+                assetId: asset.id,
                 predictionId: payload.id,
                 status: payload.status,
               },
@@ -378,14 +378,14 @@ export class ReplicateWebhookController {
           this.loggerService.error(
             'Replicate webhook: asset generation failed',
             {
-              assetId: asset._id,
+              assetId: asset.id,
               error: payload.error,
               predictionId: payload.id,
             },
           );
 
           // Mark asset as deleted to indicate failure
-          await this.assetsService.patch(String(asset._id), {
+          await this.assetsService.patch(String(asset.id), {
             isDeleted: true,
           });
 
@@ -393,11 +393,11 @@ export class ReplicateWebhookController {
           const userId = String(asset.user);
           if (userId) {
             await this.websocketService.publishAssetStatus(
-              String(asset._id),
+              String(asset.id),
               'failed',
               userId,
               {
-                assetId: String(asset._id),
+                assetId: String(asset.id),
                 category: asset.category,
                 error: payload.error || 'Asset generation failed',
                 predictionId: payload.id,

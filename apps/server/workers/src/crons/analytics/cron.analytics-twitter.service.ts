@@ -8,9 +8,9 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
 type AnalyticsTwitterPost = {
-  _id: unknown;
+  id: unknown;
   brand: unknown;
-  credential: { _id: unknown };
+  credential: { id: unknown };
   externalId: string;
   organization: unknown;
 };
@@ -65,7 +65,7 @@ export class CronAnalyticsTwitterService {
       const postsByCredential = new Map<string, typeof posts.docs>();
 
       for (const post of posts.docs) {
-        const credentialId = String(post.credential._id);
+        const credentialId = String(post.credential.id);
         if (!postsByCredential.has(credentialId)) {
           postsByCredential.set(credentialId, []);
         }
@@ -94,7 +94,7 @@ export class CronAnalyticsTwitterService {
           const jobData: TwitterAnalyticsJobData = {
             credentialId: credentialId,
             posts: batch.map((post) => ({
-              _id: String(post._id),
+              id: String(post.id),
               brand: String(post.brand),
               externalId: post.externalId,
               organization: String(post.organization),

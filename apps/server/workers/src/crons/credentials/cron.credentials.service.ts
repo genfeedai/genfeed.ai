@@ -102,9 +102,9 @@ export class CronCredentialsService {
         expiringCredentials.map(async (credential: CredentialDocument) => {
           if (!credential.organization || !credential.brand) {
             this.logger.warn(`${url} credential missing workspace scope`, {
-              credentialId: credential._id,
+              credentialId: credential.id,
             });
-            return { credentialId: credential._id, success: false };
+            return { credentialId: credential.id, success: false };
           }
 
           const orgId = credential.organization.toString();
@@ -117,10 +117,10 @@ export class CronCredentialsService {
 
             if (!refresher) {
               this.logger.warn(`${url} unknown platform for refresh`, {
-                credentialId: credential._id,
+                credentialId: credential.id,
                 platform: credential.platform,
               });
-              return { credentialId: credential._id, success: false };
+              return { credentialId: credential.id, success: false };
             }
 
             await refresher.refreshToken(orgId, brandId);
@@ -128,19 +128,19 @@ export class CronCredentialsService {
             this.logger.log(
               `${url} refreshed token for ${credential.platform}`,
               {
-                credentialId: credential._id,
+                credentialId: credential.id,
               },
             );
 
-            return { credentialId: credential._id, success: true };
+            return { credentialId: credential.id, success: true };
           } catch (error: unknown) {
             this.logger.error(`${url} failed to refresh token`, {
-              credentialId: credential._id,
+              credentialId: credential.id,
               error,
               platform: credential.platform,
             });
 
-            return { credentialId: credential._id, error, success: false };
+            return { credentialId: credential.id, error, success: false };
           }
         }),
       );

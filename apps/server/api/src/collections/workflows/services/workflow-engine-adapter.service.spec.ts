@@ -32,7 +32,7 @@ describe('WorkflowEngineAdapterService', () => {
   describe('convertToExecutableWorkflow', () => {
     it('should convert a workflow document to executable format', () => {
       const workflowDoc = {
-        _id: { toString: () => 'wf-1' },
+        id: 'wf-1',
         edges: [
           {
             id: 'e1',
@@ -621,14 +621,12 @@ describe('WorkflowEngineAdapterService', () => {
       const ingredientsService = { patch: vi.fn().mockResolvedValue({}) };
       const metadataService = { patch: vi.fn().mockResolvedValue({}) };
       const musicsService = {
-        findOne: vi
-          .fn()
-          .mockResolvedValue({ _id: { toString: () => musicId } }),
+        findOne: vi.fn().mockResolvedValue({ id: musicId }),
       };
       const sharedService = {
         saveDocumentsInternal: vi.fn().mockResolvedValue({
-          ingredientData: { _id: { toString: () => captionedId } },
-          metadataData: { _id: 'meta-1' },
+          ingredientData: { id: captionedId },
+          metadataData: { id: 'meta-1' },
         }),
       };
       const videoMusicOrchestrationService = {
@@ -795,10 +793,10 @@ describe('WorkflowEngineAdapterService', () => {
       const sharedService = {
         saveDocumentsInternal: vi.fn().mockResolvedValue({
           ingredientData: {
-            _id: { toString: () => 'ingredient-1' },
+            id: 'ingredient-1',
           },
           metadataData: {
-            _id: { toString: () => 'metadata-1' },
+            id: 'metadata-1',
           },
         }),
       };
@@ -1221,10 +1219,10 @@ describe('WorkflowEngineAdapterService', () => {
       const brandsService = {
         findOne: vi
           .fn()
-          .mockResolvedValueOnce({ logo: { _id: 'logo-1' } })
-          .mockResolvedValueOnce({ banner: { _id: 'banner-1' } })
+          .mockResolvedValueOnce({ logo: { id: 'logo-1' } })
+          .mockResolvedValueOnce({ banner: { id: 'banner-1' } })
           .mockResolvedValueOnce({
-            references: [{ _id: 'ref-1' }, { _id: 'ref-2' }],
+            references: [{ id: 'ref-1' }, { id: 'ref-2' }],
           }),
       };
 

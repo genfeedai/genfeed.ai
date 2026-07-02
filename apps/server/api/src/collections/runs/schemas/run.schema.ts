@@ -32,7 +32,6 @@ export interface RunDocument
     | 'error'
     | 'events'
   > {
-  _id: string;
   organization?: string;
   user?: string;
   actionType?: string;

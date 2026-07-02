@@ -244,7 +244,7 @@ export class AssetsController {
         userId,
         {
           action: 'updated',
-          assetId: updatedAsset._id.toString(),
+          assetId: updatedAsset.id.toString(),
           category: String(
             updatedAsset.category,
           ).toLowerCase() as AssetCategory,

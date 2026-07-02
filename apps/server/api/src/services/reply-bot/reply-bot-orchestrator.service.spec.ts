@@ -379,7 +379,7 @@ describe('ReplyBotOrchestratorService', () => {
         'tweet-1',
         orgId,
         'reply_guy',
-        botConfig._id.toString(),
+        botConfig.id.toString(),
       );
     });
 

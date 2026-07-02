@@ -66,7 +66,7 @@ describe('FacebookPublisherService', () => {
 
   // Mock post for text-only (not supported on Facebook)
   const mockTextPost = {
-    _id: mockPostId,
+    id: mockPostId,
     brand: mockBrandId,
     category: PostCategory.TEXT,
     description: '<p>Test Facebook content</p>',
@@ -79,7 +79,7 @@ describe('FacebookPublisherService', () => {
 
   // Mock post with image
   const mockImagePost = {
-    _id: mockPostId,
+    id: mockPostId,
     brand: mockBrandId,
     category: PostCategory.IMAGE,
     description: '<p>Test image post</p>',
@@ -92,7 +92,7 @@ describe('FacebookPublisherService', () => {
 
   // Mock post with video
   const mockVideoPost = {
-    _id: mockPostId,
+    id: mockPostId,
     brand: mockBrandId,
     category: PostCategory.VIDEO,
     description: '<p>Test video post</p>',
@@ -106,7 +106,7 @@ describe('FacebookPublisherService', () => {
 
   // Mock post with multiple images (carousel - not supported)
   const mockCarouselPost = {
-    _id: mockPostId,
+    id: mockPostId,
     brand: mockBrandId,
     category: PostCategory.IMAGE,
     description: '<p>Carousel post</p>',
@@ -405,19 +405,19 @@ describe('FacebookPublisherService', () => {
 
     const mockChildren = [
       {
-        _id: '507f1f77bcf86cd799439030',
+        id: '507f1f77bcf86cd799439030',
         category: PostCategory.TEXT,
         description: '<p>Comment 1</p>',
         order: 1,
       },
       {
-        _id: '507f1f77bcf86cd799439031',
+        id: '507f1f77bcf86cd799439031',
         category: PostCategory.TEXT,
         description: '<p>Comment 2</p>',
         order: 2,
       },
       {
-        _id: '507f1f77bcf86cd799439032',
+        id: '507f1f77bcf86cd799439032',
         category: PostCategory.IMAGE,
         description: '<p>Image child - should be ignored</p>',
         ingredients: [mockIngredientId],
@@ -448,7 +448,7 @@ describe('FacebookPublisherService', () => {
       const context = createPublishContext(mockImagePost);
       const imageChildren = [
         {
-          _id: '507f1f77bcf86cd799439040',
+          id: '507f1f77bcf86cd799439040',
           category: PostCategory.IMAGE,
           description: '<p>Image</p>',
           ingredients: [mockIngredientId],
@@ -473,13 +473,13 @@ describe('FacebookPublisherService', () => {
       const context = createPublishContext(mockImagePost);
       const unorderedChildren = [
         {
-          _id: '507f1f77bcf86cd799439050',
+          id: '507f1f77bcf86cd799439050',
           category: PostCategory.TEXT,
           description: '<p>Second</p>',
           order: 2,
         },
         {
-          _id: '507f1f77bcf86cd799439051',
+          id: '507f1f77bcf86cd799439051',
           category: PostCategory.TEXT,
           description: '<p>First</p>',
           order: 1,
@@ -499,7 +499,7 @@ describe('FacebookPublisherService', () => {
 
       // First call should be for order 1
       expect(postsService.patch.mock.calls[0][0]).toBe(
-        unorderedChildren[1]._id.toString(),
+        unorderedChildren[1].id.toString(),
       );
     });
 
@@ -517,7 +517,7 @@ describe('FacebookPublisherService', () => {
       );
 
       expect(postsService.patch).toHaveBeenCalledWith(
-        singleChild[0]._id.toString(),
+        singleChild[0].id.toString(),
         expect.objectContaining({
           status: PostStatus.FAILED,
         }),
@@ -562,7 +562,7 @@ describe('FacebookPublisherService', () => {
       );
 
       expect(postsService.patch).toHaveBeenCalledWith(
-        singleChild[0]._id.toString(),
+        singleChild[0].id.toString(),
         expect.objectContaining({
           externalId: 'comment-123',
           publicationDate: expect.any(Date),

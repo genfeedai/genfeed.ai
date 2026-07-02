@@ -219,7 +219,7 @@ export class WorkflowsService extends BaseService<
     // If trigger is manual, start execution immediately
     if ((workflowData.trigger as string) === 'manual') {
       this.executeWorkflowCompat(
-        workflow._id.toString(),
+        workflow.id.toString(),
         userId,
         organizationId,
       ).catch((error) => {
@@ -1343,7 +1343,7 @@ export class WorkflowsService extends BaseService<
 
               await this.updateWorkflowStep(workflowId, step.id, {
                 completedAt: new Date(),
-                output: output?._id as string | undefined,
+                output: output?.id as string | undefined,
                 progress: 100,
                 status: WorkflowStepStatus.COMPLETED,
               });
@@ -1764,8 +1764,8 @@ export class WorkflowsService extends BaseService<
     const workflowId =
       typeof workflow === 'string'
         ? workflow
-        : workflow?._id
-          ? String(workflow._id)
+        : workflow?.id
+          ? String(workflow.id)
           : undefined;
 
     if (!workflowId) {
@@ -1795,7 +1795,7 @@ export class WorkflowsService extends BaseService<
     const isProtectedSystemWorkflow = isProtectedSystemWorkflowMetadata(
       workflowDoc.metadata,
     );
-    const sourceWorkflowId = String(workflowDoc._id ?? workflowDoc.id);
+    const sourceWorkflowId = String(workflowDoc.id);
     const sourceLabel = workflowDoc.label ?? workflowDoc.name ?? 'Workflow';
 
     const clonedWorkflow = await this.create({
@@ -1953,9 +1953,9 @@ export class WorkflowsService extends BaseService<
     );
     const startedExecution =
       await this.workflowExecutionsService.startExecution(
-        execution._id.toString(),
+        execution.id.toString(),
       );
-    const runId = execution._id.toString();
+    const runId = execution.id.toString();
 
     await this.patch(workflowId, {
       status: WorkflowStatus.RUNNING,
@@ -2158,7 +2158,7 @@ export class WorkflowsService extends BaseService<
 
     return {
       message: 'Partial execution started',
-      runId: resumedExecution._id.toString(),
+      runId: resumedExecution.id.toString(),
       status: resumedExecution.status,
     };
   }
@@ -2287,7 +2287,7 @@ export class WorkflowsService extends BaseService<
       completedAt: execution.completedAt,
       error: execution.error,
       nodeResults: execution.nodeResults || [],
-      runId: execution._id.toString(),
+      runId: execution.id.toString(),
       startedAt: execution.startedAt,
       status: execution.status,
       totalCreditsUsed: execution.creditsUsed,
@@ -2531,7 +2531,7 @@ export class WorkflowsService extends BaseService<
       typeof workflow.webhookTriggerCount === 'number'
         ? workflow.webhookTriggerCount
         : 0;
-    await this.patchWorkflowConfig(workflow._id.toString(), {
+    await this.patchWorkflowConfig(workflow.id.toString(), {
       webhookLastTriggeredAt: new Date().toISOString(),
       webhookTriggerCount: currentWebhookTriggerCount + 1,
     });
@@ -2543,9 +2543,9 @@ export class WorkflowsService extends BaseService<
     }
 
     if (!this.shouldUseNodeExecutor(workflow)) {
-      await this.executeWorkflow(workflow._id.toString());
+      await this.executeWorkflow(workflow.id.toString());
       return {
-        runId: workflow._id.toString(),
+        runId: workflow.id.toString(),
         status: 'started',
       };
     }
@@ -2557,7 +2557,7 @@ export class WorkflowsService extends BaseService<
     }
 
     const result = await this.workflowExecutorService.executeManualWorkflow(
-      workflow._id.toString(),
+      workflow.id.toString(),
       workflow.user.toString(),
       workflow.organization.toString(),
       payload,

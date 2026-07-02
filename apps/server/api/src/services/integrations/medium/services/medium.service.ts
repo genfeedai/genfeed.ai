@@ -256,7 +256,7 @@ export class MediumService {
           ),
         );
 
-        return await this.credentialsService.patch(credentials._id, {
+        return await this.credentialsService.patch(credentials.id, {
           accessToken: response.data.access_token,
           accessTokenExpiry: response.data.expires_at
             ? new Date(response.data.expires_at * 1000)
@@ -270,7 +270,7 @@ export class MediumService {
       return credentials;
     } catch (error: unknown) {
       this.loggerService.error('Refresh token failed', error);
-      await this.credentialsService.patch(credentials._id, {
+      await this.credentialsService.patch(credentials.id, {
         isConnected: false,
       });
       throw error;

@@ -221,15 +221,15 @@ export class UsersController {
     // Auto-complete onboarding for records missing the onboarding flag
     // and for entitled users whose DB onboarding flag fell out of sync.
     if (!data.isOnboardingCompleted) {
-      const hasField = await this.usersService.hasOnboardingField(data._id);
+      const hasField = await this.usersService.hasOnboardingField(data.id);
 
       if (!hasField || hasAccessByEntitlement) {
-        data = await this.usersService.patch(data._id.toString(), {
+        data = await this.usersService.patch(data.id.toString(), {
           isOnboardingCompleted: true,
           onboardingStepsCompleted: ['brand', 'plan'],
         });
 
-        const userIdString = data._id?.toString();
+        const userIdString = data.id?.toString();
         if (userIdString) {
           await this.invalidateUserAccessCaches(userIdString);
         }
@@ -411,7 +411,7 @@ export class UsersController {
     // the next request (epic #735, Phase C — no legacy auth provider write-back).
     if (publicMetadata.user) {
       await this.usersService.patch(publicMetadata.user, {
-        lastUsedOrganizationId: String(data._id),
+        lastUsedOrganizationId: String(data.id),
       });
       await this.invalidateUserAccessCaches(publicMetadata.user);
     }
@@ -443,10 +443,9 @@ export class UsersController {
     }
 
     // Persist last-used brand on the member for org-switch recall.
-    // Use the canonical cuid `data.id`, NOT `data._id` — normalizeDocument sets
-    // `_id = mongoId ?? id`, so for any brand carrying a legacy mongoId, `_id`
-    // is that mongoId and writing it into member.lastUsedBrandId (an FK to
-    // Brand.id) fails with P2003 "Invalid Relationship" and blocks brand switch.
+    // Use the canonical cuid `data.id` — member.lastUsedBrandId is an FK to
+    // Brand.id, and writing a legacy mongoId there fails with P2003
+    // "Invalid Relationship" and blocks brand switch.
     await this.membersService.setLastUsedBrand(
       {
         isActive: true,
@@ -611,7 +610,7 @@ export class UsersController {
       patchPayload as Partial<UpdateUserDto>,
     );
 
-    const existingUserId = existingUser._id?.toString();
+    const existingUserId = existingUser.id?.toString();
     if (existingUserId) {
       await this.invalidateUserAccessCaches(existingUserId);
     }

@@ -231,7 +231,7 @@ const UNSCOPED_ROUTE_PREFIXES = new Set([
 ]);
 
 interface AgentLivestreamBotRecord {
-  _id: unknown;
+  id: unknown;
   brand?: unknown;
   category?: string;
   label: string;
@@ -718,7 +718,7 @@ export class AgentToolExecutorService {
     const timezone = this.readOptionalString(params.timezone) ?? 'UTC';
 
     await this.workflowsService.patch(workflowId, {
-      brands: brand && brand._id ? [String(brand._id)] : workflow.brands,
+      brands: brand && brand.id ? [String(brand.id)] : workflow.brands,
       label:
         typeof params.label === 'string' && params.label.trim()
           ? params.label.trim()
@@ -1461,7 +1461,7 @@ export class AgentToolExecutorService {
       data: {
         contentType: memory.contentType,
         destinations,
-        id: String(memory._id),
+        id: String(memory.id),
         kind: memory.kind,
         scope: memory.scope,
         summary: memory.summary || summary || content.slice(0, 180),
@@ -1497,7 +1497,7 @@ export class AgentToolExecutorService {
         creditsUsed: 0,
         data: {
           created: false,
-          id: String(existing._id),
+          id: String(existing.id),
           message: 'Brand already exists for this organization.',
         },
         success: true,
@@ -1524,7 +1524,7 @@ export class AgentToolExecutorService {
       data: {
         created: true,
         handle: normalizedHandle,
-        id: String(brand._id),
+        id: String(brand.id),
         name,
       },
       nextActions: onboardingStatus.nextActions,
@@ -1587,7 +1587,7 @@ export class AgentToolExecutorService {
       creditsUsed: 0,
       data: {
         currentValue: goal.currentValue,
-        goalId: String(goal._id),
+        goalId: String(goal.id),
         label: goal.label,
         metric: goal.metric,
         progressPercent: goal.progressPercent,
@@ -1627,7 +1627,7 @@ export class AgentToolExecutorService {
       creditsUsed: 0,
       data: {
         currentValue: goal.currentValue,
-        goalId: String(goal._id),
+        goalId: String(goal.id),
         label: goal.label,
         metric: goal.metric,
         progressPercent: goal.progressPercent,
@@ -1692,7 +1692,7 @@ export class AgentToolExecutorService {
       creditsUsed: 0,
       data: {
         currentValue: goal.currentValue,
-        goalId: String(goal._id),
+        goalId: String(goal.id),
         label: goal.label,
         metric: goal.metric,
         progressPercent: goal.progressPercent,
@@ -1933,7 +1933,7 @@ export class AgentToolExecutorService {
       organization: ctx.organizationId,
     });
 
-    if (!settings?._id) {
+    if (!settings?.id) {
       return;
     }
 
@@ -1959,7 +1959,7 @@ export class AgentToolExecutorService {
         : item,
     );
 
-    await this.organizationSettingsService.patch(String(settings._id), {
+    await this.organizationSettingsService.patch(String(settings.id), {
       onboardingJourneyMissions: updatedMissions,
     });
 
@@ -2019,16 +2019,13 @@ export class AgentToolExecutorService {
       organization: ctx.organizationId,
     });
 
-    if (currentSettings?._id) {
-      await this.organizationSettingsService.patch(
-        String(currentSettings._id),
-        {
-          onboardingJourneyCompletedAt: journeyCompleted
-            ? currentSettings.onboardingJourneyCompletedAt || new Date()
-            : null,
-          onboardingJourneyMissions: claimedMissions,
-        },
-      );
+    if (currentSettings?.id) {
+      await this.organizationSettingsService.patch(String(currentSettings.id), {
+        onboardingJourneyCompletedAt: journeyCompleted
+          ? currentSettings.onboardingJourneyCompletedAt || new Date()
+          : null,
+        onboardingJourneyMissions: claimedMissions,
+      });
     }
 
     if (totalRewardCreditsGranted > 0) {
@@ -2054,8 +2051,8 @@ export class AgentToolExecutorService {
           isDeleted: false,
         });
 
-        if (dbUser?._id) {
-          await this.usersService.patch(dbUser._id, {
+        if (dbUser?.id) {
+          await this.usersService.patch(dbUser.id, {
             isOnboardingCompleted: true,
             onboardingCompletedAt: new Date(),
             onboardingStepsCompleted: ['brand', 'plan'],
@@ -2095,8 +2092,8 @@ export class AgentToolExecutorService {
       });
 
       if (dbUser) {
-        dbUserId = String(dbUser._id);
-        await this.usersService.patch(dbUser._id, {
+        dbUserId = String(dbUser.id);
+        await this.usersService.patch(dbUser.id, {
           isOnboardingCompleted: true,
           onboardingCompletedAt: new Date(),
           onboardingStepsCompleted: ['brand', 'plan'],
@@ -2457,7 +2454,7 @@ export class AgentToolExecutorService {
     }
 
     const brand = await this.resolveTargetBrand(params, ctx);
-    if (!brand?._id) {
+    if (!brand?.id) {
       return {
         creditsUsed: 0,
         error: 'Create or select a brand before drafting brand voice.',
@@ -2467,7 +2464,7 @@ export class AgentToolExecutorService {
 
     const profile = await this.brandsService.generateBrandVoice(
       {
-        brandId: String(brand._id),
+        brandId: String(brand.id),
         examplesToAvoid: this.normalizeStringList(params.examplesToAvoid),
         examplesToEmulate: this.normalizeStringList(params.examplesToEmulate),
         industry:
@@ -2490,7 +2487,7 @@ export class AgentToolExecutorService {
     return {
       creditsUsed: 0,
       data: {
-        brandId: String(brand._id),
+        brandId: String(brand.id),
         brandName:
           typeof brand.label === 'string' && brand.label.trim()
             ? brand.label.trim()
@@ -2499,13 +2496,13 @@ export class AgentToolExecutorService {
       },
       nextActions: [
         {
-          brandId: String(brand._id),
+          brandId: String(brand.id),
           ctas: [
             {
               action: 'confirm_save_brand_voice_profile',
               label: 'Approve and save',
               payload: {
-                brandId: String(brand._id),
+                brandId: String(brand.id),
                 voiceProfile: profile,
               },
             },
@@ -2513,7 +2510,7 @@ export class AgentToolExecutorService {
           data: { voiceProfile: profile },
           description:
             'Review this draft. Ask for changes in chat, or approve to save it to the brand.',
-          id: `brand-voice-profile-${String(brand._id)}`,
+          id: `brand-voice-profile-${String(brand.id)}`,
           textContent: this.formatBrandVoiceProfile(profile),
           title: 'Brand Voice Draft',
           type: 'brand_voice_profile_card',
@@ -2536,7 +2533,7 @@ export class AgentToolExecutorService {
     }
 
     const brand = await this.resolveTargetBrand(params, ctx);
-    if (!brand?._id) {
+    if (!brand?.id) {
       return {
         creditsUsed: 0,
         error: 'Create or select a brand before saving brand voice.',
@@ -2584,7 +2581,7 @@ export class AgentToolExecutorService {
     };
 
     await this.brandsService.updateAgentConfig(
-      String(brand._id),
+      String(brand.id),
       ctx.organizationId,
       {
         voice: {
@@ -2609,7 +2606,7 @@ export class AgentToolExecutorService {
     return {
       creditsUsed: 0,
       data: {
-        brandId: String(brand._id),
+        brandId: String(brand.id),
         saved: true,
         voiceProfile: profile,
       },
@@ -2872,7 +2869,7 @@ export class AgentToolExecutorService {
     platform: LivestreamBotPlatform;
     session: AgentLivestreamSessionRecord;
   }): AgentToolResult {
-    const botId = String(params.bot._id);
+    const botId = String(params.bot.id);
     const openHref = this.getLivestreamBotPageHref(params.platform);
 
     return {
@@ -2933,7 +2930,7 @@ export class AgentToolExecutorService {
     session: AgentLivestreamSessionRecord;
     statusDescription: string;
   }): AgentToolResult {
-    const botId = String(params.bot._id);
+    const botId = String(params.bot.id);
     const openHref = this.getLivestreamBotPageHref(params.platform);
     const nextControlCta =
       params.session.status === 'active'
@@ -3079,7 +3076,7 @@ export class AgentToolExecutorService {
     }
 
     const brand = await this.resolveWorkflowBrand({}, ctx);
-    if (bot.brand && (!brand || String(bot.brand) !== String(brand._id))) {
+    if (bot.brand && (!brand || String(bot.brand) !== String(brand.id))) {
       return null;
     }
 
@@ -3121,7 +3118,7 @@ export class AgentToolExecutorService {
             return {
               createdAt: post.createdAt,
               description: post.description,
-              id: String(post._id),
+              id: String(post.id),
               label: post.label,
               platform: post.platform,
               scheduledDate: post.scheduledDate,
@@ -3159,7 +3156,7 @@ export class AgentToolExecutorService {
             const workflow = w as unknown as Record<string, unknown>;
             return {
               description: workflow.description,
-              id: String(workflow._id),
+              id: String(workflow.id),
               name: workflow.name,
               status: workflow.status,
               updatedAt: workflow.updatedAt,
@@ -3369,7 +3366,7 @@ export class AgentToolExecutorService {
     return {
       description: workflow.description,
       edgeCount: edges.length,
-      id: String(workflow._id ?? workflow.id ?? ''),
+      id: String(workflow.id ?? ''),
       inputVariables: Array.isArray(workflow.inputVariables)
         ? workflow.inputVariables
         : [],
@@ -3715,7 +3712,7 @@ export class AgentToolExecutorService {
         ctx.organizationId,
       );
 
-      if (!publishedPost?._id) {
+      if (!publishedPost?.id) {
         const publishCardResult = await this.buildPublishCardResult(
           {
             contentId,
@@ -3735,7 +3732,7 @@ export class AgentToolExecutorService {
         };
       }
 
-      const resolvedPostId = String(publishedPost._id);
+      const resolvedPostId = String(publishedPost.id);
       const summary =
         await this.postAnalyticsService.getPostAnalyticsSummary(resolvedPostId);
       const metrics = this.buildMetricItems([
@@ -3866,7 +3863,7 @@ export class AgentToolExecutorService {
       creditsUsed: 0,
       data: {
         connected: !!credential,
-        credentialId: credential ? String(credential._id) : null,
+        credentialId: credential ? String(credential.id) : null,
         platform: platform || null,
       },
       nextActions: credential
@@ -3963,7 +3960,7 @@ export class AgentToolExecutorService {
       data: {
         count: trends.length,
         trends: trends.slice(0, 20).map((t: Record<string, unknown>) => ({
-          id: String(t._id ?? t.id),
+          id: String(t.id),
           platform: t.platform,
           score: t.score,
           topic: t.topic ?? t.name,
@@ -4395,7 +4392,7 @@ export class AgentToolExecutorService {
     const brandRecord = brand as Record<string, unknown>;
 
     return {
-      brandId: String(brandRecord._id ?? brandLookupId),
+      brandId: String(brandRecord.id ?? brandLookupId),
       brandName:
         this.readOptionalString(brandRecord.name) ??
         this.readOptionalString(brandRecord.label),
@@ -4556,7 +4553,7 @@ export class AgentToolExecutorService {
           ...(ctx.strategyId ? { agentStrategyId: ctx.strategyId } : {}),
           brand: String(ingredient.brand),
           category: this.mapIngredientToPostCategory(ingredient.category),
-          credential: String(credential._id),
+          credential: String(credential.id),
           description: caption ?? '',
           groupId,
           ingredients: [contentId],
@@ -4569,7 +4566,7 @@ export class AgentToolExecutorService {
           user: ctx.userId,
         } as never);
 
-        postIds.push(String((post as { _id: string })._id));
+        postIds.push(String((post as { id: string }).id));
 
         if (platform === CredentialPlatform.YOUTUBE) {
           await this.postsService.handleYoutubePost(post as never);
@@ -4630,7 +4627,7 @@ export class AgentToolExecutorService {
     return {
       creditsUsed: 0,
       data: {
-        id: String(post._id),
+        id: String(post.id),
         status: PostStatus.DRAFT,
       },
       success: true,
@@ -4727,7 +4724,7 @@ export class AgentToolExecutorService {
         success: false,
       };
     }
-    const brandId = String(brand._id);
+    const brandId = String(brand.id);
     const brandLabel = String(brand.label || 'your brand');
     const countLabel = count > 1 ? `${count} ${contentType}s per run` : null;
 
@@ -4885,7 +4882,7 @@ export class AgentToolExecutorService {
       } as never,
     );
 
-    const workflowId = String(workflow._id ?? workflow.id);
+    const workflowId = String(workflow.id);
     const nextRunAt = computeNextRunAtOrThrow(schedule, timezone);
     const scheduleSummary = formatRecurringSchedule(schedule, timezone, count);
 
@@ -5077,7 +5074,7 @@ export class AgentToolExecutorService {
         } as never,
       );
 
-      const workflowId = String(workflow._id ?? workflow.id);
+      const workflowId = String(workflow.id);
       await this.applyInstalledWorkflowContext(workflowId, ctx, params, source);
 
       const nextRunAt = schedule
@@ -5263,7 +5260,7 @@ export class AgentToolExecutorService {
       organizationId: ctx.organizationId,
       userId: ctx.userId,
     });
-    const campaignId = String(campaign._id);
+    const campaignId = String(campaign.id);
 
     return {
       creditsUsed: 1,
@@ -5446,7 +5443,7 @@ export class AgentToolExecutorService {
 
     const botPlatform = this.toBotPlatform(platform);
     const createdBot = await this.botsService.create({
-      brand: String(brand._id),
+      brand: String(brand.id),
       category: LIVESTREAM_BOT_CATEGORY,
       description:
         typeof params.description === 'string'
@@ -5528,7 +5525,7 @@ export class AgentToolExecutorService {
 
     return this.buildLivestreamBotCreatedResult({
       bot: createdBot,
-      brandId: String(brand._id),
+      brandId: String(brand.id),
       creditsUsed: 0,
       organizationId: ctx.organizationId,
       platform,
@@ -5705,7 +5702,7 @@ export class AgentToolExecutorService {
         success: false,
       };
     }
-    const brandId = String(brand._id);
+    const brandId = String(brand.id);
     const brandLabel = String(brand.label || 'your brand');
     const workflowBrandIds = [brandId];
 
@@ -5799,7 +5796,7 @@ export class AgentToolExecutorService {
     );
 
     const workflowId = String(
-      workflow._id ?? (workflow as Record<string, unknown>).id,
+      workflow.id ?? (workflow as Record<string, unknown>).id,
     );
     const nextRunAt =
       schedule && isScheduleEnabled
@@ -5915,7 +5912,7 @@ export class AgentToolExecutorService {
       creditsUsed: 0,
       data: {
         inputs,
-        workflowId: String(workflow._id),
+        workflowId: String(workflow.id),
         workflowName:
           (workflow as unknown as Record<string, unknown>).name ??
           (workflow as unknown as Record<string, unknown>).label ??
@@ -6565,8 +6562,8 @@ export class AgentToolExecutorService {
         user: ctx.userId,
       } as never);
 
-      if (selectedBrand?._id) {
-        brandId = String(selectedBrand._id);
+      if (selectedBrand?.id) {
+        brandId = String(selectedBrand.id);
       }
     }
 
@@ -7018,7 +7015,7 @@ export class AgentToolExecutorService {
       creditsUsed: 0,
       data: {
         brandId: String(credential.brand),
-        credentialId: String(credential._id),
+        credentialId: String(credential.id),
         externalHandle: credential.externalHandle,
         externalName: credential.externalName,
         platform: credential.platform,
@@ -7079,7 +7076,7 @@ export class AgentToolExecutorService {
         return {
           caption: reviewItem.caption,
           format: reviewItem.format,
-          id: String(reviewItem._id),
+          id: String(reviewItem.id),
           mediaUrl: reviewItem.mediaUrl,
           platform: reviewItem.platform,
           reviewDecision:
@@ -7557,7 +7554,7 @@ export class AgentToolExecutorService {
       .map((p) => ({
         description: p.description,
         engagement: p.engagement ?? p.likes,
-        id: String(p._id),
+        id: String(p.id),
         platform: p.platform,
       }));
 
@@ -7630,7 +7627,7 @@ export class AgentToolExecutorService {
         gapsCount: gapDays.length,
         scheduled: scheduled.map((p) => ({
           description: p.description,
-          id: String(p._id),
+          id: String(p.id),
           platform: p.platform,
           scheduledDate: p.scheduledDate,
         })),
@@ -8018,7 +8015,7 @@ export class AgentToolExecutorService {
     }
 
     type AssetDoc = {
-      _id: unknown;
+      id: unknown;
       category: string;
       cdnUrl?: string;
       metadata?: { label?: string } | null;
@@ -8049,7 +8046,7 @@ export class AgentToolExecutorService {
     }
 
     const ingredients: AgentIngredientItem[] = assets.map((asset) => {
-      const id = String(asset._id);
+      const id = String(asset.id);
       const url = asset.cdnUrl ?? '';
       const isVideo = asset.category === IngredientCategory.VIDEO;
       const title =
@@ -8149,7 +8146,7 @@ export class AgentToolExecutorService {
             typeof workflow.description === 'string'
               ? workflow.description
               : undefined,
-          id: String(workflow._id),
+          id: String(workflow.id),
           name:
             typeof workflow.name === 'string' && workflow.name.length > 0
               ? workflow.name
@@ -8212,7 +8209,7 @@ export class AgentToolExecutorService {
         const v = voice as Record<string, unknown>;
         return {
           cloneStatus: (v.cloneStatus as string | undefined) ?? undefined,
-          id: String(v._id),
+          id: String(v.id),
           label:
             (v.metadataLabel as string | undefined) ??
             (v.label as string | undefined) ??
@@ -8245,7 +8242,7 @@ export class AgentToolExecutorService {
       nextActions: [
         {
           brandId: currentBrand
-            ? String((currentBrand as { _id: unknown })._id)
+            ? String((currentBrand as { id: unknown }).id)
             : undefined,
           canUpload: true,
           canUseExisting: existingVoices.length > 0,
@@ -8440,7 +8437,7 @@ export class AgentToolExecutorService {
       'none',
     );
     const selectedBrandId = currentBrand
-      ? String((currentBrand as Record<string, unknown>)._id)
+      ? String((currentBrand as Record<string, unknown>).id)
       : null;
     const orgSettings = this.organizationSettingsService
       ? await this.organizationSettingsService.findOne({
@@ -8489,7 +8486,7 @@ export class AgentToolExecutorService {
         return {
           description:
             typeof doc.description === 'string' ? doc.description : undefined,
-          id: String(doc._id),
+          id: String(doc.id),
           name:
             typeof doc.name === 'string' && doc.name.length > 0
               ? doc.name
@@ -8525,7 +8522,7 @@ export class AgentToolExecutorService {
       workflowList.unshift({
         description:
           typeof wf.description === 'string' ? wf.description : undefined,
-        id: String(wf._id ?? selectedWorkflow),
+        id: String(wf.id ?? selectedWorkflow),
         name:
           typeof wf.name === 'string' && wf.name.length > 0
             ? wf.name
@@ -9099,7 +9096,7 @@ export class AgentToolExecutorService {
       });
 
       const ingredients = result.docs.map((doc) => ({
-        _id: String(doc._id),
+        _id: String(doc.id),
         category: (doc as unknown as Record<string, unknown>).category,
         status: (doc as unknown as Record<string, unknown>).status,
         totalVotes: (doc as unknown as Record<string, unknown>).totalVotes ?? 0,

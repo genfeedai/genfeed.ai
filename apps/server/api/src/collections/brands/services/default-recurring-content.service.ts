@@ -393,7 +393,7 @@ export class DefaultRecurringContentService {
     userId: string;
   }): Promise<void> {
     const brandId = String(
-      params.brand._id ?? (params.brand as Record<string, unknown>).id,
+      params.brand.id ?? (params.brand as Record<string, unknown>).id,
     );
     const brandRecord = params.brand as unknown as Record<string, unknown>;
     const agentConfig = brandRecord.agentConfig as
@@ -471,7 +471,7 @@ export class DefaultRecurringContentService {
     });
 
     const workflowId = String(
-      (workflow as Record<string, unknown>)._id ??
+      (workflow as Record<string, unknown>).id ??
         (workflow as Record<string, unknown>).id,
     );
 

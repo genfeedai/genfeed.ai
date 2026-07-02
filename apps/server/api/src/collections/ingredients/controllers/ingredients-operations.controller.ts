@@ -161,15 +161,15 @@ export class IngredientsOperationsController {
 
     // Start async processing (fire and forget)
     this.processCloneAsync(
-      ingredientData._id.toString(),
-      metadataData._id.toString(),
+      ingredientData.id.toString(),
+      metadataData.id.toString(),
       ingredient.category,
       ingredientId,
       publicMetadata.user,
     ).catch((error) => {
       this.loggerService.error(`${url} async processing failed`, {
         error,
-        ingredientId: ingredientData._id,
+        ingredientId: ingredientData.id,
       });
     });
 
@@ -559,6 +559,6 @@ export class IngredientsOperationsController {
       return ref;
     }
 
-    return ref?._id?.toString() ?? ref?.id?.toString();
+    return ref?.id?.toString() ?? ref?.id?.toString();
   }
 }

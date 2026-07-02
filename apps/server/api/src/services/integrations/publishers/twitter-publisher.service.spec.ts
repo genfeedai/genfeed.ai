@@ -556,7 +556,7 @@ describe('TwitterPublisherService', () => {
       // Should update both children with their external IDs
       expect(postsService.patch).toHaveBeenCalledTimes(2);
       expect(postsService.patch).toHaveBeenCalledWith(
-        mockChildren[0]._id.toString(),
+        mockChildren[0].id.toString(),
         expect.objectContaining({
           externalId: expect.any(String),
           status: PostStatus.PUBLIC,
@@ -590,7 +590,7 @@ describe('TwitterPublisherService', () => {
 
       // First patch should be for the child with order 1
       expect(postsService.patch.mock.calls[0][0]).toBe(
-        mockChildren[0]._id.toString(),
+        mockChildren[0].id.toString(),
       );
     });
 
@@ -608,7 +608,7 @@ describe('TwitterPublisherService', () => {
       );
 
       expect(postsService.patch).toHaveBeenCalledWith(
-        singleChild[0]._id.toString(),
+        singleChild[0].id.toString(),
         expect.objectContaining({
           status: PostStatus.FAILED,
         }),

@@ -229,7 +229,7 @@ export class GoogleAdsService {
         }),
       );
 
-      return await this.credentialsService.patch(credential._id, {
+      return await this.credentialsService.patch(credential.id, {
         accessToken: refreshed.data.access_token,
         accessTokenExpiry: refreshed.data.expires_in
           ? new Date(Date.now() + refreshed.data.expires_in * 1000)
@@ -239,7 +239,7 @@ export class GoogleAdsService {
       });
     } catch (error: unknown) {
       this.loggerService.error(`${caller} failed`, error);
-      await this.credentialsService.patch(credential._id, {
+      await this.credentialsService.patch(credential.id, {
         isConnected: false,
       });
       throw error;

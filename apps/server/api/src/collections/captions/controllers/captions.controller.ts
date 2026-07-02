@@ -166,11 +166,11 @@ export class CaptionsController {
     }
 
     this.loggerService.log(
-      `Generating captions for video ingredient: ${ingredient._id}`,
+      `Generating captions for video ingredient: ${ingredient.id}`,
     );
 
     const captionContent = await this.whisperService.generateCaptions(
-      ingredient._id.toString(),
+      ingredient.id.toString(),
     );
 
     const data: CaptionDocument = await this.captionsService.create(

@@ -80,7 +80,7 @@ export class CronAnalyticsSocialService {
         const chunk = chunks[i];
         const jobData: SocialAnalyticsJobData = {
           posts: chunk.map((post: PostEntity) => ({
-            _id: post._id.toString(),
+            id: post.id.toString(),
             brand: post.brand.toString(),
             externalId: post.externalId!,
             organization: post.organization.toString(),

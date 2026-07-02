@@ -53,7 +53,7 @@ export class CronAdOptimizationService {
         const orgId = String(config.organization);
 
         const jobData: AdOptimizationJobData = {
-          configId: String(config._id),
+          configId: String(config.id),
           organizationId: orgId,
           runId,
         };

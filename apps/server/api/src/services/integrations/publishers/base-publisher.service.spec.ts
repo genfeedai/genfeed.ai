@@ -71,9 +71,9 @@ const mockIngredientId2 = '507f1f77bcf86cd799439022';
 
 function makePost(overrides: Partial<PostEntity> = {}): PostEntity {
   return {
-    _id: mockPostId,
     category: PostCategory.TEXT,
     description: 'Hello world',
+    id: mockPostId,
     ingredients: [],
     ...overrides,
   } as unknown as PostEntity;

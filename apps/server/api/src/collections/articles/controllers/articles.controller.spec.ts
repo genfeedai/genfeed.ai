@@ -44,7 +44,7 @@ describe('ArticlesController', () => {
   } as Request;
 
   const mockArticle = {
-    _id: '507f1f77bcf86cd799439014',
+    id: '507f1f77bcf86cd799439014',
     brand: '507f1f77bcf86cd799439013',
     category: ArticleCategory.POST,
     content: 'This is the article content',
@@ -227,7 +227,7 @@ describe('ArticlesController', () => {
       });
       mockOrganizationSettingsService.findOne.mockResolvedValue(null);
       mockActivitiesService.create.mockResolvedValue({
-        _id: '507f191e810c19729de860ee',
+        id: '507f191e810c19729de860ee',
       });
       mockWebsocketService.publishBackgroundTaskUpdate.mockResolvedValue(
         undefined,

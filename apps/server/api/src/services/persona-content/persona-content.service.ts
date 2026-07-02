@@ -70,7 +70,7 @@ export class PersonaContentService {
       input.personaId,
       input.organization,
     );
-    const metadataId = String(persona._id);
+    const metadataId = String(persona.id);
     const organizationId = String(input.organization);
     const userId = String(input.user);
     const avatarExternalId = this.requireString(
@@ -137,7 +137,7 @@ export class PersonaContentService {
       input.personaId,
       input.organization,
     );
-    const metadataId = String(persona._id);
+    const metadataId = String(persona.id);
     const organizationId = String(input.organization);
     const userId = String(input.user);
     const avatarExternalId = this.requireString(
@@ -197,7 +197,7 @@ export class PersonaContentService {
       input.personaId,
       input.organization,
     );
-    const metadataId = String(persona._id);
+    const metadataId = String(persona.id);
     const organizationId = String(input.organization);
     const userId = String(input.user);
     const voiceExternalId = this.readString(persona.voiceExternalId);

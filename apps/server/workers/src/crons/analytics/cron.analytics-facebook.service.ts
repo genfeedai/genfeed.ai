@@ -71,7 +71,7 @@ export class CronAnalyticsFacebookService {
         const chunk = chunks[i];
         const jobData: FacebookAnalyticsJobData = {
           posts: chunk.map((post: PostEntity) => ({
-            _id: post._id.toString(),
+            id: post.id.toString(),
             brand: post.brand.toString(),
             credential: post.credential?.toString(),
             externalId: post.externalId!,

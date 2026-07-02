@@ -233,7 +233,7 @@ export class TrainingsService extends BaseService<
       throw new Error('Training payload is invalid');
     }
 
-    const trainingId = this.readString(trainingRecord._id ?? trainingRecord.id);
+    const trainingId = this.readString(trainingRecord.id);
     if (!trainingId) {
       throw new Error('Training id is missing');
     }

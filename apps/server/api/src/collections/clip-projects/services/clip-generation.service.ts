@@ -103,7 +103,7 @@ export class ClipGenerationService {
         } as unknown as CreateClipResultDto);
 
       const clipResultId = String(
-        (clipResult as Record<string, unknown>).id ?? clipResult._id,
+        (clipResult as Record<string, unknown>).id ?? clipResult.id,
       );
       clipResultIds.push(clipResultId);
 

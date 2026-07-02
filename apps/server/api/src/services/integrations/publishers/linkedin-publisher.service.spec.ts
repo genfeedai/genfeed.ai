@@ -460,7 +460,7 @@ describe('LinkedInPublisherService', () => {
 
       // First call should be for order 1
       expect(postsService.patch.mock.calls[0][0]).toBe(
-        unorderedChildren[1]._id.toString(),
+        unorderedChildren[1].id.toString(),
       );
     });
 
@@ -478,7 +478,7 @@ describe('LinkedInPublisherService', () => {
       );
 
       expect(postsService.patch).toHaveBeenCalledWith(
-        singleChild[0]._id.toString(),
+        singleChild[0].id.toString(),
         expect.objectContaining({
           status: PostStatus.FAILED,
         }),
@@ -523,7 +523,7 @@ describe('LinkedInPublisherService', () => {
       );
 
       expect(postsService.patch).toHaveBeenCalledWith(
-        singleChild[0]._id.toString(),
+        singleChild[0].id.toString(),
         expect.objectContaining({
           externalId: 'comment-123',
           publicationDate: expect.any(Date),
