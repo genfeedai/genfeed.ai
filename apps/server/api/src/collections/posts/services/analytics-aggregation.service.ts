@@ -11,13 +11,6 @@ import type { IViralHookPlatformAggResult } from '@genfeedai/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
 
-export interface Timeframe {
-  startDate: Date;
-  endDate: Date;
-  previousStartDate: Date;
-  previousEndDate: Date;
-}
-
 export interface OverviewMetrics {
   totalPosts: number;
   totalViews: number;
@@ -154,16 +147,6 @@ export class AnalyticsAggregationService {
     private readonly postsService: PostsService,
   ) {}
 
-  /**
-   * Parse date range with validation
-   */
-  private parseDateRange(
-    startDateInput?: Date | string,
-    endDateInput?: Date | string,
-  ): Timeframe {
-    return DateRangeUtil.parseDateRange(startDateInput, endDateInput);
-  }
-
   private readNumber(value: unknown): number {
     return Number(value ?? 0);
   }
@@ -217,7 +200,7 @@ export class AnalyticsAggregationService {
       endDate: parsedEndDate,
       previousStartDate,
       previousEndDate,
-    } = this.parseDateRange(startDate, endDate);
+    } = DateRangeUtil.parseDateRange(startDate, endDate);
 
     const where: Record<string, unknown> = {
       date: { gte: parsedStartDate, lte: parsedEndDate },
@@ -485,7 +468,7 @@ export class AnalyticsAggregationService {
     endDateInput?: Date | string,
     groupBy: 'day' | 'week' = 'day',
   ): Promise<TimeSeriesDataPointWithPlatforms[]> {
-    const { startDate, endDate } = this.parseDateRange(
+    const { startDate, endDate } = DateRangeUtil.parseDateRange(
       startDateInput,
       endDateInput,
     );
@@ -583,7 +566,7 @@ export class AnalyticsAggregationService {
     startDateInput?: Date | string,
     endDateInput?: Date | string,
   ): Promise<PlatformComparison[]> {
-    const { startDate, endDate } = this.parseDateRange(
+    const { startDate, endDate } = DateRangeUtil.parseDateRange(
       startDateInput,
       endDateInput,
     );
@@ -650,7 +633,7 @@ export class AnalyticsAggregationService {
     startDateInput?: Date | string,
     endDateInput?: Date | string,
   ): Promise<TopContent[]> {
-    const { startDate, endDate } = this.parseDateRange(
+    const { startDate, endDate } = DateRangeUtil.parseDateRange(
       startDateInput,
       endDateInput,
     );
@@ -775,7 +758,7 @@ export class AnalyticsAggregationService {
     endDateInput?: Date | string,
   ): Promise<GrowthTrends> {
     const { startDate, endDate, previousStartDate, previousEndDate } =
-      this.parseDateRange(startDateInput, endDateInput);
+      DateRangeUtil.parseDateRange(startDateInput, endDateInput);
 
     const where: Record<string, unknown> = {
       date: { gte: startDate, lte: endDate },
@@ -879,7 +862,7 @@ export class AnalyticsAggregationService {
     startDateInput?: Date | string,
     endDateInput?: Date | string,
   ): Promise<EngagementBreakdown> {
-    const { startDate, endDate } = this.parseDateRange(
+    const { startDate, endDate } = DateRangeUtil.parseDateRange(
       startDateInput,
       endDateInput,
     );
@@ -928,7 +911,7 @@ export class AnalyticsAggregationService {
     startDateInput?: Date | string,
     endDateInput?: Date | string,
   ): Promise<ViralHookSummaryEntity> {
-    const { startDate, endDate } = this.parseDateRange(
+    const { startDate, endDate } = DateRangeUtil.parseDateRange(
       startDateInput,
       endDateInput,
     );
@@ -1169,7 +1152,7 @@ export class AnalyticsAggregationService {
       endDate: parsedEndDate,
       previousStartDate,
       previousEndDate,
-    } = this.parseDateRange(startDate, endDate);
+    } = DateRangeUtil.parseDateRange(startDate, endDate);
 
     const where: Record<string, unknown> = {
       date: { gte: parsedStartDate, lte: parsedEndDate },
