@@ -189,6 +189,7 @@ export default function WorkflowNewPageClient() {
 
   const workflowUiConfig = useMemo<WorkflowUIConfig>(
     () => ({
+      logger,
       workflowsApi: {
         setThumbnail: async (selectedWorkflowId, thumbnailUrl, nodeId) => {
           const service = await getWorkflowService();

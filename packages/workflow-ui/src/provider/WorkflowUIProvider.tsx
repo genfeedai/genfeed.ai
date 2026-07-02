@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, type ReactNode, use, useEffect } from 'react';
+import { configureWorkflowLogger } from '../stores/executionLogger';
 import { configurePromptLibrary } from '../stores/promptLibraryStore';
 import type { WorkflowUIConfig } from './types';
 
@@ -31,6 +32,12 @@ export function WorkflowUIProvider({
       configurePromptLibrary(config.promptLibrary);
     }
   }, [config.promptLibrary]);
+
+  // Register the execution-store logger (SSE failures, failed runs). Resets to
+  // a no-op when unset so the package stays observable-agnostic standalone.
+  useEffect(() => {
+    configureWorkflowLogger(config.logger);
+  }, [config.logger]);
 
   return (
     <WorkflowUIContext.Provider value={config}>

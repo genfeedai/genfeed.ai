@@ -1,5 +1,6 @@
 import { NodeStatusEnum } from '@genfeedai/types';
 import type { StateCreator } from 'zustand';
+import { getWorkflowLogger } from '../../executionLogger';
 import { useSettingsStore } from '../../settingsStore';
 import { useUIStore } from '../../uiStore';
 import { useWorkflowStore } from '../../workflow/workflowStore';
@@ -51,7 +52,11 @@ async function ensureSavedWorkflowId(): Promise<
   if (workflowStore.isDirty || !workflowStore.workflowId) {
     try {
       await workflowStore.saveWorkflow();
-    } catch {
+    } catch (error) {
+      getWorkflowLogger().error('Failed to save workflow before execution', {
+        context: 'ExecutionStore',
+        error,
+      });
       return { message: 'Failed to save workflow', ok: false };
     }
   }

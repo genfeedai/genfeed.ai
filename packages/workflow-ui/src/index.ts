@@ -41,11 +41,16 @@ export type {
   PromptLibraryService,
   PromptPickerProps,
   WorkflowUIConfig,
+  WorkflowUILogger,
 } from './provider';
 // Provider
 export { useWorkflowUIConfig, WorkflowUIProvider } from './provider';
 export { useAnnotationStore } from './stores/annotationStore';
 export { useExecutionStore } from './stores/execution';
+export {
+  configureWorkflowLogger,
+  getWorkflowLogger,
+} from './stores/executionLogger';
 export { usePromptEditorStore } from './stores/promptEditorStore';
 export {
   configurePromptLibrary,

@@ -78,6 +78,20 @@ export interface WorkflowsApiService {
 }
 
 // =============================================================================
+// Logger
+// =============================================================================
+
+/**
+ * Minimal logger the execution store reports failures through (SSE connection
+ * drops, message-parse failures, failed executions, save-before-run errors).
+ * The consuming app injects a real observability-backed logger; when absent the
+ * package no-ops (matching its standalone default).
+ */
+export interface WorkflowUILogger {
+  error: (message: string, meta?: Record<string, unknown>) => void;
+}
+
+// =============================================================================
 // Config
 // =============================================================================
 
@@ -90,6 +104,8 @@ export interface WorkflowUIConfig {
   promptLibrary?: PromptLibraryService;
   /** For context menu — set workflow thumbnail */
   workflowsApi?: WorkflowsApiService;
+  /** Execution-store error reporting (SSE failures, failed runs). No-op if omitted. */
+  logger?: WorkflowUILogger;
   /** Injected ModelBrowserModal component (complex, app-specific) */
   ModelBrowserModal?: ComponentType<ModelBrowserModalProps> | null;
   /** Injected PromptPicker component (complex, app-specific) */

@@ -26,6 +26,10 @@ export { type ContextMenuType, useContextMenuStore } from './contextMenuStore';
 export type { DebugPayload, ExecutionStore, Job } from './execution';
 export { useExecutionStore } from './execution';
 // Embedded stores (moved from core app)
+export {
+  configureWorkflowLogger,
+  getWorkflowLogger,
+} from './executionLogger';
 export { usePromptEditorStore } from './promptEditorStore';
 export {
   configurePromptLibrary,
