@@ -14,4 +14,6 @@ export const evaluationAttributes = createEntityAttributes([
   'flags',
   'externalContent',
   'actualPerformance',
+  'review',
+  'reviewerComments',
 ]);
