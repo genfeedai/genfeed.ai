@@ -1,5 +1,6 @@
 import { type WorkflowVisualNode } from '@api/collections/workflows/schemas/workflow.schema';
 import { SYSTEM_WORKFLOW_ACTION_DEFINITIONS } from '@api/collections/workflows/services/system-workflow-provenance.service';
+import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import {
   buildSystemWorkflowMetadata,
   SYSTEM_WORKFLOW_METADATA_KEY,
@@ -22,7 +23,7 @@ import { type WorkflowTemplate } from '@api/collections/workflows/templates/work
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowLifecycle, WorkflowStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 
 /** Template id for the predetermined per-org Daily Trends Digest workflow. */
 const DAILY_TRENDS_DIGEST_TEMPLATE_ID = 'daily-trends-digest';
@@ -45,6 +46,8 @@ export class WorkflowTemplateSeederService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
+    @Optional()
+    private readonly workflowExecutionQueueService?: WorkflowExecutionQueueService,
   ) {}
 
   private buildSeededSystemWorkflowMetadata(input: {
@@ -583,6 +586,41 @@ export class WorkflowTemplateSeederService {
    * instead of duplicated, and a serialization failure (P2034) means the
    * concurrent caller already synced it.
    */
+  /**
+   * Upsert job schedulers for every enabled scheduled workflow of an
+   * organization. Called after seeding batches (`ensure*Workflows`) so newly
+   * seeded schedules fire without waiting for a service restart.
+   */
+  async syncOrganizationWorkflowSchedulers(
+    organizationId: string,
+  ): Promise<void> {
+    if (!this.workflowExecutionQueueService) {
+      return;
+    }
+
+    const workflows = await this.prisma.workflow.findMany({
+      select: {
+        id: true,
+        isDeleted: true,
+        isScheduleEnabled: true,
+        schedule: true,
+        status: true,
+        timezone: true,
+      },
+      where: {
+        isDeleted: false,
+        isScheduleEnabled: true,
+        organizationId,
+        schedule: { not: null },
+        status: WorkflowStatus.ACTIVE,
+      },
+    });
+
+    for (const workflow of workflows) {
+      await this.workflowExecutionQueueService.syncWorkflowScheduler(workflow);
+    }
+  }
+
   private async upsertContentScheduleWorkflow(input: {
     contentScheduleId: string;
     data: Record<string, unknown>;
@@ -634,12 +672,42 @@ export class WorkflowTemplateSeederService {
       }
       throw error;
     }
+
+    // Sync the BullMQ job scheduler from the row's post-write state (covers
+    // both the update and create paths, including a concurrent writer's row).
+    const synced = await this.prisma.workflow.findFirst({
+      select: {
+        id: true,
+        isDeleted: true,
+        isScheduleEnabled: true,
+        schedule: true,
+        status: true,
+        timezone: true,
+      },
+      where: where as never,
+    });
+
+    if (synced) {
+      await this.workflowExecutionQueueService?.syncWorkflowScheduler(synced);
+    }
   }
 
   async disableContentScheduleWorkflow(
     organizationId: string,
     contentScheduleId: string,
   ): Promise<void> {
+    const affected = await this.prisma.workflow.findMany({
+      select: { id: true },
+      where: {
+        isDeleted: false,
+        metadata: {
+          equals: contentScheduleId,
+          path: ['contentScheduleId'],
+        },
+        organizationId,
+      },
+    });
+
     await this.prisma.workflow.updateMany({
       data: {
         isDeleted: true,
@@ -655,6 +723,14 @@ export class WorkflowTemplateSeederService {
         organizationId,
       },
     });
+
+    // Drop the BullMQ job schedulers so the disabled schedules stop firing.
+    for (const workflow of affected) {
+      await this.workflowExecutionQueueService?.syncWorkflowScheduler({
+        id: workflow.id,
+        isDeleted: true,
+      });
+    }
   }
 
   private buildContentScheduleWorkflowData(schedule: {

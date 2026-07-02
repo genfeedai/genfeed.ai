@@ -129,6 +129,10 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
       );
       await workflowSeeder.ensureLivestreamBotWorkflows(userId, organizationId);
       await workflowSeeder.ensureSystemActionWorkflows(userId, organizationId);
+
+      // Seeded schedules fire via BullMQ job schedulers; register them now so
+      // they don't wait for the next service restart.
+      await workflowSeeder.syncOrganizationWorkflowSchedulers(organizationId);
     } catch (error) {
       this.logger.error(
         'Failed to provision default self-hosted workflows',

@@ -2,6 +2,7 @@ import type {
   DelayResumeJobData,
   TriggerEvent,
 } from '@api/collections/workflows/services/workflow-executor.service';
+import { WorkflowStatus } from '@genfeedai/enums';
 import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -13,9 +14,43 @@ import { Queue } from 'bullmq';
 // =============================================================================
 
 export interface WorkflowExecutionJobData {
-  type: 'trigger' | 'delay-resume';
+  type: 'trigger' | 'delay-resume' | 'scheduled-fire';
   triggerEvent?: TriggerEvent;
   delayResumeData?: DelayResumeJobData;
+  workflowId?: string;
+}
+
+export interface WorkflowSchedulerUpsertInput {
+  workflowId: string;
+  cronExpression: string;
+  timezone: string;
+}
+
+/**
+ * Minimal workflow-row shape needed to decide whether its BullMQ job
+ * scheduler should exist (upsert) or not (remove).
+ */
+export interface WorkflowSchedulerSyncRow {
+  id?: string;
+  _id?: unknown;
+  schedule?: string | null;
+  timezone?: string | null;
+  isScheduleEnabled?: boolean | null;
+  isDeleted?: boolean | null;
+  status?: string | null;
+}
+
+// =============================================================================
+// SCHEDULER ID
+// =============================================================================
+
+/**
+ * BullMQ Job Scheduler id for a workflow's cron schedule. One scheduler per
+ * workflow: upserting the same id from any number of API replicas is
+ * idempotent, so BullMQ guarantees exactly one delayed fire per tick.
+ */
+export function workflowSchedulerId(workflowId: string): string {
+  return `workflow-schedule:${workflowId}`;
 }
 
 // =============================================================================
@@ -97,6 +132,94 @@ export class WorkflowExecutionQueueService {
     });
 
     return job.id!;
+  }
+
+  /**
+   * Upsert the BullMQ Job Scheduler that fires a workflow's cron schedule.
+   * Replica-safe: BullMQ keys the scheduler on its id, so concurrent upserts
+   * from multiple producers converge on a single scheduler and one delayed job.
+   */
+  async upsertWorkflowScheduler(
+    input: WorkflowSchedulerUpsertInput,
+  ): Promise<void> {
+    await this.executionQueue.upsertJobScheduler(
+      workflowSchedulerId(input.workflowId),
+      {
+        pattern: input.cronExpression,
+        tz: input.timezone,
+      },
+      {
+        data: {
+          type: 'scheduled-fire',
+          workflowId: input.workflowId,
+        },
+        name: 'scheduled-fire',
+        opts: {
+          attempts: 1, // Scheduled fires must not auto-retry (next tick covers it)
+          removeOnComplete: 200,
+          removeOnFail: 100,
+        },
+      },
+    );
+
+    this.logger.log(`${this.logContext} upserted workflow scheduler`, {
+      cronExpression: input.cronExpression,
+      timezone: input.timezone,
+      workflowId: input.workflowId,
+    });
+  }
+
+  /**
+   * Remove the BullMQ Job Scheduler for a workflow. Idempotent.
+   */
+  async removeWorkflowScheduler(workflowId: string): Promise<void> {
+    await this.executionQueue.removeJobScheduler(
+      workflowSchedulerId(workflowId),
+    );
+
+    this.logger.log(`${this.logContext} removed workflow scheduler`, {
+      workflowId,
+    });
+  }
+
+  /**
+   * Upsert or remove the job scheduler for one workflow row based on its
+   * current schedule/enabled/status state. Never throws — scheduler sync is
+   * best-effort and must not fail the surrounding write path.
+   */
+  async syncWorkflowScheduler(
+    workflow: WorkflowSchedulerSyncRow,
+  ): Promise<void> {
+    const workflowId = String(workflow.id ?? workflow._id ?? '');
+    if (!workflowId) {
+      return;
+    }
+
+    const isSchedulable =
+      !workflow.isDeleted &&
+      Boolean(workflow.schedule) &&
+      workflow.isScheduleEnabled === true &&
+      workflow.status === WorkflowStatus.ACTIVE;
+
+    try {
+      if (isSchedulable) {
+        await this.upsertWorkflowScheduler({
+          cronExpression: workflow.schedule as string,
+          timezone: workflow.timezone || 'UTC',
+          workflowId,
+        });
+      } else {
+        await this.removeWorkflowScheduler(workflowId);
+      }
+    } catch (error) {
+      this.logger.error(
+        `${this.logContext} failed to sync workflow scheduler`,
+        {
+          error,
+          workflowId,
+        },
+      );
+    }
   }
 
   /**
