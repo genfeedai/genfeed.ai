@@ -33,6 +33,8 @@ export interface MenuItemConfig {
   isComingSoon?: boolean;
   /** When true on the first item of a group, renders a visual divider above the group */
   hasDividerAbove?: boolean;
+  /** When true on the first item of a named group, the group header can collapse its items */
+  isCollapsible?: boolean;
   /** When true, renders as a visually prominent CTA button */
   isPrimary?: boolean;
   /** Marks runtime-generated items (e.g. connected credentials) */

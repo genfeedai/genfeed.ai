@@ -200,6 +200,18 @@ describe('MenuShared', () => {
     mockLogoUrl.value = '';
     mockPathname.value = '/settings/personal';
     process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
+    const storage = new Map<string, string>();
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      value: {
+        clear: vi.fn(() => storage.clear()),
+        getItem: vi.fn((key: string) => storage.get(key) ?? null),
+        removeItem: vi.fn((key: string) => storage.delete(key)),
+        setItem: vi.fn((key: string, value: string) => {
+          storage.set(key, value);
+        }),
+      },
+    });
   });
 
   afterEach(() => {
@@ -392,13 +404,67 @@ describe('MenuShared', () => {
 
     render(<MenuShared config={workspaceConfig} sectionLabel="Workspace" />);
 
+    expect(screen.getByText('Workspace')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Workspace' }),
-    ).toBeInTheDocument();
+      screen.queryByRole('button', { name: 'Workspace' }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Tasks')).toBeInTheDocument();
     expect(screen.getByText(/Inbox/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Library' })).toBeInTheDocument();
+  });
+
+  it('renders named menu groups as static section headers by default', () => {
+    const groupedConfig: MenuConfig = {
+      items: [
+        {
+          group: 'ATS',
+          href: '/candidates',
+          label: 'Candidates',
+        },
+        {
+          group: 'ATS',
+          href: '/jobs',
+          label: 'Jobs',
+        },
+      ],
+      logoHref: '/',
+    };
+
+    render(<MenuShared config={groupedConfig} />);
+
+    expect(screen.getByText('ATS')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'ATS' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Candidates')).toBeInTheDocument();
+    expect(screen.getByText('Jobs')).toBeInTheDocument();
+  });
+
+  it('collapses named menu groups only when the first item opts in', () => {
+    const groupedConfig: MenuConfig = {
+      items: [
+        {
+          group: 'Operations',
+          href: '/runs',
+          isCollapsible: true,
+          label: 'Runs',
+        },
+        {
+          group: 'Operations',
+          href: '/workflows',
+          label: 'Workflows',
+        },
+      ],
+      logoHref: '/',
+    };
+
+    render(<MenuShared config={groupedConfig} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Operations' }));
+
+    expect(screen.queryByText('Runs')).not.toBeInTheDocument();
+    expect(screen.queryByText('Workflows')).not.toBeInTheDocument();
   });
 
   it('renders secondary destinations outside the primary navigation groups', () => {
