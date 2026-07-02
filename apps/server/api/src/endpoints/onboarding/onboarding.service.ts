@@ -826,7 +826,7 @@ export class OnboardingService {
         await this.brandPersistenceService.syncBrandAndOrgSlug(
           dto.brandName,
           organizationId.toString(),
-          brand._id,
+          String(brand.id),
         );
 
         this.loggerService.log(`${caller} completed`);

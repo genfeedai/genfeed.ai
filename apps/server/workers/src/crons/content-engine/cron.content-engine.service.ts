@@ -106,7 +106,7 @@ export class CronContentEngineService {
   }
 
   private async processBrand(brand: {
-    _id: string;
+    id: string;
     organization?: unknown;
     organizationId?: string | null;
     user?: unknown;

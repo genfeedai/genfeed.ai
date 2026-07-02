@@ -18,18 +18,17 @@ import { ConfigService } from '@workers/config/config.service';
  * Type for ingredient results loaded with metadata.
  */
 interface IngredientWithMetadataDoc {
-  _id: string;
+  id: string;
   category: string;
   metadata:
     | string
     | {
-        _id?: string;
         id?: string;
         width?: number | null;
         height?: number | null;
       };
   metadataDoc?: {
-    _id: string;
+    id: string;
   };
   metadataId?: string;
 }
@@ -143,14 +142,14 @@ export class CronIngredientsService {
           OR: [
             {
               id: {
-                in: stuckIngredients.docs.map((ing: { _id: unknown }) =>
+                in: stuckIngredients.docs.map((ing: { id: unknown }) =>
                   String(ing.id),
                 ),
               },
             },
             {
               mongoId: {
-                in: stuckIngredients.docs.map((ing: { _id: unknown }) =>
+                in: stuckIngredients.docs.map((ing: { id: unknown }) =>
                   String(ing.id),
                 ),
               },
@@ -180,7 +179,7 @@ export class CronIngredientsService {
         this.logger.debug(
           `Marked ingredients as FAILED: ${stuckIngredients.docs
             .slice(0, 10)
-            .map((ing: { _id: unknown }) => String(ing.id))
+            .map((ing: { id: unknown }) => String(ing.id))
             .join(', ')}${stuckCount > 10 ? '...' : ''}`,
           context,
         );
@@ -191,7 +190,7 @@ export class CronIngredientsService {
       for (const ingredient of stuckIngredients.docs) {
         try {
           const ing = ingredient as unknown as {
-            _id: string;
+            id: string;
             category: IngredientCategory;
             user: string;
           };
@@ -238,7 +237,7 @@ export class CronIngredientsService {
           activitiesUpdated++;
         } catch (error: unknown) {
           this.logger.error(
-            `Failed to update activity for ingredient ${(ingredient as { _id: string }).id}`,
+            `Failed to update activity for ingredient ${(ingredient as { id: string }).id}`,
             error,
             context,
           );
@@ -301,14 +300,14 @@ export class CronIngredientsService {
         OR: [
           {
             id: {
-              in: stuckIngredients.docs.map((ing: { _id: unknown }) =>
+              in: stuckIngredients.docs.map((ing: { id: unknown }) =>
                 String(ing.id),
               ),
             },
           },
           {
             mongoId: {
-              in: stuckIngredients.docs.map((ing: { _id: unknown }) =>
+              in: stuckIngredients.docs.map((ing: { id: unknown }) =>
                 String(ing.id),
               ),
             },

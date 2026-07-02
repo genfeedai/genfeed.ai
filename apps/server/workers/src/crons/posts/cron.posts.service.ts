@@ -32,7 +32,7 @@ import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 
 type CronPostChild = {
-  _id?: unknown;
+  id?: unknown;
   category?: unknown;
   description?: string;
   ingredients?: unknown[];
@@ -632,8 +632,8 @@ export class CronPostsService {
         // Extract ingredient IDs (handle both ObjectId and populated objects)
         const ingredientIds = childIngredients
           .map((ingredient: unknown) =>
-            ingredient && typeof ingredient === 'object' && '_id' in ingredient
-              ? (ingredient as { _id?: unknown }).id
+            ingredient && typeof ingredient === 'object' && 'id' in ingredient
+              ? (ingredient as { id?: unknown }).id
               : ingredient,
           )
           .map((ingredient) => String(ingredient));

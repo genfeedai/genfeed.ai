@@ -22,7 +22,7 @@ type TiktokError = {
 
 type TiktokPost = PostEntity & {
   credential?: {
-    _id?: string;
+    id?: string;
     accessToken?: string | null;
     externalHandle?: string | null;
     isConnected?: boolean;
@@ -163,7 +163,7 @@ export class CronTiktokStatusService {
       const credential = (
         post as unknown as {
           credential?: {
-            _id?: string;
+            id?: string;
             accessToken?: string;
             externalHandle?: string;
             isConnected?: boolean;
@@ -283,7 +283,7 @@ export class CronTiktokStatusService {
           (
             post as unknown as {
               credential?: {
-                _id?: string;
+                id?: string;
                 accessToken?: string;
                 isConnected?: boolean;
               };
@@ -322,7 +322,7 @@ export class CronTiktokStatusService {
    * Mark a post as failed
    */
   private async markPostFailed(post: unknown, reason: string): Promise<void> {
-    const postRecord = post as { _id?: unknown };
+    const postRecord = post as { id?: unknown };
     await this.postsService.patch(String(postRecord.id), {
       status: PostStatus.FAILED,
     });
