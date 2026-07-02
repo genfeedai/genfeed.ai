@@ -4,36 +4,28 @@ import { getWorkflowLogger } from '../../executionLogger';
 import { useSettingsStore } from '../../settingsStore';
 import { useUIStore } from '../../uiStore';
 import { useWorkflowStore } from '../../workflow/workflowStore';
+import { getExecutionHeaders, getExecutionHttpClient } from '../executionApi';
 import {
   createExecutionSubscription,
   createNodeExecutionSubscription,
 } from '../helpers/sseSubscription';
 import type { ExecutionData, ExecutionStore, NodeExecution } from '../types';
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://local.genfeed.ai:3010/api';
+const LOG_CONTEXT = 'ExecutionStore';
 
 /**
- * Simple fetch-based API client for execution operations.
- * Consuming apps can override by providing their own execution store.
+ * Start a workflow execution through the injected HTTP client, carrying the
+ * app's provider auth headers (Replicate / Fal / HuggingFace BYOK keys). Both
+ * the client and the headers default to the package's standalone behavior when
+ * the app has not configured them (see `executionApi`).
  */
-async function apiPost<T>(
+function startExecution(
   path: string,
-  body?: Record<string, unknown>,
-): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    method: 'POST',
-    ...(body && { body: JSON.stringify(body) }),
+  body: Record<string, unknown>,
+): Promise<ExecutionData> {
+  return getExecutionHttpClient().post<ExecutionData>(path, body, {
+    headers: getExecutionHeaders(),
   });
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(
-      (errorData as { message?: string }).message ||
-        `API error: ${response.status}`,
-    );
-  }
-  return response.json() as Promise<T>;
 }
 
 function validationError(message: string) {
@@ -105,7 +97,11 @@ export const createExecutionSlice: StateCreator<
     if (workflowStore.isDirty || !workflowStore.workflowId) {
       try {
         await workflowStore.saveWorkflow();
-      } catch {
+      } catch (error) {
+        getWorkflowLogger().error(
+          'Failed to save workflow before node execution',
+          { context: LOG_CONTEXT, error },
+        );
         workflowStore.updateNodeData(nodeId, {
           error: 'Failed to save workflow',
           status: NodeStatusEnum.ERROR,
@@ -128,7 +124,7 @@ export const createExecutionSlice: StateCreator<
     }
 
     try {
-      const execution = await apiPost<ExecutionData>(
+      const execution = await startExecution(
         `/workflows/${workflowId}/execute`,
         {
           debugMode,
@@ -156,6 +152,10 @@ export const createExecutionSlice: StateCreator<
         return { activeNodeExecutions: newMap };
       });
     } catch (error) {
+      getWorkflowLogger().error('Failed to start node execution', {
+        context: LOG_CONTEXT,
+        error,
+      });
       workflowStore.updateNodeData(nodeId, {
         error: error instanceof Error ? error.message : 'Node execution failed',
         status: NodeStatusEnum.ERROR,
@@ -211,7 +211,7 @@ export const createExecutionSlice: StateCreator<
     }
 
     try {
-      const execution = await apiPost<ExecutionData>(
+      const execution = await startExecution(
         `/workflows/${workflowId}/execute`,
         {
           debugMode,
@@ -224,6 +224,10 @@ export const createExecutionSlice: StateCreator<
 
       createExecutionSubscription(executionId, set);
     } catch (error) {
+      getWorkflowLogger().error('Failed to start partial execution', {
+        context: LOG_CONTEXT,
+        error,
+      });
       set({
         isRunning: false,
         validationErrors: {
@@ -282,7 +286,7 @@ export const createExecutionSlice: StateCreator<
     }
 
     try {
-      const execution = await apiPost<ExecutionData>(
+      const execution = await startExecution(
         `/workflows/${workflowId}/execute`,
         {
           debugMode,
@@ -294,6 +298,10 @@ export const createExecutionSlice: StateCreator<
 
       createExecutionSubscription(executionId, set);
     } catch (error) {
+      getWorkflowLogger().error('Failed to start workflow execution', {
+        context: LOG_CONTEXT,
+        error,
+      });
       set({
         isRunning: false,
         validationErrors: {
@@ -391,7 +399,7 @@ export const createExecutionSlice: StateCreator<
     });
 
     try {
-      const execution = await apiPost<ExecutionData>(
+      const execution = await startExecution(
         `/workflows/${workflowId}/execute`,
         {
           debugMode,
@@ -403,6 +411,10 @@ export const createExecutionSlice: StateCreator<
 
       createExecutionSubscription(newExecutionId, set);
     } catch (error) {
+      getWorkflowLogger().error('Failed to resume execution', {
+        context: LOG_CONTEXT,
+        error,
+      });
       set({
         isRunning: false,
         validationErrors: {
@@ -432,9 +444,14 @@ export const createExecutionSlice: StateCreator<
     }
 
     if (executionId) {
-      apiPost(`/executions/${executionId}/stop`).catch(() => {
-        // Failed to stop execution
-      });
+      getExecutionHttpClient()
+        .post(`/executions/${executionId}/stop`)
+        .catch((error) => {
+          getWorkflowLogger().error('Failed to stop execution', {
+            context: LOG_CONTEXT,
+            error,
+          });
+        });
     }
 
     set({
@@ -451,9 +468,14 @@ export const createExecutionSlice: StateCreator<
     if (nodeExecution) {
       nodeExecution.eventSource.close();
 
-      apiPost(`/executions/${nodeExecution.executionId}/stop`).catch(() => {
-        // Failed to stop node execution
-      });
+      getExecutionHttpClient()
+        .post(`/executions/${nodeExecution.executionId}/stop`)
+        .catch((error) => {
+          getWorkflowLogger().error('Failed to stop node execution', {
+            context: LOG_CONTEXT,
+            error,
+          });
+        });
 
       set((state) => {
         const newMap = new Map(state.activeNodeExecutions);

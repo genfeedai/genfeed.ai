@@ -25,6 +25,12 @@ export { useAnnotationStore } from './annotationStore';
 export { type ContextMenuType, useContextMenuStore } from './contextMenuStore';
 export type { DebugPayload, ExecutionStore, Job } from './execution';
 export { useExecutionStore } from './execution';
+export {
+  configureExecutionHeaders,
+  configureExecutionHttpClient,
+  getExecutionHeaders,
+  getExecutionHttpClient,
+} from './execution/executionApi';
 // Embedded stores (moved from core app)
 export {
   configureWorkflowLogger,
