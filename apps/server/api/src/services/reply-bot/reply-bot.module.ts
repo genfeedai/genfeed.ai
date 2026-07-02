@@ -19,6 +19,7 @@ import { MonitoredAccountsModule } from '@api/collections/monitored-accounts/mon
 import { ProcessedTweetsModule } from '@api/collections/processed-tweets/processed-tweets.module';
 import { ReplyBotConfigsModule } from '@api/collections/reply-bot-configs/reply-bot-configs.module';
 import { TemplatesModule } from '@api/collections/templates/templates.module';
+import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { ConfigModule } from '@api/config/config.module';
 import { ApifyModule } from '@api/services/integrations/apify/apify.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
@@ -74,6 +75,7 @@ import { forwardRef, Module } from '@nestjs/common';
     RateLimitService,
     ReplyCandidatePrefilterService,
     ReplyGenerationService,
+    SystemWorkflowProvenanceService,
     // Core services
     SocialMonitorService,
 

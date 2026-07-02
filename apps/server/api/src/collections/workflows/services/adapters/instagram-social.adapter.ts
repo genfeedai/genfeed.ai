@@ -72,6 +72,9 @@ export class InstagramSocialAdapter {
       if (!explicitBrandId) {
         throw new Error('brandId is required for Instagram DM sending');
       }
+      if (!recipientId) {
+        throw new Error('recipientId is required for Instagram DM sending');
+      }
       const brandId = explicitBrandId;
 
       this.loggerService.debug(`${this.logContext} sending DM`, {

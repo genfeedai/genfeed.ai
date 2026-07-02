@@ -2,6 +2,7 @@ import { ActivitiesService } from '@api/collections/activities/services/activiti
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { PublisherFactoryService } from '@api/services/integrations/publishers/publisher-factory.service';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -61,6 +62,28 @@ describe('CronPostsService', () => {
           provide: PublisherFactoryService,
           useValue: {
             getPublisher: vi.fn(),
+          },
+        },
+        {
+          provide: SystemWorkflowProvenanceService,
+          useValue: {
+            runAction: vi.fn(
+              async (
+                _input: unknown,
+                action: (provenance: {
+                  executionId: string;
+                  workflowId: string;
+                  workflowLabel: string;
+                }) => Promise<unknown>,
+              ) => {
+                const provenance = {
+                  executionId: 'execution-1',
+                  workflowId: 'workflow-1',
+                  workflowLabel: 'Scheduled Post Publishing',
+                };
+                return { provenance, result: await action(provenance) };
+              },
+            ),
           },
         },
       ],

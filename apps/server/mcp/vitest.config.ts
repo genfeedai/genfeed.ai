@@ -54,6 +54,13 @@ export default defineConfig({
         replacement: path.resolve(mcpDir, '../../../packages/config/src'),
       },
       {
+        find: '@genfeedai/pricing',
+        replacement: path.resolve(
+          mcpDir,
+          '../../../packages/pricing/src/index.ts',
+        ),
+      },
+      {
         find: /^@genfeedai\/config\/(.*)$/,
         replacement: path.resolve(mcpDir, '../../../packages/config/src/$1'),
       },

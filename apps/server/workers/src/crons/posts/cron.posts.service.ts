@@ -5,6 +5,10 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import {
+  SYSTEM_WORKFLOW_ACTION_IDS,
+  SystemWorkflowProvenanceService,
+} from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import type {
   PublishContext,
@@ -20,6 +24,7 @@ import {
   PostCategory,
   PostFrequency,
   PostStatus,
+  WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -55,6 +60,7 @@ export class CronPostsService {
     private readonly postsService: PostsService,
     private readonly quotaService: QuotaService,
     private readonly publisherFactory: PublisherFactoryService,
+    private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
   ) {}
 
   /**
@@ -267,8 +273,41 @@ export class CronPostsService {
         postId: post._id.toString(),
       };
 
-      // Publish using the platform publisher
-      const result = await publisher.publish(context);
+      // Publish using the platform publisher, with a durable workflow execution
+      // record so scheduled publishing is inspectable as a system workflow.
+      const { result } = await this.systemWorkflowProvenanceService.runAction(
+        {
+          actionType: 'publish-post',
+          canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.SCHEDULED_POST_PUBLISHING,
+          description:
+            'Publishes due scheduled posts through the connected brand credential.',
+          failureMessage: (publishResult) =>
+            publishResult.success
+              ? undefined
+              : publishResult.error || 'Scheduled post publishing failed',
+          inputValues: {
+            brandId: post.brand.toString(),
+            platform: credential.platform,
+            postId: post._id.toString(),
+            scheduledDate:
+              post.scheduledDate instanceof Date
+                ? post.scheduledDate.toISOString()
+                : post.scheduledDate,
+          },
+          label: 'Scheduled Post Publishing',
+          metadata: {
+            credentialId: credential._id?.toString?.() ?? credential.id,
+            hasThreadChildren: Boolean(post.children?.length),
+          },
+          organizationId: post.organization.toString(),
+          postIds: [post._id.toString()],
+          schedule: '*/15 * * * *',
+          source: 'CronPostsService.publishSinglePost',
+          trigger: WorkflowExecutionTrigger.SCHEDULED,
+          userId: post.user.toString(),
+        },
+        () => publisher.publish(context),
+      );
 
       if (result.success && result.externalId) {
         // Check if this is a PENDING post (e.g., TikTok deferred verification)

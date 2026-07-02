@@ -14,8 +14,15 @@ import {
   type WorkflowStep,
   type WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
+import { SYSTEM_WORKFLOW_ACTION_DEFINITIONS } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
+import {
+  buildSystemWorkflowDuplicateMetadata,
+  buildSystemWorkflowMetadata,
+  isProtectedSystemWorkflowMetadata,
+  SYSTEM_WORKFLOW_METADATA_KEY,
+} from '@api/collections/workflows/system-workflow.contract';
 import { AD_AUTOMATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/ad-automation-workflows.template';
 import { AGENT_AUTOPILOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/agent-autopilot-workflows.template';
 import { ANALYTICS_SYNC_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/analytics-sync-workflows.template';
@@ -58,6 +65,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   Optional,
@@ -89,6 +97,34 @@ export class WorkflowsService extends BaseService<
     private readonly workflowExecutorService?: WorkflowExecutorService,
   ) {
     super(prisma, 'workflow', logger);
+  }
+
+  private buildSeededSystemWorkflowMetadata(input: {
+    extra?: Record<string, unknown>;
+    sourceIssue: number;
+    sourceTemplateId: string;
+    sourceType?: string;
+  }): Record<string, unknown> {
+    return {
+      ...(input.extra ?? {}),
+      sourceIssue: input.sourceIssue,
+      sourceTemplateId: input.sourceTemplateId,
+      sourceType: input.sourceType ?? 'seeded-template',
+      [SYSTEM_WORKFLOW_METADATA_KEY]: buildSystemWorkflowMetadata({
+        canonicalId: input.sourceTemplateId,
+        sourceIssue: input.sourceIssue,
+      }),
+    };
+  }
+
+  private assertWorkflowMutable(workflow: Pick<WorkflowDocument, 'metadata'>) {
+    if (!isProtectedSystemWorkflowMetadata(workflow.metadata)) {
+      return;
+    }
+
+    throw new ForbiddenException(
+      'System workflows are immutable. Duplicate the workflow before editing or deleting it.',
+    );
   }
 
   @HandleErrors('create workflow', 'workflows')
@@ -252,10 +288,10 @@ export class WorkflowsService extends BaseService<
               isDeleted: false,
               isScheduleEnabled: true,
               label: 'Daily Trends Digest',
-              metadata: {
+              metadata: this.buildSeededSystemWorkflowMetadata({
+                sourceIssue: 1011,
                 sourceTemplateId: DAILY_TRENDS_DIGEST_TEMPLATE_ID,
-                sourceType: 'seeded-template',
-              },
+              }),
               nodes: DAILY_TRENDS_DIGEST_TEMPLATE.nodes as never,
               organizationId,
               progress: 0,
@@ -335,11 +371,10 @@ export class WorkflowsService extends BaseService<
                 isScheduleEnabled: true,
                 label: template.name,
                 lifecycle: WorkflowLifecycle.PUBLISHED,
-                metadata: {
+                metadata: this.buildSeededSystemWorkflowMetadata({
                   sourceIssue: 782,
                   sourceTemplateId: template.id,
-                  sourceType: 'seeded-template',
-                },
+                }),
                 nodes: (template.nodes ?? []) as never,
                 organizationId,
                 progress: 0,
@@ -416,11 +451,10 @@ export class WorkflowsService extends BaseService<
                 isDeleted: false,
                 isScheduleEnabled: true,
                 label: template.name,
-                metadata: {
+                metadata: this.buildSeededSystemWorkflowMetadata({
                   sourceIssue: 783,
                   sourceTemplateId: template.id,
-                  sourceType: 'seeded-template',
-                },
+                }),
                 nodes: (template.nodes ?? []) as never,
                 organizationId,
                 progress: 0,
@@ -497,11 +531,10 @@ export class WorkflowsService extends BaseService<
                 isDeleted: false,
                 isScheduleEnabled: true,
                 label: template.name,
-                metadata: {
+                metadata: this.buildSeededSystemWorkflowMetadata({
                   sourceIssue: 784,
                   sourceTemplateId: template.id,
-                  sourceType: 'seeded-template',
-                },
+                }),
                 nodes: (template.nodes ?? []) as never,
                 organizationId,
                 progress: 0,
@@ -578,11 +611,10 @@ export class WorkflowsService extends BaseService<
                 isDeleted: false,
                 isScheduleEnabled: true,
                 label: template.name,
-                metadata: {
+                metadata: this.buildSeededSystemWorkflowMetadata({
                   sourceIssue: 785,
                   sourceTemplateId: template.id,
-                  sourceType: 'seeded-template',
-                },
+                }),
                 nodes: (template.nodes ?? []) as never,
                 organizationId,
                 progress: 0,
@@ -659,11 +691,10 @@ export class WorkflowsService extends BaseService<
                 isDeleted: false,
                 isScheduleEnabled: true,
                 label: template.name,
-                metadata: {
+                metadata: this.buildSeededSystemWorkflowMetadata({
                   sourceIssue: 786,
                   sourceTemplateId: template.id,
-                  sourceType: 'seeded-template',
-                },
+                }),
                 nodes: (template.nodes ?? []) as never,
                 organizationId,
                 progress: 0,
@@ -924,11 +955,10 @@ export class WorkflowsService extends BaseService<
                 isDeleted: false,
                 isScheduleEnabled: true,
                 label: template.name,
-                metadata: {
+                metadata: this.buildSeededSystemWorkflowMetadata({
                   sourceIssue: 787,
                   sourceTemplateId: template.id,
-                  sourceType: 'seeded-template',
-                },
+                }),
                 nodes: (template.nodes ?? []) as never,
                 organizationId,
                 progress: 0,
@@ -1006,12 +1036,11 @@ export class WorkflowsService extends BaseService<
                 isDeleted: false,
                 isScheduleEnabled: true,
                 label: template.name,
-                metadata: {
-                  cadence: template.cadence,
+                metadata: this.buildSeededSystemWorkflowMetadata({
+                  extra: { cadence: template.cadence },
                   sourceIssue: 788,
                   sourceTemplateId: template.id,
-                  sourceType: 'seeded-template',
-                },
+                }),
                 nodes: (template.nodes ?? []) as never,
                 organizationId,
                 progress: 0,
@@ -1088,11 +1117,10 @@ export class WorkflowsService extends BaseService<
                 isDeleted: false,
                 isScheduleEnabled: true,
                 label: template.name,
-                metadata: {
+                metadata: this.buildSeededSystemWorkflowMetadata({
                   sourceIssue: 793,
                   sourceTemplateId: template.id,
-                  sourceType: 'seeded-template',
-                },
+                }),
                 nodes: (template.nodes ?? []) as never,
                 organizationId,
                 progress: 0,
@@ -1112,6 +1140,98 @@ export class WorkflowsService extends BaseService<
           this.logger?.debug(
             'ensureLivestreamBotWorkflows: serialization conflict - workflow already seeded by concurrent request',
             { organizationId, templateId: template.id },
+          );
+          continue;
+        }
+        throw error;
+      }
+    }
+  }
+
+  /**
+   * Idempotently seeds action-level system workflows that wrap historical
+   * hardcoded product actions. Runtime callers still create-on-demand as a
+   * fail-closed backstop, but seeded orgs can inspect/duplicate these workflows
+   * before the first action execution.
+   */
+  async ensureSystemActionWorkflows(
+    userId: string,
+    organizationId: string,
+  ): Promise<void> {
+    for (const definition of SYSTEM_WORKFLOW_ACTION_DEFINITIONS) {
+      const where = {
+        isDeleted: false,
+        metadata: {
+          equals: definition.canonicalId,
+          path: ['sourceTemplateId'],
+        },
+        organizationId,
+      };
+
+      const preCheck = await this.prisma.workflow.findFirst({
+        select: { id: true },
+        where,
+      });
+
+      if (preCheck) {
+        continue;
+      }
+
+      try {
+        await this.prisma.$transaction(
+          async (tx) => {
+            const existing = await tx.workflow.findFirst({
+              select: { id: true },
+              where,
+            });
+
+            if (existing) {
+              return;
+            }
+
+            await tx.workflow.create({
+              data: {
+                description: definition.description,
+                edges: [],
+                executionCount: 0,
+                inputVariables: [],
+                isDeleted: false,
+                isScheduleEnabled: Boolean(definition.schedule),
+                label: definition.label,
+                metadata: this.buildSeededSystemWorkflowMetadata({
+                  sourceIssue: 1011,
+                  sourceTemplateId: definition.canonicalId,
+                  sourceType: 'system-action-workflow',
+                }),
+                nodes: [
+                  {
+                    data: {
+                      config: { canonicalId: definition.canonicalId },
+                      label: definition.label,
+                    },
+                    id: 'system-action',
+                    position: { x: 0, y: 120 },
+                    type: 'systemWorkflowAction',
+                  },
+                ],
+                organizationId,
+                progress: 0,
+                schedule: definition.schedule,
+                status: WorkflowStatus.ACTIVE,
+                steps: [],
+                timezone: 'UTC',
+                userId,
+              } as never,
+            });
+          },
+          { isolationLevel: 'Serializable' },
+        );
+      } catch (error) {
+        const errorCode = (error as { code?: string }).code;
+        if (errorCode === 'P2034') {
+          this.logger?.debug(
+            'ensureSystemActionWorkflows: serialization conflict - workflow already seeded by concurrent request',
+            { definitionId: definition.canonicalId, organizationId },
           );
           continue;
         }
@@ -1651,28 +1771,44 @@ export class WorkflowsService extends BaseService<
     organizationId: string,
     targetBrandId?: string,
   ): Promise<WorkflowEntity> {
-    const workflowDoc = await this.findOne({
-      _id: workflowId,
-      isDeleted: false,
+    const workflowDoc = await this.findVisibleOrThrow(workflowId, {
       organization: organizationId,
+      user: userId,
     });
-    if (!workflowDoc) {
-      throw new NotFoundException('Workflow not found');
-    }
-    const workflow = EntityFactory.fromDocument(WorkflowEntity, workflowDoc);
+    const isProtectedSystemWorkflow = isProtectedSystemWorkflowMetadata(
+      workflowDoc.metadata,
+    );
+    const sourceWorkflowId = String(workflowDoc._id ?? workflowDoc.id);
+    const sourceLabel = workflowDoc.label ?? workflowDoc.name ?? 'Workflow';
 
     const clonedWorkflow = await this.create({
-      ...workflow,
+      ...workflowDoc,
+      brands: isProtectedSystemWorkflow
+        ? workflowDoc.brands
+        : targetBrandId
+          ? [targetBrandId]
+          : workflowDoc.brands,
       completedAt: undefined,
-      defaultRecurringBrandId:
-        targetBrandId || workflow.defaultRecurringBrandId,
+      defaultRecurringBrandId: isProtectedSystemWorkflow
+        ? undefined
+        : targetBrandId || workflowDoc.defaultRecurringBrandId,
       executionCount: 0,
-      brands: targetBrandId ? [targetBrandId] : workflow.brands,
-      label: `${workflow.label} (Copy)`,
+      isScheduleEnabled: isProtectedSystemWorkflow
+        ? false
+        : workflowDoc.isScheduleEnabled,
+      label: `${sourceLabel} (Copy)`,
       lastExecutedAt: undefined,
+      lockedNodeIds: isProtectedSystemWorkflow
+        ? []
+        : (workflowDoc.lockedNodeIds ?? []),
+      metadata: buildSystemWorkflowDuplicateMetadata(
+        workflowDoc.metadata,
+        sourceWorkflowId,
+      ),
       organization: organizationId,
       progress: 0,
       recurrence: undefined,
+      schedule: isProtectedSystemWorkflow ? undefined : workflowDoc.schedule,
       startedAt: undefined,
       status: WorkflowStatus.DRAFT,
       user: userId,
@@ -1699,6 +1835,7 @@ export class WorkflowsService extends BaseService<
     if (!workflow) {
       throw new NotFoundException('Workflow not found');
     }
+    this.assertWorkflowMutable(workflow);
 
     const updated = await this.patch(workflowId, {
       thumbnail: thumbnailUrl,
@@ -2074,6 +2211,7 @@ export class WorkflowsService extends BaseService<
     if (!workflow) {
       throw new NotFoundException('Workflow not found');
     }
+    this.assertWorkflowMutable(workflow);
 
     const updated = await this.patch(workflowId, {
       lifecycle: WorkflowLifecycle.PUBLISHED,
@@ -2099,6 +2237,7 @@ export class WorkflowsService extends BaseService<
     if (!workflow) {
       throw new NotFoundException('Workflow not found');
     }
+    this.assertWorkflowMutable(workflow);
 
     const updated = await this.patch(workflowId, {
       lifecycle: WorkflowLifecycle.ARCHIVED,
@@ -2157,6 +2296,7 @@ export class WorkflowsService extends BaseService<
     if (!workflow) {
       throw new NotFoundException('Workflow not found');
     }
+    this.assertWorkflowMutable(workflow);
 
     const currentLocked = workflow.lockedNodeIds || [];
     const newLocked = [...new Set([...currentLocked, ...nodeIds])];
@@ -2186,6 +2326,7 @@ export class WorkflowsService extends BaseService<
     if (!workflow) {
       throw new NotFoundException('Workflow not found');
     }
+    this.assertWorkflowMutable(workflow);
 
     const currentLocked = workflow.lockedNodeIds || [];
     const newLocked = currentLocked.filter((id) => !nodeIds.includes(id));
@@ -2222,6 +2363,50 @@ export class WorkflowsService extends BaseService<
       throw new NotFoundException('Workflow not found');
     }
 
+    return workflow;
+  }
+
+  /**
+   * Fetch a workflow the caller may inspect. Protected system workflows are
+   * organization-visible even when their executable row is owned by the org
+   * bootstrap user.
+   */
+  async findVisibleOrThrow(
+    workflowId: string,
+    scope: { organization: string; user: string },
+  ): Promise<WorkflowDocument> {
+    const workflow = await this.findOne({
+      _id: workflowId,
+      isDeleted: false,
+      organization: scope.organization,
+      OR: [
+        { user: scope.user },
+        {
+          metadata: {
+            equals: 'organization',
+            path: [SYSTEM_WORKFLOW_METADATA_KEY, 'visibility'],
+          },
+        },
+      ],
+    });
+
+    if (!workflow) {
+      throw new NotFoundException('Workflow not found');
+    }
+
+    return workflow;
+  }
+
+  /**
+   * Fetch a workflow the caller may mutate. System workflows are inspectable and
+   * duplicable, but canonical rows are immutable.
+   */
+  async findMutableOwnedOrThrow(
+    workflowId: string,
+    scope: { organization: string; user?: string },
+  ): Promise<WorkflowDocument> {
+    const workflow = await this.findOwnedOrThrow(workflowId, scope);
+    this.assertWorkflowMutable(workflow);
     return workflow;
   }
 

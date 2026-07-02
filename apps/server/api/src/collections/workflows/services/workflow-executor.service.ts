@@ -137,6 +137,8 @@ const MAX_EXECUTION_NODES = 500;
 
 /** Map from trigger event types to executor node types */
 const EVENT_TYPE_TO_NODE_TYPE: Record<string, string> = {
+  comment: 'commentTrigger',
+  commentTrigger: 'commentTrigger',
   mention: 'mentionTrigger',
   mentionTrigger: 'mentionTrigger',
   newFollower: 'newFollowerTrigger',
@@ -145,8 +147,6 @@ const EVENT_TYPE_TO_NODE_TYPE: Record<string, string> = {
   newLikeTrigger: 'newLikeTrigger',
   newRepost: 'newRepostTrigger',
   newRepostTrigger: 'newRepostTrigger',
-  comment: 'commentTrigger',
-  commentTrigger: 'commentTrigger',
   keyword: 'keywordTrigger',
   keywordTrigger: 'keywordTrigger',
   engagement: 'engagementTrigger',

@@ -1,3 +1,4 @@
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -61,6 +62,12 @@ describe('CronWorkflowsService', () => {
           useValue: {
             execute: vi.fn(),
             validateConfig: vi.fn().mockReturnValue({ valid: true }),
+          },
+        },
+        {
+          provide: CreditsUtilsService,
+          useValue: {
+            checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
           },
         },
         {

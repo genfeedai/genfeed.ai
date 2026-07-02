@@ -37,6 +37,8 @@ export interface PostReplyNodeData extends BaseNodeData {
   text: string;
   /** Optional media URL to attach */
   mediaUrl: string;
+  /** Durable social inbox conversation id */
+  conversationId: string;
 
   /** Output - created reply ID */
   replyId: string | null;
@@ -49,6 +51,7 @@ export interface PostReplyNodeData extends BaseNodeData {
  */
 export const DEFAULT_POST_REPLY_DATA: Partial<PostReplyNodeData> = {
   label: 'Post Reply',
+  conversationId: '',
   mediaUrl: '',
   platform: 'twitter',
   postId: '',
