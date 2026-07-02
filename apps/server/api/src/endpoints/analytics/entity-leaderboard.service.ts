@@ -68,17 +68,6 @@ export class EntityLeaderboardService {
     private readonly loggerService: LoggerService,
   ) {}
 
-  /**
-   * Parse date range from optional startDate/endDate strings
-   * Uses DateRangeUtil helper with default D-7 to D-1
-   */
-  private parseDateRange(
-    startDateStr?: string,
-    endDateStr?: string,
-  ): DateRange {
-    return DateRangeUtil.parseDateRange(startDateStr, endDateStr);
-  }
-
   private entityColumn(field: EntityField): PrismaSql {
     return Prisma.raw(`"${field}"`);
   }
@@ -310,7 +299,7 @@ export class EntityLeaderboardService {
     sort: LeaderboardSort = LeaderboardSort.ENGAGEMENT,
     limit: number = 10,
   ): Promise<OrgLeaderboardItemEntity[]> {
-    const range = this.parseDateRange(startDateStr, endDateStr);
+    const range = DateRangeUtil.parseDateRange(startDateStr, endDateStr);
     const rows = await this.loadEntitiesWithStats<OrganizationDoc>(
       'organization',
       range,
@@ -361,7 +350,7 @@ export class EntityLeaderboardService {
     limit: number = 10,
     organizationId?: string,
   ): Promise<BrandWithStatsEntity[]> {
-    const range = this.parseDateRange(startDateStr, endDateStr);
+    const range = DateRangeUtil.parseDateRange(startDateStr, endDateStr);
     const rows = await this.loadEntitiesWithStats<BrandDoc>('brand', range, {
       includePlatforms: true,
       organizationId,
@@ -385,7 +374,7 @@ export class EntityLeaderboardService {
     limit: number = 20,
     sort: LeaderboardSort = LeaderboardSort.ENGAGEMENT,
   ): Promise<PaginatedOrgsResponse> {
-    const range = this.parseDateRange(startDateStr, endDateStr);
+    const range = DateRangeUtil.parseDateRange(startDateStr, endDateStr);
     const rows = await this.loadEntitiesWithStats<OrganizationDoc>(
       'organization',
       range,
@@ -427,7 +416,7 @@ export class EntityLeaderboardService {
     sort: LeaderboardSort = LeaderboardSort.ENGAGEMENT,
     organizationId?: string,
   ): Promise<PaginatedBrandsResponse> {
-    const range = this.parseDateRange(startDateStr, endDateStr);
+    const range = DateRangeUtil.parseDateRange(startDateStr, endDateStr);
     const rows = await this.loadEntitiesWithStats<BrandDoc>('brand', range, {
       includePlatforms: true,
       organizationId,
