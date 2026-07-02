@@ -70,6 +70,16 @@ interface CorpusFreshnessHealthOptions {
   now?: Date;
   platform?: string;
   sourcePreviewStaleAfterDays?: number;
+  /**
+   * Caller's organization. Non-admin callers only see their own + global
+   * (null-org) Trend rows in the aggregate. Ignored when isPlatformAdmin.
+   */
+  organizationId?: string;
+  /**
+   * When true (platform admins/ops), the Trend aggregate spans every
+   * organization — the global pipeline-health view. Non-admins are org-scoped.
+   */
+  isPlatformAdmin?: boolean;
 }
 
 interface ReferenceHealthDoc {
@@ -541,7 +551,7 @@ export class TrendReferenceCorpusService {
         if (!trend) {
           // Return empty corpus rather than leaking references linked to another
           // org's trend.
-          return { items: [], totalReferences: 0 };
+          return { hasMore: false, items: [], totalReferences: 0 };
         }
       }
 
@@ -582,14 +592,17 @@ export class TrendReferenceCorpusService {
         isDeleted: false,
       },
     });
-    const filteredDocs = docs
-      .filter((doc) =>
-        this.shouldIncludeReferenceByClassification(
-          doc.data as unknown as ReferenceRecordData,
-          options,
-        ),
-      )
-      .slice(0, limit);
+    const classificationFiltered = docs.filter((doc) =>
+      this.shouldIncludeReferenceByClassification(
+        doc.data as unknown as ReferenceRecordData,
+        options,
+      ),
+    );
+    // More matches exist if this page filled `limit` with matches to spare, or
+    // if the over-fetch window itself was saturated (matches may lie past it).
+    const hasMore =
+      classificationFiltered.length > limit || docs.length >= queryLimit;
+    const filteredDocs = classificationFiltered.slice(0, limit);
 
     const remixCounts = await this.getRemixCounts(
       filteredDocs.map((doc) => doc.id),
@@ -598,6 +611,7 @@ export class TrendReferenceCorpusService {
     );
 
     return {
+      hasMore,
       items: filteredDocs.map((doc) =>
         this.toReferenceRecord(
           doc.id,
@@ -792,10 +806,7 @@ export class TrendReferenceCorpusService {
           updatedAt: true,
         },
         take: MAX_CORPUS_FRESHNESS_TREND_RECORDS,
-        where: {
-          ...(options.platform ? { platform: options.platform } : {}),
-          isDeleted: false,
-        },
+        where: this.buildFreshnessTrendWhere(options),
       }) as Promise<TrendHealthDoc[]>,
     ]);
 
@@ -851,6 +862,34 @@ export class TrendReferenceCorpusService {
         sourcePreviewStaleAfterDays,
       },
     };
+  }
+
+  /**
+   * Tenant-scope the Trend portion of the freshness aggregate. Trend rows are
+   * org-scoped-or-global (organizationId is nullable): personalized rows carry
+   * an organizationId, generic rows are null. Platform admins get the full
+   * cross-org view (global pipeline health); everyone else sees only their own
+   * org's rows plus the global/null baseline — never another tenant's trends.
+   * The shared TrendSourceReference corpus (no organizationId column) is global
+   * for all callers and is scoped separately.
+   */
+  private buildFreshnessTrendWhere(
+    options: CorpusFreshnessHealthOptions,
+  ): Prisma.TrendWhereInput {
+    const where: Prisma.TrendWhereInput = {
+      ...(options.platform ? { platform: options.platform } : {}),
+      isDeleted: false,
+    };
+
+    if (options.isPlatformAdmin) {
+      return where;
+    }
+
+    where.OR = options.organizationId
+      ? [{ organizationId: options.organizationId }, { organizationId: null }]
+      : [{ organizationId: null }];
+
+    return where;
   }
 
   private buildFreshnessSegments(

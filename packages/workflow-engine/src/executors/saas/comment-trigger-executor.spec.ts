@@ -2,8 +2,7 @@ import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
   type CommentChecker,
-  type CommentTriggerExecutor,
-  createCommentTriggerExecutor,
+  CommentTriggerExecutor,
 } from '@workflow-engine/executors/saas/comment-trigger-executor';
 import type { ExecutableNode } from '@workflow-engine/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -30,7 +29,7 @@ describe('CommentTriggerExecutor', () => {
   let checker: CommentChecker;
 
   beforeEach(() => {
-    executor = createCommentTriggerExecutor();
+    executor = new CommentTriggerExecutor();
     checker = vi.fn().mockResolvedValue({
       commentId: 'comment-1',
       contentId: 'video-1',
@@ -47,7 +46,7 @@ describe('CommentTriggerExecutor', () => {
   });
 
   it('throws if checker is not configured', async () => {
-    const fresh = createCommentTriggerExecutor();
+    const fresh = new CommentTriggerExecutor();
     await expect(
       fresh.execute(makeInput({ platform: 'youtube' })),
     ).rejects.toThrow('Comment checker not configured');

@@ -37,7 +37,11 @@
       "dependsOn": ["^build"]
     },
     "type-check": {
-      "dependsOn": ["//#env:check", "^build"]
+      "dependsOn": ["//#env:check", "^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/apps/server/tsconfig.typecheck.base.json"
+      ]
     },
     "test": {
       "dependsOn": ["//#env:check", "^build"],

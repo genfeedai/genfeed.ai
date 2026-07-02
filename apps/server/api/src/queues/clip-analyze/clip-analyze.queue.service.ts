@@ -2,7 +2,7 @@ import {
   CLIP_ANALYZE_JOB_NAME,
   CLIP_ANALYZE_QUEUE,
   ClipAnalyzeJobData,
-} from '@api/queues/clip-analyze/clip-analyze.constants';
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';

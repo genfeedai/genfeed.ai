@@ -2,11 +2,7 @@ import type { WorkflowDocument } from '@api/collections/workflows/schemas/workfl
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { buildSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
 import { WorkflowExecutionTrigger } from '@genfeedai/enums';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-type ExecuteScheduledWorkflow = {
-  executeScheduledWorkflow(workflowId: string): Promise<void>;
-};
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 function createMockLogger() {
   return {
@@ -27,25 +23,28 @@ function createMockPrisma() {
   };
 }
 
-function createMockCacheService() {
+function createMockQueueService() {
   return {
-    acquireLock: vi.fn().mockResolvedValue(true),
-    releaseLock: vi.fn().mockResolvedValue(true),
+    removeWorkflowScheduler: vi.fn().mockResolvedValue(undefined),
+    upsertWorkflowScheduler: vi.fn().mockResolvedValue(undefined),
   };
 }
 
-function createService(overrides: {
-  prisma?: ReturnType<typeof createMockPrisma>;
-  cacheService?: ReturnType<typeof createMockCacheService>;
-  workflowExecutorService?: { executeManualWorkflow: ReturnType<typeof vi.fn> };
-}) {
+function createService(
+  overrides: {
+    prisma?: ReturnType<typeof createMockPrisma>;
+    queueService?: ReturnType<typeof createMockQueueService>;
+    workflowExecutorService?: {
+      executeManualWorkflow: ReturnType<typeof vi.fn>;
+    };
+    isDevSchedulersEnabled?: boolean;
+  } = {},
+) {
   const prisma = overrides.prisma ?? createMockPrisma();
   const logger = createMockLogger();
-  const schedulerRegistry = {
-    addCronJob: vi.fn(),
-    deleteCronJob: vi.fn(),
+  const configService = {
+    isDevSchedulersEnabled: overrides.isDevSchedulersEnabled ?? false,
   };
-  const configService = { isDevSchedulersEnabled: false };
   const workflowsService = { executeWorkflow: vi.fn().mockResolvedValue({}) };
   const workflowExecutionsService = {
     createExecution: vi.fn().mockResolvedValue({}),
@@ -53,7 +52,7 @@ function createService(overrides: {
   const workflowExecutorService = overrides.workflowExecutorService ?? {
     executeManualWorkflow: vi.fn().mockResolvedValue({}),
   };
-  const cacheService = overrides.cacheService ?? createMockCacheService();
+  const queueService = overrides.queueService ?? createMockQueueService();
 
   const service = new (
     WorkflowSchedulerService as unknown as new (
@@ -62,69 +61,169 @@ function createService(overrides: {
   )(
     prisma,
     logger,
-    schedulerRegistry,
     configService,
     workflowsService,
     workflowExecutionsService,
     workflowExecutorService,
-    cacheService,
+    queueService,
   );
 
   return {
-    cacheService,
     logger,
     prisma,
+    queueService,
     service,
-    workflowExecutorService,
     workflowExecutionsService,
+    workflowExecutorService,
     workflowsService,
   };
 }
 
-describe('WorkflowSchedulerService — scheduled fire locking', () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-07-02T10:00:30.000Z'));
-  });
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
-  afterEach(() => {
-    vi.useRealTimers();
-    vi.restoreAllMocks();
-  });
+describe('WorkflowSchedulerService — job scheduler registration', () => {
+  it('never registers job schedulers for system workflows (their actions fire from the workers sweep scheduler)', async () => {
+    const { queueService, service } = createService({});
 
-  it('skips the fire entirely when another instance holds the fire-window lock', async () => {
-    const cacheService = createMockCacheService();
-    cacheService.acquireLock.mockResolvedValue(false);
-    const { prisma, service } = createService({ cacheService });
+    await service.scheduleWorkflow({
+      id: 'wf-system',
+      isScheduleEnabled: true,
+      metadata: {
+        systemWorkflow: buildSystemWorkflowMetadata({
+          canonicalId: 'scheduled-post-publishing',
+        }),
+      },
+      schedule: '*/15 * * * *',
+    } as unknown as WorkflowDocument);
 
-    await (
-      service as unknown as ExecuteScheduledWorkflow
-    ).executeScheduledWorkflow('wf-1');
-
-    expect(cacheService.acquireLock).toHaveBeenCalledTimes(1);
-    expect(prisma.workflow.findFirst).not.toHaveBeenCalled();
-    expect(prisma.workflow.update).not.toHaveBeenCalled();
-  });
-
-  it('claims a per-workflow, per-minute-bucket lock and never releases it early', async () => {
-    const cacheService = createMockCacheService();
-    const { service } = createService({ cacheService });
-
-    await (
-      service as unknown as ExecuteScheduledWorkflow
-    ).executeScheduledWorkflow('wf-1');
-
-    const expectedBucket = Math.floor(
-      new Date('2026-07-02T10:00:30.000Z').getTime() / 60_000,
+    expect(queueService.upsertWorkflowScheduler).not.toHaveBeenCalled();
+    expect(queueService.removeWorkflowScheduler).toHaveBeenCalledWith(
+      'wf-system',
     );
-    expect(cacheService.acquireLock).toHaveBeenCalledWith(
-      `workflow-schedule-fire:wf-1:${expectedBucket}`,
-      600,
-    );
-    expect(cacheService.releaseLock).not.toHaveBeenCalled();
   });
 
-  it('proceeds with execution when the lock is acquired (node-based workflow)', async () => {
+  it('upserts a BullMQ job scheduler when a schedule is set and enabled', async () => {
+    const prisma = createMockPrisma();
+    prisma.workflow.findFirst.mockResolvedValue({ id: 'wf-1' });
+    prisma.workflow.update.mockResolvedValue({
+      id: 'wf-1',
+      isScheduleEnabled: true,
+      schedule: '0 7 * * *',
+      timezone: 'Europe/Amsterdam',
+    });
+    const { queueService, service } = createService({ prisma });
+
+    const updated = await service.updateSchedule(
+      'wf-1',
+      '0 7 * * *',
+      'Europe/Amsterdam',
+      true,
+    );
+
+    expect(updated).not.toBeNull();
+    expect(queueService.upsertWorkflowScheduler).toHaveBeenCalledWith({
+      cronExpression: '0 7 * * *',
+      timezone: 'Europe/Amsterdam',
+      workflowId: 'wf-1',
+    });
+    expect(queueService.removeWorkflowScheduler).not.toHaveBeenCalled();
+  });
+
+  it('removes the job scheduler when the schedule is disabled', async () => {
+    const prisma = createMockPrisma();
+    prisma.workflow.findFirst.mockResolvedValue({ id: 'wf-1' });
+    prisma.workflow.update.mockResolvedValue({
+      id: 'wf-1',
+      isScheduleEnabled: false,
+      schedule: '0 7 * * *',
+    });
+    const { queueService, service } = createService({ prisma });
+
+    await service.updateSchedule('wf-1', '0 7 * * *', 'UTC', false);
+
+    expect(queueService.removeWorkflowScheduler).toHaveBeenCalledWith('wf-1');
+    expect(queueService.upsertWorkflowScheduler).not.toHaveBeenCalled();
+  });
+
+  it('removes the job scheduler when the schedule is cleared', async () => {
+    const prisma = createMockPrisma();
+    prisma.workflow.findFirst.mockResolvedValue({ id: 'wf-1' });
+    prisma.workflow.update.mockResolvedValue({
+      id: 'wf-1',
+      isScheduleEnabled: false,
+      schedule: null,
+    });
+    const { queueService, service } = createService({ prisma });
+
+    await service.updateSchedule('wf-1', null, 'UTC', true);
+
+    expect(queueService.removeWorkflowScheduler).toHaveBeenCalledWith('wf-1');
+  });
+
+  it('returns null without touching schedulers for a missing workflow', async () => {
+    const { prisma, queueService, service } = createService();
+    prisma.workflow.findFirst.mockResolvedValue(null);
+
+    const updated = await service.updateSchedule('wf-gone', '0 7 * * *');
+
+    expect(updated).toBeNull();
+    expect(queueService.upsertWorkflowScheduler).not.toHaveBeenCalled();
+    expect(queueService.removeWorkflowScheduler).not.toHaveBeenCalled();
+  });
+});
+
+describe('WorkflowSchedulerService — boot sync', () => {
+  it('skips the boot sync when schedulers are disabled', async () => {
+    const { prisma, service } = createService({
+      isDevSchedulersEnabled: false,
+    });
+
+    await service.onModuleInit();
+
+    expect(prisma.workflow.findMany).not.toHaveBeenCalled();
+  });
+
+  it('upserts a scheduler for every enabled scheduled workflow on boot', async () => {
+    const prisma = createMockPrisma();
+    prisma.workflow.findMany.mockResolvedValue([
+      {
+        id: 'wf-1',
+        isScheduleEnabled: true,
+        schedule: '0 7 * * *',
+        timezone: 'UTC',
+      },
+      {
+        id: 'wf-2',
+        isScheduleEnabled: true,
+        schedule: '*/10 * * * *',
+        timezone: 'Europe/Amsterdam',
+      },
+    ]);
+    const { queueService, service } = createService({
+      isDevSchedulersEnabled: true,
+      prisma,
+    });
+
+    await service.onModuleInit();
+
+    expect(queueService.upsertWorkflowScheduler).toHaveBeenCalledTimes(2);
+    expect(queueService.upsertWorkflowScheduler).toHaveBeenCalledWith({
+      cronExpression: '0 7 * * *',
+      timezone: 'UTC',
+      workflowId: 'wf-1',
+    });
+    expect(queueService.upsertWorkflowScheduler).toHaveBeenCalledWith({
+      cronExpression: '*/10 * * * *',
+      timezone: 'Europe/Amsterdam',
+      workflowId: 'wf-2',
+    });
+  });
+});
+
+describe('WorkflowSchedulerService — scheduled fire execution', () => {
+  it('executes a node-based workflow via the workflow engine executor', async () => {
     const prisma = createMockPrisma();
     prisma.workflow.findFirst.mockResolvedValue({
       id: 'wf-1',
@@ -138,9 +237,7 @@ describe('WorkflowSchedulerService — scheduled fire locking', () => {
     };
     const { service } = createService({ prisma, workflowExecutorService });
 
-    await (
-      service as unknown as ExecuteScheduledWorkflow
-    ).executeScheduledWorkflow('wf-1');
+    await service.executeScheduledWorkflow('wf-1');
 
     expect(prisma.workflow.update).toHaveBeenCalledTimes(1);
     expect(workflowExecutorService.executeManualWorkflow).toHaveBeenCalledWith(
@@ -153,43 +250,78 @@ describe('WorkflowSchedulerService — scheduled fire locking', () => {
     );
   });
 
-  it('never registers cron jobs for system workflows (their actions fire from the workers sweep scheduler)', () => {
-    const { service } = createService({});
+  it('creates an execution record for legacy step-based workflows', async () => {
+    const prisma = createMockPrisma();
+    prisma.workflow.findFirst.mockResolvedValue({
+      id: 'wf-legacy',
+      inputVariables: [],
+      nodes: [],
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
+    const { service, workflowExecutionsService, workflowsService } =
+      createService({ prisma });
 
-    service.scheduleWorkflow({
-      id: 'wf-system',
-      isScheduleEnabled: true,
-      metadata: {
-        systemWorkflow: buildSystemWorkflowMetadata({
-          canonicalId: 'scheduled-post-publishing',
-        }),
-      },
-      schedule: '*/15 * * * *',
-    } as unknown as WorkflowDocument);
+    await service.executeScheduledWorkflow('wf-legacy');
 
-    expect(service.getNextRunTime('wf-system')).toBeNull();
-    expect(service.getScheduledWorkflowsInfo()).toEqual([]);
+    expect(workflowExecutionsService.createExecution).toHaveBeenCalledWith(
+      'user-1',
+      'org-1',
+      expect.objectContaining({
+        trigger: WorkflowExecutionTrigger.SCHEDULED,
+        workflow: 'wf-legacy',
+      }),
+    );
+    expect(workflowsService.executeWorkflow).toHaveBeenCalledWith('wf-legacy');
   });
 
-  it('does not execute a workflow that is missing or inactive, even with the lock', async () => {
+  it('removes the job scheduler when the workflow is missing or inactive', async () => {
     const prisma = createMockPrisma();
     prisma.workflow.findFirst.mockResolvedValue(null);
     const workflowExecutorService = {
       executeManualWorkflow: vi.fn().mockResolvedValue({}),
     };
-    const { logger, service } = createService({
+    const { logger, queueService, service } = createService({
       prisma,
       workflowExecutorService,
     });
 
-    await (
-      service as unknown as ExecuteScheduledWorkflow
-    ).executeScheduledWorkflow('wf-gone');
+    await service.executeScheduledWorkflow('wf-gone');
 
+    expect(queueService.removeWorkflowScheduler).toHaveBeenCalledWith(
+      'wf-gone',
+    );
     expect(
       workflowExecutorService.executeManualWorkflow,
     ).not.toHaveBeenCalled();
     expect(prisma.workflow.update).not.toHaveBeenCalled();
     expect(logger.warn).toHaveBeenCalled();
+  });
+
+  it('removes the job scheduler for systemic templates without user/org', async () => {
+    const prisma = createMockPrisma();
+    prisma.workflow.findFirst.mockResolvedValue({
+      id: 'wf-template',
+      inputVariables: [],
+      nodes: [{ id: 'node-1' }],
+      organizationId: null,
+      userId: null,
+    });
+    const workflowExecutorService = {
+      executeManualWorkflow: vi.fn().mockResolvedValue({}),
+    };
+    const { queueService, service } = createService({
+      prisma,
+      workflowExecutorService,
+    });
+
+    await service.executeScheduledWorkflow('wf-template');
+
+    expect(queueService.removeWorkflowScheduler).toHaveBeenCalledWith(
+      'wf-template',
+    );
+    expect(
+      workflowExecutorService.executeManualWorkflow,
+    ).not.toHaveBeenCalled();
   });
 });

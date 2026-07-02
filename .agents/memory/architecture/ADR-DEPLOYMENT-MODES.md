@@ -76,9 +76,9 @@ Client features gate on **mode**, never on raw auth signals.
 
 ### 4. Tenancy
 
-**Multi-tenant org isolation is a SaaS / EE feature** (`ee/packages/multi-tenancy`, commercial). Community and Desktop are **single-tenant** (one org per instance). Multi-tenancy is the SaaS differentiator and is not given away in OSS.
+**Multi-tenant org isolation is a SaaS / EE feature** as a product boundary. Community and Desktop are **single-tenant** (one org per instance). Multi-tenancy is the SaaS differentiator and is not given away in OSS.
 
-> `ee/packages/multi-tenancy` is currently a scaffold (no enforcement code yet — #87). Until built, "multi-tenant" is the SaaS-only intent and Community's single-org model is the only path wired end-to-end.
+> There is no `ee/packages/multi-tenancy` package (scaffold deleted — #1093, successor to #87). Enforcement code (CombinedAuthGuard, request-context middleware, inline org-scoped query filters) lives in the OSS API and is deployment-mode-driven; no separable EE code unit exists. "Multi-tenant" remains the SaaS-only intent and Community's single-org model is the only path wired end-to-end.
 
 ### 5. Billing & generation
 

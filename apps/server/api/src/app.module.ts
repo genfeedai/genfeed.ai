@@ -23,7 +23,6 @@ import { BotsModule } from '@api/collections/bots/bots.module';
 import { BrandMemoryModule } from '@api/collections/brand-memory/brand-memory.module';
 import { BrandInterviewModule } from '@api/collections/brands/brand-interview/brand-interview.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
-import { BusinessAnalyticsModule } from '@api/collections/business-analytics/business-analytics.module';
 import { CaptionsModule } from '@api/collections/captions/captions.module';
 import { ClipProjectsModule } from '@api/collections/clip-projects/clip-projects.module';
 import { ClipResultsModule } from '@api/collections/clip-results/clip-results.module';
@@ -194,7 +193,6 @@ import { SharedModule } from '@api/shared/shared.module';
 import { SkillsProModule } from '@api/skills-pro/skills-pro.module';
 import { CiTriageWebhookModule } from '@api/webhooks/ci-triage/ci-triage-webhook.module';
 import { AgentWorkflowsModule } from '@api/workflows/agent-workflows.module';
-import { isEEEnabled } from '@genfeedai/config';
 import { HealthModule } from '@libs/health/health.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { RedisModule } from '@libs/redis/redis.module';
@@ -240,7 +238,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
     BetterAuthModule,
     AvatarsModule,
     BookmarksModule,
-    // BusinessAnalyticsModule — EE (gated below)
     BotsModule,
     BrandMemoryModule,
     BrandInterviewModule,
@@ -457,11 +454,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
 
     // Dev-only modules (only registered in development)
     ...(process.env.NODE_ENV === 'development' ? [DevModule] : []),
-
-    // EE-only modules (require GENFEED_LICENSE_KEY). The billing collection
-    // modules above are OSS-native and always registered; only superadmin
-    // business metrics remain license-gated.
-    ...(isEEEnabled() ? [BusinessAnalyticsModule] : []),
   ],
   providers: [
     OrgPrefixMiddleware,

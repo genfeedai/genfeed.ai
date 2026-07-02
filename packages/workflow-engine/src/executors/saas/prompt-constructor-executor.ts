@@ -129,7 +129,3 @@ export class PromptConstructorExecutor extends BaseExecutor {
     };
   }
 }
-
-export function createPromptConstructorExecutor(): PromptConstructorExecutor {
-  return new PromptConstructorExecutor();
-}

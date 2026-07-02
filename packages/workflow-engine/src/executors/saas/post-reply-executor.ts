@@ -19,10 +19,14 @@ export type ReplyPlatform =
 export interface PostReplyConfig {
   /** Platform to reply on */
   platform: ReplyPlatform;
+  /** Durable social inbox conversation id */
+  conversationId?: string;
   /** The post/tweet ID to reply to (can come from input) */
   postId?: string;
   /** Reply text (can come from input) */
   text?: string;
+  /** Stable idempotency key for retry-safe external actions */
+  idempotencyKey?: string;
   /** Optional media URL to attach */
   mediaUrl?: string;
 }
@@ -51,9 +55,12 @@ export type ReplyPublisher = (params: {
   userId: string;
   /** The brand ID associated with this action. Use this instead of userId for brand-scoped operations. */
   brandId?: string;
+  conversationId?: string;
+  idempotencyKey?: string;
   platform: ReplyPlatform;
   postId: string;
   text: string;
+  workflowRunId: string;
   mediaUrl?: string;
 }) => Promise<{ replyId: string; replyUrl: string }>;
 
@@ -122,15 +129,26 @@ export class PostReplyExecutor extends BaseExecutor {
     }
 
     const mediaUrl = this.getConfigOrInputString(node, inputs, 'mediaUrl');
+    const conversationId = this.getConfigOrInputString(
+      node,
+      inputs,
+      'conversationId',
+    );
+    const idempotencyKey =
+      this.getConfigOrInputString(node, inputs, 'idempotencyKey') ??
+      `workflow:${context.runId}:${node.id}`;
 
     const result = await this.publisher({
       brandId: node.config.brandId as string | undefined,
+      conversationId,
+      idempotencyKey,
       mediaUrl,
       organizationId: context.organizationId,
       platform,
       postId,
       text,
       userId: context.userId,
+      workflowRunId: context.runId,
     });
 
     const replyResult: PostReplyResult = {
@@ -170,8 +188,4 @@ export class PostReplyExecutor extends BaseExecutor {
       ? inputValue
       : undefined;
   }
-}
-
-export function createPostReplyExecutor(): PostReplyExecutor {
-  return new PostReplyExecutor();
 }

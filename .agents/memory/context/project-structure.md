@@ -75,11 +75,8 @@ genfeed.ai/
 │   └── workflows/           # Workflow definitions
 ├── ee/                      # Enterprise features (commercial license)
 │   └── packages/
-│       ├── analytics/       # Phase C extraction scaffold (issue #87) — placeholder only
 │       ├── billing/         # Stripe billing providers (wired via webpack @billing-providers alias)
-│       ├── harness/         # @genfeedai/ee-harness — enterprise content-harness pack
-│       ├── multi-tenancy/   # Phase C extraction scaffold (issue #87) — placeholder only
-│       └── teams/           # Phase C extraction scaffold (issue #87) — placeholder only
+│       └── harness/         # @genfeedai/ee-harness — enterprise content-harness pack
 ├── docker/                  # Docker configs
 ├── docs/                    # Documentation
 ├── playwright/              # Playwright e2e suite (configs + tests)

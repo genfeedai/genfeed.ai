@@ -113,6 +113,10 @@ export function useMenuShared({
         return path;
       }
 
+      if (item.hrefScope === 'global') {
+        return path;
+      }
+
       if (item.hrefScope === 'personal') {
         return path;
       }
@@ -179,7 +183,11 @@ export function useMenuShared({
         return false;
       }
 
-      if (item.hrefScope && item.hrefScope !== routeScope) {
+      if (
+        item.hrefScope &&
+        item.hrefScope !== 'global' &&
+        item.hrefScope !== routeScope
+      ) {
         return false;
       }
 

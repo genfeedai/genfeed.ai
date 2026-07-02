@@ -312,11 +312,7 @@ export function DashboardStatsStrip({
     <section data-testid="dashboard-stats-strip">
       <DashboardGrid>
         {items.map((item) => (
-          <Card
-            key={item.label}
-            className="rounded-md border-border bg-background-secondary shadow-none"
-            bodyClassName="p-4"
-          >
+          <Card key={item.label} bodyClassName="p-4">
             {item.isLoading ? (
               <Skeleton variant="text" height={32} className="w-16" />
             ) : (
@@ -361,10 +357,7 @@ interface MiniChartCardProps {
 
 function MiniChartCard({ children, subtitle, title }: MiniChartCardProps) {
   return (
-    <Card
-      className="rounded-md border-border bg-background-secondary shadow-none"
-      bodyClassName="p-4"
-    >
+    <Card bodyClassName="p-4">
       <div className="mb-2 space-y-0.5">
         <h3 className="text-xs font-semibold text-foreground">{title}</h3>
         <p className="text-[10px] uppercase tracking-wider text-foreground/40">
@@ -675,10 +668,7 @@ export function DashboardRecentActivity({
           <Link href="/workspace/inbox/unread">View All &rarr;</Link>
         </Button>
       </div>
-      <Card
-        className="rounded-md border-border bg-background-secondary shadow-none"
-        bodyClassName="p-0"
-      >
+      <Card bodyClassName="p-0">
         {isLoading && sortedTasks.length === 0 ? (
           <div className="px-4 py-2">
             <WorkspaceTaskRowsSkeleton rows={4} />
@@ -782,10 +772,7 @@ export function DashboardRecentTasks({
           <Link href="/workspace/inbox/unread">View All &rarr;</Link>
         </Button>
       </div>
-      <Card
-        className="rounded-md border-border bg-background-secondary shadow-none"
-        bodyClassName="p-0"
-      >
+      <Card bodyClassName="p-0">
         {isLoading && sortedTasks.length === 0 ? (
           <div className="px-4 py-2">
             <WorkspaceTaskRowsSkeleton rows={4} />

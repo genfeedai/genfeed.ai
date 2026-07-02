@@ -1,18 +1,12 @@
+import { DEFAULT_TRIGGER_EVALUATION_INTERVAL_MINUTES } from '@api/services/agent-campaign/orchestrator.constants';
 import {
-  DEFAULT_TRIGGER_EVALUATION_INTERVAL_MINUTES,
   TRIGGER_EVALUATION_QUEUE,
-} from '@api/services/agent-campaign/orchestrator.constants';
+  TriggerEvaluationJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
-
-export type TriggerEvaluationJobData = {
-  campaignId: string;
-  organizationId: string;
-  scheduledAt: string;
-  userId: string;
-};
 
 @Injectable()
 export class TriggerEvaluatorQueueService {

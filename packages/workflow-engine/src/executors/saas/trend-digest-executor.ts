@@ -248,7 +248,3 @@ export class TrendDigestExecutor extends BaseExecutor {
     return { data: output, metadata: { reason, skipped: true } };
   }
 }
-
-export function createTrendDigestExecutor(): TrendDigestExecutor {
-  return new TrendDigestExecutor();
-}

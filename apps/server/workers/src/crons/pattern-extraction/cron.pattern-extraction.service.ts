@@ -1,5 +1,8 @@
 import { QueueService } from '@api/queues/core/queue.service';
-import type { PatternExtractionJobData } from '@api/queues/pattern-extraction/pattern-extraction-job.interface';
+import {
+  PATTERN_EXTRACTION_QUEUE,
+  PatternExtractionJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -8,7 +11,7 @@ import { Cron } from '@nestjs/schedule';
 @Injectable()
 export class CronPatternExtractionService {
   private readonly constructorName: string = String(this.constructor.name);
-  private readonly QUEUE_NAME = 'pattern-extraction';
+  private readonly QUEUE_NAME = PATTERN_EXTRACTION_QUEUE;
 
   constructor(
     private readonly logger: LoggerService,

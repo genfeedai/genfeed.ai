@@ -2,16 +2,16 @@ import {
   BatchWorkflowItemCompletionInput,
   BatchWorkflowService,
 } from '@api/collections/workflows/services/batch-workflow.service';
-import {
-  BATCH_WORKFLOW_QUEUE,
-  BatchWorkflowItemJobData,
-} from '@api/collections/workflows/services/batch-workflow-queue.service';
 import type {
   NodeExecutionSummary,
   WorkflowExecutionResult,
 } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { ConfigService } from '@api/config/config.service';
+import {
+  BATCH_WORKFLOW_QUEUE,
+  BatchWorkflowItemJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { forwardRef, Inject } from '@nestjs/common';

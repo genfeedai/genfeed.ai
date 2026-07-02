@@ -1,6 +1,7 @@
 import { CreateElementMoodDto } from '@api/collections/elements/moods/dto/create-mood.dto';
 import { UpdateElementMoodDto } from '@api/collections/elements/moods/dto/update-mood.dto';
 import type { ElementMoodDocument } from '@api/collections/elements/moods/schemas/mood.schema';
+import { CacheService } from '@api/services/cache/services/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -15,7 +16,8 @@ export class ElementsMoodsService extends BaseService<
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
+    cacheService: CacheService,
   ) {
-    super(prisma, 'elementMood', logger);
+    super(prisma, 'elementMood', logger, undefined, cacheService);
   }
 }

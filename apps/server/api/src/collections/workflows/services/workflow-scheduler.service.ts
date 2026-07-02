@@ -1,50 +1,41 @@
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
+import { LegacyWorkflowStepRunner } from '@api/collections/workflows/services/legacy-workflow-step-runner.service';
+import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
-import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { getSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
 import { ConfigService } from '@api/config/config.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
-import { Cron, CronExpression, SchedulerRegistry } from '@nestjs/schedule';
-import { CronJob } from 'cron';
-
-interface ScheduledWorkflow {
-  workflowId: string;
-  cronExpression: string;
-  timezone: string;
-  lastRun?: Date;
-  nextRun?: Date;
-}
 
 function toWorkflowDocument(workflow: unknown): WorkflowDocument {
   return workflow as WorkflowDocument;
 }
 
+/**
+ * Owns the producer side of workflow cron scheduling.
+ *
+ * Schedules live as BullMQ Job Schedulers on the `workflow-execution` queue
+ * (one scheduler per workflow, keyed on the workflow id). Upserts are
+ * idempotent across API replicas, so exactly one delayed fire exists per tick
+ * regardless of replica count — no in-process CronJobs, no fire-window locks.
+ *
+ * Workers consume the resulting `scheduled-fire` jobs and call back into
+ * `executeScheduledWorkflow` to run the workflow.
+ */
 @Injectable()
 export class WorkflowSchedulerService implements OnModuleInit {
-  /**
-   * Fire-window lock TTL. Must outlive clock skew between API replicas within
-   * the same minute bucket; the lock is intentionally never released early so
-   * a slow replica arriving late in the same window still skips.
-   */
-  private static readonly FIRE_LOCK_TTL_SECONDS = 600;
-
-  private scheduledWorkflows: Map<string, CronJob> = new Map();
-
   constructor(
     private readonly prisma: PrismaService,
     @Inject(LoggerService)
     private readonly logger: LoggerService,
-    private readonly schedulerRegistry: SchedulerRegistry,
     private readonly configService: ConfigService,
-    private readonly workflowsService: WorkflowsService,
+    private readonly legacyWorkflowStepRunner: LegacyWorkflowStepRunner,
     private readonly workflowExecutionsService: WorkflowExecutionsService,
     private readonly workflowExecutorService: WorkflowExecutorService,
-    private readonly cacheService: CacheService,
+    private readonly workflowExecutionQueueService: WorkflowExecutionQueueService,
   ) {}
 
   async onModuleInit() {
@@ -57,14 +48,17 @@ export class WorkflowSchedulerService implements OnModuleInit {
       return;
     }
 
-    // Load and schedule all enabled workflows on startup
-    await this.loadScheduledWorkflows();
+    // One-time boot sync: upsert a job scheduler for every enabled scheduled
+    // workflow. Idempotent per scheduler id, so any number of replicas booting
+    // concurrently converge on one scheduler per workflow. This seeds rows
+    // created before the BullMQ migration and heals drift after restarts.
+    await this.syncAllWorkflowSchedulers();
   }
 
   /**
-   * Load all workflows with schedules enabled and register cron jobs
+   * Upsert job schedulers for all enabled scheduled workflows.
    */
-  async loadScheduledWorkflows(): Promise<void> {
+  async syncAllWorkflowSchedulers(): Promise<void> {
     try {
       const workflows = await this.prisma.workflow.findMany({
         where: {
@@ -79,16 +73,16 @@ export class WorkflowSchedulerService implements OnModuleInit {
       });
 
       this.logger.log(
-        `Loading ${workflows.length} scheduled workflows`,
+        `Syncing ${workflows.length} workflow job schedulers`,
         'WorkflowSchedulerService',
       );
 
       for (const workflow of workflows) {
-        this.scheduleWorkflow(toWorkflowDocument(workflow));
+        await this.scheduleWorkflow(toWorkflowDocument(workflow));
       }
     } catch (error) {
       this.logger.error(
-        'Failed to load scheduled workflows',
+        'Failed to sync workflow job schedulers',
         error,
         'WorkflowSchedulerService',
       );
@@ -96,25 +90,23 @@ export class WorkflowSchedulerService implements OnModuleInit {
   }
 
   /**
-   * Schedule a workflow to run on a cron schedule
+   * Upsert the BullMQ job scheduler for a workflow's cron schedule.
    */
-  scheduleWorkflow(workflow: WorkflowDocument): void {
+  async scheduleWorkflow(workflow: WorkflowDocument): Promise<void> {
     const workflowId = String(
       (workflow as unknown as Record<string, unknown>)._id ??
         (workflow as unknown as { id: string }).id,
     );
 
-    // Remove existing schedule if any
-    this.unscheduleWorkflow(workflowId);
-
     if (!workflow.schedule || !workflow.isScheduleEnabled) {
+      await this.unscheduleWorkflow(workflowId);
       return;
     }
 
     // System workflows carry a schedule for display, but their actions fire
     // from the workers sweep scheduler — the engine has no executor for
     // systemWorkflowAction nodes, so firing here would only record failures.
-    // Also covers pre-fix rows seeded with isScheduleEnabled: true.
+    // Also drops schedulers for pre-fix rows seeded with isScheduleEnabled: true.
     if (
       getSystemWorkflowMetadata(
         (workflow as unknown as Record<string, unknown>).metadata,
@@ -124,29 +116,16 @@ export class WorkflowSchedulerService implements OnModuleInit {
         `Skipping user-workflow scheduling for system workflow ${workflowId}`,
         'WorkflowSchedulerService',
       );
+      await this.unscheduleWorkflow(workflowId);
       return;
     }
 
     try {
-      const cronJob = new CronJob(
-        workflow.schedule,
-        async () => {
-          await this.executeScheduledWorkflow(workflowId);
-        },
-        null,
-        true,
-        workflow.timezone || 'UTC',
-      );
-
-      this.scheduledWorkflows.set(workflowId, cronJob);
-
-      // Register with NestJS scheduler registry for monitoring
-      const jobName = `workflow-${workflowId}`;
-      try {
-        this.schedulerRegistry.addCronJob(jobName, cronJob);
-      } catch {
-        // Job might already exist, ignore
-      }
+      await this.workflowExecutionQueueService.upsertWorkflowScheduler({
+        cronExpression: workflow.schedule,
+        timezone: workflow.timezone || 'UTC',
+        workflowId,
+      });
 
       this.logger.log(
         `Scheduled workflow ${workflowId} with cron: ${workflow.schedule}`,
@@ -162,50 +141,33 @@ export class WorkflowSchedulerService implements OnModuleInit {
   }
 
   /**
-   * Remove a workflow from the schedule
+   * Remove the BullMQ job scheduler for a workflow. Idempotent.
    */
-  unscheduleWorkflow(workflowId: string): void {
-    const existingJob = this.scheduledWorkflows.get(workflowId);
-    if (existingJob) {
-      existingJob.stop();
-      this.scheduledWorkflows.delete(workflowId);
-
-      const jobName = `workflow-${workflowId}`;
-      try {
-        this.schedulerRegistry.deleteCronJob(jobName);
-      } catch {
-        // Job might not exist, ignore
-      }
+  async unscheduleWorkflow(workflowId: string): Promise<void> {
+    try {
+      await this.workflowExecutionQueueService.removeWorkflowScheduler(
+        workflowId,
+      );
 
       this.logger.log(
         `Unscheduled workflow ${workflowId}`,
+        'WorkflowSchedulerService',
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to unschedule workflow ${workflowId}`,
+        error,
         'WorkflowSchedulerService',
       );
     }
   }
 
   /**
-   * Execute a scheduled workflow
+   * Execute a scheduled workflow. Called by the workers' `scheduled-fire`
+   * processor — BullMQ already guarantees a single fire per tick, so no
+   * cross-replica locking is needed here.
    */
-  private async executeScheduledWorkflow(workflowId: string): Promise<void> {
-    // Every API replica holds its own in-process CronJob for this workflow,
-    // so the same schedule fires once per replica. The first replica to claim
-    // the minute bucket runs it; the rest skip. SET NX + TTL, never released
-    // early (the lock marks the fire window as claimed, not work-in-progress).
-    const fireBucket = Math.floor(Date.now() / 60_000);
-    const acquired = await this.cacheService.acquireLock(
-      `workflow-schedule-fire:${workflowId}:${fireBucket}`,
-      WorkflowSchedulerService.FIRE_LOCK_TTL_SECONDS,
-    );
-
-    if (!acquired) {
-      this.logger.log(
-        `Scheduled fire for workflow ${workflowId} already claimed by another instance (bucket ${fireBucket})`,
-        'WorkflowSchedulerService',
-      );
-      return;
-    }
-
+  async executeScheduledWorkflow(workflowId: string): Promise<void> {
     try {
       const workflow = await this.prisma.workflow.findFirst({
         where: {
@@ -223,7 +185,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
           `Scheduled workflow ${workflowId} not found or inactive`,
           'WorkflowSchedulerService',
         );
-        this.unscheduleWorkflow(workflowId);
+        await this.unscheduleWorkflow(workflowId);
         return;
       }
 
@@ -237,12 +199,12 @@ export class WorkflowSchedulerService implements OnModuleInit {
           `Scheduled workflow ${workflowId} is a systemic template and cannot be executed directly`,
           'WorkflowSchedulerService',
         );
-        this.unscheduleWorkflow(workflowId);
+        await this.unscheduleWorkflow(workflowId);
         return;
       }
 
       const nodes = wDoc.nodes as unknown[] | undefined;
-      const usesNodeExecutor = Boolean(nodes && nodes.length);
+      const usesNodeExecutor = Boolean(nodes?.length);
 
       // Legacy step-based workflows still need an explicit execution record here.
       // Node-based workflows create their own execution record via WorkflowExecutorService.
@@ -275,7 +237,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
             { triggeredBy: 'schedule' },
             WorkflowExecutionTrigger.SCHEDULED,
           )
-        : this.workflowsService.executeWorkflow(workflowId);
+        : this.legacyWorkflowStepRunner.executeWorkflow(workflowId);
 
       executePromise.catch((error) => {
         this.logger.error(
@@ -345,60 +307,14 @@ export class WorkflowSchedulerService implements OnModuleInit {
       const workflowDocument = toWorkflowDocument(workflow);
 
       if (schedule && isEnabled) {
-        this.scheduleWorkflow(workflowDocument);
+        await this.scheduleWorkflow(workflowDocument);
       } else {
-        this.unscheduleWorkflow(workflowId);
+        await this.unscheduleWorkflow(workflowId);
       }
 
       return workflowDocument;
     }
 
     return null;
-  }
-
-  /**
-   * Get next run time for a workflow
-   */
-  getNextRunTime(workflowId: string): Date | null {
-    const job = this.scheduledWorkflows.get(workflowId);
-    if (job) {
-      return job.nextDate().toJSDate();
-    }
-    return null;
-  }
-
-  /**
-   * Get all scheduled workflows info
-   */
-  getScheduledWorkflowsInfo(): ScheduledWorkflow[] {
-    const info: ScheduledWorkflow[] = [];
-
-    for (const [workflowId, job] of this.scheduledWorkflows) {
-      info.push({
-        cronExpression: job.cronTime.toString(),
-        lastRun: job.lastDate() || undefined,
-        nextRun: job.nextDate().toJSDate(),
-        timezone:
-          (job as unknown as { cronTime: { zone?: string } }).cronTime?.zone ||
-          'UTC',
-        workflowId,
-      });
-    }
-
-    return info;
-  }
-
-  /**
-   * Periodic check for workflows that need rescheduling
-   * Runs every hour to catch any workflows that might have been missed
-   */
-  @Cron(CronExpression.EVERY_HOUR)
-  async syncScheduledWorkflows(): Promise<void> {
-    if (!this.configService.isDevSchedulersEnabled) {
-      return;
-    }
-
-    this.logger.log('Syncing scheduled workflows', 'WorkflowSchedulerService');
-    await this.loadScheduledWorkflows();
   }
 }

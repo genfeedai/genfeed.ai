@@ -1,7 +1,9 @@
 import { ContentRunRecommendationsService } from '@api/collections/content-runs/services/content-run-recommendations.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import type { ContentOptimizationService } from '@api/services/content-optimization/content-optimization.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentRunStatus } from '@genfeedai/enums';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const createdAt = new Date('2026-05-03T10:00:00.000Z');
@@ -40,14 +42,27 @@ describe('ContentRunRecommendationsService', () => {
   const contentPerformance = {
     findMany: vi.fn(),
   };
+  const contentOptimization = {
+    requeueWinnerIntoTrends: vi.fn().mockResolvedValue({ requeued: false }),
+  };
+  const logger = {
+    debug: vi.fn(),
+    error: vi.fn(),
+    log: vi.fn(),
+    warn: vi.fn(),
+  };
   let service: ContentRunRecommendationsService;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new ContentRunRecommendationsService({
-      contentPerformance,
-      contentRun,
-    } as unknown as PrismaService);
+    service = new ContentRunRecommendationsService(
+      {
+        contentPerformance,
+        contentRun,
+      } as unknown as PrismaService,
+      contentOptimization as unknown as ContentOptimizationService,
+      logger as unknown as LoggerService,
+    );
   });
 
   it('scores run variants, persists a winner summary, and creates next actions', async () => {
@@ -142,6 +157,66 @@ describe('ContentRunRecommendationsService', () => {
       }),
       recommendations: expect.any(Array),
     });
+
+    // Winner is fed back into trend ingestion (issue #166).
+    expect(contentOptimization.requeueWinnerIntoTrends).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(contentOptimization.requeueWinnerIntoTrends).toHaveBeenCalledWith(
+      'org-1',
+      'brand-1',
+      expect.objectContaining({
+        contentRunId: 'run-1',
+        format: 'post-thread',
+        hook: 'Proof-led hooks beat generic AI claims',
+        platform: 'twitter',
+        variantId: 'variant-a',
+      }),
+    );
+  });
+
+  it('does not fail run analysis when the winner->trend requeue throws', async () => {
+    contentRun.findFirst.mockResolvedValue({
+      brandId: 'brand-1',
+      config: runConfig,
+      createdAt,
+      id: 'run-1',
+      organizationId: 'org-1',
+      status: ContentRunStatus.COMPLETED,
+    });
+    contentPerformance.findMany.mockResolvedValue([
+      {
+        clicks: 12,
+        comments: 30,
+        contentRunId: 'run-1',
+        engagementRate: 8.4,
+        likes: 220,
+        performanceScore: 88,
+        platform: 'twitter',
+        saves: 14,
+        shares: 40,
+        variantId: 'variant-a',
+        views: 10_000,
+      },
+    ]);
+    contentRun.update.mockImplementation(({ data }) =>
+      Promise.resolve({
+        brandId: 'brand-1',
+        config: data.config,
+        createdAt,
+        id: 'run-1',
+        organizationId: 'org-1',
+        status: ContentRunStatus.COMPLETED,
+      }),
+    );
+    contentOptimization.requeueWinnerIntoTrends.mockRejectedValue(
+      new Error('trends unavailable'),
+    );
+
+    const result = await service.analyzeRun('org-1', 'run-1');
+
+    expect(result.analyticsSummary.winningVariantId).toBe('variant-a');
+    expect(logger.warn).toHaveBeenCalled();
   });
 
   it('persists a structured analytics collection recommendation when no rows exist', async () => {
@@ -176,6 +251,8 @@ describe('ContentRunRecommendationsService', () => {
         type: 'collect_run_analytics',
       }),
     ]);
+    // No winner exists without performance rows, so nothing is fed to trends.
+    expect(contentOptimization.requeueWinnerIntoTrends).not.toHaveBeenCalled();
   });
 
   it('throws when the run is not scoped to the organization', async () => {

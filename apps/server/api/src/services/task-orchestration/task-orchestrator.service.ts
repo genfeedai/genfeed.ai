@@ -1,9 +1,6 @@
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
-import {
-  AgentRunJobData,
-  AgentRunQueueService,
-} from '@api/queues/agent-run/agent-run-queue.service';
+import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
 import type {
   DecomposedSubtask,
   TaskDecompositionResult,
@@ -18,6 +15,7 @@ import {
   AgentExecutionTrigger,
   AgentRunStatus,
 } from '@genfeedai/enums';
+import type { AgentRunJobData } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
 

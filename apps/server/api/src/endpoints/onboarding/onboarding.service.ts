@@ -6,6 +6,7 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
+import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import type {
   BrandSetupDto,
@@ -74,6 +75,7 @@ export class OnboardingService {
     private readonly proactiveOnboardingService: ProactiveOnboardingService,
     private readonly requestContextCacheService: RequestContextCacheService,
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
+    private readonly betterAuthIdentityCacheService: BetterAuthIdentityCacheService,
     private readonly userSetupService: UserSetupService,
     private readonly brandDataMapper: BrandDataMapper,
     private readonly brandPersistenceService: BrandPersistenceService,
@@ -671,6 +673,7 @@ export class OnboardingService {
           await Promise.all([
             this.requestContextCacheService.invalidateForUser(dbUserId),
             this.accessBootstrapCacheService.invalidateForUser(dbUserId),
+            this.betterAuthIdentityCacheService.invalidateForUser(dbUserId),
           ]);
         }
 
@@ -820,9 +823,13 @@ export class OnboardingService {
           label: dto.brandName,
         });
 
-        await this.brandPersistenceService.syncOrgLabelAndSlug(
+        // Keep brand.slug in sync with the label (matching the scan-based and
+        // brand-update paths); the brand id excludes the brand's own current
+        // slug from uniqueness collision.
+        await this.brandPersistenceService.syncBrandAndOrgSlug(
           dto.brandName,
           organizationId.toString(),
+          brand._id,
         );
 
         this.loggerService.log(`${caller} completed`);

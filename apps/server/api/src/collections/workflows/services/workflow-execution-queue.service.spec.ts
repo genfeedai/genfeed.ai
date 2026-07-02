@@ -1,4 +1,7 @@
-import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import {
+  WorkflowExecutionQueueService,
+  workflowSchedulerId,
+} from '@api/collections/workflows/services/workflow-execution-queue.service';
 import type {
   DelayResumeJobData,
   TriggerEvent,
@@ -9,6 +12,8 @@ function createMockQueue() {
   return {
     add: vi.fn().mockResolvedValue({ id: 'job-123' }),
     getJobs: vi.fn().mockResolvedValue([]),
+    removeJobScheduler: vi.fn().mockResolvedValue(true),
+    upsertJobScheduler: vi.fn().mockResolvedValue({ id: 'scheduled-job-1' }),
   };
 }
 
@@ -136,6 +141,70 @@ describe('WorkflowExecutionQueueService', () => {
           executionId: 'exec-1',
           workflowId: 'wf-1',
         }),
+      );
+    });
+  });
+
+  describe('upsertWorkflowScheduler', () => {
+    it('should upsert a job scheduler keyed on the workflow id', async () => {
+      await service.upsertWorkflowScheduler({
+        cronExpression: '0 7 * * *',
+        timezone: 'Europe/Amsterdam',
+        workflowId: 'wf-1',
+      });
+
+      expect(mockQueue.upsertJobScheduler).toHaveBeenCalledWith(
+        'workflow-schedule:wf-1',
+        { pattern: '0 7 * * *', tz: 'Europe/Amsterdam' },
+        {
+          data: { type: 'scheduled-fire', workflowId: 'wf-1' },
+          name: 'scheduled-fire',
+          opts: expect.objectContaining({ attempts: 1 }),
+        },
+      );
+    });
+
+    it('should use the same scheduler id when two producers upsert the same workflow', async () => {
+      // Two API replicas sharing the queue converge on ONE scheduler id, which
+      // is what makes BullMQ dedupe fires across replicas.
+      const replicaA = new (
+        WorkflowExecutionQueueService as unknown as new (
+          ...args: unknown[]
+        ) => WorkflowExecutionQueueService
+      )(mockQueue, createMockLogger());
+      const replicaB = new (
+        WorkflowExecutionQueueService as unknown as new (
+          ...args: unknown[]
+        ) => WorkflowExecutionQueueService
+      )(mockQueue, createMockLogger());
+
+      await replicaA.upsertWorkflowScheduler({
+        cronExpression: '*/5 * * * *',
+        timezone: 'UTC',
+        workflowId: 'wf-1',
+      });
+      await replicaB.upsertWorkflowScheduler({
+        cronExpression: '*/5 * * * *',
+        timezone: 'UTC',
+        workflowId: 'wf-1',
+      });
+
+      const schedulerIds = mockQueue.upsertJobScheduler.mock.calls.map(
+        (call) => call[0],
+      );
+      expect(schedulerIds).toEqual([
+        workflowSchedulerId('wf-1'),
+        workflowSchedulerId('wf-1'),
+      ]);
+    });
+  });
+
+  describe('removeWorkflowScheduler', () => {
+    it('should remove the job scheduler for the workflow', async () => {
+      await service.removeWorkflowScheduler('wf-1');
+
+      expect(mockQueue.removeJobScheduler).toHaveBeenCalledWith(
+        'workflow-schedule:wf-1',
       );
     });
   });

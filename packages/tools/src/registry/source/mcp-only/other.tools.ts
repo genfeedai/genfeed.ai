@@ -40,63 +40,6 @@ export const MCP_OTHER_TOOLS: SourceTool[] = [
   },
   {
     creditCost: 0,
-    description:
-      'Generate ad copy variations based on top-performing patterns in the performing ads database',
-    name: 'generate_ad_variations',
-    parameters: {
-      properties: {
-        body: {
-          description: 'Current ad body text to create variations of',
-          type: 'string',
-        },
-        count: {
-          default: 5,
-          description: 'Number of variations to generate',
-          type: 'number',
-        },
-        headline: {
-          description: 'Current headline to create variations of',
-          type: 'string',
-        },
-        platform: {
-          description: 'Target ad platform',
-          enum: ['meta', 'google'],
-          type: 'string',
-        },
-      },
-      type: 'object',
-    },
-    requiredRole: 'user',
-    surfaces: { agent: false, cliAgentVisible: false, mcp: true },
-  },
-  {
-    creditCost: 0,
-    description:
-      'Suggest ad headlines modeled after winning patterns from the performing ads database',
-    name: 'suggest_ad_headlines',
-    parameters: {
-      properties: {
-        industry: {
-          description: 'Target industry',
-          type: 'string',
-        },
-        platform: {
-          description: 'Target ad platform',
-          enum: ['meta', 'google'],
-          type: 'string',
-        },
-        product: {
-          description: 'Product or service to create headlines for',
-          type: 'string',
-        },
-      },
-      type: 'object',
-    },
-    requiredRole: 'user',
-    surfaces: { agent: false, cliAgentVisible: false, mcp: true },
-  },
-  {
-    creditCost: 0,
     description: 'Generate face fidelity test images (3 configs x N prompts)',
     name: 'generate_face_test',
     parameters: {
