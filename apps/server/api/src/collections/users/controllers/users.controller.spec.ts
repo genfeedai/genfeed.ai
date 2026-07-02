@@ -5,6 +5,7 @@ import { SettingsService } from '@api/collections/settings/services/settings.ser
 import { UsersController } from '@api/collections/users/controllers/users.controller';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
+import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import type { ISubscriptionsService } from '@genfeedai/interfaces/billing';
@@ -21,6 +22,7 @@ describe('UsersController', () => {
   let filesClientService: Record<string, ReturnType<typeof vi.fn>>;
   let requestContextCacheService: Record<string, ReturnType<typeof vi.fn>>;
   let accessBootstrapCacheService: Record<string, ReturnType<typeof vi.fn>>;
+  let betterAuthIdentityCacheService: Record<string, ReturnType<typeof vi.fn>>;
 
   const userId = '507f191e810c19729de860ee'.toString();
   const orgId = '507f191e810c19729de860ee'.toString();
@@ -82,6 +84,9 @@ describe('UsersController', () => {
     accessBootstrapCacheService = {
       invalidateForUser: vi.fn().mockResolvedValue(undefined),
     };
+    betterAuthIdentityCacheService = {
+      invalidateForUser: vi.fn().mockResolvedValue(undefined),
+    };
 
     controller = new UsersController(
       brandsService as unknown as BrandsService,
@@ -94,6 +99,7 @@ describe('UsersController', () => {
       membersService as unknown as MembersService,
       requestContextCacheService as unknown as RequestContextCacheService,
       accessBootstrapCacheService as unknown as AccessBootstrapCacheService,
+      betterAuthIdentityCacheService as unknown as BetterAuthIdentityCacheService,
     );
   });
 

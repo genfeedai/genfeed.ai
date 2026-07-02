@@ -2,6 +2,7 @@ import type { BrandsService } from '@api/collections/brands/services/brands.serv
 import type { MembersService } from '@api/collections/members/services/members.service';
 import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { UsersService } from '@api/collections/users/services/users.service';
+import type { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { UnauthorizedException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -12,6 +13,11 @@ describe('BetterAuthIdentityResolverService', () => {
   let organizationsService: { findOne: ReturnType<typeof vi.fn> };
   let brandsService: { findOne: ReturnType<typeof vi.fn> };
   let membersService: { find: ReturnType<typeof vi.fn> };
+  let identityCache: {
+    get: ReturnType<typeof vi.fn>;
+    set: ReturnType<typeof vi.fn>;
+    invalidateForUser: ReturnType<typeof vi.fn>;
+  };
   let resolver: BetterAuthIdentityResolverService;
 
   beforeEach(() => {
@@ -19,12 +25,18 @@ describe('BetterAuthIdentityResolverService', () => {
     organizationsService = { findOne: vi.fn() };
     brandsService = { findOne: vi.fn() };
     membersService = { find: vi.fn().mockResolvedValue([]) };
+    identityCache = {
+      get: vi.fn().mockResolvedValue(null),
+      invalidateForUser: vi.fn().mockResolvedValue(undefined),
+      set: vi.fn().mockResolvedValue(undefined),
+    };
 
     resolver = new BetterAuthIdentityResolverService(
       usersService as unknown as UsersService,
       organizationsService as unknown as OrganizationsService,
       brandsService as unknown as BrandsService,
       membersService as unknown as MembersService,
+      identityCache as unknown as BetterAuthIdentityCacheService,
     );
   });
 
@@ -182,5 +194,44 @@ describe('BetterAuthIdentityResolverService', () => {
 
     expect(identity.organizationId).toBeUndefined();
     expect(identity.brandId).toBeUndefined();
+  });
+
+  it('returns the cached identity without touching the database on a cache hit', async () => {
+    const cachedIdentity = {
+      brandId: 'brand_c',
+      isSuperAdmin: false,
+      organizationId: 'org_c',
+      userId: 'user_c',
+    };
+    identityCache.get.mockResolvedValue(cachedIdentity);
+
+    const identity = await resolver.resolve('user_c');
+
+    expect(identity).toEqual(cachedIdentity);
+    expect(usersService.findOne).not.toHaveBeenCalled();
+    expect(membersService.find).not.toHaveBeenCalled();
+    expect(organizationsService.findOne).not.toHaveBeenCalled();
+    expect(brandsService.findOne).not.toHaveBeenCalled();
+    expect(identityCache.set).not.toHaveBeenCalled();
+  });
+
+  it('caches the resolved identity after a cache miss', async () => {
+    usersService.findOne.mockResolvedValue({ id: 'user_5' });
+    organizationsService.findOne.mockResolvedValue({ id: 'org_5' });
+    brandsService.findOne.mockResolvedValue({ id: 'brand_5' });
+
+    const identity = await resolver.resolve('user_5');
+
+    expect(identityCache.get).toHaveBeenCalledWith('user_5');
+    expect(identityCache.set).toHaveBeenCalledWith('user_5', identity);
+  });
+
+  it('does not cache when resolution throws', async () => {
+    usersService.findOne.mockResolvedValue(null);
+
+    await expect(resolver.resolve('missing')).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+    expect(identityCache.set).not.toHaveBeenCalled();
   });
 });

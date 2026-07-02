@@ -10,6 +10,19 @@ import {
 import type { BetterAuthInstance } from './better-auth.factory';
 import type { IBetterAuthJwtClaims } from './better-auth.types';
 
+interface CachedClaims {
+  claims: IBetterAuthJwtClaims;
+  expiresAtMs: number;
+}
+
+// Verified-claims memoization: signature verification reads the JWKS table on
+// every call, so repeat requests with the same bearer token each cost a DB
+// round-trip plus crypto. Claims are immutable for a given token, so caching
+// until min(60s, token exp) changes nothing semantically — verifyJWT never
+// checks revocation, only signature + expiry.
+const CLAIMS_CACHE_TTL_MS = 60_000;
+const CLAIMS_CACHE_MAX_ENTRIES = 5_000;
+
 /**
  * Thin wrapper around the constructed Better Auth instance (epic #735).
  *
@@ -21,6 +34,7 @@ import type { IBetterAuthJwtClaims } from './better-auth.types';
 export class BetterAuthService {
   readonly basePath = BETTER_AUTH_BASE_PATH;
   private readonly handler: RequestHandler | null;
+  private readonly claimsCache = new Map<string, CachedClaims>();
 
   constructor(
     @Inject(BETTER_AUTH_INSTANCE)
@@ -53,6 +67,14 @@ export class BetterAuthService {
       throw new UnauthorizedException('Better Auth is not enabled');
     }
 
+    const cached = this.claimsCache.get(token);
+    if (cached && cached.expiresAtMs > Date.now()) {
+      return cached.claims;
+    }
+    if (cached) {
+      this.claimsCache.delete(token);
+    }
+
     let payload: Record<string, unknown> | null;
     try {
       const result = await this.instance.api.verifyJWT({ body: { token } });
@@ -65,6 +87,30 @@ export class BetterAuthService {
       throw new UnauthorizedException('Invalid token');
     }
 
-    return payload as unknown as IBetterAuthJwtClaims;
+    const claims = payload as unknown as IBetterAuthJwtClaims;
+    this.cacheClaims(token, claims);
+    return claims;
+  }
+
+  private cacheClaims(token: string, claims: IBetterAuthJwtClaims): void {
+    const now = Date.now();
+    const tokenExpMs =
+      typeof claims.exp === 'number' ? claims.exp * 1_000 : now;
+    const expiresAtMs = Math.min(now + CLAIMS_CACHE_TTL_MS, tokenExpMs);
+
+    if (expiresAtMs <= now) {
+      return;
+    }
+
+    if (this.claimsCache.size >= CLAIMS_CACHE_MAX_ENTRIES) {
+      // Map iteration is insertion-ordered; dropping the oldest entry keeps
+      // the cache bounded without tracking recency.
+      const oldest = this.claimsCache.keys().next().value;
+      if (oldest) {
+        this.claimsCache.delete(oldest);
+      }
+    }
+
+    this.claimsCache.set(token, { claims, expiresAtMs });
   }
 }
