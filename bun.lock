@@ -1011,6 +1011,7 @@
       "dependencies": {
         "@genfeedai/enums": "workspace:*",
         "@genfeedai/interfaces": "workspace:*",
+        "@genfeedai/storage": "workspace:*",
         "jose": "^6.2.3",
       },
     },

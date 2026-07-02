@@ -1,3 +1,11 @@
+/**
+ * Logger runtime boundary (audit risk 9, issue #1097): this pino + Sentry
+ * logger is THE logger for the frontend services runtime — browser and
+ * Next.js SSR, where the NestJS winston LoggerService
+ * (`packages/libs/logger/logger.service.ts`) cannot run (Nest DI, Node-only
+ * transports). Backend services must NOT import this file; they inject the
+ * winston LoggerService. One logger per runtime; do not add a third.
+ */
 import * as Sentry from '@sentry/nextjs';
 import pino, { type Logger as PinoLogger } from 'pino';
 
