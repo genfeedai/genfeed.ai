@@ -512,7 +512,11 @@ export class TrendsService {
   }
 
   getCorpusFreshnessHealth(
-    options: { platform?: string } = {},
+    options: {
+      platform?: string;
+      organizationId?: string;
+      isPlatformAdmin?: boolean;
+    } = {},
   ): Promise<TrendCorpusFreshnessResult> {
     return this.trendReferenceCorpusService.getCorpusFreshnessHealth(options);
   }

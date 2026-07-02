@@ -8,6 +8,7 @@ export interface PrismaQueryMetric {
 }
 
 export interface RequestDatabaseMetrics {
+  [key: string]: unknown;
   queryCount: number;
   queryDuration: number;
   slowQueries: PrismaQueryMetric[];
@@ -32,6 +33,7 @@ export interface ApiPerformanceTelemetryInput {
 }
 
 export interface MetricAttributes {
+  [key: string]: unknown;
   method: string;
   route: string;
   severity: ApiPerformanceSeverity;

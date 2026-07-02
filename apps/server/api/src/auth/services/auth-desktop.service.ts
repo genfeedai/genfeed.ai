@@ -208,7 +208,7 @@ export class AuthDesktopService {
     const { plainKey } = await this.apiKeysService.createWithKey({
       category: ApiKeyCategory.GENFEEDAI,
       description: 'Auto-generated key for Genfeed Desktop',
-      expiresAt: new Date(Date.now() + DESKTOP_SESSION_TTL_MS),
+      expiresAt: new Date(Date.now() + DESKTOP_SESSION_TTL_MS).toISOString(),
       label: 'Desktop',
       metadata: {
         kind: 'desktop-session',

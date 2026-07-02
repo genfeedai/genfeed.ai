@@ -259,6 +259,7 @@ export default defineConfig({
     globals: true,
     include: ['src/crons/**/*.spec.ts'],
     passWithNoTests: false,
+    setupFiles: ['./test/setup-unit.ts'],
     testTimeout: 30000,
   },
 });

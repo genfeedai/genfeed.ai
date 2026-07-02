@@ -80,6 +80,7 @@
     "start:dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start api --watch",
     "start:prod": "node --max-old-space-size=8192 --expose-gc -r tsconfig-paths/register ../dist/apps/api/main",
     "test": "vitest run --config vitest.config.ts",
+    "type-check": "tsc --noEmit -p tsconfig.typecheck.json",
     "test:cov": "vitest run --coverage --config vitest.config.ts",
     "test:e2e": "vitest run --config vitest.config.e2e.ts",
     "test:e2e:ci": "vitest run --config vitest.config.e2e.ts test/e2e/integrations.e2e-spec.ts test/integration/payment-processing.integration.spec.ts test/integration/health.e2e-spec.spec.ts",

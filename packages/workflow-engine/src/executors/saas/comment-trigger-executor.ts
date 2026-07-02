@@ -137,7 +137,3 @@ export class CommentTriggerExecutor extends BaseExecutor {
     return 0;
   }
 }
-
-export function createCommentTriggerExecutor(): CommentTriggerExecutor {
-  return new CommentTriggerExecutor();
-}

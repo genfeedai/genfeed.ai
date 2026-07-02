@@ -97,57 +97,42 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
     organizationId: string,
   ): Promise<void> {
     try {
-      const { WorkflowsService } = await import(
-        '@api/collections/workflows/services/workflows.service'
+      const { WorkflowTemplateSeederService } = await import(
+        '@api/collections/workflows/services/workflow-template-seeder.service'
       );
-      const workflowsService = this.moduleRef.get(WorkflowsService, {
+      const workflowSeeder = this.moduleRef.get(WorkflowTemplateSeederService, {
         strict: false,
       });
 
-      await workflowsService.ensureDailyTrendsDigestWorkflow(
+      await workflowSeeder.ensureDailyTrendsDigestWorkflow(
         userId,
         organizationId,
       );
-      await workflowsService.ensureAdAutomationWorkflows(
+      await workflowSeeder.ensureAdAutomationWorkflows(userId, organizationId);
+      await workflowSeeder.ensureCampaignOrchestrationWorkflows(
         userId,
         organizationId,
       );
-      await workflowsService.ensureCampaignOrchestrationWorkflows(
+      await workflowSeeder.ensureAgentAutopilotWorkflows(
         userId,
         organizationId,
       );
-      await workflowsService.ensureAgentAutopilotWorkflows(
+      await workflowSeeder.ensureAnalyticsSyncWorkflows(userId, organizationId);
+      await workflowSeeder.ensureContentProductionWorkflows(
         userId,
         organizationId,
       );
-      await workflowsService.ensureAnalyticsSyncWorkflows(
+      await workflowSeeder.ensureReplyPollingWorkflows(userId, organizationId);
+      await workflowSeeder.ensureTrendNotificationWorkflows(
         userId,
         organizationId,
       );
-      await workflowsService.ensureContentProductionWorkflows(
-        userId,
-        organizationId,
-      );
-      await workflowsService.ensureReplyPollingWorkflows(
-        userId,
-        organizationId,
-      );
-      await workflowsService.ensureTrendNotificationWorkflows(
-        userId,
-        organizationId,
-      );
-      await workflowsService.ensureLivestreamBotWorkflows(
-        userId,
-        organizationId,
-      );
-      await workflowsService.ensureSystemActionWorkflows(
-        userId,
-        organizationId,
-      );
+      await workflowSeeder.ensureLivestreamBotWorkflows(userId, organizationId);
+      await workflowSeeder.ensureSystemActionWorkflows(userId, organizationId);
 
       // Seeded schedules fire via BullMQ job schedulers; register them now so
       // they don't wait for the next service restart.
-      await workflowsService.syncOrganizationWorkflowSchedulers(organizationId);
+      await workflowSeeder.syncOrganizationWorkflowSchedulers(organizationId);
     } catch (error) {
       this.logger.error(
         'Failed to provision default self-hosted workflows',

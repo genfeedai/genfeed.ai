@@ -8,6 +8,7 @@ import {
   POSTS_INSERT_AFTER_LABEL,
 } from '@app-config/menu-items.config';
 import { ORG_MENU_ITEMS } from '@app-config/org-menu-items.config';
+import { RESEARCH_MENU_ITEMS } from '@app-config/research-menu-items.config';
 import { SETTINGS_MENU_ITEMS } from '@app-config/settings-menu-items.config';
 import { STUDIO_MENU_ITEMS } from '@app-config/studio-menu-items.config';
 import { WORKFLOWS_MENU_ITEMS } from '@app-config/workflows-menu-items.config';
@@ -113,7 +114,9 @@ export function useAppProtectedLayout(
     APP_ROUTES.AGENT.ONBOARDING,
   );
   const isComposeRoute = pathname.startsWith(COMPOSE_ROUTES.ROOT);
-  const isResearchRoute = pathname.startsWith('/research');
+  const isResearchRoute =
+    pathname === APP_ROUTES.RESEARCH.ROOT ||
+    pathname.startsWith(`${APP_ROUTES.RESEARCH.ROOT}/`);
   const isLibraryLandingRoute = pathname === APP_ROUTES.LIBRARY.INGREDIENTS;
   const isLibraryRoute = pathname.startsWith(APP_ROUTE_PREFIXES.LIBRARY);
   const isMessagesRoute = pathname.startsWith(APP_ROUTE_PREFIXES.MESSAGES);
@@ -469,6 +472,17 @@ export function useAppProtectedLayout(
     [taskContextSearchParams],
   );
 
+  const researchMenuItems = useMemo(
+    () =>
+      RESEARCH_MENU_ITEMS.map(
+        (item): MenuItemConfig => ({
+          ...item,
+          href: withTaskContextHref(item.href, taskContextSearchParams),
+        }),
+      ),
+    [taskContextSearchParams],
+  );
+
   const orgMenuItems = useMemo(
     () =>
       ORG_MENU_ITEMS.map(
@@ -521,6 +535,7 @@ export function useAppProtectedLayout(
     isMoodboardRoute,
     isOrgRoute,
     isPromptBarRoute,
+    isResearchRoute,
     isSettingsRoute,
     isStudioRoute,
     isWorkflowsRoute,
@@ -543,6 +558,7 @@ export function useAppProtectedLayout(
     libraryMenuItems,
     menuItems,
     orgMenuItems,
+    researchMenuItems,
     secondaryMenuItems,
     settingsMenuItems,
     studioMenuItems,

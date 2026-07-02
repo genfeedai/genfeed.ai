@@ -88,7 +88,3 @@ export class ReframeExecutor extends BaseExecutor {
     };
   }
 }
-
-export function createReframeExecutor(): ReframeExecutor {
-  return new ReframeExecutor();
-}

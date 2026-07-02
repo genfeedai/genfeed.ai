@@ -1,5 +1,4 @@
 import { CacheClientService } from '@api/services/cache/services/cache-client.service';
-import { CacheKeyService } from '@api/services/cache/services/cache-key.service';
 import { CacheTagsService } from '@api/services/cache/services/cache-tags.service';
 import { ServiceCacheOptions } from '@api/shared/interfaces/cache/cache.interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -14,7 +13,6 @@ export class CacheService {
   constructor(
     private readonly cacheClientService: CacheClientService,
     private readonly cacheTagsService: CacheTagsService,
-    private readonly cacheKeyService: CacheKeyService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -224,7 +222,7 @@ export class CacheService {
   }
 
   generateKey(namespace: string, ...parts: (string | number)[]): string {
-    return this.cacheKeyService.generate(namespace, ...parts);
+    return `${namespace}:${parts.join(':')}`;
   }
 
   /**

@@ -151,13 +151,16 @@ async function main() {
     // BEFORE express.json().
     const betterAuthService = app.get(BetterAuthService, { strict: false });
     if (betterAuthService?.isEnabled) {
-      app.use(betterAuthService.basePath, (req, res, next) => {
-        if (shouldBypassBetterAuthHandler(req.method, req.path)) {
-          return next();
-        }
+      app.use(
+        betterAuthService.basePath,
+        (req: Request, res: Response, next: NextFunction) => {
+          if (shouldBypassBetterAuthHandler(req.method, req.path)) {
+            return next();
+          }
 
-        return betterAuthService.nodeHandler(req, res, next);
-      });
+          return betterAuthService.nodeHandler(req, res, next);
+        },
+      );
       logger.debug(
         `Better Auth handler mounted at ${betterAuthService.basePath}`,
       );
@@ -342,7 +345,7 @@ async function main() {
       const expectedToken = configService.get('BULL_BOARD_AUTH_TOKEN');
 
       if (!expectedToken) {
-        logger.warn('Bull Board: No auth token configured, access denied');
+        logger?.warn('Bull Board: No auth token configured, access denied');
         return res.status(401).json({
           detail: 'Bull Board authentication not configured',
           title: 'Unauthorized',

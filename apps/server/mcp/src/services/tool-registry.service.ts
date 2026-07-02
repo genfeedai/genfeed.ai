@@ -14,7 +14,6 @@ import type {
   McpTool,
 } from '@mcp/shared/interfaces/mcp-server.interface';
 import { handleAccountManagementTool } from '@mcp/tools/account-management.tool';
-import { handleAdInsightsTool } from '@mcp/tools/ad-insights.tool';
 import { handleAdminInfrastructureTool } from '@mcp/tools/admin-infrastructure.tool';
 import { handleAgentChatTool } from '@mcp/tools/agent-chat.tool';
 import { handleDarkroomGenerationTool } from '@mcp/tools/darkroom-generation.tool';
@@ -760,17 +759,6 @@ export class ToolRegistryService {
 
     if (SOCIAL_MESSAGES_TOOL_NAMES.has(name)) {
       return handleSocialMessagesTool(this.clientService, name, args);
-    }
-
-    if (
-      [
-        'get_ad_performance_insights',
-        'generate_ad_variations',
-        'suggest_ad_headlines',
-        'benchmark_ad_performance',
-      ].includes(name)
-    ) {
-      return handleAdInsightsTool(this.clientService, name, args);
     }
 
     throw new Error(`Unknown tool: ${name}`);

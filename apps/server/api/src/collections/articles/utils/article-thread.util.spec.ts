@@ -161,6 +161,26 @@ describe('article-thread.util', () => {
       ).toBe(false);
     });
 
+    it('never drops the link tweet — falls back to the bare URL when the prefixed form exceeds the limit', () => {
+      const longUrl = `https://genfeed.ai/articles/${'a'.repeat(275)}`;
+      // "Read the full article:\n" + longUrl would exceed 280.
+      expect(`Read the full article:\n${longUrl}`.length).toBeGreaterThan(
+        MAX_TWEET_CHARS,
+      );
+
+      const tweets = buildTwitterThreadTweets({
+        articleUrl: longUrl,
+        content: 'Body.',
+        label: 'Title',
+        summary: '',
+      });
+      const last = tweets[tweets.length - 1];
+
+      // The link is still present (as the bare URL), not silently dropped.
+      expect(last.content).toBe(longUrl);
+      expect(last.characterCount).toBe(longUrl.length);
+    });
+
     it('preserves the historical newline collapse (double newlines do not split paragraphs)', () => {
       // `\n+` is collapsed to a single `\n` before splitting on `\n\n+`, so a
       // double-newline-separated body becomes a single paragraph tweet.

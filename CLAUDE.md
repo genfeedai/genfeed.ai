@@ -87,8 +87,7 @@ bun run test --filter=@genfeedai/[name]  # Run specific package tests
 ### Multi-Tenancy
 - Every tenant-scoped Prisma query MUST include `{ organizationId: orgId, isDeleted: false }`
 - Self-hosted single-tenant: organization filter is optional
-- **Current state:** org enforcement lives in the OSS API (`CombinedAuthGuard` in `apps/server/api/src/helpers/guards/combined-auth/`); `ee/packages/multi-tenancy/` is a Phase C extraction scaffold (issue #87), not live code
-- **Target invariant (post-#87):** multi-tenant enforcement code moves under `ee/` or imports from `ee/packages/`
+- Org enforcement lives in the OSS API **by design** (`CombinedAuthGuard` in `apps/server/api/src/helpers/guards/combined-auth/` + inline `organizationId` filters). Resolved in #1093: no extractable EE code unit exists — the guard is the OSS auth entry point and query scoping is mode-agnostic. Multi-tenancy as a *product* boundary stays SaaS/EE per ADR-DEPLOYMENT-MODES; there is no `ee/packages/multi-tenancy` package.
 
 ### Files & Git (ALWAYS)
 - **Research the codebase before editing. Never change code you haven't read.**

@@ -20,6 +20,11 @@ describe('ContentOptimizationService', () => {
     logEntry: ReturnType<typeof vi.fn>;
     addInsight: ReturnType<typeof vi.fn>;
   };
+  let mockTrendPreferences: {
+    getPreferences: ReturnType<typeof vi.fn>;
+    mergeWinnerSignals: ReturnType<typeof vi.fn>;
+    savePreferences: ReturnType<typeof vi.fn>;
+  };
 
   const orgId = 'org-123';
   const brandId = 'brand-456';
@@ -168,12 +173,19 @@ describe('ContentOptimizationService', () => {
       logEntry: vi.fn().mockResolvedValue(undefined),
     };
 
+    mockTrendPreferences = {
+      getPreferences: vi.fn().mockResolvedValue(null),
+      mergeWinnerSignals: vi.fn().mockResolvedValue({ id: 'pref-1' }),
+      savePreferences: vi.fn().mockResolvedValue({ id: 'pref-1' }),
+    };
+
     service = new ContentOptimizationService(
       mockLogger,
       mockPerformanceSummary,
       mockOptimizationCycle,
       mockOpenAiLlm,
       mockBrandMemory,
+      mockTrendPreferences,
     );
   });
 
@@ -383,6 +395,70 @@ describe('ContentOptimizationService', () => {
         }),
       );
       expect(mockBrandMemory.addInsight).toHaveBeenCalled();
+    });
+  });
+
+  describe('requeueWinnerIntoTrends', () => {
+    const winner = {
+      avgEngagementRate: 8.2,
+      contentRunId: 'run-1',
+      format: 'post-thread',
+      hook: 'Proof-led hooks beat generic AI claims',
+      platform: 'twitter',
+      variantId: 'variant-a',
+    };
+
+    it('merges winner signals into trend preferences when opt-in is enabled', async () => {
+      mockTrendPreferences.getPreferences.mockResolvedValue({
+        autoRequeueWinners: true,
+      });
+
+      const result = await service.requeueWinnerIntoTrends(
+        orgId,
+        brandId,
+        winner,
+      );
+
+      expect(result.requeued).toBe(true);
+      expect(mockTrendPreferences.mergeWinnerSignals).toHaveBeenCalledTimes(1);
+      const [calledOrg, calledBrand, signals] =
+        mockTrendPreferences.mergeWinnerSignals.mock.calls[0];
+      expect(calledOrg).toBe(orgId);
+      expect(calledBrand).toBe(brandId);
+      expect(signals.platforms).toEqual(['twitter']);
+      // hook tokens (stop-words dropped) + the format keyword, capped
+      expect(signals.keywords).toContain('proof');
+      expect(signals.keywords).toContain('hooks');
+      expect(signals.keywords).toContain('post-thread');
+      expect(signals.keywords).not.toContain('the');
+    });
+
+    it('skips and does not update trends when opt-in is disabled or missing', async () => {
+      mockTrendPreferences.getPreferences.mockResolvedValue(null);
+
+      const result = await service.requeueWinnerIntoTrends(
+        orgId,
+        brandId,
+        winner,
+      );
+
+      expect(result.requeued).toBe(false);
+      expect(result.reason).toBe('winner_trend_enrichment_disabled_or_missing');
+      expect(mockTrendPreferences.mergeWinnerSignals).not.toHaveBeenCalled();
+    });
+
+    it('skips when the winner carries no usable trend signal', async () => {
+      mockTrendPreferences.getPreferences.mockResolvedValue({
+        autoRequeueWinners: true,
+      });
+
+      const result = await service.requeueWinnerIntoTrends(orgId, brandId, {
+        variantId: 'variant-a',
+      });
+
+      expect(result.requeued).toBe(false);
+      expect(result.reason).toBe('no_signal');
+      expect(mockTrendPreferences.mergeWinnerSignals).not.toHaveBeenCalled();
     });
   });
 });

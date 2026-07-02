@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const appProvidersSpy = vi.fn();
 
@@ -60,7 +60,23 @@ vi.mock('@ui/shell/metadata', () => ({
 }));
 
 describe('app root layout', () => {
+  const originalVercelEnv = process.env.VERCEL;
+
+  beforeEach(() => {
+    appProvidersSpy.mockClear();
+  });
+
+  afterEach(() => {
+    if (originalVercelEnv === undefined) {
+      delete process.env.VERCEL;
+      return;
+    }
+
+    process.env.VERCEL = originalVercelEnv;
+  });
+
   it('boots the app with a single root AppProviders wrapper', async () => {
+    process.env.VERCEL = '1';
     const { default: RootLayout } = await import('./layout');
 
     render(
@@ -78,6 +94,24 @@ describe('app root layout', () => {
         includeVercelAnalytics: true,
         initialTheme: 'dark',
         storageKey: 'theme',
+      }),
+    );
+  });
+
+  it('does not inject Vercel providers outside the Vercel runtime', async () => {
+    delete process.env.VERCEL;
+    const { default: RootLayout } = await import('./layout');
+
+    render(
+      await RootLayout({
+        children: <div>App child</div>,
+      } as never),
+    );
+
+    expect(appProvidersSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        includeSpeedInsights: false,
+        includeVercelAnalytics: false,
       }),
     );
   });

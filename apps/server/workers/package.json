@@ -36,7 +36,8 @@
     "test:cron": "vitest run --config vitest.cron.config.ts",
     "test:cron:watch": "vitest --config vitest.cron.config.ts",
     "test:e2e": "echo 'No e2e tests yet'",
-    "test:watch": "vitest --config vitest.config.ts"
+    "test:watch": "vitest --config vitest.config.ts",
+    "type-check": "tsc --noEmit -p tsconfig.typecheck.json"
   },
   "version": "1.0.0",
   "type": "module"

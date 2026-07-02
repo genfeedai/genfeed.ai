@@ -2,6 +2,7 @@ import type {
   DelayResumeJobData,
   TriggerEvent,
 } from '@api/collections/workflows/services/workflow-executor.service';
+import { WorkflowStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
@@ -180,6 +181,46 @@ export class WorkflowExecutionQueueService {
     this.logger.log(`${this.logContext} removed workflow scheduler`, {
       workflowId,
     });
+  }
+
+  /**
+   * Upsert or remove the job scheduler for one workflow row based on its
+   * current schedule/enabled/status state. Never throws — scheduler sync is
+   * best-effort and must not fail the surrounding write path.
+   */
+  async syncWorkflowScheduler(
+    workflow: WorkflowSchedulerSyncRow,
+  ): Promise<void> {
+    const workflowId = String(workflow.id ?? workflow._id ?? '');
+    if (!workflowId) {
+      return;
+    }
+
+    const isSchedulable =
+      !workflow.isDeleted &&
+      Boolean(workflow.schedule) &&
+      workflow.isScheduleEnabled === true &&
+      workflow.status === WorkflowStatus.ACTIVE;
+
+    try {
+      if (isSchedulable) {
+        await this.upsertWorkflowScheduler({
+          cronExpression: workflow.schedule as string,
+          timezone: workflow.timezone || 'UTC',
+          workflowId,
+        });
+      } else {
+        await this.removeWorkflowScheduler(workflowId);
+      }
+    } catch (error) {
+      this.logger.error(
+        `${this.logContext} failed to sync workflow scheduler`,
+        {
+          error,
+          workflowId,
+        },
+      );
+    }
   }
 
   /**

@@ -1,8 +1,8 @@
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
+import { LegacyWorkflowStepRunner } from '@api/collections/workflows/services/legacy-workflow-step-runner.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
-import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { ConfigService } from '@api/config/config.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/enums';
@@ -31,7 +31,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
     @Inject(LoggerService)
     private readonly logger: LoggerService,
     private readonly configService: ConfigService,
-    private readonly workflowsService: WorkflowsService,
+    private readonly legacyWorkflowStepRunner: LegacyWorkflowStepRunner,
     private readonly workflowExecutionsService: WorkflowExecutionsService,
     private readonly workflowExecutorService: WorkflowExecutorService,
     private readonly workflowExecutionQueueService: WorkflowExecutionQueueService,
@@ -219,7 +219,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
             { triggeredBy: 'schedule' },
             WorkflowExecutionTrigger.SCHEDULED,
           )
-        : this.workflowsService.executeWorkflow(workflowId);
+        : this.legacyWorkflowStepRunner.executeWorkflow(workflowId);
 
       executePromise.catch((error) => {
         this.logger.error(

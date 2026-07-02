@@ -96,7 +96,3 @@ export class LipSyncExecutor extends BaseExecutor {
     };
   }
 }
-
-export function createLipSyncExecutor(): LipSyncExecutor {
-  return new LipSyncExecutor();
-}
