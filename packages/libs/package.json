@@ -2,6 +2,7 @@
   "dependencies": {
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
+    "@genfeedai/storage": "workspace:*",
     "jose": "^6.2.3"
   },
   "description": "Shared backend library modules and infrastructure helpers for Genfeed server applications",

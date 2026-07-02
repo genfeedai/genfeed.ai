@@ -1,6 +1,14 @@
 import { ConsoleLogger, Inject, Injectable } from '@nestjs/common';
 import type { Logger as winstonLogger } from 'winston';
 
+/**
+ * Logger runtime boundary (audit risk 9, issue #1097): this winston-backed
+ * LoggerService is THE logger for the NestJS backend runtime (all
+ * `apps/server/*` services, injected via `@libs/logger/logger.module`).
+ * The frontend/Next.js runtime (browser + SSR) uses the pino/Sentry logger
+ * at `packages/services/core/logger.service.ts` instead — winston and Nest
+ * DI are not browser-compatible. One logger per runtime; do not add a third.
+ */
 @Injectable()
 export class LoggerService extends ConsoleLogger {
   public readonly constructorName: string;

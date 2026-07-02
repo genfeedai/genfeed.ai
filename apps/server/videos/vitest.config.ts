@@ -23,6 +23,14 @@ export default defineConfig({
         serviceDir,
         '../../../packages/config/src/index.ts',
       ),
+      '@genfeedai/pricing': path.resolve(
+        serviceDir,
+        '../../../packages/pricing/src/index.ts',
+      ),
+      '@genfeedai/storage': path.resolve(
+        serviceDir,
+        '../../../packages/storage/src/index.ts',
+      ),
       '@config': path.resolve(serviceDir, './src/config'),
       '@libs': path.resolve(serviceDir, '../../../packages/libs'),
       '@services': path.resolve(serviceDir, './src/services'),
