@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import {
   getIsSuperAdmin,
   getPublicMetadata,
@@ -20,7 +21,6 @@ import {
   Controller,
   ForbiddenException,
   Headers,
-  NotFoundException,
   Param,
   Post,
   Req,
@@ -59,7 +59,7 @@ export class AgentToolsController {
     try {
       const tool = getToolByName(name);
       if (!tool) {
-        throw new NotFoundException(`Unknown tool: ${name}`);
+        throw new NotFoundException({ message: `Unknown tool: ${name}` });
       }
 
       if (!tool.surfaces.agent && !tool.surfaces.mcp) {

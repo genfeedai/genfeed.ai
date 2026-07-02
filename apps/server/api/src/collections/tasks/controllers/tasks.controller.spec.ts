@@ -5,10 +5,10 @@ import { TasksController } from '@api/collections/tasks/controllers/tasks.contro
 import { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
 import type { TaskDocument } from '@api/collections/tasks/schemas/task.schema';
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import type { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { TaskSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
-import { NotFoundException } from '@nestjs/common';
 import type { Request } from 'express';
 
 describe('TasksController', () => {

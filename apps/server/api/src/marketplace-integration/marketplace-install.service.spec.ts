@@ -1,8 +1,9 @@
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import type { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import { MarketplaceInstallService } from '@api/marketplace-integration/marketplace-install.service';
 import { ListingType, PromptCategory } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('MarketplaceInstallService', () => {

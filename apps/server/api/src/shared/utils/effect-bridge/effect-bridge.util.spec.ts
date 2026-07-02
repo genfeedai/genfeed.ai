@@ -1,7 +1,7 @@
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import {
   BadRequestException,
   InternalServerErrorException,
-  NotFoundException,
 } from '@nestjs/common';
 import { Effect } from 'effect';
 import {
@@ -39,7 +39,10 @@ describe('effect-bridge.util', () => {
       await expect(runEffectAsPromise(effect)).rejects.toThrow(
         NotFoundException,
       );
-      await expect(runEffectAsPromise(effect)).rejects.toThrow(
+      const error = (await runEffectAsPromise(effect).catch(
+        (e) => e,
+      )) as NotFoundException;
+      expect((error.getResponse() as { detail: string }).detail).toBe(
         'Thread not found',
       );
     });
@@ -70,12 +73,17 @@ describe('effect-bridge.util', () => {
     });
 
     it('should re-throw HttpException as-is when it is the cause', async () => {
-      const nestError = new NotFoundException('Already a NestJS error');
+      const nestError = new NotFoundException({
+        message: 'Already a NestJS error',
+      });
       const effect = Effect.fail(nestError);
       await expect(runEffectAsPromise(effect)).rejects.toThrow(
         NotFoundException,
       );
-      await expect(runEffectAsPromise(effect)).rejects.toThrow(
+      const error = (await runEffectAsPromise(effect).catch(
+        (e) => e,
+      )) as NotFoundException;
+      expect((error.getResponse() as { detail: string }).detail).toBe(
         'Already a NestJS error',
       );
     });
@@ -210,7 +218,10 @@ describe('effect-bridge.util', () => {
       await expect(runEffectAsPromise(effect)).rejects.toThrow(
         NotFoundException,
       );
-      await expect(runEffectAsPromise(effect)).rejects.toThrow(
+      const error = (await runEffectAsPromise(effect).catch(
+        (e) => e,
+      )) as NotFoundException;
+      expect((error.getResponse() as { detail: string }).detail).toBe(
         'Thread 123 not found',
       );
     });
@@ -220,7 +231,10 @@ describe('effect-bridge.util', () => {
       await expect(runEffectAsPromise(effect)).rejects.toThrow(
         NotFoundException,
       );
-      await expect(runEffectAsPromise(effect)).rejects.toThrow(
+      const error = (await runEffectAsPromise(effect).catch(
+        (e) => e,
+      )) as NotFoundException;
+      expect((error.getResponse() as { detail: string }).detail).toBe(
         'Thread not found',
       );
     });

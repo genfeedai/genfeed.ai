@@ -3,13 +3,13 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { IS_SELF_HOSTED } from '@genfeedai/config';
 import { FileInputType } from '@genfeedai/enums';
 import { AssetCategory, AssetParent } from '@genfeedai/prisma';
 import {
   BadRequestException,
   Injectable,
-  NotFoundException,
   PayloadTooLargeException,
   UnsupportedMediaTypeException,
 } from '@nestjs/common';
@@ -629,18 +629,18 @@ export class DesktopSyncService {
   @LogMethod()
   async requestAssetUpload(user: User, dto: RequestDesktopAssetUploadDto) {
     const { organizationId, userId } = this.getCloudContext(user);
-    const asset = await this.prisma.asset.findFirst({
-      where: {
-        isDeleted: false,
-        localAssetId: dto.assetId,
-        parentOrgId: organizationId,
-        userId,
+    const asset = await findOrThrow(
+      this.prisma.asset,
+      {
+        where: {
+          isDeleted: false,
+          localAssetId: dto.assetId,
+          parentOrgId: organizationId,
+          userId,
+        },
       },
-    });
-
-    if (!asset) {
-      throw new NotFoundException('Desktop asset metadata was not found.');
-    }
+      'Desktop asset metadata was not found.',
+    );
 
     const effectiveMime = dto.mimeType ?? asset.mimeType ?? '';
     if (effectiveMime) {
@@ -695,18 +695,18 @@ export class DesktopSyncService {
   @LogMethod()
   async confirmAssetUpload(user: User, id: string) {
     const { organizationId, userId } = this.getCloudContext(user);
-    const asset = await this.prisma.asset.findFirst({
-      where: {
-        id,
-        isDeleted: false,
-        parentOrgId: organizationId,
-        userId,
+    const asset = await findOrThrow(
+      this.prisma.asset,
+      {
+        where: {
+          id,
+          isDeleted: false,
+          parentOrgId: organizationId,
+          userId,
+        },
       },
-    });
-
-    if (!asset) {
-      throw new NotFoundException('Desktop asset upload was not found.');
-    }
+      'Desktop asset upload was not found.',
+    );
 
     const updated = await this.prisma.asset.update({
       data: {
@@ -728,18 +728,18 @@ export class DesktopSyncService {
   @LogMethod()
   async uploadAsset(user: User, id: string, dto: UploadDesktopAssetDto) {
     const { organizationId, userId } = this.getCloudContext(user);
-    const asset = await this.prisma.asset.findFirst({
-      where: {
-        id,
-        isDeleted: false,
-        parentOrgId: organizationId,
-        userId,
+    const asset = await findOrThrow(
+      this.prisma.asset,
+      {
+        where: {
+          id,
+          isDeleted: false,
+          parentOrgId: organizationId,
+          userId,
+        },
       },
-    });
-
-    if (!asset) {
-      throw new NotFoundException('Desktop asset upload was not found.');
-    }
+      'Desktop asset upload was not found.',
+    );
 
     const buffer = Buffer.from(dto.data, 'base64');
 

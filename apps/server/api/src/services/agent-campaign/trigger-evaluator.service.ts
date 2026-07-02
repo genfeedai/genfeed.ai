@@ -8,6 +8,7 @@ import {
   type AnalyticsBestPostingTime,
   AnalyticsService,
 } from '@api/endpoints/analytics/analytics.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import {
   ContentEngineService,
   type TriggerDispatchType,
@@ -22,7 +23,7 @@ import {
 import { isOrchestratorAgentType } from '@api/services/agent-orchestrator/constants/agent-type.constants';
 import { AnalyticsMetric } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 type AnalyticsOverviewSnapshot = {
   avgEngagementRate: number;
@@ -99,9 +100,7 @@ export class TriggerEvaluatorService {
     );
 
     if (!campaign) {
-      throw new NotFoundException(
-        `Campaign ${campaignId} not found in organization ${organizationId}`,
-      );
+      throw new NotFoundException('Campaign', campaignId);
     }
 
     if (campaign.status !== 'active') {

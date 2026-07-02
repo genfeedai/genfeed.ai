@@ -6,6 +6,7 @@ import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.serv
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
@@ -21,7 +22,6 @@ import {
   Get,
   HttpException,
   HttpStatus,
-  NotFoundException,
   Param,
   Patch,
   Post,
@@ -42,13 +42,6 @@ import type { Request } from 'express';
 @AutoSwagger()
 export class ApiKeysController {
   constructor(private readonly apiKeysService: ApiKeysService) {}
-
-  private getApiKeyNotFoundError(detail: string) {
-    return new NotFoundException({
-      detail,
-      title: 'API Key Not Found',
-    });
-  }
 
   private toApiKeyCategory(category: string): ApiKeyCategory {
     const normalized = category.toLowerCase().replaceAll('_', '');
@@ -201,7 +194,9 @@ export class ApiKeysController {
     });
 
     if (!apiKey) {
-      throw this.getApiKeyNotFoundError('The specified API key was not found.');
+      throw new NotFoundException({
+        message: 'The specified API key was not found.',
+      });
     }
 
     return serializeSingle(request, ApiKeySerializer, apiKey);
@@ -229,9 +224,10 @@ export class ApiKeysController {
     });
 
     if (!existingKey) {
-      throw this.getApiKeyNotFoundError(
-        'The specified API key was not found or you do not have permission to modify it.',
-      );
+      throw new NotFoundException({
+        message:
+          'The specified API key was not found or you do not have permission to modify it.',
+      });
     }
 
     const updatedKey = await this.apiKeysService.patch(
@@ -264,9 +260,10 @@ export class ApiKeysController {
     });
 
     if (!existingKey) {
-      throw this.getApiKeyNotFoundError(
-        'The specified API key was not found or has already been revoked.',
-      );
+      throw new NotFoundException({
+        message:
+          'The specified API key was not found or has already been revoked.',
+      });
     }
 
     const metadata =
@@ -320,9 +317,10 @@ export class ApiKeysController {
     });
 
     if (!existingKey) {
-      throw this.getApiKeyNotFoundError(
-        'The specified API key was not found or has already been revoked.',
-      );
+      throw new NotFoundException({
+        message:
+          'The specified API key was not found or has already been revoked.',
+      });
     }
 
     const revokedKey = await this.apiKeysService.revoke(apiKeyId);

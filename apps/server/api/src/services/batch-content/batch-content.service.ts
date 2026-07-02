@@ -1,4 +1,5 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { BatchContentQueueService } from '@api/services/batch-content/batch-content-queue.service';
 import type {
   BatchContentRequest,
@@ -7,11 +8,7 @@ import type {
 } from '@api/services/batch-content/interfaces/batch-content.interfaces';
 import { ContentDraft } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 
 @Injectable()
 export class BatchContentService {
@@ -128,7 +125,7 @@ export class BatchContentService {
     });
 
     if (!brand) {
-      throw new NotFoundException(`Brand ${brandId} not found`);
+      throw new NotFoundException('Brand', brandId);
     }
 
     if (String(brand.organization) !== organizationId) {

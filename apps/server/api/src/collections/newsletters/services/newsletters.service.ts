@@ -6,17 +6,14 @@ import { GenerateNewsletterTopicsDto } from '@api/collections/newsletters/dto/ge
 import { UpdateNewsletterDto } from '@api/collections/newsletters/dto/update-newsletter.dto';
 import type { NewsletterDocument } from '@api/collections/newsletters/schemas/newsletter.schema';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 type TenantContext = {
   organizationId: string;
@@ -94,7 +91,7 @@ export class NewslettersService extends BaseService<
     });
 
     if (!data) {
-      throw new NotFoundException(`Newsletter ${id} not found`);
+      throw new NotFoundException('Newsletter', id);
     }
 
     return data as unknown as NewsletterDocument;

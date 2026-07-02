@@ -8,6 +8,7 @@ import { AgentStrategyAutopilotService } from '@api/collections/agent-strategies
 import { AgentStrategyReportsService } from '@api/collections/agent-strategies/services/agent-strategy-reports.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
@@ -19,7 +20,6 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  NotFoundException,
   Param,
   Post,
   Req,
@@ -121,7 +121,7 @@ export class AgentStrategiesController extends BaseCRUDController<
     );
 
     if (!strategy) {
-      throw new NotFoundException('Strategy not found');
+      throw new NotFoundException('Strategy');
     }
 
     return serializeSingle(request, AgentStrategySerializer, strategy);
@@ -142,7 +142,7 @@ export class AgentStrategiesController extends BaseCRUDController<
     );
 
     if (!strategy) {
-      throw new NotFoundException('Strategy not found');
+      throw new NotFoundException('Strategy');
     }
 
     await this.agentStrategiesService.patch(id, {

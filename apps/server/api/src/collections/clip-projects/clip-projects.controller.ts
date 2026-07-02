@@ -21,6 +21,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
@@ -51,7 +52,6 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  NotFoundException,
   Param,
   Patch,
   Post,
@@ -244,7 +244,7 @@ export class ClipProjectsController {
     });
 
     if (!project) {
-      throw new NotFoundException(`ClipProject ${projectId} not found`);
+      throw new NotFoundException('ClipProject', projectId);
     }
 
     return {
@@ -278,7 +278,7 @@ export class ClipProjectsController {
     });
 
     if (!project) {
-      throw new NotFoundException(`ClipProject ${projectId} not found`);
+      throw new NotFoundException('ClipProject', projectId);
     }
 
     return this.highlightRewriteService.rewrite(
@@ -313,7 +313,7 @@ export class ClipProjectsController {
     });
 
     if (!project) {
-      throw new NotFoundException(`ClipProject ${projectId} not found`);
+      throw new NotFoundException('ClipProject', projectId);
     }
 
     if (project.status !== 'analyzed') {
@@ -599,7 +599,7 @@ export class ClipProjectsController {
     });
 
     if (!project) {
-      throw new NotFoundException(`ClipProject ${projectId} not found`);
+      throw new NotFoundException('ClipProject', projectId);
     }
 
     return project;
@@ -619,7 +619,7 @@ export class ClipProjectsController {
       });
 
     if (!clipResult) {
-      throw new NotFoundException(`ClipResult ${input.clipResultId} not found`);
+      throw new NotFoundException('ClipResult', input.clipResultId);
     }
 
     if (!this.isClipReadyForAction(clipResult, input.action)) {

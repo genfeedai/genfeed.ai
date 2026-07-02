@@ -7,6 +7,7 @@ import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { MemberRole } from '@genfeedai/enums';
@@ -18,7 +19,6 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  NotFoundException,
   Param,
   ParseEnumPipe,
   Post,
@@ -106,7 +106,7 @@ export class McpApprovalsController {
     });
 
     if (!approval) {
-      throw new NotFoundException('MCP approval not found');
+      throw new NotFoundException('MCP approval');
     }
 
     return { data: this.toResponse(approval) };
@@ -156,7 +156,7 @@ export class McpApprovalsController {
     });
 
     if (!approval) {
-      throw new NotFoundException('MCP approval not found');
+      throw new NotFoundException('MCP approval');
     }
 
     return { data: this.toResponse(approval) };

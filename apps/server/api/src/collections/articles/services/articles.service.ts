@@ -41,6 +41,7 @@ import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
 import {
   calculateEstimatedTextCredits,
@@ -53,6 +54,7 @@ import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builde
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { AggregationCacheUtil } from '@api/shared/utils/aggregation-cache/aggregation-cache.util';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
   ActivitySource,
@@ -71,7 +73,6 @@ import {
   forwardRef,
   Inject,
   Injectable,
-  NotFoundException,
   Optional,
 } from '@nestjs/common';
 
@@ -242,7 +243,7 @@ export class ArticlesService extends BaseService<
     const transcript = await this.getTranscriptById(transcriptId);
 
     if (!transcript) {
-      throw new NotFoundException(`Transcript ${transcriptId} not found`);
+      throw new NotFoundException('Transcript', transcriptId);
     }
 
     // Get user prompt from template
@@ -495,7 +496,7 @@ export class ArticlesService extends BaseService<
     });
 
     if (!result) {
-      throw new NotFoundException('Article not found');
+      throw new NotFoundException('Article');
     }
 
     this.logger.debug(`${this.constructorName} findOne success`, {
@@ -511,19 +512,19 @@ export class ArticlesService extends BaseService<
     organizationId: string,
     brandId: string,
   ): Promise<Article> {
-    const article = await this.delegate.findFirst({
-      where: {
-        brandId,
-        isDeleted: false,
-        organizationId,
-        slug,
-        userId,
+    const article = await findOrThrow(
+      this.delegate,
+      {
+        where: {
+          brandId,
+          isDeleted: false,
+          organizationId,
+          slug,
+          userId,
+        },
       },
-    });
-
-    if (!article) {
-      throw new NotFoundException('Article not found');
-    }
+      'Article',
+    );
 
     return article as unknown as Article;
   }
@@ -567,7 +568,7 @@ export class ArticlesService extends BaseService<
         (result.userId?.toString() !== userId &&
           result.organizationId?.toString() !== organizationId)
       ) {
-        throw new NotFoundException('Article not found');
+        throw new NotFoundException('Article');
       }
 
       // Explicitly invalidate cache after update — canonical org/id keys + tags
@@ -724,7 +725,7 @@ export class ArticlesService extends BaseService<
       });
 
       if (!article) {
-        throw new NotFoundException('Article not found');
+        throw new NotFoundException('Article');
       }
 
       // Soft delete by setting isDeleted to true
@@ -935,7 +936,7 @@ export class ArticlesService extends BaseService<
     });
 
     if (!article) {
-      throw new NotFoundException('Article not found');
+      throw new NotFoundException('Article');
     }
 
     const modelConfig =
@@ -998,7 +999,7 @@ export class ArticlesService extends BaseService<
     });
 
     if (!article) {
-      throw new NotFoundException('Article not found');
+      throw new NotFoundException('Article');
     }
 
     // Select template based on enhanceType
@@ -1040,7 +1041,7 @@ export class ArticlesService extends BaseService<
       });
 
       if (!article) {
-        throw new NotFoundException('Article not found');
+        throw new NotFoundException('Article');
       }
 
       if (!this.promptsService) {
@@ -1104,7 +1105,7 @@ export class ArticlesService extends BaseService<
       });
 
       if (!article) {
-        throw new NotFoundException('Article not found');
+        throw new NotFoundException('Article');
       }
 
       if (!this.promptsService) {
@@ -1120,7 +1121,7 @@ export class ArticlesService extends BaseService<
       });
 
       if (!prompt) {
-        throw new NotFoundException('Version not found');
+        throw new NotFoundException('Version');
       }
 
       // Parse the enhanced data - validate it exists and is valid JSON
@@ -1168,7 +1169,7 @@ export class ArticlesService extends BaseService<
       });
 
       if (!updatedArticle) {
-        throw new NotFoundException('Article not found');
+        throw new NotFoundException('Article');
       }
 
       return updatedArticle;
@@ -1206,7 +1207,7 @@ export class ArticlesService extends BaseService<
     });
 
     if (!article) {
-      throw new NotFoundException('Article not found');
+      throw new NotFoundException('Article');
     }
 
     return this.articlesContentService.convertToTwitterThread(article);
@@ -1234,7 +1235,7 @@ export class ArticlesService extends BaseService<
       });
 
       if (!article) {
-        throw new NotFoundException('Article not found');
+        throw new NotFoundException('Article');
       }
 
       if (!this.replicateService || !this.configService) {
@@ -1382,7 +1383,7 @@ export class ArticlesService extends BaseService<
       });
 
       if (!article) {
-        throw new NotFoundException('Article not found');
+        throw new NotFoundException('Article');
       }
 
       if (!this.replicateService) {
@@ -1474,9 +1475,7 @@ export class ArticlesService extends BaseService<
     });
 
     if (!originalArticle) {
-      throw new NotFoundException(
-        `Original article with ID ${originalArticleId} not found`,
-      );
+      throw new NotFoundException('Original article', originalArticleId);
     }
 
     this.logger.log(`${url} creating remix`, {

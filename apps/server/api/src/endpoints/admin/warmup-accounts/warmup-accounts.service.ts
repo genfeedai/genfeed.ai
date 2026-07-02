@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { InvitationService } from '@api/collections/members/services/invitation.service';
 import { CreateWarmupAccountDto } from '@api/endpoints/admin/warmup-accounts/dto/create-warmup-account.dto';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import type {
   IWarmupAccount,
   IWarmupAccountAuditEvent,
@@ -18,11 +20,7 @@ import {
 } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 type WarmupAccountView = IWarmupAccount & { _id: string };
 type WarmupTransaction = Prisma.TransactionClient;
@@ -123,13 +121,11 @@ export class AdminWarmupAccountsService {
   }
 
   async get(id: string): Promise<WarmupAccountView> {
-    const account = await this.prisma.warmupAccount.findFirst({
-      where: { id, isDeleted: false },
-    });
-
-    if (!account) {
-      throw new NotFoundException('Warm-up account not found');
-    }
+    const account = await findOrThrow(
+      this.prisma.warmupAccount,
+      { where: { id, isDeleted: false } },
+      'Warm-up account',
+    );
 
     return this.toView(account);
   }

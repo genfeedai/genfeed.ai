@@ -37,6 +37,7 @@ import { REPLY_POLLING_WORKFLOW_TEMPLATES } from '@api/collections/workflows/tem
 import { TREND_NOTIFICATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/trend-notification-workflows.template';
 import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
   type TaskJobRequest,
@@ -45,6 +46,7 @@ import {
 import { EntityFactory } from '@api/shared/factories/entity/entity.factory';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import {
   CredentialPlatform,
   PostStatus,
@@ -67,7 +69,6 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
-  NotFoundException,
   Optional,
 } from '@nestjs/common';
 
@@ -1246,11 +1247,11 @@ export class WorkflowsService extends BaseService<
       isDeleted: false,
     });
     if (!workflowDoc) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
     const workflow = EntityFactory.fromDocument(WorkflowEntity, workflowDoc);
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
 
     if (!workflow.user || !workflow.organization) {
@@ -1437,7 +1438,7 @@ export class WorkflowsService extends BaseService<
     });
 
     if (!workflowDoc) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
 
     if (!this.shouldUseNodeExecutor(workflowDoc)) {
@@ -1833,7 +1834,7 @@ export class WorkflowsService extends BaseService<
     });
 
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
     this.assertWorkflowMutable(workflow);
 
@@ -1895,7 +1896,7 @@ export class WorkflowsService extends BaseService<
     });
 
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
 
     // Validate nodes exist
@@ -2101,7 +2102,7 @@ export class WorkflowsService extends BaseService<
     });
 
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
 
     // Find the failed execution from the workflow-executions collection
@@ -2162,7 +2163,7 @@ export class WorkflowsService extends BaseService<
     });
 
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
 
     // Get real organization credit balance
@@ -2209,7 +2210,7 @@ export class WorkflowsService extends BaseService<
     });
 
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
     this.assertWorkflowMutable(workflow);
 
@@ -2235,7 +2236,7 @@ export class WorkflowsService extends BaseService<
     });
 
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
     this.assertWorkflowMutable(workflow);
 
@@ -2294,7 +2295,7 @@ export class WorkflowsService extends BaseService<
     });
 
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
     this.assertWorkflowMutable(workflow);
 
@@ -2324,7 +2325,7 @@ export class WorkflowsService extends BaseService<
     });
 
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
     this.assertWorkflowMutable(workflow);
 
@@ -2360,7 +2361,7 @@ export class WorkflowsService extends BaseService<
     });
 
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
 
     return workflow;
@@ -2391,7 +2392,7 @@ export class WorkflowsService extends BaseService<
     });
 
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
 
     return workflow;
@@ -2616,14 +2617,14 @@ export class WorkflowsService extends BaseService<
     workflowId: string,
     updates: Record<string, unknown>,
   ): Promise<void> {
-    const workflow = await this.prisma.workflow.findFirst({
-      select: { config: true, id: true },
-      where: { id: workflowId, isDeleted: false },
-    });
-
-    if (!workflow) {
-      throw new NotFoundException('Workflow not found');
-    }
+    const workflow = await findOrThrow(
+      this.prisma.workflow,
+      {
+        select: { config: true, id: true },
+        where: { id: workflowId, isDeleted: false },
+      },
+      'Workflow',
+    );
 
     const nextConfig = {
       ...this.getWorkflowConfigRecord(workflow.config),

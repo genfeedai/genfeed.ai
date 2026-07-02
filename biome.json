@@ -184,6 +184,26 @@
           }
         }
       }
+    },
+    {
+      "includes": ["apps/server/api/src/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "@nestjs/common": {
+                    "importNames": ["NotFoundException"],
+                    "message": "Use the JSON:API NotFoundException from @api/helpers/exceptions/http/not-found.exception instead of the @nestjs/common built-in (audit C2c: one 404 shape)."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   ]
 }

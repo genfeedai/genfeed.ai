@@ -1,12 +1,13 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { AdminFleetPublishingService } from '@api/endpoints/admin/fleet/services/fleet-publishing.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { DarkroomReviewStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

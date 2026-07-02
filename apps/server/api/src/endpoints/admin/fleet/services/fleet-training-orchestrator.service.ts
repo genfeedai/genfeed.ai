@@ -5,6 +5,7 @@ import { TrainingsService } from '@api/collections/trainings/services/trainings.
 import { AdminFleetCharacterService } from '@api/endpoints/admin/fleet/services/fleet-character.service';
 import { AdminFleetTrainingService } from '@api/endpoints/admin/fleet/services/fleet-training.service';
 import { AdminFleetValueReader } from '@api/endpoints/admin/fleet/services/fleet-value-reader.util';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
@@ -16,11 +17,7 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
 
 /**
@@ -76,7 +73,7 @@ export class AdminFleetTrainingOrchestratorService {
     });
 
     if (!training) {
-      throw new NotFoundException(`Training "${trainingId}" not found`);
+      throw new NotFoundException('Training', trainingId);
     }
 
     return training;
@@ -111,7 +108,6 @@ export class AdminFleetTrainingOrchestratorService {
     const persona = await this.characterService.requirePersonaBySlug(
       data.personaSlug,
       organizationId,
-      `Character "${data.personaSlug}" not found`,
     );
 
     const dataset = await this.adminFleetTrainingService.getDatasetInfo(

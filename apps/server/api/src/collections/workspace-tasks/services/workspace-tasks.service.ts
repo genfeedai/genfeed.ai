@@ -16,6 +16,7 @@ import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { AgentExecutionStatus } from '@genfeedai/enums';
 import { TaskStatus } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -277,12 +278,12 @@ export class WorkspaceTasksService extends BaseService<
       outputId,
     );
 
-    const existing = await this.prisma.task.findFirst({
-      where: { id, isDeleted: false, organizationId },
-    });
-    if (!existing) {
-      throw new NotFoundException('WorkspaceTask', id);
-    }
+    const existing = await findOrThrow(
+      this.prisma.task,
+      { where: { id, isDeleted: false, organizationId } },
+      'WorkspaceTask',
+      id,
+    );
 
     const existingDoc = existing as unknown as Record<string, unknown>;
     const approvedOutputIds = (existingDoc.approvedOutputIds as string[]) ?? [];
@@ -320,12 +321,12 @@ export class WorkspaceTasksService extends BaseService<
       outputId,
     );
 
-    const existing = await this.prisma.task.findFirst({
-      where: { id, isDeleted: false, organizationId },
-    });
-    if (!existing) {
-      throw new NotFoundException('WorkspaceTask', id);
-    }
+    const existing = await findOrThrow(
+      this.prisma.task,
+      { where: { id, isDeleted: false, organizationId } },
+      'WorkspaceTask',
+      id,
+    );
 
     const existingDoc = existing as unknown as Record<string, unknown>;
     const approvedOutputIds = (existingDoc.approvedOutputIds as string[]) ?? [];
@@ -373,12 +374,12 @@ export class WorkspaceTasksService extends BaseService<
 
     await this.ingredientsService.patch(outputId, { isDeleted: true });
 
-    const existing = await this.prisma.task.findFirst({
-      where: { id, isDeleted: false, organizationId },
-    });
-    if (!existing) {
-      throw new NotFoundException('WorkspaceTask', id);
-    }
+    const existing = await findOrThrow(
+      this.prisma.task,
+      { where: { id, isDeleted: false, organizationId } },
+      'WorkspaceTask',
+      id,
+    );
 
     const existingDoc = existing as unknown as Record<string, unknown>;
     const approvedOutputIds = (existingDoc.approvedOutputIds as string[]) ?? [];

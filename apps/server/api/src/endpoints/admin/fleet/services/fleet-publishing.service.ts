@@ -1,6 +1,7 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { AdminFleetValueReader } from '@api/endpoints/admin/fleet/services/fleet-value-reader.util';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
@@ -13,11 +14,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 /**
  * Owns publishing approved fleet assets out to social platforms.
@@ -64,9 +61,9 @@ export class AdminFleetPublishingService {
     });
 
     if (!ingredient) {
-      throw new NotFoundException(
-        `Asset "${ingredientId}" not found in organization "${organizationId}"`,
-      );
+      throw new NotFoundException({
+        message: `Asset "${ingredientId}" not found in organization "${organizationId}"`,
+      });
     }
 
     if (

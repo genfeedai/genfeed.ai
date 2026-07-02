@@ -14,10 +14,12 @@ import type {
   PrepareBrandDto,
   SendInvitationDto,
 } from '@api/endpoints/onboarding/dto/proactive-onboarding.dto';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { generateLabel } from '@api/shared/utils/label/label.util';
 import { FontFamily, ProactiveOnboardingStatus } from '@genfeedai/enums';
 import type {
@@ -32,7 +34,6 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
-  NotFoundException,
 } from '@nestjs/common';
 
 /** Credits seeded for proactive onboarding shadow orgs (same as normal signup) */
@@ -381,7 +382,7 @@ export class ProactiveOnboardingService {
       });
 
       if (!shadowOrg) {
-        throw new NotFoundException('Shadow organization not found');
+        throw new NotFoundException('Shadow organization');
       }
 
       const shadowOrgUserId = this.resolveOrganizationOwnerId(shadowOrg);
@@ -483,7 +484,7 @@ export class ProactiveOnboardingService {
       });
 
       if (!shadowOrg) {
-        throw new NotFoundException('Shadow organization not found');
+        throw new NotFoundException('Shadow organization');
       }
 
       const shadowOrgUserId = this.resolveOrganizationOwnerId(shadowOrg);
@@ -808,17 +809,12 @@ export class ProactiveOnboardingService {
     leadId: string,
     organizationId: string,
   ): Promise<LeadWithData> {
-    const lead = await this.prisma.lead.findFirst({
-      where: {
-        id: leadId,
-        isDeleted: false,
-        organizationId,
-      },
-    });
-
-    if (!lead) {
-      throw new NotFoundException(`Lead "${leadId}" not found`);
-    }
+    const lead = await findOrThrow(
+      this.prisma.lead,
+      { where: { id: leadId, isDeleted: false, organizationId } },
+      'Lead',
+      leadId,
+    );
 
     return { ...lead, data: this.normalizeLeadData(lead.data) };
   }
@@ -826,18 +822,16 @@ export class ProactiveOnboardingService {
   private async getLeadByShadowOrganization(
     shadowOrganizationId: string,
   ): Promise<LeadWithData> {
-    const lead = await this.prisma.lead.findFirst({
-      where: {
-        isDeleted: false,
-        proactiveOrganizationId: shadowOrganizationId,
+    const lead = await findOrThrow(
+      this.prisma.lead,
+      {
+        where: {
+          isDeleted: false,
+          proactiveOrganizationId: shadowOrganizationId,
+        },
       },
-    });
-
-    if (!lead) {
-      throw new NotFoundException(
-        `Lead for shadow organization "${shadowOrganizationId}" not found`,
-      );
-    }
+      `Lead for shadow organization "${shadowOrganizationId}" not found`,
+    );
 
     return { ...lead, data: this.normalizeLeadData(lead.data) };
   }

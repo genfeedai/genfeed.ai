@@ -4,12 +4,13 @@ import type {
   ReplyBotConfigDocument,
   ReplyBotRateLimits,
 } from '@api/collections/reply-bot-configs/schemas/reply-bot-config.schema';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { ReplyBotType } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 // ---------------------------------------------------------------------------
 // Helper: defensively parse the `config` JSON column

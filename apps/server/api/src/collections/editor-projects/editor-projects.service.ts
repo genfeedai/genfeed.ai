@@ -1,15 +1,16 @@
 import { CreateEditorProjectDto } from '@api/collections/editor-projects/dto/create-editor-project.dto';
 import { UpdateEditorProjectDto } from '@api/collections/editor-projects/dto/update-editor-project.dto';
 import type { EditorProjectDocument } from '@api/collections/editor-projects/schemas/editor-project.schema';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import {
+  findOrThrow,
+  findUniqueOrThrow,
+} from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { EditorProjectStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 
 @Injectable()
 export class EditorProjectsService extends BaseService<
@@ -64,13 +65,11 @@ export class EditorProjectsService extends BaseService<
   ): Promise<EditorProjectDocument> {
     // Verify the project exists and belongs to this organisation first so we
     // can return a meaningful NotFoundException vs. a generic ConflictException.
-    const existing = await this.prisma.editorProject.findFirst({
-      where: { id, isDeleted: false, organizationId },
-    });
-
-    if (!existing) {
-      throw new NotFoundException('Project not found');
-    }
+    const existing = await findOrThrow(
+      this.prisma.editorProject,
+      { where: { id, isDeleted: false, organizationId } },
+      'Project',
+    );
 
     // Atomic conditional update: only succeeds when the embedded status field
     // is NOT already RENDERING.  If two requests race, exactly one will update
@@ -117,13 +116,11 @@ export class EditorProjectsService extends BaseService<
     id: string,
     renderedVideoId: string,
   ): Promise<EditorProjectDocument> {
-    const existing = await this.prisma.editorProject.findUnique({
-      where: { id },
-    });
-
-    if (!existing) {
-      throw new NotFoundException('Project not found');
-    }
+    const existing = await findUniqueOrThrow(
+      this.prisma.editorProject,
+      { where: { id } },
+      'Project',
+    );
 
     const project = await this.prisma.editorProject.update({
       data: {
@@ -143,13 +140,11 @@ export class EditorProjectsService extends BaseService<
    * Mark project as failed
    */
   async markAsFailed(id: string): Promise<EditorProjectDocument> {
-    const existing = await this.prisma.editorProject.findUnique({
-      where: { id },
-    });
-
-    if (!existing) {
-      throw new NotFoundException('Project not found');
-    }
+    const existing = await findUniqueOrThrow(
+      this.prisma.editorProject,
+      { where: { id } },
+      'Project',
+    );
 
     const project = await this.prisma.editorProject.update({
       data: {

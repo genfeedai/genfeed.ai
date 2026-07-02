@@ -1,11 +1,12 @@
 import { CreateMonitoredAccountDto } from '@api/collections/monitored-accounts/dto/create-monitored-account.dto';
 import { UpdateMonitoredAccountDto } from '@api/collections/monitored-accounts/dto/update-monitored-account.dto';
 import type { MonitoredAccountDocument } from '@api/collections/monitored-accounts/schemas/monitored-account.schema';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 type AccountConfig = {
   isActive?: boolean;
@@ -72,7 +73,7 @@ export class MonitoredAccountsService extends BaseService<
     });
 
     if (!account) {
-      throw new NotFoundException(`Monitored account ${id} not found`);
+      throw new NotFoundException('Monitored account', id);
     }
 
     const config = (account.config as AccountConfig) ?? {};

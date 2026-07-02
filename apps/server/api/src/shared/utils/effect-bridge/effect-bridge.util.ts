@@ -1,8 +1,8 @@
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import {
   BadRequestException,
   HttpException,
   InternalServerErrorException,
-  NotFoundException,
 } from '@nestjs/common';
 import { Cause, Data, Effect, Exit } from 'effect';
 
@@ -173,7 +173,7 @@ function mapServiceErrorToHttpException(
     case 400:
       return new BadRequestException(error.message);
     case 404:
-      return new NotFoundException(error.message);
+      return new NotFoundException({ message: error.message });
     default:
       return new InternalServerErrorException(error.message);
   }

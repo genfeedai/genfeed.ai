@@ -4,6 +4,7 @@ import { GenerateImageDto } from '@api/endpoints/admin/fleet/dto/generate-image.
 import { AdminFleetGenerationJob } from '@api/endpoints/admin/fleet/interfaces/fleet-generation-job.interface';
 import { AdminFleetCharacterService } from '@api/endpoints/admin/fleet/services/fleet-character.service';
 import { AdminFleetValueReader } from '@api/endpoints/admin/fleet/services/fleet-value-reader.util';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
@@ -16,7 +17,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
 
 /**
@@ -69,7 +70,6 @@ export class AdminFleetGenerationService {
     const persona = await this.characterService.requirePersonaBySlug(
       personaSlug,
       organizationId,
-      `Character "${personaSlug}" not found`,
     );
 
     // Determine model and parameters
@@ -176,7 +176,6 @@ export class AdminFleetGenerationService {
     const persona = await this.characterService.requirePersonaBySlug(
       dto.personaSlug,
       organizationId,
-      `Character "${dto.personaSlug}" not found`,
     );
 
     const loraPath = dto.lora || undefined;
@@ -226,7 +225,7 @@ export class AdminFleetGenerationService {
     });
 
     if (!ingredient) {
-      throw new NotFoundException(`Generation job "${jobId}" not found`);
+      throw new NotFoundException('Generation job', jobId);
     }
 
     return AdminFleetValueReader.mapIngredientToGenerationJob(ingredient);

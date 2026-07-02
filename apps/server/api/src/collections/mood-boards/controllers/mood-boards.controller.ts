@@ -3,6 +3,7 @@ import type { UpdateMoodBoardDto } from '@api/collections/mood-boards/dto/update
 import { MoodBoardsService } from '@api/collections/mood-boards/services/mood-boards.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnNotFound,
@@ -15,7 +16,6 @@ import {
   Body,
   Controller,
   Get,
-  NotFoundException,
   Param,
   Patch,
   Query,
@@ -40,7 +40,9 @@ export class MoodBoardsController {
     @Query('brand') brandId: string,
   ): Promise<JsonApiSingleResponse> {
     if (!brandId) {
-      throw new NotFoundException('Query param `brand` is required');
+      throw new NotFoundException({
+        message: 'Query param `brand` is required',
+      });
     }
 
     const { organization: organizationId } = getPublicMetadata(user);

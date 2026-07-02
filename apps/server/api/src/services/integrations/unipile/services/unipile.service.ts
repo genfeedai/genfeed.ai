@@ -1,4 +1,5 @@
 import { ConfigService } from '@api/config/config.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import {
   type UnipileAccount,
   type UnipileConnection,
@@ -27,12 +28,7 @@ import { CryptoService } from '@libs/crypto/crypto.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
-import {
-  BadRequestException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
 const UNIPILE_PROVIDER = getIntegrationProviderDefinition('unipile');

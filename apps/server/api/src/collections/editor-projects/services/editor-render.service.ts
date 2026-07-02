@@ -5,6 +5,7 @@ import { type EditorProjectDocument } from '@api/collections/editor-projects/sch
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { ConfigService } from '@api/config/config.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
@@ -22,11 +23,7 @@ import {
 import type { IFileProcessingParams } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
-import {
-  Injectable,
-  NotFoundException,
-  UnprocessableEntityException,
-} from '@nestjs/common';
+import { Injectable, UnprocessableEntityException } from '@nestjs/common';
 
 interface RenderResult {
   jobId: string;
@@ -175,7 +172,7 @@ export class EditorRenderService {
     });
 
     if (!video) {
-      throw new NotFoundException('Source video not found');
+      throw new NotFoundException('Source video');
     }
 
     const metadata = await this.metadataService.findOne({

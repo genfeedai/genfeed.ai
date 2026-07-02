@@ -8,10 +8,12 @@ import { ImagesService } from '@api/collections/images/services/images.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { findUniqueOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import {
   ActivitySource,
   EvaluationType,
@@ -23,7 +25,6 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
-  NotFoundException,
   Optional,
 } from '@nestjs/common';
 
@@ -174,7 +175,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
           { _id: contentId, organizationId, isDeleted: false },
           [{ path: 'metadata' }],
         );
-        if (!video) throw new NotFoundException(`Video ${contentId} not found`);
+        if (!video) throw new NotFoundException('Video', contentId);
         if (!(video.metadata as { result?: string })?.result) {
           throw new NotFoundException(`Video ${contentId} has no result URL`);
         }
@@ -186,7 +187,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
           { _id: contentId, organizationId, isDeleted: false },
           [{ path: 'metadata' }],
         );
-        if (!image) throw new NotFoundException(`Image ${contentId} not found`);
+        if (!image) throw new NotFoundException('Image', contentId);
         if (!(image.metadata as { result?: string })?.result) {
           throw new NotFoundException(`Image ${contentId} has no result URL`);
         }
@@ -200,8 +201,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
           organizationId,
           isDeleted: false,
         });
-        if (!article)
-          throw new NotFoundException(`Article ${contentId} not found`);
+        if (!article) throw new NotFoundException('Article', contentId);
         if (!article.content)
           throw new NotFoundException(`Article ${contentId} has no content`);
         break;
@@ -213,7 +213,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
           organizationId,
           isDeleted: false,
         });
-        if (!post) throw new NotFoundException(`Post ${contentId} not found`);
+        if (!post) throw new NotFoundException('Post', contentId);
         if (!post.description)
           throw new NotFoundException(`Post ${contentId} has no content`);
         break;
@@ -301,7 +301,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       { path: 'brand' },
     ]);
 
-    if (!video) throw new NotFoundException(`Video ${videoId} not found`);
+    if (!video) throw new NotFoundException('Video', videoId);
 
     const metadata = video.metadata as { result?: string };
     const videoUrl = metadata?.result;
@@ -372,7 +372,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       { path: 'brand' },
     ]);
 
-    if (!image) throw new NotFoundException(`Image ${imageId} not found`);
+    if (!image) throw new NotFoundException('Image', imageId);
 
     const metadata = image.metadata as { result?: string };
     const imageUrl = metadata?.result;
@@ -441,7 +441,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       { path: 'brand' },
     ]);
 
-    if (!article) throw new NotFoundException(`Article ${articleId} not found`);
+    if (!article) throw new NotFoundException('Article', articleId);
     if (!article.content)
       throw new NotFoundException(`Article ${articleId} has no content`);
 
@@ -507,7 +507,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     const post = await this.postsService.findOne({ _id: postId }, [
       { path: 'brand' },
     ]);
-    if (!post) throw new NotFoundException(`Post ${postId} not found`);
+    if (!post) throw new NotFoundException('Post', postId);
     if (!post.description)
       throw new NotFoundException(`Post ${postId} has no content`);
 
@@ -710,13 +710,12 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       this.constructorName,
     );
 
-    const evaluation = await this.prisma.evaluation.findUnique({
-      where: { id: evaluationId },
-    });
-
-    if (!evaluation) {
-      throw new NotFoundException(`Evaluation ${evaluationId} not found`);
-    }
+    const evaluation = await findUniqueOrThrow(
+      this.prisma.evaluation,
+      { where: { id: evaluationId } },
+      'Evaluation',
+      evaluationId,
+    );
 
     const data = evaluation.data as EvaluationData | null;
 

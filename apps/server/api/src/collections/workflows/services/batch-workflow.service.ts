@@ -4,15 +4,13 @@ import {
   BatchWorkflowItemStatus,
   BatchWorkflowJobStatus,
 } from '@api/collections/workflows/schemas/batch-workflow-job.schema';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { runIdempotent } from '@api/helpers/utils/idempotency/idempotency.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 
 // =============================================================================
@@ -189,12 +187,12 @@ export class BatchWorkflowService {
    * Get a batch job by ID.
    */
   async getBatchJob(batchJobId: string): Promise<BatchWorkflowJobDocument> {
-    const job = await this.prisma.batchWorkflowJob.findFirst({
-      where: { id: batchJobId },
-    });
-    if (!job) {
-      throw new NotFoundException(`Batch job ${batchJobId} not found`);
-    }
+    const job = await findOrThrow(
+      this.prisma.batchWorkflowJob,
+      { where: { id: batchJobId } },
+      'Batch job',
+      batchJobId,
+    );
     return job as unknown as BatchWorkflowJobDocument;
   }
 
@@ -205,13 +203,12 @@ export class BatchWorkflowService {
     batchJobId: string,
     organizationId: string,
   ): Promise<BatchWorkflowJobDocument> {
-    const job = await this.prisma.batchWorkflowJob.findFirst({
-      where: { id: batchJobId, organizationId },
-    });
-
-    if (!job) {
-      throw new NotFoundException(`Batch job ${batchJobId} not found`);
-    }
+    const job = await findOrThrow(
+      this.prisma.batchWorkflowJob,
+      { where: { id: batchJobId, organizationId } },
+      'Batch job',
+      batchJobId,
+    );
     return job as unknown as BatchWorkflowJobDocument;
   }
 
