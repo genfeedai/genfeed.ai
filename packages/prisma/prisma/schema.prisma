@@ -1994,10 +1994,9 @@ model ContentSchedule {
   brandId        String?
   brand          Brand?       @relation(fields: [brandId], references: [id])
   config         Json         @default("{}")
-  // Cron columns — service (createForBrand / getActiveSchedules / markScheduleRan)
-  // reads & writes these as top-level fields; without them the scheduler crashed at
-  // runtime (Prisma rejects unknown args) and getActiveSchedules' isEnabled WHERE
-  // never type-checked.
+  // Schedule columns — service (createForBrand / markScheduleRan) and the
+  // workflow-backed scheduler read & write these as top-level fields; without
+  // them the scheduler crashed at runtime (Prisma rejects unknown args).
   name           String?
   cronExpression String?
   timezone       String       @default("UTC")

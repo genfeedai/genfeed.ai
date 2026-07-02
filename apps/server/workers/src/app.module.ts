@@ -18,7 +18,6 @@ import { CronAnalyticsModule } from '@workers/crons/analytics/cron.analytics.mod
 import { CronByokBillingModule } from '@workers/crons/byok-billing/cron.byok-billing.module';
 import { CronContentEngineModule } from '@workers/crons/content-engine/cron.content-engine.module';
 import { CronContentPipelineModule } from '@workers/crons/content-pipeline/cron.content-pipeline.module';
-import { CronContentSchedulesModule } from '@workers/crons/content-schedules/cron.content-schedules.module';
 import { CronCredentialsModule } from '@workers/crons/credentials/cron.credentials.module';
 import { CronDynamicJobsModule } from '@workers/crons/dynamic-jobs/cron.dynamic-jobs.module';
 import { CronIngredientsModule } from '@workers/crons/ingredients/cron.ingredients.module';
@@ -69,7 +68,6 @@ import { CronSchedulerControlService } from '@workers/scheduling/cron-scheduler-
     CronAiInfluencerModule,
     CronContentEngineModule,
     CronContentPipelineModule,
-    CronContentSchedulesModule,
     CronProactiveAgentModule,
     CronByokBillingModule,
     CronAnalyticsModule,
