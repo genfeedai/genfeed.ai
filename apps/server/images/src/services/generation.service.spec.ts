@@ -211,7 +211,7 @@ describe('GenerationService', () => {
       );
     });
 
-    it('falls back to the ComfyUI filename when S3 upload fails', async () => {
+    it('marks the job failed (not completed) when S3 upload fails', async () => {
       s3Service.uploadFile.mockRejectedValueOnce(new Error('upload failed'));
 
       await service.generateImage(imageRequest);
@@ -220,16 +220,59 @@ describe('GenerationService', () => {
       expect(logger.error).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          message:
-            'Image generation S3 upload failed, falling back to ComfyUI filename',
+          message: 'Image generation S3 upload failed',
         }),
       );
       expect(jobService.updateJob).toHaveBeenCalledWith(
         'job-image',
         expect.objectContaining({
-          resultUrl: 'generated.png',
-          status: 'completed',
+          error: expect.stringContaining('S3 upload failed'),
+          status: 'failed',
         }),
+      );
+      expect(jobService.updateJob).not.toHaveBeenCalledWith(
+        'job-image',
+        expect.objectContaining({ status: 'completed' }),
+      );
+    });
+
+    it('fails closed when the ComfyUI output subfolder escapes the output path', async () => {
+      comfyuiService.queueAndWait.mockResolvedValueOnce({
+        filename: 'generated.png',
+        subfolder: '../../../../etc',
+      });
+
+      await service.generateImage(imageRequest);
+      await flushAsyncJob();
+
+      // Traversal subfolder must be rejected before any upload happens.
+      expect(s3Service.uploadFile).not.toHaveBeenCalled();
+      expect(jobService.updateJob).toHaveBeenCalledWith(
+        'job-image',
+        expect.objectContaining({ status: 'failed' }),
+      );
+      expect(jobService.updateJob).not.toHaveBeenCalledWith(
+        'job-image',
+        expect.objectContaining({ status: 'completed' }),
+      );
+    });
+
+    it('strips directory components from a traversal ComfyUI filename', async () => {
+      comfyuiService.queueAndWait.mockResolvedValueOnce({
+        filename: '../../../../etc/passwd',
+        subfolder: 'runs',
+      });
+
+      await service.generateImage(imageRequest);
+      await flushAsyncJob();
+
+      // basename() reduces the filename to 'passwd', keeping the local path and
+      // S3 key inside the configured COMFYUI_OUTPUT_PATH root.
+      expect(s3Service.uploadFile).toHaveBeenCalledWith(
+        'test-bucket',
+        'ingredients/images/generated/job-image/passwd',
+        '/tmp/comfyui-output/runs/passwd',
+        expect.any(String),
       );
     });
 
