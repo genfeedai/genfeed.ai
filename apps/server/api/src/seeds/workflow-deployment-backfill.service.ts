@@ -258,11 +258,6 @@ export class WorkflowDeploymentBackfillService {
   ): void {
     const context = { ...(details ?? {}), service: this.context };
     this.logger.log(message, context);
-    console.info(
-      `[${this.context}] ${message}${
-        details ? ` ${JSON.stringify(details)}` : ''
-      }`,
-    );
   }
 
   private logProgressCheckpoint(

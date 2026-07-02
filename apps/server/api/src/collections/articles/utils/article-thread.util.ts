@@ -164,17 +164,19 @@ export function buildTwitterThreadTweets(params: {
     }
   });
 
-  // Add final tweet with link (if a URL was resolved)
+  // Add final tweet with link (if a URL was resolved). Prefer the friendly
+  // prefixed form; if the URL makes it exceed the limit, fall back to the bare
+  // URL so the link is never silently dropped.
   if (params.articleUrl) {
-    const finalTweet = `Read the full article:\n${params.articleUrl}`;
+    const withPrefix = `Read the full article:\n${params.articleUrl}`;
+    const finalTweet =
+      withPrefix.length <= MAX_TWEET_CHARS ? withPrefix : params.articleUrl;
 
-    if (finalTweet.length <= MAX_TWEET_CHARS) {
-      tweets.push({
-        characterCount: finalTweet.length,
-        content: finalTweet,
-        order: tweets.length + 1,
-      });
-    }
+    tweets.push({
+      characterCount: finalTweet.length,
+      content: finalTweet,
+      order: tweets.length + 1,
+    });
   }
 
   return tweets;
