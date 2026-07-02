@@ -1,12 +1,12 @@
 'use client';
 
-import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useBrandId } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   type AgentCampaign,
   AgentCampaignsService,
 } from '@genfeedai/services/automation/agent-campaigns.service';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useQuery } from '@tanstack/react-query';
 
 export interface UseAgentCampaignsOptions {

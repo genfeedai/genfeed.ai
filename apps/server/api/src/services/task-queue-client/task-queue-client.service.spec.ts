@@ -4,12 +4,15 @@ import {
   TaskQueueClientService,
 } from '@api/services/task-queue-client/task-queue-client.service';
 import { HttpService } from '@nestjs/axios';
+import { Logger } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { of, throwError } from 'rxjs';
 
 describe('TaskQueueClientService', () => {
   let service: TaskQueueClientService;
   let httpService: vi.Mocked<HttpService>;
+  let loggerErrorSpy: ReturnType<typeof vi.spyOn>;
+  let loggerLogSpy: ReturnType<typeof vi.spyOn>;
 
   const mockFilesServiceUrl = 'http://localhost:3012';
 
@@ -52,8 +55,18 @@ describe('TaskQueueClientService', () => {
 
     service = module.get<TaskQueueClientService>(TaskQueueClientService);
     httpService = module.get(HttpService);
+    loggerErrorSpy = vi
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation(() => undefined);
+    loggerLogSpy = vi
+      .spyOn(Logger.prototype, 'log')
+      .mockImplementation(() => undefined);
 
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('should be defined', () => {
@@ -77,6 +90,9 @@ describe('TaskQueueClientService', () => {
       expect(httpService.post).toHaveBeenCalledWith(
         `${mockFilesServiceUrl}/tasks/queue/transform`,
         mockTaskJobRequest,
+      );
+      expect(loggerLogSpy).toHaveBeenCalledWith(
+        `Queued transform job for asset ${mockTaskJobRequest.assetId}`,
       );
     });
 
@@ -210,6 +226,10 @@ describe('TaskQueueClientService', () => {
       httpService.post.mockReturnValue(throwError(() => error));
 
       await expect(service.queueClipJob(mockTaskJobRequest)).rejects.toThrow(
+        error,
+      );
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        'Failed to queue clip job',
         error,
       );
     });

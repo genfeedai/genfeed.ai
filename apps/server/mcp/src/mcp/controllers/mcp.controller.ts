@@ -1,7 +1,7 @@
 import { getToolsForSurface, toMcpTools } from '@genfeedai/tools';
+import { Public } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
 import * as appMetadata from '@mcp/config/app-metadata.json';
-import { Public } from '@mcp/guards/mcp-auth.guard';
 import { MCPService } from '@mcp/mcp/services/mcp.service';
 import { getPublicMcpUrl, renderSetupPage } from '@mcp/mcp/setup-page';
 import { ClientService } from '@mcp/services/client.service';

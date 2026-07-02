@@ -415,9 +415,9 @@ export class TriggerEvaluatorService {
         claimedStrategyIds,
       );
       if (strategies.length > 0) {
-        strategies.forEach((strategy) =>
-          claimedStrategyIds.add(String(strategy._id)),
-        );
+        strategies.forEach((strategy) => {
+          claimedStrategyIds.add(String(strategy._id));
+        });
         dispatchGroups.push({ ...trendSpikeCandidate, strategies });
       }
     }
@@ -430,9 +430,9 @@ export class TriggerEvaluatorService {
         claimedStrategyIds,
       );
       if (strategies.length > 0) {
-        strategies.forEach((strategy) =>
-          claimedStrategyIds.add(String(strategy._id)),
-        );
+        strategies.forEach((strategy) => {
+          claimedStrategyIds.add(String(strategy._id));
+        });
         dispatchGroups.push({ ...viralPostCandidate, strategies });
       }
     }

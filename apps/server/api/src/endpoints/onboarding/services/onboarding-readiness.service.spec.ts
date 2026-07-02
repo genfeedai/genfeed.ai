@@ -1,19 +1,7 @@
 import type { BrandsService } from '@api/collections/brands/services/brands.service';
-import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import type { LinksService } from '@api/collections/links/services/links.service';
-import type { MembersService } from '@api/collections/members/services/members.service';
 import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import type { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import type { UsersService } from '@api/collections/users/services/users.service';
-import type { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
-import type { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
-import type { ProactiveOnboardingService } from '@api/endpoints/onboarding/proactive-onboarding.service';
-import type { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
-import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import type { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
-import type { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
-import type { LoggerService } from '@libs/logger/logger.service';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockedConfig = vi.hoisted(() => ({ IS_CLOUD: false }));
@@ -42,30 +30,20 @@ type LocalToolReadiness = {
   detected: string[];
 };
 
-describe('OnboardingService local tool readiness', () => {
+describe('OnboardingReadinessService local tool readiness', () => {
   const instantiateService = async (isCloud: boolean) => {
     mockedConfig.IS_CLOUD = isCloud;
     vi.resetModules();
 
-    const { OnboardingService } = await import('./onboarding.service');
+    const { OnboardingReadinessService } = await import(
+      './onboarding-readiness.service'
+    );
 
-    return new OnboardingService(
-      {} as unknown as LoggerService,
-      {} as unknown as BrandScraperService,
-      {} as unknown as MasterPromptGeneratorService,
+    return new OnboardingReadinessService(
       {} as unknown as BrandsService,
-      {} as unknown as ComfyUIService,
-      {} as unknown as CreditsUtilsService,
-      {} as unknown as FilesClientService,
-      {} as unknown as LinksService,
-      {} as unknown as MembersService,
       {} as unknown as OrganizationSettingsService,
       {} as unknown as OrganizationsService,
       {} as unknown as UsersService,
-      {} as unknown as ProactiveOnboardingService,
-      {} as unknown as RequestContextCacheService,
-      {} as unknown as AccessBootstrapCacheService,
-      {} as unknown as UserSetupService,
     ) as unknown as {
       getLocalToolReadiness: () => LocalToolReadiness;
     };

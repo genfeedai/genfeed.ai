@@ -15,7 +15,7 @@ vi.mock('@genfeedai/workflow-ui/stores', () => ({
   },
 }));
 
-vi.mock('@/lib/logger', () => ({
+vi.mock('@services/core/logger.service', () => ({
   logger: {
     error: mocks.loggerError,
   },
@@ -230,14 +230,15 @@ describe('sse subscriptions', () => {
 
     expect(mocks.loggerError).toHaveBeenCalledWith(
       'Failed to parse SSE message',
-      expect.any(SyntaxError),
-      { context: 'ExecutionStore' },
+      {
+        context: 'ExecutionStore',
+        error: expect.any(SyntaxError),
+      },
     );
-    expect(mocks.loggerError).toHaveBeenCalledWith(
-      'SSE connection error',
-      expect.any(Error),
-      { context: 'ExecutionStore' },
-    );
+    expect(mocks.loggerError).toHaveBeenCalledWith('SSE connection error', {
+      context: 'ExecutionStore',
+      error: expect.any(Error),
+    });
     expect(MockEventSource.instances[0].close).toHaveBeenCalled();
     expect(fetch).toHaveBeenCalledWith(
       'http://local.genfeed.ai:3010/api/executions/execution-1',
@@ -339,13 +340,11 @@ describe('sse subscriptions', () => {
 
     expect(mocks.loggerError).toHaveBeenCalledWith(
       'Failed to parse SSE message (node execution)',
-      expect.any(SyntaxError),
-      { context: 'ExecutionStore' },
+      { context: 'ExecutionStore', error: expect.any(SyntaxError) },
     );
     expect(mocks.loggerError).toHaveBeenCalledWith(
       'SSE connection error (node execution)',
-      expect.any(Error),
-      { context: 'ExecutionStore' },
+      { context: 'ExecutionStore', error: expect.any(Error) },
     );
     expect(getState().activeNodeExecutions?.has('node-1')).toBe(false);
   });

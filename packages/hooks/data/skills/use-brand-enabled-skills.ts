@@ -1,8 +1,8 @@
 'use client';
 
-import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useCallback, useEffect, useState } from 'react';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '';

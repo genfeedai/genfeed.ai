@@ -1,17 +1,13 @@
+import { IS_PUBLIC_KEY } from '@libs/decorators/public.decorator';
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import {
   CanActivate,
   ExecutionContext,
   ForbiddenException,
   Injectable,
-  SetMetadata,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-
-export const PUBLIC_KEY = 'isPublic';
-
-export const Public = () => SetMetadata(PUBLIC_KEY, true);
 
 @Injectable()
 export class McpAuthGuard implements CanActivate {
@@ -21,7 +17,7 @@ export class McpAuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const isPublic = this.reflector.getAllAndOverride<boolean>(PUBLIC_KEY, [
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
