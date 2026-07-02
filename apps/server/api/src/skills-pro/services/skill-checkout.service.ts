@@ -15,9 +15,9 @@ type StripeClient = InstanceType<typeof StripeConstructor>;
 type CheckoutSession = Awaited<
   ReturnType<StripeClient['checkout']['sessions']['create']>
 >;
-type CheckoutSessionCreateParams = Parameters<
-  StripeClient['checkout']['sessions']['create']
->[0];
+type CheckoutSessionCreateParams = NonNullable<
+  Parameters<StripeClient['checkout']['sessions']['create']>[0]
+>;
 type CheckoutLineItem = NonNullable<
   CheckoutSessionCreateParams['line_items']
 >[number];

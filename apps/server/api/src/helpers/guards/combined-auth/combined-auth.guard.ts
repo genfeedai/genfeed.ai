@@ -150,7 +150,7 @@ export class CombinedAuthGuard implements CanActivate {
   }
 
   private async resolveGuardResult(
-    result: boolean | Observable<boolean>,
+    result: boolean | Promise<boolean> | Observable<boolean>,
   ): Promise<boolean> {
     if (result instanceof Observable) {
       return (await result.toPromise()) ?? false;
