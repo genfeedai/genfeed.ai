@@ -78,7 +78,7 @@ export class YoutubeController {
 
     try {
       const credential = await this.credentialsService.findOne({
-        brand: brand._id,
+        brand: brand.id,
         organization: brand.organization,
         platform: CredentialPlatform.YOUTUBE,
       });
@@ -105,7 +105,7 @@ export class YoutubeController {
           'https://www.googleapis.com/auth/yt-analytics.readonly',
         ],
         state: JSON.stringify({
-          brandId: brand._id,
+          brandId: brand.id,
           organizationId: brand.organization,
           userId: publicMetadata.user,
         }),
@@ -183,7 +183,7 @@ export class YoutubeController {
       // Update the credential with the access token
       // If reconnecting the same channel, reactivate previously deleted credential
       let credential = await this.credentialsService.patch(
-        existingCredential._id,
+        existingCredential.id,
         {
           accessToken: tokens.access_token,
           isConnected: true,
@@ -199,12 +199,12 @@ export class YoutubeController {
 
       // Verify the credential was saved correctly
       const savedCredential = await this.credentialsService.findOne({
-        _id: credential._id,
+        _id: credential.id,
       });
 
       if (!savedCredential?.refreshToken) {
         this.loggerService.error('Refresh token was not saved properly', {
-          credentialId: credential._id,
+          credentialId: credential.id,
           hadRefreshToken: !!tokens.refresh_token,
         });
         throw new HttpException(
@@ -246,7 +246,7 @@ export class YoutubeController {
         const externalId = channelDetails.id;
         const externalHandle = channelDetails.title;
 
-        credential = await this.credentialsService.patch(credential._id, {
+        credential = await this.credentialsService.patch(credential.id, {
           externalHandle,
           externalId,
         });

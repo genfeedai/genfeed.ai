@@ -351,7 +351,7 @@ export class BatchGenerationService {
         variantId: reviewItem.variantId,
       } as never);
 
-      const postId = String((post as Record<string, unknown>)._id ?? post.id);
+      const postId = String((post as Record<string, unknown>).id ?? post.id);
 
       batchItems.push({
         _id: crypto.randomUUID(),
@@ -627,7 +627,7 @@ export class BatchGenerationService {
           user: batchRecord.userId,
         } as never);
 
-        const postId = String((post as Record<string, unknown>)._id ?? post.id);
+        const postId = String((post as Record<string, unknown>).id ?? post.id);
         item.postId = postId;
         item.status = BatchItemStatus.COMPLETED;
         completedCount++;

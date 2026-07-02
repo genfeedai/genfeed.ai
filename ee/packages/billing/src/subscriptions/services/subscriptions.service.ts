@@ -25,7 +25,7 @@ import type { UpdateSubscriptionDto } from '../dto/update-subscription.dto';
 import type { SubscriptionDocument } from '../schemas/subscription.schema';
 
 type SubscriptionStateSync = {
-  _id?: string;
+  id?: string;
   organization?: string;
   user?: string;
   stripePriceId?: string | null;
@@ -176,7 +176,7 @@ export class SubscriptionsService
         this.logger.log('Subscription state sync skipped (no tier to write)', {
           hasOrganizationId: Boolean(organizationId),
           hasSubscriptionTier: Boolean(subscriptionTier),
-          subscriptionId: subscription._id,
+          subscriptionId: subscription.id,
         });
       }
     } catch (error: unknown) {
@@ -194,7 +194,7 @@ export class SubscriptionsService
 
     // Check if customer already exists for this organization
     let customer = await this.customersService.findByOrganizationId(
-      organization._id.toString(),
+      organization.id.toString(),
     );
     let stripeCustomer: StripeCustomer | null;
 
@@ -202,7 +202,7 @@ export class SubscriptionsService
       // Customer exists, retrieve from Stripe to ensure it's valid
       this.logger.log(`${url} using existing customer`, {
         customerId: customer.id,
-        organizationId: organization._id,
+        organizationId: organization.id,
         stripeCustomerId: customer.stripeCustomerId,
       });
 
@@ -218,7 +218,7 @@ export class SubscriptionsService
         stripeCustomer = await this.stripeService.createOrganizationCustomer(
           organization.label,
           billingEmail,
-          organization._id.toString(),
+          organization.id.toString(),
           userId,
         );
 
@@ -231,12 +231,12 @@ export class SubscriptionsService
       stripeCustomer = await this.stripeService.createOrganizationCustomer(
         organization.label,
         billingEmail,
-        organization._id.toString(),
+        organization.id.toString(),
         userId,
       );
 
       customer = await this.customersService.create({
-        organization: organization._id.toString(),
+        organization: organization.id.toString(),
         stripeCustomerId: stripeCustomer.id,
       });
     }
@@ -244,7 +244,7 @@ export class SubscriptionsService
     const subscriptionData = {
       customerId: customer.id.toString(),
       isDeleted: false,
-      organizationId: organization._id.toString(),
+      organizationId: organization.id.toString(),
       plan: SubscriptionPlan.MONTHLY,
       status: SubscriptionStatus.INCOMPLETE,
       userId,
@@ -255,9 +255,9 @@ export class SubscriptionsService
     this.logger.log(`${url} success`, {
       customerId: customer.id,
       existingCustomer: !!customer,
-      organizationId: organization._id,
+      organizationId: organization.id,
       stripeCustomerId: stripeCustomer.id,
-      subscriptionId: savedSubscription._id,
+      subscriptionId: savedSubscription.id,
     });
 
     return savedSubscription;
@@ -306,7 +306,7 @@ export class SubscriptionsService
 
       this.logger.log(`${url} success`, {
         stripeCustomerId: subscription.stripeCustomerId,
-        subscriptionId: subscription._id,
+        subscriptionId: subscription.id,
       });
 
       return subscription;
@@ -348,21 +348,17 @@ export class SubscriptionsService
       }
 
       // Update our local subscription record
-      const updatedSubscription = await this.patch(
-        subscription._id.toString(),
-        {
-          currentPeriodEnd: updatedStripeSubscription.items.data[0]
-            ?.current_period_end
-            ? new Date(
-                updatedStripeSubscription.items.data[0].current_period_end *
-                  1000,
-              )
-            : undefined,
-          status: updatedStripeSubscription.status,
-          stripePriceId: newPriceId,
-          plan: newType,
-        },
-      );
+      const updatedSubscription = await this.patch(subscription.id.toString(), {
+        currentPeriodEnd: updatedStripeSubscription.items.data[0]
+          ?.current_period_end
+          ? new Date(
+              updatedStripeSubscription.items.data[0].current_period_end * 1000,
+            )
+          : undefined,
+        status: updatedStripeSubscription.status,
+        stripePriceId: newPriceId,
+        plan: newType,
+      });
 
       // Sync subscription state to DB
       await this.syncSubscriptionState(updatedSubscription);
@@ -406,7 +402,7 @@ export class SubscriptionsService
         newType,
         oldPriceId: subscription.stripePriceId,
         oldType: previousPlan,
-        subscriptionId: subscription._id,
+        subscriptionId: subscription.id,
       });
 
       return {
@@ -472,7 +468,7 @@ export class SubscriptionsService
         isUpgrade,
         newPriceId,
         prorationAmount,
-        subscriptionId: subscription._id,
+        subscriptionId: subscription.id,
       });
 
       return {

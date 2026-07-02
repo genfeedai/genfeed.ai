@@ -87,7 +87,7 @@ export class OnboardingService {
     }
 
     const entity = record as Record<string, unknown>;
-    const id = entity.id ?? entity._id;
+    const id = entity.id;
 
     return typeof id === 'string' ? id : '';
   }
@@ -359,17 +359,17 @@ export class OnboardingService {
           );
 
         await this.brandPersistenceService.updateBrandWithScrapedData(
-          targetBrand._id,
+          targetBrand.id,
           scrapedData,
           dto,
           labelOverride,
         );
         await this.brandPersistenceService.upsertBrandWebsiteLink(
-          targetBrand._id,
+          targetBrand.id,
           dto.brandUrl,
         );
         await this.brandPersistenceService.updateBrandGuidance(
-          targetBrand._id,
+          targetBrand.id,
           extractedData,
         );
 
@@ -378,7 +378,7 @@ export class OnboardingService {
           await this.brandPersistenceService.syncBrandAndOrgSlug(
             resolvedLabel,
             organizationId.toString(),
-            targetBrand._id,
+            targetBrand.id,
           );
         }
 
@@ -388,11 +388,11 @@ export class OnboardingService {
         await this.completeOnboarding(organizationId);
 
         this.loggerService.log(`${caller} completed`, {
-          brandId: targetBrand._id.toString(),
+          brandId: targetBrand.id.toString(),
         });
 
         return {
-          brandId: targetBrand._id.toString(),
+          brandId: targetBrand.id.toString(),
           extractedData,
           message: 'Brand setup completed successfully',
           success: true,
@@ -409,7 +409,7 @@ export class OnboardingService {
       organization: organizationId,
     });
 
-    if (!settings?._id) {
+    if (!settings?.id) {
       return;
     }
 
@@ -438,7 +438,7 @@ export class OnboardingService {
         : item,
     );
 
-    await this.organizationSettingsService.patch(String(settings._id), {
+    await this.organizationSettingsService.patch(String(settings.id), {
       onboardingJourneyMissions: updatedMissions,
     });
 
@@ -514,7 +514,7 @@ export class OnboardingService {
         }
 
         if (Object.keys(updateData).length > 0) {
-          await this.brandsService.patch(brand._id, updateData);
+          await this.brandsService.patch(brand.id, updateData);
         }
 
         // Sync organization and brand label and slug when brand label is updated
@@ -522,14 +522,14 @@ export class OnboardingService {
           await this.brandPersistenceService.syncBrandAndOrgSlug(
             dto.label,
             organizationId.toString(),
-            brand._id,
+            brand.id,
           );
         }
 
         // Update canonical brand guidance if voice overrides provided
         if (dto.tone || dto.voice || dto.audience) {
           await this.brandPersistenceService.updateBrandGuidanceOverrides(
-            brand._id,
+            brand.id,
             dto,
           );
         }
@@ -659,14 +659,14 @@ export class OnboardingService {
           authProviderId: user.id,
         });
         if (dbUser && !dbUser.isOnboardingCompleted) {
-          await this.usersService.patch(dbUser._id, {
+          await this.usersService.patch(dbUser.id, {
             isOnboardingCompleted: true,
             onboardingCompletedAt: new Date(),
             onboardingStepsCompleted: ['brand', 'providers'],
           });
         }
 
-        const dbUserId = dbUser?._id?.toString();
+        const dbUserId = dbUser?.id?.toString();
         if (dbUserId) {
           await Promise.all([
             this.requestContextCacheService.invalidateForUser(dbUserId),
@@ -816,7 +816,7 @@ export class OnboardingService {
           );
         }
 
-        await this.brandsService.patch(brand._id, {
+        await this.brandsService.patch(brand.id, {
           label: dto.brandName,
         });
 
@@ -931,7 +931,7 @@ export class OnboardingService {
     });
 
     if (settings) {
-      await this.organizationSettingsService.patch(settings._id, {
+      await this.organizationSettingsService.patch(settings.id, {
         isFirstLogin: false,
       });
     }

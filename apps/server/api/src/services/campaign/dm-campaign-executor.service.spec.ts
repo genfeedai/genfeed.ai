@@ -84,7 +84,7 @@ describe('DmCampaignExecutorService', () => {
   const orgId = 'test-object-id';
 
   const fakeCredential = {
-    _id: credentialId,
+    id: credentialId,
     accessToken: 'at',
     accessTokenSecret: 'ats',
     externalId: 'ext1',
@@ -97,7 +97,7 @@ describe('DmCampaignExecutorService', () => {
     overrides: Partial<OutreachCampaignDocument> = {},
   ): OutreachCampaignDocument =>
     ({
-      _id: campaignId,
+      id: campaignId,
       credential: credentialId,
       dmConfig: {
         context: 'outreach',
@@ -117,7 +117,7 @@ describe('DmCampaignExecutorService', () => {
     overrides: Partial<CampaignTargetDocument> = {},
   ): CampaignTargetDocument =>
     ({
-      _id: targetId,
+      id: targetId,
       recipientUserId: 'uid123',
       recipientUsername: 'targetuser',
       retryCount: 0,
@@ -383,9 +383,9 @@ describe('DmCampaignExecutorService', () => {
 
     it('should process multiple targets and track counts', async () => {
       const campaign = makeCampaign();
-      const t1 = makeTarget({ _id: 'test-object-id' });
-      const t2 = makeTarget({ _id: 'test-object-id' });
-      const t3 = makeTarget({ _id: 'test-object-id' });
+      const t1 = makeTarget({ id: 'test-object-id' });
+      const t2 = makeTarget({ id: 'test-object-id' });
+      const t3 = makeTarget({ id: 'test-object-id' });
       mockCampaignTargetsService.getPendingTargets.mockResolvedValue([
         t1,
         t2,

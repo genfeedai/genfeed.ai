@@ -161,7 +161,7 @@ export class AdminFleetController {
         organization,
       );
       const updated = await this.adminFleetService.updateCharacter(
-        character._id.toString(),
+        character.id.toString(),
         dto as Record<string, unknown>,
       );
       return serializeSingle(request, PersonaSerializer, updated);
@@ -184,7 +184,7 @@ export class AdminFleetController {
         organization,
       );
       const deleted = await this.adminFleetService.updateCharacter(
-        character._id.toString(),
+        character.id.toString(),
         {
           isDeleted: true,
         } as Record<string, unknown>,

@@ -185,7 +185,7 @@ describe('TwitterService (coverage)', () => {
 
       expect(mockRefreshOAuth2Token).toHaveBeenCalledWith('decrypted:enc-rt');
       expect(credentialsService.patch).toHaveBeenCalledWith(
-        cred._id,
+        cred.id,
         expect.objectContaining({
           accessToken: 'new-access',
           isConnected: true,
@@ -203,7 +203,7 @@ describe('TwitterService (coverage)', () => {
       );
 
       expect(credentialsService.patch).toHaveBeenCalledWith(
-        cred._id,
+        cred.id,
         expect.objectContaining({ isConnected: false }),
       );
     });
@@ -221,7 +221,7 @@ describe('TwitterService (coverage)', () => {
 
       // Credential should be patched as disconnected
       expect(credentialsService.patch).toHaveBeenCalledWith(
-        cred._id,
+        cred.id,
         expect.objectContaining({ isConnected: false }),
       );
       // Activity logged

@@ -62,7 +62,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
 
     if (organizationSettings && !organizationSettings.hasEverHadCredits) {
       await this.organizationSettingsService.patch(
-        organizationSettings._id.toString(),
+        organizationSettings.id.toString(),
         {
           hasEverHadCredits: true,
         },

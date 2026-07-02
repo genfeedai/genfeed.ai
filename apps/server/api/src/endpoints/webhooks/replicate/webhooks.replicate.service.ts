@@ -89,7 +89,7 @@ export class ReplicateWebhookService {
           typeof error === 'string' ? error : JSON.stringify(error);
       }
 
-      await this.metadataService.patch(metadata._id, updateData);
+      await this.metadataService.patch(metadata.id, updateData);
 
       this.loggerService.log(`${url} completed`, {
         metadataId,

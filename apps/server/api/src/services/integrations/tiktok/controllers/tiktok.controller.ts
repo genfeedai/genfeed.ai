@@ -104,7 +104,7 @@ export class TiktokController {
     const clientKey = this.configService.get('TIKTOK_CLIENT_KEY');
 
     const state = JSON.stringify({
-      brandId: brand._id.toString(),
+      brandId: brand.id.toString(),
       organizationId:
         brand.organization?.toString() ?? publicMetadata.organization,
     });
@@ -188,7 +188,7 @@ export class TiktokController {
       // Update the credential with the access token
       // If reconnecting the same account, reactivate previously deleted credential
       let credential = await this.credentialsService.patch(
-        existingCredential._id,
+        existingCredential.id,
         {
           accessToken: access_token,
           accessTokenExpiry: expires_in
@@ -212,7 +212,7 @@ export class TiktokController {
         );
 
       credential = await this.credentialsService.patch(
-        credential._id.toString(),
+        credential.id.toString(),
         {
           externalHandle,
           externalId,

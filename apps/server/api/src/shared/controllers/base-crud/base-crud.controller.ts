@@ -466,9 +466,9 @@ export abstract class BaseCRUDController<
     // Default: user can only modify their own entities
     const entityRecord = entity as Record<string, unknown>;
     const entityUser = entityRecord.user as
-      | { _id?: { toString(): string }; toString(): string }
+      | { id?: { toString(): string }; toString(): string }
       | undefined;
-    const entityUserId = entityUser?._id?.toString() || entityUser?.toString();
+    const entityUserId = entityUser?.id?.toString() || entityUser?.toString();
     return entityUserId === publicMetadata.user;
   }
 

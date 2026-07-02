@@ -147,11 +147,11 @@ export class AdminFleetTrainingOrchestratorService {
               organizationId,
               {
                 isDeleted: false,
-                persona: persona._id,
+                persona: persona.id,
                 reviewStatus: DarkroomReviewStatusEnum.APPROVED,
               },
             )
-          ).map((ingredient) => ingredient._id.toString());
+          ).map((ingredient) => ingredient.id.toString());
 
     const training = await this.trainingsService.create({
       baseModel,
@@ -162,7 +162,7 @@ export class AdminFleetTrainingOrchestratorService {
       loraRank,
       model: baseModel,
       organization: EntityIdUtil.toValidId(organizationId)!,
-      persona: persona._id,
+      persona: persona.id,
       personaSlug: data.personaSlug,
       progress: 0,
       provider: TrainingProvider.GENFEED_AI,
@@ -173,7 +173,7 @@ export class AdminFleetTrainingOrchestratorService {
       user: EntityIdUtil.toValidId(userId)!,
     } as Parameters<TrainingsService['create']>[0]);
 
-    await this.personasService.patch(persona._id.toString(), {
+    await this.personasService.patch(persona.id.toString(), {
       loraModelPath: undefined,
       loraStatus: LoraStatus.TRAINING,
     });
@@ -188,14 +188,14 @@ export class AdminFleetTrainingOrchestratorService {
         organizationId,
         personaSlug: data.personaSlug,
         steps,
-        trainingId: training._id.toString(),
+        trainingId: training.id.toString(),
         triggerWord,
       })
       .catch((error) => {
         this.loggerService.error(caller, {
           error: error instanceof Error ? error.message : String(error),
           message: 'Training pipeline failed',
-          trainingId: training._id.toString(),
+          trainingId: training.id.toString(),
         });
       });
 

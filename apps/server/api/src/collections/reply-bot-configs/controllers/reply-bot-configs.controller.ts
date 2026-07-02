@@ -97,21 +97,21 @@ export class ReplyBotConfigsController extends BaseCRUDController<
   public canUserModifyEntity(user: User, entity: unknown): boolean {
     const publicMetadata = getPublicMetadata(user);
     const entityRecord = entity as {
-      organization?: { _id?: { toString?: () => string } } | string | null;
-      brand?: { _id?: { toString?: () => string } } | string | null;
+      organization?: { id?: { toString?: () => string } } | string | null;
+      brand?: { id?: { toString?: () => string } } | string | null;
     };
 
     const entityOrganizationId =
       (typeof entityRecord.organization === 'object' &&
       entityRecord.organization !== null
-        ? entityRecord.organization._id?.toString?.()
+        ? entityRecord.organization.id?.toString?.()
         : undefined) ||
       (typeof entityRecord.organization === 'string'
         ? entityRecord.organization
         : undefined);
     const entityBrandId =
       (typeof entityRecord.brand === 'object' && entityRecord.brand !== null
-        ? entityRecord.brand._id?.toString?.()
+        ? entityRecord.brand.id?.toString?.()
         : undefined) ||
       (typeof entityRecord.brand === 'string' ? entityRecord.brand : undefined);
     if (

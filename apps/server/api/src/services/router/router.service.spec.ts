@@ -16,7 +16,7 @@ describe('RouterService', () => {
 
   const createMockModel = (overrides: Record<string, unknown> = {}) =>
     ({
-      _id: '507f1f77bcf86cd799439011',
+      id: '507f1f77bcf86cd799439011',
       capabilities: [],
       category: ModelCategory.IMAGE,
       cost: 50,
@@ -1073,7 +1073,7 @@ describe('RouterService', () => {
   describe('Model Details', () => {
     it('should include correct model details in recommendation', async () => {
       const model = createMockModel({
-        _id: '507f1f77bcf86cd799439011',
+        id: '507f1f77bcf86cd799439011',
         category: ModelCategory.IMAGE,
         cost: 100,
         key: 'test-model-key',

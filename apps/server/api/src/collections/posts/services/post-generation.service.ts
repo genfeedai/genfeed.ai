@@ -372,7 +372,7 @@ export class PostGenerationService {
       createdPosts.push(post);
 
       if (i === 0) {
-        rootPostId = String(post._id ?? post.id);
+        rootPostId = String(post.id);
       }
     }
 
@@ -587,7 +587,7 @@ export class PostGenerationService {
       ) {
         const post = createdPosts[i];
         const postText = generatedLines[i];
-        const postId = String(post._id ?? post.id);
+        const postId = String(post.id);
 
         try {
           const updatedPost = await this.postsService.patch(
@@ -646,7 +646,7 @@ export class PostGenerationService {
 
       for (let i = generatedLines.length; i < createdPosts.length; i++) {
         await this.handleGeneratedPostFailure(
-          String(createdPosts[i]._id ?? createdPosts[i].id),
+          String(createdPosts[i].id ?? createdPosts[i].id),
           new Error('Insufficient valid posts generated'),
         );
       }
@@ -658,7 +658,7 @@ export class PostGenerationService {
 
       if (activity) {
         try {
-          await this.activitiesService.patch(activity._id.toString(), {
+          await this.activitiesService.patch(activity.id.toString(), {
             key: ActivityKey.POST_FAILED,
             value: JSON.stringify({
               error: (error as Error)?.message || 'Generation failed',
@@ -676,10 +676,7 @@ export class PostGenerationService {
       }
 
       for (const post of createdPosts) {
-        await this.handleGeneratedPostFailure(
-          String(post._id ?? post.id),
-          error,
-        );
+        await this.handleGeneratedPostFailure(String(post.id), error);
       }
     }
   }
@@ -734,7 +731,7 @@ export class PostGenerationService {
           user: publicMetadata.user,
           value: JSON.stringify({
             count: dto.count,
-            originalPostId: String(originalPost._id),
+            originalPostId: String(originalPost.id),
             type: 'thread-expansion',
           }),
         }),
@@ -791,7 +788,7 @@ export class PostGenerationService {
       for (let i = 0; i < childPosts.length && i < tweetLines.length; i++) {
         const child = childPosts[i];
         const tweetText = tweetLines[i];
-        const childId = String(child._id);
+        const childId = String(child.id);
 
         try {
           const updatedPost = await this.postsService.patch(
@@ -836,7 +833,7 @@ export class PostGenerationService {
 
       // Handle insufficient tweets generated
       for (let i = tweetLines.length; i < childPosts.length; i++) {
-        const childId = String(childPosts[i]._id);
+        const childId = String(childPosts[i].id);
         await this.handleExpandPostFailure(
           childId,
           new Error('Insufficient tweets generated'),
@@ -848,7 +845,7 @@ export class PostGenerationService {
       // Update activity to FAILED
       if (activity) {
         try {
-          await this.activitiesService.patch(activity._id.toString(), {
+          await this.activitiesService.patch(activity.id.toString(), {
             key: ActivityKey.POST_FAILED,
             value: JSON.stringify({
               error: (error as Error)?.message || 'Thread expansion failed',
@@ -866,7 +863,7 @@ export class PostGenerationService {
       }
 
       for (const child of childPosts) {
-        await this.handleExpandPostFailure(String(child._id), error);
+        await this.handleExpandPostFailure(String(child.id), error);
       }
     }
   }

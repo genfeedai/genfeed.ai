@@ -68,7 +68,7 @@ const ContentPatternSerializer = {
         templateCategory: doc.templateCategory,
         usageCount: doc.usageCount,
       },
-      id: doc._id?.toString(),
+      id: doc.id?.toString(),
       type: 'content-pattern',
     };
   },

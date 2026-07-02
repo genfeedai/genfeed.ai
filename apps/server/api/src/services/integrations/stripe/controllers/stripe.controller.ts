@@ -105,7 +105,7 @@ export class StripeController {
         subscription = await this.subscriptionsService.createForOrganization(
           organization,
           email,
-          dbUser._id.toString(),
+          dbUser.id.toString(),
         );
       }
 
@@ -207,7 +207,7 @@ export class StripeController {
         subscription = await this.subscriptionsService.createForOrganization(
           organization,
           email,
-          dbUser._id.toString(),
+          dbUser.id.toString(),
         );
       }
       if (!subscription.stripeCustomerId) {

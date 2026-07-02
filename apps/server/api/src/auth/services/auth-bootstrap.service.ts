@@ -47,9 +47,9 @@ function getBrandId(
     record &&
     typeof record === 'object' &&
     '_id' in record &&
-    typeof record._id === 'string'
+    typeof record.id === 'string'
   ) {
-    return record._id;
+    return record.id;
   }
 
   return '';

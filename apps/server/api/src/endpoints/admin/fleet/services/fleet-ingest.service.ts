@@ -220,7 +220,7 @@ export class AdminFleetIngestService {
             generationSource: `fleet-ingest:${source.platform}`,
             isDeleted: false,
             organization: organizationObjectId,
-            persona: persona._id,
+            persona: persona.id,
           });
 
           if (existing) {
@@ -249,12 +249,12 @@ export class AdminFleetIngestService {
         failedCount++;
         failed.push({
           error: getErrorMessage(error),
-          filename: `${persona.slug ?? persona._id.toString()}:${source.platform}:${source.handle}`,
+          filename: `${persona.slug ?? persona.id.toString()}:${source.platform}:${source.handle}`,
         });
       }
     }
 
-    await this.personasService.patch(persona._id.toString(), {
+    await this.personasService.patch(persona.id.toString(), {
       darkroomSources: persona.darkroomSources,
     } as Parameters<PersonasService['patch']>[1]);
 
@@ -289,7 +289,7 @@ export class AdminFleetIngestService {
       generationPrompt: params.text || undefined,
       generationSource: `fleet-ingest:${params.sourcePlatform}`,
       organization: params.organizationId,
-      persona: params.persona._id,
+      persona: params.persona.id,
       personaSlug: params.persona.slug,
       s3Key: `${params.sourcePlatform}:${params.postId}`,
       status: IngredientStatus.GENERATED,
@@ -298,7 +298,7 @@ export class AdminFleetIngestService {
     } as Parameters<IngredientsService['create']>[0]);
 
     const uploadMeta = await this.filesClientService.uploadToS3(
-      ingredient._id.toString(),
+      ingredient.id.toString(),
       category === IngredientCategory.VIDEO ? 'videos' : 'images',
       {
         type: FileInputType.URL,
@@ -306,7 +306,7 @@ export class AdminFleetIngestService {
       },
     );
 
-    return this.ingredientsService.patch(ingredient._id.toString(), {
+    return this.ingredientsService.patch(ingredient.id.toString(), {
       cdnUrl: params.sourceUrl,
       s3Key: uploadMeta.s3Key ?? ingredient.s3Key,
       status: IngredientStatus.GENERATED,

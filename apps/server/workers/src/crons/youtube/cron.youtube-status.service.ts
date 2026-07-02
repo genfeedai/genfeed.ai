@@ -95,7 +95,7 @@ export class CronYoutubeStatusService {
 
     try {
       if (!post.credential) {
-        this.logger.warn(`${url} post ${post._id} has no credential`);
+        this.logger.warn(`${url} post ${post.id} has no credential`);
         return;
       }
 
@@ -106,7 +106,7 @@ export class CronYoutubeStatusService {
         post.externalId,
       );
 
-      this.logger.log(`${url} post ${post._id} video ${post.externalId}`, {
+      this.logger.log(`${url} post ${post.id} video ${post.externalId}`, {
         privacyStatus: videoStatus.privacyStatus,
         publishAt: videoStatus.publishAt,
       });
@@ -126,13 +126,13 @@ export class CronYoutubeStatusService {
           updateData.publicationDate = new Date();
         }
 
-        await this.postsService.patch(post._id.toString(), updateData);
+        await this.postsService.patch(post.id.toString(), updateData);
 
         this.logger.log(
           `${url} YouTube video ${post.externalId} status synced`,
           {
             newStatus: targetStatus,
-            postId: post._id,
+            postId: post.id,
             previousStatus: post.status,
             youtubePrivacyStatus: videoStatus.privacyStatus,
           },
@@ -157,7 +157,7 @@ export class CronYoutubeStatusService {
               hoursSinceScheduled: Math.round(
                 timeSinceScheduled / (60 * 60 * 1000),
               ),
-              postId: post._id,
+              postId: post.id,
               publishAt: videoStatus.publishAt,
               scheduledDate: scheduledDate.toISOString(),
             },
@@ -174,10 +174,10 @@ export class CronYoutubeStatusService {
       ) {
         this.logger.warn(
           `${url} video ${post.externalId} not found on YouTube, marking post as deleted`,
-          { postId: post._id },
+          { postId: post.id },
         );
 
-        await this.postsService.patch(post._id.toString(), {
+        await this.postsService.patch(post.id.toString(), {
           isDeleted: true,
         });
 
@@ -185,7 +185,7 @@ export class CronYoutubeStatusService {
       }
 
       this.logger.error(
-        `${url} failed to check status for post ${post._id}`,
+        `${url} failed to check status for post ${post.id}`,
         error,
       );
     }

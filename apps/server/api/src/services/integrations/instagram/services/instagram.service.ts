@@ -36,7 +36,7 @@ function toInstagramCredentialResponse(
   credential: CredentialDocument,
 ): InstagramCredentialResponse {
   return {
-    _id: credential._id,
+    _id: credential.id,
     accessToken: requireString(credential.accessToken, 'accessToken'),
     externalId: credential.externalId ?? undefined,
     isConnected: credential.isConnected,
@@ -152,7 +152,7 @@ export class InstagramService {
             // Empty POST to media endpoint to test publishing capability
             await firstValueFrom(
               this.httpService.post(
-                `${this.graphUrl}/${this.apiVersion}/${page._id}/media`,
+                `${this.graphUrl}/${this.apiVersion}/${page.id}/media`,
                 null,
                 {
                   params: { access_token: accessToken },
@@ -180,7 +180,7 @@ export class InstagramService {
         } catch (error: unknown) {
           // Skip accounts we can't access or verify
           this.loggerService.warn(
-            `${url} - Could not verify Instagram account ${page._id}`,
+            `${url} - Could not verify Instagram account ${page.id}`,
             error,
           );
         }
@@ -215,7 +215,7 @@ export class InstagramService {
 
     if (!credential.accessToken) {
       // Mark as disconnected if no access token available
-      await this.credentialsService.patch(credential._id, {
+      await this.credentialsService.patch(credential.id, {
         isConnected: false,
       });
       throw new Error(
@@ -246,7 +246,7 @@ export class InstagramService {
       this.loggerService.log(`${url} succeeded`, response.data);
 
       const updatedCredential = await this.credentialsService.patch(
-        credential._id,
+        credential.id,
         {
           accessToken: access_token,
           accessTokenExpiry: expires_in
@@ -262,7 +262,7 @@ export class InstagramService {
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       // Mark credential as disconnected if refresh fails (e.g., expired token)
-      await this.credentialsService.patch(credential._id, {
+      await this.credentialsService.patch(credential.id, {
         isConnected: false,
       });
       throw error;

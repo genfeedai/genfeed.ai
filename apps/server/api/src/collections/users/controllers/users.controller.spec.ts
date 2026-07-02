@@ -131,12 +131,12 @@ describe('UsersController', () => {
         status: 'active',
       });
       usersService.findOne.mockResolvedValue({
-        _id: userId,
+        id: userId,
         isOnboardingCompleted: false,
       });
       usersService.hasOnboardingField.mockResolvedValue(false);
       usersService.patch.mockResolvedValue({
-        _id: userId,
+        id: userId,
         isOnboardingCompleted: true,
       });
 

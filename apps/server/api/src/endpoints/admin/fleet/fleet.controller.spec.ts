@@ -217,7 +217,7 @@ describe('AdminFleetController', () => {
         };
 
         const mockCharacter = {
-          _id: 'char1',
+          id: 'char1',
           name: 'Test',
           slug: 'test',
         };
@@ -280,7 +280,7 @@ describe('AdminFleetController', () => {
     describe('deleteCharacter', () => {
       it('should soft-delete a character', async () => {
         const mockCharacter = {
-          _id: 'char1',
+          id: 'char1',
           name: 'Test',
           slug: 'test',
         };

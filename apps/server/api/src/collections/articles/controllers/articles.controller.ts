@@ -284,12 +284,12 @@ export class ArticlesController extends BaseCRUDController<
 
     // Emit background-task-update WebSocket event
     await this.websocketService.publishBackgroundTaskUpdate({
-      activityId: activity._id.toString(),
+      activityId: activity.id.toString(),
       label: isXArticle ? 'X Article Generation' : 'Article Generation',
       progress: 0,
       room: getUserRoomName(user.id),
       status: 'processing',
-      taskId: activity._id.toString(),
+      taskId: activity.id.toString(),
       userId: user.id,
     });
 
@@ -327,25 +327,25 @@ export class ArticlesController extends BaseCRUDController<
         await this.activitiesService.create(
           new ActivityEntity({
             brand: publicMetadata.brand,
-            entityId: article._id,
+            entityId: article.id,
             entityModel: ActivityEntityModel.ARTICLE,
             key: ActivityKey.ARTICLE_GENERATED,
             organization: publicMetadata.organization,
             source: ActivitySource.ARTICLE_GENERATION,
             user: publicMetadata.user,
-            value: article._id.toString(),
+            value: article.id.toString(),
           }),
         );
 
         // Emit background-task-update WebSocket event for each article
         await this.websocketService.publishBackgroundTaskUpdate({
-          activityId: activity._id.toString(),
+          activityId: activity.id.toString(),
           label: isXArticle ? 'X Article Generation' : 'Article Generation',
           progress: 100,
-          resultId: article._id.toString(),
+          resultId: article.id.toString(),
           room: getUserRoomName(user.id),
           status: 'completed',
-          taskId: article._id.toString(),
+          taskId: article.id.toString(),
           userId: user.id,
         });
       }
@@ -362,7 +362,7 @@ export class ArticlesController extends BaseCRUDController<
       const errorMessage =
         (error as Error)?.message || 'Article generation failed';
 
-      await this.activitiesService.patch(activity._id.toString(), {
+      await this.activitiesService.patch(activity.id.toString(), {
         key: ActivityKey.ARTICLE_FAILED,
         value: JSON.stringify({
           error: errorMessage,
@@ -371,12 +371,12 @@ export class ArticlesController extends BaseCRUDController<
 
       // Emit background-task-update WebSocket event for failure
       await this.websocketService.publishBackgroundTaskUpdate({
-        activityId: activity._id.toString(),
+        activityId: activity.id.toString(),
         error: errorMessage,
         label: isXArticle ? 'X Article Generation' : 'Article Generation',
         room: getUserRoomName(user.id),
         status: 'failed',
-        taskId: activity._id.toString(),
+        taskId: activity.id.toString(),
         userId: user.id,
       });
 

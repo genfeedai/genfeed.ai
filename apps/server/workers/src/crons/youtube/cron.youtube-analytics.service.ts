@@ -94,7 +94,7 @@ export class CronYoutubeAnalyticsService {
             brandId,
             organizationId,
             posts: batch.map((post) => ({
-              _id: post._id.toString(),
+              _id: post.id.toString(),
               brand: post.brand.toString(),
               externalId: post.externalId!,
               organization: post.organization.toString(),

@@ -82,7 +82,7 @@ describe('AgentOrchestratorController', () => {
         publicMetadata: { organization: 'org', user: 'usr' },
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
-        _id: '507f191e810c19729de860ea',
+        id: '507f191e810c19729de860ea',
       });
       service.chat.mockResolvedValue({} as never);
       const body = {
@@ -111,7 +111,7 @@ describe('AgentOrchestratorController', () => {
         publicMetadata: { organization: 'org', user: 'usr' },
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
-        _id: '507f191e810c19729de860ea',
+        id: '507f191e810c19729de860ea',
       });
       service.chat.mockResolvedValue({} as never);
 
@@ -133,7 +133,7 @@ describe('AgentOrchestratorController', () => {
         id: 'authProvider_789',
         publicMetadata: { organization: 'org', user: 'usr' },
       } as unknown as User;
-      usersService.findOne.mockResolvedValue({ _id: userId });
+      usersService.findOne.mockResolvedValue({ id: userId });
       service.chat.mockResolvedValue({} as never);
 
       await controller.createTurn(
@@ -155,7 +155,7 @@ describe('AgentOrchestratorController', () => {
         publicMetadata: { organization: 'org', user: 'usr' },
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
-        _id: '507f191e810c19729de860ea',
+        id: '507f191e810c19729de860ea',
       });
       service.chat.mockResolvedValue({} as never);
 
@@ -177,7 +177,7 @@ describe('AgentOrchestratorController', () => {
         publicMetadata: { organization: 'org', user: 'usr' },
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
-        _id: '507f191e810c19729de860ea',
+        id: '507f191e810c19729de860ea',
       });
       service.chat.mockResolvedValue({} as never);
 
@@ -219,7 +219,7 @@ describe('AgentOrchestratorController', () => {
         publicMetadata: { organization: 'org', user: 'usr' },
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
-        _id: '507f191e810c19729de860ea',
+        id: '507f191e810c19729de860ea',
       });
       service.chatStream.mockResolvedValue({
         runId: 'run-1',
@@ -248,7 +248,7 @@ describe('AgentOrchestratorController', () => {
         publicMetadata: { organization: 'org', user: 'usr' },
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
-        _id: '507f191e810c19729de860ea',
+        id: '507f191e810c19729de860ea',
       });
       service.chatStream.mockResolvedValue({
         runId: 'run-1',
@@ -287,7 +287,7 @@ describe('AgentOrchestratorController', () => {
     it('should create a goal for the current user and org', async () => {
       const user = { id: 'authProvider_123' } as unknown as User;
       usersService.findOne.mockResolvedValue({
-        _id: '507f191e810c19729de860ea',
+        id: '507f191e810c19729de860ea',
       });
       agentGoalsService.create.mockResolvedValue({ _id: 'goal-1' });
 

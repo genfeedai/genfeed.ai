@@ -69,7 +69,7 @@ describe('MarketplaceInstallService', () => {
         type: ListingType.WORKFLOW,
       });
       workflowsService.createWorkflow.mockResolvedValue({
-        _id: { toString: () => 'wf-1' },
+        id: { toString: () => 'wf-1' },
         label: 'Imported Flow',
       });
 
@@ -102,7 +102,7 @@ describe('MarketplaceInstallService', () => {
         type: ListingType.WORKFLOW,
       });
       workflowsService.createWorkflow.mockResolvedValue({
-        _id: { toString: () => 'wf-2' },
+        id: { toString: () => 'wf-2' },
         label: '',
       });
 
@@ -132,7 +132,7 @@ describe('MarketplaceInstallService', () => {
         type: ListingType.PROMPT,
       });
       promptsService.create.mockResolvedValue({
-        _id: { toString: () => 'p-1' },
+        id: { toString: () => 'p-1' },
       });
 
       const result = await service.installToWorkspace(listingId, userId, orgId);
@@ -157,7 +157,7 @@ describe('MarketplaceInstallService', () => {
         type: ListingType.PRESET,
       });
       promptsService.create.mockResolvedValue({
-        _id: { toString: () => 'p-2' },
+        id: { toString: () => 'p-2' },
       });
 
       await service.installToWorkspace(listingId, userId, orgId);
@@ -183,7 +183,7 @@ describe('MarketplaceInstallService', () => {
         type: ListingType.SKILL,
       });
       skillsService.createSkill.mockResolvedValue({
-        _id: { toString: () => 's-1' },
+        id: { toString: () => 's-1' },
       });
 
       const result = await service.installToWorkspace(listingId, userId, orgId);
@@ -210,7 +210,7 @@ describe('MarketplaceInstallService', () => {
         type: ListingType.SKILL,
       });
       skillsService.createSkill.mockResolvedValue({
-        _id: { toString: () => 's-2' },
+        id: { toString: () => 's-2' },
       });
 
       await service.installToWorkspace(listingId, userId, orgId);

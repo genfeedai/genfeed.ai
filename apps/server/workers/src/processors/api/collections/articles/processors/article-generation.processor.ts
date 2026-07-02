@@ -40,7 +40,7 @@ export class ArticleGenerationProcessor extends WorkerHost {
       await job.updateProgress(100);
 
       this.logger.log(
-        `Article generated successfully: ${article._id} from transcript ${transcriptId}`,
+        `Article generated successfully: ${article.id} from transcript ${transcriptId}`,
       );
     } catch (error: unknown) {
       this.logger.error(

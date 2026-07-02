@@ -58,7 +58,7 @@ describe('SlackController', () => {
       expect(mockCredentialsService.create).not.toHaveBeenCalled();
     });
 
-    it('creates credential using metadata userId, not user._id', async () => {
+    it('creates credential using metadata userId, not user.id', async () => {
       mockBrandsService.findOne.mockResolvedValue({ _id: mockBrandId });
       mockCredentialsService.findOne.mockResolvedValue(null);
       mockCredentialsService.create.mockResolvedValue({});

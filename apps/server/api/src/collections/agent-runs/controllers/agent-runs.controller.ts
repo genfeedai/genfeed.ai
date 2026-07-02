@@ -203,7 +203,7 @@ export class AgentRunsController extends BaseCRUDController<
     const publicMetadata = getPublicMetadata(user);
 
     const entityOrganizationId =
-      (entity.organization as unknown as { _id: string })?._id?.toString() ||
+      (entity.organization as unknown as { id: string })?.id?.toString() ||
       entity.organization?.toString();
 
     if (
@@ -347,7 +347,7 @@ export class AgentRunsController extends BaseCRUDController<
     }
 
     const threadId =
-      (run.thread as unknown as { _id?: string })?._id?.toString() ??
+      (run.thread as unknown as { id?: string })?.id?.toString() ??
       run.thread?.toString();
 
     if (threadId) {

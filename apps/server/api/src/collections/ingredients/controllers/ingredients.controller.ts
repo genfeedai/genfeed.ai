@@ -95,17 +95,17 @@ export class IngredientsController {
       Array.isArray(processedDto.tags)
     ) {
       processedDto.tags = processedDto.tags.map(
-        (tag: string | { _id: string }) => {
+        (tag: string | { id?: string; _id?: string }) => {
           if (typeof tag === 'string') {
             return tag;
           }
 
-          // If tag is an object with _id, convert the _id
-          if (tag && typeof tag === 'object' && '_id' in tag) {
-            return tag._id;
+          // Tag objects carry the canonical `id`; legacy clients may still
+          // send `_id` — accept both.
+          if (tag && typeof tag === 'object') {
+            return tag.id ?? tag._id ?? String(tag);
           }
 
-          // If already ObjectId, return as is
           return tag as string;
         },
       );

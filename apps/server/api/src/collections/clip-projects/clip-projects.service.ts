@@ -102,7 +102,7 @@ export class ClipProjectsService extends BaseService<
     }
 
     const canonicalProjectId =
-      this.readString(project._id) ?? this.readString(project.id) ?? projectId;
+      this.readString(project.id) ?? this.readString(project.id) ?? projectId;
     const results = await this.clipResultsService.findByProject(
       canonicalProjectId,
       organizationId,
@@ -153,8 +153,8 @@ export class ClipProjectsService extends BaseService<
     const data: Record<string, unknown> = {};
     const config: Record<string, unknown> = { ...existingConfig };
 
-    if (typeof dto._id === 'string' && dto._id.length > 0) {
-      data.mongoId = dto._id;
+    if (typeof dto.id === 'string' && dto.id.length > 0) {
+      data.mongoId = dto.id;
     }
 
     if (typeof dto.mongoId === 'string' && dto.mongoId.length > 0) {

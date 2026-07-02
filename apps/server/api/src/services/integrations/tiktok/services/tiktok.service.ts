@@ -286,7 +286,7 @@ export class TiktokService {
       } = tokenRes.data || {};
 
       const updatedCredential = await this.credentialsService.patch(
-        credential._id,
+        credential.id,
         {
           accessToken: access_token,
           accessTokenExpiry: expires_in
@@ -319,7 +319,7 @@ export class TiktokService {
             });
         if (credential) {
           await this.handleAuthError(
-            credential._id,
+            credential.id,
             this.getErrorCode(error),
             url,
           );
@@ -421,7 +421,7 @@ export class TiktokService {
           // If auth error, mark credential as disconnected
           if (this.isAuthError(error) && credential) {
             await this.handleAuthError(
-              credential._id,
+              credential.id,
               this.getErrorCode(error),
               url,
             );
@@ -519,7 +519,7 @@ export class TiktokService {
       // If auth error and we have a credential, mark it as disconnected
       if (this.isAuthError(error) && credential) {
         await this.handleAuthError(
-          credential._id,
+          credential.id,
           this.getErrorCode(error),
           url,
         );
@@ -888,7 +888,7 @@ export class TiktokService {
       // If auth error and we have a credential, mark it as disconnected
       if (this.isAuthError(error) && credential) {
         await this.handleAuthError(
-          credential._id,
+          credential.id,
           this.getErrorCode(error),
           url,
         );

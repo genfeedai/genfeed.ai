@@ -203,7 +203,7 @@ export class StripeWebhookService {
       };
 
       const updatedSubscription = await this.subscriptionsService.patch(
-        String(existingSubscription._id),
+        String(existingSubscription.id),
         subscriptionData,
       );
 
@@ -274,7 +274,7 @@ export class StripeWebhookService {
       };
 
       const updatedSubscription = await this.subscriptionsService.patch(
-        String(existingSubscription._id),
+        String(existingSubscription.id),
         updateData,
       );
 
@@ -286,7 +286,7 @@ export class StripeWebhookService {
         return this.loggerService.warn(
           `${url} user not found for subscription`,
           {
-            subscriptionId: existingSubscription._id,
+            subscriptionId: existingSubscription.id,
           },
         );
       }
@@ -300,7 +300,7 @@ export class StripeWebhookService {
       );
 
       // Invalidate request context cache so updated subscription info is reflected immediately
-      const userId = user._id?.toString();
+      const userId = user.id?.toString();
       if (userId) {
         await Promise.all([
           this.requestContextCacheService.invalidateForUser(userId),
@@ -354,7 +354,7 @@ export class StripeWebhookService {
 
       // Soft delete subscription and update cancellation details
       const updatedSubscription = await this.subscriptionsService.patch(
-        String(existingSubscription._id),
+        String(existingSubscription.id),
         {
           cancelAtPeriodEnd: subscription.cancel_at_period_end,
           isDeleted: true,
@@ -387,7 +387,7 @@ export class StripeWebhookService {
         return this.loggerService.warn(
           `${url} user not found for subscription`,
           {
-            subscriptionId: existingSubscription._id,
+            subscriptionId: existingSubscription.id,
           },
         );
       }
@@ -401,7 +401,7 @@ export class StripeWebhookService {
       );
 
       // Invalidate request context cache so canceled subscription is reflected immediately
-      const userId = user._id?.toString();
+      const userId = user.id?.toString();
       if (userId) {
         await Promise.all([
           this.requestContextCacheService.invalidateForUser(userId),
@@ -552,14 +552,14 @@ export class StripeWebhookService {
         // Balance (credit-balance table) and isOnboardingCompleted (User row)
         // are persisted to the DB below (epic #735, Phase C — no legacy auth provider
         // publicMetadata write-back).
-        if (dbUser?._id) {
+        if (dbUser?.id) {
           await this.accessBootstrapCacheService.invalidateForUser(
-            dbUser._id.toString(),
+            dbUser.id.toString(),
           );
         }
 
         if (dbUser && !dbUser.isOnboardingCompleted) {
-          await this.usersService.patch(dbUser._id, {
+          await this.usersService.patch(dbUser.id, {
             isOnboardingCompleted: true,
             onboardingCompletedAt: new Date(),
             onboardingStepsCompleted: ['brand', 'plan'],
@@ -716,7 +716,7 @@ export class StripeWebhookService {
           throw error;
         }
         if (dbUser.isDeleted === true) {
-          dbUser = await this.usersService.patch(String(dbUser._id), {
+          dbUser = await this.usersService.patch(String(dbUser.id), {
             isDeleted: false,
           });
         }
@@ -730,7 +730,7 @@ export class StripeWebhookService {
     if (isNewUser) {
       const userCreatedEvent: IBetterAuthUserCreatedEvent = {
         email,
-        userId: String(dbUser._id),
+        userId: String(dbUser.id),
       };
       await this.eventEmitter.emitAsync(
         BETTER_AUTH_USER_CREATED_EVENT,
@@ -740,14 +740,14 @@ export class StripeWebhookService {
 
     let organization = await this.organizationsService.findOne({
       isDeleted: false,
-      user: String(dbUser._id),
+      user: String(dbUser.id),
     });
 
     let brand = organization
       ? await this.brandsService.findOne(
           {
             isDeleted: false,
-            organizationId: String(organization._id),
+            organizationId: String(organization.id),
           },
           [],
         )
@@ -755,7 +755,7 @@ export class StripeWebhookService {
 
     if (!organization || !brand) {
       const setupResult = await this.userSetupService.initializeUserResources(
-        String(dbUser._id),
+        String(dbUser.id),
         OrganizationCategory.BUSINESS,
       );
 
@@ -765,31 +765,31 @@ export class StripeWebhookService {
 
     let orgSetting = await this.organizationSettingsService.findOne({
       isDeleted: false,
-      organization: String(organization._id),
+      organization: String(organization.id),
     });
 
     if (!orgSetting) {
       await this.userSetupService.initializeUserResources(
-        String(dbUser._id),
+        String(dbUser.id),
         OrganizationCategory.BUSINESS,
       );
       orgSetting = await this.organizationSettingsService.findOne({
         isDeleted: false,
-        organization: String(organization._id),
+        organization: String(organization.id),
       });
     }
 
     brand = await this.brandsService.findOne(
       {
         isDeleted: false,
-        organizationId: String(organization._id),
+        organizationId: String(organization.id),
       },
       [],
     );
 
     if (!brand) {
       throw new Error(
-        `Brand not found for managed checkout organization ${organization._id}`,
+        `Brand not found for managed checkout organization ${organization.id}`,
       );
     }
 
@@ -806,7 +806,7 @@ export class StripeWebhookService {
     }
 
     await this.creditsUtilsService.addOrganizationCreditsWithExpiration(
-      String(organization._id),
+      String(organization.id),
       creditsToAdd,
       'managed-inference',
       `Managed credit pack purchase (${creditsToAdd} credits)`,
@@ -818,8 +818,8 @@ export class StripeWebhookService {
         category: ApiKeyCategory.GENFEEDAI,
         isRevoked: false,
         label: MANAGED_API_KEY_LABEL,
-        organization: String(organization._id),
-        userId: String(dbUser._id),
+        organization: String(organization.id),
+        userId: String(dbUser.id),
       },
       [],
     );
@@ -835,10 +835,10 @@ export class StripeWebhookService {
           source: 'managed_inference',
           stripeSessionId: session.id,
         },
-        organizationId: String(organization._id),
+        organizationId: String(organization.id),
         rateLimit: 100,
         scopes: MANAGED_API_KEY_SCOPES,
-        userId: String(dbUser._id),
+        userId: String(dbUser.id),
       });
 
       plainKey = createdApiKey.plainKey;
@@ -870,10 +870,10 @@ export class StripeWebhookService {
       userPatch.stripeCustomerId = session.customer;
     }
 
-    await this.usersService.patch(String(dbUser._id), userPatch);
+    await this.usersService.patch(String(dbUser.id), userPatch);
 
     if (orgSetting) {
-      await this.organizationSettingsService.patch(String(orgSetting._id), {
+      await this.organizationSettingsService.patch(String(orgSetting.id), {
         hasEverHadCredits: true,
       });
     }
@@ -881,34 +881,32 @@ export class StripeWebhookService {
     // User row (onboarding + stripeCustomerId), org settings (hasEverHadCredits),
     // and credit balance are all persisted to the DB above; both identity
     // resolvers route from the DB (epic #735, Phase C — no legacy auth provider write-back).
-    await this.accessBootstrapCacheService.invalidateForUser(
-      String(dbUser._id),
-    );
+    await this.accessBootstrapCacheService.invalidateForUser(String(dbUser.id));
 
     await this.activitiesService.create({
-      brand: String(brand._id),
+      brand: String(brand.id),
       key: ActivityKey.CREDITS_ADD,
-      organization: String(organization._id),
+      organization: String(organization.id),
       source: ActivitySource.PAY_AS_YOU_GO,
-      user: String(dbUser._id),
+      user: String(dbUser.id),
       value: String(creditsToAdd),
     });
 
     this.loggerService.log(`${url} managed checkout credits added`, {
       creditsAdded: creditsToAdd,
       email,
-      organizationId: organization._id,
+      organizationId: organization.id,
       sessionId: session.id,
-      userId: dbUser._id,
+      userId: dbUser.id,
     });
 
     return {
       apiKey: plainKey,
       apiKeyAlreadyExists: plainKey === null,
-      brandId: String(brand._id),
+      brandId: String(brand.id),
       email,
-      organizationId: String(organization._id),
-      userId: String(dbUser._id),
+      organizationId: String(organization.id),
+      userId: String(dbUser.id),
     };
   }
 
@@ -974,7 +972,7 @@ export class StripeWebhookService {
         }
 
         return this.addCreditsToOrgFromUserCheckout(
-          fallbackOrg._id.toString(),
+          fallbackOrg.id.toString(),
           dbUser,
           session,
           url,
@@ -982,7 +980,7 @@ export class StripeWebhookService {
       }
 
       await this.addCreditsToOrgFromUserCheckout(
-        creatorOrg._id.toString(),
+        creatorOrg.id.toString(),
         dbUser,
         session,
         url,
@@ -997,11 +995,11 @@ export class StripeWebhookService {
 
   private async addCreditsToOrgFromUserCheckout(
     organizationId: string,
-    dbUser: { _id: string; authProviderId?: string | null },
+    dbUser: { id: string; authProviderId?: string | null },
     session: StripeCheckoutSession,
     url: string,
   ) {
-    const userId = dbUser._id.toString();
+    const userId = dbUser.id.toString();
 
     // Calculate credits from payment
     const creditsToAdd = Number(
@@ -1312,9 +1310,9 @@ export class StripeWebhookService {
             (
               await this.organizationsService.findOne({
                 isDeleted: false,
-                user: String(dbUser._id),
+                user: String(dbUser.id),
               })
-            )?._id ?? '',
+            )?.id ?? '',
           );
       if (organizationId) {
         await this.updateOrganizationTierAndModels(
@@ -1327,16 +1325,14 @@ export class StripeWebhookService {
         // to resolve the org rather than silently dropping the tier write.
         this.loggerService.warn(
           `${url} could not resolve organization to persist subscription tier`,
-          { sessionId: session.id, subscriptionTier, userId: dbUser._id },
+          { sessionId: session.id, subscriptionTier, userId: dbUser.id },
         );
       }
     }
-    await this.accessBootstrapCacheService.invalidateForUser(
-      String(dbUser._id),
-    );
+    await this.accessBootstrapCacheService.invalidateForUser(String(dbUser.id));
 
     if (!dbUser.isOnboardingCompleted) {
-      await this.usersService.patch(dbUser._id, {
+      await this.usersService.patch(dbUser.id, {
         isOnboardingCompleted: true,
         onboardingCompletedAt: new Date(),
         onboardingStepsCompleted: ['brand', 'plan'],
@@ -1346,7 +1342,7 @@ export class StripeWebhookService {
     this.loggerService.log(`${url} onboarding marked complete`, {
       email: dbUser.email,
       sessionId: session.id,
-      userId: dbUser._id,
+      userId: dbUser.id,
     });
   }
 
@@ -1459,7 +1455,7 @@ export class StripeWebhookService {
       const enabledModelIds =
         await this.organizationSettingsService.getLatestMajorVersionModelIds();
 
-      await this.organizationSettingsService.patch(orgSetting._id.toString(), {
+      await this.organizationSettingsService.patch(orgSetting.id.toString(), {
         enabledModels: enabledModelIds,
         subscriptionTier: tier,
       });
@@ -1547,7 +1543,7 @@ export class StripeWebhookService {
 
         // Update subscription status
         const updatedSubscription = await this.subscriptionsService.patch(
-          String(subscription._id),
+          String(subscription.id),
           {
             status: 'active',
           },
@@ -1633,7 +1629,7 @@ export class StripeWebhookService {
             });
             if (orgSetting) {
               await this.organizationSettingsService.patch(
-                orgSetting._id.toString(),
+                orgSetting.id.toString(),
                 {
                   hasEverHadCredits: true,
                 },
@@ -1661,7 +1657,7 @@ export class StripeWebhookService {
             });
 
             if (dbUser && !dbUser.isOnboardingCompleted) {
-              await this.usersService.patch(dbUser._id, {
+              await this.usersService.patch(dbUser.id, {
                 isOnboardingCompleted: true,
                 onboardingCompletedAt: new Date(),
                 onboardingStepsCompleted: ['brand', 'plan'],
@@ -1670,12 +1666,12 @@ export class StripeWebhookService {
               // isOnboardingCompleted is persisted on the User row above (epic
               // #735, Phase C — no legacy auth provider publicMetadata write-back).
               await this.accessBootstrapCacheService.invalidateForUser(
-                String(dbUser._id),
+                String(dbUser.id),
               );
 
               this.loggerService.log(
                 `${url} onboarding marked complete via invoice.paid`,
-                { userId: dbUser._id },
+                { userId: dbUser.id },
               );
             }
           } catch (error: unknown) {
@@ -1729,12 +1725,12 @@ export class StripeWebhookService {
 
         // Update subscription status to past_due so the app can show
         // a banner prompting the user to update their payment method
-        await this.subscriptionsService.patch(String(subscription._id), {
+        await this.subscriptionsService.patch(String(subscription.id), {
           status: 'past_due',
         });
 
         this.loggerService.log(`${url} subscription marked as past_due`, {
-          subscriptionId: subscription._id,
+          subscriptionId: subscription.id,
         });
       }
     } catch (error: unknown) {
@@ -1765,7 +1761,7 @@ export class StripeWebhookService {
       if (orgSetting) {
         try {
           await this.organizationSettingsService.patch(
-            orgSetting._id.toString(),
+            orgSetting.id.toString(),
             { byokBillingStatus: ByokBillingStatus.ACTIVE },
           );
         } catch (patchError: unknown) {
@@ -1822,7 +1818,7 @@ export class StripeWebhookService {
       if (orgSetting) {
         try {
           await this.organizationSettingsService.patch(
-            orgSetting._id.toString(),
+            orgSetting.id.toString(),
             { byokBillingStatus: ByokBillingStatus.PAST_DUE },
           );
         } catch (patchError: unknown) {
@@ -1933,7 +1929,7 @@ export class StripeWebhookService {
             );
 
             // Update subscription in database
-            await this.subscriptionsService.patch(String(subscription._id), {
+            await this.subscriptionsService.patch(String(subscription.id), {
               cancelAtPeriodEnd: false,
               isDeleted: true,
               status: 'canceled',

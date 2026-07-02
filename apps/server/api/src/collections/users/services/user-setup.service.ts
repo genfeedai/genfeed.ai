@@ -80,43 +80,43 @@ export class UserSetupService {
 
       // Step 2: Create organization settings (REQUIRED - cascading failure)
       organizationSettings = await this.getOrCreateOrganizationSettings(
-        organization._id,
+        organization.id,
       );
 
       // Step 3: Create user settings (REQUIRED - cascading failure)
       userSettings = await this.getOrCreateUserSettings(userId);
 
       // Step 4: Create brand (REQUIRED - cascading failure)
-      brand = await this.getOrCreateBrand(organization._id, userId);
+      brand = await this.getOrCreateBrand(organization.id, userId);
 
       // Step 5: Create default recurring workflows for the default brand.
       if (organizationResult.wasCreated) {
         await this.provisionDefaultRecurringWorkflows(
-          organization._id,
-          brand._id,
+          organization.id,
+          brand.id,
           userId,
         );
       }
 
       // Step 6: Create credit balance (REQUIRED - cascading failure)
       await this.creditBalanceService.getOrCreateBalance(
-        organization._id.toString(),
+        organization.id.toString(),
       );
       this.logger.log(
-        `Created credit balance for organization ${organization._id}`,
+        `Created credit balance for organization ${organization.id}`,
         this.context,
       );
 
       if (organizationResult.wasCreated) {
-        await this.awardSignupGiftCredits(organization._id);
+        await this.awardSignupGiftCredits(organization.id);
       }
 
       // Step 7: Create member (REQUIRED - cascading failure)
-      member = await this.getOrCreateMember(organization._id, userId);
+      member = await this.getOrCreateMember(organization.id, userId);
 
       // Log success summary
       this.logger.log(
-        `User setup completed for user ${userId} - org: ${organization._id}, brand: ${brand._id}, member: ${member._id}`,
+        `User setup completed for user ${userId} - org: ${organization.id}, brand: ${brand.id}, member: ${member.id}`,
         this.context,
       );
 
@@ -174,14 +174,14 @@ export class UserSetupService {
       userId,
     } as unknown as Parameters<typeof this.organizationsService.create>[0]);
 
-    if (!organization?._id) {
+    if (!organization?.id) {
       throw new Error(
         `Organization creation failed for user ${userId} - _id is missing`,
       );
     }
 
     this.logger.log(
-      `Created organization ${organization._id} for user ${userId}`,
+      `Created organization ${organization.id} for user ${userId}`,
       this.context,
     );
 
@@ -283,7 +283,7 @@ export class UserSetupService {
     >[0]);
 
     this.logger.log(
-      `Created organization settings ${orgSettings._id} with ${enabledModelIds.length} enabled models`,
+      `Created organization settings ${orgSettings.id} with ${enabledModelIds.length} enabled models`,
       this.context,
     );
 
@@ -353,7 +353,7 @@ export class UserSetupService {
     } as unknown as Parameters<typeof this.brandsService.create>[0]);
 
     this.logger.log(
-      `Created brand ${brand._id} for organization ${organizationId}`,
+      `Created brand ${brand.id} for organization ${organizationId}`,
       this.context,
     );
 
@@ -372,7 +372,7 @@ export class UserSetupService {
 
     if (existing) {
       if (existing.isActive === false) {
-        const memberId = existing._id || existing.id;
+        const memberId = existing.id;
         const reactivated = await this.membersService.patch(memberId, {
           isActive: true,
         });
@@ -413,7 +413,7 @@ export class UserSetupService {
     const member = await this.membersService.create({
       isActive: true,
       organizationId,
-      roleId: String(roleToAssign._id),
+      roleId: String(roleToAssign.id),
       roleKey: roleToAssign.key,
       userId,
     } as unknown as Parameters<typeof this.membersService.create>[0]);

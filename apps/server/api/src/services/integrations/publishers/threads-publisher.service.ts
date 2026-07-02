@@ -210,7 +210,7 @@ export class ThreadsPublisherService extends BasePublisherService {
         // Validate character limit
         if (text.length > 500) {
           this.logger.warn(`${url} child text exceeds 500 chars, truncating`, {
-            childPostId: child._id.toString(),
+            childPostId: child.id.toString(),
           });
         }
 
@@ -224,7 +224,7 @@ export class ThreadsPublisherService extends BasePublisherService {
 
         if (result?.threadId) {
           // Update child post with externalId and status
-          await this.postsService.patch(child._id.toString(), {
+          await this.postsService.patch(child.id.toString(), {
             externalId: result.threadId,
             publicationDate: new Date(),
             status: PostStatus.PUBLIC,
@@ -234,28 +234,28 @@ export class ThreadsPublisherService extends BasePublisherService {
           replyToId = result.threadId;
 
           this.logger.log(`${url} posted reply`, {
-            childPostId: child._id.toString(),
+            childPostId: child.id.toString(),
             order: child.order,
             threadId: result.threadId,
           });
         } else {
           this.logger.error(`${url} failed to post reply`, {
-            childPostId: child._id.toString(),
+            childPostId: child.id.toString(),
             order: child.order,
           });
 
-          await this.postsService.patch(child._id.toString(), {
+          await this.postsService.patch(child.id.toString(), {
             status: PostStatus.FAILED,
           });
         }
       } catch (error: unknown) {
         this.logger.error(`${url} error posting reply`, {
-          childPostId: child._id.toString(),
+          childPostId: child.id.toString(),
           error: (error as Error)?.message,
           order: child.order,
         });
 
-        await this.postsService.patch(child._id.toString(), {
+        await this.postsService.patch(child.id.toString(), {
           status: PostStatus.FAILED,
         });
       }
