@@ -156,8 +156,16 @@ vi.mock('@genfeedai/hooks/data/overview/use-overview-bootstrap', () => ({
 }));
 
 vi.mock('@ui/menus/item/MenuItem', () => ({
-  default: ({ badgeCount, label }: { badgeCount?: number; label: string }) => (
-    <div data-testid="menu-item">
+  default: ({
+    badgeCount,
+    href,
+    label,
+  }: {
+    badgeCount?: number;
+    href?: string;
+    label: string;
+  }) => (
+    <div data-href={href} data-testid="menu-item">
       {label}
       {badgeCount ? ` (${badgeCount})` : ''}
     </div>
@@ -408,6 +416,26 @@ describe('MenuShared', () => {
 
     expect(screen.getByTestId('sidebar-secondary-items')).toBeInTheDocument();
     expect(screen.getByText('Activity')).toBeInTheDocument();
+  });
+
+  it('keeps globally scoped menu hrefs unprefixed', () => {
+    const globalConfig: MenuConfig = {
+      items: [
+        {
+          href: '/admin/agent',
+          hrefScope: 'global',
+          label: 'Agent',
+        },
+      ],
+      logoHref: '/',
+    };
+
+    render(<MenuShared config={globalConfig} />);
+
+    expect(screen.getByText('Agent')).toHaveAttribute(
+      'data-href',
+      '/admin/agent',
+    );
   });
 
   it('does not reuse raw href keys for settings items with different scopes', () => {
