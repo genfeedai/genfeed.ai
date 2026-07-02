@@ -127,7 +127,7 @@ export class ContentProductionWorkflowService {
         } catch (error: unknown) {
           failed += 1;
           this.logger.error(`${this.logContext} brand content engine failed`, {
-            brandId: this.optionalString(brand._id ?? brand.id),
+            brandId: this.optionalString(brand.id),
             error: this.errorMessage(error),
             organizationId,
           });
@@ -288,7 +288,7 @@ export class ContentProductionWorkflowService {
     brand: BrandDocument,
     organizationId: string,
   ): Promise<void> {
-    const brandId = String(brand._id ?? brand.id);
+    const brandId = String(brand.id);
     const userId =
       this.optionalString(brand.user ?? brand.userId) ?? organizationId;
     const strategy = this.readRecord(
@@ -319,7 +319,7 @@ export class ContentProductionWorkflowService {
     const result = await this.contentExecutionService.executePlan(
       organizationId,
       brandId,
-      String(plan._id),
+      String(plan.id),
       userId,
     );
 

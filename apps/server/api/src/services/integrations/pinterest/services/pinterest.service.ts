@@ -126,11 +126,11 @@ export class PinterestService {
       const { access_token, refresh_token, expires_in } = response.data;
 
       this.loggerService.log(`${url} success`, {
-        credentialId: credential._id,
+        credentialId: credential.id,
         hasNewRefreshToken: !!refresh_token,
       });
 
-      return this.credentialsService.patch(credential._id, {
+      return this.credentialsService.patch(credential.id, {
         accessToken: access_token,
         accessTokenExpiry: expires_in
           ? new Date(Date.now() + expires_in * 1000)

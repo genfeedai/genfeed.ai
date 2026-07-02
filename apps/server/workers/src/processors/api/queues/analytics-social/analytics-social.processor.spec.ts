@@ -83,14 +83,14 @@ describe('AnalyticsSocialProcessor', () => {
       const jobData: SocialAnalyticsJobData = {
         posts: [
           {
-            _id: 'post-1',
+            id: 'post-1',
             brand: 'brand-1',
             externalId: 'ig-123',
             organization: 'org-1',
             platform: CredentialPlatform.INSTAGRAM,
           },
           {
-            _id: 'post-2',
+            id: 'post-2',
             brand: 'brand-1',
             externalId: 'tiktok-456',
             organization: 'org-1',
@@ -135,21 +135,21 @@ describe('AnalyticsSocialProcessor', () => {
       const jobData: SocialAnalyticsJobData = {
         posts: [
           {
-            _id: 'post-1',
+            id: 'post-1',
             brand: 'brand-1',
             externalId: 'ig-1',
             organization: 'org-1',
             platform: CredentialPlatform.INSTAGRAM,
           },
           {
-            _id: 'post-2',
+            id: 'post-2',
             brand: 'brand-1',
             externalId: 'ig-2',
             organization: 'org-1',
             platform: CredentialPlatform.INSTAGRAM,
           },
           {
-            _id: 'post-3',
+            id: 'post-3',
             brand: 'brand-1',
             externalId: 'tt-1',
             organization: 'org-1',
@@ -175,7 +175,7 @@ describe('AnalyticsSocialProcessor', () => {
       const jobData: SocialAnalyticsJobData = {
         posts: [
           {
-            _id: 'post-1',
+            id: 'post-1',
             brand: 'brand-1',
             externalId: 'ig-123',
             organization: 'org-1',
@@ -203,14 +203,14 @@ describe('AnalyticsSocialProcessor', () => {
       const jobData: SocialAnalyticsJobData = {
         posts: [
           {
-            _id: 'post-good',
+            id: 'post-good',
             brand: 'brand-1',
             externalId: 'ig-good',
             organization: 'org-1',
             platform: CredentialPlatform.INSTAGRAM,
           },
           {
-            _id: 'post-bad',
+            id: 'post-bad',
             brand: 'brand-1',
             externalId: 'ig-bad',
             organization: 'org-1',

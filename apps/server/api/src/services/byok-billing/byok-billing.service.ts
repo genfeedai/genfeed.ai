@@ -243,7 +243,7 @@ export class ByokBillingService {
         // Store as rollover for next period
         if (orgSettings) {
           await this.organizationSettingsService.patch(
-            orgSettings._id.toString(),
+            orgSettings.id.toString(),
             { byokBillingRollover: feeAmountCents },
           );
         } else {
@@ -309,7 +309,7 @@ export class ByokBillingService {
         // Reset rollover after successful invoice creation
         if (orgSettings && rollover > 0) {
           await this.organizationSettingsService.patch(
-            orgSettings._id.toString(),
+            orgSettings.id.toString(),
             { byokBillingRollover: 0 },
           );
         }

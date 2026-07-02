@@ -22,7 +22,6 @@ type AnalyticsSyncWorkflowAction =
   | 'youtubeAnalyticsSync';
 
 type AnalyticsPost = PostEntity & {
-  _id?: unknown;
   brand?: unknown;
   credential?: unknown;
   externalId?: string | null;
@@ -100,7 +99,7 @@ export class AnalyticsSyncWorkflowService {
     for (const chunk of this.chunk(posts, CHUNK_SIZE)) {
       const jobData: FacebookAnalyticsJobData = {
         posts: chunk.map((post) => ({
-          _id: this.requiredId(post),
+          id: this.requiredId(post),
           brand: this.requiredBrandId(post),
           credential: this.optionalId(post.credential),
           externalId: this.requiredExternalId(post),
@@ -156,7 +155,7 @@ export class AnalyticsSyncWorkflowService {
     for (const chunk of this.chunk(posts, CHUNK_SIZE)) {
       const jobData: SocialAnalyticsJobData = {
         posts: chunk.map((post) => ({
-          _id: this.requiredId(post),
+          id: this.requiredId(post),
           brand: this.requiredBrandId(post),
           externalId: this.requiredExternalId(post),
           organization: organizationId,
@@ -205,7 +204,7 @@ export class AnalyticsSyncWorkflowService {
     for (const chunk of this.chunk(posts, CHUNK_SIZE)) {
       const jobData: ThreadsAnalyticsJobData = {
         posts: chunk.map((post) => ({
-          _id: this.requiredId(post),
+          id: this.requiredId(post),
           brand: this.requiredBrandId(post),
           credential: this.optionalId(post.credential),
           externalId: this.requiredExternalId(post),
@@ -261,7 +260,7 @@ export class AnalyticsSyncWorkflowService {
         skipped++;
         this.logger.warn(`${this.logContext} skipped Twitter post`, {
           organizationId,
-          postId: this.optionalId(post._id),
+          postId: this.optionalId(post.id),
           reason: 'missing_credential',
         });
         continue;
@@ -277,7 +276,7 @@ export class AnalyticsSyncWorkflowService {
         const jobData: TwitterAnalyticsJobData = {
           credentialId,
           posts: batch.map((post) => ({
-            _id: this.requiredId(post),
+            id: this.requiredId(post),
             brand: this.requiredBrandId(post),
             externalId: this.requiredExternalId(post),
             organization: organizationId,
@@ -371,7 +370,7 @@ export class AnalyticsSyncWorkflowService {
         skipped++;
         this.logger.warn(`${this.logContext} skipped YouTube post`, {
           organizationId,
-          postId: this.optionalId(post._id),
+          postId: this.optionalId(post.id),
           reason: 'missing_brand',
         });
         continue;
@@ -388,7 +387,7 @@ export class AnalyticsSyncWorkflowService {
           brandId,
           organizationId,
           posts: batch.map((post) => ({
-            _id: this.requiredId(post),
+            id: this.requiredId(post),
             brand: brandId,
             externalId: this.requiredExternalId(post),
             organization: organizationId,
@@ -524,8 +523,8 @@ export class AnalyticsSyncWorkflowService {
     }
     if (value && typeof value === 'object') {
       const record = value as Record<string, unknown>;
-      if (typeof record._id === 'string' && record._id.length > 0) {
-        return record._id;
+      if (typeof record.id === 'string' && record.id.length > 0) {
+        return record.id;
       }
       if (typeof record.id === 'string' && record.id.length > 0) {
         return record.id;
@@ -535,7 +534,7 @@ export class AnalyticsSyncWorkflowService {
   }
 
   private requiredId(post: AnalyticsPost): string {
-    const id = this.optionalId(post._id) ?? this.optionalId(post);
+    const id = this.optionalId(post.id) ?? this.optionalId(post);
     if (!id) {
       throw new Error('Analytics post missing id');
     }

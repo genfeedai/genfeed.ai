@@ -626,10 +626,10 @@ export class AgentThreadEngineService {
       );
 
       yield* this.appendEventEffect({
-        commandId: `memory-flush:${threadId}:${memory._id}`,
+        commandId: `memory-flush:${threadId}:${memory.id}`,
         organizationId,
         payload: {
-          memoryId: String(memory._id),
+          memoryId: String(memory.id),
           summary: content.slice(0, 200),
         },
         threadId,
@@ -637,7 +637,7 @@ export class AgentThreadEngineService {
         userId,
       });
 
-      return String(memory._id);
+      return String(memory.id);
     });
   }
 

@@ -23,12 +23,12 @@ describe('UserSetupService', () => {
   const userSettingsId = 'test-object-id';
   const roleId = 'test-object-id';
 
-  const mockOrg = { _id: orgId, label: 'Default Organization', user: userId };
-  const mockOrgSettings = { _id: orgSettingsId, organization: orgId };
-  const mockUserSettings = { _id: userSettingsId, user: userId };
-  const mockBrand = { _id: brandId, organization: orgId };
-  const mockMember = { _id: memberId, organization: orgId, user: userId };
-  const mockRole = { _id: roleId, key: 'admin' };
+  const mockOrg = { id: orgId, label: 'Default Organization', user: userId };
+  const mockOrgSettings = { id: orgSettingsId, organization: orgId };
+  const mockUserSettings = { id: userSettingsId, user: userId };
+  const mockBrand = { id: brandId, organization: orgId };
+  const mockMember = { id: memberId, organization: orgId, user: userId };
+  const mockRole = { id: roleId, key: 'admin' };
 
   const mockOrganizationsService = {
     create: vi.fn(),
@@ -264,7 +264,7 @@ describe('UserSetupService', () => {
     });
 
     it('should fallback to user role if admin role not found', async () => {
-      const userRole = { _id: 'test-object-id', key: 'user' };
+      const userRole = { id: 'test-object-id', key: 'user' };
       mockRolesService.findOne
         .mockResolvedValueOnce(null) // admin not found
         .mockResolvedValueOnce(userRole); // user role found
@@ -286,8 +286,8 @@ describe('UserSetupService', () => {
       );
     });
 
-    it('should throw and log error if organization creation returns without _id', async () => {
-      mockOrganizationsService.create.mockResolvedValue({ label: 'Broken' }); // no _id
+    it('should throw and log error if organization creation returns without id', async () => {
+      mockOrganizationsService.create.mockResolvedValue({ label: 'Broken' }); // no id
 
       await expect(service.initializeUserResources(userId)).rejects.toThrow(
         /Organization creation failed/,

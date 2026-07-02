@@ -54,7 +54,7 @@ describe('TikTokPublisherService', () => {
 
   // Mock post for text-only (not supported on TikTok)
   const mockTextPost = {
-    _id: mockPostId,
+    id: mockPostId,
     brand: mockBrandId,
     category: PostCategory.TEXT,
     description: '<p>Test TikTok content</p>',
@@ -67,7 +67,7 @@ describe('TikTokPublisherService', () => {
 
   // Mock post with single image (not supported - needs 2-35 for carousel)
   const mockSingleImagePost = {
-    _id: mockPostId,
+    id: mockPostId,
     brand: mockBrandId,
     category: PostCategory.IMAGE,
     description: '<p>Single image post</p>',
@@ -80,7 +80,7 @@ describe('TikTokPublisherService', () => {
 
   // Mock post with video
   const mockVideoPost = {
-    _id: mockPostId,
+    id: mockPostId,
     brand: mockBrandId,
     category: PostCategory.VIDEO,
     description: '<p>Test video post</p>',
@@ -93,7 +93,7 @@ describe('TikTokPublisherService', () => {
 
   // Mock post with carousel (2-35 images - supported on TikTok)
   const mockCarouselPost = {
-    _id: mockPostId,
+    id: mockPostId,
     brand: mockBrandId,
     category: PostCategory.IMAGE,
     description: '<p>Photo carousel</p>',

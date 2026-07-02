@@ -151,7 +151,7 @@ export class ClipProjectsController {
       user: userId,
     });
 
-    const projectId = String(project._id);
+    const projectId = String(project.id);
 
     // Enqueue the async pipeline
     const batchJobId = await this.clipFactoryQueueService.enqueue({
@@ -209,7 +209,7 @@ export class ClipProjectsController {
       user: userId,
     });
 
-    const projectId = String(project._id);
+    const projectId = String(project.id);
 
     await this.clipAnalyzeQueueService.enqueue({
       language: dto.language ?? 'en',
@@ -249,7 +249,7 @@ export class ClipProjectsController {
 
     return {
       highlights: project.highlights || [],
-      projectId: String(project._id),
+      projectId: String(project.id),
       status: project.status,
     };
   }
@@ -482,7 +482,7 @@ export class ClipProjectsController {
       config: {
         clipHandoff: {
           clipProjectId: projectId,
-          clipResultId: String(clipResult._id ?? clipResult.id),
+          clipResultId: String(clipResult.id),
           source: 'clip-result',
         },
         name: `${this.readString(clipResult.title) ?? 'Clip'} edit`,
@@ -504,7 +504,7 @@ export class ClipProjectsController {
               durationFrames,
               effects: [],
               id: uuidv4(),
-              ingredientId: String(clipResult._id ?? clipResult.id),
+              ingredientId: String(clipResult.id),
               ingredientUrl: videoUrl,
               sourceEndFrame: durationFrames,
               sourceStartFrame: 0,
@@ -523,11 +523,11 @@ export class ClipProjectsController {
       ],
       userId: publicMetadata.user,
     } as never);
-    const editorProjectId = String(editorProject._id ?? editorProject.id);
+    const editorProjectId = String(editorProject.id);
 
     return {
       clipProjectId: projectId,
-      clipResultId: String(clipResult._id ?? clipResult.id),
+      clipResultId: String(clipResult.id),
       editorPath: `/editor/${editorProjectId}`,
       editorProjectId,
       videoUrl,
@@ -560,7 +560,7 @@ export class ClipProjectsController {
       organizationId: publicMetadata.organization,
       projectId,
     });
-    const resolvedClipResultId = String(clipResult._id ?? clipResult.id);
+    const resolvedClipResultId = String(clipResult.id);
     const videoUrl = this.resolveClipVideoUrl(clipResult);
     const payload = await this.publishHandoffService.preparePublishHandoff(
       projectId,

@@ -105,23 +105,23 @@ describe('Organizations E2E Tests', () => {
     testOrganization = createTestOrganization({
       _id: generateIdString(),
       label: 'Test Organization for E2E',
-      user: testUser._id,
+      user: testUser.id,
     });
 
     // Create test member (owner)
     testMember = createTestMember({
       _id: generateIdString(),
-      organization: testOrganization._id,
+      organization: testOrganization.id,
       role: 'owner',
-      user: testUser._id,
+      user: testUser.id,
     });
 
     // Create test brand
     testBrand = createTestBrand({
       _id: generateIdString(),
       label: 'Test Brand',
-      organization: testOrganization._id,
-      user: testUser._id,
+      organization: testOrganization.id,
+      user: testUser.id,
     });
 
     // Seed core data
@@ -132,14 +132,14 @@ describe('Organizations E2E Tests', () => {
     await dbHelper.seedCollection('organization-settings', [
       createTestOrganizationSetting({
         _id: generateIdString(),
-        organization: testOrganization._id,
+        organization: testOrganization.id,
       }),
     ]);
     await dbHelper.seedCollection('credit-balances', [
       createTestCredit({
         _id: generateIdString(),
         balance: 50000,
-        organization: testOrganization._id,
+        organization: testOrganization.id,
       }),
     ]);
   });
@@ -151,8 +151,8 @@ describe('Organizations E2E Tests', () => {
     return request(app.getHttpServer())
       .set('Authorization', 'Bearer mock-jwt-token')
       .set('x-authProvider-user-id', testUser.authProviderId)
-      .set('x-user-id', testUser._id.toString())
-      .set('x-organization-id', testOrganization._id.toString());
+      .set('x-user-id', testUser.id.toString())
+      .set('x-organization-id', testOrganization.id.toString());
   };
 
   describe('GET /v1/organizations/:organizationId/brands', () => {
@@ -162,16 +162,16 @@ describe('Organizations E2E Tests', () => {
         createTestBrand({
           _id: generateIdString(),
           label: 'Brand Two',
-          organization: testOrganization._id,
+          organization: testOrganization.id,
           slug: `brand-two-${Date.now()}`,
-          user: testUser._id,
+          user: testUser.id,
         }),
         createTestBrand({
           _id: generateIdString(),
           label: 'Brand Three',
-          organization: testOrganization._id,
+          organization: testOrganization.id,
           slug: `brand-three-${Date.now()}`,
-          user: testUser._id,
+          user: testUser.id,
         }),
       ];
       await dbHelper.seedCollection('brands', additionalBrands);
@@ -179,7 +179,7 @@ describe('Organizations E2E Tests', () => {
 
     it('should return all brands for organization', async () => {
       const response = await authenticatedRequest().get(
-        `/v1/organizations/${testOrganization._id}/brands`,
+        `/v1/organizations/${testOrganization.id}/brands`,
       );
 
       expect(response.status).toBe(200);
@@ -190,7 +190,7 @@ describe('Organizations E2E Tests', () => {
 
     it('should return brands with correct structure', async () => {
       const response = await authenticatedRequest().get(
-        `/v1/organizations/${testOrganization._id}/brands`,
+        `/v1/organizations/${testOrganization.id}/brands`,
       );
 
       expect(response.status).toBe(200);
@@ -205,14 +205,14 @@ describe('Organizations E2E Tests', () => {
         _id: generateIdString(),
         isDeleted: true,
         label: 'Deleted Brand',
-        organization: testOrganization._id,
+        organization: testOrganization.id,
         slug: `deleted-brand-${Date.now()}`,
-        user: testUser._id,
+        user: testUser.id,
       });
       await dbHelper.seedCollection('brands', [deletedBrand]);
 
       const response = await authenticatedRequest().get(
-        `/v1/organizations/${testOrganization._id}/brands`,
+        `/v1/organizations/${testOrganization.id}/brands`,
       );
 
       expect(response.status).toBe(200);
@@ -222,7 +222,7 @@ describe('Organizations E2E Tests', () => {
 
     it('should support pagination', async () => {
       const response = await authenticatedRequest().get(
-        `/v1/organizations/${testOrganization._id}/brands?page[size]=2&page[number]=1`,
+        `/v1/organizations/${testOrganization.id}/brands?page[size]=2&page[number]=1`,
       );
 
       expect(response.status).toBe(200);
@@ -239,14 +239,14 @@ describe('Organizations E2E Tests', () => {
         createTestTag({
           _id: generateIdString(),
           label: 'Tag One',
-          organization: testOrganization._id,
-          user: testUser._id,
+          organization: testOrganization.id,
+          user: testUser.id,
         }),
         createTestTag({
           _id: generateIdString(),
           label: 'Tag Two',
-          organization: testOrganization._id,
-          user: testUser._id,
+          organization: testOrganization.id,
+          user: testUser.id,
         }),
         // Global tag (no user, no organization)
         createTestTag({
@@ -267,7 +267,7 @@ describe('Organizations E2E Tests', () => {
 
     it('should return tags for organization including global tags', async () => {
       const response = await authenticatedRequest().get(
-        `/v1/organizations/${testOrganization._id}/tags`,
+        `/v1/organizations/${testOrganization.id}/tags`,
       );
 
       expect(response.status).toBe(200);
@@ -279,7 +279,7 @@ describe('Organizations E2E Tests', () => {
 
     it('should return tags with correct JSON:API structure', async () => {
       const response = await authenticatedRequest().get(
-        `/v1/organizations/${testOrganization._id}/tags`,
+        `/v1/organizations/${testOrganization.id}/tags`,
       );
 
       expect(response.status).toBe(200);
@@ -299,31 +299,31 @@ describe('Organizations E2E Tests', () => {
       // Create credentials for posts
       const credential = createTestCredential({
         _id: generateIdString(),
-        brand: testBrand._id,
-        organization: testOrganization._id,
+        brand: testBrand.id,
+        organization: testOrganization.id,
         platform: 'youtube',
-        user: testUser._id,
+        user: testUser.id,
       });
 
       // Create posts
       const posts = [
         createTestPost({
           _id: generateIdString(),
-          brand: testBrand._id,
-          credential: credential._id,
+          brand: testBrand.id,
+          credential: credential.id,
           label: 'Post One',
-          organization: testOrganization._id,
+          organization: testOrganization.id,
           status: 'published',
-          user: testUser._id,
+          user: testUser.id,
         }),
         createTestPost({
           _id: generateIdString(),
-          brand: testBrand._id,
-          credential: credential._id,
+          brand: testBrand.id,
+          credential: credential.id,
           label: 'Post Two',
-          organization: testOrganization._id,
+          organization: testOrganization.id,
           status: 'draft',
-          user: testUser._id,
+          user: testUser.id,
         }),
       ];
 
@@ -333,7 +333,7 @@ describe('Organizations E2E Tests', () => {
 
     it('should return posts for organization', async () => {
       const response = await authenticatedRequest().get(
-        `/v1/organizations/${testOrganization._id}/posts`,
+        `/v1/organizations/${testOrganization.id}/posts`,
       );
 
       expect(response.status).toBe(200);
@@ -344,7 +344,7 @@ describe('Organizations E2E Tests', () => {
 
     it('should return posts with populated credentials', async () => {
       const response = await authenticatedRequest().get(
-        `/v1/organizations/${testOrganization._id}/posts`,
+        `/v1/organizations/${testOrganization.id}/posts`,
       );
 
       expect(response.status).toBe(200);
@@ -358,16 +358,16 @@ describe('Organizations E2E Tests', () => {
       // Create a deleted post
       const deletedPost = createTestPost({
         _id: generateIdString(),
-        brand: testBrand._id,
+        brand: testBrand.id,
         isDeleted: true,
         label: 'Deleted Post',
-        organization: testOrganization._id,
-        user: testUser._id,
+        organization: testOrganization.id,
+        user: testUser.id,
       });
       await dbHelper.seedCollection('posts', [deletedPost]);
 
       const response = await authenticatedRequest().get(
-        `/v1/organizations/${testOrganization._id}/posts`,
+        `/v1/organizations/${testOrganization.id}/posts`,
       );
 
       expect(response.status).toBe(200);
@@ -381,30 +381,30 @@ describe('Organizations E2E Tests', () => {
       const ingredients = [
         createTestIngredient({
           _id: generateIdString(),
-          brand: testBrand._id,
+          brand: testBrand.id,
           category: 'video',
           label: 'Video Ingredient',
-          organization: testOrganization._id,
+          organization: testOrganization.id,
           status: 'ready',
-          user: testUser._id,
+          user: testUser.id,
         }),
         createTestIngredient({
           _id: generateIdString(),
-          brand: testBrand._id,
+          brand: testBrand.id,
           category: 'image',
           label: 'Image Ingredient',
-          organization: testOrganization._id,
+          organization: testOrganization.id,
           status: 'ready',
-          user: testUser._id,
+          user: testUser.id,
         }),
         createTestIngredient({
           _id: generateIdString(),
-          brand: testBrand._id,
+          brand: testBrand.id,
           category: 'audio',
           label: 'Audio Ingredient',
-          organization: testOrganization._id,
+          organization: testOrganization.id,
           status: 'processing',
-          user: testUser._id,
+          user: testUser.id,
         }),
       ];
 
@@ -413,7 +413,7 @@ describe('Organizations E2E Tests', () => {
 
     it('should return ingredients for organization', async () => {
       const response = await authenticatedRequest().get(
-        `/v1/organizations/${testOrganization._id}/ingredients`,
+        `/v1/organizations/${testOrganization.id}/ingredients`,
       );
 
       expect(response.status).toBe(200);
@@ -424,7 +424,7 @@ describe('Organizations E2E Tests', () => {
 
     it('should filter ingredients by category', async () => {
       const response = await authenticatedRequest().get(
-        `/v1/organizations/${testOrganization._id}/ingredients?category=video`,
+        `/v1/organizations/${testOrganization.id}/ingredients?category=video`,
       );
 
       expect(response.status).toBe(200);
@@ -434,7 +434,7 @@ describe('Organizations E2E Tests', () => {
 
     it('should filter ingredients by status', async () => {
       const response = await authenticatedRequest().get(
-        `/v1/organizations/${testOrganization._id}/ingredients?status=ready`,
+        `/v1/organizations/${testOrganization.id}/ingredients?status=ready`,
       );
 
       expect(response.status).toBe(200);
@@ -448,7 +448,7 @@ describe('Organizations E2E Tests', () => {
 
     it('should support search in ingredients', async () => {
       const response = await authenticatedRequest().get(
-        `/v1/organizations/${testOrganization._id}/ingredients?search=Video`,
+        `/v1/organizations/${testOrganization.id}/ingredients?search=Video`,
       );
 
       expect(response.status).toBe(200);
@@ -467,11 +467,11 @@ describe('Organizations E2E Tests', () => {
       await dbHelper.seedCollection('users', [otherUser]);
 
       const response = await request(app.getHttpServer())
-        .get(`/v1/organizations/${testOrganization._id}/posts`)
+        .get(`/v1/organizations/${testOrganization.id}/posts`)
         .set('Authorization', 'Bearer mock-jwt-token')
         .set('x-authProvider-user-id', otherUser.authProviderId)
-        .set('x-user-id', otherUser._id.toString())
-        .set('x-organization-id', testOrganization._id.toString());
+        .set('x-user-id', otherUser.id.toString())
+        .set('x-organization-id', testOrganization.id.toString());
 
       // Note: This test may pass or fail depending on how the mock guards are configured
       // In production, this should return 403 Forbidden
@@ -489,20 +489,20 @@ describe('Organizations E2E Tests', () => {
 
       const membership = createTestMember({
         _id: generateIdString(),
-        organization: testOrganization._id,
+        organization: testOrganization.id,
         role: 'member',
-        user: memberUser._id,
+        user: memberUser.id,
       });
 
       await dbHelper.seedCollection('users', [memberUser]);
       await dbHelper.seedCollection('members', [membership]);
 
       const response = await request(app.getHttpServer())
-        .get(`/v1/organizations/${testOrganization._id}/brands`)
+        .get(`/v1/organizations/${testOrganization.id}/brands`)
         .set('Authorization', 'Bearer mock-jwt-token')
         .set('x-authProvider-user-id', memberUser.authProviderId)
-        .set('x-user-id', memberUser._id.toString())
-        .set('x-organization-id', testOrganization._id.toString());
+        .set('x-user-id', memberUser.id.toString())
+        .set('x-organization-id', testOrganization.id.toString());
 
       expect(response.status).toBe(200);
     });
@@ -523,22 +523,22 @@ describe('Organizations E2E Tests', () => {
       otherOrganization = createTestOrganization({
         _id: generateIdString(),
         label: 'Other Organization',
-        user: otherUser._id,
+        user: otherUser.id,
       });
 
       const otherMember = createTestMember({
         _id: generateIdString(),
-        organization: otherOrganization._id,
+        organization: otherOrganization.id,
         role: 'owner',
-        user: otherUser._id,
+        user: otherUser.id,
       });
 
       const otherBrand = createTestBrand({
         _id: generateIdString(),
         label: 'Other Brand',
-        organization: otherOrganization._id,
+        organization: otherOrganization.id,
         slug: `other-brand-${Date.now()}`,
-        user: otherUser._id,
+        user: otherUser.id,
       });
 
       await dbHelper.seedCollection('users', [otherUser]);
@@ -548,14 +548,14 @@ describe('Organizations E2E Tests', () => {
       await dbHelper.seedCollection('organization-settings', [
         createTestOrganizationSetting({
           _id: generateIdString(),
-          organization: otherOrganization._id,
+          organization: otherOrganization.id,
         }),
       ]);
     });
 
     it('should not return brands from other organizations', async () => {
       const response = await authenticatedRequest().get(
-        `/v1/organizations/${testOrganization._id}/brands`,
+        `/v1/organizations/${testOrganization.id}/brands`,
       );
 
       expect(response.status).toBe(200);
@@ -573,13 +573,13 @@ describe('Organizations E2E Tests', () => {
       const otherIngredient = createTestIngredient({
         _id: generateIdString(),
         label: 'Other Ingredient',
-        organization: otherOrganization._id,
-        user: otherUser._id,
+        organization: otherOrganization.id,
+        user: otherUser.id,
       });
       await dbHelper.seedCollection('ingredients', [otherIngredient]);
 
       const response = await authenticatedRequest().get(
-        `/v1/organizations/${testOrganization._id}/ingredients`,
+        `/v1/organizations/${testOrganization.id}/ingredients`,
       );
 
       expect(response.status).toBe(200);
@@ -618,7 +618,7 @@ describe('Organizations E2E Tests', () => {
   describe('Sorting', () => {
     it('should support sorting by createdAt descending', async () => {
       const response = await authenticatedRequest().get(
-        `/v1/organizations/${testOrganization._id}/brands?sort=-createdAt`,
+        `/v1/organizations/${testOrganization.id}/brands?sort=-createdAt`,
       );
 
       expect(response.status).toBe(200);
@@ -628,7 +628,7 @@ describe('Organizations E2E Tests', () => {
 
     it('should support sorting by label ascending', async () => {
       const response = await authenticatedRequest().get(
-        `/v1/organizations/${testOrganization._id}/brands?sort=label`,
+        `/v1/organizations/${testOrganization.id}/brands?sort=label`,
       );
 
       expect(response.status).toBe(200);

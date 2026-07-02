@@ -133,7 +133,7 @@ export class VideoProvenanceService {
       );
     }
 
-    const assetId = video.id ?? video._id ?? videoId;
+    const assetId = video.id ?? videoId;
 
     const metadata = video.metadataId
       ? ((await this.metadataService.findOne({

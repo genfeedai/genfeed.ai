@@ -72,7 +72,7 @@ export class DevController {
       }
 
       const category = ingredient.category as IngredientCategory;
-      const cdnUrl = `${this.configService.ingredientsEndpoint}/${category}s/${ingredient._id}`;
+      const cdnUrl = `${this.configService.ingredientsEndpoint}/${category}s/${ingredient.id}`;
 
       // Send via Redis pub/sub to notifications service
       await this.notificationsService.sendNotification({
@@ -81,7 +81,7 @@ export class DevController {
           category,
           cdnUrl,
           ingredient: {
-            _id: ingredient._id.toString(),
+            _id: ingredient.id.toString(),
             metadata: ingredient.metadata,
             prompt: ingredient.prompt,
           },

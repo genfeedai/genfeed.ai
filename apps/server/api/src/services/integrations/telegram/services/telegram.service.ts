@@ -125,18 +125,18 @@ export class TelegramService {
       if (existingCredential) {
         // Update existing credential
         credential = await this.credentialsService.patch(
-          existingCredential._id,
+          existingCredential.id,
           credentialData,
         );
         this.loggerService.log(`${url} updated existing credential`, {
-          credentialId: credential._id,
+          credentialId: credential.id,
         });
       } else {
         // Create new credential
         // @ts-expect-error CreateCredentialDto shape
         credential = await this.credentialsService.create(credentialData);
         this.loggerService.log(`${url} created new credential`, {
-          credentialId: credential._id,
+          credentialId: credential.id,
         });
       }
 
@@ -186,13 +186,13 @@ export class TelegramService {
         );
       }
 
-      await this.credentialsService.patch(credential._id, {
+      await this.credentialsService.patch(credential.id, {
         isConnected: false,
         isDeleted: true,
       });
 
       this.loggerService.log(`${url} disconnected credential`, {
-        credentialId: credential._id,
+        credentialId: credential.id,
       });
 
       return { success: true };

@@ -386,7 +386,7 @@ export class AgentStrategyAutopilotService {
 
   private documentId(entity: unknown): string {
     const record = entity as Record<string, unknown>;
-    return String(record.id ?? record._id);
+    return String(record.id);
   }
 
   private opportunityId(opportunity: AgentStrategyOpportunityDocument): string {
@@ -532,7 +532,7 @@ export class AgentStrategyAutopilotService {
               formatCandidates: this.resolveFormatsForStrategy(strategy),
               metadata: {
                 platform,
-                trendId: String(trend._id),
+                trendId: String(trend.id),
                 viralityScore: trend.viralityScore ?? 0,
               },
               organizationId: strategyOrganizationId,
@@ -545,7 +545,7 @@ export class AgentStrategyAutopilotService {
                 relevance: this.computeTopicRelevance(strategy, trend.topic),
               }),
               relevanceScore: this.computeTopicRelevance(strategy, trend.topic),
-              sourceRef: String(trend._id),
+              sourceRef: String(trend.id),
               sourceType: 'trend',
               strategyId,
               topic: trend.topic,

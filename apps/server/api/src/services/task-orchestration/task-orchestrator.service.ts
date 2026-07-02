@@ -204,7 +204,7 @@ export class TaskOrchestratorService {
 
     const completedRun = runStates.find((run) => run.id === runId);
     await this.tasksService.recordTaskEvent(
-      task._id.toString(),
+      task.id.toString(),
       organizationId,
       task.assigneeUserId ?? '',
       {
@@ -242,7 +242,7 @@ export class TaskOrchestratorService {
 
     if (hasFailures) {
       await this.tasksService.recordTaskEvent(
-        task._id.toString(),
+        task.id.toString(),
         organizationId,
         task.assigneeUserId ?? '',
         {
@@ -278,7 +278,7 @@ export class TaskOrchestratorService {
       );
 
       await this.tasksService.recordTaskEvent(
-        task._id.toString(),
+        task.id.toString(),
         organizationId,
         task.assigneeUserId ?? '',
         {
@@ -315,7 +315,7 @@ export class TaskOrchestratorService {
     }
 
     this.logger.log(
-      `${this.logContext}: Task ${task._id} rollup complete — ${hasFailures ? 'failed' : 'in_review'}`,
+      `${this.logContext}: Task ${task.id} rollup complete — ${hasFailures ? 'failed' : 'in_review'}`,
     );
   }
 
@@ -361,7 +361,7 @@ export class TaskOrchestratorService {
       user: params.userId as never,
     });
 
-    const runId = run._id.toString();
+    const runId = run.id.toString();
 
     // Enqueue to BullMQ
     const jobData: AgentRunJobData = {
@@ -414,7 +414,7 @@ export class TaskOrchestratorService {
     const startedRun = runStates.find((run) => run.id === runId);
 
     await this.tasksService.recordTaskEvent(
-      task._id.toString(),
+      task.id.toString(),
       organizationId,
       task.assigneeUserId ?? '',
       {
@@ -509,7 +509,7 @@ export class TaskOrchestratorService {
       const runStatus = this.normalizeRunStatus(run.status);
 
       runStates.push({
-        id: run._id.toString(),
+        id: run.id.toString(),
         label: this.readString(run.label) ?? 'Agent run',
         progress:
           runStatus === AgentExecutionStatus.COMPLETED ||

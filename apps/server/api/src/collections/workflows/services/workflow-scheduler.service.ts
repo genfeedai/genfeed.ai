@@ -99,7 +99,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
    */
   scheduleWorkflow(workflow: WorkflowDocument): void {
     const workflowId = String(
-      (workflow as unknown as Record<string, unknown>)._id ??
+      (workflow as unknown as Record<string, unknown>).id ??
         (workflow as unknown as { id: string }).id,
     );
 

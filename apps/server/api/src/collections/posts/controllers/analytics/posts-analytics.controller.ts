@@ -276,7 +276,7 @@ export class PostsAnalyticsController {
 
       for (const post of posts.docs || []) {
         try {
-          const trackUrl = `${url} trackPostAnalytics:${post._id}`;
+          const trackUrl = `${url} trackPostAnalytics:${post.id}`;
           await this.postAnalyticsService.trackPostAnalytics(
             post,
             post.credential as unknown as CredentialEntity,
@@ -286,7 +286,7 @@ export class PostsAnalyticsController {
         } catch (error: unknown) {
           errorCount++;
           this.loggerService.error(
-            `Failed to refresh analytics for post ${post._id}`,
+            `Failed to refresh analytics for post ${post.id}`,
             error,
           );
         }

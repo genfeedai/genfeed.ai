@@ -37,7 +37,7 @@ describe('YoutubeAuthService', () => {
   const brandId = 'test-object-id';
 
   const mockCredential = {
-    _id: 'test-object-id',
+    id: 'test-object-id',
     refreshToken: 'encrypted-refresh-token-value-that-is-long-enough',
     refreshTokenExpiry: new Date(),
   };
@@ -133,7 +133,7 @@ describe('YoutubeAuthService', () => {
 
   it('should mark credential as disconnected and throw when refreshToken is missing', async () => {
     credentialsService.findOne.mockResolvedValueOnce({
-      _id: 'test-object-id',
+      id: 'test-object-id',
       refreshToken: null,
     });
 
@@ -160,7 +160,7 @@ describe('YoutubeAuthService', () => {
     await service.refreshToken(orgId, brandId);
 
     expect(credentialsService.patch).toHaveBeenCalledWith(
-      mockCredential._id,
+      mockCredential.id,
       expect.objectContaining({
         accessToken: 'new-access-token',
         isConnected: true,
@@ -183,7 +183,7 @@ describe('YoutubeAuthService', () => {
     await service.refreshToken(orgId, brandId);
 
     expect(credentialsService.patch).toHaveBeenCalledWith(
-      mockCredential._id,
+      mockCredential.id,
       expect.objectContaining({
         refreshToken: 'rotated-refresh-token',
       }),
@@ -207,7 +207,7 @@ describe('YoutubeAuthService', () => {
 
     // Should mark credential as disconnected
     expect(credentialsService.patch).toHaveBeenCalledWith(
-      mockCredential._id,
+      mockCredential.id,
       expect.objectContaining({ isConnected: false }),
     );
   });
@@ -220,7 +220,7 @@ describe('YoutubeAuthService', () => {
       'Network timeout',
     );
     expect(credentialsService.patch).toHaveBeenCalledWith(
-      mockCredential._id,
+      mockCredential.id,
       expect.objectContaining({ isConnected: false }),
     );
   });

@@ -26,7 +26,7 @@ export class CronAnalyticsSyncService {
         { pagination: false },
       );
 
-      const docs = (orgs as unknown as { docs: Array<{ _id: unknown }> }).docs;
+      const docs = (orgs as unknown as { docs: Array<{ id: unknown }> }).docs;
 
       if (!docs || docs.length === 0) {
         this.logger.log(`${url} no organizations found`);
@@ -37,7 +37,7 @@ export class CronAnalyticsSyncService {
 
       for (const org of docs) {
         const window = Math.floor(Date.now() / (6 * 60 * 60 * 1000));
-        const organizationId = String(org._id);
+        const organizationId = String(org.id);
         const jobData: AnalyticsSyncJobData = {
           incremental: true,
           organizationId,

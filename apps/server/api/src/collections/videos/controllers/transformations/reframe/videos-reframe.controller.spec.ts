@@ -72,9 +72,9 @@ import type { Request } from 'express';
 const mockReq = {} as Request;
 
 const mockVideo = {
-  _id: '507f1f77bcf86cd799439011',
   brand: '507f1f77bcf86cd799439014',
   category: 'video',
+  id: '507f1f77bcf86cd799439011',
   metadata: { duration: 10, height: 1080, width: 1920 },
   organization: '507f1f77bcf86cd799439013',
   user: '507f1f77bcf86cd799439012',
@@ -99,7 +99,7 @@ describe('VideosReframeController', () => {
 
   const mockServices = {
     activitiesService: {
-      create: vi.fn().mockResolvedValue({ _id: activityId }),
+      create: vi.fn().mockResolvedValue({ id: activityId }),
     },
     configService: { ingredientsEndpoint: 'https://api.example.com' },
     creditsUtilsService: { deductCreditsFromOrganization: vi.fn() },
@@ -113,15 +113,15 @@ describe('VideosReframeController', () => {
     promptsService: {
       create: vi
         .fn()
-        .mockResolvedValue({ _id: promptId, original: 'test prompt' }),
+        .mockResolvedValue({ id: promptId, original: 'test prompt' }),
     },
     replicateService: {
       generateTextToVideo: vi.fn().mockResolvedValue('gen123'),
     },
     sharedService: {
       saveDocuments: vi.fn().mockResolvedValue({
-        ingredientData: { _id: ingredientId, brand: mockVideo.brand },
-        metadataData: { _id: metadataId },
+        ingredientData: { brand: mockVideo.brand, id: ingredientId },
+        metadataData: { id: metadataId },
       }),
     },
     videosService: { findOne: vi.fn(), patch: vi.fn() },
@@ -198,7 +198,7 @@ describe('VideosReframeController', () => {
       },
     );
     expect(result).toBeDefined();
-    expect(result._id).toEqual(ingredientId);
+    expect(result.id).toEqual(ingredientId);
   });
 
   it('should throw NOT_FOUND when parent video does not exist', async () => {

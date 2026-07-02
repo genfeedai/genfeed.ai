@@ -220,8 +220,8 @@ export class RedirectController {
         {
           gaClientId: req.headers['x-ga-client-id'] as string,
           linkId: (
-            link as unknown as { _id: { toString: () => string } }
-          )._id.toString(),
+            link as unknown as { id: { toString: () => string } }
+          ).id.toString(),
           sessionId: req.headers['x-session-id'] as string,
         },
         {
@@ -233,8 +233,8 @@ export class RedirectController {
         // Log but don't fail the redirect
         this.logger.error('Click tracking failed', error, {
           linkId: (
-            link as unknown as { _id: { toString: () => string } }
-          )._id.toString(),
+            link as unknown as { id: { toString: () => string } }
+          ).id.toString(),
           shortCode,
         });
       });

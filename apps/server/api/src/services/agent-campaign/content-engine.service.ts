@@ -288,12 +288,12 @@ export class ContentEngineService {
           campaignId,
           ...this.buildRotationMetadata(rotationResult.selection),
           dispatchedBy: 'campaign_orchestrator',
-          dispatchedStrategyId: String(strategy._id),
+          dispatchedStrategyId: String(strategy.id),
           reason,
         },
         objective,
         organization: organizationId,
-        strategy: String(strategy._id),
+        strategy: String(strategy.id),
         trigger: AgentExecutionTrigger.CRON,
         user: userId,
       });
@@ -308,8 +308,8 @@ export class ContentEngineService {
         model: this.normalizeModel(strategy.model),
         objective,
         organizationId,
-        runId: String(run._id),
-        strategyId: String(strategy._id),
+        runId: String(run.id),
+        strategyId: String(strategy.id),
         userId,
       });
 
@@ -317,8 +317,8 @@ export class ContentEngineService {
         agentType: this.requireAgentType(strategy.agentType),
         objective,
         reason,
-        runId: String(run._id),
-        strategyId: String(strategy._id),
+        runId: String(run.id),
+        strategyId: String(strategy.id),
       });
     }
 
@@ -348,7 +348,7 @@ export class ContentEngineService {
     );
 
     for (const run of runRecords) {
-      await this.agentRunsService.patch(String(run._id), {
+      await this.agentRunsService.patch(String(run.id), {
         metadata: {
           ...((run.metadata ?? {}) as Record<string, unknown>),
           campaignId,
@@ -467,13 +467,13 @@ export class ContentEngineService {
         metadata: {
           campaignId: input.campaignId,
           dispatchedBy: 'campaign_trigger_evaluator',
-          dispatchedStrategyId: String(strategy._id),
+          dispatchedStrategyId: String(strategy.id),
           triggerMetadata: input.triggerMetadata,
           triggerType: input.triggerType,
         },
         objective,
         organization: campaign.organization,
-        strategy: String(strategy._id),
+        strategy: String(strategy.id),
         trigger: AgentExecutionTrigger.CRON,
         user: campaign.user,
       });
@@ -486,8 +486,8 @@ export class ContentEngineService {
         model: this.normalizeModel(strategy.model),
         objective,
         organizationId,
-        runId: String(run._id),
-        strategyId: String(strategy._id),
+        runId: String(run.id),
+        strategyId: String(strategy.id),
         userId,
       });
 
@@ -495,8 +495,8 @@ export class ContentEngineService {
         agentType: this.requireAgentType(strategy.agentType),
         objective,
         reason,
-        runId: String(run._id),
-        strategyId: String(strategy._id),
+        runId: String(run.id),
+        strategyId: String(strategy.id),
       });
     }
 
@@ -599,7 +599,7 @@ export class ContentEngineService {
       since,
       1000,
     );
-    const campaignId = String(campaign._id);
+    const campaignId = String(campaign.id);
 
     return recentRuns.filter((run) => {
       const metadata = this.readRunMetadata(run);
@@ -784,7 +784,7 @@ export class ContentEngineService {
       String(campaign.organization),
       {
         brandId: campaign.brand ? String(campaign.brand) : undefined,
-        campaignId: String(campaign._id),
+        campaignId: String(campaign.id),
         confidence: 0.7,
         content: summary,
         contentType: 'generic',
@@ -797,12 +797,12 @@ export class ContentEngineService {
           totalViews: analyticsOverview.totalViews ?? 0,
         },
         scope: 'campaign',
-        sourceContentId: String(campaign._id),
+        sourceContentId: String(campaign.id),
         sourceType: 'campaign-orchestrator',
         summary: goalSummaries.length
           ? `Campaign orchestrator dispatched ${dispatchedRuns.length} runs against ${goalSummaries.length} active goal signal(s).`
           : `Campaign orchestrator dispatched ${dispatchedRuns.length} runs.`,
-        tags: [`campaign:${String(campaign._id)}`, 'orchestrator', 'campaign'],
+        tags: [`campaign:${String(campaign.id)}`, 'orchestrator', 'campaign'],
       },
     );
   }
@@ -884,21 +884,21 @@ export class ContentEngineService {
   ): Promise<ContentEngineCycleResult> {
     const now = new Date();
 
-    await this.agentCampaignsService.patch(String(campaign._id), {
+    await this.agentCampaignsService.patch(String(campaign.id), {
       lastOrchestratedAt: now,
       lastOrchestrationSummary: input.summary,
       nextOrchestratedAt: input.nextOrchestratedAt,
     } as Record<string, unknown>);
 
     this.logger.log(`${this.logContext} finalized orchestration cycle`, {
-      campaignId: String(campaign._id),
+      campaignId: String(campaign.id),
       dispatchCount: input.dispatchedRuns.length,
       nextOrchestratedAt: input.nextOrchestratedAt?.toISOString(),
       skippedReason: input.skippedReason,
     });
 
     return {
-      campaignId: String(campaign._id),
+      campaignId: String(campaign.id),
       dispatchCount: input.dispatchedRuns.length,
       dispatchedRuns: input.dispatchedRuns,
       nextOrchestratedAt: input.nextOrchestratedAt,
@@ -1016,11 +1016,11 @@ export class ContentEngineService {
           sampleSize: topContent.length,
         },
         scope: 'campaign',
-        sourceContentId: String(campaign._id),
+        sourceContentId: String(campaign.id),
         sourceType: 'campaign-winner-extraction',
         summary: `Winner pattern extracted from ${topContent.length} top-performing post(s).`,
         tags: [
-          `campaign:${String(campaign._id)}`,
+          `campaign:${String(campaign.id)}`,
           `daypart:${patternSummary.daypart}`,
           `format:${patternSummary.format}`,
           `platform:${patternSummary.platform}`,
@@ -1034,14 +1034,14 @@ export class ContentEngineService {
 
     this.logger.log(`${this.logContext} extracted winner pattern`, {
       campaignId,
-      memoryId: String(capture.memory._id),
+      memoryId: String(capture.memory.id),
       summary,
     });
 
     return {
       campaignId,
       extractedCount: topContent.length,
-      memoryId: String(capture.memory._id),
+      memoryId: String(capture.memory.id),
       summary,
     };
   }

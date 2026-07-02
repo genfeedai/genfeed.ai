@@ -550,7 +550,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     organizationId: string,
     userId: string,
   ): Promise<void> {
-    const postId = String(post.id ?? post._id);
+    const postId = String(post.id);
 
     try {
       const children = (await this.postsService?.getChildren(postId)) as

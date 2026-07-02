@@ -17,13 +17,13 @@ const makeCredential = (
   platform: CredentialPlatform = CredentialPlatform.TWITTER,
 ): CredentialDocument =>
   ({
-    _id: objectId(),
+    id: objectId(),
     platform,
   }) as unknown as CredentialDocument;
 
 const makeOrganization = (): OrganizationDocument =>
   ({
-    _id: objectId(),
+    id: objectId(),
   }) as unknown as OrganizationDocument;
 
 describe('QuotaService', () => {
@@ -160,7 +160,7 @@ describe('QuotaService', () => {
     mockPostsService.count.mockResolvedValueOnce(5);
 
     try {
-      await service.verifyQuota(makeCredential(), org._id.toString());
+      await service.verifyQuota(makeCredential(), org.id.toString());
       expect.fail('should have thrown');
     } catch (error) {
       expect(error).toBeInstanceOf(HttpException);
@@ -179,7 +179,7 @@ describe('QuotaService', () => {
     mockPostsService.count.mockResolvedValueOnce(3);
 
     await expect(
-      service.verifyQuota(makeCredential(), org._id.toString()),
+      service.verifyQuota(makeCredential(), org.id.toString()),
     ).resolves.toBeUndefined();
   });
 
@@ -216,8 +216,8 @@ describe('QuotaService', () => {
     mockPostsService.count.mockResolvedValueOnce(8);
 
     const result = await service.getQuotaStatus(
-      cred._id.toString(),
-      org._id.toString(),
+      cred.id.toString(),
+      org.id.toString(),
     );
     expect(result).not.toBeNull();
     expect(result?.currentCount).toBe(8);

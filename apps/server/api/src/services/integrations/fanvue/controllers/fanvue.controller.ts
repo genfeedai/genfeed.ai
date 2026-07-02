@@ -85,7 +85,7 @@ export class FanvueController {
     );
 
     const state = JSON.stringify({
-      brandId: brand._id,
+      brandId: brand.id,
       organizationId: brand.organization,
       userId: publicMetadata.user,
     });
@@ -186,7 +186,7 @@ export class FanvueController {
 
       // Update credential with tokens, clear code_verifier
       const credential = await this.credentialsService.patch(
-        existingCredential._id,
+        existingCredential.id,
         {
           accessToken: tokens.access_token,
           accessTokenExpiry: tokens.expires_in

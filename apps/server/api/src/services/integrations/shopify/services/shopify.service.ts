@@ -113,7 +113,7 @@ export class ShopifyService {
       );
 
       this.loggerService.log(`${url} token verified`, {
-        credentialId: credential._id,
+        credentialId: credential.id,
         shop,
       });
 

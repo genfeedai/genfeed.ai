@@ -89,7 +89,6 @@ export interface WorkflowDocument
     | 'lifecycle'
     | 'lockedNodeIds'
   > {
-  _id: string;
   organization?: string;
   user?: string;
   name?: string | null;

@@ -333,7 +333,7 @@ export class PostAnalyticsService extends BaseService<
         totalSaves: number;
       } | null = null;
 
-      const postId = post._id?.toString() || String(post._id);
+      const postId = post.id?.toString() || String(post.id);
       if (!post.externalId) {
         this.logger.warn(`${url} No external ID for post ${postId}`);
         return;
@@ -400,7 +400,7 @@ export class PostAnalyticsService extends BaseService<
         const postIngredients = Array.isArray(post.ingredients)
           ? post.ingredients
           : [];
-        if (!post._id || postIngredients.length === 0 || !post.user) {
+        if (!post.id || postIngredients.length === 0 || !post.user) {
           this.logger.error(`${url} Missing required post fields`, {
             postId: postId,
           });
@@ -442,7 +442,7 @@ export class PostAnalyticsService extends BaseService<
         );
       }
     } catch (error: unknown) {
-      const postId = post._id?.toString() || String(post._id);
+      const postId = post.id?.toString() || String(post.id);
       this.logger.error(
         `${url} failed to track analytics for post ${postId}`,
         error,

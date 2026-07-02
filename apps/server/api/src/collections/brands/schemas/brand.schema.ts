@@ -76,7 +76,6 @@ export interface BrandReferenceImage {
 }
 
 export interface BrandDocument extends PrismaBrand {
-  _id: string;
   agentConfig: PrismaBrand['agentConfig'];
   backgroundColor: PrismaBrand['backgroundColor'];
   description: PrismaBrand['description'];

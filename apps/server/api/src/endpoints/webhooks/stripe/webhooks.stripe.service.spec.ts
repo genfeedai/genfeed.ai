@@ -80,7 +80,7 @@ describe('StripeWebhookService', () => {
   }
 
   const monthlySubscription = {
-    _id: 'sub_db_1',
+    id: 'sub_db_1',
     organization: 'org_1',
     status: 'active',
     stripeSubscriptionId: 'sub_stripe_1',
@@ -201,9 +201,9 @@ describe('StripeWebhookService', () => {
     };
 
     beforeEach(() => {
-      organizationsService.findOne.mockResolvedValue({ _id: 'org_1' });
-      brandsService.findOne.mockResolvedValue({ _id: 'brand_1' });
-      organizationSettingsService.findOne.mockResolvedValue({ _id: 'os_1' });
+      organizationsService.findOne.mockResolvedValue({ id: 'org_1' });
+      brandsService.findOne.mockResolvedValue({ id: 'brand_1' });
+      organizationSettingsService.findOne.mockResolvedValue({ id: 'os_1' });
       organizationSettingsService.patch.mockResolvedValue({});
       creditsUtilsService.addOrganizationCreditsWithExpiration.mockResolvedValue(
         undefined,
@@ -221,7 +221,7 @@ describe('StripeWebhookService', () => {
     it('creates a authProviderId-free user, mints a managed key, and emits better-auth.user.created for a net-new buyer', async () => {
       usersService.findOne.mockResolvedValue(null);
       usersService.create.mockResolvedValue({
-        _id: 'user_new_1',
+        id: 'user_new_1',
         isOnboardingCompleted: false,
         onboardingStepsCompleted: [],
       });
@@ -258,7 +258,7 @@ describe('StripeWebhookService', () => {
 
     it('reactivates a soft-deleted user when email creation hits a unique constraint race', async () => {
       usersService.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce({
-        _id: 'user_deleted_1',
+        id: 'user_deleted_1',
         isDeleted: true,
         isOnboardingCompleted: false,
         onboardingStepsCompleted: [],
@@ -266,7 +266,7 @@ describe('StripeWebhookService', () => {
       usersService.create.mockRejectedValueOnce({ code: 'P2002' });
       usersService.patch
         .mockResolvedValueOnce({
-          _id: 'user_deleted_1',
+          id: 'user_deleted_1',
           isDeleted: false,
           isOnboardingCompleted: false,
           onboardingStepsCompleted: [],
@@ -296,7 +296,7 @@ describe('StripeWebhookService', () => {
 
     it('reuses an existing user by email, skips provisioning, but still tops up credits for a returning buyer', async () => {
       usersService.findOne.mockResolvedValue({
-        _id: 'user_existing_1',
+        id: 'user_existing_1',
         isOnboardingCompleted: true,
         onboardingStepsCompleted: ['brand', 'plan'],
       });

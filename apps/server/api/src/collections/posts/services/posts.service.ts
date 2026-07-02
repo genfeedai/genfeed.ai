@@ -270,7 +270,7 @@ export class PostsService extends BaseService<
       organization: organizationId,
     });
 
-    if (!settings?._id) {
+    if (!settings?.id) {
       return;
     }
 
@@ -297,7 +297,7 @@ export class PostsService extends BaseService<
     );
     const journeyCompleted = updatedMissions.every((item) => item.isCompleted);
 
-    await this.organizationSettingsService.patch(String(settings._id), {
+    await this.organizationSettingsService.patch(String(settings.id), {
       onboardingJourneyCompletedAt: journeyCompleted
         ? settings.onboardingJourneyCompletedAt || new Date()
         : null,
@@ -351,8 +351,7 @@ export class PostsService extends BaseService<
     // Save original status before changing to PROCESSING
     const originalStatus = post.status;
     const postId: string = String(
-      (post._id as string | undefined) ??
-        (post as unknown as { id: string }).id,
+      (post.id as string | undefined) ?? (post as unknown as { id: string }).id,
     );
 
     await this.patch(postId, {
@@ -369,9 +368,9 @@ export class PostsService extends BaseService<
       await this.fileQueueService?.uploadYoutube({
         brandId: post.brand.toString(),
         authProviderUserId,
-        credentialId: credential._id.toString(),
+        credentialId: credential.id.toString(),
         description: post.description || '',
-        ingredientId: ingredient._id.toString(),
+        ingredientId: ingredient.id.toString(),
         organizationId: post.organization.toString(),
         postId,
         room: authProviderUserId
@@ -447,7 +446,7 @@ export class PostsService extends BaseService<
 
     const rootPost = await this.create(rootPostDto, populate);
     createdPosts.push(rootPost);
-    const rootPostId = rootPost._id;
+    const rootPostId = rootPost.id;
 
     for (let i = 1; i < threadPosts.length; i++) {
       const { parent: _parent, ...postWithoutParent } = threadPosts[i];
@@ -579,7 +578,7 @@ export class PostsService extends BaseService<
       );
     }
 
-    const rootPostId = rootPost._id.toString();
+    const rootPostId = rootPost.id.toString();
 
     const childrenCount = await this.prisma.post.count({
       where: { isDeleted: false, parentId: rootPostId },
@@ -622,19 +621,19 @@ export class PostsService extends BaseService<
     }
 
     const ingredientIds = (
-      originalPost.ingredients as unknown as ({ _id?: string } | string)[]
+      originalPost.ingredients as unknown as ({ id?: string } | string)[]
     )?.map((ing) => {
-      if (typeof ing === 'object' && ing._id) {
-        return ing._id;
+      if (typeof ing === 'object' && ing.id) {
+        return ing.id;
       }
       return String(ing);
     });
 
     const populatedCredential = originalPost.credential as unknown as {
-      _id?: string;
+      id?: string;
     };
-    const credentialId = populatedCredential?._id
-      ? populatedCredential._id
+    const credentialId = populatedCredential?.id
+      ? populatedCredential.id
       : originalPost.credential === '__never__'
         ? originalPost.credential
         : String(originalPost.credential);
@@ -695,7 +694,7 @@ export class PostsService extends BaseService<
     const allPosts: PostDocument[] = [rootPost];
     const queue: PostDocument[] = [rootPost];
     const visited = new Set<string>();
-    visited.add(rootPost._id.toString());
+    visited.add(rootPost.id.toString());
 
     while (queue.length > 0 && allPosts.length < maxPosts) {
       const current = queue.shift();
@@ -704,7 +703,7 @@ export class PostsService extends BaseService<
       }
 
       const currentId = String(
-        (current._id as string | undefined) ??
+        (current.id as string | undefined) ??
           (current as unknown as { id: string }).id,
       );
 

@@ -41,10 +41,10 @@ export interface MediaInfo {
 }
 
 export type ThreadChild = {
-  _id: { toString(): string } | string;
+  id: { toString(): string } | string;
   category?: PostCategory | string;
   description?: string | null;
-  ingredients?: Array<{ _id?: { toString(): string } | string } | string>;
+  ingredients?: Array<{ id?: { toString(): string } | string } | string>;
   order?: number;
 };
 

@@ -49,7 +49,7 @@ describe('MetadataLookupService', () => {
 
   describe('findMetadataWithFallback', () => {
     it('should find metadata by externalId', async () => {
-      const mockMetadata = { _id: 'meta-1', externalId: 'ext-123' };
+      const mockMetadata = { id: 'meta-1', externalId: 'ext-123' };
       metadataService.findOne.mockResolvedValue(mockMetadata);
 
       const result = await service.findMetadataWithFallback('ext-123');
@@ -62,7 +62,7 @@ describe('MetadataLookupService', () => {
     });
 
     it('should fallback to base ID when indexed ID not found', async () => {
-      const mockMetadata = { _id: 'meta-1', externalId: 'ext' };
+      const mockMetadata = { id: 'meta-1', externalId: 'ext' };
       metadataService.findOne
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce(mockMetadata);
@@ -97,10 +97,10 @@ describe('MetadataLookupService', () => {
 
   describe('handleMetadataNotFound', () => {
     it('should publish websocket error if ingredient found', async () => {
-      const mockMetadata = { _id: 'meta-1' };
+      const mockMetadata = { id: 'meta-1' };
       const mockIngredient = {
-        _id: 'ing-1',
-        user: { _id: 'user-1', authProviderId: 'authProvider-1' },
+        id: 'ing-1',
+        user: { id: 'user-1', authProviderId: 'authProvider-1' },
       };
 
       metadataService.findOne.mockResolvedValue(mockMetadata);
@@ -135,8 +135,8 @@ describe('MetadataLookupService', () => {
 
   describe('lookupMetadataAndIngredient', () => {
     it('should return metadata and ingredient on success', async () => {
-      const mockMetadata = { _id: 'meta-1' };
-      const mockIngredient = { _id: 'ing-1', user: { _id: 'user-1' } };
+      const mockMetadata = { id: 'meta-1' };
+      const mockIngredient = { id: 'ing-1', user: { id: 'user-1' } };
 
       metadataService.findOne.mockResolvedValue(mockMetadata);
       metadataService.patch.mockResolvedValue(mockMetadata);
@@ -170,7 +170,7 @@ describe('MetadataLookupService', () => {
     });
 
     it('should throw when ingredient not found', async () => {
-      metadataService.findOne.mockResolvedValue({ _id: 'meta-1' });
+      metadataService.findOne.mockResolvedValue({ id: 'meta-1' });
       metadataService.patch.mockResolvedValue({});
       ingredientsService.findOne.mockResolvedValue(null);
 

@@ -39,14 +39,14 @@ export class DiscordController {
     });
 
     if (existingCredential) {
-      await this.credentialsService.patch(existingCredential._id, {
+      await this.credentialsService.patch(existingCredential.id, {
         isConnected: false,
         isDeleted: false,
         oauthState: state,
       });
     } else {
       const userId =
-        typeof user._id === 'string' ? user._id : String(user._id ?? '');
+        typeof user.id === 'string' ? user.id : String(user.id ?? '');
 
       await this.credentialsService.create({
         brand: brandId,
@@ -109,7 +109,7 @@ export class DiscordController {
 
     // Update credential with tokens and user info
     const updatedCredential = await this.credentialsService.patch(
-      credential._id,
+      credential.id,
       {
         accessToken: tokenData.access_token,
         accessTokenExpiry: tokenData.expires_in

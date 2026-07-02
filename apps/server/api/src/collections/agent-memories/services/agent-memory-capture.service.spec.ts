@@ -162,7 +162,7 @@ describe('AgentMemoryCaptureService', () => {
 
     it('reuses existing context base when one already exists for the brand', async () => {
       const existingContext = {
-        _id: contextId,
+        id: contextId,
         isDeleted: false,
         sourceBrand: brandId,
       };

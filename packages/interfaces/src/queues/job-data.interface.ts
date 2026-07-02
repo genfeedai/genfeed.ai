@@ -21,7 +21,7 @@ export interface GoogleAdSyncJobData {
 }
 
 export interface SocialAnalyticsPostJobData {
-  _id: string;
+  id: string;
   externalId: string;
   organization: string;
   brand: string;

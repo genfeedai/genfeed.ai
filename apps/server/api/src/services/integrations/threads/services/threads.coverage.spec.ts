@@ -35,7 +35,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // Shared credential fixture — mirrors the existing spec shape
 // ---------------------------------------------------------------------------
 const MOCK_CREDENTIAL = {
-  _id: 'credential-1',
+  id: 'credential-1',
   accessToken: 'enc-access-token',
   externalId: 'threads-user-1',
 };

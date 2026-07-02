@@ -345,15 +345,6 @@ export abstract class BaseService<
 
     const normalized: Record<string, unknown> = { ...document };
 
-    // `_id` is an internal alias for the canonical Prisma `id` (cuid) kept for
-    // legacy callsites. It must never carry the legacy `mongoId` — persisted
-    // references and serialized output key on the canonical id (issue #1096;
-    // see also PR #1052). Inbound lookups by mongoId still resolve via the
-    // OR-clause in processSearchParams.
-    if (normalized._id === undefined && typeof normalized.id === 'string') {
-      normalized._id = normalized.id;
-    }
-
     if (
       normalized.organization === undefined &&
       typeof normalized.organizationId === 'string'

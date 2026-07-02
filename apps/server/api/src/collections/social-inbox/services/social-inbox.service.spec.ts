@@ -349,7 +349,7 @@ describe('SocialInboxService', () => {
     });
 
     expect(message.body).toBe('Hello team');
-    expect(message._id).toBe(message.id);
+    expect(message.id).toBe(message.id);
     expect(messages).toHaveLength(1);
     expect(conversations).toHaveLength(1);
     expect(conversations[0].latestMessageText).toBe('Hello team');

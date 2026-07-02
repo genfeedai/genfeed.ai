@@ -263,7 +263,7 @@ export class CredentialsController {
       mentions.push({
         avatar: cred.externalAvatar ?? null,
         handle: cred.externalHandle,
-        id: cred._id.toString(),
+        id: cred.id.toString(),
         name: cred.externalName ?? cred.externalHandle,
         platform: toCredentialPlatform(cred.platform),
       });
@@ -338,14 +338,14 @@ export class CredentialsController {
       await refresher.refreshToken(credentialOrganizationId, credentialBrandId);
 
       const updatedCredential = await this.credentialsService.findOne({
-        _id: credential._id,
+        _id: credential.id,
       });
 
       return updatedCredential
         ? serializeSingle(request, CredentialSerializer, updatedCredential)
         : returnNotFound(this.constructorName, credentialId);
     } catch {
-      await this.credentialsService.patch(credential._id, {
+      await this.credentialsService.patch(credential.id, {
         isConnected: false,
       });
 
@@ -411,7 +411,7 @@ export class CredentialsController {
       // Get all available handles from the Instagram service
       const pages = await this.instagramService.getInstagramPages(
         publicMetadata.organization,
-        brand._id.toString(),
+        brand.id.toString(),
       );
 
       return serializeCollection(request, CredentialInstagramPagesSerializer, {
@@ -452,7 +452,7 @@ export class CredentialsController {
         });
 
         if (credential) {
-          await this.credentialsService.patch(credential._id, {
+          await this.credentialsService.patch(credential.id, {
             isConnected: false,
           });
         }
@@ -523,7 +523,7 @@ export class CredentialsController {
     });
 
     const data: CredentialDocument = await this.credentialsService.patch(
-      credential._id,
+      credential.id,
       sanitizedUpdate as Partial<UpdateCredentialDto>,
     );
 
@@ -633,7 +633,7 @@ export class CredentialsController {
     return {
       data: {
         attributes: quotaStatus,
-        id: credential._id.toString(),
+        id: credential.id.toString(),
         type: 'quota-status',
       },
     };

@@ -152,7 +152,7 @@ export class CampaignQueueService implements OnModuleInit {
       });
 
       return campaigns.map((campaign) => ({
-        id: campaign._id.toString(),
+        id: campaign.id.toString(),
         organizationId: campaign.organization.toString(),
       }));
     } catch (error: unknown) {

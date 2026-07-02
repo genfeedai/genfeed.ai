@@ -8,7 +8,7 @@ describe('WebhooksController', () => {
   let controller: WebhooksController;
 
   const mockWorkflow = {
-    _id: { toString: () => 'workflow123' },
+    id: { toString: () => 'workflow123' },
     webhookAuthType: 'secret',
     webhookSecret: 'my-secret-key',
   };

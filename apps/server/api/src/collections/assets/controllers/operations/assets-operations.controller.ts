@@ -255,12 +255,12 @@ export class AssetsOperationsController {
       throw new ValidationException('Failed to start image generation');
     }
 
-    await this.assetsService.patch(assetData._id, {
+    await this.assetsService.patch(assetData.id, {
       externalId: generationId,
     });
 
     this.loggerService.log(`${url} - Replicate generation started`, {
-      assetId: assetData._id,
+      assetId: assetData.id,
       category,
       generationId,
     });
@@ -358,14 +358,14 @@ export class AssetsOperationsController {
       );
 
       this.loggerService.log(`${url} - Asset created successfully`, {
-        assetId: assetData._id,
+        assetId: assetData.id,
         category: assetData.category,
         parent: assetData.parent?.toString(),
         parentModel: assetData.parentModel,
       });
 
       await this.filesClientService.uploadToS3(
-        assetData._id,
+        assetData.id,
         `${uploadDto.category}s`,
         {
           contentType,
@@ -377,11 +377,11 @@ export class AssetsOperationsController {
       const userId = publicMetadata.user;
       if (userId) {
         await this.websocketService.publishAssetStatus(
-          assetData._id.toString(),
+          assetData.id.toString(),
           'completed',
           userId,
           {
-            assetId: assetData._id.toString(),
+            assetId: assetData.id.toString(),
             category: assetData.category,
             parent: assetData.parent?.toString(),
             parentModel: assetData.parentModel,
@@ -398,14 +398,14 @@ export class AssetsOperationsController {
             uploadDto.parent.toString(),
             userId,
             {
-              assetId: assetData._id.toString(),
+              assetId: assetData.id.toString(),
               category: uploadDto.category,
             },
           );
         }
 
         this.loggerService.log(`${url} - Published websocket event`, {
-          assetId: assetData._id,
+          assetId: assetData.id,
           category: assetData.category,
           userId,
         });
@@ -499,7 +499,7 @@ export class AssetsOperationsController {
       user: publicMetadata.user,
     } as unknown as CreateAssetDto);
 
-    const destinationKey = `ingredients/${validatedCategory}s/${assetData._id}`;
+    const destinationKey = `ingredients/${validatedCategory}s/${assetData.id}`;
 
     try {
       // Extract source type and key from sourceKey (format: ingredients/{type}/{id})
@@ -510,7 +510,7 @@ export class AssetsOperationsController {
         : sourceKey.replace(/^ingredients\/[^/]+\//, '');
 
       // Extract destination key (format: ingredients/{type}/{id})
-      const destKeyOnly = assetData._id.toString();
+      const destKeyOnly = assetData.id.toString();
 
       await this.filesClientService.copyInS3(
         sourceKeyOnly,
@@ -525,7 +525,7 @@ export class AssetsOperationsController {
         sourceKey,
       });
 
-      await this.assetsService.remove(assetData._id);
+      await this.assetsService.remove(assetData.id);
 
       throw new ValidationException(
         'Failed to copy ingredient file. The source file may not exist or there was an S3 error.',
@@ -550,11 +550,11 @@ export class AssetsOperationsController {
     const userId = publicMetadata.user;
     if (userId) {
       await this.websocketService.publishAssetStatus(
-        assetData._id.toString(),
+        assetData.id.toString(),
         'completed',
         userId,
         {
-          assetId: assetData._id.toString(),
+          assetId: assetData.id.toString(),
           category: assetData.category,
           parent: assetData.parent?.toString(),
           parentModel: assetData.parentModel,
@@ -566,7 +566,7 @@ export class AssetsOperationsController {
           validatedParent.toString(),
           userId,
           {
-            assetId: assetData._id.toString(),
+            assetId: assetData.id.toString(),
             category: validatedCategory,
           },
         );
@@ -574,7 +574,7 @@ export class AssetsOperationsController {
     }
 
     this.loggerService.log(`${url} completed`, {
-      assetId: assetData._id,
+      assetId: assetData.id,
       category: validatedCategory,
       ingredientId: validatedIngredientId,
     });

@@ -236,7 +236,7 @@ describe('EditorProjectsController', () => {
       const result = await controller.findOne(
         makeRequest(),
         makeUser(),
-        String(project._id),
+        String(project.id),
       );
 
       expect(editorProjectsService.findOne).toHaveBeenCalled();
@@ -263,12 +263,12 @@ describe('EditorProjectsController', () => {
       const result = await controller.update(
         makeRequest(),
         makeUser(),
-        String(project._id),
+        String(project.id),
         { name: 'Updated' } as never,
       );
 
       expect(editorProjectsService.patch).toHaveBeenCalledWith(
-        String(project._id),
+        String(project.id),
         { name: 'Updated' },
       );
       expect(result).toMatchObject({ data: updated });
@@ -293,10 +293,10 @@ describe('EditorProjectsController', () => {
       editorProjectsService.findOne.mockResolvedValue(project as never);
       editorProjectsService.patch.mockResolvedValue(deleted as never);
 
-      await controller.remove(makeRequest(), makeUser(), String(project._id));
+      await controller.remove(makeRequest(), makeUser(), String(project.id));
 
       expect(editorProjectsService.patch).toHaveBeenCalledWith(
-        String(project._id),
+        String(project.id),
         { isDeleted: true },
       );
     });
@@ -319,11 +319,11 @@ describe('EditorProjectsController', () => {
       const result = await controller.render(
         makeRequest(),
         makeUser(),
-        String(project._id),
+        String(project.id),
       );
 
       expect(editorRenderService.render).toHaveBeenCalledWith(
-        String(project._id),
+        String(project.id),
         expect.any(String), // organizationId
         expect.any(Object), // user
       );

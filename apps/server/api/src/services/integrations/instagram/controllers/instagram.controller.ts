@@ -120,7 +120,7 @@ export class InstagramController {
 
     const appId = this.configService.get('INSTAGRAM_APP_ID');
     const state = JSON.stringify({
-      brandId: brand._id,
+      brandId: brand.id,
       organizationId: brand.organization,
       userId: publicMetadata.user,
     });
@@ -368,7 +368,7 @@ export class InstagramController {
       // Update the credential with the access token
       // If reconnecting the same account, reactivate previously deleted credential
       const credential = await this.credentialsService.patch(
-        existingCredential._id,
+        existingCredential.id,
         {
           accessToken: access_token,
           accessTokenExpiry: expires_in

@@ -65,7 +65,7 @@ export class QuotaService {
     organization: OrganizationDocument,
   ): Promise<QuotaCheckResult> {
     const settings = await this.organizationSettingsService.findOne({
-      organization: organization._id.toString(),
+      organization: organization.id.toString(),
     });
 
     if (!settings) {
@@ -93,7 +93,7 @@ export class QuotaService {
         gte: startOfDay,
         lte: endOfDay,
       },
-      credential: credential._id.toString(),
+      credential: credential.id.toString(),
       isDeleted: false,
       platform: credential.platform,
       status: {
@@ -111,7 +111,7 @@ export class QuotaService {
     this.logger.log(
       `${this.constructorName} Quota check for ${credential.platform}`,
       {
-        credentialId: credential._id,
+        credentialId: credential.id,
         ...result,
       },
     );
