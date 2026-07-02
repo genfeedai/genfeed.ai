@@ -650,8 +650,8 @@ describe('AppProtectedLayout', () => {
       screen.queryByTestId('sidebar-search-trigger'),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: 'Back to Workspace' }),
-    ).toHaveAttribute('href', '/org-123/brand-123/workspace/overview');
+      screen.queryByRole('link', { name: 'Back to Workspace' }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText('Conversations')).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Workspace' }),
