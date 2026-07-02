@@ -25,20 +25,6 @@ const RATE_LIMIT_TTL_SECONDS = 86_400;
 const BETTER_AUTH_CREATOR_ROLE = 'admin';
 const BETTER_AUTH_DEFAULT_ORGANIZATION_CATEGORY = 'BUSINESS';
 
-const BETTER_AUTH_ROLE_KEY_FALLBACKS: Record<string, string[]> = {
-  admin: ['admin', 'user'],
-  member: ['member', 'user'],
-  owner: ['admin', 'user'],
-  user: ['user'],
-};
-
-function normalizeBetterAuthOrganizationRole(role: string | undefined): string {
-  const normalized = role?.trim().toLowerCase();
-  return normalized && normalized in BETTER_AUTH_ROLE_KEY_FALLBACKS
-    ? normalized
-    : 'member';
-}
-
 /**
  * Adapt the shared Redis KV into Better Auth's `rateLimit.customStorage` shape
  * so all API instances share one counter window (per-process memory would let
@@ -76,36 +62,16 @@ function getRequiredString(value: unknown, label: string): string {
   return resolved;
 }
 
-async function resolveGenfeedRoleForBetterAuthRole(
-  prisma: ICreateBetterAuthOptions['prisma'],
-  role: string | undefined,
-): Promise<{ roleId: string; roleKey: string }> {
-  const roleKey = normalizeBetterAuthOrganizationRole(role);
-  const fallbackKeys = BETTER_AUTH_ROLE_KEY_FALLBACKS[roleKey] ?? ['user'];
-
-  for (const key of fallbackKeys) {
-    const genfeedRole = await prisma.role.findFirst({
-      select: { id: true, key: true },
-      where: { isDeleted: false, key },
-    });
-    if (genfeedRole) {
-      return { roleId: genfeedRole.id, roleKey: genfeedRole.key };
-    }
-  }
-
-  throw new Error(
-    `No Genfeed Role found for Better Auth organization role "${roleKey}"`,
-  );
-}
-
 /**
  * Maps Better Auth's organization plugin onto Genfeed's existing domain tables.
  *
  * BA gets string role/session compatibility (`roleKey`,
  * `Session.activeOrganizationId`), but Genfeed authorization keeps validating
- * against Organization/Member/Role rows. Invitation creation stays owned by
- * `InvitationService`; BA invite creation is rejected so there is one source of
- * token/email/status behavior.
+ * against Organization/Member/Role rows. Membership mutation stays owned by
+ * Genfeed: invitation creation (`InvitationService`) and member add / role
+ * changes (RolesGuard-protected members API) are all rejected on the BA side so
+ * there is exactly one authorized, source-of-truth path for each — and no BA
+ * native endpoint can grant a Genfeed Role without going through RolesGuard.
  */
 export function buildBetterAuthOrganizationOptions(
   prisma: ICreateBetterAuthOptions['prisma'],
@@ -236,29 +202,23 @@ export function buildBetterAuthOrganizationOptions(
           },
         };
       },
-      beforeAddMember: async ({ member }) => {
-        const role = await resolveGenfeedRoleForBetterAuthRole(
-          prisma,
-          member.role,
+      // Member add / role-change are NOT allowed through Better Auth's native
+      // organization endpoints. Genfeed owns membership: all member writes go
+      // through RolesGuard-protected controllers + InvitationService, which map
+      // and authorize Genfeed Roles. If these hooks resolved a Role from the
+      // BA-supplied role string, any caller holding a BA org 'admin'/'owner'
+      // role could hit /organization/add-member or /update-member-role and
+      // self-promote to Genfeed's admin Role, bypassing RolesGuard entirely.
+      // Throw (as beforeCreateInvitation does) so there is one authorized path.
+      beforeAddMember: async () => {
+        throw new Error(
+          'Genfeed owns organization membership; Better Auth add-member is disabled. Use the members API.',
         );
-        return {
-          data: {
-            ...member,
-            isActive: true,
-            isDeleted: false,
-            role: role.roleKey,
-            roleId: role.roleId,
-          },
-        };
       },
-      beforeUpdateMemberRole: async ({ newRole }) => {
-        const role = await resolveGenfeedRoleForBetterAuthRole(prisma, newRole);
-        return {
-          data: {
-            role: role.roleKey,
-            roleId: role.roleId,
-          },
-        };
+      beforeUpdateMemberRole: async () => {
+        throw new Error(
+          'Genfeed owns organization membership; Better Auth member role changes are disabled. Use the members API.',
+        );
       },
       beforeCreateInvitation: async () => {
         throw new Error(
