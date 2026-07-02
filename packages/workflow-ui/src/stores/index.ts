@@ -54,9 +54,20 @@ export { PROVIDER_INFO, useSettingsStore } from './settingsStore';
 export type { ModalType, NodeDetailTab } from './uiStore';
 export { useUIStore } from './uiStore';
 // Store types
-export type { WorkflowData, WorkflowState, WorkflowStore } from './workflow';
+export type {
+  WorkflowData,
+  WorkflowPersistenceService,
+  WorkflowSaveInput,
+  WorkflowState,
+  WorkflowStore,
+  WorkflowSummary,
+} from './workflow';
 // Store hooks
 export { useWorkflowStore } from './workflow';
+export {
+  configureApplyEditOperations,
+  getApplyEditOperations,
+} from './workflow/applyEditOperations';
 // Workflow selectors
 export {
   createSelectGroupByNodeId,
@@ -93,3 +104,7 @@ export {
   selectWorkflowId,
   selectWorkflowName,
 } from './workflow/selectors';
+export {
+  configureWorkflowPersistence,
+  getWorkflowPersistence,
+} from './workflow/workflowPersistence';

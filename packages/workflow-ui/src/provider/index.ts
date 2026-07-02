@@ -1,4 +1,14 @@
 export type {
+  ApplyEditOperations,
+  ApplyEditResult,
+  EditOperation,
+} from '../stores/workflow/slices/types';
+export type {
+  WorkflowPersistenceService,
+  WorkflowSaveInput,
+  WorkflowSummary,
+} from '../stores/workflow/types';
+export type {
   ExecutionHeaderProvider,
   FileUploadService,
   ModelBrowserModalProps,

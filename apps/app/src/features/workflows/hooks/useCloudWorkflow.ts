@@ -90,20 +90,7 @@ export function useCloudWorkflow({
 
   const bindSharedWorkflowApi = useCallback((service: WorkflowApiService) => {
     useWorkflowStore.setState({
-      listWorkflows: async () => {
-        const workflows = await service.list();
-
-        return workflows.map((workflow) => ({
-          _id: workflow._id,
-          createdAt: workflow.createdAt,
-          edgeStyle: 'default',
-          edges: [],
-          groups: [],
-          name: workflow.name,
-          nodes: [],
-          updatedAt: workflow.updatedAt,
-        }));
-      },
+      listWorkflows: async () => service.list(),
       loadWorkflowById: async (id: string) => {
         await useCloudWorkflowStore.getState().loadFromCloud(id, service);
       },

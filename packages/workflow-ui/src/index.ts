@@ -37,10 +37,16 @@ export { BaseNode, nodeTypes } from './nodes';
 // Panels
 export { DebugPanel, NodePalette, PanelContainer } from './panels';
 export type {
+  ApplyEditOperations,
+  ApplyEditResult,
+  EditOperation,
   ExecutionHeaderProvider,
   ModelBrowserModalProps,
   PromptLibraryService,
   PromptPickerProps,
+  WorkflowPersistenceService,
+  WorkflowSaveInput,
+  WorkflowSummary,
   WorkflowUIConfig,
   WorkflowUIHttpClient,
   WorkflowUILogger,
@@ -68,7 +74,15 @@ export { useSettingsStore } from './stores/settingsStore';
 // Stores
 export { useUIStore } from './stores/uiStore';
 export { useWorkflowStore } from './stores/workflow';
+export {
+  configureApplyEditOperations,
+  getApplyEditOperations,
+} from './stores/workflow/applyEditOperations';
 export type { ImageHistoryItem } from './stores/workflow/types';
+export {
+  configureWorkflowPersistence,
+  getWorkflowPersistence,
+} from './stores/workflow/workflowPersistence';
 export type {
   DropdownItem,
   OverflowMenuProps,

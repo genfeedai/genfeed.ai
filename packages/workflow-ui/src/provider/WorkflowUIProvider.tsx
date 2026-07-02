@@ -7,6 +7,8 @@ import {
 } from '../stores/execution/executionApi';
 import { configureWorkflowLogger } from '../stores/executionLogger';
 import { configurePromptLibrary } from '../stores/promptLibraryStore';
+import { configureApplyEditOperations } from '../stores/workflow/applyEditOperations';
+import { configureWorkflowPersistence } from '../stores/workflow/workflowPersistence';
 import type { WorkflowUIConfig } from './types';
 
 const WorkflowUIContext = createContext<WorkflowUIConfig>({});
@@ -52,6 +54,16 @@ export function WorkflowUIProvider({
   useEffect(() => {
     configureExecutionHeaders(config.executionHeaders);
   }, [config.executionHeaders]);
+
+  // Register the workflow persistence backend + graph edit-operation applier.
+  // Both reset to their defaults (throw / no-op) when unset.
+  useEffect(() => {
+    configureWorkflowPersistence(config.workflowPersistence);
+  }, [config.workflowPersistence]);
+
+  useEffect(() => {
+    configureApplyEditOperations(config.applyEditOperations);
+  }, [config.applyEditOperations]);
 
   return (
     <WorkflowUIContext.Provider value={config}>

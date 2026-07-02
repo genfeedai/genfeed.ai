@@ -6,6 +6,8 @@ import type {
   ProviderModel,
 } from '@genfeedai/types';
 import type { ComponentType } from 'react';
+import type { ApplyEditOperations } from '../stores/workflow/slices/types';
+import type { WorkflowPersistenceService } from '../stores/workflow/types';
 
 // =============================================================================
 // File Upload
@@ -144,6 +146,17 @@ export interface WorkflowUIConfig {
    * execute requests. Returns no headers when omitted.
    */
   executionHeaders?: ExecutionHeaderProvider;
+  /**
+   * Persistence backend for the workflow store's CRUD actions (save / load /
+   * list / delete / duplicate / create). Throws a clear "not configured" error
+   * when omitted rather than silently dropping saves.
+   */
+  workflowPersistence?: WorkflowPersistenceService;
+  /**
+   * Graph edit-operation applier used by the chat/agent edit pipeline. Defaults
+   * to a no-op (leaves the graph untouched) when omitted.
+   */
+  applyEditOperations?: ApplyEditOperations;
   /** Injected ModelBrowserModal component (complex, app-specific) */
   ModelBrowserModal?: ComponentType<ModelBrowserModalProps> | null;
   /** Injected PromptPicker component (complex, app-specific) */
