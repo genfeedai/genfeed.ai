@@ -1,5 +1,6 @@
 import type { EdgeStyle, ProviderType } from '@genfeedai/types';
 import { ProviderTypeEnum } from '@genfeedai/types';
+import { logger } from '@services/core/logger.service';
 import { create } from 'zustand';
 import type {
   LLMProviderConfig,
@@ -10,7 +11,6 @@ import {
   DEFAULT_LLM_PROVIDER,
 } from '@/lib/ai/llm-providers';
 import { settingsApi } from '@/lib/api/settings';
-import { logger } from '@/lib/logger';
 
 // =============================================================================
 // TYPES
@@ -405,9 +405,10 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
         const { useWorkflowStore } = await import('@/store/workflowStore');
         useWorkflowStore.getState().setEdgeStyle(style);
       } catch (error) {
-        logger.error('Failed to sync edge style to workflow store', error, {
+        logger.error('Failed to sync edge style to workflow store', {
           context: 'settingsStore',
-          metadata: { style },
+          error,
+          style,
         });
         throw error;
       }
@@ -516,8 +517,9 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
           return { ...merged, isSyncing: false };
         });
       } catch (error) {
-        logger.error('Failed to sync settings from server', error, {
+        logger.error('Failed to sync settings from server', {
           context: 'SettingsStore',
+          error,
         });
         set({ isSyncing: false });
       }
@@ -545,8 +547,9 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
 
         set({ isSyncing: false });
       } catch (error) {
-        logger.error('Failed to sync settings to server', error, {
+        logger.error('Failed to sync settings to server', {
           context: 'SettingsStore',
+          error,
         });
         set({ isSyncing: false });
       }

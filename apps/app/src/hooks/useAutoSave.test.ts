@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAutoSave } from './useAutoSave';
 
 // Mock logger
-vi.mock('@/lib/logger', () => ({
+vi.mock('@services/core/logger.service', () => ({
   logger: {
     debug: vi.fn(),
     error: vi.fn(),
@@ -213,7 +213,7 @@ describe('useAutoSave', () => {
     });
 
     it('should not log AbortError', async () => {
-      const { logger } = await import('@/lib/logger');
+      const { logger } = await import('@services/core/logger.service');
       mockIsDirty = true;
       mockNodes = [{ id: 'node-1' }];
 
