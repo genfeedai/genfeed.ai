@@ -1,5 +1,5 @@
 import { BETTER_AUTH_STRATEGY_NAME } from '@api/auth/better-auth/better-auth.constants';
-import { IS_PUBLIC_KEY } from '@libs/decorators/public.decorator';
+import { isPublicRoute } from '@libs/decorators/public.decorator';
 import {
   type ExecutionContext,
   Injectable,
@@ -18,17 +18,8 @@ export class BetterAuthGuard extends AuthGuard(BETTER_AUTH_STRATEGY_NAME) {
     super();
   }
 
-  private isPublicRoute(context: ExecutionContext): boolean {
-    return (
-      this.reflector?.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
-        context.getHandler(),
-        context.getClass(),
-      ]) ?? false
-    );
-  }
-
   canActivate(context: ExecutionContext) {
-    if (this.isPublicRoute(context)) {
+    if (isPublicRoute(this.reflector, context)) {
       return true;
     }
     return super.canActivate(context);
@@ -40,7 +31,7 @@ export class BetterAuthGuard extends AuthGuard(BETTER_AUTH_STRATEGY_NAME) {
     _info: unknown,
     context: ExecutionContext,
   ): TUser {
-    if (this.isPublicRoute(context)) {
+    if (isPublicRoute(this.reflector, context)) {
       return (user ?? null) as TUser;
     }
 
