@@ -144,15 +144,6 @@ import { Module } from '@nestjs/common';
       },
       {
         defaultJobOptions: {
-          attempts: 2,
-          backoff: { delay: 10000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: 'ad-insights-aggregation',
-      },
-      {
-        defaultJobOptions: {
           attempts: 3,
           backoff: { delay: 5000, type: 'exponential' },
           removeOnComplete: 100,

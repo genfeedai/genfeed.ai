@@ -8,13 +8,11 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { SentryModule } from '@sentry/nestjs/setup';
 import { ConfigModule } from '@workers/config/config.module';
 import { ConfigService } from '@workers/config/config.service';
-import { CronAdInsightsModule } from '@workers/crons/ad-insights/cron.ad-insights.module';
 import { CronAdOptimizationModule } from '@workers/crons/ad-optimization/cron.ad-optimization.module';
 import { CronAdSyncModule } from '@workers/crons/ad-sync/cron.ad-sync.module';
 import { CronProactiveAgentModule } from '@workers/crons/agent/cron.proactive-agent.module';
 import { CronAgentCampaignOrchestratorModule } from '@workers/crons/agent-campaign/cron.agent-campaign-orchestrator.module';
 import { CronAiInfluencerModule } from '@workers/crons/ai-influencer/cron.ai-influencer.module';
-import { CronAnalyticsModule } from '@workers/crons/analytics/cron.analytics.module';
 import { CronByokBillingModule } from '@workers/crons/byok-billing/cron.byok-billing.module';
 import { CronContentEngineModule } from '@workers/crons/content-engine/cron.content-engine.module';
 import { CronContentPipelineModule } from '@workers/crons/content-pipeline/cron.content-pipeline.module';
@@ -60,7 +58,6 @@ import { CronSchedulerControlService } from '@workers/scheduling/cron-scheduler-
     ProcessorsModule,
 
     // Cron Modules (moved from API)
-    CronAdInsightsModule,
     CronPatternExtractionModule,
     CronAdOptimizationModule,
     CronLlmIdleModule,
@@ -72,7 +69,6 @@ import { CronSchedulerControlService } from '@workers/scheduling/cron-scheduler-
     CronContentSchedulesModule,
     CronProactiveAgentModule,
     CronByokBillingModule,
-    CronAnalyticsModule,
     CronCredentialsModule,
     CronDynamicJobsModule,
     CronIngredientsModule,

@@ -171,7 +171,3 @@ export class PostReplyExecutor extends BaseExecutor {
       : undefined;
   }
 }
-
-export function createPostReplyExecutor(): PostReplyExecutor {
-  return new PostReplyExecutor();
-}

@@ -24,8 +24,6 @@ export class QueueService {
     private readonly adSyncGoogleQueue: Queue,
     @InjectQueue('ad-sync-tiktok')
     private readonly adSyncTikTokQueue: Queue,
-    @InjectQueue('ad-insights-aggregation')
-    private readonly adInsightsAggregationQueue: Queue,
     @InjectQueue('analytics-sync')
     private readonly analyticsSyncQueue: Queue,
     @InjectQueue('email-digest')
@@ -65,8 +63,6 @@ export class QueueService {
         return this.adSyncGoogleQueue;
       case 'ad-sync-tiktok':
         return this.adSyncTikTokQueue;
-      case 'ad-insights-aggregation':
-        return this.adInsightsAggregationQueue;
       case 'analytics-sync':
         return this.analyticsSyncQueue;
       case 'email-digest':

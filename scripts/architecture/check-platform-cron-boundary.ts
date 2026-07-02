@@ -210,13 +210,6 @@ export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
     methodName: 'backfillGlobalTrendCorpus',
     reason: 'Platform global trends corpus backfill.',
   },
-  {
-    file: 'apps/server/workers/src/crons/ad-insights/cron.ad-insights.service.ts',
-    id: 'ad-insights-platform-aggregation',
-    methodName: 'computeWeeklyInsights',
-    reason:
-      'Platform weekly ad insights aggregation with public-scope k-anonymity; classified in #796.',
-  },
 ];
 
 export const PENDING_TENANT_CRON_MIGRATIONS: PendingCronMigrationEntry[] = [];
