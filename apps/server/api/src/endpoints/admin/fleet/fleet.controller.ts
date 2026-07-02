@@ -19,8 +19,8 @@ import { AdminFleetService } from '@api/endpoints/admin/fleet/fleet.service';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
-import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -130,9 +130,9 @@ export class AdminFleetController {
   ) {
     try {
       const { organization, brand, user: dbUserId } = getPublicMetadata(user);
-      const userId = ObjectIdUtil.toObjectId(dbUserId)!;
-      const organizationId = ObjectIdUtil.toObjectId(organization)!;
-      const brandId = ObjectIdUtil.toObjectId(brand)!;
+      const userId = EntityIdUtil.toValidId(dbUserId)!;
+      const organizationId = EntityIdUtil.toValidId(organization)!;
+      const brandId = EntityIdUtil.toValidId(brand)!;
 
       const character = await this.adminFleetService.createCharacter({
         ...dto,

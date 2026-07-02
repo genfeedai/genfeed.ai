@@ -1610,9 +1610,9 @@ describe('AgentToolExecutorService', () => {
     const { brandsService, service } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
       description: 'Brand description',
       handle: 'genfeed',
+      id: '67a1234567890123456789aa',
       isActive: true,
       label: 'Genfeed',
       text: 'Publish content. Now.',

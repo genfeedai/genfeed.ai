@@ -45,7 +45,7 @@ import { Logger } from '@nestjs/common';
 import { createId } from '@paralleldrive/cuid2';
 import { config } from 'dotenv';
 import { type Document, MongoClient } from 'mongodb';
-import { normalizePgUrl } from './_pg-ssl';
+import { normalizePgUrl } from '../_pg-ssl';
 
 import {
   BACKFILL_MAPPINGS,

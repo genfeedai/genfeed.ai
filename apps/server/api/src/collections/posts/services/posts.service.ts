@@ -7,7 +7,7 @@ import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { UpdatePostDto } from '@api/collections/posts/dto/update-post.dto';
 import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -64,14 +64,12 @@ export class PostsService extends BaseService<
     // Normalize ObjectId fields — DTO fields are Types.ObjectId but may arrive as strings at runtime
     const normalizedIngredients =
       dto.ingredients !== undefined
-        ? ObjectIdUtil.normalizeArrayToObjectIds(
-            dto.ingredients as unknown as Array<string>,
-          )
+        ? EntityIdUtil.normalizeIds(dto.ingredients as unknown as Array<string>)
         : undefined;
-    const normalizedCredential = ObjectIdUtil.normalizeToObjectId(
+    const normalizedCredential = EntityIdUtil.normalizeId(
       dto.credential as unknown as string,
     );
-    const normalizedParent = ObjectIdUtil.normalizeToObjectId(
+    const normalizedParent = EntityIdUtil.normalizeId(
       dto.parent as unknown as string | undefined,
     );
 
@@ -177,16 +175,16 @@ export class PostsService extends BaseService<
     // Normalize ObjectId fields — DTO fields are Types.ObjectId but may arrive as strings at runtime
     const normalizedIngredients =
       dto.ingredients !== undefined
-        ? (ObjectIdUtil.normalizeArrayToObjectIds(
+        ? (EntityIdUtil.normalizeIds(
             dto.ingredients as unknown as Array<string>,
           ) ?? [])
         : undefined;
-    const normalizedCredential = ObjectIdUtil.normalizeToObjectId(
+    const normalizedCredential = EntityIdUtil.normalizeId(
       dto.credential as unknown as string | undefined,
     );
     const normalizedParent =
       dto.parent !== undefined
-        ? ObjectIdUtil.normalizeToObjectId(dto.parent as unknown as string)
+        ? EntityIdUtil.normalizeId(dto.parent as unknown as string)
         : undefined;
 
     // Build normalized DTO

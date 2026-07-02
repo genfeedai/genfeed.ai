@@ -29,8 +29,8 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
-import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
 import {
   returnNotFound,
   serializeSingle,
@@ -134,7 +134,7 @@ export class AssetsOperationsController {
           ? generateAssetDto.parent.toString()
           : String(generateAssetDto.parent || '');
 
-      parentId = await ObjectIdUtil.validate(parentIdString, 'parent');
+      parentId = await EntityIdUtil.validate(parentIdString, 'parent');
     } else {
       if (!publicMetadata.brand) {
         throw new ValidationException('Brand ID is required');

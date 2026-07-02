@@ -14,9 +14,9 @@ vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
   },
 }));
 
-vi.mock('@api/helpers/utils/objectid/objectid.util', () => ({
-  ObjectIdUtil: {
-    toObjectId: vi.fn((s: unknown) => s),
+vi.mock('@api/helpers/utils/entity-id/entity-id.util', () => ({
+  EntityIdUtil: {
+    toValidId: vi.fn((s: unknown) => s),
   },
 }));
 

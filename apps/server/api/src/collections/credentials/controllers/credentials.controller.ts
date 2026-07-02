@@ -17,7 +17,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
-import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -572,7 +572,7 @@ export class CredentialsController {
   ) {
     const publicMetadata = getPublicMetadata(user);
 
-    const enrichedBody = ObjectIdUtil.enrichWithUserContext(
+    const enrichedBody = EntityIdUtil.enrichWithUserContext(
       // @ts-expect-error TS2345
       createTagDto,
       publicMetadata,

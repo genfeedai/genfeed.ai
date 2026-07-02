@@ -62,41 +62,6 @@ export class MetadataEnrichmentUtil {
   }
 
   /**
-   * Safely return an ID string (returns undefined if falsy)
-   *
-   * @param id - String ID or undefined
-   * @returns String ID or undefined
-   *
-   * @example
-   * const orgId = MetadataEnrichmentUtil.toObjectId('507f1f77bcf86cd799439011');
-   * const invalidId = MetadataEnrichmentUtil.toObjectId(undefined); // undefined
-   */
-  static toObjectId(id?: string): string | undefined {
-    if (!id) {
-      return undefined;
-    }
-    return id;
-  }
-
-  /**
-   * Return ID string (throws if falsy or invalid format)
-   *
-   * @param id - String ID
-   * @param fieldName - Field name for error message
-   * @returns String ID
-   * @throws Error if ID is falsy
-   *
-   * @example
-   * const orgId = MetadataEnrichmentUtil.requireObjectId('507f...', 'organization');
-   */
-  static requireObjectId(id: string, fieldName: string): string {
-    if (!id) {
-      throw new Error(`${fieldName} is required`);
-    }
-    return id;
-  }
-
-  /**
    * Enrich a DTO/entity with user metadata
    *
    * Adds user, organization, and optionally brand from public metadata.

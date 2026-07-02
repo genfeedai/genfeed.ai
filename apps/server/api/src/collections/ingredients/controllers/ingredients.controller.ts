@@ -7,7 +7,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
-import { buildUpdateOperations } from '@api/helpers/utils/objectid/update-operations.util';
+import { buildUpdateOperations } from '@api/helpers/utils/entity-id/update-operations.util';
 import {
   returnNotFound,
   serializeCollection,

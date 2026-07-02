@@ -11,7 +11,7 @@ import type {
 import { AdminFleetCharacterService } from '@api/endpoints/admin/fleet/services/fleet-character.service';
 import { AdminFleetTrainingService } from '@api/endpoints/admin/fleet/services/fleet-training.service';
 import { AdminFleetValueReader } from '@api/endpoints/admin/fleet/services/fleet-value-reader.util';
-import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import {
   ContentIntelligencePlatform,
@@ -184,10 +184,10 @@ export class AdminFleetIngestService {
       };
     }
 
-    const userObjectId = ObjectIdUtil.toObjectId(userId);
-    const organizationObjectId = ObjectIdUtil.toObjectId(organizationId);
+    const userObjectId = EntityIdUtil.toValidId(userId);
+    const organizationObjectId = EntityIdUtil.toValidId(organizationId);
     const brandId = AdminFleetValueReader.readReferenceId(persona.brand);
-    const brandObjectId = brandId ? ObjectIdUtil.toObjectId(brandId) : null;
+    const brandObjectId = brandId ? EntityIdUtil.toValidId(brandId) : null;
 
     if (!userObjectId || !organizationObjectId || !brandObjectId) {
       throw new BadRequestException('Invalid fleet ingest context');

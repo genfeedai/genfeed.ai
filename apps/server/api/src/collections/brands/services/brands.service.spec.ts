@@ -134,8 +134,10 @@ describe('BrandsService', () => {
       data: { isSelected: true },
       where: { id: currentBrandId, isDeleted: false, organizationId },
     });
+    // The `_id` alias carries the canonical Prisma id — never the legacy
+    // mongoId (#1096); the mongoId input above still resolves via the OR lookup.
     expect(result).toMatchObject({
-      _id: legacyBrandId,
+      _id: currentBrandId,
       id: currentBrandId,
       isSelected: true,
     });

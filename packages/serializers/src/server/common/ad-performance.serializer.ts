@@ -45,7 +45,7 @@ export function serializeAdPerformance(
     ctr: Number(doc.ctr || 0),
     date: String(doc.date || ''),
     granularity: String(doc.granularity || ''),
-    id: String(doc._id || doc.id || ''),
+    id: String(doc.id || ''),
     impressions: Number(doc.impressions || 0),
     performanceScore: Number(doc.performanceScore || 0),
     revenue: doc.revenue as number | undefined,

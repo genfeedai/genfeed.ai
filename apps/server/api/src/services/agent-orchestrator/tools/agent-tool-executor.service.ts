@@ -42,7 +42,7 @@ import {
 } from '@api/endpoints/ai-actions/dto/ai-action.dto';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
-import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import { MarketplaceInstallService } from '@api/marketplace-integration/marketplace-install.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
@@ -1610,7 +1610,7 @@ export class AgentToolExecutorService {
     }
 
     const goalId = String(params.goalId || '').trim();
-    if (!ObjectIdUtil.isValid(goalId)) {
+    if (!EntityIdUtil.isValid(goalId)) {
       return {
         creditsUsed: 0,
         error: 'check_goal_progress requires a valid goalId.',
@@ -1650,7 +1650,7 @@ export class AgentToolExecutorService {
     }
 
     const goalId = String(params.goalId || '').trim();
-    if (!ObjectIdUtil.isValid(goalId)) {
+    if (!EntityIdUtil.isValid(goalId)) {
       return {
         creditsUsed: 0,
         error: 'update_goal requires a valid goalId.',

@@ -1,6 +1,6 @@
 import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { GlobalCaches } from '@api/helpers/utils/cache/cache.util';
-import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 
@@ -13,7 +13,7 @@ export class MemoizationUtil {
    */
   static validateObjectId = GlobalCaches.getObjectIdCache().memoize(
     (id: string, fieldName: string = 'id') => {
-      return ObjectIdUtil.validate(id, fieldName);
+      return EntityIdUtil.validate(id, fieldName);
     },
     (id: string, fieldName: string = 'id') => `validate:${fieldName}:${id}`,
   );
@@ -23,7 +23,7 @@ export class MemoizationUtil {
    */
   static validateObjectIdArray = GlobalCaches.getObjectIdCache().memoize(
     (ids: string[], fieldName: string = 'ids') => {
-      return ObjectIdUtil.validateMany(ids, fieldName);
+      return EntityIdUtil.validateMany(ids, fieldName);
     },
     (ids: string[], fieldName: string = 'ids') =>
       `validateMany:${fieldName}:${JSON.stringify(ids)}`,
@@ -34,7 +34,7 @@ export class MemoizationUtil {
    */
   static processSearchParams = GlobalCaches.getObjectIdCache().memoize(
     (params: Record<string, unknown>) => {
-      return ObjectIdUtil.processSearchParams(
+      return EntityIdUtil.processSearchParams(
         params as unknown as BaseQueryDto,
       );
     },
@@ -61,7 +61,7 @@ export class MemoizationUtil {
         typeof dto === 'object' && dto !== null
           ? (dto as Record<string, unknown>)
           : {};
-      return ObjectIdUtil.enrichWithUserContext(dtoRecord, publicMetadata);
+      return EntityIdUtil.enrichWithUserContext(dtoRecord, publicMetadata);
     },
     (dto: unknown, publicMetadata: IAuthPublicMetadata) =>
       `userContext:${JSON.stringify(publicMetadata)}:${JSON.stringify(dto)}`,
@@ -72,7 +72,7 @@ export class MemoizationUtil {
    */
   static createSecureQuery = GlobalCaches.getObjectIdCache().memoize(
     (baseQuery: Record<string, unknown>, userContext?: IAuthPublicMetadata) => {
-      return ObjectIdUtil.createSecureQuery(baseQuery, userContext);
+      return EntityIdUtil.createSecureQuery(baseQuery, userContext);
     },
     (baseQuery: Record<string, unknown>, userContext?: IAuthPublicMetadata) =>
       `secureQuery:${JSON.stringify(userContext)}:${JSON.stringify(baseQuery)}`,

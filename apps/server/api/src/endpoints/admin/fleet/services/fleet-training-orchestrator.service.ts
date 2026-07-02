@@ -5,7 +5,7 @@ import { TrainingsService } from '@api/collections/trainings/services/trainings.
 import { AdminFleetCharacterService } from '@api/endpoints/admin/fleet/services/fleet-character.service';
 import { AdminFleetTrainingService } from '@api/endpoints/admin/fleet/services/fleet-training.service';
 import { AdminFleetValueReader } from '@api/endpoints/admin/fleet/services/fleet-value-reader.util';
-import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   DarkroomReviewStatus as DarkroomReviewStatusEnum,
@@ -161,16 +161,16 @@ export class AdminFleetTrainingOrchestratorService {
       loraName,
       loraRank,
       model: baseModel,
-      organization: ObjectIdUtil.toObjectId(organizationId)!,
+      organization: EntityIdUtil.toValidId(organizationId)!,
       persona: persona._id,
       personaSlug: data.personaSlug,
       progress: 0,
       provider: TrainingProvider.GENFEED_AI,
-      sources: sourceIds.map((id) => ObjectIdUtil.toObjectId(id)!),
+      sources: sourceIds.map((id) => EntityIdUtil.toValidId(id)!),
       stage: TrainingStage.QUEUED,
       steps,
       trigger: triggerWord,
-      user: ObjectIdUtil.toObjectId(userId)!,
+      user: EntityIdUtil.toValidId(userId)!,
     } as Parameters<TrainingsService['create']>[0]);
 
     await this.personasService.patch(persona._id.toString(), {
