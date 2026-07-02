@@ -104,6 +104,7 @@ describe('BrandInterviewService', () => {
     brandDelegate = {
       findFirst: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     };
     interviewDelegate = {
       create: vi.fn(),
@@ -266,7 +267,7 @@ describe('BrandInterviewService', () => {
 
       interviewDelegate.findFirst.mockResolvedValue(session);
       brandDelegate.findFirst.mockResolvedValueOnce(filledBrand); // reload after write
-      brandDelegate.update.mockResolvedValue(filledBrand);
+      brandDelegate.updateMany.mockResolvedValue({ count: 1 });
       interviewDelegate.update.mockResolvedValue({
         ...session,
         answeredFields: { description: 'My brand does X.' },
@@ -280,9 +281,14 @@ describe('BrandInterviewService', () => {
         'My brand does X.',
       );
 
-      expect(brandDelegate.update).toHaveBeenCalledWith(
+      // Direct-column write is org-scoped (updateMany with org + isDeleted).
+      expect(brandDelegate.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({ description: 'My brand does X.' }),
+          where: expect.objectContaining({
+            isDeleted: false,
+            organizationId: 'org-1',
+          }),
         }),
       );
     });

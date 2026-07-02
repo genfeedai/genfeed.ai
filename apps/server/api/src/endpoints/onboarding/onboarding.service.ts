@@ -1447,8 +1447,16 @@ export class OnboardingService {
         );
       }
 
+      // Keep brand.slug in sync with the label (matching the scan-based and
+      // brand-update paths); excludeBrandId avoids colliding with the brand's
+      // own current slug.
+      const brandSlug = await this.brandsService.generateUniqueSlug(
+        dto.brandName,
+        brand._id,
+      );
       await this.brandsService.patch(brand._id, {
         label: dto.brandName,
+        slug: brandSlug,
       });
 
       const slug = await this.organizationsService.generateUniqueSlug(
