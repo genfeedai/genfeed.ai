@@ -7,7 +7,8 @@ import '@slack/instrument';
 
 bootstrap({ app: 'slack' });
 
-import { Logger } from '@nestjs/common';
+import process from 'node:process';
+import { LoggerService } from '@libs/logger/logger.service';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from '@slack/app.module';
@@ -21,7 +22,7 @@ async function main() {
   });
 
   const configService = app.get(ConfigService);
-  const logger = new Logger('Slack');
+  const logger = app.get<LoggerService>(LoggerService);
   const port = configService.get('PORT');
 
   try {

@@ -7,6 +7,7 @@ import {
   type Platform,
 } from '@genfeedai/enums';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useAuthUser } from '@genfeedai/hooks/auth/use-auth-user/use-auth-user';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type {
@@ -25,7 +26,6 @@ import type {
 } from '@genfeedai/props/modals/modal.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { UsersService } from '@genfeedai/services/organization/users.service';
-import { useAuthUser } from '@genfeedai/hooks/auth/use-auth-user/use-auth-user';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import type { GallerySelectItem } from './global-modals.provider';

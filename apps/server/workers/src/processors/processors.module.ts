@@ -85,10 +85,6 @@ import { HeygenPollProcessor } from '@workers/processors/api/queues/heygen-poll/
 import { PatternExtractionProcessor } from '@workers/processors/api/queues/pattern-extraction/pattern-extraction.processor';
 import { ReplyBotPollingProcessor } from '@workers/processors/api/queues/reply-bot/reply-bot-polling.processor';
 import { TelegramDistributeProcessor } from '@workers/processors/api/queues/telegram-distribute/telegram-distribute.processor';
-import {
-  WorkflowExecutionProcessor as QueuesWorkflowExecutionProcessor,
-  WorkflowDelayProcessor,
-} from '@workers/processors/api/queues/workflow/workflow-execution.processor';
 // --- services/ processors ---
 import { CampaignMemoryProcessor } from '@workers/processors/api/services/agent-campaign/campaign-memory.processor';
 import { OrchestratorProcessor } from '@workers/processors/api/services/agent-campaign/orchestrator.processor';
@@ -182,8 +178,6 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     PatternExtractionProcessor,
     ReplyBotPollingProcessor,
     TelegramDistributeProcessor,
-    QueuesWorkflowExecutionProcessor,
-    WorkflowDelayProcessor,
 
     // --- services/ processors (8) ---
     BatchContentProcessor,

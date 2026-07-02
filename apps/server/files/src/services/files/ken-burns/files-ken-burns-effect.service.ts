@@ -244,13 +244,13 @@ export class FilesKenBurnsEffectService {
           const parsed = this.filesCaptionsService.filterCaptions(
             fs.readFileSync(filePath, 'utf8'),
           );
-          parsed.forEach((w) =>
+          parsed.forEach((w) => {
             words.push({
               end: w.end + captionOffset * 1000,
               start: w.start + captionOffset * 1000,
               text: w.text,
-            }),
-          );
+            });
+          });
         }
         captionOffset += slideText[i].duration;
       }

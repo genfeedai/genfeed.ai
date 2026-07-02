@@ -10,7 +10,7 @@ Plan file: `.claude-genfeedai/plans/delegated-churning-sifakis.md` §5.1b
 
 **Layer 2 — TODO:**
 
-Multi-tenancy in Genfeed.ai is an enterprise feature. When `isEEEnabled() === true`, every MongoDB query includes `{ organization: orgId, isDeleted: false }` and the global `CombinedAuthGuard` enforces org-scoped access. Single-tenant self-hosted deployments only filter `{ isDeleted: false }`.
+Multi-tenancy in Genfeed.ai is an enterprise feature. When `isEEEnabled() === true`, every tenant-scoped Prisma query includes `{ organizationId: orgId, isDeleted: false }` and the global `CombinedAuthGuard` enforces org-scoped access. Single-tenant self-hosted deployments only filter `{ isDeleted: false }`.
 
 The current implementation is intertwined with OSS core because `CombinedAuthGuard`, request-context middleware, and org-scoped query helpers all have to load for every request regardless of edition. The split is:
 

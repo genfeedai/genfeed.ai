@@ -128,6 +128,7 @@ async function main() {
     logger.error('Failed to start workers service:', {
       error: error instanceof Error ? error.message : String(error),
     });
+    process.exit(1);
   }
 }
 

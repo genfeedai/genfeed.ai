@@ -1,9 +1,9 @@
 import type { MemberRole } from '@genfeedai/enums';
-import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import {
   getAuthPublicData,
   getPlaywrightAuthState,
 } from '@helpers/auth/auth.helper';
+import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { useMemo } from 'react';
 
 export function useUserRole(): MemberRole | undefined {
