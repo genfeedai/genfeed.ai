@@ -495,11 +495,26 @@ describe('TrendReferenceCorpusService', () => {
     expect(result.items).not.toContainEqual(
       expect.objectContaining({ id: 'ref_paid' }),
     );
+    // Two non-paid refs fit within limit 10, and the over-fetch window (40) was
+    // not saturated, so there is nothing more to page.
+    expect(result.hasMore).toBe(false);
     expect(prisma.trendSourceReference.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         take: 40,
       }),
     );
+  });
+
+  it('flags hasMore when more references exist beyond the requested page', async () => {
+    const result = await service.getReferenceCorpus('org_1', 'brand_1', {
+      limit: 1,
+    });
+
+    expect(result.items).toHaveLength(1);
+    // More than one non-paid reference matched, so the page does not exhaust
+    // the corpus — the caller is told to page further rather than being misled
+    // by a page-scoped totalReferences count.
+    expect(result.hasMore).toBe(true);
   });
 
   it('returns paid creative references through explicit source filters', async () => {
@@ -882,6 +897,7 @@ describe('TrendReferenceCorpusService', () => {
 
   it('reports corpus freshness segments and provider failures', async () => {
     const result = await service.getCorpusFreshnessHealth({
+      isPlatformAdmin: true,
       now: new Date('2026-06-14T00:00:00.000Z'),
     });
 
@@ -937,6 +953,7 @@ describe('TrendReferenceCorpusService', () => {
 
   it('marks reference segments stale when last seen exceeds source windows', async () => {
     const result = await service.getCorpusFreshnessHealth({
+      isPlatformAdmin: true,
       now: new Date('2026-06-20T00:00:00.000Z'),
       sourcePreviewStaleAfterDays: 30,
     });
@@ -963,6 +980,7 @@ describe('TrendReferenceCorpusService', () => {
 
   it('filters corpus health by platform', async () => {
     const result = await service.getCorpusFreshnessHealth({
+      isPlatformAdmin: true,
       now: new Date('2026-06-14T00:00:00.000Z'),
       platform: 'tiktok',
     });
@@ -983,6 +1001,52 @@ describe('TrendReferenceCorpusService', () => {
         },
       }),
     );
+  });
+
+  it('scopes the Trend aggregate to the caller org + global rows for non-admins', async () => {
+    await service.getCorpusFreshnessHealth({
+      now: new Date('2026-06-14T00:00:00.000Z'),
+      organizationId: 'org_1',
+    });
+
+    expect(prisma.trend.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: [{ organizationId: 'org_1' }, { organizationId: null }],
+          isDeleted: false,
+        }),
+      }),
+    );
+    // Never a bare cross-org read for a tenant.
+    const trendWhere = prisma.trend.findMany.mock.calls.at(-1)?.[0]?.where;
+    expect(trendWhere).not.toHaveProperty('organizationId');
+  });
+
+  it('restricts a non-admin with no org to global (null-org) Trend rows only', async () => {
+    await service.getCorpusFreshnessHealth({
+      now: new Date('2026-06-14T00:00:00.000Z'),
+    });
+
+    expect(prisma.trend.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: [{ organizationId: null }],
+          isDeleted: false,
+        }),
+      }),
+    );
+  });
+
+  it('does not org-scope the Trend aggregate for platform admins (global view)', async () => {
+    await service.getCorpusFreshnessHealth({
+      isPlatformAdmin: true,
+      now: new Date('2026-06-14T00:00:00.000Z'),
+      organizationId: 'org_1',
+    });
+
+    const trendWhere = prisma.trend.findMany.mock.calls.at(-1)?.[0]?.where;
+    expect(trendWhere).toEqual({ isDeleted: false });
+    expect(trendWhere).not.toHaveProperty('OR');
   });
 
   it('resolves metadata source URLs before creating org-scoped remix lineage', async () => {

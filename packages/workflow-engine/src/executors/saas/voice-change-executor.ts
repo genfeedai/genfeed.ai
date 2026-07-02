@@ -97,7 +97,3 @@ export class VoiceChangeExecutor extends BaseExecutor {
     };
   }
 }
-
-export function createVoiceChangeExecutor(): VoiceChangeExecutor {
-  return new VoiceChangeExecutor();
-}

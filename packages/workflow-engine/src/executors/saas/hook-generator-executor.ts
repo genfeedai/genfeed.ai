@@ -321,7 +321,3 @@ export class HookGeneratorExecutor extends BaseExecutor {
     };
   }
 }
-
-export function createHookGeneratorExecutor(): HookGeneratorExecutor {
-  return new HookGeneratorExecutor();
-}

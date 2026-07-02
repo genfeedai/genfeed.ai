@@ -429,7 +429,3 @@ export class ConditionExecutor extends BaseExecutor {
     };
   }
 }
-
-export function createConditionExecutor(): ConditionExecutor {
-  return new ConditionExecutor();
-}

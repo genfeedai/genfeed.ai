@@ -134,7 +134,3 @@ export class MentionTriggerExecutor extends BaseExecutor {
     return 0;
   }
 }
-
-export function createMentionTriggerExecutor(): MentionTriggerExecutor {
-  return new MentionTriggerExecutor();
-}
