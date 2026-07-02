@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { WorkflowWebhookService } from '@api/collections/workflows/services/workflow-webhook.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { ConfigService } from '@api/config/config.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -29,6 +30,7 @@ type WebhookAuthType = 'none' | 'secret' | 'bearer';
 export class WorkflowWebhookManagementController {
   constructor(
     private readonly workflowsService: WorkflowsService,
+    private readonly workflowWebhookService: WorkflowWebhookService,
     private readonly configService: ConfigService,
     readonly _loggerService: LoggerService,
   ) {}
@@ -59,7 +61,7 @@ export class WorkflowWebhookManagementController {
       user: publicMetadata.user,
     });
 
-    const result = await this.workflowsService.generateWebhook(
+    const result = await this.workflowWebhookService.generateWebhook(
       workflowId,
       body.authType || 'secret',
     );
@@ -90,7 +92,7 @@ export class WorkflowWebhookManagementController {
     }
 
     const result =
-      await this.workflowsService.regenerateWebhookSecret(workflowId);
+      await this.workflowWebhookService.regenerateWebhookSecret(workflowId);
     return { data: result };
   }
 
@@ -106,7 +108,7 @@ export class WorkflowWebhookManagementController {
       user: publicMetadata.user,
     });
 
-    await this.workflowsService.deleteWebhook(workflowId);
+    await this.workflowWebhookService.deleteWebhook(workflowId);
     return { data: { message: 'Webhook deleted' } };
   }
 

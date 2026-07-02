@@ -2,7 +2,7 @@ import {
   SYSTEM_WORKFLOW_ACTION_DEFINITIONS,
   SYSTEM_WORKFLOW_ACTION_IDS,
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
-import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import { WorkflowTemplateSeederService } from '@api/collections/workflows/services/workflow-template-seeder.service';
 import {
   SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
   SYSTEM_WORKFLOW_TEMPLATE_VERSION,
@@ -10,7 +10,7 @@ import {
 import { WorkflowStatus } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-describe('WorkflowsService seeded livestream bot workflows', () => {
+describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => {
   const tx = {
     workflow: {
       create: vi.fn(),
@@ -30,7 +30,7 @@ describe('WorkflowsService seeded livestream bot workflows', () => {
     warn: vi.fn(),
   };
 
-  let service: WorkflowsService;
+  let service: WorkflowTemplateSeederService;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -43,7 +43,10 @@ describe('WorkflowsService seeded livestream bot workflows', () => {
       ): Promise<void> => callback(tx),
     );
 
-    service = new WorkflowsService(prisma as never, logger as never);
+    service = new WorkflowTemplateSeederService(
+      prisma as never,
+      logger as never,
+    );
   });
 
   it('seeds the livestream bot workflow default-on for an organization', async () => {
