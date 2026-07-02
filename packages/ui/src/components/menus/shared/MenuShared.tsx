@@ -200,6 +200,16 @@ export default function MenuShared({
           )}
         >
           {sharedCollapseControl}
+          {orgSwitcherSlot ? (
+            <div
+              className={cn(
+                'min-w-0 flex-1 transition-opacity duration-200',
+                isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100',
+              )}
+            >
+              {orgSwitcherSlot}
+            </div>
+          ) : null}
         </div>
 
         {/* Body — fades out when collapsed, pointer-events disabled */}
@@ -209,10 +219,6 @@ export default function MenuShared({
             isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100',
           )}
         >
-          {orgSwitcherSlot ? (
-            <div className="px-3 pt-2">{orgSwitcherSlot}</div>
-          ) : null}
-
           {topSlotContent ? (
             <div className="px-3 pt-2">{topSlotContent}</div>
           ) : null}

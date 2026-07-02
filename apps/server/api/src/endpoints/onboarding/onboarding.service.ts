@@ -820,9 +820,13 @@ export class OnboardingService {
           label: dto.brandName,
         });
 
-        await this.brandPersistenceService.syncOrgLabelAndSlug(
+        // Keep brand.slug in sync with the label (matching the scan-based and
+        // brand-update paths); the brand id excludes the brand's own current
+        // slug from uniqueness collision.
+        await this.brandPersistenceService.syncBrandAndOrgSlug(
           dto.brandName,
           organizationId.toString(),
+          brand._id,
         );
 
         this.loggerService.log(`${caller} completed`);

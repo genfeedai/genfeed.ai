@@ -37,6 +37,26 @@ describe('useAgentThreadCommands', () => {
     );
   });
 
+  it('does not register commands for malformed thread ids', () => {
+    renderHook(() =>
+      useAgentThreadCommands({
+        onNavigate: vi.fn(),
+        threads: [
+          { id: undefined as unknown as string, title: 'Missing id' },
+          { id: 'undefined', title: 'Undefined id' },
+          { id: 'thread-1', title: 'First thread' },
+        ],
+      }),
+    );
+
+    expect(registerCommand).toHaveBeenCalledTimes(1);
+    expect(registerCommand).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'agent-thread-thread-1',
+      }),
+    );
+  });
+
   it('does not churn commands when the thread ids and labels are unchanged', () => {
     const { rerender } = renderHook(
       ({

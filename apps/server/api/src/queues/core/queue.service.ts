@@ -1,6 +1,5 @@
 import {
   AD_BULK_UPLOAD_QUEUE,
-  AD_INSIGHTS_AGGREGATION_QUEUE,
   AD_OPTIMIZATION_QUEUE,
   AD_SYNC_GOOGLE_QUEUE,
   AD_SYNC_META_QUEUE,
@@ -41,8 +40,6 @@ export class QueueService {
     private readonly adSyncGoogleQueue: Queue,
     @InjectQueue(AD_SYNC_TIKTOK_QUEUE)
     private readonly adSyncTikTokQueue: Queue,
-    @InjectQueue(AD_INSIGHTS_AGGREGATION_QUEUE)
-    private readonly adInsightsAggregationQueue: Queue,
     @InjectQueue(ANALYTICS_SYNC_QUEUE)
     private readonly analyticsSyncQueue: Queue,
     @InjectQueue(EMAIL_DIGEST_QUEUE)
@@ -82,8 +79,6 @@ export class QueueService {
         return this.adSyncGoogleQueue;
       case AD_SYNC_TIKTOK_QUEUE:
         return this.adSyncTikTokQueue;
-      case AD_INSIGHTS_AGGREGATION_QUEUE:
-        return this.adInsightsAggregationQueue;
       case ANALYTICS_SYNC_QUEUE:
         return this.analyticsSyncQueue;
       case EMAIL_DIGEST_QUEUE:

@@ -41,10 +41,6 @@ describe('QueueService', () => {
         { provide: getQueueToken('ad-sync-meta'), useValue: mockQueue },
         { provide: getQueueToken('ad-sync-google'), useValue: mockQueue },
         { provide: getQueueToken('ad-sync-tiktok'), useValue: mockQueue },
-        {
-          provide: getQueueToken('ad-insights-aggregation'),
-          useValue: mockQueue,
-        },
         { provide: getQueueToken('analytics-sync'), useValue: mockQueue },
         { provide: getQueueToken('email-digest'), useValue: mockQueue },
         { provide: getQueueToken('ad-bulk-upload'), useValue: mockQueue },

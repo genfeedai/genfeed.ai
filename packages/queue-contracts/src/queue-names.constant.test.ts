@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  AD_INSIGHTS_AGGREGATION_QUEUE,
   AGENT_RUN_QUEUE,
   ALL_QUEUE_NAMES,
   ANALYTICS_SOCIAL_QUEUE,
@@ -22,7 +21,6 @@ describe('queue-names.constant', () => {
     // in-flight jobs in Redis. Lock them down.
     expect(DEFAULT_QUEUE).toBe('default');
     expect(ANALYTICS_SOCIAL_QUEUE).toBe('analytics-social');
-    expect(AD_INSIGHTS_AGGREGATION_QUEUE).toBe('ad-insights-aggregation');
     expect(REPLY_BOT_POLLING_QUEUE).toBe('reply-bot-polling');
     expect(CAMPAIGN_PROCESSING_QUEUE).toBe('campaign-processing');
     expect(AGENT_RUN_QUEUE).toBe('agent-run');

@@ -11,7 +11,6 @@ import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queu
 import { WorkspaceTaskQueueService } from '@api/services/task-orchestration/workspace-task-queue.service';
 import {
   AD_BULK_UPLOAD_QUEUE,
-  AD_INSIGHTS_AGGREGATION_QUEUE,
   AD_OPTIMIZATION_QUEUE,
   AD_SYNC_GOOGLE_QUEUE,
   AD_SYNC_META_QUEUE,
@@ -131,15 +130,6 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnFail: 50,
         },
         name: AD_SYNC_TIKTOK_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 2,
-          backoff: { delay: 10000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: AD_INSIGHTS_AGGREGATION_QUEUE,
       },
       {
         defaultJobOptions: {

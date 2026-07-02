@@ -150,7 +150,3 @@ export class ImageGenExecutor extends BaseExecutor {
     };
   }
 }
-
-export function createImageGenExecutor(): ImageGenExecutor {
-  return new ImageGenExecutor();
-}

@@ -6,7 +6,7 @@
  */
 
 import { timingSafeEqual } from 'node:crypto';
-import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import { WorkflowWebhookService } from '@api/collections/workflows/services/workflow-webhook.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -28,7 +28,7 @@ interface WebhookPayload {
 @Controller('webhooks')
 export class WebhooksController {
   constructor(
-    private readonly workflowsService: WorkflowsService,
+    private readonly workflowWebhookService: WorkflowWebhookService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -49,7 +49,8 @@ export class WebhooksController {
     @Headers('authorization') authHeader?: string,
   ): Promise<{ data: { runId: string; status: string; message: string } }> {
     // Find workflow by webhook ID
-    const workflow = await this.workflowsService.findByWebhookId(webhookId);
+    const workflow =
+      await this.workflowWebhookService.findByWebhookId(webhookId);
 
     if (!workflow) {
       throw new HttpException(
@@ -108,7 +109,7 @@ export class WebhooksController {
 
     try {
       // Trigger the workflow
-      const result = await this.workflowsService.triggerViaWebhook(
+      const result = await this.workflowWebhookService.triggerViaWebhook(
         webhookId,
         payload,
       );

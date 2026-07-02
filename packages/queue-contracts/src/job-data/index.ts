@@ -1,5 +1,4 @@
 export * from './ad-bulk-upload-job.interface';
-export * from './ad-insights-aggregation-job.interface';
 export * from './ad-optimization-job.interface';
 export * from './ad-sync-google-job.interface';
 export * from './ad-sync-meta-job.interface';

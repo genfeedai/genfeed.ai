@@ -24,11 +24,15 @@ describe('APP_MENU_ITEMS', () => {
 
     expect(ungroupedLabels).toEqual([
       'Dashboard',
-      'Messages',
       'Inbox',
       'Tasks',
       'Activity',
     ]);
+  });
+
+  it('keeps Messages out of the workspace menu (app switcher owns it)', () => {
+    expect(APP_MENU_ITEMS.map((item) => item.label)).not.toContain('Messages');
+    expect(APP_MENU_ITEMS.map((item) => item.href)).not.toContain('/messages');
   });
 
   it('does not surface content drilldowns in the shared sidebar', () => {
@@ -56,7 +60,6 @@ describe('APP_MENU_ITEMS', () => {
 
     expect(workspaceLabels).toEqual([
       'Dashboard',
-      'Messages',
       'Inbox',
       'Tasks',
       'Activity',

@@ -1,7 +1,9 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CompareEvaluationsDto } from '@api/collections/evaluations/dto/compare-evaluations.dto';
 import { EvaluateContentDto } from '@api/collections/evaluations/dto/evaluate-content.dto';
 import { EvaluateExternalDto } from '@api/collections/evaluations/dto/evaluate-external.dto';
 import { EvaluationFiltersDto } from '@api/collections/evaluations/dto/evaluation-filters.dto';
+import { RecordEvaluationReviewDto } from '@api/collections/evaluations/dto/record-evaluation-review.dto';
 import { EvaluationsService } from '@api/collections/evaluations/services/evaluations.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -25,6 +27,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -299,6 +302,46 @@ export class EvaluationsController extends BaseCRUDController {
       publicMetadata.organization,
       filters,
     );
+  }
+
+  /**
+   * Compare completed evaluations and rank alternatives
+   */
+  @Post('compare')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async compareEvaluations(
+    @Body() dto: CompareEvaluationsDto,
+    @CurrentUser() user: User,
+  ) {
+    const publicMetadata = getPublicMetadata(user);
+
+    return await this.evaluationsService.compareEvaluations(
+      publicMetadata.organization,
+      dto,
+    );
+  }
+
+  /**
+   * Record human reviewer feedback for an evaluation
+   */
+  @Patch(':evaluationId/review')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async recordReviewerFeedback(
+    @Req() request: Request,
+    @Param('evaluationId') evaluationId: string,
+    @CurrentUser() user: User,
+    @Body() dto: RecordEvaluationReviewDto,
+  ) {
+    const publicMetadata = getPublicMetadata(user);
+
+    const evaluation = await this.evaluationsService.recordReviewerFeedback(
+      evaluationId,
+      publicMetadata.organization,
+      publicMetadata.user,
+      dto,
+    );
+
+    return serializeSingle(request, EvaluationSerializer, evaluation);
   }
 
   /**

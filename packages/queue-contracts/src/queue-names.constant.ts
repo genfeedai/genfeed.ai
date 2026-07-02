@@ -18,7 +18,6 @@ export const ANALYTICS_SYNC_QUEUE = 'analytics-sync';
 export const AD_SYNC_META_QUEUE = 'ad-sync-meta';
 export const AD_SYNC_GOOGLE_QUEUE = 'ad-sync-google';
 export const AD_SYNC_TIKTOK_QUEUE = 'ad-sync-tiktok';
-export const AD_INSIGHTS_AGGREGATION_QUEUE = 'ad-insights-aggregation';
 export const AD_BULK_UPLOAD_QUEUE = 'ad-bulk-upload';
 export const AD_OPTIMIZATION_QUEUE = 'ad-optimization';
 
@@ -66,7 +65,6 @@ export const ALL_QUEUE_NAMES = [
   AD_SYNC_META_QUEUE,
   AD_SYNC_GOOGLE_QUEUE,
   AD_SYNC_TIKTOK_QUEUE,
-  AD_INSIGHTS_AGGREGATION_QUEUE,
   AD_BULK_UPLOAD_QUEUE,
   AD_OPTIMIZATION_QUEUE,
   AGENT_RUN_QUEUE,

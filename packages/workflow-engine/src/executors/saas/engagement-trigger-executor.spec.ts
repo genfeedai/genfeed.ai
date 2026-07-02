@@ -1,9 +1,8 @@
 import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
-  createEngagementTriggerExecutor,
   type EngagementChecker,
-  type EngagementTriggerExecutor,
+  EngagementTriggerExecutor,
 } from '@workflow-engine/executors/saas/engagement-trigger-executor';
 import type { ExecutableNode } from '@workflow-engine/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -30,7 +29,7 @@ describe('EngagementTriggerExecutor', () => {
   let mockChecker: EngagementChecker;
 
   beforeEach(() => {
-    executor = createEngagementTriggerExecutor();
+    executor = new EngagementTriggerExecutor();
     mockChecker = vi.fn().mockResolvedValue({
       currentValue: 150,
       metricType: 'likes',
@@ -48,7 +47,7 @@ describe('EngagementTriggerExecutor', () => {
   });
 
   it('throws if checker not configured', async () => {
-    const fresh = createEngagementTriggerExecutor();
+    const fresh = new EngagementTriggerExecutor();
     const input = makeInput({
       metricType: 'likes',
       platform: 'twitter',

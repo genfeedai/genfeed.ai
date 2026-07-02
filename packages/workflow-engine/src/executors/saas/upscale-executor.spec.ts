@@ -1,8 +1,7 @@
 import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
-  createUpscaleExecutor,
-  type UpscaleExecutor,
+  UpscaleExecutor,
   type UpscaleResolver,
 } from '@workflow-engine/executors/saas/upscale-executor';
 import type { ExecutableNode } from '@workflow-engine/types';
@@ -45,7 +44,7 @@ describe('UpscaleExecutor', () => {
   let mockResolver: UpscaleResolver;
 
   beforeEach(() => {
-    executor = createUpscaleExecutor();
+    executor = new UpscaleExecutor();
     mockResolver = vi.fn().mockResolvedValue({
       mediaUrl: 'https://cdn.example.com/upscaled.png',
       model: 'topaz-standard',
@@ -93,7 +92,7 @@ describe('UpscaleExecutor', () => {
 
   describe('execute', () => {
     it('should throw when resolver is not configured', async () => {
-      const noResolverExecutor = createUpscaleExecutor();
+      const noResolverExecutor = new UpscaleExecutor();
       const input = makeInput({}, [
         ['media', 'https://cdn.example.com/image.png'],
       ]);

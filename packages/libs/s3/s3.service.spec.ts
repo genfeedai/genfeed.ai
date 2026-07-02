@@ -2,46 +2,26 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { S3Service } from '@libs/s3/s3.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 
-// Mock @aws-sdk/client-s3
-const mockSend = vi.fn();
-vi.mock('@aws-sdk/client-s3', () => {
-  class MockS3Client {
-    send = mockSend;
-    constructor() {}
-  }
-  return {
-    GetObjectCommand: class {
-      constructor(public params: Record<string, unknown>) {}
-    },
-    ListObjectsV2Command: class {
-      constructor(public params: Record<string, unknown>) {}
-    },
-    PutObjectCommand: class {
-      constructor(public params: Record<string, unknown>) {}
-    },
-    S3Client: MockS3Client,
-  };
-});
+const mockProvider = {
+  delete: vi.fn(),
+  download: vi.fn().mockResolvedValue(undefined),
+  exists: vi.fn(),
+  getUrl: vi.fn(),
+  list: vi.fn(),
+  listObjects: vi.fn().mockResolvedValue([]),
+  upload: vi.fn(),
+  uploadFromFile: vi.fn().mockResolvedValue(''),
+};
 
-// Mock node:fs/promises
+const mockCreateStorageProvider = vi.fn().mockReturnValue(mockProvider);
+
+vi.mock('@genfeedai/storage', () => ({
+  createStorageProvider: (options?: Record<string, unknown>) =>
+    mockCreateStorageProvider(options),
+}));
+
 vi.mock('node:fs/promises', () => ({
-  mkdir: vi.fn().mockResolvedValue(undefined),
-  readFile: vi.fn().mockResolvedValue(Buffer.from('test-data')),
   stat: vi.fn().mockResolvedValue({ size: 9 }),
-}));
-
-// Mock node:fs
-vi.mock('node:fs', () => ({
-  createWriteStream: vi.fn().mockReturnValue({
-    end: vi.fn(),
-    on: vi.fn(),
-    write: vi.fn(),
-  }),
-}));
-
-// Mock node:stream/promises
-vi.mock('node:stream/promises', () => ({
-  pipeline: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('@libs/utils/caller/caller.util', () => ({
@@ -54,7 +34,7 @@ const mockConfigService = {
   AWS_SECRET_ACCESS_KEY: 'test-secret',
 };
 
-describe('S3Service (shared @libs/s3)', () => {
+describe('S3Service (shared @libs/s3, thin wrapper over @genfeedai/storage)', () => {
   let service: S3Service;
   let mockLoggerService: {
     log: ReturnType<typeof vi.fn>;
@@ -64,6 +44,7 @@ describe('S3Service (shared @libs/s3)', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    mockCreateStorageProvider.mockReturnValue(mockProvider);
 
     mockLoggerService = {
       error: vi.fn(),
@@ -82,38 +63,58 @@ describe('S3Service (shared @libs/s3)', () => {
     service = module.get<S3Service>(S3Service);
   });
 
-  describe('downloadFile', () => {
-    it('should download a file from S3 to local path', async () => {
-      const mockStream = { pipe: vi.fn() };
-      mockSend.mockResolvedValue({ Body: mockStream });
+  describe('provider resolution', () => {
+    it('creates the provider lazily with config credentials and the bucket', async () => {
+      expect(mockCreateStorageProvider).not.toHaveBeenCalled();
 
+      await service.downloadFile('bucket-a', 'k.png', '/tmp/k.png');
+
+      expect(mockCreateStorageProvider).toHaveBeenCalledTimes(1);
+      expect(mockCreateStorageProvider).toHaveBeenCalledWith({
+        accessKeyId: 'test-key',
+        bucket: 'bucket-a',
+        region: 'us-east-1',
+        secretAccessKey: 'test-secret',
+      });
+    });
+
+    it('caches one provider per bucket', async () => {
+      await service.downloadFile('bucket-a', 'k1.png', '/tmp/k1.png');
+      await service.downloadFile('bucket-a', 'k2.png', '/tmp/k2.png');
+      await service.downloadFile('bucket-b', 'k3.png', '/tmp/k3.png');
+
+      expect(mockCreateStorageProvider).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('downloadFile', () => {
+    it('delegates to provider.download', async () => {
       await service.downloadFile(
         'test-bucket',
         'images/photo.jpg',
         '/tmp/photo.jpg',
       );
 
-      expect(mockSend).toHaveBeenCalledTimes(1);
+      expect(mockProvider.download).toHaveBeenCalledWith(
+        'images/photo.jpg',
+        '/tmp/photo.jpg',
+      );
       expect(mockLoggerService.log).toHaveBeenCalledTimes(2);
     });
 
-    it('should throw if response body is empty', async () => {
-      mockSend.mockResolvedValue({ Body: null });
+    it('propagates provider errors', async () => {
+      mockProvider.download.mockRejectedValueOnce(
+        new Error('Empty response body'),
+      );
 
       await expect(
-        service.downloadFile(
-          'test-bucket',
-          'images/photo.jpg',
-          '/tmp/photo.jpg',
-        ),
+        service.downloadFile('test-bucket', 'images/photo.jpg', '/tmp/p.jpg'),
       ).rejects.toThrow('Empty response body');
     });
   });
 
   describe('uploadFile', () => {
-    it('should upload a file to S3 with explicit content type', async () => {
-      mockSend.mockResolvedValue({});
-
+    it('delegates to provider.uploadFromFile with explicit content type', async () => {
       await service.uploadFile(
         'test-bucket',
         'videos/job123/video.mp4',
@@ -121,56 +122,27 @@ describe('S3Service (shared @libs/s3)', () => {
         'video/mp4',
       );
 
-      expect(mockSend).toHaveBeenCalledTimes(1);
-      // The mock PutObjectCommand stores params on .params
-      const [cmdInstance] = mockSend.mock.calls[0] as [
-        { params: Record<string, unknown> },
-      ];
-      expect(cmdInstance.params.ContentType).toBe('video/mp4');
+      expect(mockProvider.uploadFromFile).toHaveBeenCalledWith(
+        'videos/job123/video.mp4',
+        '/tmp/video.mp4',
+        'video/mp4',
+      );
       expect(mockLoggerService.log).toHaveBeenCalledTimes(2);
     });
 
-    it('should infer content type from extension when not provided (jpg → image/jpeg)', async () => {
-      mockSend.mockResolvedValue({});
+    it('passes undefined content type through for provider-side inference', async () => {
+      await service.uploadFile('test-bucket', 'images/photo.jpg', '/tmp/p.jpg');
 
-      await service.uploadFile(
-        'test-bucket',
+      expect(mockProvider.uploadFromFile).toHaveBeenCalledWith(
         'images/photo.jpg',
-        '/tmp/photo.jpg',
+        '/tmp/p.jpg',
+        undefined,
       );
-
-      expect(mockSend).toHaveBeenCalledTimes(1);
-    });
-
-    it('should infer content type from extension when not provided (mp4 → video/mp4)', async () => {
-      mockSend.mockResolvedValue({});
-
-      await service.uploadFile(
-        'test-bucket',
-        'videos/clip.mp4',
-        '/tmp/clip.mp4',
-      );
-
-      expect(mockSend).toHaveBeenCalledTimes(1);
-    });
-
-    it('should use application/octet-stream for unknown extensions', async () => {
-      mockSend.mockResolvedValue({});
-
-      await service.uploadFile(
-        'test-bucket',
-        'data/model.bin',
-        '/tmp/model.bin',
-      );
-
-      expect(mockSend).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('uploadSafetensors', () => {
-    it('should upload with the canonical S3 key path', async () => {
-      mockSend.mockResolvedValue({});
-
+    it('uploads with the canonical S3 key and octet-stream content type', async () => {
       const result = await service.uploadSafetensors(
         'test-bucket',
         'my-lora',
@@ -181,83 +153,58 @@ describe('S3Service (shared @libs/s3)', () => {
         'ingredients/trainings/loras/my-lora.safetensors',
       );
       expect(result.sizeBytes).toBe(9);
-      expect(mockSend).toHaveBeenCalledTimes(1);
+      expect(mockProvider.uploadFromFile).toHaveBeenCalledWith(
+        'ingredients/trainings/loras/my-lora.safetensors',
+        '/tmp/my-lora.safetensors',
+        'application/octet-stream',
+      );
       expect(mockLoggerService.log).toHaveBeenCalledTimes(2);
     });
   });
 
   describe('listObjects', () => {
-    it('should list objects with the given prefix', async () => {
-      mockSend.mockResolvedValue({
-        Contents: [
-          {
-            Key: 'ingredients/trainings/loras/model-a.safetensors',
-            LastModified: new Date('2024-01-01'),
-            Size: 1024,
-          },
-          {
-            Key: 'ingredients/trainings/loras/model-b.safetensors',
-            LastModified: new Date('2024-01-02'),
-            Size: 2048,
-          },
-        ],
-        NextContinuationToken: undefined,
-      });
+    it('maps StorageObject entries to S3Object with ISO lastModified', async () => {
+      mockProvider.listObjects.mockResolvedValueOnce([
+        {
+          key: 'ingredients/trainings/loras/model-a.safetensors',
+          lastModified: new Date('2024-01-01T00:00:00.000Z'),
+          size: 1024,
+        },
+        {
+          key: 'ingredients/trainings/loras/model-b.safetensors',
+          lastModified: new Date('2024-01-02T00:00:00.000Z'),
+          size: 2048,
+        },
+      ]);
 
       const result = await service.listObjects(
         'test-bucket',
         'ingredients/trainings/loras/',
       );
 
-      expect(result).toHaveLength(2);
-      expect(result[0].key).toBe(
-        'ingredients/trainings/loras/model-a.safetensors',
+      expect(mockProvider.listObjects).toHaveBeenCalledWith(
+        'ingredients/trainings/loras/',
       );
-      expect(result[0].size).toBe(1024);
+      expect(result).toEqual([
+        {
+          key: 'ingredients/trainings/loras/model-a.safetensors',
+          lastModified: '2024-01-01T00:00:00.000Z',
+          size: 1024,
+        },
+        {
+          key: 'ingredients/trainings/loras/model-b.safetensors',
+          lastModified: '2024-01-02T00:00:00.000Z',
+          size: 2048,
+        },
+      ]);
     });
 
-    it('should handle pagination', async () => {
-      mockSend
-        .mockResolvedValueOnce({
-          Contents: [{ Key: 'file1.jpg', LastModified: new Date(), Size: 100 }],
-          NextContinuationToken: 'token-123',
-        })
-        .mockResolvedValueOnce({
-          Contents: [{ Key: 'file2.mp4', LastModified: new Date(), Size: 200 }],
-          NextContinuationToken: undefined,
-        });
-
-      const result = await service.listObjects('test-bucket', 'prefix/');
-
-      expect(result).toHaveLength(2);
-      expect(mockSend).toHaveBeenCalledTimes(2);
-    });
-
-    it('should return empty array when no contents', async () => {
-      mockSend.mockResolvedValue({
-        Contents: undefined,
-        NextContinuationToken: undefined,
-      });
+    it('returns empty array when provider has no objects', async () => {
+      mockProvider.listObjects.mockResolvedValueOnce([]);
 
       const result = await service.listObjects('test-bucket', 'empty/');
 
       expect(result).toHaveLength(0);
-    });
-
-    it('should skip items without Key or Size', async () => {
-      mockSend.mockResolvedValue({
-        Contents: [
-          { Key: 'valid.mp4', LastModified: new Date(), Size: 500 },
-          { Key: undefined, LastModified: new Date(), Size: 100 },
-          { Key: 'no-size.mp4', LastModified: new Date(), Size: undefined },
-        ],
-        NextContinuationToken: undefined,
-      });
-
-      const result = await service.listObjects('test-bucket', 'prefix/');
-
-      expect(result).toHaveLength(1);
-      expect(result[0].key).toBe('valid.mp4');
     });
   });
 });

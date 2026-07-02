@@ -212,14 +212,16 @@ export class AdOptimizationProcessor extends WorkerHost {
       const durationMs = Date.now() - startTime;
 
       await this.auditLogService.create({
-        adsAnalyzed: qualifiedAds.length,
-        configSnapshot: this.snapshotConfig(config),
-        durationMs,
-        errors,
-        organization: organizationId,
-        recommendationsGenerated: insertedCount,
-        runDate: new Date(),
-        runId,
+        data: {
+          adsAnalyzed: qualifiedAds.length,
+          configSnapshot: this.snapshotConfig(config),
+          durationMs,
+          errors,
+          recommendationsGenerated: insertedCount,
+          runDate: new Date(),
+          runId,
+        },
+        organizationId,
       });
 
       this.logger.log(
@@ -233,13 +235,15 @@ export class AdOptimizationProcessor extends WorkerHost {
       });
 
       await this.auditLogService.create({
-        adsAnalyzed: 0,
-        durationMs,
-        errors,
-        organization: organizationId,
-        recommendationsGenerated: 0,
-        runDate: new Date(),
-        runId,
+        data: {
+          adsAnalyzed: 0,
+          durationMs,
+          errors,
+          recommendationsGenerated: 0,
+          runDate: new Date(),
+          runId,
+        },
+        organizationId,
       });
 
       this.logger.error(

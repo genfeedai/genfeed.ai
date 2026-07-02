@@ -1,11 +1,17 @@
 const mockSendDm = vi.fn();
 
 vi.mock('twitter-api-v2', () => {
-  const MockTwitterApi = vi.fn(() => ({
-    v2: { sendDm: mockSendDm, sendDmInConversation: mockSendDm },
-  }));
+  const MockTwitterApi = vi.fn(function TwitterApiMock() {
+    return {
+      v2: { sendDm: mockSendDm, sendDmInConversation: mockSendDm },
+    };
+  });
   return { TwitterApi: MockTwitterApi };
 });
+
+vi.mock('@api/shared/utils/encryption/encryption.util', () => ({
+  EncryptionUtil: { decrypt: vi.fn((val: string) => val) },
+}));
 
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
@@ -112,11 +118,6 @@ describe('TwitterService', () => {
       });
 
       mockSendDm.mockResolvedValue({});
-
-      // Mock EncryptionUtil.decrypt for the access token decryption
-      vi.mock('@api/shared/utils/encryption/encryption.util', () => ({
-        EncryptionUtil: { decrypt: vi.fn((val: string) => val) },
-      }));
 
       await service.sendCommentReplyDm('org', 'acc', 'user', 'hello');
 

@@ -232,6 +232,7 @@ export default defineConfig({
     globals: true,
     include: ['src/**/*.spec.ts'],
     passWithNoTests: true,
+    setupFiles: ['./test/setup-unit.ts'],
     testTimeout: 30000,
   },
 });

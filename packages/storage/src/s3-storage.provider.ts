@@ -1,6 +1,11 @@
+import { createWriteStream } from 'node:fs';
+import { mkdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
+import type { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import {
   DeleteObjectCommand,
+  GetObjectCommand,
   HeadObjectCommand,
   ListObjectsV2Command,
   PutObjectCommand,
@@ -10,19 +15,25 @@ import {
 import type {
   FileEntry,
   ListOptions,
+  StorageObject,
   StorageProvider,
+  StorageProviderOptions,
 } from './storage.provider';
 
 const MIME_BY_EXT: Record<string, string> = {
   '.aac': 'audio/aac',
+  '.avi': 'video/x-msvideo',
   '.flac': 'audio/flac',
   '.gif': 'image/gif',
   '.jpeg': 'image/jpeg',
   '.jpg': 'image/jpeg',
+  '.m4a': 'audio/mp4',
+  '.mov': 'video/quicktime',
   '.mp3': 'audio/mpeg',
   '.mp4': 'video/mp4',
   '.ogg': 'audio/ogg',
   '.png': 'image/png',
+  '.pth': 'application/octet-stream',
   '.safetensors': 'application/octet-stream',
   '.svg': 'image/svg+xml',
   '.wav': 'audio/wav',
@@ -52,14 +63,15 @@ export class S3StorageProvider implements StorageProvider {
   private readonly bucket: string;
   private readonly region: string;
 
-  constructor() {
-    this.bucket = process.env.AWS_S3_BUCKET ?? '';
-    this.region = process.env.AWS_REGION ?? 'us-east-1';
+  constructor(options: StorageProviderOptions = {}) {
+    this.bucket = options.bucket ?? process.env.AWS_S3_BUCKET ?? '';
+    this.region = options.region ?? process.env.AWS_REGION ?? 'us-east-1';
     this.client = new S3Client({
       region: this.region,
       credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID ?? '',
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? '',
+        accessKeyId: options.accessKeyId ?? process.env.AWS_ACCESS_KEY_ID ?? '',
+        secretAccessKey:
+          options.secretAccessKey ?? process.env.AWS_SECRET_ACCESS_KEY ?? '',
       },
     });
   }
@@ -78,6 +90,43 @@ export class S3StorageProvider implements StorageProvider {
     });
     await this.client.send(command);
     return filePath;
+  }
+
+  async uploadFromFile(
+    filePath: string,
+    localPath: string,
+    contentType?: string,
+  ): Promise<string> {
+    const fileBuffer = await readFile(localPath);
+    const fileStats = await stat(localPath);
+    const resolvedContentType = contentType ?? mimeFromPath(localPath);
+
+    const command = new PutObjectCommand({
+      Body: fileBuffer,
+      Bucket: this.bucket,
+      ContentLength: fileStats.size,
+      ContentType: resolvedContentType,
+      Key: filePath,
+    });
+    await this.client.send(command);
+    return filePath;
+  }
+
+  async download(filePath: string, localPath: string): Promise<void> {
+    const command = new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: filePath,
+    });
+    const response = await this.client.send(command);
+
+    if (!response.Body) {
+      throw new Error(
+        `Empty response body for s3://${this.bucket}/${filePath}`,
+      );
+    }
+
+    await mkdir(path.dirname(localPath), { recursive: true });
+    await pipeline(response.Body as Readable, createWriteStream(localPath));
   }
 
   getUrl(filePath: string): string {
@@ -121,6 +170,34 @@ export class S3StorageProvider implements StorageProvider {
     const offset = options?.offset ?? 0;
     const limit = options?.limit ?? entries.length;
     return entries.slice(offset, offset + limit);
+  }
+
+  async listObjects(prefix: string): Promise<StorageObject[]> {
+    const objects: StorageObject[] = [];
+    let continuationToken: string | undefined;
+
+    do {
+      const command = new ListObjectsV2Command({
+        Bucket: this.bucket,
+        ContinuationToken: continuationToken,
+        Prefix: prefix,
+      });
+      const response = await this.client.send(command);
+
+      for (const item of response.Contents ?? []) {
+        if (item.Key && item.Size !== undefined) {
+          objects.push({
+            key: item.Key,
+            lastModified: item.LastModified ?? new Date(0),
+            size: item.Size,
+          });
+        }
+      }
+
+      continuationToken = response.NextContinuationToken;
+    } while (continuationToken);
+
+    return objects;
   }
 
   async exists(filePath: string): Promise<boolean> {

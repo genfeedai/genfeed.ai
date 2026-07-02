@@ -1,3 +1,5 @@
+export {};
+
 declare global {
   namespace Vi {
     interface Assertion {
