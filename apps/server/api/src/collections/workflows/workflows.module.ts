@@ -34,6 +34,7 @@ import {
   BATCH_WORKFLOW_QUEUE,
   BatchWorkflowQueueService,
 } from '@api/collections/workflows/services/batch-workflow-queue.service';
+import { LegacyWorkflowStepRunner } from '@api/collections/workflows/services/legacy-workflow-step-runner.service';
 import { ReplyPollingWorkflowService } from '@api/collections/workflows/services/reply-polling-workflow.service';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import {
@@ -43,7 +44,10 @@ import {
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowFormatConverterService } from '@api/collections/workflows/services/workflow-format-converter.service';
 import { WorkflowGenerationService } from '@api/collections/workflows/services/workflow-generation.service';
+import { WorkflowRunControlService } from '@api/collections/workflows/services/workflow-run-control.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
+import { WorkflowTemplateSeederService } from '@api/collections/workflows/services/workflow-template-seeder.service';
+import { WorkflowWebhookService } from '@api/collections/workflows/services/workflow-webhook.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
@@ -77,8 +81,12 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [
     BatchWorkflowQueueService,
     BatchWorkflowService,
+    LegacyWorkflowStepRunner,
     WorkflowsService,
+    WorkflowRunControlService,
     WorkflowSchedulerService,
+    WorkflowTemplateSeederService,
+    WorkflowWebhookService,
     WorkflowEngineAdapterService,
     WorkflowExecutorService,
     WorkflowExecutionQueueService,
@@ -141,13 +149,17 @@ import { forwardRef, Module } from '@nestjs/common';
     SocialAdapterFactory,
     BatchWorkflowQueueService,
     BatchWorkflowService,
+    LegacyWorkflowStepRunner,
     WorkflowEngineAdapterService,
     WorkflowExecutorService,
     WorkflowExecutionQueueService,
     WorkflowFormatConverterService,
     WorkflowGenerationService,
     ReplyPollingWorkflowService,
+    WorkflowRunControlService,
     WorkflowSchedulerService,
+    WorkflowTemplateSeederService,
+    WorkflowWebhookService,
     WorkflowsService,
   ],
 })
