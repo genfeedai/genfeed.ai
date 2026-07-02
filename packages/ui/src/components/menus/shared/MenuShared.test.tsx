@@ -254,16 +254,21 @@ describe('MenuShared', () => {
     ).toBeTruthy();
   });
 
-  it('keeps organization switching out of the sidebar header shell', () => {
-    render(<MenuShared config={config} />);
+  it('renders the org switcher slot inside the sidebar header shell', () => {
+    render(
+      <MenuShared
+        config={config}
+        orgSwitcherSlot={<div data-testid="organization-switcher">Acme</div>}
+      />,
+    );
 
-    expect(screen.getByTestId('sidebar-header-shell')).toBeInTheDocument();
-    expect(
-      screen.queryByTestId('organization-switcher'),
-    ).not.toBeInTheDocument();
+    const headerShell = screen.getByTestId('sidebar-header-shell');
+    const orgSwitcher = screen.getByTestId('organization-switcher');
+
+    expect(headerShell).toContainElement(orgSwitcher);
   });
 
-  it('renders the org switcher slot at the top of the sidebar body, above the top slot and nav', () => {
+  it('renders the org switcher in the header above the top slot and nav', () => {
     render(
       <MenuShared
         config={config}
@@ -277,6 +282,9 @@ describe('MenuShared', () => {
     const firstMenuItem = screen.getByText('Dashboard');
 
     expect(orgSwitcher).toBeInTheDocument();
+    expect(screen.getByTestId('sidebar-header-shell')).not.toContainElement(
+      topSlot,
+    );
     expect(
       orgSwitcher.compareDocumentPosition(topSlot) &
         Node.DOCUMENT_POSITION_FOLLOWING,
