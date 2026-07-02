@@ -2,6 +2,7 @@ import type { AgentRunsService } from '@api/collections/agent-runs/services/agen
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CronJobsService } from '@api/collections/cron-jobs/services/cron-jobs.service';
+import type { LegacyWorkflowStepRunner } from '@api/collections/workflows/services/legacy-workflow-step-runner.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { ConfigModule } from '@api/config/config.module';
 import type { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
@@ -32,6 +33,7 @@ import { Module } from '@nestjs/common';
         new CronJobsService(
           prisma,
           workflowsService,
+          {} as LegacyWorkflowStepRunner,
           {} as AgentRunsService,
           {} as AgentRunQueueService,
           {} as OpenRouterService,
