@@ -18,6 +18,7 @@ export const DEFAULT_CREDIT_COSTS: CreditCostConfig = {
   brand: 0,
   brandAsset: 0,
   brandContext: 0,
+  commentTrigger: 0,
   engagementTrigger: 0, // trigger nodes are free
   keywordTrigger: 0,
   mentionTrigger: 0,

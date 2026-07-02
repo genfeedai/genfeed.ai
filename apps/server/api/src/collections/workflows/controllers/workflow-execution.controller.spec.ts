@@ -24,6 +24,7 @@ describe('WorkflowExecutionController', () => {
   const mockWorkflowsService = {
     archiveWorkflow: vi.fn(),
     executePartial: vi.fn(),
+    findMutableOwnedOrThrow: vi.fn(),
     getExecutionLogs: vi.fn(),
     lockNodes: vi.fn(),
     publishWorkflowLifecycle: vi.fn(),
@@ -79,6 +80,9 @@ describe('WorkflowExecutionController', () => {
 
   describe('setThumbnail', () => {
     it('should persist the workflow thumbnail for the current user org', async () => {
+      mockWorkflowsService.findMutableOwnedOrThrow.mockResolvedValue({
+        _id: '507f1f77bcf86cd799439014',
+      });
       mockWorkflowsService.setThumbnail.mockResolvedValue({
         _id: '507f1f77bcf86cd799439014',
         thumbnail: 'https://cdn.example.com/thumb.jpg',
@@ -95,6 +99,13 @@ describe('WorkflowExecutionController', () => {
         mockUser,
       );
 
+      expect(mockWorkflowsService.findMutableOwnedOrThrow).toHaveBeenCalledWith(
+        '507f1f77bcf86cd799439014',
+        {
+          organization: mockUser.publicMetadata.organization,
+          user: mockUser.publicMetadata.user,
+        },
+      );
       expect(mockWorkflowsService.setThumbnail).toHaveBeenCalledWith(
         '507f1f77bcf86cd799439014',
         'https://cdn.example.com/thumb.jpg',

@@ -4,8 +4,8 @@ import type {
   ProviderModel,
   ProviderType,
 } from '@genfeedai/types';
+import { logger } from '@services/core/logger.service';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { logger } from '@/lib/logger';
 import { useSettingsStore } from '@/store/settingsStore';
 
 interface UseModelBrowserModalParams {
@@ -89,8 +89,9 @@ export function useModelBrowserModal({
         }
       } catch (error) {
         if (error instanceof Error && error.name !== 'AbortError') {
-          logger.error('Failed to fetch models', error, {
+          logger.error('Failed to fetch models', {
             context: 'ModelBrowserModal',
+            error,
           });
         }
       } finally {

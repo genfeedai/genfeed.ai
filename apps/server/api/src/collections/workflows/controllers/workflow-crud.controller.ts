@@ -3,6 +3,7 @@ import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflo
 import { UpdateWorkflowDto } from '@api/collections/workflows/dto/update-workflow.dto';
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import { SYSTEM_WORKFLOW_METADATA_KEY } from '@api/collections/workflows/system-workflow.contract';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -99,7 +100,15 @@ export class WorkflowCrudController {
       where: {
         isDeleted,
         organization: publicMetadata.organization,
-        user: publicMetadata.user,
+        OR: [
+          { user: publicMetadata.user },
+          {
+            metadata: {
+              equals: 'organization',
+              path: [SYSTEM_WORKFLOW_METADATA_KEY, 'visibility'],
+            },
+          },
+        ],
       },
       orderBy: handleQuerySort(query.sort),
     };
@@ -154,10 +163,13 @@ export class WorkflowCrudController {
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
-    const workflow = await this.workflowsService.findOwnedOrThrow(workflowId, {
-      organization: publicMetadata.organization,
-      user: publicMetadata.user,
-    });
+    const workflow = await this.workflowsService.findVisibleOrThrow(
+      workflowId,
+      {
+        organization: publicMetadata.organization,
+        user: publicMetadata.user,
+      },
+    );
 
     return serializeSingle(request, WorkflowSerializer, workflow);
   }
@@ -176,6 +188,7 @@ export class WorkflowCrudController {
         workflowId,
         publicMetadata.user,
         publicMetadata.organization,
+        publicMetadata.brand || undefined,
       );
 
       return serializeSingle(request, WorkflowSerializer, clonedWorkflow);
@@ -192,7 +205,7 @@ export class WorkflowCrudController {
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
 
-    await this.workflowsService.findOwnedOrThrow(workflowId, {
+    await this.workflowsService.findMutableOwnedOrThrow(workflowId, {
       organization: publicMetadata.organization,
       user: publicMetadata.user,
     });
@@ -215,7 +228,7 @@ export class WorkflowCrudController {
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
-    await this.workflowsService.findOwnedOrThrow(workflowId, {
+    await this.workflowsService.findMutableOwnedOrThrow(workflowId, {
       organization: publicMetadata.organization,
       user: publicMetadata.user,
     });

@@ -42,8 +42,10 @@ export class EventBusService implements OnModuleDestroy {
    * All registered handlers will be called.
    */
   emit<T extends DomainEventType>(type: T, data: EventDataByType<T>): void {
-    // @ts-expect-error TS2554
-    this.logger.debug(`Emitting event: ${type}`, { data }, this.context);
+    this.logger.debug(`Emitting event: ${type}`, {
+      data,
+      service: this.context,
+    });
 
     // Emit via EventEmitter2 for NestJS @OnEvent decorators
     this.eventEmitter.emit(type, data);
@@ -83,8 +85,10 @@ export class EventBusService implements OnModuleDestroy {
     type: T,
     data: EventDataByType<T>,
   ): Promise<void> {
-    // @ts-expect-error TS2554
-    this.logger.debug(`Emitting async event: ${type}`, { data }, this.context);
+    this.logger.debug(`Emitting async event: ${type}`, {
+      data,
+      service: this.context,
+    });
 
     // Emit via EventEmitter2 and wait for all listeners
     await this.eventEmitter.emitAsync(type, data);
@@ -127,22 +131,18 @@ export class EventBusService implements OnModuleDestroy {
 
     handlers.add(handler as EventHandler<DomainEventType>);
 
-    this.logger.debug(
-      `Subscribed to event: ${type}`,
-      { handlerCount: handlers.size },
-      // @ts-expect-error TS2554
-      this.context,
-    );
+    this.logger.debug(`Subscribed to event: ${type}`, {
+      handlerCount: handlers.size,
+      service: this.context,
+    });
 
     // Return unsubscribe function
     return () => {
       handlers?.delete(handler as EventHandler<DomainEventType>);
-      this.logger.debug(
-        `Unsubscribed from event: ${type}`,
-        { handlerCount: handlers?.size ?? 0 },
-        // @ts-expect-error TS2554
-        this.context,
-      );
+      this.logger.debug(`Unsubscribed from event: ${type}`, {
+        handlerCount: handlers?.size ?? 0,
+        service: this.context,
+      });
     };
   }
 
@@ -188,8 +188,7 @@ export class EventBusService implements OnModuleDestroy {
    */
   clearHandlers(): void {
     this.handlers.clear();
-    // @ts-expect-error TS2554
-    this.logger.debug('Cleared all event handlers', undefined, this.context);
+    this.logger.debug('Cleared all event handlers', { service: this.context });
   }
 
   onModuleDestroy(): void {

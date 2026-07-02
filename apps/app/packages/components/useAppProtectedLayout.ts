@@ -116,6 +116,7 @@ export function useAppProtectedLayout(
   const isResearchRoute = pathname.startsWith('/research');
   const isLibraryLandingRoute = pathname === APP_ROUTES.LIBRARY.INGREDIENTS;
   const isLibraryRoute = pathname.startsWith(APP_ROUTE_PREFIXES.LIBRARY);
+  const isMessagesRoute = pathname.startsWith(APP_ROUTE_PREFIXES.MESSAGES);
   const isStudioPromptBarRoute =
     pathname === APP_ROUTES.STUDIO.ROOT ||
     /^\/studio\/(avatar|image|music|video)(?:\/|$)/.test(pathname);
@@ -167,9 +168,11 @@ export function useAppProtectedLayout(
                   ? 'editor'
                   : isAnalyticsRoute
                     ? 'analytics'
-                    : isAgentRoute
-                      ? 'agent'
-                      : 'workspace';
+                    : isMessagesRoute
+                      ? 'messages'
+                      : isAgentRoute
+                        ? 'agent'
+                        : 'workspace';
 
   const shouldMountAgentPanel =
     isTerminalDockAvailable() &&

@@ -55,6 +55,31 @@ const MOCK_TOOLS = [
   },
   { name: 'list_workflows', requiredRole: undefined, surfaces: { mcp: true } },
   {
+    name: 'inspect_workflow',
+    requiredRole: undefined,
+    surfaces: { mcp: true },
+  },
+  {
+    name: 'duplicate_workflow',
+    requiredRole: undefined,
+    surfaces: { mcp: true },
+  },
+  {
+    name: 'set_workflow_schedule',
+    requiredRole: undefined,
+    surfaces: { mcp: true },
+  },
+  {
+    name: 'list_workflow_runs',
+    requiredRole: undefined,
+    surfaces: { mcp: true },
+  },
+  {
+    name: 'get_workflow_run',
+    requiredRole: undefined,
+    surfaces: { mcp: true },
+  },
+  {
     name: 'get_workflow_status',
     requiredRole: undefined,
     surfaces: { mcp: true },
@@ -74,6 +99,56 @@ const MOCK_TOOLS = [
   {
     name: 'get_darkroom_health',
     requiredRole: 'admin',
+    surfaces: { mcp: true },
+  },
+  {
+    name: 'list_social_conversations',
+    requiredRole: 'user',
+    surfaces: { mcp: true },
+  },
+  {
+    name: 'get_social_conversation',
+    requiredRole: 'user',
+    surfaces: { mcp: true },
+  },
+  {
+    name: 'create_social_reply_draft',
+    requiredRole: 'user',
+    surfaces: { mcp: true },
+  },
+  {
+    name: 'approve_social_draft',
+    requiredRole: 'user',
+    surfaces: { mcp: true },
+  },
+  {
+    name: 'reject_social_draft',
+    requiredRole: 'user',
+    surfaces: { mcp: true },
+  },
+  {
+    name: 'post_social_reply',
+    requiredRole: 'user',
+    surfaces: { mcp: true },
+  },
+  {
+    name: 'send_social_dm',
+    requiredRole: 'user',
+    surfaces: { mcp: true },
+  },
+  {
+    name: 'tag_social_conversation',
+    requiredRole: 'user',
+    surfaces: { mcp: true },
+  },
+  {
+    name: 'assign_social_conversation',
+    requiredRole: 'user',
+    surfaces: { mcp: true },
+  },
+  {
+    name: 'mark_social_conversation_resolved',
+    requiredRole: 'user',
     surfaces: { mcp: true },
   },
 ];
@@ -106,10 +181,25 @@ describe('ToolRegistryService', () => {
     listImages: ReturnType<typeof vi.fn>;
     createArticle: ReturnType<typeof vi.fn>;
     createApproval: ReturnType<typeof vi.fn>;
+    approveSocialDraft: ReturnType<typeof vi.fn>;
+    assignSocialConversation: ReturnType<typeof vi.fn>;
+    createSocialReplyDraft: ReturnType<typeof vi.fn>;
     getWorkflowStatus: ReturnType<typeof vi.fn>;
+    getSocialConversation: ReturnType<typeof vi.fn>;
+    inspectWorkflow: ReturnType<typeof vi.fn>;
+    duplicateWorkflow: ReturnType<typeof vi.fn>;
+    setWorkflowSchedule: ReturnType<typeof vi.fn>;
+    listWorkflowRuns: ReturnType<typeof vi.fn>;
+    getWorkflowRun: ReturnType<typeof vi.fn>;
     getOrganizationAnalytics: ReturnType<typeof vi.fn>;
+    listSocialConversations: ReturnType<typeof vi.fn>;
+    markSocialConversationResolved: ReturnType<typeof vi.fn>;
+    postSocialReply: ReturnType<typeof vi.fn>;
+    rejectSocialDraft: ReturnType<typeof vi.fn>;
     retryAgentRun: ReturnType<typeof vi.fn>;
+    sendSocialDm: ReturnType<typeof vi.fn>;
     setBearerToken: ReturnType<typeof vi.fn>;
+    updateSocialTags: ReturnType<typeof vi.fn>;
   };
   let logger: {
     debug: ReturnType<typeof vi.fn>;
@@ -127,17 +217,28 @@ describe('ToolRegistryService', () => {
               id: 'run-1',
               status: 'CANCELLED',
             }),
-            createApproval: vi.fn().mockResolvedValue({
-              id: 'apr-art-1',
-              status: 'PENDING',
-              toolName: 'create_article',
-            }),
+            approveSocialDraft: vi
+              .fn()
+              .mockResolvedValue({ id: 'msg-approved', status: 'sent' }),
+            assignSocialConversation: vi
+              .fn()
+              .mockResolvedValue({ assignedOwnerId: 'user-2', id: 'conv-1' }),
+            createApproval: vi.fn().mockImplementation((toolName: string) =>
+              Promise.resolve({
+                id: 'apr-1',
+                status: 'PENDING',
+                toolName,
+              }),
+            ),
             createArticle: vi.fn().mockResolvedValue({
               id: 'art-1',
               status: 'draft',
               title: 'AI News',
               wordCount: 500,
             }),
+            createSocialReplyDraft: vi
+              .fn()
+              .mockResolvedValue({ id: 'msg-draft', status: 'draft' }),
             executeAgentTool: vi.fn().mockImplementation((name: string) =>
               Promise.resolve({
                 creditsUsed: 1,
@@ -148,6 +249,10 @@ describe('ToolRegistryService', () => {
             getOrganizationAnalytics: vi
               .fn()
               .mockResolvedValue({ totalViews: 9999 }),
+            getSocialConversation: vi.fn().mockResolvedValue({
+              conversation: { id: 'conv-1', status: 'open' },
+              messages: [{ id: 'msg-1', status: 'received' }],
+            }),
             getAgentRun: vi.fn().mockResolvedValue({
               id: 'run-1',
               label: 'Agent run',
@@ -167,18 +272,62 @@ describe('ToolRegistryService', () => {
               status: 'active',
               steps: [],
             }),
+            inspectWorkflow: vi.fn().mockResolvedValue({
+              id: 'wf-1',
+              name: 'System Flow',
+              nodeCount: 2,
+              status: 'draft',
+            }),
+            duplicateWorkflow: vi.fn().mockResolvedValue({
+              id: 'wf-copy-1',
+              name: 'System Flow (Copy)',
+              status: 'draft',
+            }),
+            setWorkflowSchedule: vi.fn().mockResolvedValue({
+              enabled: true,
+              id: 'wf-copy-1',
+              schedule: '0 9 * * *',
+              timezone: 'UTC',
+            }),
+            listWorkflowRuns: vi
+              .fn()
+              .mockResolvedValue([{ id: 'run-1', status: 'completed' }]),
+            getWorkflowRun: vi.fn().mockResolvedValue({
+              id: 'run-1',
+              progress: 100,
+              status: 'completed',
+            }),
             listImages: vi.fn().mockResolvedValue([]),
             listAgentRuns: vi
               .fn()
               .mockResolvedValue([{ id: 'run-1', status: 'RUNNING' }]),
+            listSocialConversations: vi.fn().mockResolvedValue({
+              conversations: [{ id: 'conv-1', status: 'open' }],
+              meta: { page: 1 },
+            }),
             listVideos: vi
               .fn()
               .mockResolvedValue([{ id: 'vid-1', title: 'Test' }]),
+            markSocialConversationResolved: vi
+              .fn()
+              .mockResolvedValue({ id: 'conv-1', status: 'resolved' }),
+            postSocialReply: vi
+              .fn()
+              .mockResolvedValue({ id: 'msg-reply', status: 'sent' }),
+            rejectSocialDraft: vi
+              .fn()
+              .mockResolvedValue({ id: 'msg-draft', status: 'rejected' }),
             retryAgentRun: vi.fn().mockResolvedValue({
               runId: 'run-2',
               threadId: 'thread-1',
             }),
+            sendSocialDm: vi
+              .fn()
+              .mockResolvedValue({ id: 'msg-dm', status: 'sent' }),
             setBearerToken: vi.fn(),
+            updateSocialTags: vi
+              .fn()
+              .mockResolvedValue({ id: 'conv-1', tags: ['lead'] }),
           },
         },
         {
@@ -334,6 +483,217 @@ describe('ToolRegistryService', () => {
     expect(
       (result as { content: { text: string }[] }).content[0].text,
     ).toContain('run-2');
+  });
+
+  it('handleToolCall inspect_workflow uses bounded workflow client inspect', async () => {
+    const result = await service.handleToolCall({
+      arguments: { workflowId: 'wf-1' },
+      name: 'inspect_workflow',
+    });
+
+    expect(clientService.inspectWorkflow).toHaveBeenCalledWith('wf-1');
+    expect(
+      (result as { content: { text: string }[] }).content[0].text,
+    ).toContain('System Flow');
+  });
+
+  it('handleToolCall duplicate_workflow duplicates without deleting or mutating the source', async () => {
+    const result = await service.handleToolCall({
+      arguments: { workflowId: 'wf-1' },
+      name: 'duplicate_workflow',
+    });
+
+    expect(clientService.duplicateWorkflow).toHaveBeenCalledWith('wf-1');
+    expect(
+      (result as { content: { text: string }[] }).content[0].text,
+    ).toContain('wf-copy-1');
+  });
+
+  it('handleToolCall set_workflow_schedule forwards schedule enablement', async () => {
+    const result = await service.handleToolCall({
+      arguments: {
+        enabled: true,
+        schedule: '0 9 * * *',
+        timezone: 'UTC',
+        workflowId: 'wf-copy-1',
+      },
+      name: 'set_workflow_schedule',
+    });
+
+    expect(clientService.setWorkflowSchedule).toHaveBeenCalledWith(
+      'wf-copy-1',
+      {
+        enabled: true,
+        schedule: '0 9 * * *',
+        timezone: 'UTC',
+      },
+    );
+    expect(
+      (result as { content: { text: string }[] }).content[0].text,
+    ).toContain('0 9 * * *');
+  });
+
+  it('handleToolCall list_workflow_runs returns workflow run history', async () => {
+    const result = await service.handleToolCall({
+      arguments: { limit: 5, workflowId: 'wf-1' },
+      name: 'list_workflow_runs',
+    });
+
+    expect(clientService.listWorkflowRuns).toHaveBeenCalledWith({
+      limit: 5,
+      offset: undefined,
+      status: undefined,
+      trigger: undefined,
+      workflowId: 'wf-1',
+    });
+    expect(
+      (result as { content: { text: string }[] }).content[0].text,
+    ).toContain('run-1');
+  });
+
+  it('handleToolCall get_workflow_run inspects one workflow run', async () => {
+    const result = await service.handleToolCall({
+      arguments: { runId: 'run-1' },
+      name: 'get_workflow_run',
+    });
+
+    expect(clientService.getWorkflowRun).toHaveBeenCalledWith('run-1');
+    expect(
+      (result as { content: { text: string }[] }).content[0].text,
+    ).toContain('completed');
+  });
+
+  it('handleToolCall list_social_conversations forwards bounded filters', async () => {
+    const result = await service.handleToolCall({
+      arguments: {
+        limit: 5,
+        needsReview: true,
+        platform: 'youtube',
+        status: 'open',
+      },
+      name: 'list_social_conversations',
+    });
+
+    expect(clientService.listSocialConversations).toHaveBeenCalledWith(
+      expect.objectContaining({
+        limit: 5,
+        needsReview: true,
+        platform: 'youtube',
+        status: 'open',
+      }),
+    );
+    expect(
+      (result as { content: { text: string }[] }).content[0].text,
+    ).toContain('conv-1');
+  });
+
+  it('handleToolCall get_social_conversation includes recent messages by default', async () => {
+    const result = await service.handleToolCall({
+      arguments: { conversationId: 'conv-1', limit: 10 },
+      name: 'get_social_conversation',
+    });
+
+    expect(clientService.getSocialConversation).toHaveBeenCalledWith('conv-1', {
+      includeMessages: true,
+      limit: 10,
+    });
+    expect(
+      (result as { content: { text: string }[] }).content[0].text,
+    ).toContain('msg-1');
+  });
+
+  it('handleToolCall create_social_reply_draft records provenance without external send approval', async () => {
+    const result = await service.handleToolCall({
+      arguments: {
+        agentRunId: 'agent-run-1',
+        conversationId: 'conv-1',
+        text: 'Thanks for the comment',
+        workflowRunId: 'workflow-run-1',
+      },
+      name: 'create_social_reply_draft',
+    });
+
+    expect(clientService.createSocialReplyDraft).toHaveBeenCalledWith(
+      'conv-1',
+      {
+        agentRunId: 'agent-run-1',
+        idempotencyKey: undefined,
+        messageType: undefined,
+        recipientId: undefined,
+        text: 'Thanks for the comment',
+        workflowRunId: 'workflow-run-1',
+      },
+    );
+    expect(clientService.createApproval).not.toHaveBeenCalled();
+    expect(
+      (result as { content: { text: string }[] }).content[0].text,
+    ).toContain('msg-draft');
+  });
+
+  it('handleToolCall reject_social_draft updates review state without external send approval', async () => {
+    const result = await service.handleToolCall({
+      arguments: {
+        conversationId: 'conv-1',
+        messageId: 'msg-draft',
+        reason: 'Needs a softer tone',
+      },
+      name: 'reject_social_draft',
+    });
+
+    expect(clientService.rejectSocialDraft).toHaveBeenCalledWith(
+      'conv-1',
+      'msg-draft',
+      'Needs a softer tone',
+    );
+    expect(clientService.createApproval).not.toHaveBeenCalled();
+    expect(
+      (result as { content: { text: string }[] }).content[0].text,
+    ).toContain('rejected');
+  });
+
+  it('handleToolCall post_social_reply queues approval before external publishing', async () => {
+    const result = await service.handleToolCall({
+      arguments: {
+        conversationId: 'conv-1',
+        text: 'Posting publicly',
+        workflowRunId: 'workflow-run-1',
+      },
+      name: 'post_social_reply',
+    });
+
+    expect(clientService.createApproval).toHaveBeenCalledWith(
+      'post_social_reply',
+      {
+        conversationId: 'conv-1',
+        text: 'Posting publicly',
+        workflowRunId: 'workflow-run-1',
+      },
+    );
+    expect(clientService.postSocialReply).not.toHaveBeenCalled();
+    expect(
+      (result as { content: { text: string }[] }).content[0].text,
+    ).toContain('requires approval');
+  });
+
+  it('handleToolCall send_social_dm queues approval before external messaging', async () => {
+    await service.handleToolCall({
+      arguments: {
+        conversationId: 'conv-1',
+        recipientId: 'viewer-1',
+        text: 'Private follow-up',
+      },
+      name: 'send_social_dm',
+    });
+
+    expect(clientService.createApproval).toHaveBeenCalledWith(
+      'send_social_dm',
+      {
+        conversationId: 'conv-1',
+        recipientId: 'viewer-1',
+        text: 'Private follow-up',
+      },
+    );
+    expect(clientService.sendSocialDm).not.toHaveBeenCalled();
   });
 
   describe('role gating', () => {

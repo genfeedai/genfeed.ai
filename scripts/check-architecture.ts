@@ -29,6 +29,14 @@ const checks = [
     ],
     name: 'Platform cron boundary',
   },
+  {
+    command: [
+      'bun',
+      'run',
+      'scripts/architecture/check-product-workflow-boundary.ts',
+    ],
+    name: 'Product workflow boundary',
+  },
 ] as const;
 
 let failed = false;

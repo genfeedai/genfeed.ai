@@ -9,7 +9,12 @@ import type { ExecutableNode } from '@workflow-engine/types';
 // TYPES
 // =============================================================================
 
-export type ReplyPlatform = 'twitter' | 'instagram' | 'threads' | 'facebook';
+export type ReplyPlatform =
+  | 'twitter'
+  | 'instagram'
+  | 'threads'
+  | 'facebook'
+  | 'youtube';
 
 export interface PostReplyConfig {
   /** Platform to reply on */
@@ -82,6 +87,7 @@ export class PostReplyExecutor extends BaseExecutor {
       'instagram',
       'threads',
       'facebook',
+      'youtube',
     ];
     if (!platform || !validPlatforms.includes(platform as ReplyPlatform)) {
       errors.push(
@@ -105,12 +111,8 @@ export class PostReplyExecutor extends BaseExecutor {
     );
 
     // postId and text can come from config or from connected inputs
-    const postId =
-      (node.config.postId as string) ??
-      (inputs.get('postId') as string | undefined);
-    const text =
-      (node.config.text as string) ??
-      (inputs.get('text') as string | undefined);
+    const postId = this.getConfigOrInputString(node, inputs, 'postId');
+    const text = this.getConfigOrInputString(node, inputs, 'text');
 
     if (!postId) {
       throw new Error('Post ID is required (via config or input)');
@@ -119,9 +121,7 @@ export class PostReplyExecutor extends BaseExecutor {
       throw new Error('Reply text is required (via config or input)');
     }
 
-    const mediaUrl =
-      (node.config.mediaUrl as string) ??
-      (inputs.get('mediaUrl') as string | undefined);
+    const mediaUrl = this.getConfigOrInputString(node, inputs, 'mediaUrl');
 
     const result = await this.publisher({
       brandId: node.config.brandId as string | undefined,
@@ -153,6 +153,22 @@ export class PostReplyExecutor extends BaseExecutor {
 
   estimateCost(_node: ExecutableNode): number {
     return 1;
+  }
+
+  private getConfigOrInputString(
+    node: ExecutableNode,
+    inputs: Map<string, unknown>,
+    key: string,
+  ): string | undefined {
+    const configValue = node.config[key];
+    if (typeof configValue === 'string' && configValue.trim().length > 0) {
+      return configValue;
+    }
+
+    const inputValue = inputs.get(key);
+    return typeof inputValue === 'string' && inputValue.trim().length > 0
+      ? inputValue
+      : undefined;
   }
 }
 

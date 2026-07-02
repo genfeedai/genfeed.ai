@@ -312,5 +312,6 @@ export class WorkflowDeploymentBackfillService {
       organizationId,
     );
     await workflowsService.ensureLivestreamBotWorkflows(userId, organizationId);
+    await workflowsService.ensureSystemActionWorkflows(userId, organizationId);
   }
 }

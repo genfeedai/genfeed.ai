@@ -7,6 +7,7 @@ export * from '@workflow-engine/executors/saas/brand-executor';
 // Cinematic post-production executors
 export * from '@workflow-engine/executors/saas/cinematic-camera-presets';
 export * from '@workflow-engine/executors/saas/cinematic-color-grade-executor';
+export * from '@workflow-engine/executors/saas/comment-trigger-executor';
 export * from '@workflow-engine/executors/saas/condition-executor';
 export * from '@workflow-engine/executors/saas/delay-executor';
 // Social trigger executors

@@ -13,15 +13,19 @@ import {
   type OutreachCampaignDocument,
 } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
+import {
+  SYSTEM_WORKFLOW_ACTION_IDS,
+  SystemWorkflowProvenanceService,
+} from '@api/collections/workflows/services/system-workflow-provenance.service';
+import { toReplyBotCredentialData } from '@api/services/campaign/reply-bot-credential.util';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import {
   CampaignSkipReason,
   CampaignStatus,
   CampaignTargetStatus,
+  WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
-import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -37,6 +41,7 @@ export class DmCampaignExecutorService {
     private readonly credentialsService: CredentialsService,
     private readonly replyGenerationService: ReplyGenerationService,
     private readonly botActionExecutorService: BotActionExecutorService,
+    private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
   ) {}
 
   /**
@@ -161,7 +166,7 @@ export class DmCampaignExecutorService {
         return { error: errorMessage, success: false };
       }
 
-      const credentialData = this.toReplyBotCredentialData(
+      const credentialData = toReplyBotCredentialData(
         credential as Record<string, unknown>,
       );
 
@@ -215,11 +220,33 @@ export class DmCampaignExecutorService {
       );
 
       // Send DM
-      const dmResult = await this.botActionExecutorService.sendDm(
-        credentialData,
-        recipientUserId,
-        dmText,
-      );
+      const { result: dmResult } =
+        await this.systemWorkflowProvenanceService.runAction(
+          {
+            actionType: 'campaign-dm',
+            canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.CAMPAIGN_DM_AUTOMATION,
+            description:
+              'Generates and sends outreach campaign DMs through connected brand credentials.',
+            failureMessage: (result) =>
+              result.success ? undefined : result.error || 'Campaign DM failed',
+            inputValues: {
+              campaignId,
+              recipientUserId,
+              targetId,
+            },
+            label: 'Campaign DM Automation',
+            organizationId: campaign.organization.toString(),
+            source: 'DmCampaignExecutorService.executeDmTarget',
+            trigger: WorkflowExecutionTrigger.SCHEDULED,
+            userId: campaign.user?.toString(),
+          },
+          () =>
+            this.botActionExecutorService.sendDm(
+              credentialData,
+              recipientUserId,
+              dmText,
+            ),
+        );
 
       if (!dmResult.success) {
         const isDmNotAllowed =
@@ -329,40 +356,6 @@ export class DmCampaignExecutorService {
 
   private getTargetId(target: CampaignTargetDocument): string {
     return String(target.id ?? target._id);
-  }
-
-  private toReplyBotCredentialData(
-    credential: Record<string, unknown>,
-  ): IReplyBotCredentialData | null {
-    if (typeof credential.accessToken !== 'string') {
-      return null;
-    }
-
-    return {
-      accessToken: EncryptionUtil.decrypt(credential.accessToken),
-      accessTokenSecret:
-        typeof credential.accessTokenSecret === 'string'
-          ? EncryptionUtil.decrypt(credential.accessTokenSecret)
-          : undefined,
-      externalId:
-        typeof credential.externalId === 'string'
-          ? credential.externalId
-          : undefined,
-      platform:
-        credential.platform === null || credential.platform === undefined
-          ? undefined
-          : (String(
-              credential.platform,
-            ) as IReplyBotCredentialData['platform']),
-      refreshToken:
-        typeof credential.refreshToken === 'string'
-          ? EncryptionUtil.decrypt(credential.refreshToken)
-          : undefined,
-      username:
-        typeof credential.username === 'string'
-          ? credential.username
-          : undefined,
-    };
   }
 
   private delay(ms: number): Promise<void> {

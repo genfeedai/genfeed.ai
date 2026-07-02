@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { CaptionDocument } from '@api/collections/captions/schemas/caption.schema';
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
@@ -149,7 +150,7 @@ export class VideosCaptionsController {
       return returnNotFound(this.constructorName, videoId);
     }
 
-    let caption;
+    let caption: CaptionDocument | { _id: string } | undefined;
     if (isEntityId(createVideoWithCaptionsDto.caption)) {
       caption = await this.captionsService.findOne({
         _id: createVideoWithCaptionsDto.caption,

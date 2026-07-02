@@ -19,6 +19,7 @@ import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { BackgroundMusicDto } from '@api/collections/videos/dto/create-video.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { requireVideoOutputPath } from '@api/collections/videos/utils/video-processing-result.util';
 import { ConfigService } from '@api/config/config.service';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
@@ -81,14 +82,6 @@ export class VideoMusicOrchestrationService {
     readonly _videosService: VideosService,
     private readonly websocketService: NotificationsPublisherService,
   ) {}
-
-  private requireOutputPath(value: unknown): string {
-    if (typeof value !== 'string' || value.length === 0) {
-      throw new Error('Video processing result missing outputPath');
-    }
-
-    return value;
-  }
 
   /**
    * Resolves the music ingredient to use for merging.
@@ -361,7 +354,7 @@ export class VideoMusicOrchestrationService {
         mergedIngredientId,
         'videos',
         {
-          path: this.requireOutputPath(result.outputPath),
+          path: requireVideoOutputPath(result.outputPath),
           type: FileInputType.FILE,
         },
       );

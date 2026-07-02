@@ -45,6 +45,14 @@ export interface WorkflowResponse {
   updatedAt?: string;
   lastRunAt?: string;
   nextRunAt?: string;
+  edgeCount?: number;
+  inputVariables?: Array<Record<string, unknown>>;
+  isScheduleEnabled?: boolean;
+  lifecycle?: string;
+  metadata?: Record<string, unknown>;
+  nodeCount?: number;
+  schedule?: string;
+  timezone?: string;
 }
 
 export interface WorkflowExecuteParams {
@@ -66,6 +74,44 @@ export interface WorkflowListParams {
   status?: WorkflowStatus;
   limit?: number;
   offset?: number;
+}
+
+export interface WorkflowScheduleParams {
+  enabled: boolean;
+  schedule?: string;
+  timezone?: string;
+}
+
+export interface WorkflowScheduleResponse {
+  id: string;
+  message?: string;
+  enabled?: boolean;
+  schedule?: string;
+  timezone?: string;
+}
+
+export interface WorkflowRunListParams {
+  workflowId?: string;
+  status?: string;
+  trigger?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface WorkflowRunResponse {
+  id: string;
+  workflow?: unknown;
+  status?: string;
+  trigger?: string;
+  nodeResults?: unknown[];
+  progress?: number;
+  startedAt?: string;
+  completedAt?: string;
+  durationMs?: number;
+  error?: string;
+  metadata?: Record<string, unknown>;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface WorkflowTemplate {

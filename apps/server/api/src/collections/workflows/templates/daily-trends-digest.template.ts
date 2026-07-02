@@ -15,6 +15,8 @@ import { TREND_DIGEST_CREDIT_COST } from '@genfeedai/constants';
  */
 export const DAILY_TRENDS_DIGEST_TEMPLATE: WorkflowTemplate = {
   category: 'trends',
+  changeSummary:
+    'Initial daily trend digest system workflow with trend assembly and owner email delivery.',
   description:
     'Scan the latest social trends daily and email a curated digest to the organization owner. Uses credits per delivered email.',
   icon: 'trending-up',
@@ -83,4 +85,5 @@ export const DAILY_TRENDS_DIGEST_TEMPLATE: WorkflowTemplate = {
     },
   ],
   steps: [],
+  version: 1,
 };

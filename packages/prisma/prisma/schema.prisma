@@ -567,6 +567,8 @@ model User {
   agentMemories            AgentMemory[]
   agentThreads             AgentThread[]
   agentMessages            AgentMessage[]
+  socialConversations      SocialConversation[]
+  socialMessages           SocialMessage[]
   agentWorkflows           AgentWorkflow[]
   workflows                Workflow[]
   workflowExecutions       WorkflowExecution[]
@@ -660,6 +662,8 @@ model Organization {
   agentMemories                 AgentMemory[]
   agentThreads                  AgentThread[]
   agentMessages                 AgentMessage[]
+  socialConversations           SocialConversation[]
+  socialMessages                SocialMessage[]
   agentThreadEvents             AgentThreadEvent[]
   agentThreadSnapshots          AgentThreadSnapshot[]
   threadContextStates           ThreadContextState[]
@@ -833,6 +837,8 @@ model Brand {
   agentGoals                 AgentGoal[]
   agentMemories              AgentMemory[]
   agentMessages              AgentMessage[]
+  socialConversations        SocialConversation[]
+  socialMessages             SocialMessage[]
   agentStrategyOpportunities AgentStrategyOpportunity[]
   agentStrategyReports       AgentStrategyReport[]
   workflows                  Workflow[]                 @relation("workflow_brands")
@@ -1269,6 +1275,8 @@ model Credential {
   adBulkUploadJobs  AdBulkUploadJob[]
   adPerformances    AdPerformance[]
   monitoredAccounts MonitoredAccount[]
+  socialConversations SocialConversation[]
+  socialMessages      SocialMessage[]
   personas          Persona[]          @relation("persona_credentials")
 
   @@index([oauthTokenHash])
@@ -1886,6 +1894,8 @@ model Post {
   // Many-to-many
   ingredients Ingredient[] @relation("post_ingredients")
   tags        Tag[]        @relation("post_tags")
+  socialConversations SocialConversation[]
+  socialMessages      SocialMessage[]
 
   // Reverse relations
   postAnalytics            PostAnalytics[]
@@ -2456,6 +2466,108 @@ model AgentMessage {
   @@index([organizationId, threadId, isDeleted, createdAt(sort: Desc), id])
   @@index([threadId, isDeleted, id])
   @@map("agent_messages")
+}
+
+model SocialConversation {
+  id                       String         @id @default(cuid())
+  mongoId                  String?        @unique
+  organizationId           String
+  organization             Organization   @relation(fields: [organizationId], references: [id])
+  userId                   String?
+  user                     User?          @relation(fields: [userId], references: [id])
+  brandId                  String?
+  brand                    Brand?         @relation(fields: [brandId], references: [id])
+  credentialId             String?
+  credential               Credential?    @relation(fields: [credentialId], references: [id])
+  postId                   String?
+  post                     Post?          @relation(fields: [postId], references: [id])
+  platform                 String
+  conversationType         String         @default("comment")
+  externalConversationId   String?
+  externalThreadId         String?
+  externalParentId         String?
+  sourceContentId          String?
+  sourceContentUrl         String?
+  sourceContentTitle       String?
+  sourceContentType        String?
+  accountExternalId        String?
+  accountHandle            String?
+  accountName              String?
+  participantExternalId    String?
+  participantHandle        String?
+  participantName          String?
+  participantAvatarUrl     String?
+  status                   String         @default("open")
+  priority                 String         @default("normal")
+  unreadCount              Int            @default(0)
+  needsReview              Boolean        @default(false)
+  automationState          String         @default("manual")
+  assignedOwnerId          String?
+  tags                     String[]       @default([])
+  latestMessageText        String?
+  latestMessageAt          DateTime?
+  lastInboundAt            DateTime?
+  lastOutboundAt           DateTime?
+  availability             Json           @default("{}")
+  metadata                 Json           @default("{}")
+  isDeleted                Boolean        @default(false)
+  createdAt                DateTime       @default(now())
+  updatedAt                DateTime       @updatedAt
+
+  messages SocialMessage[]
+
+  @@unique([organizationId, platform, externalConversationId])
+  @@index([organizationId, brandId, status, isDeleted, latestMessageAt(sort: Desc), id], map: "social_conversations_inbox_idx")
+  @@index([organizationId, platform, isDeleted, latestMessageAt(sort: Desc), id], map: "social_conversations_platform_idx")
+  @@index([credentialId, isDeleted, latestMessageAt(sort: Desc)], map: "social_conversations_credential_idx")
+  @@index([postId, isDeleted, latestMessageAt(sort: Desc)], map: "social_conversations_post_idx")
+  @@map("social_conversations")
+}
+
+model SocialMessage {
+  id                      String             @id @default(cuid())
+  mongoId                 String?            @unique
+  conversationId          String
+  conversation            SocialConversation @relation(fields: [conversationId], references: [id])
+  organizationId          String
+  organization            Organization       @relation(fields: [organizationId], references: [id])
+  userId                  String?
+  user                    User?              @relation(fields: [userId], references: [id])
+  brandId                 String?
+  brand                   Brand?             @relation(fields: [brandId], references: [id])
+  credentialId            String?
+  credential              Credential?        @relation(fields: [credentialId], references: [id])
+  postId                  String?
+  post                    Post?              @relation(fields: [postId], references: [id])
+  platform                String
+  direction               String
+  messageType             String             @default("comment")
+  body                    String
+  externalMessageId       String?
+  externalParentMessageId String?
+  senderExternalId        String?
+  senderHandle            String?
+  senderName              String?
+  senderAvatarUrl         String?
+  authorRole              String?
+  status                  String             @default("received")
+  sourceUrl               String?
+  idempotencyKey          String?
+  workflowRunId           String?
+  agentRunId              String?
+  actionProvenance        Json               @default("{}")
+  failureReason           String?
+  metadata                Json               @default("{}")
+  isDeleted               Boolean            @default(false)
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+
+  @@unique([organizationId, platform, externalMessageId])
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, conversationId, isDeleted, createdAt(sort: Desc), id], map: "social_messages_conversation_desc_idx")
+  @@index([conversationId, isDeleted, createdAt, id], map: "social_messages_conversation_asc_idx")
+  @@index([organizationId, brandId, direction, isDeleted, createdAt(sort: Desc)], map: "social_messages_org_brand_direction_idx")
+  @@map("social_messages")
 }
 
 model AgentRun {

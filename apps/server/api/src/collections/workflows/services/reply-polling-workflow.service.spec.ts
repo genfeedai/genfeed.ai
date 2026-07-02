@@ -18,11 +18,9 @@ describe('ReplyPollingWorkflowService', () => {
     createMentionChecker: vi.fn(),
     createRepostChecker: vi.fn(),
   };
-  const instagramAdapter = {
-    createFollowerChecker: vi.fn(),
-    createLikeChecker: vi.fn(),
-    createMentionChecker: vi.fn(),
-    createRepostChecker: vi.fn(),
+  const instagramAdapter = {};
+  const youtubeAdapter = {
+    createCommentChecker: vi.fn(),
   };
   const configService = { isDevSchedulersEnabled: true };
   const cacheService = { acquireLock: vi.fn(), releaseLock: vi.fn() };
@@ -48,6 +46,9 @@ describe('ReplyPollingWorkflowService', () => {
     twitterAdapter.createMentionChecker.mockReturnValue(
       vi.fn().mockResolvedValue(null),
     );
+    youtubeAdapter.createCommentChecker.mockReturnValue(
+      vi.fn().mockResolvedValue(null),
+    );
 
     service = new ReplyPollingWorkflowService(
       replyBotConfigsService as never,
@@ -57,6 +58,7 @@ describe('ReplyPollingWorkflowService', () => {
       executionQueue as never,
       twitterAdapter as never,
       instagramAdapter as never,
+      youtubeAdapter as never,
       configService as never,
       cacheService as never,
       logger as never,
@@ -198,6 +200,79 @@ describe('ReplyPollingWorkflowService', () => {
             metadata: expect.objectContaining({
               pollState: expect.objectContaining({
                 'mention-1': 'tweet-1',
+              }),
+            }),
+          }),
+        }),
+        where: { id: 'workflow-1' },
+      }),
+    );
+    expect(result).toMatchObject({
+      action: 'socialTriggerPolling',
+      checked: 1,
+      organizationId: 'org-1',
+      status: 'completed',
+      triggered: 1,
+    });
+  });
+
+  it('queues YouTube comment trigger events from connected brand comments', async () => {
+    prisma.workflow.findMany.mockResolvedValue([
+      {
+        config: {},
+        defaultRecurringBrandId: null,
+        id: 'workflow-1',
+        nodes: [
+          {
+            data: {
+              config: {
+                brandId: 'brand-1',
+                contentIds: ['video-1'],
+                platform: 'youtube',
+              },
+            },
+            id: 'comment-1',
+            type: 'commentTrigger',
+          },
+        ],
+        organizationId: 'org-1',
+        userId: 'user-1',
+      },
+    ]);
+    youtubeAdapter.createCommentChecker.mockReturnValue(
+      vi.fn().mockResolvedValue({
+        authorId: 'channel-1',
+        authorUsername: 'Viewer',
+        commentId: 'comment-1',
+        contentId: 'video-1',
+        contentUrl: 'https://www.youtube.com/watch?v=video-1',
+        platform: 'youtube',
+        postId: 'comment-1',
+        text: 'nice',
+        videoId: 'video-1',
+      }),
+    );
+
+    const result = await service.runSocialTriggerPolling('org-1');
+
+    expect(executionQueue.queueTriggerEvent).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        commentId: 'comment-1',
+        platform: 'youtube',
+        videoId: 'video-1',
+      }),
+      organizationId: 'org-1',
+      platform: 'youtube',
+      type: 'commentTrigger',
+      userId: 'user-1',
+    });
+    expect(prisma.workflow.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          config: expect.objectContaining({
+            metadata: expect.objectContaining({
+              pollState: expect.objectContaining({
+                'comment-1': 'comment-1',
               }),
             }),
           }),

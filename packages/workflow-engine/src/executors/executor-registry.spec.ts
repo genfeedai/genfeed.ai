@@ -108,6 +108,7 @@ describe('executor-registry', () => {
       expect(registry.getImageGenExecutor()).toBeDefined();
       expect(registry.getKeywordTriggerExecutor()).toBeDefined();
       expect(registry.getEngagementTriggerExecutor()).toBeDefined();
+      expect(registry.getCommentTriggerExecutor()).toBeDefined();
     });
 
     it('allows setting custom executor', () => {

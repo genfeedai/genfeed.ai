@@ -513,6 +513,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@genfeedai/config": "workspace:*",
+        "@genfeedai/workflows": "workspace:*",
       },
     },
     "apps/server/mcp": {
@@ -520,6 +521,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@genfeedai/config": "workspace:*",
+        "@genfeedai/enums": "workspace:*",
         "@genfeedai/interfaces": "workspace:*",
         "@genfeedai/tools": "workspace:*",
         "@genfeedai/ui": "workspace:*",

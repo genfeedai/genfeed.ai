@@ -12,6 +12,8 @@ import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { MusicsModule } from '@api/collections/musics/musics.module';
 import { NewslettersModule } from '@api/collections/newsletters/newsletters.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
+import { ReplyBotConfigsModule } from '@api/collections/reply-bot-configs/reply-bot-configs.module';
+import { SocialInboxModule } from '@api/collections/social-inbox/social-inbox.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
 import { VideoGenerationModule } from '@api/collections/videos/video-generation.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
@@ -26,11 +28,13 @@ import { WorkflowWebhookManagementController } from '@api/collections/workflows/
 import { InstagramSocialAdapter } from '@api/collections/workflows/services/adapters/instagram-social.adapter';
 import { SocialAdapterFactory } from '@api/collections/workflows/services/adapters/social-adapter.factory';
 import { TwitterSocialAdapter } from '@api/collections/workflows/services/adapters/twitter-social.adapter';
+import { YoutubeSocialAdapter } from '@api/collections/workflows/services/adapters/youtube-social.adapter';
 import { BatchWorkflowService } from '@api/collections/workflows/services/batch-workflow.service';
 import {
   BATCH_WORKFLOW_QUEUE,
   BatchWorkflowQueueService,
 } from '@api/collections/workflows/services/batch-workflow-queue.service';
+import { ReplyPollingWorkflowService } from '@api/collections/workflows/services/reply-polling-workflow.service';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import {
   WORKFLOW_EXECUTION_QUEUE,
@@ -47,8 +51,10 @@ import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
+import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
+import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
 import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { WorkflowExecutorModule } from '@api/services/workflow-executor/workflow-executor.module';
 import { SharedModule } from '@api/shared/shared.module';
@@ -97,9 +103,13 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => NotificationsPublisherModule),
     forwardRef(() => OpenRouterModule),
     forwardRef(() => PostsModule),
+    forwardRef(() => ReplyBotConfigsModule),
+    forwardRef(() => ReplyBotModule),
+    forwardRef(() => SocialInboxModule),
     forwardRef(() => SharedModule),
     forwardRef(() => TrendsModule),
     forwardRef(() => TwitterModule),
+    forwardRef(() => YoutubeModule),
     forwardRef(() => VideoGenerationModule),
     forwardRef(() => VideosModule),
     forwardRef(() => WhisperModule),
@@ -129,6 +139,7 @@ import { forwardRef, Module } from '@nestjs/common';
   providers: [
     TwitterSocialAdapter,
     InstagramSocialAdapter,
+    YoutubeSocialAdapter,
     SocialAdapterFactory,
     BatchWorkflowQueueService,
     BatchWorkflowService,
@@ -137,6 +148,7 @@ import { forwardRef, Module } from '@nestjs/common';
     WorkflowExecutionQueueService,
     WorkflowFormatConverterService,
     WorkflowGenerationService,
+    ReplyPollingWorkflowService,
     WorkflowSchedulerService,
     WorkflowsService,
   ],

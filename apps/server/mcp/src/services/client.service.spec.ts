@@ -18,6 +18,7 @@ describe('ClientService (MCP)', () => {
     } as any,
     delete: vi.fn(),
     get: vi.fn(),
+    patch: vi.fn(),
     post: vi.fn(),
     put: vi.fn(),
   };
@@ -856,6 +857,195 @@ describe('ClientService (MCP)', () => {
     });
   });
 
+  describe('inspectWorkflow', () => {
+    it('should inspect a workflow with schedule and graph summary fields', async () => {
+      const mockResponse = {
+        data: {
+          data: {
+            attributes: {
+              edges: [{ id: 'edge-1' }],
+              inputVariables: [{ key: 'topic', required: true }],
+              isScheduleEnabled: true,
+              label: 'System workflow',
+              lifecycle: 'published',
+              metadata: { systemWorkflow: true },
+              nodes: [{ id: 'node-1' }, { id: 'node-2' }],
+              schedule: '0 9 * * *',
+              status: 'draft',
+              timezone: 'UTC',
+            },
+            id: 'workflow-123',
+          },
+        },
+      };
+
+      (mockAxiosInstance.get as Mock).mockResolvedValue(mockResponse);
+
+      const result = await service.inspectWorkflow('workflow-123');
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+        '/workflows/workflow-123',
+      );
+      expect(result).toMatchObject({
+        edgeCount: 1,
+        id: 'workflow-123',
+        isScheduleEnabled: true,
+        name: 'System workflow',
+        nodeCount: 2,
+        schedule: '0 9 * * *',
+      });
+    });
+  });
+
+  describe('duplicateWorkflow', () => {
+    it('should duplicate a workflow through the clone endpoint', async () => {
+      const mockResponse = {
+        data: {
+          data: {
+            attributes: { label: 'System workflow (Copy)', status: 'draft' },
+            id: 'workflow-copy',
+          },
+        },
+      };
+
+      (mockAxiosInstance.post as Mock).mockResolvedValue(mockResponse);
+
+      const result = await service.duplicateWorkflow('workflow-123');
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/workflows/workflow-123/clone',
+      );
+      expect(result.id).toBe('workflow-copy');
+      expect(result.name).toBe('System workflow (Copy)');
+    });
+  });
+
+  describe('setWorkflowSchedule', () => {
+    it('should enable or update a workflow schedule', async () => {
+      (mockAxiosInstance.post as Mock).mockResolvedValue({
+        data: { data: { id: 'workflow-123', message: 'Schedule updated' } },
+      });
+
+      const result = await service.setWorkflowSchedule('workflow-123', {
+        enabled: true,
+        schedule: '0 9 * * *',
+        timezone: 'UTC',
+      });
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/workflows/workflow-123/schedule',
+        { enabled: true, schedule: '0 9 * * *', timezone: 'UTC' },
+      );
+      expect(result).toMatchObject({
+        enabled: true,
+        id: 'workflow-123',
+        schedule: '0 9 * * *',
+      });
+    });
+
+    it('should disable a workflow schedule through the delete endpoint when no new schedule is provided', async () => {
+      (mockAxiosInstance.delete as Mock).mockResolvedValue({
+        data: { data: { id: 'workflow-123', message: 'Schedule removed' } },
+      });
+
+      const result = await service.setWorkflowSchedule('workflow-123', {
+        enabled: false,
+      });
+
+      expect(mockAxiosInstance.delete).toHaveBeenCalledWith(
+        '/workflows/workflow-123/schedule',
+      );
+      expect(result).toMatchObject({ enabled: false, id: 'workflow-123' });
+    });
+  });
+
+  describe('listWorkflowRuns', () => {
+    it('should list workflow execution history with filters', async () => {
+      const mockResponse = {
+        data: {
+          data: [
+            {
+              attributes: {
+                progress: 100,
+                status: 'completed',
+                trigger: 'manual',
+                workflow: 'workflow-123',
+              },
+              id: 'run-1',
+            },
+          ],
+        },
+      };
+
+      (mockAxiosInstance.get as Mock).mockResolvedValue(mockResponse);
+
+      const result = await service.listWorkflowRuns({
+        limit: 5,
+        status: 'completed',
+        workflowId: 'workflow-123',
+      });
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+        '/workflow-executions',
+        {
+          params: {
+            limit: 5,
+            offset: 0,
+            status: 'completed',
+            workflow: 'workflow-123',
+          },
+        },
+      );
+      expect(result).toEqual([
+        {
+          completedAt: undefined,
+          createdAt: undefined,
+          durationMs: undefined,
+          error: undefined,
+          id: 'run-1',
+          metadata: {},
+          nodeResults: [],
+          progress: 100,
+          startedAt: undefined,
+          status: 'completed',
+          trigger: 'manual',
+          updatedAt: undefined,
+          workflow: 'workflow-123',
+        },
+      ]);
+    });
+  });
+
+  describe('getWorkflowRun', () => {
+    it('should inspect one workflow execution', async () => {
+      const mockResponse = {
+        data: {
+          data: {
+            attributes: {
+              progress: 50,
+              status: 'running',
+              workflow: 'workflow-123',
+            },
+            id: 'run-1',
+          },
+        },
+      };
+
+      (mockAxiosInstance.get as Mock).mockResolvedValue(mockResponse);
+
+      const result = await service.getWorkflowRun('run-1');
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+        '/workflow-executions/run-1',
+      );
+      expect(result).toMatchObject({
+        id: 'run-1',
+        progress: 50,
+        status: 'running',
+      });
+    });
+  });
+
   describe('listWorkflowTemplates', () => {
     it('should return list of workflow templates', async () => {
       const mockResponse = {
@@ -890,6 +1080,212 @@ describe('ClientService (MCP)', () => {
       );
       expect(result).toHaveLength(2);
       expect(result[0].id).toBe('daily-image-generation');
+    });
+  });
+
+  // ==================== SOCIAL MESSAGES TESTS ====================
+
+  describe('listSocialConversations', () => {
+    it('should list conversations with review filters', async () => {
+      const mockResponse = {
+        data: {
+          data: [
+            {
+              attributes: {
+                latestMessageText: 'Can I get the template?',
+                platform: 'youtube',
+                status: 'open',
+              },
+              id: 'conv-1',
+            },
+          ],
+          meta: { page: 1, totalPages: 1 },
+        },
+      };
+
+      (mockAxiosInstance.get as Mock).mockResolvedValue(mockResponse);
+
+      const result = await service.listSocialConversations({
+        limit: 5,
+        needsReview: true,
+        platform: 'youtube',
+        status: 'open',
+      });
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/messages', {
+        params: {
+          limit: 5,
+          needsReview: true,
+          platform: 'youtube',
+          status: 'open',
+        },
+      });
+      expect(result).toEqual({
+        conversations: [
+          {
+            id: 'conv-1',
+            latestMessageText: 'Can I get the template?',
+            platform: 'youtube',
+            status: 'open',
+          },
+        ],
+        meta: { page: 1, totalPages: 1 },
+      });
+    });
+  });
+
+  describe('getSocialConversation', () => {
+    it('should inspect a conversation and include bounded recent messages', async () => {
+      (mockAxiosInstance.get as Mock)
+        .mockResolvedValueOnce({
+          data: {
+            data: {
+              attributes: { platform: 'instagram', status: 'needs_review' },
+              id: 'conv-1',
+            },
+          },
+        })
+        .mockResolvedValueOnce({
+          data: {
+            data: [
+              {
+                attributes: { body: 'Interested', status: 'received' },
+                id: 'msg-1',
+              },
+            ],
+          },
+        });
+
+      const result = await service.getSocialConversation('conv-1', {
+        limit: 10,
+      });
+
+      expect(mockAxiosInstance.get).toHaveBeenNthCalledWith(
+        1,
+        '/messages/conv-1',
+      );
+      expect(mockAxiosInstance.get).toHaveBeenNthCalledWith(
+        2,
+        '/messages/conv-1/messages',
+        { params: { limit: 10 } },
+      );
+      expect(result).toEqual({
+        conversation: {
+          id: 'conv-1',
+          platform: 'instagram',
+          status: 'needs_review',
+        },
+        messages: [{ body: 'Interested', id: 'msg-1', status: 'received' }],
+      });
+    });
+  });
+
+  describe('social message actions', () => {
+    it('should create a provenance-backed reply draft without publishing', async () => {
+      const mockResponse = {
+        data: {
+          data: {
+            attributes: {
+              actionProvenance: { actorType: 'agent' },
+              body: 'Thanks for asking',
+              status: 'draft',
+            },
+            id: 'msg-draft',
+          },
+        },
+      };
+
+      (mockAxiosInstance.post as Mock).mockResolvedValue(mockResponse);
+
+      const result = await service.createSocialReplyDraft('conv-1', {
+        agentRunId: 'agent-run-1',
+        text: 'Thanks for asking',
+        workflowRunId: 'workflow-run-1',
+      });
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/messages/conv-1/drafts',
+        {
+          agentRunId: 'agent-run-1',
+          text: 'Thanks for asking',
+          workflowRunId: 'workflow-run-1',
+        },
+      );
+      expect(result).toEqual({
+        actionProvenance: { actorType: 'agent' },
+        body: 'Thanks for asking',
+        id: 'msg-draft',
+        status: 'draft',
+      });
+    });
+
+    it('should post replies through the social inbox action route', async () => {
+      const mockResponse = {
+        data: {
+          data: {
+            attributes: { body: 'Public reply', status: 'sent' },
+            id: 'msg-reply',
+          },
+        },
+      };
+
+      (mockAxiosInstance.post as Mock).mockResolvedValue(mockResponse);
+
+      const result = await service.postSocialReply('conv-1', {
+        idempotencyKey: 'reply-1',
+        text: 'Public reply',
+      });
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/messages/conv-1/replies',
+        { idempotencyKey: 'reply-1', text: 'Public reply' },
+      );
+      expect(result).toMatchObject({ id: 'msg-reply', status: 'sent' });
+    });
+
+    it('should send DMs through the social inbox action route', async () => {
+      const mockResponse = {
+        data: {
+          data: {
+            attributes: { body: 'Private follow-up', status: 'sent' },
+            id: 'msg-dm',
+          },
+        },
+      };
+
+      (mockAxiosInstance.post as Mock).mockResolvedValue(mockResponse);
+
+      const result = await service.sendSocialDm('conv-1', {
+        recipientId: 'viewer-1',
+        text: 'Private follow-up',
+      });
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/messages/conv-1/dms',
+        { recipientId: 'viewer-1', text: 'Private follow-up' },
+      );
+      expect(result).toMatchObject({ id: 'msg-dm', status: 'sent' });
+    });
+
+    it('should update social conversation metadata through patch routes', async () => {
+      const mockResponse = {
+        data: {
+          data: {
+            attributes: { assignedOwnerId: 'user-2', tags: ['lead'] },
+            id: 'conv-1',
+          },
+        },
+      };
+
+      (mockAxiosInstance.patch as Mock).mockResolvedValue(mockResponse);
+
+      const result = await service.updateSocialTags('conv-1', ['lead']);
+
+      expect(mockAxiosInstance.patch).toHaveBeenCalledWith(
+        '/messages/conv-1/tags',
+        { tags: ['lead'] },
+      );
+      expect(result).toMatchObject({ id: 'conv-1', tags: ['lead'] });
     });
   });
 

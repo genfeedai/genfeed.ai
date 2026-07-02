@@ -9,7 +9,7 @@ import {
 export interface Brand {
   id: string;
   label: string;
-  handle?: string;
+  slug?: string;
   description?: string;
   createdAt: string;
   updatedAt: string;
