@@ -9,6 +9,7 @@ import type {
   AgentWorkEvent,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
+import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
 import type {
   OnboardingChecklistStatus,
   OnboardingChecklistStep,
@@ -716,6 +717,12 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
     })),
   upsertThread: (thread) =>
     set((state) => {
+      if (!isRenderableThreadId(thread.id)) {
+        // Never store threads without a usable id — they would render as
+        // /agent/undefined links downstream.
+        return state;
+      }
+
       const existingIndex = state.threads.findIndex(
         (item) => item.id === thread.id,
       );

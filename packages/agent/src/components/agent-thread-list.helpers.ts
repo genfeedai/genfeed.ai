@@ -1,4 +1,5 @@
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
+import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
 
 export { getErrorMessage } from '@genfeedai/utils/error/error-handler.util';
 
@@ -124,14 +125,7 @@ export function sortThreads(threads: AgentThread[]): AgentThread[] {
 }
 
 export function hasRenderableThreadId(thread: AgentThread): boolean {
-  const threadId = thread.id;
-
-  return (
-    typeof threadId === 'string' &&
-    threadId.trim().length > 0 &&
-    threadId !== 'undefined' &&
-    threadId !== 'null'
-  );
+  return isRenderableThreadId(thread.id);
 }
 
 export function isAuthError(error: unknown): boolean {

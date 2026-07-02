@@ -1,5 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { AgentThreadStatus } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('agent-chat.store finalizeStream', () => {
@@ -37,5 +38,41 @@ describe('agent-chat.store finalizeStream', () => {
     expect(
       useAgentChatStore.getState().messages[0]?.metadata?.uiActions,
     ).toEqual([pendingAction]);
+  });
+});
+
+describe('agent-chat.store upsertThread', () => {
+  beforeEach(() => {
+    useAgentChatStore.setState(useAgentChatStore.getInitialState(), true);
+  });
+
+  function makeThread(id: string) {
+    return {
+      createdAt: '2026-03-26T10:00:00.000Z',
+      id,
+      status: AgentThreadStatus.ACTIVE,
+      title: 'Thread',
+      updatedAt: '2026-03-26T10:00:00.000Z',
+    };
+  }
+
+  it('inserts and updates threads with valid ids', () => {
+    useAgentChatStore.getState().upsertThread(makeThread('t-1'));
+    useAgentChatStore
+      .getState()
+      .upsertThread({ ...makeThread('t-1'), title: 'Renamed' });
+
+    expect(useAgentChatStore.getState().threads).toHaveLength(1);
+    expect(useAgentChatStore.getState().threads[0]?.title).toBe('Renamed');
+  });
+
+  it('ignores threads without a usable id', () => {
+    useAgentChatStore
+      .getState()
+      .upsertThread(makeThread(undefined as unknown as string));
+    useAgentChatStore.getState().upsertThread(makeThread('undefined'));
+    useAgentChatStore.getState().upsertThread(makeThread(''));
+
+    expect(useAgentChatStore.getState().threads).toHaveLength(0);
   });
 });

@@ -60,7 +60,18 @@ const LazyAgentPanel = dynamic<AgentPanelProps>(
 const LazyAgentThreadList = dynamic<AgentThreadListProps>(
   () => import('@genfeedai/agent').then((mod) => mod.AgentThreadList),
   {
-    loading: () => null,
+    // Mirror AgentThreadListEmptyState's loading spinner so the
+    // import-pending and data-loading phases render identically instead of
+    // flashing empty → spinner → list.
+    loading: () => (
+      <div
+        data-testid="agent-thread-list-loading"
+        className="flex items-center justify-center p-8"
+        aria-busy="true"
+      >
+        <div className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    ),
     ssr: false,
   },
 );
