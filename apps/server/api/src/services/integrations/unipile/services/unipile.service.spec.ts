@@ -1,3 +1,4 @@
+import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import { ConfigService } from '@api/config/config.service';
 import { UnipileService } from '@api/services/integrations/unipile/services/unipile.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -51,7 +52,7 @@ describe('UnipileService', () => {
         { provide: HttpService, useValue: mockHttpService },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: LoggerService, useValue: mockLoggerService },
-        { provide: 'CryptoService', useValue: mockCryptoService },
+        { provide: CredentialCryptoService, useValue: mockCryptoService },
       ],
     }).compile();
 
