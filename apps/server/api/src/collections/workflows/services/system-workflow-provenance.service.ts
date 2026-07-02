@@ -34,46 +34,48 @@ export type SystemWorkflowActionDefinition = {
   version?: number;
 };
 
-export const SYSTEM_WORKFLOW_ACTION_DEFINITIONS = [
-  {
-    canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.SCHEDULED_POST_PUBLISHING,
-    changeSummary: 'Initial scheduled publish system workflow action wrapper.',
-    description:
-      'Publishes due scheduled posts through the connected brand credential.',
-    label: 'Scheduled Post Publishing',
-    schedule: '*/15 * * * *',
-  },
-  {
-    canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.REPLY_DM_AUTOMATION,
-    changeSummary: 'Initial reply and DM system workflow action wrapper.',
-    description:
-      'Generates and sends reply bot replies and optional DMs through connected social credentials.',
-    label: 'Reply and DM Automation',
-  },
-  {
-    canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.TWITTER_PUBLISH_ACTION,
-    changeSummary: 'Initial Twitter publish system workflow action wrapper.',
-    description:
-      'Publishes Twitter original, reply, and quote actions through connected brand credentials.',
-    label: 'Twitter Publish Action',
-  },
-  {
-    canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.CAMPAIGN_REPLY_AUTOMATION,
-    changeSummary:
-      'Initial outreach campaign reply system workflow action wrapper.',
-    description:
-      'Generates and posts outreach campaign replies through connected brand credentials.',
-    label: 'Campaign Reply Automation',
-  },
-  {
-    canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.CAMPAIGN_DM_AUTOMATION,
-    changeSummary:
-      'Initial outreach campaign DM system workflow action wrapper.',
-    description:
-      'Generates and sends outreach campaign DMs through connected brand credentials.',
-    label: 'Campaign DM Automation',
-  },
-] satisfies SystemWorkflowActionDefinition[];
+export const SYSTEM_WORKFLOW_ACTION_DEFINITIONS: readonly SystemWorkflowActionDefinition[] =
+  [
+    {
+      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.SCHEDULED_POST_PUBLISHING,
+      changeSummary:
+        'Initial scheduled publish system workflow action wrapper.',
+      description:
+        'Publishes due scheduled posts through the connected brand credential.',
+      label: 'Scheduled Post Publishing',
+      schedule: '*/15 * * * *',
+    },
+    {
+      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.REPLY_DM_AUTOMATION,
+      changeSummary: 'Initial reply and DM system workflow action wrapper.',
+      description:
+        'Generates and sends reply bot replies and optional DMs through connected social credentials.',
+      label: 'Reply and DM Automation',
+    },
+    {
+      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.TWITTER_PUBLISH_ACTION,
+      changeSummary: 'Initial Twitter publish system workflow action wrapper.',
+      description:
+        'Publishes Twitter original, reply, and quote actions through connected brand credentials.',
+      label: 'Twitter Publish Action',
+    },
+    {
+      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.CAMPAIGN_REPLY_AUTOMATION,
+      changeSummary:
+        'Initial outreach campaign reply system workflow action wrapper.',
+      description:
+        'Generates and posts outreach campaign replies through connected brand credentials.',
+      label: 'Campaign Reply Automation',
+    },
+    {
+      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.CAMPAIGN_DM_AUTOMATION,
+      changeSummary:
+        'Initial outreach campaign DM system workflow action wrapper.',
+      description:
+        'Generates and sends outreach campaign DMs through connected brand credentials.',
+      label: 'Campaign DM Automation',
+    },
+  ];
 
 export type SystemWorkflowProvenance = {
   executionId: string;
