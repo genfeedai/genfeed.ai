@@ -2,6 +2,9 @@ name: CodeQL Security Analysis
 
 on:
   workflow_dispatch:
+  schedule:
+    # Weekly Tuesday 05:40 UTC — off-peak, staggered from other weekly jobs
+    - cron: '40 5 * * 2'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

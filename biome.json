@@ -109,7 +109,11 @@
         }
       },
       "linter": {
-        "enabled": false
+        "rules": {
+          "style": {
+            "useImportType": "off"
+          }
+        }
       }
     },
     {

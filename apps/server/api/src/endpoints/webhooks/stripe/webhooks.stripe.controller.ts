@@ -18,6 +18,7 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import type Stripe from 'stripe';
 
 /** TTL for webhook idempotency keys (24 hours) */
 const WEBHOOK_IDEMPOTENCY_TTL = 86400;
@@ -47,7 +48,7 @@ export class StripeWebhookController {
     try {
       const rawBody = request.body;
       const secret = this.configService.get('STRIPE_WEBHOOK_SIGNING_SECRET');
-      let event;
+      let event: Stripe.Event;
 
       const signature = request.headers['stripe-signature'] as string;
 

@@ -84,10 +84,11 @@ bun run test --filter=@genfeedai/[name]  # Run specific package tests
 - Soft deletes: `isDeleted: boolean` (NOT `deletedAt`)
 - ConfigService: `{ provide: ConfigService, useValue: new ConfigService() }` — never use `process.env` directly
 
-### Multi-Tenancy (Enterprise `ee/` only)
-- Enterprise code under `ee/`: every tenant-scoped Prisma query MUST include `{ organizationId: orgId, isDeleted: false }`
+### Multi-Tenancy
+- Every tenant-scoped Prisma query MUST include `{ organizationId: orgId, isDeleted: false }`
 - Self-hosted single-tenant: organization filter is optional
-- **Repo invariant:** All multi-tenant data access code must live under `ee/` or import from `ee/packages/`
+- **Current state:** org enforcement lives in the OSS API (`CombinedAuthGuard` in `apps/server/api/src/helpers/guards/combined-auth/`); `ee/packages/multi-tenancy/` is a Phase C extraction scaffold (issue #87), not live code
+- **Target invariant (post-#87):** multi-tenant enforcement code moves under `ee/` or imports from `ee/packages/`
 
 ### Files & Git (ALWAYS)
 - **Research the codebase before editing. Never change code you haven't read.**

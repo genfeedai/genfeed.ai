@@ -7,6 +7,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import type { AxiosResponse } from 'axios';
 import { firstValueFrom } from 'rxjs';
 import sharp from 'sharp';
 
@@ -103,8 +104,8 @@ export class UploadService {
     const uploadStartTime = Date.now();
     let body: Buffer;
     let contentType: string;
-    let res;
-    let base64Data;
+    let res: AxiosResponse<ArrayBuffer>;
+    let base64Data: string;
     let filePath: string;
     let width: number | undefined;
     let height: number | undefined;
