@@ -18,7 +18,7 @@ export type AppContext =
 
 export interface MenuItemConfig {
   href?: string;
-  hrefScope?: 'brand' | 'organization' | 'personal';
+  hrefScope?: 'brand' | 'global' | 'organization' | 'personal';
   label: string;
   icon?: ReactNode;
   outline?: ComponentType<{ className?: string }>;
