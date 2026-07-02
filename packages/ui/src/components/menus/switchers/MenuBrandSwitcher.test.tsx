@@ -30,10 +30,11 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   }),
 }));
 
-vi.mock('@genfeedai/auth-client/react', () => ({
-  useUser: () => ({
+vi.mock('@genfeedai/hooks/auth/use-auth-user/use-auth-user', () => ({
+  useAuthUser: () => ({
     user: {
       id: 'user_123',
+      reload: vi.fn(),
     },
   }),
 }));
