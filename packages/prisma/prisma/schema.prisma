@@ -3529,6 +3529,7 @@ model Trend {
   sourceReferenceLinks TrendSourceReferenceLink[]
   remixLineages        TrendRemixLineage[]        @relation("remix_lineage_trends")
 
+  @@index([isDeleted, organizationId, platform, updatedAt], map: "trends_freshness_org_idx")
   @@map("trends")
 }
 

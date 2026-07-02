@@ -262,6 +262,7 @@ export class TrendsController {
     return {
       items: result.items,
       summary: {
+        hasMore: result.hasMore,
         totalReferences: result.totalReferences,
       },
     };
@@ -376,10 +377,16 @@ export class TrendsController {
     };
   }
 
-  @Get('corpus/freshness')
+  @Get('corpus/health')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async getCorpusFreshnessHealth(@Query('platform') platform?: string) {
+  async getCorpusFreshnessHealth(
+    @CurrentUser() user: User,
+    @Query('platform') platform?: string,
+  ) {
+    const publicMetadata = getPublicMetadata(user);
     return this.trendsService.getCorpusFreshnessHealth({
+      isPlatformAdmin: publicMetadata?.isSuperAdmin === true,
+      organizationId: publicMetadata?.organization,
       platform,
     });
   }
