@@ -38,20 +38,23 @@ function extractImportedModules(filePath: string): string[] {
   const imports: string[] = [];
 
   const forwardRefPattern = /forwardRef\(\(\)\s*=>\s*(\w+)\)/g;
-  let match: RegExpExecArray | null;
-  while ((match = forwardRefPattern.exec(content)) !== null) {
+  let match: RegExpExecArray | null = forwardRefPattern.exec(content);
+  while (match !== null) {
     imports.push(match[1]);
+    match = forwardRefPattern.exec(content);
   }
 
   const importsBlockMatch = content.match(/imports\s*:\s*\[([^\]]*)\]/s);
   if (importsBlockMatch) {
     const block = importsBlockMatch[1];
     const directModulePattern = /(?<!\w)([A-Z]\w*Module)(?!\s*\))/g;
-    while ((match = directModulePattern.exec(block)) !== null) {
-      const name = match[1];
+    let directMatch: RegExpExecArray | null = directModulePattern.exec(block);
+    while (directMatch !== null) {
+      const name = directMatch[1];
       if (!name.startsWith('forwardRef') && !imports.includes(name)) {
         imports.push(name);
       }
+      directMatch = directModulePattern.exec(block);
     }
   }
 

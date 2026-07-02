@@ -758,7 +758,7 @@ describe('Social Media Publishing Integration Tests', () => {
       });
 
       const retryPublish = async () => {
-        let lastError;
+        let lastError: unknown;
         for (let i = 0; i < 3; i++) {
           try {
             return await instagramService.postReel('video.mp4', 'caption');
