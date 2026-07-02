@@ -37,17 +37,21 @@ const mockV1TrendsByPlace = vi.fn();
 const mockRefreshOAuth2Token = vi.fn();
 
 vi.mock('twitter-api-v2', () => {
-  const MockTwitterApi = vi.fn(() => ({
-    refreshOAuth2Token: mockRefreshOAuth2Token,
-    v1: { trendsByPlace: mockV1TrendsByPlace },
-    v2: {
-      get: mockV2Get,
-      search: mockV2Search,
-      sendDmInConversation: mockV2SendDmInConversation,
-      tweet: mockV2Tweet,
-      uploadMedia: mockV2UploadMedia,
-    },
-  }));
+  // vitest 4 constructs the implementation via `new`, so it must be a
+  // constructable function — an arrow implementation throws TypeError.
+  const MockTwitterApi = vi.fn(function mockTwitterApi() {
+    return {
+      refreshOAuth2Token: mockRefreshOAuth2Token,
+      v1: { trendsByPlace: mockV1TrendsByPlace },
+      v2: {
+        get: mockV2Get,
+        search: mockV2Search,
+        sendDmInConversation: mockV2SendDmInConversation,
+        tweet: mockV2Tweet,
+        uploadMedia: mockV2UploadMedia,
+      },
+    };
+  });
   return { TwitterApi: MockTwitterApi };
 });
 

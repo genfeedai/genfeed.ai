@@ -1,9 +1,13 @@
 const mockSendDm = vi.fn();
 
 vi.mock('twitter-api-v2', () => {
-  const MockTwitterApi = vi.fn(() => ({
-    v2: { sendDm: mockSendDm, sendDmInConversation: mockSendDm },
-  }));
+  // vitest 4 constructs the implementation via `new`, so it must be a
+  // constructable function — an arrow implementation throws TypeError.
+  const MockTwitterApi = vi.fn(function mockTwitterApi() {
+    return {
+      v2: { sendDm: mockSendDm, sendDmInConversation: mockSendDm },
+    };
+  });
   return { TwitterApi: MockTwitterApi };
 });
 

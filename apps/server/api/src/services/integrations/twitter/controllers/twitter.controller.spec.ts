@@ -10,10 +10,14 @@ const mockGenerateOAuth2AuthLink = vi.fn();
 const mockLoginWithOAuth2 = vi.fn();
 
 vi.mock('twitter-api-v2', () => ({
-  TwitterApi: vi.fn().mockImplementation(() => ({
-    generateOAuth2AuthLink: mockGenerateOAuth2AuthLink,
-    loginWithOAuth2: mockLoginWithOAuth2,
-  })),
+  // vitest 4 constructs the implementation via `new`, so it must be a
+  // constructable function — an arrow implementation throws TypeError.
+  TwitterApi: vi.fn().mockImplementation(function mockTwitterApi() {
+    return {
+      generateOAuth2AuthLink: mockGenerateOAuth2AuthLink,
+      loginWithOAuth2: mockLoginWithOAuth2,
+    };
+  }),
 }));
 
 import { BrandsService } from '@api/collections/brands/services/brands.service';
