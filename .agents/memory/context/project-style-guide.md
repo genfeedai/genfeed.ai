@@ -49,7 +49,7 @@ author: Claude Code PM System
 - NestJS exceptions for errors (`NotFoundException`, `BadRequestException`)
 - `ConfigService` pattern — never `process.env` directly
 - Soft deletes: `isDeleted: boolean`
-- **Multi-tenant queries (enterprise only)**: `{ organizationId: orgId, isDeleted: false }` — this pattern lives in `ee/packages/multi-tenancy/`. Single-tenant deployments use `{ isDeleted: false }` only unless the domain model already carries an organization id.
+- **Multi-tenant queries (enterprise only)**: `{ organizationId: orgId, isDeleted: false }` — enforced inline in the OSS API (guards + service filters; see #1093). Single-tenant deployments use `{ isDeleted: false }` only unless the domain model already carries an organization id.
 - Compound indexes live in `packages/prisma/prisma/schema.prisma` via `@@index` or in explicit migrations.
 
 ## Naming
