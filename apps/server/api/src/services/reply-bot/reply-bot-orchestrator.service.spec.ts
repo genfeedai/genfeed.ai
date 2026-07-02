@@ -172,8 +172,8 @@ describe('ReplyBotOrchestratorService', () => {
 
     it('should process each active bot and return results', async () => {
       const botConfigs = [
-        { _id: 'test-object-id', name: 'Bot 1', type: 'reply_guy' },
-        { _id: 'test-object-id', name: 'Bot 2', type: 'account_monitor' },
+        { id: 'test-object-id', name: 'Bot 1', type: 'reply_guy' },
+        { id: 'test-object-id', name: 'Bot 2', type: 'account_monitor' },
       ];
       mockReplyBotConfigsService.findActive.mockResolvedValue(botConfigs);
       mockRateLimitService.isWithinSchedule.mockReturnValue(false);
@@ -204,7 +204,7 @@ describe('ReplyBotOrchestratorService', () => {
     };
 
     const makeBotConfig = (overrides = {}) => ({
-      _id: 'test-object-id',
+      id: 'test-object-id',
       actionType: 'reply_only',
       context: 'test context',
       customInstructions: 'be nice',
@@ -286,7 +286,7 @@ describe('ReplyBotOrchestratorService', () => {
         reason: 'rate_limited',
       });
       mockBotActivitiesService.create.mockResolvedValue({
-        _id: 'test-object-id',
+        id: 'test-object-id',
       });
 
       const result = await service.processSingleBot(
@@ -353,7 +353,7 @@ describe('ReplyBotOrchestratorService', () => {
       ]);
       mockRateLimitService.checkRateLimit.mockResolvedValue({ allowed: true });
       mockBotActivitiesService.create.mockResolvedValue({
-        _id: 'test-object-id',
+        id: 'test-object-id',
       });
       mockReplyGenerationService.generateReply.mockResolvedValue(
         'Generated reply text',
@@ -408,7 +408,7 @@ describe('ReplyBotOrchestratorService', () => {
       });
       mockRateLimitService.checkRateLimit.mockResolvedValue({ allowed: true });
       mockBotActivitiesService.create.mockResolvedValue({
-        _id: 'test-object-id',
+        id: 'test-object-id',
       });
       mockReplyGenerationService.generateReply.mockResolvedValue(
         'Generated reply text',
@@ -448,7 +448,7 @@ describe('ReplyBotOrchestratorService', () => {
       ]);
       mockRateLimitService.checkRateLimit.mockResolvedValue({ allowed: true });
       mockBotActivitiesService.create.mockResolvedValue({
-        _id: 'test-object-id',
+        id: 'test-object-id',
       });
       mockReplyGenerationService.generateReply.mockResolvedValue(
         'Generated reply',
@@ -509,7 +509,7 @@ describe('ReplyBotOrchestratorService', () => {
 
     it('should return generated reply text', async () => {
       mockReplyBotConfigsService.findOneById.mockResolvedValue({
-        _id: botConfigId,
+        id: botConfigId,
         actionType: 'reply_only',
         context: 'context',
         customInstructions: 'instructions',
@@ -532,7 +532,7 @@ describe('ReplyBotOrchestratorService', () => {
 
     it('should also generate DM when action type is REPLY_AND_DM', async () => {
       mockReplyBotConfigsService.findOneById.mockResolvedValue({
-        _id: botConfigId,
+        id: botConfigId,
         actionType: 'reply_and_dm',
         context: 'context',
         customInstructions: 'instructions',

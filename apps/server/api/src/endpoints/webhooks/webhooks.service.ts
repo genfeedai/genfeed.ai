@@ -87,12 +87,12 @@ export class WebhooksService {
       return ref;
     }
 
-    return ref?.id?.toString() ?? ref?.id?.toString();
+    return ref?.id?.toString();
   }
 
   private toUserReference(
     ref: string | IngredientRefDocument | null | undefined,
-  ): string | { _id?: string; authProviderId?: string } | undefined {
+  ): string | { id?: string; authProviderId?: string } | undefined {
     if (typeof ref === 'string') {
       return ref;
     }
@@ -110,7 +110,7 @@ export class WebhooksService {
     }
 
     return {
-      ...(userId ? { _id: userId } : {}),
+      ...(userId ? { id: userId } : {}),
       ...(authProviderId ? { authProviderId } : {}),
     };
   }

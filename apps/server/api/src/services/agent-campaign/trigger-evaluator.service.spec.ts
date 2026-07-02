@@ -70,7 +70,7 @@ describe('TriggerEvaluatorService', () => {
     } = createService();
 
     agentCampaignsService.findOneById.mockResolvedValue({
-      _id: campaignId,
+      id: campaignId,
       agents: [strategyId],
       brand: brandId,
       brief: 'Build AI marketing momentum',
@@ -80,7 +80,7 @@ describe('TriggerEvaluatorService', () => {
       user: userId,
     });
     agentStrategiesService.findOneById.mockResolvedValue({
-      _id: strategyId,
+      id: strategyId,
       isActive: true,
       isEnabled: true,
       label: 'Trend Watcher',
@@ -174,7 +174,7 @@ describe('TriggerEvaluatorService', () => {
     } = createService();
 
     agentCampaignsService.findOneById.mockResolvedValue({
-      _id: campaignId,
+      id: campaignId,
       agents: [strategyId],
       brand: brandId,
       label: 'Spring Push',
@@ -183,7 +183,7 @@ describe('TriggerEvaluatorService', () => {
       user: userId,
     });
     agentStrategiesService.findOneById.mockResolvedValue({
-      _id: strategyId,
+      id: strategyId,
       engagementEnabled: true,
       isActive: true,
       isEnabled: true,

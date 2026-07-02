@@ -14,7 +14,7 @@ describe('ContentEngineService', () => {
     overrides: Record<string, unknown> = {},
   ): Record<string, unknown> {
     return {
-      _id: campaignId,
+      id: campaignId,
       agents: [],
       brand: brandId,
       brief: 'React to signal changes',
@@ -34,7 +34,7 @@ describe('ContentEngineService', () => {
     overrides: Record<string, unknown> = {},
   ): Record<string, unknown> {
     return {
-      _id: 'test-object-id',
+      id: 'test-object-id',
       agentType: 'general',
       autonomyMode: 'supervised',
       dailyCreditBudget: 25,
@@ -240,7 +240,7 @@ describe('ContentEngineService', () => {
       totalViews: 3200,
     });
     agentRunsService.create.mockResolvedValue({
-      _id: runId,
+      id: runId,
       metadata: { existing: true },
     });
     agentRunsService.findRecentByOrganization.mockResolvedValue([]);
@@ -248,7 +248,7 @@ describe('ContentEngineService', () => {
     agentRunsService.patch.mockResolvedValue(undefined);
     agentRunQueueService.queueRun.mockResolvedValue(undefined);
     agentMemoryCaptureService.capture.mockResolvedValue({
-      memory: { _id: 'test-object-id' },
+      memory: { id: 'test-object-id' },
       wroteBrandInsight: false,
       wroteContextMemory: true,
     });
@@ -305,13 +305,13 @@ describe('ContentEngineService', () => {
       service,
     } = createService();
     const launchStrategy = createStrategy({
-      _id: 'launch-strategy',
+      id: 'launch-strategy',
       label: 'Launch specialist',
       platforms: ['linkedin'],
       topics: ['launch'],
     });
     const educationStrategy = createStrategy({
-      _id: 'education-strategy',
+      id: 'education-strategy',
       label: 'Education specialist',
       platforms: ['linkedin'],
       topics: ['education'],
@@ -342,27 +342,27 @@ describe('ContentEngineService', () => {
     });
     agentRunsService.findRecentByOrganization.mockResolvedValue([
       {
-        _id: 'run-1',
+        id: 'run-1',
         metadata: { campaignId, contentRotationTargetKey: 'launch' },
       },
       {
-        _id: 'run-2',
+        id: 'run-2',
         metadata: { campaignId, contentRotationTargetKey: 'launch' },
       },
       {
-        _id: 'run-3',
+        id: 'run-3',
         metadata: { campaignId, contentRotationTargetKey: 'education' },
       },
     ]);
     agentRunsService.create.mockResolvedValue({
-      _id: 'education-run',
+      id: 'education-run',
       metadata: {},
     });
     agentRunsService.mergeMetadata.mockResolvedValue(undefined);
     agentRunsService.patch.mockResolvedValue(undefined);
     agentRunQueueService.queueRun.mockResolvedValue(undefined);
     agentMemoryCaptureService.capture.mockResolvedValue({
-      memory: { _id: 'test-object-id' },
+      memory: { id: 'test-object-id' },
       wroteBrandInsight: false,
       wroteContextMemory: true,
     });
@@ -410,7 +410,7 @@ describe('ContentEngineService', () => {
     // pre-select `.slice(0, MAX)` would have hidden the tail from rotation.
     const strategies = Array.from({ length: 7 }, (_, i) =>
       createStrategy({
-        _id: `strategy-${i}`,
+        id: `strategy-${i}`,
         label: `Specialist ${i}`,
         platforms: ['linkedin'],
         topics: [`topic-${i}`],
@@ -442,12 +442,12 @@ describe('ContentEngineService', () => {
     // Empty history: every target is equally underrepresented, so rotation is
     // free to pick any candidate — what matters is that it SEES all 7.
     agentRunsService.findRecentByOrganization.mockResolvedValue([]);
-    agentRunsService.create.mockResolvedValue({ _id: 'run', metadata: {} });
+    agentRunsService.create.mockResolvedValue({ id: 'run', metadata: {} });
     agentRunsService.mergeMetadata.mockResolvedValue(undefined);
     agentRunsService.patch.mockResolvedValue(undefined);
     agentRunQueueService.queueRun.mockResolvedValue(undefined);
     agentMemoryCaptureService.capture.mockResolvedValue({
-      memory: { _id: 'test-object-id' },
+      memory: { id: 'test-object-id' },
       wroteBrandInsight: false,
       wroteContextMemory: true,
     });
@@ -490,7 +490,7 @@ describe('ContentEngineService', () => {
       service,
     } = createService();
     agentCampaignsService.findOne.mockResolvedValue({
-      _id: campaignId,
+      id: campaignId,
       brand: brandId,
       label: 'Spring Push',
       organization: organizationId,
@@ -518,7 +518,7 @@ describe('ContentEngineService', () => {
       },
     ]);
     agentMemoryCaptureService.capture.mockResolvedValue({
-      memory: { _id: 'test-object-id' },
+      memory: { id: 'test-object-id' },
       wroteBrandInsight: false,
       wroteContextMemory: false,
     });
@@ -690,7 +690,7 @@ describe('ContentEngineService', () => {
     const strategyId = 'test-object-id';
     const runId = 'test-object-id';
     const strategy = {
-      _id: strategyId,
+      id: strategyId,
       agentType: 'general',
       autonomyMode: 'supervised',
       dailyCreditBudget: 25,
@@ -700,7 +700,7 @@ describe('ContentEngineService', () => {
     };
 
     agentCampaignsService.findOneById.mockResolvedValue({
-      _id: campaignId,
+      id: campaignId,
       brand: brandId,
       brief: 'React to spikes',
       label: 'Spring Push',
@@ -719,12 +719,12 @@ describe('ContentEngineService', () => {
       totalViews: 3200,
     });
     agentMemoryCaptureService.capture.mockResolvedValue({
-      memory: { _id: 'test-object-id' },
+      memory: { id: 'test-object-id' },
       wroteBrandInsight: false,
       wroteContextMemory: false,
     });
     agentRunsService.create.mockResolvedValue({
-      _id: runId,
+      id: runId,
     });
     agentRunsService.mergeMetadata.mockResolvedValue(undefined);
     agentRunsService.patch.mockResolvedValue(undefined);

@@ -74,8 +74,8 @@ describe('DevController', () => {
   it('sends Discord notification for valid ingredient', async () => {
     const ingredientId = '507f191e810c19729de860ee'.toString();
     ingredientsService.findOne.mockResolvedValue({
-      _id: ingredientId,
       category: 'image',
+      id: ingredientId,
       metadata: { width: 1024 },
       prompt: 'a sunset',
     });
@@ -95,8 +95,8 @@ describe('DevController', () => {
   it('builds correct CDN URL', async () => {
     const ingredientId = '507f191e810c19729de860ee'.toString();
     ingredientsService.findOne.mockResolvedValue({
-      _id: ingredientId,
       category: 'video',
+      id: ingredientId,
       metadata: {},
       prompt: 'a test',
     });
@@ -110,8 +110,8 @@ describe('DevController', () => {
   it('logs start and completion', async () => {
     const ingredientId = '507f191e810c19729de860ee'.toString();
     ingredientsService.findOne.mockResolvedValue({
-      _id: ingredientId,
       category: 'image',
+      id: ingredientId,
       metadata: {},
       prompt: 'test',
     });

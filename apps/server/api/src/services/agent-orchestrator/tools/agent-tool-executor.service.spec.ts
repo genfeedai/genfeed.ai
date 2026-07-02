@@ -39,7 +39,7 @@ describe('AgentToolExecutorService', () => {
       handleYoutubePost: vi.fn(),
     };
     const brandsService = {
-      create: vi.fn().mockResolvedValue({ _id: 'brand-1' }),
+      create: vi.fn().mockResolvedValue({ id: 'brand-1' }),
       findOne: vi.fn(),
       generateBrandVoice: vi.fn().mockResolvedValue({
         audience: ['founders', 'marketers'],
@@ -52,14 +52,14 @@ describe('AgentToolExecutorService', () => {
         tone: 'confident',
         values: ['clarity', 'speed'],
       }),
-      updateAgentConfig: vi.fn().mockResolvedValue({ _id: 'brand-1' }),
+      updateAgentConfig: vi.fn().mockResolvedValue({ id: 'brand-1' }),
     };
     const livestreamBotId = 'test-object-id';
     const botsService = {
       create: vi
         .fn()
         .mockImplementation(async (dto: Record<string, unknown>) => ({
-          _id: livestreamBotId,
+          id: livestreamBotId,
           brand: dto.brand,
           category: dto.category,
           label: dto.label,
@@ -70,7 +70,7 @@ describe('AgentToolExecutorService', () => {
           user: dto.user,
         })),
       findOne: vi.fn().mockResolvedValue({
-        _id: livestreamBotId,
+        id: livestreamBotId,
         brand: '67a1234567890123456789aa',
         category: 'livestream_chat',
         label: 'Launch Live Bot',
@@ -139,11 +139,11 @@ describe('AgentToolExecutorService', () => {
     };
     const workflowsService = {
       createWorkflow: vi.fn().mockResolvedValue({
-        _id: recurringWorkflowId,
+        id: recurringWorkflowId,
         schedule: '0 17 * * *',
       }),
       cloneWorkflow: vi.fn().mockResolvedValue({
-        _id: 'workflow-copy-1',
+        id: 'workflow-copy-1',
         isScheduleEnabled: false,
         label: 'System Workflow (Copy)',
         status: 'draft',
@@ -286,7 +286,7 @@ describe('AgentToolExecutorService', () => {
     };
     const organizationSettingsService = {
       findOne: vi.fn().mockResolvedValue({
-        _id: 'settings-1',
+        id: 'settings-1',
         onboardingJourneyMissions: [],
       }),
       getNextRecommendedJourneyMission: vi
@@ -334,7 +334,7 @@ describe('AgentToolExecutorService', () => {
     const agentMemoryCaptureService = {
       capture: vi.fn().mockResolvedValue({
         memory: {
-          _id: 'memory-1',
+          id: 'memory-1',
           content: 'Write concise newsletters with a strong hook.',
           contentType: 'newsletter',
           kind: 'preference',
@@ -346,7 +346,7 @@ describe('AgentToolExecutorService', () => {
       }),
     };
     const usersService = {
-      findOne: vi.fn().mockResolvedValue({ _id: 'user-db-1' }),
+      findOne: vi.fn().mockResolvedValue({ id: 'user-db-1' }),
       patch: vi.fn().mockResolvedValue({}),
     };
     const authProviderService = {
@@ -359,24 +359,24 @@ describe('AgentToolExecutorService', () => {
     };
     const agentGoalsService = {
       create: vi.fn().mockResolvedValue({
-        _id: 'goal-1',
         currentValue: 250,
+        id: 'goal-1',
         label: 'Grow views',
         metric: 'views',
         progressPercent: 25,
         targetValue: 1000,
       }),
       refreshProgress: vi.fn().mockResolvedValue({
-        _id: 'goal-1',
         currentValue: 250,
+        id: 'goal-1',
         label: 'Grow views',
         metric: 'views',
         progressPercent: 25,
         targetValue: 1000,
       }),
       update: vi.fn().mockResolvedValue({
-        _id: 'goal-1',
         currentValue: 400,
+        id: 'goal-1',
         label: 'Grow views',
         metric: 'views',
         progressPercent: 40,
@@ -798,17 +798,17 @@ describe('AgentToolExecutorService', () => {
     const { credentialsService, ingredientsService, service } = createService();
 
     ingredientsService.findOne.mockResolvedValue({
-      _id: '67a123456789012345678930',
+      id: '67a123456789012345678930',
       brand: '67a123456789012345678931',
       category: 'image',
     });
     credentialsService.find.mockResolvedValue([
       {
-        _id: '67a123456789012345678932',
+        id: '67a123456789012345678932',
         platform: 'linkedin',
       },
       {
-        _id: '67a123456789012345678933',
+        id: '67a123456789012345678933',
         platform: 'twitter',
       },
     ]);
@@ -909,7 +909,7 @@ describe('AgentToolExecutorService', () => {
     const { organizationsService, service } = createService();
 
     organizationsService.findOne.mockResolvedValueOnce({
-      _id: '67a123456789012345678901',
+      id: '67a123456789012345678901',
       slug: 'genfeed-ai',
     });
 
@@ -936,11 +936,11 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     organizationsService.findOne.mockResolvedValueOnce({
-      _id: '67a123456789012345678901',
+      id: '67a123456789012345678901',
       slug: 'genfeed-ai',
     });
     brandsService.findOne.mockResolvedValueOnce({
-      _id: '67a123456789012345678903',
+      id: '67a123456789012345678903',
       slug: 'my-brand',
     });
 
@@ -1054,26 +1054,26 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     ingredientsService.findOne.mockResolvedValue({
-      _id: '67a123456789012345678940',
+      id: '67a123456789012345678940',
       brand: '67a123456789012345678941',
       category: 'video',
     });
     credentialsService.find.mockResolvedValue([
       {
-        _id: '67a123456789012345678942',
+        id: '67a123456789012345678942',
         platform: 'linkedin',
       },
       {
-        _id: '67a123456789012345678943',
+        id: '67a123456789012345678943',
         platform: 'youtube',
       },
     ]);
     postsService.create
       .mockResolvedValueOnce({
-        _id: '67a123456789012345678944',
+        id: '67a123456789012345678944',
       })
       .mockResolvedValueOnce({
-        _id: '67a123456789012345678945',
+        id: '67a123456789012345678945',
       });
 
     const result = await service.executeTool(
@@ -1108,12 +1108,12 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     ingredientsService.findOne.mockResolvedValue({
-      _id: '67a123456789012345678950',
+      id: '67a123456789012345678950',
       brand: '67a123456789012345678951',
       category: 'image',
     });
     postsService.findAll.mockResolvedValue({
-      docs: [{ _id: '67a123456789012345678952' }],
+      docs: [{ id: '67a123456789012345678952' }],
     });
 
     const result = await service.executeTool(
@@ -1145,13 +1145,13 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     ingredientsService.findOne.mockResolvedValue({
-      _id: '67a123456789012345678960',
+      id: '67a123456789012345678960',
       brand: '67a123456789012345678961',
       category: 'image',
     });
     credentialsService.find.mockResolvedValue([
       {
-        _id: '67a123456789012345678962',
+        id: '67a123456789012345678962',
         platform: 'instagram',
       },
     ]);
@@ -1306,7 +1306,7 @@ describe('AgentToolExecutorService', () => {
     const { brandsService, service } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: 'brand-voice-1',
+      id: 'brand-voice-1',
       label: 'Genfeed',
     });
 
@@ -1362,7 +1362,7 @@ describe('AgentToolExecutorService', () => {
     const { brandsService, service } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: 'brand-voice-1',
+      id: 'brand-voice-1',
       label: 'Genfeed',
     });
 
@@ -1433,7 +1433,7 @@ describe('AgentToolExecutorService', () => {
     } = createService();
 
     postsService.findOne.mockResolvedValue({
-      _id: 'post-1',
+      id: 'post-1',
       status: PostStatus.PUBLIC,
     });
 
@@ -1506,15 +1506,15 @@ describe('AgentToolExecutorService', () => {
 
     imagesService.findAllByOrganization.mockResolvedValue([
       {
-        _id: '507f191e810c19729de860ea',
         category: 'image',
         cdnUrl: 'https://cdn.genfeed.ai/images/test.jpg',
+        id: '507f191e810c19729de860ea',
         metadata: { label: 'Test Image' },
       },
       {
-        _id: '507f191e810c19729de860eb',
         category: 'video',
         cdnUrl: 'https://cdn.genfeed.ai/videos/test.mp4',
+        id: '507f191e810c19729de860eb',
         metadata: null,
       },
     ]);
@@ -1555,7 +1555,7 @@ describe('AgentToolExecutorService', () => {
 
     imagesService.findAllByOrganization.mockResolvedValue([
       {
-        _id: '507f191e810c19729de860ec',
+        id: '507f191e810c19729de860ec',
         category: 'image',
         cdnUrl: 'https://cdn.genfeed.ai/images/img.jpg',
         metadata: null,
@@ -1671,9 +1671,9 @@ describe('AgentToolExecutorService', () => {
     const { batchGenerationService, brandsService, service } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
       description: 'Brand description',
       handle: 'genfeed',
+      id: '67a1234567890123456789aa',
       isActive: true,
       isSelected: true,
       label: 'Genfeed',
@@ -1717,9 +1717,9 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
       description: 'Brand description',
       handle: 'genfeed',
+      id: '67a1234567890123456789aa',
       isActive: true,
       isSelected: true,
       label: 'Genfeed',
@@ -1828,8 +1828,8 @@ describe('AgentToolExecutorService', () => {
     workflowsService.findAll.mockResolvedValue({
       docs: [
         {
-          _id: '507f191e810c19729de860ff',
           description: 'Main clip workflow',
+          id: '507f191e810c19729de860ff',
           name: 'Clip Workflow',
           status: 'active',
         },
@@ -1866,7 +1866,7 @@ describe('AgentToolExecutorService', () => {
     const { brandsService, service, workflowsService } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
+      id: '67a1234567890123456789aa',
       agentConfig: {
         heygenAvatarId: 'brand-avatar-1',
         heygenVoiceId: 'brand-voice-1',
@@ -1923,13 +1923,13 @@ describe('AgentToolExecutorService', () => {
     } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
+      id: '67a1234567890123456789aa',
       agentConfig: {
         heygenAvatarId: 'brand-avatar-2',
       },
     });
     organizationSettingsService.findOne.mockResolvedValue({
-      _id: 'settings-1',
+      id: 'settings-1',
       defaultVoiceRef: {
         externalVoiceId: 'org-heygen-voice-2',
         provider: 'heygen',
@@ -2062,7 +2062,7 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
+      id: '67a1234567890123456789aa',
       isSelected: true,
       label: 'Genfeed',
     });
@@ -2120,13 +2120,13 @@ describe('AgentToolExecutorService', () => {
 
     trendsService.getTrends.mockResolvedValue([
       {
-        _id: 'trend-1',
+        id: 'trend-1',
         platform: 'tiktok',
         score: 91.2,
         topic: 'Founder confession hooks',
       },
       {
-        _id: 'trend-2',
+        id: 'trend-2',
         platform: 'tiktok',
         score: 77.8,
         topic: 'Behind-the-scenes product build',
@@ -2192,7 +2192,7 @@ describe('AgentToolExecutorService', () => {
 
     trendsService.getTrends.mockResolvedValueOnce([]).mockResolvedValueOnce([
       {
-        _id: 'trend-3',
+        id: 'trend-3',
         platform: 'youtube',
         score: 88.4,
         topic: 'Creator teardown format',
@@ -2309,13 +2309,13 @@ describe('AgentToolExecutorService', () => {
     } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
+      id: '67a1234567890123456789aa',
       isSelected: true,
       label: 'Genfeed',
       slug: 'genfeed',
     });
     organizationsService.findOne.mockResolvedValueOnce({
-      _id: '67a123456789012345678901',
+      id: '67a123456789012345678901',
       slug: 'genfeed-ai',
     });
 
@@ -2436,7 +2436,7 @@ describe('AgentToolExecutorService', () => {
     const { brandsService, service, workflowsService } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
+      id: '67a1234567890123456789aa',
       isSelected: true,
       label: 'Genfeed',
     });
@@ -2479,7 +2479,7 @@ describe('AgentToolExecutorService', () => {
     const { brandsService, service, workflowsService } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
+      id: '67a1234567890123456789aa',
       isSelected: true,
       label: 'Genfeed',
     });
@@ -2530,7 +2530,7 @@ describe('AgentToolExecutorService', () => {
     } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
+      id: '67a1234567890123456789aa',
       isSelected: true,
       label: 'Genfeed',
     });
@@ -2594,7 +2594,7 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     brandsService.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce({
-      _id: '67a1234567890123456789ab',
+      id: '67a1234567890123456789ab',
       label: 'Fallback Brand',
     });
 
@@ -2638,7 +2638,7 @@ describe('AgentToolExecutorService', () => {
     } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
+      id: '67a1234567890123456789aa',
       isSelected: true,
       label: 'Genfeed',
     });
@@ -2689,7 +2689,7 @@ describe('AgentToolExecutorService', () => {
     const { botsService, brandsService, service } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
+      id: '67a1234567890123456789aa',
       isSelected: true,
       label: 'Genfeed',
     });
@@ -2729,7 +2729,7 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
+      id: '67a1234567890123456789aa',
       isSelected: true,
       label: 'Genfeed',
     });
@@ -2760,7 +2760,7 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
+      id: '67a1234567890123456789aa',
       isSelected: true,
       label: 'Genfeed',
     });
@@ -2798,12 +2798,12 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789ab',
+      id: '67a1234567890123456789ab',
       isSelected: true,
       label: 'Other Brand',
     });
     botsService.findOne.mockResolvedValue({
-      _id: livestreamBotId,
+      id: livestreamBotId,
       brand: '67a1234567890123456789aa',
       category: 'livestream_chat',
       label: 'Launch Live Bot',
@@ -3195,7 +3195,7 @@ describe('AgentToolExecutorService', () => {
     const { service, workflowsService } = createService();
 
     workflowsService.findOne.mockResolvedValue({
-      _id: 'wf-official-1',
+      id: 'wf-official-1',
       brands: [],
       isDeleted: false,
       label: 'Social Media Video Series',
@@ -3253,7 +3253,7 @@ describe('AgentToolExecutorService', () => {
     } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
+      id: '67a1234567890123456789aa',
       agentConfig: {
         defaultVoiceId: '67a1234567890123456789dd',
       },
@@ -3261,14 +3261,14 @@ describe('AgentToolExecutorService', () => {
       label: 'Genfeed',
     });
     organizationSettingsService.findOne.mockResolvedValue({
-      _id: 'settings-1',
+      id: 'settings-1',
       defaultVoiceId: '67a1234567890123456789ee',
       onboardingJourneyMissions: [],
     });
     voicesService.findAll.mockResolvedValue({
       docs: [
         {
-          _id: '67a1234567890123456789ff',
+          id: '67a1234567890123456789ff',
           cloneStatus: 'ready',
           metadataLabel: 'Fallback Voice',
           provider: 'elevenlabs',
@@ -3304,20 +3304,20 @@ describe('AgentToolExecutorService', () => {
     } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
+      id: '67a1234567890123456789aa',
       agentConfig: {},
       isSelected: true,
       label: 'Genfeed',
     });
     organizationSettingsService.findOne.mockResolvedValue({
-      _id: 'settings-1',
+      id: 'settings-1',
       defaultVoiceId: '67a1234567890123456789ee',
       onboardingJourneyMissions: [],
     });
     voicesService.findAll.mockResolvedValue({
       docs: [
         {
-          _id: '67a1234567890123456789ff',
+          id: '67a1234567890123456789ff',
           cloneStatus: 'ready',
           metadataLabel: 'Fallback Voice',
           provider: 'elevenlabs',
@@ -3350,25 +3350,25 @@ describe('AgentToolExecutorService', () => {
     } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
+      id: '67a1234567890123456789aa',
       agentConfig: {},
       isSelected: true,
       label: 'Genfeed',
     });
     organizationSettingsService.findOne.mockResolvedValue({
-      _id: 'settings-1',
+      id: 'settings-1',
       onboardingJourneyMissions: [],
     });
     voicesService.findAll.mockResolvedValue({
       docs: [
         {
-          _id: '67a1234567890123456789ab',
+          id: '67a1234567890123456789ab',
           cloneStatus: 'processing',
           metadataLabel: 'Still Processing',
           provider: 'elevenlabs',
         },
         {
-          _id: '67a1234567890123456789ff',
+          id: '67a1234567890123456789ff',
           cloneStatus: 'ready',
           metadataLabel: 'Fallback Voice',
           provider: 'elevenlabs',
@@ -3456,7 +3456,7 @@ describe('AgentToolExecutorService', () => {
     workflowsService.findAll.mockResolvedValue({
       docs: [
         {
-          _id: '507f191e810c19729de860ea',
+          id: '507f191e810c19729de860ea',
           description: 'Weekly posts',
           name: 'Content Pipeline',
           status: 'active',
@@ -3502,7 +3502,7 @@ describe('AgentToolExecutorService', () => {
     const { service, workflowsService } = createService();
 
     workflowsService.findOne.mockResolvedValue({
-      _id: 'wf-1',
+      id: 'wf-1',
       inputVariables: [{ key: 'topic', required: true, type: 'text' }],
       isScheduleEnabled: true,
       label: 'System Workflow',
@@ -3562,7 +3562,7 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     workflowsService.findOne.mockResolvedValue({
-      _id: 'wf-1',
+      id: 'wf-1',
       inputVariables: [],
       isDeleted: false,
       organization: CTX.organizationId,
@@ -3603,7 +3603,7 @@ describe('AgentToolExecutorService', () => {
     const { service, workflowsService } = createService();
 
     workflowsService.findOne.mockResolvedValue({
-      _id: 'wf-2',
+      id: 'wf-2',
       inputVariables: [
         { key: 'topic', label: 'Topic', required: true, type: 'text' },
         { key: 'style', label: 'Style', required: false, type: 'select' },
@@ -3627,7 +3627,7 @@ describe('AgentToolExecutorService', () => {
     const { service, workflowsService } = createService();
 
     workflowsService.findOne.mockResolvedValue({
-      _id: 'wf-2',
+      id: 'wf-2',
       inputVariables: [
         { key: 'topic', label: 'Topic', required: true, type: 'text' },
       ],
@@ -3764,7 +3764,7 @@ describe('AgentToolExecutorService', () => {
     const { service, workflowsService } = createService();
 
     workflowsService.findOne.mockResolvedValue({
-      _id: 'wf-3',
+      id: 'wf-3',
       inputVariables: [
         {
           defaultValue: null,

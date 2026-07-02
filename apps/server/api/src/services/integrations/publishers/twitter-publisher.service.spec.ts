@@ -510,14 +510,14 @@ describe('TwitterPublisherService', () => {
 
     const mockChildren = [
       {
-        _id: '507f1f77bcf86cd799439030',
+        id: '507f1f77bcf86cd799439030',
         category: PostCategory.TEXT,
         description: '<p>Child 1</p>',
         ingredients: [],
         order: 1,
       },
       {
-        _id: '507f1f77bcf86cd799439031',
+        id: '507f1f77bcf86cd799439031',
         category: PostCategory.IMAGE,
         description: '<p>Child 2</p>',
         ingredients: [mockIngredientId],
@@ -787,7 +787,7 @@ describe('TwitterPublisherService', () => {
     it('should handle populated ingredient objects', () => {
       const postWithPopulatedIngredients = {
         ...mockImagePost,
-        ingredients: [{ _id: mockIngredientId, name: 'Test Ingredient' }],
+        ingredients: [{ id: mockIngredientId, name: 'Test Ingredient' }],
       };
 
       const result = (service as any).extractMediaInfo(

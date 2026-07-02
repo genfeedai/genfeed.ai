@@ -17,13 +17,13 @@ const makeCredential = (
   platform: CredentialPlatform = CredentialPlatform.TWITTER,
 ): CredentialDocument =>
   ({
-    _id: objectId(),
+    id: objectId(),
     platform,
   }) as unknown as CredentialDocument;
 
 const makeOrganization = (): OrganizationDocument =>
   ({
-    _id: objectId(),
+    id: objectId(),
   }) as unknown as OrganizationDocument;
 
 describe('QuotaService', () => {

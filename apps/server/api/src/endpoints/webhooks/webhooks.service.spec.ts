@@ -65,7 +65,7 @@ describe('WebhooksService', () => {
   const mockAuthProviderId = 'authProvider_user_123';
 
   const mockMetadata = {
-    _id: mockMetadataId,
+    id: mockMetadataId,
     duration: null,
     error: null,
     extension: MetadataExtension.PNG,
@@ -86,7 +86,7 @@ describe('WebhooksService', () => {
   };
 
   const mockUser = {
-    _id: mockUserId,
+    id: mockUserId,
     authProviderId: mockAuthProviderId,
     email: 'test@example.com',
     firstName: 'Test',
@@ -94,7 +94,7 @@ describe('WebhooksService', () => {
   };
 
   const mockIngredient = {
-    _id: mockIngredientId,
+    id: mockIngredientId,
     brand: mockBrandId,
     category: IngredientCategory.IMAGE,
     metadata: mockMetadataId,
@@ -536,7 +536,7 @@ describe('WebhooksService', () => {
     it('should fetch full user document if authProviderId missing from populated user', async () => {
       const ingredientWithoutAuthProviderId = {
         ...mockIngredient,
-        user: { _id: mockUserId },
+        user: { id: mockUserId },
       };
       metadataLookupService.lookupMetadataAndIngredient.mockResolvedValue({
         ingredient:
@@ -566,7 +566,7 @@ describe('WebhooksService', () => {
     it('should warn when user has no authProviderId for websocket', async () => {
       const ingredientWithoutAuthProviderId = {
         ...mockIngredient,
-        user: { _id: mockUserId },
+        user: { id: mockUserId },
       };
       metadataLookupService.lookupMetadataAndIngredient.mockResolvedValue({
         ingredient:
@@ -580,7 +580,7 @@ describe('WebhooksService', () => {
         ingredientWithoutAuthProviderId as unknown as IngredientEntity,
       );
       usersService.findOne.mockResolvedValue({
-        _id: mockUserId,
+        id: mockUserId,
       } as unknown as UserEntity);
 
       await service.processMediaFromWebhook(
@@ -970,9 +970,7 @@ describe('WebhooksService', () => {
 
       expect(
         postProcessingOrchestrator.triggerAutoEvaluationIfEnabled,
-      ).toHaveBeenCalledWith(
-        expect.objectContaining({ _id: mockIngredientId }),
-      );
+      ).toHaveBeenCalledWith(expect.objectContaining({ id: mockIngredientId }));
     });
 
     it('should call triggerAutoEvaluationIfEnabled for video', async () => {
@@ -1034,7 +1032,7 @@ describe('WebhooksService', () => {
       );
 
       expect(autoMergeService.triggerAutoMergeIfReady).toHaveBeenCalledWith(
-        expect.objectContaining({ _id: mockIngredientId }),
+        expect.objectContaining({ id: mockIngredientId }),
       );
     });
   });

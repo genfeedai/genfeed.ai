@@ -205,7 +205,7 @@ describe('TasksController', () => {
     it('allows modification when the task stores a populated organization object', () => {
       const entity = {
         organization: {
-          _id: organizationId,
+          id: organizationId,
         },
       } as unknown as TaskDocument;
 
