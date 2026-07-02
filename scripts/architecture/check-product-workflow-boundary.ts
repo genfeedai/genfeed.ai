@@ -166,15 +166,6 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
     },
     {
       classification: 'pending-system-workflow-migration',
-      file: 'apps/server/workers/src/crons/content-schedules/cron.content-schedules.service.ts',
-      id: 'content-schedules-cron',
-      issue: 1011,
-      reason:
-        'Content schedules worker remains a product automation path pending system workflow migration.',
-      systemWorkflowIds: ['content-schedule-workflow'],
-    },
-    {
-      classification: 'pending-system-workflow-migration',
       file: 'apps/server/workers/src/crons/content-pipeline/cron.content-pipeline.service.ts',
       id: 'content-pipeline-cron',
       issue: 1011,

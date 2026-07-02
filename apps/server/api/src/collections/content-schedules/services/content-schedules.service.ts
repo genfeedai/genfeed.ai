@@ -152,18 +152,6 @@ export class ContentSchedulesService extends BaseService<
     return removed;
   }
 
-  getActiveSchedules(
-    now: Date = new Date(),
-  ): Promise<ContentScheduleDocument[]> {
-    return this.delegate.findMany({
-      where: {
-        isDeleted: false,
-        isEnabled: true,
-        nextRunAt: { lte: now },
-      },
-    }) as Promise<ContentScheduleDocument[]>;
-  }
-
   async markScheduleRan(
     scheduleId: string,
     organizationId: string,
