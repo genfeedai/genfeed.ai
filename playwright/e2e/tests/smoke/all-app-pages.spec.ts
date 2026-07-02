@@ -135,7 +135,7 @@ const protectedRouteBuckets: RouteBucket[] = [
     route.startsWith('/test-org/brand-1/orchestration'),
   ),
   routeBucket('protected content operations', protectedRoutes, (route) =>
-    /^\/test-org\/brand-1\/(overview|posts|research|studio|tasks|workflows|workspace)(\/|$)/.test(
+    /^\/test-org\/brand-1\/(messages|overview|posts|research|studio|tasks|workflows|workspace)(\/|$)/.test(
       route,
     ),
   ),
