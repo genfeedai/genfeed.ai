@@ -22,6 +22,8 @@ import {
   buildSystemWorkflowMetadata,
   isProtectedSystemWorkflowMetadata,
   SYSTEM_WORKFLOW_METADATA_KEY,
+  SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
+  SYSTEM_WORKFLOW_TEMPLATE_VERSION,
 } from '@api/collections/workflows/system-workflow.contract';
 import { AD_AUTOMATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/ad-automation-workflows.template';
 import { AGENT_AUTOPILOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/agent-autopilot-workflows.template';
@@ -100,19 +102,30 @@ export class WorkflowsService extends BaseService<
   }
 
   private buildSeededSystemWorkflowMetadata(input: {
+    changeSummary?: string;
     extra?: Record<string, unknown>;
     sourceIssue: number;
     sourceTemplateId: string;
     sourceType?: string;
+    version?: number;
   }): Record<string, unknown> {
+    const sourceTemplateVersion =
+      input.version ?? SYSTEM_WORKFLOW_TEMPLATE_VERSION;
+    const sourceTemplateChangeSummary =
+      input.changeSummary ?? SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY;
+
     return {
       ...(input.extra ?? {}),
       sourceIssue: input.sourceIssue,
+      sourceTemplateChangeSummary,
       sourceTemplateId: input.sourceTemplateId,
+      sourceTemplateVersion,
       sourceType: input.sourceType ?? 'seeded-template',
       [SYSTEM_WORKFLOW_METADATA_KEY]: buildSystemWorkflowMetadata({
         canonicalId: input.sourceTemplateId,
+        changeSummary: sourceTemplateChangeSummary,
         sourceIssue: input.sourceIssue,
+        version: sourceTemplateVersion,
       }),
     };
   }
@@ -289,8 +302,10 @@ export class WorkflowsService extends BaseService<
               isScheduleEnabled: true,
               label: 'Daily Trends Digest',
               metadata: this.buildSeededSystemWorkflowMetadata({
+                changeSummary: DAILY_TRENDS_DIGEST_TEMPLATE.changeSummary,
                 sourceIssue: 1011,
                 sourceTemplateId: DAILY_TRENDS_DIGEST_TEMPLATE_ID,
+                version: DAILY_TRENDS_DIGEST_TEMPLATE.version,
               }),
               nodes: DAILY_TRENDS_DIGEST_TEMPLATE.nodes as never,
               organizationId,
@@ -1199,9 +1214,11 @@ export class WorkflowsService extends BaseService<
                 isScheduleEnabled: Boolean(definition.schedule),
                 label: definition.label,
                 metadata: this.buildSeededSystemWorkflowMetadata({
+                  changeSummary: definition.changeSummary,
                   sourceIssue: 1011,
                   sourceTemplateId: definition.canonicalId,
                   sourceType: 'system-action-workflow',
+                  version: definition.version,
                 }),
                 nodes: [
                   {

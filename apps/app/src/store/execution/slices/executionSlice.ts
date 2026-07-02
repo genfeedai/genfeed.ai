@@ -1,8 +1,8 @@
 import { NodeStatusEnum } from '@genfeedai/types';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
+import { logger } from '@services/core/logger.service';
 import type { StateCreator } from 'zustand';
 import { apiClient } from '@/lib/api/client';
-import { logger } from '@/lib/logger';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 import {
@@ -59,8 +59,9 @@ export const createExecutionSlice: StateCreator<
       try {
         await workflowStore.saveWorkflow();
       } catch (error) {
-        logger.error('Failed to save workflow before node execution', error, {
+        logger.error('Failed to save workflow before node execution', {
           context: 'ExecutionStore',
+          error,
         });
         workflowStore.updateNodeData(nodeId, {
           error: 'Failed to save workflow',
@@ -115,8 +116,9 @@ export const createExecutionSlice: StateCreator<
         return { activeNodeExecutions: newMap };
       });
     } catch (error) {
-      logger.error('Failed to start node execution', error, {
+      logger.error('Failed to start node execution', {
         context: 'ExecutionStore',
+        error,
       });
       workflowStore.updateNodeData(nodeId, {
         error: error instanceof Error ? error.message : 'Node execution failed',
@@ -153,8 +155,9 @@ export const createExecutionSlice: StateCreator<
       try {
         await workflowStore.saveWorkflow();
       } catch (error) {
-        logger.error('Failed to save workflow before execution', error, {
+        logger.error('Failed to save workflow before execution', {
           context: 'ExecutionStore',
+          error,
         });
         set({
           validationErrors: {
@@ -224,8 +227,9 @@ export const createExecutionSlice: StateCreator<
 
       createExecutionSubscription(executionId, set);
     } catch (error) {
-      logger.error('Failed to start partial execution', error, {
+      logger.error('Failed to start partial execution', {
         context: 'ExecutionStore',
+        error,
       });
       set({
         isRunning: false,
@@ -271,8 +275,9 @@ export const createExecutionSlice: StateCreator<
       try {
         await workflowStore.saveWorkflow();
       } catch (error) {
-        logger.error('Failed to save workflow before execution', error, {
+        logger.error('Failed to save workflow before execution', {
           context: 'ExecutionStore',
+          error,
         });
         set({
           validationErrors: {
@@ -335,8 +340,9 @@ export const createExecutionSlice: StateCreator<
 
       createExecutionSubscription(executionId, set);
     } catch (error) {
-      logger.error('Failed to start workflow execution', error, {
+      logger.error('Failed to start workflow execution', {
         context: 'ExecutionStore',
+        error,
       });
       set({
         isRunning: false,
@@ -450,8 +456,9 @@ export const createExecutionSlice: StateCreator<
 
       createExecutionSubscription(newExecutionId, set);
     } catch (error) {
-      logger.error('Failed to resume execution', error, {
+      logger.error('Failed to resume execution', {
         context: 'ExecutionStore',
+        error,
       });
       set({
         isRunning: false,
@@ -483,8 +490,9 @@ export const createExecutionSlice: StateCreator<
 
     if (executionId) {
       apiClient.post(`/executions/${executionId}/stop`).catch((error) => {
-        logger.error('Failed to stop execution', error, {
+        logger.error('Failed to stop execution', {
           context: 'ExecutionStore',
+          error,
         });
       });
     }
@@ -506,8 +514,9 @@ export const createExecutionSlice: StateCreator<
       apiClient
         .post(`/executions/${nodeExecution.executionId}/stop`)
         .catch((error) => {
-          logger.error('Failed to stop node execution', error, {
+          logger.error('Failed to stop node execution', {
             context: 'ExecutionStore',
+            error,
           });
         });
 

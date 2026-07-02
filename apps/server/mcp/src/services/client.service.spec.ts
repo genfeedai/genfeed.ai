@@ -18,6 +18,7 @@ describe('ClientService (MCP)', () => {
     } as any,
     delete: vi.fn(),
     get: vi.fn(),
+    patch: vi.fn(),
     post: vi.fn(),
     put: vi.fn(),
   };
@@ -1079,6 +1080,212 @@ describe('ClientService (MCP)', () => {
       );
       expect(result).toHaveLength(2);
       expect(result[0].id).toBe('daily-image-generation');
+    });
+  });
+
+  // ==================== SOCIAL MESSAGES TESTS ====================
+
+  describe('listSocialConversations', () => {
+    it('should list conversations with review filters', async () => {
+      const mockResponse = {
+        data: {
+          data: [
+            {
+              attributes: {
+                latestMessageText: 'Can I get the template?',
+                platform: 'youtube',
+                status: 'open',
+              },
+              id: 'conv-1',
+            },
+          ],
+          meta: { page: 1, totalPages: 1 },
+        },
+      };
+
+      (mockAxiosInstance.get as Mock).mockResolvedValue(mockResponse);
+
+      const result = await service.listSocialConversations({
+        limit: 5,
+        needsReview: true,
+        platform: 'youtube',
+        status: 'open',
+      });
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/messages', {
+        params: {
+          limit: 5,
+          needsReview: true,
+          platform: 'youtube',
+          status: 'open',
+        },
+      });
+      expect(result).toEqual({
+        conversations: [
+          {
+            id: 'conv-1',
+            latestMessageText: 'Can I get the template?',
+            platform: 'youtube',
+            status: 'open',
+          },
+        ],
+        meta: { page: 1, totalPages: 1 },
+      });
+    });
+  });
+
+  describe('getSocialConversation', () => {
+    it('should inspect a conversation and include bounded recent messages', async () => {
+      (mockAxiosInstance.get as Mock)
+        .mockResolvedValueOnce({
+          data: {
+            data: {
+              attributes: { platform: 'instagram', status: 'needs_review' },
+              id: 'conv-1',
+            },
+          },
+        })
+        .mockResolvedValueOnce({
+          data: {
+            data: [
+              {
+                attributes: { body: 'Interested', status: 'received' },
+                id: 'msg-1',
+              },
+            ],
+          },
+        });
+
+      const result = await service.getSocialConversation('conv-1', {
+        limit: 10,
+      });
+
+      expect(mockAxiosInstance.get).toHaveBeenNthCalledWith(
+        1,
+        '/messages/conv-1',
+      );
+      expect(mockAxiosInstance.get).toHaveBeenNthCalledWith(
+        2,
+        '/messages/conv-1/messages',
+        { params: { limit: 10 } },
+      );
+      expect(result).toEqual({
+        conversation: {
+          id: 'conv-1',
+          platform: 'instagram',
+          status: 'needs_review',
+        },
+        messages: [{ body: 'Interested', id: 'msg-1', status: 'received' }],
+      });
+    });
+  });
+
+  describe('social message actions', () => {
+    it('should create a provenance-backed reply draft without publishing', async () => {
+      const mockResponse = {
+        data: {
+          data: {
+            attributes: {
+              actionProvenance: { actorType: 'agent' },
+              body: 'Thanks for asking',
+              status: 'draft',
+            },
+            id: 'msg-draft',
+          },
+        },
+      };
+
+      (mockAxiosInstance.post as Mock).mockResolvedValue(mockResponse);
+
+      const result = await service.createSocialReplyDraft('conv-1', {
+        agentRunId: 'agent-run-1',
+        text: 'Thanks for asking',
+        workflowRunId: 'workflow-run-1',
+      });
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/messages/conv-1/drafts',
+        {
+          agentRunId: 'agent-run-1',
+          text: 'Thanks for asking',
+          workflowRunId: 'workflow-run-1',
+        },
+      );
+      expect(result).toEqual({
+        actionProvenance: { actorType: 'agent' },
+        body: 'Thanks for asking',
+        id: 'msg-draft',
+        status: 'draft',
+      });
+    });
+
+    it('should post replies through the social inbox action route', async () => {
+      const mockResponse = {
+        data: {
+          data: {
+            attributes: { body: 'Public reply', status: 'sent' },
+            id: 'msg-reply',
+          },
+        },
+      };
+
+      (mockAxiosInstance.post as Mock).mockResolvedValue(mockResponse);
+
+      const result = await service.postSocialReply('conv-1', {
+        idempotencyKey: 'reply-1',
+        text: 'Public reply',
+      });
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/messages/conv-1/replies',
+        { idempotencyKey: 'reply-1', text: 'Public reply' },
+      );
+      expect(result).toMatchObject({ id: 'msg-reply', status: 'sent' });
+    });
+
+    it('should send DMs through the social inbox action route', async () => {
+      const mockResponse = {
+        data: {
+          data: {
+            attributes: { body: 'Private follow-up', status: 'sent' },
+            id: 'msg-dm',
+          },
+        },
+      };
+
+      (mockAxiosInstance.post as Mock).mockResolvedValue(mockResponse);
+
+      const result = await service.sendSocialDm('conv-1', {
+        recipientId: 'viewer-1',
+        text: 'Private follow-up',
+      });
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/messages/conv-1/dms',
+        { recipientId: 'viewer-1', text: 'Private follow-up' },
+      );
+      expect(result).toMatchObject({ id: 'msg-dm', status: 'sent' });
+    });
+
+    it('should update social conversation metadata through patch routes', async () => {
+      const mockResponse = {
+        data: {
+          data: {
+            attributes: { assignedOwnerId: 'user-2', tags: ['lead'] },
+            id: 'conv-1',
+          },
+        },
+      };
+
+      (mockAxiosInstance.patch as Mock).mockResolvedValue(mockResponse);
+
+      const result = await service.updateSocialTags('conv-1', ['lead']);
+
+      expect(mockAxiosInstance.patch).toHaveBeenCalledWith(
+        '/messages/conv-1/tags',
+        { tags: ['lead'] },
+      );
+      expect(result).toMatchObject({ id: 'conv-1', tags: ['lead'] });
     });
   });
 

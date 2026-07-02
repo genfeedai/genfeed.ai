@@ -76,15 +76,11 @@ const config: KnipConfig = {
       entry: ['src/main.ts'],
       ignore: ['dist/**'],
     },
-    'apps/server/fanvue': {
-      entry: ['src/main.ts'],
-      ignore: ['dist/**'],
-    },
     'apps/server/files': {
       entry: ['src/main.ts'],
       ignore: ['dist/**'],
     },
-    'apps/server/llm': {
+    'apps/server/images': {
       entry: ['src/main.ts'],
       ignore: ['dist/**'],
     },
@@ -101,6 +97,14 @@ const config: KnipConfig = {
       ignore: ['dist/**'],
     },
     'apps/server/telegram': {
+      entry: ['src/main.ts'],
+      ignore: ['dist/**'],
+    },
+    'apps/server/videos': {
+      entry: ['src/main.ts'],
+      ignore: ['dist/**'],
+    },
+    'apps/server/voices': {
       entry: ['src/main.ts'],
       ignore: ['dist/**'],
     },

@@ -186,8 +186,8 @@ brandsCommand
       print(formatHeader('\nBrand Details:\n'));
       print(formatLabel('ID', brand.id));
       print(formatLabel('Label', brand.label));
-      if (brand.handle) {
-        print(formatLabel('Handle', brand.handle));
+      if (brand.slug) {
+        print(formatLabel('Slug', brand.slug));
       }
       if (brand.description) {
         print(formatLabel('Description', brand.description));
