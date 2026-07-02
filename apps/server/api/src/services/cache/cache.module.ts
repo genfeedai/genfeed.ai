@@ -3,7 +3,6 @@ import { CacheInvalidationService } from '@api/common/services/cache-invalidatio
 import { CacheStrategies } from '@api/services/cache/cache-strategies';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { CacheClientService } from '@api/services/cache/services/cache-client.service';
-import { CacheKeyService } from '@api/services/cache/services/cache-key.service';
 import { CacheTagsService } from '@api/services/cache/services/cache-tags.service';
 import { AggregationCacheStrategy } from '@api/services/cache/strategies/aggregation-cache.strategy';
 import { BrandCacheStrategy } from '@api/services/cache/strategies/brand-cache.strategy';
@@ -28,7 +27,6 @@ import { Global, Module } from '@nestjs/common';
     CacheInvalidationService,
     BrandCacheStrategy,
     CacheClientService,
-    CacheKeyService,
     CacheService,
     CacheStrategies,
     CacheTagsService,

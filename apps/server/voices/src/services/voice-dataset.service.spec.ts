@@ -1,8 +1,8 @@
 import { LoggerService } from '@libs/logger/logger.service';
+import { S3Service } from '@libs/s3/s3.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@voices/config/config.service';
-import { S3Service } from '@voices/services/s3.service';
 import { VoiceDatasetService } from '@voices/services/voice-dataset.service';
 
 // Mock node:fs/promises

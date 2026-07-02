@@ -1,4 +1,5 @@
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CreditTransactionCategory } from '@genfeedai/enums';
 import { Prisma } from '@genfeedai/prisma';
@@ -30,6 +31,22 @@ interface LeaderCountEntry {
   organizationId: string;
   organizationName: string;
   count: number;
+}
+
+interface StripeChargeSummary {
+  amount: number;
+  created: number;
+  paid: boolean;
+  refunded: boolean;
+}
+
+interface StripeChargeListParams {
+  created: {
+    gte: number;
+    lte: number;
+  };
+  limit: number;
+  starting_after?: string;
 }
 
 interface DailyAmountRow {
@@ -105,6 +122,7 @@ export class BusinessAnalyticsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly loggerService: LoggerService,
+    private readonly stripeService: StripeService,
   ) {}
 
   private readNumber(value: unknown): number {
@@ -150,7 +168,126 @@ export class BusinessAnalyticsService {
     };
   }
 
+  /**
+   * Revenue prefers real Stripe charges when a Stripe client is configured
+   * (cloud / any deployment with STRIPE_SECRET_KEY); otherwise — and on any
+   * Stripe API failure — it falls back to the credit-transaction proxy so the
+   * dashboard keeps rendering with the same response shape.
+   */
   private async getRevenueData(now: Date) {
+    if (this.stripeService.stripe) {
+      try {
+        return await this.getStripeRevenueData(now);
+      } catch (error: unknown) {
+        this.loggerService.error(
+          'Stripe revenue aggregation failed — falling back to credit-transaction proxy',
+          error,
+        );
+      }
+    }
+
+    return this.getCreditProxyRevenueData(now);
+  }
+
+  private async getStripeRevenueData(now: Date) {
+    const todayStart = startOfDay(now);
+    const last7dStart = daysAgo(now, 7);
+    const last30dStart = daysAgo(now, 30);
+    const mtdStart = startOfMonth(now);
+    const lastWeekStart = daysAgo(now, 14);
+
+    const charges = await this.fetchStripeCharges(last30dStart, now);
+
+    let today = 0;
+    let last7d = 0;
+    let last30d = 0;
+    let mtd = 0;
+    let lastWeekTotal = 0;
+    const dailyMap = new Map<string, number>();
+
+    for (const charge of charges) {
+      const chargeDate = new Date(charge.created * 1000);
+      const dateKey = chargeDate.toISOString().split('T')[0];
+      const amountInDollars = charge.amount / 100;
+
+      last30d += amountInDollars;
+      if (chargeDate >= todayStart) {
+        today += amountInDollars;
+      }
+      if (chargeDate >= last7dStart) {
+        last7d += amountInDollars;
+      }
+      if (chargeDate >= lastWeekStart && chargeDate < last7dStart) {
+        lastWeekTotal += amountInDollars;
+      }
+      if (chargeDate >= mtdStart) {
+        mtd += amountInDollars;
+      }
+
+      dailyMap.set(dateKey, (dailyMap.get(dateKey) ?? 0) + amountInDollars);
+    }
+
+    const dailySeries: DailyAmountEntry[] = [];
+    for (let i = 29; i >= 0; i--) {
+      const day = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      const key = day.toISOString().split('T')[0];
+      dailySeries.push({
+        amount: roundCents(dailyMap.get(key) ?? 0),
+        date: key,
+      });
+    }
+
+    return {
+      dailySeries,
+      last7d: roundCents(last7d),
+      last30d: roundCents(last30d),
+      mtd: roundCents(mtd),
+      today: roundCents(today),
+      wowGrowth: computeWowGrowth(last7d, lastWeekTotal),
+    };
+  }
+
+  private async fetchStripeCharges(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<StripeChargeSummary[]> {
+    const charges: StripeChargeSummary[] = [];
+    let hasMore = true;
+    let startingAfter: string | undefined;
+
+    while (hasMore) {
+      const params: StripeChargeListParams = {
+        created: {
+          gte: Math.floor(startDate.getTime() / 1000),
+          lte: Math.floor(endDate.getTime() / 1000),
+        },
+        limit: 100,
+      };
+
+      if (startingAfter) {
+        params.starting_after = startingAfter;
+      }
+
+      const response = await this.stripeService.stripe.charges.list(
+        params as never,
+      );
+
+      charges.push(
+        ...response.data.filter((charge) => charge.paid && !charge.refunded),
+      );
+
+      hasMore = response.has_more;
+      if (response.data.length > 0) {
+        startingAfter = response.data[response.data.length - 1].id;
+      } else {
+        hasMore = false;
+      }
+    }
+
+    return charges;
+  }
+
+  private async getCreditProxyRevenueData(now: Date) {
     const todayStart = startOfDay(now);
     const last7dStart = daysAgo(now, 7);
     const last30dStart = daysAgo(now, 30);
@@ -533,6 +670,10 @@ function daysAgo(date: Date, days: number): Date {
   d.setDate(d.getDate() - days);
   d.setHours(0, 0, 0, 0);
   return d;
+}
+
+function roundCents(value: number): number {
+  return Math.round(value * 100) / 100;
 }
 
 function computeWowGrowth(thisWeek: number, lastWeek: number): number {

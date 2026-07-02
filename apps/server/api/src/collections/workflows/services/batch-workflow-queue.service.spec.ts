@@ -1,8 +1,8 @@
+import { BatchWorkflowQueueService } from '@api/collections/workflows/services/batch-workflow-queue.service';
 import {
   BATCH_WORKFLOW_QUEUE,
   BatchWorkflowItemJobData,
-  BatchWorkflowQueueService,
-} from '@api/collections/workflows/services/batch-workflow-queue.service';
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getQueueToken } from '@nestjs/bullmq';
 import { Test, type TestingModule } from '@nestjs/testing';

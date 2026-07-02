@@ -6,7 +6,7 @@
  * - the executors, run in dependency order, produce the score -> branch -> rewrite path.
  */
 import type { ExecutionContext } from '@workflow-engine/execution/engine';
-import { createConditionExecutor } from '@workflow-engine/executors/saas/condition-executor';
+import { ConditionExecutor } from '@workflow-engine/executors/saas/condition-executor';
 import {
   createSeoRewriteExecutor,
   type SeoRewriteOutput,
@@ -111,7 +111,7 @@ describe('SEO optimization workflow (composed)', () => {
     });
 
     const scoreExecutor = createSeoScoreExecutor(scoreResolver);
-    const conditionExecutor = createConditionExecutor();
+    const conditionExecutor = new ConditionExecutor();
     const rewriteExecutor = createSeoRewriteExecutor(rewriteResolver);
 
     // 1. score the content

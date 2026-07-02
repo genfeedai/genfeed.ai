@@ -1,0 +1,16 @@
+{
+  "$schema": "https://v2-9-12.turborepo.dev/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "type-check": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/apps/server/api/src/**",
+        "$TURBO_ROOT$/apps/server/files/src/**",
+        "$TURBO_ROOT$/apps/server/tsconfig.json",
+        "$TURBO_ROOT$/ee/packages/harness/src/**",
+        "$TURBO_ROOT$/packages/**"
+      ]
+    }
+  }
+}

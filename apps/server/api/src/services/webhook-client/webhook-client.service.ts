@@ -1,7 +1,10 @@
 import { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import type { WebhookJobData } from '@api/services/webhook-client/webhook-client-job.interface';
+import {
+  WEBHOOK_CLIENT_QUEUE,
+  WebhookJobData,
+} from '@genfeedai/queue-contracts';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -14,7 +17,7 @@ export class WebhookClientService {
   private readonly constructorName = 'WebhookClientService';
 
   constructor(
-    @InjectQueue('webhook-client') private readonly webhookQueue: Queue,
+    @InjectQueue(WEBHOOK_CLIENT_QUEUE) private readonly webhookQueue: Queue,
     private readonly logger: LoggerService,
     private readonly organizationSettingsService: OrganizationSettingsService,
   ) {}

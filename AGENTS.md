@@ -2,8 +2,8 @@
 
 ## Last Verified
 
-- **Date:** 2026-06-09
-- **Sources:** local monorepo structure + GitHub issues
+- **Date:** 2026-07-02
+- **Sources:** local monorepo structure (memory/skills symlinks, trunk rules, pre-push commands)
 
 ## Project Memory — READ AT SESSION START
 
@@ -72,7 +72,7 @@ Detailed docs: `.agents/README.md`
 ## Pre-Push Baseline
 
 ```bash
-npx biome check --write .
+bunx biome check --write .
 bunx turbo lint
 bun type-check
 bun run test --filter=@genfeedai/[changed-package]

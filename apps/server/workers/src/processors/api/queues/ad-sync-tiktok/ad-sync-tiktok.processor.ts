@@ -1,11 +1,14 @@
-import type { TikTokAdSyncJobData } from '@api/queues/ad-sync-tiktok/ad-sync-tiktok-job.interface';
+import {
+  AD_SYNC_TIKTOK_QUEUE,
+  TikTokAdSyncJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Job } from 'bullmq';
 
 @Injectable()
-@Processor('ad-sync-tiktok')
+@Processor(AD_SYNC_TIKTOK_QUEUE)
 export class AdSyncTikTokProcessor extends WorkerHost {
   private readonly DEFAULT_DELAY_MS = 2000;
 

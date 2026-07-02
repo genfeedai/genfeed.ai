@@ -1,4 +1,3 @@
-export * from '@serializers/configs/collections/ad-insight.config';
 export * from '@serializers/configs/collections/model.config';
 export * from '@serializers/configs/collections/prompt.config';
 export * from '@serializers/configs/collections/role.config';

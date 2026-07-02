@@ -89,7 +89,3 @@ export class TextToSpeechExecutor extends BaseExecutor {
     };
   }
 }
-
-export function createTextToSpeechExecutor(): TextToSpeechExecutor {
-  return new TextToSpeechExecutor();
-}

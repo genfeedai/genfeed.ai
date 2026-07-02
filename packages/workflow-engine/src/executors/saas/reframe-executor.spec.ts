@@ -1,8 +1,7 @@
 import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
-  createReframeExecutor,
-  type ReframeExecutor,
+  ReframeExecutor,
   type ReframeResolver,
 } from '@workflow-engine/executors/saas/reframe-executor';
 import type { ExecutableNode } from '@workflow-engine/types';
@@ -45,7 +44,7 @@ describe('ReframeExecutor', () => {
   let mockResolver: ReframeResolver;
 
   beforeEach(() => {
-    executor = createReframeExecutor();
+    executor = new ReframeExecutor();
     mockResolver = vi.fn().mockResolvedValue({
       format: 'portrait',
       mediaUrl: 'https://cdn.example.com/reframed.mp4',
@@ -97,7 +96,7 @@ describe('ReframeExecutor', () => {
 
   describe('execute', () => {
     it('should throw when resolver is not configured', async () => {
-      const noResolverExecutor = createReframeExecutor();
+      const noResolverExecutor = new ReframeExecutor();
       const input = makeInput({}, [
         ['media', 'https://cdn.example.com/video.mp4'],
       ]);

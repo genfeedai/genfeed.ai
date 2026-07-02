@@ -1,4 +1,4 @@
-import { extname, join } from 'node:path';
+import { basename, extname, join, resolve, sep } from 'node:path';
 import {
   buildFlux2DevPrompt,
   buildFlux2DevPulidPrompt,
@@ -129,31 +129,32 @@ export class GenerationService {
         throw new Error('ComfyUI returned no output image');
       }
 
-      const s3Key = `ingredients/${s3Folder}/generated/${jobId}/${output.filename}`;
-      const localPath = join(
-        this.configService.COMFYUI_OUTPUT_PATH,
-        output.subfolder ?? '',
-        output.filename,
-      );
-      let resultUrl = output.filename;
+      const filename = this.sanitizeComfyOutputFilename(output.filename);
+      const subfolder = this.sanitizeComfyOutputSubfolder(output.subfolder);
+      const localPath = this.resolveComfyOutputPath(subfolder, filename);
+
+      const s3Key = `ingredients/${s3Folder}/generated/${jobId}/${filename}`;
+      let resultUrl: string;
 
       try {
         await this.s3Service.uploadFile(
           this.configService.AWS_S3_BUCKET,
           s3Key,
           localPath,
-          this.getContentType(output.filename),
+          this.getContentType(filename),
         );
         resultUrl = `https://cdn.genfeed.ai/${s3Key}`;
       } catch (uploadError) {
+        const uploadErrorMessage =
+          uploadError instanceof Error
+            ? uploadError.message
+            : String(uploadError);
         this.loggerService.error(caller, {
-          error:
-            uploadError instanceof Error
-              ? uploadError.message
-              : String(uploadError),
+          error: uploadErrorMessage,
           jobId,
-          message: `${label} S3 upload failed, falling back to ComfyUI filename`,
+          message: `${label} S3 upload failed`,
         });
+        throw new Error(`S3 upload failed: ${uploadErrorMessage}`);
       }
 
       await this.jobService.updateJob(jobId, {
@@ -284,5 +285,73 @@ export class GenerationService {
 
   private getContentType(filename: string): string {
     return IMAGE_CONTENT_TYPES[extname(filename).toLowerCase()] ?? 'image/png';
+  }
+
+  /**
+   * Sanitize a ComfyUI-reported output filename.
+   *
+   * `filename` comes from ComfyUI's /history HTTP response and is untrusted.
+   * Strip any directory components so only the bare filename is used,
+   * matching the local filesystem path and S3 key we build from it.
+   */
+  private sanitizeComfyOutputFilename(filename: string): string {
+    if (!filename || typeof filename !== 'string') {
+      throw new Error('ComfyUI output filename is missing or invalid');
+    }
+
+    const sanitized = basename(filename);
+    if (!sanitized || sanitized === '.' || sanitized === '..') {
+      throw new Error(`ComfyUI output filename is invalid: ${filename}`);
+    }
+
+    return sanitized;
+  }
+
+  /**
+   * Sanitize a ComfyUI-reported output subfolder.
+   *
+   * `subfolder` comes from ComfyUI's /history HTTP response and is
+   * untrusted. Reject absolute paths, parent-directory segments ('..'), and
+   * any embedded path separators beyond a plain nested-folder name so the
+   * resolved local path cannot escape COMFYUI_OUTPUT_PATH.
+   */
+  private sanitizeComfyOutputSubfolder(subfolder?: string): string {
+    if (!subfolder) {
+      return '';
+    }
+    if (typeof subfolder !== 'string') {
+      throw new Error('ComfyUI output subfolder is invalid');
+    }
+
+    const segments = subfolder.split(/[/\\]/);
+    for (const segment of segments) {
+      if (segment === '..' || segment.includes(':')) {
+        throw new Error(
+          `ComfyUI output subfolder contains an invalid path segment: ${subfolder}`,
+        );
+      }
+    }
+
+    return join(...segments);
+  }
+
+  /**
+   * Resolve the local filesystem path for a sanitized ComfyUI output and
+   * assert it stays within the configured COMFYUI_OUTPUT_PATH. Fails closed
+   * (throws) if the resolved path escapes the configured output root.
+   */
+  private resolveComfyOutputPath(subfolder: string, filename: string): string {
+    const outputRoot = resolve(this.configService.COMFYUI_OUTPUT_PATH);
+    const resolvedPath = resolve(outputRoot, subfolder, filename);
+
+    const isWithinRoot =
+      resolvedPath === outputRoot || resolvedPath.startsWith(outputRoot + sep);
+    if (!isWithinRoot) {
+      throw new Error(
+        `ComfyUI output path escapes COMFYUI_OUTPUT_PATH: ${resolvedPath}`,
+      );
+    }
+
+    return resolvedPath;
   }
 }

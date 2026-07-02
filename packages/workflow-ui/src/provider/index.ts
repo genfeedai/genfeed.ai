@@ -1,4 +1,5 @@
 export type {
+  ExecutionHeaderProvider,
   FileUploadService,
   ModelBrowserModalProps,
   ModelSchemaService,
@@ -6,5 +7,7 @@ export type {
   PromptPickerProps,
   WorkflowsApiService,
   WorkflowUIConfig,
+  WorkflowUIHttpClient,
+  WorkflowUILogger,
 } from './types';
 export { useWorkflowUIConfig, WorkflowUIProvider } from './WorkflowUIProvider';

@@ -2,7 +2,11 @@ import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
-import { SYSTEM_WORKFLOW_METADATA_KEY } from '@api/collections/workflows/system-workflow.contract';
+import {
+  SYSTEM_WORKFLOW_METADATA_KEY,
+  SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
+  SYSTEM_WORKFLOW_TEMPLATE_VERSION,
+} from '@api/collections/workflows/system-workflow.contract';
 import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { WorkflowExecutionStatus as PrismaWorkflowExecutionStatus } from '@genfeedai/prisma';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -69,6 +73,7 @@ describe('SystemWorkflowProvenanceService', () => {
       {
         actionType: 'publish-post',
         canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.SCHEDULED_POST_PUBLISHING,
+        changeSummary: 'Initial scheduled publish workflow wrapper.',
         description: 'Publish scheduled posts.',
         label: 'Scheduled Post Publishing',
         organizationId: 'org-1',
@@ -77,6 +82,7 @@ describe('SystemWorkflowProvenanceService', () => {
         source: 'CronPostsService.publishSinglePost',
         trigger: WorkflowExecutionTrigger.SCHEDULED,
         userId: 'user-1',
+        version: 2,
       },
       action,
     );
@@ -92,11 +98,16 @@ describe('SystemWorkflowProvenanceService', () => {
         data: expect.objectContaining({
           isScheduleEnabled: true,
           metadata: expect.objectContaining({
+            sourceTemplateChangeSummary:
+              'Initial scheduled publish workflow wrapper.',
             sourceTemplateId:
               SYSTEM_WORKFLOW_ACTION_IDS.SCHEDULED_POST_PUBLISHING,
+            sourceTemplateVersion: 2,
             [SYSTEM_WORKFLOW_METADATA_KEY]: expect.objectContaining({
               canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.SCHEDULED_POST_PUBLISHING,
+              changeSummary: 'Initial scheduled publish workflow wrapper.',
               immutable: true,
+              version: 2,
             }),
           }),
           schedule: '*/15 * * * *',
@@ -166,6 +177,45 @@ describe('SystemWorkflowProvenanceService', () => {
         data: expect.objectContaining({
           error: 'Rate limited',
           status: PrismaWorkflowExecutionStatus.FAILED,
+        }),
+      }),
+    );
+  });
+
+  it('defaults action workflow metadata to the current template version', async () => {
+    mockPrisma.workflow.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
+    mockPrisma.workflow.create.mockResolvedValue({
+      id: 'workflow-1',
+      label: 'Twitter Publish Action',
+    });
+
+    await service.runAction(
+      {
+        actionType: 'twitter-original',
+        canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.TWITTER_PUBLISH_ACTION,
+        description: 'Publish Twitter actions.',
+        label: 'Twitter Publish Action',
+        organizationId: 'org-1',
+        source: 'TwitterPipelineService.publish',
+        userId: 'user-1',
+      },
+      async () => ({ success: true }),
+    );
+
+    expect(mockPrisma.workflow.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          metadata: expect.objectContaining({
+            sourceTemplateChangeSummary:
+              SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
+            sourceTemplateVersion: SYSTEM_WORKFLOW_TEMPLATE_VERSION,
+            [SYSTEM_WORKFLOW_METADATA_KEY]: expect.objectContaining({
+              changeSummary: SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
+              version: SYSTEM_WORKFLOW_TEMPLATE_VERSION,
+            }),
+          }),
         }),
       }),
     );

@@ -2,6 +2,7 @@ import type {
   DelayResumeJobData,
   TriggerEvent,
 } from '@api/collections/workflows/services/workflow-executor.service';
+import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
@@ -16,12 +17,6 @@ export interface WorkflowExecutionJobData {
   triggerEvent?: TriggerEvent;
   delayResumeData?: DelayResumeJobData;
 }
-
-// =============================================================================
-// QUEUE NAME
-// =============================================================================
-
-export const WORKFLOW_EXECUTION_QUEUE = 'workflow-execution';
 
 // =============================================================================
 // SERVICE

@@ -21,8 +21,32 @@ export interface IEvaluation {
   flags?: IEvaluationFlags;
   externalContent?: IExternalContentData;
   actualPerformance?: IActualPerformance;
+  review?: IEvaluationReview;
+  reviewerComments?: IEvaluationReviewerComment[];
   createdAt: Date;
   updatedAt: Date;
+}
+
+export type EvaluationReviewDecision =
+  | 'approved'
+  | 'needs_changes'
+  | 'neutral'
+  | 'rejected';
+
+export interface IEvaluationReview {
+  reviewerId: string;
+  reviewerScore?: number;
+  comment?: string;
+  decision?: EvaluationReviewDecision;
+  tags?: string[];
+  reviewedAt: string;
+}
+
+export interface IEvaluationReviewerComment {
+  reviewerId: string;
+  comment: string;
+  decision?: EvaluationReviewDecision;
+  createdAt: string;
 }
 
 export interface IEvaluationScores {
@@ -84,4 +108,35 @@ export interface IActualPerformance {
   engagementRate: number;
   accuracyScore: number;
   syncedAt: Date;
+}
+
+export interface IEvaluationComparisonScoreBreakdown {
+  brandScore?: number;
+  engagementScore?: number;
+  modelScore?: number;
+  reviewerScore?: number;
+  technicalScore?: number;
+}
+
+export interface IEvaluationComparisonRanking {
+  rank: number;
+  evaluationId: string;
+  contentId: string | null;
+  contentType: string | null;
+  evaluationType?: EvaluationType | string;
+  status?: Status | string;
+  compositeScore: number;
+  scoreBreakdown: IEvaluationComparisonScoreBreakdown;
+  strengths: string[];
+  weaknesses: string[];
+  reviewerComment?: string;
+  reviewedAt?: string;
+  updatedAt: Date | string;
+}
+
+export interface IEvaluationComparisonResult {
+  comparedAt: string;
+  evaluationIds: string[];
+  winnerEvaluationId?: string;
+  rankings: IEvaluationComparisonRanking[];
 }

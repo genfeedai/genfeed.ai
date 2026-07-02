@@ -36,6 +36,7 @@ export default function MenuSharedConversations({
       <CollapsibleGroup
         label="Conversations"
         isDrillDown={false}
+        isCollapsible
         storageKey="__conversations__"
         actions={conversationActions}
         className={cn(

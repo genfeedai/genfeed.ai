@@ -1998,10 +1998,9 @@ model ContentSchedule {
   brandId        String?
   brand          Brand?       @relation(fields: [brandId], references: [id])
   config         Json         @default("{}")
-  // Cron columns — service (createForBrand / getActiveSchedules / markScheduleRan)
-  // reads & writes these as top-level fields; without them the scheduler crashed at
-  // runtime (Prisma rejects unknown args) and getActiveSchedules' isEnabled WHERE
-  // never type-checked.
+  // Schedule columns — service (createForBrand / markScheduleRan) and the
+  // workflow-backed scheduler read & write these as top-level fields; without
+  // them the scheduler crashed at runtime (Prisma rejects unknown args).
   name           String?
   cronExpression String?
   timezone       String       @default("UTC")
@@ -3570,17 +3569,6 @@ model AdCreativeMapping {
   @@map("ad_creative_mappings")
 }
 
-model AdInsights {
-  id        String   @id @default(cuid())
-  mongoId   String?  @unique
-  data      Json     @default("{}")
-  isDeleted Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("ad_insights")
-}
-
 model AdOptimizationAuditLog {
   id             String       @id @default(cuid())
   mongoId        String?      @unique
@@ -3685,6 +3673,7 @@ model Trend {
   remixLineages        TrendRemixLineage[]        @relation("remix_lineage_trends")
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([isDeleted, organizationId, platform, updatedAt], map: "trends_freshness_org_idx")
   @@map("trends")
 }
 

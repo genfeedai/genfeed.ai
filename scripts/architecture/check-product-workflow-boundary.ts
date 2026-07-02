@@ -3,6 +3,7 @@ import path from 'node:path';
 import { globSync } from 'glob';
 
 const DEFAULT_INCLUDE_GLOBS = [
+  'apps/server/api/src/collections/social-inbox/**/*.ts',
   'apps/server/api/src/services/campaign/**/*.ts',
   'apps/server/api/src/services/reply-bot/**/*.ts',
   'apps/server/api/src/services/twitter-pipeline/**/*.ts',
@@ -139,6 +140,15 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
     },
     {
       classification: 'pending-system-workflow-migration',
+      file: 'apps/server/api/src/collections/social-inbox/services/social-inbox.service.ts',
+      id: 'social-inbox-manual-actions',
+      issue: 1032,
+      reason:
+        'Manual social inbox reply/DM endpoints still dispatch directly while reply and DM actions move behind workflow execution.',
+      systemWorkflowIds: ['reply-dm-automation'],
+    },
+    {
+      classification: 'pending-system-workflow-migration',
       file: 'apps/server/workers/src/crons/dynamic-jobs/cron.dynamic-jobs.service.ts',
       id: 'legacy-dynamic-jobs-dispatcher',
       issue: 1011,
@@ -163,15 +173,6 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
       reason:
         'Content engine cron-like worker remains a product automation path pending system workflow migration.',
       systemWorkflowIds: ['content-engine-automation'],
-    },
-    {
-      classification: 'pending-system-workflow-migration',
-      file: 'apps/server/workers/src/crons/content-schedules/cron.content-schedules.service.ts',
-      id: 'content-schedules-cron',
-      issue: 1011,
-      reason:
-        'Content schedules worker remains a product automation path pending system workflow migration.',
-      systemWorkflowIds: ['content-schedule-workflow'],
     },
     {
       classification: 'pending-system-workflow-migration',
@@ -236,6 +237,17 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
       /\b(?:sendInstagramDm|postInstagramComment)\s*\(/.test(source),
     message:
       'Direct social API actions must be isolated behind workflow nodes or documented as pending migration.',
+  },
+  {
+    id: 'social-inbox-direct-platform-action',
+    matches: (file, source) =>
+      file.startsWith('apps/server/api/src/collections/social-inbox/') &&
+      (/\byoutubeService\s*\.\s*postCommentReply\s*\(/.test(source) ||
+        /\binstagramService\s*\.\s*(?:replyToComment|sendCommentReplyDm)\s*\(/.test(
+          source,
+        )),
+    message:
+      'Social inbox reply/DM platform actions must run through workflow execution or be documented as a bounded migration exception.',
   },
   {
     id: 'product-cron-service',

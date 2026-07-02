@@ -60,6 +60,18 @@ describe('EventBusService', () => {
       });
     });
 
+    it('should log emitted events with service context', () => {
+      service.emit('test.event', { key: 'value' });
+
+      expect(loggerService.debug).toHaveBeenCalledWith(
+        'Emitting event: test.event',
+        {
+          data: { key: 'value' },
+          service: 'EventBusService',
+        },
+      );
+    });
+
     it('should call directly registered handlers', () => {
       const handler = vi.fn();
       service.subscribe('test.event', handler);
@@ -164,6 +176,13 @@ describe('EventBusService', () => {
       const unsubscribe = service.subscribe('test.event', handler);
 
       expect(typeof unsubscribe).toBe('function');
+      expect(loggerService.debug).toHaveBeenCalledWith(
+        'Subscribed to event: test.event',
+        {
+          handlerCount: 1,
+          service: 'EventBusService',
+        },
+      );
     });
 
     it('should remove handler when unsubscribe is called', () => {
@@ -273,6 +292,15 @@ describe('EventBusService', () => {
 
       expect(service.getHandlerCount('event.a')).toBe(0);
       expect(service.getHandlerCount('event.b')).toBe(0);
+    });
+
+    it('should log handler clearing with service context', () => {
+      service.clearHandlers();
+
+      expect(loggerService.debug).toHaveBeenCalledWith(
+        'Cleared all event handlers',
+        { service: 'EventBusService' },
+      );
     });
   });
 

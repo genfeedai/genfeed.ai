@@ -1,3 +1,4 @@
+import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import { ConfigService } from '@api/config/config.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import {
@@ -24,7 +25,6 @@ import {
   IntegrationPlatform as PrismaIntegrationPlatform,
   IntegrationStatus as PrismaIntegrationStatus,
 } from '@genfeedai/prisma';
-import { CryptoService } from '@libs/crypto/crypto.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
@@ -48,8 +48,7 @@ export class UnipileService {
     private readonly prisma: PrismaService,
     private readonly httpService: HttpService,
     private readonly loggerService: LoggerService,
-    @Inject('CryptoService')
-    private readonly cryptoService: CryptoService,
+    private readonly cryptoService: CredentialCryptoService,
   ) {
     this.integrationHttpClient = new IntegrationHttpClient({
       fetch: (input, init) => this.fetchViaHttpService(input, init),
@@ -352,7 +351,9 @@ export class UnipileService {
       };
     }
 
-    throw new NotFoundException('Unipile integration not configured');
+    throw new NotFoundException({
+      message: 'Unipile integration not configured',
+    });
   }
 
   private async request<T>(

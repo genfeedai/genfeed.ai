@@ -1,7 +1,9 @@
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { CompareEvaluationsDto } from '@api/collections/evaluations/dto/compare-evaluations.dto';
 import { EvaluateExternalDto } from '@api/collections/evaluations/dto/evaluate-external.dto';
 import { EvaluationFiltersDto } from '@api/collections/evaluations/dto/evaluation-filters.dto';
+import { RecordEvaluationReviewDto } from '@api/collections/evaluations/dto/record-evaluation-review.dto';
 import type { EvaluationDocument } from '@api/collections/evaluations/schemas/evaluation.schema';
 import { EvaluationsOperationsService } from '@api/collections/evaluations/services/evaluations-operations.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
@@ -20,8 +22,15 @@ import {
   IngredientCategory,
   Status,
 } from '@genfeedai/enums';
+import type {
+  IEvaluationComparisonResult,
+  IEvaluationComparisonScoreBreakdown,
+  IEvaluationReview,
+  IEvaluationReviewerComment,
+} from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
+  BadRequestException,
   HttpException,
   HttpStatus,
   Injectable,
@@ -74,6 +83,8 @@ type EvaluationData = {
   brandId?: string;
   userId?: string;
   actualPerformance?: unknown;
+  review?: IEvaluationReview;
+  reviewerComments?: IEvaluationReviewerComment[];
 };
 
 @Injectable()
@@ -112,6 +123,12 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
 
   private readString(value: unknown): string | undefined {
     return typeof value === 'string' && value.length > 0 ? value : undefined;
+  }
+
+  private readStringArray(value: unknown): string[] {
+    return Array.isArray(value)
+      ? value.filter((entry): entry is string => typeof entry === 'string')
+      : [];
   }
 
   private serializeJsonRecord(
@@ -161,6 +178,96 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     const overall = this.readNumber(record.overall);
 
     return overall !== undefined ? { overall } : undefined;
+  }
+
+  private normalizeScore(value: number): number {
+    return Math.round(Math.max(0, Math.min(100, value)) * 100) / 100;
+  }
+
+  private readReviewerComments(value: unknown): IEvaluationReviewerComment[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value.flatMap((entry) => {
+      const record = this.readObjectRecord(entry);
+      const reviewerId = this.readString(record.reviewerId);
+      const comment = this.readString(record.comment);
+      const createdAt = this.readString(record.createdAt);
+
+      if (!reviewerId || !comment || !createdAt) {
+        return [];
+      }
+
+      const decision = this.readString(record.decision);
+
+      return [
+        {
+          comment,
+          createdAt,
+          ...(decision
+            ? { decision: decision as IEvaluationReview['decision'] }
+            : {}),
+          reviewerId,
+        },
+      ];
+    });
+  }
+
+  private buildReviewTags(tags?: string[]): string[] | undefined {
+    const cleaned = tags
+      ?.map((tag) => tag.trim())
+      .filter((tag) => tag.length > 0);
+
+    return cleaned && cleaned.length > 0 ? cleaned : undefined;
+  }
+
+  private buildComparisonScoreBreakdown(
+    data: EvaluationData,
+  ): IEvaluationComparisonScoreBreakdown {
+    const scores = this.readObjectRecord(data.scores);
+    const brandScore = this.readScoreBucket(scores.brand)?.overall;
+    const engagementScore = this.readScoreBucket(scores.engagement)?.overall;
+    const technicalScore = this.readScoreBucket(scores.technical)?.overall;
+    const review = this.readObjectRecord(data.review);
+
+    return {
+      brandScore,
+      engagementScore,
+      modelScore: this.readNumber(data.overallScore),
+      reviewerScore: this.readNumber(review.reviewerScore),
+      technicalScore,
+    };
+  }
+
+  private calculateCompositeScore(
+    scoreBreakdown: IEvaluationComparisonScoreBreakdown,
+  ): number {
+    const weightedScores = [
+      { value: scoreBreakdown.modelScore, weight: 0.5 },
+      { value: scoreBreakdown.reviewerScore, weight: 0.25 },
+      { value: scoreBreakdown.brandScore, weight: 0.1 },
+      { value: scoreBreakdown.engagementScore, weight: 0.1 },
+      { value: scoreBreakdown.technicalScore, weight: 0.05 },
+    ].filter(
+      (entry): entry is { value: number; weight: number } =>
+        entry.value !== undefined,
+    );
+
+    if (weightedScores.length === 0) {
+      return 0;
+    }
+
+    const totalWeight = weightedScores.reduce(
+      (sum, entry) => sum + entry.weight,
+      0,
+    );
+    const totalScore = weightedScores.reduce(
+      (sum, entry) => sum + entry.value * entry.weight,
+      0,
+    );
+
+    return this.normalizeScore(totalScore / totalWeight);
   }
 
   private async validateContentForEvaluation(
@@ -699,6 +806,174 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       },
       HttpStatus.NOT_IMPLEMENTED,
     );
+  }
+
+  async recordReviewerFeedback(
+    evaluationId: string,
+    organizationId: string,
+    userId: string,
+    dto: RecordEvaluationReviewDto,
+  ): Promise<EvaluationDocument> {
+    const comment = dto.comment?.trim();
+    const tags = this.buildReviewTags(dto.tags);
+
+    if (dto.reviewerScore === undefined && !comment && !dto.decision && !tags) {
+      throw new BadRequestException(
+        'Review feedback must include a score, comment, decision, or tag.',
+      );
+    }
+
+    const evaluation = await this.prisma.evaluation.findFirst({
+      where: {
+        id: evaluationId,
+        isDeleted: false,
+        organizationId,
+      },
+    });
+
+    if (!evaluation) {
+      throw new NotFoundException(`Evaluation ${evaluationId} not found`);
+    }
+
+    const reviewedAt = new Date().toISOString();
+    const existingData = (evaluation.data as EvaluationData | null) ?? {};
+    const existingComments = this.readReviewerComments(
+      existingData.reviewerComments,
+    );
+    const review: IEvaluationReview = {
+      ...(comment ? { comment } : {}),
+      ...(dto.decision ? { decision: dto.decision } : {}),
+      ...(dto.reviewerScore !== undefined
+        ? { reviewerScore: dto.reviewerScore }
+        : {}),
+      ...(tags ? { tags } : {}),
+      reviewedAt,
+      reviewerId: userId,
+    };
+    const reviewerComments = comment
+      ? [
+          ...existingComments,
+          {
+            comment,
+            ...(dto.decision ? { decision: dto.decision } : {}),
+            createdAt: reviewedAt,
+            reviewerId: userId,
+          },
+        ]
+      : existingComments;
+
+    const updated = await this.prisma.evaluation.update({
+      where: { id: evaluationId },
+      data: {
+        data: this.buildStoredEvaluationData({
+          ...existingData,
+          review,
+          reviewerComments:
+            reviewerComments.length > 0 ? reviewerComments : undefined,
+        }) as never,
+      },
+    });
+
+    return updated as unknown as EvaluationDocument;
+  }
+
+  async compareEvaluations(
+    organizationId: string,
+    dto: CompareEvaluationsDto,
+  ): Promise<IEvaluationComparisonResult> {
+    const evaluationIds = Array.from(
+      new Set(
+        dto.evaluationIds
+          .map((evaluationId) => evaluationId.trim())
+          .filter((evaluationId) => evaluationId.length > 0),
+      ),
+    );
+
+    if (evaluationIds.length < 2) {
+      throw new BadRequestException(
+        'At least two unique evaluation IDs are required for comparison.',
+      );
+    }
+
+    const evaluations = await this.prisma.evaluation.findMany({
+      where: {
+        id: { in: evaluationIds },
+        isDeleted: false,
+        organizationId,
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: evaluationIds.length,
+    });
+
+    const foundIds = new Set(evaluations.map((evaluation) => evaluation.id));
+    const missingIds = evaluationIds.filter(
+      (evaluationId) => !foundIds.has(evaluationId),
+    );
+
+    if (missingIds.length > 0) {
+      throw new NotFoundException(
+        `Evaluation(s) not found: ${missingIds.join(', ')}`,
+      );
+    }
+
+    if (!dto.includeIncomplete) {
+      const incompleteIds = evaluations
+        .filter((evaluation) => {
+          const data = (evaluation.data as EvaluationData | null) ?? {};
+          return data.status !== Status.COMPLETED;
+        })
+        .map((evaluation) => evaluation.id);
+
+      if (incompleteIds.length > 0) {
+        throw new BadRequestException(
+          `Evaluation(s) must be completed before comparison: ${incompleteIds.join(', ')}`,
+        );
+      }
+    }
+
+    const rankings = evaluations.map((evaluation) => {
+      const data = (evaluation.data as EvaluationData | null) ?? {};
+      const analysis = this.readObjectRecord(data.analysis);
+      const review = this.readObjectRecord(data.review);
+      const scoreBreakdown = this.buildComparisonScoreBreakdown(data);
+
+      return {
+        compositeScore: this.calculateCompositeScore(scoreBreakdown),
+        contentId: evaluation.contentId ?? null,
+        contentType: evaluation.contentType ?? null,
+        evaluationId: evaluation.id,
+        evaluationType: data.evaluationType,
+        reviewedAt: this.readString(review.reviewedAt),
+        reviewerComment: this.readString(review.comment),
+        scoreBreakdown,
+        status: data.status,
+        strengths: this.readStringArray(analysis.strengths),
+        updatedAt: evaluation.updatedAt,
+        weaknesses: this.readStringArray(analysis.weaknesses),
+      };
+    });
+
+    rankings.sort((left, right) => {
+      if (right.compositeScore !== left.compositeScore) {
+        return right.compositeScore - left.compositeScore;
+      }
+
+      return (
+        new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime()
+      );
+    });
+
+    const ranked = rankings.map((ranking, index) => ({
+      ...ranking,
+      rank: index + 1,
+    }));
+
+    return {
+      comparedAt: new Date().toISOString(),
+      evaluationIds,
+      rankings: ranked,
+      winnerEvaluationId: ranked[0]?.evaluationId,
+    };
   }
 
   async syncPostPublicationPerformance(

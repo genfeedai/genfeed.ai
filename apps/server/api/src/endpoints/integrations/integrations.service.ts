@@ -1,3 +1,4 @@
+import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import { CreateIntegrationDto } from '@api/endpoints/integrations/dto/create-integration.dto';
 import { UpdateIntegrationDto } from '@api/endpoints/integrations/dto/update-integration.dto';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
@@ -9,11 +10,9 @@ import {
   IntegrationPlatform as PrismaIntegrationPlatform,
   IntegrationStatus as PrismaIntegrationStatus,
 } from '@genfeedai/prisma';
-import { CryptoService } from '@libs/crypto/crypto.service';
 import { RedisService } from '@libs/redis/redis.service';
 import {
   BadRequestException,
-  Inject,
   Injectable,
   Logger,
   Optional,
@@ -27,8 +26,7 @@ export class IntegrationsService {
   constructor(
     private readonly prisma: PrismaService,
     private eventEmitter: EventEmitter2,
-    @Inject('CryptoService')
-    private cryptoService: CryptoService,
+    private readonly cryptoService: CredentialCryptoService,
     @Optional() private readonly redisService?: RedisService,
   ) {}
 
@@ -54,7 +52,7 @@ export class IntegrationsService {
     }
 
     // Encrypt the bot token
-    const encryptedToken = await this.cryptoService.encrypt(dto.botToken);
+    const encryptedToken = this.cryptoService.encrypt(dto.botToken);
 
     const integration = await this.prisma.orgIntegration.create({
       data: {
@@ -169,9 +167,7 @@ export class IntegrationsService {
 
     // Encrypt new token if provided
     if (dto.botToken) {
-      updateData['encryptedToken'] = await this.cryptoService.encrypt(
-        dto.botToken,
-      );
+      updateData['encryptedToken'] = this.cryptoService.encrypt(dto.botToken);
     }
 
     if (dto.config) {

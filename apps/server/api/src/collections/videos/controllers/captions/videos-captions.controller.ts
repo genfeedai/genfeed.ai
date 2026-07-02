@@ -150,7 +150,7 @@ export class VideosCaptionsController {
       return returnNotFound(this.constructorName, videoId);
     }
 
-    let caption: CaptionDocument | { _id: string } | undefined;
+    let caption: CaptionDocument | { _id: string } | null | undefined;
     if (isEntityId(createVideoWithCaptionsDto.caption)) {
       caption = await this.captionsService.findOne({
         _id: createVideoWithCaptionsDto.caption,

@@ -1,8 +1,10 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { EvaluationsController } from '@api/collections/evaluations/controllers/evaluations.controller';
+import { CompareEvaluationsDto } from '@api/collections/evaluations/dto/compare-evaluations.dto';
 import { EvaluateContentDto } from '@api/collections/evaluations/dto/evaluate-content.dto';
 import { EvaluateExternalDto } from '@api/collections/evaluations/dto/evaluate-external.dto';
 import { EvaluationFiltersDto } from '@api/collections/evaluations/dto/evaluation-filters.dto';
+import { RecordEvaluationReviewDto } from '@api/collections/evaluations/dto/record-evaluation-review.dto';
 import { EvaluationsService } from '@api/collections/evaluations/services/evaluations.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { EvaluationType, ExternalPlatform } from '@genfeedai/enums';
@@ -42,6 +44,11 @@ describe('EvaluationsController', () => {
 
   const mockServices = {
     evaluationsService: {
+      compareEvaluations: vi.fn().mockResolvedValue({
+        comparedAt: '2026-07-02T00:00:00.000Z',
+        evaluationIds: ['evaluation-a', 'evaluation-b'],
+        rankings: [],
+      }),
       evaluateContent: vi.fn().mockResolvedValue(mockEvaluation),
       evaluateExternalUrl: vi.fn().mockResolvedValue(mockEvaluation),
       findAll: vi.fn(),
@@ -52,6 +59,7 @@ describe('EvaluationsController', () => {
         trends: [],
       }),
       patch: vi.fn().mockResolvedValue(mockEvaluation),
+      recordReviewerFeedback: vi.fn().mockResolvedValue(mockEvaluation),
     },
     loggerService: {
       error: vi.fn(),
@@ -213,6 +221,49 @@ describe('EvaluationsController', () => {
       expect(
         mockServices.evaluationsService.getEvaluationTrends,
       ).toHaveBeenCalledWith('507f1f77bcf86cd799439012', filters);
+      expect(result).toBeDefined();
+    });
+  });
+
+  describe('compareEvaluations', () => {
+    it('should compare evaluations for the current organization', async () => {
+      const dto: CompareEvaluationsDto = {
+        evaluationIds: ['evaluation-a', 'evaluation-b'],
+      };
+
+      const result = await controller.compareEvaluations(dto, mockUser);
+
+      expect(
+        mockServices.evaluationsService.compareEvaluations,
+      ).toHaveBeenCalledWith('507f1f77bcf86cd799439012', dto);
+      expect(result).toBeDefined();
+    });
+  });
+
+  describe('recordReviewerFeedback', () => {
+    it('should record reviewer feedback for the current organization user', async () => {
+      const dto: RecordEvaluationReviewDto = {
+        comment: 'Use this model for launch posts.',
+        decision: 'approved',
+        reviewerScore: 91,
+        tags: ['launch'],
+      };
+
+      const result = await controller.recordReviewerFeedback(
+        mockRequest,
+        '507f1f77bcf86cd799439014',
+        mockUser,
+        dto,
+      );
+
+      expect(
+        mockServices.evaluationsService.recordReviewerFeedback,
+      ).toHaveBeenCalledWith(
+        '507f1f77bcf86cd799439014',
+        '507f1f77bcf86cd799439012',
+        '507f1f77bcf86cd799439011',
+        dto,
+      );
       expect(result).toBeDefined();
     });
   });

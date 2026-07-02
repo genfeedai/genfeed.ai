@@ -273,40 +273,48 @@ describe('buildBetterAuthOrganizationOptions', () => {
     });
   });
 
-  it('resolves Better Auth string roles to Genfeed role ids before member writes', async () => {
+  it('rejects Better Auth add-member so a BA org role cannot grant a Genfeed Role', async () => {
     const prisma = createPrismaMock();
-    prisma.role.findFirst.mockResolvedValueOnce({
-      id: 'role_admin',
-      key: 'admin',
-    });
     const options = buildBetterAuthOrganizationOptions(
       prisma as unknown as PrismaForBetterAuth,
     );
 
-    const result = await options.organizationHooks?.beforeAddMember?.({
-      member: {
-        organizationId: 'org_1',
-        role: 'owner',
-        userId: 'user_1',
-      },
-      organization: { id: 'org_1' } as never,
-      user: { id: 'user_1' } as never,
-    });
+    await expect(
+      options.organizationHooks?.beforeAddMember?.({
+        member: {
+          organizationId: 'org_1',
+          role: 'owner',
+          userId: 'user_1',
+        },
+        organization: { id: 'org_1' } as never,
+        user: { id: 'user_1' } as never,
+      }),
+    ).rejects.toThrow('Genfeed owns organization membership');
 
-    expect(result).toEqual({
-      data: {
-        isActive: true,
-        isDeleted: false,
-        organizationId: 'org_1',
-        role: 'admin',
-        roleId: 'role_admin',
-        userId: 'user_1',
-      },
-    });
-    expect(prisma.role.findFirst).toHaveBeenCalledWith({
-      select: { id: true, key: true },
-      where: { isDeleted: false, key: 'admin' },
-    });
+    // No Role is ever resolved/written through the BA path.
+    expect(prisma.role.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('rejects Better Auth member role changes so escalation cannot bypass RolesGuard', async () => {
+    const prisma = createPrismaMock();
+    const options = buildBetterAuthOrganizationOptions(
+      prisma as unknown as PrismaForBetterAuth,
+    );
+
+    await expect(
+      options.organizationHooks?.beforeUpdateMemberRole?.({
+        member: {
+          id: 'member_1',
+          organizationId: 'org_1',
+          role: 'member',
+          userId: 'user_1',
+        } as never,
+        newRole: 'owner',
+        organization: { id: 'org_1' } as never,
+        user: { id: 'user_1' } as never,
+      }),
+    ).rejects.toThrow('Genfeed owns organization membership');
+    expect(prisma.role.findFirst).not.toHaveBeenCalled();
   });
 
   it('rejects Better Auth invitation creation because Genfeed owns invites', async () => {
