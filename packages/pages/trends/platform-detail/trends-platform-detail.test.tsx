@@ -144,15 +144,15 @@ describe('TrendsPlatformDetail', () => {
     render(<TrendsPlatformDetail platform="tiktok" />);
 
     expect(mockUseTrendContent).toHaveBeenCalledWith('tiktok');
-    expect(screen.getByRole('tab', { name: 'TikTok' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'TikTok' })).toHaveAttribute(
       'data-state',
       'active',
     );
-    expect(screen.getByRole('tab', { name: 'TikTok' })).toHaveAttribute(
-      'aria-selected',
-      'true',
+    expect(screen.getByRole('link', { name: 'TikTok' })).toHaveAttribute(
+      'aria-current',
+      'page',
     );
-    expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute(
       'href',
       '/research/socials',
     );
@@ -256,21 +256,20 @@ describe('TrendsPlatformDetail', () => {
 
     render(<TrendsPlatformDetail platform="linkedin" />);
 
-    expect(screen.getByRole('tab', { name: 'LinkedIn' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'LinkedIn' })).toHaveAttribute(
       'data-state',
       'active',
     );
-    expect(screen.getByRole('tab', { name: 'LinkedIn' })).toHaveAttribute(
-      'aria-selected',
-      'true',
+    expect(screen.getByRole('link', { name: 'LinkedIn' })).toHaveAttribute(
+      'aria-current',
+      'page',
     );
-    expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute(
       'data-state',
       'inactive',
     );
-    expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute(
-      'aria-selected',
-      'false',
+    expect(screen.getByRole('link', { name: 'Overview' })).not.toHaveAttribute(
+      'aria-current',
     );
   });
 });
