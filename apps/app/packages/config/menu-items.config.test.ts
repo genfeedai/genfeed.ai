@@ -24,7 +24,6 @@ describe('APP_MENU_ITEMS', () => {
 
     expect(ungroupedLabels).toEqual([
       'Dashboard',
-      'Messages',
       'Inbox',
       'Tasks',
       'Activity',
@@ -56,7 +55,6 @@ describe('APP_MENU_ITEMS', () => {
 
     expect(workspaceLabels).toEqual([
       'Dashboard',
-      'Messages',
       'Inbox',
       'Tasks',
       'Activity',

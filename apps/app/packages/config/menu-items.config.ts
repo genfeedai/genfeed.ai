@@ -1,11 +1,9 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import {
-  HiChatBubbleLeftRight,
   HiClipboardDocumentList,
   HiClock,
   HiInboxStack,
-  HiOutlineChatBubbleLeftRight,
   HiOutlineClipboardDocumentList,
   HiOutlineClock,
   HiOutlineInboxStack,
@@ -28,14 +26,6 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
     matchPaths: [APP_ROUTES.WORKSPACE.ROOT, APP_ROUTES.WORKSPACE.OVERVIEW],
     outline: HiOutlineSquares2X2,
     solid: HiSquares2X2,
-  },
-  {
-    group: AppMenuGroup.Root,
-    href: APP_ROUTES.MESSAGES.ROOT,
-    label: 'Messages',
-    matchPaths: [APP_ROUTES.MESSAGES.ROOT],
-    outline: HiOutlineChatBubbleLeftRight,
-    solid: HiChatBubbleLeftRight,
   },
   {
     group: AppMenuGroup.Root,
