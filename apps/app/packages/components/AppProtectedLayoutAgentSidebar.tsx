@@ -3,7 +3,6 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import { Kbd } from '@genfeedai/ui';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import SidebarBackRow from '@ui/menus/sidebar-back-row/SidebarBackRow';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { HiPlus } from 'react-icons/hi2';
@@ -17,15 +16,10 @@ export default function AgentSidebarContent({
   conversationActions,
   renderConversations,
 }: Props) {
-  const { href, orgHref } = useOrgUrl();
+  const { orgHref } = useOrgUrl();
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <SidebarBackRow
-        label="Workspace"
-        href={href(APP_ROUTES.WORKSPACE.OVERVIEW)}
-      />
-
       <div className="flex min-h-0 flex-1 flex-col px-3 pb-2 pt-2">
         <div className="flex items-center justify-between px-3 pb-2">
           <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/35">
