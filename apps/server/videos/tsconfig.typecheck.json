@@ -1,7 +1,4 @@
 {
-  "compilerOptions": {
-    "types": ["node", "vitest/globals", "multer"]
-  },
   "exclude": [
     "node_modules",
     "dist",
