@@ -113,6 +113,25 @@ describe('PostReplyExecutor', () => {
     );
   });
 
+  it('forwards social inbox provenance metadata to the publisher', async () => {
+    const input = makeInput({
+      conversationId: 'conversation-1',
+      platform: 'youtube',
+      postId: 'comment-1',
+      text: 'Thanks for watching',
+    });
+
+    await executor.execute(input);
+
+    expect(mockPublisher).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversationId: 'conversation-1',
+        idempotencyKey: 'workflow:run-1:reply-1',
+        workflowRunId: 'run-1',
+      }),
+    );
+  });
+
   it('throws if postId missing', async () => {
     const input = makeInput({ platform: 'twitter', text: 'hello' });
     await expect(executor.execute(input)).rejects.toThrow(

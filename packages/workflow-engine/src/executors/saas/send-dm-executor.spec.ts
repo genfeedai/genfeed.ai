@@ -114,6 +114,25 @@ describe('SendDmExecutor', () => {
     );
   });
 
+  it('forwards social inbox provenance metadata to the sender', async () => {
+    const input = makeInput({
+      conversationId: 'conversation-1',
+      platform: 'instagram',
+      recipientId: 'recipient-1',
+      text: 'Thanks for reaching out',
+    });
+
+    await executor.execute(input);
+
+    expect(mockSender).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversationId: 'conversation-1',
+        idempotencyKey: 'workflow:run-1:dm-1',
+        workflowRunId: 'run-1',
+      }),
+    );
+  });
+
   it('throws if recipientId missing', async () => {
     const input = makeInput({ platform: 'twitter', text: 'hello' });
     await expect(executor.execute(input)).rejects.toThrow(

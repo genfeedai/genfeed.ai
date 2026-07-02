@@ -14,10 +14,14 @@ export type DmPlatform = 'twitter' | 'instagram';
 export interface SendDmConfig {
   /** Platform to send DM on */
   platform: DmPlatform;
+  /** Durable social inbox conversation id */
+  conversationId?: string;
   /** Recipient user ID or username */
   recipientId?: string;
   /** DM text */
   text?: string;
+  /** Stable idempotency key for retry-safe external actions */
+  idempotencyKey?: string;
   /** Optional media URL to attach */
   mediaUrl?: string;
 }
@@ -44,9 +48,12 @@ export type DmSender = (params: {
   userId: string;
   /** The brand ID associated with this action. Use this instead of userId for brand-scoped operations. */
   brandId?: string;
+  conversationId?: string;
+  idempotencyKey?: string;
   platform: DmPlatform;
   recipientId: string;
   text: string;
+  workflowRunId: string;
   mediaUrl?: string;
 }) => Promise<{ messageId: string }>;
 
@@ -112,15 +119,26 @@ export class SendDmExecutor extends BaseExecutor {
     }
 
     const mediaUrl = this.getConfigOrInputString(node, inputs, 'mediaUrl');
+    const conversationId = this.getConfigOrInputString(
+      node,
+      inputs,
+      'conversationId',
+    );
+    const idempotencyKey =
+      this.getConfigOrInputString(node, inputs, 'idempotencyKey') ??
+      `workflow:${context.runId}:${node.id}`;
 
     const result = await this.sender({
       brandId: node.config.brandId as string | undefined,
+      conversationId,
+      idempotencyKey,
       mediaUrl,
       organizationId: context.organizationId,
       platform,
       recipientId,
       text,
       userId: context.userId,
+      workflowRunId: context.runId,
     });
 
     const dmResult: SendDmResult = {
