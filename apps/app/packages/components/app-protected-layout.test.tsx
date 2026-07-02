@@ -199,6 +199,15 @@ vi.mock('@app-config/menu-items.config', () => ({
   POSTS_INSERT_AFTER_LABEL: 'Posts',
 }));
 
+vi.mock('@app-config/research-menu-items.config', () => ({
+  RESEARCH_LOGO_HREF: '/research/discovery',
+  RESEARCH_MENU_ITEMS: [
+    { href: '/research/discovery', label: 'Discovery' },
+    { href: '/research/socials', label: 'Socials' },
+    { href: '/research/ads', label: 'Ads' },
+  ],
+}));
+
 vi.mock('@contexts/features/command-palette.provider', () => ({
   CommandPaletteProvider: ({ children }: { children: ReactNode }) => (
     <>{children}</>
@@ -850,6 +859,39 @@ describe('AppProtectedLayout', () => {
           expect.objectContaining({
             href: '/studio/music',
             label: 'Music',
+          }),
+        ]),
+      }),
+    );
+  });
+
+  it('renders a dedicated research sidebar on research routes', () => {
+    mockPathname.value = '/research/discovery';
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(appSidebarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentApp: 'research',
+        items: [
+          { href: '/research/discovery', label: 'Discovery' },
+          { href: '/research/socials', label: 'Socials' },
+          { href: '/research/ads', label: 'Ads' },
+        ],
+        sectionLabel: 'Research',
+        shellChromeVariant: 'default',
+      }),
+    );
+    expect(appSidebarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        items: expect.not.arrayContaining([
+          expect.objectContaining({
+            href: '/workspace',
+            label: 'Workspace',
           }),
         ]),
       }),
