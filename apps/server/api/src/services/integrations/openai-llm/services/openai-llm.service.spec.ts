@@ -9,15 +9,13 @@ import { Test, type TestingModule } from '@nestjs/testing';
 const mockCreate = vi.fn();
 
 vi.mock('openai', () => {
-  const MockOpenAI = vi.fn().mockImplementation(function () {
-    return {
-      chat: {
-        completions: {
-          create: mockCreate,
-        },
+  const MockOpenAI = vi.fn().mockImplementation(() => ({
+    chat: {
+      completions: {
+        create: mockCreate,
       },
-    };
-  });
+    },
+  }));
   return { default: MockOpenAI };
 });
 

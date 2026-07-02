@@ -1,11 +1,11 @@
 'use client';
 
-import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import {
   AgentStrategiesService,
   type AgentStrategy,
 } from '@genfeedai/services/automation/agent-strategies.service';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useQuery } from '@tanstack/react-query';
 
 export interface UseAgentStrategiesOptions {

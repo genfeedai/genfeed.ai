@@ -20,12 +20,12 @@ import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
+import { toReplyBotCredentialData } from '@api/services/campaign/reply-bot-credential.util';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import {
   type ReplyGenerationOptions,
   ReplyGenerationService,
 } from '@api/services/reply-bot/reply-generation.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import {
   CampaignPlatform,
   CampaignSkipReason,
@@ -139,7 +139,7 @@ export class CampaignExecutorService {
       const replyText = await this.generateReply(campaign, target);
 
       // Post reply
-      const credentialData = this.toReplyBotCredentialData(
+      const credentialData = toReplyBotCredentialData(
         credential as Record<string, unknown>,
       );
 
@@ -524,39 +524,5 @@ export class CampaignExecutorService {
     }
 
     return new Date();
-  }
-
-  private toReplyBotCredentialData(
-    credential: Record<string, unknown>,
-  ): IReplyBotCredentialData | null {
-    if (typeof credential.accessToken !== 'string') {
-      return null;
-    }
-
-    return {
-      accessToken: EncryptionUtil.decrypt(credential.accessToken),
-      accessTokenSecret:
-        typeof credential.accessTokenSecret === 'string'
-          ? EncryptionUtil.decrypt(credential.accessTokenSecret)
-          : undefined,
-      externalId:
-        typeof credential.externalId === 'string'
-          ? credential.externalId
-          : undefined,
-      platform:
-        credential.platform === null || credential.platform === undefined
-          ? undefined
-          : (String(
-              credential.platform,
-            ) as IReplyBotCredentialData['platform']),
-      refreshToken:
-        typeof credential.refreshToken === 'string'
-          ? EncryptionUtil.decrypt(credential.refreshToken)
-          : undefined,
-      username:
-        typeof credential.username === 'string'
-          ? credential.username
-          : undefined,
-    };
   }
 }

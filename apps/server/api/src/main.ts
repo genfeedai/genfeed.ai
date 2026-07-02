@@ -252,17 +252,73 @@ async function main() {
     app.useGlobalFilters(new DatabaseExceptionFilter(logger, configService));
     app.useGlobalFilters(new HttpExceptionFilter(logger, configService));
 
-    // Bull Board setup
+    // Bull Board setup — monitors every BullMQ queue across api, workers,
+    // files, and clips. Keep this list in sync with the registerQueue calls in
+    // apps/server/workers/src/queues/queues.module.ts,
+    // apps/server/files/src/queues/queues.module.ts, and
+    // apps/server/clips/src/app.module.ts.
     const serverAdapter = new ExpressAdapter();
     serverAdapter.setBasePath('/admin/queues');
 
     const redisConfig = parseRedisConnection(configService);
-    const defaultQueue = new Queue('default', {
-      connection: buildBullMQConnection(redisConfig),
-    });
+    const bullBoardConnection = buildBullMQConnection(redisConfig);
+    const monitoredQueueNames = [
+      'default',
+      // analytics
+      'analytics-facebook',
+      'analytics-social',
+      'analytics-sync',
+      'analytics-threads',
+      'analytics-twitter',
+      'analytics-youtube',
+      // ads
+      'ad-bulk-upload',
+      'ad-insights-aggregation',
+      'ad-optimization',
+      'ad-sync-google',
+      'ad-sync-meta',
+      'ad-sync-tiktok',
+      // workflows + agents
+      'workflow-execution',
+      'batch-workflow',
+      'agent-run',
+      'orchestrator-run',
+      'campaign-memory-extraction',
+      'triggers.evaluate',
+      'campaign-processing',
+      // content
+      'article-generation',
+      'batch-content',
+      'content-optimization',
+      'content-pipeline',
+      'pattern-extraction',
+      // clips
+      'clip-analyze',
+      'clip-factory',
+      'clipper-processing',
+      // files service
+      'file-processing',
+      'image-processing',
+      'task-processing',
+      'video-processing',
+      'youtube-processing',
+      // misc
+      'credit-deduction',
+      'email-digest',
+      'heygen-poll',
+      'reply-bot-polling',
+      'telegram-distribute',
+      'webhook-client',
+      'workspace-task',
+    ];
 
     createBullBoard({
-      queues: [new BullMQAdapter(defaultQueue)],
+      queues: monitoredQueueNames.map(
+        (name) =>
+          new BullMQAdapter(
+            new Queue(name, { connection: bullBoardConnection }),
+          ),
+      ),
       serverAdapter,
     });
 

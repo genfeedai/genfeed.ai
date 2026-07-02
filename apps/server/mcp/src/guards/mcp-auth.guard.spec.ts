@@ -1,4 +1,5 @@
-import { McpAuthGuard, PUBLIC_KEY } from '@mcp/guards/mcp-auth.guard';
+import { IS_PUBLIC_KEY } from '@libs/decorators/public.decorator';
+import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
 import { AuthService } from '@mcp/services/auth.service';
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
@@ -64,10 +65,10 @@ describe('McpAuthGuard', () => {
       const result = await guard.canActivate(context);
 
       expect(result).toBe(true);
-      expect(mockReflector.getAllAndOverride).toHaveBeenCalledWith(PUBLIC_KEY, [
-        context.getHandler(),
-        context.getClass(),
-      ]);
+      expect(mockReflector.getAllAndOverride).toHaveBeenCalledWith(
+        IS_PUBLIC_KEY,
+        [context.getHandler(), context.getClass()],
+      );
     });
 
     it('should throw UnauthorizedException when no auth header', async () => {

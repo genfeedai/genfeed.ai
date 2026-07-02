@@ -3,6 +3,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { InvitationService } from '@api/collections/members/services/invitation.service';
 import { MembersService } from '@api/collections/members/services/members.service';
+import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
@@ -119,7 +120,7 @@ export class ProactiveOnboardingService {
       }
 
       // 2. Create shadow organization
-      let shadowOrg;
+      let shadowOrg: OrganizationDocument | null = null;
       if (lead.proactiveOrganizationId) {
         // Reuse existing shadow org
         shadowOrg = await this.organizationsService.findOne({

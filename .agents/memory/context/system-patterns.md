@@ -11,7 +11,7 @@ author: Claude Code PM System
 
 ### Multi-Tenancy (Enterprise Only)
 
-Multi-tenant organization isolation is an enterprise feature in `ee/packages/multi-tenancy/`. When enabled, Prisma queries include `{ organizationId, isDeleted: false }` and the global `CombinedAuthGuard` (APP_GUARD) enforces org-scoped access. Use `@Public()` to opt out of auth.
+Multi-tenant organization isolation is an enterprise feature. Enforcement currently lives in the OSS API: the global `CombinedAuthGuard` (APP_GUARD, `apps/server/api/src/helpers/guards/combined-auth/`) enforces org-scoped access and tenant queries include `{ organizationId, isDeleted: false }`. Use `@Public()` to opt out of auth. `ee/packages/multi-tenancy/` is a Phase C extraction scaffold (issue #87) — the code has not moved there yet.
 
 Single-tenant (default self-hosted) deployments do NOT require `organization` in queries — only `{ isDeleted: false }`.
 
@@ -67,7 +67,7 @@ Use `gen-*` design classes (`gen-card-spotlight`, `gen-contact-sheet`, `gen-divi
 ## Data Patterns
 
 ### Credits System (Enterprise)
-Credits-based billing lives in `ee/packages/billing/`. Single balance pool per org. Transactions tracked with `source` field.
+Billing providers live in `ee/packages/billing/`, wired into the API via the webpack `@billing-providers` alias (OSS builds get the stubs in `apps/server/api/src/common/subscriptions/billing.providers.oss.ts`). Credits collections/controllers live in the OSS API (`apps/server/api/src/collections/credits/`). Single balance pool per org. Transactions tracked with `source` field.
 
 ### Indexes
 Indexes are defined in `packages/prisma/prisma/schema.prisma` via `@@index` directives on each model.

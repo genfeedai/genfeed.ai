@@ -1,12 +1,12 @@
 'use client';
 
-import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import {
   AlertCategory,
   ButtonSize,
   ButtonVariant,
   CaptionFormat,
 } from '@genfeedai/enums';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { ICaption, IFieldOption, IMetadata } from '@genfeedai/interfaces';

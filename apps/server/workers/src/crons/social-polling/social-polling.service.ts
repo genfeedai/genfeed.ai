@@ -192,8 +192,19 @@ export class SocialPollingService {
           await this.executionQueue.queueTriggerEvent(triggerEvent);
           triggered = true;
 
-          // Update poll state with latest event ID
+          // Update poll state with latest event ID and persist it immediately:
+          // a crash between the queued trigger and a deferred cursor write
+          // would replay this event next tick (duplicate replies/DMs).
           pollState[node.id] = result.lastEventId;
+          await this.prisma.workflow.update({
+            data: {
+              config: {
+                ...wfConfig,
+                metadata: { ...(wfConfig.metadata ?? {}), pollState },
+              } as never,
+            },
+            where: { id: workflow.id },
+          });
 
           this.logger.log(
             `${this.logContext} triggered ${node.type} for workflow ${workflow.id}`,

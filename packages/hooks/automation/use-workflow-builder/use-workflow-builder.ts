@@ -1,4 +1,3 @@
-import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import type {
   NodeDefinition,
   NodesByCategory,
@@ -11,6 +10,7 @@ import { EnvironmentService } from '@genfeedai/services/core/environment.service
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import type {
   Connection,
   Edge,

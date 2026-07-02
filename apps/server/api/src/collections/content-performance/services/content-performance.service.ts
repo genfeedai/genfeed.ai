@@ -5,9 +5,9 @@ import { ManualInputDto } from '@api/collections/content-performance/dto/manual-
 import { QueryContentPerformanceDto } from '@api/collections/content-performance/dto/query-content-performance.dto';
 import type { ContentPerformanceDocument } from '@api/collections/content-performance/schemas/content-performance.schema';
 import { PerformanceSource } from '@api/collections/content-performance/schemas/content-performance.schema';
+import { mapPostCategoryToContentType } from '@api/collections/content-performance/utils/content-performance-category.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { ContentType, PostCategory } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -24,24 +24,6 @@ export class ContentPerformanceService extends BaseService<
     public readonly logger: LoggerService,
   ) {
     super(prisma, 'contentPerformance', logger);
-  }
-
-  /**
-   * Map PostCategory to ContentType
-   */
-  private mapCategoryToContentType(category?: string): ContentType {
-    const mapping: Record<string, ContentType> = {
-      [PostCategory.VIDEO]: ContentType.VIDEO,
-      [PostCategory.REEL]: ContentType.VIDEO,
-      [PostCategory.IMAGE]: ContentType.IMAGE,
-      [PostCategory.ARTICLE]: ContentType.ARTICLE,
-      [PostCategory.TEXT]: ContentType.CAPTION,
-      [PostCategory.POST]: ContentType.CAPTION,
-      [PostCategory.STORY]: ContentType.IMAGE,
-    };
-    return category
-      ? (mapping[category] ?? ContentType.CAPTION)
-      : ContentType.CAPTION;
   }
 
   private toCredentialPlatform(platform?: string): string | undefined {
@@ -180,7 +162,7 @@ export class ContentPerformanceService extends BaseService<
         records.push({
           brandId: post?.brandId ?? validatedBrandId ?? undefined,
           comments: entry.comments ?? 0,
-          contentType: this.mapCategoryToContentType(post?.category),
+          contentType: mapPostCategoryToContentType(post?.category),
           engagementRate: this.computeEngagementRate(entry),
           externalPostId: entry.externalPostId,
           generationId: post?.generationId ?? undefined,
@@ -241,7 +223,7 @@ export class ContentPerformanceService extends BaseService<
     const data = {
       brandId: (post?.brandId as string) ?? undefined,
       comments: dto.comments ?? 0,
-      contentType: this.mapCategoryToContentType(
+      contentType: mapPostCategoryToContentType(
         post?.category as string | undefined,
       ),
       engagementRate: this.computeEngagementRate(dto),

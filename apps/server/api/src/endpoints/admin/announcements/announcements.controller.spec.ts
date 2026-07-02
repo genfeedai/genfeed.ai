@@ -9,9 +9,9 @@ import { AnnouncementsController } from './announcements.controller';
 import { AdminAnnouncementsService } from './announcements.service';
 
 vi.mock('@api/endpoints/admin/guards/ip-whitelist.guard', () => ({
-  IpWhitelistGuard: vi.fn().mockImplementation(function () {
-    return { canActivate: vi.fn().mockReturnValue(true) };
-  }),
+  IpWhitelistGuard: vi
+    .fn()
+    .mockImplementation(() => ({ canActivate: vi.fn().mockReturnValue(true) })),
 }));
 
 vi.mock('@api/helpers/decorators/user/current-user.decorator', () => ({

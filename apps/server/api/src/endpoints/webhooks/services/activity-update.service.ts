@@ -85,7 +85,7 @@ export class ActivityUpdateService {
       dbUserId,
     );
 
-    let activity;
+    let activity: ActivityDocument;
     if (existingActivity) {
       const parsedValue = parseActivityValue(
         existingActivity.value ?? undefined,
@@ -174,7 +174,7 @@ export class ActivityUpdateService {
       dbUserId,
     );
 
-    let activity;
+    let activity: ActivityDocument;
     if (existingActivity) {
       const parsedValue = parseActivityValue(
         existingActivity.value ?? undefined,

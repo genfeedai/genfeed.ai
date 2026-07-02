@@ -51,7 +51,9 @@ export class KlingWebhookService {
       }
 
       if (Array.isArray(value)) {
-        value.forEach((item) => visit(item, key));
+        value.forEach((item) => {
+          visit(item, key);
+        });
         return;
       }
 
