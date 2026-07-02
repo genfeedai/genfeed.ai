@@ -24,15 +24,11 @@ const { mockBot } = vi.hoisted(() => ({
 }));
 
 vi.mock('grammy', () => ({
-  Bot: vi.fn(function () {
-    return mockBot;
-  }),
-  InlineKeyboard: vi.fn(function () {
-    return {
-      row: vi.fn().mockReturnThis(),
-      text: vi.fn().mockReturnThis(),
-    };
-  }),
+  Bot: vi.fn(() => mockBot),
+  InlineKeyboard: vi.fn(() => ({
+    row: vi.fn().mockReturnThis(),
+    text: vi.fn().mockReturnThis(),
+  })),
 }));
 
 describe('TelegramBotManager', () => {

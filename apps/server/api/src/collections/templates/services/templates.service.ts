@@ -498,10 +498,11 @@ export class TemplatesService {
   }> {
     const regex = /\{\{(\w+)\}\}/g;
     const variables: Set<string> = new Set();
-    let match;
+    let match: RegExpExecArray | null = regex.exec(content);
 
-    while ((match = regex.exec(content)) !== null) {
+    while (match !== null) {
       variables.add(match[1]);
+      match = regex.exec(content);
     }
 
     return Array.from(variables).map((name) => ({

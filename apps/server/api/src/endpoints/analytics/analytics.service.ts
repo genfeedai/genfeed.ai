@@ -7,7 +7,6 @@ import { AnalyticsMetric, CredentialPlatform } from '@genfeedai/enums';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import type { DateRange } from './analytics.types';
 
 type PrismaSql = ReturnType<typeof Prisma.sql>;
 type PostAnalyticsTextColumn = 'brandId' | 'organizationId';
@@ -74,17 +73,6 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     logger: LoggerService,
   ) {
     super(prisma, 'analytic', logger, configService);
-  }
-
-  /**
-   * Parse date range from optional startDate/endDate strings
-   * Uses DateRangeUtil helper with default D-7 to D-1
-   */
-  private parseDateRange(
-    startDateStr?: string,
-    endDateStr?: string,
-  ): DateRange {
-    return DateRangeUtil.parseDateRange(startDateStr, endDateStr);
   }
 
   private postAnalyticsTextColumn(
@@ -269,7 +257,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     organizationId?: string,
   ): Promise<unknown> {
     const { startDate, endDate, previousStartDate, previousEndDate } =
-      this.parseDateRange(startDateStr, endDateStr);
+      DateRangeUtil.parseDateRange(startDateStr, endDateStr);
 
     // Build conditional WHERE fragments
     const brandFilter = this.postAnalyticsOptionalTextFilter(
@@ -438,7 +426,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     brandId?: string,
     organizationId?: string,
   ): Promise<AnalyticsBestPostingTime[]> {
-    const { startDate, endDate } = this.parseDateRange(
+    const { startDate, endDate } = DateRangeUtil.parseDateRange(
       startDateStr,
       endDateStr,
     );
@@ -510,7 +498,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
   ): Promise<unknown[]> {
     // Enforce maximum limit to prevent excessive data fetching
     const safeLimit = Math.min(Math.max(1, limit), 100);
-    const { startDate, endDate } = this.parseDateRange(
+    const { startDate, endDate } = DateRangeUtil.parseDateRange(
       startDateStr,
       endDateStr,
     );
@@ -614,7 +602,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     endDateStr?: string,
     brandId?: string,
   ): Promise<unknown> {
-    const { startDate, endDate } = this.parseDateRange(
+    const { startDate, endDate } = DateRangeUtil.parseDateRange(
       startDateStr,
       endDateStr,
     );
@@ -691,7 +679,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     brandId?: string,
   ): Promise<unknown> {
     const { startDate, endDate, previousStartDate, previousEndDate } =
-      this.parseDateRange(startDateStr, endDateStr);
+      DateRangeUtil.parseDateRange(startDateStr, endDateStr);
 
     const brandFilter = this.postAnalyticsOptionalTextFilter(
       'brandId',
@@ -833,7 +821,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     brandId?: string,
     platform?: CredentialPlatform,
   ): Promise<unknown> {
-    const { startDate, endDate } = this.parseDateRange(
+    const { startDate, endDate } = DateRangeUtil.parseDateRange(
       startDateStr,
       endDateStr,
     );
@@ -897,7 +885,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     brandId?: string,
     organizationId?: string,
   ): Promise<ViralHooksResult> {
-    const { startDate, endDate } = this.parseDateRange(
+    const { startDate, endDate } = DateRangeUtil.parseDateRange(
       startDateStr,
       endDateStr,
     );

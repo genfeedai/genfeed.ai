@@ -1,10 +1,10 @@
-import {
-  createCipheriv,
-  createDecipheriv,
-  createHash,
-  randomBytes,
-} from 'node:crypto';
 import { ConfigService } from '@api/config/config.service';
+import {
+  decryptWithKey,
+  deriveEncryptionKey,
+  encryptWithKey,
+  isEncryptedValue,
+} from '@libs/crypto/credential-cipher';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -26,29 +26,13 @@ export const CREDENTIAL_SECRET_FIELDS = [
 
 export type CredentialSecretField = (typeof CREDENTIAL_SECRET_FIELDS)[number];
 
-const GCM_ALGORITHM = 'aes-256-gcm';
-const IV_BYTES = 16;
-const IV_HEX_LENGTH = IV_BYTES * 2;
-const AUTH_TAG_HEX_LENGTH = 32; // 16-byte GCM tag
-
-/**
- * Matches our on-disk ciphertext envelope: `ivHex:ciphertextHex:authTagHex`,
- * with a 16-byte IV, even-length ciphertext, and a 16-byte auth tag. The strict
- * lengths make a plaintext token a near-impossible false positive, so the guard
- * can safely treat a match as "already encrypted" and skip re-encryption.
- */
-const CIPHERTEXT_PATTERN = new RegExp(
-  `^[0-9a-f]{${IV_HEX_LENGTH}}:(?:[0-9a-f]{2})+:[0-9a-f]{${AUTH_TAG_HEX_LENGTH}}$`,
-  'i',
-);
-
 /**
  * Encrypts and decrypts Credential secrets at rest.
  *
- * The cipher (`aes-256-gcm`), key derivation (`sha256(TOKEN_ENCRYPTION_KEY)`)
- * and envelope format (`iv:ciphertext:authTag` hex) are byte-for-byte
- * compatible with the legacy `EncryptionUtil`, so values written by either path
- * decrypt with either path and no data migration is required for interop.
+ * Cipher, key derivation, and envelope live in the shared
+ * `@libs/crypto/credential-cipher` core — the single implementation used by
+ * this service and the static `EncryptionUtil` facade, so values written by
+ * either path decrypt with either path.
  *
  * The key is sourced via {@link ConfigService} (never `process.env`), satisfying
  * the project rule against direct env access in services.
@@ -64,9 +48,9 @@ export class CredentialCryptoService {
 
   private get key(): Buffer {
     if (!this.cachedKey) {
-      this.cachedKey = createHash('sha256')
-        .update(this.configService.tokenEncryptionKey)
-        .digest();
+      this.cachedKey = deriveEncryptionKey(
+        this.configService.tokenEncryptionKey,
+      );
     }
     return this.cachedKey;
   }
@@ -77,7 +61,7 @@ export class CredentialCryptoService {
    * (prevents double-encryption when a caller pre-encrypts during migration).
    */
   isEncrypted(value: string): boolean {
-    return CIPHERTEXT_PATTERN.test(value);
+    return isEncryptedValue(value);
   }
 
   /**
@@ -88,51 +72,23 @@ export class CredentialCryptoService {
     if (!value || this.isEncrypted(value)) {
       return value;
     }
-
-    const iv = randomBytes(IV_BYTES);
-    const cipher = createCipheriv(GCM_ALGORITHM, this.key, iv);
-    const encrypted = Buffer.concat([
-      cipher.update(value, 'utf8'),
-      cipher.final(),
-    ]);
-    const authTag = cipher.getAuthTag();
-
-    return `${iv.toString('hex')}:${encrypted.toString('hex')}:${authTag.toString('hex')}`;
+    return encryptWithKey(this.key, value);
   }
 
   /**
    * Decrypt a secret.
    *
-   * - Values that do NOT match the ciphertext envelope pattern are treated as
-   *   legacy plaintext and returned as-is (migration support).
-   * - Values that DO match the envelope pattern but fail GCM authenticated
-   *   decryption (wrong key, tampered ciphertext) throw immediately so the
-   *   caller is never silently handed back raw ciphertext.
+   * - Values that do NOT match a ciphertext envelope are treated as legacy
+   *   plaintext and returned as-is (migration support).
+   * - Values in the GCM envelope that fail authenticated decryption (wrong
+   *   key, tampered ciphertext) throw immediately so the caller is never
+   *   silently handed back raw ciphertext.
    */
   decrypt(value: string): string {
-    if (!value || !this.isEncrypted(value)) {
-      // Not in ciphertext format — legacy plaintext, return as-is.
+    if (!value) {
       return value;
     }
-
-    const parts = value.split(':');
-    const [ivHex, encryptedHex, authTagHex] = parts;
-
-    const decipher = createDecipheriv(
-      GCM_ALGORITHM,
-      this.key,
-      Buffer.from(ivHex, 'hex'),
-    );
-    decipher.setAuthTag(Buffer.from(authTagHex, 'hex'));
-
-    // Let GCM auth errors throw — returning ciphertext on failure would silently
-    // ship an encrypted blob to the upstream API (wrong key / tampered value).
-    const decrypted = Buffer.concat([
-      decipher.update(Buffer.from(encryptedHex, 'hex')),
-      decipher.final(),
-    ]);
-
-    return decrypted.toString('utf8');
+    return decryptWithKey(this.key, value);
   }
 
   /**

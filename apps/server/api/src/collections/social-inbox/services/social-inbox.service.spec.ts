@@ -444,6 +444,119 @@ describe('SocialInboxService', () => {
     });
   });
 
+  it('keeps the messages surface lifecycle connected from ingestion to workflow approval', async () => {
+    const { conversations, messages, queueService, service, youtubeService } =
+      createContext();
+    const scope = {
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    };
+    const inboundInput = {
+      body: '<p>Need pricing help</p>',
+      brandId: 'brand-1',
+      conversationType: 'comment',
+      credentialId: 'credential-1',
+      externalConversationId: 'thread-1',
+      externalMessageId: 'comment-1',
+      externalParentId: 'comment-1',
+      organizationId: 'org-1',
+      participantExternalId: 'author-1',
+      participantHandle: '@taylor',
+      participantName: 'Taylor',
+      platform: 'youtube',
+      sourceContentId: 'video-1',
+      sourceContentTitle: 'Launch video',
+      sourceContentUrl: 'https://youtube.com/watch?v=video-1',
+      userId: 'user-1',
+    };
+
+    const inbound = await service.ingestInboundMessage(inboundInput);
+    const duplicate = await service.ingestInboundMessage(inboundInput);
+
+    expect(duplicate.id).toBe(inbound.id);
+    expect(
+      messages.filter((message) => message.direction === 'inbound'),
+    ).toHaveLength(1);
+    expect(queueService.queueTriggerEvent).toHaveBeenCalledTimes(1);
+
+    const inbox = await service.listConversations(scope, {
+      platform: 'youtube',
+      search: 'pricing',
+      unread: true,
+    });
+    expect(inbox.docs).toHaveLength(1);
+    expect(inbox.docs[0]).toMatchObject({
+      availability: expect.objectContaining({
+        canPostReply: true,
+        canSendDm: false,
+      }),
+      id: inbound.conversationId,
+      latestMessageText: 'Need pricing help',
+      unreadCount: 1,
+    });
+
+    const draft = await service.createDraft(scope, inbound.conversationId, {
+      agentRunId: 'agent-run-1',
+      messageType: 'reply',
+      text: '<strong>Try this answer</strong>',
+      workflowRunId: 'workflow-run-1',
+    });
+    expect(draft).toMatchObject({
+      actionProvenance: {
+        action: 'draft',
+        agentRunId: 'agent-run-1',
+        workflowRunId: 'workflow-run-1',
+      },
+      body: 'Try this answer',
+      status: 'draft',
+    });
+
+    const threadBeforeApproval = await service.listMessages(
+      scope,
+      inbound.conversationId,
+      { limit: 10 },
+    );
+    expect(threadBeforeApproval.docs.map((message) => message.status)).toEqual(
+      expect.arrayContaining(['received', 'draft']),
+    );
+
+    const sent = await service.approveDraft(
+      scope,
+      inbound.conversationId,
+      draft.id,
+    );
+
+    expect(youtubeService.postCommentReply).toHaveBeenCalledWith(
+      'org-1',
+      'brand-1',
+      'comment-1',
+      'Try this answer',
+    );
+    expect(sent).toMatchObject({
+      actionProvenance: {
+        action: 'post_reply',
+        agentRunId: 'agent-run-1',
+        workflowRunId: 'workflow-run-1',
+      },
+      status: 'sent',
+      workflowRunId: 'workflow-run-1',
+    });
+    expect(messages.find((message) => message.id === draft.id)).toMatchObject({
+      actionProvenance: expect.objectContaining({
+        approvedBy: 'user-1',
+        approvedMessageId: sent.id,
+      }),
+      status: 'approved',
+    });
+    expect(conversations[0]).toMatchObject({
+      automationState: 'automated',
+      latestMessageText: 'Try this answer',
+      needsReview: false,
+      unreadCount: 0,
+    });
+  });
+
   it('approves a draft by publishing once and marking the draft approved', async () => {
     const { messages, service, youtubeService } = createContext();
     const inbound = await service.ingestInboundMessage({

@@ -104,7 +104,9 @@ describe('AvatarVideoService', () => {
 
     it('should return an array of strings', () => {
       const providers = service.getSupportedProviders();
-      providers.forEach((p) => expect(typeof p).toBe('string'));
+      providers.forEach((p) => {
+        expect(typeof p).toBe('string');
+      });
     });
   });
 });

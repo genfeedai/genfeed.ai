@@ -1,5 +1,5 @@
-import { SubscriptionStatus } from '@genfeedai/enums';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
+import { SubscriptionStatus } from '@genfeedai/enums';
 import type {
   IBillingPortalResponse,
   ICreditsBreakdown,

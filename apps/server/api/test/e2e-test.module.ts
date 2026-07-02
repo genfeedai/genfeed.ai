@@ -8,6 +8,7 @@ import { ActivitiesService } from '@api/collections/activities/services/activiti
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { BrandsController } from '@api/collections/brands/controllers/brands.controller';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 // Controller imports
@@ -489,7 +490,7 @@ export class E2ETestModule {
         IntegrationsService,
         AdminApiKeyGuard,
         {
-          provide: 'CryptoService',
+          provide: CredentialCryptoService,
           useFactory: () => createMockCryptoService(),
         },
         {

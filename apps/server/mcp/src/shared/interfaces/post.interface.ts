@@ -1,13 +1,8 @@
-export type SocialPlatform =
-  | 'twitter'
-  | 'linkedin'
-  | 'instagram'
-  | 'tiktok'
-  | 'youtube';
+import type { Platform, PostStatus } from '@genfeedai/enums';
 
 export interface PublishContentParams {
   contentId: string;
-  platforms: SocialPlatform[];
+  platforms: Platform[];
   customMessage?: string;
   scheduleAt?: string;
 }
@@ -15,8 +10,8 @@ export interface PublishContentParams {
 export interface PostResponse {
   id: string;
   contentId: string;
-  platform: SocialPlatform;
-  status: 'pending' | 'published' | 'scheduled' | 'failed';
+  platform?: Platform;
+  status: PostStatus;
   publishedUrl?: string;
   scheduledAt?: string;
   publishedAt?: string;
@@ -24,7 +19,7 @@ export interface PostResponse {
 }
 
 export interface PostListParams {
-  platform?: SocialPlatform | 'all';
+  platform?: Platform | 'all';
   limit?: number;
   offset?: number;
 }

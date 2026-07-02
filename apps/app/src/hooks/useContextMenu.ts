@@ -3,6 +3,7 @@ import {
   createIdLookup,
   filterItemsByIdLookup,
 } from '@genfeedai/workflow-ui/lib';
+import { logger } from '@services/core/logger.service';
 import { useReactFlow } from '@xyflow/react';
 import { useCallback, useMemo, useRef } from 'react';
 import type { ContextMenuItemConfig } from '@/components/context-menu';
@@ -13,7 +14,6 @@ import {
   getSelectionMenuItems,
 } from '@/components/context-menu/menus';
 import { workflowsApi } from '@/lib/api';
-import { logger } from '@/lib/logger';
 import { useContextMenuStore } from '@/store/contextMenuStore';
 import {
   selectCreateGroup,
@@ -252,7 +252,7 @@ export function useContextMenu() {
         await workflowsApi.setThumbnail(workflowId, thumbnailUrl, nodeId);
         logger.info('Thumbnail set successfully', { nodeId, workflowId });
       } catch (error) {
-        logger.error('Failed to set thumbnail', error, { nodeId, workflowId });
+        logger.error('Failed to set thumbnail', { error, nodeId, workflowId });
       }
     },
     [nodeMap, workflowId],

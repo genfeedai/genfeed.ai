@@ -1,11 +1,9 @@
 const mockSendDm = vi.fn();
 
 vi.mock('twitter-api-v2', () => {
-  const MockTwitterApi = vi.fn(function () {
-    return {
-      v2: { sendDm: mockSendDm, sendDmInConversation: mockSendDm },
-    };
-  });
+  const MockTwitterApi = vi.fn(() => ({
+    v2: { sendDm: mockSendDm, sendDmInConversation: mockSendDm },
+  }));
   return { TwitterApi: MockTwitterApi };
 });
 

@@ -1,15 +1,6 @@
-import { spawnSync } from 'node:child_process';
-import process from 'node:process';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import type { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
-import type {
-  BrandAgentConfig,
-  BrandReferenceImage,
-} from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { LinksService } from '@api/collections/links/services/links.service';
-import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
@@ -23,28 +14,26 @@ import type {
 } from '@api/endpoints/onboarding/dto/brand-setup.dto';
 import { GeneratePreviewDto } from '@api/endpoints/onboarding/dto/generate-preview.dto';
 import { ReferenceImageDto } from '@api/endpoints/onboarding/dto/reference-images.dto';
+import type {
+  BrandSetupResponse,
+  InstallReadinessResponse,
+  OnboardingWorkspaceContext,
+} from '@api/endpoints/onboarding/onboarding.interfaces';
 import { ProactiveOnboardingService } from '@api/endpoints/onboarding/proactive-onboarding.service';
+import { BrandDataMapper } from '@api/endpoints/onboarding/services/brand-data.mapper';
+import { BrandPersistenceService } from '@api/endpoints/onboarding/services/brand-persistence.service';
+import { withOnboardingErrorHandling } from '@api/endpoints/onboarding/services/onboarding-error.util';
+import { OnboardingPreviewService } from '@api/endpoints/onboarding/services/onboarding-preview.service';
+import { OnboardingReadinessService } from '@api/endpoints/onboarding/services/onboarding-readiness.service';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
 import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
-import { IS_CLOUD, isEEEnabled } from '@genfeedai/config';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import {
-  FileInputType,
-  LinkCategory,
-  type OrganizationCategory,
-} from '@genfeedai/enums';
+import type { OrganizationCategory } from '@genfeedai/enums';
 import type {
+  IBrandVoiceAnalysis,
   IExtractedBrandData,
-  IOnboardingAccessPreference,
-  IOrganizationSetting,
   IScrapedBrandData,
-  OnboardingAccessMode,
-  OnboardingRuntimeAccessMode,
 } from '@genfeedai/interfaces';
-import { Prisma } from '@genfeedai/prisma';
 import {
   type IOnboardingJourneyMissionState,
   ONBOARDING_JOURNEY_MISSIONS,
@@ -53,74 +42,21 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
-/** Credits cost for generating an onboarding preview image */
-const ONBOARDING_PREVIEW_CREDIT_COST = 5;
-
-/**
- * Response from brand setup operation
- */
-export interface BrandSetupResponse {
-  success: boolean;
-  brandId: string;
-  extractedData: IExtractedBrandData;
-  message?: string;
-}
-
-export interface InstallReadinessResponse {
-  access: {
-    byokConfiguredProviders: string[];
-    byokEnabled: boolean;
-    runtimeMode: OnboardingRuntimeAccessMode;
-    selectedMode: OnboardingAccessMode | null;
-    serverDefaultsReady: boolean;
-  };
-  authMode: 'better_auth' | 'none';
-  billingMode: 'cloud_billing' | 'oss_local';
-  localTools: {
-    anyDetected: boolean;
-    claude: boolean;
-    codex: boolean;
-    detected: string[];
-  };
-  providers: {
-    anyConfigured: boolean;
-    configured: string[];
-    fal: boolean;
-    imageGenerationReady: boolean;
-    openai: boolean;
-    replicate: boolean;
-    textGenerationReady: boolean;
-  };
-  ui: {
-    showBilling: boolean;
-    showCloudUpgradeCta: boolean;
-    showCredits: boolean;
-    showLocalTools: boolean;
-    showPricing: boolean;
-  };
-  workspace: {
-    brandId: string | null;
-    hasBrand: boolean;
-    hasOrganization: boolean;
-    organizationId: string | null;
-  };
-}
-
-interface OnboardingWorkspaceContext {
-  brandId: string | null;
-  organizationId: string;
-  userId: string;
-}
-
 /**
  * OnboardingService
  *
- * Handles the onboarding flow:
+ * Orchestrates the onboarding flow, delegating to focused collaborators:
+ * - OnboardingReadinessService — env/CLI readiness probing and status reads
+ * - BrandDataMapper — pure scrape-result → brand-data normalization
+ * - BrandPersistenceService — brand/org writes and slug syncing
+ * - OnboardingPreviewService — preview image generation pipeline
+ *
+ * Flow:
  * 1. Accept brand URL from user
  * 2. Scrape website for brand information
  * 3. Analyze with AI to extract brand voice
  * 4. Update Brand structured guidance
- * 6. Mark onboarding as complete
+ * 5. Mark onboarding as complete
  */
 @Injectable()
 export class OnboardingService {
@@ -131,11 +67,7 @@ export class OnboardingService {
     private readonly brandScraperService: BrandScraperService,
     private readonly masterPromptGeneratorService: MasterPromptGeneratorService,
     private readonly brandsService: BrandsService,
-    private readonly comfyUIService: ComfyUIService,
     private readonly creditsUtilsService: CreditsUtilsService,
-    private readonly filesClientService: FilesClientService,
-    private readonly linksService: LinksService,
-    private readonly membersService: MembersService,
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly organizationsService: OrganizationsService,
     private readonly usersService: UsersService,
@@ -143,6 +75,10 @@ export class OnboardingService {
     private readonly requestContextCacheService: RequestContextCacheService,
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
     private readonly userSetupService: UserSetupService,
+    private readonly brandDataMapper: BrandDataMapper,
+    private readonly brandPersistenceService: BrandPersistenceService,
+    private readonly onboardingPreviewService: OnboardingPreviewService,
+    private readonly onboardingReadinessService: OnboardingReadinessService,
   ) {}
 
   private getEntityId(record: unknown): string {
@@ -154,10 +90,6 @@ export class OnboardingService {
     const id = entity.id ?? entity._id;
 
     return typeof id === 'string' ? id : '';
-  }
-
-  private isConfigured(value: unknown): boolean {
-    return typeof value === 'string' && value.trim().length > 0;
   }
 
   private async ensureOnboardingWorkspace(
@@ -246,256 +178,103 @@ export class OnboardingService {
     return { brandId, organizationId, userId };
   }
 
-  private getProviderReadiness() {
-    const replicate = this.isConfigured(process.env.REPLICATE_KEY);
-    const fal = this.isConfigured(process.env.FAL_API_KEY);
-    const openai = this.isConfigured(process.env.OPENAI_API_KEY);
-    const configured = [
-      replicate ? 'replicate' : null,
-      fal ? 'fal' : null,
-      openai ? 'openai' : null,
-    ].filter((value): value is string => value !== null);
-
-    return {
-      anyConfigured: configured.length > 0,
-      configured,
-      fal,
-      imageGenerationReady: fal || replicate,
-      openai,
-      replicate,
-      textGenerationReady: openai,
-    };
-  }
-
-  private isCommandAvailable(command: string): boolean {
-    const result = spawnSync(command, ['--version'], {
-      encoding: 'utf8',
-      shell: false,
-      stdio: 'ignore',
-    });
-
-    if (result.error) {
-      return false;
-    }
-
-    return result.status === 0;
-  }
-
-  private getLocalToolReadiness() {
-    if (IS_CLOUD) {
-      return { anyDetected: false, claude: false, codex: false, detected: [] };
-    }
-
-    const claude = this.isCommandAvailable('claude');
-    const codex = this.isCommandAvailable('codex');
-    const detected = [claude ? 'claude' : null, codex ? 'codex' : null].filter(
-      (value): value is string => value !== null,
-    );
-
-    return {
-      anyDetected: detected.length > 0,
-      claude,
-      codex,
-      detected,
-    };
-  }
-
-  private normalizeAccessMode(value: unknown): OnboardingAccessMode | null {
-    if (value === 'server' || value === 'byok' || value === 'cloud') {
-      return value;
-    }
-
-    return null;
-  }
-
-  private getSelectedAccessMode(
-    dashboardPreferences?: unknown,
-  ): OnboardingAccessMode | null {
-    if (!dashboardPreferences || typeof dashboardPreferences !== 'object') {
-      return null;
-    }
-
-    const onboarding = (
-      dashboardPreferences as { onboarding?: IOnboardingAccessPreference }
-    ).onboarding;
-
-    return this.normalizeAccessMode(onboarding?.accessMode);
-  }
-
-  private getConfiguredByokProviders(
-    organizationSettings?: Pick<IOrganizationSetting, 'byokKeys'> | null,
-  ): string[] {
-    const byokKeys = organizationSettings?.byokKeys;
-
-    if (!byokKeys || typeof byokKeys !== 'object') {
-      return [];
-    }
-
-    return Object.entries(byokKeys).flatMap(([providerKey, entry]) => {
-      if (!entry?.isEnabled || !entry.apiKey?.trim()) {
-        return [];
-      }
-
-      const provider =
-        typeof entry.provider === 'string' && entry.provider.trim()
-          ? entry.provider
-          : providerKey;
-
-      return [provider];
-    });
-  }
-
-  private readBrandAgentConfig(value: unknown): BrandAgentConfig {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
-      return {};
-    }
-
-    return value as BrandAgentConfig;
-  }
-
-  private readBrandReferenceImages(value: unknown): BrandReferenceImage[] {
-    if (!Array.isArray(value)) {
-      return [];
-    }
-
-    return value.flatMap((entry) => {
-      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
-        return [];
-      }
-
-      const record = entry as Record<string, unknown>;
-      const category =
-        typeof record.category === 'string' ? record.category : 'reference';
-      const label = typeof record.label === 'string' ? record.label : undefined;
-      const url = typeof record.url === 'string' ? record.url : undefined;
-      const isDefault =
-        typeof record.isDefault === 'boolean' ? record.isDefault : undefined;
-
-      return [
-        {
-          category,
-          ...(isDefault !== undefined ? { isDefault } : {}),
-          ...(label ? { label } : {}),
-          ...(url ? { url } : {}),
-        } as BrandReferenceImage,
-      ];
-    });
-  }
-
-  private buildFallbackScrapedData(
+  /**
+   * Detect brand sources from the setup DTO and scrape them, falling back
+   * to a minimal brand payload when scraping fails.
+   */
+  private async scrapeBrandData(
     dto: BrandSetupDto,
     existingBrand: { label?: string | null },
-  ): IScrapedBrandData {
-    const fallbackLabel =
-      dto.brandName?.trim() || existingBrand.label?.trim() || 'Brand';
-
-    return {
-      aboutText: undefined,
-      companyName: fallbackLabel,
-      description: undefined,
-      fontFamily: undefined,
-      heroText: undefined,
-      logoUrl: undefined,
-      metaDescription: undefined,
-      ogImage: undefined,
-      primaryColor: undefined,
-      scrapedAt: new Date(),
-      secondaryColor: undefined,
-      socialLinks: {},
-      sourceUrl: dto.brandUrl,
-      tagline: undefined,
-      valuePropositions: [],
+    caller: string,
+  ): Promise<IScrapedBrandData> {
+    const detectedSources = this.brandScraperService.detectUrlType(
+      dto.brandUrl,
+    );
+    const sources = {
+      linkedinUrl: dto.linkedinUrl || detectedSources.linkedinUrl,
+      websiteUrl: detectedSources.websiteUrl,
+      xProfileUrl: dto.xProfileUrl || detectedSources.xProfileUrl,
     };
-  }
 
-  private async resolveOnboardingBrand(
-    organizationId: string,
-    userId: string,
-    brandId?: string | null,
-  ) {
-    if (brandId && /^[0-9a-f]{24}$/i.test(brandId)) {
-      const metadataBrand = await this.brandsService.findOne(
-        {
-          _id: brandId,
-          isDeleted: false,
-          organization: organizationId,
-          user: userId,
-        },
-        'none',
-      );
+    // If the primary URL was detected as social, keep it as websiteUrl too
+    // only when no websiteUrl was resolved
+    if (!sources.websiteUrl && !sources.linkedinUrl && !sources.xProfileUrl) {
+      sources.websiteUrl = dto.brandUrl;
+    }
 
-      if (metadataBrand) {
-        return metadataBrand;
+    const hasMultipleSources =
+      [sources.websiteUrl, sources.linkedinUrl, sources.xProfileUrl].filter(
+        Boolean,
+      ).length > 1;
+
+    this.loggerService.log(`${caller} scraping brand sources`, {
+      detectedType: Object.keys(detectedSources).find(
+        (k) => detectedSources[k as keyof typeof detectedSources],
+      ),
+      hasMultipleSources,
+      url: dto.brandUrl,
+    });
+
+    try {
+      if (hasMultipleSources) {
+        const merged = await this.brandScraperService.scrapeAllSources(sources);
+        return this.brandDataMapper.mapMergedSources(merged, dto.brandUrl);
       }
+
+      if (sources.linkedinUrl) {
+        const linkedinData = await this.brandScraperService.scrapeLinkedIn(
+          sources.linkedinUrl,
+        );
+        return this.brandDataMapper.mapLinkedInData(linkedinData, dto.brandUrl);
+      }
+
+      if (sources.xProfileUrl) {
+        const xData = await this.brandScraperService.scrapeXProfile(
+          sources.xProfileUrl,
+        );
+        return this.brandDataMapper.mapXProfileData(xData, dto.brandUrl);
+      }
+
+      return await this.brandScraperService.scrapeWebsite(dto.brandUrl);
+    } catch (scrapeError: unknown) {
+      this.loggerService.warn(
+        `${caller} scrape failed, continuing with minimal brand setup`,
+        {
+          error:
+            scrapeError instanceof Error
+              ? scrapeError.message
+              : String(scrapeError),
+          url: dto.brandUrl,
+        },
+      );
+      return this.brandDataMapper.buildFallbackScrapedData(dto, existingBrand);
     }
-
-    const selectedBrand = await this.brandsService.findOne(
-      {
-        isDeleted: false,
-        isSelected: true,
-        organization: organizationId,
-        user: userId,
-      },
-      'none',
-    );
-
-    if (selectedBrand) {
-      return selectedBrand;
-    }
-
-    return this.brandsService.findOne(
-      {
-        isDeleted: false,
-        organization: organizationId,
-        user: userId,
-      },
-      'none',
-    );
   }
 
-  private async resolveWritableOnboardingBrand(
-    brand: { _id: string; label?: string | null },
+  /**
+   * Analyze brand voice with AI when the scraped data has analyzable content.
+   */
+  private async analyzeBrandVoice(
+    scrapedData: IScrapedBrandData,
     organizationId: string,
     userId: string,
-    label?: string,
-  ) {
-    const normalizedLabel = label?.trim();
+  ): Promise<IBrandVoiceAnalysis | undefined> {
+    const hasAnalyzableContent = Boolean(
+      scrapedData.description ||
+        scrapedData.aboutText ||
+        scrapedData.heroText ||
+        scrapedData.tagline ||
+        (scrapedData.valuePropositions?.length ?? 0) > 0,
+    );
 
-    if (!normalizedLabel) {
-      return brand;
+    if (!hasAnalyzableContent) {
+      return undefined;
     }
 
-    const matchingBrand = await this.brandsService.findOne(
-      {
-        isDeleted: false,
-        label: normalizedLabel,
-        organization: organizationId,
-      },
-      'none',
-    );
-
-    if (!matchingBrand || String(matchingBrand._id) === String(brand._id)) {
-      return brand;
-    }
-
-    await this.brandsService.selectBrandForUser(
-      String(matchingBrand._id),
-      String(userId),
-      String(organizationId),
-    );
-    // Persist the selected brand on the member so the identity resolvers route
-    // to it (epic #735, Phase C — no legacy auth provider write-back).
-    await this.membersService.setLastUsedBrand(
-      {
-        isActive: true,
-        isDeleted: false,
-        organization: String(organizationId),
-        user: String(userId),
-      },
-      String(matchingBrand._id),
-    );
-
-    return matchingBrand;
+    return this.masterPromptGeneratorService.analyzeBrandVoice(scrapedData, {
+      organizationId: organizationId.toString(),
+      userId: userId.toString(),
+    });
   }
 
   /**
@@ -508,244 +287,118 @@ export class OnboardingService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${caller} starting`, { brandUrl: dto.brandUrl });
 
-    try {
-      // 1. Validate URL
-      const validation = this.brandScraperService.validateUrl(dto.brandUrl);
-      if (!validation.isValid) {
-        throw new HttpException(
-          { detail: validation.error, title: 'Invalid URL' },
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      const workspace = await this.ensureOnboardingWorkspace(user);
-      const organizationId = workspace.organizationId;
-      const userId = workspace.userId;
-      const metadataBrandId = workspace.brandId;
-
-      // 2. Find existing brand for user (created during signup)
-      const existingBrand = await this.resolveOnboardingBrand(
-        organizationId,
-        userId,
-        metadataBrandId,
-      );
-
-      if (!existingBrand) {
-        throw new HttpException(
-          { detail: 'No brand found for user', title: 'Brand Not Found' },
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
-      // 3. Auto-detect URL type and build sources
-      const detectedSources = this.brandScraperService.detectUrlType(
-        dto.brandUrl,
-      );
-      const sources = {
-        linkedinUrl: dto.linkedinUrl || detectedSources.linkedinUrl,
-        websiteUrl: detectedSources.websiteUrl,
-        xProfileUrl: dto.xProfileUrl || detectedSources.xProfileUrl,
-      };
-
-      // If the primary URL was detected as social, keep it as websiteUrl too
-      // only when no websiteUrl was resolved
-      if (!sources.websiteUrl && !sources.linkedinUrl && !sources.xProfileUrl) {
-        sources.websiteUrl = dto.brandUrl;
-      }
-
-      const hasMultipleSources =
-        [sources.websiteUrl, sources.linkedinUrl, sources.xProfileUrl].filter(
-          Boolean,
-        ).length > 1;
-
-      this.loggerService.log(`${caller} scraping brand sources`, {
-        detectedType: Object.keys(detectedSources).find(
-          (k) => detectedSources[k as keyof typeof detectedSources],
-        ),
-        hasMultipleSources,
-        url: dto.brandUrl,
-      });
-
-      let scrapedData: IScrapedBrandData;
-      try {
-        if (hasMultipleSources) {
-          const merged =
-            await this.brandScraperService.scrapeAllSources(sources);
-          scrapedData = {
-            aboutText: merged.aboutText,
-            companyName: merged.companyName,
-            description: merged.description,
-            fontFamily: merged.fontFamily,
-            heroText: merged.heroText,
-            logoUrl: merged.logoUrl,
-            metaDescription: merged.description,
-            ogImage: undefined,
-            primaryColor: merged.primaryColor,
-            scrapedAt: merged.scrapedAt,
-            secondaryColor: merged.secondaryColor,
-            socialLinks: merged.socialLinks,
-            sourceUrl: dto.brandUrl,
-            tagline: merged.tagline,
-            valuePropositions: merged.valuePropositions,
-          };
-        } else if (sources.linkedinUrl) {
-          const linkedinData = await this.brandScraperService.scrapeLinkedIn(
-            sources.linkedinUrl,
-          );
-          scrapedData = {
-            aboutText: undefined,
-            companyName: linkedinData.companyName,
-            description: linkedinData.description,
-            fontFamily: undefined,
-            heroText: undefined,
-            logoUrl: linkedinData.logoUrl,
-            metaDescription: linkedinData.description,
-            ogImage: linkedinData.coverImageUrl,
-            primaryColor: undefined,
-            scrapedAt: linkedinData.scrapedAt,
-            secondaryColor: undefined,
-            socialLinks: {},
-            sourceUrl: dto.brandUrl,
-            tagline: undefined,
-            valuePropositions: [],
-          };
-        } else if (sources.xProfileUrl) {
-          const xData = await this.brandScraperService.scrapeXProfile(
-            sources.xProfileUrl,
-          );
-          scrapedData = {
-            aboutText: undefined,
-            companyName: xData.displayName,
-            description: xData.bio,
-            fontFamily: undefined,
-            heroText: undefined,
-            logoUrl: xData.profileImageUrl,
-            metaDescription: xData.bio,
-            ogImage: xData.profileImageUrl,
-            primaryColor: undefined,
-            scrapedAt: xData.scrapedAt,
-            secondaryColor: undefined,
-            socialLinks: {},
-            sourceUrl: dto.brandUrl,
-            tagline: undefined,
-            valuePropositions: [],
-          };
-        } else {
-          scrapedData = await this.brandScraperService.scrapeWebsite(
-            dto.brandUrl,
+    return withOnboardingErrorHandling(
+      this.loggerService,
+      caller,
+      {
+        detail: 'Failed to setup brand',
+        hasHttpExceptionPassthrough: true,
+        hasPrismaPassthrough: true,
+        isErrorMessageUsed: true,
+        title: 'Brand Setup Failed',
+      },
+      async () => {
+        // 1. Validate URL
+        const validation = this.brandScraperService.validateUrl(dto.brandUrl);
+        if (!validation.isValid) {
+          throw new HttpException(
+            { detail: validation.error, title: 'Invalid URL' },
+            HttpStatus.BAD_REQUEST,
           );
         }
-      } catch (scrapeError: unknown) {
-        this.loggerService.warn(
-          `${caller} scrape failed, continuing with minimal brand setup`,
-          {
-            error:
-              scrapeError instanceof Error
-                ? scrapeError.message
-                : String(scrapeError),
-            url: dto.brandUrl,
-          },
+
+        const workspace = await this.ensureOnboardingWorkspace(user);
+        const organizationId = workspace.organizationId;
+        const userId = workspace.userId;
+
+        // 2. Find existing brand for user (created during signup)
+        const existingBrand =
+          await this.brandPersistenceService.resolveOnboardingBrand(
+            organizationId,
+            userId,
+            workspace.brandId,
+          );
+
+        if (!existingBrand) {
+          throw new HttpException(
+            { detail: 'No brand found for user', title: 'Brand Not Found' },
+            HttpStatus.NOT_FOUND,
+          );
+        }
+
+        // 3. Scrape brand sources (auto-detected from the URL)
+        const scrapedData = await this.scrapeBrandData(
+          dto,
+          existingBrand,
+          caller,
         );
-        scrapedData = this.buildFallbackScrapedData(dto, existingBrand);
-      }
 
-      // 4. Analyze brand voice with AI
-      this.loggerService.log(`${caller} analyzing brand voice`);
-      const brandVoice =
-        scrapedData.description ||
-        scrapedData.aboutText ||
-        scrapedData.heroText ||
-        scrapedData.tagline ||
-        (scrapedData.valuePropositions?.length ?? 0) > 0
-          ? await this.masterPromptGeneratorService.analyzeBrandVoice(
-              scrapedData,
-              {
-                organizationId: organizationId.toString(),
-                userId: userId.toString(),
-              },
-            )
-          : undefined;
-
-      // 5. Build complete extracted data
-      const extractedData: IExtractedBrandData = {
-        ...scrapedData,
-        brandVoice,
-      };
-
-      // 6. Update brand with extracted data
-      const labelOverride = dto.brandName?.trim() || undefined;
-      const resolvedLabel = labelOverride || scrapedData.companyName;
-      const targetBrand = await this.resolveWritableOnboardingBrand(
-        existingBrand,
-        organizationId,
-        userId,
-        resolvedLabel,
-      );
-
-      await this.updateBrandWithScrapedData(
-        targetBrand._id,
-        scrapedData,
-        dto,
-        labelOverride,
-      );
-      await this.upsertBrandWebsiteLink(targetBrand._id, dto.brandUrl);
-      await this.updateBrandGuidance(targetBrand._id, extractedData);
-
-      // 6b. Sync organization and brand label and slug
-      if (resolvedLabel) {
-        const orgSlug = await this.organizationsService.generateUniqueSlug(
-          resolvedLabel,
-          organizationId.toString(),
+        // 4. Analyze brand voice with AI
+        this.loggerService.log(`${caller} analyzing brand voice`);
+        const brandVoice = await this.analyzeBrandVoice(
+          scrapedData,
+          organizationId,
+          userId,
         );
-        await this.organizationsService.patch(organizationId.toString(), {
-          label: resolvedLabel,
-          slug: orgSlug,
+
+        // 5. Build complete extracted data
+        const extractedData: IExtractedBrandData = {
+          ...scrapedData,
+          brandVoice,
+        };
+
+        // 6. Update brand with extracted data
+        const labelOverride = dto.brandName?.trim() || undefined;
+        const resolvedLabel = labelOverride || scrapedData.companyName;
+        const targetBrand =
+          await this.brandPersistenceService.resolveWritableOnboardingBrand(
+            existingBrand,
+            organizationId,
+            userId,
+            resolvedLabel,
+          );
+
+        await this.brandPersistenceService.updateBrandWithScrapedData(
+          targetBrand._id,
+          scrapedData,
+          dto,
+          labelOverride,
+        );
+        await this.brandPersistenceService.upsertBrandWebsiteLink(
+          targetBrand._id,
+          dto.brandUrl,
+        );
+        await this.brandPersistenceService.updateBrandGuidance(
+          targetBrand._id,
+          extractedData,
+        );
+
+        // 6b. Sync organization and brand label and slug
+        if (resolvedLabel) {
+          await this.brandPersistenceService.syncBrandAndOrgSlug(
+            resolvedLabel,
+            organizationId.toString(),
+            targetBrand._id,
+          );
+        }
+
+        await this.unlockCompanyInfoJourneyReward(organizationId.toString());
+
+        // 7. Mark first login as complete
+        await this.completeOnboarding(organizationId);
+
+        this.loggerService.log(`${caller} completed`, {
+          brandId: targetBrand._id.toString(),
         });
 
-        const brandSlug = await this.brandsService.generateUniqueSlug(
-          resolvedLabel,
-          targetBrand._id,
-        );
-        await this.brandsService.patch(targetBrand._id, { slug: brandSlug });
-      }
-
-      await this.unlockCompanyInfoJourneyReward(organizationId.toString());
-
-      // 7. Mark first login as complete
-      await this.completeOnboarding(organizationId);
-
-      this.loggerService.log(`${caller} completed`, {
-        brandId: targetBrand._id.toString(),
-      });
-
-      return {
-        brandId: targetBrand._id.toString(),
-        extractedData,
-        message: 'Brand setup completed successfully',
-        success: true,
-      };
-    } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
-
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      // Let Prisma errors (e.g. P2002 slug collision) bubble to the global
-      // DatabaseExceptionFilter, which maps them to the correct 4xx status
-      // instead of a generic 500.
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        throw error;
-      }
-
-      throw new HttpException(
-        {
-          detail: (error as Error)?.message || 'Failed to setup brand',
-          title: 'Brand Setup Failed',
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+        return {
+          brandId: targetBrand._id.toString(),
+          extractedData,
+          message: 'Brand setup completed successfully',
+          success: true,
+        };
+      },
+    );
   }
 
   private async unlockCompanyInfoJourneyReward(
@@ -814,92 +467,81 @@ export class OnboardingService {
     const publicMetadata = getPublicMetadata(user);
     const organizationId = publicMetadata.organization;
 
-    try {
-      // Verify brand belongs to user's organization
-      const brand = await this.brandsService.findOne(
-        {
-          _id: brandId,
-          isDeleted: false,
-          organization: organizationId,
-        },
-        'none',
-      );
-
-      if (!brand) {
-        throw new HttpException(
-          { detail: 'Brand not found', title: 'Not Found' },
-          HttpStatus.NOT_FOUND,
+    return withOnboardingErrorHandling(
+      this.loggerService,
+      caller,
+      {
+        detail: 'Failed to confirm brand data',
+        hasHttpExceptionPassthrough: true,
+        hasPrismaPassthrough: true,
+        title: 'Error',
+      },
+      async () => {
+        // Verify brand belongs to user's organization
+        const brand = await this.brandsService.findOne(
+          {
+            _id: brandId,
+            isDeleted: false,
+            organization: organizationId,
+          },
+          'none',
         );
-      }
 
-      // Update brand with overrides
-      const updateData: Record<string, unknown> = {};
+        if (!brand) {
+          throw new HttpException(
+            { detail: 'Brand not found', title: 'Not Found' },
+            HttpStatus.NOT_FOUND,
+          );
+        }
 
-      if (dto.label) {
-        updateData.label = dto.label;
-      }
-      if (dto.description) {
-        updateData.description = dto.description;
-      }
-      if (dto.primaryColor) {
-        updateData.primaryColor = dto.primaryColor;
-      }
-      if (dto.secondaryColor) {
-        updateData.secondaryColor = dto.secondaryColor;
-      }
-      if (dto.fontFamily) {
-        updateData.fontFamily = dto.fontFamily;
-      }
+        // Update brand with overrides
+        const updateData: Record<string, unknown> = {};
 
-      if (Object.keys(updateData).length > 0) {
-        await this.brandsService.patch(brand._id, updateData);
-      }
+        if (dto.label) {
+          updateData.label = dto.label;
+        }
+        if (dto.description) {
+          updateData.description = dto.description;
+        }
+        if (dto.primaryColor) {
+          updateData.primaryColor = dto.primaryColor;
+        }
+        if (dto.secondaryColor) {
+          updateData.secondaryColor = dto.secondaryColor;
+        }
+        if (dto.fontFamily) {
+          updateData.fontFamily = dto.fontFamily;
+        }
 
-      // Sync organization and brand label and slug when brand label is updated
-      if (dto.label) {
-        const orgSlug = await this.organizationsService.generateUniqueSlug(
-          dto.label,
-          organizationId.toString(),
-        );
-        await this.organizationsService.patch(organizationId.toString(), {
-          label: dto.label,
-          slug: orgSlug,
-        });
+        if (Object.keys(updateData).length > 0) {
+          await this.brandsService.patch(brand._id, updateData);
+        }
 
-        const brandSlug = await this.brandsService.generateUniqueSlug(
-          dto.label,
-          brand._id,
-        );
-        await this.brandsService.patch(brand._id, { slug: brandSlug });
-      }
+        // Sync organization and brand label and slug when brand label is updated
+        if (dto.label) {
+          await this.brandPersistenceService.syncBrandAndOrgSlug(
+            dto.label,
+            organizationId.toString(),
+            brand._id,
+          );
+        }
 
-      // Update canonical brand guidance if voice overrides provided
-      if (dto.tone || dto.voice || dto.audience) {
-        await this.updateBrandGuidanceOverrides(brand._id, dto);
-      }
+        // Update canonical brand guidance if voice overrides provided
+        if (dto.tone || dto.voice || dto.audience) {
+          await this.brandPersistenceService.updateBrandGuidanceOverrides(
+            brand._id,
+            dto,
+          );
+        }
 
-      this.loggerService.log(`${caller} completed`);
+        this.loggerService.log(`${caller} completed`);
 
-      return {
-        message: 'Brand data confirmed successfully',
-        success: true,
-      };
-    } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
-
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        throw error;
-      }
-
-      throw new HttpException(
-        { detail: 'Failed to confirm brand data', title: 'Error' },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+        return {
+          message: 'Brand data confirmed successfully',
+          success: true,
+        };
+      },
+    );
   }
 
   /**
@@ -911,25 +553,23 @@ export class OnboardingService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${caller} starting`);
 
-    try {
-      const { organizationId } = await this.ensureOnboardingWorkspace(user);
-      // Mark onboarding as skipped
-      await this.completeOnboarding(organizationId);
+    return withOnboardingErrorHandling(
+      this.loggerService,
+      caller,
+      { detail: 'Failed to skip onboarding', title: 'Error' },
+      async () => {
+        const { organizationId } = await this.ensureOnboardingWorkspace(user);
+        // Mark onboarding as skipped
+        await this.completeOnboarding(organizationId);
 
-      this.loggerService.log(`${caller} completed`);
+        this.loggerService.log(`${caller} completed`);
 
-      return {
-        message: 'Onboarding skipped. You can set up your brand later.',
-        success: true,
-      };
-    } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
-
-      throw new HttpException(
-        { detail: 'Failed to skip onboarding', title: 'Error' },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+        return {
+          message: 'Onboarding skipped. You can set up your brand later.',
+          success: true,
+        };
+      },
+    );
   }
 
   /**
@@ -940,107 +580,13 @@ export class OnboardingService {
   ): Promise<{ isFirstLogin: boolean; hasCompletedOnboarding: boolean }> {
     const { organizationId } = await this.ensureOnboardingWorkspace(user);
 
-    const settings = await this.organizationSettingsService.findOne({
-      isDeleted: false,
-      organization: organizationId,
-    });
-
-    return {
-      hasCompletedOnboarding: settings?.isFirstLogin === false,
-      isFirstLogin: settings?.isFirstLogin ?? true,
-    };
+    return this.onboardingReadinessService.getOnboardingStatus(organizationId);
   }
 
   async getInstallReadiness(user: User): Promise<InstallReadinessResponse> {
     const workspace = await this.ensureOnboardingWorkspace(user);
-    const organizationId = workspace.organizationId;
-    const brandId = workspace.brandId;
-    const userId = workspace.userId;
-    const providers = this.getProviderReadiness();
-    const showBillingUi = isEEEnabled();
 
-    let hasOrganization = false;
-    let hasBrand = false;
-    let selectedMode: OnboardingAccessMode | null = null;
-    let organizationSettings: Pick<
-      IOrganizationSetting,
-      'byokKeys' | 'isByokEnabled'
-    > | null = null;
-
-    if (userId && /^[0-9a-f]{24}$/i.test(userId)) {
-      const dbUser = await this.usersService.findOne({
-        _id: userId,
-        isDeleted: false,
-      });
-
-      selectedMode = this.getSelectedAccessMode(
-        (dbUser?.settings as { dashboardPreferences?: unknown } | undefined)
-          ?.dashboardPreferences,
-      );
-    }
-
-    if (organizationId && /^[0-9a-f]{24}$/i.test(organizationId)) {
-      const organization = await this.organizationsService.findOne({
-        _id: organizationId,
-        isDeleted: false,
-      });
-
-      hasOrganization = !!organization;
-
-      if (organization) {
-        const [brand, settings] = await Promise.all([
-          this.brandsService.findOne({
-            isDeleted: false,
-            organization: organization._id,
-          }),
-          this.organizationSettingsService.findOne({
-            isDeleted: false,
-            organization: organization._id,
-          }),
-        ]);
-
-        hasBrand = !!brand;
-        organizationSettings = settings as unknown as Pick<
-          IOrganizationSetting,
-          'byokKeys' | 'isByokEnabled'
-        >;
-      }
-    }
-
-    const byokConfiguredProviders =
-      this.getConfiguredByokProviders(organizationSettings);
-    const runtimeMode: OnboardingRuntimeAccessMode =
-      byokConfiguredProviders.length > 0 ? 'byok' : 'server';
-    const byokEnabled =
-      Boolean(organizationSettings?.isByokEnabled) ||
-      byokConfiguredProviders.length > 0;
-
-    return {
-      access: {
-        byokConfiguredProviders,
-        byokEnabled,
-        runtimeMode,
-        selectedMode,
-        serverDefaultsReady: providers.anyConfigured,
-      },
-      authMode: user.id ? 'better_auth' : 'none',
-      billingMode: showBillingUi ? 'cloud_billing' : 'oss_local',
-      localTools: this.getLocalToolReadiness(),
-      providers,
-      ui: {
-        showBilling: showBillingUi,
-        showCloudUpgradeCta: !showBillingUi,
-        showCredits: showBillingUi,
-        showLocalTools: !IS_CLOUD,
-        showPricing: showBillingUi,
-      },
-      workspace: {
-        brandId,
-        hasBrand,
-        hasOrganization,
-        organizationId,
-      },
-    };
+    return this.onboardingReadinessService.getInstallReadiness(user, workspace);
   }
 
   /**
@@ -1053,34 +599,32 @@ export class OnboardingService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${caller} starting`, { category });
 
-    try {
-      const { organizationId } = await this.ensureOnboardingWorkspace(
-        user,
-        category,
-      );
-      await this.organizationsService.patch(organizationId.toString(), {
-        accountType: category,
-        category,
-      });
+    return withOnboardingErrorHandling(
+      this.loggerService,
+      caller,
+      {
+        detail: 'Failed to set account type',
+        hasHttpExceptionPassthrough: true,
+        title: 'Error',
+      },
+      async () => {
+        const { organizationId } = await this.ensureOnboardingWorkspace(
+          user,
+          category,
+        );
+        await this.organizationsService.patch(organizationId.toString(), {
+          accountType: category,
+          category,
+        });
 
-      this.loggerService.log(`${caller} completed`, { category });
+        this.loggerService.log(`${caller} completed`, { category });
 
-      return {
-        message: `Account type set to ${category}`,
-        success: true,
-      };
-    } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
-
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      throw new HttpException(
-        { detail: 'Failed to set account type', title: 'Error' },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+        return {
+          message: `Account type set to ${category}`,
+          success: true,
+        };
+      },
+    );
   }
 
   /**
@@ -1092,54 +636,52 @@ export class OnboardingService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${caller} starting`);
 
-    try {
-      const workspace = await this.ensureOnboardingWorkspace(user);
-      const publicMetadata = getPublicMetadata(user);
-      const proactiveLeadId = publicMetadata.proactiveLeadId?.toString();
-      const organizationId = workspace.organizationId;
+    return withOnboardingErrorHandling(
+      this.loggerService,
+      caller,
+      { detail: 'Failed to complete onboarding funnel', title: 'Error' },
+      async () => {
+        const workspace = await this.ensureOnboardingWorkspace(user);
+        const publicMetadata = getPublicMetadata(user);
+        const proactiveLeadId = publicMetadata.proactiveLeadId?.toString();
+        const organizationId = workspace.organizationId;
 
-      if (proactiveLeadId && organizationId) {
-        await this.proactiveOnboardingService.markPaymentMade(
-          proactiveLeadId,
-          organizationId,
-        );
-      }
+        if (proactiveLeadId && organizationId) {
+          await this.proactiveOnboardingService.markPaymentMade(
+            proactiveLeadId,
+            organizationId,
+          );
+        }
 
-      // Update the DB so OnboardingGuard is satisfied; onboarding completion is
-      // read from the User row, not provider metadata.
-      const dbUser = await this.usersService.findOne({
-        authProviderId: user.id,
-      });
-      if (dbUser && !dbUser.isOnboardingCompleted) {
-        await this.usersService.patch(dbUser._id, {
-          isOnboardingCompleted: true,
-          onboardingCompletedAt: new Date(),
-          onboardingStepsCompleted: ['brand', 'providers'],
+        // Update the DB so OnboardingGuard is satisfied; onboarding completion is
+        // read from the User row, not provider metadata.
+        const dbUser = await this.usersService.findOne({
+          authProviderId: user.id,
         });
-      }
+        if (dbUser && !dbUser.isOnboardingCompleted) {
+          await this.usersService.patch(dbUser._id, {
+            isOnboardingCompleted: true,
+            onboardingCompletedAt: new Date(),
+            onboardingStepsCompleted: ['brand', 'providers'],
+          });
+        }
 
-      const dbUserId = dbUser?._id?.toString();
-      if (dbUserId) {
-        await Promise.all([
-          this.requestContextCacheService.invalidateForUser(dbUserId),
-          this.accessBootstrapCacheService.invalidateForUser(dbUserId),
-        ]);
-      }
+        const dbUserId = dbUser?._id?.toString();
+        if (dbUserId) {
+          await Promise.all([
+            this.requestContextCacheService.invalidateForUser(dbUserId),
+            this.accessBootstrapCacheService.invalidateForUser(dbUserId),
+          ]);
+        }
 
-      this.loggerService.log(`${caller} completed`);
+        this.loggerService.log(`${caller} completed`);
 
-      return {
-        message: 'Onboarding funnel completed',
-        success: true,
-      };
-    } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
-
-      throw new HttpException(
-        { detail: 'Failed to complete onboarding funnel', title: 'Error' },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+        return {
+          message: 'Onboarding funnel completed',
+          success: true,
+        };
+      },
+    );
   }
 
   async getProactiveWorkspace(user: User): Promise<{
@@ -1207,157 +749,12 @@ export class OnboardingService {
 
   /**
    * Generate an AI preview image during onboarding
-   * Uses ComfyUI to generate an image based on brand data and content type
    */
   async generateOnboardingPreview(
     dto: GeneratePreviewDto,
     user: User,
   ): Promise<{ imageUrl: string; prompt: string }> {
-    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(`${caller} starting`, {
-      brandId: dto.brandId,
-      contentType: dto.contentType,
-    });
-
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization?.toString();
-    const userId = publicMetadata.user?.toString();
-
-    if (!organizationId || !userId) {
-      throw new HttpException(
-        {
-          detail: 'Missing organization or user context',
-          title: 'Bad Request',
-        },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
-    try {
-      // 1. Fetch brand data
-      const brand = await this.brandsService.findOne(
-        {
-          _id: dto.brandId,
-          isDeleted: false,
-          organization: organizationId,
-        },
-        'none',
-      );
-
-      if (!brand) {
-        throw new HttpException(
-          { detail: 'Brand not found', title: 'Not Found' },
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
-      // 2. Check credits availability
-      const hasCredits =
-        await this.creditsUtilsService.checkOrganizationCreditsAvailable(
-          organizationId,
-          ONBOARDING_PREVIEW_CREDIT_COST,
-        );
-
-      if (!hasCredits) {
-        throw new HttpException(
-          {
-            detail: 'Insufficient credits for preview generation',
-            title: 'Insufficient Credits',
-          },
-          HttpStatus.PAYMENT_REQUIRED,
-        );
-      }
-
-      // 3. Build prompt based on content type
-      const prompt = this.buildPreviewPrompt(
-        dto.contentType,
-        brand.label || '',
-        brand.description || '',
-        brand.primaryColor || '',
-        brand.secondaryColor || '',
-      );
-
-      // 4. Generate image via ComfyUI
-      this.loggerService.log(`${caller} generating image via ComfyUI`, {
-        contentType: dto.contentType,
-      });
-
-      const { imageBuffer } = await this.comfyUIService.generateImage(
-        MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO,
-        {
-          height: 1024,
-          prompt,
-          steps: 4,
-          width: 1024,
-        },
-      );
-
-      // 5. Upload to S3
-      const uploadKey = `${organizationId}/onboarding-preview-${Date.now()}`;
-      const { publicUrl } = await this.filesClientService.getPresignedUploadUrl(
-        uploadKey,
-        'onboarding',
-        'image/png',
-      );
-
-      await this.filesClientService.uploadToS3(uploadKey, 'onboarding', {
-        contentType: 'image/png',
-        data: imageBuffer,
-        type: FileInputType.BUFFER,
-      });
-
-      // 6. Deduct credits
-      await this.creditsUtilsService.deductCreditsFromOrganization(
-        organizationId,
-        userId,
-        ONBOARDING_PREVIEW_CREDIT_COST,
-        'Onboarding preview image',
-      );
-
-      // 7. Save preview URL to brand
-      await this.brandsService.patch(brand._id, {
-        // @ts-expect-error onboardingPreviewUrl is valid
-        onboardingPreviewUrl: publicUrl,
-      });
-
-      this.loggerService.log(`${caller} completed`, {
-        brandId: dto.brandId,
-        imageUrl: publicUrl,
-      });
-
-      return { imageUrl: publicUrl, prompt };
-    } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
-
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      throw new HttpException(
-        {
-          detail: (error as Error)?.message || 'Failed to generate preview',
-          title: 'Preview Generation Failed',
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  /**
-   * Build a prompt for onboarding preview image generation
-   */
-  private buildPreviewPrompt(
-    contentType: string,
-    brandName: string,
-    brandDescription: string,
-    primaryColor: string,
-    secondaryColor: string,
-  ): string {
-    if (contentType === 'ads') {
-      return `A stunning high-end advertisement for ${brandName}, ${brandDescription}, featuring a professional model presenting the brand, brand colors ${primaryColor} and ${secondaryColor}, commercial product photography, studio lighting, high fashion`;
-    }
-
-    return `A premium social media content post for ${brandName}, ${brandDescription}, featuring an attractive influencer promoting the brand, brand colors ${primaryColor} and ${secondaryColor}, Instagram lifestyle photography, natural lighting, aspirational`;
+    return this.onboardingPreviewService.generateOnboardingPreview(dto, user);
   }
 
   /**
@@ -1368,50 +765,13 @@ export class OnboardingService {
     images: ReferenceImageDto[],
     user: User,
   ): Promise<{ success: boolean; count: number }> {
-    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(`${caller} starting`, { brandId });
-
     const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization;
 
-    const brand = await this.brandsService.findOne(
-      {
-        _id: brandId,
-        isDeleted: false,
-        organization: organizationId,
-      },
-      'none',
-    );
-
-    if (!brand) {
-      throw new HttpException(
-        { detail: 'Brand not found', title: 'Not Found' },
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
-    const brandId_str = String(
-      (brand as Record<string, unknown>).id ?? brand._id,
-    );
-    const existingImages = this.readBrandReferenceImages(brand.referenceImages);
-    await this.brandsService.patch(brandId_str, {
-      referenceImages: [
-        ...existingImages,
-        ...images.map((image) => ({
-          category: image.category,
-          isDefault: image.isDefault,
-          label: image.label,
-          url: image.url,
-        })),
-      ],
-    });
-
-    this.loggerService.log(`${caller} completed`, {
+    return this.brandPersistenceService.addReferenceImages(
       brandId,
-      count: images.length,
-    });
-
-    return { count: images.length, success: true };
+      images,
+      publicMetadata.organization,
+    );
   }
 
   /**
@@ -1426,256 +786,53 @@ export class OnboardingService {
       brandName: dto.brandName,
     });
 
-    try {
-      const workspace = await this.ensureOnboardingWorkspace(user);
-      const organizationId = workspace.organizationId;
-      const userId = workspace.userId;
-
-      const brand = await this.brandsService.findOne(
-        {
-          isDeleted: false,
-          organization: organizationId,
-          user: userId,
-        },
-        'none',
-      );
-
-      if (!brand) {
-        throw new HttpException(
-          { detail: 'No brand found for user', title: 'Brand Not Found' },
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
-      await this.brandsService.patch(brand._id, {
-        label: dto.brandName,
-      });
-
-      const slug = await this.organizationsService.generateUniqueSlug(
-        dto.brandName,
-        organizationId.toString(),
-      );
-      await this.organizationsService.patch(organizationId.toString(), {
-        label: dto.brandName,
-        slug,
-      });
-
-      this.loggerService.log(`${caller} completed`);
-
-      return {
-        message: 'Brand name updated successfully',
-        success: true,
-      };
-    } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
-
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        throw error;
-      }
-
-      throw new HttpException(
-        { detail: 'Failed to update brand name', title: 'Error' },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  /**
-   * Update brand entity with scraped data
-   */
-  private async updateBrandWithScrapedData(
-    brandId: string,
-    scrapedData: IScrapedBrandData,
-    dto: BrandSetupDto,
-    labelOverride?: string,
-  ): Promise<void> {
-    const updateData: Record<string, unknown> = {};
-
-    const label = labelOverride || scrapedData.companyName;
-    if (label) {
-      updateData.label = label;
-    }
-
-    if (scrapedData.description) {
-      updateData.description = scrapedData.description;
-    }
-
-    if (scrapedData.primaryColor) {
-      updateData.primaryColor = scrapedData.primaryColor;
-    }
-
-    if (scrapedData.secondaryColor) {
-      updateData.secondaryColor = scrapedData.secondaryColor;
-    }
-
-    if (scrapedData.fontFamily) {
-      updateData.fontFamily = scrapedData.fontFamily;
-    }
-
-    // Build system prompt from scraped content
-    if (scrapedData.tagline || scrapedData.aboutText) {
-      const systemPromptParts: string[] = [];
-
-      if (scrapedData.companyName) {
-        systemPromptParts.push(
-          `You are creating content for ${scrapedData.companyName}.`,
-        );
-      }
-
-      if (scrapedData.tagline) {
-        systemPromptParts.push(`Brand tagline: "${scrapedData.tagline}"`);
-      }
-
-      if (scrapedData.aboutText) {
-        systemPromptParts.push(`About the brand: ${scrapedData.aboutText}`);
-      }
-
-      if (dto.industry) {
-        systemPromptParts.push(`Industry: ${dto.industry}`);
-      }
-
-      if (dto.targetAudience) {
-        systemPromptParts.push(`Target audience: ${dto.targetAudience}`);
-      }
-
-      updateData.text = systemPromptParts.join('\n\n');
-    }
-
-    if (Object.keys(updateData).length > 0) {
-      await this.brandsService.patch(
-        brandId,
-        updateData as Partial<UpdateBrandDto>,
-      );
-    }
-  }
-
-  private async upsertBrandWebsiteLink(
-    brandId: string,
-    websiteUrl: string,
-  ): Promise<void> {
-    const normalizedUrl = websiteUrl.trim();
-
-    if (!normalizedUrl) {
-      return;
-    }
-
-    const existingWebsiteLink = await this.linksService.findOne({
-      brand: brandId,
-      category: LinkCategory.WEBSITE,
-      isDeleted: false,
-    });
-
-    if (existingWebsiteLink) {
-      await this.linksService.patch(String(existingWebsiteLink.id), {
-        label: 'Website',
-        url: normalizedUrl,
-      });
-      return;
-    }
-
-    await this.linksService.create({
-      brand: brandId,
-      category: LinkCategory.WEBSITE,
-      label: 'Website',
-      url: normalizedUrl,
-    });
-  }
-
-  private async updateBrandGuidance(
-    brandId: string,
-    extractedData: IExtractedBrandData,
-  ): Promise<void> {
-    const brand = await this.brandsService.findOne({
-      _id: brandId,
-      isDeleted: false,
-    });
-
-    if (!brand) {
-      return;
-    }
-
-    const brandAgentConfig = this.readBrandAgentConfig(brand.agentConfig);
-
-    const extractedVoice = extractedData.brandVoice as
-      | {
-          audience?: string;
-          doNotSoundLike?: string[];
-          hashtags?: string[];
-          messagingPillars?: string[];
-          sampleOutput?: string;
-          taglines?: string[];
-          tone?: string;
-          values?: string[];
-          voice?: string;
-        }
-      | undefined;
-
-    const nextVoice = extractedData.brandVoice
-      ? {
-          ...(brandAgentConfig.voice ?? {}),
-          audience: extractedVoice?.audience
-            ? extractedVoice.audience
-                .split(',')
-                .map((value) => value.trim())
-                .filter(Boolean)
-            : (brandAgentConfig.voice?.audience ?? []),
-          doNotSoundLike: extractedVoice?.doNotSoundLike ?? [],
-          hashtags: extractedVoice?.hashtags ?? [],
-          messagingPillars: extractedVoice?.messagingPillars ?? [],
-          sampleOutput: extractedVoice?.sampleOutput,
-          style: extractedVoice?.voice,
-          taglines: extractedVoice?.taglines ?? [],
-          tone: extractedVoice?.tone,
-          values: extractedVoice?.values ?? [],
-        }
-      : brandAgentConfig.voice;
-
-    await this.brandsService.patch(brandId, {
-      agentConfig: {
-        ...brandAgentConfig,
-        ...(nextVoice ? { voice: nextVoice } : {}),
+    return withOnboardingErrorHandling(
+      this.loggerService,
+      caller,
+      {
+        detail: 'Failed to update brand name',
+        hasHttpExceptionPassthrough: true,
+        hasPrismaPassthrough: true,
+        title: 'Error',
       },
-    });
-  }
+      async () => {
+        const workspace = await this.ensureOnboardingWorkspace(user);
+        const organizationId = workspace.organizationId;
+        const userId = workspace.userId;
 
-  private async updateBrandGuidanceOverrides(
-    brandId: string,
-    dto: ConfirmBrandDataDto,
-  ): Promise<void> {
-    const brand = await this.brandsService.findOne({
-      _id: brandId,
-      isDeleted: false,
-    });
+        const brand = await this.brandsService.findOne(
+          {
+            isDeleted: false,
+            organization: organizationId,
+            user: userId,
+          },
+          'none',
+        );
 
-    if (!brand) {
-      return;
-    }
+        if (!brand) {
+          throw new HttpException(
+            { detail: 'No brand found for user', title: 'Brand Not Found' },
+            HttpStatus.NOT_FOUND,
+          );
+        }
 
-    const brandAgentConfig = this.readBrandAgentConfig(brand.agentConfig);
-    const existingVoice = brandAgentConfig.voice ?? {};
+        await this.brandsService.patch(brand._id, {
+          label: dto.brandName,
+        });
 
-    await this.brandsService.patch(brandId, {
-      agentConfig: {
-        ...brandAgentConfig,
-        voice: {
-          ...existingVoice,
-          ...(dto.audience
-            ? {
-                audience: dto.audience
-                  .split(',')
-                  .map((value) => value.trim())
-                  .filter(Boolean),
-              }
-            : {}),
-          ...(dto.tone ? { tone: dto.tone } : {}),
-          ...(dto.voice ? { style: dto.voice } : {}),
-        },
+        await this.brandPersistenceService.syncOrgLabelAndSlug(
+          dto.brandName,
+          organizationId.toString(),
+        );
+
+        this.loggerService.log(`${caller} completed`);
+
+        return {
+          message: 'Brand name updated successfully',
+          success: true,
+        };
       },
-    });
+    );
   }
 
   /**
@@ -1698,68 +855,66 @@ export class OnboardingService {
     const publicMetadata = getPublicMetadata(user);
     const organizationId = publicMetadata.organization;
 
-    try {
-      // Check if org already has a prefix
-      const org = await this.organizationsService.findOne({
-        _id: organizationId,
-        isDeleted: false,
-      });
+    return withOnboardingErrorHandling(
+      this.loggerService,
+      caller,
+      {
+        detail: 'Failed to set organization prefix',
+        hasHttpExceptionPassthrough: true,
+        title: 'Error',
+      },
+      async () => {
+        // Check if org already has a prefix
+        const org = await this.organizationsService.findOne({
+          _id: organizationId,
+          isDeleted: false,
+        });
 
-      if (!org) {
-        throw new HttpException(
-          { detail: 'Organization not found', title: 'Not Found' },
-          HttpStatus.NOT_FOUND,
-        );
-      }
+        if (!org) {
+          throw new HttpException(
+            { detail: 'Organization not found', title: 'Not Found' },
+            HttpStatus.NOT_FOUND,
+          );
+        }
 
-      if (org.prefix) {
-        throw new HttpException(
-          {
-            detail: `Organization already has prefix "${org.prefix}". Prefix is immutable once set.`,
-            title: 'Conflict',
-          },
-          HttpStatus.CONFLICT,
-        );
-      }
+        if (org.prefix) {
+          throw new HttpException(
+            {
+              detail: `Organization already has prefix "${org.prefix}". Prefix is immutable once set.`,
+              title: 'Conflict',
+            },
+            HttpStatus.CONFLICT,
+          );
+        }
 
-      // Check uniqueness
-      const isAvailable =
-        await this.organizationsService.isPrefixAvailable(prefix);
-      if (!isAvailable) {
-        throw new HttpException(
-          {
-            detail: `Prefix "${prefix}" is already taken`,
-            title: 'Conflict',
-          },
-          HttpStatus.CONFLICT,
-        );
-      }
+        // Check uniqueness
+        const isAvailable =
+          await this.organizationsService.isPrefixAvailable(prefix);
+        if (!isAvailable) {
+          throw new HttpException(
+            {
+              detail: `Prefix "${prefix}" is already taken`,
+              title: 'Conflict',
+            },
+            HttpStatus.CONFLICT,
+          );
+        }
 
-      // Set the prefix
-      await this.organizationsService.patch(organizationId.toString(), {
-        // @ts-expect-error prefix is not in UpdateOrganizationDto (immutable), but we set it directly here during onboarding
-        prefix: prefix.toUpperCase(),
-      });
+        // Set the prefix
+        await this.organizationsService.patch(organizationId.toString(), {
+          // @ts-expect-error prefix is not in UpdateOrganizationDto (immutable), but we set it directly here during onboarding
+          prefix: prefix.toUpperCase(),
+        });
 
-      this.loggerService.log(`${caller} completed`, { prefix });
+        this.loggerService.log(`${caller} completed`, { prefix });
 
-      return {
-        message: `Organization prefix set to "${prefix.toUpperCase()}"`,
-        prefix: prefix.toUpperCase(),
-        success: true,
-      };
-    } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
-
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      throw new HttpException(
-        { detail: 'Failed to set organization prefix', title: 'Error' },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+        return {
+          message: `Organization prefix set to "${prefix.toUpperCase()}"`,
+          prefix: prefix.toUpperCase(),
+          success: true,
+        };
+      },
+    );
   }
 
   /**

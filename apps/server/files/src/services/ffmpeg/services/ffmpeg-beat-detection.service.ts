@@ -387,15 +387,16 @@ export class FFmpegBeatDetectionService {
         // Parse RMS levels from output
         const volumes: number[] = [];
         const rmsPattern = /lavfi\.astats\.Overall\.RMS_level=([-\d.]+)/g;
-        let match;
 
         const output = stdout || stderr;
-        while ((match = rmsPattern.exec(output)) !== null) {
+        let match: RegExpExecArray | null = rmsPattern.exec(output);
+        while (match !== null) {
           const rms = parseFloat(match[1]);
           if (Number.isFinite(rms)) {
             // Convert dB to linear scale
             volumes.push(10 ** (rms / 20));
           }
+          match = rmsPattern.exec(output);
         }
 
         if (volumes.length > 0) {
