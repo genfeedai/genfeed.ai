@@ -265,7 +265,7 @@ export class PromptsOperationsController {
         source: ActivitySource.PROMPT_REMIX,
         user: publicMetadata.user,
         value: JSON.stringify({
-          promptId: data._id.toString(),
+          promptId: data.id.toString(),
           sourcePromptId: promptId,
           type: 'remix',
         }),
@@ -274,12 +274,12 @@ export class PromptsOperationsController {
 
     // Emit background-task-update WebSocket event for activities dropdown
     await this.websocketService.publishBackgroundTaskUpdate({
-      activityId: activity._id.toString(),
+      activityId: activity.id.toString(),
       label: 'Prompt Remix',
       progress: 0,
       room: getUserRoomName(user.id),
       status: 'processing',
-      taskId: data._id.toString(),
+      taskId: data.id.toString(),
       userId: user.id,
     });
 
@@ -305,23 +305,23 @@ export class PromptsOperationsController {
       .then(async (result) => {
         this.loggerService.log(`${url} succeeded`, { result });
 
-        await this.promptsService.patch(data._id, {
+        await this.promptsService.patch(data.id, {
           enhanced: result,
           status: PromptStatus.GENERATED,
         });
 
         // Update activity to completed
-        await this.activitiesService.patch(activity._id.toString(), {
+        await this.activitiesService.patch(activity.id.toString(), {
           key: ActivityKey.PROMPT_REMIX_COMPLETED,
           value: JSON.stringify({
             progress: 100,
-            promptId: data._id.toString(),
+            promptId: data.id.toString(),
             sourcePromptId: promptId,
             type: 'remix',
           }),
         });
 
-        await this.websocketService.emit(WebSocketPaths.prompt(data._id), {
+        await this.websocketService.emit(WebSocketPaths.prompt(data.id), {
           result,
           status: Status.COMPLETED,
         });
@@ -332,11 +332,11 @@ export class PromptsOperationsController {
         this.loggerService.error(`${url} failed`, error);
 
         // Update activity to failed
-        await this.activitiesService.patch(activity._id.toString(), {
+        await this.activitiesService.patch(activity.id.toString(), {
           key: ActivityKey.PROMPT_REMIX_FAILED,
           value: JSON.stringify({
             error: (error as Error)?.message || 'An error occurred',
-            promptId: data._id.toString(),
+            promptId: data.id.toString(),
             sourcePromptId: promptId,
             type: 'remix',
           }),
@@ -368,11 +368,11 @@ export class PromptsOperationsController {
           });
         }
 
-        await this.promptsService.patch(data._id, {
+        await this.promptsService.patch(data.id, {
           status: PromptStatus.FAILED,
         });
 
-        await this.websocketService.emit(WebSocketPaths.prompt(data._id), {
+        await this.websocketService.emit(WebSocketPaths.prompt(data.id), {
           error: (error as Error)?.message || 'An error occurred',
           status: Status.FAILED,
         });
@@ -439,7 +439,7 @@ export class PromptsOperationsController {
 
     // Emit background-task-update WebSocket event for activities dropdown
     await this.websocketService.publishBackgroundTaskUpdate({
-      activityId: activity._id.toString(),
+      activityId: activity.id.toString(),
       label: 'Prompt Enhance',
       progress: 0,
       room: getUserRoomName(user.id),
@@ -499,7 +499,7 @@ export class PromptsOperationsController {
       });
 
       // Update activity to completed
-      await this.activitiesService.patch(activity._id.toString(), {
+      await this.activitiesService.patch(activity.id.toString(), {
         key: ActivityKey.PROMPT_ENHANCE_COMPLETED,
         value: JSON.stringify({
           progress: 100,
@@ -515,7 +515,7 @@ export class PromptsOperationsController {
       return serializeSingle(request, PromptSerializer, updatedPrompt);
     } catch (error: unknown) {
       // Update activity to failed
-      await this.activitiesService.patch(activity._id.toString(), {
+      await this.activitiesService.patch(activity.id.toString(), {
         key: ActivityKey.PROMPT_ENHANCE_FAILED,
         value: JSON.stringify({
           error: (error as Error)?.message || 'An error occurred',

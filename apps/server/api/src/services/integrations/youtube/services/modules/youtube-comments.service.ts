@@ -220,6 +220,128 @@ export class YoutubeCommentsService {
       throw error;
     }
   }
+
+  async listVideoComments(
+    organizationId: string,
+    brandId: string,
+    videoId: string,
+    maxResults = 25,
+  ): Promise<
+    Array<{
+      authorAvatarUrl?: string;
+      authorChannelId?: string;
+      authorChannelUrl?: string;
+      authorDisplayName?: string;
+      commentId: string;
+      createdAt: Date;
+      text: string;
+      threadId: string;
+    }>
+  > {
+    const url = `${this.constructorName} listVideoComments`;
+
+    try {
+      const auth = await this.authService.refreshToken(organizationId, brandId);
+      const response = await this.youtubeAPI.commentThreads.list({
+        auth,
+        maxResults: Math.min(Math.max(maxResults, 1), 100),
+        order: 'time',
+        part: ['id', 'snippet'],
+        textFormat: 'plainText',
+        videoId,
+      });
+
+      return (response.data.items ?? []).flatMap((item) => {
+        const comment = item.snippet?.topLevelComment;
+        const snippet = comment?.snippet;
+        const commentId = comment?.id;
+        const threadId = item.id;
+        const text = snippet?.textOriginal ?? snippet?.textDisplay;
+
+        if (!commentId || !threadId || !text) {
+          return [];
+        }
+
+        const authorChannelId =
+          typeof snippet?.authorChannelId === 'object' &&
+          snippet.authorChannelId
+            ? (snippet.authorChannelId.value ?? undefined)
+            : undefined;
+
+        return [
+          {
+            authorAvatarUrl: snippet?.authorProfileImageUrl ?? undefined,
+            authorChannelId,
+            authorChannelUrl: snippet?.authorChannelUrl ?? undefined,
+            authorDisplayName: snippet?.authorDisplayName ?? undefined,
+            commentId,
+            createdAt: snippet?.publishedAt
+              ? new Date(snippet.publishedAt)
+              : new Date(),
+            text,
+            threadId,
+          },
+        ];
+      });
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Post a top-level comment on a YouTube video
+   * @param organizationId The organization ID
+   * @param brandId The brand ID
+   * @param videoId The YouTube video ID
+   * @param text The comment text
+   * @returns The comment ID
+   */
+
+  async postCommentReply(
+    organizationId: string,
+    brandId: string,
+    parentCommentId: string,
+    text: string,
+  ): Promise<{ commentId: string }> {
+    const url = `${this.constructorName} postCommentReply`;
+
+    try {
+      this.loggerService.log(`${url} started`, {
+        parentCommentId,
+        textLength: text.length,
+      });
+
+      const auth = await this.authService.refreshToken(organizationId, brandId);
+      const response = await this.youtubeAPI.comments.insert({
+        auth,
+        part: ['snippet'],
+        requestBody: {
+          snippet: {
+            parentId: parentCommentId,
+            textOriginal: text,
+          },
+        },
+      });
+
+      const commentId = response.data.id;
+      if (!commentId) {
+        throw new Error(
+          'Failed to post comment reply - no comment ID returned',
+        );
+      }
+
+      this.loggerService.log(`${url} completed`, {
+        commentId,
+        parentCommentId,
+      });
+
+      return { commentId };
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, error);
+      throw error;
+    }
+  }
 }
 
 export interface YoutubeChannelComment {

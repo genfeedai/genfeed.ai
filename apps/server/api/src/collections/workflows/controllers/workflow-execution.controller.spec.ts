@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { WorkflowExecutionController } from '@api/collections/workflows/controllers/workflow-execution.controller';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
+import { WorkflowRunControlService } from '@api/collections/workflows/services/workflow-run-control.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -23,13 +24,17 @@ describe('WorkflowExecutionController', () => {
 
   const mockWorkflowsService = {
     archiveWorkflow: vi.fn(),
-    executePartial: vi.fn(),
-    getExecutionLogs: vi.fn(),
+    findMutableOwnedOrThrow: vi.fn(),
     lockNodes: vi.fn(),
     publishWorkflowLifecycle: vi.fn(),
-    resumeFromFailed: vi.fn(),
     setThumbnail: vi.fn(),
     unlockNodes: vi.fn(),
+  };
+
+  const mockWorkflowRunControlService = {
+    executePartial: vi.fn(),
+    getExecutionLogs: vi.fn(),
+    resumeFromFailed: vi.fn(),
     validateCredits: vi.fn(),
   };
 
@@ -53,6 +58,10 @@ describe('WorkflowExecutionController', () => {
       controllers: [WorkflowExecutionController],
       providers: [
         { provide: WorkflowsService, useValue: mockWorkflowsService },
+        {
+          provide: WorkflowRunControlService,
+          useValue: mockWorkflowRunControlService,
+        },
         {
           provide: WorkflowExecutorService,
           useValue: mockWorkflowExecutorService,
@@ -79,6 +88,9 @@ describe('WorkflowExecutionController', () => {
 
   describe('setThumbnail', () => {
     it('should persist the workflow thumbnail for the current user org', async () => {
+      mockWorkflowsService.findMutableOwnedOrThrow.mockResolvedValue({
+        _id: '507f1f77bcf86cd799439014',
+      });
       mockWorkflowsService.setThumbnail.mockResolvedValue({
         _id: '507f1f77bcf86cd799439014',
         thumbnail: 'https://cdn.example.com/thumb.jpg',
@@ -95,6 +107,13 @@ describe('WorkflowExecutionController', () => {
         mockUser,
       );
 
+      expect(mockWorkflowsService.findMutableOwnedOrThrow).toHaveBeenCalledWith(
+        '507f1f77bcf86cd799439014',
+        {
+          organization: mockUser.publicMetadata.organization,
+          user: mockUser.publicMetadata.user,
+        },
+      );
       expect(mockWorkflowsService.setThumbnail).toHaveBeenCalledWith(
         '507f1f77bcf86cd799439014',
         'https://cdn.example.com/thumb.jpg',

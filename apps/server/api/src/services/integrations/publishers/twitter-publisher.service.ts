@@ -204,7 +204,7 @@ export class TwitterPublisherService extends BasePublisherService {
 
         if (childExternalId) {
           // Update child post with externalId and status
-          await this.postsService.patch(child._id.toString(), {
+          await this.postsService.patch(child.id.toString(), {
             externalId: childExternalId,
             publicationDate: new Date(),
             status: PostStatus.PUBLIC,
@@ -212,7 +212,7 @@ export class TwitterPublisherService extends BasePublisherService {
 
           this.logger.log(`${url} published thread child`, {
             childExternalId,
-            childPostId: child._id.toString(),
+            childPostId: child.id.toString(),
             order: child.order,
             replyToId,
           });
@@ -221,24 +221,24 @@ export class TwitterPublisherService extends BasePublisherService {
           replyToId = childExternalId;
         } else {
           this.logger.error(`${url} failed to publish thread child`, {
-            childPostId: child._id.toString(),
+            childPostId: child.id.toString(),
             order: child.order,
           });
 
           // Mark child as failed but continue with other children
-          await this.postsService.patch(child._id.toString(), {
+          await this.postsService.patch(child.id.toString(), {
             status: PostStatus.FAILED,
           });
         }
       } catch (error: unknown) {
         this.logger.error(`${url} error publishing thread child`, {
-          childPostId: child._id.toString(),
+          childPostId: child.id.toString(),
           error: (error as Error)?.message,
           order: child.order,
         });
 
         // Mark child as failed but continue with other children
-        await this.postsService.patch(child._id.toString(), {
+        await this.postsService.patch(child.id.toString(), {
           status: PostStatus.FAILED,
         });
       }
@@ -266,8 +266,8 @@ export class TwitterPublisherService extends BasePublisherService {
         return ingredient;
       }
 
-      if (ingredient?._id) {
-        return ingredient._id.toString();
+      if (ingredient?.id) {
+        return ingredient.id.toString();
       }
 
       return String(ingredient);
@@ -359,7 +359,7 @@ export class TwitterPublisherService extends BasePublisherService {
     context: PublishContext,
   ): Promise<TwitterClient> {
     const credential = await this.credentialsService.findOne({
-      _id: context.credential._id,
+      _id: context.credential.id,
     });
 
     if (!credential?.accessToken) {

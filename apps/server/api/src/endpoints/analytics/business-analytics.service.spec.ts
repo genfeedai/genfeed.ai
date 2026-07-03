@@ -1,3 +1,4 @@
+import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CreditTransactionCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -270,6 +271,15 @@ describe('BusinessAnalyticsService', () => {
     warn: vi.fn(),
   };
 
+  // Self-hosted flavor: StripeService exists but its client is null, so the
+  // service must fall back to the credit-transaction revenue proxy.
+  const stripeServiceWithoutClient = { stripe: null };
+
+  const stripeChargesList = vi.fn();
+  const stripeServiceWithClient = {
+    stripe: { charges: { list: stripeChargesList } },
+  };
+
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(now);
@@ -284,6 +294,7 @@ describe('BusinessAnalyticsService', () => {
     const service = new BusinessAnalyticsService(
       prisma as unknown as PrismaService,
       loggerService as unknown as LoggerService,
+      stripeServiceWithoutClient as unknown as StripeService,
     );
 
     const result = await service.getBusinessAnalytics();
@@ -337,6 +348,98 @@ describe('BusinessAnalyticsService', () => {
     expect(prisma.ingredient.findMany).not.toHaveBeenCalled();
     expect(prisma.organization.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ take: 2 }),
+    );
+  });
+
+  it('prefers real Stripe charges for revenue when a client is configured', async () => {
+    const toEpochSeconds = (iso: string) =>
+      Math.floor(new Date(iso).getTime() / 1000);
+
+    stripeChargesList.mockResolvedValue({
+      data: [
+        {
+          amount: 10000,
+          created: toEpochSeconds('2026-06-18T09:00:00.000Z'),
+          id: 'ch_today',
+          paid: true,
+          refunded: false,
+        },
+        {
+          amount: 5000,
+          created: toEpochSeconds('2026-06-10T09:00:00.000Z'),
+          id: 'ch_last_week',
+          paid: true,
+          refunded: false,
+        },
+        {
+          amount: 99900,
+          created: toEpochSeconds('2026-06-17T09:00:00.000Z'),
+          id: 'ch_refunded',
+          paid: true,
+          refunded: true,
+        },
+        {
+          amount: 88800,
+          created: toEpochSeconds('2026-06-16T09:00:00.000Z'),
+          id: 'ch_unpaid',
+          paid: false,
+          refunded: false,
+        },
+      ],
+      has_more: false,
+    });
+
+    const service = new BusinessAnalyticsService(
+      prisma as unknown as PrismaService,
+      loggerService as unknown as LoggerService,
+      stripeServiceWithClient as unknown as StripeService,
+    );
+
+    const result = await service.getBusinessAnalytics();
+
+    expect(result.revenue).toMatchObject({
+      last7d: 100,
+      last30d: 150,
+      mtd: 150,
+      today: 100,
+      wowGrowth: 100,
+    });
+    expect(result.revenue.dailySeries).toHaveLength(30);
+    expect(result.revenue.dailySeries).toEqual(
+      expect.arrayContaining([
+        { amount: 100, date: '2026-06-18' },
+        { amount: 50, date: '2026-06-10' },
+        { amount: 0, date: '2026-06-17' },
+      ]),
+    );
+    expect(stripeChargesList).toHaveBeenCalledWith(
+      expect.objectContaining({ limit: 100 }),
+    );
+    // Credits/ingredients blocks still come from the database
+    expect(result.credits).toMatchObject({ consumed: 40, sold: 150 });
+  });
+
+  it('falls back to the credit-transaction proxy when Stripe fetch fails', async () => {
+    stripeChargesList.mockRejectedValue(new Error('stripe down'));
+
+    const service = new BusinessAnalyticsService(
+      prisma as unknown as PrismaService,
+      loggerService as unknown as LoggerService,
+      stripeServiceWithClient as unknown as StripeService,
+    );
+
+    const result = await service.getBusinessAnalytics();
+
+    expect(result.revenue).toMatchObject({
+      last7d: 100,
+      last30d: 150,
+      mtd: 150,
+      today: 100,
+      wowGrowth: 100,
+    });
+    expect(loggerService.error).toHaveBeenCalledWith(
+      expect.stringContaining('Stripe revenue aggregation failed'),
+      expect.any(Error),
     );
   });
 });

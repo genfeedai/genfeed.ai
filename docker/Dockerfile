@@ -184,15 +184,3 @@ RUN bun run build --filter=@genfeedai/mcp
 EXPOSE 3014
 CMD ["bun", "run", "apps/server/mcp/dist/main.js"]
 
-# ─── Clips ──────────────────────────────────────────────────────────
-FROM pruner AS clips-pruned
-RUN turbo prune @genfeedai/clips --docker
-
-FROM base AS clips
-WORKDIR /app
-COPY --from=clips-pruned /app/out/json/ .
-RUN bun install --frozen-lockfile
-COPY --from=clips-pruned /app/out/full/ .
-RUN bun run build --filter=@genfeedai/clips
-EXPOSE 3015
-CMD ["bun", "run", "apps/server/clips/dist/main.js"]

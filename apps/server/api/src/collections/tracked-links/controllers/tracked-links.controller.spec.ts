@@ -277,7 +277,7 @@ describe('RedirectController', () => {
   let service: TrackedLinksService;
 
   const mockTrackedLink = {
-    _id: '507f1f77bcf86cd799439014',
+    id: '507f1f77bcf86cd799439014',
     expiresAt: null,
     originalUrl: 'https://example.com',
     shortCode: 'abc123',

@@ -4,9 +4,9 @@ import type {
   IQueryPrompts,
   PromptCategory,
 } from '@genfeedai/types';
+import { logger } from '@services/core/logger.service';
 import { create } from 'zustand';
 import { promptsApi } from '@/lib/api';
-import { logger } from '@/lib/logger';
 
 interface PromptLibraryStore {
   // State
@@ -119,8 +119,9 @@ export const usePromptLibraryStore = create<PromptLibraryStore>((set, get) => ({
       set({ featuredItems });
     } catch (error) {
       if ((error as Error).name !== 'AbortError') {
-        logger.error('Failed to load featured items', error, {
+        logger.error('Failed to load featured items', {
           context: 'promptLibraryStore',
+          error,
         });
       }
     }

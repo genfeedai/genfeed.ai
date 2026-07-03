@@ -60,7 +60,7 @@ describe('CampaignDiscoveryService', () => {
     overrides: Partial<OutreachCampaignDocument> = {},
   ): OutreachCampaignDocument =>
     ({
-      _id: campaignId,
+      id: campaignId,
       discoveryConfig: makeConfig(),
       organization: orgId,
       platform: CampaignPlatform.TWITTER,

@@ -1,7 +1,7 @@
 import { ConfigService } from '@images/config/config.service';
 import { DatasetService } from '@images/services/dataset.service';
-import { S3Service } from '@images/services/s3.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { S3Service } from '@libs/s3/s3.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 

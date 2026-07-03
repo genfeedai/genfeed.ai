@@ -88,7 +88,7 @@ export class LlmInstanceService {
   async touchLastRequest(): Promise<void> {
     const redis = this.redisService.getPublisher();
     if (!redis) return;
-    await redis.set(LLM_LAST_REQUEST_KEY, String(Date.now()), { EX: 3600 });
+    await redis.set(LLM_LAST_REQUEST_KEY, String(Date.now()), 'EX', 3600);
   }
 
   /**

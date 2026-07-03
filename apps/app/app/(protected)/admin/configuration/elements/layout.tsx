@@ -1,6 +1,7 @@
 'use client';
 
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant, IngredientCategory, ModalEnum } from '@genfeedai/enums';
 import type { IFiltersState } from '@genfeedai/interfaces/utils/filters.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
@@ -142,7 +143,7 @@ export default function ElementsLayout({ children }: LayoutProps) {
         >((tabs, type) => {
           if (type !== 'font-families') {
             tabs.push({
-              href: `/configuration/elements/${type}`,
+              href: `${APP_ROUTES.ADMIN.CONFIGURATION.ELEMENTS}/${type}`,
               label: ELEMENT_LABELS[type].label,
             });
           }

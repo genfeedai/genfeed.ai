@@ -1,7 +1,10 @@
 import { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import type { WebhookJobData } from '@api/services/webhook-client/webhook-client-job.interface';
+import {
+  WEBHOOK_CLIENT_QUEUE,
+  WebhookJobData,
+} from '@genfeedai/queue-contracts';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -14,7 +17,7 @@ export class WebhookClientService {
   private readonly constructorName = 'WebhookClientService';
 
   constructor(
-    @InjectQueue('webhook-client') private readonly webhookQueue: Queue,
+    @InjectQueue(WEBHOOK_CLIENT_QUEUE) private readonly webhookQueue: Queue,
     private readonly logger: LoggerService,
     private readonly organizationSettingsService: OrganizationSettingsService,
   ) {}
@@ -78,7 +81,7 @@ export class WebhookClientService {
 
       const jobData: WebhookJobData = {
         endpoint: settings.webhookEndpoint,
-        ingredientId: ingredient._id,
+        ingredientId: ingredient.id,
         organizationId,
         payload,
         secret: settings.webhookSecret,
@@ -86,12 +89,12 @@ export class WebhookClientService {
 
       // Add job to queue
       const job = await this.webhookQueue.add('send-webhook', jobData, {
-        jobId: `webhook-${organizationId}-${ingredient._id}-${Date.now()}`,
+        jobId: `webhook-${organizationId}-${ingredient.id}-${Date.now()}`,
       });
 
       this.logger.log(`${this.constructorName} webhook job queued`, {
         event: payload.event,
-        ingredientId: ingredient._id,
+        ingredientId: ingredient.id,
         jobId: job.id,
         organizationId,
       });
@@ -99,7 +102,7 @@ export class WebhookClientService {
       // Log failure but don't throw - webhook failures shouldn't break the flow
       this.logger.error(`${this.constructorName} failed to queue webhook`, {
         error: (error as Error)?.message,
-        ingredientId: ingredient._id,
+        ingredientId: ingredient.id,
         organizationId,
       });
     }

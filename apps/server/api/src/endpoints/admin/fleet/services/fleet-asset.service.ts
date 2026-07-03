@@ -3,6 +3,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { ConfigService } from '@api/config/config.service';
 import { AdminFleetTrainingService } from '@api/endpoints/admin/fleet/services/fleet-training.service';
 import { AdminFleetValueReader } from '@api/endpoints/admin/fleet/services/fleet-value-reader.util';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import {
   type ContentRating,
@@ -14,7 +15,7 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 /**
  * Owns fleet asset (ingredient) listing + review, and the approved-asset
@@ -97,7 +98,7 @@ export class AdminFleetAssetService {
 
     if (!ingredient) {
       throw new NotFoundException(
-        `Asset "${ingredientId}" not found in organization "${organizationId}"`,
+        `Asset "${ingredientId}" in organization "${organizationId}"`,
       );
     }
 
@@ -142,7 +143,7 @@ export class AdminFleetAssetService {
       sourceUrl,
       ingredient.category,
     );
-    const datasetKey = `darkroom/datasets/${slug}/${ingredient._id.toString()}.${extension}`;
+    const datasetKey = `darkroom/datasets/${slug}/${ingredient.id.toString()}.${extension}`;
     await this.filesClientService.uploadToS3(datasetKey, 'images', {
       type: FileInputType.URL,
       url: sourceUrl,
@@ -153,7 +154,7 @@ export class AdminFleetAssetService {
       AdminFleetValueReader.readString(ingredient.generationPrompt) ??
       AdminFleetValueReader.readString(ingredient.text);
     if (caption) {
-      const captionKey = `darkroom/datasets/${slug}/${ingredient._id.toString()}.txt`;
+      const captionKey = `darkroom/datasets/${slug}/${ingredient.id.toString()}.txt`;
       await this.filesClientService.uploadToS3(captionKey, 'images', {
         contentType: 'text/plain',
         data: Buffer.from(caption, 'utf8'),
@@ -170,7 +171,7 @@ export class AdminFleetAssetService {
       ),
     );
 
-    await this.ingredientsService.patch(ingredient._id.toString(), {
+    await this.ingredientsService.patch(ingredient.id.toString(), {
       generationCompletedAt: ingredient.generationCompletedAt ?? new Date(),
     } as Parameters<IngredientsService['patch']>[1]);
   }

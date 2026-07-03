@@ -93,7 +93,7 @@ export class VideosEffectsController {
     this.fileQueueService
       .processVideo({
         authProviderUserId: user.id,
-        ingredientId: ingredientData._id.toString(),
+        ingredientId: ingredientData.id.toString(),
         organizationId: publicMetadata.organization,
         params: {
           inputPath: videoUrl,
@@ -101,32 +101,32 @@ export class VideosEffectsController {
         room: getUserRoomName(user.id),
         type: 'reverse-video',
         userId: publicMetadata.user,
-        websocketUrl: `/videos/${ingredientData._id}`,
+        websocketUrl: `/videos/${ingredientData.id}`,
       })
       .then(async (job) => {
         const result = await this.fileQueueService.waitForJob(job.jobId, 60000);
         const output = requirePath(result.outputPath);
         const meta = await this.filesClientService.uploadToS3(
-          ingredientData._id,
+          ingredientData.id,
           `videos`,
           { path: output, type: FileInputType.FILE },
         );
 
         await this.metadataService.patch(
-          metadataData._id,
+          metadataData.id,
           new MetadataEntity(meta),
         );
-        await this.ingredientsService.patch(ingredientData._id, {
+        await this.ingredientsService.patch(ingredientData.id, {
           status: IngredientStatus.GENERATED,
           transformations: [TransformationCategory.REVERSED],
         });
 
-        const websocketUrl = WebSocketPaths.video(ingredientData._id);
+        const websocketUrl = WebSocketPaths.video(ingredientData.id);
         await this.websocketService.publishVideoComplete(
           websocketUrl,
           {
             eventType: WebSocketEventType.VIDEO_REVERSED,
-            id: ingredientData._id,
+            id: ingredientData.id,
             status: WebSocketEventStatus.COMPLETED,
           },
           user.id,
@@ -174,7 +174,7 @@ export class VideosEffectsController {
       this.fileQueueService
         .processVideo({
           authProviderUserId: user.id,
-          ingredientId: ingredientData._id.toString(),
+          ingredientId: ingredientData.id.toString(),
           organizationId: publicMetadata.organization,
           params: {
             inputPath: videoUrl,
@@ -182,7 +182,7 @@ export class VideosEffectsController {
           room: getUserRoomName(user.id),
           type: 'mirror-video',
           userId: publicMetadata.user,
-          websocketUrl: `/videos/${ingredientData._id}`,
+          websocketUrl: `/videos/${ingredientData.id}`,
         })
         .then(async (job) => {
           const result = await this.fileQueueService.waitForJob(
@@ -191,7 +191,7 @@ export class VideosEffectsController {
           );
           const output = requirePath(result.outputPath);
           const meta = await this.filesClientService.uploadToS3(
-            ingredientData._id,
+            ingredientData.id,
             `videos`,
             {
               path: output,
@@ -200,20 +200,20 @@ export class VideosEffectsController {
           );
 
           await this.metadataService.patch(
-            metadataData._id,
+            metadataData.id,
             new MetadataEntity(meta),
           );
-          await this.ingredientsService.patch(ingredientData._id, {
+          await this.ingredientsService.patch(ingredientData.id, {
             status: IngredientStatus.GENERATED,
             transformations: [TransformationCategory.MIRRORED],
           });
 
-          const websocketUrl = WebSocketPaths.video(ingredientData._id);
+          const websocketUrl = WebSocketPaths.video(ingredientData.id);
           await this.websocketService.publishVideoComplete(
             websocketUrl,
             {
               eventType: WebSocketEventType.VIDEO_MIRRORED,
-              id: ingredientData._id,
+              id: ingredientData.id,
               status: WebSocketEventStatus.COMPLETED,
             },
             user.id,
@@ -232,7 +232,7 @@ export class VideosEffectsController {
         .catch(async (error: unknown) => {
           this.loggerService.error(`${url} mirrorVideo failed`, error);
 
-          const websocketUrl = WebSocketPaths.video(ingredientData._id);
+          const websocketUrl = WebSocketPaths.video(ingredientData.id);
           await this.websocketService.publishMediaFailed(
             websocketUrl,
             'Failed to mirror video',

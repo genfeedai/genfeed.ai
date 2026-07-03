@@ -2,6 +2,7 @@ import { BotActivitiesService } from '@api/collections/bot-activities/services/b
 import { MonitoredAccountsService } from '@api/collections/monitored-accounts/services/monitored-accounts.service';
 import { ProcessedTweetsService } from '@api/collections/processed-tweets/services/processed-tweets.service';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
+import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { ConfigService } from '@api/config/config.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { RateLimitService } from '@api/services/reply-bot/rate-limit.service';
@@ -79,6 +80,26 @@ describe('ReplyBotOrchestratorService', () => {
     markAsProcessed: vi.fn(),
   };
 
+  const mockSystemWorkflowProvenanceService = {
+    runAction: vi.fn(
+      async (
+        _input: unknown,
+        action: (provenance: {
+          executionId: string;
+          workflowId: string;
+          workflowLabel: string;
+        }) => Promise<unknown>,
+      ) => {
+        const provenance = {
+          executionId: 'execution-1',
+          workflowId: 'workflow-1',
+          workflowLabel: 'Reply and DM Automation',
+        };
+        return { provenance, result: await action(provenance) };
+      },
+    ),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -111,6 +132,10 @@ describe('ReplyBotOrchestratorService', () => {
         {
           provide: ProcessedTweetsService,
           useValue: mockProcessedTweetsService,
+        },
+        {
+          provide: SystemWorkflowProvenanceService,
+          useValue: mockSystemWorkflowProvenanceService,
         },
       ],
     }).compile();
@@ -147,8 +172,8 @@ describe('ReplyBotOrchestratorService', () => {
 
     it('should process each active bot and return results', async () => {
       const botConfigs = [
-        { _id: 'test-object-id', name: 'Bot 1', type: 'reply_guy' },
-        { _id: 'test-object-id', name: 'Bot 2', type: 'account_monitor' },
+        { id: 'test-object-id', name: 'Bot 1', type: 'reply_guy' },
+        { id: 'test-object-id', name: 'Bot 2', type: 'account_monitor' },
       ];
       mockReplyBotConfigsService.findActive.mockResolvedValue(botConfigs);
       mockRateLimitService.isWithinSchedule.mockReturnValue(false);
@@ -179,7 +204,7 @@ describe('ReplyBotOrchestratorService', () => {
     };
 
     const makeBotConfig = (overrides = {}) => ({
-      _id: 'test-object-id',
+      id: 'test-object-id',
       actionType: 'reply_only',
       context: 'test context',
       customInstructions: 'be nice',
@@ -261,7 +286,7 @@ describe('ReplyBotOrchestratorService', () => {
         reason: 'rate_limited',
       });
       mockBotActivitiesService.create.mockResolvedValue({
-        _id: 'test-object-id',
+        id: 'test-object-id',
       });
 
       const result = await service.processSingleBot(
@@ -328,7 +353,7 @@ describe('ReplyBotOrchestratorService', () => {
       ]);
       mockRateLimitService.checkRateLimit.mockResolvedValue({ allowed: true });
       mockBotActivitiesService.create.mockResolvedValue({
-        _id: 'test-object-id',
+        id: 'test-object-id',
       });
       mockReplyGenerationService.generateReply.mockResolvedValue(
         'Generated reply text',
@@ -354,7 +379,7 @@ describe('ReplyBotOrchestratorService', () => {
         'tweet-1',
         orgId,
         'reply_guy',
-        botConfig._id.toString(),
+        botConfig.id.toString(),
       );
     });
 
@@ -383,7 +408,7 @@ describe('ReplyBotOrchestratorService', () => {
       });
       mockRateLimitService.checkRateLimit.mockResolvedValue({ allowed: true });
       mockBotActivitiesService.create.mockResolvedValue({
-        _id: 'test-object-id',
+        id: 'test-object-id',
       });
       mockReplyGenerationService.generateReply.mockResolvedValue(
         'Generated reply text',
@@ -423,7 +448,7 @@ describe('ReplyBotOrchestratorService', () => {
       ]);
       mockRateLimitService.checkRateLimit.mockResolvedValue({ allowed: true });
       mockBotActivitiesService.create.mockResolvedValue({
-        _id: 'test-object-id',
+        id: 'test-object-id',
       });
       mockReplyGenerationService.generateReply.mockResolvedValue(
         'Generated reply',
@@ -484,7 +509,7 @@ describe('ReplyBotOrchestratorService', () => {
 
     it('should return generated reply text', async () => {
       mockReplyBotConfigsService.findOneById.mockResolvedValue({
-        _id: botConfigId,
+        id: botConfigId,
         actionType: 'reply_only',
         context: 'context',
         customInstructions: 'instructions',
@@ -507,7 +532,7 @@ describe('ReplyBotOrchestratorService', () => {
 
     it('should also generate DM when action type is REPLY_AND_DM', async () => {
       mockReplyBotConfigsService.findOneById.mockResolvedValue({
-        _id: botConfigId,
+        id: botConfigId,
         actionType: 'reply_and_dm',
         context: 'context',
         customInstructions: 'instructions',

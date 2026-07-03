@@ -60,7 +60,7 @@ describe('stable provider path smoke', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    contentRunsService.createRun.mockResolvedValue({ _id: runId });
+    contentRunsService.createRun.mockResolvedValue({ id: runId });
     contentRunsService.patchRun.mockResolvedValue({});
     skillsService.assertBrandSkillEnabled.mockResolvedValue(undefined);
     skillsService.getSkillById.mockResolvedValue({

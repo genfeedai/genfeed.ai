@@ -6,6 +6,7 @@ import type {
   OutreachCampaignDocument,
 } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
+import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { DmCampaignExecutorService } from '@api/services/campaign/dm-campaign-executor.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
@@ -57,13 +58,33 @@ describe('DmCampaignExecutorService', () => {
     sendDm: vi.fn(),
   };
 
+  const mockSystemWorkflowProvenanceService = {
+    runAction: vi.fn(
+      async (
+        _input: unknown,
+        action: (provenance: {
+          executionId: string;
+          workflowId: string;
+          workflowLabel: string;
+        }) => Promise<unknown>,
+      ) => {
+        const provenance = {
+          executionId: 'execution-1',
+          workflowId: 'workflow-1',
+          workflowLabel: 'Campaign DM Automation',
+        };
+        return { provenance, result: await action(provenance) };
+      },
+    ),
+  };
+
   const campaignId = 'test-object-id';
   const targetId = 'test-object-id';
   const credentialId = 'test-object-id';
   const orgId = 'test-object-id';
 
   const fakeCredential = {
-    _id: credentialId,
+    id: credentialId,
     accessToken: 'at',
     accessTokenSecret: 'ats',
     externalId: 'ext1',
@@ -76,7 +97,7 @@ describe('DmCampaignExecutorService', () => {
     overrides: Partial<OutreachCampaignDocument> = {},
   ): OutreachCampaignDocument =>
     ({
-      _id: campaignId,
+      id: campaignId,
       credential: credentialId,
       dmConfig: {
         context: 'outreach',
@@ -96,7 +117,7 @@ describe('DmCampaignExecutorService', () => {
     overrides: Partial<CampaignTargetDocument> = {},
   ): CampaignTargetDocument =>
     ({
-      _id: targetId,
+      id: targetId,
       recipientUserId: 'uid123',
       recipientUsername: 'targetuser',
       retryCount: 0,
@@ -126,6 +147,10 @@ describe('DmCampaignExecutorService', () => {
         {
           provide: BotActionExecutorService,
           useValue: mockBotActionExecutorService,
+        },
+        {
+          provide: SystemWorkflowProvenanceService,
+          useValue: mockSystemWorkflowProvenanceService,
         },
       ],
     }).compile();
@@ -358,9 +383,9 @@ describe('DmCampaignExecutorService', () => {
 
     it('should process multiple targets and track counts', async () => {
       const campaign = makeCampaign();
-      const t1 = makeTarget({ _id: 'test-object-id' });
-      const t2 = makeTarget({ _id: 'test-object-id' });
-      const t3 = makeTarget({ _id: 'test-object-id' });
+      const t1 = makeTarget({ id: 'test-object-id' });
+      const t2 = makeTarget({ id: 'test-object-id' });
+      const t3 = makeTarget({ id: 'test-object-id' });
       mockCampaignTargetsService.getPendingTargets.mockResolvedValue([
         t1,
         t2,

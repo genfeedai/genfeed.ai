@@ -64,8 +64,8 @@ describe('LoginPage', () => {
     expect(screen.queryByRole('textbox', { name: /^Email/ })).toBeNull();
     expect(screen.getByRole('button', { name: 'Google' })).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Sign in with GitHub' }),
-    ).toBeInTheDocument();
+      screen.queryByRole('button', { name: 'Sign in with GitHub' }),
+    ).toBeNull();
     expect(screen.getByRole('link', { name: 'Magic Link' })).toHaveAttribute(
       'href',
       '/login/magic-link',
@@ -124,21 +124,6 @@ describe('LoginPage', () => {
       expect(authClientMocks.social).toHaveBeenCalledWith({
         callbackURL: absoluteCallback('/onboarding'),
         provider: 'google',
-      });
-    });
-  });
-
-  it('starts GitHub sign-in with the default callback URL', async () => {
-    render(<LoginPage />);
-
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Sign in with GitHub' }),
-    );
-
-    await waitFor(() => {
-      expect(authClientMocks.social).toHaveBeenCalledWith({
-        callbackURL: absoluteCallback('/'),
-        provider: 'github',
       });
     });
   });

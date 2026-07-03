@@ -18,18 +18,17 @@ import { ConfigService } from '@workers/config/config.service';
  * Type for ingredient results loaded with metadata.
  */
 interface IngredientWithMetadataDoc {
-  _id: string;
+  id: string;
   category: string;
   metadata:
     | string
     | {
-        _id?: string;
         id?: string;
         width?: number | null;
         height?: number | null;
       };
   metadataDoc?: {
-    _id: string;
+    id: string;
   };
   metadataId?: string;
 }
@@ -143,15 +142,15 @@ export class CronIngredientsService {
           OR: [
             {
               id: {
-                in: stuckIngredients.docs.map((ing: { _id: unknown }) =>
-                  String(ing._id),
+                in: stuckIngredients.docs.map((ing: { id: unknown }) =>
+                  String(ing.id),
                 ),
               },
             },
             {
               mongoId: {
-                in: stuckIngredients.docs.map((ing: { _id: unknown }) =>
-                  String(ing._id),
+                in: stuckIngredients.docs.map((ing: { id: unknown }) =>
+                  String(ing.id),
                 ),
               },
             },
@@ -180,7 +179,7 @@ export class CronIngredientsService {
         this.logger.debug(
           `Marked ingredients as FAILED: ${stuckIngredients.docs
             .slice(0, 10)
-            .map((ing: { _id: unknown }) => String(ing._id))
+            .map((ing: { id: unknown }) => String(ing.id))
             .join(', ')}${stuckCount > 10 ? '...' : ''}`,
           context,
         );
@@ -191,11 +190,11 @@ export class CronIngredientsService {
       for (const ingredient of stuckIngredients.docs) {
         try {
           const ing = ingredient as unknown as {
-            _id: string;
+            id: string;
             category: IngredientCategory;
             user: string;
           };
-          const ingredientId = ing._id.toString();
+          const ingredientId = ing.id.toString();
           const keys =
             CronIngredientsService.CATEGORY_ACTIVITY_KEYS[ing.category];
 
@@ -227,7 +226,7 @@ export class CronIngredientsService {
             parsedValue = { ingredientId: existingActivity.value };
           }
 
-          await this.activitiesService.patch(existingActivity._id.toString(), {
+          await this.activitiesService.patch(existingActivity.id.toString(), {
             key: keys.failed,
             value: JSON.stringify({
               ...parsedValue,
@@ -238,7 +237,7 @@ export class CronIngredientsService {
           activitiesUpdated++;
         } catch (error: unknown) {
           this.logger.error(
-            `Failed to update activity for ingredient ${(ingredient as { _id: string })._id}`,
+            `Failed to update activity for ingredient ${(ingredient as { id: string }).id}`,
             error,
             context,
           );
@@ -301,15 +300,15 @@ export class CronIngredientsService {
         OR: [
           {
             id: {
-              in: stuckIngredients.docs.map((ing: { _id: unknown }) =>
-                String(ing._id),
+              in: stuckIngredients.docs.map((ing: { id: unknown }) =>
+                String(ing.id),
               ),
             },
           },
           {
             mongoId: {
-              in: stuckIngredients.docs.map((ing: { _id: unknown }) =>
-                String(ing._id),
+              in: stuckIngredients.docs.map((ing: { id: unknown }) =>
+                String(ing.id),
               ),
             },
           },
@@ -423,7 +422,7 @@ export class CronIngredientsService {
 
       for (const ingredient of docs) {
         try {
-          const ingredientId = ingredient._id.toString();
+          const ingredientId = ingredient.id.toString();
           const ingredientUrl = `${this.configService.ingredientsEndpoint}/${ingredient.category}s/${ingredientId}`;
 
           // Extract metadata from the file URL
@@ -438,9 +437,9 @@ export class CronIngredientsService {
             uploadMeta.height > 0
           ) {
             const metadataId =
-              ingredient.metadataDoc?._id ??
+              ingredient.metadataDoc?.id ??
               (typeof ingredient.metadata === 'object'
-                ? (ingredient.metadata.id ?? ingredient.metadata._id)
+                ? ingredient.metadata.id
                 : (ingredient.metadataId ?? ingredient.metadata));
 
             if (!metadataId) {
@@ -498,7 +497,7 @@ export class CronIngredientsService {
         } catch (error: unknown) {
           errorCount++;
           this.logger.error(
-            `Failed to refresh metadata for ingredient ${ingredient._id}`,
+            `Failed to refresh metadata for ingredient ${ingredient.id}`,
             error,
             context,
           );

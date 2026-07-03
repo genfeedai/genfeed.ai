@@ -9,6 +9,7 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { ByokProvider } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -305,13 +306,12 @@ export class SkillsService {
     brandId: string,
     requestedSlugs?: string[],
   ): Promise<string[]> {
-    const brand = await this.prisma.brand.findFirst({
-      where: { id: brandId, isDeleted: false, organizationId },
-    });
-
-    if (!brand) {
-      throw new NotFoundException('Brand', brandId);
-    }
+    const brand = await findOrThrow(
+      this.prisma.brand,
+      { where: { id: brandId, isDeleted: false, organizationId } },
+      'Brand',
+      brandId,
+    );
 
     const agentConfig = brand.agentConfig as Record<string, unknown> | null;
     const enabledSkills: string[] =
@@ -385,7 +385,8 @@ export class SkillsService {
   /**
    * Normalize a raw Prisma Skill row into a SkillDocument-compatible shape.
    * Spreads config fields to the top level so existing callers continue to work,
-   * and exposes `id` as both `.id` and `._id` for backward compatibility.
+   * and exposes the row id as both `id` and the legacy `_id` alias for
+   * backward compatibility.
    */
   private normalizeSkill(row: Record<string, unknown>): SkillDocument {
     const config = this.getConfig(row);

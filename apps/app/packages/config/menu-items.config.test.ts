@@ -30,6 +30,11 @@ describe('APP_MENU_ITEMS', () => {
     ]);
   });
 
+  it('keeps Messages out of the workspace menu (app switcher owns it)', () => {
+    expect(APP_MENU_ITEMS.map((item) => item.label)).not.toContain('Messages');
+    expect(APP_MENU_ITEMS.map((item) => item.href)).not.toContain('/messages');
+  });
+
   it('does not surface content drilldowns in the shared sidebar', () => {
     const groups = [
       ...new Set(

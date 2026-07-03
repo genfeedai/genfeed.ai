@@ -216,9 +216,9 @@ jobs:
               exit 0
             fi
 
-            REACT_DOCTOR_BASE_SHA="$BASE" bunx react-doctor@0.4.2 . --blocking error --project '*' --changed-files-from "$CHANGED_FILES"
+            REACT_DOCTOR_BASE_SHA="$BASE" bunx react-doctor@0.5.6 . --blocking error --project '*' --changed-files-from "$CHANGED_FILES"
           else
-            bunx react-doctor@0.4.2 . --blocking error --project '*' --diff false
+            bunx react-doctor@0.5.6 . --blocking error --project '*' --diff false
           fi
 
   # Consolidated static guards — these four checks each do ~10-20s of actual
@@ -247,12 +247,20 @@ jobs:
           cache-turbo: 'false'
       - name: Architecture Guards
         run: bun run check:architecture
+      - name: Desktop Schema Drift
+        run: bun run check:desktop-schema-drift
       - name: SQL Risk Audit
         run: bun run audit:api:sql:ci
       - name: UI Guards
         run: bun run check:ui-guards
       - name: Design System
         run: bun run design:check
+      # Fail the build if the committed Prisma model metadata (enum-field-map)
+      # has drifted from schema.prisma — soft-delete filtering + enum
+      # normalization under the Prisma 7 driver adapter depend on it, and it
+      # previously had zero CI enforcement (silent-regression risk).
+      - name: Prisma model metadata drift
+        run: bun run --filter=@genfeedai/prisma check:model-metadata
 
   format:
     name: Format
@@ -311,6 +319,11 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             TURBO_SCM_BASE="${{ github.event.pull_request.base.sha }}" bunx turbo run type-check --affected
+            # ee-billing type-checks apps/server/api sources through @api/* TS path
+            # aliases, a coupling invisible to --affected's package graph (see #1105).
+            # Run it explicitly; its turbo.json $TURBO_ROOT$ inputs keep this a cache
+            # hit unless the aliased backend sources actually changed.
+            bunx turbo run type-check --filter=@genfeedai/ee-billing
           else
             bun run type-check
           fi

@@ -21,7 +21,7 @@ const BASE_DTO = {
 };
 
 const MOCK_PATTERN = {
-  _id: PATTERN_ID,
+  id: PATTERN_ID,
   extractedFormula: '[HOOK] — [PROOF] — [CTA]',
   organization: ORG_ID,
   placeholders: ['HOOK', 'PROOF', 'CTA'],

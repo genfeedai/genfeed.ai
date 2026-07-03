@@ -1,9 +1,12 @@
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { BusinessLogicException } from '@api/helpers/exceptions/business/business-logic.exception';
-import { CreditDeductionJobData } from '@api/queues/credit-deduction/credit-deduction-job.interface';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { CreditTransactionCategory } from '@genfeedai/enums';
+import {
+  CREDIT_DEDUCTION_QUEUE,
+  CreditDeductionJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
@@ -12,7 +15,7 @@ import { Job, UnrecoverableError } from 'bullmq';
 const LOW_CREDITS_THRESHOLD = 1000;
 const LOW_CREDITS_DEBOUNCE_TTL_SECONDS = 86400; // 24 hours
 
-@Processor('credit-deduction')
+@Processor(CREDIT_DEDUCTION_QUEUE)
 export class CreditDeductionProcessor extends WorkerHost {
   private readonly constructorName = 'CreditDeductionProcessor';
 
@@ -112,10 +115,13 @@ export class CreditDeductionProcessor extends WorkerHost {
       }
 
       const debounceKey = `low-credits-notified:${organizationId}`;
-      const wasSet = await publisher.set(debounceKey, '1', {
-        EX: LOW_CREDITS_DEBOUNCE_TTL_SECONDS,
-        NX: true,
-      });
+      const wasSet = await publisher.set(
+        debounceKey,
+        '1',
+        'EX',
+        LOW_CREDITS_DEBOUNCE_TTL_SECONDS,
+        'NX',
+      );
 
       if (!wasSet) {
         this.logger.debug(

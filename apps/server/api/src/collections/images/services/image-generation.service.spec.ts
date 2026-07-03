@@ -66,17 +66,17 @@ const createService = () => {
       const n = savedDocCount++;
       return Promise.resolve({
         ingredientData: {
-          _id: `ing-${n}`,
+          id: `ing-${n}`,
           toString: () => `ing-${n}`,
         },
-        metadataData: { _id: `meta-${n}` },
+        metadataData: { id: `meta-${n}` },
       });
     }),
   };
 
   const brandsService = {
     findOne: vi.fn().mockResolvedValue({
-      _id: RESOLVED_BRAND,
+      id: RESOLVED_BRAND,
       description: 'desc',
       label: 'Brand',
       organization: ORG,
@@ -99,7 +99,7 @@ const createService = () => {
     getOrganizationCreditsBalance: vi.fn().mockResolvedValue(1000),
   };
   const promptsService = {
-    create: vi.fn().mockResolvedValue({ _id: 'prompt-doc', original: 'built' }),
+    create: vi.fn().mockResolvedValue({ id: 'prompt-doc', original: 'built' }),
   };
   const promptBuilderService = {
     buildPrompt: vi.fn().mockResolvedValue({
@@ -125,7 +125,7 @@ const createService = () => {
     patch: vi.fn().mockResolvedValue(undefined),
   };
   const activitiesService = {
-    create: vi.fn().mockResolvedValue({ _id: { toString: () => 'act' } }),
+    create: vi.fn().mockResolvedValue({ id: { toString: () => 'act' } }),
   };
   const websocketService = {
     publishBackgroundTaskUpdate: vi.fn().mockResolvedValue(undefined),

@@ -50,7 +50,6 @@ import {
 import type { Request } from 'express';
 
 interface TrainingSourceImage {
-  _id: string;
   id: string;
   metadata: {
     extension?: string;
@@ -135,8 +134,8 @@ export class TrainingsOperationsController {
 
         sourceImages = ((sourceResult.docs as TrainingSourceImage[]) ?? []).map(
           (image) => ({
-            _id: image._id,
-            id: image.id ?? image._id,
+            _id: image.id,
+            id: image.id,
             metadata: image.metadata ?? {},
           }),
         );
@@ -194,11 +193,11 @@ export class TrainingsOperationsController {
 
       await Promise.all(
         sourceImages.map((img) =>
-          this.ingredientsService.patch(img._id, {
+          this.ingredientsService.patch(img.id, {
             category: CategoryPrismaUtil.toIngredientCategory(
               IngredientCategory.SOURCE,
             ),
-            training: newTraining._id as string,
+            training: newTraining.id as string,
           }),
         ),
       );
@@ -261,9 +260,9 @@ export class TrainingsOperationsController {
       );
 
       const metadataIds = (
-        (metadataResult.docs as Array<{ _id?: string }> | undefined) ?? []
+        (metadataResult.docs as Array<{ id?: string }> | undefined) ?? []
       )
-        .map((meta) => meta._id)
+        .map((meta) => meta.id)
         .filter((metaId): metaId is string => typeof metaId === 'string');
 
       if (metadataIds.length === 0) {
@@ -384,11 +383,11 @@ export class TrainingsOperationsController {
       }));
 
       uploadedUrl = await this.trainingsService.createTrainingZip(
-        training._id.toString(),
+        training.id.toString(),
         minimal,
       );
     } catch (error: unknown) {
-      await this.trainingsService.patch(training._id, { status: 'failed' });
+      await this.trainingsService.patch(training.id, { status: 'failed' });
       this.loggerService.error('Failed to create training zip', error);
       throw new HttpException(
         {

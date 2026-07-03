@@ -2,6 +2,7 @@ import { CreateWorkflowExecutionDto } from '@api/collections/workflow-executions
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WorkflowExecutionSerializer } from '@genfeedai/serializers';
@@ -10,7 +11,6 @@ import {
   Body,
   Controller,
   Get,
-  NotFoundException,
   Param,
   Post,
   Req,
@@ -41,7 +41,7 @@ export class InternalWorkflowExecutionsController {
     });
 
     if (!workflow?.user) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
 
     const result = await this.workflowExecutorService.executeManualWorkflow(
@@ -74,7 +74,7 @@ export class InternalWorkflowExecutionsController {
     });
 
     if (!execution) {
-      throw new NotFoundException('Execution not found');
+      throw new NotFoundException('Execution');
     }
 
     return serializeSingle(req, WorkflowExecutionSerializer, execution);
@@ -93,7 +93,7 @@ export class InternalWorkflowExecutionsController {
     });
 
     if (!execution) {
-      throw new NotFoundException('Execution not found');
+      throw new NotFoundException('Execution');
     }
 
     const cancelled = await this.workflowExecutionsService.cancelExecution(id);

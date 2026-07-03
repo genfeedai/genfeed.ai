@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IAgentRun, IAnalytics } from '@genfeedai/interfaces';
 import type { AgentRunStats } from '@genfeedai/types';
 import { useTrends } from '@hooks/data/trends/use-trends/use-trends';
@@ -8,9 +8,12 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import type { Task } from '@services/management/tasks.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
+import Card from '@ui/card/Card';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
+import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
+import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Button } from '@ui/primitives/button';
 import dynamic from 'next/dynamic';
 import { Suspense, startTransition, useMemo } from 'react';
@@ -94,6 +97,7 @@ function WorkspacePageContentContent({
     visibleInboxTasks,
     sectionCopy,
     workspaceActionError,
+    workspaceLoadWarning,
     workspaceTasks,
   } = useWorkspacePageContent({
     defaultInboxView,
@@ -131,6 +135,27 @@ function WorkspacePageContentContent({
       refreshWorkspaceTasks,
       isWorkspaceRefreshing,
     ],
+  );
+
+  const inboxTable = (
+    <AppTable<Task>
+      items={
+        section === 'inbox' ? visibleInboxTasks : reviewInboxTasks.slice(0, 5)
+      }
+      isLoading={isWorkspaceTasksLoading}
+      emptyLabel={
+        section === 'inbox' && defaultInboxView === 'unread'
+          ? 'No unread inbox items right now.'
+          : 'No inbox items yet.'
+      }
+      getRowKey={(task) => task.id}
+      getItemId={(task) => task.id}
+      onRowClick={(task) => {
+        setSelectedTaskId(task.id);
+        replaceTaskSearchParam(task.id);
+      }}
+      columns={workspaceInboxTableColumns}
+    />
   );
 
   return (
@@ -180,6 +205,12 @@ function WorkspacePageContentContent({
         <p className="mb-4 rounded-md border border-rose-400/30 bg-rose-400/8 px-3 py-2 text-xs text-rose-200">
           {workspaceActionError}
         </p>
+      ) : null}
+
+      {workspaceLoadWarning ? (
+        <Alert type={AlertCategory.WARNING} className="mb-4">
+          {workspaceLoadWarning}
+        </Alert>
       ) : null}
 
       {isTaskComposerOpen ? (
@@ -234,29 +265,22 @@ function WorkspacePageContentContent({
               data-testid="workspace-inbox"
               className="space-y-3"
             >
-              <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/35">
-                {section === 'inbox' ? defaultInboxView : 'Inbox'}
-              </h2>
-              <AppTable<Task>
-                items={
-                  section === 'inbox'
-                    ? visibleInboxTasks
-                    : reviewInboxTasks.slice(0, 5)
-                }
-                isLoading={isWorkspaceTasksLoading}
-                emptyLabel={
-                  section === 'inbox' && defaultInboxView === 'unread'
-                    ? 'No unread inbox items right now.'
-                    : 'No inbox items yet.'
-                }
-                getRowKey={(task) => task.id}
-                getItemId={(task) => task.id}
-                onRowClick={(task) => {
-                  setSelectedTaskId(task.id);
-                  replaceTaskSearchParam(task.id);
-                }}
-                columns={workspaceInboxTableColumns}
-              />
+              {section === 'inbox' ? (
+                <>
+                  <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/35">
+                    {defaultInboxView}
+                  </h2>
+                  {inboxTable}
+                </>
+              ) : (
+                <Card
+                  label="Inbox"
+                  description="Latest items waiting on your review."
+                  bodyClassName="space-y-3 p-4"
+                >
+                  {inboxTable}
+                </Card>
+              )}
             </section>
           ) : null}
 
@@ -345,7 +369,7 @@ export default function WorkspacePageContent(
   props: Parameters<typeof WorkspacePageContentContent>[0],
 ) {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
       <WorkspacePageContentContent {...props} />
     </Suspense>
   );

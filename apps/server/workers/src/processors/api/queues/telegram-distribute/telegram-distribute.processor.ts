@@ -1,15 +1,18 @@
-import type { TelegramDistributeJobData } from '@api/queues/telegram-distribute/telegram-distribute-job.interface';
 import { TelegramDistributionService } from '@api/services/distribution/telegram/telegram-distribution.service';
 import {
   BrokenCircuitError,
   createProcessorCircuitBreaker,
   type ProcessorCircuitBreaker,
 } from '@api/shared/utils/circuit-breaker/circuit-breaker.util';
+import {
+  TELEGRAM_DISTRIBUTE_QUEUE,
+  TelegramDistributeJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 
-@Processor('telegram-distribute')
+@Processor(TELEGRAM_DISTRIBUTE_QUEUE)
 export class TelegramDistributeProcessor extends WorkerHost {
   private readonly circuitBreaker: ProcessorCircuitBreaker;
 

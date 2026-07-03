@@ -24,10 +24,10 @@ const { mockBot } = vi.hoisted(() => ({
 }));
 
 vi.mock('grammy', () => ({
-  Bot: vi.fn(function () {
+  Bot: vi.fn(function mockBotCtor() {
     return mockBot;
   }),
-  InlineKeyboard: vi.fn(function () {
+  InlineKeyboard: vi.fn(function mockInlineKeyboardCtor() {
     return {
       row: vi.fn().mockReturnThis(),
       text: vi.fn().mockReturnThis(),

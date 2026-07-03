@@ -6,6 +6,7 @@ import { COMPOSE_LOGO_HREF } from '@app-config/compose-menu-items.config';
 import { LIBRARY_LOGO_HREF } from '@app-config/library-menu-items.config';
 import { APP_LOGO_HREF } from '@app-config/menu-items.config';
 import { ORG_LOGO_HREF } from '@app-config/org-menu-items.config';
+import { RESEARCH_LOGO_HREF } from '@app-config/research-menu-items.config';
 import { SETTINGS_LOGO_HREF } from '@app-config/settings-menu-items.config';
 import { STUDIO_LOGO_HREF } from '@app-config/studio-menu-items.config';
 import { WORKFLOWS_LOGO_HREF } from '@app-config/workflows-menu-items.config';
@@ -41,6 +42,7 @@ type Props = {
   isFocusedOnboardingRoute: boolean;
   isLibraryRoute: boolean;
   isOrgRoute: boolean;
+  isResearchRoute: boolean;
   isSettingsRoute: boolean;
   isStudioRoute: boolean;
   isWorkflowsRoute: boolean;
@@ -50,6 +52,7 @@ type Props = {
   libraryMenuItems: MenuItemConfig[];
   menuItems: MenuItemConfig[];
   orgMenuItems: MenuItemConfig[];
+  researchMenuItems: MenuItemConfig[];
   secondaryMenuItems: MenuItemConfig[];
   settingsMenuItems: MenuItemConfig[];
   studioMenuItems: MenuItemConfig[];
@@ -71,6 +74,7 @@ export default function AppProtectedLayoutSidebar({
   isFocusedOnboardingRoute,
   isLibraryRoute,
   isOrgRoute,
+  isResearchRoute,
   isSettingsRoute,
   isStudioRoute,
   isWorkflowsRoute,
@@ -80,6 +84,7 @@ export default function AppProtectedLayoutSidebar({
   libraryMenuItems,
   menuItems,
   orgMenuItems,
+  researchMenuItems,
   secondaryMenuItems,
   settingsMenuItems,
   studioMenuItems,
@@ -197,6 +202,22 @@ export default function AppProtectedLayoutSidebar({
         )}
         currentApp={currentApp}
         sectionLabel="Analytics"
+        shellChromeVariant={shellChromeVariant}
+        orgSwitcherSlot={orgSwitcherSlot}
+      />
+    );
+  }
+
+  if (isResearchRoute) {
+    return (
+      <AppSidebar
+        items={researchMenuItems}
+        logoHref={withTaskContextHref(
+          buildHref(RESEARCH_LOGO_HREF),
+          taskContextSearchParams,
+        )}
+        currentApp={currentApp}
+        sectionLabel="Research"
         shellChromeVariant={shellChromeVariant}
         orgSwitcherSlot={orgSwitcherSlot}
       />

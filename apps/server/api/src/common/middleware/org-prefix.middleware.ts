@@ -43,7 +43,7 @@ export class OrgPrefixMiddleware implements NestMiddleware {
     try {
       const org = await this.organizationsService.findByPrefix(candidate);
       if (org) {
-        req.resolvedOrganizationId = org._id.toString();
+        req.resolvedOrganizationId = org.id.toString();
         req.resolvedOrgPrefix = candidate;
       }
     } catch (error: unknown) {

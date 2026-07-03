@@ -1,6 +1,7 @@
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import {
   AssetScope,
@@ -20,7 +21,7 @@ import type {
   IVideoProvenanceRecord,
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 function toIsoString(value: Date | string | null | undefined): string | null {
   if (value instanceof Date) {
@@ -69,9 +70,7 @@ export class VideoProvenanceService {
     // otherwise resolve any video by id regardless of ownership — a
     // cross-tenant leak. Treat the absence of any owner constraint as not found.
     if (orScopes.length === 0) {
-      throw new NotFoundException(
-        `${this.constructorName}: video ${videoId} not found`,
-      );
+      throw new NotFoundException('Video', videoId);
     }
 
     const where: Record<string, unknown> = {
@@ -128,12 +127,10 @@ export class VideoProvenanceService {
       !video ||
       (video.category !== undefined && video.category !== prismaVideoCategory)
     ) {
-      throw new NotFoundException(
-        `${this.constructorName}: video ${videoId} not found`,
-      );
+      throw new NotFoundException('Video', videoId);
     }
 
-    const assetId = video.id ?? video._id ?? videoId;
+    const assetId = video.id ?? videoId;
 
     const metadata = video.metadataId
       ? ((await this.metadataService.findOne({

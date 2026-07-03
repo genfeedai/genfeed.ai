@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { CaptionDocument } from '@api/collections/captions/schemas/caption.schema';
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
@@ -149,13 +150,14 @@ export class VideosCaptionsController {
       return returnNotFound(this.constructorName, videoId);
     }
 
-    let caption;
+    let caption: CaptionDocument | { id: string } | undefined;
     if (isEntityId(createVideoWithCaptionsDto.caption)) {
-      caption = await this.captionsService.findOne({
-        _id: createVideoWithCaptionsDto.caption,
-      });
+      caption =
+        (await this.captionsService.findOne({
+          _id: createVideoWithCaptionsDto.caption,
+        })) ?? undefined;
     } else {
-      caption = (video as unknown as { captions?: Array<{ _id: string }> })
+      caption = (video as unknown as { captions?: Array<{ id: string }> })
         .captions?.[0];
     }
 
@@ -180,7 +182,7 @@ export class VideosCaptionsController {
     this.fileQueueService
       .processVideo({
         authProviderUserId: user.id,
-        ingredientId: ingredientData._id.toString(),
+        ingredientId: ingredientData.id.toString(),
         organizationId: publicMetadata.organization,
         params: {
           // @ts-expect-error TS2339
@@ -190,12 +192,12 @@ export class VideosCaptionsController {
         room: getUserRoomName(user.id),
         type: 'add-captions',
         userId: publicMetadata.user,
-        websocketUrl: `/videos/${ingredientData._id}`,
+        websocketUrl: `/videos/${ingredientData.id}`,
       })
       .then(async (job) => {
         const result = await this.fileQueueService.waitForJob(job.jobId, 60000);
         const output = requireVideoOutputPath(result.outputPath);
-        const ingredientId = String(ingredientData._id);
+        const ingredientId = String(ingredientData.id);
 
         this.filesClientService
           .uploadToS3(ingredientId, `videos`, {
@@ -209,7 +211,7 @@ export class VideosCaptionsController {
             });
 
             await this.metadataService.patch(
-              metadataData._id,
+              metadataData.id,
               new MetadataEntity(res),
             );
 
@@ -217,7 +219,6 @@ export class VideosCaptionsController {
             await this.websocketService.publishVideoComplete(
               websocketUrl,
               {
-                // @ts-expect-error TS2339
                 captionId: caption.id,
                 eventType: WebSocketEventType.CAPTIONS_COMPLETED,
                 id: ingredientId,

@@ -1,6 +1,8 @@
-import type { ClipFactoryJobData } from '@api/queues/clip-factory/clip-factory.constants';
-import { CLIP_FACTORY_QUEUE } from '@api/queues/clip-factory/clip-factory.constants';
 import { ClipFactoryQueueService } from '@api/queues/clip-factory/clip-factory-queue.service';
+import {
+  CLIP_FACTORY_QUEUE,
+  ClipFactoryJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getQueueToken } from '@nestjs/bullmq';
 import { Test, type TestingModule } from '@nestjs/testing';

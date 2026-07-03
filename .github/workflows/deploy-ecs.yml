@@ -52,7 +52,10 @@ jobs:
     name: QA before deploy
     needs: validate-production-ref
     uses: ./.github/workflows/full-suite.yml
+    # actions:write lets full-suite's cancel-doomed-run end this run early
+    # when the gate is already red (the deploy job could never start anyway).
     permissions:
+      actions: write
       contents: read
       packages: write
       pull-requests: write

@@ -26,6 +26,7 @@ const KNOWN_PROTECTED_PREFIXES = [
   'workflows',
   'library',
   'agent',
+  'messages',
   'compose',
   'editor',
   'research',
@@ -66,6 +67,24 @@ export function getCurrentBrandScopedPath(pathname: string): string {
   }
 
   return APP_ROUTES.WORKSPACE.OVERVIEW;
+}
+
+export function getBrandSwitchHref({
+  nextBrandSlug,
+  nextOrgSlug,
+  pathname,
+}: {
+  nextBrandSlug: string;
+  nextOrgSlug: string;
+  pathname: string;
+}): string {
+  const parts = pathname.split('/').filter(Boolean);
+
+  if (parts.length >= 3 && parts[1] === '~') {
+    return `/${nextOrgSlug}/~/${parts.slice(2).join('/')}`;
+  }
+
+  return `/${nextOrgSlug}/${nextBrandSlug}${getCurrentBrandScopedPath(pathname)}`;
 }
 
 export function pickOperatorTaskContextSearchParams(

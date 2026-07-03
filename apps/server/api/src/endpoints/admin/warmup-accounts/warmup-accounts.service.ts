@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { InvitationService } from '@api/collections/members/services/invitation.service';
 import { CreateWarmupAccountDto } from '@api/endpoints/admin/warmup-accounts/dto/create-warmup-account.dto';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import type {
   IWarmupAccount,
   IWarmupAccountAuditEvent,
@@ -18,11 +20,7 @@ import {
 } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 type WarmupAccountView = IWarmupAccount & { _id: string };
 type WarmupTransaction = Prisma.TransactionClient;
@@ -123,13 +121,11 @@ export class AdminWarmupAccountsService {
   }
 
   async get(id: string): Promise<WarmupAccountView> {
-    const account = await this.prisma.warmupAccount.findFirst({
-      where: { id, isDeleted: false },
-    });
-
-    if (!account) {
-      throw new NotFoundException('Warm-up account not found');
-    }
+    const account = await findOrThrow(
+      this.prisma.warmupAccount,
+      { where: { id, isDeleted: false } },
+      'Warm-up account',
+    );
 
     return this.toView(account);
   }
@@ -200,7 +196,7 @@ export class AdminWarmupAccountsService {
             operatorUserId,
             'Provisioned warm-up organization and first brand.',
           ),
-        ] as Prisma.InputJsonValue,
+        ] as unknown as Prisma.InputJsonValue,
         brandId: brand.id,
         brandName: dto.brandName.trim(),
         customerUserId: customerUser.id,
@@ -211,7 +207,7 @@ export class AdminWarmupAccountsService {
             createDiagnosticStep('done', 'Created first brand workspace.'),
             createDiagnosticStep('done', 'Granted operator member access.'),
           ],
-        } as Prisma.InputJsonValue,
+        } as unknown as Prisma.InputJsonValue,
         guidance: trimOptional(dto.guidance),
         leadEmail,
         leadFirstName: trimOptional(dto.leadFirstName),
@@ -251,12 +247,12 @@ export class AdminWarmupAccountsService {
             account,
             operatorUserId,
             `Created pending invitation ${invitation.id}.`,
-          ) as Prisma.InputJsonValue,
+          ) as unknown as Prisma.InputJsonValue,
           diagnostics: this.appendDiagnosticStep(
             account,
             'done',
             'Created pending customer invitation.',
-          ) as Prisma.InputJsonValue,
+          ) as unknown as Prisma.InputJsonValue,
           invitationId: invitation.id,
           status: WarmupAccountStatus.INVITED,
         },
@@ -277,13 +273,13 @@ export class AdminWarmupAccountsService {
             account,
             operatorUserId,
             'Invitation provisioning failed.',
-          ) as Prisma.InputJsonValue,
+          ) as unknown as Prisma.InputJsonValue,
           diagnostics: this.appendDiagnosticStep(
             account,
             'failed',
             'Failed to create pending customer invitation.',
             error,
-          ) as Prisma.InputJsonValue,
+          ) as unknown as Prisma.InputJsonValue,
           status: WarmupAccountStatus.FAILED,
         },
         where: { id: account.id },

@@ -3,9 +3,6 @@ import { AdOptimizationConfigsService } from '@api/collections/ad-optimization-c
 import { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import type { AdOptimizationJobData } from '@api/queues/ad-optimization/ad-optimization-job.interface';
-import type { MetaAdSyncJobData } from '@api/queues/ad-sync-meta/ad-sync-meta-job.interface';
-import type { TikTokAdSyncJobData } from '@api/queues/ad-sync-tiktok/ad-sync-tiktok-job.interface';
 import { QueueService } from '@api/queues/core/queue.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
@@ -13,7 +10,12 @@ import { MetaAdsService } from '@api/services/integrations/meta-ads/services/met
 import { TikTokAdsService } from '@api/services/integrations/tiktok-ads/services/tiktok-ads.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform } from '@genfeedai/enums';
-import type { GoogleAdSyncJobData } from '@genfeedai/interfaces';
+import type {
+  AdOptimizationJobData,
+  GoogleAdSyncJobData,
+  MetaAdSyncJobData,
+  TikTokAdSyncJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -90,7 +92,7 @@ export class AdAutomationWorkflowService {
 
     const runId = randomUUID();
     const jobData: AdOptimizationJobData = {
-      configId: String(config._id),
+      configId: String(config.id),
       organizationId,
       runId,
     };
@@ -266,7 +268,7 @@ export class AdAutomationWorkflowService {
   ): Promise<boolean> {
     try {
       const accessToken = this.decryptOptional(credential.accessToken);
-      const credentialId = String(credential._id);
+      const credentialId = String(credential.id);
       const brandId = this.readCredentialBrandId(credential);
 
       if (!accessToken || !brandId) {
@@ -310,7 +312,7 @@ export class AdAutomationWorkflowService {
       return true;
     } catch (error) {
       this.logger.error(`${this.logContext} failed Meta ad sync enqueue`, {
-        credentialId: credential._id,
+        credentialId: credential.id,
         error,
         organizationId,
       });
@@ -325,7 +327,7 @@ export class AdAutomationWorkflowService {
     try {
       const accessToken = this.decryptOptional(credential.accessToken);
       const refreshToken = this.decryptOptional(credential.refreshToken);
-      const credentialId = String(credential._id);
+      const credentialId = String(credential.id);
       const brandId = this.readCredentialBrandId(credential);
 
       if (!accessToken || !refreshToken || !brandId) {
@@ -379,7 +381,7 @@ export class AdAutomationWorkflowService {
       return true;
     } catch (error) {
       this.logger.error(`${this.logContext} failed Google Ads sync enqueue`, {
-        credentialId: credential._id,
+        credentialId: credential.id,
         error,
         organizationId,
       });
@@ -393,7 +395,7 @@ export class AdAutomationWorkflowService {
   ): Promise<boolean> {
     try {
       const accessToken = this.decryptOptional(credential.accessToken);
-      const credentialId = String(credential._id);
+      const credentialId = String(credential.id);
       const brandId = this.readCredentialBrandId(credential);
 
       if (!accessToken || !brandId) {
@@ -439,7 +441,7 @@ export class AdAutomationWorkflowService {
       return true;
     } catch (error) {
       this.logger.error(`${this.logContext} failed TikTok Ads sync enqueue`, {
-        credentialId: credential._id,
+        credentialId: credential.id,
         error,
         organizationId,
       });

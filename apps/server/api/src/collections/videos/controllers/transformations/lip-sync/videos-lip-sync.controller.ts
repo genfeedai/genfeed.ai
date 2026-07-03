@@ -196,7 +196,7 @@ export class VideosLipSyncController {
           status: IngredientStatus.PROCESSING,
         });
 
-      ingredientId = String(ingredientData._id);
+      ingredientId = String(ingredientData.id);
 
       // 5. Call HeyGen Photo Avatar API
       this.loggerService.log(`${url} calling HeyGen Photo Avatar API`, {
@@ -220,7 +220,7 @@ export class VideosLipSyncController {
 
       // 6. Update metadata with external ID
       await this.metadataService.patch(
-        metadataData._id,
+        metadataData.id,
         new MetadataEntity({
           externalId: heygenVideoId,
         }),

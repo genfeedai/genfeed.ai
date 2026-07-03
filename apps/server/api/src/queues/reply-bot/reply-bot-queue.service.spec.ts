@@ -143,7 +143,7 @@ describe('ReplyBotQueueService', () => {
       const credId = '507f191e810c19729de860ee';
 
       orgsService.findAll.mockResolvedValue({
-        docs: [{ _id: orgId1 }, { _id: orgId2 }],
+        docs: [{ id: orgId1 }, { id: orgId2 }],
       });
 
       replyBotConfigsService.findActive
@@ -151,7 +151,7 @@ describe('ReplyBotQueueService', () => {
         .mockResolvedValueOnce([]); // org2 does not
 
       credentialsService.findOne.mockResolvedValueOnce({
-        _id: credId,
+        id: credId,
       });
 
       await service.scheduledPolling();
@@ -185,7 +185,7 @@ describe('ReplyBotQueueService', () => {
     it('looks up Twitter credentials specifically', async () => {
       const orgId1 = '507f191e810c19729de860ee';
       orgsService.findAll.mockResolvedValue({
-        docs: [{ _id: orgId1 }],
+        docs: [{ id: orgId1 }],
       });
       replyBotConfigsService.findActive.mockResolvedValue([{ _id: 'c-1' }]);
       credentialsService.findOne.mockResolvedValue(null);

@@ -6,6 +6,7 @@ import {
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -16,16 +17,7 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
 import { WorkflowExecutionSerializer } from '@genfeedai/serializers';
-import {
-  Body,
-  Controller,
-  Get,
-  NotFoundException,
-  Param,
-  Post,
-  Query,
-  Req,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -220,7 +212,7 @@ export class WorkflowExecutionsController {
     });
 
     if (!execution) {
-      throw new NotFoundException('Execution not found');
+      throw new NotFoundException('Execution');
     }
 
     const cancelled = await this.workflowExecutionsService.cancelExecution(id);

@@ -3,13 +3,13 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { IS_SELF_HOSTED } from '@genfeedai/config';
 import { FileInputType } from '@genfeedai/enums';
 import { AssetCategory, AssetParent } from '@genfeedai/prisma';
 import {
   BadRequestException,
   Injectable,
-  NotFoundException,
   PayloadTooLargeException,
   UnsupportedMediaTypeException,
 } from '@nestjs/common';
@@ -417,7 +417,6 @@ export class DesktopSyncService {
         select: {
           cloudObjectKey: true,
           createdAt: true,
-          deletedAt: true,
           displayName: true,
           id: true,
           isDeleted: true,
@@ -503,12 +502,15 @@ export class DesktopSyncService {
           },
         });
 
-        if (existing?.deletedAt || existing?.isDeleted) {
+        if (existing?.isDeleted) {
           rejected++;
           assets.push({
             cloudAssetId: existing.id,
             cloudObjectKey: existing.cloudObjectKey,
-            deletedAt: existing.deletedAt,
+            // Soft-delete timestamp is no longer stored on Asset (isDeleted is the
+            // sole soft-delete signal); surface updatedAt as the deletion instant
+            // so the desktop client's tombstone timeline stays populated.
+            deletedAt: existing.updatedAt,
             localAssetId: asset.id,
             reason: 'cloud-deleted',
             residency: existing.residency,
@@ -629,18 +631,18 @@ export class DesktopSyncService {
   @LogMethod()
   async requestAssetUpload(user: User, dto: RequestDesktopAssetUploadDto) {
     const { organizationId, userId } = this.getCloudContext(user);
-    const asset = await this.prisma.asset.findFirst({
-      where: {
-        isDeleted: false,
-        localAssetId: dto.assetId,
-        parentOrgId: organizationId,
-        userId,
+    const asset = await findOrThrow(
+      this.prisma.asset,
+      {
+        where: {
+          isDeleted: false,
+          localAssetId: dto.assetId,
+          parentOrgId: organizationId,
+          userId,
+        },
       },
-    });
-
-    if (!asset) {
-      throw new NotFoundException('Desktop asset metadata was not found.');
-    }
+      'Desktop asset metadata was not found.',
+    );
 
     const effectiveMime = dto.mimeType ?? asset.mimeType ?? '';
     if (effectiveMime) {
@@ -695,18 +697,18 @@ export class DesktopSyncService {
   @LogMethod()
   async confirmAssetUpload(user: User, id: string) {
     const { organizationId, userId } = this.getCloudContext(user);
-    const asset = await this.prisma.asset.findFirst({
-      where: {
-        id,
-        isDeleted: false,
-        parentOrgId: organizationId,
-        userId,
+    const asset = await findOrThrow(
+      this.prisma.asset,
+      {
+        where: {
+          id,
+          isDeleted: false,
+          parentOrgId: organizationId,
+          userId,
+        },
       },
-    });
-
-    if (!asset) {
-      throw new NotFoundException('Desktop asset upload was not found.');
-    }
+      'Desktop asset upload was not found.',
+    );
 
     const updated = await this.prisma.asset.update({
       data: {
@@ -728,18 +730,18 @@ export class DesktopSyncService {
   @LogMethod()
   async uploadAsset(user: User, id: string, dto: UploadDesktopAssetDto) {
     const { organizationId, userId } = this.getCloudContext(user);
-    const asset = await this.prisma.asset.findFirst({
-      where: {
-        id,
-        isDeleted: false,
-        parentOrgId: organizationId,
-        userId,
+    const asset = await findOrThrow(
+      this.prisma.asset,
+      {
+        where: {
+          id,
+          isDeleted: false,
+          parentOrgId: organizationId,
+          userId,
+        },
       },
-    });
-
-    if (!asset) {
-      throw new NotFoundException('Desktop asset upload was not found.');
-    }
+      'Desktop asset upload was not found.',
+    );
 
     const buffer = Buffer.from(dto.data, 'base64');
 
@@ -811,7 +813,7 @@ export class DesktopSyncService {
       try {
         if (op.entityType === 'asset' && op.operation === 'delete') {
           await this.prisma.asset.updateMany({
-            data: { deletedAt: new Date(), isDeleted: true },
+            data: { isDeleted: true },
             where: {
               localAssetId: op.entityId,
               parentOrgId: organizationId,

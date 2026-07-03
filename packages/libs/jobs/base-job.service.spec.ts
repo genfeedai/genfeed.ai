@@ -34,23 +34,28 @@ function createMockLogger(): MockLogger {
   return { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
 }
 
-/** In-memory fake of the node-redis publisher surface used by the service. */
+/** In-memory fake of the ioredis publisher surface used by the service. */
 function createMockPublisher() {
   const store = new Map<string, string>();
 
   return {
     get: vi.fn(async (key: string) => store.get(key) ?? null),
-    scanIterator: vi.fn(({ MATCH }: { COUNT: number; MATCH: string }) => {
-      const prefix = MATCH.slice(0, -1);
-      return (async function* () {
-        for (const key of store.keys()) {
-          if (key.startsWith(prefix)) {
-            yield key;
-          }
-        }
-      })();
-    }),
-    setEx: vi.fn(async (key: string, _ttl: number, value: string) => {
+    scan: vi.fn(
+      async (
+        _cursor: string,
+        _match: string,
+        pattern: string,
+        _count: string,
+        _countValue: number,
+      ) => {
+        const prefix = pattern.slice(0, -1);
+        const foundKeys = Array.from(store.keys()).filter((key) =>
+          key.startsWith(prefix),
+        );
+        return ['0', foundKeys] as [string, string[]];
+      },
+    ),
+    setex: vi.fn(async (key: string, _ttl: number, value: string) => {
       store.set(key, value);
     }),
     store,
@@ -237,7 +242,7 @@ describe('BaseJobService', () => {
         type: 'gen',
       });
 
-      expect(publisher.setEx).toHaveBeenCalledWith(
+      expect(publisher.setex).toHaveBeenCalledWith(
         `jobs:test:${job.jobId}`,
         86400,
         JSON.stringify(job),
@@ -315,7 +320,7 @@ describe('BaseJobService', () => {
     });
 
     it('falls back to memory and warns when Redis writes fail', async () => {
-      publisher.setEx.mockRejectedValueOnce(new Error('redis down'));
+      publisher.setex.mockRejectedValueOnce(new Error('redis down'));
 
       const job = await redisBackedService.createJob({
         params: {},
@@ -363,7 +368,7 @@ describe('BaseJobService', () => {
         status: 'completed',
       });
 
-      expect(publisher.setEx).toHaveBeenLastCalledWith(
+      expect(publisher.setex).toHaveBeenLastCalledWith(
         `jobs:test:${job.jobId}`,
         86400,
         JSON.stringify(updated),
@@ -389,9 +394,7 @@ describe('BaseJobService', () => {
 
     it('falls back to memory stats and warns when the Redis scan fails', async () => {
       await redisBackedService.createJob({ params: {}, type: 'gen' });
-      publisher.scanIterator.mockImplementationOnce(() => {
-        throw new Error('scan failed');
-      });
+      publisher.scan.mockRejectedValueOnce(new Error('scan failed'));
 
       const stats = await redisBackedService.getStats();
 

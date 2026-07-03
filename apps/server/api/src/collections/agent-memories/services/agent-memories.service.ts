@@ -9,13 +9,10 @@ import {
 } from '@api/collections/agent-memories/schemas/agent-memory.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 interface CreateAgentMemoryPayload {
   campaignId?: string;
@@ -243,17 +240,18 @@ export class AgentMemoriesService extends BaseService<
     userId: string,
     organizationId: string,
   ): Promise<void> {
-    const memory = await this.delegate.findFirst({
-      where: {
-        id: memoryId,
-        organizationId,
-        userId,
+    await findOrThrow(
+      this.delegate,
+      {
+        where: {
+          id: memoryId,
+          organizationId,
+          userId,
+        },
       },
-    });
-
-    if (!memory) {
-      throw new NotFoundException(`Memory entry "${memoryId}" not found`);
-    }
+      'Memory entry',
+      memoryId,
+    );
 
     await this.delegate.delete({
       where: { id: memoryId },
@@ -568,7 +566,7 @@ export class AgentMemoriesService extends BaseService<
   }
 
   private resolveMemoryId(memory: AgentMemoryDocument): string {
-    const id = memory.id ?? memory._id;
+    const id = memory.id;
     return typeof id === 'string' ? id : String(id ?? '');
   }
 

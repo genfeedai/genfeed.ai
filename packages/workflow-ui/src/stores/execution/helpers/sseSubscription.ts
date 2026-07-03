@@ -1,6 +1,7 @@
 import type { NodeStatus } from '@genfeedai/types';
 import { NodeStatusEnum } from '@genfeedai/types';
 import type { StoreApi } from 'zustand';
+import { getWorkflowLogger } from '../../executionLogger';
 import { useUIStore } from '../../uiStore';
 import { useWorkflowStore } from '../../workflow/workflowStore';
 import type {
@@ -10,6 +11,8 @@ import type {
   Job,
 } from '../types';
 import { getOutputUpdate } from './outputHelpers';
+
+const LOG_CONTEXT = 'ExecutionStore';
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || 'http://local.genfeed.ai:3010/api';
@@ -235,16 +238,26 @@ export function createExecutionSubscription(
           });
 
           if (data.status === 'failed' || hasFailedNode) {
-            // Execution failed - consuming app can handle error reporting
+            getWorkflowLogger().error('Workflow execution failed', {
+              context: LOG_CONTEXT,
+              error: new Error('Execution failed'),
+            });
           }
         }
-      } catch {
-        // Failed to parse SSE message
+      } catch (error) {
+        getWorkflowLogger().error('Failed to parse SSE message', {
+          context: LOG_CONTEXT,
+          error,
+        });
       }
     })();
   };
 
-  eventSource.onerror = () => {
+  eventSource.onerror = (error) => {
+    getWorkflowLogger().error('SSE connection error', {
+      context: LOG_CONTEXT,
+      error,
+    });
     eventSource.close();
     void reconcileNodeStatuses(executionId).then(() => {
       set({ eventSource: null, isRunning: false });
@@ -342,13 +355,23 @@ export function createNodeExecutionSubscription(
             return { activeNodeExecutions: newMap };
           });
         }
-      } catch {
-        // Failed to parse SSE message (node execution)
+      } catch (error) {
+        getWorkflowLogger().error(
+          'Failed to parse SSE message (node execution)',
+          {
+            context: LOG_CONTEXT,
+            error,
+          },
+        );
       }
     })();
   };
 
-  eventSource.onerror = () => {
+  eventSource.onerror = (error) => {
+    getWorkflowLogger().error('SSE connection error (node execution)', {
+      context: LOG_CONTEXT,
+      error,
+    });
     eventSource.close();
     void reconcileNodeStatuses(executionId).then(() => {
       set((state) => {

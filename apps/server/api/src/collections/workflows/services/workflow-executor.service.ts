@@ -7,8 +7,10 @@ import type {
   WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import {
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
@@ -25,12 +27,7 @@ import type {
 } from '@genfeedai/workflow-engine';
 import { buildWorkflowEtaSnapshot } from '@helpers/generation-eta.helper';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-  Optional,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 // =============================================================================
 // TYPES
@@ -137,6 +134,8 @@ const MAX_EXECUTION_NODES = 500;
 
 /** Map from trigger event types to executor node types */
 const EVENT_TYPE_TO_NODE_TYPE: Record<string, string> = {
+  comment: 'commentTrigger',
+  commentTrigger: 'commentTrigger',
   mention: 'mentionTrigger',
   mentionTrigger: 'mentionTrigger',
   newFollower: 'newFollowerTrigger',
@@ -145,8 +144,6 @@ const EVENT_TYPE_TO_NODE_TYPE: Record<string, string> = {
   newLikeTrigger: 'newLikeTrigger',
   newRepost: 'newRepostTrigger',
   newRepostTrigger: 'newRepostTrigger',
-  comment: 'commentTrigger',
-  commentTrigger: 'commentTrigger',
   keyword: 'keywordTrigger',
   keywordTrigger: 'keywordTrigger',
   engagement: 'engagementTrigger',
@@ -226,7 +223,7 @@ export class WorkflowExecutorService {
       {
         workflowIds: matchingWorkflows.map((w) =>
           String(
-            (w as unknown as Record<string, unknown>)._id ??
+            (w as unknown as Record<string, unknown>).id ??
               (w as unknown as { id: string }).id,
           ),
         ),
@@ -241,7 +238,7 @@ export class WorkflowExecutorService {
         results.push(result);
       } catch (error) {
         const workflowId = String(
-          (workflow as unknown as Record<string, unknown>)._id ??
+          (workflow as unknown as Record<string, unknown>).id ??
             (workflow as unknown as { id: string }).id,
         );
         this.logger.error(
@@ -289,13 +286,12 @@ export class WorkflowExecutorService {
     metadata?: Record<string, unknown>,
     trigger: WorkflowExecutionTrigger = WorkflowExecutionTrigger.MANUAL,
   ): Promise<WorkflowExecutionResult> {
-    const workflowDoc = await this.prisma.workflow.findFirst({
-      where: { id: workflowId, isDeleted: false, organizationId },
-    });
-
-    if (!workflowDoc) {
-      throw new NotFoundException(`Workflow ${workflowId} not found`);
-    }
+    const workflowDoc = await findOrThrow(
+      this.prisma.workflow,
+      { where: { id: workflowId, isDeleted: false, organizationId } },
+      'Workflow',
+      workflowId,
+    );
 
     return this.executeWorkflowDocument(
       this.normalizeWorkflowDocument(workflowDoc),
@@ -336,13 +332,12 @@ export class WorkflowExecutorService {
       throw new NotFoundException(`Execution ${executionId} not found`);
     }
 
-    const workflowDoc = await this.prisma.workflow.findFirst({
-      where: { id: workflowId, isDeleted: false, organizationId },
-    });
-
-    if (!workflowDoc) {
-      throw new NotFoundException(`Workflow ${workflowId} not found`);
-    }
+    const workflowDoc = await findOrThrow(
+      this.prisma.workflow,
+      { where: { id: workflowId, isDeleted: false, organizationId } },
+      'Workflow',
+      workflowId,
+    );
 
     const normalizedWorkflowDoc = this.normalizeWorkflowDocument(workflowDoc);
     const workflowLabel = this.getWorkflowLabel(normalizedWorkflowDoc);
@@ -635,7 +630,7 @@ export class WorkflowExecutorService {
   ): Promise<WorkflowExecutionResult> {
     const workflowLabel = this.getWorkflowLabel(workflowDoc);
     const workflowId = String(
-      (workflowDoc as unknown as Record<string, unknown>)._id ??
+      (workflowDoc as unknown as Record<string, unknown>).id ??
         (workflowDoc as unknown as { id: string }).id,
     );
     const startedAt = new Date();
@@ -681,7 +676,7 @@ export class WorkflowExecutorService {
     );
 
     const executionId = String(
-      (execution as unknown as Record<string, unknown>)._id ??
+      (execution as unknown as Record<string, unknown>).id ??
         (execution as unknown as { id: string }).id,
     );
 

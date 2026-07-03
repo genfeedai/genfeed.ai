@@ -77,14 +77,14 @@ export class ModelRegistrationService {
       }
 
       this.logger.log(
-        `Created model ${newModel.key} from training ${training._id ?? training.id}`,
+        `Created model ${newModel.key} from training ${training.id}`,
       );
       return newModel;
     } catch (err: unknown) {
       const error = err as { code?: number };
       if (error.code === 11000) {
         const raceWinner = await this.prisma.model.findFirst({
-          where: { trainingId: training._id ?? training.id },
+          where: { trainingId: training.id },
         });
         return raceWinner as unknown as ModelDocument;
       }

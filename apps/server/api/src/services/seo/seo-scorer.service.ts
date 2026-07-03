@@ -1,4 +1,5 @@
 import { ConfigService } from '@api/config/config.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import type {
   OpenRouterChatCompletionParams,
@@ -6,9 +7,10 @@ import type {
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, NotFoundException, Optional } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 
 import {
   type ScoreContentOptions,
@@ -111,16 +113,11 @@ export class SeoScorerService {
     organizationId: string,
     targetKeyword?: string,
   ): Promise<SeoScorecard> {
-    const article = await this.prisma.article.findFirst({
-      where: {
-        id: articleId,
-        isDeleted: false,
-        organizationId,
-      },
-    });
-    if (!article) {
-      throw new NotFoundException('Article not found');
-    }
+    const article = await findOrThrow(
+      this.prisma.article,
+      { where: { id: articleId, isDeleted: false, organizationId } },
+      'Article',
+    );
 
     const scorecard = await this.scoreContent({
       content: article.content,
@@ -140,16 +137,11 @@ export class SeoScorerService {
     organizationId: string,
     targetKeyword?: string,
   ): Promise<SeoScorecard> {
-    const post = await this.prisma.post.findFirst({
-      where: {
-        id: postId,
-        isDeleted: false,
-        organizationId,
-      },
-    });
-    if (!post) {
-      throw new NotFoundException('Post not found');
-    }
+    const post = await findOrThrow(
+      this.prisma.post,
+      { where: { id: postId, isDeleted: false, organizationId } },
+      'Post',
+    );
 
     const scorecard = await this.scoreContent({
       content: post.description,

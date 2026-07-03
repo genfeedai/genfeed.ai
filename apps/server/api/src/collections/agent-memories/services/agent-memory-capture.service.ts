@@ -98,7 +98,7 @@ export class AgentMemoryCaptureService {
               ? payload.performanceSnapshot.engagementScore
               : undefined,
           source: payload.sourceType || 'agent-save',
-          sourceId: payload.sourceContentId || String(memory._id),
+          sourceId: payload.sourceContentId || String(memory.id),
           sourceUrl: payload.sourceUrl,
           tags: payload.tags,
         },
@@ -131,8 +131,8 @@ export class AgentMemoryCaptureService {
         !item.isDeleted,
     );
 
-    if (matching?._id) {
-      return String(matching._id);
+    if (matching?.id) {
+      return String(matching.id);
     }
 
     const created = await this.contextsService.create(
@@ -150,11 +150,11 @@ export class AgentMemoryCaptureService {
 
     this.loggerService.log('Created content memory context base', {
       brandId,
-      contextBaseId: String(created._id),
+      contextBaseId: String(created.id),
       organizationId,
     });
 
-    return String(created._id);
+    return String(created.id);
   }
 
   private normalizeScore(value: number | undefined, fallback: number): number {

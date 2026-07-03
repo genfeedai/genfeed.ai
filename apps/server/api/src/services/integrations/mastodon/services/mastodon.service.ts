@@ -273,7 +273,7 @@ export class MastodonService {
 
       this.loggerService.log(`${url} success`, {
         accountId: account.id,
-        credentialId: credential._id,
+        credentialId: credential.id,
         instanceUrl,
       });
 

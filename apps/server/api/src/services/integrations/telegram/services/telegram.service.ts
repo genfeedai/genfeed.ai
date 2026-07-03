@@ -1,3 +1,4 @@
+import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ConfigService } from '@api/config/config.service';
 import { TelegramAuthUtil } from '@api/shared/utils/telegram-auth/telegram-auth.util';
@@ -120,22 +121,22 @@ export class TelegramService {
         user: userId,
       };
 
-      let credential;
+      let credential: CredentialDocument;
       if (existingCredential) {
         // Update existing credential
         credential = await this.credentialsService.patch(
-          existingCredential._id,
+          existingCredential.id,
           credentialData,
         );
         this.loggerService.log(`${url} updated existing credential`, {
-          credentialId: credential._id,
+          credentialId: credential.id,
         });
       } else {
         // Create new credential
         // @ts-expect-error CreateCredentialDto shape
         credential = await this.credentialsService.create(credentialData);
         this.loggerService.log(`${url} created new credential`, {
-          credentialId: credential._id,
+          credentialId: credential.id,
         });
       }
 
@@ -185,13 +186,13 @@ export class TelegramService {
         );
       }
 
-      await this.credentialsService.patch(credential._id, {
+      await this.credentialsService.patch(credential.id, {
         isConnected: false,
         isDeleted: true,
       });
 
       this.loggerService.log(`${url} disconnected credential`, {
-        credentialId: credential._id,
+        credentialId: credential.id,
       });
 
       return { success: true };

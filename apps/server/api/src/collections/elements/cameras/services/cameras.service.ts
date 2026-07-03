@@ -1,6 +1,7 @@
 import { CreateElementCameraDto } from '@api/collections/elements/cameras/dto/create-camera.dto';
 import { UpdateElementCameraDto } from '@api/collections/elements/cameras/dto/update-camera.dto';
 import type { ElementCameraDocument } from '@api/collections/elements/cameras/schemas/camera.schema';
+import { CacheService } from '@api/services/cache/services/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -15,7 +16,8 @@ export class ElementsCamerasService extends BaseService<
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
+    cacheService: CacheService,
   ) {
-    super(prisma, 'elementCamera', logger);
+    super(prisma, 'elementCamera', logger, undefined, cacheService);
   }
 }

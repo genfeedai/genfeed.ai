@@ -79,7 +79,7 @@ export class TwitterController {
       } as TwitterApiOAuth2Init);
 
       const state = JSON.stringify({
-        brandId: brand._id,
+        brandId: brand.id,
         organizationId: brand.organization,
         userId: publicMetadata.user,
       });
@@ -203,7 +203,7 @@ export class TwitterController {
 
       // Update credential with OAuth 2.0 tokens
       const updatedCredential = await this.credentialsService.patch(
-        credential._id,
+        credential.id,
         {
           accessToken,
           accessTokenExpiry: expiresIn

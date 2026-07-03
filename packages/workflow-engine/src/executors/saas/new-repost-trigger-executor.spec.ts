@@ -1,9 +1,8 @@
 import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
-  createNewRepostTriggerExecutor,
   type NewRepostChecker,
-  type NewRepostTriggerExecutor,
+  NewRepostTriggerExecutor,
 } from '@workflow-engine/executors/saas/new-repost-trigger-executor';
 import type { ExecutableNode } from '@workflow-engine/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -30,7 +29,7 @@ describe('NewRepostTriggerExecutor', () => {
   let mockChecker: NewRepostChecker;
 
   beforeEach(() => {
-    executor = createNewRepostTriggerExecutor();
+    executor = new NewRepostTriggerExecutor();
     mockChecker = vi.fn().mockResolvedValue({
       platform: 'twitter',
       postId: 'post-1',
@@ -47,7 +46,7 @@ describe('NewRepostTriggerExecutor', () => {
   });
 
   it('throws if checker not configured', async () => {
-    const fresh = createNewRepostTriggerExecutor();
+    const fresh = new NewRepostTriggerExecutor();
     const input = makeInput({ platform: 'twitter' });
     await expect(fresh.execute(input)).rejects.toThrow(
       'checker not configured',

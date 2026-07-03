@@ -7,9 +7,10 @@ import '@discord/instrument';
 
 bootstrap({ app: 'discord' });
 
+import process from 'node:process';
 import { AppModule } from '@discord/app.module';
 import { ConfigService } from '@discord/config/config.service';
-import { Logger } from '@nestjs/common';
+import { LoggerService } from '@libs/logger/logger.service';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 
@@ -21,7 +22,7 @@ async function main() {
   });
 
   const configService = app.get(ConfigService);
-  const logger = new Logger('Discord');
+  const logger = app.get<LoggerService>(LoggerService);
   const port = configService.get('PORT');
 
   try {

@@ -1,7 +1,6 @@
 import type { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
-import type { RedisClientType } from 'redis';
-import * as redis from 'redis';
+import Redis from 'ioredis';
 import {
   afterEach,
   beforeEach,
@@ -12,8 +11,12 @@ import {
   vi,
 } from 'vitest';
 
+vi.mock('ioredis', () => ({
+  default: vi.fn(),
+}));
+
 type RedisClientSubset = Pick<
-  RedisClientType,
+  Redis,
   | 'connect'
   | 'duplicate'
   | 'on'
@@ -23,9 +26,12 @@ type RedisClientSubset = Pick<
   | 'unsubscribe'
 >;
 
+type MockRedisClient = Mocked<RedisClientSubset> & {
+  emitMessage: (channel: string, message: string) => void;
+};
+
 describe('RedisService', () => {
   let service: RedisService;
-  let createClientSpy: ReturnType<typeof vi.spyOn>;
 
   const mockConfigService = {
     get: vi.fn<(key: string) => string | undefined>(),
@@ -40,18 +46,33 @@ describe('RedisService', () => {
     warn: vi.fn(),
   };
 
-  const buildMockClient = (): Mocked<RedisClientSubset> => {
-    const client: RedisClientSubset = {
+  const buildMockClient = (): MockRedisClient => {
+    let messageHandler:
+      | ((channel: string, message: string) => void)
+      | undefined;
+
+    const client: MockRedisClient = {
       connect: vi.fn().mockResolvedValue(undefined),
       duplicate: vi.fn(),
-      on: vi.fn(),
+      emitMessage: (channel: string, message: string) => {
+        messageHandler?.(channel, message);
+      },
+      on: vi.fn((event: string, handler: unknown) => {
+        if (event === 'message') {
+          messageHandler = handler as (
+            channel: string,
+            message: string,
+          ) => void;
+        }
+        return client as unknown as Redis;
+      }) as unknown as Mocked<RedisClientSubset>['on'],
       publish: vi.fn().mockResolvedValue(1),
       quit: vi.fn().mockResolvedValue(undefined),
       subscribe: vi.fn().mockResolvedValue(undefined),
       unsubscribe: vi.fn().mockResolvedValue(undefined),
     };
 
-    return client as Mocked<RedisClientSubset>;
+    return client;
   };
 
   const createService = () => {
@@ -62,13 +83,12 @@ describe('RedisService', () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     mockConfigService.get.mockReturnValue('redis://localhost:6379');
   });
 
   afterEach(async () => {
     await service?.onModuleDestroy();
-    createClientSpy?.mockRestore();
     vi.restoreAllMocks();
   });
 
@@ -79,12 +99,11 @@ describe('RedisService', () => {
 
   it('should no-op when REDIS_URL is missing', async () => {
     mockConfigService.get.mockReturnValue(undefined);
-    createClientSpy = vi.spyOn(redis, 'createClient');
 
     createService();
     await service.onModuleInit();
 
-    expect(createClientSpy).not.toHaveBeenCalled();
+    expect(vi.mocked(Redis)).not.toHaveBeenCalled();
     expect(mockLoggerService.warn).toHaveBeenCalledWith(
       'REDIS_URL not configured - Redis features disabled',
       expect.objectContaining({ service: 'RedisService' }),
@@ -95,10 +114,9 @@ describe('RedisService', () => {
     const publisher = buildMockClient();
     const subscriber = buildMockClient();
 
-    createClientSpy = vi
-      .spyOn(redis, 'createClient')
-      .mockReturnValueOnce(publisher as unknown as RedisClientType)
-      .mockReturnValueOnce(subscriber as unknown as RedisClientType);
+    vi.mocked(Redis)
+      .mockImplementationOnce(() => publisher as unknown as Redis)
+      .mockImplementationOnce(() => subscriber as unknown as Redis);
 
     createService();
 
@@ -107,13 +125,10 @@ describe('RedisService', () => {
 
     await service.onModuleInit();
 
-    expect(createClientSpy).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(Redis)).toHaveBeenCalledTimes(2);
     expect(publisher.connect).toHaveBeenCalledOnce();
     expect(subscriber.connect).toHaveBeenCalledOnce();
-    expect(subscriber.subscribe).toHaveBeenCalledWith(
-      'test-channel',
-      expect.any(Function),
-    );
+    expect(subscriber.subscribe).toHaveBeenCalledWith('test-channel');
     expect(mockLoggerService.log).toHaveBeenCalledWith(
       'Redis clients connected successfully',
       expect.objectContaining({ service: 'RedisService' }),
@@ -126,10 +141,9 @@ describe('RedisService', () => {
 
     publisher.connect.mockRejectedValueOnce(new Error('publisher failed'));
 
-    createClientSpy = vi
-      .spyOn(redis, 'createClient')
-      .mockReturnValueOnce(publisher as unknown as RedisClientType)
-      .mockReturnValueOnce(subscriber as unknown as RedisClientType);
+    vi.mocked(Redis)
+      .mockImplementationOnce(() => publisher as unknown as Redis)
+      .mockImplementationOnce(() => subscriber as unknown as Redis);
 
     createService();
     await service.onModuleInit();
@@ -152,10 +166,9 @@ describe('RedisService', () => {
     const publisher = buildMockClient();
     const subscriber = buildMockClient();
 
-    createClientSpy = vi
-      .spyOn(redis, 'createClient')
-      .mockReturnValueOnce(publisher as unknown as RedisClientType)
-      .mockReturnValueOnce(subscriber as unknown as RedisClientType);
+    vi.mocked(Redis)
+      .mockImplementationOnce(() => publisher as unknown as Redis)
+      .mockImplementationOnce(() => subscriber as unknown as Redis);
 
     createService();
     await service.onModuleInit();
@@ -184,10 +197,9 @@ describe('RedisService', () => {
     const publisher = buildMockClient();
     const subscriber = buildMockClient();
 
-    createClientSpy = vi
-      .spyOn(redis, 'createClient')
-      .mockReturnValueOnce(publisher as unknown as RedisClientType)
-      .mockReturnValueOnce(subscriber as unknown as RedisClientType);
+    vi.mocked(Redis)
+      .mockImplementationOnce(() => publisher as unknown as Redis)
+      .mockImplementationOnce(() => subscriber as unknown as Redis);
 
     createService();
     await service.onModuleInit();
@@ -195,14 +207,9 @@ describe('RedisService', () => {
     const handler = vi.fn();
     await service.subscribe('test-channel', handler);
 
-    const subscribeCall = subscriber.subscribe.mock.calls[0];
-    const callback = subscribeCall?.[1] as
-      | ((payload: string) => void)
-      | undefined;
-
     await service.unsubscribe('test-channel');
 
-    callback?.(JSON.stringify({ value: 1 }));
+    subscriber.emitMessage('test-channel', JSON.stringify({ value: 1 }));
 
     expect(subscriber.unsubscribe).toHaveBeenCalledWith('test-channel');
     expect(handler).not.toHaveBeenCalled();
@@ -212,10 +219,9 @@ describe('RedisService', () => {
     const publisher = buildMockClient();
     const subscriber = buildMockClient();
 
-    createClientSpy = vi
-      .spyOn(redis, 'createClient')
-      .mockReturnValueOnce(publisher as unknown as RedisClientType)
-      .mockReturnValueOnce(subscriber as unknown as RedisClientType);
+    vi.mocked(Redis)
+      .mockImplementationOnce(() => publisher as unknown as Redis)
+      .mockImplementationOnce(() => subscriber as unknown as Redis);
 
     createService();
     await service.onModuleInit();
@@ -224,12 +230,9 @@ describe('RedisService', () => {
     service.on('message', eventSpy);
 
     await service.subscribe('test-channel');
-    const callback = subscriber.subscribe.mock.calls[0]?.[1] as
-      | ((payload: string) => void)
-      | undefined;
 
     const payload = JSON.stringify({ hello: 'world' });
-    callback?.(payload);
+    subscriber.emitMessage('test-channel', payload);
 
     expect(eventSpy).toHaveBeenCalledWith('test-channel', payload);
   });
@@ -241,10 +244,9 @@ describe('RedisService', () => {
       .mockRejectedValueOnce(new Error('subscribe timeout'))
       .mockResolvedValueOnce(undefined);
 
-    createClientSpy = vi
-      .spyOn(redis, 'createClient')
-      .mockReturnValueOnce(publisher as unknown as RedisClientType)
-      .mockReturnValueOnce(subscriber as unknown as RedisClientType);
+    vi.mocked(Redis)
+      .mockImplementationOnce(() => publisher as unknown as Redis)
+      .mockImplementationOnce(() => subscriber as unknown as Redis);
 
     createService();
     await service.onModuleInit();
@@ -257,10 +259,8 @@ describe('RedisService', () => {
     await service.subscribe('flaky-channel', handler);
 
     expect(subscriber.subscribe).toHaveBeenCalledTimes(2);
-    const callback = subscriber.subscribe.mock.calls[1]?.[1] as
-      | ((payload: string) => void)
-      | undefined;
-    callback?.(JSON.stringify({ retried: true }));
+
+    subscriber.emitMessage('flaky-channel', JSON.stringify({ retried: true }));
 
     expect(handler).toHaveBeenCalledWith({ retried: true });
   });

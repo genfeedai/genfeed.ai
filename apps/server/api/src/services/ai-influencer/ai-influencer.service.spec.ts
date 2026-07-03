@@ -9,6 +9,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import type { PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { ConfigService } from '@api/config/config.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { AiInfluencerService } from '@api/services/ai-influencer/ai-influencer.service';
 import { FalService } from '@api/services/integrations/fal/fal.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
@@ -17,7 +18,6 @@ import { TwitterService } from '@api/services/integrations/twitter/services/twit
 import { PersonaContentService } from '@api/services/persona-content/persona-content.service';
 import { LoraStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('AiInfluencerService', () => {
@@ -58,7 +58,7 @@ describe('AiInfluencerService', () => {
     overrides: Partial<PersonaDocument> = {},
   ): PersonaDocument =>
     ({
-      _id: mockPersonaId,
+      id: mockPersonaId,
       bio: 'A lifestyle influencer sharing daily vibes',
       brand: mockBrandId,
       contentStrategy: {
@@ -82,7 +82,7 @@ describe('AiInfluencerService', () => {
   // Mock ingredient
   const createMockIngredient = (): IngredientDocument =>
     ({
-      _id: mockIngredientId,
+      id: mockIngredientId,
       brand: mockBrandId,
       cdnUrl: 'https://cdn.fal.ai/generated/test-image.jpg',
       organization: mockOrganizationId,
@@ -736,7 +736,7 @@ describe('AiInfluencerService', () => {
     it('should find all autopilot personas and generate posts', async () => {
       const persona1 = createMockPersona({ slug: 'persona-1' });
       const persona2 = createMockPersona({
-        _id: '507f1f77bcf86cd799439099',
+        id: '507f1f77bcf86cd799439099',
         slug: 'persona-2',
       });
 
@@ -817,7 +817,7 @@ describe('AiInfluencerService', () => {
     it('should continue with other personas when one fails', async () => {
       const persona1 = createMockPersona({ slug: 'persona-fail' });
       const persona2 = createMockPersona({
-        _id: '507f1f77bcf86cd799439099',
+        id: '507f1f77bcf86cd799439099',
         slug: 'persona-ok',
       });
 

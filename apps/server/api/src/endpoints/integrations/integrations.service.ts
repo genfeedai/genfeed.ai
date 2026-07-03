@@ -1,20 +1,20 @@
+import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import { CreateIntegrationDto } from '@api/endpoints/integrations/dto/create-integration.dto';
 import { UpdateIntegrationDto } from '@api/endpoints/integrations/dto/update-integration.dto';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/enums';
 import { REDIS_EVENTS } from '@genfeedai/integrations';
 import {
   IntegrationPlatform as PrismaIntegrationPlatform,
   IntegrationStatus as PrismaIntegrationStatus,
 } from '@genfeedai/prisma';
-import { CryptoService } from '@libs/crypto/crypto.service';
 import { RedisService } from '@libs/redis/redis.service';
 import {
   BadRequestException,
-  Inject,
   Injectable,
   Logger,
-  NotFoundException,
   Optional,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -26,8 +26,7 @@ export class IntegrationsService {
   constructor(
     private readonly prisma: PrismaService,
     private eventEmitter: EventEmitter2,
-    @Inject('CryptoService')
-    private cryptoService: CryptoService,
+    private readonly cryptoService: CredentialCryptoService,
     @Optional() private readonly redisService?: RedisService,
   ) {}
 
@@ -53,7 +52,7 @@ export class IntegrationsService {
     }
 
     // Encrypt the bot token
-    const encryptedToken = await this.cryptoService.encrypt(dto.botToken);
+    const encryptedToken = this.cryptoService.encrypt(dto.botToken);
 
     const integration = await this.prisma.orgIntegration.create({
       data: {
@@ -95,17 +94,11 @@ export class IntegrationsService {
     orgId: string,
     integrationId: string,
   ): Promise<Record<string, unknown>> {
-    const integration = await this.prisma.orgIntegration.findFirst({
-      where: {
-        id: integrationId,
-        isDeleted: false,
-        organizationId: orgId,
-      },
-    });
-
-    if (!integration) {
-      throw new NotFoundException('Integration not found');
-    }
+    const integration = await findOrThrow(
+      this.prisma.orgIntegration,
+      { where: { id: integrationId, isDeleted: false, organizationId: orgId } },
+      'Integration',
+    );
 
     return {
       ...this.toApiIntegration(integration),
@@ -140,19 +133,18 @@ export class IntegrationsService {
     integrationId: string,
   ): Promise<Record<string, unknown>> {
     const prismaPlatform = this.toPrismaPlatform(platform);
-    const integration = await this.prisma.orgIntegration.findFirst({
-      where: {
-        id: integrationId,
-        isDeleted: false,
-        platform: prismaPlatform,
+    const integration = await findOrThrow(
+      this.prisma.orgIntegration,
+      {
+        where: {
+          id: integrationId,
+          isDeleted: false,
+          platform: prismaPlatform,
+        },
       },
-    });
-
-    if (!integration) {
-      throw new NotFoundException(
-        `Integration ${integrationId} not found for platform ${platform}`,
-      );
-    }
+      'Integration',
+      integrationId,
+    );
 
     return {
       ...this.toApiIntegration(integration),
@@ -165,25 +157,17 @@ export class IntegrationsService {
     integrationId: string,
     dto: UpdateIntegrationDto,
   ): Promise<Record<string, unknown>> {
-    const existing = await this.prisma.orgIntegration.findFirst({
-      where: {
-        id: integrationId,
-        isDeleted: false,
-        organizationId: orgId,
-      },
-    });
-
-    if (!existing) {
-      throw new NotFoundException('Integration not found');
-    }
+    const existing = await findOrThrow(
+      this.prisma.orgIntegration,
+      { where: { id: integrationId, isDeleted: false, organizationId: orgId } },
+      'Integration',
+    );
 
     const updateData: Record<string, unknown> = {};
 
     // Encrypt new token if provided
     if (dto.botToken) {
-      updateData['encryptedToken'] = await this.cryptoService.encrypt(
-        dto.botToken,
-      );
+      updateData['encryptedToken'] = this.cryptoService.encrypt(dto.botToken);
     }
 
     if (dto.config) {
@@ -217,17 +201,11 @@ export class IntegrationsService {
   }
 
   async remove(orgId: string, integrationId: string): Promise<void> {
-    const existing = await this.prisma.orgIntegration.findFirst({
-      where: {
-        id: integrationId,
-        isDeleted: false,
-        organizationId: orgId,
-      },
-    });
-
-    if (!existing) {
-      throw new NotFoundException('Integration not found');
-    }
+    const existing = await findOrThrow(
+      this.prisma.orgIntegration,
+      { where: { id: integrationId, isDeleted: false, organizationId: orgId } },
+      'Integration',
+    );
 
     await this.prisma.orgIntegration.update({
       data: { isDeleted: true },

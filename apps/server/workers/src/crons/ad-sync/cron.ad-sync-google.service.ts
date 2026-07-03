@@ -1,5 +1,8 @@
 import { QueueService } from '@api/queues/core/queue.service';
-import type { GoogleAdSyncJobData } from '@genfeedai/interfaces';
+import {
+  AD_SYNC_GOOGLE_QUEUE,
+  GoogleAdSyncJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -7,7 +10,7 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class CronAdSyncGoogleService {
   private readonly constructorName: string = String(this.constructor.name);
-  private readonly QUEUE_NAME = 'ad-sync-google';
+  private readonly QUEUE_NAME = AD_SYNC_GOOGLE_QUEUE;
 
   constructor(
     private readonly logger: LoggerService,

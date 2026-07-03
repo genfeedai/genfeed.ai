@@ -39,7 +39,7 @@ describe('Threading AgentThreadsController', () => {
 
   beforeEach(() => {
     usersService = {
-      findOne: vi.fn().mockResolvedValue({ _id: userId }),
+      findOne: vi.fn().mockResolvedValue({ id: userId }),
     };
     agentOrchestratorService = {
       handleThreadUiAction: vi.fn(),

@@ -14,7 +14,7 @@ vi.mock('@api/shared/utils/encryption/encryption.util');
 
 const mockTweetFn = vi.fn().mockResolvedValue({ data: { id: 'tweet-123' } });
 vi.mock('twitter-api-v2', () => ({
-  TwitterApi: vi.fn().mockImplementation(function () {
+  TwitterApi: vi.fn(function TwitterApiMock() {
     return { v2: { tweet: mockTweetFn } };
   }),
 }));

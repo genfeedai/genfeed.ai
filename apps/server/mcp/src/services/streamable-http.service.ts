@@ -24,7 +24,7 @@ interface AuthContext {
 
 interface AuthenticatedRequest extends Request {
   authContext?: AuthContext;
-  body?: unknown;
+  body: unknown;
 }
 
 /**

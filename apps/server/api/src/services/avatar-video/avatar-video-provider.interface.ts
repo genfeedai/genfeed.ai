@@ -8,7 +8,7 @@
  *   - MuseTalk (stub — self-hosted via Darkroom/ComfyUI, coming soon)
  */
 
-export type AvatarVideoProviderName = 'heygen' | 'did' | 'tavus' | 'musetalk';
+import type { AvatarVideoProviderName } from '@genfeedai/queue-contracts';
 
 export interface AvatarVideoJobInput {
   avatarId: string;

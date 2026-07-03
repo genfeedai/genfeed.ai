@@ -1,9 +1,9 @@
 'use client';
 
-import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import { resolveAuthToken } from '@genfeedai/helpers/auth/auth.helper';
 import { formatRecurringSchedule } from '@genfeedai/helpers/formatting/recurring-schedule/recurring-schedule.helper';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import Badge from '@ui/display/badge/Badge';

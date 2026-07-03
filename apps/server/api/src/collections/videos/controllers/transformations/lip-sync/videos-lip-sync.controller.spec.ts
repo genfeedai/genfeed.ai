@@ -61,26 +61,26 @@ describe('VideosLipSyncController', () => {
   } as unknown as User;
 
   const mockImageIngredient = {
-    _id: '507f1f77bcf86cd799439001',
     brand: '507f1f77bcf86cd799439014',
     category: IngredientCategory.IMAGE,
+    id: '507f1f77bcf86cd799439001',
     organization: '507f1f77bcf86cd799439013',
     status: IngredientStatus.GENERATED,
   };
 
   const mockAudioIngredient = {
-    _id: '507f1f77bcf86cd799439002',
     category: IngredientCategory.AUDIO,
+    id: '507f1f77bcf86cd799439002',
     organization: '507f1f77bcf86cd799439013',
     status: IngredientStatus.GENERATED,
   };
 
   const mockIngredientData = {
-    _id: '507f1f77bcf86cd799439040',
+    id: '507f1f77bcf86cd799439040',
   };
 
   const mockMetadataData = {
-    _id: '507f1f77bcf86cd799439050',
+    id: '507f1f77bcf86cd799439050',
   };
 
   const mockDto: CreateLipSyncDto = {
@@ -203,7 +203,7 @@ describe('VideosLipSyncController', () => {
         await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
 
         expect(heygenService.generatePhotoAvatarVideo).toHaveBeenCalledWith(
-          mockIngredientData._id,
+          mockIngredientData.id,
           `http://localhost/images/${mockDto.parent}`,
           `http://localhost/audios/${mockDto.voice}`,
           '507f1f77bcf86cd799439013',
@@ -216,7 +216,7 @@ describe('VideosLipSyncController', () => {
         await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
 
         expect(metadataService.patch).toHaveBeenCalledWith(
-          mockMetadataData._id,
+          mockMetadataData.id,
           expect.objectContaining({ externalId: 'heygen-video-id-abc' }),
         );
       });

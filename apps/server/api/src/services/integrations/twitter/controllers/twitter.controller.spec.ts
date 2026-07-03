@@ -10,7 +10,7 @@ const mockGenerateOAuth2AuthLink = vi.fn();
 const mockLoginWithOAuth2 = vi.fn();
 
 vi.mock('twitter-api-v2', () => ({
-  TwitterApi: vi.fn().mockImplementation(function () {
+  TwitterApi: vi.fn(function TwitterApiMock() {
     return {
       generateOAuth2AuthLink: mockGenerateOAuth2AuthLink,
       loginWithOAuth2: mockLoginWithOAuth2,
@@ -41,7 +41,7 @@ describe('TwitterController', () => {
 
   const mockCredentialsService = {
     findOne: vi.fn(),
-    patch: vi.fn().mockResolvedValue({ _id: 'cred', isConnected: true }),
+    patch: vi.fn().mockResolvedValue({ id: 'cred', isConnected: true }),
     saveCredentials: vi.fn(),
   };
 
@@ -108,7 +108,7 @@ describe('TwitterController', () => {
     const mockRequest = {} as Request;
 
     it('should generate OAuth2 auth link and save code verifier', async () => {
-      const brand = { _id: brandId, organization: orgId };
+      const brand = { id: brandId, organization: orgId };
       mockBrandsService.findOne.mockResolvedValue(brand);
       mockCredentialsService.saveCredentials.mockResolvedValue({});
 
@@ -144,7 +144,7 @@ describe('TwitterController', () => {
 
     it('should throw INTERNAL_SERVER_ERROR when OAuth init fails', async () => {
       mockBrandsService.findOne.mockResolvedValue({
-        _id: brandId,
+        id: brandId,
         organization: orgId,
       });
       mockGenerateOAuth2AuthLink.mockImplementation(() => {
@@ -168,7 +168,7 @@ describe('TwitterController', () => {
       const state = JSON.stringify({ brandId, organizationId });
 
       mockCredentialsService.findOne.mockResolvedValue({
-        _id: 'cred',
+        id: 'cred',
         brand: brandId,
         oauthTokenSecret: 'encrypted-code-verifier',
         organization: organizationId,
@@ -216,7 +216,7 @@ describe('TwitterController', () => {
         organizationId: '507f1f77bcf86cd799439012',
       });
       mockCredentialsService.findOne.mockResolvedValue({
-        _id: 'cred',
+        id: 'cred',
         oauthTokenSecret: null,
       });
 

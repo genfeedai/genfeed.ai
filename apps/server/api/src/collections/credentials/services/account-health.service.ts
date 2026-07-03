@@ -1,3 +1,4 @@
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
 import type {
@@ -11,11 +12,7 @@ import type {
   ManualAccountHealthOverrideRequest,
 } from '@genfeedai/interfaces';
 import { type Credential, type Prisma } from '@genfeedai/prisma';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 type CredentialHealthRecord = Credential & {
   externalUrl?: string | null;
@@ -272,7 +269,7 @@ export class AccountHealthService {
     });
 
     if (!credential) {
-      throw new NotFoundException('Credential not found');
+      throw new NotFoundException('Credential');
     }
 
     return credential as CredentialHealthRecord;

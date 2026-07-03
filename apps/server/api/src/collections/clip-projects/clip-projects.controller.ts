@@ -21,6 +21,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
@@ -51,7 +52,6 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  NotFoundException,
   Param,
   Patch,
   Post,
@@ -151,7 +151,7 @@ export class ClipProjectsController {
       user: userId,
     });
 
-    const projectId = String(project._id);
+    const projectId = String(project.id);
 
     // Enqueue the async pipeline
     const batchJobId = await this.clipFactoryQueueService.enqueue({
@@ -209,7 +209,7 @@ export class ClipProjectsController {
       user: userId,
     });
 
-    const projectId = String(project._id);
+    const projectId = String(project.id);
 
     await this.clipAnalyzeQueueService.enqueue({
       language: dto.language ?? 'en',
@@ -244,12 +244,12 @@ export class ClipProjectsController {
     });
 
     if (!project) {
-      throw new NotFoundException(`ClipProject ${projectId} not found`);
+      throw new NotFoundException('ClipProject', projectId);
     }
 
     return {
       highlights: project.highlights || [],
-      projectId: String(project._id),
+      projectId: String(project.id),
       status: project.status,
     };
   }
@@ -278,7 +278,7 @@ export class ClipProjectsController {
     });
 
     if (!project) {
-      throw new NotFoundException(`ClipProject ${projectId} not found`);
+      throw new NotFoundException('ClipProject', projectId);
     }
 
     return this.highlightRewriteService.rewrite(
@@ -313,7 +313,7 @@ export class ClipProjectsController {
     });
 
     if (!project) {
-      throw new NotFoundException(`ClipProject ${projectId} not found`);
+      throw new NotFoundException('ClipProject', projectId);
     }
 
     if (project.status !== 'analyzed') {
@@ -482,7 +482,7 @@ export class ClipProjectsController {
       config: {
         clipHandoff: {
           clipProjectId: projectId,
-          clipResultId: String(clipResult._id ?? clipResult.id),
+          clipResultId: String(clipResult.id),
           source: 'clip-result',
         },
         name: `${this.readString(clipResult.title) ?? 'Clip'} edit`,
@@ -504,7 +504,7 @@ export class ClipProjectsController {
               durationFrames,
               effects: [],
               id: uuidv4(),
-              ingredientId: String(clipResult._id ?? clipResult.id),
+              ingredientId: String(clipResult.id),
               ingredientUrl: videoUrl,
               sourceEndFrame: durationFrames,
               sourceStartFrame: 0,
@@ -523,11 +523,11 @@ export class ClipProjectsController {
       ],
       userId: publicMetadata.user,
     } as never);
-    const editorProjectId = String(editorProject._id ?? editorProject.id);
+    const editorProjectId = String(editorProject.id);
 
     return {
       clipProjectId: projectId,
-      clipResultId: String(clipResult._id ?? clipResult.id),
+      clipResultId: String(clipResult.id),
       editorPath: `/editor/${editorProjectId}`,
       editorProjectId,
       videoUrl,
@@ -560,7 +560,7 @@ export class ClipProjectsController {
       organizationId: publicMetadata.organization,
       projectId,
     });
-    const resolvedClipResultId = String(clipResult._id ?? clipResult.id);
+    const resolvedClipResultId = String(clipResult.id);
     const videoUrl = this.resolveClipVideoUrl(clipResult);
     const payload = await this.publishHandoffService.preparePublishHandoff(
       projectId,
@@ -599,7 +599,7 @@ export class ClipProjectsController {
     });
 
     if (!project) {
-      throw new NotFoundException(`ClipProject ${projectId} not found`);
+      throw new NotFoundException('ClipProject', projectId);
     }
 
     return project;
@@ -619,7 +619,7 @@ export class ClipProjectsController {
       });
 
     if (!clipResult) {
-      throw new NotFoundException(`ClipResult ${input.clipResultId} not found`);
+      throw new NotFoundException('ClipResult', input.clipResultId);
     }
 
     if (!this.isClipReadyForAction(clipResult, input.action)) {

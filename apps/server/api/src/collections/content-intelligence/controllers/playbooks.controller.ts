@@ -58,7 +58,7 @@ const PatternPlaybookSerializer = {
         platform: doc.platform,
         sourceCreators: sourceCreators.map((id: unknown) => String(id)),
       },
-      id: String(doc.id ?? doc._id ?? ''),
+      id: String(doc.id ?? ''),
       type: 'pattern-playbook',
     };
   },

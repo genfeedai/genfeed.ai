@@ -1,6 +1,7 @@
+import { WorkflowLifecycle, WorkflowStatus } from '@genfeedai/enums';
 import { SocialPollingService } from '@workers/crons/social-polling/social-polling.service';
 
-const mockPrisma = {
+const mockPrismaService = {
   workflow: {
     findMany: vi.fn(),
     update: vi.fn(),
@@ -42,7 +43,7 @@ type SocialPollingConstructorArgs = ConstructorParameters<
 
 function createService() {
   return new SocialPollingService(
-    mockPrisma as unknown as SocialPollingConstructorArgs[0],
+    mockPrismaService as unknown as SocialPollingConstructorArgs[0],
     mockExecutionQueue as unknown as SocialPollingConstructorArgs[1],
     mockTwitterAdapter as unknown as SocialPollingConstructorArgs[2],
     mockInstagramAdapter as unknown as SocialPollingConstructorArgs[3],
@@ -59,8 +60,8 @@ describe('SocialPollingService', () => {
     vi.clearAllMocks();
     mockConfigService.isDevSchedulersEnabled = true;
     service = createService();
-    mockPrisma.workflow.findMany.mockResolvedValue([]);
-    mockPrisma.workflow.update.mockResolvedValue({});
+    mockPrismaService.workflow.findMany.mockResolvedValue([]);
+    mockPrismaService.workflow.update.mockResolvedValue({});
   });
 
   it('should be defined', () => {
@@ -69,7 +70,7 @@ describe('SocialPollingService', () => {
 
   it('should skip if already running', async () => {
     // Start first poll
-    mockPrisma.workflow.findMany.mockImplementationOnce(
+    mockPrismaService.workflow.findMany.mockImplementationOnce(
       () => new Promise((resolve) => setTimeout(() => resolve([]), 100)),
     );
 
@@ -85,17 +86,17 @@ describe('SocialPollingService', () => {
   });
 
   it('should find workflows with social trigger nodes', async () => {
-    mockPrisma.workflow.findMany.mockResolvedValue([]);
+    mockPrismaService.workflow.findMany.mockResolvedValue([]);
 
     await service.pollSocialTriggers();
 
-    expect(mockPrisma.workflow.findMany).toHaveBeenCalledWith(
+    expect(mockPrismaService.workflow.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         take: 200,
         where: expect.objectContaining({
           isDeleted: false,
-          lifecycle: 'published',
-          status: 'active',
+          lifecycle: WorkflowLifecycle.PUBLISHED,
+          status: WorkflowStatus.ACTIVE,
         }),
       }),
     );
@@ -106,7 +107,7 @@ describe('SocialPollingService', () => {
 
     await service.pollSocialTriggers();
 
-    expect(mockPrisma.workflow.findMany).not.toHaveBeenCalled();
+    expect(mockPrismaService.workflow.findMany).not.toHaveBeenCalled();
   });
 
   it('should trigger workflow execution when mention found', async () => {
@@ -134,7 +135,7 @@ describe('SocialPollingService', () => {
       userId: 'user1',
     };
 
-    mockPrisma.workflow.findMany.mockResolvedValue([mockWorkflow]);
+    mockPrismaService.workflow.findMany.mockResolvedValue([mockWorkflow]);
 
     mockTwitterAdapter.createMentionChecker.mockReturnValue(
       vi.fn().mockResolvedValue(mockMention),
@@ -152,7 +153,7 @@ describe('SocialPollingService', () => {
     );
 
     // Should update poll state
-    expect(mockPrisma.workflow.update).toHaveBeenCalledWith(
+    expect(mockPrismaService.workflow.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           config: expect.objectContaining({
@@ -183,7 +184,7 @@ describe('SocialPollingService', () => {
       userId: 'user1',
     };
 
-    mockPrisma.workflow.findMany.mockResolvedValue([mockWorkflow]);
+    mockPrismaService.workflow.findMany.mockResolvedValue([mockWorkflow]);
 
     mockTwitterAdapter.createMentionChecker.mockReturnValue(
       vi.fn().mockResolvedValue(null),
@@ -224,7 +225,7 @@ describe('SocialPollingService', () => {
       },
     ];
 
-    mockPrisma.workflow.findMany.mockResolvedValue(workflows);
+    mockPrismaService.workflow.findMany.mockResolvedValue(workflows);
 
     let callCount = 0;
     mockTwitterAdapter.createMentionChecker.mockReturnValue(
@@ -245,6 +246,6 @@ describe('SocialPollingService', () => {
       expect.any(Object),
     );
     // Should still update poll state for second workflow
-    expect(mockPrisma.workflow.update).toHaveBeenCalled();
+    expect(mockPrismaService.workflow.update).toHaveBeenCalled();
   });
 });

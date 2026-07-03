@@ -51,9 +51,9 @@ describe('GoogleSearchConsoleController', () => {
 
   const request = {} as Request;
   const user = { id: 'auth-user-id' } as never;
-  const brand = { _id: 'brand-id', organization: 'org-id', user: 'user-id' };
+  const brand = { id: 'brand-id', organization: 'org-id', user: 'user-id' };
   const credential = {
-    _id: 'credential-id',
+    id: 'credential-id',
     accessToken: 'encrypted-access-token',
     platform: 'google_search_console',
   };

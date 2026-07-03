@@ -4,7 +4,7 @@ import {
   useAgentDraftContext,
 } from '@genfeedai/agent';
 import type { DesktopContentPlatform } from '@genfeedai/desktop-contracts';
-import { PostStatus } from '@genfeedai/enums';
+import { GenerationType, PostStatus } from '@genfeedai/enums';
 import type { ICredential } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -13,6 +13,7 @@ import { ClipboardService } from '@services/core/clipboard.service';
 import { track } from '@vercel/analytics';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import { getDesktopBridge, isDesktopShell } from '@/lib/desktop/runtime';
 import {
   applyDraftSuggestionToText,
@@ -29,6 +30,13 @@ import {
   type Tone,
   toDesktopPlatform,
 } from './posts-write-page.helpers';
+
+/** Maps the compose-surface format to the canonical analytics generation type. */
+const GENERATION_TYPE_BY_FORMAT: Record<GenerationFormat, GenerationType> = {
+  post: GenerationType.POST,
+  thread: GenerationType.THREAD,
+  'x-article': GenerationType.BLOG,
+};
 
 export function usePostsWritePage() {
   const { push } = useRouter();
@@ -178,6 +186,11 @@ export function usePostsWritePage() {
     setError(null);
     setIsSubmitting(true);
 
+    const generationType = GENERATION_TYPE_BY_FORMAT[mode];
+    captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_STARTED, {
+      generationType,
+    });
+
     try {
       if (mode === 'x-article') {
         if (!selectedCredential) {
@@ -286,8 +299,16 @@ export function usePostsWritePage() {
         platform: selectedCredential.platform,
         tone,
       });
+      captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_COMPLETED, {
+        generationType,
+        outcome: 'success',
+      });
       push(href(`/posts/${rootPost.id}`));
     } catch {
+      captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_COMPLETED, {
+        generationType,
+        outcome: 'failure',
+      });
       setError('Failed to generate content. Please try again.');
     } finally {
       setIsSubmitting(false);

@@ -3,6 +3,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { type PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { ConfigService } from '@api/config/config.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { FalService } from '@api/services/integrations/fal/fal.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
@@ -18,7 +19,7 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 /** Supported social platforms for AI influencer posts */
 export type AiInfluencerPlatform =
@@ -117,7 +118,7 @@ export class AiInfluencerService {
     }
 
     const record = this.readObjectRecord(value);
-    return this.readString(record?._id ?? record?.id);
+    return this.readString(record?.id ?? record?.id);
   }
 
   private readRequiredPersonaReference(
@@ -201,7 +202,7 @@ export class AiInfluencerService {
     );
 
     const videoqueryResults = this.requiresVideoquery(validPlatforms)
-      ? await this.generateVideoquery(persona, caption, ingredient._id)
+      ? await this.generateVideoquery(persona, caption, ingredient.id)
       : undefined;
 
     // 6. Publish to platforms
@@ -216,7 +217,7 @@ export class AiInfluencerService {
     const result: GeneratePostResult = {
       caption,
       imageUrl,
-      ingredientId: ingredient._id.toString(),
+      ingredientId: ingredient.id.toString(),
       personaSlug,
       publishResults,
       videoResult: videoqueryResults?.videoResult,
@@ -272,7 +273,7 @@ export class AiInfluencerService {
         if (!personaSlug) {
           this.loggerService.warn(caller, {
             message: 'Persona has no slug, skipping',
-            personaId: persona._id?.toString(),
+            personaId: persona.id?.toString(),
           });
           continue;
         }
@@ -287,14 +288,14 @@ export class AiInfluencerService {
         results.push(result);
 
         // Update last autopilot run timestamp
-        await this.personasService.patch(persona._id.toString(), {
+        await this.personasService.patch(persona.id.toString(), {
           lastAutopilotRunAt: new Date(),
         } as Parameters<PersonasService['patch']>[1]);
       } catch (error) {
         this.loggerService.error(caller, {
           error: error instanceof Error ? error.message : String(error),
           message: 'Failed to generate post for persona',
-          personaId: persona._id?.toString(),
+          personaId: persona.id?.toString(),
           personaSlug: persona.slug,
         });
       }
@@ -368,7 +369,7 @@ export class AiInfluencerService {
       this.loggerService.warn(caller, {
         message: `Persona not found: ${slug}`,
       });
-      throw new NotFoundException(`Persona with slug "${slug}" not found`);
+      throw new NotFoundException('Persona', slug);
     }
 
     this.loggerService.log(caller, {
@@ -567,7 +568,7 @@ export class AiInfluencerService {
       generationSource: `ai-influencer-${persona.slug}`,
       isDeleted: false,
       organization: persona.organization,
-      persona: persona._id,
+      persona: persona.id,
       personaSlug: persona.slug,
       reviewStatus: DarkroomReviewStatus.APPROVED,
       status: IngredientStatus.GENERATED,
@@ -575,7 +576,7 @@ export class AiInfluencerService {
     } as Parameters<IngredientsService['create']>[0]);
 
     this.loggerService.log(caller, {
-      ingredientId: ingredient._id.toString(),
+      ingredientId: ingredient.id.toString(),
       message: 'Ingredient record created',
     });
 
@@ -755,7 +756,7 @@ export class AiInfluencerService {
     const voiceResult = await this.personaContentService.generateVoice({
       ingredientId,
       organization: organizationId,
-      personaId: persona._id,
+      personaId: persona.id,
       text: script,
       user: userId,
     });
@@ -763,7 +764,7 @@ export class AiInfluencerService {
     const videoResult = await this.personaContentService.generateVideo({
       aspectRatio: '9:16',
       organization: organizationId,
-      personaId: persona._id,
+      personaId: persona.id,
       script,
       user: userId,
     });

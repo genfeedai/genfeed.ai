@@ -150,7 +150,7 @@ resource "aws_ecs_task_definition" "credential_backfill" {
     name      = "credential-backfill"
     image     = local.image
     essential = true
-    command   = ["bun", "run", "apps/server/api/scripts/backfill-credential-encryption.ts", "--live"]
+    command   = ["bun", "--filter", local.services.api.filter, "migrate:credentials"]
     secrets   = local.service_task_secrets
     environment = concat(local.internal_env, [
       { name = "PORT", value = tostring(local.services.api.port) },

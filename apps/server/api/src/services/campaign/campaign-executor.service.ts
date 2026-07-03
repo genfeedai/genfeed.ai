@@ -16,18 +16,23 @@ import {
   type OutreachCampaignDocument,
 } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
+import {
+  SYSTEM_WORKFLOW_ACTION_IDS,
+  SystemWorkflowProvenanceService,
+} from '@api/collections/workflows/services/system-workflow-provenance.service';
+import { toReplyBotCredentialData } from '@api/services/campaign/reply-bot-credential.util';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import {
   type ReplyGenerationOptions,
   ReplyGenerationService,
 } from '@api/services/reply-bot/reply-generation.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import {
   CampaignPlatform,
   CampaignSkipReason,
   CampaignStatus,
   ReplyLength,
   ReplyTone,
+  WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
 import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -54,6 +59,7 @@ export class CampaignExecutorService {
     private readonly credentialsService: CredentialsService,
     private readonly replyGenerationService: ReplyGenerationService,
     private readonly botActionExecutorService: BotActionExecutorService,
+    private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
   ) {}
 
   /**
@@ -69,11 +75,11 @@ export class CampaignExecutorService {
       // Check if campaign is still active
       if (campaign.status !== CampaignStatus.ACTIVE) {
         await this.campaignTargetsService.markAsSkipped(
-          target._id.toString(),
+          target.id.toString(),
           CampaignSkipReason.CAMPAIGN_PAUSED,
         );
         await this.campaignsService.incrementSkippedCounter(
-          campaign._id.toString(),
+          campaign.id.toString(),
         );
 
         return {
@@ -85,15 +91,15 @@ export class CampaignExecutorService {
       // Check rate limits
       // @ts-expect-error TS2554
       const canReply = await this.campaignsService.canReply(
-        campaign._id.toString(),
+        campaign.id.toString(),
       );
       if (!canReply) {
         await this.campaignTargetsService.markAsSkipped(
-          target._id.toString(),
+          target.id.toString(),
           CampaignSkipReason.RATE_LIMITED,
         );
         await this.campaignsService.incrementSkippedCounter(
-          campaign._id.toString(),
+          campaign.id.toString(),
         );
 
         return {
@@ -103,7 +109,7 @@ export class CampaignExecutorService {
       }
 
       // Mark target as processing
-      await this.campaignTargetsService.markAsProcessing(target._id.toString());
+      await this.campaignTargetsService.markAsProcessing(target.id.toString());
 
       // Get credential
       const credential = await this.credentialsService.findOne({
@@ -116,11 +122,11 @@ export class CampaignExecutorService {
       if (!credential) {
         const errorMessage = 'Credential not found';
         await this.campaignTargetsService.markAsFailed(
-          target._id.toString(),
+          target.id.toString(),
           errorMessage,
         );
         await this.campaignsService.incrementFailedCounter(
-          campaign._id.toString(),
+          campaign.id.toString(),
         );
 
         return {
@@ -133,18 +139,18 @@ export class CampaignExecutorService {
       const replyText = await this.generateReply(campaign, target);
 
       // Post reply
-      const credentialData = this.toReplyBotCredentialData(
+      const credentialData = toReplyBotCredentialData(
         credential as Record<string, unknown>,
       );
 
       if (!credentialData) {
         const errorMessage = 'Credential is missing an access token';
         await this.campaignTargetsService.markAsFailed(
-          target._id.toString(),
+          target.id.toString(),
           errorMessage,
         );
         await this.campaignsService.incrementFailedCounter(
-          campaign._id.toString(),
+          campaign.id.toString(),
         );
 
         return {
@@ -153,21 +159,47 @@ export class CampaignExecutorService {
         };
       }
 
-      const postResult = await this.postReply(
-        campaign.platform,
-        credentialData,
-        target,
-        replyText,
-      );
+      const { result: postResult } =
+        await this.systemWorkflowProvenanceService.runAction(
+          {
+            actionType: 'campaign-reply',
+            canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.CAMPAIGN_REPLY_AUTOMATION,
+            description:
+              'Generates and posts outreach campaign replies through connected brand credentials.',
+            failureMessage: (replyResult) =>
+              replyResult.success
+                ? undefined
+                : replyResult.error || 'Campaign reply failed',
+            inputValues: {
+              campaignId: campaign.id.toString(),
+              platform: campaign.platform,
+              targetId: target.id.toString(),
+            },
+            label: 'Campaign Reply Automation',
+            organizationId: campaign.organization.toString(),
+            source: 'CampaignExecutorService.executeTarget',
+            trigger: WorkflowExecutionTrigger.SCHEDULED,
+            userId: campaign.user?.toString(),
+          },
+          () =>
+            Promise.resolve(
+              this.postReply(
+                campaign.platform,
+                credentialData,
+                target,
+                replyText,
+              ),
+            ),
+        );
 
       if (!postResult.success) {
         await this.campaignTargetsService.markAsFailed(
-          target._id.toString(),
+          target.id.toString(),
           postResult.error || 'Failed to post reply',
           (target.retryCount || 0) + 1,
         );
         await this.campaignsService.incrementFailedCounter(
-          campaign._id.toString(),
+          campaign.id.toString(),
         );
 
         return {
@@ -177,7 +209,7 @@ export class CampaignExecutorService {
       }
 
       // Mark as replied
-      await this.campaignTargetsService.markAsReplied(target._id.toString(), {
+      await this.campaignTargetsService.markAsReplied(target.id.toString(), {
         replyExternalId: postResult.tweetId || '',
         replyText,
         replyUrl: postResult.tweetUrl || '',
@@ -185,13 +217,13 @@ export class CampaignExecutorService {
 
       // Update campaign counters
       await this.campaignsService.incrementReplyCounters(
-        campaign._id.toString(),
+        campaign.id.toString(),
       );
 
       this.loggerService.log(`${url} success`, {
-        campaignId: campaign._id,
+        campaignId: campaign.id,
         replyId: postResult.tweetId,
-        targetId: target._id,
+        targetId: target.id,
       });
 
       return {
@@ -204,18 +236,18 @@ export class CampaignExecutorService {
       const errorMessage = (error as Error)?.message || 'Unknown error';
 
       this.loggerService.error(`${url} failed`, {
-        campaignId: campaign._id,
+        campaignId: campaign.id,
         error,
-        targetId: target._id,
+        targetId: target.id,
       });
 
       await this.campaignTargetsService.markAsFailed(
-        target._id.toString(),
+        target.id.toString(),
         errorMessage,
         (target.retryCount || 0) + 1,
       );
       await this.campaignsService.incrementFailedCounter(
-        campaign._id.toString(),
+        campaign.id.toString(),
       );
 
       return {
@@ -318,17 +350,28 @@ export class CampaignExecutorService {
       } {
     switch (this.normalizeCampaignPlatform(platform)) {
       case CampaignPlatform.TWITTER:
-        return this.botActionExecutorService.postReply(
-          credential,
-          {
-            authorId: this.asString(target.authorId) ?? '',
-            authorUsername: this.asString(target.authorUsername) ?? '',
-            createdAt: this.asDate(target.contentCreatedAt),
-            id: this.asString(target.externalId) ?? '',
-            text: this.asString(target.contentText) ?? '',
-          },
-          replyText,
-        );
+        return this.botActionExecutorService
+          .postReply(
+            credential,
+            {
+              authorId: this.asString(target.authorId) ?? '',
+              authorUsername: this.asString(target.authorUsername) ?? '',
+              createdAt: this.asDate(target.contentCreatedAt),
+              id: this.asString(target.externalId) ?? '',
+              text: this.asString(target.contentText) ?? '',
+            },
+            replyText,
+          )
+          .then((replyResult) => ({
+            error: replyResult.error,
+            success: replyResult.success,
+            tweetId:
+              replyResult.contentId ??
+              (replyResult as unknown as { tweetId?: string }).tweetId,
+            tweetUrl:
+              replyResult.contentUrl ??
+              (replyResult as unknown as { tweetUrl?: string }).tweetUrl,
+          }));
 
       case CampaignPlatform.REDDIT:
         // Reddit reply would be implemented similarly
@@ -380,7 +423,7 @@ export class CampaignExecutorService {
     try {
       const pendingTargets =
         await this.campaignTargetsService.getPendingTargets(
-          campaign._id.toString(),
+          campaign.id.toString(),
           limit,
         );
 
@@ -405,14 +448,14 @@ export class CampaignExecutorService {
       }
 
       this.loggerService.log(`${url} batch complete`, {
-        campaignId: campaign._id,
+        campaignId: campaign.id,
         ...results,
       });
 
       return results;
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, {
-        campaignId: campaign._id,
+        campaignId: campaign.id,
         error,
       });
       throw error;
@@ -481,39 +524,5 @@ export class CampaignExecutorService {
     }
 
     return new Date();
-  }
-
-  private toReplyBotCredentialData(
-    credential: Record<string, unknown>,
-  ): IReplyBotCredentialData | null {
-    if (typeof credential.accessToken !== 'string') {
-      return null;
-    }
-
-    return {
-      accessToken: EncryptionUtil.decrypt(credential.accessToken),
-      accessTokenSecret:
-        typeof credential.accessTokenSecret === 'string'
-          ? EncryptionUtil.decrypt(credential.accessTokenSecret)
-          : undefined,
-      externalId:
-        typeof credential.externalId === 'string'
-          ? credential.externalId
-          : undefined,
-      platform:
-        credential.platform === null || credential.platform === undefined
-          ? undefined
-          : (String(
-              credential.platform,
-            ) as IReplyBotCredentialData['platform']),
-      refreshToken:
-        typeof credential.refreshToken === 'string'
-          ? EncryptionUtil.decrypt(credential.refreshToken)
-          : undefined,
-      username:
-        typeof credential.username === 'string'
-          ? credential.username
-          : undefined,
-    };
   }
 }

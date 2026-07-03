@@ -127,7 +127,7 @@ describe('CaptionsController', () => {
     it('should throw BadRequestException for non-video ingredient', async () => {
       const ingredientId = '507f191e810c19729de860ee';
       deps.ingredientsService.findOne.mockResolvedValue({
-        _id: ingredientId,
+        id: ingredientId,
         category: IngredientCategory.IMAGE,
         status: IngredientStatus.GENERATED,
       });
@@ -146,7 +146,7 @@ describe('CaptionsController', () => {
     it('should throw BadRequestException when video status is not ready', async () => {
       const ingredientId = '507f191e810c19729de860ee';
       deps.ingredientsService.findOne.mockResolvedValue({
-        _id: ingredientId,
+        id: ingredientId,
         category: IngredientCategory.VIDEO,
         status: IngredientStatus.GENERATING,
       });
@@ -168,7 +168,7 @@ describe('CaptionsController', () => {
       const captionContent = '1\n00:00:00,000 --> 00:00:05,000\nHello';
 
       deps.ingredientsService.findOne.mockResolvedValue({
-        _id: ingredientId,
+        id: ingredientId,
         category: IngredientCategory.VIDEO,
         status: IngredientStatus.GENERATED,
       });

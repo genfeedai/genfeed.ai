@@ -23,7 +23,6 @@ import { BotsModule } from '@api/collections/bots/bots.module';
 import { BrandMemoryModule } from '@api/collections/brand-memory/brand-memory.module';
 import { BrandInterviewModule } from '@api/collections/brands/brand-interview/brand-interview.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
-import { BusinessAnalyticsModule } from '@api/collections/business-analytics/business-analytics.module';
 import { CaptionsModule } from '@api/collections/captions/captions.module';
 import { ClipProjectsModule } from '@api/collections/clip-projects/clip-projects.module';
 import { ClipResultsModule } from '@api/collections/clip-results/clip-results.module';
@@ -85,6 +84,7 @@ import { RunsModule } from '@api/collections/runs/runs.module';
 import { SchedulesModule } from '@api/collections/schedules/schedules.module';
 import { SettingsModule } from '@api/collections/settings/settings.module';
 import { SkillsModule } from '@api/collections/skills/skills.module';
+import { SocialInboxModule } from '@api/collections/social-inbox/social-inbox.module';
 import { SpeechModule } from '@api/collections/speech/speech.module';
 import { StreaksModule } from '@api/collections/streaks/streaks.module';
 import { SubscriptionAttributionsModule } from '@api/collections/subscription-attributions/subscription-attributions.module';
@@ -188,17 +188,16 @@ import { VideoCompletionModule } from '@api/services/video-completion/video-comp
 import { WorkflowExecutorModule } from '@api/services/workflow-executor/workflow-executor.module';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { RateLimitModule } from '@api/shared/modules/rate-limit/rate-limit.module';
-import { EventBusModule } from '@api/shared/services/event-bus/event-bus.module';
 import { SharedModule } from '@api/shared/shared.module';
 import { SkillsProModule } from '@api/skills-pro/skills-pro.module';
 import { CiTriageWebhookModule } from '@api/webhooks/ci-triage/ci-triage-webhook.module';
 import { AgentWorkflowsModule } from '@api/workflows/agent-workflows.module';
-import { isEEEnabled } from '@genfeedai/config';
 import { HealthModule } from '@libs/health/health.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { RedisModule } from '@libs/redis/redis.module';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SentryModule } from '@sentry/nestjs/setup';
 
@@ -216,7 +215,18 @@ import { SentryModule } from '@sentry/nestjs/setup';
     }),
     SharedModule,
     PrismaModule,
-    EventBusModule,
+    EventEmitterModule.forRoot({
+      // Delimiter for nested events (e.g., 'video.created')
+      delimiter: '.',
+      // Ignore errors thrown by listeners
+      ignoreErrors: false,
+      // Maximum number of listeners per event
+      maxListeners: 20,
+      // Enable verbose error logging
+      verboseMemoryLeak: true,
+      // Use wildcards for event matching
+      wildcard: true,
+    }),
     SentryModule.forRoot(),
     ScheduleModule.forRoot(),
     FeatureFlagModule,
@@ -239,7 +249,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
     BetterAuthModule,
     AvatarsModule,
     BookmarksModule,
-    // BusinessAnalyticsModule — EE (gated below)
     BotsModule,
     BrandMemoryModule,
     BrandInterviewModule,
@@ -310,6 +319,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     SchedulesModule,
     SettingsModule,
     SpeechModule,
+    SocialInboxModule,
     StreaksModule,
     // Billing collection modules — OSS-native (compose from `@billing-providers`,
     // which the webpack alias swaps to the EE fragment at build time). Registered
@@ -455,11 +465,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
 
     // Dev-only modules (only registered in development)
     ...(process.env.NODE_ENV === 'development' ? [DevModule] : []),
-
-    // EE-only modules (require GENFEED_LICENSE_KEY). The billing collection
-    // modules above are OSS-native and always registered; only superadmin
-    // business metrics remain license-gated.
-    ...(isEEEnabled() ? [BusinessAnalyticsModule] : []),
   ],
   providers: [
     OrgPrefixMiddleware,

@@ -1,6 +1,3 @@
-export const ORCHESTRATOR_RUN_QUEUE = 'orchestrator-run';
-export const CAMPAIGN_MEMORY_EXTRACTION_QUEUE = 'campaign-memory-extraction';
-export const TRIGGER_EVALUATION_QUEUE = 'triggers.evaluate';
 export const DEFAULT_ORCHESTRATION_INTERVAL_HOURS = 24;
 export const DEFAULT_TRIGGER_EVALUATION_INTERVAL_MINUTES = 15;
 export const MAX_ORCHESTRATED_STRATEGIES_PER_RUN = 5;

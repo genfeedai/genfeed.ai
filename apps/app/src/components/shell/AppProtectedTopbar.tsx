@@ -26,7 +26,7 @@ import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndic
 import { isHostedCloudApp } from '@/lib/config/edition';
 import {
   appendSearchParamsToHref,
-  getCurrentBrandScopedPath,
+  getBrandSwitchHref,
 } from '@/lib/navigation/operator-shell';
 
 const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
@@ -39,6 +39,7 @@ const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
   compose: 'Compose',
   editor: 'Editor',
   library: 'Library',
+  messages: 'Messages',
   posts: 'Posts',
   remix: 'Remix',
   research: 'Research',
@@ -99,7 +100,11 @@ function AppProtectedTopbarContent({
 
       if (nextOrgSlug && nextBrand?.slug) {
         push(
-          `/${nextOrgSlug}/${nextBrand.slug}${getCurrentBrandScopedPath(pathname)}`,
+          getBrandSwitchHref({
+            nextBrandSlug: nextBrand.slug,
+            nextOrgSlug,
+            pathname,
+          }),
         );
       }
     },

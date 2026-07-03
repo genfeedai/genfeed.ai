@@ -1,9 +1,9 @@
 import { MoodBoardsController } from '@api/collections/mood-boards/controllers/mood-boards.controller';
 import { UpdateMoodBoardDto } from '@api/collections/mood-boards/dto/update-mood-board.dto';
 import { MoodBoardsService } from '@api/collections/mood-boards/services/mood-boards.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { LoggerService } from '@libs/logger/logger.service';
-import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -111,7 +111,7 @@ describe('MoodBoardsController', () => {
 
     it('propagates NotFoundException when the brand is not in the caller org', async () => {
       service.findOrCreateByBrand.mockRejectedValueOnce(
-        new NotFoundException('Brand brand-1 not found'),
+        new NotFoundException('Brand', 'brand-1'),
       );
 
       await expect(

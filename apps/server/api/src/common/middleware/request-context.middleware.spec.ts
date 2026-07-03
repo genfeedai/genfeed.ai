@@ -57,16 +57,16 @@ function buildUser(
 function buildPublisher(
   overrides: Partial<{
     get: ReturnType<typeof vi.fn>;
-    setEx: ReturnType<typeof vi.fn>;
-    sAdd: ReturnType<typeof vi.fn>;
+    setex: ReturnType<typeof vi.fn>;
+    sadd: ReturnType<typeof vi.fn>;
     expire: ReturnType<typeof vi.fn>;
   }> = {},
 ) {
   return {
     expire: overrides.expire ?? vi.fn().mockResolvedValue(1),
     get: overrides.get ?? vi.fn().mockResolvedValue(null),
-    sAdd: overrides.sAdd ?? vi.fn().mockResolvedValue(1),
-    setEx: overrides.setEx ?? vi.fn().mockResolvedValue('OK'),
+    sadd: overrides.sadd ?? vi.fn().mockResolvedValue(1),
+    setex: overrides.setex ?? vi.fn().mockResolvedValue('OK'),
   };
 }
 
@@ -147,7 +147,7 @@ describe('RequestContextMiddleware', () => {
     await middleware.use(req, {} as Response, next);
 
     expect((req as { context: unknown }).context).toEqual(cachedCtx);
-    expect(publisher.setEx).not.toHaveBeenCalled();
+    expect(publisher.setex).not.toHaveBeenCalled();
     expect(next).toHaveBeenCalledOnce();
   });
 
@@ -190,7 +190,7 @@ describe('RequestContextMiddleware', () => {
     // DB values win over stale legacy auth provider metadata
     expect(ctx.subscriptionTier).toBe('pro');
     expect(ctx.stripeSubscriptionStatus).toBe('active');
-    expect(publisher.setEx).toHaveBeenCalledOnce();
+    expect(publisher.setex).toHaveBeenCalledOnce();
     expect(next).toHaveBeenCalledOnce();
   });
 
@@ -308,7 +308,7 @@ describe('RequestContextMiddleware', () => {
         userId: 'user_default',
       }),
     );
-    expect(publisher.setEx).toHaveBeenCalledWith(
+    expect(publisher.setex).toHaveBeenCalledWith(
       expect.any(String),
       expect.any(Number),
       expect.stringContaining('"brandId":"brand_default"'),

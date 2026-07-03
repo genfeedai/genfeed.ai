@@ -3,6 +3,7 @@ import { MembersModule } from '@api/collections/members/members.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { UserSetupModule } from '@api/collections/users/user-setup.module';
 import { UsersModule } from '@api/collections/users/users.module';
+import { CommonModule } from '@api/common/common.module';
 import { ConfigService } from '@api/config/config.service';
 import { CacheModule } from '@api/services/cache/cache.module';
 import { CacheClientService } from '@api/services/cache/services/cache-client.service';
@@ -55,6 +56,7 @@ import { BetterAuthMailerService } from './services/better-auth-mailer.service';
     forwardRef(() => MembersModule),
     forwardRef(() => UserSetupModule),
     CacheModule,
+    CommonModule,
     NotificationsModule,
   ],
   providers: [
@@ -112,7 +114,11 @@ import { BetterAuthMailerService } from './services/better-auth-mailer.service';
               return;
             }
             try {
-              await cacheClient.instance.set(key, value, { EX: ttlSeconds });
+              if (ttlSeconds === undefined) {
+                await cacheClient.instance.set(key, value);
+              } else {
+                await cacheClient.instance.set(key, value, 'EX', ttlSeconds);
+              }
             } catch {
               // Fail open: never let a Redis error break auth rate limiting.
               return;

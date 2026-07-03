@@ -170,17 +170,17 @@ describe('ImagesOperationsController', () => {
   };
 
   const mockActivity = {
-    _id: mockActivityId,
+    id: mockActivityId,
     toString: () => mockActivityId.toString(),
   };
 
   const mockSavedDocuments = {
     ingredientData: {
-      _id: mockImageId,
+      id: mockImageId,
       toString: () => mockImageId.toString(),
     },
     metadataData: {
-      _id: mockMetadataId,
+      id: mockMetadataId,
     },
   };
 
@@ -197,7 +197,7 @@ describe('ImagesOperationsController', () => {
   };
 
   const mockTag = {
-    _id: mockTagId,
+    id: mockTagId,
     category: TagCategory.INGREDIENT,
     key: TagKey.SPLITTED,
     label: 'Splitted',

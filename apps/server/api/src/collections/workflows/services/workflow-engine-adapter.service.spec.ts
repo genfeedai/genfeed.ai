@@ -5,6 +5,8 @@ import { GENERATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templa
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowEngineAdapterService', () => {
+  const SOCIAL_ADAPTER_FACTORY_INDEX = 2;
+  const SOCIAL_INBOX_SERVICE_INDEX = 40;
   let service: WorkflowEngineAdapterService;
   let loggerService: {
     debug: ReturnType<typeof vi.fn>;
@@ -29,10 +31,21 @@ describe('WorkflowEngineAdapterService', () => {
     );
   });
 
+  function createAdapterWithSocialInbox(socialInboxService: {
+    postReply?: ReturnType<typeof vi.fn>;
+    sendDm?: ReturnType<typeof vi.fn>;
+  }): WorkflowEngineAdapterService {
+    const args = new Array(41).fill(undefined);
+    args[0] = { ingredientsEndpoint: 'https://ingredients.example.com' };
+    args[1] = loggerService;
+    args[SOCIAL_INBOX_SERVICE_INDEX] = socialInboxService;
+    return new WorkflowEngineAdapterService(...args);
+  }
+
   describe('convertToExecutableWorkflow', () => {
     it('should convert a workflow document to executable format', () => {
       const workflowDoc = {
-        _id: { toString: () => 'wf-1' },
+        id: 'wf-1',
         edges: [
           {
             id: 'e1',
@@ -256,6 +269,161 @@ describe('WorkflowEngineAdapterService', () => {
       const workflow = service.convertToExecutableWorkflow(workflowDoc);
       const result = await service.executeWorkflow(workflow);
       expect(result.status).toBe('completed');
+    });
+
+    it('routes workflow social replies through the social inbox when a conversation is present', async () => {
+      const socialInboxService = {
+        postReply: vi.fn().mockResolvedValue({
+          externalMessageId: 'reply-message-1',
+          id: 'message-1',
+          sourceUrl: 'https://www.youtube.com/comment/reply-message-1',
+        }),
+      };
+      const socialAdapter = createAdapterWithSocialInbox(socialInboxService);
+
+      const workflow = socialAdapter.convertToExecutableWorkflow({
+        _id: { toString: () => 'wf-social-reply' },
+        nodes: [
+          {
+            data: {
+              config: {
+                brandId: 'brand-1',
+                conversationId: 'conversation-1',
+                platform: 'youtube',
+                postId: 'comment-1',
+                text: 'Thanks for watching',
+              },
+              label: 'Post Reply',
+            },
+            id: 'reply-node',
+            type: 'postReply',
+          },
+        ],
+        organization: { toString: () => 'org-1' },
+        user: { toString: () => 'user-1' },
+      });
+
+      const result = await socialAdapter.executeWorkflow(workflow);
+
+      expect(socialInboxService.postReply).toHaveBeenCalledWith(
+        {
+          brandId: 'brand-1',
+          organizationId: 'org-1',
+          userId: 'user-1',
+        },
+        'conversation-1',
+        expect.objectContaining({
+          idempotencyKey: expect.stringMatching(/^workflow:[^:]+:reply-node$/),
+          text: 'Thanks for watching',
+          workflowRunId: expect.any(String),
+        }),
+      );
+      expect(result.status).toBe('completed');
+      expect(result.nodeResults.get('reply-node')?.output).toMatchObject({
+        originalPostId: 'comment-1',
+        replyId: 'reply-message-1',
+        replyUrl: 'https://www.youtube.com/comment/reply-message-1',
+        success: true,
+      });
+    });
+
+    it('routes workflow social DMs through the social inbox when a conversation is present', async () => {
+      const socialInboxService = {
+        sendDm: vi.fn().mockResolvedValue({
+          externalMessageId: 'dm-message-1',
+          id: 'message-1',
+        }),
+      };
+      const socialAdapter = createAdapterWithSocialInbox(socialInboxService);
+
+      const workflow = socialAdapter.convertToExecutableWorkflow({
+        _id: { toString: () => 'wf-social-dm' },
+        nodes: [
+          {
+            data: {
+              config: {
+                brandId: 'brand-1',
+                conversationId: 'conversation-1',
+                platform: 'instagram',
+                recipientId: 'recipient-1',
+                text: 'Thanks for reaching out',
+              },
+              label: 'Send DM',
+            },
+            id: 'dm-node',
+            type: 'sendDm',
+          },
+        ],
+        organization: { toString: () => 'org-1' },
+        user: { toString: () => 'user-1' },
+      });
+
+      const result = await socialAdapter.executeWorkflow(workflow);
+
+      expect(socialInboxService.sendDm).toHaveBeenCalledWith(
+        {
+          brandId: 'brand-1',
+          organizationId: 'org-1',
+          userId: 'user-1',
+        },
+        'conversation-1',
+        expect.objectContaining({
+          idempotencyKey: expect.stringMatching(/^workflow:[^:]+:dm-node$/),
+          recipientId: 'recipient-1',
+          text: 'Thanks for reaching out',
+          workflowRunId: expect.any(String),
+        }),
+      );
+      expect(result.status).toBe('completed');
+      expect(result.nodeResults.get('dm-node')?.output).toMatchObject({
+        messageId: 'dm-message-1',
+        platform: 'instagram',
+        recipientId: 'recipient-1',
+        success: true,
+      });
+    });
+
+    it('does not fall back to direct platform posting for conversation-backed replies', async () => {
+      const replyToPost = vi.fn().mockResolvedValue({
+        replyId: 'direct-reply-1',
+        replyUrl: 'https://social.example.com/direct-reply-1',
+      });
+      const args = new Array(41).fill(undefined);
+      args[0] = { ingredientsEndpoint: 'https://ingredients.example.com' };
+      args[1] = loggerService;
+      args[SOCIAL_ADAPTER_FACTORY_INDEX] = {
+        getAdapter: vi.fn().mockReturnValue({ replyToPost }),
+        getSupportedPlatforms: vi.fn().mockReturnValue(['instagram']),
+      };
+      const socialAdapter = new WorkflowEngineAdapterService(...args);
+
+      const workflow = socialAdapter.convertToExecutableWorkflow({
+        _id: { toString: () => 'wf-social-reply-no-inbox' },
+        nodes: [
+          {
+            data: {
+              config: {
+                brandId: 'brand-1',
+                conversationId: 'conversation-1',
+                platform: 'instagram',
+                postId: 'comment-1',
+                text: 'Thanks for watching',
+              },
+              label: 'Post Reply',
+            },
+            id: 'reply-node',
+            type: 'postReply',
+          },
+        ],
+        organization: { toString: () => 'org-1' },
+        user: { toString: () => 'user-1' },
+      });
+
+      const result = await socialAdapter.executeWorkflow(workflow);
+
+      expect(result.status).toBe('failed');
+      expect(result.error).toBe('Social inbox action service is not available');
+      expect(replyToPost).not.toHaveBeenCalled();
     });
 
     it('executes livestream bot session processing with workflow organization scope', async () => {
@@ -621,14 +789,12 @@ describe('WorkflowEngineAdapterService', () => {
       const ingredientsService = { patch: vi.fn().mockResolvedValue({}) };
       const metadataService = { patch: vi.fn().mockResolvedValue({}) };
       const musicsService = {
-        findOne: vi
-          .fn()
-          .mockResolvedValue({ _id: { toString: () => musicId } }),
+        findOne: vi.fn().mockResolvedValue({ id: musicId }),
       };
       const sharedService = {
         saveDocumentsInternal: vi.fn().mockResolvedValue({
-          ingredientData: { _id: { toString: () => captionedId } },
-          metadataData: { _id: 'meta-1' },
+          ingredientData: { id: captionedId },
+          metadataData: { id: 'meta-1' },
         }),
       };
       const videoMusicOrchestrationService = {
@@ -795,10 +961,10 @@ describe('WorkflowEngineAdapterService', () => {
       const sharedService = {
         saveDocumentsInternal: vi.fn().mockResolvedValue({
           ingredientData: {
-            _id: { toString: () => 'ingredient-1' },
+            id: 'ingredient-1',
           },
           metadataData: {
-            _id: { toString: () => 'metadata-1' },
+            id: 'metadata-1',
           },
         }),
       };
@@ -1221,10 +1387,10 @@ describe('WorkflowEngineAdapterService', () => {
       const brandsService = {
         findOne: vi
           .fn()
-          .mockResolvedValueOnce({ logo: { _id: 'logo-1' } })
-          .mockResolvedValueOnce({ banner: { _id: 'banner-1' } })
+          .mockResolvedValueOnce({ logo: { id: 'logo-1' } })
+          .mockResolvedValueOnce({ banner: { id: 'banner-1' } })
           .mockResolvedValueOnce({
-            references: [{ _id: 'ref-1' }, { _id: 'ref-2' }],
+            references: [{ id: 'ref-1' }, { id: 'ref-2' }],
           }),
       };
 

@@ -1,6 +1,7 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ContentOrchestrationService } from '@api/services/content-orchestration/content-orchestration.service';
 import type { PipelineStep } from '@api/services/content-orchestration/pipeline.interfaces';
 import { StepExecutorService } from '@api/services/content-orchestration/step-executor.service';
@@ -13,7 +14,6 @@ import {
   VideoTaskModel,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 vi.mock('@sentry/nestjs', () => ({
@@ -58,7 +58,7 @@ describe('ContentOrchestrationService', () => {
   };
 
   const mockPersona = {
-    _id: baseConfig.personaId,
+    id: baseConfig.personaId,
     credentials: [{ platform: 'tiktok' }],
     name: 'Test Persona',
   };
@@ -92,8 +92,8 @@ describe('ContentOrchestrationService', () => {
 
     mockSharedService = {
       saveDocumentsInternal: vi.fn().mockResolvedValue({
-        ingredientData: { _id: ingredientId },
-        metadataData: { _id: metadataId },
+        ingredientData: { id: ingredientId },
+        metadataData: { id: metadataId },
       }),
     };
 

@@ -44,18 +44,18 @@ describe('TiktokController', () => {
   const orgId = '507f1f77bcf86cd799439011';
   const credentialId = 'test-object-id';
 
-  const mockBrand = { _id: brandId, organization: orgId };
+  const mockBrand = { id: brandId, organization: orgId };
 
   beforeEach(async () => {
     brandsService = { findOne: vi.fn().mockResolvedValue(mockBrand) };
     credentialsService = {
-      findOne: vi.fn().mockResolvedValue({ _id: credentialId }),
+      findOne: vi.fn().mockResolvedValue({ id: credentialId }),
       patch: vi
         .fn()
         .mockImplementation((_id, data) =>
-          Promise.resolve({ _id: credentialId, ...data }),
+          Promise.resolve({ id: credentialId, ...data }),
         ),
-      saveCredentials: vi.fn().mockResolvedValue({ _id: credentialId }),
+      saveCredentials: vi.fn().mockResolvedValue({ id: credentialId }),
     };
     tiktokService = {
       getTiktokInfo: vi.fn().mockResolvedValue({

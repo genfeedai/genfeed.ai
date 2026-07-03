@@ -123,7 +123,7 @@ export class CampaignDiscoveryService {
 
       // Filter out already existing targets
       const newTargets = await this.filterExistingTargets(
-        campaign._id.toString(),
+        campaign.id.toString(),
         uniqueTargets,
       );
 
@@ -134,14 +134,14 @@ export class CampaignDiscoveryService {
       const finalTargets = newTargets.slice(0, limit);
 
       this.loggerService.log(`${url} success`, {
-        campaignId: campaign._id,
+        campaignId: campaign.id,
         discoveredCount: finalTargets.length,
       });
 
       return finalTargets;
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, {
-        campaignId: campaign._id,
+        campaignId: campaign.id,
         error,
       });
       throw error;
@@ -430,7 +430,7 @@ export class CampaignDiscoveryService {
       const targetsToCreate = targets.map((target) => ({
         authorId: target.authorId,
         authorUsername: target.authorUsername,
-        campaign: campaign._id.toString(),
+        campaign: campaign.id.toString(),
         contentCreatedAt: target.contentCreatedAt,
         contentText: target.contentText,
         contentUrl: target.contentUrl,
@@ -451,13 +451,13 @@ export class CampaignDiscoveryService {
 
       this.loggerService.log(`${url} success`, {
         addedCount: created.length,
-        campaignId: campaign._id,
+        campaignId: campaign.id,
       });
 
       return created.length;
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, {
-        campaignId: campaign._id,
+        campaignId: campaign.id,
         error,
       });
       throw error;

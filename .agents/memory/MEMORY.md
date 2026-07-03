@@ -6,6 +6,7 @@
 - [One API Epic](project_one_api_epic.md) — Epic #95: consolidate self-hosted + cloud into one NestJS API, 20 issues, 8 phases
 - [Fallow Health](project_fallow.md) — Fallow codebase health analysis (#83), weekly CI, score 72/100
 - [BullMQ Processor Placement](project_bullmq.md) — API no longer owns BullMQ processors; add new processors to workers or the owning runtime service
+- [Backend type-check pattern](project_backend_typecheck.md) — dedicated `tsconfig.typecheck.json` per `apps/server/*` (never the runtime config); shared base, `useDefineForClassFields:false`, cross-app `$TURBO_ROOT$` inputs. 10/12 green (#1148); notifications+files follow-ups on #1145
 - [Migration Status](project_migration.md) — cloud + core → genfeed.ai migration complete, all pages/tests present
 - [Settings Routing](project_settings_routing.md) — canonical personal/org/brand settings URL shapes
 - [Desktop BYOK Generation](project_desktop_byok_generation.md) — desktop local/BYOK generation is local-first; cloud connect is optional
@@ -34,8 +35,10 @@
 - [Genfeed project kanban](genfeed_project_kanban.md) — Use project #12 Genfeed.ai as canonical
 - [Positive memory framing](positive_memory_framing.md) — Write memory as target-state guidance with active sources of truth
 - [Epic status on child start](epic_status_on_child_start.md) — Move parent epics to In Progress as soon as a child starts
+- [Failed deploys never burn a version](release_tag_after_green_deploy.md) — pre-gate release cutting is normal; on deploy failure fix master and re-cut the SAME version (delete unconsumed tag), never bump
 - [Production deploys master-only](production_deploy_master_only.md) — Never deploy any non-master ref to production unless Vincent explicitly overrides; production deploys run from GitHub CI on master
 - [Vercel release gate](feedback_vercel_release_gate.md) — SaaS Vercel frontends deploy only through the API-first production release workflow; Vercel Git auto-deploy stays disabled
+- [PRD-pass verify state first](prd_pass_verify_state_first.md) — On any epic PRD pass, verify child issue states via `gh` + audit real code before trusting the epic body; never rewrite closed/shipped cards
 
 ## References
 

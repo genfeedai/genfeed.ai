@@ -1,10 +1,10 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PersonaPublisherService } from '@api/services/persona-content/persona-publisher.service';
 import { PostCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('PersonaPublisherService', () => {

@@ -12,6 +12,7 @@ import {
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -32,7 +33,6 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  NotFoundException,
   Optional,
   Param,
   Post,
@@ -203,7 +203,7 @@ export class AgentRunsController extends BaseCRUDController<
     const publicMetadata = getPublicMetadata(user);
 
     const entityOrganizationId =
-      (entity.organization as unknown as { _id: string })?._id?.toString() ||
+      (entity.organization as unknown as { id: string })?.id?.toString() ||
       entity.organization?.toString();
 
     if (
@@ -303,7 +303,7 @@ export class AgentRunsController extends BaseCRUDController<
     });
 
     if (!doc) {
-      throw new NotFoundException('Agent run not found');
+      throw new NotFoundException('Agent run');
     }
 
     return serializeSingle(request, AgentRunSerializer, doc);
@@ -321,7 +321,7 @@ export class AgentRunsController extends BaseCRUDController<
     );
 
     if (!content) {
-      throw new NotFoundException('Agent run not found');
+      throw new NotFoundException('Agent run');
     }
 
     return content;
@@ -343,11 +343,11 @@ export class AgentRunsController extends BaseCRUDController<
     );
 
     if (!run) {
-      throw new NotFoundException('Agent run not found');
+      throw new NotFoundException('Agent run');
     }
 
     const threadId =
-      (run.thread as unknown as { _id?: string })?._id?.toString() ??
+      (run.thread as unknown as { id?: string })?.id?.toString() ??
       run.thread?.toString();
 
     if (threadId) {

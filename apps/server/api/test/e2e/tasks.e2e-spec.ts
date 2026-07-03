@@ -121,19 +121,19 @@ describe('Tasks E2E Tests', () => {
     await dbHelper.clearDatabase();
 
     testUser = createTestUser({
-      _id: generateIdString(),
+      id: generateIdString(),
       authProviderId: 'authProvider_task_test_user',
       email: 'tasks-test@example.com',
     });
 
     testOrganization = createTestOrganization({
-      _id: generateIdString(),
+      id: generateIdString(),
       label: 'Tasks Test Organization',
-      user: testUser._id,
+      user: testUser.id,
     });
 
     otherOrganization = createTestOrganization({
-      _id: generateIdString(),
+      id: generateIdString(),
       label: 'Other Tasks Organization',
       user: generateIdString(),
     });
@@ -147,13 +147,13 @@ describe('Tasks E2E Tests', () => {
     ]);
     await dbHelper.seedCollection('tasks', [
       {
-        _id: scopedTaskId,
+        id: scopedTaskId,
         assigneeAgentId: 'agent-1',
         createdAt: new Date('2026-04-01T10:00:00.000Z'),
         identifier: 'GENA-20',
         isDeleted: false,
         linkedEntities: [],
-        organization: testOrganization._id,
+        organization: testOrganization.id,
         priority: 'high',
         status: 'todo',
         taskNumber: 20,
@@ -161,12 +161,12 @@ describe('Tasks E2E Tests', () => {
         updatedAt: new Date('2026-04-01T10:00:00.000Z'),
       },
       {
-        _id: generateIdString(),
+        id: generateIdString(),
         createdAt: new Date('2026-04-01T11:00:00.000Z'),
         identifier: 'GENA-99',
         isDeleted: false,
         linkedEntities: [],
-        organization: otherOrganization._id,
+        organization: otherOrganization.id,
         priority: 'low',
         status: 'backlog',
         taskNumber: 99,
@@ -184,8 +184,8 @@ describe('Tasks E2E Tests', () => {
       [method](url)
       .set('Authorization', 'Bearer mock-jwt-token')
       .set('x-authProvider-user-id', testUser.authProviderId)
-      .set('x-user-id', testUser._id.toString())
-      .set('x-organization-id', testOrganization._id.toString());
+      .set('x-user-id', testUser.id.toString())
+      .set('x-organization-id', testOrganization.id.toString());
   }
 
   describe('GET /v1/tasks', () => {

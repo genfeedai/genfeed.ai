@@ -308,36 +308,36 @@ export class AvatarsController {
     //     status: IngredientStatus.PROCESSING,
     //   });
 
-    // const websocketUrl = `/avatars/${ingredientData._id}`;
+    // const websocketUrl = `/avatars/${ingredientData.id}`;
     // const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     // try {
     //   const avatarId = await this.heygenService.createAvatar(
     //     metadataData.label,
-    //     `${this.configService.ingredientsEndpoint}/${reference.type}s/${reference._id}`,
+    //     `${this.configService.ingredientsEndpoint}/${reference.type}s/${reference.id}`,
     //   );
 
     //   if (avatarId) {
     //     await this.metadataService.patch(
-    //       metadataData._id,
+    //       metadataData.id,
     //       new MetadataEntity({ externalId: avatarId }),
     //     );
 
-    //     await this.avatarService.patch(ingredientData._id, { status: 'completed' });
+    //     await this.avatarService.patch(ingredientData.id, { status: 'completed' });
 
     //     this.socketGateaway.emit(websocketUrl, {
     //       status: 'success',
-    //       result: ingredientData._id,
+    //       result: ingredientData.id,
     //     });
     //   } else {
-    //     await this.avatarService.patch(ingredientData._id, { status: 'failed' });
+    //     await this.avatarService.patch(ingredientData.id, { status: 'failed' });
 
-    // await this.handleFailedGeneration(ingredientData._id, websocketUrl);
+    // await this.handleFailedGeneration(ingredientData.id, websocketUrl);
     //   }
     // } catch (error: unknown) {
     //   this.loggerService.error(`${url} failed`, error);
 
-    // await this.handleFailedGeneration(ingredientData._id, websocketUrl);
+    // await this.handleFailedGeneration(ingredientData.id, websocketUrl);
     // }
 
     // return IngredientSerializer.serialize(ingredientData);
@@ -380,7 +380,7 @@ export class AvatarsController {
     //   });
 
     // const publicMetadata = getPublicMetadata(user);
-    // const websocketUrl = `/avatars/${(ingredientData._id as string).toHexString()}`;
+    // const websocketUrl = `/avatars/${(ingredientData.id as string).toHexString()}`;
 
     // // Determine provider (heygen or hedra)
     // const provider = createAvatarDto.provider || Provider.HEYGEN;
@@ -389,7 +389,7 @@ export class AvatarsController {
     // if (provider === 'hedra') {
     //   // Use Hedra for avatar generation
     //   externalId = await this.hedraService.generateCharacterWithText(
-    //     metadataData._id,
+    //     metadataData.id,
     //     createAvatarDto.text,
     //     createAvatarDto.imageUrl || '', // Hedra requires an image URL
     //     createAvatarDto.voiceId,
@@ -399,7 +399,7 @@ export class AvatarsController {
     // } else {
     //   // Use HeyGen for avatar generation (default)
     //   externalId = await this.heygenService.generateAvatarVideo(
-    //     metadataData._id,
+    //     metadataData.id,
     //     createAvatarDto.avatarId,
     //     createAvatarDto.voiceId,
     //     createAvatarDto.text,
@@ -409,7 +409,7 @@ export class AvatarsController {
 
     // if (externalId) {
     //   await this.metadataService.patch(
-    //     metadataData._id,
+    //     metadataData.id,
     //     new MetadataEntity({
     //       externalId,
     //     }),

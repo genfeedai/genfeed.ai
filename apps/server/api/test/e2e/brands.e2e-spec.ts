@@ -88,34 +88,34 @@ describe('Brands E2E Tests', () => {
 
     // Create test user
     testUser = createTestUser({
-      _id: generateIdString(),
+      id: generateIdString(),
       authProviderId: 'authProvider_brand_test_user',
       email: 'brand-test@example.com',
     });
 
     // Create test organization
     testOrganization = createTestOrganization({
-      _id: generateIdString(),
+      id: generateIdString(),
       label: 'Brand Test Organization',
-      user: testUser._id,
+      user: testUser.id,
     });
 
     // Create test member (owner)
     testMember = createTestMember({
-      _id: generateIdString(),
-      organization: testOrganization._id,
+      id: generateIdString(),
+      organization: testOrganization.id,
       role: 'owner',
-      user: testUser._id,
+      user: testUser.id,
     });
 
     // Create test brand
     testBrand = createTestBrand({
-      _id: generateIdString(),
+      id: generateIdString(),
       description: 'A test brand for E2E testing',
       label: 'Test Brand',
-      organization: testOrganization._id,
+      organization: testOrganization.id,
       slug: 'test-brand-handle',
-      user: testUser._id,
+      user: testUser.id,
     });
 
     // Seed core data
@@ -125,15 +125,15 @@ describe('Brands E2E Tests', () => {
     await dbHelper.seedCollection('brands', [testBrand]);
     await dbHelper.seedCollection('organization-settings', [
       createTestOrganizationSetting({
-        _id: generateIdString(),
-        organization: testOrganization._id,
+        id: generateIdString(),
+        organization: testOrganization.id,
       }),
     ]);
     await dbHelper.seedCollection('credit-balances', [
       createTestCredit({
-        _id: generateIdString(),
+        id: generateIdString(),
         balance: 50000,
-        organization: testOrganization._id,
+        organization: testOrganization.id,
       }),
     ]);
   });
@@ -145,8 +145,8 @@ describe('Brands E2E Tests', () => {
     return request(app.getHttpServer())
       .set('Authorization', 'Bearer mock-jwt-token')
       .set('x-authProvider-user-id', testUser.authProviderId)
-      .set('x-user-id', testUser._id.toString())
-      .set('x-organization-id', testOrganization._id.toString());
+      .set('x-user-id', testUser.id.toString())
+      .set('x-organization-id', testOrganization.id.toString());
   };
 
   describe('GET /v1/brands', () => {
@@ -154,18 +154,18 @@ describe('Brands E2E Tests', () => {
       // Add more brands for testing
       const additionalBrands = [
         createTestBrand({
-          _id: generateIdString(),
+          id: generateIdString(),
           label: 'Alpha Brand',
-          organization: testOrganization._id,
+          organization: testOrganization.id,
           slug: `brand-alpha-${Date.now()}`,
-          user: testUser._id,
+          user: testUser.id,
         }),
         createTestBrand({
-          _id: generateIdString(),
+          id: generateIdString(),
           label: 'Beta Brand',
-          organization: testOrganization._id,
+          organization: testOrganization.id,
           slug: `brand-beta-${Date.now()}`,
-          user: testUser._id,
+          user: testUser.id,
         }),
       ];
       await dbHelper.seedCollection('brands', additionalBrands);
@@ -212,12 +212,12 @@ describe('Brands E2E Tests', () => {
     it('should filter out deleted brands by default', async () => {
       // Create a deleted brand
       const deletedBrand = createTestBrand({
-        _id: generateIdString(),
+        id: generateIdString(),
         isDeleted: true,
         label: 'Deleted Brand',
-        organization: testOrganization._id,
+        organization: testOrganization.id,
         slug: `deleted-brand-${Date.now()}`,
-        user: testUser._id,
+        user: testUser.id,
       });
       await dbHelper.seedCollection('brands', [deletedBrand]);
 
@@ -263,12 +263,12 @@ describe('Brands E2E Tests', () => {
   describe('GET /v1/brands/:brandId', () => {
     it('should return a single brand by ID', async () => {
       const response = await authenticatedRequest().get(
-        `/v1/brands/${testBrand._id}`,
+        `/v1/brands/${testBrand.id}`,
       );
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toHaveProperty('id', testBrand._id.toString());
+      expect(response.body.data).toHaveProperty('id', testBrand.id.toString());
       expect(response.body.data).toHaveProperty('type', 'brands');
       expect(response.body.data.attributes).toHaveProperty(
         'label',
@@ -278,7 +278,7 @@ describe('Brands E2E Tests', () => {
 
     it('should return brand with all attributes', async () => {
       const response = await authenticatedRequest().get(
-        `/v1/brands/${testBrand._id}`,
+        `/v1/brands/${testBrand.id}`,
       );
 
       expect(response.status).toBe(200);
@@ -309,12 +309,12 @@ describe('Brands E2E Tests', () => {
     it('should return brand with populated assets', async () => {
       // Create logo asset
       const logoAsset = createTestAsset({
-        _id: generateIdString(),
+        id: generateIdString(),
         category: 'image',
-        organization: testOrganization._id,
+        organization: testOrganization.id,
         type: 'logo',
         url: 'https://example.com/logo.png',
-        user: testUser._id,
+        user: testUser.id,
       });
 
       await dbHelper.seedCollection('assets', [logoAsset]);
@@ -324,7 +324,7 @@ describe('Brands E2E Tests', () => {
       // This test verifies the endpoint returns the brand structure
 
       const response = await authenticatedRequest().get(
-        `/v1/brands/${testBrand._id}`,
+        `/v1/brands/${testBrand.id}`,
       );
 
       expect(response.status).toBe(200);
@@ -442,13 +442,13 @@ describe('Brands E2E Tests', () => {
           attributes: {
             label: 'Updated Brand Label',
           },
-          id: testBrand._id.toString(),
+          id: testBrand.id.toString(),
           type: 'brands',
         },
       };
 
       const response = await authenticatedRequest()
-        .patch(`/v1/brands/${testBrand._id}`)
+        .patch(`/v1/brands/${testBrand.id}`)
         .send(updateData);
 
       expect(response.status).toBe(200);
@@ -465,13 +465,13 @@ describe('Brands E2E Tests', () => {
             primaryColor: '#123456',
             secondaryColor: '#654321',
           },
-          id: testBrand._id.toString(),
+          id: testBrand.id.toString(),
           type: 'brands',
         },
       };
 
       const response = await authenticatedRequest()
-        .patch(`/v1/brands/${testBrand._id}`)
+        .patch(`/v1/brands/${testBrand.id}`)
         .send(updateData);
 
       expect(response.status).toBe(200);
@@ -491,13 +491,13 @@ describe('Brands E2E Tests', () => {
           attributes: {
             description: 'Updated description for the brand',
           },
-          id: testBrand._id.toString(),
+          id: testBrand.id.toString(),
           type: 'brands',
         },
       };
 
       const response = await authenticatedRequest()
-        .patch(`/v1/brands/${testBrand._id}`)
+        .patch(`/v1/brands/${testBrand.id}`)
         .send(updateData);
 
       expect(response.status).toBe(200);
@@ -533,13 +533,13 @@ describe('Brands E2E Tests', () => {
             defaultImageModel: 'OPENAI_DALLE3',
             defaultVideoModel: 'OPENAI_SORA',
           },
-          id: testBrand._id.toString(),
+          id: testBrand.id.toString(),
           type: 'brands',
         },
       };
 
       const response = await authenticatedRequest()
-        .patch(`/v1/brands/${testBrand._id}`)
+        .patch(`/v1/brands/${testBrand.id}`)
         .send(updateData);
 
       expect(response.status).toBe(200);
@@ -557,14 +557,14 @@ describe('Brands E2E Tests', () => {
   describe('DELETE /v1/brands/:brandId', () => {
     it('should soft delete a brand', async () => {
       const response = await authenticatedRequest().delete(
-        `/v1/brands/${testBrand._id}`,
+        `/v1/brands/${testBrand.id}`,
       );
 
       expect(response.status).toBe(200);
 
       // Verify the brand is soft deleted
       const getResponse = await authenticatedRequest().get(
-        `/v1/brands/${testBrand._id}`,
+        `/v1/brands/${testBrand.id}`,
       );
 
       // Should return 404 since deleted brands are filtered
@@ -584,20 +584,20 @@ describe('Brands E2E Tests', () => {
     it('should not affect other brands when deleting', async () => {
       // Create another brand
       const anotherBrand = createTestBrand({
-        _id: generateIdString(),
+        id: generateIdString(),
         label: 'Another Brand',
-        organization: testOrganization._id,
+        organization: testOrganization.id,
         slug: `another-brand-${Date.now()}`,
-        user: testUser._id,
+        user: testUser.id,
       });
       await dbHelper.seedCollection('brands', [anotherBrand]);
 
       // Delete the test brand
-      await authenticatedRequest().delete(`/v1/brands/${testBrand._id}`);
+      await authenticatedRequest().delete(`/v1/brands/${testBrand.id}`);
 
       // Verify the other brand still exists
       const response = await authenticatedRequest().get(
-        `/v1/brands/${anotherBrand._id}`,
+        `/v1/brands/${anotherBrand.id}`,
       );
 
       expect(response.status).toBe(200);
@@ -610,22 +610,22 @@ describe('Brands E2E Tests', () => {
       // Create credentials for the brand
       const credentials = [
         createTestCredential({
-          _id: generateIdString(),
-          brand: testBrand._id,
+          id: generateIdString(),
+          brand: testBrand.id,
           externalHandle: '@testchannel',
           isConnected: true,
-          organization: testOrganization._id,
+          organization: testOrganization.id,
           platform: 'youtube',
-          user: testUser._id,
+          user: testUser.id,
         }),
         createTestCredential({
-          _id: generateIdString(),
-          brand: testBrand._id,
+          id: generateIdString(),
+          brand: testBrand.id,
           externalHandle: '@testtiktok',
           isConnected: true,
-          organization: testOrganization._id,
+          organization: testOrganization.id,
           platform: 'tiktok',
-          user: testUser._id,
+          user: testUser.id,
         }),
       ];
 
@@ -634,7 +634,7 @@ describe('Brands E2E Tests', () => {
 
     it('should return brand with connected credentials', async () => {
       const response = await authenticatedRequest().get(
-        `/v1/brands/${testBrand._id}`,
+        `/v1/brands/${testBrand.id}`,
       );
 
       expect(response.status).toBe(200);
@@ -651,30 +651,30 @@ describe('Brands E2E Tests', () => {
     beforeEach(async () => {
       // Create another organization with a brand
       otherUser = createTestUser({
-        _id: generateIdString(),
+        id: generateIdString(),
         authProviderId: 'authProvider_other_brand_user',
         email: 'other-brand@example.com',
       });
 
       otherOrganization = createTestOrganization({
-        _id: generateIdString(),
+        id: generateIdString(),
         label: 'Other Organization',
-        user: otherUser._id,
+        user: otherUser.id,
       });
 
       const otherMember = createTestMember({
-        _id: generateIdString(),
-        organization: otherOrganization._id,
+        id: generateIdString(),
+        organization: otherOrganization.id,
         role: 'owner',
-        user: otherUser._id,
+        user: otherUser.id,
       });
 
       otherBrand = createTestBrand({
-        _id: generateIdString(),
+        id: generateIdString(),
         label: 'Other Org Brand',
-        organization: otherOrganization._id,
+        organization: otherOrganization.id,
         slug: `other-org-brand-${Date.now()}`,
-        user: otherUser._id,
+        user: otherUser.id,
       });
 
       await dbHelper.seedCollection('users', [otherUser]);
@@ -683,8 +683,8 @@ describe('Brands E2E Tests', () => {
       await dbHelper.seedCollection('brands', [otherBrand]);
       await dbHelper.seedCollection('organization-settings', [
         createTestOrganizationSetting({
-          _id: generateIdString(),
-          organization: otherOrganization._id,
+          id: generateIdString(),
+          organization: otherOrganization.id,
         }),
       ]);
     });
@@ -704,7 +704,7 @@ describe('Brands E2E Tests', () => {
 
     it('should not allow accessing brand from another organization', async () => {
       const response = await authenticatedRequest().get(
-        `/v1/brands/${otherBrand._id}`,
+        `/v1/brands/${otherBrand.id}`,
       );
 
       // Should return 404 or 403
@@ -717,13 +717,13 @@ describe('Brands E2E Tests', () => {
           attributes: {
             label: 'Hacked Brand Name',
           },
-          id: otherBrand._id.toString(),
+          id: otherBrand.id.toString(),
           type: 'brands',
         },
       };
 
       const response = await authenticatedRequest()
-        .patch(`/v1/brands/${otherBrand._id}`)
+        .patch(`/v1/brands/${otherBrand.id}`)
         .send(updateData);
 
       // Should return 404 or 403
@@ -732,7 +732,7 @@ describe('Brands E2E Tests', () => {
 
     it('should not allow deleting brand from another organization', async () => {
       const response = await authenticatedRequest().delete(
-        `/v1/brands/${otherBrand._id}`,
+        `/v1/brands/${otherBrand.id}`,
       );
 
       // Should return 404 or 403
@@ -745,20 +745,20 @@ describe('Brands E2E Tests', () => {
       // Create brands with searchable names
       const searchableBrands = [
         createTestBrand({
-          _id: generateIdString(),
+          id: generateIdString(),
           description: 'A technology focused startup',
           label: 'Tech Startup Brand',
-          organization: testOrganization._id,
+          organization: testOrganization.id,
           slug: `tech-startup-${Date.now()}`,
-          user: testUser._id,
+          user: testUser.id,
         }),
         createTestBrand({
-          _id: generateIdString(),
+          id: generateIdString(),
           description: 'A food and beverage company',
           label: 'Food Company Brand',
-          organization: testOrganization._id,
+          organization: testOrganization.id,
           slug: `food-company-${Date.now()}`,
-          user: testUser._id,
+          user: testUser.id,
         }),
       ];
 
@@ -831,7 +831,7 @@ describe('Brands E2E Tests', () => {
 
     it('should maintain brand-organization relationship integrity', async () => {
       const response = await authenticatedRequest().get(
-        `/v1/brands/${testBrand._id}`,
+        `/v1/brands/${testBrand.id}`,
       );
 
       expect(response.status).toBe(200);

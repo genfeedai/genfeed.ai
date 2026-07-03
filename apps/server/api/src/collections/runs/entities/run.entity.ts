@@ -29,7 +29,6 @@ export class RunEventEntity {
 
 export class RunEntity {
   @ApiProperty()
-  _id!: string;
 
   @ApiProperty()
   traceId!: string;

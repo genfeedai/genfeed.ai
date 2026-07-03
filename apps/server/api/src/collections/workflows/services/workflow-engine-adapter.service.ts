@@ -15,6 +15,7 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
@@ -82,41 +83,43 @@ import type {
 } from '@genfeedai/workflow-engine';
 import {
   type AnalyticsFeedbackOutput,
+  CommentTriggerExecutor,
   createAnalyticsFeedbackExecutor,
   createBrandAssetExecutor,
   createBrandContextExecutor,
-  createCommentTriggerExecutor,
-  createEngagementTriggerExecutor,
-  createHookGeneratorExecutor,
-  createImageGenExecutor,
   createIterativeSeoRefineExecutor,
-  createKeywordTriggerExecutor,
-  createLipSyncExecutor,
-  createMentionTriggerExecutor,
-  createNewFollowerTriggerExecutor,
-  createNewLikeTriggerExecutor,
-  createNewRepostTriggerExecutor,
-  createPostPublishTriggerExecutor,
-  createPostReplyExecutor,
-  createPromptConstructorExecutor,
   createPublishExecutor,
-  createReframeExecutor,
-  createSendDmExecutor,
   createSendEmailExecutor,
   createSeoRewriteExecutor,
   createSeoScoreExecutor,
-  createTextToSpeechExecutor,
-  createTrendDigestExecutor,
   createTrendTriggerExecutor,
-  createUpscaleExecutor,
+  type DmSender,
+  EngagementTriggerExecutor,
+  HookGeneratorExecutor,
+  ImageGenExecutor,
+  KeywordTriggerExecutor,
   type KeywordTriggerPlatform,
+  LipSyncExecutor,
+  MentionTriggerExecutor,
+  NewFollowerTriggerExecutor,
+  NewLikeTriggerExecutor,
+  NewRepostTriggerExecutor,
   type NodeExecutor,
+  PostPublishTriggerExecutor,
+  PostReplyExecutor,
+  PromptConstructorExecutor,
+  ReframeExecutor,
+  type ReplyPublisher,
+  SendDmExecutor,
   type SeoRewriteResolver,
   type SeoScoreResolver,
   type SocialPlatform,
+  TextToSpeechExecutor,
   type TrendDigestEntry,
+  TrendDigestExecutor,
   type TrendPlatform,
   type TrendTriggerOutput,
+  UpscaleExecutor,
   WorkflowEngine,
 } from '@genfeedai/workflow-engine';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -128,7 +131,6 @@ import { Inject, Injectable, Optional } from '@nestjs/common';
  * Represents a minimal subset of WorkflowDocument needed for conversion.
  */
 interface WorkflowDocumentShape {
-  _id?: string | { toString(): string };
   brands?: Array<string | { toString(): string }>;
   id?: string;
   nodes?: WorkflowVisualNode[];
@@ -307,6 +309,7 @@ export class WorkflowEngineAdapterService {
     @Optional()
     private readonly workflowExecutionQueueService?: WorkflowExecutionQueueService,
     @Optional() private readonly youtubeSocialAdapter?: YoutubeSocialAdapter,
+    @Optional() private readonly socialInboxService?: SocialInboxService,
   ) {
     this.engine = new WorkflowEngine({
       maxConcurrency: 3,
@@ -428,7 +431,7 @@ export class WorkflowEngineAdapterService {
       return;
     }
 
-    const imageGenExecutor = createImageGenExecutor();
+    const imageGenExecutor = new ImageGenExecutor();
     const promptBuilderService = this.promptBuilderService;
     const replicateService = this.replicateService;
 
@@ -599,7 +602,7 @@ export class WorkflowEngineAdapterService {
         if (!brand) return null;
         const brandDoc = brand as unknown as Record<string, unknown>;
         return {
-          brandId: String(brandDoc._id),
+          brandId: String(brandDoc.id),
           colors:
             (brandDoc.colors as {
               primary: string;
@@ -777,7 +780,7 @@ export class WorkflowEngineAdapterService {
       this.wrapEngineExecutor(iterativeSeoRefineExecutor),
     );
 
-    const postPublishTriggerExecutor = createPostPublishTriggerExecutor();
+    const postPublishTriggerExecutor = new PostPublishTriggerExecutor();
     this.engine.registerExecutor(
       postPublishTriggerExecutor.nodeType,
       this.wrapEngineExecutor(postPublishTriggerExecutor),
@@ -1375,7 +1378,7 @@ export class WorkflowEngineAdapterService {
     const credits = this.creditsUtilsService;
     const appUrl = String(this.configService.get('GENFEEDAI_APP_URL') ?? '');
 
-    const executor = createTrendDigestExecutor();
+    const executor = new TrendDigestExecutor();
 
     executor.setOwnerResolver(async (organizationId) => {
       const organization = await prisma.organization.findFirst({
@@ -1639,7 +1642,7 @@ export class WorkflowEngineAdapterService {
             brand: brandId,
             category:
               ingredients.length > 0 ? PostCategory.IMAGE : PostCategory.TEXT,
-            credential: credential._id,
+            credential: credential.id,
             description: caption,
             ingredients,
             label: this.buildPostLabel(caption),
@@ -1650,7 +1653,7 @@ export class WorkflowEngineAdapterService {
             user: userId,
           });
 
-          postIds.push(post._id.toString());
+          postIds.push(post.id.toString());
           publishedPlatforms.push(platform);
         }
 
@@ -1789,7 +1792,7 @@ export class WorkflowEngineAdapterService {
   }
 
   private registerPromptConstructorExecutor(): void {
-    const promptConstructorExecutor = createPromptConstructorExecutor();
+    const promptConstructorExecutor = new PromptConstructorExecutor();
 
     this.engine.registerExecutor(
       'promptConstructor',
@@ -1798,7 +1801,7 @@ export class WorkflowEngineAdapterService {
   }
 
   private registerHookGeneratorExecutor(): void {
-    const hookGeneratorExecutor = createHookGeneratorExecutor();
+    const hookGeneratorExecutor = new HookGeneratorExecutor();
 
     this.engine.registerExecutor(
       'hookGenerator',
@@ -1859,24 +1862,32 @@ export class WorkflowEngineAdapterService {
     // Register one executor per social node type.
     // The executor's platform is resolved at execution time from node config,
     // so we register a single executor per type that dispatches to the correct adapter.
-    const postReplyExecutor = createPostReplyExecutor();
-    const sendDmExecutor = createSendDmExecutor();
-    const followerTriggerExecutor = createNewFollowerTriggerExecutor();
-    const mentionTriggerExecutor = createMentionTriggerExecutor();
-    const likeTriggerExecutor = createNewLikeTriggerExecutor();
-    const repostTriggerExecutor = createNewRepostTriggerExecutor();
-    const keywordTriggerExecutor = createKeywordTriggerExecutor();
-    const engagementTriggerExecutor = createEngagementTriggerExecutor();
-    const commentTriggerExecutor = createCommentTriggerExecutor();
+    const postReplyExecutor = new PostReplyExecutor();
+    const sendDmExecutor = new SendDmExecutor();
+    const followerTriggerExecutor = new NewFollowerTriggerExecutor();
+    const mentionTriggerExecutor = new MentionTriggerExecutor();
+    const likeTriggerExecutor = new NewLikeTriggerExecutor();
+    const repostTriggerExecutor = new NewRepostTriggerExecutor();
+    const keywordTriggerExecutor = new KeywordTriggerExecutor();
+    const engagementTriggerExecutor = new EngagementTriggerExecutor();
+    const commentTriggerExecutor = new CommentTriggerExecutor();
 
     // Wire dispatching publishers/checkers that route to the correct platform adapter.
     // YouTube is backed by its own adapter because it uses the YouTube Data API,
     // not the Twitter/Instagram social adapter factory.
-    if (this.socialAdapterFactory || this.youtubeSocialAdapter) {
+    if (
+      this.socialAdapterFactory ||
+      this.youtubeSocialAdapter ||
+      this.socialInboxService
+    ) {
       const socialAdapterFactory = this.socialAdapterFactory;
       const youtubeSocialAdapter = this.youtubeSocialAdapter;
 
       postReplyExecutor.setPublisher((params) => {
+        if (params.conversationId) {
+          return this.publishSocialInboxReply(params);
+        }
+
         if (params.platform === 'youtube') {
           if (!youtubeSocialAdapter) {
             throw new Error('YouTube social adapter is not available');
@@ -1895,6 +1906,10 @@ export class WorkflowEngineAdapterService {
       });
 
       sendDmExecutor.setSender((params) => {
+        if (params.conversationId) {
+          return this.sendSocialInboxDm(params);
+        }
+
         if (!socialAdapterFactory) {
           throw new Error(
             `${params.platform} social adapter factory is not available`,
@@ -2073,11 +2088,69 @@ export class WorkflowEngineAdapterService {
     );
   }
 
+  private async publishSocialInboxReply(
+    params: Parameters<ReplyPublisher>[0],
+  ): Promise<{ replyId: string; replyUrl: string }> {
+    if (!this.socialInboxService) {
+      throw new Error('Social inbox action service is not available');
+    }
+    if (!params.conversationId) {
+      throw new Error('conversationId is required for social inbox replies');
+    }
+
+    const message = await this.socialInboxService.postReply(
+      {
+        brandId: params.brandId,
+        organizationId: params.organizationId,
+        userId: params.userId,
+      },
+      params.conversationId,
+      {
+        idempotencyKey: params.idempotencyKey,
+        text: params.text,
+        workflowRunId: params.workflowRunId,
+      },
+    );
+
+    return {
+      replyId: message.externalMessageId ?? message.id,
+      replyUrl: message.sourceUrl ?? '',
+    };
+  }
+
+  private async sendSocialInboxDm(
+    params: Parameters<DmSender>[0],
+  ): Promise<{ messageId: string }> {
+    if (!this.socialInboxService) {
+      throw new Error('Social inbox action service is not available');
+    }
+    if (!params.conversationId) {
+      throw new Error('conversationId is required for social inbox DMs');
+    }
+
+    const message = await this.socialInboxService.sendDm(
+      {
+        brandId: params.brandId,
+        organizationId: params.organizationId,
+        userId: params.userId,
+      },
+      params.conversationId,
+      {
+        idempotencyKey: params.idempotencyKey,
+        recipientId: params.recipientId,
+        text: params.text,
+        workflowRunId: params.workflowRunId,
+      },
+    );
+
+    return { messageId: message.externalMessageId ?? message.id };
+  }
+
   /**
    * Registers the lip sync executor with HeyGen as the backend provider.
    */
   private registerLipSyncExecutor(): void {
-    const lipSyncExecutor = createLipSyncExecutor();
+    const lipSyncExecutor = new LipSyncExecutor();
 
     if (this.heyGenService && this.metadataService) {
       const heyGenService = this.heyGenService;
@@ -2238,7 +2311,7 @@ export class WorkflowEngineAdapterService {
             user: context.userId,
           });
 
-        const ingredientId = ingredientData._id.toString();
+        const ingredientId = ingredientData.id.toString();
         const job = await fileQueueService.processVideo({
           authProviderUserId: context.userId,
           ingredientId,
@@ -2270,7 +2343,7 @@ export class WorkflowEngineAdapterService {
           transformations: [TransformationCategory.CAPTIONED],
         });
         await metadataService.patch(
-          metadataData._id,
+          metadataData.id,
           new MetadataEntity(uploaded),
         );
 
@@ -2461,7 +2534,7 @@ export class WorkflowEngineAdapterService {
       const post = await postsService.create({
         brand: brandId,
         category: PostCategory.TEXT,
-        credential: credential._id,
+        credential: credential.id,
         description,
         ingredients: [],
         label: this.buildPostLabel(description),
@@ -2474,10 +2547,10 @@ export class WorkflowEngineAdapterService {
 
       return {
         description: post.description,
-        id: post._id.toString(),
+        id: post.id.toString(),
         platform: post.platform,
         post: {
-          id: post._id.toString(),
+          id: post.id.toString(),
           label: post.label,
           status: post.status,
         },
@@ -2518,9 +2591,9 @@ export class WorkflowEngineAdapterService {
         );
 
         return {
-          id: newsletter._id.toString(),
+          id: newsletter.id.toString(),
           newsletter: {
-            id: newsletter._id.toString(),
+            id: newsletter.id.toString(),
             label: newsletter.label,
             status: newsletter.status,
             topic: newsletter.topic,
@@ -2536,7 +2609,7 @@ export class WorkflowEngineAdapterService {
    * Registers the text-to-speech executor with ElevenLabs as the backend provider.
    */
   private registerTextToSpeechExecutor(): void {
-    const ttsExecutor = createTextToSpeechExecutor();
+    const ttsExecutor = new TextToSpeechExecutor();
 
     if (
       this.elevenLabsService &&
@@ -2599,7 +2672,7 @@ export class WorkflowEngineAdapterService {
    * Registers the reframe executor with Replicate (Luma) as the backend provider.
    */
   private registerReframeExecutor(): void {
-    const reframeExecutor = createReframeExecutor();
+    const reframeExecutor = new ReframeExecutor();
 
     if (this.replicateService && this.metadataService) {
       const replicateService = this.replicateService;
@@ -2676,7 +2749,7 @@ export class WorkflowEngineAdapterService {
    * Registers the upscale executor with Replicate (Topaz) as the backend provider.
    */
   private registerUpscaleExecutor(): void {
-    const upscaleExecutor = createUpscaleExecutor();
+    const upscaleExecutor = new UpscaleExecutor();
 
     if (this.replicateService && this.metadataService) {
       const replicateService = this.replicateService;
@@ -2803,10 +2876,7 @@ export class WorkflowEngineAdapterService {
 
     return {
       edges,
-      id:
-        typeof workflowDoc._id === 'object' && workflowDoc._id
-          ? workflowDoc._id.toString()
-          : workflowDoc.id || '',
+      id: workflowDoc.id || '',
       lockedNodeIds: workflowDoc.lockedNodeIds || [],
       nodes,
       organizationId:
@@ -3107,8 +3177,8 @@ export class WorkflowEngineAdapterService {
         user: args.userId,
       });
 
-    const ingredientId = ingredientData._id.toString();
-    const metadataId = metadataData._id.toString();
+    const ingredientId = ingredientData.id.toString();
+    const metadataId = metadataData.id.toString();
 
     if (args.externalId) {
       await this.metadataService.patch(
@@ -3326,7 +3396,7 @@ export class WorkflowEngineAdapterService {
       return undefined;
     }
 
-    const id = (document as { _id?: { toString(): string } | string })._id;
+    const id = (document as { id?: { toString(): string } | string }).id;
     if (typeof id === 'string') {
       return id;
     }
@@ -3410,7 +3480,7 @@ export class WorkflowEngineAdapterService {
     const record = media as Record<string, unknown>;
     const candidates = [
       record.id,
-      record._id,
+      record.id,
       record.ingredientId,
       record.url,
       record.src,

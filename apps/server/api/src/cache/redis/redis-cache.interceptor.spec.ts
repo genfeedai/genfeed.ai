@@ -6,12 +6,12 @@ import { Reflector } from '@nestjs/core';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { of, throwError } from 'rxjs';
 
-vi.mock('redis', () => {
+vi.mock('ioredis', () => {
   const createMultiMock = () => ({
     del: vi.fn().mockReturnThis(),
     exec: vi.fn().mockResolvedValue(undefined),
     set: vi.fn().mockReturnThis(),
-    setEx: vi.fn().mockReturnThis(),
+    setex: vi.fn().mockReturnThis(),
   });
 
   const clientMock = {
@@ -20,20 +20,19 @@ vi.mock('redis', () => {
     exists: vi.fn(),
     expire: vi.fn(),
     get: vi.fn(),
-    incrBy: vi.fn(),
-    mGet: vi.fn(),
+    incrby: vi.fn(),
+    mget: vi.fn(),
     multi: vi.fn(createMultiMock),
     on: vi.fn(),
     quit: vi.fn().mockResolvedValue(undefined),
-    sAdd: vi.fn(),
+    sadd: vi.fn(),
     set: vi.fn(),
-    setEx: vi.fn(),
-    sMembers: vi.fn(),
+    setex: vi.fn(),
+    smembers: vi.fn(),
   };
 
   return {
-    __esModule: true,
-    createClient: vi.fn(() => clientMock),
+    default: vi.fn(() => clientMock),
   };
 });
 

@@ -3,11 +3,11 @@ import {
   type FeatureFlagAttributes,
   FeatureFlagService,
 } from '@api/feature-flag/feature-flag.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import {
   type CanActivate,
   type ExecutionContext,
   Injectable,
-  NotFoundException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
@@ -46,7 +46,7 @@ export class FeatureFlagGuard implements CanActivate {
       return true;
     }
 
-    throw new NotFoundException();
+    throw new NotFoundException('Route');
   }
 
   private buildAttributes(

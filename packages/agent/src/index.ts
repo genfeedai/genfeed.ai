@@ -149,6 +149,7 @@ export type {
 // Utils
 export { deriveTimeline } from '@genfeedai/agent/utils/derive-timeline';
 export { formatDuration } from '@genfeedai/agent/utils/format-duration';
+export { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
 export type {
   AttachmentItem,
   ChatAttachment,

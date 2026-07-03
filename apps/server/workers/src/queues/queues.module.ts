@@ -6,17 +6,44 @@
  * registrations to ensure consistent retry/backoff behaviour.
  */
 
-import { CLIP_ANALYZE_QUEUE } from '@api/queues/clip-analyze/clip-analyze.constants';
-import { CLIP_FACTORY_QUEUE } from '@api/queues/clip-factory/clip-factory.constants';
 import { QueueService } from '@api/queues/core/queue.service';
 import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
-import { WorkflowQueueService } from '@api/queues/workflow/workflow-queue.service';
-import {
-  CAMPAIGN_MEMORY_EXTRACTION_QUEUE,
-  ORCHESTRATOR_RUN_QUEUE,
-  TRIGGER_EVALUATION_QUEUE,
-} from '@api/services/agent-campaign/orchestrator.constants';
 import { WorkspaceTaskQueueService } from '@api/services/task-orchestration/workspace-task-queue.service';
+import {
+  AD_BULK_UPLOAD_QUEUE,
+  AD_OPTIMIZATION_QUEUE,
+  AD_SYNC_GOOGLE_QUEUE,
+  AD_SYNC_META_QUEUE,
+  AD_SYNC_TIKTOK_QUEUE,
+  AGENT_RUN_QUEUE,
+  ANALYTICS_FACEBOOK_QUEUE,
+  ANALYTICS_SOCIAL_QUEUE,
+  ANALYTICS_SYNC_QUEUE,
+  ANALYTICS_THREADS_QUEUE,
+  ANALYTICS_TWITTER_QUEUE,
+  ANALYTICS_YOUTUBE_QUEUE,
+  ARTICLE_GENERATION_QUEUE,
+  BATCH_CONTENT_QUEUE,
+  BATCH_WORKFLOW_QUEUE,
+  CAMPAIGN_MEMORY_EXTRACTION_QUEUE,
+  CAMPAIGN_PROCESSING_QUEUE,
+  CLIP_ANALYZE_QUEUE,
+  CLIP_FACTORY_QUEUE,
+  CONTENT_OPTIMIZATION_QUEUE,
+  CONTENT_PIPELINE_QUEUE,
+  CREDIT_DEDUCTION_QUEUE,
+  DEFAULT_QUEUE,
+  EMAIL_DIGEST_QUEUE,
+  HEYGEN_POLL_QUEUE,
+  ORCHESTRATOR_RUN_QUEUE,
+  PATTERN_EXTRACTION_QUEUE,
+  REPLY_BOT_POLLING_QUEUE,
+  TELEGRAM_DISTRIBUTE_QUEUE,
+  TRIGGER_EVALUATION_QUEUE,
+  WEBHOOK_CLIENT_QUEUE,
+  WORKFLOW_EXECUTION_QUEUE,
+  WORKSPACE_TASK_QUEUE,
+} from '@genfeedai/queue-contracts';
 import { LoggerModule } from '@libs/logger/logger.module';
 import {
   buildBullMQConnection,
@@ -28,12 +55,7 @@ import { ConfigModule } from '@workers/config/config.module';
 import { ConfigService } from '@workers/config/config.service';
 
 @Module({
-  exports: [
-    QueueService,
-    WorkflowQueueService,
-    WorkspaceTaskQueueService,
-    HeygenPollQueueService,
-  ],
+  exports: [QueueService, WorkspaceTaskQueueService, HeygenPollQueueService],
   imports: [
     LoggerModule,
     BullModule.forRootAsync({
@@ -53,7 +75,7 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'default',
+        name: DEFAULT_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -62,7 +84,7 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'analytics-twitter',
+        name: ANALYTICS_TWITTER_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -71,7 +93,7 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'analytics-youtube',
+        name: ANALYTICS_YOUTUBE_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -80,7 +102,7 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'analytics-social',
+        name: ANALYTICS_SOCIAL_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -89,7 +111,7 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'ad-sync-meta',
+        name: AD_SYNC_META_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -98,7 +120,7 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'ad-sync-google',
+        name: AD_SYNC_GOOGLE_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -107,7 +129,52 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'ad-sync-tiktok',
+        name: AD_SYNC_TIKTOK_QUEUE,
+      },
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 5000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: ANALYTICS_SYNC_QUEUE,
+      },
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 10000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: EMAIL_DIGEST_QUEUE,
+      },
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 5000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: AD_BULK_UPLOAD_QUEUE,
+      },
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 5000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: AD_OPTIMIZATION_QUEUE,
+      },
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 5000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: TELEGRAM_DISTRIBUTE_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -116,61 +183,7 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'ad-insights-aggregation',
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 5000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: 'analytics-sync',
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 10000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: 'email-digest',
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 5000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: 'ad-bulk-upload',
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 5000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: 'ad-optimization',
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 5000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: 'telegram-distribute',
-      },
-      {
-        defaultJobOptions: {
-          attempts: 2,
-          backoff: { delay: 10000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: 'pattern-extraction',
+        name: PATTERN_EXTRACTION_QUEUE,
       },
 
       // ---------- Newly registered queues (moved from API) ----------
@@ -181,7 +194,7 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'reply-bot-polling',
+        name: REPLY_BOT_POLLING_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -190,7 +203,7 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'campaign-processing',
+        name: CAMPAIGN_PROCESSING_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -199,16 +212,7 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'workflow-execution',
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 10000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: 'workflow-delay',
+        name: WORKFLOW_EXECUTION_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -217,7 +221,7 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'agent-run',
+        name: AGENT_RUN_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -226,7 +230,7 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'workspace-task',
+        name: WORKSPACE_TASK_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -235,7 +239,7 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnComplete: 100,
           removeOnFail: 200,
         },
-        name: 'credit-deduction',
+        name: CREDIT_DEDUCTION_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -244,7 +248,7 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'batch-content',
+        name: BATCH_CONTENT_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -253,7 +257,7 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'content-optimization',
+        name: CONTENT_OPTIMIZATION_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -262,7 +266,7 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'content-pipeline',
+        name: CONTENT_PIPELINE_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -271,7 +275,7 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnComplete: 100,
           removeOnFail: 200,
         },
-        name: 'webhook-client',
+        name: WEBHOOK_CLIENT_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -280,7 +284,7 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnComplete: 50,
           removeOnFail: 25,
         },
-        name: 'article-generation',
+        name: ARTICLE_GENERATION_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -336,7 +340,7 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnComplete: 200,
           removeOnFail: 100,
         },
-        name: 'batch-workflow',
+        name: BATCH_WORKFLOW_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -345,7 +349,7 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'heygen-poll',
+        name: HEYGEN_POLL_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -354,7 +358,7 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'analytics-facebook',
+        name: ANALYTICS_FACEBOOK_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -363,15 +367,10 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: 'analytics-threads',
+        name: ANALYTICS_THREADS_QUEUE,
       },
     ),
   ],
-  providers: [
-    QueueService,
-    WorkflowQueueService,
-    WorkspaceTaskQueueService,
-    HeygenPollQueueService,
-  ],
+  providers: [QueueService, WorkspaceTaskQueueService, HeygenPollQueueService],
 })
 export class WorkersQueuesModule {}

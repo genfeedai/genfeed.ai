@@ -1,18 +1,12 @@
+import { DEFAULT_ORCHESTRATION_INTERVAL_HOURS } from '@api/services/agent-campaign/orchestrator.constants';
 import {
-  DEFAULT_ORCHESTRATION_INTERVAL_HOURS,
   ORCHESTRATOR_RUN_QUEUE,
-} from '@api/services/agent-campaign/orchestrator.constants';
+  OrchestratorRunJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
-
-export interface OrchestratorRunJobData {
-  campaignId: string;
-  organizationId: string;
-  scheduledAt: string;
-  userId: string;
-}
 
 @Injectable()
 export class OrchestratorQueueService {

@@ -268,17 +268,17 @@ export class AgentOrchestratorController {
         { _id: metadataUserId, authProviderId },
         [],
       );
-      if (metadataUserDoc?._id) {
-        return String(metadataUserDoc._id);
+      if (metadataUserDoc?.id) {
+        return String(metadataUserDoc.id);
       }
     }
 
     const dbUser = await this.usersService.findOne({ authProviderId }, []);
-    if (!dbUser?._id) {
+    if (!dbUser?.id) {
       throw new UnauthorizedException('User account not found');
     }
 
-    const mongoUserId = String(dbUser._id);
+    const mongoUserId = String(dbUser.id);
     if (!mongoUserId) {
       throw new UnauthorizedException('Invalid user account reference');
     }

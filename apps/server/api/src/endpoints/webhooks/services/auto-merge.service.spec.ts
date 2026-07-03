@@ -33,17 +33,17 @@ describe('AutoMergeService', () => {
 
   beforeEach(() => {
     activitiesService = {
-      create: vi.fn().mockResolvedValue({ _id: mockObjectId }),
+      create: vi.fn().mockResolvedValue({ id: mockObjectId }),
       patch: vi.fn(),
     };
     ingredientsService = {
-      create: vi.fn().mockResolvedValue({ _id: mockObjectId }),
+      create: vi.fn().mockResolvedValue({ id: mockObjectId }),
       findAll: vi.fn(),
       findOne: vi.fn(),
       patch: vi.fn(),
     };
     metadataService = {
-      create: vi.fn().mockResolvedValue({ _id: 'meta-1' }),
+      create: vi.fn().mockResolvedValue({ id: 'meta-1' }),
       patch: vi.fn(),
     };
     usersService = {
@@ -83,7 +83,7 @@ describe('AutoMergeService', () => {
   describe('triggerAutoMergeIfReady', () => {
     it('should skip non-video ingredients', () => {
       const ingredient = {
-        _id: mockObjectId,
+        id: mockObjectId,
         category: IngredientCategory.IMAGE,
       } as unknown as IngredientEntity;
 
@@ -97,7 +97,7 @@ describe('AutoMergeService', () => {
 
     it('should skip videos without groupId', () => {
       const ingredient = {
-        _id: mockObjectId,
+        id: mockObjectId,
         category: IngredientCategory.VIDEO,
       } as unknown as IngredientEntity;
 
@@ -111,19 +111,19 @@ describe('AutoMergeService', () => {
     it('should skip when not all videos are completed', async () => {
       const groupId = 'group-1';
       const videos = [
-        { _id: 'test-object-id', status: IngredientStatus.GENERATED },
-        { _id: 'test-object-id', status: IngredientStatus.PROCESSING },
+        { id: 'test-object-id', status: IngredientStatus.GENERATED },
+        { id: 'test-object-id', status: IngredientStatus.PROCESSING },
       ];
 
       ingredientsService.findAll.mockResolvedValue({ docs: videos });
 
       // Access private method for testing
       const ingredient = {
-        _id: mockObjectId,
+        id: mockObjectId,
         category: IngredientCategory.VIDEO,
         groupId,
         isMergeEnabled: true,
-        user: { _id: 'test-object-id', authProviderId: 'authProvider_abc' },
+        user: { id: 'test-object-id', authProviderId: 'authProvider_abc' },
       } as unknown as IngredientEntity;
 
       // Use private method access for testing
@@ -135,22 +135,22 @@ describe('AutoMergeService', () => {
     it('should skip when merge already exists', async () => {
       const groupId = 'group-1';
       const videos = [
-        { _id: 'test-object-id', status: IngredientStatus.GENERATED },
-        { _id: 'test-object-id', status: IngredientStatus.GENERATED },
+        { id: 'test-object-id', status: IngredientStatus.GENERATED },
+        { id: 'test-object-id', status: IngredientStatus.GENERATED },
       ];
 
       ingredientsService.findAll.mockResolvedValue({ docs: videos });
       ingredientsService.findOne.mockResolvedValue({
-        _id: 'test-object-id',
+        id: 'test-object-id',
         transformations: [TransformationCategory.MERGED],
       });
 
       const ingredient = {
-        _id: mockObjectId,
+        id: mockObjectId,
         category: IngredientCategory.VIDEO,
         groupId,
         isMergeEnabled: true,
-        user: { _id: 'test-object-id', authProviderId: 'authProvider_abc' },
+        user: { id: 'test-object-id', authProviderId: 'authProvider_abc' },
       } as unknown as IngredientEntity;
 
       await (service as any).triggerAutoMergeAsync(ingredient);
@@ -161,14 +161,14 @@ describe('AutoMergeService', () => {
     it('should skip when no userId available', async () => {
       const groupId = 'group-1';
       const videos = [
-        { _id: 'test-object-id', status: IngredientStatus.GENERATED },
+        { id: 'test-object-id', status: IngredientStatus.GENERATED },
       ];
 
       ingredientsService.findAll.mockResolvedValue({ docs: videos });
       ingredientsService.findOne.mockResolvedValue(null);
 
       const ingredient = {
-        _id: mockObjectId,
+        id: mockObjectId,
         category: IngredientCategory.VIDEO,
         groupId,
         isMergeEnabled: true,

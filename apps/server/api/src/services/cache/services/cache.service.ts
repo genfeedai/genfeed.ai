@@ -1,10 +1,9 @@
 import { CacheClientService } from '@api/services/cache/services/cache-client.service';
-import { CacheKeyService } from '@api/services/cache/services/cache-key.service';
 import { CacheTagsService } from '@api/services/cache/services/cache-tags.service';
 import { ServiceCacheOptions } from '@api/shared/interfaces/cache/cache.interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { RedisClientType } from 'redis';
+import type Redis from 'ioredis';
 
 @Injectable()
 export class CacheService {
@@ -14,11 +13,10 @@ export class CacheService {
   constructor(
     private readonly cacheClientService: CacheClientService,
     private readonly cacheTagsService: CacheTagsService,
-    private readonly cacheKeyService: CacheKeyService,
     private readonly logger: LoggerService,
   ) {}
 
-  private get client(): RedisClientType {
+  private get client(): Redis {
     return this.cacheClientService.instance;
   }
 
@@ -48,7 +46,7 @@ export class CacheService {
       const serialized = JSON.stringify(value);
       const ttl = options.ttl || this.defaultTtl;
 
-      await this.client.setEx(key, ttl, serialized);
+      await this.client.setex(key, ttl, serialized);
       await this.cacheTagsService.setTags(key, options.tags ?? []);
       return true;
     } catch (error: unknown) {
@@ -77,7 +75,7 @@ export class CacheService {
 
   async incr(key: string, by: number = 1): Promise<number> {
     try {
-      return await this.client.incrBy(key, by);
+      return await this.client.incrby(key, by);
     } catch (error: unknown) {
       this.logOperationError('incr', {
         by,
@@ -103,7 +101,7 @@ export class CacheService {
 
   async mget<T = unknown>(keys: string[]): Promise<(T | null)[]> {
     try {
-      const values = await this.client.mGet(keys);
+      const values = await this.client.mget(keys);
       return values.map((value) => (value ? (JSON.parse(value) as T) : null));
     } catch (error: unknown) {
       this.logOperationError('mget', { error, keys });
@@ -121,7 +119,7 @@ export class CacheService {
       Object.entries(keyValues).forEach(([key, value]) => {
         const serialized = JSON.stringify(value);
         if (ttl) {
-          pipeline.setEx(key, ttl, serialized);
+          pipeline.setex(key, ttl, serialized);
         } else {
           pipeline.set(key, serialized);
         }
@@ -214,7 +212,7 @@ export class CacheService {
 
   async flush(): Promise<boolean> {
     try {
-      await this.client.flushDb();
+      await this.client.flushdb();
       this.logger.warn(`${this.constructorName} cache flushed`);
       return true;
     } catch (error: unknown) {
@@ -224,7 +222,7 @@ export class CacheService {
   }
 
   generateKey(namespace: string, ...parts: (string | number)[]): string {
-    return this.cacheKeyService.generate(namespace, ...parts);
+    return `${namespace}:${parts.join(':')}`;
   }
 
   /**
@@ -241,10 +239,13 @@ export class CacheService {
     try {
       const key = `lock:${lockKey}`;
       // SET NX (only set if not exists) with EX (expiration in seconds)
-      const result = await this.client.set(key, Date.now().toString(), {
-        EX: ttlSeconds,
-        NX: true,
-      });
+      const result = await this.client.set(
+        key,
+        Date.now().toString(),
+        'EX',
+        ttlSeconds,
+        'NX',
+      );
       return result === 'OK';
     } catch (error: unknown) {
       this.logOperationError('acquireLock', {

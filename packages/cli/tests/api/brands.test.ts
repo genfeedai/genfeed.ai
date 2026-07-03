@@ -75,6 +75,7 @@ describe('api/brands', () => {
             createdAt: '2024-01-01T00:00:00Z',
             description: 'Test description',
             label: 'Brand One',
+            slug: 'brand-one',
             updatedAt: '2024-01-01T00:00:00Z',
           },
           id: 'brand-1',
@@ -87,6 +88,7 @@ describe('api/brands', () => {
       expect(mockFetch).toHaveBeenCalledWith('/brands/brand-1', { method: 'GET' });
       expect(result.id).toBe('brand-1');
       expect(result.label).toBe('Brand One');
+      expect(result.slug).toBe('brand-one');
     });
 
     it('propagates errors for invalid brand id', async () => {

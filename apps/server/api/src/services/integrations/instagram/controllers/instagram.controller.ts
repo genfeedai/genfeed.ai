@@ -25,8 +25,19 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Body, Controller, Get, Post, Req } from '@nestjs/common';
+import type { AxiosResponse } from 'axios';
 import type { Request } from 'express';
 import { firstValueFrom } from 'rxjs';
+
+interface InstagramShortLivedTokenResponse {
+  access_token: string;
+  expires_in?: number;
+}
+
+interface InstagramLongLivedTokenResponse {
+  access_token: string;
+  expires_in?: number;
+}
 
 @AutoSwagger()
 @Controller('services/instagram')
@@ -109,7 +120,7 @@ export class InstagramController {
 
     const appId = this.configService.get('INSTAGRAM_APP_ID');
     const state = JSON.stringify({
-      brandId: brand._id,
+      brandId: brand.id,
       organizationId: brand.organization,
       userId: publicMetadata.user,
     });
@@ -168,7 +179,7 @@ export class InstagramController {
 
       // Authorization codes expire quickly (10-60 seconds) and can only be used once
       // The redirect_uri must match EXACTLY (including protocol, domain, path, trailing slashes)
-      let tokenRes;
+      let tokenRes: AxiosResponse<InstagramShortLivedTokenResponse>;
       try {
         // Use POST method as per OAuth 2.0 specification and Facebook's recommendation
         tokenRes = await firstValueFrom(
@@ -274,7 +285,7 @@ export class InstagramController {
       }
 
       // 2. Exchange short-lived token for long-lived token
-      let longTokenRes;
+      let longTokenRes: AxiosResponse<InstagramLongLivedTokenResponse>;
       try {
         longTokenRes = await firstValueFrom(
           this.httpService.get(
@@ -357,7 +368,7 @@ export class InstagramController {
       // Update the credential with the access token
       // If reconnecting the same account, reactivate previously deleted credential
       const credential = await this.credentialsService.patch(
-        existingCredential._id,
+        existingCredential.id,
         {
           accessToken: access_token,
           accessTokenExpiry: expires_in

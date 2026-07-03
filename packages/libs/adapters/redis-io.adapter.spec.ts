@@ -2,8 +2,7 @@ import { createServer } from 'node:http';
 import { RedisIoAdapter } from '@libs/adapters/redis-io.adapter';
 import type { LoggerService } from '@libs/logger/logger.service';
 import * as redisAdapter from '@socket.io/redis-adapter';
-import type { RedisClientType } from 'redis';
-import * as redis from 'redis';
+import Redis from 'ioredis';
 import { Server } from 'socket.io';
 import {
   afterEach,
@@ -19,7 +18,11 @@ vi.mock('@socket.io/redis-adapter', () => ({
   createAdapter: vi.fn(),
 }));
 
-type RedisClientSubset = Pick<RedisClientType, 'connect' | 'duplicate'>;
+vi.mock('ioredis', () => ({
+  default: vi.fn(),
+}));
+
+type RedisClientSubset = Pick<Redis, 'connect' | 'duplicate'>;
 
 describe('RedisIoAdapter', () => {
   const redisUrl = 'redis://localhost:6379';
@@ -57,13 +60,9 @@ describe('RedisIoAdapter', () => {
     const subClient = buildMockClient();
     const adapterConstructor = Symbol('adapter-constructor');
 
-    pubClient.duplicate.mockReturnValue(
-      subClient as unknown as RedisClientType,
-    );
+    pubClient.duplicate.mockReturnValue(subClient as unknown as Redis);
 
-    vi.spyOn(redis, 'createClient').mockReturnValue(
-      pubClient as unknown as RedisClientType,
-    );
+    vi.mocked(Redis).mockImplementation(() => pubClient as unknown as Redis);
     vi.mocked(redisAdapter.createAdapter).mockReturnValue(
       adapterConstructor as unknown as ReturnType<
         typeof redisAdapter.createAdapter
@@ -84,13 +83,9 @@ describe('RedisIoAdapter', () => {
     const pubClient = buildMockClient();
     const subClient = buildMockClient();
     const adapterConstructor = Symbol('adapter-constructor');
-    const createClientSpy = vi
-      .spyOn(redis, 'createClient')
-      .mockReturnValue(pubClient as unknown as RedisClientType);
 
-    pubClient.duplicate.mockReturnValue(
-      subClient as unknown as RedisClientType,
-    );
+    pubClient.duplicate.mockReturnValue(subClient as unknown as Redis);
+    vi.mocked(Redis).mockImplementation(() => pubClient as unknown as Redis);
     vi.mocked(redisAdapter.createAdapter).mockReturnValue(
       adapterConstructor as unknown as ReturnType<
         typeof redisAdapter.createAdapter
@@ -106,13 +101,13 @@ describe('RedisIoAdapter', () => {
     );
     await adapter.connectToRedis();
 
-    expect(createClientSpy).toHaveBeenCalledWith({
+    expect(vi.mocked(Redis)).toHaveBeenCalledWith({
+      connectTimeout: 3000,
+      host: 'redis.internal',
+      lazyConnect: true,
       password: 'secret-from-ssm',
-      socket: {
-        connectTimeout: 3000,
-        tls: true,
-      },
-      url: 'rediss://redis.internal:6379',
+      port: 6379,
+      tls: {},
     });
   });
 
@@ -120,14 +115,10 @@ describe('RedisIoAdapter', () => {
     const pubClient = buildMockClient();
     const subClient = buildMockClient();
 
-    pubClient.duplicate.mockReturnValue(
-      subClient as unknown as RedisClientType,
-    );
+    pubClient.duplicate.mockReturnValue(subClient as unknown as Redis);
     pubClient.connect.mockRejectedValueOnce(new Error('connection failed'));
 
-    vi.spyOn(redis, 'createClient').mockReturnValue(
-      pubClient as unknown as RedisClientType,
-    );
+    vi.mocked(Redis).mockImplementation(() => pubClient as unknown as Redis);
 
     const adapter = new RedisIoAdapter(undefined, redisUrl, loggerService);
     await adapter.connectToRedis();

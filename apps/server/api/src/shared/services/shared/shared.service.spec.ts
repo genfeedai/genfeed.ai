@@ -30,14 +30,14 @@ describe('SharedService', () => {
   } as unknown as User;
 
   const mockMetadata = {
-    _id: '507f1f77bcf86cd799439013',
+    id: '507f1f77bcf86cd799439013',
     brand: null,
     prompt: null,
     user: '507f1f77bcf86cd799439011',
   };
 
   const mockIngredient = {
-    _id: '507f1f77bcf86cd799439014',
+    id: '507f1f77bcf86cd799439014',
     brand: null,
     frame: null,
     isDefault: false,
@@ -139,10 +139,10 @@ describe('SharedService', () => {
       await service.saveDocuments(mockUser, body);
 
       expect(ingredientsService.create).toHaveBeenCalledWith(
-        expect.objectContaining({ metadataId: mockMetadata._id }),
+        expect.objectContaining({ metadataId: mockMetadata.id }),
       );
       expect(ingredientsService.create).not.toHaveBeenCalledWith(
-        expect.objectContaining({ metadata: mockMetadata._id }),
+        expect.objectContaining({ metadata: mockMetadata.id }),
       );
     });
 
@@ -153,7 +153,7 @@ describe('SharedService', () => {
       };
 
       const parentIngredient = {
-        _id: '507f1f77bcf86cd799439020',
+        id: '507f1f77bcf86cd799439020',
         version: 5,
       };
 
@@ -216,10 +216,10 @@ describe('SharedService', () => {
   describe('updateDocuments', () => {
     it('should update metadata and ingredient documents', async () => {
       const metadataData = new MetadataEntity({
-        _id: '507f1f77bcf86cd799439013',
+        id: '507f1f77bcf86cd799439013',
       });
       const ingredientData = new IngredientEntity({
-        _id: '507f1f77bcf86cd799439014',
+        id: '507f1f77bcf86cd799439014',
       });
       const result = 'Updated result';
       const promptId = '507f1f77bcf86cd799439015';
@@ -235,27 +235,24 @@ describe('SharedService', () => {
       );
 
       expect(metadataService.patch).toHaveBeenCalledWith(
-        metadataData._id,
+        metadataData.id,
         expect.objectContaining({
           prompt: promptId,
           result,
         }),
       );
-      expect(ingredientsService.patch).toHaveBeenCalledWith(
-        ingredientData._id,
-        {
-          prompt: promptId,
-          status: IngredientStatus.GENERATED,
-        },
-      );
+      expect(ingredientsService.patch).toHaveBeenCalledWith(ingredientData.id, {
+        prompt: promptId,
+        status: IngredientStatus.GENERATED,
+      });
     });
 
     it('should handle updates without promptId', async () => {
       const metadataData = new MetadataEntity({
-        _id: '507f1f77bcf86cd799439013',
+        id: '507f1f77bcf86cd799439013',
       });
       const ingredientData = new IngredientEntity({
-        _id: '507f1f77bcf86cd799439014',
+        id: '507f1f77bcf86cd799439014',
       });
       const result = 'Updated result';
 
@@ -265,27 +262,24 @@ describe('SharedService', () => {
       await service.updateDocuments(metadataData, ingredientData, result);
 
       expect(metadataService.patch).toHaveBeenCalledWith(
-        metadataData._id,
+        metadataData.id,
         expect.objectContaining({
           prompt: undefined,
           result,
         }),
       );
-      expect(ingredientsService.patch).toHaveBeenCalledWith(
-        ingredientData._id,
-        {
-          prompt: undefined,
-          status: IngredientStatus.GENERATED,
-        },
-      );
+      expect(ingredientsService.patch).toHaveBeenCalledWith(ingredientData.id, {
+        prompt: undefined,
+        status: IngredientStatus.GENERATED,
+      });
     });
 
     it('should handle invalid promptId', async () => {
       const metadataData = new MetadataEntity({
-        _id: '507f1f77bcf86cd799439013',
+        id: '507f1f77bcf86cd799439013',
       });
       const ingredientData = new IngredientEntity({
-        _id: '507f1f77bcf86cd799439014',
+        id: '507f1f77bcf86cd799439014',
       });
       const result = 'Updated result';
       const invalidPromptId = 'invalid-id';
@@ -301,19 +295,16 @@ describe('SharedService', () => {
       );
 
       expect(metadataService.patch).toHaveBeenCalledWith(
-        metadataData._id,
+        metadataData.id,
         expect.objectContaining({
           prompt: undefined,
           result,
         }),
       );
-      expect(ingredientsService.patch).toHaveBeenCalledWith(
-        ingredientData._id,
-        {
-          prompt: undefined,
-          status: IngredientStatus.GENERATED,
-        },
-      );
+      expect(ingredientsService.patch).toHaveBeenCalledWith(ingredientData.id, {
+        prompt: undefined,
+        status: IngredientStatus.GENERATED,
+      });
     });
 
     it('should persist trimmed promptId after validation', async () => {
@@ -337,19 +328,16 @@ describe('SharedService', () => {
       );
 
       expect(metadataService.patch).toHaveBeenCalledWith(
-        metadataData._id,
+        metadataData.id,
         expect.objectContaining({
           prompt: promptId,
           result,
         }),
       );
-      expect(ingredientsService.patch).toHaveBeenCalledWith(
-        ingredientData._id,
-        {
-          prompt: promptId,
-          status: IngredientStatus.GENERATED,
-        },
-      );
+      expect(ingredientsService.patch).toHaveBeenCalledWith(ingredientData.id, {
+        prompt: promptId,
+        status: IngredientStatus.GENERATED,
+      });
     });
   });
 
@@ -590,7 +578,7 @@ describe('SharedService', () => {
       );
 
       expect(mockPromptsService.patch).toHaveBeenCalledWith(promptId, {
-        ingredient: ingredientData._id,
+        ingredient: ingredientData.id,
       });
     });
 
@@ -624,7 +612,7 @@ describe('SharedService', () => {
       );
 
       expect(mockPromptsService.patch).toHaveBeenCalledWith(promptId, {
-        ingredient: ingredientData._id,
+        ingredient: ingredientData.id,
       });
     });
 
