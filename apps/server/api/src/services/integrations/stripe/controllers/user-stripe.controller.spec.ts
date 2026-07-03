@@ -68,15 +68,18 @@ describe('UserStripeController', () => {
     headers: { origin: 'https://app.genfeed.ai' },
   } as unknown as Request;
   const mockRequestNoOrigin = { headers: {} } as unknown as Request;
+  // Better Auth: request.user.id is the Genfeed User.id (JWT sub), not a
+  // legacy external auth-provider id.
   const mockUser = {
     emailAddresses: [{ emailAddress: 'user@test.com' }],
     firstName: 'John',
-    id: 'authProvider_user_1',
+    id: dbUserId,
     lastName: 'Doe',
   } as unknown as User;
 
+  // Post-cutover user: authProviderId is NULL; identity is the Genfeed id.
   const mockDbUser = {
-    authProviderId: 'authProvider_user_1',
+    authProviderId: null,
     id: dbUserId,
     stripeCustomerId: 'cus_existing',
   };
@@ -153,6 +156,12 @@ describe('UserStripeController', () => {
         mockRequest,
       );
       expect(result).toEqual({ url: 'https://checkout.stripe.com/pay' });
+      // Regression (#1199): resolve the DB user by Genfeed User.id, never the
+      // frozen authProviderId column (NULL for post-cutover Better Auth users).
+      expect(usersService.findOne).toHaveBeenCalledWith({
+        _id: dbUserId,
+        isDeleted: false,
+      });
       expect(stripeService.createUserCustomer).not.toHaveBeenCalled();
     });
 

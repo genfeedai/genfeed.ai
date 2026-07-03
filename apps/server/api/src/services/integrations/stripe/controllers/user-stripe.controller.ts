@@ -95,9 +95,9 @@ export class UserStripeController {
         });
       }
 
-      // Find user by authProviderId
+      // Load the current user's DB record by id (Better Auth: user.id is the Genfeed User.id).
       const dbUser = await this.usersService.findOne({
-        authProviderId: user.id,
+        _id: user.id,
         isDeleted: false,
       });
       if (!dbUser) {
@@ -180,9 +180,9 @@ export class UserStripeController {
     }
 
     try {
-      // Find user by authProviderId
+      // Load the current user's DB record by id (Better Auth: user.id is the Genfeed User.id).
       const dbUser = await this.usersService.findOne({
-        authProviderId: user.id,
+        _id: user.id,
         isDeleted: false,
       });
       if (!dbUser) {
@@ -222,9 +222,9 @@ export class UserStripeController {
     this.loggerService.log(url);
 
     try {
-      // Find user by authProviderId
+      // Load the current user's DB record by id (Better Auth: user.id is the Genfeed User.id).
       const dbUser = await this.usersService.findOne({
-        authProviderId: user.id,
+        _id: user.id,
         isDeleted: false,
       });
       if (!dbUser) {
