@@ -560,6 +560,7 @@
         "@genfeedai/prisma": "workspace:*",
         "@genfeedai/queue-contracts": "workspace:*",
         "@genfeedai/workflows": "workspace:*",
+        "@nestjs/event-emitter": "3.1.0",
       },
       "devDependencies": {
         "@nestjs/testing": "11.1.27",
