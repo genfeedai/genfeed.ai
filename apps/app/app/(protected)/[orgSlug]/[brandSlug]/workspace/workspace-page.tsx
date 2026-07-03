@@ -8,6 +8,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import type { Task } from '@services/management/tasks.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
+import Card from '@ui/card/Card';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
@@ -133,6 +134,27 @@ function WorkspacePageContentContent({
     ],
   );
 
+  const inboxTable = (
+    <AppTable<Task>
+      items={
+        section === 'inbox' ? visibleInboxTasks : reviewInboxTasks.slice(0, 5)
+      }
+      isLoading={isWorkspaceTasksLoading}
+      emptyLabel={
+        section === 'inbox' && defaultInboxView === 'unread'
+          ? 'No unread inbox items right now.'
+          : 'No inbox items yet.'
+      }
+      getRowKey={(task) => task.id}
+      getItemId={(task) => task.id}
+      onRowClick={(task) => {
+        setSelectedTaskId(task.id);
+        replaceTaskSearchParam(task.id);
+      }}
+      columns={workspaceInboxTableColumns}
+    />
+  );
+
   return (
     <Container
       label={sectionCopy.title}
@@ -234,29 +256,22 @@ function WorkspacePageContentContent({
               data-testid="workspace-inbox"
               className="space-y-3"
             >
-              <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/35">
-                {section === 'inbox' ? defaultInboxView : 'Inbox'}
-              </h2>
-              <AppTable<Task>
-                items={
-                  section === 'inbox'
-                    ? visibleInboxTasks
-                    : reviewInboxTasks.slice(0, 5)
-                }
-                isLoading={isWorkspaceTasksLoading}
-                emptyLabel={
-                  section === 'inbox' && defaultInboxView === 'unread'
-                    ? 'No unread inbox items right now.'
-                    : 'No inbox items yet.'
-                }
-                getRowKey={(task) => task.id}
-                getItemId={(task) => task.id}
-                onRowClick={(task) => {
-                  setSelectedTaskId(task.id);
-                  replaceTaskSearchParam(task.id);
-                }}
-                columns={workspaceInboxTableColumns}
-              />
+              {section === 'inbox' ? (
+                <>
+                  <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/35">
+                    {defaultInboxView}
+                  </h2>
+                  {inboxTable}
+                </>
+              ) : (
+                <Card
+                  label="Inbox"
+                  description="Latest items waiting on your review."
+                  bodyClassName="space-y-3 p-4"
+                >
+                  {inboxTable}
+                </Card>
+              )}
             </section>
           ) : null}
 

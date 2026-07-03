@@ -27,6 +27,13 @@ export default defineConfig({
         ),
       },
       {
+        find: /^@testing-library\/jest-dom\/vitest$/,
+        replacement: path.resolve(
+          appRoot,
+          './node_modules/@testing-library/jest-dom/dist/vitest.mjs',
+        ),
+      },
+      {
         find: /^@pages$/,
         replacement: pagesRoot,
       },
@@ -235,6 +242,14 @@ export default defineConfig({
         replacement: path.resolve(packageRoot('services'), '$1'),
       },
       {
+        find: /^@ui\/modals\/compound$/,
+        replacement: path.resolve(packageSrc('ui'), './modals/compound'),
+      },
+      {
+        find: /^@ui\/modals\/compound\/(.*)$/,
+        replacement: path.resolve(packageSrc('ui'), './modals/compound/$1'),
+      },
+      {
         find: /^@ui\/primitives$/,
         replacement: path.resolve(packageSrc('ui'), './primitives'),
       },
@@ -274,6 +289,7 @@ export default defineConfig({
       'studio/generate/utils/**/*.test.ts',
       'studio/fastlane/**/*.test.ts',
       'studio/fastlane/**/*.test.tsx',
+      'trends/**/*.test.tsx',
     ],
     name: '@genfeedai/pages',
     setupFiles: [path.resolve(appRoot, './vitest.setup.ts')],

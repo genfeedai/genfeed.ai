@@ -6,6 +6,7 @@ import {
   DelayResumeJobData,
   WorkflowExecutorService,
 } from '@api/collections/workflows/services/workflow-executor.service';
+import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
@@ -17,6 +18,8 @@ import { Job } from 'bullmq';
  * Handles:
  * - `trigger` jobs: delegates to WorkflowExecutorService.handleTriggerEvent
  * - `delay-resume` jobs: delegates to WorkflowExecutorService.resumeAfterDelay
+ * - `scheduled-fire` jobs (produced by BullMQ Job Schedulers): delegates to
+ *   WorkflowSchedulerService.executeScheduledWorkflow
  *
  * When a workflow execution encounters a delay node, the executor returns
  * delay metadata. This processor detects it and schedules a new delayed job
@@ -33,6 +36,7 @@ export class WorkflowExecutionProcessor extends WorkerHost {
     private readonly logger: LoggerService,
     private readonly executorService: WorkflowExecutorService,
     private readonly queueService: WorkflowExecutionQueueService,
+    private readonly schedulerService: WorkflowSchedulerService,
   ) {
     super();
   }
@@ -53,6 +57,9 @@ export class WorkflowExecutionProcessor extends WorkerHost {
 
         case 'delay-resume':
           return await this.processDelayResume(job);
+
+        case 'scheduled-fire':
+          return await this.processScheduledFire(job);
 
         default:
           throw new Error(`Unknown workflow execution job type: ${data.type}`);
@@ -141,6 +148,29 @@ export class WorkflowExecutionProcessor extends WorkerHost {
       status: result.status,
       workflowId: result.workflowId,
     };
+  }
+
+  /**
+   * Process a scheduled fire produced by a workflow's BullMQ Job Scheduler.
+   * BullMQ guarantees a single delayed job per scheduler id per tick, so this
+   * is the only place a workflow cron schedule executes across the fleet.
+   */
+  private async processScheduledFire(
+    job: Job<WorkflowExecutionJobData>,
+  ): Promise<unknown> {
+    const { workflowId } = job.data;
+    if (!workflowId) {
+      throw new Error('Scheduled fire job missing workflowId data');
+    }
+
+    await this.schedulerService.executeScheduledWorkflow(workflowId);
+
+    this.logger.log(`${this.logContext} scheduled fire processed`, {
+      jobId: job.id,
+      workflowId,
+    });
+
+    return { workflowId };
   }
 
   /**
