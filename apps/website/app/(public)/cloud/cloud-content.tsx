@@ -5,14 +5,6 @@ import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { EnvironmentService } from '@services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@ui/primitives/table';
-import {
   CtaSection,
   NeuralGrid,
   NeuralGridItem,
@@ -21,15 +13,11 @@ import {
 import PageLayout from '@web-components/PageLayout';
 import Image from 'next/image';
 import {
-  HiCheck,
-  HiCloud,
-  HiCpuChip,
   HiLifebuoy,
   HiServerStack,
   HiShieldCheck,
   HiSparkles,
   HiUserGroup,
-  HiXMark,
 } from 'react-icons/hi2';
 import { LuArrowRight } from 'react-icons/lu';
 
@@ -64,25 +52,6 @@ const BENEFITS = [
   },
 ];
 
-interface ComparisonRow {
-  cloud: boolean | string;
-  core: boolean | string;
-  feature: string;
-}
-
-const COMPARISON_DATA: ComparisonRow[] = [
-  { cloud: 'Managed PAYG', core: 'Bring your own', feature: 'AI Models' },
-  { cloud: 'Fully managed', core: 'Self-managed', feature: 'Infrastructure' },
-  { cloud: 'Priority support', core: 'Community', feature: 'Support' },
-  { cloud: true, core: false, feature: 'Team roles' },
-  { cloud: true, core: false, feature: 'Multi-org accounts' },
-  { cloud: true, core: false, feature: 'Multi-brand workspaces' },
-  { cloud: true, core: false, feature: 'Shared approvals' },
-  { cloud: 'Automatic', core: 'Manual', feature: 'Updates' },
-  { cloud: 'Managed', core: 'Self-managed', feature: 'Uptime' },
-  { cloud: true, core: true, feature: 'API Access' },
-];
-
 const TEAMS = [
   {
     description:
@@ -105,17 +74,6 @@ const CALENDLY_URL =
   process.env.NEXT_PUBLIC_CALENDLY_URL ||
   'https://calendly.com/vincent-genfeed/30min';
 
-function ComparisonValue({ value }: { value: boolean | string }) {
-  if (typeof value === 'boolean') {
-    return value ? (
-      <HiCheck className="size-5 text-green-500 mx-auto" />
-    ) : (
-      <HiXMark className="size-5 text-surface/20 mx-auto" />
-    );
-  }
-  return <span className="text-sm">{value}</span>;
-}
-
 export default function CloudContent() {
   const containerRef = useMarketingEntrance();
   const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=hosted`;
@@ -123,13 +81,7 @@ export default function CloudContent() {
   return (
     <div ref={containerRef}>
       <PageLayout
-        badge="Managed Platform"
-        badgeIcon={HiCloud}
-        title={
-          <>
-            Genfeed <span className="italic font-light">Cloud App</span>
-          </>
-        }
+        title={<>Genfeed Cloud App</>}
         description="The managed path for creating, approving, publishing, and paying as you go for output."
       >
         {/* Benefits */}
@@ -226,55 +178,6 @@ export default function CloudContent() {
               />
             ))}
           </NeuralGrid>
-        </WebSection>
-
-        {/* Comparison Table */}
-        <WebSection maxWidth="lg" bg="subtle" className="gsap-section">
-          <div className="text-center mb-16">
-            <h3 className="text-5xl font-serif mb-6">Core vs Cloud</h3>
-          </div>
-
-          <div className="border border-edge/5 overflow-hidden">
-            <Table className="w-full">
-              <TableHeader>
-                <TableRow className="border-b border-edge/5 bg-fill/[0.02]">
-                  <TableHead className="text-left py-4 px-6 text-xs font-black uppercase tracking-widest text-surface/30">
-                    Feature
-                  </TableHead>
-                  <TableHead className="text-center py-4 px-6 text-xs font-black uppercase tracking-widest text-surface/30">
-                    <div className="flex items-center justify-center gap-2">
-                      <HiCpuChip className="size-4" />
-                      Core
-                    </div>
-                  </TableHead>
-                  <TableHead className="text-center py-4 px-6 text-xs font-black uppercase tracking-widest text-surface/30">
-                    <div className="flex items-center justify-center gap-2">
-                      <HiCloud className="size-4" />
-                      Cloud
-                    </div>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {COMPARISON_DATA.map((row) => (
-                  <TableRow
-                    key={row.feature}
-                    className="border-b border-edge/5 last:border-0 hover:bg-fill/[0.02] transition-colors"
-                  >
-                    <TableCell className="py-4 px-6 font-medium text-sm">
-                      {row.feature}
-                    </TableCell>
-                    <TableCell className="py-4 px-6 text-center text-surface/50">
-                      <ComparisonValue value={row.core} />
-                    </TableCell>
-                    <TableCell className="py-4 px-6 text-center">
-                      <ComparisonValue value={row.cloud} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
         </WebSection>
 
         {/* Pricing CTA */}

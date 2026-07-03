@@ -378,7 +378,7 @@ export const useCases: UseCase[] = [
       'Automate posting schedule (set it and forget it)',
       'Track which content drives signups/revenue',
       'All-in-one platform (no tool switching)',
-      'Self-host free or use Hosted ($49/month + PAYG output)',
+      'Start with Cloud App at $49/month plus PAYG output',
     ],
     subtitle: 'Solopreneurs & Startup Founders',
     title: 'Genfeed for Founders',

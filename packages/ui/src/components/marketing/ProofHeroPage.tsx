@@ -13,8 +13,6 @@ export interface ProofHeroPageProps {
 }
 
 export default function ProofHeroPage({
-  badge,
-  badgeIcon: BadgeIcon,
   children,
   description,
   heroActions,
@@ -35,14 +33,7 @@ export default function ProofHeroPage({
             ].join(' ')}
           >
             <div className="max-w-2xl">
-              {badge ? (
-                <div className="inline-flex items-center gap-2 border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)] px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-[var(--gen-accent-text)]">
-                  {BadgeIcon ? <BadgeIcon className="size-3.5" /> : null}
-                  {badge}
-                </div>
-              ) : null}
-
-              <h1 className="mt-6 text-5xl font-serif leading-[0.9] tracking-[-0.05em] text-foreground sm:text-6xl md:text-7xl lg:text-[5.4rem]">
+              <h1 className="text-5xl font-semibold leading-[0.95] tracking-[-0.03em] text-foreground sm:text-6xl md:text-7xl lg:text-[5.2rem]">
                 {title}
               </h1>
 

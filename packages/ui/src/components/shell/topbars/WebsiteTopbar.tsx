@@ -10,7 +10,6 @@ import {
   HiCloud,
   HiGlobeAlt,
   HiMegaphone,
-  HiServerStack,
   HiShoppingCart,
   HiStar,
   HiUserCircle,
@@ -18,7 +17,7 @@ import {
 
 const PRODUCT_LINKS = [
   {
-    description: '$8/mo platform access + PAYG output',
+    description: '$49/mo platform access + PAYG output',
     href: '/pricing',
     icon: HiCloud,
     label: 'Cloud App',
@@ -28,12 +27,6 @@ const PRODUCT_LINKS = [
     href: '/cloud',
     icon: HiBuildingOffice2,
     label: 'Cloud Teams',
-  },
-  {
-    description: 'Run Genfeed on your infrastructure',
-    href: '/host',
-    icon: HiServerStack,
-    label: 'Self-Hosted Core',
   },
   {
     description: 'Connect every platform',
@@ -124,14 +117,12 @@ export default function WebsiteTopbar() {
               </Button>
             </>
           ) : (
-            <>
-              <a
-                href={EnvironmentService.apps.app}
-                className="hidden text-xs font-bold uppercase tracking-[0.1em] text-surface/60 transition-colors hover:text-surface lg:block"
-              >
-                App
-              </a>
-            </>
+            <a
+              href={EnvironmentService.apps.app}
+              className="hidden text-xs font-bold uppercase tracking-[0.1em] text-surface/60 transition-colors hover:text-surface lg:block"
+            >
+              App
+            </a>
           )}
         </div>
       }

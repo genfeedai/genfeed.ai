@@ -1,4 +1,3 @@
-import { EnvironmentService } from '@services/core/environment.service';
 import type { FooterSection } from '@ui/footers';
 import { SiteFooter } from '@ui/footers';
 
@@ -7,8 +6,6 @@ const WEBSITE_SECTIONS: FooterSection[] = [
     links: [
       { href: '/pricing', label: 'Cloud App' },
       { href: '/cloud', label: 'Cloud Teams' },
-      { href: '/host', label: 'Self-Hosted Core' },
-      { href: '/core', label: 'Open Source' },
       { href: '/integrations', label: 'Integrations' },
       { href: '/features', label: 'Features' },
       { href: '/intelligence', label: 'Analytics' },
@@ -26,7 +23,6 @@ const WEBSITE_SECTIONS: FooterSection[] = [
       { href: '/use-cases/founders', label: 'For Founders' },
       { href: '/services', label: 'Services' },
       { href: '/pricing', label: 'Pricing' },
-      { href: 'https://github.com/genfeedai/genfeed.ai', label: 'GitHub' },
     ],
     title: 'Solutions',
   },
@@ -69,7 +65,6 @@ const WEBSITE_SECTIONS: FooterSection[] = [
     links: [
       { href: '/about', label: 'About' },
       { href: '/gen', label: '$GEN Token' },
-      { external: true, href: EnvironmentService.github.org, label: 'GitHub' },
       { href: '/privacy', label: 'Privacy' },
       { href: '/terms', label: 'Terms' },
     ],
