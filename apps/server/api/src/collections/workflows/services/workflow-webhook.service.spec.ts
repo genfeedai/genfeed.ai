@@ -146,7 +146,7 @@ describe('WorkflowWebhookService', () => {
 
   describe('triggerViaWebhook', () => {
     const nodeWorkflow = {
-      _id: { toString: () => 'workflow-1' },
+      id: 'workflow-1',
       config: { webhookId: 'wh_1' },
       nodes: [{ id: 'node-1' }],
       organization: 'org-1',

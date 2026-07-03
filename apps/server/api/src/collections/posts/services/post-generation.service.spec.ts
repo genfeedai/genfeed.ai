@@ -307,7 +307,7 @@ Tweet 3: Tech innovation is changing the world.`,
 
       expect(mockActivitiesService.patch).toHaveBeenCalled();
       expect(mockPostsService.patch).toHaveBeenCalledWith(
-        String(mockPost._id),
+        String(mockPost.id),
         expect.objectContaining({ status: PostStatus.FAILED }),
       );
     });
