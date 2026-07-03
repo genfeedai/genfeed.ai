@@ -26,6 +26,7 @@ import { Button } from '../../../primitives/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
@@ -497,11 +498,10 @@ export function AppSwitcher({
       >
         <div className="grid gap-2 sm:grid-cols-5">
           {sections.map((section) => (
-            <div
+            <DropdownMenuGroup
               key={section.id}
               aria-labelledby={`app-switcher-${section.id}`}
               className="min-w-0"
-              role="group"
             >
               <DropdownMenuLabel
                 id={`app-switcher-${section.id}`}
@@ -520,7 +520,7 @@ export function AppSwitcher({
                   />
                 ))}
               </div>
-            </div>
+            </DropdownMenuGroup>
           ))}
         </div>
       </DropdownMenuContent>

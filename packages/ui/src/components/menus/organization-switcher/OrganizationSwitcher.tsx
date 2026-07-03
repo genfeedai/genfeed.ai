@@ -10,8 +10,9 @@ import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useReducer } from 'react';
 import { HiChevronDown, HiOutlineCog6Tooth } from 'react-icons/hi2';
+import { useCreateOrganizationModal } from './use-create-organization-modal';
 
 interface OrgEntry {
   id: string;
@@ -21,22 +22,57 @@ interface OrgEntry {
   brand: { id: string; label: string } | null;
 }
 
+interface SwitcherState {
+  error: string | null;
+  isSwitching: boolean;
+  orgs: OrgEntry[];
+}
+
+type SwitcherAction =
+  | { type: 'ORGS_LOADED'; orgs: OrgEntry[] }
+  | { type: 'LOAD_FAILED' }
+  | { type: 'SWITCH_START' }
+  | { type: 'SWITCH_FAILED' };
+
+const INITIAL_SWITCHER_STATE: SwitcherState = {
+  error: null,
+  isSwitching: false,
+  orgs: [],
+};
+
+function switcherReducer(
+  state: SwitcherState,
+  action: SwitcherAction,
+): SwitcherState {
+  switch (action.type) {
+    case 'ORGS_LOADED':
+      return { ...state, orgs: action.orgs };
+    case 'LOAD_FAILED':
+      return { ...state, error: 'Failed to load organizations' };
+    case 'SWITCH_START':
+      return { ...state, isSwitching: true };
+    case 'SWITCH_FAILED':
+      return {
+        ...state,
+        error: 'Failed to switch organization',
+        isSwitching: false,
+      };
+    default:
+      return state;
+  }
+}
+
 export default function OrganizationSwitcher() {
   const getOrgsService = useAuthedService((token: string) =>
     OrganizationsService.getInstance(token),
   );
   const { push } = useRouter();
 
-  const [isSwitching, setIsSwitching] = useState(false);
-  const [orgs, setOrgs] = useState<OrgEntry[]>([]);
-  const [error, setError] = useState<string | null>(null);
-
-  // Create org modal state
-  const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [newOrgLabel, setNewOrgLabel] = useState('');
-  const [newOrgDescription, setNewOrgDescription] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
+  const [{ error, isSwitching, orgs }, dispatch] = useReducer(
+    switcherReducer,
+    INITIAL_SWITCHER_STATE,
+  );
+  const createModal = useCreateOrganizationModal(getOrgsService);
 
   // Fetch orgs on mount so the active org label is available immediately
   useEffect(() => {
@@ -47,11 +83,11 @@ export default function OrganizationSwitcher() {
         const svc = await getOrgsService();
         const data = await svc.getMyOrganizations();
         if (!cancelled) {
-          setOrgs(data);
+          dispatch({ orgs: data, type: 'ORGS_LOADED' });
         }
       } catch {
         if (!cancelled) {
-          setError('Failed to load organizations');
+          dispatch({ type: 'LOAD_FAILED' });
         }
       }
     })();
@@ -66,41 +102,17 @@ export default function OrganizationSwitcher() {
       if (isSwitching) {
         return;
       }
-      setIsSwitching(true);
+      dispatch({ type: 'SWITCH_START' });
       try {
         const svc = await getOrgsService();
         await svc.switchOrganization(orgId);
         window.location.reload();
       } catch {
-        setIsSwitching(false);
-        setError('Failed to switch organization');
+        dispatch({ type: 'SWITCH_FAILED' });
       }
     },
     [getOrgsService, isSwitching],
   );
-
-  const handleCreate = useCallback(async () => {
-    if (!newOrgLabel.trim()) {
-      setCreateError('Organization name is required');
-      return;
-    }
-    setIsCreating(true);
-    setCreateError(null);
-    try {
-      const svc = await getOrgsService();
-      await svc.createOrganization({
-        description: newOrgDescription.trim() || undefined,
-        label: newOrgLabel.trim(),
-      });
-      setCreateModalOpen(false);
-      setNewOrgLabel('');
-      setNewOrgDescription('');
-      window.location.reload();
-    } catch {
-      setIsCreating(false);
-      setCreateError('Failed to create organization');
-    }
-  }, [getOrgsService, newOrgDescription, newOrgLabel]);
 
   const activeOrg = orgs.find((o) => o.isActive);
   const displayLabel = error ?? activeOrg?.label ?? 'Organization';
@@ -159,13 +171,13 @@ export default function OrganizationSwitcher() {
         footerActions={[
           {
             label: 'New Organization',
-            onAction: () => setCreateModalOpen(true),
+            onAction: createModal.open,
           },
         ]}
       />
 
       {/* Create Organization Modal */}
-      <Modal.Root open={createModalOpen} onOpenChange={setCreateModalOpen}>
+      <Modal.Root open={createModal.isOpen} onOpenChange={createModal.setOpen}>
         <Modal.Content size="sm">
           <Modal.Header>
             <Modal.Title>Create Organization</Modal.Title>
@@ -186,12 +198,12 @@ export default function OrganizationSwitcher() {
                 <Input
                   id="org-switcher-name"
                   type="text"
-                  value={newOrgLabel}
-                  onChange={(e) => setNewOrgLabel(e.target.value)}
+                  value={createModal.label}
+                  onChange={(e) => createModal.setLabel(e.target.value)}
                   placeholder="My Organization"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
-                      void handleCreate();
+                      void createModal.submit();
                     }
                   }}
                 />
@@ -206,15 +218,17 @@ export default function OrganizationSwitcher() {
                 </label>
                 <Textarea
                   id="org-switcher-description"
-                  value={newOrgDescription}
-                  onChange={(e) => setNewOrgDescription(e.target.value)}
+                  value={createModal.description}
+                  onChange={(e) => createModal.setDescription(e.target.value)}
                   placeholder="What does this organization do?"
                   rows={2}
                   className="resize-none"
                 />
               </div>
-              {createError && (
-                <p className="text-xs text-red-400">{createError}</p>
+              {createModal.createError && (
+                <p className="text-xs text-red-400">
+                  {createModal.createError}
+                </p>
               )}
             </div>
           </Modal.Body>
@@ -232,11 +246,11 @@ export default function OrganizationSwitcher() {
             <Button
               variant={ButtonVariant.DEFAULT}
               withWrapper={false}
-              isDisabled={isCreating || !newOrgLabel.trim()}
-              onClick={() => void handleCreate()}
+              isDisabled={createModal.isCreating || !createModal.label.trim()}
+              onClick={() => void createModal.submit()}
               className="rounded-lg px-4 py-2 text-sm font-medium"
             >
-              {isCreating ? 'Creating\u2026' : 'Create'}
+              {createModal.isCreating ? 'Creating\u2026' : 'Create'}
             </Button>
           </Modal.Footer>
         </Modal.Content>
