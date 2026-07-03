@@ -164,7 +164,7 @@ export class PostAnalyticsService extends BaseService<
       } as never,
       where: {
         postId_platform_date: { date: today, platform, postId },
-      } as never,
+      },
     });
 
     return result ? new PostAnalyticsEntity(result as never) : null;
