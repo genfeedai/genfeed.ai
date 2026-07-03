@@ -18,7 +18,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import ContentCalendar from '@ui/calendar/content-calendar/ContentCalendar';
 import Link from 'next/link';
 import type React from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { HiListBullet } from 'react-icons/hi2';
 
 const DEFAULT_COLOR = '#8b5cf6';
@@ -100,22 +100,34 @@ export default function PostsCalendarPage({
     loadPosts();
   }, [dateRange, brandId, scope, getPostsService, notificationsService]);
 
-  const calendarItems: PostCalendarItem[] = posts.map((post) => ({
-    id: post.id,
-    isDisabled: isPostDisabled(post),
-    post,
-    scheduledDate: post.scheduledDate ?? undefined,
-    status: post.platform || '',
-    title: getEventTitle(post),
-  }));
+  const calendarItems: PostCalendarItem[] = useMemo(
+    () =>
+      posts.map((post) => ({
+        id: post.id,
+        isDisabled: isPostDisabled(post),
+        post,
+        scheduledDate: post.scheduledDate ?? undefined,
+        status: post.platform || '',
+        title: getEventTitle(post),
+      })),
+    [posts],
+  );
 
-  const handleEventClick = (item: PostCalendarItem) => {
+  const handleEventClick = useCallback((item: PostCalendarItem) => {
     setSelectedPostId(item.post.id);
-  };
+  }, []);
 
-  const handleDatesChange = (start: Date, end: Date) => {
-    setDateRange({ end, start });
-  };
+  const handleDatesChange = useCallback(
+    (start: Date, end: Date) => {
+      setDateRange({ end, start });
+    },
+    [setDateRange],
+  );
+
+  const getEventColor = useCallback(
+    (item: PostCalendarItem) => getPlatformColor(item.status),
+    [],
+  );
 
   const filterControls = (
     <Link
@@ -139,7 +151,7 @@ export default function PostsCalendarPage({
       items={calendarItems}
       onEventClick={handleEventClick}
       onDatesChange={handleDatesChange}
-      getEventColor={(item) => getPlatformColor(item.status)}
+      getEventColor={getEventColor}
       filterControls={filterControls}
       modal={modal}
     />
