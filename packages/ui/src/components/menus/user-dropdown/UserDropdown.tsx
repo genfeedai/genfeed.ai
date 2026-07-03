@@ -41,6 +41,9 @@ export default function UserDropdown({
   userEmail,
 }: UserDropdownProps) {
   const { orgHref } = useOrgUrl();
+  // Keep this list in sync with the settings sidebar (`SETTINGS_MENU_ITEMS` in
+  // apps/app/packages/config/settings-menu-items.config.ts) — same items,
+  // order, labels, and destinations. See #1231.
   const allDropdownItems: DropdownItem[] = [
     { href: '/settings', icon: HiOutlineUser, label: 'Personal' },
     {

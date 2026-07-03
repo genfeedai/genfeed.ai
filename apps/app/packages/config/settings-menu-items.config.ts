@@ -11,9 +11,12 @@ import {
   HiUser,
 } from 'react-icons/hi2';
 
+// Flat, single "Settings" section (see #1231): the sidebar renders these under
+// one `sectionLabel="Settings"` header, so per-item `group` values would only
+// re-introduce redundant single-item sub-headers. Keep this list in sync with
+// the gear dropdown in `packages/ui/.../user-dropdown/UserDropdown.tsx`.
 export const SETTINGS_MENU_ITEMS: MenuItemConfig[] = [
   {
-    group: 'Account',
     href: APP_ROUTES.SETTINGS.ROOT,
     hrefScope: 'personal',
     label: 'Personal',
@@ -22,7 +25,6 @@ export const SETTINGS_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiUser,
   },
   {
-    group: 'Workspace',
     href: APP_ROUTES.SETTINGS.ROOT,
     hrefScope: 'organization',
     label: 'Organization',
@@ -31,16 +33,14 @@ export const SETTINGS_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiBuildingOffice2,
   },
   {
-    group: 'Workspace',
     href: APP_ROUTES.SETTINGS.BRANDS,
     hrefScope: 'organization',
-    label: 'Brand Profiles',
+    label: 'Brands',
     matchPaths: [APP_ROUTES.SETTINGS.BRANDS],
     outline: HiOutlineTag,
     solid: HiTag,
   },
   {
-    group: 'Support',
     href: APP_ROUTES.SETTINGS.HELP,
     hrefScope: 'organization',
     label: 'Help',
