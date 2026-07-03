@@ -3,6 +3,10 @@ import { UpdateWorkflowDto } from '@api/collections/workflows/dto/update-workflo
 import { WorkflowEntity } from '@api/collections/workflows/entities/workflow.entity';
 import { type WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { LegacyWorkflowStepRunner } from '@api/collections/workflows/services/legacy-workflow-step-runner.service';
+import {
+  WorkflowExecutionQueueService,
+  type WorkflowSchedulerSyncRow,
+} from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import {
   buildSystemWorkflowDuplicateMetadata,
@@ -47,6 +51,8 @@ export class WorkflowsService extends BaseService<
     private readonly legacyWorkflowStepRunner?: LegacyWorkflowStepRunner,
     @Optional()
     private readonly workflowExecutorService?: WorkflowExecutorService,
+    @Optional()
+    private readonly workflowExecutionQueueService?: WorkflowExecutionQueueService,
   ) {
     super(prisma, 'workflow', logger);
   }
@@ -59,6 +65,31 @@ export class WorkflowsService extends BaseService<
     throw new ForbiddenException(
       'System workflows are immutable. Duplicate the workflow before editing or deleting it.',
     );
+  }
+
+  /**
+   * Upsert or remove the BullMQ job scheduler for one workflow row based on
+   * its current schedule/enabled/status state. No-ops when the queue service
+   * is not wired (tests, contexts without BullMQ).
+   */
+  private async syncWorkflowScheduler(
+    workflow: WorkflowSchedulerSyncRow,
+  ): Promise<void> {
+    await this.workflowExecutionQueueService?.syncWorkflowScheduler(workflow);
+  }
+
+  /**
+   * Soft-delete a workflow and drop its BullMQ job scheduler so the schedule
+   * stops firing immediately.
+   */
+  override async remove(id: string): Promise<WorkflowDocument | null> {
+    const removed = await super.remove(id);
+
+    if (removed) {
+      await this.syncWorkflowScheduler({ id, isDeleted: true });
+    }
+
+    return removed;
   }
 
   @HandleErrors('create workflow', 'workflows')
@@ -97,6 +128,12 @@ export class WorkflowsService extends BaseService<
       steps,
       user: userId,
     });
+
+    // Register the BullMQ job scheduler when the workflow is created with an
+    // enabled schedule (template-seeded or explicit).
+    await this.syncWorkflowScheduler(
+      workflow as unknown as WorkflowSchedulerSyncRow,
+    );
 
     // If trigger is manual, start execution immediately
     if ((workflowData.trigger as string) === 'manual') {

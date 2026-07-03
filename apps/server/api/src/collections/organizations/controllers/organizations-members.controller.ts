@@ -19,6 +19,9 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { UsersService } from '@api/collections/users/services/users.service';
+import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
+import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
+import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { ConfigService } from '@api/config/config.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -78,6 +81,9 @@ export class OrganizationsMembersController {
     private readonly configService: ConfigService,
     private readonly invitationService: InvitationService,
     private readonly brandsService: BrandsService,
+    private readonly requestContextCacheService: RequestContextCacheService,
+    private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
+    private readonly betterAuthIdentityCacheService: BetterAuthIdentityCacheService,
   ) {}
 
   @Get(':organizationId/members')
@@ -201,6 +207,17 @@ export class OrganizationsMembersController {
         await this.usersService.patch(String(existingUser._id), {
           lastUsedOrganizationId: organizationId,
         });
+        await Promise.all([
+          this.requestContextCacheService.invalidateForUser(
+            String(existingUser._id),
+          ),
+          this.accessBootstrapCacheService.invalidateForUser(
+            String(existingUser._id),
+          ),
+          this.betterAuthIdentityCacheService.invalidateForUser(
+            String(existingUser._id),
+          ),
+        ]);
 
         return serializeSingle(request, MemberSerializer, member);
       } catch (error: unknown) {

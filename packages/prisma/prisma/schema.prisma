@@ -2233,6 +2233,7 @@ model Article {
   seoBreakdown Json?
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([slug])
   @@map("articles")
 }
 

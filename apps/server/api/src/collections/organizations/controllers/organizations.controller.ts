@@ -23,6 +23,7 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
+import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
@@ -105,6 +106,7 @@ export class OrganizationsController extends BaseCRUDController<
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly requestContextCacheService: RequestContextCacheService,
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
+    private readonly betterAuthIdentityCacheService: BetterAuthIdentityCacheService,
   ) {
     super(
       loggerService,
@@ -594,6 +596,7 @@ export class OrganizationsController extends BaseCRUDController<
     await Promise.all([
       this.requestContextCacheService.invalidateForUser(userId),
       this.accessBootstrapCacheService.invalidateForUser(userId),
+      this.betterAuthIdentityCacheService.invalidateForUser(userId),
     ]);
 
     const org = await this.organizationsService.findOne({
@@ -754,6 +757,7 @@ export class OrganizationsController extends BaseCRUDController<
     await Promise.all([
       this.requestContextCacheService.invalidateForUser(userId),
       this.accessBootstrapCacheService.invalidateForUser(userId),
+      this.betterAuthIdentityCacheService.invalidateForUser(userId),
     ]);
 
     return {
