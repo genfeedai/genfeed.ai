@@ -1,8 +1,11 @@
 import { describe, expect, test } from 'bun:test';
+import type { ECSClient } from '@aws-sdk/client-ecs';
 import {
+  createAwsGateway,
   type EcsGateway,
   EXIT,
   isTransientError,
+  isWaiterTimeoutError,
   main,
   parseCliArgs,
   type RunTaskAndWaitOptions,
@@ -397,5 +400,53 @@ describe('main', () => {
   test('returns USAGE_ERROR exit code on bad args without touching AWS', async () => {
     const code = await main([]);
     expect(code).toBe(EXIT.USAGE_ERROR);
+  });
+});
+
+describe('createAwsGateway.waitUntilStopped', () => {
+  const params = {
+    cluster: 'c',
+    taskArn: 'arn:aws:ecs:task/1',
+    maxWaitTimeSeconds: 7, // must exceed the ECS waiter minDelay of 6s
+  };
+
+  test('returns stopped when the task reaches STOPPED', async () => {
+    const client = {
+      send: async () => ({ tasks: [{ lastStatus: 'STOPPED' }] }),
+    } as unknown as ECSClient;
+
+    const outcome = await createAwsGateway(client).waitUntilStopped(params);
+    expect(outcome).toBe('stopped');
+  });
+
+  test('returns timeout when maxWaitTime elapses (smithy TimeoutError)', async () => {
+    // Every poll fails -> waiter internally retries -> maxWaitTime (1s) expires
+    // before the second 6s-min-delay poll -> checkExceptions throws an Error with
+    // name "TimeoutError" and no `state` own-property. The gateway must map
+    // that to the 'timeout' outcome, not rethrow into API_FAILURE.
+    const client = {
+      send: async () => {
+        throw new Error('poll failed');
+      },
+    } as unknown as ECSClient;
+
+    const outcome = await createAwsGateway(client).waitUntilStopped(params);
+    expect(outcome).toBe('timeout');
+  }, 15_000); // real waiter sleeps ~6s (minDelay) before the timeout fires
+});
+
+describe('isWaiterTimeoutError', () => {
+  test('matches only errors named TimeoutError', () => {
+    const timeout = new Error('{"state":"TIMEOUT"}');
+    timeout.name = 'TimeoutError';
+    expect(isWaiterTimeoutError(timeout)).toBe(true);
+
+    const aborted = new Error('{"state":"ABORTED"}');
+    aborted.name = 'AbortError';
+    expect(isWaiterTimeoutError(aborted)).toBe(false);
+
+    expect(isWaiterTimeoutError(new Error('plain'))).toBe(false);
+    expect(isWaiterTimeoutError({ state: 'TIMEOUT' })).toBe(false);
+    expect(isWaiterTimeoutError(undefined)).toBe(false);
   });
 });

@@ -39,10 +39,16 @@ import {
   waitUntilTasksStopped,
 } from '@aws-sdk/client-ecs';
 
-// The smithy waiter's terminal state, surfaced on the error the convenience
-// waiter throws. Not re-exported by @aws-sdk/client-ecs, so match the string
-// rather than importing WaiterState from a transitive smithy package.
-const WAITER_STATE_TIMEOUT = 'TIMEOUT';
+// On timeout the smithy waiter throws a plain Error whose `name` is set to
+// "TimeoutError" (see checkExceptions in @smithy/core util-waiter); the
+// WaiterState only exists JSON-stringified inside `message`, never as an own
+// property on the error. Match on `name`, which is the stable contract.
+const WAITER_TIMEOUT_ERROR_NAME = 'TimeoutError';
+
+/** True when the error is the smithy waiter's max-wait-time expiry. */
+export function isWaiterTimeoutError(err: unknown): boolean {
+  return err instanceof Error && err.name === WAITER_TIMEOUT_ERROR_NAME;
+}
 
 export const EXIT = {
   SUCCESS: 0,
@@ -361,10 +367,9 @@ export function createAwsGateway(client: ECSClient): EcsGateway {
         return 'stopped';
       } catch (err) {
         // The convenience waiter throws on any non-SUCCESS terminal state. A
-        // TIMEOUT state means maxWaitTime elapsed without STOPPED; anything else
+        // TimeoutError means maxWaitTime elapsed without STOPPED; anything else
         // is a genuine API/infra error and must propagate to API_FAILURE.
-        const state = (err as { state?: string } | undefined)?.state;
-        if (state === WAITER_STATE_TIMEOUT) {
+        if (isWaiterTimeoutError(err)) {
           return 'timeout';
         }
         throw err;
