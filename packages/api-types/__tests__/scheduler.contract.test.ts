@@ -193,6 +193,54 @@ describe('deriveReleaseStatusFromTargets', () => {
       ]),
     ).toBe(ReleaseStatus.SCHEDULED);
   });
+
+  // SKIPPED is terminal + benign (intentionally excluded target). It has no
+  // ReleaseStatus counterpart, so it rolls up like CANCELLED. Every skipped
+  // combination must land on a terminal status, never fall through to SCHEDULED.
+  test('all skipped -> cancelled (terminal, not left as scheduled)', () => {
+    expect(
+      deriveReleaseStatusFromTargets([
+        TargetExecutionState.SKIPPED,
+        TargetExecutionState.SKIPPED,
+      ]),
+    ).toBe(ReleaseStatus.CANCELLED);
+  });
+
+  test('skipped + failed (no publish) -> failed', () => {
+    expect(
+      deriveReleaseStatusFromTargets([
+        TargetExecutionState.SKIPPED,
+        TargetExecutionState.FAILED,
+      ]),
+    ).toBe(ReleaseStatus.FAILED);
+  });
+
+  test('skipped + published -> partially-published', () => {
+    expect(
+      deriveReleaseStatusFromTargets([
+        TargetExecutionState.SKIPPED,
+        TargetExecutionState.PUBLISHED,
+      ]),
+    ).toBe(ReleaseStatus.PARTIALLY_PUBLISHED);
+  });
+
+  test('skipped + cancelled -> cancelled', () => {
+    expect(
+      deriveReleaseStatusFromTargets([
+        TargetExecutionState.SKIPPED,
+        TargetExecutionState.CANCELLED,
+      ]),
+    ).toBe(ReleaseStatus.CANCELLED);
+  });
+
+  test('skipped + still-scheduled -> scheduled (one target still pending)', () => {
+    expect(
+      deriveReleaseStatusFromTargets([
+        TargetExecutionState.SKIPPED,
+        TargetExecutionState.SCHEDULED,
+      ]),
+    ).toBe(ReleaseStatus.SCHEDULED);
+  });
 });
 
 describe('terminal-state predicates', () => {

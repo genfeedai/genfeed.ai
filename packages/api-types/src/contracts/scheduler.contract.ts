@@ -224,13 +224,21 @@ export function isTerminalTargetExecutionState(
  * Derive the release-level status from the execution states of its targets.
  * Encapsulates the aggregate rules so composer, calendar, workers, and API all
  * report the same roll-up:
- *   - no targets              -> DRAFT
- *   - any still publishing    -> PUBLISHING
- *   - all published           -> PUBLISHED
- *   - all cancelled           -> CANCELLED
- *   - all failed/cancelled    -> FAILED
- *   - some published, some not -> PARTIALLY_PUBLISHED
- *   - otherwise (still queued) -> SCHEDULED
+ *   - no targets                    -> DRAFT
+ *   - any still publishing          -> PUBLISHING
+ *   - all published                 -> PUBLISHED
+ *   - all cancelled/skipped         -> CANCELLED
+ *   - some published, some not      -> PARTIALLY_PUBLISHED
+ *   - all failed/cancelled/skipped  -> FAILED
+ *   - otherwise (still queued)      -> SCHEDULED
+ *
+ * `SKIPPED` is a terminal, benign non-publish — a target intentionally
+ * excluded from the run (e.g. a disabled credential), never an error (see the
+ * {@link TargetExecutionState} doc and {@link isTerminalTargetExecutionState}).
+ * `ReleaseStatus` has no `skipped` value, so at the roll-up level a skipped
+ * target behaves like a cancelled one: it did not publish, did not fail, and is
+ * done. Folding skipped into cancelled keeps every terminal combination landing
+ * on a real terminal status instead of falling through to `SCHEDULED`.
  */
 export function deriveReleaseStatusFromTargets(
   targetStates: readonly TargetExecutionState[],
@@ -252,17 +260,24 @@ export function deriveReleaseStatusFromTargets(
   const failed = targetStates.filter(
     (state) => state === TargetExecutionState.FAILED,
   ).length;
+  const skipped = targetStates.filter(
+    (state) => state === TargetExecutionState.SKIPPED,
+  ).length;
+
+  // A skipped target is a terminal non-publish with no error, so it rolls up
+  // the same way a cancelled target does.
+  const cancelledOrSkipped = cancelled + skipped;
 
   if (published === targetStates.length) {
     return ReleaseStatus.PUBLISHED;
   }
-  if (cancelled === targetStates.length) {
+  if (cancelledOrSkipped === targetStates.length) {
     return ReleaseStatus.CANCELLED;
   }
   if (published > 0) {
     return ReleaseStatus.PARTIALLY_PUBLISHED;
   }
-  if (failed + cancelled === targetStates.length) {
+  if (failed + cancelledOrSkipped === targetStates.length) {
     return ReleaseStatus.FAILED;
   }
 
