@@ -18,7 +18,7 @@
     "target": "es2022",
     "types": ["node"]
   },
-  "exclude": ["dist", "node_modules"],
+  "exclude": ["dist", "node_modules", "**/*.spec.ts", "**/*.test.ts"],
   "include": ["src"],
   "references": [
     {

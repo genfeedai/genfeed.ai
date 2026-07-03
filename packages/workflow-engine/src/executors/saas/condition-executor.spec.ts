@@ -1,8 +1,7 @@
 import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
-  type ConditionExecutor,
-  createConditionExecutor,
+  ConditionExecutor,
   evaluateCondition,
 } from '@workflow-engine/executors/saas/condition-executor';
 import type { ExecutableNode } from '@workflow-engine/types';
@@ -155,7 +154,7 @@ describe('ConditionExecutor', () => {
   let executor: ConditionExecutor;
 
   beforeEach(() => {
-    executor = createConditionExecutor();
+    executor = new ConditionExecutor();
   });
 
   it('evaluates engagementRate greaterThan', async () => {

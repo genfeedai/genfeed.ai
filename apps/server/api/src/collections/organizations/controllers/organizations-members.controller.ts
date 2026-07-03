@@ -19,6 +19,9 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { UsersService } from '@api/collections/users/services/users.service';
+import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
+import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
+import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { ConfigService } from '@api/config/config.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -78,6 +81,9 @@ export class OrganizationsMembersController {
     private readonly configService: ConfigService,
     private readonly invitationService: InvitationService,
     private readonly brandsService: BrandsService,
+    private readonly requestContextCacheService: RequestContextCacheService,
+    private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
+    private readonly betterAuthIdentityCacheService: BetterAuthIdentityCacheService,
   ) {}
 
   @Get(':organizationId/members')
@@ -142,7 +148,7 @@ export class OrganizationsMembersController {
       // Check if member already exists for this organization
       const member = await this.membersService.findOne({
         organization: organizationId,
-        user: existingUser._id,
+        user: existingUser.id,
       });
 
       if (member) {
@@ -166,7 +172,7 @@ export class OrganizationsMembersController {
           HttpStatus.BAD_REQUEST,
         );
       }
-      roleToAssign = defaultRole._id;
+      roleToAssign = defaultRole.id;
     }
 
     if (existingUser) {
@@ -191,16 +197,27 @@ export class OrganizationsMembersController {
           isActive: true,
           organizationId,
           roleId: String(roleToAssign),
-          userId: String(existingUser._id),
+          userId: String(existingUser.id),
         } as unknown as Parameters<typeof this.membersService.create>[0]);
 
         // Switch the invited user's active org to the org they were just added
         // to, preserving the pre-Phase-C behavior now that routing is
         // DB-authoritative (epic #735 — User.lastUsedOrganizationId replaces the
         // legacy auth provider publicMetadata.organization write-back).
-        await this.usersService.patch(String(existingUser._id), {
+        await this.usersService.patch(String(existingUser.id), {
           lastUsedOrganizationId: organizationId,
         });
+        await Promise.all([
+          this.requestContextCacheService.invalidateForUser(
+            String(existingUser._id),
+          ),
+          this.accessBootstrapCacheService.invalidateForUser(
+            String(existingUser._id),
+          ),
+          this.betterAuthIdentityCacheService.invalidateForUser(
+            String(existingUser._id),
+          ),
+        ]);
 
         return serializeSingle(request, MemberSerializer, member);
       } catch (error: unknown) {
@@ -224,7 +241,7 @@ export class OrganizationsMembersController {
         // Check if this pending user is already in a member relationship
         const existingMembership = await this.membersService.findOne({
           isDeleted: false,
-          user: newUser._id,
+          user: newUser.id,
         });
 
         if (existingMembership) {
@@ -254,7 +271,7 @@ export class OrganizationsMembersController {
 
       // Create settings for the invited user (if they don't exist)
       const existingSettings = await this.settingsService.findOne({
-        user: newUser._id,
+        user: newUser.id,
       });
 
       if (!existingSettings) {
@@ -263,7 +280,7 @@ export class OrganizationsMembersController {
           isMenuCollapsed: false,
           isVerified: false,
           theme: 'dark',
-          userId: String(newUser._id),
+          userId: String(newUser.id),
         } as unknown as Parameters<typeof this.settingsService.create>[0]);
       }
 
@@ -287,7 +304,7 @@ export class OrganizationsMembersController {
           isActive: false, // Inactive until they sign up
           organizationId,
           roleId: String(roleToAssign),
-          userId: String(newUser._id),
+          userId: String(newUser.id),
         } as unknown as Parameters<typeof this.membersService.create>[0]);
 
         await this.invitationService.createInvitation({
@@ -415,8 +432,8 @@ export class OrganizationsMembersController {
     if (value && typeof value === 'object') {
       const candidate = value as { _id?: unknown; id?: unknown };
 
-      if (typeof candidate._id === 'string') {
-        return candidate._id;
+      if (typeof candidate.id === 'string') {
+        return candidate.id;
       }
       if (typeof candidate.id === 'string') {
         return candidate.id;

@@ -16,6 +16,7 @@ import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { AgentExecutionStatus } from '@genfeedai/enums';
 import { TaskStatus } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -277,12 +278,12 @@ export class WorkspaceTasksService extends BaseService<
       outputId,
     );
 
-    const existing = await this.prisma.task.findFirst({
-      where: { id, isDeleted: false, organizationId },
-    });
-    if (!existing) {
-      throw new NotFoundException('WorkspaceTask', id);
-    }
+    const existing = await findOrThrow(
+      this.prisma.task,
+      { where: { id, isDeleted: false, organizationId } },
+      'WorkspaceTask',
+      id,
+    );
 
     const existingDoc = existing as unknown as Record<string, unknown>;
     const approvedOutputIds = (existingDoc.approvedOutputIds as string[]) ?? [];
@@ -320,12 +321,12 @@ export class WorkspaceTasksService extends BaseService<
       outputId,
     );
 
-    const existing = await this.prisma.task.findFirst({
-      where: { id, isDeleted: false, organizationId },
-    });
-    if (!existing) {
-      throw new NotFoundException('WorkspaceTask', id);
-    }
+    const existing = await findOrThrow(
+      this.prisma.task,
+      { where: { id, isDeleted: false, organizationId } },
+      'WorkspaceTask',
+      id,
+    );
 
     const existingDoc = existing as unknown as Record<string, unknown>;
     const approvedOutputIds = (existingDoc.approvedOutputIds as string[]) ?? [];
@@ -373,12 +374,12 @@ export class WorkspaceTasksService extends BaseService<
 
     await this.ingredientsService.patch(outputId, { isDeleted: true });
 
-    const existing = await this.prisma.task.findFirst({
-      where: { id, isDeleted: false, organizationId },
-    });
-    if (!existing) {
-      throw new NotFoundException('WorkspaceTask', id);
-    }
+    const existing = await findOrThrow(
+      this.prisma.task,
+      { where: { id, isDeleted: false, organizationId } },
+      'WorkspaceTask',
+      id,
+    );
 
     const existingDoc = existing as unknown as Record<string, unknown>;
     const approvedOutputIds = (existingDoc.approvedOutputIds as string[]) ?? [];
@@ -470,7 +471,7 @@ export class WorkspaceTasksService extends BaseService<
     } as Record<string, unknown>);
 
     const threadId = String(
-      (thread as unknown as Record<string, unknown>)._id ??
+      (thread as unknown as Record<string, unknown>).id ??
         (thread as unknown as { id: string }).id,
     );
     await this.patch(id, {
@@ -680,8 +681,8 @@ export class WorkspaceTasksService extends BaseService<
       reviewTriggered: requiresApproval,
       routingSummary: `Resolved the request using the brand skill "${targetSkill.name}" (${targetSkill.slug}) for the ${taskIntent.workflowStage} stage.`,
       skillsUsed: targetSkill.slug ? [targetSkill.slug] : [],
-      skillVariantIds: matchedSkill.variant?._id
-        ? [String(matchedSkill.variant._id)]
+      skillVariantIds: matchedSkill.variant?.id
+        ? [String(matchedSkill.variant.id)]
         : [],
       status: requiresApproval
         ? 'in_review'
@@ -884,7 +885,7 @@ export class WorkspaceTasksService extends BaseService<
       ),
       executionPathUsed: task.executionPathUsed,
       failureReason: task.failureReason,
-      id: task._id.toString(),
+      id: task.id.toString(),
       linkedApprovalIds: task.linkedApprovalIds.map((id) => id.toString()),
       linkedIssueId: task.linkedIssueId?.toString(),
       linkedOutputIds: task.linkedOutputIds.map((id) => id.toString()),
@@ -919,7 +920,7 @@ export class WorkspaceTasksService extends BaseService<
   ): Promise<void> {
     const event = this.createTaskEvent(eventInput);
     const taskId = String(
-      (task as unknown as Record<string, unknown>)._id ??
+      (task as unknown as Record<string, unknown>).id ??
         (task as unknown as { id: string }).id,
     );
 
@@ -983,7 +984,7 @@ export class WorkspaceTasksService extends BaseService<
 
     return thread
       ? String(
-          (thread as unknown as Record<string, unknown>)._id ??
+          (thread as unknown as Record<string, unknown>).id ??
             (thread as unknown as { id: string }).id,
         )
       : null;
@@ -1040,7 +1041,7 @@ export class WorkspaceTasksService extends BaseService<
       reviewTriggered: task.reviewTriggered,
       routingSummary: task.routingSummary ?? null,
       status: task.status,
-      taskId: task._id.toString(),
+      taskId: task.id.toString(),
       title: task.title,
       userRequest: task.request,
     };
@@ -1197,7 +1198,7 @@ export class WorkspaceTasksService extends BaseService<
 
       const request = [
         detail.length > 0 ? `${title}\n\n${detail}` : title,
-        `Source workspace task: ${task.title} (${task._id.toString()})`,
+        `Source workspace task: ${task.title} (${task.id.toString()})`,
         `Original task request: ${task.request}`,
       ].join('\n\n');
 

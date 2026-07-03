@@ -134,8 +134,9 @@ describe('BrandsService', () => {
       data: { isSelected: true },
       where: { id: currentBrandId, isDeleted: false, organizationId },
     });
+    // Normalized records expose only the canonical Prisma id (#1096); the
+    // mongoId input above still resolves via the OR lookup.
     expect(result).toMatchObject({
-      _id: legacyBrandId,
       id: currentBrandId,
       isSelected: true,
     });

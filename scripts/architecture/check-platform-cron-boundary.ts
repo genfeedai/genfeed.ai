@@ -90,12 +90,6 @@ export type CronBoundaryOptions = {
 
 export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
   {
-    file: 'apps/server/api/src/collections/workflows/services/workflow-scheduler.service.ts',
-    id: 'workflow-scheduler-reconciler',
-    methodName: 'syncScheduledWorkflows',
-    reason: 'Platform workflow scheduler reconciliation.',
-  },
-  {
     file: 'apps/server/api/src/collections/trends/services/trends-warmup.service.ts',
     id: 'trends-warmup',
     methodName: 'warmGlobalTrendDatasets',
@@ -111,13 +105,15 @@ export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
     file: 'apps/server/workers/src/crons/credentials/cron.credentials.service.ts',
     id: 'credentials-refresh',
     methodName: 'refreshExpiringTokens',
-    reason: 'Platform credential refresh maintenance.',
+    reason:
+      'Platform OAuth token lifecycle maintenance. Not user automation: tenants cannot meaningfully inspect, duplicate, or disable it - disabling breaks their own connected integrations. Re-justified in #1092.',
   },
   {
     file: 'apps/server/workers/src/crons/byok-billing/cron.byok-billing.service.ts',
     id: 'byok-billing',
     methodName: 'processMonthlyByokBilling',
-    reason: 'Platform BYOK billing maintenance.',
+    reason:
+      'Platform billing invoicing (Stripe). Must never be tenant-mutable or duplicable, and workflow retry semantics risk double invoicing. Re-justified in #1092.',
   },
   {
     file: 'apps/server/workers/src/crons/model-deprecation/cron.model-deprecation.service.ts',
@@ -132,29 +128,11 @@ export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
     reason: 'Platform model catalog maintenance.',
   },
   {
-    file: 'apps/server/workers/src/crons/tiktok/cron.tiktok-status.service.ts',
-    id: 'tiktok-status',
-    methodName: 'checkPendingTiktokPosts',
-    reason: 'Platform publish-status reconciliation.',
-  },
-  {
-    file: 'apps/server/workers/src/crons/youtube/cron.youtube-status.service.ts',
-    id: 'youtube-status',
-    methodName: 'checkScheduledYoutubeVideos',
-    reason: 'Platform publish-status reconciliation.',
-  },
-  {
     file: 'apps/server/workers/src/crons/youtube/cron.youtube-messages.service.ts',
     id: 'youtube-messages-ingestion',
     methodName: 'syncYoutubeMessages',
     reason:
       'Platform social-inbox message ingestion across connected credentials.',
-  },
-  {
-    file: 'apps/server/workers/src/crons/streaks/cron.streaks.service.ts',
-    id: 'streaks',
-    methodName: 'processStreaks',
-    reason: 'Platform streak state maintenance.',
   },
   {
     file: 'apps/server/workers/src/crons/llm-idle/cron.llm-idle.service.ts',
@@ -181,22 +159,10 @@ export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
     reason: 'Platform pattern extraction maintenance.',
   },
   {
-    file: 'apps/server/workers/src/crons/posts/cron.posts.service.ts',
-    id: 'posts-publish',
-    methodName: 'publishScheduledPosts',
-    reason: 'Core publishing scheduler.',
-  },
-  {
     file: 'apps/server/workers/src/crons/dynamic-jobs/cron.dynamic-jobs.service.ts',
     id: 'dynamic-jobs-dispatcher',
     methodName: 'processDueDynamicJobs',
     reason: 'Platform dynamic job dispatcher.',
-  },
-  {
-    file: 'apps/server/workers/src/crons/workflows/cron.workflows.service.ts',
-    id: 'legacy-step-workflow-executor',
-    methodName: 'checkScheduledWorkflows',
-    reason: 'Legacy step-workflow executor retained during workflow migration.',
   },
   {
     file: 'apps/server/workers/src/crons/trends/cron.trends.service.ts',
@@ -210,16 +176,18 @@ export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
     methodName: 'backfillGlobalTrendCorpus',
     reason: 'Platform global trends corpus backfill.',
   },
-  {
-    file: 'apps/server/workers/src/crons/ad-insights/cron.ad-insights.service.ts',
-    id: 'ad-insights-platform-aggregation',
-    methodName: 'computeWeeklyInsights',
-    reason:
-      'Platform weekly ad insights aggregation with public-scope k-anonymity; classified in #796.',
-  },
 ];
 
-export const PENDING_TENANT_CRON_MIGRATIONS: PendingCronMigrationEntry[] = [];
+export const PENDING_TENANT_CRON_MIGRATIONS: PendingCronMigrationEntry[] = [
+  {
+    file: 'apps/server/workers/src/crons/workflows/cron.workflows.service.ts',
+    id: 'legacy-step-workflow-executor',
+    issue: 1091,
+    methodName: 'checkScheduledWorkflows',
+    reason:
+      'Legacy step-workflow executor. Deletion blocked on #1091 (BullMQ Job Schedulers) plus legacy cron-jobs sunset; config.trigger=SCHEDULED rows and ads-research drafts still depend on it.',
+  },
+];
 
 function normalizePath(filePath: string): string {
   return filePath.replaceAll('\\', '/');

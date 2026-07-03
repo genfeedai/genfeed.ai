@@ -1,7 +1,9 @@
 import type { UpdateHarnessProfileDto } from '@api/collections/harness-profiles/dto/update-harness-profile.dto';
 import type { UpsertHarnessProfileDto } from '@api/collections/harness-profiles/dto/upsert-harness-profile.dto';
 import type { HarnessProfileDocument } from '@api/collections/harness-profiles/schemas/harness-profile.schema';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import type { ContentHarnessContribution } from '@genfeedai/harness';
 import type {
   HarnessProfileScope,
@@ -13,7 +15,7 @@ import type {
 } from '@genfeedai/interfaces';
 import type { Profile as PrismaProfile } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 const HARNESS_PROFILE_TYPE = 'harness';
 
@@ -145,7 +147,7 @@ export class HarnessProfilesService {
     const existingProfile = this.normalizeProfile(existing);
     const brandId = existingProfile.brandId;
     if (!brandId) {
-      throw new NotFoundException('Harness profile brand not found');
+      throw new NotFoundException('Harness profile brand');
     }
 
     const data = this.normalizePayload(
@@ -218,21 +220,21 @@ export class HarnessProfilesService {
     id: string,
     organizationId: string,
   ): Promise<PrismaProfile> {
-    const profile = await this.prisma.profile.findFirst({
-      where: {
-        id,
-        isDeleted: false,
-        organizationId,
+    const profile = await findOrThrow(
+      this.prisma.profile,
+      {
+        where: {
+          id,
+          isDeleted: false,
+          organizationId,
+        },
       },
-    });
-
-    if (!profile) {
-      throw new NotFoundException('Harness profile not found');
-    }
+      'Harness profile',
+    );
 
     const normalized = this.normalizeProfile(profile);
     if (normalized.profileType !== HARNESS_PROFILE_TYPE) {
-      throw new NotFoundException('Harness profile not found');
+      throw new NotFoundException('Harness profile');
     }
 
     return profile;

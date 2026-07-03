@@ -1,5 +1,5 @@
 import { WebhooksController } from '@api/collections/workflows/controllers/webhooks.controller';
-import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import { WorkflowWebhookService } from '@api/collections/workflows/services/workflow-webhook.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -8,12 +8,12 @@ describe('WebhooksController', () => {
   let controller: WebhooksController;
 
   const mockWorkflow = {
-    _id: { toString: () => 'workflow123' },
+    id: { toString: () => 'workflow123' },
     webhookAuthType: 'secret',
     webhookSecret: 'my-secret-key',
   };
 
-  const mockWorkflowsService = {
+  const mockWorkflowWebhookService = {
     findByWebhookId: vi.fn(),
     triggerViaWebhook: vi.fn(),
   };
@@ -22,7 +22,10 @@ describe('WebhooksController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [WebhooksController],
       providers: [
-        { provide: WorkflowsService, useValue: mockWorkflowsService },
+        {
+          provide: WorkflowWebhookService,
+          useValue: mockWorkflowWebhookService,
+        },
         {
           provide: LoggerService,
           useValue: {
@@ -48,7 +51,7 @@ describe('WebhooksController', () => {
 
   describe('triggerWebhook', () => {
     it('should throw 404 when webhook not found', async () => {
-      mockWorkflowsService.findByWebhookId.mockResolvedValue(null);
+      mockWorkflowWebhookService.findByWebhookId.mockResolvedValue(null);
 
       await expect(
         controller.triggerWebhook('nonexistent', {}),
@@ -57,8 +60,10 @@ describe('WebhooksController', () => {
 
     describe('secret auth', () => {
       it('should trigger workflow with valid secret', async () => {
-        mockWorkflowsService.findByWebhookId.mockResolvedValue(mockWorkflow);
-        mockWorkflowsService.triggerViaWebhook.mockResolvedValue({
+        mockWorkflowWebhookService.findByWebhookId.mockResolvedValue(
+          mockWorkflow,
+        );
+        mockWorkflowWebhookService.triggerViaWebhook.mockResolvedValue({
           runId: 'run123',
           status: 'queued',
         });
@@ -74,7 +79,9 @@ describe('WebhooksController', () => {
       });
 
       it('should throw 401 when secret header is missing', async () => {
-        mockWorkflowsService.findByWebhookId.mockResolvedValue(mockWorkflow);
+        mockWorkflowWebhookService.findByWebhookId.mockResolvedValue(
+          mockWorkflow,
+        );
 
         await expect(
           controller.triggerWebhook('webhook123', {}),
@@ -82,7 +89,9 @@ describe('WebhooksController', () => {
       });
 
       it('should throw 401 when secret is invalid', async () => {
-        mockWorkflowsService.findByWebhookId.mockResolvedValue(mockWorkflow);
+        mockWorkflowWebhookService.findByWebhookId.mockResolvedValue(
+          mockWorkflow,
+        );
 
         await expect(
           controller.triggerWebhook('webhook123', {}, 'wrong-secret'),
@@ -98,8 +107,10 @@ describe('WebhooksController', () => {
       };
 
       it('should trigger workflow with valid bearer token', async () => {
-        mockWorkflowsService.findByWebhookId.mockResolvedValue(bearerWorkflow);
-        mockWorkflowsService.triggerViaWebhook.mockResolvedValue({
+        mockWorkflowWebhookService.findByWebhookId.mockResolvedValue(
+          bearerWorkflow,
+        );
+        mockWorkflowWebhookService.triggerViaWebhook.mockResolvedValue({
           runId: 'run123',
           status: 'queued',
         });
@@ -115,7 +126,9 @@ describe('WebhooksController', () => {
       });
 
       it('should throw 401 when auth header is missing', async () => {
-        mockWorkflowsService.findByWebhookId.mockResolvedValue(bearerWorkflow);
+        mockWorkflowWebhookService.findByWebhookId.mockResolvedValue(
+          bearerWorkflow,
+        );
 
         await expect(
           controller.triggerWebhook('webhook123', {}),
@@ -123,7 +136,9 @@ describe('WebhooksController', () => {
       });
 
       it('should throw 401 when bearer token is invalid', async () => {
-        mockWorkflowsService.findByWebhookId.mockResolvedValue(bearerWorkflow);
+        mockWorkflowWebhookService.findByWebhookId.mockResolvedValue(
+          bearerWorkflow,
+        );
 
         await expect(
           controller.triggerWebhook(
@@ -139,8 +154,10 @@ describe('WebhooksController', () => {
     describe('no auth', () => {
       it('should trigger workflow without authentication', async () => {
         const noAuthWorkflow = { ...mockWorkflow, webhookAuthType: 'none' };
-        mockWorkflowsService.findByWebhookId.mockResolvedValue(noAuthWorkflow);
-        mockWorkflowsService.triggerViaWebhook.mockResolvedValue({
+        mockWorkflowWebhookService.findByWebhookId.mockResolvedValue(
+          noAuthWorkflow,
+        );
+        mockWorkflowWebhookService.triggerViaWebhook.mockResolvedValue({
           runId: 'run123',
           status: 'queued',
         });
@@ -155,8 +172,10 @@ describe('WebhooksController', () => {
 
     it('should throw 500 when workflow trigger fails', async () => {
       const noAuthWorkflow = { ...mockWorkflow, webhookAuthType: 'none' };
-      mockWorkflowsService.findByWebhookId.mockResolvedValue(noAuthWorkflow);
-      mockWorkflowsService.triggerViaWebhook.mockRejectedValue(
+      mockWorkflowWebhookService.findByWebhookId.mockResolvedValue(
+        noAuthWorkflow,
+      );
+      mockWorkflowWebhookService.triggerViaWebhook.mockRejectedValue(
         new Error('Trigger failed'),
       );
 

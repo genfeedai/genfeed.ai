@@ -66,9 +66,9 @@ import type { Request } from 'express';
 const mockReq = {} as Request;
 
 const mockVideo = {
-  _id: '507f1f77bcf86cd799439011',
   brand: '507f1f77bcf86cd799439014',
   category: 'video',
+  id: '507f1f77bcf86cd799439011',
   organization: '507f1f77bcf86cd799439013',
   user: '507f1f77bcf86cd799439012',
 };
@@ -91,7 +91,7 @@ describe('VideosUpscaleController', () => {
 
   const mockServices = {
     activitiesService: {
-      create: vi.fn().mockResolvedValue({ _id: activityId }),
+      create: vi.fn().mockResolvedValue({ id: activityId }),
     },
     configService: {
       get: vi.fn().mockReturnValue('https://api.example.com'),
@@ -114,11 +114,11 @@ describe('VideosUpscaleController', () => {
     sharedService: {
       saveDocuments: vi.fn().mockResolvedValue({
         ingredientData: {
-          _id: ingredientId,
           brand: mockVideo.brand,
+          id: ingredientId,
           type: 'video',
         },
-        metadataData: { _id: metadataId },
+        metadataData: { id: metadataId },
       }),
     },
     videosService: { findOne: vi.fn() },
@@ -191,7 +191,7 @@ describe('VideosUpscaleController', () => {
       dto,
     );
     expect(result).toBeDefined();
-    expect(result._id).toEqual(ingredientId);
+    expect(result.id).toEqual(ingredientId);
   });
 
   it('should throw when video does not exist for upscale', async () => {

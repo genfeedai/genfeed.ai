@@ -14,8 +14,8 @@ vi.mock('@api/helpers/utils/cache/cache.util', () => ({
   },
 }));
 
-vi.mock('@api/helpers/utils/objectid/objectid.util', () => ({
-  ObjectIdUtil: {
+vi.mock('@api/helpers/utils/entity-id/entity-id.util', () => ({
+  EntityIdUtil: {
     createSecureQuery: vi.fn((query) => query),
     enrichWithUserContext: vi.fn((dto, metadata) => ({
       ...dto,

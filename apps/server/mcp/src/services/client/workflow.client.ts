@@ -1,7 +1,4 @@
-import type {
-  WorkflowResource,
-  WorkflowTemplateResource,
-} from '@mcp/shared/interfaces/api-response.interface';
+import type { WorkflowTemplateResource } from '@mcp/shared/interfaces/api-response.interface';
 import type {
   WorkflowCreateParams,
   WorkflowExecuteParams,
@@ -287,7 +284,7 @@ export class WorkflowClient {
         });
 
         return (
-          response.data?.data?.map((workflow: WorkflowResource) =>
+          response.data?.data?.map((workflow: JsonApiResource) =>
             mapWorkflowResource(workflow),
           ) || []
         );

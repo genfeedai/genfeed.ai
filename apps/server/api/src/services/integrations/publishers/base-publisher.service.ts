@@ -37,10 +37,10 @@ export abstract class BasePublisherService implements IPublisher {
     if (
       value !== null &&
       typeof value === 'object' &&
-      '_id' in value &&
-      (value as { _id?: unknown })._id
+      'id' in value &&
+      (value as { id?: unknown }).id
     ) {
-      const id = (value as { _id?: unknown })._id;
+      const id = (value as { id?: unknown }).id;
 
       if (typeof id === 'string') {
         return id;
@@ -125,7 +125,7 @@ export abstract class BasePublisherService implements IPublisher {
       if (!this.supportsTextOnly) {
         this.logger.warn(`${url} text-only posts not supported`, {
           platform: this.platform,
-          postId: post._id.toString(),
+          postId: post.id.toString(),
         });
         return {
           error: `${this.platform} does not support text-only posts`,

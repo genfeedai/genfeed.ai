@@ -23,7 +23,6 @@ import {
 } from '@api/helpers/interceptors/performance/performance.interceptor';
 import { MemoryMonitorService } from '@api/helpers/memory/monitor/memory-monitor.service';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
-import { ResponseIdNormalizerInterceptor } from '@api/interceptors/response-id-normalizer.interceptor';
 import { TimeoutInterceptor } from '@api/interceptors/timeout.interceptor';
 import { createBullBoard } from '@bull-board/api';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
@@ -151,13 +150,16 @@ async function main() {
     // BEFORE express.json().
     const betterAuthService = app.get(BetterAuthService, { strict: false });
     if (betterAuthService?.isEnabled) {
-      app.use(betterAuthService.basePath, (req, res, next) => {
-        if (shouldBypassBetterAuthHandler(req.method, req.path)) {
-          return next();
-        }
+      app.use(
+        betterAuthService.basePath,
+        (req: Request, res: Response, next: NextFunction) => {
+          if (shouldBypassBetterAuthHandler(req.method, req.path)) {
+            return next();
+          }
 
-        return betterAuthService.nodeHandler(req, res, next);
-      });
+          return betterAuthService.nodeHandler(req, res, next);
+        },
+      );
       logger.debug(
         `Better Auth handler mounted at ${betterAuthService.basePath}`,
       );
@@ -235,7 +237,6 @@ async function main() {
       configService.get('API_METRICS_LOGGING') === 'true';
 
     const interceptors = [
-      new ResponseIdNormalizerInterceptor(),
       ...(redisCacheInterceptor ? [redisCacheInterceptor] : []),
       new TimeoutInterceptor(),
       new PerformanceInterceptor(logger, configService, memoryMonitor),
@@ -342,7 +343,7 @@ async function main() {
       const expectedToken = configService.get('BULL_BOARD_AUTH_TOKEN');
 
       if (!expectedToken) {
-        logger.warn('Bull Board: No auth token configured, access denied');
+        logger?.warn('Bull Board: No auth token configured, access denied');
         return res.status(401).json({
           detail: 'Bull Board authentication not configured',
           title: 'Unauthorized',

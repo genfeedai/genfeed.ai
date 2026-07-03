@@ -4,7 +4,8 @@ import { GenerateImageDto } from '@api/endpoints/admin/fleet/dto/generate-image.
 import { AdminFleetGenerationJob } from '@api/endpoints/admin/fleet/interfaces/fleet-generation-job.interface';
 import { AdminFleetCharacterService } from '@api/endpoints/admin/fleet/services/fleet-character.service';
 import { AdminFleetValueReader } from '@api/endpoints/admin/fleet/services/fleet-value-reader.util';
-import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
@@ -16,7 +17,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
 
 /**
@@ -69,7 +70,6 @@ export class AdminFleetGenerationService {
     const persona = await this.characterService.requirePersonaBySlug(
       personaSlug,
       organizationId,
-      `Character "${personaSlug}" not found`,
     );
 
     // Determine model and parameters
@@ -134,17 +134,17 @@ export class AdminFleetGenerationService {
     const ingredient =
       options.ingredientId === undefined
         ? await this.ingredientsService.create({
-            brand: ObjectIdUtil.toObjectId(brandId)!,
+            brand: EntityIdUtil.toValidId(brandId)!,
             cdnUrl,
             ...AdminFleetValueReader.getDefaultFleetModerationState(),
             generationSource: model,
             modelUsed: model,
-            organization: ObjectIdUtil.toObjectId(organizationId)!,
-            persona: persona._id,
+            organization: EntityIdUtil.toValidId(organizationId)!,
+            persona: persona.id,
             personaSlug,
             s3Key: `darkroom/${personaSlug}/${filename}`,
             status: IngredientStatus.GENERATED,
-            user: ObjectIdUtil.toObjectId(userId)!,
+            user: EntityIdUtil.toValidId(userId)!,
           } as Parameters<IngredientsService['create']>[0])
         : await this.ingredientsService.patch(options.ingredientId, {
             cdnUrl,
@@ -160,7 +160,7 @@ export class AdminFleetGenerationService {
           });
 
     this.loggerService.log(caller, {
-      ingredientId: ingredient._id.toString(),
+      ingredientId: ingredient.id.toString(),
       message: 'Image generated successfully',
     });
 
@@ -176,13 +176,12 @@ export class AdminFleetGenerationService {
     const persona = await this.characterService.requirePersonaBySlug(
       dto.personaSlug,
       organizationId,
-      `Character "${dto.personaSlug}" not found`,
     );
 
     const loraPath = dto.lora || undefined;
 
     const ingredient = await this.ingredientsService.create({
-      brand: ObjectIdUtil.toObjectId(brandId)!,
+      brand: EntityIdUtil.toValidId(brandId)!,
       category: 'image',
       ...AdminFleetValueReader.getDefaultFleetModerationState(),
       generationError: undefined,
@@ -194,15 +193,15 @@ export class AdminFleetGenerationService {
       loraUsed: loraPath,
       modelUsed: dto.model || MODEL_KEYS.GENFEED_AI_FLUX2_DEV,
       negativePrompt: dto.negativePrompt,
-      organization: ObjectIdUtil.toObjectId(organizationId)!,
-      persona: persona._id,
+      organization: EntityIdUtil.toValidId(organizationId)!,
+      persona: persona.id,
       personaSlug: dto.personaSlug,
       status: IngredientStatus.PROCESSING,
-      user: ObjectIdUtil.toObjectId(userId)!,
+      user: EntityIdUtil.toValidId(userId)!,
     } as Parameters<IngredientsService['create']>[0]);
 
     void this.processGenerationJob(
-      ingredient._id.toString(),
+      ingredient.id.toString(),
       organizationId,
       brandId,
       userId,
@@ -226,7 +225,7 @@ export class AdminFleetGenerationService {
     });
 
     if (!ingredient) {
-      throw new NotFoundException(`Generation job "${jobId}" not found`);
+      throw new NotFoundException('Generation job', jobId);
     }
 
     return AdminFleetValueReader.mapIngredientToGenerationJob(ingredient);
@@ -296,7 +295,7 @@ export class AdminFleetGenerationService {
       clearInterval(pulse);
       await this.updateGenerationJob(jobId, {
         cdnUrl: ingredient.cdnUrl ?? undefined,
-        ingredientId: ingredient._id.toString(),
+        ingredientId: ingredient.id.toString(),
         progress: 100,
         stage: 'completed',
         status: 'completed',

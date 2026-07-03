@@ -33,7 +33,7 @@ export interface IClipProjectSettings {
 }
 
 export interface IClipProject {
-  _id: string;
+  id: string;
   user: string;
   organization: string;
   name: string;

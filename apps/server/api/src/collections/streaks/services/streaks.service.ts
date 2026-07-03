@@ -4,6 +4,7 @@ import type {
   StreakDocument,
   StreakMilestoneHistoryEntry,
 } from '@api/collections/streaks/schemas/streak.schema';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActivityKey } from '@genfeedai/enums';
@@ -21,7 +22,6 @@ import {
   forwardRef,
   Inject,
   Injectable,
-  NotFoundException,
 } from '@nestjs/common';
 
 const QUALIFYING_ACTIVITY_KEYS = new Set<ActivityKey>([
@@ -257,14 +257,37 @@ export class StreaksService {
     return this.normalizeStreakRecord(updated as Record<string, unknown>);
   }
 
-  private async listStreaks(): Promise<StreakDocument[]> {
+  private async listStreaks(
+    organizationId?: string,
+  ): Promise<StreakDocument[]> {
     const streaks = await this.prisma.streak.findMany({
-      where: { isDeleted: false },
+      where: {
+        isDeleted: false,
+        ...(organizationId ? { organizationId } : {}),
+      },
     });
 
     return streaks.map((streak) =>
       this.normalizeStreakRecord(streak as Record<string, unknown>),
     );
+  }
+
+  /**
+   * Distinct organization ids with live streak records. Used by the streak
+   * maintenance sweep to process (and record provenance) per organization.
+   */
+  async listStreakOrganizationIds(): Promise<string[]> {
+    const rows = await this.prisma.streak.findMany({
+      distinct: ['organizationId'],
+      select: { organizationId: true },
+      where: { isDeleted: false },
+    });
+
+    return rows
+      .map((row) => row.organizationId)
+      .filter((organizationId): organizationId is string =>
+        Boolean(organizationId),
+      );
   }
 
   isQualifyingActivityKey(key?: string | null): key is ActivityKey {
@@ -323,7 +346,7 @@ export class StreaksService {
         (milestone) => milestone >= 30,
       ),
       currentStreak: streak.currentStreak,
-      id: String(streak._id),
+      id: String(streak.id),
       lastActivityDate: streak.lastActivityDate ?? null,
       lastBrokenAt: streak.lastBrokenAt ?? null,
       lastBrokenStreak: streak.lastBrokenStreak ?? null,
@@ -469,7 +492,7 @@ export class StreaksService {
     let streak = await this.getStreak(userId, organizationId);
 
     if (!streak) {
-      throw new NotFoundException('Streak not found');
+      throw new NotFoundException('Streak');
     }
 
     if (streak.streakFreezes <= 0) {
@@ -491,7 +514,10 @@ export class StreaksService {
     return streak;
   }
 
-  async processStaleStreaks(referenceDate: Date = new Date()): Promise<{
+  async processStaleStreaks(
+    referenceDate: Date = new Date(),
+    organizationId?: string,
+  ): Promise<{
     broken: number;
     frozen: number;
     atRisk: number;
@@ -499,7 +525,7 @@ export class StreaksService {
     const today = startOfUtcDay(referenceDate);
     const yesterday = addUtcDays(today, -1);
 
-    const allStreaks = await this.listStreaks();
+    const allStreaks = await this.listStreaks(organizationId);
     const atRiskStreaks = allStreaks.filter((streak) => {
       const lastActivityDate = streak.lastActivityDate
         ? startOfUtcDay(new Date(streak.lastActivityDate))

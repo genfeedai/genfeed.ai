@@ -100,7 +100,7 @@ describe('LeonardoaiWebhookService', () => {
       status: 'COMPLETE',
     } as LeonardoAIWebhookPayload;
 
-    deps.metadataService.findOne.mockResolvedValue({ _id: metadataId });
+    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
     deps.metadataService.patch.mockResolvedValue({});
 
     await service.handleCallback(body);
@@ -124,7 +124,7 @@ describe('LeonardoaiWebhookService', () => {
       status: 'COMPLETE',
     } as LeonardoAIWebhookPayload;
 
-    deps.metadataService.findOne.mockResolvedValue({ _id: metadataId });
+    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
     deps.metadataService.patch.mockResolvedValue({});
 
     await service.handleCallback(body);
@@ -146,7 +146,7 @@ describe('LeonardoaiWebhookService', () => {
       status: 'FAILED',
     } as LeonardoAIWebhookPayload;
 
-    deps.metadataService.findOne.mockResolvedValue({ _id: metadataId });
+    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
     deps.metadataService.patch.mockResolvedValue({});
 
     await service.handleCallback(body);
@@ -168,7 +168,7 @@ describe('LeonardoaiWebhookService', () => {
       status: 'PROCESSING',
     } as LeonardoAIWebhookPayload;
 
-    deps.metadataService.findOne.mockResolvedValue({ _id: metadataId });
+    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
     deps.metadataService.patch.mockResolvedValue({});
 
     await service.handleCallback(body);
@@ -204,7 +204,7 @@ describe('LeonardoaiWebhookService', () => {
       status: 'COMPLETE',
     } as LeonardoAIWebhookPayload;
 
-    deps.metadataService.findOne.mockResolvedValue({ _id: metadataId });
+    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
     deps.metadataService.patch.mockResolvedValue({});
 
     await service.handleCallback(body);

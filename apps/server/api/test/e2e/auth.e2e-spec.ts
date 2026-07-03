@@ -76,14 +76,14 @@ describe('Authentication E2E Tests', () => {
     testOrganization = createTestOrganization({
       _id: generateIdString(),
       label: 'Auth Test Organization',
-      user: testUser._id,
+      user: testUser.id,
     });
 
     // Create test member
     testMember = createTestMember({
-      organization: testOrganization._id,
+      organization: testOrganization.id,
       role: 'owner',
-      user: testUser._id,
+      user: testUser.id,
     });
 
     // Seed database
@@ -91,10 +91,10 @@ describe('Authentication E2E Tests', () => {
     await dbHelper.seedCollection('organizations', [testOrganization]);
     await dbHelper.seedCollection('members', [testMember]);
     await dbHelper.seedCollection('organization-settings', [
-      createTestOrganizationSetting({ organization: testOrganization._id }),
+      createTestOrganizationSetting({ organization: testOrganization.id }),
     ]);
     await dbHelper.seedCollection('credit-balances', [
-      createTestCredit({ organization: testOrganization._id }),
+      createTestCredit({ organization: testOrganization.id }),
     ]);
   });
 
@@ -128,8 +128,8 @@ describe('Authentication E2E Tests', () => {
         email: testUser.email,
         publicMetadata: {
           isOwner: true,
-          organization: testOrganization._id.toString(),
-          user: testUser._id.toString(),
+          organization: testOrganization.id.toString(),
+          user: testUser.id.toString(),
         },
         sub: testUser.authProviderId,
       };
@@ -143,8 +143,8 @@ describe('Authentication E2E Tests', () => {
         email: testUser.email,
         isOwner: true,
         isSuperAdmin: false,
-        organization: testOrganization._id.toString(),
-        user: testUser._id.toString(),
+        organization: testOrganization.id.toString(),
+        user: testUser.id.toString(),
       };
 
       expect(publicMetadata).toHaveProperty('organization');
@@ -160,13 +160,13 @@ describe('Authentication E2E Tests', () => {
       const secondOrg = createTestOrganization({
         _id: generateIdString(),
         label: 'Second Organization',
-        user: testUser._id,
+        user: testUser.id,
       });
 
       const secondMember = createTestMember({
-        organization: secondOrg._id,
+        organization: secondOrg.id,
         role: 'owner',
-        user: testUser._id,
+        user: testUser.id,
       });
 
       await dbHelper.seedCollection('organizations', [secondOrg]);
@@ -187,9 +187,9 @@ describe('Authentication E2E Tests', () => {
       });
 
       const memberInTestOrg = createTestMember({
-        organization: testOrganization._id,
+        organization: testOrganization.id,
         role: 'member', // Not owner
-        user: anotherUser._id,
+        user: anotherUser.id,
       });
 
       await dbHelper.seedCollection('users', [anotherUser]);

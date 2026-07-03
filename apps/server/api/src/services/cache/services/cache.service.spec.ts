@@ -1,6 +1,5 @@
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { CacheClientService } from '@api/services/cache/services/cache-client.service';
-import { CacheKeyService } from '@api/services/cache/services/cache-key.service';
 import { CacheTagsService } from '@api/services/cache/services/cache-tags.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -41,7 +40,6 @@ describe('CacheService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CacheService,
-        CacheKeyService,
         {
           provide: CacheClientService,
           useValue: {
@@ -165,6 +163,18 @@ describe('CacheService', () => {
     it('returns false when the lock is already held', async () => {
       (mockRedisClient.set as vi.Mock).mockResolvedValue(null);
       await expect(service.acquireLock('resource', 60)).resolves.toBe(false);
+    });
+  });
+
+  describe('generateKey', () => {
+    it('joins namespace and parts with colons', () => {
+      expect(service.generateKey('brands', 'org-1', 42)).toBe(
+        'brands:org-1:42',
+      );
+    });
+
+    it('returns namespace with trailing colon boundary when no parts given', () => {
+      expect(service.generateKey('brands')).toBe('brands:');
     });
   });
 });

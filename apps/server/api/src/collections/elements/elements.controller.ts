@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ElementsService } from '@api/collections/elements/elements.service';
+import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -31,6 +32,24 @@ export class ElementsController {
 
   @Get()
   @SetMetadata('skipRoles', true)
+  @Cache({
+    keyGenerator: (req) =>
+      `elements:list:${(req.user?.publicMetadata?.organization as string | undefined) ?? 'global'}`,
+    // Tags match the BaseService collection names so element writes
+    // (create/patch/remove) bust this response automatically.
+    tags: [
+      'elementBlacklist',
+      'elementCamera',
+      'elementCameraMovement',
+      'elementLens',
+      'elementLighting',
+      'elementMood',
+      'elementScene',
+      'elementSound',
+      'elementStyle',
+    ],
+    ttl: 600, // 10 minutes
+  })
   @ApiOperation({
     description:
       'Retrieves all element collections (cameras, moods, scenes, styles, sounds, blacklists, lightings, lenses, cameraMovements) in a single request for efficient client-side loading',

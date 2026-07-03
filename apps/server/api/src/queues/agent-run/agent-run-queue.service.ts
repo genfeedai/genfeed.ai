@@ -6,41 +6,19 @@
  * - Cancelling queued or active runs
  * - Queue statistics
  */
+import { AGENT_RUN_QUEUE, AgentRunJobData } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 import { Queue } from 'bullmq';
 
-export interface AgentRunJobData {
-  /** The agent-runs record ID */
-  runId: string;
-  /** Organization context (required for multi-tenancy) */
-  organizationId: string;
-  /** User who triggered the run */
-  userId: string;
-  /** Strategy ID if cron-triggered */
-  strategyId?: string;
-  /** Agent type — drives tool subset and prompt template */
-  agentType?: string;
-  /** Preferred model override for this strategy */
-  model?: string;
-  /** Autonomy mode — supervised or auto-publish */
-  autonomyMode?: string;
-  /** Task/prompt for the agent */
-  objective?: string;
-  /** Credit budget cap */
-  creditBudget?: number;
-  /** Campaign ID — links the run to an agent campaign for coordination */
-  campaignId?: string;
-}
-
 @Injectable()
 export class AgentRunQueueService implements OnModuleInit {
   private readonly logContext = 'AgentRunQueueService';
 
   constructor(
-    @InjectQueue('agent-run')
+    @InjectQueue(AGENT_RUN_QUEUE)
     @Optional()
     private readonly agentRunQueue: Queue<AgentRunJobData>,
     @Optional() private readonly logger: LoggerService,

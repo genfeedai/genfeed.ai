@@ -11,7 +11,10 @@ type SerializerBuilderConfig = ISerializerConfig & {
 };
 
 /**
- * Builds a serializer with the appropriate ID mapping based on package type.
+ * Builds a serializer for the given package type.
+ *
+ * Both package types read the record's `id` field — Prisma records carry
+ * string `id` (cuid/uuid); the Mongo-era `_id` mapping is gone (issue #1096).
  */
 export function buildSerializer(
   packageType: 'client' | 'server',
@@ -41,13 +44,11 @@ export function buildSerializer(
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join('');
 
-  const idMapping = packageType === 'client' ? 'id' : '_id';
-
   return {
     [`${typeCapitalized}Serializer`]: getSerializer(
       serializerConfig,
       'default',
-      { id: idMapping },
+      { id: 'id' },
     ),
   };
 }
@@ -99,14 +100,14 @@ export function simpleConfig(
 }
 
 /**
- * Creates a relationship definition with standard _id reference.
- * Reduces boilerplate: `rel('user', userAttributes)` instead of `{ ref: '_id', type: 'user', attributes: userAttributes }`
+ * Creates a relationship definition referencing the related record's `id`.
+ * Reduces boilerplate: `rel('user', userAttributes)` instead of `{ ref: 'id', type: 'user', attributes: userAttributes }`
  */
 export function rel(
   type: string,
   attributes: string[],
 ): ISerializerRelationship {
-  return { attributes, ref: '_id', type };
+  return { attributes, ref: 'id', type };
 }
 
 /**
@@ -120,7 +121,7 @@ export function nestedRel(
 ): ISerializerRelationship & Record<string, ISerializerRelationship> {
   return {
     attributes,
-    ref: '_id',
+    ref: 'id',
     type,
     ...nested,
   } as ISerializerRelationship & Record<string, ISerializerRelationship>;

@@ -20,8 +20,9 @@
     "start:debug": "cd .. && nest start voices --debug --watch",
     "start:dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start voices --watch",
     "start:prod": "node -r tsconfig-paths/register --max-old-space-size=8192 --expose-gc ../dist/apps/voices/main",
-    "test": "echo 'No tests yet'",
-    "test:cov": "echo 'No tests yet'"
+    "test": "vitest run --config vitest.config.ts",
+    "test:cov": "vitest run --coverage --config vitest.config.ts",
+    "type-check": "tsc --noEmit -p tsconfig.typecheck.json"
   },
   "version": "1.0.0",
   "type": "module"

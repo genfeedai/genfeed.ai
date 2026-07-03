@@ -23,7 +23,6 @@ const IGNORED_FIELDS = new Set([
 ]);
 
 const SCHEMA_TO_ATTRIBUTE_BASENAME_OVERRIDES: Record<string, string> = {
-  'ad-insights': 'ad-insight',
   'credit-transactions': 'credit-transaction',
   'organization-setting': 'organization-settings',
 };

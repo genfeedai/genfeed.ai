@@ -16,7 +16,7 @@ function createMockArticlesService(
   return {
     generateFromTranscript: vi
       .fn()
-      .mockResolvedValue({ _id: 'article-123', title: 'Generated' }),
+      .mockResolvedValue({ id: 'article-123', title: 'Generated' }),
     ...overrides,
   } as unknown as ArticlesService;
 }

@@ -46,7 +46,7 @@ describe('SkillExecutorService', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    mockContentRunsService.createRun.mockResolvedValue({ _id: runId });
+    mockContentRunsService.createRun.mockResolvedValue({ id: runId });
     mockContentRunsService.patchRun.mockResolvedValue({});
 
     const module: TestingModule = await Test.createTestingModule({

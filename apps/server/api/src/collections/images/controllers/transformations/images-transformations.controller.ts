@@ -158,7 +158,7 @@ export class ImagesTransformationsController {
       );
 
       const uploadMeta = await this.filesClientService.uploadToS3(
-        ingredientData._id.toString(),
+        ingredientData.id.toString(),
         'images',
         {
           contentType: 'image/jpeg',
@@ -168,7 +168,7 @@ export class ImagesTransformationsController {
       );
 
       await this.metadataService.patch(
-        metadataData._id,
+        metadataData.id,
         new MetadataEntity({
           height: uploadMeta.height ?? target.height,
           size: uploadMeta.size ?? resizedImage.length,
@@ -177,7 +177,7 @@ export class ImagesTransformationsController {
       );
 
       const updatedIngredient = await this.imagesService.patch(
-        ingredientData._id,
+        ingredientData.id,
         {
           cdnUrl:
             typeof uploadMeta.publicUrl === 'string'
@@ -297,33 +297,33 @@ export class ImagesTransformationsController {
         organization: isEntityId(parent.organization)
           ? parent.organization
           : publicMetadata.organization,
-        parent: parent._id,
-        prompt: promptData._id,
+        parent: parent.id,
+        prompt: promptData.id,
         status: IngredientStatus.PROCESSING,
         transformations: [TransformationCategory.REFRAMED],
         width: targetWidth,
       });
 
-    await this.imagesService.patch(ingredientData._id, {
-      prompt: promptData._id,
+    await this.imagesService.patch(ingredientData.id, {
+      prompt: promptData.id,
     });
 
-    const websocketUrl = WebSocketPaths.image(ingredientData._id);
+    const websocketUrl = WebSocketPaths.image(ingredientData.id);
 
     // Create activity for image reframe start
     const activity = await this.activitiesService.create(
       new ActivityEntity({
         brand: isEntityId(parent.brand) ? parent.brand : publicMetadata.brand,
-        entityId: ingredientData._id,
+        entityId: ingredientData.id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.IMAGE_REFRAME_PROCESSING,
         organization: publicMetadata.organization,
         source: ActivitySource.IMAGE_REFRAME,
         user: publicMetadata.user,
         value: JSON.stringify({
-          ingredientId: ingredientData._id.toString(),
+          ingredientId: ingredientData.id.toString(),
           model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
-          sourceId: parent._id.toString(),
+          sourceId: parent.id.toString(),
           type: 'transformation',
         }),
       }),
@@ -331,19 +331,19 @@ export class ImagesTransformationsController {
 
     // Emit background-task-update WebSocket event for activities dropdown
     await this.websocketService.publishBackgroundTaskUpdate({
-      activityId: activity._id.toString(),
+      activityId: activity.id.toString(),
       label: 'Image Reframe',
       progress: 0,
       room: getUserRoomName(user.id),
       status: 'processing',
-      taskId: ingredientData._id.toString(),
+      taskId: ingredientData.id.toString(),
       userId: user.id,
     });
 
     // Process reframing with Replicate/Luma
     url = 'ReplicateService reframeImage';
     try {
-      const parentId = String(parent?._id);
+      const parentId = String(parent?.id);
       const parentImageUrl: string = `${this.configService.ingredientsEndpoint}/images/${parentId}`;
 
       // Build provider-specific prompt using universal prompt builder
@@ -384,16 +384,16 @@ export class ImagesTransformationsController {
 
       if (generationId) {
         await this.metadataService.patch(
-          metadataData._id,
+          metadataData.id,
           new MetadataEntity({
             externalId: generationId,
-            prompt: promptData._id,
+            prompt: promptData.id,
           }),
         );
       } else {
         await this.failedGenerationService.handleFailedImageGeneration(
           this.imagesService,
-          ingredientData._id,
+          ingredientData.id,
           websocketUrl,
           publicMetadata,
           getUserRoomName(user.id),
@@ -405,7 +405,7 @@ export class ImagesTransformationsController {
 
       await this.failedGenerationService.handleFailedImageGeneration(
         this.imagesService,
-        ingredientData._id,
+        ingredientData.id,
         websocketUrl,
         publicMetadata,
         getUserRoomName(user.id),
@@ -482,27 +482,27 @@ export class ImagesTransformationsController {
         organization: isEntityId(parent.organization)
           ? parent.organization
           : null,
-        parent: parent._id,
+        parent: parent.id,
         status: IngredientStatus.PROCESSING,
         transformations: [TransformationCategory.UPSCALED],
       });
 
-    const websocketUrl = `/images/${ingredientData._id}`;
+    const websocketUrl = `/images/${ingredientData.id}`;
 
     // Create activity for image upscale start
     const activity = await this.activitiesService.create(
       new ActivityEntity({
         brand: isEntityId(parent.brand) ? parent.brand : publicMetadata.brand,
-        entityId: ingredientData._id,
+        entityId: ingredientData.id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.IMAGE_UPSCALE_PROCESSING,
         organization: publicMetadata.organization,
         source: ActivitySource.IMAGE_UPSCALE,
         user: publicMetadata.user,
         value: JSON.stringify({
-          ingredientId: ingredientData._id.toString(),
+          ingredientId: ingredientData.id.toString(),
           model,
-          sourceId: parent._id.toString(),
+          sourceId: parent.id.toString(),
           type: 'transformation',
         }),
       }),
@@ -510,12 +510,12 @@ export class ImagesTransformationsController {
 
     // Emit background-task-update WebSocket event for activities dropdown
     await this.websocketService.publishBackgroundTaskUpdate({
-      activityId: activity._id.toString(),
+      activityId: activity.id.toString(),
       label: 'Image Upscale',
       progress: 0,
       room: getUserRoomName(user.id),
       status: 'processing',
-      taskId: ingredientData._id.toString(),
+      taskId: ingredientData.id.toString(),
       userId: user.id,
     });
 
@@ -556,7 +556,7 @@ export class ImagesTransformationsController {
 
       if (generationId) {
         await this.metadataService.patch(
-          metadataData._id,
+          metadataData.id,
           new MetadataEntity({
             externalId: generationId,
           }),
@@ -564,7 +564,7 @@ export class ImagesTransformationsController {
       } else {
         await this.failedGenerationService.handleFailedImageGeneration(
           this.imagesService,
-          ingredientData._id,
+          ingredientData.id,
           websocketUrl,
           publicMetadata,
           getUserRoomName(user.id),
@@ -576,7 +576,7 @@ export class ImagesTransformationsController {
 
       await this.failedGenerationService.handleFailedImageGeneration(
         this.imagesService,
-        ingredientData._id,
+        ingredientData.id,
         websocketUrl,
         publicMetadata,
         getUserRoomName(user.id),

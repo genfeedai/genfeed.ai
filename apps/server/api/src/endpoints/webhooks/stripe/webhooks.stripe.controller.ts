@@ -1,6 +1,7 @@
 import { ConfigService } from '@api/config/config.service';
 import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.stripe.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { IS_SELF_HOSTED } from '@genfeedai/config';
 import { Public } from '@libs/decorators/public.decorator';
@@ -13,7 +14,6 @@ import {
   HttpCode,
   HttpException,
   HttpStatus,
-  NotFoundException,
   Post,
   Req,
 } from '@nestjs/common';
@@ -41,7 +41,7 @@ export class StripeWebhookController {
   @HttpCode(200)
   @Post('callback')
   async handleStripe(@Req() request: Request) {
-    if (IS_SELF_HOSTED) throw new NotFoundException();
+    if (IS_SELF_HOSTED) throw new NotFoundException('Route');
 
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 

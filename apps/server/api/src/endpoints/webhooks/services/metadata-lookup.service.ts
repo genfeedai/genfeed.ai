@@ -85,7 +85,7 @@ export class MetadataLookupService {
       }
 
       const ingredient = await this.ingredientsService.findOne(
-        { metadataId: foundMetadata._id },
+        { metadataId: foundMetadata.id },
         [PopulatePatterns.userMinimal],
       );
 
@@ -101,14 +101,14 @@ export class MetadataLookupService {
           `${this.logContext} user missing authProviderId - WebSocket room may not match client room`,
           {
             dbUserId,
-            ingredientId: ingredient._id,
+            ingredientId: ingredient.id,
             note: 'Client joins room using legacy auth provider ID from JWT, but backend has no authProviderId in DB',
           },
         );
       }
 
       if (userId) {
-        const websocketUrl = `/${categoryToPlural(category)}/${ingredient._id}`;
+        const websocketUrl = `/${categoryToPlural(category)}/${ingredient.id}`;
         const errorMessage =
           'Generation failed: Metadata not found. Please contact support if this persists.';
 
@@ -119,7 +119,7 @@ export class MetadataLookupService {
           userRoom,
         );
 
-        await this.ingredientsService.patch(ingredient._id.toString(), {
+        await this.ingredientsService.patch(ingredient.id.toString(), {
           status: IngredientStatus.FAILED,
         });
 
@@ -127,7 +127,7 @@ export class MetadataLookupService {
           `${this.logContext} published websocket error for metadata not found`,
           {
             externalId,
-            ingredientId: ingredient._id,
+            ingredientId: ingredient.id,
             userId,
           },
         );
@@ -157,17 +157,17 @@ export class MetadataLookupService {
       throw new Error('Metadata not found');
     }
 
-    await this.metadataService.patch(metadata._id, { result: url });
+    await this.metadataService.patch(metadata.id, { result: url });
 
     const ingredient = await this.ingredientsService.findOne(
-      { metadataId: metadata._id },
+      { metadataId: metadata.id },
       [PopulatePatterns.userMinimal],
     );
 
     if (!ingredient) {
       this.loggerService.error(
         'Ingredient not found for metadata',
-        metadata._id,
+        metadata.id,
       );
       throw new Error('Ingredient not found');
     }

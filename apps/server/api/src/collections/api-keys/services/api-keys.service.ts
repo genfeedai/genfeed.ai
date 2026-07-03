@@ -10,11 +10,32 @@ import { CacheInvalidationService } from '@api/common/services/cache-invalidatio
 import { ConfigService } from '@api/config/config.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { ApiKeyScope } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+
+/**
+ * Every scope the platform recognizes. Any scope outside this set — including
+ * the wildcard "*" — is rejected at key creation/rotation, so a leaked or
+ * over-scoped key can never satisfy checks for permissions the platform does
+ * not define. The public create endpoint is further restricted to the
+ * self-service preset union (see CreateApiKeyDto); this set is the broader
+ * server-side floor that also covers managed/system keys minted internally.
+ */
+const KNOWN_API_KEY_SCOPES: ReadonlySet<string> = new Set(
+  Object.values(ApiKeyScope),
+);
+
+const DEFAULT_API_KEY_SCOPES: readonly string[] = [
+  'videos:create',
+  'videos:read',
+  'images:create',
+  'images:read',
+  'analytics:read',
+];
 
 @Injectable()
 export class ApiKeysService extends BaseService<
@@ -78,6 +99,9 @@ export class ApiKeysService extends BaseService<
       organizationId: string;
     },
   ): Promise<{ apiKey: ApiKeyDocument; plainKey: string }> {
+    const scopes = createApiKeyDto.scopes ?? [...DEFAULT_API_KEY_SCOPES];
+    this.assertValidScopes(scopes);
+
     const plainKey = this.generateApiKey();
     const hashedKey = await this.hashApiKey(plainKey);
     const keyFingerprint = this.computeFingerprint(plainKey);
@@ -88,13 +112,7 @@ export class ApiKeysService extends BaseService<
       key: hashedKey,
       keyFingerprint,
       rateLimit: createApiKeyDto.rateLimit || 60,
-      scopes: createApiKeyDto.scopes || [
-        'videos:create',
-        'videos:read',
-        'images:create',
-        'images:read',
-        'analytics:read',
-      ],
+      scopes,
       usageCount: 0,
     };
 
@@ -230,10 +248,25 @@ export class ApiKeysService extends BaseService<
   }
 
   /**
-   * Check if an API key has a specific scope
+   * Reject scopes the platform does not define, including the wildcard "*".
+   * Enforced for every key (self-service and managed) before persistence so an
+   * over-scoped or wildcard key can never be created or carried across rotation.
+   */
+  assertValidScopes(scopes: readonly string[]): void {
+    const invalid = scopes.filter((scope) => !KNOWN_API_KEY_SCOPES.has(scope));
+    if (invalid.length > 0) {
+      throw new BadRequestException(
+        `Unknown or disallowed API key scope(s): ${invalid.join(', ')}`,
+      );
+    }
+  }
+
+  /**
+   * Check if an API key has a specific scope. Membership is exact — there is no
+   * wildcard: a key only satisfies checks for scopes explicitly granted to it.
    */
   hasScope(apiKey: ApiKeyDocument, scope: string): boolean {
-    return apiKey.scopes.includes(scope) || apiKey.scopes.includes('*');
+    return apiKey.scopes.includes(scope);
   }
 
   /**

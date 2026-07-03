@@ -227,7 +227,3 @@ export class DelayExecutor extends BaseExecutor {
     };
   }
 }
-
-export function createDelayExecutor(): DelayExecutor {
-  return new DelayExecutor();
-}

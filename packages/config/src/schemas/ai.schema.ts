@@ -13,6 +13,12 @@ export const generalAiSchema = {
     'deepseek/deepseek-chat',
   ),
   AGENT_CONTEXT_WINDOW_SIZE: Joi.number().integer().min(1).default(5),
+  // Feature flag: real token-by-token LLM streaming for agent chat. When
+  // 'false' (default) the orchestrator keeps the legacy simulated word-split
+  // streaming. Toggle to 'true' to stream real provider deltas via agent:token.
+  AGENT_TOKEN_STREAMING_ENABLED: Joi.string()
+    .valid('true', 'false')
+    .default('false'),
   MAX_TOKENS: Joi.number().default(4000),
 };
 

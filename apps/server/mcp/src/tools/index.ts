@@ -1,5 +1,4 @@
 export { handleAccountManagementTool } from '@mcp/tools/account-management.tool';
-export { handleAdInsightsTool } from '@mcp/tools/ad-insights.tool';
 export { handleAdminInfrastructureTool } from '@mcp/tools/admin-infrastructure.tool';
 export { handleAgentChatTool } from '@mcp/tools/agent-chat.tool';
 export {

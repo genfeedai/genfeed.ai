@@ -4,14 +4,15 @@ import { CreateTrackedLinkDto } from '@api/collections/tracked-links/dto/create-
 import { TrackClickDto } from '@api/collections/tracked-links/dto/track-click.dto';
 import type { LinkClickDocument } from '@api/collections/tracked-links/schemas/link-click.schema';
 import type { TrackedLinkDocument } from '@api/collections/tracked-links/schemas/tracked-link.schema';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import {
   BadRequestException,
   HttpException,
   HttpStatus,
   Injectable,
   Logger,
-  NotFoundException,
 } from '@nestjs/common';
 import { nanoid } from 'nanoid';
 
@@ -43,17 +44,18 @@ export class TrackedLinksService {
   ): Promise<string | undefined> {
     if (!brandId) return undefined;
 
-    const brand = await this.prisma.brand.findFirst({
-      where: {
-        OR: [{ id: brandId }, { mongoId: brandId }],
-        isDeleted: false,
-        organizationId,
+    const brand = await findOrThrow(
+      this.prisma.brand,
+      {
+        where: {
+          OR: [{ id: brandId }, { mongoId: brandId }],
+          isDeleted: false,
+          organizationId,
+        },
       },
-    });
-
-    if (!brand) {
-      throw new NotFoundException(`Brand not found: ${brandId}`);
-    }
+      'Brand',
+      brandId,
+    );
 
     return brand.id;
   }
@@ -65,18 +67,19 @@ export class TrackedLinksService {
   ): Promise<string | undefined> {
     if (!contentId) return undefined;
 
-    const content = await this.prisma.ingredient.findFirst({
-      where: {
-        OR: [{ id: contentId }, { mongoId: contentId }],
-        isDeleted: false,
-        organizationId,
-        ...(brandId ? { brandId } : {}),
+    const content = await findOrThrow(
+      this.prisma.ingredient,
+      {
+        where: {
+          OR: [{ id: contentId }, { mongoId: contentId }],
+          isDeleted: false,
+          organizationId,
+          ...(brandId ? { brandId } : {}),
+        },
       },
-    });
-
-    if (!content) {
-      throw new NotFoundException(`Content not found: ${contentId}`);
-    }
+      'Content',
+      contentId,
+    );
 
     return content.id;
   }
@@ -335,13 +338,12 @@ export class TrackedLinksService {
    * Get tracked link by ID
    */
   async getById(linkId: string, organizationId: string): Promise<TrackedLink> {
-    const link = await this.prisma.trackedLink.findFirst({
-      where: { id: linkId, isDeleted: false, organizationId },
-    });
-
-    if (!link) {
-      throw new NotFoundException(`Tracked link not found: ${linkId}`);
-    }
+    const link = await findOrThrow(
+      this.prisma.trackedLink,
+      { where: { id: linkId, isDeleted: false, organizationId } },
+      'Tracked link',
+      linkId,
+    );
 
     return link as unknown as TrackedLink;
   }
@@ -605,7 +607,7 @@ export class TrackedLinksService {
       contentType: linkDoc.contentType as string | undefined,
       createdAt: linkDoc.createdAt,
       lastClickAt: linkDoc.stats?.lastClickAt,
-      linkId: String(linkDoc.id ?? linkDoc._id),
+      linkId: String(linkDoc.id),
       platform: linkDoc.platform as string | undefined,
       shortUrl: linkDoc.shortUrl as string,
       totalClicks: linkDoc.stats?.totalClicks ?? 0,
@@ -748,7 +750,7 @@ export class TrackedLinksService {
       });
 
       if (count !== 1) {
-        throw new NotFoundException(`Tracked link not found: ${linkId}`);
+        throw new NotFoundException('Tracked link', linkId);
       }
 
       return tx.trackedLink.findFirst({
@@ -773,7 +775,7 @@ export class TrackedLinksService {
     });
 
     if (count !== 1) {
-      throw new NotFoundException(`Tracked link not found: ${linkId}`);
+      throw new NotFoundException('Tracked link', linkId);
     }
 
     this.logger.log(`Tracked link deleted: ${linkId}`);

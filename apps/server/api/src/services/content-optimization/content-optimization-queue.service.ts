@@ -1,19 +1,16 @@
+import {
+  CONTENT_OPTIMIZATION_QUEUE,
+  ContentOptimizationJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
 
-export interface ContentOptimizationJobData {
-  type: 'analyze' | 'optimize-prompt';
-  organizationId: string;
-  brandId: string;
-  prompt?: string;
-}
-
 @Injectable()
 export class ContentOptimizationQueueService {
   constructor(
-    @InjectQueue('content-optimization')
+    @InjectQueue(CONTENT_OPTIMIZATION_QUEUE)
     private readonly queue: Queue,
     private readonly logger: LoggerService,
   ) {}

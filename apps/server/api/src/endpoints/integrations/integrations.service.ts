@@ -1,7 +1,9 @@
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import { CreateIntegrationDto } from '@api/endpoints/integrations/dto/create-integration.dto';
 import { UpdateIntegrationDto } from '@api/endpoints/integrations/dto/update-integration.dto';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/enums';
 import { REDIS_EVENTS } from '@genfeedai/integrations';
 import {
@@ -13,7 +15,6 @@ import {
   BadRequestException,
   Injectable,
   Logger,
-  NotFoundException,
   Optional,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -93,17 +94,11 @@ export class IntegrationsService {
     orgId: string,
     integrationId: string,
   ): Promise<Record<string, unknown>> {
-    const integration = await this.prisma.orgIntegration.findFirst({
-      where: {
-        id: integrationId,
-        isDeleted: false,
-        organizationId: orgId,
-      },
-    });
-
-    if (!integration) {
-      throw new NotFoundException('Integration not found');
-    }
+    const integration = await findOrThrow(
+      this.prisma.orgIntegration,
+      { where: { id: integrationId, isDeleted: false, organizationId: orgId } },
+      'Integration',
+    );
 
     return {
       ...this.toApiIntegration(integration),
@@ -138,19 +133,18 @@ export class IntegrationsService {
     integrationId: string,
   ): Promise<Record<string, unknown>> {
     const prismaPlatform = this.toPrismaPlatform(platform);
-    const integration = await this.prisma.orgIntegration.findFirst({
-      where: {
-        id: integrationId,
-        isDeleted: false,
-        platform: prismaPlatform,
+    const integration = await findOrThrow(
+      this.prisma.orgIntegration,
+      {
+        where: {
+          id: integrationId,
+          isDeleted: false,
+          platform: prismaPlatform,
+        },
       },
-    });
-
-    if (!integration) {
-      throw new NotFoundException(
-        `Integration ${integrationId} not found for platform ${platform}`,
-      );
-    }
+      'Integration',
+      integrationId,
+    );
 
     return {
       ...this.toApiIntegration(integration),
@@ -163,17 +157,11 @@ export class IntegrationsService {
     integrationId: string,
     dto: UpdateIntegrationDto,
   ): Promise<Record<string, unknown>> {
-    const existing = await this.prisma.orgIntegration.findFirst({
-      where: {
-        id: integrationId,
-        isDeleted: false,
-        organizationId: orgId,
-      },
-    });
-
-    if (!existing) {
-      throw new NotFoundException('Integration not found');
-    }
+    const existing = await findOrThrow(
+      this.prisma.orgIntegration,
+      { where: { id: integrationId, isDeleted: false, organizationId: orgId } },
+      'Integration',
+    );
 
     const updateData: Record<string, unknown> = {};
 
@@ -213,17 +201,11 @@ export class IntegrationsService {
   }
 
   async remove(orgId: string, integrationId: string): Promise<void> {
-    const existing = await this.prisma.orgIntegration.findFirst({
-      where: {
-        id: integrationId,
-        isDeleted: false,
-        organizationId: orgId,
-      },
-    });
-
-    if (!existing) {
-      throw new NotFoundException('Integration not found');
-    }
+    const existing = await findOrThrow(
+      this.prisma.orgIntegration,
+      { where: { id: integrationId, isDeleted: false, organizationId: orgId } },
+      'Integration',
+    );
 
     await this.prisma.orgIntegration.update({
       data: { isDeleted: true },

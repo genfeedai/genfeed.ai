@@ -119,7 +119,7 @@ export class TelegramRunCommandsService {
     }
 
     const runRecord = run as Record<string, unknown>;
-    return String(runRecord._id ?? runRecord.id ?? '');
+    return String(runRecord.id ?? '');
   }
 
   private async createAndExecuteRun(

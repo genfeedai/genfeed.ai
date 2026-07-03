@@ -1,7 +1,6 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import type { FacebookAnalyticsJobData } from '@api/queues/analytics-facebook/analytics-facebook-job.interface';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import {
   BrokenCircuitError,
@@ -10,11 +9,15 @@ import {
 } from '@api/shared/utils/circuit-breaker/circuit-breaker.util';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform } from '@genfeedai/enums';
+import {
+  ANALYTICS_FACEBOOK_QUEUE,
+  FacebookAnalyticsJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 
-@Processor('analytics-facebook')
+@Processor(ANALYTICS_FACEBOOK_QUEUE)
 export class AnalyticsFacebookProcessor extends WorkerHost {
   private readonly DEFAULT_DELAY_MS = 2000;
   private readonly circuitBreaker: ProcessorCircuitBreaker;
@@ -82,7 +85,7 @@ export class AnalyticsFacebookProcessor extends WorkerHost {
 
           if (!credential?.accessToken) {
             this.logger.warn(
-              `No Facebook credential found for post ${post._id}`,
+              `No Facebook credential found for post ${post.id}`,
             );
             continue;
           }
@@ -96,7 +99,7 @@ export class AnalyticsFacebookProcessor extends WorkerHost {
             decryptedAccessToken,
           );
 
-          await this.postAnalyticsService.processFacebookAnalytics(post._id, {
+          await this.postAnalyticsService.processFacebookAnalytics(post.id, {
             comments: analytics.comments,
             engagementRate: analytics.engagementRate,
             impressions: analytics.impressions,
@@ -113,21 +116,21 @@ export class AnalyticsFacebookProcessor extends WorkerHost {
           }
         } catch (error: unknown) {
           this.logger.error(
-            `Failed to fetch Facebook analytics for post ${post._id}`,
+            `Failed to fetch Facebook analytics for post ${post.id}`,
             error,
           );
 
           // Disable analytics for this post to prevent repeated failures
           try {
-            await this.postsService.patch(post._id, {
+            await this.postsService.patch(post.id, {
               isAnalyticsEnabled: false,
             });
             this.logger.log(
-              `Disabled analytics tracking for post ${post._id} due to fetch failure`,
+              `Disabled analytics tracking for post ${post.id} due to fetch failure`,
             );
           } catch (patchError: unknown) {
             this.logger.error(
-              `Failed to disable analytics for post ${post._id}`,
+              `Failed to disable analytics for post ${post.id}`,
               patchError,
             );
           }

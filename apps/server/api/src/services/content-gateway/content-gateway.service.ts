@@ -1,13 +1,14 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ContentDraftsService } from '@api/collections/content-drafts/services/content-drafts.service';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import type {
   ContentGatewayResult,
   ContentSignal,
 } from '@api/services/content-gateway/interfaces/content-gateway.interfaces';
 import { SkillExecutorService } from '@api/services/skill-executor/skill-executor.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class ContentGatewayService {
@@ -111,7 +112,7 @@ export class ContentGatewayService {
     });
 
     if (!brand) {
-      throw new NotFoundException(`Brand ${brandId} not found`);
+      throw new NotFoundException('Brand', brandId);
     }
   }
 

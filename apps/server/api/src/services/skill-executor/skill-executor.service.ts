@@ -85,7 +85,7 @@ export class SkillExecutorService {
 
     await this.contentRunsService.patchRun(
       context.organizationId,
-      String(run._id),
+      String(run.id),
       {
         status: ContentRunStatus.RUNNING,
       },
@@ -96,7 +96,7 @@ export class SkillExecutorService {
     if (!handler) {
       await this.contentRunsService.patchRun(
         context.organizationId,
-        String(run._id),
+        String(run.id),
         {
           duration: Date.now() - startedAt,
           error: `No handler registered for skill: ${skillSlug}`,
@@ -129,11 +129,11 @@ export class SkillExecutorService {
 
       await this.contentRunsService.patchRun(
         context.organizationId,
-        String(run._id),
+        String(run.id),
         {
           duration,
           output: draft as unknown as Record<string, unknown>,
-          variants: this.buildRunVariants(draft, String(run._id)),
+          variants: this.buildRunVariants(draft, String(run.id)),
           source: this.toContentRunSource(source),
           status: ContentRunStatus.COMPLETED,
         },
@@ -150,7 +150,7 @@ export class SkillExecutorService {
 
       await this.contentRunsService.patchRun(
         context.organizationId,
-        String(run._id),
+        String(run.id),
         {
           duration,
           error:
@@ -191,7 +191,7 @@ export class SkillExecutorService {
       status: ContentRunStatus.PENDING,
     });
 
-    const runId = String(run._id);
+    const runId = String(run.id);
 
     const handler = this.handlers[skillSlug];
 

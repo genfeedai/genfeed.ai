@@ -2,6 +2,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { type PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import type {
   PipelineConfigV2,
   PipelineError,
@@ -25,7 +26,7 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
 
@@ -182,7 +183,7 @@ export class ContentOrchestrationService {
           });
 
         const s3Meta = await this.filesClientService.uploadToS3(
-          ingredientData._id,
+          ingredientData.id,
           category === IngredientCategory.VIDEO
             ? 'videos'
             : category === IngredientCategory.IMAGE
@@ -194,21 +195,21 @@ export class ContentOrchestrationService {
           },
         );
 
-        await this.metadataService.patch(metadataData._id, {
+        await this.metadataService.patch(metadataData.id, {
           ...(s3Meta.duration != null ? { duration: s3Meta.duration } : {}),
           ...(s3Meta.height != null ? { height: s3Meta.height } : {}),
           ...(s3Meta.size != null ? { size: s3Meta.size } : {}),
           ...(s3Meta.width != null ? { width: s3Meta.width } : {}),
         });
 
-        await this.ingredientsService.patch(ingredientData._id, {
+        await this.ingredientsService.patch(ingredientData.id, {
           status: IngredientStatus.UPLOADED,
         });
 
-        allIngredientIds.push(ingredientData._id);
+        allIngredientIds.push(ingredientData.id);
 
         stepOutcomes.push({
-          ingredientId: ingredientData._id.toString(),
+          ingredientId: ingredientData.id.toString(),
           result,
           step,
           stepIndex: i,
@@ -424,7 +425,7 @@ export class ContentOrchestrationService {
     });
 
     if (!persona) {
-      throw new NotFoundException('Persona not found');
+      throw new NotFoundException('Persona');
     }
 
     return persona;

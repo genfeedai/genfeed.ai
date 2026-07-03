@@ -21,6 +21,7 @@ import { EntityLeaderboardService } from '@api/endpoints/analytics/entity-leader
 import { CacheModule } from '@api/services/cache/cache.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { PinterestModule } from '@api/services/integrations/pinterest/pinterest.module';
+import { StripeModule } from '@api/services/integrations/stripe/stripe.module';
 import { TiktokModule } from '@api/services/integrations/tiktok/tiktok.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
@@ -48,6 +49,9 @@ import { forwardRef, Module } from '@nestjs/common';
     // Platform integration modules (needed for external API analytics)
     forwardRef(() => InstagramModule),
     forwardRef(() => PinterestModule),
+    // Stripe is read-only here: BusinessAnalyticsService prefers real charge
+    // data for revenue when a Stripe client is configured.
+    forwardRef(() => StripeModule),
     forwardRef(() => TiktokModule),
     forwardRef(() => TwitterModule),
     forwardRef(() => YoutubeModule),

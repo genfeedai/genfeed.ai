@@ -16,6 +16,7 @@ import { TaskRoutingService } from '@api/collections/tasks/services/task-routing
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -208,18 +209,19 @@ export class TasksService extends BaseService<
     agentId: string,
     organizationId: string,
   ): Promise<TaskDocument> {
-    const existing = await this.delegate.findFirst({
-      where: {
-        id: taskId,
-        checkoutAgentId: agentId,
-        isDeleted: false,
-        organizationId,
+    await findOrThrow(
+      this.delegate,
+      {
+        where: {
+          id: taskId,
+          checkoutAgentId: agentId,
+          isDeleted: false,
+          organizationId,
+        },
       },
-    });
-
-    if (!existing) {
-      throw new NotFoundException('Task', taskId);
-    }
+      'Task',
+      taskId,
+    );
 
     // Use updateMany so organizationId is atomically enforced in the write predicate.
     await this.delegate.updateMany({

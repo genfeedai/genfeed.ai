@@ -15,7 +15,7 @@ export function serializeAgentBrand(
 
   return {
     description: String(doc.description || ''),
-    id: String(doc._id || doc.id || ''),
+    id: String(doc.id || ''),
     isActive: Boolean(doc.isActive),
     label,
     name: String(doc.name || label),

@@ -1,7 +1,7 @@
 import { BatchWorkflowService } from '@api/collections/workflows/services/batch-workflow.service';
-import type { BatchWorkflowItemJobData } from '@api/collections/workflows/services/batch-workflow-queue.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { ConfigService } from '@api/config/config.service';
+import type { BatchWorkflowItemJobData } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { BatchWorkflowProcessor } from '@workers/processors/api/collections/workflows/services/batch-workflow.processor';

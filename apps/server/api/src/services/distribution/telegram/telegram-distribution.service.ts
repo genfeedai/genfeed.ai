@@ -2,7 +2,6 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { DistributionsService } from '@api/collections/distributions/services/distributions.service';
 import { ConfigService } from '@api/config/config.service';
 import { QueueService } from '@api/queues/core/queue.service';
-import type { TelegramDistributeJobData } from '@api/queues/telegram-distribute/telegram-distribute-job.interface';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import {
   CredentialPlatform,
@@ -11,6 +10,10 @@ import {
   ParseMode,
   PublishStatus,
 } from '@genfeedai/enums';
+import {
+  TELEGRAM_DISTRIBUTE_QUEUE,
+  TelegramDistributeJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
@@ -94,18 +97,18 @@ export class TelegramDistributionService {
       const telegramMessageId = result.result?.message_id?.toString();
 
       await this.distributionsService.markAsPublished(
-        distribution._id.toString(),
+        distribution.id.toString(),
         telegramMessageId,
       );
 
       this.loggerService.log(`${url} sent successfully`, {
         chatId: options.chatId,
         contentType: options.contentType,
-        distributionId: distribution._id,
+        distributionId: distribution.id,
       });
 
       return {
-        distributionId: distribution._id.toString(),
+        distributionId: distribution.id.toString(),
         telegramMessageId,
       };
     } catch (error: unknown) {
@@ -113,7 +116,7 @@ export class TelegramDistributionService {
         error instanceof Error ? error.message : 'Unknown error';
 
       await this.distributionsService.markAsFailed(
-        distribution._id.toString(),
+        distribution.id.toString(),
         errorMessage,
       );
 
@@ -144,21 +147,21 @@ export class TelegramDistributionService {
     );
 
     this.loggerService.log(`${url} scheduled distribution`, {
-      distributionId: distribution._id,
+      distributionId: distribution.id,
       scheduledAt: options.scheduledAt,
     });
 
     const now = Date.now();
     const scheduledAtMs = options.scheduledAt.getTime();
     const delayMs = Math.max(0, scheduledAtMs - now);
-    const distributionId = distribution._id.toString();
+    const distributionId = distribution.id.toString();
     const queueData: TelegramDistributeJobData = {
       distributionId,
       organizationId: options.organizationId,
       platform: DistributionPlatform.TELEGRAM,
     };
 
-    await this.queueService.add('telegram-distribute', queueData, {
+    await this.queueService.add(TELEGRAM_DISTRIBUTE_QUEUE, queueData, {
       delay: delayMs,
       jobId: `telegram-distribute-${distributionId}`,
       removeOnComplete: 100,
@@ -204,7 +207,7 @@ export class TelegramDistributionService {
         );
       }
 
-      await this.distributionsService.patch(distribution._id, {
+      await this.distributionsService.patch(distribution.id, {
         status: PublishStatus.PUBLISHING,
       });
 
@@ -222,7 +225,7 @@ export class TelegramDistributionService {
       const telegramMessageId = result.result?.message_id?.toString();
 
       await this.distributionsService.markAsPublished(
-        distribution._id.toString(),
+        distribution.id.toString(),
         telegramMessageId,
       );
 
@@ -234,7 +237,7 @@ export class TelegramDistributionService {
         error instanceof Error ? error.message : 'Unknown error';
 
       await this.distributionsService.markAsFailed(
-        distribution._id.toString(),
+        distribution.id.toString(),
         errorMessage,
       );
 

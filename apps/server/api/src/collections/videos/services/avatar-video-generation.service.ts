@@ -12,6 +12,7 @@ import { VideosService } from '@api/collections/videos/services/videos.service';
 import { type VoiceDocument } from '@api/collections/voices/schemas/voice.schema';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
 import { ConfigService } from '@api/config/config.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
@@ -35,12 +36,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
-import {
-  HttpException,
-  HttpStatus,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 interface AvatarVideoGenerationContext {
   organizationId: string;
@@ -129,7 +125,7 @@ export class AvatarVideoGenerationService {
 
       const { ingredientData, metadataData } =
         await this.sharedService.saveDocumentsInternal({
-          brand: brand._id,
+          brand: brand.id,
           category: IngredientCategory.AVATAR,
           extension: MetadataExtension.MP4,
           model: MODEL_KEYS.HEYGEN_AVATAR,
@@ -142,7 +138,7 @@ export class AvatarVideoGenerationService {
           user: context.userId,
         });
 
-      ingredientId = String(ingredientData._id);
+      ingredientId = String(ingredientData.id);
 
       const heygenByokKey = await this.byokService.resolveApiKey(
         context.organizationId,
@@ -163,7 +159,7 @@ export class AvatarVideoGenerationService {
       );
 
       await this.metadataService.patch(
-        metadataData._id,
+        metadataData.id,
         new MetadataEntity({
           duration: audioDuration > 0 ? audioDuration : undefined,
           externalId,
@@ -478,7 +474,7 @@ export class AvatarVideoGenerationService {
         return avatarIngredient.cdnUrl;
       }
 
-      return `${this.configService.ingredientsEndpoint}/avatars/${avatarIngredient._id}`;
+      return `${this.configService.ingredientsEndpoint}/avatars/${avatarIngredient.id}`;
     }
 
     if (!params.avatarId) {
@@ -506,9 +502,7 @@ export class AvatarVideoGenerationService {
     );
 
     if (!avatar) {
-      throw new NotFoundException(
-        `Avatar with ID ${params.avatarId} not found`,
-      );
+      throw new NotFoundException('Avatar', params.avatarId);
     }
 
     return avatar.preview;

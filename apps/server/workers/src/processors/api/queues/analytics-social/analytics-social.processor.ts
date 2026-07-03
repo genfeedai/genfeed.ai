@@ -11,12 +11,15 @@ import {
   type ProcessorCircuitBreaker,
 } from '@api/shared/utils/circuit-breaker/circuit-breaker.util';
 import { CredentialPlatform } from '@genfeedai/enums';
-import type { SocialAnalyticsJobData } from '@genfeedai/interfaces';
+import {
+  ANALYTICS_SOCIAL_QUEUE,
+  SocialAnalyticsJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 
-@Processor('analytics-social')
+@Processor(ANALYTICS_SOCIAL_QUEUE)
 export class AnalyticsSocialProcessor extends WorkerHost {
   private readonly DEFAULT_DELAY_MS = 2000;
   private readonly circuitBreaker: ProcessorCircuitBreaker;
@@ -187,7 +190,7 @@ export class AnalyticsSocialProcessor extends WorkerHost {
               | undefined)
           : undefined;
 
-        await this.postAnalyticsService.processInstagramAnalytics(post._id, {
+        await this.postAnalyticsService.processInstagramAnalytics(post.id, {
           ...analytics,
           mediaType: transformedMediaType,
         });
@@ -199,22 +202,22 @@ export class AnalyticsSocialProcessor extends WorkerHost {
         }
       } catch (error: unknown) {
         this.logger.error(
-          `Failed to fetch Instagram analytics for post ${post._id}`,
+          `Failed to fetch Instagram analytics for post ${post.id}`,
           error,
         );
 
         // Disable analytics for this post to prevent repeated failures
         try {
-          await this.postsService.patch(post._id, {
+          await this.postsService.patch(post.id, {
             isAnalyticsEnabled: false,
           });
 
           this.logger.log(
-            `Disabled analytics tracking for post ${post._id} due to fetch failure`,
+            `Disabled analytics tracking for post ${post.id} due to fetch failure`,
           );
         } catch (patchError: unknown) {
           this.logger.error(
-            `Failed to disable analytics for post ${post._id}`,
+            `Failed to disable analytics for post ${post.id}`,
             patchError,
           );
         }
@@ -240,7 +243,7 @@ export class AnalyticsSocialProcessor extends WorkerHost {
           post.externalId,
         );
 
-        await this.postAnalyticsService.processTikTokAnalytics(post._id, {
+        await this.postAnalyticsService.processTikTokAnalytics(post.id, {
           ...analytics,
           shares: analytics.shares ?? 0,
         });
@@ -252,21 +255,21 @@ export class AnalyticsSocialProcessor extends WorkerHost {
         }
       } catch (error: unknown) {
         this.logger.error(
-          `Failed to fetch TikTok analytics for post ${post._id}`,
+          `Failed to fetch TikTok analytics for post ${post.id}`,
           error,
         );
 
         // Disable analytics for this post to prevent repeated failures
         try {
-          await this.postsService.patch(post._id, {
+          await this.postsService.patch(post.id, {
             isAnalyticsEnabled: false,
           });
           this.logger.log(
-            `Disabled analytics tracking for post ${post._id} due to fetch failure`,
+            `Disabled analytics tracking for post ${post.id} due to fetch failure`,
           );
         } catch (patchError: unknown) {
           this.logger.error(
-            `Failed to disable analytics for post ${post._id}`,
+            `Failed to disable analytics for post ${post.id}`,
             patchError,
           );
         }
@@ -293,7 +296,7 @@ export class AnalyticsSocialProcessor extends WorkerHost {
         );
 
         await this.postAnalyticsService.processPinterestAnalytics(
-          post._id,
+          post.id,
           analytics,
         );
         processed++;
@@ -304,21 +307,21 @@ export class AnalyticsSocialProcessor extends WorkerHost {
         }
       } catch (error: unknown) {
         this.logger.error(
-          `Failed to fetch Pinterest analytics for post ${post._id}`,
+          `Failed to fetch Pinterest analytics for post ${post.id}`,
           error,
         );
 
         // Disable analytics for this post to prevent repeated failures
         try {
-          await this.postsService.patch(post._id, {
+          await this.postsService.patch(post.id, {
             isAnalyticsEnabled: false,
           });
           this.logger.log(
-            `Disabled analytics tracking for post ${post._id} due to fetch failure`,
+            `Disabled analytics tracking for post ${post.id} due to fetch failure`,
           );
         } catch (patchError: unknown) {
           this.logger.error(
-            `Failed to disable analytics for post ${post._id}`,
+            `Failed to disable analytics for post ${post.id}`,
             patchError,
           );
         }
@@ -345,7 +348,7 @@ export class AnalyticsSocialProcessor extends WorkerHost {
         );
 
         // LinkedIn returns reactions as an object — map fields explicitly (no spread)
-        await this.postAnalyticsService.processLinkedInAnalytics(post._id, {
+        await this.postAnalyticsService.processLinkedInAnalytics(post.id, {
           clicks: analytics.clicks,
           comments: analytics.comments,
           engagementRate: analytics.engagementRate,
@@ -364,21 +367,21 @@ export class AnalyticsSocialProcessor extends WorkerHost {
         }
       } catch (error: unknown) {
         this.logger.error(
-          `Failed to fetch LinkedIn analytics for post ${post._id}`,
+          `Failed to fetch LinkedIn analytics for post ${post.id}`,
           error,
         );
 
         // Disable analytics for this post to prevent repeated failures
         try {
-          await this.postsService.patch(post._id, {
+          await this.postsService.patch(post.id, {
             isAnalyticsEnabled: false,
           });
           this.logger.log(
-            `Disabled analytics tracking for post ${post._id} due to fetch failure`,
+            `Disabled analytics tracking for post ${post.id} due to fetch failure`,
           );
         } catch (patchError: unknown) {
           this.logger.error(
-            `Failed to disable analytics for post ${post._id}`,
+            `Failed to disable analytics for post ${post.id}`,
             patchError,
           );
         }
@@ -405,7 +408,7 @@ export class AnalyticsSocialProcessor extends WorkerHost {
         );
 
         await this.postAnalyticsService.processMastodonAnalytics(
-          post._id,
+          post.id,
           analytics,
         );
         processed++;
@@ -416,21 +419,21 @@ export class AnalyticsSocialProcessor extends WorkerHost {
         }
       } catch (error: unknown) {
         this.logger.error(
-          `Failed to fetch Mastodon analytics for post ${post._id}`,
+          `Failed to fetch Mastodon analytics for post ${post.id}`,
           error,
         );
 
         // Disable analytics for this post to prevent repeated failures
         try {
-          await this.postsService.patch(post._id, {
+          await this.postsService.patch(post.id, {
             isAnalyticsEnabled: false,
           });
           this.logger.log(
-            `Disabled analytics tracking for post ${post._id} due to fetch failure`,
+            `Disabled analytics tracking for post ${post.id} due to fetch failure`,
           );
         } catch (patchError: unknown) {
           this.logger.error(
-            `Failed to disable analytics for post ${post._id}`,
+            `Failed to disable analytics for post ${post.id}`,
             patchError,
           );
         }

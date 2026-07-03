@@ -41,7 +41,7 @@ describe('VideosRelationshipsController', () => {
   const mockReq = {} as Request;
 
   const mockVideo = {
-    _id: '507f1f77bcf86cd799439011',
+    id: '507f1f77bcf86cd799439011',
     organization: '507f1f77bcf86cd799439013',
     parent: '507f1f77bcf86cd799439010',
     user: '507f1f77bcf86cd799439012',
@@ -204,20 +204,19 @@ describe('VideosRelationshipsController', () => {
       };
 
       mockServices.videosService.findAll.mockResolvedValue({
-        docs: [mockVideo, { ...mockVideo, _id: '507f1f77bcf86cd799439012' }],
+        docs: [mockVideo, { ...mockVideo, id: '507f1f77bcf86cd799439012' }],
         total: 2,
       });
       mockServices.sharedService.saveDocuments.mockResolvedValue({
         ingredientData: {
-          _id: '507f1f77bcf86cd799439015',
           id: '507f1f77bcf86cd799439015',
         },
         metadataData: {
-          _id: '507f1f77bcf86cd799439016',
+          id: '507f1f77bcf86cd799439016',
         },
       });
       mockServices.activitiesService.create.mockResolvedValue({
-        _id: '507f1f77bcf86cd799439018',
+        id: '507f1f77bcf86cd799439018',
       });
       mockServices.fileQueueService.processVideo.mockResolvedValue({
         jobId: 'job123',

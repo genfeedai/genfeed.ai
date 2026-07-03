@@ -1,6 +1,5 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
-import type { TwitterAnalyticsJobData } from '@api/queues/analytics-twitter/analytics-twitter-job.interface';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import {
   BrokenCircuitError,
@@ -9,6 +8,10 @@ import {
 } from '@api/shared/utils/circuit-breaker/circuit-breaker.util';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
+import {
+  ANALYTICS_TWITTER_QUEUE,
+  TwitterAnalyticsJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
@@ -17,7 +20,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-@Processor('analytics-twitter')
+@Processor(ANALYTICS_TWITTER_QUEUE)
 export class AnalyticsTwitterProcessor extends WorkerHost {
   private readonly circuitBreaker: ProcessorCircuitBreaker;
 
@@ -114,14 +117,14 @@ export class AnalyticsTwitterProcessor extends WorkerHost {
 
         if (analytics) {
           await this.postAnalyticsService.processTwitterAnalytics(
-            post._id,
+            post.id,
             analytics,
           );
 
           processed++;
         } else {
           this.logger.warn(
-            `No analytics found for tweet ${post.externalId} (post ${post._id})`,
+            `No analytics found for tweet ${post.externalId} (post ${post.id})`,
           );
         }
       }

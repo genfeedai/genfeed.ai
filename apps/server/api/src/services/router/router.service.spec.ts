@@ -1,12 +1,12 @@
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import type { ModelSelectionOptions } from '@api/services/router/interfaces/router.interfaces';
 import { RouterService } from '@api/services/router/router.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { ModelCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('RouterService', () => {
@@ -16,7 +16,7 @@ describe('RouterService', () => {
 
   const createMockModel = (overrides: Record<string, unknown> = {}) =>
     ({
-      _id: '507f1f77bcf86cd799439011',
+      id: '507f1f77bcf86cd799439011',
       capabilities: [],
       category: ModelCategory.IMAGE,
       cost: 50,
@@ -1073,7 +1073,7 @@ describe('RouterService', () => {
   describe('Model Details', () => {
     it('should include correct model details in recommendation', async () => {
       const model = createMockModel({
-        _id: '507f1f77bcf86cd799439011',
+        id: '507f1f77bcf86cd799439011',
         category: ModelCategory.IMAGE,
         cost: 100,
         key: 'test-model-key',

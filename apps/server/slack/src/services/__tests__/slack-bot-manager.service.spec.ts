@@ -19,7 +19,9 @@ const { mockApp, MockAppConstructor } = vi.hoisted(() => {
     stop: vi.fn(),
     use: vi.fn(),
   };
-  const ctor = vi.fn(() => app);
+  const ctor = vi.fn(function mockAppCtor() {
+    return app;
+  });
   return { MockAppConstructor: ctor, mockApp: app };
 });
 

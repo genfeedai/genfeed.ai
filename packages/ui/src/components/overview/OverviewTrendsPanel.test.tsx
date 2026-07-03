@@ -33,13 +33,15 @@ vi.mock('@ui/overview/WorkspaceSurface', () => ({
     children,
     eyebrow,
     title,
+    tone,
   }: {
     actions?: ReactNode;
     children: ReactNode;
     eyebrow?: ReactNode;
     title?: ReactNode;
+    tone?: string;
   }) => (
-    <section>
+    <section data-testid="workspace-surface" data-tone={tone}>
       {eyebrow ? <p>{eyebrow}</p> : null}
       {title ? <h2>{title}</h2> : null}
       {actions ? <div>{actions}</div> : null}
@@ -115,6 +117,37 @@ describe('OverviewTrendsPanel', () => {
 
     expect(screen.getByText('Social Trends')).toBeInTheDocument();
     expect(screen.getByText('Research Trends')).toBeInTheDocument();
+  });
+
+  it('defaults to the canonical dashboard card tone', () => {
+    render(
+      <OverviewTrendsPanel
+        isLoading={false}
+        trends={TRENDS}
+        viewAllHref="/research/discovery"
+      />,
+    );
+
+    expect(screen.getByTestId('workspace-surface')).toHaveAttribute(
+      'data-tone',
+      'card',
+    );
+  });
+
+  it('forwards an explicit tone override to WorkspaceSurface', () => {
+    render(
+      <OverviewTrendsPanel
+        isLoading={false}
+        tone="default"
+        trends={TRENDS}
+        viewAllHref="/research/discovery"
+      />,
+    );
+
+    expect(screen.getByTestId('workspace-surface')).toHaveAttribute(
+      'data-tone',
+      'default',
+    );
   });
 
   it('renders the "View All" link with the correct href', () => {

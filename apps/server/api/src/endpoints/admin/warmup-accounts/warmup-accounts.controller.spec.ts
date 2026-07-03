@@ -9,12 +9,6 @@ import { AdminWarmupAccountsService } from './warmup-accounts.service';
 
 const mockGetPublicMetadata = vi.fn();
 
-vi.mock('@api/endpoints/admin/guards/ip-whitelist.guard', () => ({
-  IpWhitelistGuard: vi
-    .fn()
-    .mockImplementation(() => ({ canActivate: vi.fn().mockReturnValue(true) })),
-}));
-
 vi.mock('@api/helpers/decorators/user/current-user.decorator', () => ({
   CurrentUser:
     () => (_target: unknown, _key: string, descriptor: PropertyDescriptor) =>
@@ -93,10 +87,10 @@ describe('WarmupAccountsController', () => {
         { provide: LoggerService, useValue: loggerService },
       ],
     })
-      .overrideGuard('IpWhitelistGuard')
-      .useValue({ canActivate: () => true })
+      .overrideGuard(IpWhitelistGuard)
+      .useValue({ canActivate: vi.fn().mockReturnValue(true) })
       .overrideGuard(SuperAdminGuard)
-      .useValue({ canActivate: () => true })
+      .useValue({ canActivate: vi.fn().mockReturnValue(true) })
       .compile();
 
     controller = module.get<WarmupAccountsController>(WarmupAccountsController);

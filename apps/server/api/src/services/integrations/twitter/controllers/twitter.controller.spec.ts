@@ -10,10 +10,12 @@ const mockGenerateOAuth2AuthLink = vi.fn();
 const mockLoginWithOAuth2 = vi.fn();
 
 vi.mock('twitter-api-v2', () => ({
-  TwitterApi: vi.fn().mockImplementation(() => ({
-    generateOAuth2AuthLink: mockGenerateOAuth2AuthLink,
-    loginWithOAuth2: mockLoginWithOAuth2,
-  })),
+  TwitterApi: vi.fn(function TwitterApiMock() {
+    return {
+      generateOAuth2AuthLink: mockGenerateOAuth2AuthLink,
+      loginWithOAuth2: mockLoginWithOAuth2,
+    };
+  }),
 }));
 
 import { BrandsService } from '@api/collections/brands/services/brands.service';

@@ -5,13 +5,10 @@ import type {
   CreateBatchHookRemixDto,
   CreateHookRemixDto,
 } from '@api/endpoints/v1/hook-remix/dto/create-hook-remix.dto';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
 @Injectable()
@@ -49,7 +46,7 @@ export class HookRemixService {
     });
 
     if (!ctaIngredient) {
-      throw new NotFoundException('CTA ingredient not found');
+      throw new NotFoundException('CTA ingredient');
     }
 
     if (!ctaIngredient.cdnUrl) {
@@ -112,7 +109,7 @@ export class HookRemixService {
     });
 
     if (!ctaIngredient) {
-      throw new NotFoundException('CTA ingredient not found');
+      throw new NotFoundException('CTA ingredient');
     }
 
     if (!ctaIngredient.cdnUrl) {

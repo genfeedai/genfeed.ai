@@ -20,8 +20,8 @@ describe('common-relationships', () => {
         expect(USER_REL.type).toBe('user');
       });
 
-      it('should have _id reference', () => {
-        expect(USER_REL.ref).toBe('_id');
+      it('should have id reference', () => {
+        expect(USER_REL.ref).toBe('id');
       });
 
       it('should have user attributes', () => {
@@ -36,8 +36,8 @@ describe('common-relationships', () => {
         expect(ORGANIZATION_REL.type).toBe('organization');
       });
 
-      it('should have _id reference', () => {
-        expect(ORGANIZATION_REL.ref).toBe('_id');
+      it('should have id reference', () => {
+        expect(ORGANIZATION_REL.ref).toBe('id');
       });
 
       it('should have organization attributes', () => {
@@ -51,8 +51,8 @@ describe('common-relationships', () => {
         expect(BRAND_REL.type).toBe('brand');
       });
 
-      it('should have _id reference', () => {
-        expect(BRAND_REL.ref).toBe('_id');
+      it('should have id reference', () => {
+        expect(BRAND_REL.ref).toBe('id');
       });
 
       it('should have brand attributes', () => {
@@ -67,8 +67,8 @@ describe('common-relationships', () => {
         expect(TAG_REL.type).toBe('tag');
       });
 
-      it('should have _id reference', () => {
-        expect(TAG_REL.ref).toBe('_id');
+      it('should have id reference', () => {
+        expect(TAG_REL.ref).toBe('id');
       });
     });
 
@@ -77,8 +77,8 @@ describe('common-relationships', () => {
         expect(ASSET_REL.type).toBe('asset');
       });
 
-      it('should have _id reference', () => {
-        expect(ASSET_REL.ref).toBe('_id');
+      it('should have id reference', () => {
+        expect(ASSET_REL.ref).toBe('id');
       });
     });
 
@@ -87,8 +87,8 @@ describe('common-relationships', () => {
         expect(EVALUATION_REL.type).toBe('evaluation');
       });
 
-      it('should have _id reference', () => {
-        expect(EVALUATION_REL.ref).toBe('_id');
+      it('should have id reference', () => {
+        expect(EVALUATION_REL.ref).toBe('id');
       });
     });
 
@@ -97,8 +97,8 @@ describe('common-relationships', () => {
         expect(FOLDER_REL.type).toBe('folder');
       });
 
-      it('should have _id reference', () => {
-        expect(FOLDER_REL.ref).toBe('_id');
+      it('should have id reference', () => {
+        expect(FOLDER_REL.ref).toBe('id');
       });
     });
   });
@@ -204,7 +204,7 @@ describe('common-relationships', () => {
       expect(rel).toHaveProperty('ref');
       expect(rel).toHaveProperty('attributes');
       expect(typeof rel.type).toBe('string');
-      expect(rel.ref).toBe('_id');
+      expect(rel.ref).toBe('id');
       expect(Array.isArray(rel.attributes)).toBe(true);
     });
 

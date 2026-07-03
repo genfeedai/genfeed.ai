@@ -196,7 +196,7 @@ describe('DiscordService', () => {
     it('should refresh token and update credential', async () => {
       const credentialId = 'test-object-id';
       const existingCredential = {
-        _id: credentialId,
+        id: credentialId,
         refreshToken: 'encrypted-refresh-token',
       };
 
@@ -211,7 +211,7 @@ describe('DiscordService', () => {
         }),
       );
       mockCredentialsService.patch.mockResolvedValue({
-        _id: credentialId,
+        id: credentialId,
         isConnected: true,
       });
 
@@ -224,7 +224,7 @@ describe('DiscordService', () => {
           isConnected: true,
         }),
       );
-      expect(result).toEqual({ _id: credentialId, isConnected: true });
+      expect(result).toEqual({ id: credentialId, isConnected: true });
     });
 
     it('should throw NOT_FOUND when credential does not exist', async () => {
@@ -238,7 +238,7 @@ describe('DiscordService', () => {
     it('should mark credential as disconnected on refresh failure', async () => {
       const credentialId = 'test-object-id';
       mockCredentialsService.findOne.mockResolvedValue({
-        _id: credentialId,
+        id: credentialId,
         refreshToken: 'encrypted-token',
       });
       mockHttpService.post.mockReturnValue(
@@ -261,7 +261,7 @@ describe('DiscordService', () => {
     it('should disconnect and soft-delete credential', async () => {
       const credentialId = 'test-object-id';
       mockCredentialsService.findOne.mockResolvedValue({
-        _id: credentialId,
+        id: credentialId,
       });
       mockCredentialsService.patch.mockResolvedValue({ isDeleted: true });
 

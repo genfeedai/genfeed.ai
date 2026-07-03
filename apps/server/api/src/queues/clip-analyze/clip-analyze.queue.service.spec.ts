@@ -1,6 +1,8 @@
-import type { ClipAnalyzeJobData } from '@api/queues/clip-analyze/clip-analyze.constants';
-import { CLIP_ANALYZE_QUEUE } from '@api/queues/clip-analyze/clip-analyze.constants';
 import { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
+import {
+  CLIP_ANALYZE_QUEUE,
+  ClipAnalyzeJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getQueueToken } from '@nestjs/bullmq';
 import { Test, type TestingModule } from '@nestjs/testing';

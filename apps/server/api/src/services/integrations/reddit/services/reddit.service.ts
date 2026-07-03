@@ -79,7 +79,7 @@ export class RedditService {
 
     const { access_token, refresh_token, expires_in } = response.data;
 
-    return this.credentialsService.patch(credential._id, {
+    return this.credentialsService.patch(credential.id, {
       accessToken: access_token,
       accessTokenExpiry: expires_in
         ? new Date(Date.now() + expires_in * 1000)

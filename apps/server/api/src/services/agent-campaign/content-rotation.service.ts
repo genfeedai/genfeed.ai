@@ -152,7 +152,7 @@ export class ContentRotationService {
     strategy: AgentStrategyDocument,
     target: IAgentCampaignRotationTarget,
   ): boolean {
-    const strategyId = String(strategy._id ?? strategy.id ?? '');
+    const strategyId = String(strategy.id ?? '');
     if (target.strategyId && target.strategyId !== strategyId) {
       return false;
     }

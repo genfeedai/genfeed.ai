@@ -37,17 +37,19 @@ const mockV1TrendsByPlace = vi.fn();
 const mockRefreshOAuth2Token = vi.fn();
 
 vi.mock('twitter-api-v2', () => {
-  const MockTwitterApi = vi.fn(() => ({
-    refreshOAuth2Token: mockRefreshOAuth2Token,
-    v1: { trendsByPlace: mockV1TrendsByPlace },
-    v2: {
-      get: mockV2Get,
-      search: mockV2Search,
-      sendDmInConversation: mockV2SendDmInConversation,
-      tweet: mockV2Tweet,
-      uploadMedia: mockV2UploadMedia,
-    },
-  }));
+  const MockTwitterApi = vi.fn(function TwitterApiMock() {
+    return {
+      refreshOAuth2Token: mockRefreshOAuth2Token,
+      v1: { trendsByPlace: mockV1TrendsByPlace },
+      v2: {
+        get: mockV2Get,
+        search: mockV2Search,
+        sendDmInConversation: mockV2SendDmInConversation,
+        tweet: mockV2Tweet,
+        uploadMedia: mockV2UploadMedia,
+      },
+    };
+  });
   return { TwitterApi: MockTwitterApi };
 });
 
@@ -183,7 +185,7 @@ describe('TwitterService (coverage)', () => {
 
       expect(mockRefreshOAuth2Token).toHaveBeenCalledWith('decrypted:enc-rt');
       expect(credentialsService.patch).toHaveBeenCalledWith(
-        cred._id,
+        cred.id,
         expect.objectContaining({
           accessToken: 'new-access',
           isConnected: true,
@@ -201,7 +203,7 @@ describe('TwitterService (coverage)', () => {
       );
 
       expect(credentialsService.patch).toHaveBeenCalledWith(
-        cred._id,
+        cred.id,
         expect.objectContaining({ isConnected: false }),
       );
     });
@@ -219,7 +221,7 @@ describe('TwitterService (coverage)', () => {
 
       // Credential should be patched as disconnected
       expect(credentialsService.patch).toHaveBeenCalledWith(
-        cred._id,
+        cred.id,
         expect.objectContaining({ isConnected: false }),
       );
       // Activity logged

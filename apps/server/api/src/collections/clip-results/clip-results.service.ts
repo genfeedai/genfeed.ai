@@ -141,8 +141,8 @@ export class ClipResultsService extends BaseService<
     const data: Record<string, unknown> = {};
     const legacyData: Record<string, unknown> = { ...existingData };
 
-    if (typeof dto._id === 'string' && dto._id.length > 0) {
-      data.mongoId = dto._id;
+    if (typeof dto.id === 'string' && dto.id.length > 0) {
+      data.mongoId = dto.id;
     }
 
     if (typeof dto.mongoId === 'string' && dto.mongoId.length > 0) {

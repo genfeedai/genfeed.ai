@@ -1,17 +1,20 @@
 import { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
-import type { MetaAdSyncJobData } from '@api/queues/ad-sync-meta/ad-sync-meta-job.interface';
 import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import {
   type NormalizedAdPerformanceRecord,
   normalizeMetaCampaignInsightRecord,
 } from '@genfeedai/integrations/ads';
+import {
+  AD_SYNC_META_QUEUE,
+  MetaAdSyncJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Job } from 'bullmq';
 
 @Injectable()
-@Processor('ad-sync-meta')
+@Processor(AD_SYNC_META_QUEUE)
 export class AdSyncMetaProcessor extends WorkerHost {
   private readonly DEFAULT_DELAY_MS = 2000;
 

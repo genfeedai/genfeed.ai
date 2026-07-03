@@ -1,8 +1,7 @@
 import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
-  createPostPublishTriggerExecutor,
-  type PostPublishTriggerExecutor,
+  PostPublishTriggerExecutor,
   type PostPublishTriggerOutput,
 } from '@workflow-engine/executors/saas/post-publish-trigger-executor';
 import type { ExecutableNode } from '@workflow-engine/types';
@@ -36,7 +35,7 @@ describe('PostPublishTriggerExecutor', () => {
   let executor: PostPublishTriggerExecutor;
 
   beforeEach(() => {
-    executor = createPostPublishTriggerExecutor();
+    executor = new PostPublishTriggerExecutor();
   });
 
   it('normalizes injected publish event data', async () => {

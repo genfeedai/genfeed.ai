@@ -68,7 +68,7 @@ describe('AdAutomationWorkflowService', () => {
 
   it('enqueues one ad optimization job for an enabled org config', async () => {
     optimizationConfigService.findByOrganization.mockResolvedValue({
-      _id: 'config-1',
+      id: 'config-1',
       isEnabled: true,
     });
 
@@ -95,7 +95,7 @@ describe('AdAutomationWorkflowService', () => {
     credentialsService.findAll.mockResolvedValue({
       docs: [
         {
-          _id: 'cred-1',
+          id: 'cred-1',
           accessToken: 'meta-token',
           brandId: 'brand-1',
         },
@@ -133,7 +133,7 @@ describe('AdAutomationWorkflowService', () => {
     credentialsService.findAll.mockResolvedValue({
       docs: [
         {
-          _id: 'cred-1',
+          id: 'cred-1',
           accessToken: 'google-token',
           brandId: 'brand-1',
           refreshToken: 'refresh-token',
@@ -174,7 +174,7 @@ describe('AdAutomationWorkflowService', () => {
     credentialsService.findAll.mockResolvedValue({
       docs: [
         {
-          _id: 'cred-1',
+          id: 'cred-1',
           accessToken: 'tiktok-token',
           brandId: 'brand-1',
         },

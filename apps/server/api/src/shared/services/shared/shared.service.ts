@@ -50,7 +50,7 @@ export class SharedService {
     const metadataData = (await this.metadataService.create({
       ...body,
       ...(promptId ? { prompt: promptId } : {}),
-    } as CreateMetadataDto)) as { _id: string };
+    } as CreateMetadataDto)) as { id: string };
 
     let version = 1;
     if (parentId) {
@@ -71,7 +71,7 @@ export class SharedService {
       ...(toId(body.script) ? { script: toId(body.script) } : {}),
       brand: brandId,
       isDefault: false,
-      metadataId: metadataData._id,
+      metadataId: metadataData.id,
       organization: organizationId,
       status: (body.status as IngredientStatus) || IngredientStatus.PROCESSING,
       user: userId,
@@ -102,7 +102,7 @@ export class SharedService {
     const metadataData = (await this.metadataService.create({
       ...body,
       ...(body.prompt ? { prompt: body.prompt } : {}),
-    } as unknown as CreateMetadataDto)) as { _id: string };
+    } as unknown as CreateMetadataDto)) as { id: string };
 
     let version = 1;
     if (body.parent) {
@@ -118,7 +118,7 @@ export class SharedService {
       ...body,
       brand: body.brand,
       isDefault: false,
-      metadataId: metadataData._id,
+      metadataId: metadataData.id,
       organization: body.organization,
       status: body.status || IngredientStatus.PROCESSING,
       user: body.user,
@@ -131,7 +131,7 @@ export class SharedService {
   }
 
   public async updateDocuments(
-    metadataData: { _id: string },
+    metadataData: { id: string },
     ingredientData: IngredientDocument,
     result: string,
     // TO DO
@@ -140,12 +140,12 @@ export class SharedService {
   ) {
     const validPromptId = toId(promptId);
 
-    await this.metadataService.patch(metadataData._id, {
+    await this.metadataService.patch(metadataData.id, {
       prompt: validPromptId,
       result,
     });
 
-    await this.ingredientsService.patch(ingredientData._id, {
+    await this.ingredientsService.patch(ingredientData.id, {
       prompt: validPromptId,
       status: IngredientStatus.GENERATED,
     });
@@ -153,7 +153,7 @@ export class SharedService {
     // Update the prompt with the ingredient reference for bidirectional linking
     if (validPromptId) {
       await this.promptsService.patch(validPromptId, {
-        ingredient: ingredientData._id,
+        ingredient: ingredientData.id,
       });
     }
   }

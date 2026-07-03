@@ -150,16 +150,16 @@ describe('TrendsList', () => {
   it('renders the overview tab as active with platform tabs', () => {
     render(<TrendsList />);
 
-    expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute(
       'href',
       '/research/socials',
     );
-    expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute(
       'data-state',
       'active',
     );
-    expect(screen.getByRole('tab', { name: 'X' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'LinkedIn' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'X' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'LinkedIn' })).toBeInTheDocument();
   });
 
   it('renders actual content cards instead of topic-only trend cards', () => {
@@ -206,14 +206,27 @@ describe('TrendsList', () => {
     expect(screen.getByText('Viral hook')).toBeInTheDocument();
   });
 
+  it('renders the section topbar with the title and tabs inside the bordered bar', () => {
+    render(<TrendsList />);
+
+    const topbar = screen.getByTestId('section-topbar');
+
+    expect(topbar).toContainElement(
+      screen.getByRole('heading', { level: 1, name: 'Trending Content' }),
+    );
+    expect(topbar).toContainElement(
+      screen.getByRole('link', { name: 'Overview' }),
+    );
+  });
+
   it('renders socials platform tab links', () => {
     render(<TrendsList />);
 
-    expect(screen.getByRole('tab', { name: 'X' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'X' })).toHaveAttribute(
       'href',
       '/research/twitter',
     );
-    expect(screen.getByRole('tab', { name: 'LinkedIn' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'LinkedIn' })).toHaveAttribute(
       'href',
       '/research/linkedin',
     );

@@ -106,7 +106,7 @@ describe('AdminFleetValueReader', () => {
 
     it('readReferenceId resolves nested id shapes', () => {
       expect(AdminFleetValueReader.readReferenceId('abc')).toBe('abc');
-      expect(AdminFleetValueReader.readReferenceId({ _id: 'nested' })).toBe(
+      expect(AdminFleetValueReader.readReferenceId({ id: 'nested' })).toBe(
         'nested',
       );
       expect(AdminFleetValueReader.readReferenceId({})).toBeUndefined();

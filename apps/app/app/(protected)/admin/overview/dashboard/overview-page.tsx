@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import type { OverviewCard } from '@genfeedai/interfaces/ui/overview-card.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -46,7 +47,7 @@ const quickActionCards: OverviewCard[] = [
     color: 'bg-white/5 text-foreground',
     cta: 'Manage Users',
     description: 'Accounts, roles, and permissions',
-    href: '/administration/users',
+    href: APP_ROUTES.ADMIN.ADMINISTRATION.USERS,
     icon: HiOutlineUserGroup,
     id: 'users',
     label: 'Users',
@@ -55,7 +56,7 @@ const quickActionCards: OverviewCard[] = [
     color: 'bg-white/5 text-foreground',
     cta: 'View Elements',
     description: 'Presets, blacklists, and settings',
-    href: '/configuration/elements/blacklists',
+    href: APP_ROUTES.ADMIN.CONFIGURATION.ELEMENTS_BLACKLISTS,
     icon: HiOutlineTag,
     id: 'elements',
     label: 'Elements',
@@ -64,7 +65,7 @@ const quickActionCards: OverviewCard[] = [
     color: 'bg-white/5 text-foreground',
     cta: 'View Posts',
     description: 'Posts, performance, and metrics',
-    href: '/content/posts',
+    href: APP_ROUTES.ADMIN.CONTENT.POSTS,
     icon: HiOutlineNewspaper,
     id: 'posts',
     label: 'Posts',

@@ -1,10 +1,11 @@
 import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import {
   fromPromiseEffect,
   runEffectPromise,
 } from '@api/helpers/utils/effect/effect.util';
-import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import type { AgentInputRequestDocument } from '@api/services/agent-threading/schemas/agent-input-request.schema';
 import type { AgentProfileSnapshotDocument } from '@api/services/agent-threading/schemas/agent-profile-snapshot.schema';
 import type { AgentThreadEventDocument } from '@api/services/agent-threading/schemas/agent-thread-event.schema';
@@ -15,12 +16,7 @@ import { ThreadContextCompressorService } from '@api/services/agent-threading/se
 import { AgentThreadEventType } from '@api/services/agent-threading/types/agent-thread.types';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-  Optional,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 import { Effect } from 'effect';
 
 export interface AppendAgentThreadEventParams {
@@ -403,7 +399,7 @@ export class AgentThreadEngineService {
       );
 
       if (!snapshot) {
-        throw new NotFoundException('Thread snapshot not found');
+        throw new NotFoundException('Thread snapshot');
       }
 
       return snapshot;
@@ -444,9 +440,7 @@ export class AgentThreadEngineService {
       );
 
       if (!snapshotRow) {
-        return yield* Effect.fail(
-          new NotFoundException('Input request not found'),
-        );
+        return yield* Effect.fail(new NotFoundException('Input request'));
       }
 
       const snapshotData = (snapshotRow.data as Record<string, unknown>) ?? {};
@@ -458,9 +452,7 @@ export class AgentThreadEngineService {
       );
 
       if (reqIndex === -1) {
-        return yield* Effect.fail(
-          new NotFoundException('Input request not found'),
-        );
+        return yield* Effect.fail(new NotFoundException('Input request'));
       }
 
       // Update the request in-place
@@ -493,9 +485,7 @@ export class AgentThreadEngineService {
       );
 
       if (!inputRequest) {
-        return yield* Effect.fail(
-          new NotFoundException('Input request not found'),
-        );
+        return yield* Effect.fail(new NotFoundException('Input request'));
       }
 
       yield* this.appendEventEffect({
@@ -626,10 +616,10 @@ export class AgentThreadEngineService {
       );
 
       yield* this.appendEventEffect({
-        commandId: `memory-flush:${threadId}:${memory._id}`,
+        commandId: `memory-flush:${threadId}:${memory.id}`,
         organizationId,
         payload: {
-          memoryId: String(memory._id),
+          memoryId: String(memory.id),
           summary: content.slice(0, 200),
         },
         threadId,
@@ -637,7 +627,7 @@ export class AgentThreadEngineService {
         userId,
       });
 
-      return String(memory._id);
+      return String(memory.id);
     });
   }
 
@@ -669,10 +659,10 @@ export class AgentThreadEngineService {
     status?: string;
     title?: string;
   }> {
-    if (!ObjectIdUtil.isValid(threadId)) {
+    if (!EntityIdUtil.isValid(threadId)) {
       throw new BadRequestException('Invalid threadId');
     }
-    if (!ObjectIdUtil.isValid(organizationId)) {
+    if (!EntityIdUtil.isValid(organizationId)) {
       throw new BadRequestException('Invalid organizationId');
     }
 
@@ -683,7 +673,7 @@ export class AgentThreadEngineService {
     };
 
     if (userId) {
-      if (!ObjectIdUtil.isValid(userId)) {
+      if (!EntityIdUtil.isValid(userId)) {
         throw new BadRequestException('Invalid userId');
       }
       query.user = userId;

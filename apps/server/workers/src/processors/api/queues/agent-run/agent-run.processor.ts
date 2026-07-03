@@ -12,11 +12,11 @@ import { AgentCampaignExecutionService } from '@api/collections/agent-campaigns/
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import { AgentStrategyAutopilotService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.service';
-import { AgentRunJobData } from '@api/queues/agent-run/agent-run-queue.service';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import { TaskOrchestratorService } from '@api/services/task-orchestration/task-orchestrator.service';
 import { AgentRunStatus } from '@genfeedai/enums';
+import { AGENT_RUN_QUEUE, AgentRunJobData } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { forwardRef, Inject, Optional } from '@nestjs/common';
@@ -84,7 +84,7 @@ function readNumber(value: unknown): number | undefined {
     : undefined;
 }
 
-@Processor('agent-run', {
+@Processor(AGENT_RUN_QUEUE, {
   concurrency: 3,
   limiter: { duration: 60000, max: 20 },
 })

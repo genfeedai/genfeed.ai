@@ -88,7 +88,7 @@ describe('AssetsOperationsController', () => {
   };
 
   const mockAsset = {
-    _id: mockAssetId,
+    id: mockAssetId,
     category: AssetCategory.LOGO,
     parent: mockBrandId,
     parentModel: AssetParent.BRAND,

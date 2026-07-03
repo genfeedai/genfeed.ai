@@ -3,7 +3,10 @@ import { AvatarVideoGenerationService } from '@api/collections/videos/services/a
 import { ConfigService } from '@api/config/config.service';
 import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
 import { TaskOrchestratorService } from '@api/services/task-orchestration/task-orchestrator.service';
-import { WorkspaceTaskJobData } from '@api/services/task-orchestration/workspace-task-queue.service';
+import {
+  WORKSPACE_TASK_QUEUE,
+  WorkspaceTaskJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { forwardRef, HttpException, Inject } from '@nestjs/common';
@@ -13,7 +16,7 @@ import { Job } from 'bullmq';
  * BullMQ processor for workspace tasks.
  * Receives enqueued tasks and drives them through the orchestration pipeline.
  */
-@Processor('workspace-task', {
+@Processor(WORKSPACE_TASK_QUEUE, {
   concurrency: 5,
   limiter: { duration: 60000, max: 30 },
 })

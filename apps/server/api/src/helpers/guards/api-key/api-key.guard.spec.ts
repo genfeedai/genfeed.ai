@@ -171,7 +171,7 @@ describe('ApiKeyAuthGuard', () => {
       expect(mutatedRequest.user).toEqual({
         id: mockApiKey.userId.toString(),
         publicMetadata: {
-          apiKeyId: mockApiKey._id.toString(),
+          apiKeyId: mockApiKey.id.toString(),
           brand: mockApiKey.organizationId.toString(),
           isApiKey: true,
           organization: mockApiKey.organizationId.toString(),

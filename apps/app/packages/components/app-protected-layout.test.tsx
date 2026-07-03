@@ -199,6 +199,15 @@ vi.mock('@app-config/menu-items.config', () => ({
   POSTS_INSERT_AFTER_LABEL: 'Posts',
 }));
 
+vi.mock('@app-config/research-menu-items.config', () => ({
+  RESEARCH_LOGO_HREF: '/research/discovery',
+  RESEARCH_MENU_ITEMS: [
+    { href: '/research/discovery', label: 'Discovery' },
+    { href: '/research/socials', label: 'Socials' },
+    { href: '/research/ads', label: 'Ads' },
+  ],
+}));
+
 vi.mock('@contexts/features/command-palette.provider', () => ({
   CommandPaletteProvider: ({ children }: { children: ReactNode }) => (
     <>{children}</>
@@ -650,8 +659,8 @@ describe('AppProtectedLayout', () => {
       screen.queryByTestId('sidebar-search-trigger'),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: 'Back to Workspace' }),
-    ).toHaveAttribute('href', '/org-123/brand-123/workspace/overview');
+      screen.queryByRole('link', { name: 'Back to Workspace' }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText('Conversations')).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Workspace' }),
@@ -834,6 +843,36 @@ describe('AppProtectedLayout', () => {
     expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
   });
 
+  it.each([
+    ['/studio/image', 'studio', 'Studio'],
+    ['/library/ingredients', 'library', 'Library'],
+    ['/analytics/overview', 'analytics', 'Analytics'],
+    ['/workflows', 'workflows', 'Workflows'],
+  ])('does not render a Workspace back row for the %s app-switcher surface', (pathname, currentApp, sectionLabel) => {
+    mockPathname.value = pathname;
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    const sidebarProps = appSidebarSpy.mock.calls.at(-1)?.[0];
+
+    expect(sidebarProps).toEqual(
+      expect.objectContaining({
+        currentApp,
+        sectionLabel,
+        shellChromeVariant: 'default',
+      }),
+    );
+    expect(sidebarProps).not.toHaveProperty('backHref');
+    expect(sidebarProps).not.toHaveProperty('backLabel');
+    expect(
+      screen.queryByRole('link', { name: 'Back to Workspace' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('filters disabled studio categories from the dedicated studio sidebar', () => {
     mockPathname.value = '/studio/image';
     enabledCategoriesState.enabledCategories = ['image', 'video', 'avatar'];
@@ -850,6 +889,39 @@ describe('AppProtectedLayout', () => {
           expect.objectContaining({
             href: '/studio/music',
             label: 'Music',
+          }),
+        ]),
+      }),
+    );
+  });
+
+  it('renders a dedicated research sidebar on research routes', () => {
+    mockPathname.value = '/research/discovery';
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(appSidebarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentApp: 'research',
+        items: [
+          { href: '/research/discovery', label: 'Discovery' },
+          { href: '/research/socials', label: 'Socials' },
+          { href: '/research/ads', label: 'Ads' },
+        ],
+        sectionLabel: 'Research',
+        shellChromeVariant: 'default',
+      }),
+    );
+    expect(appSidebarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        items: expect.not.arrayContaining([
+          expect.objectContaining({
+            href: '/workspace',
+            label: 'Workspace',
           }),
         ]),
       }),

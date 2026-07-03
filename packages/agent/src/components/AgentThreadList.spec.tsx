@@ -314,6 +314,24 @@ describe('AgentThreadList', () => {
     expect(threadLink?.parentElement).toHaveClass('h-9');
   });
 
+  it('does not render malformed threads without usable ids', async () => {
+    const malformedThread = {
+      ...createThread('conv-bad', 'Malformed thread'),
+      id: undefined as unknown as string,
+    };
+    const validThread = createThread('conv-1', 'Valid thread');
+    const apiService = createApiService({
+      getThreads: vi.fn().mockResolvedValue([malformedThread, validThread]),
+      unarchiveThread: vi.fn(),
+    });
+
+    render(<AgentThreadList apiService={apiService as never} />);
+
+    expect(await screen.findByText('Valid thread')).toBeInTheDocument();
+    expect(screen.queryByText('Malformed thread')).toBeNull();
+    expect(document.querySelector('a[href="/agent/undefined"]')).toBeNull();
+  });
+
   it('clears the active thread and navigates away when archived', async () => {
     const thread = createThread('conv-1', 'Current chat');
     storeState.activeThreadId = 'conv-1';

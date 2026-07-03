@@ -31,6 +31,10 @@
       "@genfeedai/interfaces/*": ["../../packages/interfaces/src/*"],
       "@genfeedai/pricing": ["../../packages/pricing/src/index.ts"],
       "@genfeedai/pricing/*": ["../../packages/pricing/src/*"],
+      "@genfeedai/queue-contracts": [
+        "../../packages/queue-contracts/src/index.ts"
+      ],
+      "@genfeedai/queue-contracts/*": ["../../packages/queue-contracts/src/*"],
       "@genfeedai/serializers": ["../../packages/serializers/src"],
       "@genfeedai/serializers/*": ["../../packages/serializers/src/*"],
       "@genfeedai/storage": ["../../packages/storage/src"],

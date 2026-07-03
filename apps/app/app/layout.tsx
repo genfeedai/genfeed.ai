@@ -39,6 +39,7 @@ function createRuntimeConfigScript(): string {
 export default async function RootLayout({ children }: LayoutProps) {
   const initialTheme = await resolveRequestTheme();
   const isDesktopShell = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';
+  const isVercelRuntime = process.env.VERCEL === '1';
   const bodyClassName = isDesktopShell
     ? 'gf-app gf-desktop-shell gf-studio-app'
     : 'gf-app gf-studio-app';
@@ -56,8 +57,8 @@ export default async function RootLayout({ children }: LayoutProps) {
         initialTheme={initialTheme}
         storageKey={THEME_STORAGE_KEY}
         googleAnalyticsId={googleAnalyticsId}
-        includeSpeedInsights={!isDesktopShell}
-        includeVercelAnalytics={!isDesktopShell}
+        includeSpeedInsights={!isDesktopShell && isVercelRuntime}
+        includeVercelAnalytics={!isDesktopShell && isVercelRuntime}
       >
         <Script id="genfeed-runtime-config" strategy="beforeInteractive">
           {createRuntimeConfigScript()}
