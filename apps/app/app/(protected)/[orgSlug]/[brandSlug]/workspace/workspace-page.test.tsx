@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -27,6 +28,7 @@ const mocks = vi.hoisted(() => ({
   replace: vi.fn(),
   requestChanges: vi.fn(),
   resolveAuthToken: vi.fn(),
+  sentryAddBreadcrumb: vi.fn(),
   subscribe: vi.fn(),
   trashOutput: vi.fn(),
   unkeepOutput: vi.fn(),
@@ -96,6 +98,10 @@ vi.mock('@services/core/logger.service', () => ({
   logger: {
     warn: mocks.loggerWarn,
   },
+}));
+
+vi.mock('@sentry/nextjs', () => ({
+  addBreadcrumb: mocks.sentryAddBreadcrumb,
 }));
 
 vi.mock('@services/management/tasks.service', async (importOriginal) => {
@@ -436,5 +442,43 @@ describe('WorkspacePageContent', () => {
     expect(
       within(inbox).getByText('Latest items waiting on your review.'),
     ).toBeInTheDocument();
+  });
+
+  it('surfaces a visible warning and Sentry breadcrumb when overview task loading stalls', async () => {
+    vi.useFakeTimers();
+    mocks.list.mockReturnValueOnce(new Promise(() => undefined));
+
+    try {
+      render(<WorkspacePageContent section="overview" />);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+
+      expect(mocks.list).toHaveBeenCalledWith({});
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(15_000);
+      });
+
+      expect(
+        screen.getByText(
+          'Workspace data is taking longer than expected. You can keep this page open or try again.',
+        ),
+      ).toBeVisible();
+      expect(mocks.sentryAddBreadcrumb).toHaveBeenCalledWith(
+        expect.objectContaining({
+          category: 'workspace.overview',
+          data: expect.objectContaining({
+            scope: 'tasks',
+            timeoutMs: 15_000,
+          }),
+          level: 'warning',
+          message: 'Workspace overview data load timed out',
+        }),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
