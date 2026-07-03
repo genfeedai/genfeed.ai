@@ -180,18 +180,32 @@ describe('KlingAIService (contract)', () => {
       );
     });
 
-    it('swallows a non-200 status (current contract): resolves undefined and logs', async () => {
-      // NOTE: this pins the CURRENT behavior. A generic non-200 (not 401/403)
-      // is caught, logged, and the method resolves `undefined` rather than
-      // rejecting — an upstream caller sees a missing request_id. Documented
-      // here so a future change to reject-on-non-200 updates this assertion
-      // deliberately rather than by accident.
+    it('rejects on a non-200 status (not 401/403) instead of swallowing it', async () => {
+      // A generic non-200 (here 500) trips the in-try guard, which throws
+      // `KlingAI API returned non-200 status`. The catch logs it and rethrows
+      // rather than resolving `undefined`, so a hard provider failure can no
+      // longer be mistaken for a successful-but-empty result (a missing
+      // request_id) by an upstream caller on the revenue path.
       httpService.post.mockReturnValueOnce(
         of({ data: { error: 'server error' }, status: 500 }),
       );
 
-      const id = await service.generateImage('prompt');
-      expect(id).toBeUndefined();
+      await expect(service.generateImage('prompt')).rejects.toThrow(
+        'KlingAI API returned non-200 status',
+      );
+      expect(logger.error).toHaveBeenCalled();
+    });
+
+    it('rejects on a transport error (no HTTP response) instead of swallowing it', async () => {
+      // Network/transport failures carry no `response`, so they miss the
+      // 401/403 branch. The catch logs and rethrows the original error rather
+      // than resolving `undefined`.
+      const transportError = new Error('socket hang up');
+      httpService.post.mockReturnValueOnce(throwError(() => transportError));
+
+      await expect(service.generateTextToVideo('prompt')).rejects.toThrow(
+        'socket hang up',
+      );
       expect(logger.error).toHaveBeenCalled();
     });
   });
