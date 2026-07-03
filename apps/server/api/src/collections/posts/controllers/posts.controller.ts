@@ -9,6 +9,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type {
   IngredientDocument,
@@ -82,6 +83,7 @@ export class PostsController extends BaseCRUDController<
 > {
   constructor(
     private readonly activitiesService: ActivitiesService,
+    private readonly accountHealthService: AccountHealthService,
     private readonly credentialsService: CredentialsService,
     private readonly ingredientsService: IngredientsService,
     private readonly quotaService: QuotaService,
@@ -129,7 +131,7 @@ export class PostsController extends BaseCRUDController<
       return value;
     }
 
-    return value?._id ?? value?.id;
+    return value?.id ?? value?.id;
   }
 
   private getPostCategoryFromIngredient(
@@ -232,7 +234,7 @@ export class PostsController extends BaseCRUDController<
         // Verify all requested ingredients were found
         if (ingredients.length !== createPostDto.ingredients.length) {
           // Find which ingredient IDs are missing
-          const foundIds = new Set(ingredients.map((i) => i._id.toString()));
+          const foundIds = new Set(ingredients.map((i) => i.id.toString()));
           const missingId = createPostDto.ingredients.find(
             (id) => !foundIds.has(id.toString()),
           );
@@ -249,7 +251,7 @@ export class PostsController extends BaseCRUDController<
 
         // Preserve the original order of ingredients
         const ingredientMap = new Map(
-          ingredients.map((i) => [i._id.toString(), i]),
+          ingredients.map((i) => [i.id.toString(), i]),
         );
         ingredientIds = createPostDto.ingredients.map((id) => id);
         firstIngredient =
@@ -273,7 +275,7 @@ export class PostsController extends BaseCRUDController<
           );
         }
 
-        ingredientIds = campaignIngredients.map((ingredient) => ingredient._id);
+        ingredientIds = campaignIngredients.map((ingredient) => ingredient.id);
         [firstIngredient = null] = campaignIngredients;
       }
 
@@ -281,6 +283,22 @@ export class PostsController extends BaseCRUDController<
         credential,
         publicMetadata.organization,
       );
+
+      let effectiveStatus = createPostDto.status;
+      let warmupHoldReason: string | undefined;
+      if (createPostDto.status === PostStatus.SCHEDULED) {
+        const publishGate =
+          await this.accountHealthService.evaluateScheduledPublishGate({
+            brandId: publicMetadata.brand,
+            credentialId: createPostDto.credential,
+            organizationId: publicMetadata.organization,
+          });
+
+        if (publishGate.holdPublishing) {
+          effectiveStatus = PostStatus.PENDING;
+          warmupHoldReason = publishGate.reason;
+        }
+      }
 
       const data = await this.postsService.create({
         ...createPostDto,
@@ -305,9 +323,11 @@ export class PostsController extends BaseCRUDController<
             publicMetadata.organization)
           : publicMetadata.organization,
         platform: credential.platform as never, // Save platform from credential
+        publishIntent: warmupHoldReason ? 'warmup_hold' : undefined,
         publicationDate: createPostDto.publicationDate,
+        reviewFeedback: warmupHoldReason,
         scheduledDate: createPostDto.scheduledDate,
-        status: createPostDto.status,
+        status: effectiveStatus,
         tags: createPostDto.tags || [],
         user: publicMetadata.user,
       });
@@ -318,23 +338,28 @@ export class PostsController extends BaseCRUDController<
             ? (this.getIngredientRefId(firstIngredient.brand) ??
               publicMetadata.brand)
             : publicMetadata.brand,
-          entityId: data._id,
+          entityId: data.id,
           entityModel: ActivityEntityModel.POST,
-          key: ActivityKey.VIDEO_SCHEDULED,
+          key: warmupHoldReason
+            ? ActivityKey.POST_CREATED
+            : ActivityKey.VIDEO_SCHEDULED,
           organization: firstIngredient
             ? (this.getIngredientRefId(firstIngredient.organization) ??
               publicMetadata.organization)
             : publicMetadata.organization,
           source: ActivitySource.SCRIPT,
           user: publicMetadata.user,
-          value: (data._id as string).toString(),
+          value: (data.id as string).toString(),
         }),
       );
 
-      if (String(credential.platform) === CredentialPlatform.YOUTUBE) {
+      if (
+        !warmupHoldReason &&
+        String(credential.platform) === CredentialPlatform.YOUTUBE
+      ) {
         this.postsService.handleYoutubePost(data).catch((error) => {
           this.loggerService.error(
-            `Failed to trigger YouTube upload for post ${data._id}: ${error.message}`,
+            `Failed to trigger YouTube upload for post ${data.id}: ${error.message}`,
             error.stack,
           );
         });

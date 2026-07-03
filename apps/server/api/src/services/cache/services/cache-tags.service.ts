@@ -1,7 +1,7 @@
 import { CacheClientService } from '@api/services/cache/services/cache-client.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { RedisClientType } from 'redis';
+import type Redis from 'ioredis';
 
 @Injectable()
 export class CacheTagsService {
@@ -12,7 +12,7 @@ export class CacheTagsService {
     private readonly logger: LoggerService,
   ) {}
 
-  private get client(): RedisClientType {
+  private get client(): Redis {
     return this.cacheClientService.instance;
   }
 
@@ -24,7 +24,7 @@ export class CacheTagsService {
     try {
       const pipeline = this.client.multi();
       for (const tag of tags) {
-        pipeline.sAdd(`tag:${tag}`, key);
+        pipeline.sadd(`tag:${tag}`, key);
       }
       await pipeline.exec();
     } catch (error: unknown) {
@@ -41,7 +41,7 @@ export class CacheTagsService {
       let invalidatedCount = 0;
 
       for (const tag of tags) {
-        const taggedKeys = await this.client.sMembers(`tag:${tag}`);
+        const taggedKeys = await this.client.smembers(`tag:${tag}`);
         if (!taggedKeys.length) {
           continue;
         }

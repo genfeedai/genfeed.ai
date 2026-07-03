@@ -7,6 +7,7 @@ import {
   AGENT_SIDEBAR_TRANSITION_EASING,
 } from '@genfeedai/agent/constants/agent-panel.constant';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Kbd } from '@genfeedai/ui';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -67,12 +68,12 @@ export function AgentSidebarContent({
         <ul className="flex flex-col gap-0.5">
           <li className="list-none">
             <Link
-              href={orgHref('/chat/new')}
+              href={orgHref(APP_ROUTES.AGENT.NEW)}
               className="flex h-9 w-full items-center gap-3 px-3 py-2 text-left text-white/80 transition-colors duration-200 group cursor-pointer hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <HiPlus className="size-4 text-white/80 group-hover:text-white" />
               <span className="text-sm font-medium text-white/90">
-                New Chat
+                New Thread
               </span>
               <Kbd
                 variant="ghost"

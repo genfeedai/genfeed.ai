@@ -4,7 +4,7 @@ import {
 } from '@services/core/agent-overlay-coordination.service';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { type ReactNode, useEffect } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import AppProtectedLayout from './app-protected-layout';
 
 const {
@@ -49,6 +49,7 @@ const mockRouteParams = vi.hoisted(() => ({
   brandSlug: 'brand-123',
   orgSlug: 'org-123',
 }));
+const originalLocation = window.location;
 
 // Stable router instance (matches Next's real App Router, which returns the
 // same object across renders). A fresh `push` per render would cascade through
@@ -176,6 +177,12 @@ vi.mock('@ui/menus/sidebar-action-trigger/SidebarActionTrigger', () => ({
   ),
 }));
 
+vi.mock('@ui/menus/switchers/MenuBrandSwitcher', () => ({
+  default: ({ variant }: { variant?: string }) => (
+    <div data-testid="sidebar-brand-switcher">{variant}</div>
+  ),
+}));
+
 vi.mock('@app-config/menu-items.config', () => ({
   APP_LOGO_HREF: '/workspace/overview',
   APP_MENU_ITEMS: [{ href: '/workspace', label: 'Workspace' }],
@@ -192,6 +199,15 @@ vi.mock('@app-config/menu-items.config', () => ({
   POSTS_INSERT_AFTER_LABEL: 'Posts',
 }));
 
+vi.mock('@app-config/research-menu-items.config', () => ({
+  RESEARCH_LOGO_HREF: '/research/discovery',
+  RESEARCH_MENU_ITEMS: [
+    { href: '/research/discovery', label: 'Discovery' },
+    { href: '/research/socials', label: 'Socials' },
+    { href: '/research/ads', label: 'Ads' },
+  ],
+}));
+
 vi.mock('@contexts/features/command-palette.provider', () => ({
   CommandPaletteProvider: ({ children }: { children: ReactNode }) => (
     <>{children}</>
@@ -201,6 +217,22 @@ vi.mock('@contexts/features/command-palette.provider', () => ({
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: mockBrandState.brandId,
+    brands: [
+      {
+        id: mockBrandState.brandId,
+        label: 'Moonrise Studio',
+        organization: { id: 'org-123', slug: 'org-123' },
+        slug: 'brand-123',
+      },
+    ],
+    selectedBrand: {
+      id: mockBrandState.brandId,
+      label: 'Moonrise Studio',
+      organization: { id: 'org-123', slug: 'org-123' },
+      slug: 'brand-123',
+    },
+    setBrandId: vi.fn(),
+    setOrganizationId: vi.fn(),
   }),
 }));
 
@@ -369,6 +401,15 @@ vi.mock('@providers/protected-providers/protected-providers', () => ({
 
 vi.mock('@/lib/config/edition', () => ({
   isEEEnabled: () => true,
+  isHostedCloudApp: () => {
+    const cloudFlag = process.env.NEXT_PUBLIC_GENFEED_CLOUD?.trim();
+
+    return (
+      cloudFlag === '1' ||
+      cloudFlag?.toLowerCase() === 'true' ||
+      window.location.hostname === 'app.genfeed.ai'
+    );
+  },
 }));
 
 vi.mock('@services/core/environment.service', () => ({
@@ -435,6 +476,11 @@ describe('AppProtectedLayout', () => {
     toggleOpenSpy.mockClear();
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
     delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...originalLocation, hostname: 'localhost' },
+      writable: true,
+    });
 
     Object.defineProperty(globalThis, 'localStorage', {
       configurable: true,
@@ -444,6 +490,14 @@ describe('AppProtectedLayout', () => {
         removeItem: vi.fn(),
         setItem: vi.fn(),
       },
+    });
+  });
+
+  afterEach(() => {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: originalLocation,
+      writable: true,
     });
   });
 
@@ -474,6 +528,9 @@ describe('AppProtectedLayout', () => {
     );
 
     expect(screen.getByText('Protected content')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('sidebar-brand-switcher'),
+    ).not.toBeInTheDocument();
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         bannerComponent: expect.anything(),
@@ -567,8 +624,8 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('keeps shared shell chrome on standard chat workspace routes', async () => {
-    mockPathname.value = '/chat/new';
+  it('keeps shared shell chrome on standard agent workspace routes', async () => {
+    mockPathname.value = '/agent/new';
 
     render(
       <AppProtectedLayout>
@@ -589,8 +646,8 @@ describe('AppProtectedLayout', () => {
     expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
   });
 
-  it('renders a focused chat sidebar instead of the workspace navigation', () => {
-    mockPathname.value = '/chat/new';
+  it('renders a focused agent sidebar instead of the workspace navigation', () => {
+    mockPathname.value = '/agent/new';
 
     render(
       <AppProtectedLayout>
@@ -602,8 +659,8 @@ describe('AppProtectedLayout', () => {
       screen.queryByTestId('sidebar-search-trigger'),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: 'Back to Workspace' }),
-    ).toHaveAttribute('href', '/org-123/brand-123/workspace/overview');
+      screen.queryByRole('link', { name: 'Back to Workspace' }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText('Conversations')).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Workspace' }),
@@ -617,8 +674,8 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('passes conversation header actions through to the focused chat sidebar', () => {
-    mockPathname.value = '/chat/new';
+  it('passes conversation header actions through to the focused agent sidebar', () => {
+    mockPathname.value = '/agent/new';
 
     render(
       <AppProtectedLayout>
@@ -634,8 +691,8 @@ describe('AppProtectedLayout', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('marks the focused chat route as the Agent app', async () => {
-    mockPathname.value = '/chat/new';
+  it('marks the focused agent route as the Agent app', async () => {
+    mockPathname.value = '/agent/new';
 
     render(
       <AppProtectedLayout>
@@ -652,8 +709,8 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('hides sidebar and topbar chrome for focused onboarding chat routes', () => {
-    mockPathname.value = '/chat/onboarding';
+  it('hides sidebar and topbar chrome for focused onboarding agent routes', () => {
+    mockPathname.value = '/agent/onboarding';
 
     render(
       <AppProtectedLayout>
@@ -673,7 +730,7 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('mounts the embedded agent rail outside /chat routes', () => {
+  it('mounts the embedded agent rail outside /agent routes', () => {
     mockPathname.value = '/workspace';
 
     render(
@@ -689,6 +746,29 @@ describe('AppProtectedLayout', () => {
 
   it('hides the terminal dock on hosted cloud', () => {
     process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
+    mockPathname.value = '/workspace';
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(screen.queryByTestId('agent-panel-rail')).not.toBeInTheDocument();
+    expect(appLayoutSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agentPanel: undefined,
+        onAgentToggle: undefined,
+      }),
+    );
+  });
+
+  it('hides the terminal dock on the hosted app hostname without the cloud env', () => {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...originalLocation, hostname: 'app.genfeed.ai' },
+      writable: true,
+    });
     mockPathname.value = '/workspace';
 
     render(
@@ -752,13 +832,45 @@ describe('AppProtectedLayout', () => {
 
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        backHref: '/org-123/brand-123/library/ingredients',
-        backLabel: 'Library',
         sectionLabel: 'Studio',
         shellChromeVariant: 'default',
       }),
     );
+    expect(appSidebarSpy.mock.calls.at(-1)?.[0]).not.toHaveProperty('backHref');
+    expect(appSidebarSpy.mock.calls.at(-1)?.[0]).not.toHaveProperty(
+      'backLabel',
+    );
     expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['/studio/image', 'studio', 'Studio'],
+    ['/library/ingredients', 'library', 'Library'],
+    ['/analytics/overview', 'analytics', 'Analytics'],
+    ['/workflows', 'workflows', 'Workflows'],
+  ])('does not render a Workspace back row for the %s app-switcher surface', (pathname, currentApp, sectionLabel) => {
+    mockPathname.value = pathname;
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    const sidebarProps = appSidebarSpy.mock.calls.at(-1)?.[0];
+
+    expect(sidebarProps).toEqual(
+      expect.objectContaining({
+        currentApp,
+        sectionLabel,
+        shellChromeVariant: 'default',
+      }),
+    );
+    expect(sidebarProps).not.toHaveProperty('backHref');
+    expect(sidebarProps).not.toHaveProperty('backLabel');
+    expect(
+      screen.queryByRole('link', { name: 'Back to Workspace' }),
+    ).not.toBeInTheDocument();
   });
 
   it('filters disabled studio categories from the dedicated studio sidebar', () => {
@@ -783,7 +895,40 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('keeps chat-specific navigation out of the base sidebar menu items', () => {
+  it('renders a dedicated research sidebar on research routes', () => {
+    mockPathname.value = '/research/discovery';
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(appSidebarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentApp: 'research',
+        items: [
+          { href: '/research/discovery', label: 'Discovery' },
+          { href: '/research/socials', label: 'Socials' },
+          { href: '/research/ads', label: 'Ads' },
+        ],
+        sectionLabel: 'Research',
+        shellChromeVariant: 'default',
+      }),
+    );
+    expect(appSidebarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        items: expect.not.arrayContaining([
+          expect.objectContaining({
+            href: '/workspace',
+            label: 'Workspace',
+          }),
+        ]),
+      }),
+    );
+  });
+
+  it('keeps agent-specific navigation out of the base sidebar menu items', () => {
     render(
       <AppProtectedLayout>
         <div>Protected content</div>
@@ -794,7 +939,7 @@ describe('AppProtectedLayout', () => {
       expect.objectContaining({
         items: expect.not.arrayContaining([
           expect.objectContaining({
-            href: '/chat',
+            href: '/agent',
             label: 'Conversations',
           }),
         ]),

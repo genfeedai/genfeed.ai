@@ -8,8 +8,8 @@ import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock Redis client
-vi.mock('redis', () => ({
-  createClient: vi.fn(() => ({
+vi.mock('ioredis', () => ({
+  default: vi.fn(() => ({
     connect: vi.fn(),
     disconnect: vi.fn(),
     on: vi.fn(),

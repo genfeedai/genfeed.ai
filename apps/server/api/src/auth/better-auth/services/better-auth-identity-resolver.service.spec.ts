@@ -2,6 +2,7 @@ import type { BrandsService } from '@api/collections/brands/services/brands.serv
 import type { MembersService } from '@api/collections/members/services/members.service';
 import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { UsersService } from '@api/collections/users/services/users.service';
+import type { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { UnauthorizedException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -12,6 +13,11 @@ describe('BetterAuthIdentityResolverService', () => {
   let organizationsService: { findOne: ReturnType<typeof vi.fn> };
   let brandsService: { findOne: ReturnType<typeof vi.fn> };
   let membersService: { find: ReturnType<typeof vi.fn> };
+  let identityCache: {
+    get: ReturnType<typeof vi.fn>;
+    set: ReturnType<typeof vi.fn>;
+    invalidateForUser: ReturnType<typeof vi.fn>;
+  };
   let resolver: BetterAuthIdentityResolverService;
 
   beforeEach(() => {
@@ -19,12 +25,18 @@ describe('BetterAuthIdentityResolverService', () => {
     organizationsService = { findOne: vi.fn() };
     brandsService = { findOne: vi.fn() };
     membersService = { find: vi.fn().mockResolvedValue([]) };
+    identityCache = {
+      get: vi.fn().mockResolvedValue(null),
+      invalidateForUser: vi.fn().mockResolvedValue(undefined),
+      set: vi.fn().mockResolvedValue(undefined),
+    };
 
     resolver = new BetterAuthIdentityResolverService(
       usersService as unknown as UsersService,
       organizationsService as unknown as OrganizationsService,
       brandsService as unknown as BrandsService,
       membersService as unknown as MembersService,
+      identityCache as unknown as BetterAuthIdentityCacheService,
     );
   });
 
@@ -143,5 +155,83 @@ describe('BetterAuthIdentityResolverService', () => {
 
     expect(identity.organizationId).toBe('org_pref');
     expect(identity.brandId).toBe('brand_pref');
+  });
+
+  // Library-loading bug (images/videos/gifs/agent-* list endpoints): an
+  // active membership row whose organization can no longer be resolved (e.g.
+  // soft-deleted org, orphaned member row) must not silently resolve to
+  // `organizationId: undefined`. Downstream, every
+  // `{ organization: publicMetadata.organization } OR { userId: currentUser }`
+  // list filter treats an `undefined` organization branch as a no-op entry
+  // that BaseService.normalizeWhere drops from the OR array — collapsing the
+  // query to "created by me only" and returning 200 OK with 0 results for
+  // teammate-created content, with no visible error anywhere. Fail loudly
+  // instead so the real data problem (an inaccessible org for a live member
+  // row) surfaces immediately rather than presenting as a silent empty list.
+  it('throws Unauthorized instead of silently returning an undefined organizationId when every membership organization fails to resolve', async () => {
+    usersService.findOne.mockResolvedValue({ id: 'user_orphaned' });
+    membersService.find.mockResolvedValue([
+      { organizationId: 'org_soft_deleted' },
+    ]);
+    // Owner lookup → null; membership lookup for the only membership → null
+    // (organization soft-deleted or otherwise inaccessible).
+    organizationsService.findOne
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
+
+    await expect(resolver.resolve('user_orphaned')).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+    expect(brandsService.findOne).not.toHaveBeenCalled();
+  });
+
+  it('does not throw when a user genuinely has no memberships at all (new/unassigned account)', async () => {
+    usersService.findOne.mockResolvedValue({ id: 'user_no_memberships' });
+    membersService.find.mockResolvedValue([]);
+    organizationsService.findOne.mockResolvedValue(null);
+
+    const identity = await resolver.resolve('user_no_memberships');
+
+    expect(identity.organizationId).toBeUndefined();
+    expect(identity.brandId).toBeUndefined();
+  });
+
+  it('returns the cached identity without touching the database on a cache hit', async () => {
+    const cachedIdentity = {
+      brandId: 'brand_c',
+      isSuperAdmin: false,
+      organizationId: 'org_c',
+      userId: 'user_c',
+    };
+    identityCache.get.mockResolvedValue(cachedIdentity);
+
+    const identity = await resolver.resolve('user_c');
+
+    expect(identity).toEqual(cachedIdentity);
+    expect(usersService.findOne).not.toHaveBeenCalled();
+    expect(membersService.find).not.toHaveBeenCalled();
+    expect(organizationsService.findOne).not.toHaveBeenCalled();
+    expect(brandsService.findOne).not.toHaveBeenCalled();
+    expect(identityCache.set).not.toHaveBeenCalled();
+  });
+
+  it('caches the resolved identity after a cache miss', async () => {
+    usersService.findOne.mockResolvedValue({ id: 'user_5' });
+    organizationsService.findOne.mockResolvedValue({ id: 'org_5' });
+    brandsService.findOne.mockResolvedValue({ id: 'brand_5' });
+
+    const identity = await resolver.resolve('user_5');
+
+    expect(identityCache.get).toHaveBeenCalledWith('user_5');
+    expect(identityCache.set).toHaveBeenCalledWith('user_5', identity);
+  });
+
+  it('does not cache when resolution throws', async () => {
+    usersService.findOne.mockResolvedValue(null);
+
+    await expect(resolver.resolve('missing')).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+    expect(identityCache.set).not.toHaveBeenCalled();
   });
 });

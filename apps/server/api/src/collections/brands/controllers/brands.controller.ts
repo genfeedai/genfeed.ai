@@ -2,9 +2,13 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { STRATEGY_TEMPLATES } from '@api/collections/brands/constants/strategy-templates.constant';
+import { ApplyBrandKitDto } from '@api/collections/brands/dto/apply-brand-kit.dto';
+import { CrawlBrandKitDto } from '@api/collections/brands/dto/crawl-brand-kit.dto';
 import { CreateBrandDto } from '@api/collections/brands/dto/create-brand.dto';
 import { GenerateBrandVoiceDto } from '@api/collections/brands/dto/generate-brand-voice.dto';
 import { GenerateFastlaneIdeasDto } from '@api/collections/brands/dto/generate-fastlane-ideas.dto';
+import { ImportBrandKitAssetsDto } from '@api/collections/brands/dto/import-brand-kit-assets.dto';
+import { ManualBrandKitDto } from '@api/collections/brands/dto/manual-brand-kit.dto';
 import { ToggleBrandSkillDto } from '@api/collections/brands/dto/toggle-brand-skill.dto';
 import { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import { UpdateBrandAgentConfigDto } from '@api/collections/brands/dto/update-brand-agent-config.dto';
@@ -43,6 +47,7 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type {
+  IBrandKitAssetImportResponse,
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
@@ -53,6 +58,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   HttpException,
   HttpStatus,
   Inject,
@@ -355,6 +361,136 @@ export class BrandsController extends BaseCRUDController<
     }
 
     return serializeSingle(request, BrandSerializer, updatedBrand);
+  }
+
+  @Post(':id/brand-kit/crawl')
+  @HttpCode(200)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async crawlBrandKitWebsite(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() dto: CrawlBrandKitDto,
+  ) {
+    await this.verifyBrandAccess(id, user);
+
+    const publicMetadata = getPublicMetadata(user);
+    const organizationId = publicMetadata.organization?.toString();
+
+    if (!organizationId) {
+      throw new HttpException(
+        {
+          detail: 'Organization context is required',
+          title: 'Forbidden',
+        },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    const draft = await this.brandsService.crawlWebsiteBrandKitDraft(
+      id,
+      organizationId,
+      dto,
+    );
+
+    return { data: draft };
+  }
+
+  @Post(':id/brand-kit/apply')
+  @HttpCode(200)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async applyBrandKitDraft(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() dto: ApplyBrandKitDto,
+  ) {
+    await this.verifyBrandAccess(id, user);
+
+    const publicMetadata = getPublicMetadata(user);
+    const organizationId = publicMetadata.organization?.toString();
+
+    if (!organizationId) {
+      throw new HttpException(
+        {
+          detail: 'Organization context is required',
+          title: 'Forbidden',
+        },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    const result = await this.brandsService.applyBrandKitDraft(
+      id,
+      organizationId,
+      dto,
+    );
+
+    return { data: result };
+  }
+
+  @Post(':id/brand-kit/manual')
+  @HttpCode(200)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async createManualBrandKitDraft(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() dto: ManualBrandKitDto,
+  ) {
+    await this.verifyBrandAccess(id, user);
+
+    const publicMetadata = getPublicMetadata(user);
+    const organizationId = publicMetadata.organization?.toString();
+
+    if (!organizationId) {
+      throw new HttpException(
+        {
+          detail: 'Organization context is required',
+          title: 'Forbidden',
+        },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    const draft = await this.brandsService.buildManualBrandKitDraft(
+      id,
+      organizationId,
+      dto,
+    );
+
+    return { data: draft };
+  }
+
+  @Post(':id/brand-kit/assets/import')
+  @HttpCode(200)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async importBrandKitAssets(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() dto: ImportBrandKitAssetsDto,
+  ): Promise<{ data: IBrandKitAssetImportResponse }> {
+    await this.verifyBrandAccess(id, user);
+
+    const publicMetadata = getPublicMetadata(user);
+    const organizationId = publicMetadata.organization?.toString();
+    const userId = publicMetadata.user?.toString();
+
+    if (!organizationId || !userId) {
+      throw new HttpException(
+        {
+          detail: 'Organization and user context are required',
+          title: 'Forbidden',
+        },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    const result = await this.brandsService.importBrandKitAssets(
+      id,
+      organizationId,
+      userId,
+      dto,
+    );
+
+    return { data: result };
   }
 
   @Post(':id/agent-config/generate-voice')

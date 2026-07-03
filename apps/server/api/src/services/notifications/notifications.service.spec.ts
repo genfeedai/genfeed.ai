@@ -6,40 +6,39 @@ import {
 import { ParseMode } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import * as redis from 'redis';
-import { RedisClientType } from 'redis';
+import Redis from 'ioredis';
 
-// Mock redis module
-vi.mock('redis', () => ({
-  createClient: vi.fn(() => ({
-    connect: vi.fn(),
-    isOpen: true,
-    isReady: true,
-    on: vi.fn(),
-    publish: vi.fn(),
-    quit: vi.fn(),
-  })),
+// Mock ioredis module
+vi.mock('ioredis', () => ({
+  default: vi.fn(function mockRedisConstructor() {
+    return {
+      connect: vi.fn(),
+      on: vi.fn(),
+      publish: vi.fn(),
+      quit: vi.fn(),
+      status: 'ready',
+    };
+  }),
 }));
 
 describe('NotificationsService', () => {
   let service: NotificationsService;
   let loggerService: vi.Mocked<LoggerService>;
-  let mockPublisher: vi.Mocked<Partial<RedisClientType>>;
+  let mockPublisher: vi.Mocked<Partial<Redis>>;
 
   beforeEach(async () => {
     mockPublisher = {
       connect: vi.fn().mockResolvedValue(undefined),
-      isOpen: true,
-      isReady: true,
       on: vi.fn(),
       publish: vi.fn().mockResolvedValue(1),
       quit: vi.fn().mockResolvedValue(undefined),
       removeAllListeners: vi.fn(),
+      status: 'ready',
     };
 
-    vi.mocked(redis.createClient).mockReturnValue(
-      mockPublisher as unknown as ReturnType<typeof redis.createClient>,
-    );
+    vi.mocked(Redis).mockImplementation(function mockRedisConstructor() {
+      return mockPublisher as unknown as Redis;
+    });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -91,10 +90,32 @@ describe('NotificationsService', () => {
 
       await service.onModuleInit();
 
-      expect(loggerService.error).toHaveBeenCalledWith(
+      expect(loggerService.warn).toHaveBeenCalledWith(
         expect.stringContaining('failed to connect'),
         error,
       );
+    });
+
+    it('should not block startup when Redis connect hangs', async () => {
+      vi.useFakeTimers();
+      try {
+        (mockPublisher.connect as vi.Mock).mockReturnValue(
+          new Promise(() => {}),
+        );
+
+        const init = service.onModuleInit();
+        await vi.advanceTimersByTimeAsync(5_000);
+        await init;
+
+        expect(loggerService.warn).toHaveBeenCalledWith(
+          expect.stringContaining('failed to connect'),
+          expect.objectContaining({
+            message: expect.stringContaining('timed out'),
+          }),
+        );
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 
@@ -121,7 +142,7 @@ describe('NotificationsService', () => {
     });
 
     it('should skip quit when publisher is already closed', async () => {
-      mockPublisher.isOpen = false;
+      mockPublisher.status = 'end';
 
       await service.onModuleDestroy();
 
@@ -152,11 +173,9 @@ describe('NotificationsService', () => {
     });
 
     it('should reconnect before publishing when the publisher is closed', async () => {
-      mockPublisher.isOpen = false;
-      mockPublisher.isReady = false;
+      mockPublisher.status = 'end';
       (mockPublisher.connect as vi.Mock).mockImplementationOnce(async () => {
-        mockPublisher.isOpen = true;
-        mockPublisher.isReady = true;
+        mockPublisher.status = 'ready';
       });
 
       const event: NotificationEvent = {
@@ -204,7 +223,7 @@ describe('NotificationsService', () => {
     });
 
     it('should swallow client-closed errors without throwing', async () => {
-      const closedError = new Error('The client is closed');
+      const closedError = new Error('Connection is closed.');
       (mockPublisher.publish as vi.Mock).mockRejectedValueOnce(closedError);
 
       const event: NotificationEvent = {

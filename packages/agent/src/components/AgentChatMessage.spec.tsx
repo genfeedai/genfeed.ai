@@ -448,7 +448,7 @@ describe('AgentChatMessage', () => {
               {
                 ctas: [
                   {
-                    href: '/settings/organization/credentials?returnTo=/chat',
+                    href: '/settings/organization/credentials?returnTo=/agent',
                     label: 'Open integrations',
                   },
                 ],
@@ -459,7 +459,7 @@ describe('AgentChatMessage', () => {
               {
                 ctas: [
                   {
-                    href: '/settings/organization/credentials?returnTo=/chat',
+                    href: '/settings/organization/credentials?returnTo=/agent',
                     label: 'Open integrations',
                   },
                 ],
@@ -470,7 +470,7 @@ describe('AgentChatMessage', () => {
               {
                 ctas: [
                   {
-                    href: '/settings/organization/credentials?returnTo=/chat',
+                    href: '/settings/organization/credentials?returnTo=/agent',
                     label: 'Open integrations',
                   },
                 ],
@@ -487,7 +487,7 @@ describe('AgentChatMessage', () => {
     expect(screen.getAllByText('Choose an integration')).toHaveLength(1);
     expect(
       screen.getByRole('link', { name: 'Open integrations' }),
-    ).toHaveAttribute('href', '/test-org/~/settings/api-keys?returnTo=/chat');
+    ).toHaveAttribute('href', '/test-org/~/settings/api-keys?returnTo=/agent');
     expect(screen.queryByText('Unknown')).toBeNull();
   });
 

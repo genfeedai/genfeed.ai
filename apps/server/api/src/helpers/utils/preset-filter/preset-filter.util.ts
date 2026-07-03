@@ -104,14 +104,14 @@ export class PresetFilterUtil {
    */
   static canUserModifyPreset(
     user: {
-      publicMetadata: {
+      publicMetadata?: {
         isSuperAdmin?: boolean;
         organization?: string;
       };
     },
     preset: { organization?: string | null },
   ): boolean {
-    const { isSuperAdmin, organization } = user.publicMetadata;
+    const { isSuperAdmin, organization } = user.publicMetadata ?? {};
 
     // Superadmins can modify any preset
     if (isSuperAdmin) {
@@ -161,45 +161,31 @@ export class PresetFilterUtil {
    *   { label: 'Org Preset', organization: '456' },
    *   { publicMetadata: { isSuperAdmin: true } }
    * )
-   * // Returns: { label: 'Org Preset', organization: ObjectId('456'), brand: null }
+   * // Returns: { label: 'Org Preset', organization: '456', brand: null }
    */
   static enrichPresetDto(
     createDto: Record<string, unknown>,
     user: {
-      publicMetadata: {
+      publicMetadata?: {
         isSuperAdmin?: boolean;
         organization?: string;
         brand?: string;
       };
     },
   ): Record<string, unknown> {
-    const { isSuperAdmin, organization, brand } = user.publicMetadata;
+    const { isSuperAdmin, organization } = user.publicMetadata ?? {};
     const enriched: Record<string, unknown> = { ...createDto };
 
     // Non-root users always get their organization assigned
     if (!isSuperAdmin) {
       enriched.organization = organization;
-
-      // Convert brand string ID to ObjectId if provided
-      if (enriched.brand) {
-        enriched.brand = enriched.brand;
-      }
     } else {
       // Superadmins can create:
       // 1. App-wide presets (no org, no brand)
       // 2. Org-wide presets (org but no brand)
       // 3. Brand-specific presets (org and brand)
-      if (enriched.organization) {
-        enriched.organization = enriched.organization;
-      } else {
-        enriched.organization = null;
-      }
-
-      if (enriched.brand) {
-        enriched.brand = enriched.brand;
-      } else {
-        enriched.brand = null;
-      }
+      enriched.organization = enriched.organization || null;
+      enriched.brand = enriched.brand || null;
     }
 
     return enriched;

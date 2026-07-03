@@ -1,5 +1,7 @@
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
+import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import type {
@@ -11,7 +13,7 @@ import type {
   Publishability,
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 export interface ResolveAccountPublishingContextParams {
   brandId: string;
@@ -56,6 +58,7 @@ function readRecord(value: unknown): Record<string, unknown> | undefined {
 @Injectable()
 export class AccountPublishingContextService {
   constructor(
+    private readonly accountHealthService: AccountHealthService,
     private readonly credentialsService: CredentialsService,
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
@@ -73,9 +76,9 @@ export class AccountPublishingContextService {
     });
 
     if (!credential) {
-      throw new NotFoundException(
-        'The specified account does not exist or is not connected',
-      );
+      throw new NotFoundException({
+        message: 'The specified account does not exist or is not connected',
+      });
     }
 
     const platform = normalizeCredentialPlatform(credential.platform);
@@ -119,10 +122,15 @@ export class AccountPublishingContextService {
       account: {
         externalUrl: readString(credential.externalUrl),
         handle: this.getCredentialHandle(credential),
-        id: String(credential._id ?? credential.id),
+        id: String(credential.id),
         label: this.getCredentialLabel(credential, platform),
         platform,
       },
+      accountHealth: await this.accountHealthService.assessCredentialHealth({
+        brandId: params.brandId,
+        credentialId: params.credentialId,
+        organizationId: params.organizationId,
+      }),
       brand: {
         agentConfig: readRecord(brand?.agentConfig),
         description: readString(brand?.description),
@@ -261,6 +269,18 @@ export class AccountPublishingContextService {
 
     if (context.brand.voice) {
       hints.push(`Brand voice: ${context.brand.voice}`);
+    }
+
+    if (context.accountHealth) {
+      hints.push(
+        `Account warmup: ${context.accountHealth.state} (${context.accountHealth.riskLevel} risk, score ${context.accountHealth.score})`,
+      );
+
+      if (context.accountHealth.holdPublishing) {
+        hints.push(
+          `Publishing hold: ${context.accountHealth.holdReason ?? 'Warmup guidance required before scheduling.'}`,
+        );
+      }
     }
 
     if (context.constraints.maxWeightedCharacters) {

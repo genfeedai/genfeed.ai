@@ -1,6 +1,11 @@
-import type { ClipProject } from '@genfeedai/prisma';
+import {
+  CLIP_PROJECT_STATUSES,
+  type ClipReadinessContract,
+  type ClipProjectStatus as SharedClipProjectStatus,
+} from '@genfeedai/interfaces';
+import type { ClipProject as PrismaClipProject } from '@genfeedai/prisma';
 
-export type { ClipProject } from '@genfeedai/prisma';
+export type ClipProject = PrismaClipProject;
 
 export interface IHighlight {
   id: string;
@@ -13,16 +18,7 @@ export interface IHighlight {
   clip_type: string;
 }
 
-export const ClipProjectStatus = [
-  'pending',
-  'transcribing',
-  'analyzing',
-  'analyzed',
-  'clipping',
-  'generating',
-  'completed',
-  'failed',
-] as const;
+export const ClipProjectStatus = CLIP_PROJECT_STATUSES;
 
 export type ClipProjectStatusType = (typeof ClipProjectStatus)[number];
 
@@ -40,19 +36,36 @@ export interface ClipProjectSettings {
   [key: string]: unknown;
 }
 
-export interface ClipProjectDocument extends ClipProject {
+type ClipProjectRecord = Omit<
+  PrismaClipProject,
+  | 'error'
+  | 'failedClipCount'
+  | 'pendingClipCount'
+  | 'progress'
+  | 'readiness'
+  | 'readyClipCount'
+  | 'status'
+  | 'terminalAt'
+>;
+
+export interface ClipProjectDocument extends ClipProjectRecord {
   _id: string;
   brand?: string | null;
-  error?: string;
+  error?: string | null;
+  failedClipCount: number;
   highlights?: ClipProjectHighlight[];
   language?: string;
   name?: string;
   organization?: string;
-  progress?: number;
+  pendingClipCount: number;
+  progress: number;
+  readiness: ClipReadinessContract | Record<string, unknown>;
+  readyClipCount: number;
   settings?: ClipProjectSettings;
   sourceVideoS3Key?: string;
   sourceVideoUrl?: string;
-  status?: ClipProjectStatusType | string;
+  status: SharedClipProjectStatus | string;
+  terminalAt?: Date | null;
   transcriptText?: string;
   user?: string;
   [key: string]: unknown;

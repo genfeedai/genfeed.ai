@@ -18,6 +18,16 @@
  * The integration-layer assertion is covered by organizations.service.spec.ts.
  */
 
+// Real, complete OrganizationCategory + real getModelMeta/
+// PRISMA_MODEL_METADATA.Organization via the light @genfeedai/prisma/testing
+// subpath (equivalent to the hand-rolled version below, which this replaces).
+vi.mock('@genfeedai/prisma', async () => {
+  const { canonicalPrismaMock } = await import(
+    '@api/shared/testing/prisma-mock'
+  );
+  return canonicalPrismaMock();
+});
+
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { OrganizationCategory } from '@genfeedai/enums';

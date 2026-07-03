@@ -5,6 +5,10 @@
     "declarationMap": false,
     "outDir": "../dist/apps/images",
     "paths": {
+      "@genfeedai/types": ["../../../packages/types/src/index.ts"],
+      "@genfeedai/types/*": ["../../../packages/types/src/*"],
+      "@genfeedai/workflows": ["../../../packages/workflows/src/index.ts"],
+      "@genfeedai/workflows/*": ["../../../packages/workflows/src/*"],
       "@images/*": ["./src/*"],
       "@libs/*": ["../../../packages/libs/*"]
     }

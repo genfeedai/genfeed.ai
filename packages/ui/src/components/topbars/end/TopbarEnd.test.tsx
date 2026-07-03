@@ -18,10 +18,44 @@ vi.mock('@genfeedai/auth-client/react', () => ({
   }),
 }));
 
+vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => ({
+    getToken: vi.fn().mockResolvedValue('mock-token'),
+    isLoaded: true,
+    isSignedIn: true,
+    orgId: 'org_test123',
+    sessionId: 'sess_test123',
+    userId: 'user_test',
+  }),
+}));
+
+vi.mock('@genfeedai/hooks/auth/use-auth-user/use-auth-user', () => ({
+  useAuthUser: () => ({
+    isLoaded: true,
+    isSignedIn: true,
+    user: {
+      firstName: 'Test',
+      fullName: 'Test User',
+      id: 'user_test',
+      imageUrl: null,
+      lastName: 'User',
+      primaryEmailAddress: { emailAddress: 'test@example.com' },
+      publicMetadata: {},
+      reload: vi.fn(),
+      updatedAt: null,
+    },
+  }),
+}));
+
 vi.mock('@ui/menus/user-dropdown/UserDropdown', () => ({
   default: (props: Record<string, unknown>) => {
     userDropdownSpy(props);
-    return <div data-testid="topbar-user-settings" />;
+    return (
+      <>
+        <div data-testid="topbar-user-button" />
+        <div data-testid="topbar-user-settings" />
+      </>
+    );
   },
 }));
 

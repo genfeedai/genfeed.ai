@@ -25,7 +25,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
 @ApiTags('Agent Threads')
-@Controller('threads')
+@Controller('agent/threads')
 export class AgentThreadsController {
   constructor(
     private readonly agentThreadEngineService: AgentThreadEngineService,
@@ -333,16 +333,16 @@ export class AgentThreadsController {
         { _id: metadataUserId, authProviderId },
         [],
       );
-      if (metadataUserDoc?._id) {
-        return String(metadataUserDoc._id);
+      if (metadataUserDoc?.id) {
+        return String(metadataUserDoc.id);
       }
     }
 
     const dbUser = await this.usersService.findOne({ authProviderId }, []);
-    if (!dbUser?._id) {
+    if (!dbUser?.id) {
       throw new UnauthorizedException('User account not found');
     }
 
-    return String(dbUser._id);
+    return String(dbUser.id);
   }
 }

@@ -5,15 +5,25 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getTokenMock = vi.fn();
+const getBetterAuthTokenMock = vi.fn();
 const pushMock = vi.fn();
 const replaceMock = vi.fn();
 const refetchUserMock = vi.fn();
 const getInstanceMock = vi.fn();
 const updateOnboardingMock = vi.fn();
 
-vi.mock('@genfeedai/auth-client/react', () => ({
-  useAuth: () => ({
+vi.mock('@genfeedai/auth-client', () => ({
+  getBetterAuthToken: (...args: unknown[]) => getBetterAuthTokenMock(...args),
+}));
+
+vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => ({
     getToken: getTokenMock,
+    isLoaded: true,
+    isSignedIn: true,
+    orgId: null,
+    sessionId: null,
+    userId: 'mongo_user_123',
   }),
 }));
 
@@ -64,6 +74,7 @@ import OnboardingProvider, {
 describe('OnboardingProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getBetterAuthTokenMock.mockResolvedValue(null);
     getTokenMock.mockResolvedValue('session-token');
     refetchUserMock.mockResolvedValue(undefined);
     updateOnboardingMock.mockResolvedValue(undefined);

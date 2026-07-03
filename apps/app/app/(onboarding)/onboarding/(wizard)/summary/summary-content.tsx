@@ -7,6 +7,8 @@ import type { OnboardingAccessMode } from '@genfeedai/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';
+import type { AccessBootstrapState } from '@services/auth/auth.service';
+import { AuthService } from '@services/auth/auth.service';
 import { logger } from '@services/core/logger.service';
 import type { InstallReadinessResponse } from '@services/onboarding/onboarding.service';
 import { OnboardingService } from '@services/onboarding/onboarding.service';
@@ -19,6 +21,8 @@ import { HiArrowLeft, HiArrowUpRight, HiSparkles } from 'react-icons/hi2';
 import {
   buildGenfeedCloudSignupUrl,
   buildOnboardingAccessSettingsPatch,
+  formatSubscriptionStatusLabel,
+  formatSubscriptionTierLabel,
   ONBOARDING_STORAGE_KEYS,
 } from '@/lib/onboarding/onboarding-access.util';
 
@@ -78,6 +82,7 @@ const EMPTY_READINESS: InstallReadinessResponse = {
     showBilling: false,
     showCloudUpgradeCta: true,
     showCredits: false,
+    showLocalTools: false,
     showPricing: false,
   },
   workspace: {
@@ -117,6 +122,16 @@ function formatSelectedAccessLabel(
     : 'No server defaults detected yet';
 }
 
+const CURRENT_RING = 'ring-1 ring-emerald-400/40';
+
+function CurrentBadge() {
+  return (
+    <span className="absolute -top-2 right-3 z-10 rounded-full border border-emerald-400/30 bg-emerald-400/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-200">
+      Current
+    </span>
+  );
+}
+
 export default function SummaryContent() {
   const sectionRef = useGsapTimeline<HTMLDivElement>({ steps: TIMELINE_STEPS });
   const { getToken } = useAuthIdentity();
@@ -124,12 +139,18 @@ export default function SummaryContent() {
   const getUsersService = useAuthedService((token: string) =>
     UsersService.getInstance(token),
   );
+  const getAuthService = useAuthedService((token: string) =>
+    AuthService.getInstance(token),
+  );
   const { push } = useRouter();
   const [pendingMode, setPendingMode] = useState<OnboardingAccessMode | null>(
     null,
   );
   const [readiness, setReadiness] =
     useState<InstallReadinessResponse>(EMPTY_READINESS);
+  const [billingState, setBillingState] = useState<AccessBootstrapState | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -146,8 +167,29 @@ export default function SummaryContent() {
         const service = OnboardingService.getInstance(token);
         const response = await service.getInstallReadiness();
 
-        if (!cancelled) {
-          setReadiness(response);
+        if (cancelled) {
+          return;
+        }
+
+        setReadiness(response);
+
+        // In billing-enabled (cloud/SaaS) deployments, surface the user's real
+        // subscription tier and credit balance so a replayed summary reflects
+        // what they already have instead of a blank or OSS-only view.
+        if (response.ui.showBilling) {
+          try {
+            const authService = await getAuthService();
+            const bootstrap = await authService.getBootstrap();
+
+            if (!cancelled) {
+              setBillingState(bootstrap.access);
+            }
+          } catch (billingError) {
+            logger.error(
+              'Failed to load billing state for onboarding summary',
+              billingError,
+            );
+          }
         }
       } finally {
         if (!cancelled) {
@@ -161,7 +203,7 @@ export default function SummaryContent() {
     return () => {
       cancelled = true;
     };
-  }, [getToken]);
+  }, [getToken, getAuthService]);
 
   const workspaceStatus = useMemo(() => {
     if (readiness.workspace.hasOrganization && readiness.workspace.hasBrand) {
@@ -268,6 +310,42 @@ export default function SummaryContent() {
       </p>
 
       <div className="space-y-5">
+        {readiness.ui.showBilling ? (
+          <div className="summary-card opacity-0 border border-white/[0.08] bg-white/[0.02] p-5 md:p-6">
+            <h2 className="text-lg font-semibold text-white">Your plan</h2>
+            <div className="mt-5 space-y-3 text-sm">
+              <div className="flex items-start justify-between gap-4 border-t border-white/[0.06] pt-3 first:border-t-0 first:pt-0">
+                <span className="text-white/45">Subscription</span>
+                <span className="text-right text-white">
+                  {loading
+                    ? 'Checking...'
+                    : formatSubscriptionTierLabel(
+                        billingState?.subscriptionTier,
+                      )}
+                </span>
+              </div>
+              <div className="flex items-start justify-between gap-4 border-t border-white/[0.06] pt-3">
+                <span className="text-white/45">Status</span>
+                <span className="text-right text-white">
+                  {loading
+                    ? 'Checking...'
+                    : formatSubscriptionStatusLabel(
+                        billingState?.subscriptionStatus,
+                      )}
+                </span>
+              </div>
+              <div className="flex items-start justify-between gap-4 border-t border-white/[0.06] pt-3">
+                <span className="text-white/45">Credits balance</span>
+                <span className="text-right text-white">
+                  {loading
+                    ? 'Checking...'
+                    : (billingState?.creditsBalance ?? 0).toLocaleString()}
+                </span>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         <div className="summary-card opacity-0 border border-white/[0.08] bg-white/[0.02] p-5 md:p-6">
           <h2 className="text-lg font-semibold text-white">Install summary</h2>
           <div className="mt-5 space-y-3 text-sm">
@@ -304,30 +382,44 @@ export default function SummaryContent() {
           </div>
 
           <div className="mt-5 flex flex-col gap-3 md:flex-row">
-            <Link
-              href="/settings/api-keys"
-              onClick={(event) => {
-                void handleByokClick(event);
-              }}
-              className="inline-flex w-full items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-white/75 transition hover:border-white/15 hover:bg-white/[0.06] hover:text-white md:w-auto"
-            >
-              Add my own API keys
-            </Link>
+            <div className="relative w-full md:w-auto">
+              {readiness.access.selectedMode === 'byok' ? (
+                <CurrentBadge />
+              ) : null}
+              <Link
+                href="/settings/api-keys"
+                onClick={(event) => {
+                  void handleByokClick(event);
+                }}
+                className={`inline-flex w-full items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-white/75 transition hover:border-white/15 hover:bg-white/[0.06] hover:text-white md:w-auto ${
+                  readiness.access.selectedMode === 'byok' ? CURRENT_RING : ''
+                }`}
+              >
+                Add my own API keys
+              </Link>
+            </div>
 
-            <Button
-              variant={ButtonVariant.DEFAULT}
-              size={ButtonSize.SM}
-              onClick={() => {
-                void handleContinueSelfHosted();
-              }}
-              label={
-                pendingMode === 'server'
-                  ? 'Saving self-hosted mode...'
-                  : 'Continue with self-hosted'
-              }
-              disabled={loading || pendingMode !== null}
-              className="w-full md:w-auto"
-            />
+            <div className="relative w-full md:w-auto">
+              {readiness.access.selectedMode === 'server' ? (
+                <CurrentBadge />
+              ) : null}
+              <Button
+                variant={ButtonVariant.DEFAULT}
+                size={ButtonSize.SM}
+                onClick={() => {
+                  void handleContinueSelfHosted();
+                }}
+                label={
+                  pendingMode === 'server'
+                    ? 'Saving self-hosted mode...'
+                    : 'Continue with self-hosted'
+                }
+                disabled={loading || pendingMode !== null}
+                className={`w-full md:w-auto ${
+                  readiness.access.selectedMode === 'server' ? CURRENT_RING : ''
+                }`}
+              />
+            </div>
           </div>
         </div>
 
@@ -338,21 +430,28 @@ export default function SummaryContent() {
             forward into cloud onboarding.
           </div>
 
-          <Button
-            variant={ButtonVariant.GHOST}
-            size={ButtonSize.SM}
-            onClick={() => {
-              void handleCloudContinue();
-            }}
-            label={
-              pendingMode === 'cloud'
-                ? 'Opening Genfeed Cloud...'
-                : 'Continue to Genfeed Cloud'
-            }
-            icon={<HiArrowUpRight className="size-4" />}
-            disabled={loading || pendingMode !== null}
-            className="w-full rounded-full border border-white/10 bg-white/[0.03] text-white/75 hover:border-white/15 hover:bg-white/[0.06] hover:text-white md:w-auto"
-          />
+          <div className="relative w-full md:w-auto">
+            {readiness.access.selectedMode === 'cloud' ? (
+              <CurrentBadge />
+            ) : null}
+            <Button
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.SM}
+              onClick={() => {
+                void handleCloudContinue();
+              }}
+              label={
+                pendingMode === 'cloud'
+                  ? 'Opening Genfeed Cloud...'
+                  : 'Continue to Genfeed Cloud'
+              }
+              icon={<HiArrowUpRight className="size-4" />}
+              disabled={loading || pendingMode !== null}
+              className={`w-full rounded-full border border-white/10 bg-white/[0.03] text-white/75 hover:border-white/15 hover:bg-white/[0.06] hover:text-white md:w-auto ${
+                readiness.access.selectedMode === 'cloud' ? CURRENT_RING : ''
+              }`}
+            />
+          </div>
         </div>
 
         <div className="summary-card opacity-0 flex items-center justify-between gap-4 pt-2">

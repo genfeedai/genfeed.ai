@@ -1,3 +1,13 @@
+// Real, schema-derived getModelMeta/PRISMA_MODEL_METADATA.FontFamilyRecord via the
+// light @genfeedai/prisma/testing subpath — no heavy PrismaClient/runtime
+// import required for BaseService's getModelMeta('fontFamilyRecord') call.
+vi.mock('@genfeedai/prisma', async () => {
+  const { canonicalPrismaMock } = await import(
+    '@api/shared/testing/prisma-mock'
+  );
+  return canonicalPrismaMock();
+});
+
 import { CreateFontFamilyDto } from '@api/collections/font-families/dto/create-font-family.dto';
 import { UpdateFontFamilyDto } from '@api/collections/font-families/dto/update-font-family.dto';
 import { FontFamiliesService } from '@api/collections/font-families/services/font-families.service';

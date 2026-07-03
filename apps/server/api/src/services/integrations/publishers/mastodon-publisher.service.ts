@@ -211,12 +211,12 @@ export class MastodonPublisherService extends BasePublisherService {
         // Upload media if child has ingredients
         let mediaIds: string[] | undefined;
         const childIngredients =
-          (child.ingredients as Array<{ _id?: string }>) || [];
+          (child.ingredients as Array<{ id?: string }>) || [];
         if (childIngredients.length > 0) {
           mediaIds = [];
           const childIngredientIds = childIngredients.map((ingredient) => {
-            return ingredient?._id
-              ? ingredient._id.toString()
+            return ingredient?.id
+              ? ingredient.id.toString()
               : ingredient.toString();
           });
           const childCategory = child.category as PostCategory;

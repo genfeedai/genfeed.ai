@@ -10,6 +10,7 @@ import { UpdateUserOnboardingDto } from '@api/collections/users/dto/update-user-
 import { UserEntity } from '@api/collections/users/entities/user.entity';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
+import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -80,6 +81,7 @@ export class UsersController {
     private readonly membersService: MembersService,
     private readonly requestContextCacheService: RequestContextCacheService,
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
+    private readonly betterAuthIdentityCacheService: BetterAuthIdentityCacheService,
   ) {}
 
   private readObjectRecord(value: unknown): Record<string, unknown> {
@@ -148,6 +150,14 @@ export class UsersController {
     return getIsSuperAdmin(currentUser) || publicMetadata.user === targetUserId;
   }
 
+  private async invalidateUserAccessCaches(userId: string): Promise<void> {
+    await Promise.all([
+      this.requestContextCacheService.invalidateForUser(userId),
+      this.accessBootstrapCacheService.invalidateForUser(userId),
+      this.betterAuthIdentityCacheService.invalidateForUser(userId),
+    ]);
+  }
+
   @Get()
   @SetMetadata('roles', ['superadmin'])
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -163,7 +173,6 @@ export class UsersController {
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
     const data = await this.usersService.findAll(
       {
-        include: { settings: true },
         orderBy: handleQuerySort(query.sort),
         where: { isDeleted },
       },
@@ -215,20 +224,17 @@ export class UsersController {
     // Auto-complete onboarding for records missing the onboarding flag
     // and for entitled users whose DB onboarding flag fell out of sync.
     if (!data.isOnboardingCompleted) {
-      const hasField = await this.usersService.hasOnboardingField(data._id);
+      const hasField = await this.usersService.hasOnboardingField(data.id);
 
       if (!hasField || hasAccessByEntitlement) {
-        data = await this.usersService.patch(data._id.toString(), {
+        data = await this.usersService.patch(data.id.toString(), {
           isOnboardingCompleted: true,
           onboardingStepsCompleted: ['brand', 'plan'],
         });
 
-        const userIdString = data._id?.toString();
+        const userIdString = data.id?.toString();
         if (userIdString) {
-          await Promise.all([
-            this.requestContextCacheService.invalidateForUser(userIdString),
-            this.accessBootstrapCacheService.invalidateForUser(userIdString),
-          ]);
+          await this.invalidateUserAccessCaches(userIdString);
         }
       }
     }
@@ -408,12 +414,9 @@ export class UsersController {
     // the next request (epic #735, Phase C — no legacy auth provider write-back).
     if (publicMetadata.user) {
       await this.usersService.patch(publicMetadata.user, {
-        lastUsedOrganizationId: String(data._id),
+        lastUsedOrganizationId: String(data.id),
       });
-      await Promise.all([
-        this.requestContextCacheService.invalidateForUser(publicMetadata.user),
-        this.accessBootstrapCacheService.invalidateForUser(publicMetadata.user),
-      ]);
+      await this.invalidateUserAccessCaches(publicMetadata.user);
     }
 
     return serializeSingle(request, OrganizationSerializer, data);
@@ -439,13 +442,13 @@ export class UsersController {
     // Active brand is persisted to the member's lastUsedBrandId below, which the
     // identity resolvers read (epic #735, Phase C — no legacy auth provider write-back).
     if (publicMetadata.user) {
-      await Promise.all([
-        this.requestContextCacheService.invalidateForUser(publicMetadata.user),
-        this.accessBootstrapCacheService.invalidateForUser(publicMetadata.user),
-      ]);
+      await this.invalidateUserAccessCaches(publicMetadata.user);
     }
 
-    // Persist last-used brand on the member for org-switch recall
+    // Persist last-used brand on the member for org-switch recall.
+    // Use the canonical cuid `data.id` — member.lastUsedBrandId is an FK to
+    // Brand.id, and writing a legacy mongoId there fails with P2003
+    // "Invalid Relationship" and blocks brand switch.
     await this.membersService.setLastUsedBrand(
       {
         isActive: true,
@@ -453,7 +456,7 @@ export class UsersController {
         organization: publicMetadata.organization,
         user: publicMetadata.user,
       },
-      data._id,
+      data.id,
     );
 
     return serializeSingle(request, BrandSerializer, data);
@@ -482,10 +485,7 @@ export class UsersController {
       null,
     );
 
-    await Promise.all([
-      this.requestContextCacheService.invalidateForUser(user.id),
-      this.accessBootstrapCacheService.invalidateForUser(user.id),
-    ]);
+    await this.invalidateUserAccessCaches(user.id);
   }
 
   @Post('me/avatar')
@@ -613,12 +613,9 @@ export class UsersController {
       patchPayload as Partial<UpdateUserDto>,
     );
 
-    const existingUserId = existingUser._id?.toString();
+    const existingUserId = existingUser.id?.toString();
     if (existingUserId) {
-      await Promise.all([
-        this.requestContextCacheService.invalidateForUser(existingUserId),
-        this.accessBootstrapCacheService.invalidateForUser(existingUserId),
-      ]);
+      await this.invalidateUserAccessCaches(existingUserId);
     }
 
     return data

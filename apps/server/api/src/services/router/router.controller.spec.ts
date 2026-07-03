@@ -1,3 +1,4 @@
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SelectModelDto } from '@api/services/router/dto/select-model.dto';
 import type {
@@ -8,7 +9,6 @@ import { RouterController } from '@api/services/router/router.controller';
 import { RouterService } from '@api/services/router/router.service';
 import { ModelCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('RouterController', () => {
@@ -584,7 +584,7 @@ describe('RouterController', () => {
         };
 
         routerService.selectModel.mockRejectedValue(
-          new NotFoundException('No models available'),
+          new NotFoundException({ message: 'No models available' }),
         );
 
         await expect(controller.selectModel(selectModelDto)).rejects.toThrow(

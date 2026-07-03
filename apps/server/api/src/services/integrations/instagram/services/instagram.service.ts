@@ -30,11 +30,13 @@ function requireString(
   return value;
 }
 
+// NOTE: `accessToken` here is the stored (encrypted-at-rest) value. Callers must
+// run it through `EncryptionUtil.decrypt()` before using it against the Graph API.
 function toInstagramCredentialResponse(
   credential: CredentialDocument,
 ): InstagramCredentialResponse {
   return {
-    _id: credential._id,
+    _id: credential.id,
     accessToken: requireString(credential.accessToken, 'accessToken'),
     externalId: credential.externalId ?? undefined,
     isConnected: credential.isConnected,
@@ -101,7 +103,7 @@ export class InstagramService {
     try {
       const credential = await this.refreshToken(organizationId, brandId);
 
-      const { accessToken } = credential;
+      const accessToken = EncryptionUtil.decrypt(credential.accessToken);
 
       const pages: InstagramPageResponse[] = [];
 
@@ -150,7 +152,7 @@ export class InstagramService {
             // Empty POST to media endpoint to test publishing capability
             await firstValueFrom(
               this.httpService.post(
-                `${this.graphUrl}/${this.apiVersion}/${page._id}/media`,
+                `${this.graphUrl}/${this.apiVersion}/${page.id}/media`,
                 null,
                 {
                   params: { access_token: accessToken },
@@ -178,7 +180,7 @@ export class InstagramService {
         } catch (error: unknown) {
           // Skip accounts we can't access or verify
           this.loggerService.warn(
-            `${url} - Could not verify Instagram account ${page._id}`,
+            `${url} - Could not verify Instagram account ${page.id}`,
             error,
           );
         }
@@ -213,7 +215,7 @@ export class InstagramService {
 
     if (!credential.accessToken) {
       // Mark as disconnected if no access token available
-      await this.credentialsService.patch(credential._id, {
+      await this.credentialsService.patch(credential.id, {
         isConnected: false,
       });
       throw new Error(
@@ -244,7 +246,7 @@ export class InstagramService {
       this.loggerService.log(`${url} succeeded`, response.data);
 
       const updatedCredential = await this.credentialsService.patch(
-        credential._id,
+        credential.id,
         {
           accessToken: access_token,
           accessTokenExpiry: expires_in
@@ -260,7 +262,7 @@ export class InstagramService {
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       // Mark credential as disconnected if refresh fails (e.g., expired token)
-      await this.credentialsService.patch(credential._id, {
+      await this.credentialsService.patch(credential.id, {
         isConnected: false,
       });
       throw error;
@@ -394,11 +396,8 @@ export class InstagramService {
 
     try {
       const credential = await this.refreshToken(organizationId, brandId);
-      const accessToken = credential.accessToken;
+      const accessToken = EncryptionUtil.decrypt(credential.accessToken);
       const externalId = requireString(credential.externalId, 'externalId');
-
-      // Decrypt access token before use
-      const decryptedAccessToken = EncryptionUtil.decrypt(accessToken);
 
       const response = await firstValueFrom(
         this.httpService.post(
@@ -409,7 +408,7 @@ export class InstagramService {
             messaging_type: 'RESPONSE',
             recipient: { id: recipientId },
           },
-          { params: { access_token: decryptedAccessToken } },
+          { params: { access_token: accessToken } },
         ),
       );
 
@@ -433,7 +432,7 @@ export class InstagramService {
 
     const credential = await this.refreshToken(organizationId, brandId);
     const externalId = requireString(credential.externalId, 'externalId');
-    const accessToken = credential.accessToken;
+    const accessToken = EncryptionUtil.decrypt(credential.accessToken);
     const fullCaption = this.formatCaption(caption, hashtags);
 
     try {
@@ -498,7 +497,7 @@ export class InstagramService {
 
     const credential = await this.refreshToken(organizationId, brandId);
     const externalId = requireString(credential.externalId, 'externalId');
-    const accessToken = credential.accessToken;
+    const accessToken = EncryptionUtil.decrypt(credential.accessToken);
     const fullCaption = this.formatCaption(caption, hashtags);
 
     try {
@@ -565,7 +564,7 @@ export class InstagramService {
 
     const credential = await this.refreshToken(organizationId, brandId);
     const externalId = requireString(credential.externalId, 'externalId');
-    const accessToken = credential.accessToken;
+    const accessToken = EncryptionUtil.decrypt(credential.accessToken);
     const fullCaption = this.formatCaption(caption, hashtags);
 
     try {
@@ -891,6 +890,42 @@ export class InstagramService {
         shares: shares || undefined,
         views,
       };
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, error);
+      throw error;
+    }
+  }
+
+  public async replyToComment(
+    organizationId: string,
+    brandId: string,
+    commentId: string,
+    text: string,
+  ): Promise<{ commentId: string }> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    try {
+      const credential = await this.refreshToken(organizationId, brandId);
+      const decryptedAccessToken = EncryptionUtil.decrypt(
+        credential.accessToken,
+      );
+
+      const response = await firstValueFrom(
+        this.httpService.post(
+          `${this.graphUrl}/${this.apiVersion}/${commentId}/replies`,
+          null,
+          {
+            params: {
+              access_token: decryptedAccessToken,
+              message: text,
+            },
+          },
+        ),
+      );
+
+      this.loggerService.log(`${url} succeeded`, response.data);
+
+      return { commentId: response.data.id };
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;

@@ -37,7 +37,7 @@ export function CardEmptyContent({
       aria-live="polite"
       className={cn(
         'flex flex-col items-center justify-center text-center py-12',
-        'bg-gradient-radial from-white/[0.02] to-transparent',
+        'bg-white/[0.02]',
         className,
       )}
     >

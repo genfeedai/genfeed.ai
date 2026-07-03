@@ -71,15 +71,35 @@ export interface OpenRouterChatCompletionResponse {
   };
 }
 
+export interface OpenRouterStreamToolCallDelta {
+  index: number;
+  id?: string;
+  type?: 'function';
+  function?: { name?: string; arguments?: string };
+}
+
 export interface OpenRouterStreamChunk {
   id: string;
   choices: Array<{
     delta: {
       content?: string;
+      reasoning_content?: string;
+      tool_calls?: OpenRouterStreamToolCallDelta[];
     };
     finish_reason: string | null;
   }>;
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
 }
+
+/**
+ * Callback invoked with each incremental text delta as it streams from the
+ * provider. Awaited between chunks so downstream fan-out preserves token order.
+ */
+export type OpenRouterStreamTokenHandler = (delta: string) => Promise<void>;
 
 export enum OpenRouterModelTier {
   FAST = 'fast',

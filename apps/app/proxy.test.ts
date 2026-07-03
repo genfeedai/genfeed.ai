@@ -549,11 +549,11 @@ describe('proxy', () => {
   it('redirects signed-in flat chat to the canonical org-scoped chat path', async () => {
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(makeSignedInRequest('/chat'), {} as never);
+    const response = await proxy(makeSignedInRequest('/agent'), {} as never);
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/~/chat',
+      'http://localhost:3000/acme/~/agent',
     );
   });
 

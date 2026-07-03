@@ -33,7 +33,7 @@ const makeContext = (): OrchestrationContext => ({
 });
 
 const makeMusic = (status: IngredientStatus = IngredientStatus.GENERATED) => ({
-  _id: 'test-object-id',
+  id: 'test-object-id',
   status,
 });
 
@@ -72,16 +72,16 @@ describe('VideoMusicOrchestrationService', () => {
       getDefaultModel: vi.fn().mockResolvedValue(MODEL_KEYS.MUSICGEN),
     };
     promptsService = {
-      create: vi.fn().mockResolvedValue({ _id: 'test-object-id' }),
+      create: vi.fn().mockResolvedValue({ id: 'test-object-id' }),
     };
     sharedService = {
       saveDocumentsInternal: vi.fn().mockResolvedValue({
-        ingredientData: { _id: 'test-object-id' },
-        metadataData: { _id: 'test-object-id' },
+        ingredientData: { id: 'test-object-id' },
+        metadataData: { id: 'test-object-id' },
       }),
     };
     activitiesService = {
-      create: vi.fn().mockResolvedValue({ _id: 'test-object-id' }),
+      create: vi.fn().mockResolvedValue({ id: 'test-object-id' }),
       patch: vi.fn().mockResolvedValue(undefined),
     };
     websocketService = {
@@ -165,13 +165,13 @@ describe('VideoMusicOrchestrationService', () => {
       musicsService.findOne.mockResolvedValue(musicDoc);
 
       const dto: BackgroundMusicDto = {
-        ingredientId: musicDoc._id.toString(),
+        ingredientId: musicDoc.id.toString(),
       } as BackgroundMusicDto;
 
       const result = await service.resolveMusic(dto, 30, ctx);
 
       expect(result).toMatchObject({
-        musicIngredientId: musicDoc._id.toString(),
+        musicIngredientId: musicDoc.id.toString(),
         wasGenerated: false,
       });
     });
@@ -249,6 +249,31 @@ describe('VideoMusicOrchestrationService', () => {
     });
   });
 
+  // ─── mergeVideoWithMusic ──────────────────────────────────────────────────
+
+  describe('mergeVideoWithMusic', () => {
+    it('uploads the completed merge output path', async () => {
+      const result = await service.mergeVideoWithMusic(
+        'video-ingredient-id',
+        'music-ingredient-id',
+        75,
+        true,
+        makeContext(),
+      );
+
+      expect(result).toBe('test-object-id');
+      expect(fileQueueService.waitForJob).toHaveBeenCalledWith('job-1', 300000);
+      expect(filesClientService.uploadToS3).toHaveBeenCalledWith(
+        'test-object-id',
+        'videos',
+        {
+          path: '/tmp/output.mp4',
+          type: 'file',
+        },
+      );
+    });
+  });
+
   // ─── orchestrateVideoWithMusic ────────────────────────────────────────────
 
   describe('orchestrateVideoWithMusic', () => {
@@ -300,7 +325,7 @@ describe('VideoMusicOrchestrationService', () => {
       musicsService.findOne.mockResolvedValue(musicDoc);
 
       const dto: BackgroundMusicDto = {
-        ingredientId: musicDoc._id.toString(),
+        ingredientId: musicDoc.id.toString(),
       } as BackgroundMusicDto;
 
       await service.orchestrateVideoWithMusic(

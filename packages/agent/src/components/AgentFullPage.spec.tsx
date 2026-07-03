@@ -330,6 +330,22 @@ describe('AgentFullPage', () => {
     expect(storeState.setError).not.toHaveBeenCalled();
   });
 
+  it('never fetches thread data for a stringified "undefined" thread id', async () => {
+    const apiService = createApiService();
+
+    render(
+      <AgentFullPage apiService={apiService as never} threadId="undefined" />,
+    );
+
+    await waitFor(() => {
+      expect(storeState.setActiveThread).toHaveBeenCalledWith(null);
+    });
+
+    expect(apiService.getThread).not.toHaveBeenCalled();
+    expect(apiService.getMessages).not.toHaveBeenCalled();
+    expect(apiService.getThreadSnapshot).not.toHaveBeenCalled();
+  });
+
   it('surfaces a generic load error when bootstrap fails', async () => {
     const apiService = createApiService({
       getMessages: vi.fn(),
@@ -470,7 +486,7 @@ describe('AgentFullPage', () => {
   it('prefers latest assistant completion recos over static page-context actions', () => {
     storeState.pageContext = {
       placeholder: 'Ask about this page...',
-      route: '/chat',
+      route: '/agent',
       suggestedActions: [
         {
           id: 'page-context-action',
@@ -667,7 +683,7 @@ describe('AgentFullPage', () => {
     expect(screen.getByText('surface-fixed')).toBeInTheDocument();
   });
 
-  it('does not clear draft conversation state again while waiting to navigate away from /chat/new', async () => {
+  it('does not clear draft conversation state again while waiting to navigate away from /agent/new', async () => {
     const apiService = createApiService();
 
     const { rerender } = render(

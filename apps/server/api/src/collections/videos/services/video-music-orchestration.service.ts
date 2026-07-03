@@ -19,6 +19,7 @@ import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { BackgroundMusicDto } from '@api/collections/videos/dto/create-video.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { requireVideoOutputPath } from '@api/collections/videos/utils/video-processing-result.util';
 import { ConfigService } from '@api/config/config.service';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
@@ -82,14 +83,6 @@ export class VideoMusicOrchestrationService {
     private readonly websocketService: NotificationsPublisherService,
   ) {}
 
-  private requireOutputPath(value: unknown): string {
-    if (typeof value !== 'string' || value.length === 0) {
-      throw new Error('Video processing result missing outputPath');
-    }
-
-    return value;
-  }
-
   /**
    * Resolves the music ingredient to use for merging.
    * Either uses an existing ingredient or generates new music.
@@ -130,7 +123,7 @@ export class VideoMusicOrchestrationService {
 
       return {
         musicIngredientId: String(
-          (existingMusic as { _id?: unknown; id?: unknown })._id ??
+          (existingMusic as { _id?: unknown; id?: unknown }).id ??
             existingMusic.id,
         ),
         wasGenerated: false,
@@ -186,7 +179,7 @@ export class VideoMusicOrchestrationService {
         category: IngredientCategory.MUSIC,
         extension: MetadataExtension.MP3,
         organization: context.organizationId,
-        prompt: promptData._id,
+        prompt: promptData.id,
         status: IngredientStatus.PROCESSING,
         user: context.userId,
       });
@@ -195,14 +188,14 @@ export class VideoMusicOrchestrationService {
     const activity = await this.activitiesService.create(
       new ActivityEntity({
         brand: context.brandId,
-        entityId: ingredientData._id,
+        entityId: ingredientData.id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.MUSIC_PROCESSING,
         organization: context.organizationId,
         source: ActivitySource.MUSIC_GENERATION,
         user: context.userId,
         value: JSON.stringify({
-          ingredientId: ingredientData._id.toString(),
+          ingredientId: ingredientData.id.toString(),
           label: 'Background music for video',
           model,
           type: 'generation',
@@ -212,12 +205,12 @@ export class VideoMusicOrchestrationService {
 
     // Emit WebSocket event
     await this.websocketService.publishBackgroundTaskUpdate({
-      activityId: activity._id.toString(),
+      activityId: activity.id.toString(),
       label: 'Generating Background Music',
       progress: 0,
       room: getUserRoomName(context.authProviderUserId),
       status: 'processing',
-      taskId: ingredientData._id.toString(),
+      taskId: ingredientData.id.toString(),
       userId: context.authProviderUserId,
     });
 
@@ -249,18 +242,18 @@ export class VideoMusicOrchestrationService {
     }
 
     // Update metadata with external ID
-    await this.metadataService.patch(metadataData._id, {
+    await this.metadataService.patch(metadataData.id, {
       externalId: generationId,
     });
 
     this.loggerService.log('Started background music generation', {
       duration,
       generationId,
-      ingredientId: ingredientData._id.toString(),
+      ingredientId: ingredientData.id.toString(),
       prompt,
     });
 
-    return ingredientData._id.toString();
+    return ingredientData.id.toString();
   }
 
   /**
@@ -301,14 +294,14 @@ export class VideoMusicOrchestrationService {
         user: context.userId,
       });
 
-    const mergedIngredientId = ingredientData._id.toString();
+    const mergedIngredientId = ingredientData.id.toString();
     const websocketUrl = WebSocketPaths.video(mergedIngredientId);
 
     // Create activity
     const activity = await this.activitiesService.create(
       new ActivityEntity({
         brand: context.brandId,
-        entityId: ingredientData._id,
+        entityId: ingredientData.id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.VIDEO_PROCESSING,
         organization: context.organizationId,
@@ -322,7 +315,7 @@ export class VideoMusicOrchestrationService {
       }),
     );
 
-    const activityId = activity._id.toString();
+    const activityId = activity.id.toString();
 
     // Emit WebSocket event
     await this.websocketService.publishBackgroundTaskUpdate({
@@ -361,13 +354,13 @@ export class VideoMusicOrchestrationService {
         mergedIngredientId,
         'videos',
         {
-          path: this.requireOutputPath(result.outputPath),
+          path: requireVideoOutputPath(result.outputPath),
           type: FileInputType.FILE,
         },
       );
 
       // Update metadata
-      await this.metadataService.patch(metadataData._id, {
+      await this.metadataService.patch(metadataData.id, {
         duration: meta.duration,
         height: meta.height,
         size: meta.size,
@@ -375,7 +368,7 @@ export class VideoMusicOrchestrationService {
       });
 
       // Update ingredient status
-      await this.ingredientsService.patch(ingredientData._id, {
+      await this.ingredientsService.patch(ingredientData.id, {
         status: IngredientStatus.GENERATED,
         transformations: [TransformationCategory.MERGED],
       });
@@ -385,7 +378,7 @@ export class VideoMusicOrchestrationService {
         websocketUrl,
         {
           eventType: WebSocketEventType.VIDEO_MERGED,
-          id: ingredientData._id,
+          id: ingredientData.id,
           status: WebSocketEventStatus.COMPLETED,
           transformation: TransformationCategory.MERGED,
         },
@@ -438,7 +431,7 @@ export class VideoMusicOrchestrationService {
       });
 
       // Update ingredient status to failed
-      await this.ingredientsService.patch(ingredientData._id, {
+      await this.ingredientsService.patch(ingredientData.id, {
         status: IngredientStatus.FAILED,
       });
 

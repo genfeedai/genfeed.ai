@@ -4,6 +4,7 @@ import type {
   ClipRunStep,
 } from '@genfeedai/agent/models/clip-run-card.model';
 import { ButtonVariant } from '@genfeedai/enums';
+import type { AgentClipRunIdentity } from '@genfeedai/interfaces';
 import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
 import {
@@ -98,6 +99,12 @@ const PLATFORM_LABELS: Record<string, string> = {
   twitter: 'Twitter / X',
 };
 
+function getIdentitySummary(identity: AgentClipRunIdentity): string {
+  return identity.isComplete
+    ? `Avatar ${identity.avatarId} and voice ${identity.voiceId} are ready.`
+    : `Missing ${identity.missing.join(' and ')}.`;
+}
+
 export function ClipRunCard({
   state,
   onConfirm,
@@ -171,6 +178,24 @@ export function ClipRunCard({
             </span>
           </div>
         </div>
+
+        {state.identity && (
+          <div
+            className={`border px-3 py-2 text-xs ${
+              state.identity.isComplete
+                ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-300'
+                : 'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-900 dark:bg-yellow-950 dark:text-yellow-300'
+            }`}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-medium">Clip identity</span>
+              <span>{state.identity.label}</span>
+            </div>
+            <p className="mt-1 text-muted-foreground">
+              {getIdentitySummary(state.identity)}
+            </p>
+          </div>
+        )}
 
         {/* Error state */}
         {state.status === 'failed' && failedStep && (

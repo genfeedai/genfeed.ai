@@ -7,8 +7,10 @@ import type {
   WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import {
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
@@ -25,12 +27,7 @@ import type {
 } from '@genfeedai/workflow-engine';
 import { buildWorkflowEtaSnapshot } from '@helpers/generation-eta.helper';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-  Optional,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 // =============================================================================
 // TYPES
@@ -120,11 +117,14 @@ interface ReviewGateApprovalResult {
 // =============================================================================
 
 /** Trigger node types that start a workflow */
-const TRIGGER_NODE_TYPES = new Set([
+const _TRIGGER_NODE_TYPES = new Set([
   'mentionTrigger',
   'newFollowerTrigger',
   'newLikeTrigger',
   'newRepostTrigger',
+  'commentTrigger',
+  'keywordTrigger',
+  'engagementTrigger',
   'postPublishTrigger',
   'trendTrigger',
 ]);
@@ -134,6 +134,8 @@ const MAX_EXECUTION_NODES = 500;
 
 /** Map from trigger event types to executor node types */
 const EVENT_TYPE_TO_NODE_TYPE: Record<string, string> = {
+  comment: 'commentTrigger',
+  commentTrigger: 'commentTrigger',
   mention: 'mentionTrigger',
   mentionTrigger: 'mentionTrigger',
   newFollower: 'newFollowerTrigger',
@@ -142,6 +144,10 @@ const EVENT_TYPE_TO_NODE_TYPE: Record<string, string> = {
   newLikeTrigger: 'newLikeTrigger',
   newRepost: 'newRepostTrigger',
   newRepostTrigger: 'newRepostTrigger',
+  keyword: 'keywordTrigger',
+  keywordTrigger: 'keywordTrigger',
+  engagement: 'engagementTrigger',
+  engagementTrigger: 'engagementTrigger',
   'post-published': 'postPublishTrigger',
   postPublishTrigger: 'postPublishTrigger',
   trend: 'trendTrigger',
@@ -217,7 +223,7 @@ export class WorkflowExecutorService {
       {
         workflowIds: matchingWorkflows.map((w) =>
           String(
-            (w as unknown as Record<string, unknown>)._id ??
+            (w as unknown as Record<string, unknown>).id ??
               (w as unknown as { id: string }).id,
           ),
         ),
@@ -232,7 +238,7 @@ export class WorkflowExecutorService {
         results.push(result);
       } catch (error) {
         const workflowId = String(
-          (workflow as unknown as Record<string, unknown>)._id ??
+          (workflow as unknown as Record<string, unknown>).id ??
             (workflow as unknown as { id: string }).id,
         );
         this.logger.error(
@@ -280,13 +286,12 @@ export class WorkflowExecutorService {
     metadata?: Record<string, unknown>,
     trigger: WorkflowExecutionTrigger = WorkflowExecutionTrigger.MANUAL,
   ): Promise<WorkflowExecutionResult> {
-    const workflowDoc = await this.prisma.workflow.findFirst({
-      where: { id: workflowId, isDeleted: false, organizationId },
-    });
-
-    if (!workflowDoc) {
-      throw new NotFoundException(`Workflow ${workflowId} not found`);
-    }
+    const workflowDoc = await findOrThrow(
+      this.prisma.workflow,
+      { where: { id: workflowId, isDeleted: false, organizationId } },
+      'Workflow',
+      workflowId,
+    );
 
     return this.executeWorkflowDocument(
       this.normalizeWorkflowDocument(workflowDoc),
@@ -327,13 +332,12 @@ export class WorkflowExecutorService {
       throw new NotFoundException(`Execution ${executionId} not found`);
     }
 
-    const workflowDoc = await this.prisma.workflow.findFirst({
-      where: { id: workflowId, isDeleted: false, organizationId },
-    });
-
-    if (!workflowDoc) {
-      throw new NotFoundException(`Workflow ${workflowId} not found`);
-    }
+    const workflowDoc = await findOrThrow(
+      this.prisma.workflow,
+      { where: { id: workflowId, isDeleted: false, organizationId } },
+      'Workflow',
+      workflowId,
+    );
 
     const normalizedWorkflowDoc = this.normalizeWorkflowDocument(workflowDoc);
     const workflowLabel = this.getWorkflowLabel(normalizedWorkflowDoc);
@@ -626,10 +630,13 @@ export class WorkflowExecutorService {
   ): Promise<WorkflowExecutionResult> {
     const workflowLabel = this.getWorkflowLabel(workflowDoc);
     const workflowId = String(
-      (workflowDoc as unknown as Record<string, unknown>)._id ??
+      (workflowDoc as unknown as Record<string, unknown>).id ??
         (workflowDoc as unknown as { id: string }).id,
     );
     const startedAt = new Date();
+    const keepsWorkflowActive =
+      trigger === WorkflowExecutionTrigger.SCHEDULED ||
+      trigger === WorkflowExecutionTrigger.EVENT;
 
     let executableWorkflow =
       this.engineAdapter.convertToExecutableWorkflow(workflowDoc);
@@ -669,7 +676,7 @@ export class WorkflowExecutorService {
     );
 
     const executionId = String(
-      (execution as unknown as Record<string, unknown>)._id ??
+      (execution as unknown as Record<string, unknown>).id ??
         (execution as unknown as { id: string }).id,
     );
 
@@ -699,10 +706,9 @@ export class WorkflowExecutorService {
             executionCount: { increment: 1 },
           }),
           lastExecutedAt: new Date(),
-          status:
-            trigger === WorkflowExecutionTrigger.SCHEDULED
-              ? WorkflowStatus.ACTIVE
-              : WorkflowStatus.RUNNING,
+          status: keepsWorkflowActive
+            ? WorkflowStatus.ACTIVE
+            : WorkflowStatus.RUNNING,
         },
         where: { id: workflowId },
       });
@@ -767,12 +773,11 @@ export class WorkflowExecutorService {
         await this.prisma.workflow.update({
           data: {
             completedAt: new Date(),
-            status:
-              trigger === WorkflowExecutionTrigger.SCHEDULED
-                ? WorkflowStatus.ACTIVE
-                : finalStatus === WorkflowExecutionStatus.COMPLETED
-                  ? WorkflowStatus.COMPLETED
-                  : WorkflowStatus.FAILED,
+            status: keepsWorkflowActive
+              ? WorkflowStatus.ACTIVE
+              : finalStatus === WorkflowExecutionStatus.COMPLETED
+                ? WorkflowStatus.COMPLETED
+                : WorkflowStatus.FAILED,
           } as never,
           where: { id: workflowId },
         });
@@ -863,10 +868,9 @@ export class WorkflowExecutorService {
         // scheduler retries on the next tick; the failure is recorded on the
         // WorkflowExecution record.
         data: {
-          status:
-            trigger === WorkflowExecutionTrigger.SCHEDULED
-              ? WorkflowStatus.ACTIVE
-              : WorkflowStatus.FAILED,
+          status: keepsWorkflowActive
+            ? WorkflowStatus.ACTIVE
+            : WorkflowStatus.FAILED,
         } as never,
         where: { id: workflowId },
       });
@@ -963,23 +967,9 @@ export class WorkflowExecutorService {
       id: executionId,
       isDeleted: false,
     });
-    const baselineEstimatedDurationMs =
-      typeof existingExecution?.metadata === 'object' &&
-      existingExecution?.metadata !== null &&
-      typeof (existingExecution.metadata as Record<string, unknown>).eta ===
-        'object' &&
-      (existingExecution.metadata as Record<string, unknown>).eta !== null &&
-      typeof (
-        (existingExecution.metadata as Record<string, unknown>).eta as Record<
-          string,
-          unknown
-        >
-      ).estimatedDurationMs === 'number'
-        ? ((
-            (existingExecution.metadata as Record<string, unknown>)
-              .eta as Record<string, unknown>
-          ).estimatedDurationMs as number)
-        : undefined;
+    const baselineEstimatedDurationMs = this.extractEstimatedDurationMs(
+      existingExecution?.metadata,
+    );
     const resumedCompletedNodeIds = new Set(Object.keys(nodeOutputCache));
     const resumedSkippedNodeIds = new Set<string>();
 
@@ -1269,9 +1259,7 @@ export class WorkflowExecutorService {
     // Inject trigger data for trigger nodes
     const triggerNodeType =
       EVENT_TYPE_TO_NODE_TYPE[triggerEvent.type] ?? triggerEvent.type;
-    const triggerNode = workflow.nodes.find(
-      (n) => n.type === triggerNodeType || TRIGGER_NODE_TYPES.has(n.type),
-    );
+    const triggerNode = workflow.nodes.find((n) => n.type === triggerNodeType);
     if (triggerNode) {
       nodeCache.set(triggerNode.id, triggerEvent.data);
       completedNodes.add(triggerNode.id);
@@ -1795,6 +1783,7 @@ export class WorkflowExecutorService {
         isDeleted: false,
         lifecycle: WorkflowLifecycle.PUBLISHED,
         organizationId: event.organizationId,
+        status: WorkflowStatus.ACTIVE,
       },
     });
     const normalizedWorkflows = workflows.map((workflow) =>
@@ -1831,6 +1820,7 @@ export class WorkflowExecutorService {
    */
   private resolveNodeType(visualNodeType: string): string {
     const NODE_TYPE_MAP: Record<string, string> = {
+      'trigger-comment': 'commentTrigger',
       'trigger-mention': 'mentionTrigger',
       'trigger-new-follower': 'newFollowerTrigger',
       'trigger-new-like': 'newLikeTrigger',
@@ -2215,7 +2205,7 @@ export class WorkflowExecutorService {
     branch: string,
     edges: ExecutableEdge[],
     skippedNodes: Set<string>,
-    executionOrder: string[],
+    _executionOrder: string[],
     completedNodes: Set<string>,
   ): void {
     // Find edges from the condition node that DON'T match the taken branch
@@ -2300,7 +2290,7 @@ export class WorkflowExecutorService {
   private skipDownstreamNodes(
     failedNodeId: string,
     edges: ExecutableEdge[],
-    executionOrder: string[],
+    _executionOrder: string[],
     skippedNodes: Set<string>,
     completedNodes: Set<string>,
   ): void {

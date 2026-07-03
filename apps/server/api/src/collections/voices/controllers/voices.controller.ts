@@ -86,7 +86,7 @@ import type { Request } from 'express';
  * Maps ExternalVoice Prisma field names to backward-compatible wire names.
  */
 interface VoiceCatalogEntryDocument {
-  _id: string;
+  id: string;
   provider: string;
   externalVoiceId: string;
   name: string;
@@ -128,7 +128,7 @@ type SyncableDbProvider =
 
 function toWireFormat(voice: ExternalVoice): VoiceCatalogEntryDocument {
   return {
-    _id: voice.id,
+    id: voice.id,
     createdAt: voice.createdAt,
     externalVoiceId: voice.externalId,
     isActive: voice.isActive,
@@ -427,7 +427,7 @@ export class VoicesController {
       const result = await this.elevenLabsService.generateAndUploadAudio(
         generateVoiceDto.voiceId,
         generateVoiceDto.text,
-        ingredientData._id.toString(),
+        ingredientData.id.toString(),
         publicMetadata.organization,
         publicMetadata.user,
       );
@@ -436,8 +436,8 @@ export class VoicesController {
       await this.voicesService.patchAll(
         {
           OR: [
-            { id: String(ingredientData._id) },
-            { mongoId: String(ingredientData._id) },
+            { id: String(ingredientData.id) },
+            { mongoId: String(ingredientData.id) },
           ],
         },
         {
@@ -449,14 +449,14 @@ export class VoicesController {
 
       // Fetch the updated ingredient with population
       const completedIngredient = await this.voicesService.findOne(
-        { _id: ingredientData._id },
+        { _id: ingredientData.id },
         [PopulatePatterns.metadataFull],
       );
 
       if (!completedIngredient) {
         throw new HttpException(
           {
-            detail: `Ingredient ${ingredientData._id} not found after generation`,
+            detail: `Ingredient ${ingredientData.id} not found after generation`,
             title: 'Generation error',
           },
           HttpStatus.INTERNAL_SERVER_ERROR,
@@ -471,8 +471,8 @@ export class VoicesController {
       await this.voicesService.patchAll(
         {
           OR: [
-            { id: String(ingredientData._id) },
-            { mongoId: String(ingredientData._id) },
+            { id: String(ingredientData.id) },
+            { mongoId: String(ingredientData.id) },
           ],
         },
         { status: IngredientStatus.FAILED },
@@ -647,7 +647,7 @@ export class VoicesController {
     }
 
     const voiceDoc = voice as unknown as {
-      _id: string;
+      id: string;
       externalVoiceId?: string;
       voiceProvider?: VoiceProvider;
     };
@@ -671,7 +671,7 @@ export class VoicesController {
       // Soft delete the ingredient
       await this.voicesService.patchAll(
         {
-          OR: [{ id: String(voiceDoc._id) }, { mongoId: String(voiceDoc._id) }],
+          OR: [{ id: String(voiceDoc.id) }, { mongoId: String(voiceDoc.id) }],
         },
         { isDeleted: true },
       );
@@ -802,8 +802,8 @@ export class VoicesController {
     await this.voicesService.patchAll(
       {
         OR: [
-          { id: String(ingredientData._id) },
-          { mongoId: String(ingredientData._id) },
+          { id: String(ingredientData.id) },
+          { mongoId: String(ingredientData.id) },
         ],
       },
       {
@@ -818,7 +818,7 @@ export class VoicesController {
     );
 
     const completedVoice = await this.voicesService.findOne(
-      { _id: ingredientData._id },
+      { _id: ingredientData.id },
       [PopulatePatterns.metadataFull],
     );
 
@@ -830,7 +830,7 @@ export class VoicesController {
     }
 
     await this.notificationsPublisherService.publishAssetStatus(
-      String(ingredientData._id),
+      String(ingredientData.id),
       VoiceCloneStatus.READY,
       publicMetadata.user,
       {
@@ -886,8 +886,8 @@ export class VoicesController {
     await this.voicesService.patchAll(
       {
         OR: [
-          { id: String(ingredientData._id) },
-          { mongoId: String(ingredientData._id) },
+          { id: String(ingredientData.id) },
+          { mongoId: String(ingredientData.id) },
         ],
       },
       {
@@ -902,7 +902,7 @@ export class VoicesController {
     );
 
     await this.notificationsPublisherService.publishAssetStatus(
-      String(ingredientData._id),
+      String(ingredientData.id),
       VoiceCloneStatus.CLONING,
       publicMetadata.user,
       {
@@ -914,7 +914,7 @@ export class VoicesController {
 
     const result = await this.fleetService.cloneVoice({
       audioUrl: dto.audioUrl,
-      handle: ingredientData._id.toString(),
+      handle: ingredientData.id.toString(),
       label: dto.name,
     });
 
@@ -922,8 +922,8 @@ export class VoicesController {
       await this.voicesService.patchAll(
         {
           OR: [
-            { id: String(ingredientData._id) },
-            { mongoId: String(ingredientData._id) },
+            { id: String(ingredientData.id) },
+            { mongoId: String(ingredientData.id) },
           ],
         },
         {
@@ -933,7 +933,7 @@ export class VoicesController {
       );
 
       await this.notificationsPublisherService.publishAssetStatus(
-        String(ingredientData._id),
+        String(ingredientData.id),
         VoiceCloneStatus.FAILED,
         publicMetadata.user,
         {
@@ -958,7 +958,7 @@ export class VoicesController {
     });
 
     const processingVoice = await this.voicesService.findOne(
-      { _id: ingredientData._id },
+      { _id: ingredientData.id },
       [PopulatePatterns.metadataFull],
     );
 

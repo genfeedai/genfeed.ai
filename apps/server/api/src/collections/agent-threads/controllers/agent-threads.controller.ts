@@ -30,7 +30,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
 @ApiTags('Agent Threads')
-@Controller('threads')
+@Controller('agent/threads')
 export class AgentThreadsController {
   constructor(
     private readonly agentThreadsService: AgentThreadsService,
@@ -93,6 +93,29 @@ export class AgentThreadsController {
       });
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'getMessages');
+    }
+  }
+
+  @Get(':threadId/messages/:messageId')
+  @ApiOperation({ summary: 'Get a single thread message' })
+  async getMessage(
+    @Req() req: Request,
+    @Param('threadId') threadId: string,
+    @Param('messageId') messageId: string,
+    @CurrentUser() user: User,
+  ) {
+    try {
+      const organizationId = this.resolveOrganizationId(user);
+      const message = await this.agentMessagesService.findOne({
+        _id: messageId,
+        isDeleted: false,
+        organization: organizationId,
+        room: threadId,
+      });
+
+      return serializeSingle(req, ThreadMessageSerializer, message);
+    } catch (error: unknown) {
+      return ErrorResponse.handle(error, this.loggerService, 'getMessage');
     }
   }
 
@@ -236,7 +259,35 @@ export class AgentThreadsController {
     return organization;
   }
 
+  /**
+   * Resolve the internal (cuid) User.id that AgentThread.userId is a foreign
+   * key to. This must trust the already-authenticated identity the same way
+   * every other working endpoint does (see UsersController): read
+   * `getPublicMetadata(user).user` directly, with no DB re-lookup. That value
+   * is populated once per request by AuthIdentityResolverService and is
+   * exactly the id AgentThread.userId expects.
+   *
+   * Previously this re-derived the id via `usersService.findOne({ _id,
+   * authProviderId })` — an AND filter requiring the stored (legacy)
+   * `authProviderId` column to match the current auth-provider subject. For
+   * users where that legacy field doesn't line up (e.g. Better-Auth users,
+   * or any account reconciled by AuthIdentityResolverService's fallback
+   * paths), both that lookup and its `{ authProviderId }` fallback missed,
+   * throwing UnauthorizedException for an already-authenticated user. That
+   * is the exact 401 loop reported on GET /v1/threads while every other
+   * authenticated endpoint (which trusts publicMetadata.user with no
+   * re-lookup) kept returning 200 for the same token.
+   *
+   * The DB lookup below is retained only as a last-resort fallback for the
+   * rare case where publicMetadata carries no user id at all, and it must
+   * never throw for an authenticated user based on a legacy field mismatch.
+   */
   private async resolveMongoUserId(user: User): Promise<string> {
+    const { user: metadataUserId } = getPublicMetadata(user);
+    if (metadataUserId) {
+      return metadataUserId;
+    }
+
     const authProviderId = user.id;
     if (!authProviderId) {
       throw new UnauthorizedException(
@@ -244,27 +295,12 @@ export class AgentThreadsController {
       );
     }
 
-    const { user: metadataUserId } = getPublicMetadata(user);
-    if (metadataUserId) {
-      const metadataUserDoc = await this.usersService.findOne(
-        { _id: metadataUserId, authProviderId },
-        [],
-      );
-      if (metadataUserDoc?._id) {
-        return String(metadataUserDoc._id);
-      }
-    }
-
     const dbUser = await this.usersService.findOne({ authProviderId }, []);
-    if (!dbUser?._id) {
+    const fallbackUserId = dbUser?.id;
+    if (!fallbackUserId) {
       throw new UnauthorizedException('User account not found');
     }
 
-    const mongoUserId = String(dbUser._id);
-    if (!mongoUserId) {
-      throw new UnauthorizedException('Invalid user account reference');
-    }
-
-    return mongoUserId;
+    return String(fallbackUserId);
   }
 }

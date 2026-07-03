@@ -122,6 +122,8 @@ interface PresignedUploadResponse {
   };
 }
 
+const AGENT_THREADS_ENDPOINT = '/agent/threads';
+
 export class AgentApiService extends AgentBaseApiService {
   get baseUrl(): string {
     return this.config.baseUrl;
@@ -136,7 +138,7 @@ export class AgentApiService extends AgentBaseApiService {
     signal?: AbortSignal,
   ): Effect.Effect<AgentThread, AgentApiError> {
     return this.fetchResourceEffect<AgentThread>(
-      `${this.config.baseUrl}/threads`,
+      `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}`,
       { body: JSON.stringify(payload), method: 'POST', signal },
       'Failed to create thread',
       'Failed to deserialize thread',
@@ -149,7 +151,7 @@ export class AgentApiService extends AgentBaseApiService {
   ): Effect.Effect<AgentChatMessage, AgentApiError> {
     const { threadId, ...body } = payload;
     return this.fetchResourceEffect<AgentChatMessage>(
-      `${this.config.baseUrl}/threads/${threadId}/messages`,
+      `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}/messages`,
       { body: JSON.stringify(body), method: 'POST', signal },
       'Failed to send message',
       'Failed to deserialize thread message',
@@ -165,9 +167,14 @@ export class AgentApiService extends AgentBaseApiService {
     payload: AgentChatPayload,
     signal?: AbortSignal,
   ): Effect.Effect<AgentChatResponse, AgentApiError> {
+    const { threadId, ...body } = payload;
+    const endpoint = threadId
+      ? `${AGENT_THREADS_ENDPOINT}/${threadId}/turns`
+      : `${AGENT_THREADS_ENDPOINT}/turns`;
+
     return this.fetchJsonEffect<AgentChatResponse>(
-      `${this.config.baseUrl}/agent/chat`,
-      { body: JSON.stringify(payload), method: 'POST', signal },
+      `${this.config.baseUrl}${endpoint}`,
+      { body: JSON.stringify(body), method: 'POST', signal },
       'Agent chat failed',
     );
   }
@@ -176,9 +183,14 @@ export class AgentApiService extends AgentBaseApiService {
     payload: AgentChatPayload,
     signal?: AbortSignal,
   ): Effect.Effect<AgentChatStreamResponse, AgentApiError> {
+    const { threadId, ...body } = payload;
+    const endpoint = threadId
+      ? `${AGENT_THREADS_ENDPOINT}/${threadId}/turns/stream`
+      : `${AGENT_THREADS_ENDPOINT}/turns/stream`;
+
     return this.fetchJsonEffect<AgentChatStreamResponse>(
-      `${this.config.baseUrl}/agent/chat/stream`,
-      { body: JSON.stringify(payload), method: 'POST', signal },
+      `${this.config.baseUrl}${endpoint}`,
+      { body: JSON.stringify(body), method: 'POST', signal },
       'Agent chat stream failed',
     );
   }
@@ -203,7 +215,9 @@ export class AgentApiService extends AgentBaseApiService {
     }
     const queryString = qs.toString();
     return this.fetchCollectionEffect<AgentThread>(
-      `${this.config.baseUrl}/threads${queryString ? `?${queryString}` : ''}`,
+      `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}${
+        queryString ? `?${queryString}` : ''
+      }`,
       { signal },
       'Failed to fetch threads',
       'Failed to deserialize thread collection',
@@ -214,7 +228,7 @@ export class AgentApiService extends AgentBaseApiService {
     signal?: AbortSignal,
   ): Effect.Effect<{ archivedCount: number }, AgentApiError> {
     return this.fetchJsonEffect<{ archivedCount: number }>(
-      `${this.config.baseUrl}/threads/archive-all`,
+      `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}/archive-all`,
       { method: 'POST', signal },
       'Failed to archive all threads',
     );
@@ -247,7 +261,7 @@ export class AgentApiService extends AgentBaseApiService {
     signal?: AbortSignal,
   ): Effect.Effect<AgentThread, AgentApiError> {
     return this.fetchResourceEffect<AgentThread>(
-      `${this.config.baseUrl}/threads/${threadId}`,
+      `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}`,
       { signal },
       'Failed to fetch thread',
       'Failed to deserialize thread',
@@ -259,7 +273,7 @@ export class AgentApiService extends AgentBaseApiService {
     signal?: AbortSignal,
   ): Effect.Effect<AgentThreadSnapshot, AgentApiError> {
     return this.fetchJsonEffect<AgentThreadSnapshot>(
-      `${this.config.baseUrl}/threads/${threadId}/snapshot`,
+      `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}/snapshot`,
       { signal },
       'Failed to fetch thread snapshot',
     );
@@ -280,7 +294,7 @@ export class AgentApiService extends AgentBaseApiService {
     signal?: AbortSignal,
   ): Effect.Effect<AgentThread, AgentApiError> {
     return this.fetchResourceEffect<AgentThread>(
-      `${this.config.baseUrl}/threads/${threadId}`,
+      `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}`,
       { body: JSON.stringify(payload), method: 'PATCH', signal },
       'Failed to update thread',
       'Failed to deserialize thread',
@@ -302,7 +316,7 @@ export class AgentApiService extends AgentBaseApiService {
     signal?: AbortSignal,
   ): Effect.Effect<AgentThread, AgentApiError> {
     return this.fetchResourceEffect<AgentThread>(
-      `${this.config.baseUrl}/threads/${threadId}/branches`,
+      `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}/branches`,
       { method: 'POST', signal },
       'Failed to branch thread',
       'Failed to deserialize thread branch',
@@ -331,7 +345,7 @@ export class AgentApiService extends AgentBaseApiService {
       status: string;
       threadId: string;
     }>(
-      `${this.config.baseUrl}/threads/${threadId}/input-requests/${requestId}/responses`,
+      `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}/input-requests/${requestId}/responses`,
       { body: JSON.stringify({ answer }), method: 'POST', signal },
       'Failed to respond to input request',
     );
@@ -344,7 +358,7 @@ export class AgentApiService extends AgentBaseApiService {
     signal?: AbortSignal,
   ): Effect.Effect<AgentChatResponse, AgentApiError> {
     return this.fetchJsonEffect<AgentChatResponse>(
-      `${this.config.baseUrl}/threads/${threadId}/ui-actions`,
+      `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}/ui-actions`,
       {
         body: JSON.stringify({ action, payload }),
         method: 'POST',
@@ -488,7 +502,9 @@ export class AgentApiService extends AgentBaseApiService {
     }
     const queryString = qs.toString();
     return this.fetchCollectionEffect<AgentChatMessage>(
-      `${this.config.baseUrl}/threads/${threadId}/messages${queryString ? `?${queryString}` : ''}`,
+      `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}/messages${
+        queryString ? `?${queryString}` : ''
+      }`,
       { signal },
       'Failed to fetch messages',
       'Failed to deserialize thread messages',

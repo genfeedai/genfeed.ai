@@ -36,6 +36,21 @@
       "sourceRoot": "api/src",
       "type": "application"
     },
+    "api-credential-backfill": {
+      "compilerOptions": {
+        "builder": {
+          "options": {
+            "configPath": "api/credential-backfill.webpack.config.cjs"
+          },
+          "type": "webpack"
+        },
+        "tsConfigPath": "api/tsconfig.app.json"
+      },
+      "entryFile": "scripts/backfill-credential-encryption",
+      "root": "api",
+      "sourceRoot": "api/src",
+      "type": "application"
+    },
     "api-workflow-backfill": {
       "compilerOptions": {
         "builder": {
@@ -49,21 +64,6 @@
       "entryFile": "migrations/workflow-backfill",
       "root": "api",
       "sourceRoot": "api/src",
-      "type": "application"
-    },
-    "clips": {
-      "compilerOptions": {
-        "builder": {
-          "options": {
-            "configPath": "clips/webpack.config.cjs"
-          },
-          "type": "webpack"
-        },
-        "tsConfigPath": "clips/tsconfig.app.json"
-      },
-      "entryFile": "main",
-      "root": "clips",
-      "sourceRoot": "clips/src",
       "type": "application"
     },
     "discord": {

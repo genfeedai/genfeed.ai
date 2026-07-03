@@ -1,3 +1,13 @@
+// Real, schema-derived getModelMeta/PRISMA_MODEL_METADATA.Newsletter via the
+// light @genfeedai/prisma/testing subpath — no heavy PrismaClient/runtime
+// import required for BaseService's getModelMeta('newsletter') call.
+vi.mock('@genfeedai/prisma', async () => {
+  const { canonicalPrismaMock } = await import(
+    '@api/shared/testing/prisma-mock'
+  );
+  return canonicalPrismaMock();
+});
+
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import type { CreateNewsletterDto } from '@api/collections/newsletters/dto/create-newsletter.dto';
 import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';

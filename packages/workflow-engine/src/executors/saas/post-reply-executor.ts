@@ -9,15 +9,24 @@ import type { ExecutableNode } from '@workflow-engine/types';
 // TYPES
 // =============================================================================
 
-export type ReplyPlatform = 'twitter' | 'instagram' | 'threads' | 'facebook';
+export type ReplyPlatform =
+  | 'twitter'
+  | 'instagram'
+  | 'threads'
+  | 'facebook'
+  | 'youtube';
 
 export interface PostReplyConfig {
   /** Platform to reply on */
   platform: ReplyPlatform;
+  /** Durable social inbox conversation id */
+  conversationId?: string;
   /** The post/tweet ID to reply to (can come from input) */
   postId?: string;
   /** Reply text (can come from input) */
   text?: string;
+  /** Stable idempotency key for retry-safe external actions */
+  idempotencyKey?: string;
   /** Optional media URL to attach */
   mediaUrl?: string;
 }
@@ -46,9 +55,12 @@ export type ReplyPublisher = (params: {
   userId: string;
   /** The brand ID associated with this action. Use this instead of userId for brand-scoped operations. */
   brandId?: string;
+  conversationId?: string;
+  idempotencyKey?: string;
   platform: ReplyPlatform;
   postId: string;
   text: string;
+  workflowRunId: string;
   mediaUrl?: string;
 }) => Promise<{ replyId: string; replyUrl: string }>;
 
@@ -82,6 +94,7 @@ export class PostReplyExecutor extends BaseExecutor {
       'instagram',
       'threads',
       'facebook',
+      'youtube',
     ];
     if (!platform || !validPlatforms.includes(platform as ReplyPlatform)) {
       errors.push(
@@ -105,12 +118,8 @@ export class PostReplyExecutor extends BaseExecutor {
     );
 
     // postId and text can come from config or from connected inputs
-    const postId =
-      (node.config.postId as string) ??
-      (inputs.get('postId') as string | undefined);
-    const text =
-      (node.config.text as string) ??
-      (inputs.get('text') as string | undefined);
+    const postId = this.getConfigOrInputString(node, inputs, 'postId');
+    const text = this.getConfigOrInputString(node, inputs, 'text');
 
     if (!postId) {
       throw new Error('Post ID is required (via config or input)');
@@ -119,18 +128,27 @@ export class PostReplyExecutor extends BaseExecutor {
       throw new Error('Reply text is required (via config or input)');
     }
 
-    const mediaUrl =
-      (node.config.mediaUrl as string) ??
-      (inputs.get('mediaUrl') as string | undefined);
+    const mediaUrl = this.getConfigOrInputString(node, inputs, 'mediaUrl');
+    const conversationId = this.getConfigOrInputString(
+      node,
+      inputs,
+      'conversationId',
+    );
+    const idempotencyKey =
+      this.getConfigOrInputString(node, inputs, 'idempotencyKey') ??
+      `workflow:${context.runId}:${node.id}`;
 
     const result = await this.publisher({
       brandId: node.config.brandId as string | undefined,
+      conversationId,
+      idempotencyKey,
       mediaUrl,
       organizationId: context.organizationId,
       platform,
       postId,
       text,
       userId: context.userId,
+      workflowRunId: context.runId,
     });
 
     const replyResult: PostReplyResult = {
@@ -154,8 +172,20 @@ export class PostReplyExecutor extends BaseExecutor {
   estimateCost(_node: ExecutableNode): number {
     return 1;
   }
-}
 
-export function createPostReplyExecutor(): PostReplyExecutor {
-  return new PostReplyExecutor();
+  private getConfigOrInputString(
+    node: ExecutableNode,
+    inputs: Map<string, unknown>,
+    key: string,
+  ): string | undefined {
+    const configValue = node.config[key];
+    if (typeof configValue === 'string' && configValue.trim().length > 0) {
+      return configValue;
+    }
+
+    const inputValue = inputs.get(key);
+    return typeof inputValue === 'string' && inputValue.trim().length > 0
+      ? inputValue
+      : undefined;
+  }
 }

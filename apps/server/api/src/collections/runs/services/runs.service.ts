@@ -41,8 +41,8 @@ export class RunsService extends BaseService<
     super(prisma, 'run', logger);
   }
 
-  private runId(run: Pick<RunDocument, '_id'>): string {
-    return String(run?._id || '');
+  private runId(run: Pick<RunDocument, 'id'>): string {
+    return String(run?.id || '');
   }
 
   private requireActionType(
@@ -83,7 +83,7 @@ export class RunsService extends BaseService<
     return typeof run.progress === 'number' ? run.progress : 0;
   }
 
-  private getTraceId(run: Pick<RunDocument, 'traceId' | '_id'>): string {
+  private getTraceId(run: Pick<RunDocument, 'traceId' | 'id'>): string {
     return run.traceId || this.runId(run);
   }
 

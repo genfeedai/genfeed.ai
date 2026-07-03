@@ -1,5 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import type { AgentClipRunIdentity } from '@genfeedai/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { ReactElement } from 'react';
 import { HiExclamationCircle, HiOutlineFilm } from 'react-icons/hi2';
@@ -11,6 +12,12 @@ import { useClipWorkflowRunCard } from './useClipWorkflowRunCard';
 interface ClipWorkflowRunCardProps {
   action: AgentUiAction;
   apiService: AgentApiService;
+}
+
+function formatMissingIdentity(identity: AgentClipRunIdentity): string {
+  return identity.missing.length > 0
+    ? `Missing ${identity.missing.join(' and ')}`
+    : 'Ready';
 }
 
 export function ClipWorkflowRunCard({
@@ -35,6 +42,7 @@ export function ClipWorkflowRunCard({
     workflowExecutionId,
     generatedVideoIds,
     finalVideoId,
+    identity,
     canMerge,
     draftReviewUrl,
     error,
@@ -86,6 +94,26 @@ export function ClipWorkflowRunCard({
           onMergeNow={() => runOneStep('merge_clips')}
           onOpenSupervisedReview={() => runOneStep('supervised_review')}
         />
+
+        {identity && (
+          <div
+            className={`border px-3 py-2 text-xs ${
+              identity.isComplete
+                ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-300'
+                : 'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-900 dark:bg-yellow-950 dark:text-yellow-300'
+            }`}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-medium">Clip identity</span>
+              <span>{identity.label}</span>
+            </div>
+            <p className="mt-1 text-muted-foreground">
+              {identity.isComplete
+                ? `Avatar ${identity.avatarId} and voice ${identity.voiceId} are ready.`
+                : formatMissingIdentity(identity)}
+            </p>
+          </div>
+        )}
 
         <ClipWorkflowStepsList steps={steps} />
 

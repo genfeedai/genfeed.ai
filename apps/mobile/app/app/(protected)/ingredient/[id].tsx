@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ErrorScreen, LoadingScreen } from '@/components/ScreenStates';
-import { colors } from '@/constants';
+import { borderRadius, colors } from '@/constants';
 import { useIngredient } from '@/hooks/use-ingredients';
 import { formatFullDate } from '@/utils/format-date';
 
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   categoryBadge: {
     alignSelf: 'flex-start',
     backgroundColor: colors.agent,
-    borderRadius: 999,
+    borderRadius: borderRadius.full,
     color: colors.bgSecondary,
     fontSize: 12,
     fontWeight: '600',

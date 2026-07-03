@@ -1,9 +1,12 @@
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
-import type { YouTubeAnalyticsJobData } from '@api/queues/analytics-youtube/analytics-youtube-job.interface';
 import { QueueService } from '@api/queues/core/queue.service';
 import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
+import {
+  ANALYTICS_YOUTUBE_QUEUE,
+  YouTubeAnalyticsJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -22,7 +25,7 @@ export class CronYoutubeAnalyticsService {
   private readonly constructorName: string = String(this.constructor.name);
 
   private readonly BATCH_SIZE = 50; // YouTube API max batch size
-  private readonly QUEUE_NAME = 'analytics-youtube';
+  private readonly QUEUE_NAME = ANALYTICS_YOUTUBE_QUEUE;
 
   constructor(
     private readonly logger: LoggerService,
@@ -91,7 +94,7 @@ export class CronYoutubeAnalyticsService {
             brandId,
             organizationId,
             posts: batch.map((post) => ({
-              _id: post._id.toString(),
+              id: post.id.toString(),
               brand: post.brand.toString(),
               externalId: post.externalId!,
               organization: post.organization.toString(),

@@ -5,6 +5,7 @@ import type { CreativePatternDocument } from '@api/collections/creative-patterns
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
+import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { WorkflowStatus, WorkflowTrigger } from '@genfeedai/enums';
 import type {
   AdsAdapterContext,
@@ -233,7 +234,7 @@ export class AdsResearchService {
       reviewRequired: true,
       workflowDescription:
         'Draft workflow created from a winning ad. Review outputs before any launch action.',
-      workflowId: workflow._id.toString(),
+      workflowId: workflow.id.toString(),
       workflowName: workflow.label,
     };
   }
@@ -487,9 +488,7 @@ export class AdsResearchService {
         roas: this.toNumber(item.roas),
       }),
       headline: item.headlineText as string | undefined,
-      id: String(
-        item._id || item.externalAdId || item.externalCampaignId || '',
-      ),
+      id: String(item.id || item.externalAdId || item.externalCampaignId || ''),
       imageUrls,
       industry: item.industry as string | undefined,
       landingPageUrl: item.landingPageUrl as string | undefined,
@@ -513,7 +512,7 @@ export class AdsResearchService {
       previewUrl: imageUrls[0] || videoUrls[0],
       source: 'public',
       sourceId: String(
-        item.externalAdId || item.externalCampaignId || item._id || '',
+        item.externalAdId || item.externalCampaignId || item.id || '',
       ),
       sourceLabel: 'Public niche winner',
       status: item.campaignStatus as string | undefined,
@@ -598,7 +597,7 @@ export class AdsResearchService {
             .filter(
               (example): example is string => typeof example === 'string',
             ) || [],
-        id: String(pattern._id || ''),
+        id: String(pattern.id || ''),
         label: pattern.label ?? 'Untitled pattern',
         score: pattern.avgPerformanceScore ?? 0,
         summary:
@@ -763,7 +762,7 @@ export class AdsResearchService {
     }
 
     return {
-      accessToken: credential.accessToken,
+      accessToken: EncryptionUtil.decrypt(credential.accessToken),
       adAccountId: params.adAccountId,
       credentialId: params.credentialId,
       loginCustomerId: params.loginCustomerId,

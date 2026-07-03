@@ -88,19 +88,19 @@ describe('ShopifyController', () => {
       };
 
       const mockOrg = {
-        _id: '507f191e810c19729de860ee',
+        id: '507f191e810c19729de860ee',
         name: 'test-shop',
       };
       const mockUser = {
-        _id: '507f191e810c19729de860ee',
+        id: '507f191e810c19729de860ee',
         email: 'shop@test-shop.myshopify.com',
       };
       const mockBrand = {
-        _id: '507f191e810c19729de860ee',
+        id: '507f191e810c19729de860ee',
         name: 'test-shop',
       };
       const mockApiKey = {
-        apiKey: { _id: '507f191e810c19729de860ee' },
+        apiKey: { id: '507f191e810c19729de860ee' },
         plainKey: 'gf_sk_test_key_123',
       };
 
@@ -130,7 +130,7 @@ describe('ShopifyController', () => {
             source: 'shopify',
           }),
           name: 'test-shop',
-          organization: mockOrg._id,
+          organization: mockOrg.id,
         }),
       );
 
@@ -141,21 +141,21 @@ describe('ShopifyController', () => {
             source: 'shopify',
           }),
           name: 'test-shop',
-          organization: mockOrg._id,
-          user: mockUser._id,
+          organization: mockOrg.id,
+          user: mockUser.id,
         }),
       );
 
       expect(apiKeysService.createWithKey).toHaveBeenCalledWith(
         expect.objectContaining({
-          brand: mockBrand._id,
+          brand: mockBrand.id,
           description: 'Auto-provisioned API key for Shopify integration',
           metadata: expect.objectContaining({
             shopDomain: 'test-shop.myshopify.com',
             source: 'shopify',
           }),
           name: 'Shopify - test-shop.myshopify.com',
-          organization: mockOrg._id,
+          organization: mockOrg.id,
           rateLimit: 100,
           scopes: expect.arrayContaining([
             'images:read',
@@ -165,15 +165,15 @@ describe('ShopifyController', () => {
             'credits:read',
             'posts:create',
           ]),
-          user: mockUser._id,
+          user: mockUser.id,
         }),
       );
 
       expect(result).toEqual({
         apiKey: 'gf_sk_test_key_123',
-        brandId: mockBrand._id.toString(),
-        orgId: mockOrg._id.toString(),
-        userId: mockUser._id.toString(),
+        brandId: mockBrand.id.toString(),
+        orgId: mockOrg.id.toString(),
+        userId: mockUser.id.toString(),
       });
 
       expect(loggerService.log).toHaveBeenCalledWith(
@@ -189,13 +189,13 @@ describe('ShopifyController', () => {
       };
 
       const mockOrg = {
-        _id: '507f191e810c19729de860ee',
+        id: '507f191e810c19729de860ee',
         name: 'my-awesome-store',
       };
-      const mockUser = { _id: '507f191e810c19729de860ee' };
-      const mockBrand = { _id: '507f191e810c19729de860ee' };
+      const mockUser = { id: '507f191e810c19729de860ee' };
+      const mockBrand = { id: '507f191e810c19729de860ee' };
       const mockApiKey = {
-        apiKey: { _id: '507f191e810c19729de860ee' },
+        apiKey: { id: '507f191e810c19729de860ee' },
         plainKey: 'gf_sk_key',
       };
 
@@ -226,12 +226,11 @@ describe('ShopifyController', () => {
         shopifyUserId: 'shop_789',
       };
 
-      const mockOrg = { _id: '507f191e810c19729de860ee' };
-      const mockUser = { _id: '507f191e810c19729de860ee' };
-      const mockBrand = { _id: '507f191e810c19729de860ee' };
+      const mockOrg = { id: '507f191e810c19729de860ee' };
+      const mockUser = { id: '507f191e810c19729de860ee' };
+      const mockBrand = { id: '507f191e810c19729de860ee' };
       const mockApiKey = {
         apiKey: {
-          _id: '507f191e810c19729de860ee',
           id: '507f191e810c19729de860ee',
         },
         plainKey: 'gf_sk_success',
@@ -248,10 +247,10 @@ describe('ShopifyController', () => {
         expect.stringContaining('Account provisioned successfully'),
         expect.objectContaining({
           apiKeyId: mockApiKey.apiKey.id,
-          brandId: mockBrand._id,
-          organizationId: mockOrg._id,
+          brandId: mockBrand.id,
+          organizationId: mockOrg.id,
           shopDomain: 'success-shop.myshopify.com',
-          userId: mockUser._id,
+          userId: mockUser.id,
         }),
       );
     });

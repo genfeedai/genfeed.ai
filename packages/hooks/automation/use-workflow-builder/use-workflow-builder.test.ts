@@ -31,10 +31,16 @@ function createNodeRegistryResponse() {
   };
 }
 
-vi.mock('@genfeedai/auth-client/react', () => ({
-  useAuth: () => ({
+const mockGetBetterAuthToken = vi.fn();
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => ({
     getToken: mockGetToken,
   }),
+}));
+
+vi.mock('@genfeedai/auth-client', () => ({
+  getBetterAuthToken: () => mockGetBetterAuthToken(),
 }));
 
 vi.mock('@genfeedai/services/core/notifications.service', () => ({
@@ -71,6 +77,7 @@ describe('useWorkflowBuilder', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetBetterAuthToken.mockResolvedValue(null);
     mockGetToken.mockResolvedValue('token-123');
     originalFetch = globalThis.fetch;
     globalThis.fetch = mockFetch as unknown as typeof fetch;

@@ -177,7 +177,7 @@ export class MusicsOperationsController {
         category: IngredientCategory.MUSIC,
         extension: MetadataExtension.MP3,
         organization: publicMetadata.organization,
-        prompt: promptData._id,
+        prompt: promptData.id,
         status: IngredientStatus.PROCESSING,
       });
 
@@ -185,14 +185,14 @@ export class MusicsOperationsController {
     const activity = await this.activitiesService.create(
       new ActivityEntity({
         brand: publicMetadata.brand,
-        entityId: ingredientData._id,
+        entityId: ingredientData.id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.MUSIC_PROCESSING,
         organization: publicMetadata.organization,
         source: ActivitySource.MUSIC_GENERATION,
         user: publicMetadata.user,
         value: JSON.stringify({
-          ingredientId: ingredientData._id.toString(),
+          ingredientId: ingredientData.id.toString(),
           model,
           type: 'generation',
         }),
@@ -201,12 +201,12 @@ export class MusicsOperationsController {
 
     // Emit background-task-update WebSocket event for activities dropdown
     await this.websocketService.publishBackgroundTaskUpdate({
-      activityId: activity._id.toString(),
+      activityId: activity.id.toString(),
       label: 'Music Generation',
       progress: 0,
       room: getUserRoomName(user.id),
       status: 'processing',
-      taskId: ingredientData._id.toString(),
+      taskId: ingredientData.id.toString(),
       userId: user.id,
     });
 
@@ -215,7 +215,7 @@ export class MusicsOperationsController {
       Math.min(Number(createMusicDto.outputs) || 1, 4),
     );
 
-    const pendingIngredientIds: string[] = [ingredientData._id.toString()];
+    const pendingIngredientIds: string[] = [ingredientData.id.toString()];
     const baseSeed =
       typeof createMusicDto.seed === 'number' ? createMusicDto.seed : -1;
 
@@ -302,13 +302,13 @@ export class MusicsOperationsController {
     };
 
     const primaryWebsocketUrl = WebSocketPaths.music(
-      ingredientData._id.toString(),
+      ingredientData.id.toString(),
     );
 
     try {
       const firstGenerationId = await runMusicGeneration(
-        metadataData._id.toString(),
-        ingredientData._id,
+        metadataData.id.toString(),
+        ingredientData.id,
         0,
         baseSeed,
       );
@@ -347,7 +347,7 @@ export class MusicsOperationsController {
             let additionalMetadataId: string | null = null;
             let additionalIngredientId: string | null = null;
 
-            const promptId = promptData._id;
+            const promptId = promptData.id;
 
             try {
               const {
@@ -363,20 +363,20 @@ export class MusicsOperationsController {
                 status: IngredientStatus.PROCESSING,
               });
 
-              additionalMetadataId = additionalMetadata._id.toString();
-              additionalIngredientId = additionalIngredient._id.toString();
+              additionalMetadataId = additionalMetadata.id.toString();
+              additionalIngredientId = additionalIngredient.id.toString();
 
-              pendingIngredientIds.push(additionalIngredient._id.toString());
+              pendingIngredientIds.push(additionalIngredient.id.toString());
 
-              await this.musicsService.patch(additionalIngredient._id, {
+              await this.musicsService.patch(additionalIngredient.id, {
                 prompt: promptId,
               });
 
               const seedForOutput = baseSeed >= 0 ? baseSeed + i : -1;
 
               await runMusicGeneration(
-                additionalMetadata._id,
-                additionalIngredient._id,
+                additionalMetadata.id,
+                additionalIngredient.id,
                 i,
                 seedForOutput,
               );
@@ -420,7 +420,7 @@ export class MusicsOperationsController {
       this.loggerService.error(`${url} failed`, error);
       await this.failedGenerationService.handleFailedMusicGeneration(
         this.musicsService,
-        ingredientData._id,
+        ingredientData.id,
         primaryWebsocketUrl,
         user.id,
         getUserRoomName(user.id),
@@ -432,7 +432,7 @@ export class MusicsOperationsController {
           user: publicMetadata.user,
           value: JSON.stringify({
             error: (error as Error)?.message || 'Generation failed',
-            ingredientId: ingredientData._id.toString(),
+            ingredientId: ingredientData.id.toString(),
           }),
         },
       );

@@ -75,14 +75,11 @@ genfeed.ai/
 │   └── workflows/           # Workflow definitions
 ├── ee/                      # Enterprise features (commercial license)
 │   └── packages/
-│       ├── analytics/       # Advanced analytics
-│       ├── billing/         # Stripe billing & credits
-│       ├── harness/         # @genfeedai/ee-harness — enterprise content-harness contributions
-│       ├── multi-tenancy/   # Multi-tenant org isolation
-│       └── teams/           # Team management
+│       ├── billing/         # Stripe billing providers (wired via webpack @billing-providers alias)
+│       └── harness/         # @genfeedai/ee-harness — enterprise content-harness pack
 ├── docker/                  # Docker configs
 ├── docs/                    # Documentation
-├── e2e/                     # E2E test suites
+├── playwright/              # Playwright e2e suite (configs + tests)
 ├── scripts/                 # Build & utility scripts
 ├── tests/                   # Shared test utilities
 ├── tools/                   # Dev tooling

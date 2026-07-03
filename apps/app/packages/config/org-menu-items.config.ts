@@ -28,9 +28,9 @@ export const ORG_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: '',
-    href: APP_ROUTES.CHAT.ROOT,
+    href: APP_ROUTES.AGENT.ROOT,
     label: 'Agent',
-    matchPaths: [APP_ROUTES.CHAT.ROOT],
+    matchPaths: [APP_ROUTES.AGENT.ROOT],
     outline: HiOutlineChatBubbleLeftRight,
     solid: HiChatBubbleLeftRight,
   },

@@ -9,6 +9,7 @@ import SummaryContent from './summary-content';
 
 const {
   assignMock,
+  getBootstrapMock,
   getInstallReadinessMock,
   getUsersServiceMock,
   patchSettingsMock,
@@ -16,6 +17,7 @@ const {
   resolveAuthTokenMock,
 } = vi.hoisted(() => ({
   assignMock: vi.fn(),
+  getBootstrapMock: vi.fn(),
   getInstallReadinessMock: vi.fn(),
   getUsersServiceMock: vi.fn(),
   patchSettingsMock: vi.fn(),
@@ -57,6 +59,14 @@ vi.mock('@hooks/ui/use-gsap-entrance', () => ({
 vi.mock('@services/core/logger.service', () => ({
   logger: {
     error: vi.fn(),
+  },
+}));
+
+vi.mock('@services/auth/auth.service', () => ({
+  AuthService: {
+    getInstance: vi.fn(() => ({
+      getBootstrap: getBootstrapMock,
+    })),
   },
 }));
 
@@ -141,6 +151,7 @@ const localStorageMock = (() => {
 describe('SummaryContent behavior', () => {
   beforeEach(() => {
     assignMock.mockReset();
+    getBootstrapMock.mockReset();
     getInstallReadinessMock.mockReset();
     getUsersServiceMock.mockReset();
     patchSettingsMock.mockReset();
@@ -178,6 +189,7 @@ describe('SummaryContent behavior', () => {
         showBilling: false,
         showCloudUpgradeCta: true,
         showCredits: false,
+        showLocalTools: true,
         showPricing: false,
       },
       workspace: {
@@ -188,7 +200,21 @@ describe('SummaryContent behavior', () => {
       },
     });
     getUsersServiceMock.mockResolvedValue({
+      getBootstrap: getBootstrapMock,
       patchSettings: patchSettingsMock,
+    });
+    getBootstrapMock.mockResolvedValue({
+      access: {
+        brandId: 'brand-123',
+        creditsBalance: 0,
+        hasEverHadCredits: false,
+        isOnboardingCompleted: true,
+        isSuperAdmin: false,
+        organizationId: 'org-123',
+        subscriptionStatus: '',
+        subscriptionTier: '',
+        userId: 'user-123',
+      },
     });
     patchSettingsMock.mockResolvedValue({});
 
@@ -237,6 +263,70 @@ describe('SummaryContent behavior', () => {
 
     expect(pushMock).toHaveBeenCalledWith('/onboarding/success');
     expect(assignMock).not.toHaveBeenCalled();
+  });
+
+  it('shows the real subscription tier and credit balance when billing is enabled', async () => {
+    getInstallReadinessMock.mockResolvedValue({
+      access: {
+        byokConfiguredProviders: [],
+        byokEnabled: false,
+        runtimeMode: 'server',
+        selectedMode: 'cloud',
+        serverDefaultsReady: true,
+      },
+      authMode: 'better_auth',
+      billingMode: 'cloud_billing',
+      localTools: {
+        anyDetected: false,
+        claude: false,
+        codex: false,
+        detected: [],
+      },
+      providers: {
+        anyConfigured: true,
+        configured: ['openai'],
+        fal: false,
+        imageGenerationReady: true,
+        openai: true,
+        replicate: false,
+        textGenerationReady: true,
+      },
+      ui: {
+        showBilling: true,
+        showCloudUpgradeCta: false,
+        showCredits: true,
+        showLocalTools: false,
+        showPricing: true,
+      },
+      workspace: {
+        brandId: 'brand-123',
+        hasBrand: true,
+        hasOrganization: true,
+        organizationId: 'org-123',
+      },
+    });
+    getBootstrapMock.mockResolvedValue({
+      access: {
+        brandId: 'brand-123',
+        creditsBalance: 1234,
+        hasEverHadCredits: true,
+        isOnboardingCompleted: true,
+        isSuperAdmin: false,
+        organizationId: 'org-123',
+        subscriptionStatus: 'active',
+        subscriptionTier: 'pro',
+        userId: 'user-123',
+      },
+    });
+
+    render(<SummaryContent />);
+
+    expect(await screen.findByText('Your plan')).toBeInTheDocument();
+    expect(await screen.findByText('Pro')).toBeInTheDocument();
+    expect(screen.getByText('Active')).toBeInTheDocument();
+    expect(screen.getByText('1,234')).toBeInTheDocument();
+    // The saved access choice (cloud) is flagged as current.
+    expect(screen.getByText('Current')).toBeInTheDocument();
   });
 
   it('persists cloud mode and redirects to cloud signup with onboarding context', async () => {

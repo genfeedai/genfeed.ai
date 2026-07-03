@@ -72,7 +72,7 @@ export class FacebookController {
 
     const state = Buffer.from(
       JSON.stringify({
-        brandId: brand._id,
+        brandId: brand.id,
         organizationId: brand.organization,
         userId: publicMetadata.user,
       }),
@@ -141,7 +141,7 @@ export class FacebookController {
       const profile = await this.facebookService.getUserProfile(accessToken);
 
       const updatedCredential = await this.credentialsService.patch(
-        credential._id,
+        credential.id,
         {
           accessToken,
           accessTokenExpiry: expiresIn

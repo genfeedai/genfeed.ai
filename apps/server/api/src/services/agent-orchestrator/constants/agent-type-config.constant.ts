@@ -2,16 +2,6 @@ import { ORCHESTRATOR_AGENT_TYPE } from '@api/services/agent-orchestrator/consta
 import { AgentType } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
 
-const CREATE_LIVESTREAM_BOT_TOOL = 'create_livestream_bot' as AgentToolName;
-const MANAGE_LIVESTREAM_BOT_TOOL = 'manage_livestream_bot' as AgentToolName;
-const LIST_ADS_RESEARCH_TOOL = 'list_ads_research' as AgentToolName;
-const GET_AD_RESEARCH_DETAIL_TOOL = 'get_ad_research_detail' as AgentToolName;
-const CREATE_AD_REMIX_WORKFLOW_TOOL =
-  'create_ad_remix_workflow' as AgentToolName;
-const GENERATE_AD_PACK_TOOL = 'generate_ad_pack' as AgentToolName;
-const PREPARE_AD_LAUNCH_REVIEW_TOOL =
-  'prepare_ad_launch_review' as AgentToolName;
-
 export interface AgentTypeConfig {
   defaultDailyCreditBudget: number;
   defaultModel: string;
@@ -31,20 +21,21 @@ const SHARED_READ_TOOLS: AgentToolName[] = [
   AgentToolName.GET_APPROVAL_SUMMARY,
   AgentToolName.ANALYZE_PERFORMANCE,
   AgentToolName.GET_CONTENT_CALENDAR,
-  'capture_memory' as AgentToolName,
+  AgentToolName.LIST_GENFEED_TOOLS,
+  AgentToolName.CAPTURE_MEMORY,
   AgentToolName.CREATE_WORKFLOW,
-  CREATE_LIVESTREAM_BOT_TOOL,
-  MANAGE_LIVESTREAM_BOT_TOOL,
-  LIST_ADS_RESEARCH_TOOL,
-  GET_AD_RESEARCH_DETAIL_TOOL,
-  CREATE_AD_REMIX_WORKFLOW_TOOL,
-  GENERATE_AD_PACK_TOOL,
-  PREPARE_AD_LAUNCH_REVIEW_TOOL,
-  'rate_content' as AgentToolName,
+  AgentToolName.CREATE_LIVESTREAM_BOT,
+  AgentToolName.MANAGE_LIVESTREAM_BOT,
+  AgentToolName.LIST_ADS_RESEARCH,
+  AgentToolName.GET_AD_RESEARCH_DETAIL,
+  AgentToolName.CREATE_AD_REMIX_WORKFLOW,
+  AgentToolName.GENERATE_AD_PACK,
+  AgentToolName.PREPARE_AD_LAUNCH_REVIEW,
+  AgentToolName.RATE_CONTENT,
   AgentToolName.SCORE_SEO,
-  'rate_ingredient' as AgentToolName,
-  'get_top_ingredients' as AgentToolName,
-  'replicate_top_ingredient' as AgentToolName,
+  AgentToolName.RATE_INGREDIENT,
+  AgentToolName.GET_TOP_INGREDIENTS,
+  AgentToolName.REPLICATE_TOP_INGREDIENT,
 ];
 
 export const AGENT_TYPE_CONFIGS: Record<AgentType, AgentTypeConfig> = {
@@ -53,16 +44,16 @@ export const AGENT_TYPE_CONFIGS: Record<AgentType, AgentTypeConfig> = {
     defaultModel: 'deepseek/deepseek-chat',
     defaultTools: [
       ...Object.values(AgentToolName),
-      'capture_memory' as AgentToolName,
-      LIST_ADS_RESEARCH_TOOL,
-      GET_AD_RESEARCH_DETAIL_TOOL,
-      CREATE_AD_REMIX_WORKFLOW_TOOL,
-      GENERATE_AD_PACK_TOOL,
-      PREPARE_AD_LAUNCH_REVIEW_TOOL,
-      'rate_content' as AgentToolName,
-      'rate_ingredient' as AgentToolName,
-      'get_top_ingredients' as AgentToolName,
-      'replicate_top_ingredient' as AgentToolName,
+      AgentToolName.CAPTURE_MEMORY,
+      AgentToolName.LIST_ADS_RESEARCH,
+      AgentToolName.GET_AD_RESEARCH_DETAIL,
+      AgentToolName.CREATE_AD_REMIX_WORKFLOW,
+      AgentToolName.GENERATE_AD_PACK,
+      AgentToolName.PREPARE_AD_LAUNCH_REVIEW,
+      AgentToolName.RATE_CONTENT,
+      AgentToolName.RATE_INGREDIENT,
+      AgentToolName.GET_TOP_INGREDIENTS,
+      AgentToolName.REPLICATE_TOP_INGREDIENT,
     ],
     systemPromptSuffix: '',
   },
@@ -283,11 +274,11 @@ LinkedIn-specific guidelines:
       AgentToolName.AI_ACTION,
       AgentToolName.PREPARE_GENERATION,
       AgentToolName.CREATE_WORKFLOW,
-      LIST_ADS_RESEARCH_TOOL,
-      GET_AD_RESEARCH_DETAIL_TOOL,
-      CREATE_AD_REMIX_WORKFLOW_TOOL,
-      GENERATE_AD_PACK_TOOL,
-      PREPARE_AD_LAUNCH_REVIEW_TOOL,
+      AgentToolName.LIST_ADS_RESEARCH,
+      AgentToolName.GET_AD_RESEARCH_DETAIL,
+      AgentToolName.CREATE_AD_REMIX_WORKFLOW,
+      AgentToolName.GENERATE_AD_PACK,
+      AgentToolName.PREPARE_AD_LAUNCH_REVIEW,
     ],
     systemPromptSuffix: `
 ## Specialization: Ads Script Writer Agent

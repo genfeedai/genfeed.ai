@@ -20,8 +20,15 @@ export interface IActualPerformance {
   [key: string]: unknown;
 }
 
+export interface IEvaluationReview {
+  [key: string]: unknown;
+}
+
+export interface IEvaluationReviewerComment {
+  [key: string]: unknown;
+}
+
 export interface EvaluationDocument extends PrismaEvaluation {
-  _id: string;
   actualPerformance?: IActualPerformance;
   analysis?: IEvaluationAnalysis;
   brand?: string | null;
@@ -31,6 +38,8 @@ export interface EvaluationDocument extends PrismaEvaluation {
   flags?: IEvaluationFlags;
   organization?: string | null;
   overallScore?: number | null;
+  review?: IEvaluationReview;
+  reviewerComments?: IEvaluationReviewerComment[];
   scores?: IScores;
   status?: string | null;
   user?: string | null;

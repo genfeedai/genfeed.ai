@@ -30,7 +30,7 @@ import { InstagramService } from '@api/services/integrations/instagram/services/
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
-import { IngredientCategory } from '@genfeedai/enums';
+import { BotStatus, IngredientCategory } from '@genfeedai/enums';
 import {
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
@@ -58,6 +58,7 @@ describe('AnalyticsController', () => {
   let analyticsExportService: vi.Mocked<AnalyticsExportService>;
   let entityLeaderboardService: vi.Mocked<EntityLeaderboardService>;
   let businessAnalyticsService: vi.Mocked<BusinessAnalyticsService>;
+  let botsService: vi.Mocked<BotsService>;
   let brandsService: vi.Mocked<BrandsService>;
   let ingredientsService: vi.Mocked<IngredientsService>;
   let postsService: vi.Mocked<PostsService>;
@@ -116,6 +117,11 @@ describe('AnalyticsController', () => {
     brandsService = {
       findAll: vi.fn(),
     } as unknown as vi.Mocked<BrandsService>;
+    botsService = {
+      find: vi.fn().mockResolvedValue([]),
+      findAll: vi.fn().mockResolvedValue({ data: [], total: 0 }),
+      findOne: vi.fn(),
+    } as unknown as vi.Mocked<BotsService>;
     postsService = {
       findAll: vi.fn(),
     } as unknown as vi.Mocked<PostsService>;
@@ -160,11 +166,7 @@ describe('AnalyticsController', () => {
         },
         {
           provide: BotsService,
-          useValue: {
-            find: vi.fn().mockResolvedValue([]),
-            findAll: vi.fn().mockResolvedValue({ data: [], total: 0 }),
-            findOne: vi.fn(),
-          },
+          useValue: botsService,
         },
         {
           provide: CreditTransactionsService,
@@ -262,6 +264,25 @@ describe('AnalyticsController', () => {
         where: { category: 'IMAGE' },
       });
       expect(result).toBeDefined();
+    });
+
+    it('counts active bots with the Bot.status column, not the removed enabled field', async () => {
+      const query = {} as unknown as BaseQueryDto;
+
+      await controller.findAll(mockRequest, query);
+
+      expect(botsService.findAll).toHaveBeenCalledWith(
+        {
+          where: {
+            isDeleted: false,
+            status: BotStatus.ACTIVE,
+          },
+        },
+        expect.any(Object),
+      );
+      expect(botsService.findAll.mock.calls[0][0].where).not.toHaveProperty(
+        'enabled',
+      );
     });
   });
 

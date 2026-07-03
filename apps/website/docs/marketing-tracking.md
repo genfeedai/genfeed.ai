@@ -47,10 +47,20 @@ Public browser config:
 
 Server conversion config:
 
+- `LINKEDIN_CONVERSIONS_API_ACCESS_TOKEN`
+- `LINKEDIN_CONVERSIONS_API_VERSION` (defaults to `202606`)
+- `LINKEDIN_CONVERSIONS_API_ENDPOINT` (optional; defaults to LinkedIn's REST conversion events endpoint)
+- `LINKEDIN_CONVERSION_URN_BOOK_CALL`
+- `LINKEDIN_CONVERSION_URN_LEAD_SUBMIT`
+- `LINKEDIN_CONVERSION_URN_SIGNUP_COMPLETE`
 - `META_CONVERSIONS_API_ACCESS_TOKEN`
 - `META_CONVERSIONS_API_GRAPH_VERSION`
 - `X_CONVERSIONS_API_ENDPOINT`
 - `X_CONVERSIONS_API_BEARER_TOKEN`
+
+LinkedIn Conversions API remains opt-in: the server skips dispatch unless the
+access token, event-specific conversion rule URN, and at least one match
+identifier such as email, `liFatId`, or client IPv4 address are present.
 
 ## Verification Checklist
 
@@ -61,4 +71,5 @@ Local or staging:
 - Use LinkedIn Insight Tag verification to confirm the tag loads only after consent and receives mapped conversion events.
 - Use X Pixel Helper to confirm X Pixel is absent before consent and receives mapped events after consent.
 - Trigger a booking, lead, or signup success event and confirm the browser event and `/api/marketing/conversions` request share the same `eventId`.
+- In LinkedIn Campaign Manager diagnostics, confirm configured server events use the same event ID as browser events and skip when conversion rule URNs or identifiers are absent.
 - In Meta Events Manager and X Ads diagnostics, confirm server events dedupe with browser events by the shared event ID.

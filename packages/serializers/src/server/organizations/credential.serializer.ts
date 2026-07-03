@@ -1,6 +1,5 @@
 import { buildSerializer } from '@serializers/builders';
 import {
-  credentialFullSerializerConfig,
   credentialInstagramPagesSerializerConfig,
   credentialOAuthSerializerConfig,
   credentialSerializerConfig,
@@ -10,12 +9,6 @@ import {
 export const { CredentialSerializer } = buildSerializer(
   'server',
   credentialSerializerConfig,
-);
-
-/** Includes sensitive data */
-export const { CredentialFullSerializer } = buildSerializer(
-  'server',
-  credentialFullSerializerConfig,
 );
 
 export const { CredentialOAuthSerializer } = buildSerializer(

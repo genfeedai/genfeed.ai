@@ -314,6 +314,7 @@ export function useModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
             selectedFile,
             presignedData.uploadUrl,
             handleProgress,
+            { key: presignedData.s3Key, type: IngredientCategory.IMAGE },
           );
 
           const uploaded = await mediaService.confirmUpload(presignedData.id);

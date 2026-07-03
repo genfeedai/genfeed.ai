@@ -25,20 +25,6 @@ const RATE_LIMIT_TTL_SECONDS = 86_400;
 const BETTER_AUTH_CREATOR_ROLE = 'admin';
 const BETTER_AUTH_DEFAULT_ORGANIZATION_CATEGORY = 'BUSINESS';
 
-const BETTER_AUTH_ROLE_KEY_FALLBACKS: Record<string, string[]> = {
-  admin: ['admin', 'user'],
-  member: ['member', 'user'],
-  owner: ['admin', 'user'],
-  user: ['user'],
-};
-
-function normalizeBetterAuthOrganizationRole(role: string | undefined): string {
-  const normalized = role?.trim().toLowerCase();
-  return normalized && normalized in BETTER_AUTH_ROLE_KEY_FALLBACKS
-    ? normalized
-    : 'member';
-}
-
 /**
  * Adapt the shared Redis KV into Better Auth's `rateLimit.customStorage` shape
  * so all API instances share one counter window (per-process memory would let
@@ -86,36 +72,16 @@ function getRequiredString(value: unknown, label: string): string {
   return resolved;
 }
 
-async function resolveGenfeedRoleForBetterAuthRole(
-  prisma: ICreateBetterAuthOptions['prisma'],
-  role: string | undefined,
-): Promise<{ roleId: string; roleKey: string }> {
-  const roleKey = normalizeBetterAuthOrganizationRole(role);
-  const fallbackKeys = BETTER_AUTH_ROLE_KEY_FALLBACKS[roleKey] ?? ['user'];
-
-  for (const key of fallbackKeys) {
-    const genfeedRole = await prisma.role.findFirst({
-      select: { id: true, key: true },
-      where: { isDeleted: false, key },
-    });
-    if (genfeedRole) {
-      return { roleId: genfeedRole.id, roleKey: genfeedRole.key };
-    }
-  }
-
-  throw new Error(
-    `No Genfeed Role found for Better Auth organization role "${roleKey}"`,
-  );
-}
-
 /**
  * Maps Better Auth's organization plugin onto Genfeed's existing domain tables.
  *
  * BA gets string role/session compatibility (`roleKey`,
  * `Session.activeOrganizationId`), but Genfeed authorization keeps validating
- * against Organization/Member/Role rows. Invitation creation stays owned by
- * `InvitationService`; BA invite creation is rejected so there is one source of
- * token/email/status behavior.
+ * against Organization/Member/Role rows. Membership mutation stays owned by
+ * Genfeed: invitation creation (`InvitationService`) and member add / role
+ * changes (RolesGuard-protected members API) are all rejected on the BA side so
+ * there is exactly one authorized, source-of-truth path for each — and no BA
+ * native endpoint can grant a Genfeed Role without going through RolesGuard.
  */
 export function buildBetterAuthOrganizationOptions(
   prisma: ICreateBetterAuthOptions['prisma'],
@@ -137,7 +103,6 @@ export function buildBetterAuthOrganizationOptions(
           logo: 'authProviderLogoUrl',
           name: 'label',
           slug: 'slug',
-          updatedAt: 'updatedAt',
         },
         additionalFields: {
           category: {
@@ -246,29 +211,23 @@ export function buildBetterAuthOrganizationOptions(
           },
         };
       },
-      beforeAddMember: async ({ member }) => {
-        const role = await resolveGenfeedRoleForBetterAuthRole(
-          prisma,
-          member.role,
+      // Member add / role-change are NOT allowed through Better Auth's native
+      // organization endpoints. Genfeed owns membership: all member writes go
+      // through RolesGuard-protected controllers + InvitationService, which map
+      // and authorize Genfeed Roles. If these hooks resolved a Role from the
+      // BA-supplied role string, any caller holding a BA org 'admin'/'owner'
+      // role could hit /organization/add-member or /update-member-role and
+      // self-promote to Genfeed's admin Role, bypassing RolesGuard entirely.
+      // Throw (as beforeCreateInvitation does) so there is one authorized path.
+      beforeAddMember: async () => {
+        throw new Error(
+          'Genfeed owns organization membership; Better Auth add-member is disabled. Use the members API.',
         );
-        return {
-          data: {
-            ...member,
-            isActive: true,
-            isDeleted: false,
-            role: role.roleKey,
-            roleId: role.roleId,
-          },
-        };
       },
-      beforeUpdateMemberRole: async ({ newRole }) => {
-        const role = await resolveGenfeedRoleForBetterAuthRole(prisma, newRole);
-        return {
-          data: {
-            role: role.roleKey,
-            roleId: role.roleId,
-          },
-        };
+      beforeUpdateMemberRole: async () => {
+        throw new Error(
+          'Genfeed owns organization membership; Better Auth member role changes are disabled. Use the members API.',
+        );
       },
       beforeCreateInvitation: async () => {
         throw new Error(
@@ -433,13 +392,34 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
     baseURL,
     trustedOrigins,
     google,
+    github,
+    requireEmailVerification = false,
     cookieDomain,
     ipAddressHeaders,
     experimentalJoins,
     rateLimitStore,
     sendMagicLink,
+    sendVerificationEmail,
     onUserCreated,
   } = options;
+  const socialProviders = {
+    ...(google
+      ? {
+          google: {
+            clientId: google.clientId,
+            clientSecret: google.clientSecret,
+          },
+        }
+      : {}),
+    ...(github
+      ? {
+          github: {
+            clientId: github.clientId,
+            clientSecret: github.clientSecret,
+          },
+        }
+      : {}),
+  };
 
   return betterAuth({
     appName: 'Genfeed.ai',
@@ -448,27 +428,54 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
     secret,
     trustedOrigins,
     database: prismaAdapter(prisma, { provider: 'postgresql' }),
+    account: {
+      accountLinking: {
+        enabled: true,
+        requireLocalEmailVerified: true,
+        trustedProviders: ['google', 'github'],
+        updateUserInfoOnLink: true,
+      },
+    },
     emailAndPassword: {
       enabled: true,
-      // Email-verification flow lands in Phase 3 (#738); off for dual-run.
-      requireEmailVerification: false,
+      requireEmailVerification,
     },
-    ...(google
+    emailVerification: {
+      autoSignInAfterVerification: true,
+      sendOnSignIn: requireEmailVerification,
+      sendOnSignUp: requireEmailVerification,
+      sendVerificationEmail: async ({ token, url, user }) => {
+        // Guard: this callback should only be invoked when email verification is
+        // required (SMTP is configured). If it fires without that flag, the
+        // deployment is misconfigured — throw so the error surfaces rather than
+        // silently swallowing a verification that was never sent.
+        if (!requireEmailVerification) {
+          throw new Error(
+            'sendVerificationEmail called but requireEmailVerification is false. ' +
+              'Configure SMTP and enable requireEmailVerification before sending verification emails.',
+          );
+        }
+        await sendVerificationEmail({
+          token,
+          url,
+          user: { email: user.email },
+        });
+      },
+    },
+    ...(Object.keys(socialProviders).length > 0
       ? {
-          socialProviders: {
-            google: {
-              clientId: google.clientId,
-              clientSecret: google.clientSecret,
-            },
-          },
+          socialProviders,
         }
       : {}),
     // Share rate-limit counters across stateless API instances via Redis;
     // `customStorage` scopes Redis to rate limiting only (sessions stay in
     // Postgres). Omitted when no store is wired so the in-memory default holds.
-    ...(rateLimitStore
-      ? { rateLimit: { customStorage: buildRateLimitStorage(rateLimitStore) } }
-      : {}),
+    rateLimit: {
+      enabled: true,
+      ...(rateLimitStore
+        ? { customStorage: buildRateLimitStorage(rateLimitStore) }
+        : {}),
+    },
     // Experimental single-query joins (Prisma adapter). Env-gated; off unless
     // explicitly enabled after staging verification.
     ...(experimentalJoins ? { experimental: { joins: true } } : {}),

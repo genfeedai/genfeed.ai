@@ -132,7 +132,7 @@ describe('AppLayout', () => {
   });
 
   it('collapses the desktop sidebar to only the Genfeed logo toggle', async () => {
-    window.localStorage.setItem('genfeed:sidebar:collapsed:anon', 'true');
+    window.localStorage.setItem('genfeed:sidebar:collapsed:auth', 'true');
 
     render(
       <AppLayout menuComponent={<MenuComponent />}>

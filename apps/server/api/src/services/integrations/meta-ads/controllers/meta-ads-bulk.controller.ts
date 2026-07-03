@@ -7,6 +7,7 @@ import { AdBulkUploadJobsService } from '@api/collections/ad-bulk-upload-jobs/se
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import {
   extractRequestContext,
   getPublicMetadata,
@@ -16,15 +17,7 @@ import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import {
-  Body,
-  Controller,
-  Get,
-  NotFoundException,
-  Param,
-  Post,
-  Query,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 
 interface CreateBulkUploadBody {
   credentialId: string;
@@ -111,7 +104,7 @@ export class MetaAdsBulkController {
     );
 
     if (!job) {
-      throw new NotFoundException(`Bulk upload job ${id} not found`);
+      throw new NotFoundException('Bulk upload job', id);
     }
 
     return job;
@@ -129,7 +122,7 @@ export class MetaAdsBulkController {
     );
 
     if (!job) {
-      throw new NotFoundException(`Bulk upload job ${id} not found`);
+      throw new NotFoundException('Bulk upload job', id);
     }
 
     await this.adBulkUploadJobsService.updateStatus(id, 'cancelled');
@@ -150,9 +143,10 @@ export class MetaAdsBulkController {
     });
 
     if (!credential?.accessToken) {
-      throw new NotFoundException(
-        'Facebook credential not found. Please connect your Facebook account first.',
-      );
+      throw new NotFoundException({
+        message:
+          'Facebook credential not found. Please connect your Facebook account first.',
+      });
     }
 
     return EncryptionUtil.decrypt(credential.accessToken);

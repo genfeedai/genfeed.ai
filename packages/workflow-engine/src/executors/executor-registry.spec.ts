@@ -16,6 +16,7 @@ describe('executor-registry', () => {
       expect(types).toContain('publish');
       expect(types).toContain('condition');
       expect(types).toContain('delay');
+      expect(types).toContain('hookGenerator');
       expect(types).toContain('noop');
     });
   });
@@ -55,6 +56,13 @@ describe('executor-registry', () => {
       expect(meta).toBeDefined();
       expect(meta?.nodeType).toBe('brand');
       expect(meta?.requiresResolver).toBe(true);
+    });
+
+    it('returns metadata for hookGenerator without a resolver requirement', () => {
+      const meta = getExecutorMetadata('hookGenerator');
+      expect(meta).toBeDefined();
+      expect(meta?.nodeType).toBe('hookGenerator');
+      expect(meta?.requiresResolver).toBe(false);
     });
 
     it('returns undefined for unknown type', () => {
@@ -100,6 +108,7 @@ describe('executor-registry', () => {
       expect(registry.getImageGenExecutor()).toBeDefined();
       expect(registry.getKeywordTriggerExecutor()).toBeDefined();
       expect(registry.getEngagementTriggerExecutor()).toBeDefined();
+      expect(registry.getCommentTriggerExecutor()).toBeDefined();
     });
 
     it('allows setting custom executor', () => {

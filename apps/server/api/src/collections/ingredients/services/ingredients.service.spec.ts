@@ -6,6 +6,19 @@ import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
+// Real, schema-derived getModelMeta/PRISMA_MODEL_METADATA.Ingredient (category/
+// status/scope/etc enum fields) plus real, complete IngredientCategory/
+// IngredientStatus/AssetScope enum value objects (used by
+// normalizeEnumScalarValue → getPrismaEnumValues) via the light
+// @genfeedai/prisma/testing subpath — no heavy PrismaClient/runtime import
+// required for BaseService's getModelMeta('ingredient') call.
+vi.mock('@genfeedai/prisma', async () => {
+  const { canonicalPrismaMock } = await import(
+    '@api/shared/testing/prisma-mock'
+  );
+  return canonicalPrismaMock();
+});
+
 describe('IngredientsService', () => {
   let service: IngredientsService;
   let ingredientDelegate: {
@@ -119,6 +132,42 @@ describe('IngredientsService', () => {
       expect(result).toBeDefined();
     });
 
+    it('normalizes app-form category to Prisma UPPERCASE before calling prisma.ingredient.update', async () => {
+      const id = 'ing-1';
+      // IngredientStatus.GENERATED = 'generated' (app-form lowercase)
+      const updateDto: UpdateIngredientDto = {
+        status: IngredientStatus.GENERATED, // 'generated' → should become 'GENERATED'
+        category: IngredientCategory.VIDEO, // 'video' → should become 'VIDEO'
+      };
+
+      await service.patch(id, updateDto);
+
+      expect(ingredientDelegate.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id },
+          data: expect.objectContaining({
+            status: 'GENERATED',
+            category: 'VIDEO',
+          }),
+        }),
+      );
+    });
+
+    it('normalizes kebab category image-edit to IMAGE_EDIT before calling prisma.ingredient.update', async () => {
+      const id = 'ing-2';
+      const updateDto: UpdateIngredientDto = {
+        category: IngredientCategory.IMAGE_EDIT, // 'image-edit' → 'IMAGE_EDIT'
+      };
+
+      await service.patch(id, updateDto);
+
+      expect(ingredientDelegate.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ category: 'IMAGE_EDIT' }),
+        }),
+      );
+    });
+
     it('should handle update errors', async () => {
       const id = 'test-id';
       const updateDto: UpdateIngredientDto = {
@@ -131,6 +180,25 @@ describe('IngredientsService', () => {
 
       await expect(service.patch(id, updateDto)).rejects.toThrow(
         'Update failed',
+      );
+    });
+  });
+
+  describe('patchAll', () => {
+    it('normalizes app-form status to Prisma UPPERCASE before calling prisma.ingredient.updateMany', async () => {
+      const updateManyMock = vi.fn().mockResolvedValue({ count: 2 });
+      ingredientDelegate.updateMany = updateManyMock;
+
+      await service.patchAll(
+        { category: IngredientCategory.IMAGE }, // 'image' → 'IMAGE'
+        { status: IngredientStatus.GENERATED }, // 'generated' → 'GENERATED'
+      );
+
+      expect(updateManyMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ category: 'IMAGE' }),
+          data: expect.objectContaining({ status: 'GENERATED' }),
+        }),
       );
     });
   });

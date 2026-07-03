@@ -6,6 +6,7 @@ import type {
   OutreachCampaignDocument,
 } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
+import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { CampaignExecutorService } from '@api/services/campaign/campaign-executor.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
@@ -61,6 +62,26 @@ describe('CampaignExecutorService', () => {
     postReply: vi.fn(),
   };
 
+  const mockSystemWorkflowProvenanceService = {
+    runAction: vi.fn(
+      async (
+        _input: unknown,
+        action: (provenance: {
+          executionId: string;
+          workflowId: string;
+          workflowLabel: string;
+        }) => Promise<unknown>,
+      ) => {
+        const provenance = {
+          executionId: 'execution-1',
+          workflowId: 'workflow-1',
+          workflowLabel: 'Campaign Reply Automation',
+        };
+        return { provenance, result: await action(provenance) };
+      },
+    ),
+  };
+
   const campaignId = 'test-object-id';
   const targetId = 'test-object-id';
   const credentialId = 'test-object-id';
@@ -70,7 +91,7 @@ describe('CampaignExecutorService', () => {
     overrides: Partial<OutreachCampaignDocument> = {},
   ): OutreachCampaignDocument =>
     ({
-      _id: campaignId,
+      id: campaignId,
       aiConfig: {
         context: 'some context',
         customInstructions: 'be nice',
@@ -90,7 +111,7 @@ describe('CampaignExecutorService', () => {
     overrides: Partial<CampaignTargetDocument> = {},
   ): CampaignTargetDocument =>
     ({
-      _id: targetId,
+      id: targetId,
       authorUsername: 'testuser',
       contentCreatedAt: new Date(),
       contentText: 'hello world',
@@ -101,7 +122,7 @@ describe('CampaignExecutorService', () => {
     }) as unknown as CampaignTargetDocument;
 
   const fakeCredential = {
-    _id: credentialId,
+    id: credentialId,
     accessToken: 'at',
     accessTokenSecret: 'ats',
     externalId: 'ext1',
@@ -132,6 +153,10 @@ describe('CampaignExecutorService', () => {
         {
           provide: BotActionExecutorService,
           useValue: mockBotActionExecutorService,
+        },
+        {
+          provide: SystemWorkflowProvenanceService,
+          useValue: mockSystemWorkflowProvenanceService,
         },
       ],
     }).compile();
@@ -310,7 +335,7 @@ describe('CampaignExecutorService', () => {
   describe('processPendingTargets', () => {
     it('should process a batch of pending targets', async () => {
       const campaign = makeCampaign();
-      const targets = [makeTarget(), makeTarget({ _id: 'test-object-id' })];
+      const targets = [makeTarget(), makeTarget({ id: 'test-object-id' })];
       mockCampaignTargetsService.getPendingTargets.mockResolvedValue(targets);
       mockOutreachCampaignsService.canReply.mockResolvedValue(true);
       mockCredentialsService.findOne.mockResolvedValue(fakeCredential);
@@ -330,8 +355,8 @@ describe('CampaignExecutorService', () => {
 
     it('should count skipped and failed separately', async () => {
       const campaign = makeCampaign();
-      const t1 = makeTarget({ _id: 'test-object-id' });
-      const t2 = makeTarget({ _id: 'test-object-id' });
+      const t1 = makeTarget({ id: 'test-object-id' });
+      const t2 = makeTarget({ id: 'test-object-id' });
       mockCampaignTargetsService.getPendingTargets.mockResolvedValue([t1, t2]);
       // First target: rate limited
       mockOutreachCampaignsService.canReply

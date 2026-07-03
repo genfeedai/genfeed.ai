@@ -128,7 +128,3 @@ export class NewRepostTriggerExecutor extends BaseExecutor {
     return 0;
   }
 }
-
-export function createNewRepostTriggerExecutor(): NewRepostTriggerExecutor {
-  return new NewRepostTriggerExecutor();
-}

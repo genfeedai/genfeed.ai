@@ -1,16 +1,19 @@
 import { ConfigService } from '@api/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { parseRedisConnection } from '@libs/redis/redis-connection.utils';
+import {
+  buildIoRedisClientOptions,
+  parseRedisConnection,
+} from '@libs/redis/redis-connection.utils';
 import {
   Injectable,
   type OnModuleDestroy,
   type OnModuleInit,
 } from '@nestjs/common';
-import { createClient, type RedisClientType } from 'redis';
+import Redis from 'ioredis';
 
 @Injectable()
 export class CacheClientService implements OnModuleInit, OnModuleDestroy {
-  private readonly client: RedisClientType;
+  private readonly client: Redis;
   private readonly constructorName = this.constructor.name;
 
   private static readonly MAX_RECONNECT_RETRIES = 10;
@@ -24,15 +27,15 @@ export class CacheClientService implements OnModuleInit, OnModuleDestroy {
   ) {
     const config = parseRedisConnection(this.configService);
 
-    this.client = createClient({
-      socket: {
+    this.client = new Redis(
+      buildIoRedisClientOptions(config, {
         connectTimeout: 3_000,
-        reconnectStrategy: (retries: number) => {
+        retryStrategy: (retries: number) => {
           if (retries >= CacheClientService.MAX_RECONNECT_RETRIES) {
             this.logger.error(
               `${this.constructorName} max reconnect attempts reached (${retries}), giving up`,
             );
-            return false;
+            return null;
           }
           const delay = Math.min(
             100 * 2 ** retries,
@@ -43,10 +46,8 @@ export class CacheClientService implements OnModuleInit, OnModuleDestroy {
           );
           return delay;
         },
-        ...(config.tls && { tls: true }),
-      },
-      url: config.url,
-    });
+      }),
+    );
 
     this.client.on('error', (error: Error) => {
       this.logger.error(`${this.constructorName} Redis client error`, error);
@@ -62,10 +63,10 @@ export class CacheClientService implements OnModuleInit, OnModuleDestroy {
   }
 
   get isReady(): boolean {
-    return this.client.isReady;
+    return this.client.status === 'ready';
   }
 
-  get instance(): RedisClientType {
+  get instance(): Redis {
     return this.client;
   }
 
@@ -107,24 +108,12 @@ export class CacheClientService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async forceCloseClient(): Promise<void> {
-    const client = this.client as RedisClientType & {
-      destroy?: () => void;
-      disconnect?: () => Promise<void> | void;
-    };
-
     try {
-      if (typeof client.destroy === 'function') {
-        client.destroy();
-        return;
-      }
-
-      if (typeof client.disconnect === 'function') {
-        await this.withTimeout(
-          Promise.resolve(client.disconnect()),
-          CacheClientService.FORCE_DISCONNECT_TIMEOUT_MS,
-          'Redis force disconnect timeout',
-        );
-      }
+      await this.withTimeout(
+        Promise.resolve(this.client.disconnect()),
+        CacheClientService.FORCE_DISCONNECT_TIMEOUT_MS,
+        'Redis force disconnect timeout',
+      );
     } catch (error: unknown) {
       this.logger.error(
         `${this.constructorName} force disconnect error`,

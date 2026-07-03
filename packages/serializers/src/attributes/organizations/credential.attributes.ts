@@ -1,14 +1,5 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
-const sensitiveFields = [
-  'oauthToken',
-  'oauthTokenSecret',
-  'accessToken',
-  'accessTokenSecret',
-  'refreshToken',
-  'refreshTokenExpiry',
-];
-
 const publicFields = [
   'organization',
   'brand',
@@ -20,13 +11,21 @@ const publicFields = [
   'accessTokenExpiry',
   'label',
   'description',
+  'accountHealth',
+  'warmupAssessedAt',
+  'warmupHoldReason',
+  'warmupManualOverride',
+  'warmupOverrideConfirmedAt',
+  'warmupOverrideConfirmedByUserId',
+  'warmupOverrideReason',
+  'warmupOverrideUntil',
+  'warmupRiskLevel',
+  'warmupScore',
+  'warmupSignals',
+  'warmupState',
+  'warmupThresholds',
   'isConnected',
 ];
-
-export const credentialFullAttributes = createEntityAttributes([
-  ...publicFields,
-  ...sensitiveFields,
-]);
 
 export const credentialAttributes = createEntityAttributes(publicFields);
 

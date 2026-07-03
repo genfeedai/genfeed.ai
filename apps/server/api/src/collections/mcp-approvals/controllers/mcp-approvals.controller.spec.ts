@@ -1,9 +1,10 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { McpApprovalsController } from '@api/collections/mcp-approvals/controllers/mcp-approvals.controller';
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

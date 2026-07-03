@@ -1,5 +1,6 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsController } from '@api/collections/credentials/controllers/credentials.controller';
+import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
@@ -20,6 +21,7 @@ import { HttpException } from '@nestjs/common';
 
 describe('CredentialsController', () => {
   let controller: CredentialsController;
+  let accountHealthService: Record<string, ReturnType<typeof vi.fn>>;
   let accountPublishingContextService: Record<string, ReturnType<typeof vi.fn>>;
   let credentialsService: Record<string, ReturnType<typeof vi.fn>>;
   let brandsService: Record<string, ReturnType<typeof vi.fn>>;
@@ -48,7 +50,41 @@ describe('CredentialsController', () => {
     refreshToken: vi.fn().mockResolvedValue({}),
   });
 
+  const accountHealthSummary = {
+    assessedAt: '2026-06-30T10:00:00.000Z',
+    credentialId: credId,
+    holdPublishing: true,
+    holdReason: 'twitter publishing is held because account warmup is warming.',
+    label: 'X Account',
+    override: { isActive: false },
+    platform: CredentialPlatform.TWITTER,
+    riskLevel: 'medium',
+    score: 56,
+    signals: {
+      connectedDays: 1,
+      profileSignals: 2,
+      publishedPosts: 0,
+      recentFailures: 0,
+    },
+    state: 'warming',
+    thresholds: {
+      maxRecentFailures: 0,
+      minConnectedDays: 10,
+      minProfileSignals: 2,
+      minPublishedPosts: 4,
+    },
+  };
+
   beforeEach(() => {
+    accountHealthService = {
+      assessCredentialHealth: vi.fn().mockResolvedValue(accountHealthSummary),
+      confirmManualOverride: vi.fn().mockResolvedValue({
+        ...accountHealthSummary,
+        holdPublishing: false,
+        override: { isActive: true },
+      }),
+      listBrandHealth: vi.fn().mockResolvedValue([accountHealthSummary]),
+    };
     credentialsService = {
       create: vi.fn(),
       find: vi.fn().mockResolvedValue([]),
@@ -87,6 +123,7 @@ describe('CredentialsController', () => {
     quotaService = { checkQuota: vi.fn() };
 
     controller = new CredentialsController(
+      accountHealthService as unknown as AccountHealthService,
       accountPublishingContextService as unknown as AccountPublishingContextService,
       brandsService as unknown as BrandsService,
       credentialsService as unknown as CredentialsService,
@@ -157,19 +194,19 @@ describe('CredentialsController', () => {
     it('should return deduplicated mentions', async () => {
       credentialsService.find.mockResolvedValue([
         {
-          _id: '507f191e810c19729de860ee',
+          id: '507f191e810c19729de860ee',
           externalHandle: '@user1',
           externalName: 'User One',
           platform: CredentialPlatform.TWITTER,
         },
         {
-          _id: '507f191e810c19729de860ee',
+          id: '507f191e810c19729de860ee',
           externalHandle: '@user1',
           externalName: 'User One',
           platform: CredentialPlatform.TWITTER,
         },
         {
-          _id: '507f191e810c19729de860ee',
+          id: '507f191e810c19729de860ee',
           externalHandle: '@user2',
           externalName: 'User Two',
           platform: CredentialPlatform.INSTAGRAM,
@@ -223,6 +260,64 @@ describe('CredentialsController', () => {
     });
   });
 
+  describe('account health', () => {
+    const user = {
+      ...mockUser,
+      publicMetadata: {
+        brand: 'brand-1',
+        organization: orgId,
+        user: userId,
+      },
+    } as never;
+
+    it('lists account health for a brand', async () => {
+      const result = await controller.listBrandAccountHealth('brand-1', user);
+
+      expect(accountHealthService.listBrandHealth).toHaveBeenCalledWith(
+        orgId,
+        'brand-1',
+      );
+      expect(result).toEqual([accountHealthSummary]);
+    });
+
+    it('assesses account health for the current brand and organization', async () => {
+      const result = await controller.assessAccountHealth(
+        credId,
+        { thresholds: { minPublishedPosts: 1 } },
+        user,
+      );
+
+      expect(accountHealthService.assessCredentialHealth).toHaveBeenCalledWith({
+        brandId: 'brand-1',
+        credentialId: credId,
+        organizationId: orgId,
+        request: { thresholds: { minPublishedPosts: 1 } },
+      });
+      expect(result).toEqual(accountHealthSummary);
+    });
+
+    it('confirms a manual account health override with the local user id', async () => {
+      const request = {
+        confirm: true,
+        reason: 'operator reviewed guidance',
+      } as const;
+
+      const result = await controller.overrideAccountHealth(
+        credId,
+        request,
+        user,
+      );
+
+      expect(accountHealthService.confirmManualOverride).toHaveBeenCalledWith({
+        credentialId: credId,
+        organizationId: orgId,
+        request,
+        userId,
+      });
+      expect(result.override.isActive).toBe(true);
+    });
+  });
+
   describe('refreshCredentialToken', () => {
     it('should refresh token for supported platform', async () => {
       credentialsService.findOne
@@ -260,6 +355,7 @@ describe('CredentialsController', () => {
         refreshToken: vi.fn().mockRejectedValue(new Error('Token expired')),
       };
       const failController = new CredentialsController(
+        accountHealthService as unknown as AccountHealthService,
         accountPublishingContextService as unknown as AccountPublishingContextService,
         brandsService as unknown as BrandsService,
         credentialsService as unknown as CredentialsService,
@@ -279,7 +375,7 @@ describe('CredentialsController', () => {
       );
 
       credentialsService.findOne.mockResolvedValueOnce({
-        _id: credId,
+        id: credId,
         brand: '507f191e810c19729de860ee',
         organization: orgId,
         platform: CredentialPlatform.TWITTER,
@@ -360,7 +456,7 @@ describe('CredentialsController', () => {
   describe('getQuotaStatus', () => {
     it('should return quota status for a credential', async () => {
       credentialsService.findOne.mockResolvedValue({
-        _id: credId,
+        id: credId,
       });
       organizationsService.findOne.mockResolvedValue({
         _id: orgId,

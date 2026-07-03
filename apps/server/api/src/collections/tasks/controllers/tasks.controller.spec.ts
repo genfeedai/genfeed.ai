@@ -5,21 +5,24 @@ import { TasksController } from '@api/collections/tasks/controllers/tasks.contro
 import { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
 import type { TaskDocument } from '@api/collections/tasks/schemas/task.schema';
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import type { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { TaskSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
-import { NotFoundException } from '@nestjs/common';
 import type { Request } from 'express';
 
 describe('TasksController', () => {
   let controller: TasksController;
   let tasksService: {
+    approve: ReturnType<typeof vi.fn>;
     areAllChildrenDone: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
     findByIdentifier: ReturnType<typeof vi.fn>;
     findChildren: ReturnType<typeof vi.fn>;
     findOne: ReturnType<typeof vi.fn>;
+    keepOutput: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
+    trashOutput: ReturnType<typeof vi.fn>;
   };
   let taskCountersService: { getNextNumber: ReturnType<typeof vi.fn> };
   let organizationsService: { findOne: ReturnType<typeof vi.fn> };
@@ -50,12 +53,15 @@ describe('TasksController', () => {
 
   beforeEach(() => {
     tasksService = {
+      approve: vi.fn(),
       areAllChildrenDone: vi.fn(),
       create: vi.fn(),
       findByIdentifier: vi.fn(),
       findChildren: vi.fn().mockResolvedValue([]),
       findOne: vi.fn(),
+      keepOutput: vi.fn(),
       patch: vi.fn(),
+      trashOutput: vi.fn(),
     };
     taskCountersService = {
       getNextNumber: vi.fn(),
@@ -199,7 +205,7 @@ describe('TasksController', () => {
     it('allows modification when the task stores a populated organization object', () => {
       const entity = {
         organization: {
-          _id: organizationId,
+          id: organizationId,
         },
       } as unknown as TaskDocument;
 
@@ -267,6 +273,66 @@ describe('TasksController', () => {
         organizationId,
       );
       expect('data' in result ? result.data : result).toEqual(children);
+    });
+  });
+
+  describe('review actions', () => {
+    const taskId = '507f191e810c19729de860ee'.toString();
+    const outputId = '607f191e810c19729de860ff'.toString();
+    const task = {
+      _id: taskId,
+      title: 'Review task',
+    } as TaskDocument;
+
+    it('passes the reviewer user id when approving a task', async () => {
+      tasksService.approve.mockResolvedValue(task);
+
+      const result = await controller.approve(mockRequest, mockUser, taskId);
+
+      expect(tasksService.approve).toHaveBeenCalledWith(
+        taskId,
+        organizationId,
+        userId,
+      );
+      expect('data' in result ? result.data : result).toEqual(task);
+    });
+
+    it('passes the reviewer user id when keeping an output', async () => {
+      tasksService.keepOutput.mockResolvedValue(task);
+
+      const result = await controller.keepOutput(
+        mockRequest,
+        mockUser,
+        taskId,
+        outputId,
+      );
+
+      expect(tasksService.keepOutput).toHaveBeenCalledWith(
+        taskId,
+        outputId,
+        organizationId,
+        userId,
+      );
+      expect('data' in result ? result.data : result).toEqual(task);
+    });
+
+    it('passes the reviewer user id when trashing an output', async () => {
+      tasksService.trashOutput.mockResolvedValue(task);
+
+      const result = await controller.trashOutput(
+        mockRequest,
+        mockUser,
+        taskId,
+        outputId,
+      );
+
+      expect(tasksService.trashOutput).toHaveBeenCalledWith(
+        taskId,
+        outputId,
+        organizationId,
+        userId,
+      );
+      expect('data' in result ? result.data : result).toEqual(task);
     });
   });
 });

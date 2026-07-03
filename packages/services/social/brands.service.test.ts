@@ -50,13 +50,80 @@ vi.mock('@services/core/base.service', () => {
       return new (MockBaseService as new (token: string) => unknown)(token);
     }
 
-    static getDataServiceInstance(ServiceClass: any, ...args: any[]) {
+    static getDataServiceInstance<T>(
+      ServiceClass: new (...args: unknown[]) => T,
+      ...args: unknown[]
+    ) {
       return new ServiceClass(...args);
     }
   }
 
   return { BaseService: MockBaseService };
 });
+
+vi.mock('@genfeedai/models/analytics/activity.model', () => ({
+  Activity: class MockActivity {
+    constructor(partial: Record<string, unknown> = {}) {
+      Object.assign(this, partial);
+    }
+  },
+}));
+
+vi.mock('@genfeedai/models/auth/credential.model', () => ({
+  Credential: class MockCredential {
+    constructor(partial: Record<string, unknown> = {}) {
+      Object.assign(this, partial);
+    }
+  },
+}));
+
+vi.mock('@genfeedai/models/content/article.model', () => ({
+  Article: class MockArticle {
+    constructor(partial: Record<string, unknown> = {}) {
+      Object.assign(this, partial);
+    }
+  },
+}));
+
+vi.mock('@genfeedai/models/content/post.model', () => ({
+  Post: class MockPost {
+    constructor(partial: Record<string, unknown> = {}) {
+      Object.assign(this, partial);
+    }
+  },
+}));
+
+vi.mock('@genfeedai/models/ingredients/image.model', () => ({
+  Image: class MockImage {
+    constructor(partial: Record<string, unknown> = {}) {
+      Object.assign(this, partial);
+    }
+  },
+}));
+
+vi.mock('@genfeedai/models/ingredients/video.model', () => ({
+  Video: class MockVideo {
+    constructor(partial: Record<string, unknown> = {}) {
+      Object.assign(this, partial);
+    }
+  },
+}));
+
+vi.mock('@genfeedai/models/organization/brand.model', () => ({
+  Brand: class MockBrand {
+    constructor(partial: Record<string, unknown> = {}) {
+      Object.assign(this, partial);
+    }
+  },
+}));
+
+vi.mock('@genfeedai/models/social/link.model', () => ({
+  Link: class MockLink {
+    constructor(partial: Record<string, unknown> = {}) {
+      Object.assign(this, partial);
+    }
+  },
+}));
 
 vi.mock('@services/core/json-api', () => ({
   deserializeCollection: vi.fn(<T>(doc: { data: T[] }) => doc.data),
@@ -194,6 +261,69 @@ describe('BrandsService', () => {
     });
   });
 
+  describe('brand kit review endpoints', () => {
+    it('posts website crawl input and unwraps the draft payload', async () => {
+      const draft = {
+        assetCandidates: [],
+        brandId: mockBrandId,
+        diagnostics: [],
+        evidence: [],
+        fields: {},
+        readiness: {
+          diagnostics: [],
+          missingFields: [],
+          requiredFields: [],
+          score: 80,
+          status: 'partial',
+        },
+        sourceType: 'website',
+        status: 'partial',
+      };
+      mockPost.mockResolvedValue({ data: { data: draft } });
+
+      const result = await service.crawlBrandKitWebsite(mockBrandId, {
+        socialUrls: ['https://linkedin.com/company/acme'],
+        url: 'https://acme.test',
+      });
+
+      expect(mockPost).toHaveBeenCalledWith(`/${mockBrandId}/brand-kit/crawl`, {
+        socialUrls: ['https://linkedin.com/company/acme'],
+        url: 'https://acme.test',
+      });
+      expect(result).toEqual(draft);
+    });
+
+    it('posts selected field decisions and unwraps the apply result', async () => {
+      const applyResult = {
+        appliedFields: ['description'],
+        brandId: mockBrandId,
+        diagnostics: [],
+        preservedFields: [],
+        status: 'accepted',
+      };
+      mockPost.mockResolvedValue({ data: { data: applyResult } });
+
+      const result = await service.applyBrandKitDraft(mockBrandId, {
+        fields: {
+          description: {
+            action: 'accept',
+            value: 'Imported description',
+          },
+        },
+      });
+
+      expect(mockPost).toHaveBeenCalledWith(`/${mockBrandId}/brand-kit/apply`, {
+        fields: {
+          description: {
+            action: 'accept',
+            value: 'Imported description',
+          },
+        },
+      });
+      expect(result).toEqual(applyResult);
+    });
+  });
+
   describe('generateFastlaneIdeas', () => {
     const dto = { count: 3, formats: ['image', 'video'] as const };
 
@@ -226,6 +356,43 @@ describe('BrandsService', () => {
       const result = await service.generateFastlaneIdeas(mockBrandId, dto);
 
       expect(result).toEqual([]);
+    });
+  });
+
+  describe('createManualBrandKitDraft', () => {
+    it('calls POST with the manual brand kit endpoint and unwraps the draft', async () => {
+      const draft = {
+        assetCandidates: [],
+        brandId: mockBrandId,
+        diagnostics: [],
+        evidence: [],
+        fields: {},
+        readiness: {
+          diagnostics: [],
+          missingFields: [],
+          requiredFields: [],
+          score: 100,
+          status: 'complete',
+        },
+        sourceType: 'manual',
+        status: 'ready',
+      };
+      const payload = {
+        description: 'Manual description',
+        guidanceText: 'Use proof-led, short guidance.',
+      };
+      mockPost.mockResolvedValue({ data: { data: draft } });
+
+      const result = await service.createManualBrandKitDraft(
+        mockBrandId,
+        payload,
+      );
+
+      expect(mockPost).toHaveBeenCalledWith(
+        `/${mockBrandId}/brand-kit/manual`,
+        payload,
+      );
+      expect(result).toEqual(draft);
     });
   });
 

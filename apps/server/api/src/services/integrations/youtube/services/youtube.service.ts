@@ -193,4 +193,61 @@ export class YoutubeService {
       text,
     );
   }
+
+  listRecentChannelComments(
+    organizationId: string,
+    brandId: string,
+    options?: {
+      maxResults?: number;
+      pageToken?: string;
+    },
+  ) {
+    return this.commentsService.listRecentChannelComments(
+      organizationId,
+      brandId,
+      options,
+    );
+  }
+
+  listVideoComments(
+    organizationId: string,
+    brandId: string,
+    videoId: string,
+    maxResults?: number,
+  ) {
+    return this.commentsService.listVideoComments(
+      organizationId,
+      brandId,
+      videoId,
+      maxResults,
+    );
+  }
+
+  replyToComment(
+    organizationId: string,
+    brandId: string,
+    parentCommentId: string,
+    text: string,
+  ) {
+    return this.commentsService.replyToComment(
+      organizationId,
+      brandId,
+      parentCommentId,
+      text,
+    );
+  }
+
+  postCommentReply(
+    organizationId: string,
+    brandId: string,
+    parentCommentId: string,
+    text: string,
+  ) {
+    return this.commentsService.postCommentReply(
+      organizationId,
+      brandId,
+      parentCommentId,
+      text,
+    );
+  }
 }

@@ -1,6 +1,18 @@
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@genfeedai/prisma', () => ({ PrismaClient: class {} }));
+// `@genfeedai/prisma` re-exports the generated PrismaClient (packages/prisma/
+// src/index.ts -> ../generated/prisma/client/client), which only exists after
+// `prisma generate` runs and is heavy to load in a unit test (real driver
+// adapter wiring). canonicalPrismaMock() spreads the real, schema-derived
+// getModelMeta/PRISMA_MODEL_METADATA (from the light @genfeedai/prisma/testing
+// subpath) so BaseService's `getModelMeta('article')` call (base.service.ts)
+// sees genuine field/enum metadata without ever importing the heavy client.
+vi.mock('@genfeedai/prisma', async () => {
+  const { canonicalPrismaMock } = await import(
+    '@api/shared/testing/prisma-mock'
+  );
+  return canonicalPrismaMock();
+});
 
 import type { CreateArticleDto } from '@api/collections/articles/dto/create-article.dto';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';

@@ -48,7 +48,7 @@ export class BotUserResolverService {
       }
 
       const brandId = readId(credential.brand);
-      const credentialId = readId(credential._id);
+      const credentialId = readId(credential.id);
       const organizationId = readId(credential.organization);
       const userId = readId(credential.user);
 
@@ -120,13 +120,13 @@ export class BotUserResolverService {
       }
 
       this.loggerService.log(`${url} switched to brand`, {
-        brandId: brand._id.toString(),
-        brandName: brand.label ?? brand._id.toString(),
+        brandId: brand.id.toString(),
+        brandName: brand.label ?? brand.id.toString(),
       });
 
       return {
         ...resolvedUser,
-        brandId: brand._id.toString(),
+        brandId: brand.id.toString(),
       };
     } catch (error: unknown) {
       this.loggerService.error(`${url} brand lookup failed`, error);
@@ -149,8 +149,8 @@ export class BotUserResolverService {
       });
 
       return brands.map((brand) => ({
-        id: brand._id.toString(),
-        name: brand.label ?? brand._id.toString(),
+        id: brand.id.toString(),
+        name: brand.label ?? brand.id.toString(),
       }));
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed to get brands`, error);

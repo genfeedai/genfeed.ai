@@ -102,7 +102,7 @@ function AgentPanelShell({
               withWrapper={false}
               onClick={onExpand}
               className="gen-shell-control flex items-center justify-center size-7 rounded-md"
-              ariaLabel="Open full chat workspace"
+              ariaLabel="Open full agent workspace"
             >
               <HiArrowsPointingOut className="size-3.5" />
             </Button>

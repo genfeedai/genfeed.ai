@@ -1,4 +1,5 @@
 import { RouterPriority } from '@genfeedai/enums';
+import type { AgentClipRunIdentity } from '@genfeedai/interfaces';
 
 export const DEFAULT_AGENT_GENERATION_PRIORITY = RouterPriority.QUALITY;
 
@@ -31,6 +32,7 @@ export function getDimensionsForAspectRatio(ratio: string): {
 export function buildAgentGenerationRequestBody({
   aspectRatio,
   duration,
+  identity,
   modelKey,
   prioritize = DEFAULT_AGENT_GENERATION_PRIORITY,
   promptId,
@@ -39,6 +41,7 @@ export function buildAgentGenerationRequestBody({
 }: {
   aspectRatio: string;
   duration?: number;
+  identity?: AgentClipRunIdentity;
   modelKey?: string;
   prioritize?: RouterPriority;
   promptId: string;
@@ -65,6 +68,26 @@ export function buildAgentGenerationRequestBody({
 
   if (waitForCompletion != null) {
     body.waitForCompletion = waitForCompletion;
+  }
+
+  if (identity?.avatarId) {
+    body.avatarId = identity.avatarId;
+    body.avatarProvider = identity.avatarProvider ?? 'heygen';
+    body.useIdentity = true;
+
+    if ((identity.avatarProvider ?? 'heygen') === 'heygen') {
+      body.heygenAvatarId = identity.avatarId;
+    }
+  }
+
+  if (identity?.voiceId) {
+    body.voiceId = identity.voiceId;
+    body.voiceProvider = identity.voiceProvider ?? 'heygen';
+    body.useIdentity = true;
+
+    if ((identity.voiceProvider ?? 'heygen') === 'heygen') {
+      body.heygenVoiceId = identity.voiceId;
+    }
   }
 
   return body;

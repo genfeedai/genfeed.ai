@@ -13,7 +13,7 @@ const mockAuthClientInstance = {
 };
 
 vi.mock('linkedin-api-client', () => ({
-  AuthClient: vi.fn().mockImplementation(function () {
+  AuthClient: vi.fn(function AuthClientMock() {
     return mockAuthClientInstance;
   }),
 }));
@@ -187,7 +187,7 @@ describe('LinkedInService', () => {
     it('should refresh token and update credential', async () => {
       const credId = 'test-object-id';
       mockCredentialsService.findOne.mockResolvedValue({
-        _id: credId,
+        id: credId,
         refreshToken: 'encrypted-refresh-token',
       });
       mockAuthClientInstance.exchangeRefreshTokenForAccessToken.mockResolvedValue(
@@ -198,7 +198,7 @@ describe('LinkedInService', () => {
         },
       );
       mockCredentialsService.patch.mockResolvedValue({
-        _id: credId,
+        id: credId,
         accessToken: 'new-access-token',
         isConnected: true,
       });
@@ -224,7 +224,7 @@ describe('LinkedInService', () => {
 
     it('should return existing credentials when no refresh token', async () => {
       const cred = {
-        _id: 'test-object-id',
+        id: 'test-object-id',
         accessToken: 'existing-token',
         refreshToken: null,
       };
@@ -237,7 +237,7 @@ describe('LinkedInService', () => {
     it('should mark credential as disconnected on refresh failure', async () => {
       const credId = 'test-object-id';
       mockCredentialsService.findOne.mockResolvedValue({
-        _id: credId,
+        id: credId,
         refreshToken: 'encrypted-token',
       });
       mockAuthClientInstance.exchangeRefreshTokenForAccessToken.mockRejectedValue(
@@ -346,10 +346,15 @@ describe('LinkedInService', () => {
       expect(trends.length).toBeGreaterThan(0);
       expect(trends[0]?.topic).toBe('#ai');
       expect(trends[0]?.metadata.source).toBe('public-scrape');
+      expect(trends[0]?.metadata.sourceClassification).toMatchObject({
+        confidence: 'medium',
+        intendedUse: 'organic_trend_discovery',
+        sourceKind: 'public_platform_reference',
+      });
       expect(trends[0]?.mentions).toBeGreaterThan(1);
     });
 
-    it('should fall back to curated topics when scraping yields no signal', async () => {
+    it('should fall back to configured public reference topics when scraping yields no signal', async () => {
       mockBrandScraperService.scrapeLinkedIn.mockResolvedValue({
         companyName: 'Empty',
         recentPosts: [],
@@ -359,11 +364,17 @@ describe('LinkedInService', () => {
 
       const trends = await service.getTrends('org-123', 'brand-456');
 
-      expect(trends.length).toBe(10);
+      expect(trends.length).toBeGreaterThan(0);
       expect(trends[0]).toEqual(
         expect.objectContaining({
-          metadata: expect.objectContaining({ source: 'curated' }),
-          topic: '#ai',
+          metadata: expect.objectContaining({
+            source: 'public-reference',
+            sourceClassification: expect.objectContaining({
+              intendedUse: 'organic_trend_discovery',
+              sourceKind: 'public_platform_reference',
+            }),
+          }),
+          topic: '#openai',
         }),
       );
       expect(mockLoggerService.warn).toHaveBeenCalled();

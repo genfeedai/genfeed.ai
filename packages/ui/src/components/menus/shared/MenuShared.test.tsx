@@ -21,6 +21,7 @@ const {
   mockPathname: { value: '/settings/personal' },
   mockPush: vi.fn(),
 }));
+const originalLocation = window.location;
 
 // @genfeedai/auth-client/react is already mocked globally in setup.ts
 // Add UserButton that's not in the global mock
@@ -155,8 +156,16 @@ vi.mock('@genfeedai/hooks/data/overview/use-overview-bootstrap', () => ({
 }));
 
 vi.mock('@ui/menus/item/MenuItem', () => ({
-  default: ({ badgeCount, label }: { badgeCount?: number; label: string }) => (
-    <div data-testid="menu-item">
+  default: ({
+    badgeCount,
+    href,
+    label,
+  }: {
+    badgeCount?: number;
+    href?: string;
+    label: string;
+  }) => (
+    <div data-href={href} data-testid="menu-item">
       {label}
       {badgeCount ? ` (${badgeCount})` : ''}
     </div>
@@ -169,10 +178,6 @@ vi.mock('@ui/menus/sidebar-nested/SidebarNested', () => ({
 
 vi.mock('@ui/buttons/credits/ButtonCredits', () => ({
   default: () => <div data-testid="button-credits" />,
-}));
-
-vi.mock('@ui/menus/organization-switcher/OrganizationSwitcher', () => ({
-  default: () => <div data-testid="organization-switcher" />,
 }));
 
 vi.mock('@ui/shell/app-switcher/AppSwitcher', () => ({
@@ -195,10 +200,27 @@ describe('MenuShared', () => {
     mockLogoUrl.value = '';
     mockPathname.value = '/settings/personal';
     process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
+    const storage = new Map<string, string>();
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      value: {
+        clear: vi.fn(() => storage.clear()),
+        getItem: vi.fn((key: string) => storage.get(key) ?? null),
+        removeItem: vi.fn((key: string) => storage.delete(key)),
+        setItem: vi.fn((key: string, value: string) => {
+          storage.set(key, value);
+        }),
+      },
+    });
   });
 
   afterEach(() => {
     delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: originalLocation,
+      writable: true,
+    });
   });
 
   const config: MenuConfig = {
@@ -252,19 +274,50 @@ describe('MenuShared', () => {
     ).toBeTruthy();
   });
 
-  it('renders the organization switcher inside the sidebar header shell', () => {
-    render(<MenuShared config={config} />);
+  it('renders the org switcher slot inside the sidebar header shell', () => {
+    render(
+      <MenuShared
+        config={config}
+        orgSwitcherSlot={<div data-testid="organization-switcher">Acme</div>}
+      />,
+    );
 
-    expect(screen.getByTestId('sidebar-header-shell')).toBeInTheDocument();
-    expect(screen.getByTestId('organization-switcher')).toBeInTheDocument();
+    const headerShell = screen.getByTestId('sidebar-header-shell');
+    const orgSwitcher = screen.getByTestId('organization-switcher');
+
+    expect(headerShell).toContainElement(orgSwitcher);
   });
 
-  it('hides the organization switcher outside SaaS cloud mode', () => {
-    delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
+  it('renders the org switcher in the header above the top slot and nav', () => {
+    render(
+      <MenuShared
+        config={config}
+        orgSwitcherSlot={<div data-testid="organization-switcher">Acme</div>}
+        renderTopSlot={() => <div data-testid="sidebar-top-slot">Search</div>}
+      />,
+    );
 
+    const orgSwitcher = screen.getByTestId('organization-switcher');
+    const topSlot = screen.getByTestId('sidebar-top-slot');
+    const firstMenuItem = screen.getByText('Dashboard');
+
+    expect(orgSwitcher).toBeInTheDocument();
+    expect(screen.getByTestId('sidebar-header-shell')).not.toContainElement(
+      topSlot,
+    );
+    expect(
+      orgSwitcher.compareDocumentPosition(topSlot) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      topSlot.compareDocumentPosition(firstMenuItem) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('omits the org switcher slot when not provided', () => {
     render(<MenuShared config={config} />);
 
-    expect(screen.getByTestId('sidebar-header-shell')).toBeInTheDocument();
     expect(
       screen.queryByTestId('organization-switcher'),
     ).not.toBeInTheDocument();
@@ -351,13 +404,67 @@ describe('MenuShared', () => {
 
     render(<MenuShared config={workspaceConfig} sectionLabel="Workspace" />);
 
+    expect(screen.getByText('Workspace')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Workspace' }),
-    ).toBeInTheDocument();
+      screen.queryByRole('button', { name: 'Workspace' }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Tasks')).toBeInTheDocument();
     expect(screen.getByText(/Inbox/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Library' })).toBeInTheDocument();
+  });
+
+  it('renders named menu groups as static section headers by default', () => {
+    const groupedConfig: MenuConfig = {
+      items: [
+        {
+          group: 'ATS',
+          href: '/candidates',
+          label: 'Candidates',
+        },
+        {
+          group: 'ATS',
+          href: '/jobs',
+          label: 'Jobs',
+        },
+      ],
+      logoHref: '/',
+    };
+
+    render(<MenuShared config={groupedConfig} />);
+
+    expect(screen.getByText('ATS')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'ATS' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Candidates')).toBeInTheDocument();
+    expect(screen.getByText('Jobs')).toBeInTheDocument();
+  });
+
+  it('collapses named menu groups only when the first item opts in', () => {
+    const groupedConfig: MenuConfig = {
+      items: [
+        {
+          group: 'Operations',
+          href: '/runs',
+          isCollapsible: true,
+          label: 'Runs',
+        },
+        {
+          group: 'Operations',
+          href: '/workflows',
+          label: 'Workflows',
+        },
+      ],
+      logoHref: '/',
+    };
+
+    render(<MenuShared config={groupedConfig} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Operations' }));
+
+    expect(screen.queryByText('Runs')).not.toBeInTheDocument();
+    expect(screen.queryByText('Workflows')).not.toBeInTheDocument();
   });
 
   it('renders secondary destinations outside the primary navigation groups', () => {
@@ -383,6 +490,26 @@ describe('MenuShared', () => {
 
     expect(screen.getByTestId('sidebar-secondary-items')).toBeInTheDocument();
     expect(screen.getByText('Activity')).toBeInTheDocument();
+  });
+
+  it('keeps globally scoped menu hrefs unprefixed', () => {
+    const globalConfig: MenuConfig = {
+      items: [
+        {
+          href: '/admin/agent',
+          hrefScope: 'global',
+          label: 'Agent',
+        },
+      ],
+      logoHref: '/',
+    };
+
+    render(<MenuShared config={globalConfig} />);
+
+    expect(screen.getByText('Agent')).toHaveAttribute(
+      'data-href',
+      '/admin/agent',
+    );
   });
 
   it('does not reuse raw href keys for settings items with different scopes', () => {
@@ -428,7 +555,7 @@ describe('MenuShared', () => {
     }
   });
 
-  it('routes the conversations new chat CTA directly to /chat/new', () => {
+  it('routes the conversations new agent thread CTA directly to /agent/new', () => {
     render(
       <MenuShared
         config={config}
@@ -436,13 +563,13 @@ describe('MenuShared', () => {
       />,
     );
 
-    expect(screen.getByRole('link', { name: /New Chat/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /New Thread/i })).toHaveAttribute(
       'href',
-      '/acme/~/chat/new',
+      '/acme/~/agent/new',
     );
   });
 
-  it('does not add an extra inner horizontal gutter around the new chat row', () => {
+  it('does not add an extra inner horizontal gutter around the new agent thread row', () => {
     render(
       <MenuShared
         config={config}
@@ -451,7 +578,7 @@ describe('MenuShared', () => {
     );
 
     expect(
-      screen.getByRole('link', { name: /New Chat/i }).parentElement,
+      screen.getByRole('link', { name: /New Thread/i }).parentElement,
     ).not.toHaveClass('px-2');
   });
 
@@ -478,7 +605,7 @@ describe('MenuShared', () => {
     const primaryConfig: MenuConfig = {
       items: [
         {
-          href: '/chat',
+          href: '/agent',
           isPrimary: true,
           label: 'Chat',
         },

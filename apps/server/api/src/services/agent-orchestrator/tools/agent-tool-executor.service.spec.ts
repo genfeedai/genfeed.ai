@@ -12,13 +12,7 @@ import { PostStatus } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Effect } from 'effect';
-
-const CREATE_LIVESTREAM_BOT_TOOL = 'create_livestream_bot' as AgentToolName;
-const MANAGE_LIVESTREAM_BOT_TOOL = 'manage_livestream_bot' as AgentToolName;
-const DRAFT_BRAND_VOICE_PROFILE_TOOL =
-  'draft_brand_voice_profile' as AgentToolName;
-const SAVE_BRAND_VOICE_PROFILE_TOOL =
-  'save_brand_voice_profile' as AgentToolName;
+import { of } from 'rxjs';
 
 describe('AgentToolExecutorService', () => {
   const createService = () => {
@@ -33,7 +27,11 @@ describe('AgentToolExecutorService', () => {
       get: vi.fn().mockReturnValue('http://localhost:3010'),
     };
 
-    const httpService = {} as never;
+    const httpService = {
+      delete: vi.fn(),
+      get: vi.fn(),
+      post: vi.fn(),
+    };
     const postsService = {
       create: vi.fn(),
       findAll: vi.fn(),
@@ -41,7 +39,7 @@ describe('AgentToolExecutorService', () => {
       handleYoutubePost: vi.fn(),
     };
     const brandsService = {
-      create: vi.fn().mockResolvedValue({ _id: 'brand-1' }),
+      create: vi.fn().mockResolvedValue({ id: 'brand-1' }),
       findOne: vi.fn(),
       generateBrandVoice: vi.fn().mockResolvedValue({
         audience: ['founders', 'marketers'],
@@ -54,14 +52,14 @@ describe('AgentToolExecutorService', () => {
         tone: 'confident',
         values: ['clarity', 'speed'],
       }),
-      updateAgentConfig: vi.fn().mockResolvedValue({ _id: 'brand-1' }),
+      updateAgentConfig: vi.fn().mockResolvedValue({ id: 'brand-1' }),
     };
     const livestreamBotId = 'test-object-id';
     const botsService = {
       create: vi
         .fn()
         .mockImplementation(async (dto: Record<string, unknown>) => ({
-          _id: livestreamBotId,
+          id: livestreamBotId,
           brand: dto.brand,
           category: dto.category,
           label: dto.label,
@@ -72,7 +70,7 @@ describe('AgentToolExecutorService', () => {
           user: dto.user,
         })),
       findOne: vi.fn().mockResolvedValue({
-        _id: livestreamBotId,
+        id: livestreamBotId,
         brand: '67a1234567890123456789aa',
         category: 'livestream_chat',
         label: 'Launch Live Bot',
@@ -141,8 +139,14 @@ describe('AgentToolExecutorService', () => {
     };
     const workflowsService = {
       createWorkflow: vi.fn().mockResolvedValue({
-        _id: recurringWorkflowId,
+        id: recurringWorkflowId,
         schedule: '0 17 * * *',
+      }),
+      cloneWorkflow: vi.fn().mockResolvedValue({
+        id: 'workflow-copy-1',
+        isScheduleEnabled: false,
+        label: 'System Workflow (Copy)',
+        status: 'draft',
       }),
       findAll: vi.fn().mockResolvedValue({ docs: [] }),
       findOne: vi.fn(),
@@ -282,7 +286,7 @@ describe('AgentToolExecutorService', () => {
     };
     const organizationSettingsService = {
       findOne: vi.fn().mockResolvedValue({
-        _id: 'settings-1',
+        id: 'settings-1',
         onboardingJourneyMissions: [],
       }),
       getNextRecommendedJourneyMission: vi
@@ -330,7 +334,7 @@ describe('AgentToolExecutorService', () => {
     const agentMemoryCaptureService = {
       capture: vi.fn().mockResolvedValue({
         memory: {
-          _id: 'memory-1',
+          id: 'memory-1',
           content: 'Write concise newsletters with a strong hook.',
           contentType: 'newsletter',
           kind: 'preference',
@@ -342,7 +346,7 @@ describe('AgentToolExecutorService', () => {
       }),
     };
     const usersService = {
-      findOne: vi.fn().mockResolvedValue({ _id: 'user-db-1' }),
+      findOne: vi.fn().mockResolvedValue({ id: 'user-db-1' }),
       patch: vi.fn().mockResolvedValue({}),
     };
     const authProviderService = {
@@ -355,24 +359,24 @@ describe('AgentToolExecutorService', () => {
     };
     const agentGoalsService = {
       create: vi.fn().mockResolvedValue({
-        _id: 'goal-1',
         currentValue: 250,
+        id: 'goal-1',
         label: 'Grow views',
         metric: 'views',
         progressPercent: 25,
         targetValue: 1000,
       }),
       refreshProgress: vi.fn().mockResolvedValue({
-        _id: 'goal-1',
         currentValue: 250,
+        id: 'goal-1',
         label: 'Grow views',
         metric: 'views',
         progressPercent: 25,
         targetValue: 1000,
       }),
       update: vi.fn().mockResolvedValue({
-        _id: 'goal-1',
         currentValue: 400,
+        id: 'goal-1',
         label: 'Grow views',
         metric: 'views',
         progressPercent: 40,
@@ -401,6 +405,16 @@ describe('AgentToolExecutorService', () => {
         feedback: ['Solid composition'],
         score: 7,
         suggestions: ['Increase contrast for better readability'],
+      }),
+    };
+    const seoScorerService = {
+      scoreArticle: vi.fn().mockResolvedValue({
+        score: 7,
+        suggestions: ['Add a meta description'],
+      }),
+      scorePost: vi.fn().mockResolvedValue({
+        score: 7,
+        suggestions: ['Add a meta description'],
       }),
     };
     const ingredientsService = {
@@ -591,7 +605,7 @@ describe('AgentToolExecutorService', () => {
     const service = new AgentToolExecutorService(
       loggerService,
       configService as never,
-      httpService,
+      httpService as never,
       postsService as never,
       brandsService as never,
       botsService as never,
@@ -614,12 +628,12 @@ describe('AgentToolExecutorService', () => {
       organizationSettingsService as never,
       agentMemoryCaptureService as never,
       usersService as never,
-      authProviderService as never,
       streamPublisher as never,
       undefined as never, // agentSpawnService
       imagesService as never,
       voicesService as never,
       contentQualityScorerService as never,
+      seoScorerService as never,
       agentGoalsService as never,
       ingredientsService as never,
       {} as never, // votesService
@@ -642,6 +656,7 @@ describe('AgentToolExecutorService', () => {
       contentQualityScorerService,
       credentialsService,
       creditsUtilsService,
+      httpService,
       imagesService,
       ingredientsService,
       marketplaceApiClient,
@@ -668,7 +683,7 @@ describe('AgentToolExecutorService', () => {
     const { agentGoalsService, service } = createService();
 
     const result = await service.executeTool(
-      'create_goal' as AgentToolName,
+      AgentToolName.CREATE_GOAL,
       {
         label: 'Grow views',
         metric: 'views',
@@ -690,11 +705,59 @@ describe('AgentToolExecutorService', () => {
     );
   });
 
+  it('should list the live Genfeed tool catalog for operator questions', async () => {
+    const { service } = createService();
+
+    const result = await service.executeTool(
+      AgentToolName.LIST_GENFEED_TOOLS,
+      {
+        category: 'workflow',
+        includeParameters: true,
+        limit: 5,
+        query: 'workflow',
+        surface: 'mcp',
+      },
+      {
+        organizationId: '67a123456789012345678901',
+        userId: '67a123456789012345678902',
+      },
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.creditsUsed).toBe(0);
+
+    const data = result.data as {
+      counts: {
+        bySurface: Record<string, number>;
+        total: number;
+      };
+      returned: number;
+      surface: string;
+      tools: Array<{
+        category: string;
+        name: string;
+        parameters?: Record<string, unknown>;
+        surfaces: Record<string, boolean>;
+      }>;
+      truncated: boolean;
+    };
+
+    expect(data.surface).toBe('mcp');
+    expect(data.returned).toBeLessThanOrEqual(5);
+    expect(data.tools.length).toBeGreaterThan(0);
+    expect(data.tools.every((tool) => tool.category === 'workflow')).toBe(true);
+    expect(data.tools.every((tool) => tool.surfaces.mcp)).toBe(true);
+    expect(data.tools.every((tool) => Boolean(tool.parameters))).toBe(true);
+    expect(data.counts.bySurface.mcp).toBeGreaterThan(0);
+    expect(data.counts.total).toBeGreaterThanOrEqual(data.returned);
+    expect(typeof data.truncated).toBe('boolean');
+  });
+
   it('should reject invalid goal ids for progress checks', async () => {
     const { service } = createService();
 
     const result = await service.executeTool(
-      'check_goal_progress' as AgentToolName,
+      AgentToolName.CHECK_GOAL_PROGRESS,
       { goalId: 'not-an-object-id' },
       {
         organizationId: '67a123456789012345678901',
@@ -710,7 +773,7 @@ describe('AgentToolExecutorService', () => {
     const { agentGoalsService, service } = createService();
 
     const result = await service.executeTool(
-      'update_goal' as AgentToolName,
+      AgentToolName.UPDATE_GOAL,
       {
         goalId: '67a123456789012345678903',
         targetValue: 1000,
@@ -735,17 +798,17 @@ describe('AgentToolExecutorService', () => {
     const { credentialsService, ingredientsService, service } = createService();
 
     ingredientsService.findOne.mockResolvedValue({
-      _id: '67a123456789012345678930',
+      id: '67a123456789012345678930',
       brand: '67a123456789012345678931',
       category: 'image',
     });
     credentialsService.find.mockResolvedValue([
       {
-        _id: '67a123456789012345678932',
+        id: '67a123456789012345678932',
         platform: 'linkedin',
       },
       {
-        _id: '67a123456789012345678933',
+        id: '67a123456789012345678933',
         platform: 'twitter',
       },
     ]);
@@ -846,7 +909,7 @@ describe('AgentToolExecutorService', () => {
     const { organizationsService, service } = createService();
 
     organizationsService.findOne.mockResolvedValueOnce({
-      _id: '67a123456789012345678901',
+      id: '67a123456789012345678901',
       slug: 'genfeed-ai',
     });
 
@@ -873,11 +936,11 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     organizationsService.findOne.mockResolvedValueOnce({
-      _id: '67a123456789012345678901',
+      id: '67a123456789012345678901',
       slug: 'genfeed-ai',
     });
     brandsService.findOne.mockResolvedValueOnce({
-      _id: '67a123456789012345678903',
+      id: '67a123456789012345678903',
       slug: 'my-brand',
     });
 
@@ -908,7 +971,7 @@ describe('AgentToolExecutorService', () => {
     const { adsResearchService, service } = createService();
 
     const result = await service.executeTool(
-      'list_ads_research' as AgentToolName,
+      AgentToolName.LIST_ADS_RESEARCH,
       {
         industry: 'fitness',
         platform: 'google',
@@ -937,7 +1000,7 @@ describe('AgentToolExecutorService', () => {
     const { adsResearchService, service } = createService();
 
     const result = await service.executeTool(
-      'create_ad_remix_workflow' as AgentToolName,
+      AgentToolName.CREATE_AD_REMIX_WORKFLOW,
       {
         adId: 'public-ad-1',
         objective: 'Conversions',
@@ -964,7 +1027,7 @@ describe('AgentToolExecutorService', () => {
     const { adsResearchService, service } = createService();
 
     const result = await service.executeTool(
-      'prepare_ad_launch_review' as AgentToolName,
+      AgentToolName.PREPARE_AD_LAUNCH_REVIEW,
       {
         adId: 'public-ad-1',
         createWorkflow: true,
@@ -991,26 +1054,26 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     ingredientsService.findOne.mockResolvedValue({
-      _id: '67a123456789012345678940',
+      id: '67a123456789012345678940',
       brand: '67a123456789012345678941',
       category: 'video',
     });
     credentialsService.find.mockResolvedValue([
       {
-        _id: '67a123456789012345678942',
+        id: '67a123456789012345678942',
         platform: 'linkedin',
       },
       {
-        _id: '67a123456789012345678943',
+        id: '67a123456789012345678943',
         platform: 'youtube',
       },
     ]);
     postsService.create
       .mockResolvedValueOnce({
-        _id: '67a123456789012345678944',
+        id: '67a123456789012345678944',
       })
       .mockResolvedValueOnce({
-        _id: '67a123456789012345678945',
+        id: '67a123456789012345678945',
       });
 
     const result = await service.executeTool(
@@ -1045,12 +1108,12 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     ingredientsService.findOne.mockResolvedValue({
-      _id: '67a123456789012345678950',
+      id: '67a123456789012345678950',
       brand: '67a123456789012345678951',
       category: 'image',
     });
     postsService.findAll.mockResolvedValue({
-      docs: [{ _id: '67a123456789012345678952' }],
+      docs: [{ id: '67a123456789012345678952' }],
     });
 
     const result = await service.executeTool(
@@ -1082,13 +1145,13 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     ingredientsService.findOne.mockResolvedValue({
-      _id: '67a123456789012345678960',
+      id: '67a123456789012345678960',
       brand: '67a123456789012345678961',
       category: 'image',
     });
     credentialsService.find.mockResolvedValue([
       {
-        _id: '67a123456789012345678962',
+        id: '67a123456789012345678962',
         platform: 'instagram',
       },
     ]);
@@ -1151,7 +1214,7 @@ describe('AgentToolExecutorService', () => {
     const { agentMemoryCaptureService, service } = createService();
 
     const result = await service.executeTool(
-      'capture_memory' as AgentToolName,
+      AgentToolName.CAPTURE_MEMORY,
       {
         brandId: '67a123456789012345678903',
         content: 'Use short, curiosity-driven newsletter openings.',
@@ -1243,12 +1306,12 @@ describe('AgentToolExecutorService', () => {
     const { brandsService, service } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: 'brand-voice-1',
+      id: 'brand-voice-1',
       label: 'Genfeed',
     });
 
     const result = await service.executeTool(
-      DRAFT_BRAND_VOICE_PROFILE_TOOL,
+      AgentToolName.DRAFT_BRAND_VOICE_PROFILE,
       {
         examplesToAvoid: ['generic guru tone'],
         examplesToEmulate: ['April Dunford'],
@@ -1299,12 +1362,12 @@ describe('AgentToolExecutorService', () => {
     const { brandsService, service } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: 'brand-voice-1',
+      id: 'brand-voice-1',
       label: 'Genfeed',
     });
 
     const result = await service.executeTool(
-      SAVE_BRAND_VOICE_PROFILE_TOOL,
+      AgentToolName.SAVE_BRAND_VOICE_PROFILE,
       {
         brandId: 'brand-voice-1',
         voiceProfile: {
@@ -1370,7 +1433,7 @@ describe('AgentToolExecutorService', () => {
     } = createService();
 
     postsService.findOne.mockResolvedValue({
-      _id: 'post-1',
+      id: 'post-1',
       status: PostStatus.PUBLIC,
     });
 
@@ -1421,7 +1484,7 @@ describe('AgentToolExecutorService', () => {
     const { service } = createService();
 
     const result = await service.executeTool(
-      'select_ingredient' as AgentToolName,
+      AgentToolName.SELECT_INGREDIENT,
       {},
       {
         organizationId: '67a123456789012345678901',
@@ -1443,21 +1506,21 @@ describe('AgentToolExecutorService', () => {
 
     imagesService.findAllByOrganization.mockResolvedValue([
       {
-        _id: '507f191e810c19729de860ea',
         category: 'image',
         cdnUrl: 'https://cdn.genfeed.ai/images/test.jpg',
+        id: '507f191e810c19729de860ea',
         metadata: { label: 'Test Image' },
       },
       {
-        _id: '507f191e810c19729de860eb',
         category: 'video',
         cdnUrl: 'https://cdn.genfeed.ai/videos/test.mp4',
+        id: '507f191e810c19729de860eb',
         metadata: null,
       },
     ]);
 
     const result = await service.executeTool(
-      'select_ingredient' as AgentToolName,
+      AgentToolName.SELECT_INGREDIENT,
       { mediaType: 'all' },
       {
         organizationId: '67a123456789012345678901',
@@ -1492,7 +1555,7 @@ describe('AgentToolExecutorService', () => {
 
     imagesService.findAllByOrganization.mockResolvedValue([
       {
-        _id: '507f191e810c19729de860ec',
+        id: '507f191e810c19729de860ec',
         category: 'image',
         cdnUrl: 'https://cdn.genfeed.ai/images/img.jpg',
         metadata: null,
@@ -1500,7 +1563,7 @@ describe('AgentToolExecutorService', () => {
     ]);
 
     const result = await service.executeTool(
-      'select_ingredient' as AgentToolName,
+      AgentToolName.SELECT_INGREDIENT,
       { mediaType: 'image' },
       {
         organizationId: '67a123456789012345678901',
@@ -1547,9 +1610,9 @@ describe('AgentToolExecutorService', () => {
     const { brandsService, service } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
       description: 'Brand description',
       handle: 'genfeed',
+      id: '67a1234567890123456789aa',
       isActive: true,
       label: 'Genfeed',
       text: 'Publish content. Now.',
@@ -1608,9 +1671,9 @@ describe('AgentToolExecutorService', () => {
     const { batchGenerationService, brandsService, service } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
       description: 'Brand description',
       handle: 'genfeed',
+      id: '67a1234567890123456789aa',
       isActive: true,
       isSelected: true,
       label: 'Genfeed',
@@ -1654,9 +1717,9 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
       description: 'Brand description',
       handle: 'genfeed',
+      id: '67a1234567890123456789aa',
       isActive: true,
       isSelected: true,
       label: 'Genfeed',
@@ -1765,8 +1828,8 @@ describe('AgentToolExecutorService', () => {
     workflowsService.findAll.mockResolvedValue({
       docs: [
         {
-          _id: '507f191e810c19729de860ff',
           description: 'Main clip workflow',
+          id: '507f191e810c19729de860ff',
           name: 'Clip Workflow',
           status: 'active',
         },
@@ -1795,6 +1858,140 @@ describe('AgentToolExecutorService', () => {
         durationSeconds: 30,
         format: 'landscape',
         mergeGeneratedVideos: true,
+      }),
+    );
+  });
+
+  it('should resolve brand HeyGen defaults for prepare_clip_workflow_run', async () => {
+    const { brandsService, service, workflowsService } = createService();
+
+    brandsService.findOne.mockResolvedValue({
+      id: '67a1234567890123456789aa',
+      agentConfig: {
+        heygenAvatarId: 'brand-avatar-1',
+        heygenVoiceId: 'brand-voice-1',
+      },
+    });
+    workflowsService.findAll.mockResolvedValue({ docs: [] });
+
+    const result = await service.executeTool(
+      AgentToolName.PREPARE_CLIP_WORKFLOW_RUN,
+      {
+        prompt: 'Generate a defaulted clip',
+      },
+      {
+        organizationId: '67a123456789012345678901',
+        userId: '67a123456789012345678902',
+      },
+    );
+
+    expect(result.success).toBe(true);
+    const action = result.nextActions?.[0];
+    expect(action?.clipRun?.identity).toEqual(
+      expect.objectContaining({
+        avatarId: 'brand-avatar-1',
+        isComplete: true,
+        source: 'brand',
+        voiceId: 'brand-voice-1',
+      }),
+    );
+    expect(action?.clipRun?.inputValues).toEqual(
+      expect.objectContaining({
+        avatarId: 'brand-avatar-1',
+        heygenAvatarId: 'brand-avatar-1',
+        heygenVoiceId: 'brand-voice-1',
+        identityStatus: 'ready',
+        voiceId: 'brand-voice-1',
+      }),
+    );
+    expect(action?.clipRunState).toEqual(
+      expect.objectContaining({
+        identity: expect.objectContaining({
+          avatarId: 'brand-avatar-1',
+          voiceId: 'brand-voice-1',
+        }),
+      }),
+    );
+  });
+
+  it('should merge brand avatar with organization HeyGen voice fallback', async () => {
+    const {
+      brandsService,
+      organizationSettingsService,
+      service,
+      workflowsService,
+    } = createService();
+
+    brandsService.findOne.mockResolvedValue({
+      id: '67a1234567890123456789aa',
+      agentConfig: {
+        heygenAvatarId: 'brand-avatar-2',
+      },
+    });
+    organizationSettingsService.findOne.mockResolvedValue({
+      id: 'settings-1',
+      defaultVoiceRef: {
+        externalVoiceId: 'org-heygen-voice-2',
+        provider: 'heygen',
+        source: 'catalog',
+      },
+    });
+    workflowsService.findAll.mockResolvedValue({ docs: [] });
+
+    const result = await service.executeTool(
+      AgentToolName.PREPARE_CLIP_WORKFLOW_RUN,
+      {
+        prompt: 'Generate a mixed-default clip',
+      },
+      {
+        organizationId: '67a123456789012345678901',
+        userId: '67a123456789012345678902',
+      },
+    );
+
+    const identity = result.nextActions?.[0].clipRun?.identity;
+    expect(identity).toEqual(
+      expect.objectContaining({
+        avatarId: 'brand-avatar-2',
+        isComplete: true,
+        source: 'brand',
+        voiceId: 'org-heygen-voice-2',
+      }),
+    );
+  });
+
+  it('should surface missing clip identity defaults before generation', async () => {
+    const { brandsService, service, workflowsService } = createService();
+
+    brandsService.findOne.mockResolvedValue(null);
+    workflowsService.findAll.mockResolvedValue({ docs: [] });
+
+    const result = await service.executeTool(
+      AgentToolName.PREPARE_CLIP_WORKFLOW_RUN,
+      {
+        prompt: 'Generate a clip without defaults',
+      },
+      {
+        organizationId: '67a123456789012345678901',
+        userId: '67a123456789012345678902',
+      },
+    );
+
+    const action = result.nextActions?.[0];
+    expect(action?.description).toContain(
+      'Clip identity defaults are incomplete',
+    );
+    expect(action?.clipRun?.identity).toEqual(
+      expect.objectContaining({
+        isComplete: false,
+        missing: ['avatar', 'voice'],
+        source: 'missing',
+      }),
+    );
+    expect(action?.clipRun?.inputValues).toEqual(
+      expect.objectContaining({
+        identityStatus: 'missing_identity',
+        missingIdentity: ['avatar', 'voice'],
       }),
     );
   });
@@ -1865,7 +2062,7 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
+      id: '67a1234567890123456789aa',
       isSelected: true,
       label: 'Genfeed',
     });
@@ -1923,13 +2120,13 @@ describe('AgentToolExecutorService', () => {
 
     trendsService.getTrends.mockResolvedValue([
       {
-        _id: 'trend-1',
+        id: 'trend-1',
         platform: 'tiktok',
         score: 91.2,
         topic: 'Founder confession hooks',
       },
       {
-        _id: 'trend-2',
+        id: 'trend-2',
         platform: 'tiktok',
         score: 77.8,
         topic: 'Behind-the-scenes product build',
@@ -1995,7 +2192,7 @@ describe('AgentToolExecutorService', () => {
 
     trendsService.getTrends.mockResolvedValueOnce([]).mockResolvedValueOnce([
       {
-        _id: 'trend-3',
+        id: 'trend-3',
         platform: 'youtube',
         score: 88.4,
         topic: 'Creator teardown format',
@@ -2112,13 +2309,13 @@ describe('AgentToolExecutorService', () => {
     } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
+      id: '67a1234567890123456789aa',
       isSelected: true,
       label: 'Genfeed',
       slug: 'genfeed',
     });
     organizationsService.findOne.mockResolvedValueOnce({
-      _id: '67a123456789012345678901',
+      id: '67a123456789012345678901',
       slug: 'genfeed-ai',
     });
 
@@ -2169,8 +2366,8 @@ describe('AgentToolExecutorService', () => {
             type: 'ai-generate-post',
           },
         ],
-        schedule: '0 9 * * 1',
-        timezone: 'Europe/Malta',
+        schedule: ' 0 9 * * 1 ',
+        timezone: ' Europe/Malta ',
       },
       {
         organizationId: '67a123456789012345678901',
@@ -2239,7 +2436,7 @@ describe('AgentToolExecutorService', () => {
     const { brandsService, service, workflowsService } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
+      id: '67a1234567890123456789aa',
       isSelected: true,
       label: 'Genfeed',
     });
@@ -2282,7 +2479,7 @@ describe('AgentToolExecutorService', () => {
     const { brandsService, service, workflowsService } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
+      id: '67a1234567890123456789aa',
       isSelected: true,
       label: 'Genfeed',
     });
@@ -2333,7 +2530,7 @@ describe('AgentToolExecutorService', () => {
     } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
+      id: '67a1234567890123456789aa',
       isSelected: true,
       label: 'Genfeed',
     });
@@ -2392,23 +2589,13 @@ describe('AgentToolExecutorService', () => {
     );
   });
 
-  it('should fall back to legacy auth provider metadata brand when selected brand is missing', async () => {
-    const {
-      brandsService,
-      authProviderService,
-      recurringWorkflowId,
-      service,
-      usersService,
-      workflowsService,
-    } = createService();
+  it('should fall back to an available brand when the selected brand is missing', async () => {
+    const { brandsService, recurringWorkflowId, service, workflowsService } =
+      createService();
 
     brandsService.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce({
-      _id: '67a1234567890123456789ab',
+      id: '67a1234567890123456789ab',
       label: 'Fallback Brand',
-    });
-    usersService.findOne.mockResolvedValue({
-      _id: '67a123456789012345678902',
-      authProviderId: 'authProvider_abc123',
     });
 
     const result = await service.executeTool(
@@ -2425,9 +2612,6 @@ describe('AgentToolExecutorService', () => {
       },
     );
 
-    expect(authProviderService.getUser).toHaveBeenCalledWith(
-      'authProvider_abc123',
-    );
     expect(workflowsService.createWorkflow).toHaveBeenCalledWith(
       '67a123456789012345678902',
       '67a123456789012345678901',
@@ -2454,13 +2638,13 @@ describe('AgentToolExecutorService', () => {
     } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
+      id: '67a1234567890123456789aa',
       isSelected: true,
       label: 'Genfeed',
     });
 
     const result = await service.executeTool(
-      CREATE_LIVESTREAM_BOT_TOOL,
+      AgentToolName.CREATE_LIVESTREAM_BOT,
       {
         channelId: 'UC123456789',
         label: 'Launch Live Bot',
@@ -2505,13 +2689,13 @@ describe('AgentToolExecutorService', () => {
     const { botsService, brandsService, service } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
+      id: '67a1234567890123456789aa',
       isSelected: true,
       label: 'Genfeed',
     });
 
     const result = await service.executeTool(
-      CREATE_LIVESTREAM_BOT_TOOL,
+      AgentToolName.CREATE_LIVESTREAM_BOT,
       {
         channelId: 'genfeed-live',
         label: 'Twitch Chat Bot',
@@ -2545,13 +2729,13 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
+      id: '67a1234567890123456789aa',
       isSelected: true,
       label: 'Genfeed',
     });
 
     const result = await service.executeTool(
-      MANAGE_LIVESTREAM_BOT_TOOL,
+      AgentToolName.MANAGE_LIVESTREAM_BOT,
       {
         action: 'start_session',
         botId: livestreamBotId,
@@ -2576,13 +2760,13 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
+      id: '67a1234567890123456789aa',
       isSelected: true,
       label: 'Genfeed',
     });
 
     const result = await service.executeTool(
-      MANAGE_LIVESTREAM_BOT_TOOL,
+      AgentToolName.MANAGE_LIVESTREAM_BOT,
       {
         action: 'send_now',
         botId: livestreamBotId,
@@ -2614,12 +2798,12 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789ab',
+      id: '67a1234567890123456789ab',
       isSelected: true,
       label: 'Other Brand',
     });
     botsService.findOne.mockResolvedValue({
-      _id: livestreamBotId,
+      id: livestreamBotId,
       brand: '67a1234567890123456789aa',
       category: 'livestream_chat',
       label: 'Launch Live Bot',
@@ -2637,7 +2821,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      MANAGE_LIVESTREAM_BOT_TOOL,
+      AgentToolName.MANAGE_LIVESTREAM_BOT,
       {
         action: 'start_session',
         botId: livestreamBotId,
@@ -2707,6 +2891,11 @@ describe('AgentToolExecutorService', () => {
     );
 
     expect(result.success).toBe(true);
+    expect(result.data).toEqual(
+      expect.objectContaining({
+        id: 'img-123',
+      }),
+    );
     expect(callInternalApiSpy).toHaveBeenCalledWith(
       'POST',
       '/v1/images',
@@ -2716,6 +2905,76 @@ describe('AgentToolExecutorService', () => {
       }),
       expect.any(Object),
     );
+  });
+
+  it('should read generate_image id from a root response envelope', async () => {
+    const { service } = createService();
+
+    vi.spyOn(
+      service as unknown as {
+        callInternalApi: (...args: unknown[]) => Promise<unknown>;
+      },
+      'callInternalApi',
+    ).mockResolvedValue({
+      id: 'img-root-123',
+    });
+
+    const result = await service.executeTool(
+      AgentToolName.GENERATE_IMAGE,
+      { prompt: 'product photo' },
+      {
+        organizationId: '67a123456789012345678901',
+        userId: '67a123456789012345678902',
+      },
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual(
+      expect.objectContaining({
+        id: 'img-root-123',
+      }),
+    );
+    expect(result.nextActions?.[0]).toMatchObject({
+      ctas: [{ href: '/g/image/img-root-123', label: 'View in gallery' }],
+      id: 'image-gen-img-root-123',
+    });
+  });
+
+  it('should prefer voice audioUrl from the response envelope', async () => {
+    const { service } = createService();
+
+    vi.spyOn(
+      service as unknown as {
+        callInternalApi: (...args: unknown[]) => Promise<unknown>;
+      },
+      'callInternalApi',
+    ).mockResolvedValue({
+      data: {
+        audioUrl: 'https://cdn.example.test/voice-123.mp3',
+        id: 'voice-123',
+      },
+    });
+
+    const result = await service.executeTool(
+      AgentToolName.GENERATE_VOICE,
+      { text: 'Read this in the brand voice', voiceId: 'voice-default' },
+      {
+        organizationId: '67a123456789012345678901',
+        userId: '67a123456789012345678902',
+      },
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual(
+      expect.objectContaining({
+        id: 'voice-123',
+        url: 'https://cdn.example.test/voice-123.mp3',
+      }),
+    );
+    expect(result.nextActions?.[0]).toMatchObject({
+      audio: ['https://cdn.example.test/voice-123.mp3'],
+      ctas: [{ href: '/g/voice/voice-123', label: 'View in gallery' }],
+    });
   });
 
   it('should map hashtags ai_action alias to add-hashtags DTO action', async () => {
@@ -2766,7 +3025,7 @@ describe('AgentToolExecutorService', () => {
     const { contentQualityScorerService, service } = createService();
 
     const result = await service.executeTool(
-      'rate_content' as AgentToolName,
+      AgentToolName.RATE_CONTENT,
       {
         contentId: '507f191e810c19729de860ea',
         contentType: 'image',
@@ -2796,7 +3055,7 @@ describe('AgentToolExecutorService', () => {
     const { contentQualityScorerService, service } = createService();
 
     const result = await service.executeTool(
-      'rate_content' as AgentToolName,
+      AgentToolName.RATE_CONTENT,
       { contentType: 'image' },
       {
         organizationId: '67a123456789012345678901',
@@ -2849,20 +3108,21 @@ describe('AgentToolExecutorService', () => {
       { findOne: vi.fn().mockResolvedValue({}) } as never,
       { findOne: vi.fn().mockResolvedValue({}) } as never,
       usersService as never,
-      authProviderService as never,
-      undefined as never,
-      undefined as never,
+      undefined as never, // streamPublisher
+      undefined as never, // agentSpawnService
       imagesService as never,
       { findAll: vi.fn().mockResolvedValue({ docs: [] }) } as never,
-      undefined as never,
-      undefined as never,
-      undefined as never,
-      undefined as never,
-      undefined as never,
+      undefined as never, // contentQualityScorerService (intentionally absent)
+      undefined as never, // seoScorerService
+      undefined as never, // agentGoalsService
+      undefined as never, // ingredientsService
+      undefined as never, // votesService
+      undefined as never, // adsResearchService
+      undefined as never, // brandInterviewService
     );
 
     const result = await serviceWithoutScorer.executeTool(
-      'rate_content' as AgentToolName,
+      AgentToolName.RATE_CONTENT,
       { contentId: '507f191e810c19729de860ea' },
       {
         organizationId: '67a123456789012345678901',
@@ -2889,7 +3149,7 @@ describe('AgentToolExecutorService', () => {
     ]);
 
     const result = await service.executeTool(
-      'install_official_workflow' as AgentToolName,
+      AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
       {
         contentType: 'video',
         prompt: 'Set me up with a social media video series for LinkedIn',
@@ -2935,7 +3195,7 @@ describe('AgentToolExecutorService', () => {
     const { service, workflowsService } = createService();
 
     workflowsService.findOne.mockResolvedValue({
-      _id: 'wf-official-1',
+      id: 'wf-official-1',
       brands: [],
       isDeleted: false,
       label: 'Social Media Video Series',
@@ -2944,7 +3204,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      'install_official_workflow' as AgentToolName,
+      AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
       {
         confirmed: true,
         label: 'Weekly LinkedIn Workflow',
@@ -2993,7 +3253,7 @@ describe('AgentToolExecutorService', () => {
     } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
+      id: '67a1234567890123456789aa',
       agentConfig: {
         defaultVoiceId: '67a1234567890123456789dd',
       },
@@ -3001,14 +3261,14 @@ describe('AgentToolExecutorService', () => {
       label: 'Genfeed',
     });
     organizationSettingsService.findOne.mockResolvedValue({
-      _id: 'settings-1',
+      id: 'settings-1',
       defaultVoiceId: '67a1234567890123456789ee',
       onboardingJourneyMissions: [],
     });
     voicesService.findAll.mockResolvedValue({
       docs: [
         {
-          _id: '67a1234567890123456789ff',
+          id: '67a1234567890123456789ff',
           cloneStatus: 'ready',
           metadataLabel: 'Fallback Voice',
           provider: 'elevenlabs',
@@ -3044,20 +3304,20 @@ describe('AgentToolExecutorService', () => {
     } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
+      id: '67a1234567890123456789aa',
       agentConfig: {},
       isSelected: true,
       label: 'Genfeed',
     });
     organizationSettingsService.findOne.mockResolvedValue({
-      _id: 'settings-1',
+      id: 'settings-1',
       defaultVoiceId: '67a1234567890123456789ee',
       onboardingJourneyMissions: [],
     });
     voicesService.findAll.mockResolvedValue({
       docs: [
         {
-          _id: '67a1234567890123456789ff',
+          id: '67a1234567890123456789ff',
           cloneStatus: 'ready',
           metadataLabel: 'Fallback Voice',
           provider: 'elevenlabs',
@@ -3090,25 +3350,25 @@ describe('AgentToolExecutorService', () => {
     } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      _id: '67a1234567890123456789aa',
+      id: '67a1234567890123456789aa',
       agentConfig: {},
       isSelected: true,
       label: 'Genfeed',
     });
     organizationSettingsService.findOne.mockResolvedValue({
-      _id: 'settings-1',
+      id: 'settings-1',
       onboardingJourneyMissions: [],
     });
     voicesService.findAll.mockResolvedValue({
       docs: [
         {
-          _id: '67a1234567890123456789ab',
+          id: '67a1234567890123456789ab',
           cloneStatus: 'processing',
           metadataLabel: 'Still Processing',
           provider: 'elevenlabs',
         },
         {
-          _id: '67a1234567890123456789ff',
+          id: '67a1234567890123456789ff',
           cloneStatus: 'ready',
           metadataLabel: 'Fallback Voice',
           provider: 'elevenlabs',
@@ -3148,7 +3408,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      'install_official_workflow' as AgentToolName,
+      AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
       {
         confirmed: true,
         prompt: 'Install the official LinkedIn workflow',
@@ -3196,7 +3456,7 @@ describe('AgentToolExecutorService', () => {
     workflowsService.findAll.mockResolvedValue({
       docs: [
         {
-          _id: '507f191e810c19729de860ea',
+          id: '507f191e810c19729de860ea',
           description: 'Weekly posts',
           name: 'Content Pipeline',
           status: 'active',
@@ -3238,12 +3498,71 @@ describe('AgentToolExecutorService', () => {
     expect(result.data.workflows).toEqual([]);
   });
 
+  it('inspect_workflow returns one workflow without mutating it', async () => {
+    const { service, workflowsService } = createService();
+
+    workflowsService.findOne.mockResolvedValue({
+      id: 'wf-1',
+      inputVariables: [{ key: 'topic', required: true, type: 'text' }],
+      isScheduleEnabled: true,
+      label: 'System Workflow',
+      metadata: { systemWorkflow: true },
+      nodes: [{ id: 'node-1' }, { id: 'node-2' }],
+      organization: CTX.organizationId,
+      schedule: '0 9 * * *',
+      status: 'draft',
+      timezone: 'UTC',
+      updatedAt: new Date('2026-07-01T00:00:00.000Z'),
+    });
+
+    const result = await service.executeTool(
+      AgentToolName.INSPECT_WORKFLOW,
+      { workflowId: 'wf-1' },
+      CTX,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data.workflow).toEqual(
+      expect.objectContaining({
+        id: 'wf-1',
+        isScheduleEnabled: true,
+        label: 'System Workflow',
+        nodeCount: 2,
+        schedule: '0 9 * * *',
+      }),
+    );
+  });
+
+  it('duplicate_workflow clones through WorkflowsService with user and organization scope', async () => {
+    const { service, workflowsService } = createService();
+
+    const result = await service.executeTool(
+      AgentToolName.DUPLICATE_WORKFLOW,
+      { workflowId: 'wf-1' },
+      CTX,
+    );
+
+    expect(result.success).toBe(true);
+    expect(workflowsService.cloneWorkflow).toHaveBeenCalledWith(
+      'wf-1',
+      CTX.userId,
+      CTX.organizationId,
+      CTX.brandId,
+    );
+    expect(result.data.workflow).toEqual(
+      expect.objectContaining({
+        id: 'workflow-copy-1',
+        label: 'System Workflow (Copy)',
+      }),
+    );
+  });
+
   it('execute_workflow triggers workflow and returns execution id', async () => {
     const { service, workflowsService, workflowExecutorService } =
       createService();
 
     workflowsService.findOne.mockResolvedValue({
-      _id: 'wf-1',
+      id: 'wf-1',
       inputVariables: [],
       isDeleted: false,
       organization: CTX.organizationId,
@@ -3284,7 +3603,7 @@ describe('AgentToolExecutorService', () => {
     const { service, workflowsService } = createService();
 
     workflowsService.findOne.mockResolvedValue({
-      _id: 'wf-2',
+      id: 'wf-2',
       inputVariables: [
         { key: 'topic', label: 'Topic', required: true, type: 'text' },
         { key: 'style', label: 'Style', required: false, type: 'select' },
@@ -3308,7 +3627,7 @@ describe('AgentToolExecutorService', () => {
     const { service, workflowsService } = createService();
 
     workflowsService.findOne.mockResolvedValue({
-      _id: 'wf-2',
+      id: 'wf-2',
       inputVariables: [
         { key: 'topic', label: 'Topic', required: true, type: 'text' },
       ],
@@ -3325,11 +3644,127 @@ describe('AgentToolExecutorService', () => {
     expect(result.success).toBe(true);
   });
 
+  it('set_workflow_schedule enables a duplicate through the existing schedule endpoint', async () => {
+    const { httpService, service } = createService();
+    httpService.post.mockReturnValue(
+      of({
+        data: { data: { id: 'wf-copy-1', message: 'Schedule updated' } },
+      }),
+    );
+
+    const result = await service.executeTool(
+      AgentToolName.SET_WORKFLOW_SCHEDULE,
+      {
+        enabled: true,
+        schedule: '0 9 * * *',
+        timezone: 'UTC',
+        workflowId: 'wf-copy-1',
+      },
+      { ...CTX, authToken: 'token-1' },
+    );
+
+    expect(result.success).toBe(true);
+    expect(httpService.post).toHaveBeenCalledWith(
+      'http://localhost:3010/v1/workflows/wf-copy-1/schedule',
+      { enabled: true, schedule: '0 9 * * *', timezone: 'UTC' },
+      {
+        headers: {
+          Authorization: 'Bearer token-1',
+          'Content-Type': 'application/json',
+        },
+      },
+    );
+  });
+
+  it('set_workflow_schedule disables a duplicate through the existing schedule endpoint', async () => {
+    const { httpService, service } = createService();
+    httpService.delete.mockReturnValue(
+      of({
+        data: { data: { id: 'wf-copy-1', message: 'Schedule removed' } },
+      }),
+    );
+
+    const result = await service.executeTool(
+      AgentToolName.SET_WORKFLOW_SCHEDULE,
+      { enabled: false, workflowId: 'wf-copy-1' },
+      CTX,
+    );
+
+    expect(result.success).toBe(true);
+    expect(httpService.delete).toHaveBeenCalledWith(
+      'http://localhost:3010/v1/workflows/wf-copy-1/schedule',
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      },
+    );
+  });
+
+  it('list_workflow_runs returns scoped run history from the existing executions endpoint', async () => {
+    const { httpService, service } = createService();
+    httpService.get.mockReturnValue(
+      of({
+        data: {
+          data: [{ id: 'run-1', attributes: { status: 'completed' } }],
+        },
+      }),
+    );
+
+    const result = await service.executeTool(
+      AgentToolName.LIST_WORKFLOW_RUNS,
+      { limit: 5, status: 'completed', workflowId: 'wf-1' },
+      CTX,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data.count).toBe(1);
+    expect(httpService.get).toHaveBeenCalledWith(
+      'http://localhost:3010/v1/workflow-executions?limit=5&offset=0&workflow=wf-1&status=completed',
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      },
+    );
+  });
+
+  it('get_workflow_run returns one workflow run from the existing executions endpoint', async () => {
+    const { httpService, service } = createService();
+    httpService.get.mockReturnValue(
+      of({
+        data: {
+          data: { id: 'run-1', attributes: { progress: 100 } },
+        },
+      }),
+    );
+
+    const result = await service.executeTool(
+      AgentToolName.GET_WORKFLOW_RUN,
+      { runId: 'run-1' },
+      CTX,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data.run).toEqual({
+      id: 'run-1',
+      attributes: { progress: 100 },
+    });
+    expect(httpService.get).toHaveBeenCalledWith(
+      'http://localhost:3010/v1/workflow-executions/run-1',
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      },
+    );
+  });
+
   it('get_workflow_inputs returns input variable definitions', async () => {
     const { service, workflowsService } = createService();
 
     workflowsService.findOne.mockResolvedValue({
-      _id: 'wf-3',
+      id: 'wf-3',
       inputVariables: [
         {
           defaultValue: null,
@@ -3352,7 +3787,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      'get_workflow_inputs' as AgentToolName,
+      AgentToolName.GET_WORKFLOW_INPUTS,
       { workflowId: 'wf-3' },
       CTX,
     );
@@ -3377,7 +3812,7 @@ describe('AgentToolExecutorService', () => {
     workflowsService.findOne.mockResolvedValue(null);
 
     const result = await service.executeTool(
-      'get_workflow_inputs' as AgentToolName,
+      AgentToolName.GET_WORKFLOW_INPUTS,
       { workflowId: 'missing' },
       CTX,
     );

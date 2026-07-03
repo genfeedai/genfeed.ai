@@ -151,7 +151,7 @@ export class OutreachCampaignsController extends BaseCRUDController<
     const publicMetadata = getPublicMetadata(user);
 
     const entityOrganizationId =
-      (entity.organization as unknown as { _id: string })?._id?.toString() ||
+      (entity.organization as unknown as { id: string })?.id?.toString() ||
       entity.organization?.toString();
 
     if (

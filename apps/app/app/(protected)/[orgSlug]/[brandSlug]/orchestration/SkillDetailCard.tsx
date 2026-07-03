@@ -95,7 +95,7 @@ export default function SkillDetailCard({
               variant={ButtonVariant.OUTLINE}
             >
               <HiOutlineBeaker className="size-4" />
-              Test in chat
+              Test with Agent
             </Button>
           </div>
 

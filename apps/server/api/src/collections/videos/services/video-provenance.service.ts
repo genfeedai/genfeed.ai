@@ -1,17 +1,27 @@
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
-import { IngredientCategory } from '@genfeedai/enums';
-import { buildMediaProvenancePackage } from '@genfeedai/helpers';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
+import {
+  AssetScope,
+  IngredientCategory,
+  IngredientStatus,
+} from '@genfeedai/enums';
+import {
+  buildMediaProvenancePackage,
+  buildMediaWatermarkAttributionEvaluation,
+} from '@genfeedai/helpers';
 import type {
   IMediaProvenanceInput,
   IMediaProvenancePackage,
+  IMediaWatermarkAttributionEvaluation,
   IMetadataProvenanceRecord,
   IProvenanceScope,
   IVideoProvenanceRecord,
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 function toIsoString(value: Date | string | null | undefined): string | null {
   if (value instanceof Date) {
@@ -60,9 +70,7 @@ export class VideoProvenanceService {
     // otherwise resolve any video by id regardless of ownership — a
     // cross-tenant leak. Treat the absence of any owner constraint as not found.
     if (orScopes.length === 0) {
-      throw new NotFoundException(
-        `${this.constructorName}: video ${videoId} not found`,
-      );
+      throw new NotFoundException('Video', videoId);
     }
 
     const where: Record<string, unknown> = {
@@ -71,17 +79,58 @@ export class VideoProvenanceService {
       isDeleted: false,
     };
 
+    return this.buildPackageFromVideoQuery(videoId, where);
+  }
+
+  async buildPublicProvenance(
+    videoId: string,
+  ): Promise<IMediaProvenancePackage> {
+    this.loggerService.debug(`${this.constructorName} buildPublicProvenance`, {
+      videoId,
+    });
+
+    return this.buildPackageFromVideoQuery(videoId, {
+      _id: videoId,
+      // buildWhereFromParams passes the value directly to Prisma which stores
+      // IngredientCategory as uppercase (e.g. 'VIDEO'). The JS enum value is
+      // lowercase ('video'), so we convert via CategoryPrismaUtil to avoid a
+      // silent mismatch that would cause findOne to return null on valid records.
+      category: CategoryPrismaUtil.toIngredientCategory(
+        IngredientCategory.VIDEO,
+      ),
+      isDeleted: false,
+      // scope and status are also Prisma enums stored as UPPERCASE. Convert from
+      // the lowercase JS enum values to avoid the same silent WHERE mismatch.
+      scope: CategoryPrismaUtil.toAssetScope(AssetScope.PUBLIC),
+      status: CategoryPrismaUtil.toIngredientStatus(IngredientStatus.GENERATED),
+    });
+  }
+
+  private async buildPackageFromVideoQuery(
+    videoId: string,
+    where: Record<string, unknown>,
+  ): Promise<IMediaProvenancePackage> {
     const video = (await this.videosService.findOne(
       where,
     )) as unknown as IVideoProvenanceRecord | null;
 
-    if (!video || video.category !== IngredientCategory.VIDEO) {
-      throw new NotFoundException(
-        `${this.constructorName}: video ${videoId} not found`,
-      );
+    // Prisma returns IngredientCategory as its UPPERCASE stored form (e.g. 'VIDEO'),
+    // while IngredientCategory.VIDEO in the JS enum is lowercase ('video').
+    // Compare against the Prisma form to avoid rejecting valid video records.
+    // Only reject when the category field is explicitly present AND is not VIDEO —
+    // a missing category is already ruled out by the WHERE clause in the callers
+    // that filter by category, but we keep the null-check for defensive coverage.
+    const prismaVideoCategory = CategoryPrismaUtil.toIngredientCategory(
+      IngredientCategory.VIDEO,
+    );
+    if (
+      !video ||
+      (video.category !== undefined && video.category !== prismaVideoCategory)
+    ) {
+      throw new NotFoundException('Video', videoId);
     }
 
-    const assetId = video.id ?? video._id ?? videoId;
+    const assetId = video.id ?? videoId;
 
     const metadata = video.metadataId
       ? ((await this.metadataService.findOne({
@@ -138,5 +187,14 @@ export class VideoProvenanceService {
     };
 
     return buildMediaProvenancePackage(input);
+  }
+
+  async buildWatermarkAttributionEvaluation(
+    videoId: string,
+    scope: IProvenanceScope = {},
+  ): Promise<IMediaWatermarkAttributionEvaluation> {
+    const mediaPackage = await this.buildProvenance(videoId, scope);
+
+    return buildMediaWatermarkAttributionEvaluation(mediaPackage);
   }
 }

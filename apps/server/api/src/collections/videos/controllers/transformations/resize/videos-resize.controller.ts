@@ -3,6 +3,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { requireVideoOutputPath } from '@api/collections/videos/utils/video-processing-result.util';
 import { ConfigService } from '@api/config/config.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -52,14 +53,6 @@ export class VideosResizeController {
     private readonly websocketService: NotificationsPublisherService,
   ) {}
 
-  private requireOutputPath(value: unknown): string {
-    if (typeof value !== 'string' || value.length === 0) {
-      throw new Error('Video processing result missing outputPath');
-    }
-
-    return value;
-  }
-
   @Post(':videoId/resize')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async resizeVideo(
@@ -97,7 +90,7 @@ export class VideosResizeController {
     this.fileQueueService
       .processVideo({
         authProviderUserId: user.id,
-        ingredientId: ingredientData._id.toString(),
+        ingredientId: ingredientData.id.toString(),
         organizationId: publicMetadata.organization,
         params: {
           height: resizeVideoDto.height,
@@ -107,12 +100,12 @@ export class VideosResizeController {
         room: getUserRoomName(user.id),
         type: 'resize',
         userId: publicMetadata.user,
-        websocketUrl: `/videos/${ingredientData._id}`,
+        websocketUrl: `/videos/${ingredientData.id}`,
       })
       .then(async (job) => {
         const result = await this.fileQueueService.waitForJob(job.jobId, 60000);
-        const output = this.requireOutputPath(result.outputPath);
-        const ingredientId = String(ingredientData._id);
+        const output = requireVideoOutputPath(result.outputPath);
+        const ingredientId = String(ingredientData.id);
 
         return this.filesClientService
           .uploadToS3(ingredientId, `videos`, {
@@ -126,7 +119,7 @@ export class VideosResizeController {
             });
 
             await this.metadataService.patch(
-              metadataData._id,
+              metadataData.id,
               new MetadataEntity(res),
             );
 
@@ -172,7 +165,7 @@ export class VideosResizeController {
     this.fileQueueService
       .processVideo({
         authProviderUserId: user.id,
-        ingredientId: ingredientData._id.toString(),
+        ingredientId: ingredientData.id.toString(),
         organizationId: publicMetadata.organization,
         params: {
           height: 1920,
@@ -182,32 +175,32 @@ export class VideosResizeController {
         room: getUserRoomName(user.id),
         type: 'convert-to-portrait',
         userId: publicMetadata.user,
-        websocketUrl: `/videos/${ingredientData._id}`,
+        websocketUrl: `/videos/${ingredientData.id}`,
       })
       .then(async (job) => {
         const result = await this.fileQueueService.waitForJob(job.jobId, 60000);
-        const output = this.requireOutputPath(result.outputPath);
+        const output = requireVideoOutputPath(result.outputPath);
         const meta = await this.filesClientService.uploadToS3(
-          ingredientData._id,
+          ingredientData.id,
           `videos`,
           { path: output, type: FileInputType.FILE },
         );
 
         await this.metadataService.patch(
-          metadataData._id,
+          metadataData.id,
           new MetadataEntity(meta),
         );
-        await this.ingredientsService.patch(ingredientData._id, {
+        await this.ingredientsService.patch(ingredientData.id, {
           status: IngredientStatus.GENERATED,
           transformations: [TransformationCategory.RESIZED],
         });
 
-        const websocketUrl = WebSocketPaths.video(ingredientData._id);
+        const websocketUrl = WebSocketPaths.video(ingredientData.id);
         await this.websocketService.publishVideoComplete(
           websocketUrl,
           {
             eventType: WebSocketEventType.VIDEO_RESIZED,
-            id: ingredientData._id,
+            id: ingredientData.id,
             status: WebSocketEventStatus.COMPLETED,
             transformation: TransformationCategory.RESIZED,
           },

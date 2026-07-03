@@ -65,7 +65,7 @@ Content-type targets prevent the corpus from being technically large but one-dim
 | paid/creative references     | `100`          | Can be manually or provider-ingested; must be marked separately from organic trend references. |
 | evergreen reference examples | `200`          | Longer-lived references that remain useful after short trend windows expire.                   |
 
-Paid/creative and evergreen references may overlap with platform rows, but they must be classifiable so prompt assembly can choose the right example set.
+Paid/creative and evergreen references may overlap with platform rows, but they must be classifiable so prompt assembly can choose the right example set. Paid creative records use `sourceKind = "paid_creative_reference"` and `intendedUse = "paid_creative_analysis"` and are excluded from default organic reference reads unless a caller asks for that classification explicitly.
 
 ## Health Metrics
 
@@ -117,9 +117,9 @@ If the corpus is not launch-ready, downstream readers should still use the exist
 Follow-up implementation should treat this page as the product contract:
 
 - `#211` backfills the first credential-free global source set through `seed:prelaunch-corpus`; it clears the runtime cold-start baseline and starts toward the launch-minimum rows without claiming full launch readiness.
-- `#213` should replace curated topics with public reference ingestion while preserving the platform/content-type targets.
-- `#214` should make paid/creative references classifiable so they do not pollute organic trend slices.
-- `#215` should derive prompt-ready packs only from references that satisfy prompt-ready metadata.
+- `#213` replaces curated topics with public reference ingestion while preserving the platform/content-type targets. The first implementation slice classifies reference records with `sourceKind`, `intendedUse`, `confidence`, `sourceLabel`, `sourceTopic`, `capturedAt`, and `freshnessWindowDays`; LinkedIn fallback topics come from configured public source URLs instead of a hardcoded curated topic list.
+- `#214` makes paid/creative references classifiable and explicit-filtered so they do not pollute organic trend slices.
+- `#215` derives prompt-ready `hooks`, `formats`, `references`, and `constraints` packs only from references that satisfy prompt-ready metadata, and includes source IDs plus regeneration metadata for source updates or expiry.
 - `#216` should automate the health metrics and freshness checks defined here.
 
 ## V1 Boundary

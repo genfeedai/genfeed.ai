@@ -51,10 +51,64 @@ variable "github_environment" {
 }
 
 locals {
-  state_bucket_name = "genfeed-tfstate"
+  account_id               = data.aws_caller_identity.current.account_id
+  aws_partition            = data.aws_partition.current.partition
+  genfeed_prod_name_prefix = "genfeed-production"
+  genfeed_prod_ssm_path    = "/genfeed/production"
+  state_bucket_name        = "genfeed-tfstate"
+
+  genfeed_ecr_repository_arn = "arn:${local.aws_partition}:ecr:${var.region}:${local.account_id}:repository/genfeed/server"
+  genfeed_ecs_arns = [
+    "arn:${local.aws_partition}:ecs:${var.region}:${local.account_id}:cluster/${local.genfeed_prod_name_prefix}",
+    "arn:${local.aws_partition}:ecs:${var.region}:${local.account_id}:service/${local.genfeed_prod_name_prefix}/*",
+    "arn:${local.aws_partition}:ecs:${var.region}:${local.account_id}:task/${local.genfeed_prod_name_prefix}/*",
+    "arn:${local.aws_partition}:ecs:${var.region}:${local.account_id}:task-definition/${local.genfeed_prod_name_prefix}-*:*",
+  ]
+  genfeed_elb_arns = [
+    "arn:${local.aws_partition}:elasticloadbalancing:${var.region}:${local.account_id}:loadbalancer/app/${local.genfeed_prod_name_prefix}-*/*",
+    "arn:${local.aws_partition}:elasticloadbalancing:${var.region}:${local.account_id}:listener/app/${local.genfeed_prod_name_prefix}-*/*/*",
+    "arn:${local.aws_partition}:elasticloadbalancing:${var.region}:${local.account_id}:listener-rule/app/${local.genfeed_prod_name_prefix}-*/*/*/*",
+    "arn:${local.aws_partition}:elasticloadbalancing:${var.region}:${local.account_id}:targetgroup/gpapi*/*",
+    "arn:${local.aws_partition}:elasticloadbalancing:${var.region}:${local.account_id}:targetgroup/gpmcp*/*",
+    "arn:${local.aws_partition}:elasticloadbalancing:${var.region}:${local.account_id}:targetgroup/gpntf*/*",
+  ]
+  genfeed_log_arns = [
+    "arn:${local.aws_partition}:logs:${var.region}:${local.account_id}:log-group:/ecs/${local.genfeed_prod_name_prefix}/*",
+    "arn:${local.aws_partition}:logs:${var.region}:${local.account_id}:log-group:/ecs/${local.genfeed_prod_name_prefix}/*:log-stream:*",
+  ]
+  genfeed_elasticache_arns = [
+    "arn:${local.aws_partition}:elasticache:${var.region}:${local.account_id}:cluster:${local.genfeed_prod_name_prefix}-redis-*",
+    "arn:${local.aws_partition}:elasticache:${var.region}:${local.account_id}:replicationgroup:${local.genfeed_prod_name_prefix}-redis",
+    "arn:${local.aws_partition}:elasticache:${var.region}:${local.account_id}:subnetgroup:${local.genfeed_prod_name_prefix}-redis",
+  ]
+  genfeed_service_discovery_arns = [
+    "arn:${local.aws_partition}:servicediscovery:${var.region}:${local.account_id}:namespace/*",
+    "arn:${local.aws_partition}:servicediscovery:${var.region}:${local.account_id}:operation/*",
+    "arn:${local.aws_partition}:servicediscovery:${var.region}:${local.account_id}:service/*",
+  ]
+  genfeed_acm_arns = [
+    "arn:${local.aws_partition}:acm:${var.region}:${local.account_id}:certificate/*",
+  ]
+  genfeed_ec2_arns = [
+    "arn:${local.aws_partition}:ec2:${var.region}:${local.account_id}:vpc/*",
+    "arn:${local.aws_partition}:ec2:${var.region}:${local.account_id}:security-group/*",
+    "arn:${local.aws_partition}:ec2:${var.region}:${local.account_id}:subnet/*",
+    "arn:${local.aws_partition}:ec2:${var.region}:${local.account_id}:route-table/*",
+    "arn:${local.aws_partition}:ec2:${var.region}:${local.account_id}:natgateway/*",
+    "arn:${local.aws_partition}:ec2:${var.region}:${local.account_id}:elastic-ip/*",
+  ]
+  genfeed_route53_arns = [
+    "arn:${local.aws_partition}:route53:::hostedzone/*",
+    "arn:${local.aws_partition}:route53:::change/*",
+  ]
+  genfeed_ssm_arns = [
+    "arn:${local.aws_partition}:ssm:${var.region}:${local.account_id}:parameter${local.genfeed_prod_ssm_path}",
+    "arn:${local.aws_partition}:ssm:${var.region}:${local.account_id}:parameter${local.genfeed_prod_ssm_path}/*",
+  ]
 }
 
 data "aws_caller_identity" "current" {}
+data "aws_partition" "current" {}
 
 # ── Remote state bucket (S3-native locking, no DynamoDB) ──────────────
 resource "aws_s3_bucket" "state" {
@@ -135,15 +189,21 @@ resource "aws_iam_role" "gha_deploy" {
   assume_role_policy = data.aws_iam_policy_document.gha_trust.json
 }
 
-# Permissions CI needs: build/push ECR, run terraform (manage ECS/ALB/IAM/
-# ElastiCache/logs/cloudmap), update/run ECS, pass task roles, read state bucket.
-# Broad on purpose for plan/apply; tighten per-action once stable.
+# Permissions CI needs: build/push ECR, run OpenTofu over the genfeed production
+# stack, update/run ECS tasks, pass task roles, and read/write the state bucket.
 data "aws_iam_policy_document" "gha_deploy" {
   statement {
-    sid    = "EcrPushPull"
+    # ECR GetAuthorizationToken is account-scoped by AWS and does not support a
+    # repository ARN. Repository operations are scoped in EcrRepositoryPushPull.
+    sid       = "EcrAuthToken"
+    effect    = "Allow"
+    actions   = ["ecr:GetAuthorizationToken"]
+    resources = ["*"]
+  }
+  statement {
+    sid    = "EcrRepositoryPushPull"
     effect = "Allow"
     actions = [
-      "ecr:GetAuthorizationToken",
       "ecr:BatchCheckLayerAvailability",
       "ecr:GetDownloadUrlForLayer",
       "ecr:BatchGetImage",
@@ -152,7 +212,7 @@ data "aws_iam_policy_document" "gha_deploy" {
       "ecr:UploadLayerPart",
       "ecr:CompleteLayerUpload",
     ]
-    resources = ["*"]
+    resources = [local.genfeed_ecr_repository_arn]
   }
   statement {
     sid    = "EcsDeploy"
@@ -160,13 +220,23 @@ data "aws_iam_policy_document" "gha_deploy" {
     actions = [
       "ecs:DescribeServices",
       "ecs:DescribeTasks",
-      "ecs:DescribeTaskDefinition",
-      "ecs:RegisterTaskDefinition",
-      "ecs:DeregisterTaskDefinition",
       "ecs:UpdateService",
       "ecs:RunTask",
-      "ecs:ListTasks",
       "ecs:TagResource",
+    ]
+    resources = local.genfeed_ecs_arns
+  }
+  statement {
+    # RegisterTaskDefinition and ListTasks are control-plane operations whose
+    # resource support is account/cluster-level; keep them separate from service
+    # mutation permissions so the wildcard is auditable.
+    sid    = "EcsTaskDefinitionLifecycle"
+    effect = "Allow"
+    actions = [
+      "ecs:DeregisterTaskDefinition",
+      "ecs:DescribeTaskDefinition",
+      "ecs:ListTasks",
+      "ecs:RegisterTaskDefinition",
     ]
     resources = ["*"]
   }
@@ -185,16 +255,61 @@ data "aws_iam_policy_document" "gha_deploy" {
     sid    = "TerraformManage"
     effect = "Allow"
     actions = [
-      "ecs:*", "elasticloadbalancing:*", "application-autoscaling:*",
-      "servicediscovery:*", "elasticache:*", "logs:*", "ecr:*",
-      "ec2:Describe*", "ec2:CreateSecurityGroup", "ec2:AuthorizeSecurityGroup*",
-      "ec2:RevokeSecurityGroup*", "ec2:CreateTags", "ec2:DeleteSecurityGroup",
-      "ec2:*LaunchTemplate*", "autoscaling:*", "iam:GetRole", "iam:ListRolePolicies",
-      "iam:ListAttachedRolePolicies", "iam:GetRolePolicy", "acm:*", "ssm:GetParameters",
-      "ssm:GetParametersByPath", "ssm:GetParameter", "ssm:DescribeParameters",
-      # rds:Describe* are read-only and don't support resource-level scoping;
-      # the pre-migration snapshot WRITE actions are scoped separately below.
-      "rds:DescribeDBInstances", "rds:DescribeDBSnapshots", "route53:*",
+      "ecs:*",
+      "elasticloadbalancing:*",
+      "servicediscovery:*",
+      "elasticache:*",
+      "logs:*",
+      "ecr:*",
+      "ec2:CreateSecurityGroup",
+      "ec2:AuthorizeSecurityGroup*",
+      "ec2:RevokeSecurityGroup*",
+      "ec2:CreateTags",
+      "ec2:DeleteSecurityGroup",
+      "acm:*",
+      "ssm:GetParameters",
+      "ssm:GetParametersByPath",
+      "ssm:GetParameter",
+      # Write + tag actions for Terraform-managed SSM SecureStrings (e.g. the
+      # ElastiCache REDIS_PASSWORD auth token created in genfeed-prod). Scoped to
+      # genfeed_ssm_arns via the resources block below — never account-wide.
+      "ssm:PutParameter",
+      "ssm:DeleteParameter",
+      "ssm:AddTagsToResource",
+      "ssm:RemoveTagsFromResource",
+      "ssm:ListTagsForResource",
+      "route53:*",
+    ]
+    resources = concat(
+      local.genfeed_ecs_arns,
+      local.genfeed_elb_arns,
+      local.genfeed_service_discovery_arns,
+      local.genfeed_elasticache_arns,
+      local.genfeed_log_arns,
+      [local.genfeed_ecr_repository_arn],
+      local.genfeed_ec2_arns,
+      local.genfeed_acm_arns,
+      local.genfeed_ssm_arns,
+      local.genfeed_route53_arns,
+    )
+  }
+  statement {
+    # These are read/list/control-plane APIs used by OpenTofu data sources or AWS
+    # service models that do not support useful resource-level scoping.
+    sid    = "TerraformGlobalReadAndControlPlane"
+    effect = "Allow"
+    actions = [
+      "acm:ListCertificates",
+      "ec2:Describe*",
+      "ecr:GetAuthorizationToken",
+      "ecs:List*",
+      "elasticache:Describe*",
+      "elasticloadbalancing:Describe*",
+      "rds:DescribeDBInstances",
+      "rds:DescribeDBSnapshots",
+      "route53:GetChange",
+      "route53:ListHostedZonesByName",
+      "ssm:DescribeParameters",
     ]
     resources = ["*"]
   }
@@ -209,8 +324,8 @@ data "aws_iam_policy_document" "gha_deploy" {
       "rds:AddTagsToResource",
     ]
     resources = [
-      "arn:aws:rds:*:${data.aws_caller_identity.current.account_id}:db:genfeed-data",
-      "arn:aws:rds:*:${data.aws_caller_identity.current.account_id}:snapshot:pre-migrate-*",
+      "arn:${local.aws_partition}:rds:*:${local.account_id}:db:genfeed-data",
+      "arn:${local.aws_partition}:rds:*:${local.account_id}:snapshot:pre-migrate-*",
     ]
   }
   statement {
@@ -232,7 +347,7 @@ data "aws_iam_policy_document" "gha_deploy" {
       "iam:UpdateAssumeRolePolicy",
       "iam:UpdateRole",
     ]
-    resources = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/genfeed-*"]
+    resources = ["arn:${local.aws_partition}:iam::${local.account_id}:role/genfeed-*"]
   }
   statement {
     sid       = "StateBucket"

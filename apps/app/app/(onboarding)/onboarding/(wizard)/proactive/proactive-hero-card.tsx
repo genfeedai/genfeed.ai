@@ -25,10 +25,7 @@ export default function ProactiveHeroCard({
   onContinueSelfServe,
 }: Props) {
   return (
-    <Card
-      bodyClassName="gap-0 p-8"
-      className="rounded-3xl border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.14),rgba(255,255,255,0.03)_45%,rgba(0,0,0,0.2))]"
-    >
+    <Card bodyClassName="gap-0 p-8" className="border-white/10 bg-white/[0.06]">
       <div className="flex flex-wrap items-start justify-between gap-6">
         <div className="max-w-2xl">
           <Badge

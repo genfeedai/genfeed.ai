@@ -310,8 +310,26 @@ describe('AgentThreadList', () => {
 
     const threadLink = screen.getByText('Linked thread').closest('a');
 
-    expect(threadLink).toHaveAttribute('href', '/chat/conv-1');
+    expect(threadLink).toHaveAttribute('href', '/agent/conv-1');
     expect(threadLink?.parentElement).toHaveClass('h-9');
+  });
+
+  it('does not render malformed threads without usable ids', async () => {
+    const malformedThread = {
+      ...createThread('conv-bad', 'Malformed thread'),
+      id: undefined as unknown as string,
+    };
+    const validThread = createThread('conv-1', 'Valid thread');
+    const apiService = createApiService({
+      getThreads: vi.fn().mockResolvedValue([malformedThread, validThread]),
+      unarchiveThread: vi.fn(),
+    });
+
+    render(<AgentThreadList apiService={apiService as never} />);
+
+    expect(await screen.findByText('Valid thread')).toBeInTheDocument();
+    expect(screen.queryByText('Malformed thread')).toBeNull();
+    expect(document.querySelector('a[href="/agent/undefined"]')).toBeNull();
   });
 
   it('clears the active thread and navigates away when archived', async () => {
@@ -343,7 +361,7 @@ describe('AgentThreadList', () => {
       expect(storeState.clearMessages).toHaveBeenCalled();
     });
 
-    expect(onNavigate).toHaveBeenCalledWith('/chat/new');
+    expect(onNavigate).toHaveBeenCalledWith('/agent/new');
   });
 
   it('restores an archived thread from the archived view', async () => {
@@ -412,7 +430,7 @@ describe('AgentThreadList', () => {
     });
 
     await waitFor(() => {
-      expect(onNavigate).toHaveBeenCalledWith('/chat/conv-2');
+      expect(onNavigate).toHaveBeenCalledWith('/agent/conv-2');
     });
 
     expect(storeState.threads[0]?.id).toBe('conv-2');
@@ -627,7 +645,7 @@ describe('AgentThreadList', () => {
 
     expect(storeState.threads).toEqual([]);
     expect(storeState.clearMessages).toHaveBeenCalled();
-    expect(onNavigate).toHaveBeenCalledWith('/chat/new');
+    expect(onNavigate).toHaveBeenCalledWith('/agent/new');
   });
 
   it('preserves the active thread when API response does not include it', async () => {

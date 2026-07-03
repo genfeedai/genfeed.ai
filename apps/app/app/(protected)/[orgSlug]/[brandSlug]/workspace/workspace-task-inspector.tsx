@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { Task } from '@services/management/tasks.service';
 import { Sheet, SheetContent } from '@ui/primitives/sheet';
 import { useMemo } from 'react';
@@ -46,7 +47,7 @@ export function WorkspaceTaskInspector({
   const linkedOutputSummary = useWorkspaceTaskLinkedOutputs(task);
   const taskToolHref =
     task && linkedRunSummary.reportThreadId
-      ? `/chat/${linkedRunSummary.reportThreadId}`
+      ? `${APP_ROUTES.AGENT.ROOT}/${linkedRunSummary.reportThreadId}`
       : task
         ? getAdvancedToolHref(task)
         : '/orchestration/runs';

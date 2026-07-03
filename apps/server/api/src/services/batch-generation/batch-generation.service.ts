@@ -2,6 +2,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { runIdempotent } from '@api/helpers/utils/idempotency/idempotency.util';
 import { ReviewBatchItemFormat } from '@api/services/batch-generation/constants/review-batch-item-format.constant';
 import { CreateBatchDto } from '@api/services/batch-generation/dto/create-batch.dto';
@@ -9,6 +10,7 @@ import { CreateManualReviewBatchDto } from '@api/services/batch-generation/dto/c
 import type { ContentMixConfig } from '@api/services/batch-generation/schemas/batch.schema';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import {
   BatchItemStatus,
   BatchStatus,
@@ -21,11 +23,7 @@ import type {
 } from '@genfeedai/interfaces';
 import type { Batch } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 interface BatchItem {
   format: ContentFormat;
@@ -182,7 +180,7 @@ export class BatchGenerationService {
     });
 
     if (!brand) {
-      throw new NotFoundException(`Brand ${dto.brandId} not found`);
+      throw new NotFoundException('Brand', dto.brandId);
     }
 
     const contentMix: ContentMixConfig = dto.contentMix ?? {
@@ -266,7 +264,7 @@ export class BatchGenerationService {
     });
 
     if (!brand) {
-      throw new NotFoundException(`Brand ${dto.brandId} not found`);
+      throw new NotFoundException('Brand', dto.brandId);
     }
 
     // Validate that all supplied ingredientIds belong to the caller's org
@@ -318,7 +316,7 @@ export class BatchGenerationService {
 
       if (unauthorized.length > 0) {
         throw new NotFoundException(
-          `Ingredient(s) not found: ${unauthorized.join(', ')}`,
+          `Ingredient(s): ${unauthorized.join(', ')}`,
         );
       }
     }
@@ -351,7 +349,7 @@ export class BatchGenerationService {
         variantId: reviewItem.variantId,
       } as never);
 
-      const postId = String((post as Record<string, unknown>)._id ?? post.id);
+      const postId = String((post as Record<string, unknown>).id ?? post.id);
 
       batchItems.push({
         _id: crypto.randomUUID(),
@@ -541,7 +539,7 @@ export class BatchGenerationService {
         where: { id: batchId, isDeleted: false, organizationId: orgId },
       });
       if (!existing) {
-        throw new NotFoundException(`Batch ${batchId} not found`);
+        throw new NotFoundException('Batch', batchId);
       }
       // Already generating or completed — return early without re-processing.
       throw new BadRequestException(
@@ -549,13 +547,12 @@ export class BatchGenerationService {
       );
     }
 
-    const batchRecord = await this.prisma.batch.findFirst({
-      where: { id: batchId, isDeleted: false, organizationId: orgId },
-    });
-
-    if (!batchRecord) {
-      throw new NotFoundException(`Batch ${batchId} not found`);
-    }
+    const batchRecord = await findOrThrow(
+      this.prisma.batch,
+      { where: { id: batchId, isDeleted: false, organizationId: orgId } },
+      'Batch',
+      batchId,
+    );
 
     const batchConfig = (batchRecord.config ?? {}) as BatchConfig;
     const batchItems = this.cloneBatchItems(batchRecord.items);
@@ -627,7 +624,7 @@ export class BatchGenerationService {
           user: batchRecord.userId,
         } as never);
 
-        const postId = String((post as Record<string, unknown>)._id ?? post.id);
+        const postId = String((post as Record<string, unknown>).id ?? post.id);
         item.postId = postId;
         item.status = BatchItemStatus.COMPLETED;
         completedCount++;
@@ -719,13 +716,12 @@ export class BatchGenerationService {
 
   @HandleErrors('get batch', 'batch-generation')
   async getBatch(batchId: string, orgId: string): Promise<IBatchSummary> {
-    const batch = (await this.prisma.batch.findFirst({
-      where: { id: batchId, isDeleted: false, organizationId: orgId },
-    })) as BatchWithConfig | null;
-
-    if (!batch) {
-      throw new NotFoundException(`Batch ${batchId} not found`);
-    }
+    const batch = (await findOrThrow(
+      this.prisma.batch,
+      { where: { id: batchId, isDeleted: false, organizationId: orgId } },
+      'Batch',
+      batchId,
+    )) as BatchWithConfig;
 
     return this.toBatchSummary(batch);
   }
@@ -770,13 +766,12 @@ export class BatchGenerationService {
     itemIds: string[],
     orgId: string,
   ): Promise<IBatchSummary> {
-    const batchRecord = await this.prisma.batch.findFirst({
-      where: { id: batchId, isDeleted: false, organizationId: orgId },
-    });
-
-    if (!batchRecord) {
-      throw new NotFoundException(`Batch ${batchId} not found`);
-    }
+    const batchRecord = await findOrThrow(
+      this.prisma.batch,
+      { where: { id: batchId, isDeleted: false, organizationId: orgId } },
+      'Batch',
+      batchId,
+    );
 
     const itemIdSet = new Set(itemIds);
     const postIdsToSchedule: string[] = [];
@@ -851,13 +846,12 @@ export class BatchGenerationService {
     orgId: string,
     feedback?: string,
   ): Promise<IBatchSummary> {
-    const batchRecord = await this.prisma.batch.findFirst({
-      where: { id: batchId, isDeleted: false, organizationId: orgId },
-    });
-
-    if (!batchRecord) {
-      throw new NotFoundException(`Batch ${batchId} not found`);
-    }
+    const batchRecord = await findOrThrow(
+      this.prisma.batch,
+      { where: { id: batchId, isDeleted: false, organizationId: orgId } },
+      'Batch',
+      batchId,
+    );
 
     const itemIdSet = new Set(itemIds);
     const postIdsToReject: string[] = [];
@@ -918,13 +912,12 @@ export class BatchGenerationService {
     orgId: string,
     feedback?: string,
   ): Promise<IBatchSummary> {
-    const batchRecord = await this.prisma.batch.findFirst({
-      where: { id: batchId, isDeleted: false, organizationId: orgId },
-    });
-
-    if (!batchRecord) {
-      throw new NotFoundException(`Batch ${batchId} not found`);
-    }
+    const batchRecord = await findOrThrow(
+      this.prisma.batch,
+      { where: { id: batchId, isDeleted: false, organizationId: orgId } },
+      'Batch',
+      batchId,
+    );
 
     const itemIdSet = new Set(itemIds);
     const postIdsToKeepAsDraft: string[] = [];
@@ -984,13 +977,12 @@ export class BatchGenerationService {
 
   @HandleErrors('cancel batch', 'batch-generation')
   async cancelBatch(batchId: string, orgId: string): Promise<IBatchSummary> {
-    const batchRecord = await this.prisma.batch.findFirst({
-      where: { id: batchId, isDeleted: false, organizationId: orgId },
-    });
-
-    if (!batchRecord) {
-      throw new NotFoundException(`Batch ${batchId} not found`);
-    }
+    const batchRecord = await findOrThrow(
+      this.prisma.batch,
+      { where: { id: batchId, isDeleted: false, organizationId: orgId } },
+      'Batch',
+      batchId,
+    );
 
     const batchItems = this.cloneBatchItems(batchRecord.items).map((item) => ({
       ...item,

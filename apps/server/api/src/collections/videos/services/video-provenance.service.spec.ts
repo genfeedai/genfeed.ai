@@ -2,14 +2,17 @@ import { CaptionsService } from '@api/collections/captions/services/captions.ser
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { VideoProvenanceService } from '@api/collections/videos/services/video-provenance.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { IngredientCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 const makeVideo = (overrides: Record<string, unknown> = {}) => ({
   _id: 'video-1',
-  category: IngredientCategory.VIDEO,
+  // Prisma returns IngredientCategory as its UPPERCASE stored form ('VIDEO'),
+  // not the JS enum lowercase value ('video'). The mock reflects what the DB layer
+  // actually returns so the guard comparison in buildPackageFromVideoQuery is valid.
+  category: 'VIDEO',
   cdnUrl: 'https://cdn.example.com/video-1.mp4',
   fileSize: 2048,
   generationCompletedAt: new Date('2026-06-20T10:00:00.000Z'),
@@ -126,6 +129,35 @@ describe('VideoProvenanceService', () => {
     });
   });
 
+  it('builds public provenance only from generated public videos', async () => {
+    videosService.findOne.mockResolvedValue(makeVideo());
+    metadataService.findOne.mockResolvedValue(null);
+    captionsService.find.mockResolvedValue([{ content: 'Public transcript' }]);
+
+    const pkg = await service.buildPublicProvenance('video-1');
+
+    expect(pkg.assetId).toBe('video-1');
+    expect(videosService.findOne).toHaveBeenCalledWith({
+      _id: 'video-1',
+      // All three enum fields are converted to the Prisma UPPERCASE form by
+      // CategoryPrismaUtil before being passed to findFirst. The JS enum values
+      // are lowercase ('video', 'public', 'generated'); Prisma stores UPPERCASE.
+      category: 'VIDEO',
+      isDeleted: false,
+      scope: 'PUBLIC',
+      status: 'GENERATED',
+    });
+    expect(pkg.transcriptSidecar.segmentCount).toBe(1);
+  });
+
+  it('does not build public provenance for non-public videos', async () => {
+    videosService.findOne.mockResolvedValue(null);
+
+    await expect(
+      service.buildPublicProvenance('video-1'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
   it('throws NotFound when the video does not exist', async () => {
     videosService.findOne.mockResolvedValue(null);
 
@@ -164,5 +196,36 @@ describe('VideoProvenanceService', () => {
     expect(pkg.manifest.media.durationSeconds).toBeNull();
     expect(pkg.transcriptSidecar.segmentCount).toBe(0);
     expect(pkg.transcriptSidecar.vtt).toBe('WEBVTT\n');
+  });
+
+  it('builds watermark attribution evaluation from the scoped provenance package', async () => {
+    videosService.findOne.mockResolvedValue(makeVideo());
+    metadataService.findOne.mockResolvedValue({
+      duration: 12,
+      fps: 24,
+      hasAudio: true,
+      height: 1920,
+      resolution: '1080x1920',
+      width: 1080,
+    });
+    captionsService.find.mockResolvedValue([{ content: 'Hello there' }]);
+
+    const evaluation = await service.buildWatermarkAttributionEvaluation(
+      'video-1',
+      { organizationId: 'org-1', userId: 'user-1' },
+    );
+
+    expect(videosService.findOne).toHaveBeenCalledWith({
+      OR: [{ user: 'user-1' }, { organization: 'org-1' }],
+      _id: 'video-1',
+      isDeleted: false,
+    });
+    expect(evaluation.primaryApproach).toBe('provenance_manifest');
+    expect(evaluation.missingSignals).toEqual(['contentHash']);
+    expect(evaluation.approaches[0]).toMatchObject({
+      approach: 'provenance_manifest',
+      readiness: 'ready',
+      tamperDetection: 'low',
+    });
   });
 });

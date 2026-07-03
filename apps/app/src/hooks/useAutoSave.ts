@@ -1,7 +1,7 @@
 'use client';
 
+import { logger } from '@services/core/logger.service';
 import { useEffect, useRef, useState } from 'react';
-import { logger } from '@/lib/logger';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 const AUTO_SAVE_DELAY = 2500; // 2.5 seconds
@@ -55,7 +55,7 @@ export function useAutoSave(enabled = true): UseAutoSaveReturn {
         setLastSavedAt(new Date());
       } catch (error) {
         if (error instanceof Error && error.name !== 'AbortError') {
-          logger.error('Auto-save failed', error, { context: 'useAutoSave' });
+          logger.error('Auto-save failed', { context: 'useAutoSave', error });
         }
       }
     }, AUTO_SAVE_DELAY);

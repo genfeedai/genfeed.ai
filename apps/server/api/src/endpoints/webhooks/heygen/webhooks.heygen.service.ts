@@ -28,7 +28,7 @@ export class HeygenWebhookService {
   }
 
   private getDocumentId(value: { _id?: unknown; id?: unknown }): string {
-    return String(value._id ?? value.id);
+    return String(value.id);
   }
 
   async handleCallback(body: HeygenWebhookPayload) {
@@ -73,7 +73,12 @@ export class HeygenWebhookService {
           return;
         }
 
-        await this.handleClipResultCallback(projectId, callbackId, body);
+        await this.handleClipResultCallback(
+          projectId,
+          callbackId,
+          body,
+          this.readString(clipResult.organizationId),
+        );
         return;
       }
 
@@ -94,10 +99,10 @@ export class HeygenWebhookService {
         });
       }
 
-      if (!ingredient && metadata?._id) {
+      if (!ingredient && metadata?.id) {
         ingredient = await this.ingredientsService.findOne({
           isDeleted: false,
-          metadataId: metadata._id,
+          metadataId: metadata.id,
         });
       }
 
@@ -128,7 +133,7 @@ export class HeygenWebhookService {
         updateData.error = JSON.stringify(event_data);
       } else if (event_type === 'avatar_video.success' && successVideoUrl) {
         await this.webhooksService.processMediaForIngredient(
-          ingredient._id.toString(),
+          ingredient.id.toString(),
           'avatar',
           successVideoUrl,
           providerVideoId,
@@ -173,6 +178,7 @@ export class HeygenWebhookService {
     projectId: string,
     clipResultId: string,
     body: HeygenWebhookPayload,
+    organizationId?: string,
   ): Promise<void> {
     const videoUrl = this.getSuccessVideoUrl(body);
     const providerJobId = body.event_data?.video_id;
@@ -199,34 +205,9 @@ export class HeygenWebhookService {
       return;
     }
 
-    const projectClipResults =
-      await this.clipResultsService.findByProject(projectId);
-    const hasPendingClipResults = projectClipResults.some((clipResult) => {
-      const status = this.readString(clipResult.status);
-      return status !== 'completed' && status !== 'failed';
-    });
-
-    if (hasPendingClipResults) {
-      return;
-    }
-
-    const hasCompletedClip = projectClipResults.some(
-      (clipResult) => this.readString(clipResult.status) === 'completed',
+    await this.clipProjectsService.reconcileTerminalState(
+      projectId,
+      organizationId,
     );
-
-    if (hasCompletedClip) {
-      await this.clipProjectsService.patch(projectId, {
-        error: null,
-        progress: 100,
-        status: 'completed',
-      });
-      return;
-    }
-
-    await this.clipProjectsService.patch(projectId, {
-      error: 'All clip generations failed.',
-      progress: 100,
-      status: 'failed',
-    });
   }
 }

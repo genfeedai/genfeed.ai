@@ -1,4 +1,5 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import type {
   GoogleSearchConsoleSearchAnalyticsResponse,
   GoogleSearchConsoleSitesResponse,
@@ -16,7 +17,7 @@ import type {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
 const DEFAULT_DIMENSIONS: GoogleSearchConsoleDimension[] = [
@@ -139,7 +140,7 @@ export class GoogleSearchConsoleService {
     });
 
     if (!credential?.refreshToken) {
-      throw new NotFoundException('Google Search Console credential not found');
+      throw new NotFoundException('Google Search Console credential');
     }
 
     try {
@@ -148,7 +149,7 @@ export class GoogleSearchConsoleService {
           EncryptionUtil.decrypt(credential.refreshToken),
         );
 
-      return await this.credentialsService.patch(credential._id, {
+      return await this.credentialsService.patch(credential.id, {
         accessToken: tokens.accessToken,
         accessTokenExpiry: tokens.expiresIn
           ? new Date(Date.now() + tokens.expiresIn * 1000)
@@ -159,7 +160,7 @@ export class GoogleSearchConsoleService {
       });
     } catch (error: unknown) {
       this.loggerService.error(`${caller} failed`, error);
-      await this.credentialsService.patch(credential._id, {
+      await this.credentialsService.patch(credential.id, {
         isConnected: false,
       });
       throw error;

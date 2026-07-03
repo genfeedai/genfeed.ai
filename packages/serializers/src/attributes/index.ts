@@ -5,12 +5,12 @@ export * from '@serializers/attributes/billing';
 export * from '@serializers/attributes/collections';
 export * from '@serializers/attributes/common';
 export * from '@serializers/attributes/content';
-export * from '@serializers/attributes/content-intelligence';
 export * from '@serializers/attributes/elements';
 export * from '@serializers/attributes/ingredients';
 export * from '@serializers/attributes/integrations';
 export * from '@serializers/attributes/management';
 
 export * from '@serializers/attributes/organizations';
+export * from '@serializers/attributes/social';
 export * from '@serializers/attributes/threads';
 export * from '@serializers/attributes/users';

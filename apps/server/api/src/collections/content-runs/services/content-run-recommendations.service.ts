@@ -1,14 +1,24 @@
+import {
+  hydrateContentRun,
+  isContentRunRecord,
+  toContentRunJsonValue,
+} from '@api/collections/content-runs/utils/content-run-data.util';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import {
+  ContentOptimizationService,
+  type WinnerContentSignal,
+} from '@api/services/content-optimization/content-optimization.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
   ContentRunAnalyticsSummary,
   ContentRunRecommendation,
   ContentRunVariant,
 } from '@genfeedai/interfaces';
-import { Prisma } from '@genfeedai/prisma';
+import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 type ContentRunRow = {
+  brandId?: string | null;
   config: unknown;
   id: string;
   status: string;
@@ -63,37 +73,20 @@ type VariantAccumulator = {
 
 @Injectable()
 export class ContentRunRecommendationsService {
-  constructor(private readonly prisma: PrismaService) {}
-
-  private isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
-  }
-
-  private toJsonValue(value: unknown): Prisma.InputJsonValue {
-    return JSON.parse(JSON.stringify(value ?? null)) as Prisma.InputJsonValue;
-  }
-
-  private hydrateRun(run: Record<string, unknown>): Record<string, unknown> {
-    const config = this.isRecord(run.config) ? run.config : {};
-
-    return {
-      ...run,
-      ...config,
-      _id: run.id,
-      brand: run.brandId ?? config.brand,
-      organization: run.organizationId ?? config.organization,
-      status: run.status ?? config.status,
-    };
-  }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly contentOptimizationService: ContentOptimizationService,
+    private readonly logger: LoggerService,
+  ) {}
 
   private readConfig(run: ContentRunRow): Record<string, unknown> {
-    return this.isRecord(run.config) ? run.config : {};
+    return isContentRunRecord(run.config) ? run.config : {};
   }
 
   private readVariants(config: Record<string, unknown>): ContentRunVariant[] {
     return Array.isArray(config.variants)
       ? config.variants.filter((variant): variant is ContentRunVariant =>
-          this.isRecord(variant),
+          isContentRunRecord(variant),
         )
       : [];
   }
@@ -112,7 +105,7 @@ export class ContentRunRecommendationsService {
     return (
       this.readString(row.variantId) ??
       this.readString(
-        this.isRecord((row as Record<string, unknown>).data)
+        isContentRunRecord((row as Record<string, unknown>).data)
           ? ((row as Record<string, unknown>).data as Record<string, unknown>)
               .variantId
           : undefined,
@@ -257,7 +250,7 @@ export class ContentRunRecommendationsService {
     const lowPerformers = scores.filter(
       (score) => score.rank > 1 && score.score < winner.score * 0.5,
     );
-    const brief = this.isRecord(config.brief) ? config.brief : {};
+    const brief = isContentRunRecord(config.brief) ? config.brief : {};
     const hook =
       this.readString(brief.hypothesis) ??
       this.readString(brief.angle) ??
@@ -352,15 +345,60 @@ export class ContentRunRecommendationsService {
     };
 
     const updatedRun = (await this.prisma.contentRun.update({
-      data: { config: this.toJsonValue(nextConfig) },
+      data: { config: toContentRunJsonValue(nextConfig) },
       where: { id: runId },
     })) as unknown as Record<string, unknown>;
+
+    const winner = scores[0];
+    if (winner) {
+      await this.requeueWinnerIntoTrends(organizationId, run, config, winner);
+    }
 
     return {
       analyticsSummary,
       recommendations,
       scores,
-      updatedRun: this.hydrateRun(updatedRun),
+      updatedRun: hydrateContentRun(updatedRun) ?? updatedRun,
     };
+  }
+
+  /**
+   * Feed the run's winning variant back into trend ingestion (issue #166).
+   * Best-effort: a trend-enrichment failure must never break run analysis, and
+   * the enrichment itself is gated per-org/brand by the trend opt-in flag.
+   */
+  private async requeueWinnerIntoTrends(
+    organizationId: string,
+    run: ContentRunRow,
+    config: Record<string, unknown>,
+    winner: RunVariantScore,
+  ): Promise<void> {
+    try {
+      const brief = isContentRunRecord(config.brief) ? config.brief : {};
+      const hook =
+        this.readString(brief.hypothesis) ??
+        this.readString(brief.angle) ??
+        winner.variantId;
+
+      const signal: WinnerContentSignal = {
+        avgEngagementRate: winner.avgEngagementRate,
+        contentRunId: run.id,
+        format: winner.format,
+        hook,
+        platform: winner.platform,
+        variantId: winner.variantId,
+      };
+
+      await this.contentOptimizationService.requeueWinnerIntoTrends(
+        organizationId,
+        this.readString(run.brandId),
+        signal,
+      );
+    } catch (error) {
+      this.logger.warn(
+        'Failed to requeue winner into trends; continuing run analysis',
+        { error, runId: run.id },
+      );
+    }
   }
 }

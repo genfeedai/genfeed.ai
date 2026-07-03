@@ -1,12 +1,14 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import type { IAgentRun, IAnalytics } from '@genfeedai/interfaces';
 import type { AgentRunStats } from '@genfeedai/types';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
+import * as Sentry from '@sentry/nextjs';
 import { AgentRunsService } from '@services/ai/agent-runs.service';
 import { Task, TasksService } from '@services/management/tasks.service';
 import { WebSocketPaths } from '@utils/network/websocket.util';
@@ -32,6 +34,31 @@ import {
   type WorkspaceSection,
   type WorkspaceTaskRealtimePayload,
 } from './workspace-task.helpers';
+
+const WORKSPACE_OVERVIEW_LOAD_TIMEOUT_MS = 15_000;
+const WORKSPACE_OVERVIEW_LOAD_WARNING =
+  'Workspace data is taking longer than expected. You can keep this page open or try again.';
+
+type WorkspaceOverviewLoadScope = 'runs' | 'tasks';
+type WorkspaceLoadWarningState = Partial<
+  Record<WorkspaceOverviewLoadScope, true>
+>;
+
+function addWorkspaceLoadTimeoutBreadcrumb(
+  scope: WorkspaceOverviewLoadScope,
+  pathname: string,
+) {
+  Sentry.addBreadcrumb({
+    category: 'workspace.overview',
+    data: {
+      pathname,
+      scope,
+      timeoutMs: WORKSPACE_OVERVIEW_LOAD_TIMEOUT_MS,
+    },
+    level: 'warning',
+    message: 'Workspace overview data load timed out',
+  });
+}
 
 export interface UseWorkspacePageContentParams {
   defaultInboxView?: InboxView;
@@ -78,7 +105,45 @@ export function useWorkspacePageContent({
   const [agentStats, setAgentStats] = useState<AgentRunStats | null>(
     initialStats,
   );
+  const [workspaceLoadWarnings, setWorkspaceLoadWarnings] =
+    useState<WorkspaceLoadWarningState>({});
+  const [isWorkspaceRunsLoading, setWorkspaceRunsLoading] = useState(
+    section === 'overview',
+  );
+  const [isWorkspaceTasksLoading, setWorkspaceTasksLoading] = useState(true);
   const [workspaceTasks, setWorkspaceTasks] = useState<Task[]>([]);
+
+  const markWorkspaceLoadWarning = useCallback(
+    (scope: WorkspaceOverviewLoadScope) => {
+      setWorkspaceLoadWarnings((current) =>
+        current[scope] ? current : { ...current, [scope]: true },
+      );
+    },
+    [],
+  );
+
+  const clearWorkspaceLoadWarning = useCallback(
+    (scope: WorkspaceOverviewLoadScope) => {
+      setWorkspaceLoadWarnings((current) => {
+        if (!current[scope]) {
+          return current;
+        }
+
+        const next = { ...current };
+        delete next[scope];
+        return next;
+      });
+    },
+    [],
+  );
+
+  const workspaceLoadWarning = useMemo(
+    () =>
+      workspaceLoadWarnings.tasks || workspaceLoadWarnings.runs
+        ? WORKSPACE_OVERVIEW_LOAD_WARNING
+        : null,
+    [workspaceLoadWarnings],
+  );
 
   const reviewInboxTasks = useMemo(
     () =>
@@ -237,17 +302,45 @@ export function useWorkspacePageContent({
 
   useEffect(() => {
     const controller = new AbortController();
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    setWorkspaceTasksLoading(true);
+    clearWorkspaceLoadWarning('tasks');
+
+    if (section === 'overview') {
+      timeoutId = setTimeout(() => {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        markWorkspaceLoadWarning('tasks');
+        addWorkspaceLoadTimeoutBreadcrumb('tasks', pathname);
+      }, WORKSPACE_OVERVIEW_LOAD_TIMEOUT_MS);
+    }
 
     const loadWorkspaceTasks = async () => {
-      const token = await resolveAuthToken(getToken);
-      if (!token || controller.signal.aborted) {
-        return;
-      }
+      try {
+        const token = await resolveAuthToken(getToken);
+        if (!token || controller.signal.aborted) {
+          return;
+        }
 
-      const service = TasksService.getInstance(token);
-      const tasks = await service.list({});
-      if (!controller.signal.aborted) {
-        setWorkspaceTasks(tasks);
+        const service = TasksService.getInstance(token);
+        const tasks = await service.list({});
+        if (!controller.signal.aborted) {
+          setWorkspaceTasks(tasks);
+        }
+      } catch {
+        if (!controller.signal.aborted) {
+          setWorkspaceTasks([]);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setWorkspaceTasksLoading(false);
+          clearWorkspaceLoadWarning('tasks');
+        }
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
       }
     };
 
@@ -255,53 +348,96 @@ export function useWorkspacePageContent({
 
     return () => {
       controller.abort();
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
     };
-  }, [getToken]);
+  }, [
+    clearWorkspaceLoadWarning,
+    getToken,
+    markWorkspaceLoadWarning,
+    pathname,
+    section,
+  ]);
 
   useEffect(() => {
     if (section !== 'overview') {
+      setWorkspaceRunsLoading(false);
       return;
     }
 
     let isMounted = true;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    setWorkspaceRunsLoading(true);
+    clearWorkspaceLoadWarning('runs');
 
-    const loadWorkspaceRuns = async () => {
-      const token = await resolveAuthToken(getToken);
-      if (!token || !isMounted) {
-        return;
-      }
-
-      const service = AgentRunsService.getInstance(token);
-      const [runsResult, activeRunsResult, statsResult] =
-        await Promise.allSettled([
-          service.list({ page: 1 }),
-          service.getActive(),
-          service.getStats(),
-        ]);
-
+    timeoutId = setTimeout(() => {
       if (!isMounted) {
         return;
       }
 
-      startTransition(() => {
-        if (runsResult.status === 'fulfilled') {
-          setAgentRuns(runsResult.value);
+      markWorkspaceLoadWarning('runs');
+      addWorkspaceLoadTimeoutBreadcrumb('runs', pathname);
+    }, WORKSPACE_OVERVIEW_LOAD_TIMEOUT_MS);
+
+    const loadWorkspaceRuns = async () => {
+      try {
+        const token = await resolveAuthToken(getToken);
+        if (!token || !isMounted) {
+          return;
         }
-        if (activeRunsResult.status === 'fulfilled') {
-          setActiveRuns(activeRunsResult.value);
+
+        const service = AgentRunsService.getInstance(token);
+        const [runsResult, activeRunsResult, statsResult] =
+          await Promise.allSettled([
+            service.list({ page: 1 }),
+            service.getActive(),
+            service.getStats(),
+          ]);
+
+        if (!isMounted) {
+          return;
         }
-        if (statsResult.status === 'fulfilled') {
-          setAgentStats(statsResult.value);
+
+        startTransition(() => {
+          if (runsResult.status === 'fulfilled') {
+            setAgentRuns(runsResult.value);
+          }
+          if (activeRunsResult.status === 'fulfilled') {
+            setActiveRuns(activeRunsResult.value);
+          }
+          if (statsResult.status === 'fulfilled') {
+            setAgentStats(statsResult.value);
+          }
+        });
+      } catch {
+        // Keep the dashboard shell mounted; empty run state already renders safely.
+      } finally {
+        if (isMounted) {
+          setWorkspaceRunsLoading(false);
+          clearWorkspaceLoadWarning('runs');
         }
-      });
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+      }
     };
 
     void loadWorkspaceRuns();
 
     return () => {
       isMounted = false;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
     };
-  }, [getToken, section]);
+  }, [
+    clearWorkspaceLoadWarning,
+    getToken,
+    markWorkspaceLoadWarning,
+    pathname,
+    section,
+  ]);
 
   useEffect(() => {
     if (!organizationId) {
@@ -419,7 +555,7 @@ export function useWorkspacePageContent({
         );
       });
 
-      push(`/chat/${planningThread.threadId}`);
+      push(`${APP_ROUTES.AGENT.ROOT}/${planningThread.threadId}`);
     } catch (error) {
       setWorkspaceActionError(
         error instanceof Error
@@ -453,6 +589,8 @@ export function useWorkspacePageContent({
     isOverviewSection,
     isTaskComposerOpen,
     isWorkspaceRefreshing,
+    isWorkspaceRunsLoading,
+    isWorkspaceTasksLoading,
     mutateTask,
     openPlanningConversation,
     queueTasks,
@@ -475,6 +613,7 @@ export function useWorkspacePageContent({
     unreadInboxTasks,
     visibleInboxTasks,
     workspaceActionError,
+    workspaceLoadWarning,
     workspaceTasks,
   };
 }

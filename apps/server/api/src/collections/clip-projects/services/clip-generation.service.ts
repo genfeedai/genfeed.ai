@@ -2,7 +2,7 @@ import { ClipResultsService } from '@api/collections/clip-results/clip-results.s
 import type { CreateClipResultDto } from '@api/collections/clip-results/dto/create-clip-result.dto';
 import { type ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
 import { AvatarVideoService } from '@api/services/avatar-video/avatar-video.service';
-import { AvatarVideoProviderName } from '@api/services/avatar-video/avatar-video-provider.interface';
+import { AvatarVideoProviderName } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -103,7 +103,7 @@ export class ClipGenerationService {
         } as unknown as CreateClipResultDto);
 
       const clipResultId = String(
-        (clipResult as Record<string, unknown>).id ?? clipResult._id,
+        (clipResult as Record<string, unknown>).id ?? clipResult.id,
       );
       clipResultIds.push(clipResultId);
 

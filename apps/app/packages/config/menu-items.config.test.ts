@@ -30,6 +30,11 @@ describe('APP_MENU_ITEMS', () => {
     ]);
   });
 
+  it('keeps Messages out of the workspace menu (app switcher owns it)', () => {
+    expect(APP_MENU_ITEMS.map((item) => item.label)).not.toContain('Messages');
+    expect(APP_MENU_ITEMS.map((item) => item.href)).not.toContain('/messages');
+  });
+
   it('does not surface content drilldowns in the shared sidebar', () => {
     const groups = [
       ...new Set(
@@ -100,7 +105,7 @@ describe('APP_MENU_ITEMS', () => {
     expect(hrefs).not.toContain('/orchestration/workflows');
     expect(hrefs).not.toContain('/orchestration/autopilot');
     expect(hrefs).not.toContain('/orchestration/configuration');
-    expect(hrefs).not.toContain('/chat');
+    expect(hrefs).not.toContain('/agent');
     expect(hrefs).not.toContain('/posts/composer');
     expect(hrefs).not.toContain('/posts/articles');
     expect(hrefs).not.toContain('/posts/newsletters');

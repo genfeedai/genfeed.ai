@@ -1,11 +1,11 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { MenuSharedProps } from '@genfeedai/props/navigation/menu.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import MenuItem from '@ui/menus/item/MenuItem';
-import OrganizationSwitcher from '@ui/menus/organization-switcher/OrganizationSwitcher';
 import SidebarNested from '@ui/menus/sidebar-nested/SidebarNested';
 import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import { Button } from '@ui/primitives/button';
@@ -40,6 +40,7 @@ export default function MenuShared({
   conversationActions,
   renderFooterSlot,
   showUserProfile = true,
+  orgSwitcherSlot,
 }: MenuSharedProps) {
   const { push } = useRouter();
 
@@ -56,8 +57,6 @@ export default function MenuShared({
     isActiveItem,
     primaryItems,
     secondaryItems,
-    topLevelGroups,
-    sectionGroups,
     groupedItems,
     handleLinkClick,
     nestedGroup,
@@ -77,9 +76,6 @@ export default function MenuShared({
     ? (prefixHref({ href: backHref }) ?? backHref)
     : undefined;
   const prefetchBackHref = useNavigationPrefetch(resolvedBackHref);
-  const shouldRenderOrganizationSwitcher =
-    process.env.NEXT_PUBLIC_GENFEED_CLOUD === 'true';
-
   const secondaryNavigationContent =
     secondaryItems.length > 0 ? (
       <div
@@ -140,24 +136,13 @@ export default function MenuShared({
         </div>
       )}
       {sectionLabel ? (
-        <>
-          <MenuSharedGroupedItems
-            groups={topLevelGroups}
-            {...sharedGroupProps}
-          />
-          {sectionGroups.length > 0 ? (
-            <CollapsibleGroup
-              label={sectionLabel}
-              isDrillDown={false}
-              storageKey={`__${sectionLabel.toLowerCase()}__`}
-            >
-              <MenuSharedGroupedItems
-                groups={sectionGroups}
-                {...sharedGroupProps}
-              />
-            </CollapsibleGroup>
-          ) : null}
-        </>
+        <CollapsibleGroup
+          label={sectionLabel}
+          isDrillDown={false}
+          storageKey={`__${sectionLabel.toLowerCase()}__`}
+        >
+          <MenuSharedGroupedItems groups={groupedItems} {...sharedGroupProps} />
+        </CollapsibleGroup>
       ) : (
         <MenuSharedGroupedItems groups={groupedItems} {...sharedGroupProps} />
       )}
@@ -215,7 +200,16 @@ export default function MenuShared({
           )}
         >
           {sharedCollapseControl}
-          {shouldRenderOrganizationSwitcher ? <OrganizationSwitcher /> : null}
+          {orgSwitcherSlot ? (
+            <div
+              className={cn(
+                'min-w-0 flex-1 transition-opacity duration-200',
+                isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100',
+              )}
+            >
+              {orgSwitcherSlot}
+            </div>
+          ) : null}
         </div>
 
         {/* Body — fades out when collapsed, pointer-events disabled */}
@@ -289,7 +283,7 @@ export default function MenuShared({
                     afterNavigationContent={afterNavigationContent}
                     conversationActions={conversationActions}
                     isConversationsCollapsed={isConversationsCollapsed}
-                    newChatHref={orgHref('/chat/new')}
+                    newAgentThreadHref={orgHref(APP_ROUTES.AGENT.NEW)}
                     onCollapsedChange={setIsConversationsCollapsed}
                   />
                 )}

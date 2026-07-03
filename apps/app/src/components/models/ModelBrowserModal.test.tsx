@@ -38,7 +38,7 @@ vi.mock('@/store/settingsStore', () => {
 });
 
 // Mock logger to prevent console output in tests
-vi.mock('@/lib/logger', () => ({
+vi.mock('@services/core/logger.service', () => ({
   logger: { debug: vi.fn(), error: vi.fn(), info: vi.fn(), warn: vi.fn() },
 }));
 

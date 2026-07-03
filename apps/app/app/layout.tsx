@@ -12,6 +12,7 @@ import { createAppMetadata, createPwaMetadata } from '@ui/shell/metadata';
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import DesktopDragStrip from '@/components/desktop/DesktopDragStrip';
+import DeploymentVersionWatcher from '@/components/version/DeploymentVersionWatcher';
 
 const { name, description } = metadataHelper;
 const pwaConfig = createPwaMetadata('app');
@@ -39,6 +40,7 @@ function createRuntimeConfigScript(): string {
 export default async function RootLayout({ children }: LayoutProps) {
   const initialTheme = await resolveRequestTheme();
   const isDesktopShell = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';
+  const isVercelRuntime = process.env.VERCEL === '1';
   const bodyClassName = isDesktopShell
     ? 'gf-app gf-desktop-shell gf-studio-app'
     : 'gf-app gf-studio-app';
@@ -56,13 +58,16 @@ export default async function RootLayout({ children }: LayoutProps) {
         initialTheme={initialTheme}
         storageKey={THEME_STORAGE_KEY}
         googleAnalyticsId={googleAnalyticsId}
-        includeSpeedInsights={!isDesktopShell}
-        includeVercelAnalytics={!isDesktopShell}
+        includeSpeedInsights={!isDesktopShell && isVercelRuntime}
+        includeVercelAnalytics={!isDesktopShell && isVercelRuntime}
       >
         <Script id="genfeed-runtime-config" strategy="beforeInteractive">
           {createRuntimeConfigScript()}
         </Script>
         <DesktopDragStrip />
+        {/* Desktop ships as a bundled app with its own update path; the deploy
+            skew watcher only applies to the Vercel-hosted studio. */}
+        {!isDesktopShell ? <DeploymentVersionWatcher /> : null}
         {children}
       </AppProviders>
     </AppHtmlDocument>

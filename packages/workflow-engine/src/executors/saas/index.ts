@@ -7,12 +7,14 @@ export * from '@workflow-engine/executors/saas/brand-executor';
 // Cinematic post-production executors
 export * from '@workflow-engine/executors/saas/cinematic-camera-presets';
 export * from '@workflow-engine/executors/saas/cinematic-color-grade-executor';
+export * from '@workflow-engine/executors/saas/comment-trigger-executor';
 export * from '@workflow-engine/executors/saas/condition-executor';
 export * from '@workflow-engine/executors/saas/delay-executor';
 // Social trigger executors
 export * from '@workflow-engine/executors/saas/engagement-trigger-executor';
 export * from '@workflow-engine/executors/saas/film-grain-executor';
 // AI generation executors
+export * from '@workflow-engine/executors/saas/hook-generator-executor';
 export * from '@workflow-engine/executors/saas/image-gen-executor';
 // SEO score -> rewrite -> re-score loop executor
 export * from '@workflow-engine/executors/saas/iterative-seo-refine-executor';

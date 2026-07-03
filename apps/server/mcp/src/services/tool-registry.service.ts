@@ -14,13 +14,17 @@ import type {
   McpTool,
 } from '@mcp/shared/interfaces/mcp-server.interface';
 import { handleAccountManagementTool } from '@mcp/tools/account-management.tool';
-import { handleAdInsightsTool } from '@mcp/tools/ad-insights.tool';
 import { handleAdminInfrastructureTool } from '@mcp/tools/admin-infrastructure.tool';
 import { handleAgentChatTool } from '@mcp/tools/agent-chat.tool';
 import { handleDarkroomGenerationTool } from '@mcp/tools/darkroom-generation.tool';
 import { handleGoogleAdsTool } from '@mcp/tools/google-ads.tool';
 import { handleMetaAdsTool } from '@mcp/tools/meta-ads.tool';
+import {
+  handleSocialMessagesTool,
+  SOCIAL_MESSAGES_TOOL_NAMES,
+} from '@mcp/tools/social-messages.tool';
 import { handleTrainingPipelineTool } from '@mcp/tools/training-pipeline.tool';
+import { handleWorkflowControlTool } from '@mcp/tools/workflow-control.tool';
 import { Injectable, Optional } from '@nestjs/common';
 
 interface ToolCallParams {
@@ -35,6 +39,24 @@ interface ResourceReadParams {
 const AGENT_EXECUTOR_TOOL_NAMES: ReadonlySet<string> = new Set<string>(
   Object.values(AgentToolName),
 );
+
+const AGENT_CHAT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
+  'cancel_agent_run',
+  'create_chat',
+  'get_agent_run',
+  'get_agent_run_content',
+  'list_agent_runs',
+  'retry_agent_run',
+  'send_chat_message',
+]);
+
+const WORKFLOW_CONTROL_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
+  'duplicate_workflow',
+  'get_workflow_run',
+  'inspect_workflow',
+  'list_workflow_runs',
+  'set_workflow_schedule',
+]);
 
 /**
  * Mutating MCP tools that must NOT execute immediately — instead they persist a
@@ -60,6 +82,10 @@ const APPROVAL_REQUIRED_TOOLS: ReadonlySet<string> = new Set<string>([
   'start_brand_interview',
   'submit_brand_interview_answer',
   'skip_brand_interview_question',
+  // Social messages — external sends require approval
+  'approve_social_draft',
+  'post_social_reply',
+  'send_social_dm',
 ]);
 
 @Injectable()
@@ -148,6 +174,14 @@ export class ToolRegistryService {
    * and for executing an approved deferred action.
    */
   private async executeTool(name: string, args: Record<string, unknown>) {
+    if (AGENT_CHAT_TOOL_NAMES.has(name)) {
+      return handleAgentChatTool(this.clientService, name, args);
+    }
+
+    if (WORKFLOW_CONTROL_TOOL_NAMES.has(name)) {
+      return handleWorkflowControlTool(this.clientService, name, args);
+    }
+
     if (AGENT_EXECUTOR_TOOL_NAMES.has(name)) {
       const result = await this.clientService.executeAgentTool(name, args);
       return this.toMcpResult(result);
@@ -723,19 +757,8 @@ export class ToolRegistryService {
       return handleDarkroomGenerationTool(this.clientService, name, args);
     }
 
-    if (['create_chat', 'send_chat_message'].includes(name)) {
-      return handleAgentChatTool(this.clientService, name, args);
-    }
-
-    if (
-      [
-        'get_ad_performance_insights',
-        'generate_ad_variations',
-        'suggest_ad_headlines',
-        'benchmark_ad_performance',
-      ].includes(name)
-    ) {
-      return handleAdInsightsTool(this.clientService, name, args);
+    if (SOCIAL_MESSAGES_TOOL_NAMES.has(name)) {
+      return handleSocialMessagesTool(this.clientService, name, args);
     }
 
     throw new Error(`Unknown tool: ${name}`);

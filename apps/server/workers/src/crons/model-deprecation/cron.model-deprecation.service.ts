@@ -300,7 +300,7 @@ export class CronModelDeprecationService {
   private async deprecateModel(model: ModelDocument): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    await this.modelsService.patch(model._id, {
+    await this.modelsService.patch(model.id, {
       deprecatedAt: new Date(),
       isActive: false,
       isDeprecated: true,

@@ -14,10 +14,14 @@ export type DmPlatform = 'twitter' | 'instagram';
 export interface SendDmConfig {
   /** Platform to send DM on */
   platform: DmPlatform;
+  /** Durable social inbox conversation id */
+  conversationId?: string;
   /** Recipient user ID or username */
   recipientId?: string;
   /** DM text */
   text?: string;
+  /** Stable idempotency key for retry-safe external actions */
+  idempotencyKey?: string;
   /** Optional media URL to attach */
   mediaUrl?: string;
 }
@@ -44,9 +48,12 @@ export type DmSender = (params: {
   userId: string;
   /** The brand ID associated with this action. Use this instead of userId for brand-scoped operations. */
   brandId?: string;
+  conversationId?: string;
+  idempotencyKey?: string;
   platform: DmPlatform;
   recipientId: string;
   text: string;
+  workflowRunId: string;
   mediaUrl?: string;
 }) => Promise<{ messageId: string }>;
 
@@ -97,12 +104,12 @@ export class SendDmExecutor extends BaseExecutor {
       'platform',
     );
 
-    const recipientId =
-      (node.config.recipientId as string) ??
-      (inputs.get('recipientId') as string | undefined);
-    const text =
-      (node.config.text as string) ??
-      (inputs.get('text') as string | undefined);
+    const recipientId = this.getConfigOrInputString(
+      node,
+      inputs,
+      'recipientId',
+    );
+    const text = this.getConfigOrInputString(node, inputs, 'text');
 
     if (!recipientId) {
       throw new Error('Recipient ID is required (via config or input)');
@@ -111,18 +118,27 @@ export class SendDmExecutor extends BaseExecutor {
       throw new Error('DM text is required (via config or input)');
     }
 
-    const mediaUrl =
-      (node.config.mediaUrl as string) ??
-      (inputs.get('mediaUrl') as string | undefined);
+    const mediaUrl = this.getConfigOrInputString(node, inputs, 'mediaUrl');
+    const conversationId = this.getConfigOrInputString(
+      node,
+      inputs,
+      'conversationId',
+    );
+    const idempotencyKey =
+      this.getConfigOrInputString(node, inputs, 'idempotencyKey') ??
+      `workflow:${context.runId}:${node.id}`;
 
     const result = await this.sender({
       brandId: node.config.brandId as string | undefined,
+      conversationId,
+      idempotencyKey,
       mediaUrl,
       organizationId: context.organizationId,
       platform,
       recipientId,
       text,
       userId: context.userId,
+      workflowRunId: context.runId,
     });
 
     const dmResult: SendDmResult = {
@@ -145,8 +161,20 @@ export class SendDmExecutor extends BaseExecutor {
   estimateCost(_node: ExecutableNode): number {
     return 1;
   }
-}
 
-export function createSendDmExecutor(): SendDmExecutor {
-  return new SendDmExecutor();
+  private getConfigOrInputString(
+    node: ExecutableNode,
+    inputs: Map<string, unknown>,
+    key: string,
+  ): string | undefined {
+    const configValue = node.config[key];
+    if (typeof configValue === 'string' && configValue.trim().length > 0) {
+      return configValue;
+    }
+
+    const inputValue = inputs.get(key);
+    return typeof inputValue === 'string' && inputValue.trim().length > 0
+      ? inputValue
+      : undefined;
+  }
 }

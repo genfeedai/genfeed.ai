@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IAgentRun, IAnalytics } from '@genfeedai/interfaces';
 import type { AgentRunStats } from '@genfeedai/types';
 import { useTrends } from '@hooks/data/trends/use-trends/use-trends';
@@ -8,8 +8,12 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import type { Task } from '@services/management/tasks.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
+import Card from '@ui/card/Card';
+import { Skeleton } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
+import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
+import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Button } from '@ui/primitives/button';
 import dynamic from 'next/dynamic';
 import { Suspense, startTransition, useMemo } from 'react';
@@ -71,6 +75,8 @@ function WorkspacePageContentContent({
     isOverviewSection,
     isTaskComposerOpen,
     isWorkspaceRefreshing,
+    isWorkspaceRunsLoading,
+    isWorkspaceTasksLoading,
     mutateTask,
     openPlanningConversation,
     queueTasks,
@@ -91,6 +97,7 @@ function WorkspacePageContentContent({
     visibleInboxTasks,
     sectionCopy,
     workspaceActionError,
+    workspaceLoadWarning,
     workspaceTasks,
   } = useWorkspacePageContent({
     defaultInboxView,
@@ -130,13 +137,34 @@ function WorkspacePageContentContent({
     ],
   );
 
+  const inboxTable = (
+    <AppTable<Task>
+      items={
+        section === 'inbox' ? visibleInboxTasks : reviewInboxTasks.slice(0, 5)
+      }
+      isLoading={isWorkspaceTasksLoading}
+      emptyLabel={
+        section === 'inbox' && defaultInboxView === 'unread'
+          ? 'No unread inbox items right now.'
+          : 'No inbox items yet.'
+      }
+      getRowKey={(task) => task.id}
+      getItemId={(task) => task.id}
+      onRowClick={(task) => {
+        setSelectedTaskId(task.id);
+        replaceTaskSearchParam(task.id);
+      }}
+      columns={workspaceInboxTableColumns}
+    />
+  );
+
   return (
     <Container
       label={sectionCopy.title}
       description={sectionCopy.description}
       icon={HiOutlineSquares2X2}
-      promoteHeaderToTopbarOnScroll
-      topbarRight={workspaceHeaderActions}
+      fullWidth
+      titleVisibility="sr-only"
       {...(isInboxSection
         ? {
             activeTab: defaultInboxView,
@@ -151,7 +179,14 @@ function WorkspacePageContentContent({
                       ? recentInboxTasks.length
                       : queueTasks.length;
                 return {
-                  badge: (
+                  badge: isWorkspaceTasksLoading ? (
+                    <Skeleton
+                      variant="text"
+                      width={14}
+                      height={12}
+                      className="opacity-70"
+                    />
+                  ) : (
                     <span className="text-[11px] opacity-70">{count}</span>
                   ),
                   href: `/workspace/inbox/${option.id}`,
@@ -164,12 +199,18 @@ function WorkspacePageContentContent({
             },
           }
         : {})}
-      right={workspaceHeaderActions}
+      right={isOverviewSection ? undefined : workspaceHeaderActions}
     >
       {workspaceActionError ? (
         <p className="mb-4 rounded-md border border-rose-400/30 bg-rose-400/8 px-3 py-2 text-xs text-rose-200">
           {workspaceActionError}
         </p>
+      ) : null}
+
+      {workspaceLoadWarning ? (
+        <Alert type={AlertCategory.WARNING} className="mb-4">
+          {workspaceLoadWarning}
+        </Alert>
       ) : null}
 
       {isTaskComposerOpen ? (
@@ -187,6 +228,8 @@ function WorkspacePageContentContent({
       {isOverviewSection ? (
         <WorkspaceDashboard
           activeRuns={initialActiveRuns}
+          isRunsLoading={isWorkspaceRunsLoading}
+          isTasksLoading={isWorkspaceTasksLoading}
           isTrendsLoading={isTrendsLoading}
           reviewInbox={initialReviewInbox}
           runs={initialRuns}
@@ -198,7 +241,10 @@ function WorkspacePageContentContent({
       ) : null}
 
       {shouldShowSectionSnapshot ? (
-        <WorkspaceSnapshotSection summaryItems={summaryItems} />
+        <WorkspaceSnapshotSection
+          isLoading={isWorkspaceTasksLoading}
+          summaryItems={summaryItems}
+        />
       ) : null}
 
       <div className={WORKSPACE_SECTION_STACK_CLASS}>
@@ -206,6 +252,7 @@ function WorkspacePageContentContent({
           {isOverviewSection ? (
             <WorkspaceTaskQueueCard
               busyTaskId={busyTaskId}
+              isLoading={isWorkspaceTasksLoading}
               items={activityItems}
               mutateTask={mutateTask}
               openPlanningConversation={openPlanningConversation}
@@ -213,39 +260,42 @@ function WorkspacePageContentContent({
           ) : null}
 
           {shouldShowInbox ? (
-            <section data-testid="workspace-inbox" className="space-y-3">
-              <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/35">
-                {section === 'inbox' ? defaultInboxView : 'Inbox'}
-              </h2>
-              <AppTable<Task>
-                items={
-                  section === 'inbox'
-                    ? visibleInboxTasks
-                    : reviewInboxTasks.slice(0, 5)
-                }
-                emptyLabel={
-                  section === 'inbox' && defaultInboxView === 'unread'
-                    ? 'No unread inbox items right now.'
-                    : 'No inbox items yet.'
-                }
-                getRowKey={(task) => task.id}
-                getItemId={(task) => task.id}
-                onRowClick={(task) => {
-                  setSelectedTaskId(task.id);
-                  replaceTaskSearchParam(task.id);
-                }}
-                columns={workspaceInboxTableColumns}
-              />
+            <section
+              aria-busy={isWorkspaceTasksLoading}
+              data-testid="workspace-inbox"
+              className="space-y-3"
+            >
+              {section === 'inbox' ? (
+                <>
+                  <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/35">
+                    {defaultInboxView}
+                  </h2>
+                  {inboxTable}
+                </>
+              ) : (
+                <Card
+                  label="Inbox"
+                  description="Latest items waiting on your review."
+                  bodyClassName="space-y-3 p-4"
+                >
+                  {inboxTable}
+                </Card>
+              )}
             </section>
           ) : null}
 
           {shouldShowHistory ? (
-            <section data-testid="workspace-activity" className="space-y-3">
+            <section
+              aria-busy={isWorkspaceTasksLoading}
+              data-testid="workspace-activity"
+              className="space-y-3"
+            >
               <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/35">
                 Activity
               </h2>
               <AppTable<Task>
                 items={activityItems}
+                isLoading={isWorkspaceTasksLoading}
                 emptyLabel="Activity will appear here once tasks start running."
                 getRowKey={(task) => task.id}
                 getItemId={(task) => task.id}
@@ -266,6 +316,7 @@ function WorkspacePageContentContent({
             initialActiveRuns={initialActiveRuns}
             initialReviewInbox={initialReviewInbox}
             inProgressTasks={inProgressTasks}
+            isTasksLoading={isWorkspaceTasksLoading}
             mutateTask={mutateTask}
             openPlanningConversation={openPlanningConversation}
             replaceTaskSearchParam={replaceTaskSearchParam}
@@ -318,7 +369,7 @@ export default function WorkspacePageContent(
   props: Parameters<typeof WorkspacePageContentContent>[0],
 ) {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
       <WorkspacePageContentContent {...props} />
     </Suspense>
   );

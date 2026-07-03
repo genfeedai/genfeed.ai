@@ -22,6 +22,13 @@ export default defineConfig({
       { find: '@', replacement: path.resolve(serviceDir, './src') },
       { find: '@api', replacement: path.resolve(serviceDir, '../api/src') },
       {
+        find: '@billing-providers',
+        replacement: path.resolve(
+          serviceDir,
+          '../api/src/common/subscriptions/billing.providers.oss.ts',
+        ),
+      },
+      {
         find: '@config',
         replacement: path.resolve(serviceDir, './src/config'),
       },
@@ -45,8 +52,71 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, '../../../packages/types/src'),
       },
       {
+        find: /^@genfeedai\/types\/(.*)$/,
+        replacement: path.resolve(serviceDir, '../../../packages/types/src/$1'),
+      },
+      {
+        find: '@genfeedai/interfaces',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/interfaces/src',
+        ),
+      },
+      {
+        find: /^@genfeedai\/interfaces\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/interfaces/src/$1',
+        ),
+      },
+      {
+        find: '@genfeedai/harness',
+        replacement: path.resolve(serviceDir, '../../../packages/harness/src'),
+      },
+      {
+        find: /^@genfeedai\/harness\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/harness/src/$1',
+        ),
+      },
+      {
+        find: '@genfeedai/queue-contracts',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/queue-contracts/src',
+        ),
+      },
+      {
+        find: /^@genfeedai\/queue-contracts\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/queue-contracts/src/$1',
+        ),
+      },
+      {
+        find: '@genfeedai/tools',
+        replacement: path.resolve(serviceDir, '../../../packages/tools/src'),
+      },
+      {
+        find: /^@genfeedai\/tools\/(.*)$/,
+        replacement: path.resolve(serviceDir, '../../../packages/tools/src/$1'),
+      },
+      {
+        find: '@genfeedai/utils',
+        replacement: path.resolve(serviceDir, '../../../packages/utils'),
+      },
+      {
+        find: /^@genfeedai\/utils\/(.*)$/,
+        replacement: path.resolve(serviceDir, '../../../packages/utils/$1'),
+      },
+      {
         find: '@genfeedai/config',
         replacement: path.resolve(serviceDir, '../../../packages/config/src'),
+      },
+      {
+        find: '@genfeedai/pricing',
+        replacement: path.resolve(serviceDir, '../../../packages/pricing/src'),
       },
       {
         find: /^@genfeedai\/config\/(.*)$/,
@@ -134,6 +204,13 @@ export default defineConfig({
         ),
       },
       {
+        find: '@genfeedai/workflows',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/workflows/src',
+        ),
+      },
+      {
         find: /^@genfeedai\/workflow-saas\/(.*)$/,
         replacement: path.resolve(
           serviceDir,
@@ -196,6 +273,7 @@ export default defineConfig({
     globals: true,
     include: ['src/crons/**/*.spec.ts'],
     passWithNoTests: false,
+    setupFiles: ['./test/setup-unit.ts'],
     testTimeout: 30000,
   },
 });

@@ -62,13 +62,13 @@ export class PresignedUploadService {
     this.loggerService.log(`${url} created ingredient`, {
       brand: ingredientData.brand,
       category: ingredientData.category,
-      id: ingredientData._id,
+      id: ingredientData.id,
       status: ingredientData.status,
       user: ingredientData.user,
     });
 
     // Generate key using ingredient ID
-    const key = ingredientData._id.toString();
+    const key = ingredientData.id.toString();
 
     // Get presigned URL from AWS service
     const { uploadUrl, publicUrl, s3Key } =
@@ -80,7 +80,7 @@ export class PresignedUploadService {
       );
 
     return {
-      _id: ingredientData._id.toString(),
+      _id: ingredientData.id.toString(),
       expiresIn: 3600,
       publicUrl,
       s3Key,
@@ -139,7 +139,7 @@ export class PresignedUploadService {
         const metadataId =
           typeof ingredient.metadata === 'string'
             ? ingredient.metadata
-            : ingredient.metadata._id;
+            : ingredient.metadata.id;
 
         if (metadataId) {
           await this.metadataService.patch(metadataId, {

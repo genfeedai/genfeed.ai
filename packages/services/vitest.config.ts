@@ -18,6 +18,14 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '.'),
       },
       {
+        find: '@genfeedai/services',
+        replacement: path.resolve(__dirname, '.'),
+      },
+      {
+        find: /^@genfeedai\/services\/(.*)$/,
+        replacement: path.resolve(__dirname, '$1'),
+      },
+      {
         find: '@genfeedai/constants',
         replacement: CONSTANTS_SRC,
       },
@@ -48,6 +56,10 @@ export default defineConfig({
       {
         find: /^@genfeedai\/interfaces\/(.*)$/,
         replacement: path.resolve(__dirname, '../interfaces/src/$1'),
+      },
+      {
+        find: '@genfeedai/pricing',
+        replacement: path.resolve(__dirname, '../pricing/src/index.ts'),
       },
       {
         find: '@genfeedai/models',

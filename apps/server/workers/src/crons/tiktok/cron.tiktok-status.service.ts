@@ -1,14 +1,21 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import {
+  SYSTEM_WORKFLOW_ACTION_IDS,
+  SystemWorkflowProvenanceService,
+} from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
-import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostStatus,
+  WorkflowExecutionTrigger,
+} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 
 type TiktokError = {
   message?: string;
@@ -22,7 +29,7 @@ type TiktokError = {
 
 type TiktokPost = PostEntity & {
   credential?: {
-    _id?: string;
+    id?: string;
     accessToken?: string | null;
     externalHandle?: string | null;
     isConnected?: boolean;
@@ -59,6 +66,7 @@ export class CronTiktokStatusService {
     private readonly postsService: PostsService,
     private readonly tiktokService: TiktokService,
     private readonly credentialsService: CredentialsService,
+    private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
   ) {}
 
   /**
@@ -77,10 +85,10 @@ export class CronTiktokStatusService {
   }
 
   /**
-   * Check status of PENDING TikTok posts every 5 minutes
-   * Polls TikTok API for post_id once moderation completes
+   * Checks status of PENDING TikTok posts and polls the TikTok API for a
+   * post_id once moderation completes. Fired every 5 minutes by the
+   * system-sweeps BullMQ Job Scheduler (SystemSweepsProcessor).
    */
-  @Cron(CronExpression.EVERY_5_MINUTES)
   async checkPendingTiktokPosts(): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(`${url} started`);
@@ -144,11 +152,11 @@ export class CronTiktokStatusService {
       // Check if post has been PENDING too long (use updatedAt since that's when it became PENDING)
       const pendingSince = new Date(post.updatedAt);
       if (pendingSince < maxAge) {
-        this.logger.warn(`${url} post ${post._id} exceeded max pending age`, {
+        this.logger.warn(`${url} post ${post.id} exceeded max pending age`, {
           hoursPending: Math.round(
             (now.getTime() - pendingSince.getTime()) / (60 * 60 * 1000),
           ),
-          postId: post._id,
+          postId: post.id,
           publishId,
         });
 
@@ -163,15 +171,15 @@ export class CronTiktokStatusService {
       const credential = (
         post as unknown as {
           credential?: {
-            _id?: string;
+            id?: string;
             accessToken?: string;
             externalHandle?: string;
             isConnected?: boolean;
           };
         }
       ).credential;
-      if (!credential?._id || !credential.accessToken) {
-        this.logger.warn(`${url} post ${post._id} has no valid credential`);
+      if (!credential?.id || !credential.accessToken) {
+        this.logger.warn(`${url} post ${post.id} has no valid credential`);
         await this.markPostFailed(
           post,
           'TikTok credential not found - please reconnect',
@@ -182,7 +190,7 @@ export class CronTiktokStatusService {
       // Check if credential is already disconnected
       if (credential.isConnected === false) {
         this.logger.warn(
-          `${url} post ${post._id} has disconnected credential - marking as failed`,
+          `${url} post ${post.id} has disconnected credential - marking as failed`,
         );
         await this.markPostFailed(
           post,
@@ -195,7 +203,7 @@ export class CronTiktokStatusService {
       const refreshedCredential = await this.tiktokService.refreshToken(
         post.organization.toString(),
         post.brand.toString(),
-        credential._id,
+        credential.id,
       );
 
       const decryptedAccessToken = EncryptionUtil.decrypt(
@@ -212,7 +220,7 @@ export class CronTiktokStatusService {
       );
 
       const hasPostId = !!statusData?.publicly_available_post_id?.[0];
-      this.logger.log(`${url} post ${post._id} status check`, {
+      this.logger.log(`${url} post ${post.id} status check`, {
         hasPostId,
         publicly_available_post_id: statusData?.publicly_available_post_id,
         publishId,
@@ -225,13 +233,20 @@ export class CronTiktokStatusService {
         const postUrl = `https://www.tiktok.com/@${credential.externalHandle}/video/${postId}`;
 
         // Update post with real post_id and mark as PUBLIC
-        await this.postsService.patch(post._id.toString(), {
-          externalId: postId, // Replace publish_id with actual post_id
-          publicationDate: new Date(),
-          status: PostStatus.PUBLIC,
-        });
+        await this.recordStatusTransition(
+          post,
+          'published',
+          `TikTok moderation completed - post ${postId} is live`,
+          async () => {
+            await this.postsService.patch(post.id.toString(), {
+              externalId: postId, // Replace publish_id with actual post_id
+              publicationDate: new Date(),
+              status: PostStatus.PUBLIC,
+            });
+          },
+        );
 
-        this.logger.log(`${url} post ${post._id} verified and published`, {
+        this.logger.log(`${url} post ${post.id} verified and published`, {
           postId,
           publishId,
           url: postUrl,
@@ -249,12 +264,12 @@ export class CronTiktokStatusService {
           (now.getTime() - pendingSince.getTime()) / (60 * 60 * 1000),
         );
         this.logger.log(
-          `${url} post ${post._id} is PUBLISH_COMPLETE but no post_id yet - will retry next cron run`,
+          `${url} post ${post.id} is PUBLISH_COMPLETE but no post_id yet - will retry next cron run`,
           { hoursPending, publishId },
         );
       }
     } catch (error: unknown) {
-      this.logger.error(`${url} failed for post ${post._id}`, {
+      this.logger.error(`${url} failed for post ${post.id}`, {
         error: (error as Error)?.message,
         publishId,
       });
@@ -273,7 +288,7 @@ export class CronTiktokStatusService {
       if (this.isAuthError(error)) {
         const errorCode = this.getErrorCode(error);
         this.logger.warn(
-          `${url} auth error for post ${post._id} - marking credential as disconnected`,
+          `${url} auth error for post ${post.id} - marking credential as disconnected`,
           { errorCode },
         );
 
@@ -283,15 +298,15 @@ export class CronTiktokStatusService {
           (
             post as unknown as {
               credential?: {
-                _id?: string;
+                id?: string;
                 accessToken?: string;
                 isConnected?: boolean;
               };
             }
-          ).credential?._id
+          ).credential?.id
         ) {
           try {
-            const credentialId = post.credential?._id;
+            const credentialId = post.credential?.id;
             if (!credentialId) {
               return;
             }
@@ -321,14 +336,63 @@ export class CronTiktokStatusService {
   /**
    * Mark a post as failed
    */
-  private async markPostFailed(post: unknown, reason: string): Promise<void> {
-    const postRecord = post as { _id?: unknown };
-    await this.postsService.patch(String(postRecord._id), {
-      status: PostStatus.FAILED,
+  private async markPostFailed(
+    post: TiktokPost,
+    reason: string,
+  ): Promise<void> {
+    await this.recordStatusTransition(post, 'failed', reason, async () => {
+      await this.postsService.patch(String(post.id), {
+        status: PostStatus.FAILED,
+      });
     });
 
-    this.logger.warn(`Post ${String(postRecord._id)} marked as failed`, {
+    this.logger.warn(`Post ${String(post.id)} marked as failed`, {
       reason,
     });
+  }
+
+  /**
+   * Applies a post status transition inside a system workflow execution so
+   * the reconciliation is tenant-inspectable (issue #1092). Provenance or
+   * patch failures are logged and left for the next sweep: posts stay
+   * PENDING and are re-checked every 5 minutes.
+   */
+  private async recordStatusTransition(
+    post: TiktokPost,
+    outcome: 'published' | 'failed',
+    detail: string,
+    transition: () => Promise<void>,
+  ): Promise<void> {
+    try {
+      await this.systemWorkflowProvenanceService.runAction(
+        {
+          actionType: 'tiktok-status-reconciliation',
+          canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.TIKTOK_STATUS_RECONCILIATION,
+          description:
+            'Verifies pending TikTok publications and reconciles post status once moderation completes.',
+          failureMessage: () => (outcome === 'failed' ? detail : undefined),
+          inputValues: {
+            detail,
+            outcome,
+            postId: String(post.id),
+            publishId: post.externalId,
+          },
+          label: 'TikTok Status Reconciliation',
+          metadata: { platform: CredentialPlatform.TIKTOK },
+          organizationId: post.organization.toString(),
+          schedule: '*/5 * * * *',
+          source: 'CronTiktokStatusService.checkPostStatus',
+          trigger: WorkflowExecutionTrigger.SCHEDULED,
+          userId: post.user?.toString(),
+        },
+        transition,
+      );
+    } catch (error: unknown) {
+      this.logger.error('Failed to record TikTok status transition', {
+        error: (error as Error)?.message,
+        outcome,
+        postId: String(post.id),
+      });
+    }
   }
 }

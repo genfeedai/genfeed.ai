@@ -1,14 +1,13 @@
 import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
-  createTrendDigestExecutor,
   type DigestCreditsChecker,
   type DigestIdempotencyGuard,
   type DigestOwnerResolver,
   type DigestRenderer,
   type DigestTrendsProvider,
   type TrendDigestEntry,
-  type TrendDigestExecutor,
+  TrendDigestExecutor,
   type TrendDigestReadyOutput,
   type TrendDigestSkippedOutput,
 } from '@workflow-engine/executors/saas/trend-digest-executor';
@@ -77,12 +76,12 @@ describe('TrendDigestExecutor', () => {
   let mocks: Mocks;
 
   beforeEach(() => {
-    executor = createTrendDigestExecutor();
+    executor = new TrendDigestExecutor();
     mocks = wire(executor);
   });
 
   it('throws when dependencies are not configured', async () => {
-    const fresh = createTrendDigestExecutor();
+    const fresh = new TrendDigestExecutor();
     await expect(fresh.execute(makeInput())).rejects.toThrow(
       'Trend digest dependencies not configured',
     );

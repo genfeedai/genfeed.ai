@@ -23,6 +23,26 @@ export default defineConfig({
         serviceDir,
         '../../../packages/config/src/index.ts',
       ),
+      '@genfeedai/pricing': path.resolve(
+        serviceDir,
+        '../../../packages/pricing/src/index.ts',
+      ),
+      '@genfeedai/storage': path.resolve(
+        serviceDir,
+        '../../../packages/storage/src/index.ts',
+      ),
+      '@genfeedai/types': path.resolve(
+        serviceDir,
+        '../../../packages/types/src/index.ts',
+      ),
+      '@genfeedai/workflows/comfyui': path.resolve(
+        serviceDir,
+        '../../../packages/workflows/src/comfyui/index.ts',
+      ),
+      '@genfeedai/workflows': path.resolve(
+        serviceDir,
+        '../../../packages/workflows/src/index.ts',
+      ),
       '@config': path.resolve(serviceDir, './src/config'),
       '@images': path.resolve(serviceDir, './src'),
       '@libs': path.resolve(serviceDir, '../../../packages/libs'),

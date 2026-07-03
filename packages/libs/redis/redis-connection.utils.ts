@@ -2,9 +2,8 @@
  * Shared Redis connection config utilities.
  * Single source of truth for TLS — derived from BOTH REDIS_TLS env var AND URL scheme.
  *
- * Two client stacks with different TLS APIs:
- * - node-redis v4 (createClient): socket.tls = true
- * - ioredis (BullMQ): tls = {} (empty object enables TLS)
+ * Single client stack — ioredis (also used by BullMQ under the hood):
+ * - ioredis: tls = {} (empty object enables TLS)
  */
 
 export interface ParsedRedisConfig {
@@ -13,6 +12,16 @@ export interface ParsedRedisConfig {
   port: number;
   tls: boolean;
   url: string;
+}
+
+/** ioredis retryStrategy return type: ms delay to retry, or non-number to stop retrying. */
+export type IoRedisRetryStrategy = (retries: number) => number | null;
+
+export interface IoRedisConnectionOptions {
+  connectTimeout?: number;
+  /** Defaults to true — caller must invoke `.connect()` explicitly (matches prior node-redis usage). */
+  lazyConnect?: boolean;
+  retryStrategy?: IoRedisRetryStrategy;
 }
 
 /**
@@ -62,17 +71,27 @@ export function parseRedisConnection(configService: {
 }
 
 /**
- * Build node-redis v4 createClient socket options (for pub/sub, cache, etc.)
- * Returns a properly typed object for createClient({ socket: ... }).
+ * Build ioredis client options (for pub/sub, cache, direct clients, etc.)
+ * Keep REDIS_PASSWORD separate from REDIS_URL so production can inject the
+ * password as an ECS secret without placing it in a plaintext env value.
+ *
+ * `lazyConnect` defaults to true so callers retain explicit control over when
+ * the connection is established (matching the previous node-redis
+ * `createClient()` + `.connect()` two-step lifecycle).
  */
-export function buildNodeRedisSocketOptions(
+export function buildIoRedisClientOptions(
   config: ParsedRedisConfig,
-  connectTimeout = 3_000,
-): { connectTimeout: number; tls: true } | { connectTimeout: number } {
-  if (config.tls) {
-    return { connectTimeout, tls: true };
-  }
-  return { connectTimeout };
+  options: IoRedisConnectionOptions = {},
+) {
+  return {
+    connectTimeout: options.connectTimeout ?? 3_000,
+    host: config.host,
+    lazyConnect: options.lazyConnect ?? true,
+    ...(config.password && { password: config.password }),
+    port: config.port,
+    ...(options.retryStrategy && { retryStrategy: options.retryStrategy }),
+    ...(config.tls && { tls: {} }),
+  };
 }
 
 /**
@@ -90,6 +109,7 @@ export function buildBullMQConnection(config: ParsedRedisConfig) {
     lazyConnect: true,
     maxRetriesPerRequest: 0,
     retryStrategy: () => null,
+    skipVersionCheck: true,
     ...(config.tls && { tls: {} }),
   };
 }

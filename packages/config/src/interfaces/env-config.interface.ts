@@ -53,6 +53,11 @@ export interface IEnvConfig {
   BETTER_AUTH_SECRET?: string;
   BETTER_AUTH_TRUSTED_ORIGINS?: string;
   BETTER_AUTH_URL?: string;
+  BETTER_AUTH_REQUIRE_EMAIL_VERIFICATION?: 'true' | 'false';
+  GITHUB_CLIENT_ID?: string;
+  GITHUB_CLIENT_SECRET?: string;
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
 
   // === Sentry ===
   SENTRY_DSN?: string;
@@ -76,6 +81,7 @@ export interface IEnvConfig {
   AGENT_CONTEXT_COMPRESSION_ENABLED?: string;
   AGENT_CONTEXT_COMPRESSION_MODEL?: string;
   AGENT_CONTEXT_WINDOW_SIZE?: number;
+  AGENT_TOKEN_STREAMING_ENABLED?: string;
   MAX_TOKENS?: number;
 
   // === fal.ai ===

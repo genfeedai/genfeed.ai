@@ -1,11 +1,15 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { AgentGoalsService } from '@api/collections/agent-goals/services/agent-goals.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { UsersService } from '@api/collections/users/services/users.service';
+import type { AgentGoalsService } from '@api/collections/agent-goals/services/agent-goals.service';
+import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { UsersService } from '@api/collections/users/services/users.service';
 import { AgentOrchestratorController } from '@api/services/agent-orchestrator/agent-orchestrator.controller';
-import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 
+vi.mock('@genfeedai/tools', () => ({
+  getToolsForSurface: vi.fn(() => []),
+  toAgentTools: vi.fn(() => []),
+}));
 vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn(() => ({
     organization: '507f191e810c19729de860ea',
@@ -71,14 +75,14 @@ describe('AgentOrchestratorController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('chat', () => {
+  describe('turns', () => {
     it('should call orchestrator service with correct params', async () => {
       const user = {
         id: 'authProvider_123',
         publicMetadata: { organization: 'org', user: 'usr' },
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
-        _id: '507f191e810c19729de860ea',
+        id: '507f191e810c19729de860ea',
       });
       service.chat.mockResolvedValue({} as never);
       const body = {
@@ -87,7 +91,7 @@ describe('AgentOrchestratorController', () => {
         threadId: 'conv-1',
       };
 
-      await controller.chat(body, user, 'Bearer token123');
+      await controller.createTurn(body, user, 'Bearer token123');
 
       expect(service.chat).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -107,11 +111,11 @@ describe('AgentOrchestratorController', () => {
         publicMetadata: { organization: 'org', user: 'usr' },
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
-        _id: '507f191e810c19729de860ea',
+        id: '507f191e810c19729de860ea',
       });
       service.chat.mockResolvedValue({} as never);
 
-      await controller.chat(
+      await controller.createTurn(
         { content: 'hi', source: 'onboarding', threadId: 'c1' },
         user,
         'Bearer mytoken',
@@ -129,11 +133,11 @@ describe('AgentOrchestratorController', () => {
         id: 'authProvider_789',
         publicMetadata: { organization: 'org', user: 'usr' },
       } as unknown as User;
-      usersService.findOne.mockResolvedValue({ _id: userId });
+      usersService.findOne.mockResolvedValue({ id: userId });
       service.chat.mockResolvedValue({} as never);
 
-      await controller.chat(
-        { content: 'x', source: 'chat', threadId: 'c2' },
+      await controller.createTurn(
+        { content: 'x', source: 'agent', threadId: 'c2' },
         user,
         'Bearer t',
       );
@@ -151,12 +155,12 @@ describe('AgentOrchestratorController', () => {
         publicMetadata: { organization: 'org', user: 'usr' },
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
-        _id: '507f191e810c19729de860ea',
+        id: '507f191e810c19729de860ea',
       });
       service.chat.mockResolvedValue({} as never);
 
-      await controller.chat(
-        { content: 'test', source: 'chat', threadId: 'conv-unique' },
+      await controller.createTurn(
+        { content: 'test', source: 'agent', threadId: 'conv-unique' },
         user,
         'Bearer t',
       );
@@ -166,16 +170,56 @@ describe('AgentOrchestratorController', () => {
         expect.any(Object),
       );
     });
+
+    it('starts a thread-scoped turn using the route thread id', async () => {
+      const user = {
+        id: 'authProvider_000',
+        publicMetadata: { organization: 'org', user: 'usr' },
+      } as unknown as User;
+      usersService.findOne.mockResolvedValue({
+        id: '507f191e810c19729de860ea',
+      });
+      service.chat.mockResolvedValue({} as never);
+
+      await controller.createThreadTurn(
+        'thread-route',
+        { content: 'test', source: 'agent' },
+        user,
+        'Bearer t',
+      );
+
+      expect(service.chat).toHaveBeenCalledWith(
+        expect.objectContaining({ threadId: 'thread-route' }),
+        expect.any(Object),
+      );
+    });
+
+    it('rejects mismatched route and body thread ids', async () => {
+      const user = {
+        id: 'authProvider_000',
+        publicMetadata: { organization: 'org', user: 'usr' },
+      } as unknown as User;
+
+      await expect(
+        controller.createThreadTurn(
+          'thread-route',
+          { content: 'test', source: 'agent', threadId: 'thread-body' },
+          user,
+          'Bearer t',
+        ),
+      ).rejects.toThrow('Request body threadId must match route threadId.');
+      expect(service.chat).not.toHaveBeenCalled();
+    });
   });
 
-  describe('chatStream', () => {
+  describe('turn streams', () => {
     it('should return threadId from the streaming chat response', async () => {
       const user = {
         id: 'authProvider_222',
         publicMetadata: { organization: 'org', user: 'usr' },
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
-        _id: '507f191e810c19729de860ea',
+        id: '507f191e810c19729de860ea',
       });
       service.chatStream.mockResolvedValue({
         runId: 'run-1',
@@ -183,8 +227,8 @@ describe('AgentOrchestratorController', () => {
         threadId: 'thread-stream',
       } as never);
 
-      const result = await controller.chatStream(
-        { content: 'stream', source: 'chat', threadId: 'thread-stream' },
+      const result = await controller.createTurnStream(
+        { content: 'stream', source: 'agent', threadId: 'thread-stream' },
         user,
         'Bearer token123',
       );
@@ -196,6 +240,33 @@ describe('AgentOrchestratorController', () => {
       expect(result).toMatchObject({
         threadId: 'thread-stream',
       });
+    });
+
+    it('starts a thread-scoped stream using the route thread id', async () => {
+      const user = {
+        id: 'authProvider_222',
+        publicMetadata: { organization: 'org', user: 'usr' },
+      } as unknown as User;
+      usersService.findOne.mockResolvedValue({
+        id: '507f191e810c19729de860ea',
+      });
+      service.chatStream.mockResolvedValue({
+        runId: 'run-1',
+        startedAt: '2026-03-12T00:00:00.000Z',
+        threadId: 'thread-stream',
+      } as never);
+
+      await controller.createThreadTurnStream(
+        'thread-stream',
+        { content: 'stream', source: 'agent' },
+        user,
+        'Bearer token123',
+      );
+
+      expect(service.chatStream).toHaveBeenCalledWith(
+        expect.objectContaining({ threadId: 'thread-stream' }),
+        expect.any(Object),
+      );
     });
   });
 
@@ -216,7 +287,7 @@ describe('AgentOrchestratorController', () => {
     it('should create a goal for the current user and org', async () => {
       const user = { id: 'authProvider_123' } as unknown as User;
       usersService.findOne.mockResolvedValue({
-        _id: '507f191e810c19729de860ea',
+        id: '507f191e810c19729de860ea',
       });
       agentGoalsService.create.mockResolvedValue({ _id: 'goal-1' });
 

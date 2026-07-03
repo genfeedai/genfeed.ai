@@ -470,11 +470,15 @@ export class BrandInterviewService {
     }
 
     if (meta.storage === 'brand') {
-      // Direct column update
-      await this.prisma.brand.update({
+      // Direct column update — scope by org + isDeleted (matching the
+      // agentConfig branch) so a known brandId can't write across tenants.
+      const updated = await this.prisma.brand.updateMany({
         data: { [fieldKey]: value },
-        where: { id: brandId },
+        where: { id: brandId, isDeleted: false, organizationId },
       });
+      if (updated.count === 0) {
+        throw new NotFoundException('Brand', brandId);
+      }
     } else {
       // Nested agentConfig update — must read first to preserve sibling fields
       const brand = await this.prisma.brand.findFirst({

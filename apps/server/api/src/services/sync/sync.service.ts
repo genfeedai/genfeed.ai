@@ -7,15 +7,11 @@ import type {
 import { WorkflowFormatConverterService } from '@api/collections/workflows/services/workflow-format-converter.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { ConfigService } from '@api/config/config.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
-import {
-  HttpException,
-  HttpStatus,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
 import type {
@@ -173,7 +169,7 @@ export class SyncService {
     })) as WorkflowDocument | null;
 
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
 
     // 2. Convert to portable cloud format
@@ -335,7 +331,7 @@ export class SyncService {
     };
 
     const localId = String(
-      created._id ?? (created as Record<string, unknown>).id,
+      created.id ?? (created as Record<string, unknown>).id,
     );
     await this.workflowsService.patch(localId, { cloudSync });
 

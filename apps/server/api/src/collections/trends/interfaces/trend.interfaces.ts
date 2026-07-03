@@ -43,6 +43,62 @@ export interface TrendPreferencesFilter {
   platforms?: string[];
 }
 
+export type TrendSourceConfidence = 'high' | 'low' | 'medium';
+
+export type TrendSourceIntendedUse =
+  | 'evergreen_prompt_context'
+  | 'organic_trend_discovery'
+  | 'paid_creative_analysis';
+
+export type TrendSourceKind =
+  | 'manual_curated_reference'
+  | 'owned_brand_reference'
+  | 'paid_creative_reference'
+  | 'public_platform_reference';
+
+export type TrendPaidCreativeProvider =
+  | 'google_ads_transparency_center'
+  | 'manual_paid_reference'
+  | 'meta_ads_library'
+  | 'tiktok_creative_center'
+  | 'youtube_ads_library';
+
+export type TrendPaidCreativeType =
+  | 'carousel'
+  | 'image'
+  | 'post'
+  | 'text'
+  | 'unknown'
+  | 'video';
+
+export interface TrendSourceMetrics {
+  comments?: number;
+  likes?: number;
+  shares?: number;
+  views?: number;
+}
+
+export interface TrendPaidCreativeMetadata {
+  adFormat?: string;
+  collectedAt: string;
+  creativeType?: TrendPaidCreativeType;
+  hook?: string;
+  landingIntent?: string;
+  provider: TrendPaidCreativeProvider;
+  visibleEngagementSignals?: TrendSourceMetrics;
+}
+
+export interface TrendSourceClassification {
+  capturedAt: string;
+  confidence: TrendSourceConfidence;
+  freshnessWindowDays: number;
+  intendedUse: TrendSourceIntendedUse;
+  paidCreative?: TrendPaidCreativeMetadata;
+  sourceKind: TrendSourceKind;
+  sourceLabel?: string;
+  sourceTopic?: string;
+}
+
 export interface TrendSourceItem {
   id: string;
   sourceReferenceId?: string;
@@ -55,12 +111,8 @@ export interface TrendSourceItem {
   thumbnailUrl?: string;
   mediaUrl?: string;
   publishedAt?: string;
-  metrics?: {
-    comments?: number;
-    likes?: number;
-    shares?: number;
-    views?: number;
-  };
+  sourceClassification?: TrendSourceClassification;
+  metrics?: TrendSourceMetrics;
 }
 
 export interface TrendContentItem extends TrendSourceItem {
@@ -116,12 +168,106 @@ export interface TrendSourceReferenceRecord {
   currentMetrics?: TrendSourceItem['metrics'];
   matchedTrendTopics: string[];
   sourcePreviewState: 'live' | 'fallback' | 'empty';
+  sourceClassification?: TrendSourceClassification;
   remixCount: number;
 }
 
 export interface TrendSourceReferenceResult {
   items: TrendSourceReferenceRecord[];
+  /**
+   * Count of references on THIS page (== items.length), not a corpus-wide
+   * total: classification is filtered post-fetch on a JSON column, so a true
+   * SQL count isn't available without over-scanning. Use `hasMore` to decide
+   * whether to page further.
+   */
   totalReferences: number;
+  /**
+   * True when more matching references exist beyond this page — either the
+   * post-classification set exceeded `limit`, or the over-fetch window hit its
+   * cap (so additional matches may lie past it).
+   */
+  hasMore: boolean;
+}
+
+export type TrendPromptReferenceBrandSuitability =
+  | 'brand_safe'
+  | 'requires_review'
+  | 'unknown';
+
+export type TrendPromptReferenceFreshnessStatus = 'expired' | 'fresh' | 'stale';
+
+export type TrendPromptReferencePackType =
+  | 'constraints'
+  | 'formats'
+  | 'hooks'
+  | 'references';
+
+export interface TrendPromptReferencePackSource {
+  id: string;
+  platform: string;
+  canonicalUrl: string;
+  authorHandle?: string;
+  contentType: TrendSourceItem['contentType'];
+  title?: string;
+  text?: string;
+  sourceClassification?: TrendSourceClassification;
+  freshnessStatus: TrendPromptReferenceFreshnessStatus;
+  lastSeenAt: string;
+  confidence: TrendSourceConfidence;
+}
+
+export interface TrendPromptReferencePackFreshness {
+  status: TrendPromptReferenceFreshnessStatus;
+  freshnessWindowDays: number;
+  lastSourceSeenAt?: string;
+  regenerateAfter?: string;
+  staleSourceIds: string[];
+  expiredSourceIds: string[];
+}
+
+export interface TrendPromptReferencePackRegeneration {
+  cacheKey: string;
+  sourceFingerprint: string;
+  trigger: 'cache_key_changed' | 'source_expired' | 'source_stale';
+  regenerateAfter?: string;
+}
+
+export interface TrendPromptReferencePack {
+  id: string;
+  type: TrendPromptReferencePackType;
+  targetPlatform: string;
+  contentIntent: TrendSourceIntendedUse;
+  title: string;
+  summary: string;
+  instructions: string[];
+  examples: string[];
+  constraints: string[];
+  sourceReferenceIds: string[];
+  sources: TrendPromptReferencePackSource[];
+  confidence: TrendSourceConfidence;
+  brandSuitability: TrendPromptReferenceBrandSuitability;
+  freshness: TrendPromptReferencePackFreshness;
+  regeneration: TrendPromptReferencePackRegeneration;
+  metadata: {
+    generatedAt: string;
+    sourceCount: number;
+    matchedTopics: string[];
+    sourceKinds: TrendSourceKind[];
+    contentTypes: TrendSourceItem['contentType'][];
+  };
+}
+
+export interface TrendPromptReferencePackResult {
+  packs: TrendPromptReferencePack[];
+  summary: {
+    availableTypes: TrendPromptReferencePackType[];
+    contentIntent: TrendSourceIntendedUse;
+    generatedAt: string;
+    skippedSources: number;
+    targetPlatform: string;
+    totalPacks: number;
+    totalSources: number;
+  };
 }
 
 export interface TrendSourceAccountSummary {
@@ -137,4 +283,62 @@ export interface TrendSourceAccountSummary {
 export interface TrendSourceAccountResult {
   accounts: TrendSourceAccountSummary[];
   totalAccounts: number;
+}
+
+export type TrendCorpusFreshnessStatus =
+  | 'degraded'
+  | 'empty'
+  | 'healthy'
+  | 'stale';
+
+export interface TrendCorpusFreshnessSegment {
+  id: string;
+  platform: string;
+  provider: string;
+  sourceKind: TrendSourceKind;
+  intendedUse: TrendSourceIntendedUse;
+  freshnessWindowDays: number;
+  referenceCount: number;
+  staleReferenceCount: number;
+  latestSeenAt?: string;
+  oldestSeenAt?: string;
+  status: TrendCorpusFreshnessStatus;
+}
+
+export interface TrendProviderFailureSummary {
+  provider: string;
+  platform: string;
+  reason:
+    | 'empty_source_preview'
+    | 'fallback_source_preview'
+    | 'stale_source_preview';
+  affectedTrendCount: number;
+  latestObservedAt?: string;
+  message: string;
+  retryAction: string;
+  severity: 'error' | 'warning';
+}
+
+export interface TrendCorpusFreshnessResult {
+  generatedAt: string;
+  status: TrendCorpusFreshnessStatus;
+  thresholds: {
+    defaultFreshnessWindowDaysBySourceKind: Record<TrendSourceKind, number>;
+    recordLimits: {
+      referenceRecords: number;
+      trends: number;
+    };
+    sourcePreviewStaleAfterDays: number;
+  };
+  summary: {
+    activeTrends: number;
+    failingProviders: number;
+    freshSegments: number;
+    platforms: string[];
+    referenceRecords: number;
+    staleSegments: number;
+    totalSegments: number;
+  };
+  segments: TrendCorpusFreshnessSegment[];
+  providerFailures: TrendProviderFailureSummary[];
 }

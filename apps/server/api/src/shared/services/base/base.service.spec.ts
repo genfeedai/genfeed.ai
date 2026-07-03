@@ -1,54 +1,87 @@
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
+import type { ModelFieldMeta } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 
-// Mock @genfeedai/prisma before importing BaseService so the module resolves cleanly in test env.
-vi.mock('@genfeedai/prisma', () => ({
-  ArticleStatus: {
-    ARCHIVED: 'ARCHIVED',
-    DRAFT: 'DRAFT',
-    PUBLISHED: 'PUBLISHED',
-  },
-  AssetScope: {
-    BRAND: 'BRAND',
-    ORGANIZATION: 'ORGANIZATION',
-    PUBLIC: 'PUBLIC',
-    USER: 'USER',
-  },
-  IngredientCategory: {
-    AUDIO: 'AUDIO',
-    AVATAR: 'AVATAR',
-    GIF: 'GIF',
-    IMAGE: 'IMAGE',
-    IMAGE_EDIT: 'IMAGE_EDIT',
-    INGREDIENT: 'INGREDIENT',
-    MUSIC: 'MUSIC',
-    SOURCE: 'SOURCE',
-    TEXT: 'TEXT',
-    VIDEO: 'VIDEO',
-    VIDEO_EDIT: 'VIDEO_EDIT',
-    VOICE: 'VOICE',
-  },
-  IngredientStatus: {
-    ARCHIVED: 'ARCHIVED',
-    DRAFT: 'DRAFT',
-    FAILED: 'FAILED',
-    GENERATED: 'GENERATED',
-    PROCESSING: 'PROCESSING',
-    REJECTED: 'REJECTED',
-    UPLOADED: 'UPLOADED',
-    VALIDATED: 'VALIDATED',
-  },
-  OrganizationCategory: {
-    AGENCY: 'AGENCY',
-    BUSINESS: 'BUSINESS',
-    CREATOR: 'CREATOR',
-  },
-  PrismaClient: class {},
-}));
+// ---------------------------------------------------------------------------
+// vi.hoisted — runs BEFORE the vi.mock factory, so the mock can reference it.
+// ---------------------------------------------------------------------------
+const { getModelMetaMock } = vi.hoisted(() => {
+  const BASE_META: ModelFieldMeta = {
+    allFields: ['id', 'isDeleted', 'organizationId'],
+    enumFields: {},
+  };
+  return {
+    getModelMetaMock: vi.fn<[string], ModelFieldMeta | undefined>(
+      () => BASE_META,
+    ),
+  };
+});
+
+/**
+ * Stable meta for the test model used across most cases:
+ * just id + organizationId + isDeleted — no enum fields.
+ */
+const BASE_META: ModelFieldMeta = {
+  allFields: ['id', 'isDeleted', 'organizationId'],
+  enumFields: {},
+};
+
+// ---------------------------------------------------------------------------
+// Module mock — must run before any imports that pull in BaseService.
+// Spreads the canonical, schema-derived enum set (real ArticleStatus,
+// AssetScope, IngredientCategory, IngredientStatus, OrganizationCategory,
+// ApiKeyCategory, SubscriptionStatus, PromptCategory, etc. — no more
+// hand-rolled partial copies), then overrides two keys AFTER the spread so
+// object-literal key order lets the overrides win:
+//   - getModelMeta: backed by the vi.hoisted vi.fn so individual tests can
+//     call mockReturnValue() to inject specific field sets for that test.
+//   - TaskStatus: intentionally undefined (the real schema DOES define a
+//     TaskStatus enum) — lets the diverged-enum test below verify that
+//     getPrismaEnumValues returns null → candidate passes through as-is.
+// ---------------------------------------------------------------------------
+vi.mock('@genfeedai/prisma', async () => {
+  const { canonicalPrismaMock } = await import(
+    '@api/shared/testing/prisma-mock'
+  );
+  return {
+    ...canonicalPrismaMock(),
+    getModelMeta: getModelMetaMock,
+    TaskStatus: undefined,
+  };
+});
 
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+
+// ---------------------------------------------------------------------------
+// Helper — replace model meta for the duration of a single test.
+// ---------------------------------------------------------------------------
+type FieldSpec =
+  | string
+  | { name: string; kind?: string; type?: string; isRequired?: boolean };
+
+function makeModelMeta(...fields: FieldSpec[]): ModelFieldMeta {
+  const allFields: string[] = [];
+  const enumFields: Record<string, { enumType: string; isRequired: boolean }> =
+    {};
+
+  for (const f of fields) {
+    if (typeof f === 'string') {
+      allFields.push(f);
+    } else {
+      allFields.push(f.name);
+      if (f.kind === 'enum' && f.type) {
+        enumFields[f.name] = {
+          enumType: f.type,
+          isRequired: f.isRequired ?? false,
+        };
+      }
+    }
+  }
+
+  return { allFields, enumFields };
+}
 
 describe('BaseService', () => {
   type TestDocument = Record<string, unknown>;
@@ -64,11 +97,11 @@ describe('BaseService', () => {
     set: ReturnType<typeof vi.fn>;
     invalidateByTags: ReturnType<typeof vi.fn>;
   };
-  let setModelFields: (
-    ...fields: Array<{ kind?: string; name: string; type?: string } | string>
-  ) => void;
 
   beforeEach(() => {
+    // Reset to base meta (id + organizationId + isDeleted, no enums).
+    getModelMetaMock.mockReturnValue(BASE_META);
+
     logger = {
       debug: vi.fn(),
       error: vi.fn(),
@@ -92,15 +125,7 @@ describe('BaseService', () => {
       count: vi.fn(),
     };
 
-    // PrismaService with a dynamic delegate accessible via modelName key
     prisma = {
-      _runtimeDataModel: {
-        models: {
-          TestModel: {
-            fields: [],
-          },
-        },
-      },
       testModel: delegate,
     } as unknown as PrismaService;
 
@@ -111,24 +136,6 @@ describe('BaseService', () => {
       undefined,
       cacheService as never,
     );
-    setModelFields = (
-      ...fields: Array<{ kind?: string; name: string; type?: string } | string>
-    ) => {
-      (
-        prisma as PrismaService & {
-          _runtimeDataModel: {
-            models: {
-              TestModel: {
-                fields: Array<{ kind?: string; name: string; type?: string }>;
-              };
-            };
-          };
-        }
-      )._runtimeDataModel.models.TestModel.fields = fields.map((field) =>
-        typeof field === 'string' ? { name: field } : field,
-      );
-    };
-    setModelFields('id', 'organizationId', 'isDeleted');
   });
 
   it('should be defined', () => {
@@ -150,7 +157,7 @@ describe('BaseService', () => {
       expect(delegate.create).toHaveBeenCalledWith({
         data: { foo: 'bar' },
       });
-      expect(result).toEqual({ ...created, _id: 'id_1' });
+      expect(result).toEqual({ ...created });
     });
 
     it('creates a document with include when populate is provided', async () => {
@@ -163,7 +170,7 @@ describe('BaseService', () => {
         data: { foo: 'bar' },
         include: { user: true },
       });
-      expect(result).toEqual({ ...created, _id: 'id_1' });
+      expect(result).toEqual({ ...created });
     });
 
     it('throws ValidationException when createDto is null', async () => {
@@ -222,7 +229,7 @@ describe('BaseService', () => {
     });
 
     it('omits soft-delete filters for models without isDeleted', async () => {
-      setModelFields('id', 'organizationId');
+      getModelMetaMock.mockReturnValue(makeModelMeta('id', 'organizationId'));
       delegate.findMany.mockResolvedValue([{ id: '1' }]);
       delegate.count.mockResolvedValue(1);
 
@@ -310,21 +317,49 @@ describe('BaseService', () => {
       });
     });
 
-    it('normalizes app enum filters to Prisma enum values', async () => {
-      setModelFields(
-        'id',
-        'isDeleted',
-        { isRequired: false, name: 'brandId' },
-        { isRequired: false, name: 'folderId' },
-        { isRequired: false, name: 'trainingId' },
-        { kind: 'enum', name: 'category', type: 'IngredientCategory' },
+    it('applies explicit Prisma select options', async () => {
+      delegate.findMany.mockResolvedValue([{ id: '1', platformRole: 'USER' }]);
+      delegate.count.mockResolvedValue(1);
+
+      await service.findAll(
         {
-          isRequired: true,
-          kind: 'enum',
-          name: 'scope',
-          type: 'AssetScope',
+          orderBy: { id: 'asc' },
+          select: { id: true, platformRole: true },
+          where: { organization: 'org-1' },
         },
-        { kind: 'enum', name: 'status', type: 'IngredientStatus' },
+        { page: 1, limit: 10 },
+      );
+
+      expect(delegate.findMany).toHaveBeenCalledWith({
+        orderBy: [{ id: 'asc' }],
+        select: { id: true, platformRole: true },
+        skip: 0,
+        take: 10,
+        where: {
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
+      });
+      expect(delegate.count).toHaveBeenCalledWith({
+        where: {
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
+      });
+    });
+
+    it('normalizes app enum filters to Prisma enum values', async () => {
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta(
+          'id',
+          'isDeleted',
+          { name: 'brandId', isRequired: false },
+          { name: 'folderId', isRequired: false },
+          { name: 'trainingId', isRequired: false },
+          { kind: 'enum', name: 'category', type: 'IngredientCategory' },
+          { isRequired: true, kind: 'enum', name: 'scope', type: 'AssetScope' },
+          { kind: 'enum', name: 'status', type: 'IngredientStatus' },
+        ),
       );
       delegate.findMany.mockResolvedValue([]);
       delegate.count.mockResolvedValue(0);
@@ -372,17 +407,14 @@ describe('BaseService', () => {
     });
 
     it('drops required not-null tautologies while preserving relation null filters', async () => {
-      setModelFields(
-        'id',
-        'isDeleted',
-        { isRequired: true, name: 'organizationId' },
-        { isRequired: false, name: 'brandId' },
-        {
-          isRequired: true,
-          kind: 'enum',
-          name: 'scope',
-          type: 'AssetScope',
-        },
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta(
+          'id',
+          'isDeleted',
+          { name: 'organizationId', isRequired: true },
+          { name: 'brandId', isRequired: false },
+          { isRequired: true, kind: 'enum', name: 'scope', type: 'AssetScope' },
+        ),
       );
       delegate.findMany.mockResolvedValue([]);
       delegate.count.mockResolvedValue(0);
@@ -421,11 +453,13 @@ describe('BaseService', () => {
     });
 
     it('maps legacy public article status to Prisma PUBLISHED', async () => {
-      setModelFields('id', 'isDeleted', 'publishedAt', {
-        kind: 'enum',
-        name: 'status',
-        type: 'ArticleStatus',
-      });
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'isDeleted', 'publishedAt', {
+          kind: 'enum',
+          name: 'status',
+          type: 'ArticleStatus',
+        }),
+      );
       delegate.findMany.mockResolvedValue([]);
       delegate.count.mockResolvedValue(0);
 
@@ -451,11 +485,13 @@ describe('BaseService', () => {
     });
 
     it('does not normalize scalar status fields', async () => {
-      setModelFields('id', 'isDeleted', {
-        kind: 'scalar',
-        name: 'status',
-        type: 'String',
-      });
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'isDeleted', {
+          kind: 'scalar',
+          name: 'status',
+          type: 'String',
+        }),
+      );
       delegate.findMany.mockResolvedValue([]);
       delegate.count.mockResolvedValue(0);
 
@@ -474,6 +510,175 @@ describe('BaseService', () => {
             isDeleted: false,
             status: 'public',
           },
+        }),
+      );
+    });
+
+    it('normalizes scope:public → PUBLIC on an enum field', async () => {
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'isDeleted', {
+          kind: 'enum',
+          isRequired: true,
+          name: 'scope',
+          type: 'AssetScope',
+        }),
+      );
+      delegate.findMany.mockResolvedValue([]);
+      delegate.count.mockResolvedValue(0);
+
+      await service.findAll(
+        { where: { scope: 'public' } },
+        { page: 1, limit: 10 },
+      );
+
+      expect(delegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ scope: 'PUBLIC' }),
+        }),
+      );
+    });
+
+    it('normalizes status:generated → GENERATED on an enum field', async () => {
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'isDeleted', {
+          kind: 'enum',
+          name: 'status',
+          type: 'IngredientStatus',
+        }),
+      );
+      delegate.findMany.mockResolvedValue([]);
+      delegate.count.mockResolvedValue(0);
+
+      await service.findAll(
+        { where: { status: 'generated' } },
+        { page: 1, limit: 10 },
+      );
+
+      expect(delegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ status: 'GENERATED' }),
+        }),
+      );
+    });
+
+    it('normalizes category:image → IMAGE on an enum field', async () => {
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'isDeleted', {
+          kind: 'enum',
+          name: 'category',
+          type: 'IngredientCategory',
+        }),
+      );
+      delegate.findMany.mockResolvedValue([]);
+      delegate.count.mockResolvedValue(0);
+
+      await service.findAll(
+        { where: { category: 'image' } },
+        { page: 1, limit: 10 },
+      );
+
+      expect(delegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ category: 'IMAGE' }),
+        }),
+      );
+    });
+
+    it('normalizes kebab category:image-edit → IMAGE_EDIT on an enum field', async () => {
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'isDeleted', {
+          kind: 'enum',
+          name: 'category',
+          type: 'IngredientCategory',
+        }),
+      );
+      delegate.findMany.mockResolvedValue([]);
+      delegate.count.mockResolvedValue(0);
+
+      await service.findAll(
+        { where: { category: 'image-edit' } },
+        { page: 1, limit: 10 },
+      );
+
+      expect(delegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ category: 'IMAGE_EDIT' }),
+        }),
+      );
+    });
+
+    it('normalizes alias opuspro → OPUS_PRO on ApiKeyCategory', async () => {
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'isDeleted', {
+          kind: 'enum',
+          name: 'category',
+          type: 'ApiKeyCategory',
+        }),
+      );
+      delegate.findMany.mockResolvedValue([]);
+      delegate.count.mockResolvedValue(0);
+
+      await service.findAll(
+        { where: { category: 'opuspro' } },
+        { page: 1, limit: 10 },
+      );
+
+      expect(delegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ category: 'OPUS_PRO' }),
+        }),
+      );
+    });
+
+    it('leaves Workflow.status active unchanged (String column, not a Prisma enum)', async () => {
+      // Workflow.status is declared as String in schema, not WorkflowStatus enum.
+      // The static metadata for "workflow" model does NOT have status in enumFields.
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'isDeleted', {
+          kind: 'scalar',
+          name: 'status',
+          type: 'String',
+        }),
+      );
+      delegate.findMany.mockResolvedValue([]);
+      delegate.count.mockResolvedValue(0);
+
+      await service.findAll(
+        { where: { status: 'active' } },
+        { page: 1, limit: 10 },
+      );
+
+      expect(delegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ status: 'active' }),
+        }),
+      );
+    });
+
+    it('passes through genuinely diverged enum values unchanged', async () => {
+      // TaskStatus JS values (e.g. 'todo') have no Prisma enum equivalent — pass through.
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'isDeleted', {
+          kind: 'enum',
+          name: 'status',
+          type: 'TaskStatus',
+        }),
+      );
+      // Mock TaskStatus enum not available → getPrismaEnumValues returns null → passes through.
+      delegate.findMany.mockResolvedValue([]);
+      delegate.count.mockResolvedValue(0);
+
+      await service.findAll(
+        { where: { status: 'todo' } },
+        { page: 1, limit: 10 },
+      );
+
+      // 'todo'.toUpperCase() = 'TODO' — if 'TODO' not in enum set, value passes through as 'todo'.
+      // Since TaskStatus is not in our mock, enumValues will be null → candidate returned as-is.
+      // The candidate from toPrismaEnumCandidate is 'TODO'.
+      expect(delegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ status: 'TODO' }),
         }),
       );
     });
@@ -502,15 +707,17 @@ describe('BaseService', () => {
       expect(delegate.findFirst).toHaveBeenCalledWith({
         where: { id: 'id_1' },
       });
-      expect(result).toEqual({ ...doc, _id: 'id_1' });
+      expect(result).toEqual({ ...doc });
     });
 
     it('normalizes enum filters', async () => {
-      setModelFields('id', 'isDeleted', {
-        kind: 'enum',
-        name: 'status',
-        type: 'ArticleStatus',
-      });
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'isDeleted', {
+          kind: 'enum',
+          name: 'status',
+          type: 'ArticleStatus',
+        }),
+      );
       delegate.findFirst.mockResolvedValue(null);
 
       await service.findOne({ status: 'public' });
@@ -561,15 +768,17 @@ describe('BaseService', () => {
         where: { id: 'id_1' },
         data: { foo: 'updated' },
       });
-      expect(result).toEqual({ ...updated, _id: 'id_1' });
+      expect(result).toEqual({ ...updated });
     });
 
     it('normalizes enum update data', async () => {
-      setModelFields('id', 'isDeleted', {
-        kind: 'enum',
-        name: 'status',
-        type: 'ArticleStatus',
-      });
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'isDeleted', {
+          kind: 'enum',
+          name: 'status',
+          type: 'ArticleStatus',
+        }),
+      );
       delegate.update.mockResolvedValue({ id: 'id_1', status: 'PUBLISHED' });
 
       await service.patch('id_1', { status: 'public' });
@@ -658,7 +867,7 @@ describe('BaseService', () => {
         where: { id: 'id_1' },
         data: { isDeleted: true },
       });
-      expect(result).toEqual({ ...deleted, _id: 'id_1' });
+      expect(result).toEqual({ ...deleted });
     });
 
     it('throws ValidationException when id is falsy', async () => {
@@ -678,7 +887,9 @@ describe('BaseService', () => {
     });
 
     it('matches legacy _id against both id and mongoId when available', () => {
-      setModelFields('id', 'mongoId', 'organizationId', 'isDeleted');
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'mongoId', 'organizationId', 'isDeleted'),
+      );
 
       const result = service.processSearchParams({
         _id: 'legacy_123',
@@ -700,7 +911,9 @@ describe('BaseService', () => {
     });
 
     it('remaps legacy user string filters to userId', () => {
-      setModelFields('id', 'organizationId', 'userId', 'isDeleted');
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'organizationId', 'userId', 'isDeleted'),
+      );
 
       const result = service.processSearchParams({
         status: 'active',
@@ -711,7 +924,9 @@ describe('BaseService', () => {
     });
 
     it('remaps legacy organization null filters to organizationId null', () => {
-      setModelFields('id', 'organizationId', 'isDeleted');
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'organizationId', 'isDeleted'),
+      );
 
       const result = service.processSearchParams({
         organization: null,
@@ -722,7 +937,9 @@ describe('BaseService', () => {
     });
 
     it('drops a legacy relation filter when the model has neither the scalar FK nor the relation', () => {
-      setModelFields('id', 'organizationId', 'isDeleted');
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'organizationId', 'isDeleted'),
+      );
 
       const result = service.processSearchParams({
         organization: null,
@@ -743,7 +960,9 @@ describe('BaseService', () => {
     });
 
     it('preserves user relation filters when they are objects', () => {
-      setModelFields('id', 'organizationId', 'user', 'isDeleted');
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'organizationId', 'user', 'isDeleted'),
+      );
 
       const result = service.processSearchParams({
         user: { is: { id: 'user1' } },
@@ -757,7 +976,9 @@ describe('BaseService', () => {
 
   describe('auditUnknownFilterFields (stage-4 runtime guard)', () => {
     it('warns when a filter references a field the model lacks', async () => {
-      setModelFields('id', 'organizationId', 'isDeleted');
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'organizationId', 'isDeleted'),
+      );
       delegate.findMany.mockResolvedValue([]);
       delegate.count.mockResolvedValue(0);
 
@@ -773,7 +994,9 @@ describe('BaseService', () => {
     });
 
     it('does not warn when all filter fields exist on the model', async () => {
-      setModelFields('id', 'organizationId', 'isDeleted');
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'organizationId', 'isDeleted'),
+      );
       delegate.findMany.mockResolvedValue([]);
       delegate.count.mockResolvedValue(0);
       (logger.warn as ReturnType<typeof vi.fn>).mockClear();
@@ -787,7 +1010,7 @@ describe('BaseService', () => {
     });
 
     it('drops isDeleted filters for models without soft-delete support', () => {
-      setModelFields('id', 'organizationId');
+      getModelMetaMock.mockReturnValue(makeModelMeta('id', 'organizationId'));
 
       const result = service.processSearchParams({
         isDeleted: false,
@@ -859,7 +1082,7 @@ describe('BaseService', () => {
         where: { id: 'id_1' },
         data: { isRead: true },
       });
-      expect(result).toEqual({ _id: 'id_1', id: 'id_1', isRead: true });
+      expect(result).toEqual({ id: 'id_1', isRead: true });
     });
 
     it('returns null when document not found or not in org', async () => {
@@ -964,7 +1187,9 @@ describe('BaseService', () => {
     });
 
     it('remaps metadata string to metadataId on patch', async () => {
-      setModelFields('id', 'isDeleted', 'metadataId');
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'isDeleted', 'metadataId'),
+      );
       const updated = { id: 'ing_4', metadataId: 'meta_2' };
       delegate.update.mockResolvedValue(updated);
 

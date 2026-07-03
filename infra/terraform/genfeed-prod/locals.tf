@@ -26,10 +26,10 @@ locals {
   # segment (e.g. /genfeed/production/DATABASE_URL -> DATABASE_URL).
   # ECS forbids a `secrets` entry sharing a name with an `environment` entry, so
   # any SSM param we also set as a container env var (the Cloud Map inter-service
-  # URLs, REDIS_URL, NODE_ENV, VERSION, PORT, SERVICE_NAME) must be filtered out
-  # of the injected secrets — the env value wins. REDIS_PASSWORD is dropped too:
-  # ElastiCache is no-auth (private + SG-locked) and redis-connection.utils.ts
-  # would otherwise send AUTH (which a no-auth server rejects).
+  # URLs, REDIS_URL, REDIS_TLS, NODE_ENV, VERSION, PORT, SERVICE_NAME) must be
+  # filtered out of the injected secrets — the env value wins. REDIS_PASSWORD is
+  # injected below from the Terraform-managed SecureString so stale/manual params
+  # cannot create duplicate ECS secret names.
   reserved_env_names = toset(concat(
     [for e in local.internal_env : e.name],
     ["PORT", "SERVICE_NAME", "REDIS_PASSWORD"],
@@ -46,6 +46,11 @@ locals {
       valueFrom = data.aws_ssm_parameters_by_path.prod.arns[i]
     } if !contains(local.excluded_ssm_secret_names, element(reverse(split("/", name)), 0))
   ]
+  # AUTH deferred (see elasticache.tf): the app connects over TLS without a
+  # password while Redis AUTH is off. Re-add the REDIS_PASSWORD secret here when
+  # auth_token is enabled in the follow-up migration.
+  redis_task_secrets   = []
+  service_task_secrets = concat(local.task_secrets, local.redis_task_secrets)
 
   # ── Service catalogue (mirrors docker-compose.production.yml) ─────────
   # Fargate launch type: cpu/mem MUST be valid Fargate task pairs (256→512-2048,
@@ -59,12 +64,11 @@ locals {
   # at 0. Core set (api + its boot-required deps files/mcp/notifications, +
   # workers) runs at 1.
   services = {
-    api           = { filter = "@genfeedai/api", port = 3010, cpu = 1024, mem = 2048, alb = true, health_grace = 120, desired = 1 }
-    workers       = { filter = "@genfeedai/workers", port = 3013, cpu = 512, mem = 2048, alb = false, health_grace = 60, desired = 1 }
+    api           = { filter = "@genfeedai/api", port = 3010, cpu = 1024, mem = 2048, alb = true, health_grace = 600, desired = 1 }
+    workers       = { filter = "@genfeedai/workers", port = 3013, cpu = 512, mem = 2048, alb = false, health_grace = 600, desired = 1 }
     files         = { filter = "@genfeedai/files", port = 3012, cpu = 256, mem = 512, alb = false, health_grace = 60, desired = 1 }
     mcp           = { filter = "@genfeedai/mcp", port = 3014, cpu = 256, mem = 512, alb = true, health_grace = 60, desired = 1 }
     notifications = { filter = "@genfeedai/notifications", port = 3011, cpu = 256, mem = 512, alb = true, health_grace = 60, desired = 1 }
-    clips         = { filter = "@genfeedai/clips", port = 3015, cpu = 256, mem = 512, alb = false, health_grace = 60, desired = 0 }
     discord       = { filter = "@genfeedai/discord", port = 3016, cpu = 256, mem = 512, alb = false, health_grace = 60, desired = 0 }
     slack         = { filter = "@genfeedai/slack", port = 3018, cpu = 256, mem = 512, alb = false, health_grace = 60, desired = 0 }
     telegram      = { filter = "@genfeedai/telegram", port = 3019, cpu = 256, mem = 512, alb = false, health_grace = 60, desired = 0 }

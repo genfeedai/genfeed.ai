@@ -16,6 +16,7 @@ import { TaskRoutingService } from '@api/collections/tasks/services/task-routing
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -208,18 +209,19 @@ export class TasksService extends BaseService<
     agentId: string,
     organizationId: string,
   ): Promise<TaskDocument> {
-    const existing = await this.delegate.findFirst({
-      where: {
-        id: taskId,
-        checkoutAgentId: agentId,
-        isDeleted: false,
-        organizationId,
+    await findOrThrow(
+      this.delegate,
+      {
+        where: {
+          id: taskId,
+          checkoutAgentId: agentId,
+          isDeleted: false,
+          organizationId,
+        },
       },
-    });
-
-    if (!existing) {
-      throw new NotFoundException('Task', taskId);
-    }
+      'Task',
+      taskId,
+    );
 
     // Use updateMany so organizationId is atomically enforced in the write predicate.
     await this.delegate.updateMany({
@@ -255,8 +257,12 @@ export class TasksService extends BaseService<
   // Review / output actions — thin delegators to TaskActionsService.
   // ===========================================================================
 
-  async approve(id: string, organizationId: string): Promise<TaskDocument> {
-    return this.taskActionsService.approve(id, organizationId);
+  async approve(
+    id: string,
+    organizationId: string,
+    userId?: string,
+  ): Promise<TaskDocument> {
+    return this.taskActionsService.approve(id, organizationId, userId);
   }
 
   async requestChanges(
@@ -286,8 +292,14 @@ export class TasksService extends BaseService<
     id: string,
     outputId: string,
     organizationId: string,
+    userId?: string,
   ): Promise<TaskDocument> {
-    return this.taskActionsService.keepOutput(id, outputId, organizationId);
+    return this.taskActionsService.keepOutput(
+      id,
+      outputId,
+      organizationId,
+      userId,
+    );
   }
 
   async unkeepOutput(
@@ -302,8 +314,14 @@ export class TasksService extends BaseService<
     id: string,
     outputId: string,
     organizationId: string,
+    userId?: string,
   ): Promise<TaskDocument> {
-    return this.taskActionsService.trashOutput(id, outputId, organizationId);
+    return this.taskActionsService.trashOutput(
+      id,
+      outputId,
+      organizationId,
+      userId,
+    );
   }
 
   async attachOutput(

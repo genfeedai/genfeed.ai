@@ -255,6 +255,14 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
     // Photo messages (for image inputs)
     this.bot.on('message:photo', (ctx) => this.messageHandler.handlePhoto(ctx));
 
+    // Audio/video messages (for workflow media inputs)
+    this.bot.on('message:audio', (ctx) => this.messageHandler.handleAudio(ctx));
+    this.bot.on('message:voice', (ctx) => this.messageHandler.handleAudio(ctx));
+    this.bot.on('message:video', (ctx) => this.messageHandler.handleVideo(ctx));
+    this.bot.on('message:document', (ctx) =>
+      this.messageHandler.handleDocument(ctx),
+    );
+
     // Text messages (for prompt/text inputs)
     this.bot.on('message:text', (ctx) => this.messageHandler.handleText(ctx));
   }

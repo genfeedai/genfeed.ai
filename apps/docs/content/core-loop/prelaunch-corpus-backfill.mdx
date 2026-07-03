@@ -12,6 +12,7 @@ The backfill writes global rows only:
 - `brandId = null`
 - `requiresAuth = false`
 - `metadata.prelaunchCorpus = true`
+- `metadata.source = "public-reference"`
 - `metadata.sourceSetVersion = "2026-06-09"`
 
 It is a launch operations path, not a replacement for provider ingestion or the full health automation tracked by `#216`.
@@ -52,7 +53,11 @@ Themes covered:
 - paid creative breakdowns
 - community research
 
-Every source item includes platform, content type, canonical URL, title or text, author handle, published timestamp, and engagement metrics so prompt assembly can use the reference corpus without fetching live provider APIs.
+Every source item includes platform, content type, canonical URL, title or text, author handle, published timestamp, engagement metrics, and a normalized `sourceClassification` payload so prompt assembly can use the reference corpus without fetching live provider APIs.
+
+The `sourceClassification` payload marks the seed as `sourceKind = "public_platform_reference"` and `intendedUse = "organic_trend_discovery"`. LinkedIn uses the same public-reference contract as the other platforms; it is not a separate curated topic list.
+
+Paid creative references are not blended into this default organic seed. The corpus contract supports paid references through `sourceKind = "paid_creative_reference"` and `intendedUse = "paid_creative_analysis"` with paid-specific metadata for provider, ad format, creative type, hook, landing intent, visible engagement signals, and collection timestamp. The first supported source labels are `meta_ads_library`, `tiktok_creative_center`, `google_ads_transparency_center`, `youtube_ads_library`, and `manual_paid_reference`; this slice records and filters those references but does not fetch private ad account analytics.
 
 ## Write Contract
 
@@ -104,9 +109,23 @@ Then verify through the existing read surfaces:
 - trends can load from the global cached corpus without tenant credentials
 - trend-content reads include `sourcePreviewState = "fallback"` rows
 - reference-corpus reads return prompt-ready source records
+- `GET /trends/references/packs` returns prompt packs for `hooks`, `formats`, `references`, and `constraints` when filtered by platform, intent, and type
 
 Local validation for automation PRs may be skipped when the active policy requires GitHub CI as the verification path.
 
+## Prompt Reference Packs
+
+`TrendReferenceCorpusService.getPromptReferencePacks()` derives compact packs from the same reference rows written by the backfill and provider ingestion. The reader is deterministic and does not call an LLM or fetch provider APIs.
+
+The first pack surface supports:
+
+- `hooks` for source-backed opening angles
+- `formats` for observed platform/content-type structures
+- `references` for traceable canonical source examples
+- `constraints` for prompt assembly rules grounded in source metadata
+
+Every pack carries source reference IDs, canonical URLs, content intent, target platform, confidence, brand-suitability status, freshness status, and a regeneration cache key. Callers can regenerate when the cache key changes after source references update, or when `freshness.status` becomes `stale` or `expired`.
+
 ## Boundary
 
-This backfill clears the existing cold-start baseline and starts the corpus toward the launch-minimum targets in the health contract. It does not claim the full `480` trend and `1,440` reference launch floor, and it does not replace provider-specific ingestion work in `#213` through `#216`.
+This backfill clears the existing cold-start baseline and starts the corpus toward the launch-minimum targets in the health contract. It does not claim the full `480` trend and `1,440` reference launch floor. The `#213` slice replaced the LinkedIn curated-topic fallback with configured public reference topics and preserves `sourceClassification` through the reference-corpus read path. The `#214` slice keeps paid creative references out of default organic reads unless callers explicitly request the paid source kind or intended use. The `#215` slice derives prompt-ready packs only from classified references with prompt-ready metadata. Provider-specific ingestion depth remains tracked by the follow-up corpus issues.

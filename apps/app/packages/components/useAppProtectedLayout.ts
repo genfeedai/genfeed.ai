@@ -8,6 +8,7 @@ import {
   POSTS_INSERT_AFTER_LABEL,
 } from '@app-config/menu-items.config';
 import { ORG_MENU_ITEMS } from '@app-config/org-menu-items.config';
+import { RESEARCH_MENU_ITEMS } from '@app-config/research-menu-items.config';
 import { SETTINGS_MENU_ITEMS } from '@app-config/settings-menu-items.config';
 import { STUDIO_MENU_ITEMS } from '@app-config/studio-menu-items.config';
 import { WORKFLOWS_MENU_ITEMS } from '@app-config/workflows-menu-items.config';
@@ -54,7 +55,7 @@ import {
 } from 'react';
 
 import { useOptionalAuth } from '@/hooks/useOptionalAuth';
-import { isEEEnabled } from '@/lib/config/edition';
+import { isEEEnabled, isHostedCloudApp } from '@/lib/config/edition';
 import {
   normalizeProtectedPathname,
   pickOperatorTaskContextSearchParams,
@@ -89,10 +90,7 @@ export function isProtectedWorkspaceRoute(pathname: string): boolean {
 }
 
 function isTerminalDockAvailable(): boolean {
-  return (
-    process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1' ||
-    process.env.NEXT_PUBLIC_GENFEED_CLOUD !== 'true'
-  );
+  return process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1' || !isHostedCloudApp();
 }
 
 export function useAppProtectedLayout(
@@ -107,22 +105,27 @@ export function useAppProtectedLayout(
     [rawPathname],
   );
 
-  const isChatRoute = /^\/chat(?:\/|$)/.test(pathname);
-  const isConversationRoute = isChatRoute;
+  const isAgentRoute = /^\/agent(?:\/|$)/.test(pathname);
+  const isConversationRoute = isAgentRoute;
   const isAdminRoute =
     pathname === APP_ROUTES.ADMIN.ROOT ||
     pathname.startsWith(`${APP_ROUTE_PREFIXES.ADMIN}/`);
   const isFocusedOnboardingRoute = pathname.startsWith(
-    APP_ROUTES.CHAT.ONBOARDING,
+    APP_ROUTES.AGENT.ONBOARDING,
   );
   const isComposeRoute = pathname.startsWith(COMPOSE_ROUTES.ROOT);
+  const isResearchRoute =
+    pathname === APP_ROUTES.RESEARCH.ROOT ||
+    pathname.startsWith(`${APP_ROUTES.RESEARCH.ROOT}/`);
   const isLibraryLandingRoute = pathname === APP_ROUTES.LIBRARY.INGREDIENTS;
   const isLibraryRoute = pathname.startsWith(APP_ROUTE_PREFIXES.LIBRARY);
+  const isMessagesRoute = pathname.startsWith(APP_ROUTE_PREFIXES.MESSAGES);
   const isStudioPromptBarRoute =
     pathname === APP_ROUTES.STUDIO.ROOT ||
     /^\/studio\/(avatar|image|music|video)(?:\/|$)/.test(pathname);
   const isStudioRoute = pathname.startsWith(APP_ROUTE_PREFIXES.STUDIO);
   const isPostsPromptBarRoute = pathname === APP_ROUTES.POSTS.ROOT;
+  const isRemixRoute = pathname.startsWith('/posts/remix');
   const isPostsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.POSTS);
   const isMissionControlPromptBarRoute =
     pathname === APP_ROUTES.WORKFLOWS.EXECUTIONS ||
@@ -154,19 +157,25 @@ export function useAppProtectedLayout(
     ? 'studio'
     : isLibraryRoute
       ? 'library'
-      : isPostsRoute
-        ? 'posts'
-        : isComposeRoute
-          ? 'compose'
-          : isWorkflowsRoute
-            ? 'workflows'
-            : isEditorRoute
-              ? 'editor'
-              : isAnalyticsRoute
-                ? 'analytics'
-                : isChatRoute
-                  ? 'agent'
-                  : 'workspace';
+      : isResearchRoute
+        ? 'research'
+        : isRemixRoute
+          ? 'remix'
+          : isPostsRoute
+            ? 'posts'
+            : isComposeRoute
+              ? 'compose'
+              : isWorkflowsRoute
+                ? 'workflows'
+                : isEditorRoute
+                  ? 'editor'
+                  : isAnalyticsRoute
+                    ? 'analytics'
+                    : isMessagesRoute
+                      ? 'messages'
+                      : isAgentRoute
+                        ? 'agent'
+                        : 'workspace';
 
   const shouldMountAgentPanel =
     isTerminalDockAvailable() &&
@@ -463,6 +472,17 @@ export function useAppProtectedLayout(
     [taskContextSearchParams],
   );
 
+  const researchMenuItems = useMemo(
+    () =>
+      RESEARCH_MENU_ITEMS.map(
+        (item): MenuItemConfig => ({
+          ...item,
+          href: withTaskContextHref(item.href, taskContextSearchParams),
+        }),
+      ),
+    [taskContextSearchParams],
+  );
+
   const orgMenuItems = useMemo(
     () =>
       ORG_MENU_ITEMS.map(
@@ -515,6 +535,7 @@ export function useAppProtectedLayout(
     isMoodboardRoute,
     isOrgRoute,
     isPromptBarRoute,
+    isResearchRoute,
     isSettingsRoute,
     isStudioRoute,
     isWorkflowsRoute,
@@ -537,6 +558,7 @@ export function useAppProtectedLayout(
     libraryMenuItems,
     menuItems,
     orgMenuItems,
+    researchMenuItems,
     secondaryMenuItems,
     settingsMenuItems,
     studioMenuItems,

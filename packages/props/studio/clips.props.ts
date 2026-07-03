@@ -1,13 +1,18 @@
+import type {
+  ClipReadinessContract,
+  ClipReadyAction,
+  ClipResultStatus,
+} from '@genfeedai/interfaces';
+
 // ─── Shared Types ─────────────────────────────────────────────────
 
 export type AvatarProvider = 'heygen' | 'did' | 'tavus' | 'musetalk';
 
-export type ClipStatus =
-  | 'pending'
-  | 'extracting'
-  | 'captioning'
-  | 'completed'
-  | 'failed';
+export type ClipStatus = ClipResultStatus;
+
+export type ClipReadiness = ClipReadinessContract;
+
+export type { ClipReadyAction };
 
 export type ClipsStep = 'input' | 'review' | 'progress';
 
@@ -37,6 +42,9 @@ export interface ClipResult {
   summary: string;
   viralityScore: number;
   status: ClipStatus;
+  readiness?: ClipReadiness;
+  readyActions?: ClipReadyAction[];
+  terminalAt?: string | null;
   videoUrl?: string;
   captionedVideoUrl?: string;
   clipType?: string;

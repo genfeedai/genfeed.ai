@@ -4,6 +4,24 @@ import { createAppNextConfig } from '@genfeedai/next-config';
 import bundleAnalyzer from '@next/bundle-analyzer';
 import type { NextConfig } from 'next';
 
+// Deterministic, empty-string-safe build id. A plain `??` chain does NOT skip
+// empty strings, and Vercel sets VERCEL_GIT_COMMIT_SHA="" on CLI deploys with no
+// git metadata. An empty buildId makes Next.js embed "b":"" in RSC flight
+// payloads, so the App Router treats every navigation as a cross-deployment
+// change and forces a full hard reload (and silently disables version checks).
+// firstNonBlank skips blank/whitespace values; the dev-* fallback guarantees the
+// id is never empty so generateBuildId never returns "".
+const firstNonBlank = (
+  ...values: Array<string | undefined>
+): string | undefined => values.find((value) => value?.trim());
+
+const buildId =
+  firstNonBlank(
+    process.env.BUILD_ID,
+    process.env.VERCEL_GIT_COMMIT_SHA,
+    process.env.NEXT_PUBLIC_BUILD_ID,
+  ) ?? `dev-${Date.now()}`;
+
 const withBundleAnalyzer = bundleAnalyzer({
   analyzerMode: process.env.BUNDLE_ANALYZE === 'json' ? 'json' : 'static',
   enabled: process.env.ANALYZE === 'true',
@@ -54,7 +72,14 @@ const workflowUiAliases = {
   '@genfeedai/workflow-ui/ui': path.join(workflowUiRoot, 'src/ui/index.ts'),
 };
 
-const IS_LOCAL_APP_SHELL = !process.env.NEXT_PUBLIC_GENFEED_CLOUD;
+const NEXT_PUBLIC_GENFEED_CLOUD =
+  process.env.NEXT_PUBLIC_GENFEED_CLOUD?.trim() ||
+  process.env.GENFEED_CLOUD?.trim() ||
+  '';
+const IS_CLOUD_APP_SHELL = ['1', 'true'].includes(
+  NEXT_PUBLIC_GENFEED_CLOUD.toLowerCase(),
+);
+const IS_LOCAL_APP_SHELL = !IS_CLOUD_APP_SHELL;
 const DEFAULT_ORG = 'default';
 const DEFAULT_BRAND = 'default';
 const resolvedApiBaseUrl = (
@@ -80,7 +105,7 @@ const selfHostedRewrites = IS_LOCAL_APP_SHELL
   : [];
 
 const selfHostedOrgRewrites = IS_LOCAL_APP_SHELL
-  ? ['chat', 'settings'].map((segment) => ({
+  ? ['agent', 'settings'].map((segment) => ({
       destination: `/${DEFAULT_ORG}/~/${segment}/:path*`,
       source: `/${segment}/:path*`,
     }))
@@ -103,6 +128,13 @@ const config = createAppNextConfig({
       destination: '/workspace/inbox/unread',
       permanent: false,
       source: '/workspace/inbox',
+    },
+    {
+      // Cloud org/brand-scoped inbox index has no page (only [view]); redirect
+      // to the unread view so `/:org/:brand/workspace/inbox` doesn't 404.
+      destination: '/:orgSlug/:brandSlug/workspace/inbox/unread',
+      permanent: false,
+      source: '/:orgSlug/:brandSlug/workspace/inbox',
     },
     {
       destination: '/research/discovery',
@@ -135,9 +167,9 @@ const config = createAppNextConfig({
       source: '/compose',
     },
     {
-      destination: '/:orgSlug/~/chat/:path*',
+      destination: '/:orgSlug/~/agent/:path*',
       permanent: false,
-      source: '/:orgSlug/:brandSlug([^~/][^/]*)/chat/:path*',
+      source: '/:orgSlug/:brandSlug([^~/][^/]*)/agent/:path*',
     },
     {
       destination: '/studio/image',
@@ -147,6 +179,22 @@ const config = createAppNextConfig({
   ],
   sentryProject: 'app-genfeed-ai',
 });
+
+config.env = {
+  ...(config.env ?? {}),
+  NEXT_PUBLIC_BUILD_ID: buildId,
+  NEXT_PUBLIC_GENFEED_CLOUD,
+};
+
+config.generateBuildId = async () => {
+  if (!buildId.trim()) {
+    throw new Error(
+      'generateBuildId: computed buildId is empty; refusing to build.',
+    );
+  }
+  return buildId;
+};
+
 config.experimental = {
   ...(config.experimental ?? {}),
   optimizePackageImports: [

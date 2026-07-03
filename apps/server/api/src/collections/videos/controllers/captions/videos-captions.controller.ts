@@ -1,11 +1,13 @@
 import fs from 'node:fs';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { CaptionDocument } from '@api/collections/captions/schemas/caption.schema';
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { CreateVideoWithCaptionsDto } from '@api/collections/videos/dto/create-video.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { requireVideoOutputPath } from '@api/collections/videos/utils/video-processing-result.util';
 import { ConfigService } from '@api/config/config.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -83,14 +85,6 @@ export class VideosCaptionsController {
     private readonly websocketService: NotificationsPublisherService,
   ) {}
 
-  private requireOutputPath(value: unknown): string {
-    if (typeof value !== 'string' || value.length === 0) {
-      throw new Error('Video processing result missing outputPath');
-    }
-
-    return value;
-  }
-
   @Get(':videoId/captions')
   @Cache({
     keyGenerator: (req) =>
@@ -156,13 +150,14 @@ export class VideosCaptionsController {
       return returnNotFound(this.constructorName, videoId);
     }
 
-    let caption;
+    let caption: CaptionDocument | { id: string } | undefined;
     if (isEntityId(createVideoWithCaptionsDto.caption)) {
-      caption = await this.captionsService.findOne({
-        _id: createVideoWithCaptionsDto.caption,
-      });
+      caption =
+        (await this.captionsService.findOne({
+          _id: createVideoWithCaptionsDto.caption,
+        })) ?? undefined;
     } else {
-      caption = (video as unknown as { captions?: Array<{ _id: string }> })
+      caption = (video as unknown as { captions?: Array<{ id: string }> })
         .captions?.[0];
     }
 
@@ -187,7 +182,7 @@ export class VideosCaptionsController {
     this.fileQueueService
       .processVideo({
         authProviderUserId: user.id,
-        ingredientId: ingredientData._id.toString(),
+        ingredientId: ingredientData.id.toString(),
         organizationId: publicMetadata.organization,
         params: {
           // @ts-expect-error TS2339
@@ -197,12 +192,12 @@ export class VideosCaptionsController {
         room: getUserRoomName(user.id),
         type: 'add-captions',
         userId: publicMetadata.user,
-        websocketUrl: `/videos/${ingredientData._id}`,
+        websocketUrl: `/videos/${ingredientData.id}`,
       })
       .then(async (job) => {
         const result = await this.fileQueueService.waitForJob(job.jobId, 60000);
-        const output = this.requireOutputPath(result.outputPath);
-        const ingredientId = String(ingredientData._id);
+        const output = requireVideoOutputPath(result.outputPath);
+        const ingredientId = String(ingredientData.id);
 
         this.filesClientService
           .uploadToS3(ingredientId, `videos`, {
@@ -216,7 +211,7 @@ export class VideosCaptionsController {
             });
 
             await this.metadataService.patch(
-              metadataData._id,
+              metadataData.id,
               new MetadataEntity(res),
             );
 
@@ -224,7 +219,6 @@ export class VideosCaptionsController {
             await this.websocketService.publishVideoComplete(
               websocketUrl,
               {
-                // @ts-expect-error TS2339
                 captionId: caption.id,
                 eventType: WebSocketEventType.CAPTIONS_COMPLETED,
                 id: ingredientId,

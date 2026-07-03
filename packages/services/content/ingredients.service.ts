@@ -228,6 +228,7 @@ export class IngredientsService<
       loaded: number,
       total: number,
     ) => void,
+    localUpload?: { key: string; type: string },
   ): Promise<void> {
     const onUploadProgress = (progressEvent: {
       loaded: number;
@@ -246,28 +247,58 @@ export class IngredientsService<
       }
     };
 
-    // Local mode: Files service URL — POST multipart form data
+    // Local/self-hosted mode: the Files service `/v1/files/upload` endpoint
+    // expects a JSON body `{ key, type, source }` (uploadMethod: 'POST_JSON'),
+    // NOT multipart. The `base64` source accepts a data URL — the endpoint
+    // strips the `data:...;base64,` prefix before decoding.
     const isLocalUpload =
       uploadUrl.includes('/v1/files/upload') &&
       !uploadUrl.includes('s3.amazonaws.com');
 
     if (isLocalUpload) {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('contentType', file.type);
+      if (!localUpload) {
+        throw new Error(
+          'uploadDirectToS3: self-hosted uploads require { key, type }',
+        );
+      }
 
-      return await axios.post(uploadUrl, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        onUploadProgress,
-        timeout: 300_000,
-      });
+      const dataUrl = await this.readFileAsDataUrl(file);
+
+      await axios.post(
+        uploadUrl,
+        {
+          key: localUpload.key,
+          source: {
+            contentType: file.type,
+            data: dataUrl,
+            type: 'base64',
+          },
+          type: localUpload.type,
+        },
+        {
+          headers: { 'Content-Type': 'application/json' },
+          onUploadProgress,
+          timeout: 300_000,
+        },
+      );
+      return;
     }
 
     // Cloud mode: PUT directly to S3 presigned URL
-    return await axios.put(uploadUrl, file, {
+    await axios.put(uploadUrl, file, {
       headers: { 'Content-Type': file.type },
       onUploadProgress,
       timeout: 300_000,
+    });
+  }
+
+  private readFileAsDataUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () =>
+        reject(reader.error ?? new Error('Failed to read file for upload'));
+      reader.readAsDataURL(file);
     });
   }
 

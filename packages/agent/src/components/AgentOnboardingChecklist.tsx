@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import type {
   AgentOnboardingChecklistProps,
   OnboardingChecklistStatus,
@@ -40,7 +41,7 @@ export function AgentOnboardingChecklist({
   signupGiftCredits = 0,
   totalOnboardingCreditsVisible,
   completionPercent,
-  journeyHref = '/chat/journey',
+  journeyHref = APP_ROUTES.AGENT.JOURNEY,
 }: AgentOnboardingChecklistProps) {
   const resolvedPercent =
     completionPercent ??

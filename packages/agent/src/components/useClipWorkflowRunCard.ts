@@ -6,6 +6,7 @@ import {
   getPromptCategoryForGenerationType,
 } from '@genfeedai/agent/utils/generation-request';
 import { COMPOSE_ROUTES } from '@genfeedai/constants';
+import type { AgentClipRunIdentity } from '@genfeedai/interfaces';
 import { useCallback, useMemo, useState } from 'react';
 
 export type StepKey =
@@ -35,12 +36,48 @@ interface UseClipWorkflowRunCardParams {
   hrefFn: (path: string) => string;
 }
 
+function buildClipIdentityInputValues(
+  identity?: AgentClipRunIdentity,
+): Record<string, unknown> {
+  if (!identity) {
+    return {};
+  }
+
+  return {
+    avatarId: identity.avatarId,
+    avatarProvider: identity.avatarProvider,
+    heygenAvatarId:
+      (identity.avatarProvider ?? 'heygen') === 'heygen'
+        ? identity.avatarId
+        : undefined,
+    heygenVoiceId:
+      (identity.voiceProvider ?? 'heygen') === 'heygen'
+        ? identity.voiceId
+        : undefined,
+    identitySource: identity.source,
+    missingIdentity: identity.missing,
+    useIdentity: identity.useIdentity,
+    voiceId: identity.voiceId,
+    voiceProvider: identity.voiceProvider,
+  };
+}
+
+function getClipIdentityError(identity: AgentClipRunIdentity): string {
+  if (identity.isComplete) {
+    return '';
+  }
+
+  const missing = identity.missing.join(' and ');
+  return `Configure saved ${missing} defaults or enter explicit IDs before generating clips.`;
+}
+
 export function useClipWorkflowRunCard({
   action,
   apiService,
   hrefFn,
 }: UseClipWorkflowRunCardParams) {
   const clipRun = action.clipRun ?? {};
+  const identity = clipRun.identity;
   const [autonomousMode, setAutonomousMode] = useState(
     clipRun.autonomousMode ?? true,
   );
@@ -101,18 +138,24 @@ export function useClipWorkflowRunCard({
       return;
     }
     setStep('trigger_workflow', 'running');
+    if (identity && !identity.isComplete) {
+      throw new Error(getClipIdentityError(identity));
+    }
+
+    const inputValues = {
+      ...(clipRun.inputValues ?? {
+        confirmBeforePublish: true,
+        duration: durationSeconds,
+        format: 'landscape',
+        intent: 'twitter_clip',
+        mergeGeneratedVideos,
+        prompt,
+      }),
+      ...buildClipIdentityInputValues(identity),
+    };
+
     const execution = await runAgentApiEffect(
-      apiService.triggerWorkflowEffect(
-        workflowId,
-        clipRun.inputValues ?? {
-          confirmBeforePublish: true,
-          duration: durationSeconds,
-          format: 'landscape',
-          intent: 'twitter_clip',
-          mergeGeneratedVideos,
-          prompt,
-        },
-      ),
+      apiService.triggerWorkflowEffect(workflowId, inputValues),
     );
     setWorkflowExecutionId(execution.id);
     setStep('trigger_workflow', 'completed');
@@ -120,6 +163,7 @@ export function useClipWorkflowRunCard({
     apiService,
     clipRun.inputValues,
     durationSeconds,
+    identity,
     mergeGeneratedVideos,
     prompt,
     setStep,
@@ -128,6 +172,10 @@ export function useClipWorkflowRunCard({
 
   const runGenerateClip = useCallback(async () => {
     setStep('generate_clip', 'running');
+    if (identity && !identity.isComplete) {
+      throw new Error(getClipIdentityError(identity));
+    }
+
     const promptDoc = await runAgentApiEffect(
       apiService.createPromptEffect({
         category: getPromptCategoryForGenerationType('video'),
@@ -143,6 +191,7 @@ export function useClipWorkflowRunCard({
         buildAgentGenerationRequestBody({
           aspectRatio: '16:9',
           duration: Math.max(5, Math.min(60, durationSeconds)),
+          identity,
           modelKey: clipRun.model || undefined,
           promptId: promptDoc.id,
           promptText: prompt,
@@ -152,7 +201,7 @@ export function useClipWorkflowRunCard({
     );
     setGeneratedVideoIds((prev) => [...prev, result.id]);
     setStep('generate_clip', 'completed');
-  }, [apiService, clipRun.model, durationSeconds, prompt, setStep]);
+  }, [apiService, clipRun.model, durationSeconds, identity, prompt, setStep]);
 
   const runMerge = useCallback(async () => {
     if (!mergeGeneratedVideos || generatedVideoIds.length < 2) {
@@ -334,6 +383,7 @@ export function useClipWorkflowRunCard({
     workflowExecutionId,
     generatedVideoIds,
     finalVideoId,
+    identity,
     canMerge,
     draftReviewUrl,
     error,

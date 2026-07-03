@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import { CredentialPlatform } from '@genfeedai/enums';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -62,7 +63,14 @@ function createBrandDetailState(overrides: Record<string, unknown> = {}) {
     selectedLink: null,
     selectLink: mocks.selectLink,
     setGenerateModalType: mocks.setGenerateModalType,
-    socialConnections: [{ id: 'social-1' }],
+    socialConnections: [
+      {
+        credentialId: 'credential-1',
+        handle: 'brand',
+        platform: CredentialPlatform.TWITTER,
+        url: 'https://x.com/brand',
+      },
+    ],
     videos: [{ id: 'video-1' }],
     ...overrides,
   };
@@ -170,6 +178,17 @@ vi.mock('@pages/brands/components/overview/BrandDetailOverview', () => ({
           Copy Public Profile
         </button>
       ) : null}
+    </section>
+  ),
+}));
+
+vi.mock('@pages/brands/components/brand-kit/BrandKitReviewCard', () => ({
+  default: ({ onRefreshBrand }: { onRefreshBrand: () => Promise<void> }) => (
+    <section>
+      Brand Kit Review
+      <button type="button" onClick={() => void onRefreshBrand()}>
+        Refresh Brand Kit
+      </button>
     </section>
   ),
 }));
@@ -379,6 +398,7 @@ describe('BrandDetail', () => {
 
     expect(screen.getByText('Banner')).toBeInTheDocument();
     expect(screen.getByText('Overview')).toBeInTheDocument();
+    expect(screen.getByText('Brand Kit Review')).toBeInTheDocument();
     expect(screen.getByText('Videos 1')).toBeInTheDocument();
     expect(screen.getByText('Images 1')).toBeInTheDocument();
     expect(screen.getByText('Articles 1')).toBeInTheDocument();
@@ -413,6 +433,8 @@ describe('BrandDetail', () => {
     expect(mocks.handleRequestDeleteReference).toHaveBeenCalledWith(
       'reference-1',
     );
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh Brand Kit' }));
+    expect(mocks.handleRefreshBrand).toHaveBeenCalledWith(true);
     fireEvent.click(
       screen.getByRole('button', {
         name: 'Generate modal banner brand-1 9',

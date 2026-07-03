@@ -23,6 +23,7 @@ describe('AgentThreadsController', () => {
   };
   let messagesService: {
     addMessage: ReturnType<typeof vi.fn>;
+    findOne: ReturnType<typeof vi.fn>;
     getMessagesByRoom: ReturnType<typeof vi.fn>;
     getRecentMessages: ReturnType<typeof vi.fn>;
   };
@@ -47,6 +48,7 @@ describe('AgentThreadsController', () => {
     };
     messagesService = {
       addMessage: vi.fn(),
+      findOne: vi.fn(),
       getMessagesByRoom: vi.fn().mockResolvedValue([]),
       getRecentMessages: vi.fn().mockResolvedValue([]),
     };
@@ -78,7 +80,7 @@ describe('AgentThreadsController', () => {
     it('should return threads as JSON:API collection', async () => {
       service.getUserThreads.mockResolvedValue([]);
       const result = await controller.listThreads(
-        { originalUrl: '/v1/threads' } as never,
+        { originalUrl: '/v1/agent/threads' } as never,
         mockUser,
       );
       expect(service.getUserThreads).toHaveBeenCalled();
@@ -86,7 +88,7 @@ describe('AgentThreadsController', () => {
         expect.objectContaining({
           data: [],
           links: expect.objectContaining({
-            self: '/v1/threads',
+            self: '/v1/agent/threads',
           }),
         }),
       );
@@ -101,13 +103,7 @@ describe('AgentThreadsController', () => {
       expect(args[0]).toEqual(expect.any(String));
       expect(args[1]).toEqual(expect.any(String));
       expect(args[2]).toBeUndefined();
-      expect(usersService.findOne).toHaveBeenCalledWith(
-        {
-          _id: expect.any(String),
-          authProviderId: 'authProvider_123',
-        },
-        [],
-      );
+      expect(usersService.findOne).not.toHaveBeenCalled();
     });
 
     it('should pass explicit status when provided', async () => {
@@ -119,18 +115,25 @@ describe('AgentThreadsController', () => {
       expect(args[0]).toEqual(expect.any(String));
       expect(args[1]).toEqual(expect.any(String));
       expect(args[2]).toBe('active');
-      expect(usersService.findOne).toHaveBeenCalledWith(
-        {
-          _id: expect.any(String),
-          authProviderId: 'authProvider_123',
-        },
-        [],
+      expect(usersService.findOne).not.toHaveBeenCalled();
+    });
+
+    it('should trust publicMetadata.user directly with no DB re-lookup (no 401 for authenticated user)', async () => {
+      service.getUserThreads.mockResolvedValue([]);
+
+      await controller.listThreads({} as never, mockUser);
+
+      expect(usersService.findOne).not.toHaveBeenCalled();
+      expect(service.getUserThreads).toHaveBeenCalledWith(
+        mockUser.publicMetadata.user,
+        mockUser.publicMetadata.organization,
+        undefined,
       );
     });
 
     it('should resolve user id from users collection when metadata id is missing', async () => {
-      const resolvedMongoUserId = 'user_resolved';
-      usersService.findOne.mockResolvedValueOnce({ _id: resolvedMongoUserId });
+      const resolvedUserId = 'user_resolved';
+      usersService.findOne.mockResolvedValueOnce({ id: resolvedUserId });
       service.getUserThreads.mockResolvedValue([]);
 
       await controller.listThreads(
@@ -150,6 +153,29 @@ describe('AgentThreadsController', () => {
         [],
       );
       expect(service.getUserThreads).toHaveBeenCalledWith(
+        resolvedUserId,
+        expect.any(String),
+        undefined,
+      );
+    });
+
+    it('should not throw 401 when metadata user id is missing but a legacy _id is found', async () => {
+      const resolvedMongoUserId = 'legacy_mongo_id';
+      usersService.findOne.mockResolvedValueOnce({ id: resolvedMongoUserId });
+      service.getUserThreads.mockResolvedValue([]);
+
+      await controller.listThreads(
+        {} as never,
+        {
+          ...mockUser,
+          publicMetadata: {
+            ...mockUser.publicMetadata,
+            user: '',
+          },
+        } as unknown as User,
+      );
+
+      expect(service.getUserThreads).toHaveBeenCalledWith(
         resolvedMongoUserId,
         expect.any(String),
         undefined,
@@ -162,6 +188,28 @@ describe('AgentThreadsController', () => {
       service.findOne.mockResolvedValue({ _id: 'test' });
       await controller.getThread({} as never, 'test-id', mockUser);
       expect(service.findOne).toHaveBeenCalled();
+    });
+  });
+
+  describe('getMessage', () => {
+    it('gets a thread message by id within the current organization', async () => {
+      messagesService.findOne.mockResolvedValue({ _id: 'message-id' });
+
+      await controller.getMessage(
+        {
+          originalUrl: '/v1/agent/threads/thread-id/messages/message-id',
+        } as never,
+        'thread-id',
+        'message-id',
+        mockUser,
+      );
+
+      expect(messagesService.findOne).toHaveBeenCalledWith({
+        _id: 'message-id',
+        isDeleted: false,
+        organization: 'org_current',
+        room: 'thread-id',
+      });
     });
   });
 

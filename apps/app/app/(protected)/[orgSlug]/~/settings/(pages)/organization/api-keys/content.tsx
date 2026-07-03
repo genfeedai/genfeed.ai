@@ -549,7 +549,7 @@ export default function SettingsApiKeysPage() {
           </div>
 
           {productPlainKey ? (
-            <div className="mt-4 rounded-md border border-border bg-muted/30 p-3">
+            <div className="mt-4 border-t border-border pt-3">
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-xs font-medium">{productPlainKey.label}</p>

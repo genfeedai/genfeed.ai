@@ -71,7 +71,7 @@ class TestIntegrationController extends BaseIntegrationController {
   }
 
   async testGetOrCreateCredential(
-    brand: { _id: string; organization: string },
+    brand: { id: string; organization: string },
     initialData?: Record<string, unknown>,
   ) {
     return this.getOrCreateCredential(brand, initialData);
@@ -126,7 +126,7 @@ describe('BaseIntegrationController', () => {
   beforeEach(() => {
     brandsService = {
       findOne: vi.fn().mockResolvedValue({
-        _id: brandId,
+        id: brandId,
         organization: orgId,
       }),
     };
@@ -179,7 +179,7 @@ describe('BaseIntegrationController', () => {
           organization: expect.any(String),
         }),
       );
-      expect(result).toHaveProperty('_id');
+      expect(result).toHaveProperty('id');
     });
 
     it('should throw FORBIDDEN when brand is not found', async () => {
@@ -201,7 +201,7 @@ describe('BaseIntegrationController', () => {
   describe('getOrCreateCredential', () => {
     it('should return existing credential if found', async () => {
       const brand = {
-        _id: brandId,
+        id: brandId,
         organization: orgId,
       };
 

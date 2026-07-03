@@ -8,8 +8,8 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { AgentRunsController } from '@api/collections/agent-runs/controllers/agent-runs.controller';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { LoggerService } from '@libs/logger/logger.service';
-import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -226,7 +226,7 @@ describe('AgentRunsController', () => {
 
   describe('canUserModifyEntity', () => {
     it('should return true when organization matches', () => {
-      const entity = { organization: { _id: '507f1f77bcf86cd799439012' } };
+      const entity = { organization: { id: '507f1f77bcf86cd799439012' } };
       expect(
         controller.canUserModifyEntity(mockUser as any, entity as any),
       ).toBe(true);

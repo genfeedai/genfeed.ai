@@ -4,7 +4,9 @@ import type { AvatarsService } from '@api/collections/avatars/services/avatars.s
 import type { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
 import type { HedraService } from '@api/services/integrations/hedra/services/hedra.service';
 import type { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
+import { IngredientCategory } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
+import type { Request } from 'express';
 
 const userId = '507f191e810c19729de860ee'.toString();
 const orgId = '507f191e810c19729de860ee'.toString();
@@ -172,6 +174,37 @@ describe('AvatarsController', () => {
       const controller = buildController();
       vi.mocked(mockHedraService.getAvatars).mockRejectedValue(new Error('x'));
       await expect(controller.getHedraAvatars(makeUser())).rejects.toThrow();
+    });
+  });
+
+  describe('findAll', () => {
+    const makeRequest = () =>
+      ({
+        get: () => 'app.test',
+        originalUrl: '/v1/avatars',
+        protocol: 'https',
+      }) as unknown as Request;
+
+    it('should filter by category instead of the legacy "type" field', async () => {
+      const controller = buildController();
+      vi.mocked(mockAvatarsService.findAll).mockResolvedValue({
+        docs: [],
+      } as never);
+
+      await controller.findAll(makeRequest(), makeUser(), {} as never);
+
+      expect(mockAvatarsService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            category: IngredientCategory.AVATAR,
+          }),
+        }),
+        expect.anything(),
+      );
+      // Ingredient has no "type" column — this field name previously caused
+      // PrismaClientValidationError ("Invalid `prisma.ingredient.findMany()`").
+      const [{ where }] = vi.mocked(mockAvatarsService.findAll).mock.calls[0];
+      expect(where).not.toHaveProperty('type');
     });
   });
 });

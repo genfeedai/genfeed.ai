@@ -13,6 +13,7 @@ export const APP_ROUTES = {
       ROLES: '/admin/administration/roles',
       SUBSCRIPTIONS: '/admin/administration/subscriptions',
       USERS: '/admin/administration/users',
+      WARMUP_ACCOUNTS: '/admin/administration/warmup-accounts',
     },
     AGENT: '/admin/agent',
     AUTOMATION: {
@@ -81,11 +82,11 @@ export const APP_ROUTES = {
     TREND_TURNOVER: '/analytics/trend-turnover',
     TRENDS: '/analytics/trends',
   },
-  CHAT: {
-    ROOT: '/chat',
-    JOURNEY: '/chat/journey',
-    NEW: '/chat/new',
-    ONBOARDING: '/chat/onboarding',
+  AGENT: {
+    ROOT: '/agent',
+    JOURNEY: '/agent/journey',
+    NEW: '/agent/new',
+    ONBOARDING: '/agent/onboarding',
   },
   COMPOSE: {
     ARTICLE: '/compose/article',
@@ -114,6 +115,9 @@ export const APP_ROUTES = {
     ROOT: '/library/ingredients',
     VIDEOS: '/library/videos',
     VOICES: '/library/voices',
+  },
+  MESSAGES: {
+    ROOT: '/messages',
   },
   ONBOARDING: {
     BRAND: '/onboarding/brand',
@@ -209,10 +213,11 @@ export const APP_ROUTES = {
 export const APP_ROUTE_PREFIXES = {
   ADMIN: APP_ROUTES.ADMIN.ROOT,
   ANALYTICS: APP_ROUTES.ANALYTICS.ROOT,
-  CHAT: APP_ROUTES.CHAT.ROOT,
+  AGENT: APP_ROUTES.AGENT.ROOT,
   COMPOSE: APP_ROUTES.COMPOSE.ROOT,
   EDITOR: APP_ROUTES.EDITOR.ROOT,
   LIBRARY: '/library',
+  MESSAGES: APP_ROUTES.MESSAGES.ROOT,
   ORCHESTRATION: APP_ROUTES.ORCHESTRATION.ROOT,
   POSTS: APP_ROUTES.POSTS.ROOT,
   SETTINGS: APP_ROUTES.SETTINGS.ROOT,

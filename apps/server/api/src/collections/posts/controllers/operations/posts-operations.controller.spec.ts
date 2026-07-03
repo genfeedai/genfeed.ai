@@ -73,7 +73,7 @@ describe('PostsOperationsController', () => {
   } as unknown as User;
 
   const mockPost = {
-    _id: postId,
+    id: postId,
     brand: brandId,
     category: PostCategory.TEXT,
     credential: credentialId,
@@ -122,7 +122,7 @@ describe('PostsOperationsController', () => {
   };
 
   const mockIngredient = {
-    _id: ingredientId,
+    id: ingredientId,
     brand: brandId,
     category: IngredientCategory.IMAGE,
     isDeleted: false,
@@ -872,7 +872,7 @@ Tweet 3: Tech innovation is changing the world.`,
         ...mockPost,
         _id: '507f191e810c19729de860ee',
         description: createRemixDto.description,
-        remixOf: mockPost._id,
+        remixOf: mockPost.id,
       });
     });
 

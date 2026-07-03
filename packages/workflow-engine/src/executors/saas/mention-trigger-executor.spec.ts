@@ -1,9 +1,8 @@
 import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
-  createMentionTriggerExecutor,
   type MentionChecker,
-  type MentionTriggerExecutor,
+  MentionTriggerExecutor,
 } from '@workflow-engine/executors/saas/mention-trigger-executor';
 import type { ExecutableNode } from '@workflow-engine/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -30,7 +29,7 @@ describe('MentionTriggerExecutor', () => {
   let mockChecker: MentionChecker;
 
   beforeEach(() => {
-    executor = createMentionTriggerExecutor();
+    executor = new MentionTriggerExecutor();
     mockChecker = vi.fn().mockResolvedValue({
       authorId: 'a-1',
       authorUsername: 'someone',
@@ -48,7 +47,7 @@ describe('MentionTriggerExecutor', () => {
   });
 
   it('throws if checker not configured', async () => {
-    const fresh = createMentionTriggerExecutor();
+    const fresh = new MentionTriggerExecutor();
     const input = makeInput({ platform: 'twitter' });
     await expect(fresh.execute(input)).rejects.toThrow(
       'checker not configured',

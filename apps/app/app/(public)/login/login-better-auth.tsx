@@ -129,7 +129,7 @@ export default function LoginBetterAuth({
     }
   }
 
-  async function handleGoogleSignIn() {
+  async function handleSocialSignIn(provider: 'google') {
     setSocialErrorMessage(null);
     setErrorMessage(null);
     setPasswordErrorMessage(null);
@@ -138,7 +138,7 @@ export default function LoginBetterAuth({
     try {
       const result = await signIn.social({
         callbackURL: authCallbackURL,
-        provider: 'google',
+        provider,
       });
       if (result?.error) {
         setSocialErrorMessage(
@@ -305,13 +305,13 @@ export default function LoginBetterAuth({
           <Button
             type="button"
             variant={ButtonVariant.OUTLINE}
-            onClick={handleGoogleSignIn}
+            onClick={() => handleSocialSignIn('google')}
             icon={<FcGoogle className="size-4" aria-hidden="true" />}
             isLoading={isSocialSubmitting}
             className={AUTH_BUTTON_CLASS_NAME}
             withWrapper={false}
           >
-            Sign in with Google
+            Google
           </Button>
 
           <Button
@@ -322,7 +322,7 @@ export default function LoginBetterAuth({
           >
             <Link href={magicLinkHref}>
               <Sparkles className="size-4" aria-hidden="true" />
-              <span>Sign in with a magic link</span>
+              <span>Magic Link</span>
             </Link>
           </Button>
 
@@ -334,7 +334,7 @@ export default function LoginBetterAuth({
           >
             <Link href={passwordHref}>
               <KeyRound className="size-4" aria-hidden="true" />
-              <span>Sign in with email and password</span>
+              <span>Email / Password</span>
             </Link>
           </Button>
         </div>

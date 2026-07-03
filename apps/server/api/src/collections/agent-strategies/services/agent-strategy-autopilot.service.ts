@@ -15,6 +15,7 @@ import { EvaluationsOperationsService } from '@api/collections/evaluations/servi
 import { OptimizersService } from '@api/collections/optimizers/services/optimizers.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { ReviewBatchItemFormat } from '@api/services/batch-generation/constants/review-batch-item-format.constant';
 import { ContentGatewayService } from '@api/services/content-gateway/content-gateway.service';
@@ -29,7 +30,7 @@ import {
   PostStatus,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 export interface BudgetPacingState {
   expectedSpendToDate: number;
@@ -378,7 +379,7 @@ export class AgentStrategyAutopilotService {
     );
 
     if (!strategy) {
-      throw new NotFoundException('Strategy not found');
+      throw new NotFoundException('Strategy');
     }
 
     return strategy;
@@ -386,7 +387,7 @@ export class AgentStrategyAutopilotService {
 
   private documentId(entity: unknown): string {
     const record = entity as Record<string, unknown>;
-    return String(record.id ?? record._id);
+    return String(record.id);
   }
 
   private opportunityId(opportunity: AgentStrategyOpportunityDocument): string {
@@ -532,7 +533,7 @@ export class AgentStrategyAutopilotService {
               formatCandidates: this.resolveFormatsForStrategy(strategy),
               metadata: {
                 platform,
-                trendId: String(trend._id),
+                trendId: String(trend.id),
                 viralityScore: trend.viralityScore ?? 0,
               },
               organizationId: strategyOrganizationId,
@@ -545,7 +546,7 @@ export class AgentStrategyAutopilotService {
                 relevance: this.computeTopicRelevance(strategy, trend.topic),
               }),
               relevanceScore: this.computeTopicRelevance(strategy, trend.topic),
-              sourceRef: String(trend._id),
+              sourceRef: String(trend.id),
               sourceType: 'trend',
               strategyId,
               topic: trend.topic,

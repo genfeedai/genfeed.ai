@@ -51,8 +51,6 @@
   --accent-pink: #ec4899;
   --accent-rose: #f472b6;
   --accent-orange: #f97316;
-
-  --radius: 0.25rem;
 }
 
 @layer base {

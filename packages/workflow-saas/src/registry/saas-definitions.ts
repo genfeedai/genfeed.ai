@@ -5,6 +5,7 @@ import {
   DEFAULT_BRAND_ASSET_DATA,
   DEFAULT_BRAND_CONTEXT_DATA,
   DEFAULT_BRAND_DATA,
+  DEFAULT_COMMENT_TRIGGER_DATA,
   DEFAULT_CONDITION_DATA,
   DEFAULT_DELAY_DATA,
   DEFAULT_ENGAGEMENT_TRIGGER_DATA,
@@ -50,11 +51,13 @@ export type SaaSNodeType =
   | 'brandAsset'
   | 'brandContext'
   | 'patternContext'
+  | 'commentTrigger'
   // control flow
   | 'condition'
   | 'delay'
   // input / triggers
   | 'analyticsFeedback'
+  | 'commentTrigger'
   | 'engagementTrigger'
   | 'followUser'
   | 'keywordTrigger'
@@ -165,6 +168,24 @@ export const SAAS_NODE_DEFINITIONS: Record<SaaSNodeType, SaaSNodeDefinition> = {
       { id: 'models', label: 'Default Models', type: 'text' },
     ],
     type: 'brandContext',
+  },
+  commentTrigger: {
+    category: 'automation',
+    defaultData: DEFAULT_COMMENT_TRIGGER_DATA as Record<string, unknown>,
+    description: 'Start workflow when a social comment is detected',
+    icon: 'MessageCircle',
+    inputs: [],
+    label: 'Comment Trigger',
+    outputs: [
+      { id: 'commentId', label: 'Comment ID', type: 'text' },
+      { id: 'contentId', label: 'Content ID', type: 'text' },
+      { id: 'contentUrl', label: 'Content URL', type: 'text' },
+      { id: 'text', label: 'Comment Text', type: 'text' },
+      { id: 'authorId', label: 'Author ID', type: 'text' },
+      { id: 'authorUsername', label: 'Author Username', type: 'text' },
+      { id: 'platform', label: 'Platform', type: 'text' },
+    ],
+    type: 'commentTrigger',
   },
   condition: {
     category: 'processing',
@@ -334,11 +355,12 @@ export const SAAS_NODE_DEFINITIONS: Record<SaaSNodeType, SaaSNodeDefinition> = {
     category: 'automation',
     defaultData: DEFAULT_POST_REPLY_DATA as Record<string, unknown>,
     description:
-      'Reply to a social media post on Twitter, Instagram, Threads, or Facebook',
+      'Reply to a social media post or Messages conversation on Twitter, Instagram, Threads, Facebook, or YouTube',
     icon: 'MessageSquare',
     inputs: [
       { id: 'brand', label: 'Brand', required: true, type: 'brand' },
-      { id: 'postId', label: 'Post ID', required: true, type: 'text' },
+      { id: 'postId', label: 'Post ID', type: 'text' },
+      { id: 'conversationId', label: 'Conversation ID', type: 'text' },
       { id: 'text', label: 'Reply Text', required: true, type: 'text' },
     ],
     label: 'Post Reply',
@@ -365,16 +387,17 @@ export const SAAS_NODE_DEFINITIONS: Record<SaaSNodeType, SaaSNodeDefinition> = {
   sendDm: {
     category: 'automation',
     defaultData: DEFAULT_SEND_DM_DATA as Record<string, unknown>,
-    description: 'Send a direct message on Twitter or Instagram',
+    description:
+      'Send a direct message on Twitter, Instagram, or a supported Messages conversation',
     icon: 'Send',
     inputs: [
       { id: 'brand', label: 'Brand', required: true, type: 'brand' },
       {
         id: 'recipientId',
         label: 'Recipient ID',
-        required: true,
         type: 'text',
       },
+      { id: 'conversationId', label: 'Conversation ID', type: 'text' },
       { id: 'text', label: 'Message Text', required: true, type: 'text' },
     ],
     label: 'Send DM',

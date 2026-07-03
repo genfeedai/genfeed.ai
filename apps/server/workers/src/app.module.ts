@@ -1,24 +1,21 @@
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
-import { EventBusModule } from '@api/shared/services/event-bus/event-bus.module';
 import { SharedModule } from '@api/shared/shared.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { RedisModule } from '@libs/redis/redis.module';
 import { Module } from '@nestjs/common';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SentryModule } from '@sentry/nestjs/setup';
 import { ConfigModule } from '@workers/config/config.module';
 import { ConfigService } from '@workers/config/config.service';
-import { CronAdInsightsModule } from '@workers/crons/ad-insights/cron.ad-insights.module';
 import { CronAdOptimizationModule } from '@workers/crons/ad-optimization/cron.ad-optimization.module';
 import { CronAdSyncModule } from '@workers/crons/ad-sync/cron.ad-sync.module';
 import { CronProactiveAgentModule } from '@workers/crons/agent/cron.proactive-agent.module';
 import { CronAgentCampaignOrchestratorModule } from '@workers/crons/agent-campaign/cron.agent-campaign-orchestrator.module';
 import { CronAiInfluencerModule } from '@workers/crons/ai-influencer/cron.ai-influencer.module';
-import { CronAnalyticsModule } from '@workers/crons/analytics/cron.analytics.module';
 import { CronByokBillingModule } from '@workers/crons/byok-billing/cron.byok-billing.module';
 import { CronContentEngineModule } from '@workers/crons/content-engine/cron.content-engine.module';
 import { CronContentPipelineModule } from '@workers/crons/content-pipeline/cron.content-pipeline.module';
-import { CronContentSchedulesModule } from '@workers/crons/content-schedules/cron.content-schedules.module';
 import { CronCredentialsModule } from '@workers/crons/credentials/cron.credentials.module';
 import { CronDynamicJobsModule } from '@workers/crons/dynamic-jobs/cron.dynamic-jobs.module';
 import { CronIngredientsModule } from '@workers/crons/ingredients/cron.ingredients.module';
@@ -36,6 +33,7 @@ import { CronWorkflowsModule } from '@workers/crons/workflows/cron.workflows.mod
 import { CronYoutubeModule } from '@workers/crons/youtube/cron.youtube.module';
 import { ProcessorsModule } from '@workers/processors/processors.module';
 import { CronSchedulerControlService } from '@workers/scheduling/cron-scheduler-control.service';
+import { SystemSweepsModule } from '@workers/scheduling/system-sweeps.module';
 
 @Module({
   imports: [
@@ -51,7 +49,18 @@ import { CronSchedulerControlService } from '@workers/scheduling/cron-scheduler-
 
     // Shared Services (global in API, must be explicitly imported here)
     SharedModule,
-    EventBusModule,
+    EventEmitterModule.forRoot({
+      // Delimiter for nested events (e.g., 'video.created')
+      delimiter: '.',
+      // Ignore errors thrown by listeners
+      ignoreErrors: false,
+      // Maximum number of listeners per event
+      maxListeners: 20,
+      // Enable verbose error logging
+      verboseMemoryLeak: true,
+      // Use wildcards for event matching
+      wildcard: true,
+    }),
 
     // Database (Prisma — replaces the legacy document-store connections)
     PrismaModule,
@@ -59,8 +68,10 @@ import { CronSchedulerControlService } from '@workers/scheduling/cron-scheduler-
     // BullMQ Processor Modules (moved from API — issue #84)
     ProcessorsModule,
 
+    // System sweep schedulers (tenant-product automation, issue #1092)
+    SystemSweepsModule,
+
     // Cron Modules (moved from API)
-    CronAdInsightsModule,
     CronPatternExtractionModule,
     CronAdOptimizationModule,
     CronLlmIdleModule,
@@ -69,10 +80,8 @@ import { CronSchedulerControlService } from '@workers/scheduling/cron-scheduler-
     CronAiInfluencerModule,
     CronContentEngineModule,
     CronContentPipelineModule,
-    CronContentSchedulesModule,
     CronProactiveAgentModule,
     CronByokBillingModule,
-    CronAnalyticsModule,
     CronCredentialsModule,
     CronDynamicJobsModule,
     CronIngredientsModule,

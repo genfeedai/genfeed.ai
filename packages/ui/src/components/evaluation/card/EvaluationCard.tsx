@@ -237,7 +237,6 @@ export default function EvaluationCard({
     <Card
       label="Quality Evaluation"
       headerAction={getHeaderAction()}
-      className="border border-white/[0.08] bg-card"
       bodyClassName={
         !evaluation || evaluation.status !== Status.COMPLETED
           ? undefined

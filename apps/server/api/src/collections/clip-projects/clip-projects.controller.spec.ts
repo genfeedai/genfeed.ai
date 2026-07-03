@@ -5,10 +5,13 @@ import type { GenerateClipsDto } from '@api/collections/clip-projects/dto/genera
 import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
 import type { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
 import type { HighlightRewriteService } from '@api/collections/clip-projects/services/highlight-rewrite.service';
+import type { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
 import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
 import type { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
 import type { ClipFactoryQueueService } from '@api/queues/clip-factory/clip-factory-queue.service';
+import type { PublishHandoffService } from '@api/services/clip-orchestrator/publish-handoff.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
@@ -25,12 +28,13 @@ function createMockLogger(): LoggerService {
 
 function createMockClipProjectsService(): Pick<
   ClipProjectsService,
-  'create' | 'findOne' | 'patch'
+  'create' | 'findOne' | 'patch' | 'reconcileTerminalState'
 > {
   return {
     create: vi.fn(),
     findOne: vi.fn(),
     patch: vi.fn(),
+    reconcileTerminalState: vi.fn(),
   };
 }
 
@@ -48,7 +52,6 @@ function createProject(
   organizationId: string,
 ): ClipProjectDocument {
   return {
-    _id: projectId,
     highlights: [
       {
         clip_type: 'hook',
@@ -61,6 +64,7 @@ function createProject(
         virality_score: 85,
       },
     ],
+    id: projectId,
     isDeleted: false,
     organization: organizationId,
     status: 'analyzed',
@@ -83,9 +87,16 @@ describe('ClipProjectsController', () => {
   let clipProjectsService: ReturnType<typeof createMockClipProjectsService>;
   let clipGenerationService: ReturnType<typeof createMockClipGenerationService>;
   let clipFactoryQueueService: { enqueue: ReturnType<typeof vi.fn> };
+  let clipResultsService: {
+    findProjectResultForHandoff: ReturnType<typeof vi.fn>;
+  };
   let creditsUtilsService: {
     checkOrganizationCreditsAvailable: ReturnType<typeof vi.fn>;
     getOrganizationCreditsBalance: ReturnType<typeof vi.fn>;
+  };
+  let editorProjectsService: { create: ReturnType<typeof vi.fn> };
+  let publishHandoffService: {
+    preparePublishHandoff: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
@@ -94,9 +105,18 @@ describe('ClipProjectsController', () => {
     clipFactoryQueueService = {
       enqueue: vi.fn(),
     };
+    clipResultsService = {
+      findProjectResultForHandoff: vi.fn(),
+    };
     creditsUtilsService = {
       checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
       getOrganizationCreditsBalance: vi.fn().mockResolvedValue(100),
+    };
+    editorProjectsService = {
+      create: vi.fn(),
+    };
+    publishHandoffService = {
+      preparePublishHandoff: vi.fn(),
     };
 
     controller = new ClipProjectsController(
@@ -107,6 +127,9 @@ describe('ClipProjectsController', () => {
       clipGenerationService as ClipGenerationService,
       { rewrite: vi.fn() } as unknown as HighlightRewriteService,
       creditsUtilsService as unknown as CreditsUtilsService,
+      clipResultsService as unknown as ClipResultsService,
+      editorProjectsService as unknown as EditorProjectsService,
+      publishHandoffService as unknown as PublishHandoffService,
     );
   });
 
@@ -121,7 +144,7 @@ describe('ClipProjectsController', () => {
       };
 
       vi.mocked(clipProjectsService.create).mockResolvedValue({
-        _id: projectId,
+        id: projectId,
       } as ClipProjectDocument);
       clipFactoryQueueService.enqueue.mockResolvedValue('clip-factory-job-1');
 
@@ -300,5 +323,151 @@ describe('ClipProjectsController', () => {
       }),
     );
     expect(result.status).toBe('failed');
+  });
+
+  it('creates an editor handoff for a ready clip result', async () => {
+    const project = createProject(projectId, organizationId);
+    vi.mocked(clipProjectsService.findOne).mockResolvedValue(project);
+    vi.mocked(clipProjectsService.reconcileTerminalState).mockResolvedValue(
+      project,
+    );
+    clipResultsService.findProjectResultForHandoff.mockResolvedValue({
+      duration: 12,
+      id: 'clip-result-1',
+      readiness: {
+        blockingReasons: [],
+        readyActions: ['download', 'edit', 'publish'],
+        state: 'ready',
+        terminal: true,
+      },
+      status: 'completed',
+      title: 'Launch clip',
+      videoUrl: 'https://cdn.genfeed.ai/clip.mp4',
+    });
+    editorProjectsService.create.mockResolvedValue({
+      id: 'editor-project-1',
+    });
+
+    const result = await controller.createEditorHandoff(
+      currentUser as never,
+      projectId,
+      'clip-result-1',
+    );
+
+    expect(clipResultsService.findProjectResultForHandoff).toHaveBeenCalledWith(
+      {
+        clipResultId: 'clip-result-1',
+        organizationId,
+        projectId,
+      },
+    );
+    expect(editorProjectsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId,
+        tracks: [
+          expect.objectContaining({
+            clips: [
+              expect.objectContaining({
+                ingredientUrl: 'https://cdn.genfeed.ai/clip.mp4',
+              }),
+            ],
+          }),
+        ],
+        userId,
+      }),
+    );
+    expect(result).toEqual(
+      expect.objectContaining({
+        editorPath: '/editor/editor-project-1',
+        editorProjectId: 'editor-project-1',
+      }),
+    );
+  });
+
+  it('prepares publish handoff for a ready clip result', async () => {
+    const project = createProject(projectId, organizationId);
+    vi.mocked(clipProjectsService.findOne).mockResolvedValue(project);
+    vi.mocked(clipProjectsService.reconcileTerminalState).mockResolvedValue(
+      project,
+    );
+    clipResultsService.findProjectResultForHandoff.mockResolvedValue({
+      id: 'clip-result-1',
+      readiness: {
+        blockingReasons: [],
+        readyActions: ['download', 'edit', 'publish'],
+        state: 'ready',
+        terminal: true,
+      },
+      status: 'completed',
+      summary: 'Clip summary',
+      title: 'Launch clip',
+      videoUrl: 'https://cdn.genfeed.ai/clip.mp4',
+    });
+    publishHandoffService.preparePublishHandoff.mockResolvedValue({
+      assets: [
+        {
+          assetId: 'clip-result-1',
+          mediaUrl: 'https://cdn.genfeed.ai/clip.mp4',
+          mimeType: 'video/mp4',
+        },
+      ],
+      clipProjectId: projectId,
+      confirmBeforePublish: true,
+      platforms: ['instagram'],
+      preparedAt: '2026-06-30T00:00:00.000Z',
+      schedule: 'immediate',
+    });
+
+    const result = await controller.createPublishHandoff(
+      currentUser as never,
+      projectId,
+      'clip-result-1',
+    );
+
+    expect(publishHandoffService.preparePublishHandoff).toHaveBeenCalledWith(
+      projectId,
+      ['clip-result-1'],
+      expect.objectContaining({
+        assets: {
+          'clip-result-1': expect.objectContaining({
+            caption: 'Clip summary',
+            mediaUrl: 'https://cdn.genfeed.ai/clip.mp4',
+          }),
+        },
+      }),
+    );
+    expect(result.payload).toEqual(
+      expect.objectContaining({
+        confirmBeforePublish: true,
+      }),
+    );
+  });
+
+  it('rejects handoff when readiness metadata does not allow the action', async () => {
+    const project = createProject(projectId, organizationId);
+    vi.mocked(clipProjectsService.findOne).mockResolvedValue(project);
+    vi.mocked(clipProjectsService.reconcileTerminalState).mockResolvedValue(
+      project,
+    );
+    clipResultsService.findProjectResultForHandoff.mockResolvedValue({
+      id: 'clip-result-1',
+      readiness: {
+        blockingReasons: [],
+        readyActions: ['download'],
+        state: 'ready',
+        terminal: true,
+      },
+      status: 'completed',
+      videoUrl: 'https://cdn.genfeed.ai/clip.mp4',
+    });
+
+    await expect(
+      controller.createPublishHandoff(
+        currentUser as never,
+        projectId,
+        'clip-result-1',
+      ),
+    ).rejects.toThrow('not ready for publish handoff');
+    expect(publishHandoffService.preparePublishHandoff).not.toHaveBeenCalled();
   });
 });

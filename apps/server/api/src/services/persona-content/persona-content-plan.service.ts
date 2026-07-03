@@ -1,6 +1,7 @@
 import { type PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import {
   CredentialPlatform,
   PersonaContentFormat,
@@ -9,7 +10,7 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 export interface ContentPlanInput {
   personaId: string;
@@ -184,7 +185,7 @@ export class PersonaContentPlanService {
     });
 
     if (!persona) {
-      throw new NotFoundException('Persona not found');
+      throw new NotFoundException('Persona');
     }
 
     return persona;

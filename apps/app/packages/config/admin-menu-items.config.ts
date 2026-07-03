@@ -45,7 +45,6 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiChatBubbleLeftRight,
   },
   {
-    drillDown: true,
     group: 'Overview',
     href: APP_ROUTES.ADMIN.ROOT,
     label: 'Dashboard',
@@ -70,7 +69,6 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiClipboardDocumentList,
   },
   {
-    drillDown: true,
     group: 'Content',
     href: APP_ROUTES.ADMIN.CONTENT.POSTS,
     label: 'Posts',
@@ -103,7 +101,6 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiPhoto,
   },
   {
-    drillDown: true,
     group: 'AI & Automation',
     href: APP_ROUTES.ADMIN.AUTOMATION.MODELS_ALL,
     label: 'Models',
@@ -144,7 +141,6 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiClipboardDocumentList,
   },
   {
-    drillDown: true,
     group: 'Configuration',
     href: APP_ROUTES.ADMIN.CONFIGURATION.ELEMENTS_BLACKLISTS,
     label: 'Elements',
@@ -177,7 +173,6 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiTag,
   },
   {
-    drillDown: true,
     group: 'Administration',
     href: APP_ROUTES.ADMIN.ORGANIZATION,
     label: 'Organizations',
@@ -190,6 +185,14 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
     href: APP_ROUTES.ADMIN.ADMINISTRATION.USERS,
     label: 'Users',
     matchPaths: [APP_ROUTES.ADMIN.ADMINISTRATION.USERS],
+    outline: HiOutlineUserGroup,
+    solid: HiUserGroup,
+  },
+  {
+    group: 'Administration',
+    href: APP_ROUTES.ADMIN.ADMINISTRATION.WARMUP_ACCOUNTS,
+    label: 'Warm-up accounts',
+    matchPaths: [APP_ROUTES.ADMIN.ADMINISTRATION.WARMUP_ACCOUNTS],
     outline: HiOutlineUserGroup,
     solid: HiUserGroup,
   },
@@ -218,7 +221,6 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiMegaphone,
   },
   {
-    drillDown: true,
     group: 'Fleet',
     hasDividerAbove: true,
     href: APP_ROUTES.ADMIN.FLEET.CHARACTERS,

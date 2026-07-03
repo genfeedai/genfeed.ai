@@ -54,7 +54,7 @@ describe('ElevenLabsService', () => {
 
     (
       ElevenLabsClient as unknown as ReturnType<typeof vi.fn>
-    ).mockImplementation(function () {
+    ).mockImplementation(function ElevenLabsClientMock() {
       return {
         forcedAlignment: { create: forcedAlignmentMock },
         textToSpeech: { convertWithTimestamps: ttsConvertMock },

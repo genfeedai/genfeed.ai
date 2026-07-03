@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { EmptyState, ErrorScreen } from '@/components/ScreenStates';
-import { colors } from '@/constants';
+import { borderRadius, colors } from '@/constants';
 import { useIdeaActions, useIdeas } from '@/hooks/use-ideas';
 import type { Idea } from '@/services/api/ideas.service';
 import { formatRelativeDateVerbose } from '@/utils/format-date';
@@ -217,7 +217,7 @@ export default function Ideas() {
 const styles = StyleSheet.create({
   actionButton: {
     backgroundColor: colors.bgTertiary,
-    borderRadius: 8,
+    borderRadius: borderRadius.lg,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   addButton: {
     alignItems: 'center',
     backgroundColor: colors.agent,
-    borderRadius: 16,
+    borderRadius: borderRadius.xxxl,
     paddingVertical: 14,
   },
   addButtonLabel: {
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
   ideaCard: {
     backgroundColor: colors.bgSecondary,
     borderColor: colors.bgTertiary,
-    borderRadius: 16,
+    borderRadius: borderRadius.xxxl,
     borderWidth: 1,
     gap: 12,
     padding: 16,
@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     alignItems: 'center',
-    borderRadius: 12,
+    borderRadius: borderRadius.xxl,
     minWidth: 80,
     paddingHorizontal: 20,
     paddingVertical: 12,

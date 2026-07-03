@@ -1,3 +1,13 @@
+// Real, schema-derived getModelMeta/PRISMA_MODEL_METADATA.Model via the
+// light @genfeedai/prisma/testing subpath — no heavy PrismaClient/runtime
+// import required for BaseService's getModelMeta('model') call.
+vi.mock('@genfeedai/prisma', async () => {
+  const { canonicalPrismaMock } = await import(
+    '@api/shared/testing/prisma-mock'
+  );
+  return canonicalPrismaMock();
+});
+
 import { ModelsService } from '@api/collections/models/services/models.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
@@ -109,7 +119,7 @@ describe('ModelsService', () => {
 
     const result = await service.findOne({ key: 'google/imagen-4' });
 
-    expect(result?._id).toBe('model-1');
+    expect(result?.id).toBe('model-1');
     expect(result?.key).toBe('google/imagen-4');
   });
 
@@ -297,7 +307,7 @@ describe('ModelsService', () => {
         isDeleted: false,
       },
     });
-    expect(result.map((model) => model._id)).toEqual(['private-model']);
+    expect(result.map((model) => model.id)).toEqual(['private-model']);
   });
 
   it('creates a private LoRA model from a completed training', async () => {
@@ -375,7 +385,7 @@ describe('ModelsService', () => {
       organizationId: 'org-1',
     } as never);
 
-    expect(result._id).toBe('trained-model');
+    expect(result.id).toBe('trained-model');
     expect(modelDelegate.create).not.toHaveBeenCalled();
   });
 });

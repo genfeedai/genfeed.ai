@@ -1,9 +1,12 @@
 vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
   PrismaService: class {},
 }));
-vi.mock('@genfeedai/prisma', () => ({
-  PrismaClient: class {},
-}));
+vi.mock('@genfeedai/prisma', async () => {
+  const { canonicalPrismaMock } = await import(
+    '@api/shared/testing/prisma-mock'
+  );
+  return canonicalPrismaMock();
+});
 vi.mock(
   '@api/collections/agent-threads/services/agent-threads.service',
   () => ({
@@ -19,11 +22,12 @@ vi.mock(
 
 import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { AgentThreadProjectorService } from '@api/services/agent-threading/services/agent-thread-projector.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Effect } from 'effect';
 

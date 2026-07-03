@@ -485,6 +485,16 @@ enum PlatformRole {
   SUPERADMIN
 }
 
+enum WarmupAccountStatus {
+  DRAFT
+  PROVISIONING
+  PROVISIONED
+  INVITED
+  FAILED
+  CLAIMED
+  ARCHIVED
+}
+
 // ═══════════════════════════════════════════════════════════════
 // CORE IDENTITY — The ownership chain
 // User → Organization → Brand → Member
@@ -557,6 +567,8 @@ model User {
   agentMemories            AgentMemory[]
   agentThreads             AgentThread[]
   agentMessages            AgentMessage[]
+  socialConversations      SocialConversation[]
+  socialMessages           SocialMessage[]
   agentWorkflows           AgentWorkflow[]
   workflows                Workflow[]
   workflowExecutions       WorkflowExecution[]
@@ -592,6 +604,8 @@ model User {
   personaAssignments       Persona[]                 @relation("persona_assigned_members")
   mcpApprovals             McpApproval[]
   brandInterviews          BrandInterview[]
+  warmupAccountsOperated   WarmupAccount[]           @relation("warmup_account_operator")
+  warmupAccountsCustomer   WarmupAccount[]           @relation("warmup_account_customer")
 
   @@index([isDefault])
   @@index([appSource])
@@ -648,6 +662,8 @@ model Organization {
   agentMemories                 AgentMemory[]
   agentThreads                  AgentThread[]
   agentMessages                 AgentMessage[]
+  socialConversations           SocialConversation[]
+  socialMessages                SocialMessage[]
   agentThreadEvents             AgentThreadEvent[]
   agentThreadSnapshots          AgentThreadSnapshot[]
   threadContextStates           ThreadContextState[]
@@ -728,6 +744,7 @@ model Organization {
   mcpApprovals                  McpApproval[]
   moodBoards                    MoodBoard[]                    @relation("org_moodboard")
   brandInterviews               BrandInterview[]
+  warmupAccounts                WarmupAccount[]
 
   @@index([isDefault])
   @@index([category])
@@ -820,6 +837,8 @@ model Brand {
   agentGoals                 AgentGoal[]
   agentMemories              AgentMemory[]
   agentMessages              AgentMessage[]
+  socialConversations        SocialConversation[]
+  socialMessages             SocialMessage[]
   agentStrategyOpportunities AgentStrategyOpportunity[]
   agentStrategyReports       AgentStrategyReport[]
   workflows                  Workflow[]                 @relation("workflow_brands")
@@ -854,6 +873,7 @@ model Brand {
   bookmarks                  Bookmark[]
   moodBoard                  MoodBoard?                 @relation("brand_moodboard")
   brandInterviews            BrandInterview[]
+  warmupAccounts             WarmupAccount[]
 
   @@index([isDefault])
   @@index([organizationId, isDeleted, label], map: "brands_org_deleted_label_idx")
@@ -966,6 +986,7 @@ model Invitation {
   acceptedAt       DateTime?
   acceptedByUserId String?
   acceptedByUser   User?        @relation("invitation_accepted_by", fields: [acceptedByUserId], references: [id])
+  warmupAccounts   WarmupAccount[]
   revokedAt        DateTime?
   isDeleted        Boolean      @default(false)
   createdAt        DateTime     @default(now())
@@ -976,6 +997,38 @@ model Invitation {
   @@index([email, isDeleted], map: "invitations_email_deleted_idx")
   @@index([expiresAt, acceptedAt, revokedAt, isDeleted], map: "invitations_expiry_status_idx")
   @@map("invitations")
+}
+
+model WarmupAccount {
+  id               String              @id @default(cuid())
+  leadEmail        String
+  leadFirstName    String?
+  leadLastName     String?
+  organizationName String
+  brandName        String
+  websiteUrl       String?
+  guidance         String?
+  status           WarmupAccountStatus @default(DRAFT)
+  operatorUserId   String
+  operatorUser     User                @relation("warmup_account_operator", fields: [operatorUserId], references: [id])
+  customerUserId   String?
+  customerUser     User?               @relation("warmup_account_customer", fields: [customerUserId], references: [id], onDelete: SetNull)
+  organizationId   String?
+  organization     Organization?       @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  brandId          String?
+  brand            Brand?              @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  invitationId     String?
+  invitation       Invitation?         @relation(fields: [invitationId], references: [id], onDelete: SetNull)
+  diagnostics      Json                @default("{}")
+  auditEvents      Json                @default("[]")
+  isDeleted        Boolean             @default(false)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  @@index([leadEmail, isDeleted, status], map: "warmup_accounts_lead_status_idx")
+  @@index([status, isDeleted, createdAt(sort: Desc)], map: "warmup_accounts_status_created_idx")
+  @@index([organizationId, isDeleted], map: "warmup_accounts_org_deleted_idx")
+  @@map("warmup_accounts")
 }
 
 model Role {
@@ -1199,6 +1252,18 @@ model Credential {
   refreshTokenExpiry DateTime?
   label              String?
   description        String?
+  warmupState        String             @default("not_started")
+  warmupScore        Int                @default(0)
+  warmupRiskLevel    String             @default("unknown")
+  warmupSignals      Json               @default("{}")
+  warmupThresholds   Json               @default("{}")
+  warmupAssessedAt   DateTime?
+  warmupHoldReason   String?
+  warmupManualOverride Boolean          @default(false)
+  warmupOverrideReason String?
+  warmupOverrideUntil DateTime?
+  warmupOverrideConfirmedAt DateTime?
+  warmupOverrideConfirmedByUserId String?
   isConnected        Boolean            @default(false)
   isDeleted          Boolean            @default(false)
   createdAt          DateTime           @default(now())
@@ -1210,9 +1275,12 @@ model Credential {
   adBulkUploadJobs  AdBulkUploadJob[]
   adPerformances    AdPerformance[]
   monitoredAccounts MonitoredAccount[]
+  socialConversations SocialConversation[]
+  socialMessages      SocialMessage[]
   personas          Persona[]          @relation("persona_credentials")
 
   @@index([oauthTokenHash])
+  @@index([organizationId, brandId, isDeleted, warmupState], map: "credentials_warmup_state_idx")
   @@map("credentials")
 }
 
@@ -1282,6 +1350,7 @@ model OrgIntegration {
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
 
+  @@index([organizationId, isDeleted])
   @@map("org_integrations")
 }
 
@@ -1625,6 +1694,7 @@ model Bookmark {
   generatedIngredients Ingredient[] @relation("bookmark_generated")
   ingredients          Ingredient[]
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("bookmarks")
 }
 
@@ -1651,7 +1721,6 @@ model Asset {
   uploadPolicy       String?
   originalFileName   String?
   displayName        String?
-  deletedAt          DateTime?
   isDeleted          Boolean       @default(false)
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
@@ -1705,6 +1774,7 @@ model TrackedLink {
   linkClicks               LinkClick[]
   subscriptionAttributions SubscriptionAttribution[] @relation("attribution_link")
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("tracked_links")
 }
 
@@ -1826,6 +1896,8 @@ model Post {
   // Many-to-many
   ingredients Ingredient[] @relation("post_ingredients")
   tags        Tag[]        @relation("post_tags")
+  socialConversations SocialConversation[]
+  socialMessages      SocialMessage[]
 
   // Reverse relations
   postAnalytics            PostAnalytics[]
@@ -1883,6 +1955,13 @@ model PostAnalytics {
 
   ingredients Ingredient[] @relation("post_analytics_ingredients")
 
+  // One analytics snapshot per post, per platform, per day. The ingestion
+  // service (`upsertTodaysAnalytics`) upserts on this exact tuple and relies on
+  // a P2002 to serialize concurrent writers — mirrors ArticleAnalytics'
+  // `@@unique([articleId, date])`. `date` is normalized to local-server midnight
+  // by the writer (`.setHours(0, 0, 0, 0)`), so the tuple is a true daily natural
+  // key for a fixed server timezone.
+  @@unique([postId, platform, date])
   @@index([date(sort: Desc)])
   @@index([organizationId, date(sort: Desc)])
   @@index([brandId, date(sort: Desc)])
@@ -1913,6 +1992,7 @@ model Schedule {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt])
   @@map("schedules")
 }
 
@@ -1924,10 +2004,9 @@ model ContentSchedule {
   brandId        String?
   brand          Brand?       @relation(fields: [brandId], references: [id])
   config         Json         @default("{}")
-  // Cron columns — service (createForBrand / getActiveSchedules / markScheduleRan)
-  // reads & writes these as top-level fields; without them the scheduler crashed at
-  // runtime (Prisma rejects unknown args) and getActiveSchedules' isEnabled WHERE
-  // never type-checked.
+  // Schedule columns — service (createForBrand / markScheduleRan) and the
+  // workflow-backed scheduler read & write these as top-level fields; without
+  // them the scheduler crashed at runtime (Prisma rejects unknown args).
   name           String?
   cronExpression String?
   timezone       String       @default("UTC")
@@ -1962,6 +2041,7 @@ model Distribution {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("distributions")
 }
 
@@ -2002,6 +2082,7 @@ model Customer {
 
   subscriptions Subscription[]
 
+  @@index([organizationId, isDeleted])
   @@map("customers")
 }
 
@@ -2025,6 +2106,7 @@ model Subscription {
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
 
+  @@index([organizationId, isDeleted])
   @@map("subscriptions")
 }
 
@@ -2064,6 +2146,7 @@ model SubscriptionAttribution {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
+  @@index([organizationId])
   @@map("subscription_attributions")
 }
 
@@ -2112,6 +2195,7 @@ model CustomerInstance {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  @@index([organizationId, isDeleted])
   @@map("customer_instances")
 }
 
@@ -2154,6 +2238,8 @@ model Article {
   seoScore     Float?
   seoBreakdown Json?
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([slug])
   @@map("articles")
 }
 
@@ -2219,6 +2305,7 @@ model Newsletter {
   contextNewsletters Newsletter[] @relation("newsletter_context")
   contextOf          Newsletter[] @relation("newsletter_context")
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("newsletters")
 }
 
@@ -2237,6 +2324,7 @@ model Transcript {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("transcripts")
 }
 
@@ -2370,6 +2458,7 @@ model AgentThread {
   contextStates ThreadContextState[]
   tasks         Task[]                @relation("task_planning_thread")
 
+  @@index([organizationId, isDeleted, updatedAt(sort: Desc)])
   @@map("agent_threads")
 }
 
@@ -2396,6 +2485,108 @@ model AgentMessage {
   @@index([organizationId, threadId, isDeleted, createdAt(sort: Desc), id])
   @@index([threadId, isDeleted, id])
   @@map("agent_messages")
+}
+
+model SocialConversation {
+  id                       String         @id @default(cuid())
+  mongoId                  String?        @unique
+  organizationId           String
+  organization             Organization   @relation(fields: [organizationId], references: [id])
+  userId                   String?
+  user                     User?          @relation(fields: [userId], references: [id])
+  brandId                  String?
+  brand                    Brand?         @relation(fields: [brandId], references: [id])
+  credentialId             String?
+  credential               Credential?    @relation(fields: [credentialId], references: [id])
+  postId                   String?
+  post                     Post?          @relation(fields: [postId], references: [id])
+  platform                 String
+  conversationType         String         @default("comment")
+  externalConversationId   String?
+  externalThreadId         String?
+  externalParentId         String?
+  sourceContentId          String?
+  sourceContentUrl         String?
+  sourceContentTitle       String?
+  sourceContentType        String?
+  accountExternalId        String?
+  accountHandle            String?
+  accountName              String?
+  participantExternalId    String?
+  participantHandle        String?
+  participantName          String?
+  participantAvatarUrl     String?
+  status                   String         @default("open")
+  priority                 String         @default("normal")
+  unreadCount              Int            @default(0)
+  needsReview              Boolean        @default(false)
+  automationState          String         @default("manual")
+  assignedOwnerId          String?
+  tags                     String[]       @default([])
+  latestMessageText        String?
+  latestMessageAt          DateTime?
+  lastInboundAt            DateTime?
+  lastOutboundAt           DateTime?
+  availability             Json           @default("{}")
+  metadata                 Json           @default("{}")
+  isDeleted                Boolean        @default(false)
+  createdAt                DateTime       @default(now())
+  updatedAt                DateTime       @updatedAt
+
+  messages SocialMessage[]
+
+  @@unique([organizationId, platform, externalConversationId])
+  @@index([organizationId, brandId, status, isDeleted, latestMessageAt(sort: Desc), id], map: "social_conversations_inbox_idx")
+  @@index([organizationId, platform, isDeleted, latestMessageAt(sort: Desc), id], map: "social_conversations_platform_idx")
+  @@index([credentialId, isDeleted, latestMessageAt(sort: Desc)], map: "social_conversations_credential_idx")
+  @@index([postId, isDeleted, latestMessageAt(sort: Desc)], map: "social_conversations_post_idx")
+  @@map("social_conversations")
+}
+
+model SocialMessage {
+  id                      String             @id @default(cuid())
+  mongoId                 String?            @unique
+  conversationId          String
+  conversation            SocialConversation @relation(fields: [conversationId], references: [id])
+  organizationId          String
+  organization            Organization       @relation(fields: [organizationId], references: [id])
+  userId                  String?
+  user                    User?              @relation(fields: [userId], references: [id])
+  brandId                 String?
+  brand                   Brand?             @relation(fields: [brandId], references: [id])
+  credentialId            String?
+  credential              Credential?        @relation(fields: [credentialId], references: [id])
+  postId                  String?
+  post                    Post?              @relation(fields: [postId], references: [id])
+  platform                String
+  direction               String
+  messageType             String             @default("comment")
+  body                    String
+  externalMessageId       String?
+  externalParentMessageId String?
+  senderExternalId        String?
+  senderHandle            String?
+  senderName              String?
+  senderAvatarUrl         String?
+  authorRole              String?
+  status                  String             @default("received")
+  sourceUrl               String?
+  idempotencyKey          String?
+  workflowRunId           String?
+  agentRunId              String?
+  actionProvenance        Json               @default("{}")
+  failureReason           String?
+  metadata                Json               @default("{}")
+  isDeleted               Boolean            @default(false)
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+
+  @@unique([organizationId, platform, externalMessageId])
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, conversationId, isDeleted, createdAt(sort: Desc), id], map: "social_messages_conversation_desc_idx")
+  @@index([conversationId, isDeleted, createdAt, id], map: "social_messages_conversation_asc_idx")
+  @@index([organizationId, brandId, direction, isDeleted, createdAt(sort: Desc)], map: "social_messages_org_brand_direction_idx")
+  @@map("social_messages")
 }
 
 model AgentRun {
@@ -2475,6 +2666,7 @@ model AgentStrategy {
   agentType String?
   platforms String[] @default([])
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("agent_strategies")
 }
 
@@ -2492,6 +2684,7 @@ model AgentStrategyOpportunity {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("agent_strategy_opportunities")
 }
 
@@ -2509,6 +2702,7 @@ model AgentStrategyReport {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("agent_strategy_reports")
 }
 
@@ -2535,6 +2729,7 @@ model AgentCampaign {
 
   status String? @default("draft")
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("agent_campaigns")
 }
 
@@ -2556,6 +2751,7 @@ model AgentGoal {
 
   strategies AgentStrategy[]
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("agent_goals")
 }
 
@@ -2589,6 +2785,7 @@ model AgentMemory {
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
 
+  @@index([organizationId, createdAt(sort: Desc)])
   @@map("agent_memories")
 }
 
@@ -2660,6 +2857,7 @@ model AgentWorkflow {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted])
   @@map("agent_workflows")
 }
 
@@ -2701,11 +2899,27 @@ model Workflow {
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
+  // Denormalized for the partial unique constraint that enforces at-most-one
+  // default recurring workflow per (brand, org, contentType). NULL for every
+  // non-default-recurring workflow. Set by `DefaultRecurringContentService`
+  // on creation; enforced by the DB-level partial unique index
+  // `workflows_default_recurring_brand_org_type_uidx` (see migration
+  // 20260629202231). Prisma cannot express partial unique indexes in schema.prisma,
+  // so the index lives only in the migration; this field documents its purpose.
+  defaultRecurringBrandId String?
+
   tags       Tag[]               @relation("workflow_tags")
   brands     Brand[]             @relation("workflow_brands")
   executions WorkflowExecution[]
   batchJobs  BatchWorkflowJob[]
 
+  // Narrows predicate locks on the default-recurring-workflow re-check from a
+  // relation-level SIReadLock to a page-level lock, preventing unrelated
+  // concurrent writes to `workflows` (different org/brand) from aborting the
+  // Serializable transaction with a false-positive P2034.
+  @@index([organizationId, isDeleted])
+  // Supporting index for the partial unique constraint lookup.
+  @@index([defaultRecurringBrandId, organizationId])
   @@map("workflows")
 }
 
@@ -2731,6 +2945,7 @@ model WorkflowExecution {
 
   trigger String?
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("workflow_executions")
 }
 
@@ -2794,6 +3009,7 @@ model CronJob {
 
   runs CronRun[]
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("cron_jobs")
 }
 
@@ -2815,6 +3031,7 @@ model CronRun {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("cron_runs")
 }
 
@@ -2885,6 +3102,7 @@ model TaskComment {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, taskId, createdAt])
   @@map("task_comments")
 }
 
@@ -2925,6 +3143,7 @@ model Bot {
   platforms String[] @default([])
   category  String?
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("bots")
 }
 
@@ -2946,6 +3165,7 @@ model BotActivity {
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("bot_activities")
 }
 
@@ -2970,6 +3190,7 @@ model ReplyBotConfig {
   actionType String?
   isActive   Boolean @default(true)
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("reply_bot_configs")
 }
 
@@ -2996,6 +3217,7 @@ model MonitoredAccount {
 
   isActive Boolean @default(true)
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("monitored_accounts")
 }
 
@@ -3080,6 +3302,7 @@ model ContentPattern {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("content_patterns")
 }
 
@@ -3098,6 +3321,7 @@ model CreatorAnalysis {
   contentPatterns  ContentPattern[]
   patternPlaybooks PatternPlaybook[]
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("creator_analyses")
 }
 
@@ -3114,6 +3338,7 @@ model PatternPlaybook {
 
   sourceCreators CreatorAnalysis[]
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("pattern_playbooks")
 }
 
@@ -3129,6 +3354,7 @@ model CreativePattern {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted])
   @@map("creative_patterns")
 }
 
@@ -3186,6 +3412,7 @@ model ContentPlan {
 
   items ContentPlanItem[]
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("content_plans")
 }
 
@@ -3203,6 +3430,7 @@ model ContentPlanItem {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt])
   @@map("content_plan_items")
 }
 
@@ -3235,6 +3463,7 @@ model Optimization {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("optimizations")
 }
 
@@ -3252,6 +3481,7 @@ model Evaluation {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted, updatedAt(sort: Desc)])
   @@map("evaluations")
 }
 
@@ -3288,6 +3518,7 @@ model Insight {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("insights")
 }
 
@@ -3303,6 +3534,7 @@ model Forecast {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted])
   @@map("forecasts")
 }
 
@@ -3324,6 +3556,7 @@ model AdBulkUploadJob {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("ad_bulk_upload_jobs")
 }
 
@@ -3339,18 +3572,8 @@ model AdCreativeMapping {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted])
   @@map("ad_creative_mappings")
-}
-
-model AdInsights {
-  id        String   @id @default(cuid())
-  mongoId   String?  @unique
-  data      Json     @default("{}")
-  isDeleted Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("ad_insights")
 }
 
 model AdOptimizationAuditLog {
@@ -3363,6 +3586,7 @@ model AdOptimizationAuditLog {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("ad_optimization_audit_logs")
 }
 
@@ -3389,6 +3613,7 @@ model AdOptimizationRecommendation {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("ad_optimization_recommendations")
 }
 
@@ -3425,6 +3650,7 @@ model AdPerformance {
   @@index([isDeleted, scope, industry])
   @@index([isDeleted, scope, adPlatform, industry])
   @@index([isDeleted, scope, spendBucket, adPlatform, industry])
+  @@index([organizationId, isDeleted])
   @@map("ad_performance")
 }
 
@@ -3453,6 +3679,8 @@ model Trend {
   sourceReferenceLinks TrendSourceReferenceLink[]
   remixLineages        TrendRemixLineage[]        @relation("remix_lineage_trends")
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([isDeleted, organizationId, platform, updatedAt], map: "trends_freshness_org_idx")
   @@map("trends")
 }
 
@@ -3501,6 +3729,7 @@ model TrendPreferences {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, brandId])
   @@map("trend_preferences")
 }
 
@@ -3550,6 +3779,8 @@ model TrendSourceReference {
   @@index([canonicalUrl, platform, isDeleted], map: "trend_source_refs_url_platform_deleted_idx")
   @@index([isDeleted, platform, authorHandle, lastSeenAt(sort: Desc)], map: "trend_source_refs_account_lookup_idx")
   @@index([isDeleted, currentEngagementTotal(sort: Desc), latestTrendViralityScore(sort: Desc)], map: "trend_source_refs_rank_idx")
+  @@index([isDeleted, platform, currentEngagementTotal(sort: Desc), latestTrendViralityScore(sort: Desc), lastSeenAt(sort: Desc)], map: "trend_source_refs_platform_rank_idx")
+  @@index([isDeleted, platform, authorHandle, currentEngagementTotal(sort: Desc), latestTrendViralityScore(sort: Desc), lastSeenAt(sort: Desc)], map: "trend_source_refs_account_rank_idx")
   @@map("trend_source_references")
 }
 
@@ -3609,6 +3840,7 @@ model OutreachCampaign {
   campaignType String?
   isActive     Boolean @default(true)
 
+  @@index([organizationId, isDeleted])
   @@map("outreach_campaigns")
 }
 
@@ -3636,6 +3868,7 @@ model CampaignTarget {
   updatedAt       DateTime         @updatedAt
 
   @@index([campaignId, status])
+  @@index([campaignId, createdAt])
   @@map("campaign_targets")
 }
 
@@ -3686,6 +3919,7 @@ model ElementCameraMovement {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("elements_camera_movements")
 }
 
@@ -3700,6 +3934,7 @@ model ElementLens {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("elements_lenses")
 }
 
@@ -3714,6 +3949,7 @@ model ElementLighting {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("elements_lightings")
 }
 
@@ -3728,6 +3964,7 @@ model ElementMood {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("elements_moods")
 }
 
@@ -3744,6 +3981,7 @@ model ElementScene {
 
   isFavorite Boolean @default(false)
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("elements_scenes")
 }
 
@@ -3760,6 +3998,7 @@ model ElementSound {
 
   isFavorite Boolean @default(false)
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("elements_sounds")
 }
 
@@ -3774,6 +4013,7 @@ model ElementStyle {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("elements_styles")
 }
 
@@ -3788,6 +4028,7 @@ model FontFamilyRecord {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("font_families")
 }
 
@@ -3807,6 +4048,7 @@ model Preset {
   isActive   Boolean @default(true)
   isFavorite Boolean @default(false)
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("presets")
 }
 
@@ -3826,6 +4068,7 @@ model Caption {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("captions")
 }
 
@@ -3836,11 +4079,20 @@ model ClipProject {
   organization   Organization @relation(fields: [organizationId], references: [id])
   brandId        String?
   brand          Brand?       @relation(fields: [brandId], references: [id])
+  status         String       @default("pending")
+  progress       Int          @default(0)
+  error          String?
+  readyClipCount Int          @default(0)
+  failedClipCount Int         @default(0)
+  pendingClipCount Int        @default(0)
+  readiness      Json         @default("{\"state\":\"pending\",\"terminal\":false,\"readyActions\":[],\"blockingReasons\":[]}")
+  terminalAt     DateTime?
   config         Json         @default("{}")
   isDeleted      Boolean      @default(false)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, status, isDeleted])
   @@map("clip_projects")
 }
 
@@ -3852,12 +4104,17 @@ model ClipResult {
   projectId      String?
   providerJobId  String?
   viralityScore  Float?
+  status         String       @default("pending")
+  isSelected     Boolean      @default(false)
+  readiness      Json         @default("{\"state\":\"pending\",\"terminal\":false,\"readyActions\":[],\"blockingReasons\":[]}")
+  terminalAt     DateTime?
   data           Json         @default("{}")
   isDeleted      Boolean      @default(false)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
   @@index([organizationId, projectId])
+  @@index([organizationId, projectId, status, isDeleted])
   @@index([providerJobId])
   @@map("clip_results")
 }
@@ -3879,6 +4136,7 @@ model EditorProject {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("editor_projects")
 }
 
@@ -3933,6 +4191,7 @@ model ContextBase {
 
   entries ContextEntry[]
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("context_bases")
 }
 
@@ -3962,6 +4221,7 @@ model Skill {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("skills")
 }
 
@@ -4004,6 +4264,7 @@ model Template {
   version     Int?
   usageCount  Int?
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("templates")
 }
 
@@ -4039,6 +4300,7 @@ model TemplateUsage {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId])
   @@map("template_usages")
 }
 
@@ -4074,6 +4336,7 @@ model Watchlist {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([brandId, isDeleted, createdAt(sort: Desc)])
   @@map("watchlists")
 }
 
@@ -4094,6 +4357,7 @@ model Goal {
   status String?
   level  String?
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("goals")
 }
 
@@ -4109,6 +4373,7 @@ model Streak {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, userId])
   @@map("streaks")
 }
 
@@ -4160,6 +4425,7 @@ model Profile {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("profiles")
 }
 
@@ -4302,6 +4568,7 @@ model Run {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("runs")
 }
 

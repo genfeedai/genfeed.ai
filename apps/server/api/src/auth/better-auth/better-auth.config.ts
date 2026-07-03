@@ -1,4 +1,4 @@
-import type { IBetterAuthGoogleConfig } from './better-auth.types';
+import type { IBetterAuthSocialProviderConfig } from './better-auth.types';
 
 /**
  * Pure config helpers shared by the Better Auth module (instance construction)
@@ -49,16 +49,31 @@ export function resolveCookieDomain(
   return trimmed ? trimmed : undefined;
 }
 
-/** Whether Better Auth's experimental Prisma joins are enabled via env. */
-export function resolveExperimentalJoins(value: string | undefined): boolean {
-  return value?.trim() === 'true';
+/** Whether a Better Auth boolean feature flag is enabled via env. */
+export function resolveBooleanFlag(
+  value: string | undefined,
+  fallback = false,
+): boolean {
+  const normalized = value?.trim().toLowerCase();
+  if (normalized === 'true') {
+    return true;
+  }
+  if (normalized === 'false') {
+    return false;
+  }
+  return fallback;
 }
 
-/** Build the Google social-provider config when both credentials are present. */
-export function resolveGoogleConfig(
+/** Whether Better Auth's experimental Prisma joins are enabled via env. */
+export function resolveExperimentalJoins(value: string | undefined): boolean {
+  return resolveBooleanFlag(value, false);
+}
+
+/** Build a social-provider config when both credentials are present. */
+export function resolveSocialProviderConfig(
   clientId: string | undefined,
   clientSecret: string | undefined,
-): IBetterAuthGoogleConfig | undefined {
+): IBetterAuthSocialProviderConfig | undefined {
   if (clientId?.trim() && clientSecret?.trim()) {
     return { clientId: clientId.trim(), clientSecret: clientSecret.trim() };
   }

@@ -24,23 +24,28 @@ function createMockLogger(): MockLogger {
   return { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
 }
 
-/** In-memory fake of the node-redis publisher surface used by the store. */
+/** In-memory fake of the ioredis publisher surface used by the store. */
 function createMockPublisher() {
   const store = new Map<string, string>();
 
   return {
     get: vi.fn(async (key: string) => store.get(key) ?? null),
-    scanIterator: vi.fn(({ MATCH }: { COUNT: number; MATCH: string }) => {
-      const prefix = MATCH.slice(0, -1);
-      return (async function* () {
-        for (const key of store.keys()) {
-          if (key.startsWith(prefix)) {
-            yield key;
-          }
-        }
-      })();
-    }),
-    setEx: vi.fn(async (key: string, _ttl: number, value: string) => {
+    scan: vi.fn(
+      async (
+        _cursor: string,
+        _match: string,
+        pattern: string,
+        _count: string,
+        _countValue: number,
+      ) => {
+        const prefix = pattern.slice(0, -1);
+        const foundKeys = Array.from(store.keys()).filter((key) =>
+          key.startsWith(prefix),
+        );
+        return ['0', foundKeys] as [string, string[]];
+      },
+    ),
+    setex: vi.fn(async (key: string, _ttl: number, value: string) => {
       store.set(key, value);
     }),
     store,
@@ -80,7 +85,7 @@ describe('TrainingStateStore', () => {
 
       await store.persistJob(job);
 
-      expect(publisher.setEx).toHaveBeenCalledWith(
+      expect(publisher.setex).toHaveBeenCalledWith(
         'training:voices:job:job-1',
         86400,
         JSON.stringify(job),
@@ -100,7 +105,7 @@ describe('TrainingStateStore', () => {
     });
 
     it('warns instead of throwing when the write fails', async () => {
-      publisher.setEx.mockRejectedValueOnce(new Error('redis down'));
+      publisher.setex.mockRejectedValueOnce(new Error('redis down'));
 
       await store.persistJob({ jobId: 'job-1', status: 'running' });
 
@@ -123,7 +128,7 @@ describe('TrainingStateStore', () => {
 
       await store.persistProcessRecord(record);
 
-      expect(publisher.setEx).toHaveBeenCalledWith(
+      expect(publisher.setex).toHaveBeenCalledWith(
         'training:voices:process:job-1',
         86400,
         JSON.stringify(record),
@@ -201,9 +206,7 @@ describe('TrainingStateStore', () => {
     });
 
     it('returns an empty array and warns when the read fails', async () => {
-      publisher.scanIterator.mockImplementationOnce(() => {
-        throw new Error('scan failed');
-      });
+      publisher.scan.mockRejectedValueOnce(new Error('scan failed'));
 
       const jobs = await store.loadJobs();
 

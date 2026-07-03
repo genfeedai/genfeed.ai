@@ -5,6 +5,7 @@ import { SettingsService } from '@api/collections/settings/services/settings.ser
 import { UsersController } from '@api/collections/users/controllers/users.controller';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
+import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import type { ISubscriptionsService } from '@genfeedai/interfaces/billing';
@@ -21,6 +22,7 @@ describe('UsersController', () => {
   let filesClientService: Record<string, ReturnType<typeof vi.fn>>;
   let requestContextCacheService: Record<string, ReturnType<typeof vi.fn>>;
   let accessBootstrapCacheService: Record<string, ReturnType<typeof vi.fn>>;
+  let betterAuthIdentityCacheService: Record<string, ReturnType<typeof vi.fn>>;
 
   const userId = '507f191e810c19729de860ee'.toString();
   const orgId = '507f191e810c19729de860ee'.toString();
@@ -82,6 +84,9 @@ describe('UsersController', () => {
     accessBootstrapCacheService = {
       invalidateForUser: vi.fn().mockResolvedValue(undefined),
     };
+    betterAuthIdentityCacheService = {
+      invalidateForUser: vi.fn().mockResolvedValue(undefined),
+    };
 
     controller = new UsersController(
       brandsService as unknown as BrandsService,
@@ -94,6 +99,7 @@ describe('UsersController', () => {
       membersService as unknown as MembersService,
       requestContextCacheService as unknown as RequestContextCacheService,
       accessBootstrapCacheService as unknown as AccessBootstrapCacheService,
+      betterAuthIdentityCacheService as unknown as BetterAuthIdentityCacheService,
     );
   });
 
@@ -131,18 +137,24 @@ describe('UsersController', () => {
         status: 'active',
       });
       usersService.findOne.mockResolvedValue({
-        _id: userId,
+        id: userId,
         isOnboardingCompleted: false,
       });
       usersService.hasOnboardingField.mockResolvedValue(false);
       usersService.patch.mockResolvedValue({
-        _id: userId,
+        id: userId,
         isOnboardingCompleted: true,
       });
 
       const result = await controller.findMe(mockRequest, mockUser);
 
       expect(usersService.patch).toHaveBeenCalled();
+      expect(requestContextCacheService.invalidateForUser).toHaveBeenCalledWith(
+        userId,
+      );
+      expect(
+        accessBootstrapCacheService.invalidateForUser,
+      ).toHaveBeenCalledWith(userId);
       expect(result).toBeDefined();
     });
   });
@@ -375,17 +387,23 @@ describe('UsersController', () => {
   });
 
   describe('updateBrandSelection', () => {
-    it('should select brand and persist last-used brand on member', async () => {
-      const selectedBrandId = '507f191e810c19729de860ee';
+    it('should persist last-used brand using the canonical cuid id, not the legacy mongoId _id', async () => {
+      // A normalized brand doc carries BOTH a cuid `id` and a legacy `_id`
+      // (= mongoId ?? id). member.lastUsedBrandId is an FK to Brand.id, so the
+      // handler must write `id` — writing `_id` (the mongoId) triggers a P2003
+      // "Invalid Relationship" and blocks brand switch for migrated brands.
+      const canonicalId = 'clbrandcuid000000000000001';
+      const legacyMongoId = '507f191e810c19729de860ee';
       brandsService.selectBrandForUser.mockResolvedValue({
-        _id: selectedBrandId,
+        _id: legacyMongoId,
+        id: canonicalId,
         label: 'Selected Brand',
       });
 
       const result = await controller.updateBrandSelection(
         mockRequest,
         mockUser,
-        selectedBrandId.toString(),
+        legacyMongoId.toString(),
       );
 
       expect(membersService.setLastUsedBrand).toHaveBeenCalledWith(
@@ -395,8 +413,14 @@ describe('UsersController', () => {
           organization: orgId,
           user: userId,
         },
-        selectedBrandId,
+        canonicalId,
       );
+      expect(requestContextCacheService.invalidateForUser).toHaveBeenCalledWith(
+        userId,
+      );
+      expect(
+        accessBootstrapCacheService.invalidateForUser,
+      ).toHaveBeenCalledWith(userId);
       expect(result).toBeDefined();
     });
   });

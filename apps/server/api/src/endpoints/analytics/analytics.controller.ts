@@ -48,6 +48,7 @@ import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import {
+  BotStatus,
   CredentialPlatform,
   IngredientCategory,
   PostStatus,
@@ -220,7 +221,7 @@ export class AnalyticsController {
         options,
       ),
       this.botsService.findAll(
-        { where: { enabled: true, isDeleted: false } },
+        { where: { isDeleted: false, status: BotStatus.ACTIVE } },
         options,
       ),
       this.modelsService.findAll({ where: { isDeleted: false } }, options),

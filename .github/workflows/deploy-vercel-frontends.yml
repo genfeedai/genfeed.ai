@@ -27,15 +27,18 @@ jobs:
       matrix:
         include:
           - label: app.genfeed.ai
-            path: apps/app
             project_id: prj_1iMHTqANXgCLd3wALOFcWNtgrdAc
           - label: genfeed.ai
-            path: apps/website
             project_id: prj_77xnWYm4Fp3ngF1SpeuF5lwhOG7I
           - label: docs.genfeed.ai
-            path: apps/docs
             project_id: prj_SdDiBAjBgxhqmsbDBZ6mmIOAnqUL
     env:
+      # Git auto-deploy is disabled in each vercel.json, so `vercel build` runs
+      # without Git deployment context and Vercel leaves VERCEL_GIT_COMMIT_SHA="".
+      # An empty buildId makes the App Router hard-reload on every navigation, so
+      # feed the real master commit SHA as BUILD_ID (apps/app's next.config reads
+      # it first). website/docs ignore this and keep Next's default buildId.
+      BUILD_ID: ${{ github.sha }}
       VERCEL_ORG_ID: team_hFVCbNU4RnfEpQOeSWRxmhEJ
       VERCEL_PROJECT_ID: ${{ matrix.project_id }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
@@ -50,16 +53,25 @@ jobs:
         run: bun add --global vercel@54.4.1
 
       - name: Pull Vercel production environment
-        working-directory: ${{ matrix.path }}
         run: vercel pull --yes --environment=production --token="${VERCEL_TOKEN}"
 
+      - name: Preserve runner PATH for local Vercel build
+        run: |
+          env_file=".vercel/.env.production.local"
+          if [ -f "$env_file" ] && grep -q '^PATH=' "$env_file"; then
+            awk '!/^PATH=/' "$env_file" > "${env_file}.tmp"
+            mv "${env_file}.tmp" "$env_file"
+            echo "Removed reserved PATH from ${env_file}"
+          fi
+          command -v sh
+          command -v bun
+          command -v vercel
+
       - name: Build ${{ matrix.label }}
-        working-directory: ${{ matrix.path }}
         run: vercel build --prod --token="${VERCEL_TOKEN}"
 
       - name: Deploy ${{ matrix.label }}
         id: deploy
-        working-directory: ${{ matrix.path }}
         run: |
           url="$(vercel deploy --prebuilt --prod --token="${VERCEL_TOKEN}")"
           echo "${url}"

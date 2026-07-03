@@ -66,13 +66,13 @@ describe('WorkflowBatchController', () => {
   describe('getBatchStatus', () => {
     it('should return batch status scoped to the current organization with additive output metadata', async () => {
       mockBatchWorkflowService.getBatchJobForOrg.mockResolvedValue({
-        _id: '507f1f77bcf86cd799439099',
+        id: '507f1f77bcf86cd799439099',
         completedCount: 1,
         createdAt: new Date('2026-03-15T12:00:00.000Z'),
         failedCount: 0,
         items: [
           {
-            _id: '507f1f77bcf86cd799439091',
+            id: '507f1f77bcf86cd799439091',
             completedAt: new Date('2026-03-15T12:01:00.000Z'),
             executionId: 'exec-1',
             ingredientId: '507f1f77bcf86cd799439092',
@@ -127,7 +127,7 @@ describe('WorkflowBatchController', () => {
     it('should list batch jobs scoped to the current organization', async () => {
       mockBatchWorkflowService.listBatchJobs.mockResolvedValue([
         {
-          _id: '507f1f77bcf86cd799439095',
+          id: '507f1f77bcf86cd799439095',
           completedCount: 2,
           createdAt: new Date('2026-03-15T12:00:00.000Z'),
           failedCount: 1,

@@ -7,13 +7,15 @@ import type { RepurposingJobDocument } from '@api/collections/schedules/schemas/
 import type { ScheduleDocument } from '@api/collections/schedules/schemas/schedule.schema';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 type Schedule = ScheduleDocument;
 type RepurposingJob = RepurposingJobDocument;
@@ -254,13 +256,11 @@ Return ONLY valid JSON with this exact structure. Do not include any text before
     jobId: string,
     organizationId: string,
   ): Promise<RepurposingJob> {
-    const job = await this.prisma.repurposingJob.findFirst({
-      where: { id: jobId, isDeleted: false, organizationId },
-    });
-
-    if (!job) {
-      throw new NotFoundException('Repurposing job not found');
-    }
+    const job = await findOrThrow(
+      this.prisma.repurposingJob,
+      { where: { id: jobId, isDeleted: false, organizationId } },
+      'Repurposing job',
+    );
 
     return job as unknown as RepurposingJob;
   }

@@ -11,6 +11,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockBrand = {
   _id: 'brand-id-1',
   agentConfig: {
+    autoPublish: { enabled: true },
     strategy: {
       contentTypes: ['video', 'image'],
       frequency: 'daily',
@@ -125,7 +126,6 @@ describe('CronContentEngineService', () => {
 
       expect(mockBrandsService.find).toHaveBeenCalledWith(
         expect.objectContaining({
-          'agentConfig.autoPublish.enabled': true,
           isActive: true,
           isDeleted: false,
         }),

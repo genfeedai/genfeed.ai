@@ -13,6 +13,7 @@ import { useElements } from '@hooks/data/elements/use-elements/use-elements';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import type { Link } from '@models/social/link.model';
 import BrandDetailBanner from '@pages/brands/components/banner/BrandDetailBanner';
+import BrandKitReviewCard from '@pages/brands/components/brand-kit/BrandKitReviewCard';
 import BrandDetailSidebar from '@pages/brands/components/detail-sidebar/BrandDetailSidebar';
 import BrandDetailOverview from '@pages/brands/components/overview/BrandDetailOverview';
 import BrandDetailLinkEditor, {
@@ -259,6 +260,12 @@ export default function BrandDetail() {
             <BrandDetailSystemPrompt text={brand.text} onCopy={handleCopy} />
           )}
 
+          <BrandKitReviewCard
+            brand={brand}
+            brandId={brandId}
+            onRefreshBrand={() => handleRefreshBrand(true)}
+          />
+
           <BrandDetailLatestVideos videos={videos} />
           <BrandDetailLatestImages images={images} />
           <BrandDetailLatestArticles articles={articles} />
@@ -280,6 +287,8 @@ export default function BrandDetail() {
             }
             onRefreshBrand={() => handleRefreshBrand(true)}
             onOpenLinkModal={handleOpenLinkModal}
+            onUploadBanner={() => handleOpenUploadModal(AssetCategory.BANNER)}
+            onUploadLogo={() => handleOpenUploadModal(AssetCategory.LOGO)}
             onUploadReference={() =>
               handleOpenUploadModal(AssetCategory.REFERENCE)
             }

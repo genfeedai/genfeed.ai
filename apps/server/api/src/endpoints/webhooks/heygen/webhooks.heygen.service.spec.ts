@@ -29,6 +29,7 @@ function createMockDeps() {
 
   const clipProjectsService = {
     patch: vi.fn(),
+    reconcileTerminalState: vi.fn(),
   };
 
   const clipResultsService = {
@@ -81,7 +82,7 @@ describe('HeygenWebhookService', () => {
 
     service = module.get<HeygenWebhookService>(HeygenWebhookService);
     deps.ingredientsService.findOne.mockResolvedValue({
-      _id: 'ingredient-1',
+      id: 'ingredient-1',
       metadata: '507f191e810c19729de860ee',
     });
   });
@@ -98,7 +99,7 @@ describe('HeygenWebhookService', () => {
     };
 
     deps.metadataService.findOne.mockResolvedValue({
-      _id: body.callback_id,
+      id: body.callback_id,
     });
     deps.metadataService.patch.mockResolvedValue({});
     deps.clipResultsService.findOne.mockResolvedValue(null);
@@ -122,7 +123,7 @@ describe('HeygenWebhookService', () => {
       event_data: {},
     };
 
-    deps.metadataService.findOne.mockResolvedValue({ _id: body.callback_id });
+    deps.metadataService.findOne.mockResolvedValue({ id: body.callback_id });
     deps.metadataService.patch.mockResolvedValue({});
     deps.clipResultsService.findOne.mockResolvedValue(null);
 
@@ -182,7 +183,7 @@ describe('HeygenWebhookService', () => {
       event_type: 'video_completed',
     };
 
-    deps.metadataService.findOne.mockResolvedValue({ _id: metadataId });
+    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
     deps.metadataService.patch.mockResolvedValue({});
     deps.clipResultsService.findOne.mockResolvedValue(null);
 
@@ -202,7 +203,7 @@ describe('HeygenWebhookService', () => {
       event_type: 'avatar_video.failure',
     };
 
-    deps.metadataService.findOne.mockResolvedValue({ _id: metadataId });
+    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
     deps.metadataService.patch.mockResolvedValue({});
     deps.clipResultsService.findOne.mockResolvedValue(null);
 
@@ -225,7 +226,7 @@ describe('HeygenWebhookService', () => {
       event_type: 'avatar_created',
     };
 
-    deps.metadataService.findOne.mockResolvedValue({ _id: metadataId });
+    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
     deps.metadataService.patch.mockResolvedValue({});
     deps.clipResultsService.findOne.mockResolvedValue(null);
 
@@ -261,7 +262,7 @@ describe('HeygenWebhookService', () => {
       event_type: 'video_completed',
     };
 
-    deps.metadataService.findOne.mockResolvedValue({ _id: metadataId });
+    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
     deps.metadataService.patch.mockRejectedValue(new Error('Write failed'));
     deps.clipResultsService.findOne.mockResolvedValue(null);
 
@@ -281,7 +282,7 @@ describe('HeygenWebhookService', () => {
     };
 
     deps.clipResultsService.findOne.mockResolvedValue({
-      _id: clipResultId,
+      id: clipResultId,
       project: projectId,
     });
     deps.clipResultsService.findByProject.mockResolvedValue([
@@ -289,7 +290,7 @@ describe('HeygenWebhookService', () => {
       { status: 'failed' },
     ]);
     deps.clipResultsService.patch.mockResolvedValue({});
-    deps.clipProjectsService.patch.mockResolvedValue({});
+    deps.clipProjectsService.reconcileTerminalState.mockResolvedValue({});
 
     await service.handleCallback(body);
 
@@ -298,11 +299,9 @@ describe('HeygenWebhookService', () => {
       status: 'completed',
       videoUrl: 'https://cdn.heygen.com/clip.mp4',
     });
-    expect(deps.clipProjectsService.patch).toHaveBeenCalledWith(projectId, {
-      error: null,
-      progress: 100,
-      status: 'completed',
-    });
+    expect(
+      deps.clipProjectsService.reconcileTerminalState,
+    ).toHaveBeenCalledWith(projectId, undefined);
   });
 
   it('should fail the parent project when the final clip fails', async () => {
@@ -318,14 +317,14 @@ describe('HeygenWebhookService', () => {
     };
 
     deps.clipResultsService.findOne.mockResolvedValue({
-      _id: clipResultId,
+      id: clipResultId,
       project: projectId,
     });
     deps.clipResultsService.findByProject.mockResolvedValue([
       { status: 'failed' },
     ]);
     deps.clipResultsService.patch.mockResolvedValue({});
-    deps.clipProjectsService.patch.mockResolvedValue({});
+    deps.clipProjectsService.reconcileTerminalState.mockResolvedValue({});
 
     await service.handleCallback(body);
 
@@ -333,11 +332,9 @@ describe('HeygenWebhookService', () => {
       providerJobId: 'provider-job-1',
       status: 'failed',
     });
-    expect(deps.clipProjectsService.patch).toHaveBeenCalledWith(projectId, {
-      error: 'All clip generations failed.',
-      progress: 100,
-      status: 'failed',
-    });
+    expect(
+      deps.clipProjectsService.reconcileTerminalState,
+    ).toHaveBeenCalledWith(projectId, undefined);
   });
 
   it('should continue to process legacy metadata-backed avatar success callbacks', async () => {
@@ -352,9 +349,9 @@ describe('HeygenWebhookService', () => {
     };
 
     deps.clipResultsService.findOne.mockResolvedValue(null);
-    deps.metadataService.findOne.mockResolvedValue({ _id: metadataId });
+    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
     deps.ingredientsService.findOne.mockResolvedValue({
-      _id: 'ingredient-legacy',
+      id: 'ingredient-legacy',
       metadata: metadataId,
     });
     deps.metadataService.patch.mockResolvedValue({});
@@ -385,9 +382,9 @@ describe('HeygenWebhookService', () => {
     deps.clipResultsService.findOne.mockResolvedValue(null);
     deps.metadataService.findOne
       .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({ _id: metadataId });
+      .mockResolvedValueOnce({ id: metadataId });
     deps.ingredientsService.findOne.mockResolvedValue({
-      _id: ingredientId,
+      id: ingredientId,
       metadata: metadataId,
     });
     deps.metadataService.patch.mockResolvedValue({});

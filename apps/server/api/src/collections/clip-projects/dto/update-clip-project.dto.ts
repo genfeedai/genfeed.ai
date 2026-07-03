@@ -5,12 +5,16 @@ import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
+  IsDateString,
   IsIn,
+  IsInt,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   Max,
   Min,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
@@ -119,12 +123,57 @@ export class UpdateClipProjectDto extends PartialType(CreateClipProjectDto) {
   readonly videoMetadata?: VideoMetadataDto;
 
   @IsOptional()
+  @ValidateIf((_object, value) => value !== null)
   @IsString()
   @ApiProperty({
     description: 'Error message if processing failed',
     required: false,
   })
-  readonly error?: string;
+  readonly error?: string | null;
+
+  @IsOptional()
+  @IsObject()
+  @ApiProperty({
+    description: 'Readiness contract for terminal clip handoff',
+    required: false,
+  })
+  readonly readiness?: Record<string, unknown>;
+
+  @IsOptional()
+  @ValidateIf((_object, value) => value !== null)
+  @IsDateString()
+  @ApiProperty({
+    description: 'Timestamp when the project reached a terminal status',
+    required: false,
+  })
+  readonly terminalAt?: string | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @ApiProperty({
+    description: 'Number of ready clips in the project',
+    required: false,
+  })
+  readonly readyClipCount?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @ApiProperty({
+    description: 'Number of failed clips in the project',
+    required: false,
+  })
+  readonly failedClipCount?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @ApiProperty({
+    description: 'Number of non-terminal clips in the project',
+    required: false,
+  })
+  readonly pendingClipCount?: number;
 
   @IsOptional()
   @IsBoolean()

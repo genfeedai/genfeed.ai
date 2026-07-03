@@ -8,6 +8,7 @@ import {
   type AnalyticsBestPostingTime,
   AnalyticsService,
 } from '@api/endpoints/analytics/analytics.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import {
   ContentEngineService,
   type TriggerDispatchType,
@@ -22,7 +23,7 @@ import {
 import { isOrchestratorAgentType } from '@api/services/agent-orchestrator/constants/agent-type.constants';
 import { AnalyticsMetric } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 type AnalyticsOverviewSnapshot = {
   avgEngagementRate: number;
@@ -99,9 +100,7 @@ export class TriggerEvaluatorService {
     );
 
     if (!campaign) {
-      throw new NotFoundException(
-        `Campaign ${campaignId} not found in organization ${organizationId}`,
-      );
+      throw new NotFoundException('Campaign', campaignId);
     }
 
     if (campaign.status !== 'active') {
@@ -318,7 +317,7 @@ export class TriggerEvaluatorService {
       );
     } catch (error: unknown) {
       this.logger.warn(`${this.logContext} trends unavailable`, {
-        campaignId: String(campaign._id),
+        campaignId: String(campaign.id),
         error: error instanceof Error ? error.message : String(error),
       });
       return [];
@@ -371,14 +370,14 @@ export class TriggerEvaluatorService {
           return;
         }
 
-        await this.agentStrategiesService.patch(String(strategy._id), {
+        await this.agentStrategiesService.patch(String(strategy.id), {
           preferredPostingTimes: preferredTimes,
         });
 
         this.logger.debug(`${this.logContext} stored posting recommendations`, {
           organizationId,
           preferredTimes,
-          strategyId: String(strategy._id),
+          strategyId: String(strategy.id),
         });
       }),
     );
@@ -415,9 +414,9 @@ export class TriggerEvaluatorService {
         claimedStrategyIds,
       );
       if (strategies.length > 0) {
-        strategies.forEach((strategy) =>
-          claimedStrategyIds.add(String(strategy._id)),
-        );
+        strategies.forEach((strategy) => {
+          claimedStrategyIds.add(String(strategy.id));
+        });
         dispatchGroups.push({ ...trendSpikeCandidate, strategies });
       }
     }
@@ -430,9 +429,9 @@ export class TriggerEvaluatorService {
         claimedStrategyIds,
       );
       if (strategies.length > 0) {
-        strategies.forEach((strategy) =>
-          claimedStrategyIds.add(String(strategy._id)),
-        );
+        strategies.forEach((strategy) => {
+          claimedStrategyIds.add(String(strategy.id));
+        });
         dispatchGroups.push({ ...viralPostCandidate, strategies });
       }
     }
@@ -624,7 +623,7 @@ export class TriggerEvaluatorService {
     claimedStrategyIds: Set<string>,
   ): AgentStrategyDocument[] {
     const eligibleStrategies = strategies
-      .filter((strategy) => !claimedStrategyIds.has(String(strategy._id)))
+      .filter((strategy) => !claimedStrategyIds.has(String(strategy.id)))
       .filter((strategy) => {
         if (triggerType === 'trend_spike') {
           return strategy.opportunitySources?.trendWatchersEnabled === true;

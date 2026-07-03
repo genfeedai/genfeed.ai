@@ -8,12 +8,12 @@ import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/tra
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { EventBusService } from '@api/shared/services/event-bus/event-bus.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import type { EventEmitter2 } from '@nestjs/event-emitter';
 
 describe('CreditsUtilsService', () => {
   const loggerService = { error: vi.fn(), log: vi.fn() };
-  const eventBusService = { emit: vi.fn() };
+  const eventEmitter = { emit: vi.fn() };
   const prisma = {
     brand: { findFirst: vi.fn() },
     organization: { findFirst: vi.fn() },
@@ -47,7 +47,7 @@ describe('CreditsUtilsService', () => {
   function buildService(withTransactionUtil = true): CreditsUtilsService {
     return new CreditsUtilsService(
       loggerService as unknown as LoggerService,
-      eventBusService as unknown as EventBusService,
+      eventEmitter as unknown as EventEmitter2,
       prisma as unknown as PrismaService,
       creditBalanceService as unknown as CreditBalanceService,
       creditTransactionsService as unknown as CreditTransactionsService,

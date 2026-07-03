@@ -5,7 +5,10 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
-import type { IMediaProvenancePackage } from '@genfeedai/interfaces';
+import type {
+  IMediaProvenancePackage,
+  IMediaWatermarkAttributionEvaluation,
+} from '@genfeedai/interfaces';
 import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 
 /**
@@ -35,6 +38,26 @@ export class VideosProvenanceController {
       organizationId: publicMetadata.organization,
       userId: publicMetadata.user,
     });
+
+    return { data };
+  }
+
+  @Get(':videoId/provenance/watermark-evaluation')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async getWatermarkEvaluation(
+    @CurrentUser() user: User,
+    @Param('videoId') videoId: string,
+  ): Promise<{ data: IMediaWatermarkAttributionEvaluation }> {
+    const publicMetadata = getPublicMetadata(user);
+
+    const data =
+      await this.videoProvenanceService.buildWatermarkAttributionEvaluation(
+        videoId,
+        {
+          organizationId: publicMetadata.organization,
+          userId: publicMetadata.user,
+        },
+      );
 
     return { data };
   }

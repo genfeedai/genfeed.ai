@@ -3,6 +3,7 @@ import type { MemberDocument } from '@api/collections/members/schemas/member.sch
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UsersService } from '@api/collections/users/services/users.service';
+import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import type { IBetterAuthResolvedIdentity } from '../better-auth.types';
 import { isPlatformSuperAdmin } from '../better-auth-access.util';
@@ -46,9 +47,23 @@ export class BetterAuthIdentityResolverService {
     private readonly organizationsService: OrganizationsService,
     private readonly brandsService: BrandsService,
     private readonly membersService: MembersService,
+    private readonly identityCache: BetterAuthIdentityCacheService,
   ) {}
 
   async resolve(userId: string): Promise<IBetterAuthResolvedIdentity> {
+    const cached = await this.identityCache.get(userId);
+    if (cached) {
+      return cached;
+    }
+
+    const identity = await this.resolveFromDatabase(userId);
+    await this.identityCache.set(userId, identity);
+    return identity;
+  }
+
+  private async resolveFromDatabase(
+    userId: string,
+  ): Promise<IBetterAuthResolvedIdentity> {
     const user = await this.usersService.findOne(
       { _id: userId, isDeleted: false },
       [],
@@ -77,6 +92,21 @@ export class BetterAuthIdentityResolverService {
       members,
       lastUsedOrganizationId,
     );
+
+    // A user with active membership rows must resolve to SOME organization.
+    // Silently returning `organizationId: undefined` here let every
+    // downstream `{ organization: publicMetadata.organization }` OR-branch
+    // (images/videos/gifs/agent-* controllers) collapse to `{}` and get
+    // dropped by BaseService.normalizeWhere's empty-entry filter — silently
+    // narrowing list queries to self-created records only (200 OK, 0 results)
+    // instead of surfacing the real problem: an orphaned/inaccessible
+    // organization for a live membership row.
+    if (!organizationId && members.length > 0) {
+      throw new UnauthorizedException(
+        'Unable to resolve an accessible organization for this account',
+      );
+    }
+
     const brandId = organizationId
       ? await this.resolveBrandId(organizationId, members)
       : undefined;

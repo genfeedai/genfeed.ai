@@ -2,6 +2,9 @@ name: Security Scan
 
 on:
   workflow_dispatch:
+  schedule:
+    # Weekly Tuesday 06:10 UTC — off-peak, staggered from CodeQL
+    - cron: '10 6 * * 2'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

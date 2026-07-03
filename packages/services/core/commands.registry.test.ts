@@ -68,7 +68,7 @@ describe('commands.registry', () => {
     it('should have correct number of navigation commands', () => {
       const navigationCommands = createNavigationCommands(TEST_ORG, TEST_BRAND);
 
-      expect(navigationCommands.length).toBe(7);
+      expect(navigationCommands.length).toBe(8);
     });
 
     it('should have overview command with correct properties', () => {

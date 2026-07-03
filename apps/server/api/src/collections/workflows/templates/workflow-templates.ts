@@ -1,14 +1,63 @@
 import { CONTENT_LOOP_TEMPLATE } from '@api/collections/workflows/templates/content-loop.template';
 import { DAILY_TRENDS_DIGEST_TEMPLATE } from '@api/collections/workflows/templates/daily-trends-digest.template';
 import { GENERATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/generation-templates';
+import { PRODUCTIZED_DAILY_ROUTINE_TEMPLATES } from '@api/collections/workflows/templates/productized-routines.template';
 import { WorkflowStepCategory } from '@genfeedai/enums';
+
+export type RoutineReviewDefaults = {
+  autoApproveIfNoResponse: boolean;
+  notifyChannels: string[];
+  requireApproval: boolean;
+  reviewState: 'pending_approval';
+  timeoutHours: number;
+};
+
+export type RoutineTrackingTask = {
+  description: string;
+  key: string;
+  outputType: 'newsletter' | 'post';
+  priority: 'critical' | 'high' | 'low' | 'medium';
+  reviewState: 'pending_approval';
+  status: 'in_review' | 'todo';
+  title: string;
+};
+
+export type RoutineOutputDestination = {
+  key: string;
+  label: string;
+  required: boolean;
+  type: 'email' | 'social_publish' | 'task' | 'workflow_output';
+};
+
+export type ProductizedRoutineMetadata = {
+  cadence: 'daily';
+  inputContract: Array<{
+    defaultValue?: unknown;
+    description?: string;
+    key: string;
+    label: string;
+    required: boolean;
+    type: 'boolean' | 'number' | 'select' | 'text';
+  }>;
+  kind: 'productized-daily-routine';
+  outputDestinations: RoutineOutputDestination[];
+  parentIssue: number;
+  recommendedSkills: string[];
+  requiredSkills: string[];
+  reviewDefaults: RoutineReviewDefaults;
+  sourceIssue: number;
+  trackingTasks: RoutineTrackingTask[];
+  version: number;
+};
 
 export interface WorkflowTemplate {
   id: string;
   name: string;
   description: string;
   category: string;
+  changeSummary?: string;
   icon?: string;
+  isScheduleEnabled?: boolean;
   inputVariables?: Array<{
     key: string;
     type: string;
@@ -18,6 +67,8 @@ export interface WorkflowTemplate {
     required?: boolean;
     validation?: Record<string, unknown>;
   }>;
+  routine?: ProductizedRoutineMetadata;
+  schedule?: string;
   nodes?: Array<{
     id: string;
     type: string;
@@ -42,10 +93,18 @@ export interface WorkflowTemplate {
     config: Record<string, unknown>;
     dependsOn?: string[];
   }>;
+  timezone?: string;
+  version?: number;
 }
 
 export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
   ...GENERATION_WORKFLOW_TEMPLATES,
+  ...Object.fromEntries(
+    PRODUCTIZED_DAILY_ROUTINE_TEMPLATES.map((template) => [
+      template.id,
+      template,
+    ]),
+  ),
   'content-loop': CONTENT_LOOP_TEMPLATE,
   'daily-trends-digest': DAILY_TRENDS_DIGEST_TEMPLATE,
   'ad-remix-review': {

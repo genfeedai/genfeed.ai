@@ -56,8 +56,10 @@ test.describe('Core Content Loop', () => {
     await overviewPage.goto('/workspace/overview');
 
     await expect(overviewPage.mainContent).toBeVisible();
+    // The page h1 is "Dashboard" (level 1); the "Workspace" qualifier now lives in
+    // the breadcrumb navigation, not the heading.
     await expect(
-      authenticatedPage.getByRole('heading', { name: 'Workspace Dashboard' }),
+      authenticatedPage.getByRole('heading', { level: 1, name: 'Dashboard' }),
     ).toBeVisible();
     await expect(
       authenticatedPage.getByRole('heading', { name: 'Operator tools' }),

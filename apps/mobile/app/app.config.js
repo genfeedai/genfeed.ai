@@ -37,6 +37,13 @@ export default {
       enableAnalytics: process.env.EXPO_PUBLIC_ENABLE_ANALYTICS === 'true',
       enableErrorTracking:
         process.env.EXPO_PUBLIC_ENABLE_ERROR_TRACKING === 'true',
+      googleOAuthAndroidClientId:
+        process.env.EXPO_PUBLIC_GOOGLE_OAUTH_ANDROID_CLIENT_ID || '',
+      googleOAuthClientId: process.env.EXPO_PUBLIC_GOOGLE_OAUTH_CLIENT_ID || '',
+      googleOAuthIosClientId:
+        process.env.EXPO_PUBLIC_GOOGLE_OAUTH_IOS_CLIENT_ID || '',
+      googleOAuthWebClientId:
+        process.env.EXPO_PUBLIC_GOOGLE_OAUTH_WEB_CLIENT_ID || '',
       segmentWriteKey: process.env.EXPO_PUBLIC_SEGMENT_WRITE_KEY || '',
       sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN || '',
     },

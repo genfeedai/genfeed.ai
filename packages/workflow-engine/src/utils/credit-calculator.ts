@@ -18,6 +18,7 @@ export const DEFAULT_CREDIT_COSTS: CreditCostConfig = {
   brand: 0,
   brandAsset: 0,
   brandContext: 0,
+  commentTrigger: 0,
   engagementTrigger: 0, // trigger nodes are free
   keywordTrigger: 0,
   mentionTrigger: 0,
@@ -54,6 +55,7 @@ export const DEFAULT_CREDIT_COSTS: CreditCostConfig = {
   // ----- text / content generation -----
   caption: 1, // legacy alias
   generateArticle: 3, // legacy alias
+  hookGenerator: 1, // [ESTIMATED] deterministic content generation; comparable to caption
   iterativeSeoRefine: 15, // [ESTIMATED] default maxIterations(3) x (score 2 + rewrite 3) -> ~15; the engine reads this flat value for budgeting, while executor.estimateCost scales with the configured maxIterations
   postReply: 1, // [ESTIMATED] comparable to caption
   seoRewrite: 3, // [ESTIMATED] LLM rewrite; comparable to generateArticle
@@ -259,6 +261,7 @@ const NODE_CATEGORY_MAP: Record<string, string> = {
   generateImage: 'ai',
   generateMusic: 'ai',
   generateVideo: 'ai',
+  hookGenerator: 'ai',
   imageGen: 'ai',
   iterativeSeoRefine: 'ai',
   lipSync: 'ai',

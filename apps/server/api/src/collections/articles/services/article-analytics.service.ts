@@ -6,11 +6,13 @@ import {
   normalizePerformanceMetrics,
   type PerformanceMetricsInput,
 } from '@api/collections/articles/utils/virality-analysis.mapper';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class ArticleAnalyticsService extends BaseService<
@@ -36,12 +38,11 @@ export class ArticleAnalyticsService extends BaseService<
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const article = await this.prisma.article.findFirst({
-      where: { id: articleId, isDeleted: false },
-    });
-    if (!article) {
-      throw new NotFoundException('Article not found');
-    }
+    const article = await findOrThrow(
+      this.prisma.article,
+      { where: { id: articleId, isDeleted: false } },
+      'Article',
+    );
 
     const result = await this.prisma.articleAnalytics.upsert({
       where: {
@@ -130,7 +131,7 @@ export class ArticleAnalyticsService extends BaseService<
     });
     if (!article) {
       this.logger.error(`Article ${articleId} not found for analytics update`);
-      throw new NotFoundException('Article not found');
+      throw new NotFoundException('Article');
     }
 
     const result = await this.prisma.articleAnalytics.upsert({

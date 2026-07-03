@@ -4,6 +4,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { extractRequestContext } from '@api/helpers/utils/auth/auth.util';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
+import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import type {
   AdsAdapterContext,
   AdsPlatform,
@@ -472,7 +473,7 @@ export class AdsGatewayController {
       );
     }
 
-    return credential.accessToken;
+    return EncryptionUtil.decrypt(credential.accessToken);
   }
 
   private validatePlatform(platform: string): AdsPlatform {

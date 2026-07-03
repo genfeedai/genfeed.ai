@@ -4,6 +4,12 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Effect } from 'effect';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    href: (path: string) => `/test-org/test-brand${path}`,
+  }),
+}));
+
 describe('ClipWorkflowRunCard', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -96,5 +102,47 @@ describe('ClipWorkflowRunCard', () => {
         '/posts/review?batch=batch-123&item=item-456',
       );
     });
+  });
+
+  it('blocks clip generation when identity defaults are incomplete', async () => {
+    const action: AgentUiAction = {
+      clipRun: {
+        identity: {
+          isComplete: false,
+          label: 'Missing avatar and voice defaults',
+          missing: ['avatar', 'voice'],
+          source: 'missing',
+          useIdentity: true,
+        },
+        mergeGeneratedVideos: false,
+        prompt: 'Turn this launch clip into a polished reel',
+      },
+      id: 'clip-missing-identity-1',
+      title: 'Launch clip',
+      type: 'clip_workflow_run_card',
+    };
+
+    const apiService = {
+      createManualReviewBatchEffect: vi.fn(),
+      createPromptEffect: vi.fn(() => Effect.succeed({ id: 'prompt-123' })),
+      generateIngredientEffect: vi.fn(),
+      mergeVideosEffect: vi.fn(),
+      reframeVideoEffect: vi.fn(),
+      resizeVideoEffect: vi.fn(),
+      triggerWorkflowEffect: vi.fn(),
+    };
+
+    render(
+      <ClipWorkflowRunCard action={action} apiService={apiService as never} />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Run Next Step' }));
+
+    expect(
+      await screen.findByText(
+        'Configure saved avatar and voice defaults or enter explicit IDs before generating clips.',
+      ),
+    ).toBeInTheDocument();
+    expect(apiService.createPromptEffect).not.toHaveBeenCalled();
   });
 });

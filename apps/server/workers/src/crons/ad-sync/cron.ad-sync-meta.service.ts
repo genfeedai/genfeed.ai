@@ -1,11 +1,14 @@
 import { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import type { MetaAdSyncJobData } from '@api/queues/ad-sync-meta/ad-sync-meta-job.interface';
 import { QueueService } from '@api/queues/core/queue.service';
 import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform } from '@genfeedai/enums';
+import {
+  AD_SYNC_META_QUEUE,
+  MetaAdSyncJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -13,7 +16,7 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class CronAdSyncMetaService {
   private readonly constructorName: string = String(this.constructor.name);
-  private readonly QUEUE_NAME = 'ad-sync-meta';
+  private readonly QUEUE_NAME = AD_SYNC_META_QUEUE;
   private readonly CHUNK_SIZE = 10;
 
   constructor(
@@ -67,7 +70,7 @@ export class CronAdSyncMetaService {
     try {
       if (!credential.accessToken) {
         this.logger.warn(`${url} skipping credential without access token`, {
-          credentialId: credential._id,
+          credentialId: credential.id,
         });
         return;
       }
@@ -77,28 +80,28 @@ export class CronAdSyncMetaService {
 
       if (adAccounts.length === 0) {
         this.logger.log(`${url} no ad accounts found for credential`, {
-          credentialId: credential._id,
+          credentialId: credential.id,
         });
         return;
       }
 
       if (!credential.brand || !credential.organization) {
         this.logger.warn(`${url} skipping credential without workspace scope`, {
-          credentialId: credential._id,
+          credentialId: credential.id,
         });
         return;
       }
 
       const lastSyncDate =
         await this.adPerformanceService.findLatestSyncDateForCredential(
-          String(credential._id),
+          String(credential.id),
         );
 
       await this.enqueueAdSyncJob({
         accessToken,
         adAccountIds: adAccounts.map((account) => account.id),
         brandId: credential.brand.toString(),
-        credentialId: String(credential._id),
+        credentialId: String(credential.id),
         lastSyncDate: lastSyncDate?.toISOString(),
         organizationId: credential.organization.toString(),
       });

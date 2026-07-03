@@ -39,6 +39,23 @@ vi.mock('@genfeedai/helpers/auth/auth.helper', () => ({
   getAuthPublicData: () => ({ isSuperAdmin: false }),
 }));
 
+vi.mock(
+  '@genfeedai/contexts/providers/access-state/access-state.provider',
+  () => ({
+    useAccessState: () => ({
+      accessState: null,
+      canAccessApp: true,
+      hasPaygCredits: false,
+      isByok: false,
+      isLoading: false,
+      isSubscribed: false,
+      isSuperAdmin: false,
+      needsOnboarding: false,
+      refreshAccessState: vi.fn(),
+    }),
+  }),
+);
+
 vi.mock('@ui/modals/actions/ModalActions', () => ({
   default: ({ children }: any) => <div>{children}</div>,
 }));

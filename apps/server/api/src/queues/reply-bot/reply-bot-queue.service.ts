@@ -1,8 +1,11 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
-import type { ReplyBotPollingJobData } from '@api/queues/reply-bot/reply-bot-polling-job.interface';
 import { CredentialPlatform } from '@genfeedai/enums';
+import {
+  REPLY_BOT_POLLING_QUEUE,
+  ReplyBotPollingJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -14,7 +17,7 @@ export class ReplyBotQueueService implements OnModuleInit {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
-    @InjectQueue('reply-bot-polling')
+    @InjectQueue(REPLY_BOT_POLLING_QUEUE)
     private readonly pollingQueue: Queue<ReplyBotPollingJobData>,
     @Optional() private readonly organizationsService: OrganizationsService,
     @Optional()
@@ -120,7 +123,7 @@ export class ReplyBotQueueService implements OnModuleInit {
       const organizations = orgsResult.docs || [];
 
       for (const org of organizations) {
-        const orgId = (org._id as string).toString();
+        const orgId = (org.id as string).toString();
 
         // Check if org has active reply bot configs
         const activeBots = await this.replyBotConfigsService.findActive(orgId);
@@ -132,13 +135,13 @@ export class ReplyBotQueueService implements OnModuleInit {
         // Find a valid Twitter credential for this org
         const credential = await this.credentialsService.findOne({
           isDeleted: false,
-          organization: org._id,
+          organization: org.id,
           platform: CredentialPlatform.TWITTER,
         });
 
         if (credential) {
           results.push({
-            credentialId: (credential._id as string).toString(),
+            credentialId: (credential.id as string).toString(),
             organizationId: orgId,
           });
         } else {

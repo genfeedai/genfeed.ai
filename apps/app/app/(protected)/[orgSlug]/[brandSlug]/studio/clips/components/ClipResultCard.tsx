@@ -2,7 +2,9 @@
 
 import { COMPOSE_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type {
+  ClipReadyAction,
   ClipResult,
   ClipStatus,
   ViralityBadgeProps,
@@ -22,6 +24,7 @@ import type { ClipsApiService } from '../services/clips-api.service';
 interface ClipResultCardProps {
   clip: ClipResult;
   clipsService: ClipsApiService;
+  projectId: string;
 }
 
 const STATUS_CONFIG: Record<ClipStatus, { label: string; color: string }> = {
@@ -69,34 +72,71 @@ function formatDuration(seconds: number): string {
 export default function ClipResultCard({
   clip,
   clipsService,
+  projectId,
 }: ClipResultCardProps) {
   const { push } = useRouter();
+  const { href } = useOrgUrl();
   const statusConfig = STATUS_CONFIG[clip.status] || STATUS_CONFIG.pending;
-  const isReady = clip.status === 'completed';
   const videoUrl = clip.captionedVideoUrl || clip.videoUrl;
+  const canUseAction = useCallback(
+    (action: ClipReadyAction) => {
+      const readyActions = clip.readiness?.readyActions;
+
+      if (readyActions && readyActions.length > 0) {
+        return readyActions.includes(action);
+      }
+
+      return clip.status === 'completed';
+    },
+    [clip.readiness?.readyActions, clip.status],
+  );
+  const canEdit = Boolean(videoUrl && canUseAction('edit'));
+  const canPublish = Boolean(videoUrl && canUseAction('publish'));
+  const canDownload = Boolean(videoUrl && canUseAction('download'));
+  const hasReadyAction = canEdit || canPublish || canDownload;
 
   const handleEdit = useCallback(async () => {
     if (!videoUrl) return;
 
     try {
-      const editorProjectId = await clipsService.createEditorProject(videoUrl);
+      const handoff = await clipsService.createEditorHandoff(
+        projectId,
+        clip._id,
+      );
 
-      if (editorProjectId) {
-        push(`/editor/${editorProjectId}`);
-      }
+      push(href(handoff.editorPath));
     } catch {
-      // Fallback: navigate without creating editor project
-      push(`/editor/new?videoUrl=${encodeURIComponent(videoUrl)}`);
+      push(href('/editor'));
     }
-  }, [videoUrl, clipsService, push]);
+  }, [clip._id, projectId, videoUrl, clipsService, href, push]);
 
-  const handlePublish = useCallback(() => {
+  const handlePublish = useCallback(async () => {
+    const handoff = await clipsService.createPublishHandoff(
+      projectId,
+      clip._id,
+    );
+    const asset = handoff.payload.assets[0];
+    const title = handoff.payload.metadata?.title ?? clip.title;
+    const description =
+      handoff.payload.metadata?.summary ?? asset?.caption ?? clip.summary;
     const params = new URLSearchParams({
-      description: clip.summary,
-      title: clip.title,
+      clipProjectId: projectId,
+      clipResultId: handoff.payload.metadata?.clipResultId ?? clip._id,
+      description,
+      mediaUrl: asset?.mediaUrl ?? videoUrl ?? '',
+      title,
     });
-    push(`${COMPOSE_ROUTES.POST}?${params.toString()}`);
-  }, [clip.summary, clip.title, push]);
+    push(`${href(COMPOSE_ROUTES.POST)}?${params.toString()}`);
+  }, [
+    clip._id,
+    clip.summary,
+    clip.title,
+    projectId,
+    videoUrl,
+    clipsService,
+    href,
+    push,
+  ]);
 
   const handleDownload = useCallback(() => {
     if (!videoUrl) return;
@@ -108,7 +148,7 @@ export default function ClipResultCard({
   }, [videoUrl, clip.title]);
 
   return (
-    <div className="group relative flex flex-col rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 transition-all hover:border-zinc-700 hover:bg-zinc-900">
+    <div className="group relative flex flex-col rounded-card border border-zinc-800 bg-zinc-900/50 p-4 transition-all hover:border-zinc-700 hover:bg-zinc-900">
       {/* Header */}
       <div className="mb-3 flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
@@ -165,40 +205,46 @@ export default function ClipResultCard({
       )}
 
       {/* Actions -- visible when ready */}
-      {isReady && videoUrl && (
+      {hasReadyAction && videoUrl && (
         <div className="mt-auto flex gap-2 pt-2">
-          <Button
-            variant={ButtonVariant.UNSTYLED}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-zinc-800 px-3 py-2 text-xs font-medium text-zinc-300 hover:bg-zinc-700"
-            onClick={handleEdit}
-            title="Edit in video editor"
-          >
-            <HiOutlinePencilSquare className="size-3.5" />
-            <span>Edit</span>
-          </Button>
-          <Button
-            variant={ButtonVariant.UNSTYLED}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-white hover:bg-primary"
-            onClick={handlePublish}
-            title="Publish to social platforms"
-          >
-            <HiOutlineRocketLaunch className="size-3.5" />
-            <span>Publish</span>
-          </Button>
-          <Button
-            variant={ButtonVariant.UNSTYLED}
-            className="flex items-center justify-center rounded-lg bg-zinc-800 px-2.5 py-2 text-zinc-300 hover:bg-zinc-700"
-            onClick={handleDownload}
-            aria-label="Download video"
-            title="Download video"
-          >
-            <HiOutlineArrowDownTray className="size-3.5" />
-          </Button>
+          {canEdit && (
+            <Button
+              variant={ButtonVariant.UNSTYLED}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-zinc-800 px-3 py-2 text-xs font-medium text-zinc-300 hover:bg-zinc-700"
+              onClick={handleEdit}
+              title="Edit in video editor"
+            >
+              <HiOutlinePencilSquare className="size-3.5" />
+              <span>Edit</span>
+            </Button>
+          )}
+          {canPublish && (
+            <Button
+              variant={ButtonVariant.UNSTYLED}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-white hover:bg-primary"
+              onClick={handlePublish}
+              title="Publish to social platforms"
+            >
+              <HiOutlineRocketLaunch className="size-3.5" />
+              <span>Publish</span>
+            </Button>
+          )}
+          {canDownload && (
+            <Button
+              variant={ButtonVariant.UNSTYLED}
+              className="flex items-center justify-center rounded-lg bg-zinc-800 px-2.5 py-2 text-zinc-300 hover:bg-zinc-700"
+              onClick={handleDownload}
+              aria-label="Download video"
+              title="Download video"
+            >
+              <HiOutlineArrowDownTray className="size-3.5" />
+            </Button>
+          )}
         </div>
       )}
 
       {/* Processing indicator */}
-      {!isReady && clip.status !== 'failed' && (
+      {!hasReadyAction && clip.status !== 'failed' && (
         <div className="mt-auto flex items-center justify-center pt-3">
           <Spinner size={ComponentSize.SM} className="text-primary/50" />
         </div>

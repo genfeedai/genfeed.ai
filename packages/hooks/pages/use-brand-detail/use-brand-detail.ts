@@ -503,55 +503,56 @@ export function useBrandDetail(): UseBrandDetailReturn {
   const socialConnections = useMemo(() => {
     const connections: UseBrandDetailReturn['socialConnections'] = [];
 
-    const isPlatformConnected = (platform: CredentialPlatform): boolean =>
-      !!state.brand?.credentials?.some(
-        (cred: ICredential) =>
-          cred.platform === platform && cred.isConnected === true,
+    const connectedCredentials =
+      state.brand?.credentials?.filter(
+        (cred: ICredential) => cred.isConnected === true,
+      ) ?? [];
+
+    const findCredential = (platform: CredentialPlatform) =>
+      connectedCredentials.find(
+        (credential: ICredential) => credential.platform === platform,
       );
 
-    if (
-      isPlatformConnected(CredentialPlatform.YOUTUBE) &&
-      state.brand?.youtubeUrl
-    ) {
-      connections.push({
-        handle: state.brand.youtubeHandle,
-        platform: CredentialPlatform.YOUTUBE,
-        url: state.brand.youtubeUrl,
-      });
-    }
+    const pushConnection = (
+      platform: CredentialPlatform,
+      url?: string | null,
+      handle?: string | null,
+    ) => {
+      const credential = findCredential(platform);
+      if (!credential || !url) {
+        return;
+      }
 
-    if (
-      isPlatformConnected(CredentialPlatform.TIKTOK) &&
-      state.brand?.tiktokUrl
-    ) {
       connections.push({
-        handle: state.brand.tiktokHandle,
-        platform: CredentialPlatform.TIKTOK,
-        url: state.brand.tiktokUrl,
+        accountHealth: credential.accountHealth,
+        credentialId: credential.id,
+        handle: handle ?? credential.externalHandle,
+        label: credential.label,
+        platform,
+        url,
       });
-    }
+    };
 
-    if (
-      isPlatformConnected(CredentialPlatform.INSTAGRAM) &&
-      state.brand?.instagramUrl
-    ) {
-      connections.push({
-        handle: state.brand.instagramHandle,
-        platform: CredentialPlatform.INSTAGRAM,
-        url: state.brand.instagramUrl,
-      });
-    }
-
-    if (
-      isPlatformConnected(CredentialPlatform.TWITTER) &&
-      state.brand?.twitterUrl
-    ) {
-      connections.push({
-        handle: state.brand.twitterHandle,
-        platform: CredentialPlatform.TWITTER,
-        url: state.brand.twitterUrl,
-      });
-    }
+    pushConnection(
+      CredentialPlatform.YOUTUBE,
+      state.brand?.youtubeUrl,
+      state.brand?.youtubeHandle,
+    );
+    pushConnection(
+      CredentialPlatform.TIKTOK,
+      state.brand?.tiktokUrl,
+      state.brand?.tiktokHandle,
+    );
+    pushConnection(
+      CredentialPlatform.INSTAGRAM,
+      state.brand?.instagramUrl,
+      state.brand?.instagramHandle,
+    );
+    pushConnection(
+      CredentialPlatform.TWITTER,
+      state.brand?.twitterUrl,
+      state.brand?.twitterHandle,
+    );
 
     return connections;
   }, [

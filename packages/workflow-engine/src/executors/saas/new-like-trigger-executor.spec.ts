@@ -1,9 +1,8 @@
 import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
-  createNewLikeTriggerExecutor,
   type NewLikeChecker,
-  type NewLikeTriggerExecutor,
+  NewLikeTriggerExecutor,
 } from '@workflow-engine/executors/saas/new-like-trigger-executor';
 import type { ExecutableNode } from '@workflow-engine/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -30,7 +29,7 @@ describe('NewLikeTriggerExecutor', () => {
   let mockChecker: NewLikeChecker;
 
   beforeEach(() => {
-    executor = createNewLikeTriggerExecutor();
+    executor = new NewLikeTriggerExecutor();
     mockChecker = vi.fn().mockResolvedValue({
       likedAt: '2026-02-21T20:00:00Z',
       likerId: 'l-1',
@@ -47,7 +46,7 @@ describe('NewLikeTriggerExecutor', () => {
   });
 
   it('throws if checker not configured', async () => {
-    const fresh = createNewLikeTriggerExecutor();
+    const fresh = new NewLikeTriggerExecutor();
     const input = makeInput({ platform: 'twitter' });
     await expect(fresh.execute(input)).rejects.toThrow(
       'checker not configured',

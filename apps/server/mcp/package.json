@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@genfeedai/config": "workspace:*",
+    "@genfeedai/enums": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/tools": "workspace:*",
     "@genfeedai/ui": "workspace:*"
@@ -30,7 +31,8 @@
     "test": "vitest run --config vitest.config.ts",
     "test:cov": "vitest run --coverage --config vitest.config.ts",
     "test:e2e": "vitest run --config vitest.config.ts",
-    "test:watch": "vitest watch --config vitest.config.ts"
+    "test:watch": "vitest watch --config vitest.config.ts",
+    "type-check": "tsc --noEmit -p tsconfig.typecheck.json"
   },
   "type": "module",
   "version": "1.0.0"

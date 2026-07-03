@@ -54,8 +54,9 @@ test.describe('Modal cleanup', () => {
     authenticatedPage,
   }) => {
     await authenticatedPage.goto('/workspace/overview');
+    // Page h1 is "Dashboard" (level 1); "Workspace" now lives in the breadcrumb.
     await expect(
-      authenticatedPage.getByRole('heading', { name: 'Workspace Dashboard' }),
+      authenticatedPage.getByRole('heading', { level: 1, name: 'Dashboard' }),
     ).toBeVisible();
 
     await setStaleModalGlobalState(authenticatedPage);

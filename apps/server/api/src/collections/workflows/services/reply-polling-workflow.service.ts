@@ -4,6 +4,7 @@ import type { ReplyBotConfigDocument } from '@api/collections/reply-bot-configs/
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
 import { InstagramSocialAdapter } from '@api/collections/workflows/services/adapters/instagram-social.adapter';
 import { TwitterSocialAdapter } from '@api/collections/workflows/services/adapters/twitter-social.adapter';
+import { YoutubeSocialAdapter } from '@api/collections/workflows/services/adapters/youtube-social.adapter';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import type { TriggerEvent } from '@api/collections/workflows/services/workflow-executor.service';
 import { ConfigService } from '@api/config/config.service';
@@ -13,7 +14,12 @@ import {
   ReplyBotOrchestratorService,
 } from '@api/services/reply-bot/reply-bot-orchestrator.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ReplyBotPlatform, WorkflowStatus } from '@genfeedai/enums';
+import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
+import {
+  ReplyBotPlatform,
+  WorkflowLifecycle,
+  WorkflowStatus,
+} from '@genfeedai/enums';
 import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
 import type { Workflow } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -24,6 +30,7 @@ const SOCIAL_TRIGGER_TYPES = [
   'newLikeTrigger',
   'newFollowerTrigger',
   'newRepostTrigger',
+  'commentTrigger',
   'keywordTrigger',
   'engagementTrigger',
 ] as const;
@@ -77,6 +84,7 @@ export class ReplyPollingWorkflowService {
     private readonly executionQueue: WorkflowExecutionQueueService,
     private readonly twitterAdapter: TwitterSocialAdapter,
     private readonly instagramAdapter: InstagramSocialAdapter,
+    private readonly youtubeAdapter: YoutubeSocialAdapter,
     private readonly configService: ConfigService,
     private readonly cacheService: CacheService,
     private readonly logger: LoggerService,
@@ -251,11 +259,15 @@ export class ReplyPollingWorkflowService {
     }
 
     return {
-      accessToken: credential.accessToken ?? '',
-      accessTokenSecret: credential.accessTokenSecret ?? undefined,
+      accessToken: EncryptionUtil.decrypt(credential.accessToken ?? ''),
+      accessTokenSecret: credential.accessTokenSecret
+        ? EncryptionUtil.decrypt(credential.accessTokenSecret)
+        : undefined,
       externalId: credential.externalId ?? undefined,
       platform: credential.platform as ReplyBotPlatform,
-      refreshToken: credential.refreshToken ?? undefined,
+      refreshToken: credential.refreshToken
+        ? EncryptionUtil.decrypt(credential.refreshToken)
+        : undefined,
       username: credential.username ?? undefined,
     };
   }
@@ -271,6 +283,7 @@ export class ReplyPollingWorkflowService {
       take: 200,
       where: {
         isDeleted: false,
+        lifecycle: WorkflowLifecycle.PUBLISHED as never,
         organizationId,
         status: WorkflowStatus.ACTIVE as never,
       },
@@ -370,6 +383,13 @@ export class ReplyPollingWorkflowService {
         return this.checkFollowerTrigger(orgId, platform, config, lastEventId);
       case 'newRepostTrigger':
         return this.checkRepostTrigger(orgId, platform, config, lastEventId);
+      case 'commentTrigger':
+        return this.checkCommentTrigger(
+          workflow,
+          platform,
+          config,
+          lastEventId,
+        );
       case 'keywordTrigger':
         return this.checkKeywordTrigger(orgId, platform, config, lastEventId);
       case 'engagementTrigger':
@@ -397,9 +417,7 @@ export class ReplyPollingWorkflowService {
     const checker =
       platform === 'twitter'
         ? this.twitterAdapter.createMentionChecker()
-        : platform === 'instagram'
-          ? this.instagramAdapter.createMentionChecker()
-          : null;
+        : null;
 
     if (!checker) {
       return null;
@@ -430,11 +448,7 @@ export class ReplyPollingWorkflowService {
     lastEventId: string | null,
   ) {
     const checker =
-      platform === 'twitter'
-        ? this.twitterAdapter.createLikeChecker()
-        : platform === 'instagram'
-          ? this.instagramAdapter.createLikeChecker()
-          : null;
+      platform === 'twitter' ? this.twitterAdapter.createLikeChecker() : null;
 
     if (!checker) {
       return null;
@@ -468,9 +482,7 @@ export class ReplyPollingWorkflowService {
     const checker =
       platform === 'twitter'
         ? this.twitterAdapter.createFollowerChecker()
-        : platform === 'instagram'
-          ? this.instagramAdapter.createFollowerChecker()
-          : null;
+        : null;
 
     if (!checker) {
       return null;
@@ -500,11 +512,7 @@ export class ReplyPollingWorkflowService {
     lastEventId: string | null,
   ) {
     const checker =
-      platform === 'twitter'
-        ? this.twitterAdapter.createRepostChecker()
-        : platform === 'instagram'
-          ? this.instagramAdapter.createRepostChecker()
-          : null;
+      platform === 'twitter' ? this.twitterAdapter.createRepostChecker() : null;
 
     if (!checker) {
       return null;
@@ -561,6 +569,54 @@ export class ReplyPollingWorkflowService {
     return {
       data: result as unknown as Record<string, unknown>,
       lastEventId: result.postId,
+      platform,
+    };
+  }
+
+  private async checkCommentTrigger(
+    workflow: Workflow,
+    platform: string,
+    config: Record<string, unknown>,
+    lastEventId: string | null,
+  ) {
+    if (platform !== 'youtube') {
+      return null;
+    }
+
+    const brandId =
+      this.optionalString(config.brandId) ??
+      this.optionalString(workflow.defaultRecurringBrandId);
+
+    if (!brandId) {
+      this.logger.warn(`${this.logContext} comment trigger missing brand`, {
+        platform,
+        workflowId: workflow.id,
+      });
+      return null;
+    }
+
+    const checker = this.youtubeAdapter.createCommentChecker();
+    const contentIds = this.readStringArray(
+      config.contentIds ?? config.videoIds ?? config.postIds,
+    );
+
+    const result = await checker({
+      brandId,
+      contentIds,
+      excludeKeywords: this.readStringArray(config.excludeKeywords),
+      keywords: this.readStringArray(config.keywords),
+      lastCommentId: lastEventId,
+      organizationId: workflow.organizationId,
+      platform: 'youtube',
+    });
+
+    if (!result) {
+      return null;
+    }
+
+    return {
+      data: result as unknown as Record<string, unknown>,
+      lastEventId: result.commentId,
       platform,
     };
   }
@@ -645,6 +701,14 @@ export class ReplyPollingWorkflowService {
 
   private optionalString(value: unknown): string | undefined {
     return typeof value === 'string' && value.length > 0 ? value : undefined;
+  }
+
+  private readStringArray(value: unknown): string[] {
+    return Array.isArray(value)
+      ? value.filter(
+          (item): item is string => typeof item === 'string' && item.length > 0,
+        )
+      : [];
   }
 
   private errorMessage(error: unknown): string {

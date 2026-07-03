@@ -2,7 +2,11 @@ import type { AgentToolResult } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
 import { AdsClient } from '@mcp/services/client/ads.client';
-import { AgentClient } from '@mcp/services/client/agent.client';
+import {
+  AgentClient,
+  type AgentRunListParams,
+  type AgentRunResponse,
+} from '@mcp/services/client/agent.client';
 import { AnalyticsClient } from '@mcp/services/client/analytics.client';
 import { BaseApiClient } from '@mcp/services/client/base-api-client';
 import type {
@@ -15,6 +19,14 @@ import { ContentClient } from '@mcp/services/client/content.client';
 import { DarkroomClient } from '@mcp/services/client/darkroom.client';
 import { LinkedInClient } from '@mcp/services/client/linkedin.client';
 import { MediaClient } from '@mcp/services/client/media.client';
+import {
+  type SocialActionParams,
+  type SocialConversationDetail,
+  type SocialConversationListParams,
+  type SocialConversationListResult,
+  type SocialMessageListParams,
+  SocialMessagesClient,
+} from '@mcp/services/client/social-messages.client';
 import { WorkflowClient } from '@mcp/services/client/workflow.client';
 import { WorkspaceClient } from '@mcp/services/client/workspace.client';
 import type {
@@ -66,6 +78,10 @@ import type {
   WorkflowExecutionResult,
   WorkflowListParams,
   WorkflowResponse,
+  WorkflowRunListParams,
+  WorkflowRunResponse,
+  WorkflowScheduleParams,
+  WorkflowScheduleResponse,
   WorkflowTemplate,
 } from '@mcp/shared/interfaces/workflow.interface';
 import { HttpService } from '@nestjs/axios';
@@ -92,6 +108,7 @@ export class ClientService {
   private readonly workspace: WorkspaceClient;
   private readonly ads: AdsClient;
   private readonly darkroom: DarkroomClient;
+  private readonly socialMessages: SocialMessagesClient;
   // False positive below: the 14-char type name "LinkedInClient" next to the
   // `linkedin` identifier matches the default gitleaks linkedin-client-id rule.
   private readonly linkedin: LinkedInClient; // gitleaks:allow
@@ -110,6 +127,7 @@ export class ClientService {
     this.workspace = new WorkspaceClient(this.base);
     this.ads = new AdsClient(this.base);
     this.darkroom = new DarkroomClient(this.base);
+    this.socialMessages = new SocialMessagesClient(this.base);
     this.linkedin = new LinkedInClient(this.base);
   }
 
@@ -158,6 +176,22 @@ export class ClientService {
     result: Record<string, unknown>,
   ): Promise<McpApprovalResource> {
     return this.agent.attachApprovalResult(approvalId, result);
+  }
+
+  listAgentRuns(params: AgentRunListParams = {}): Promise<AgentRunResponse[]> {
+    return this.agent.listAgentRuns(params);
+  }
+
+  getAgentRun(runId: string): Promise<AgentRunResponse> {
+    return this.agent.getAgentRun(runId);
+  }
+
+  getAgentRunContent(runId: string): Promise<Record<string, unknown>> {
+    return this.agent.getAgentRunContent(runId);
+  }
+
+  cancelAgentRun(runId: string): Promise<AgentRunResponse> {
+    return this.agent.cancelAgentRun(runId);
   }
 
   // ── Media (video / image / avatar / music) ──
@@ -288,6 +322,49 @@ export class ClientService {
     return this.workspace.sendChatMessage(threadId, message);
   }
 
+  async retryAgentRun(
+    runId: string,
+    message?: string,
+  ): Promise<Record<string, unknown>> {
+    const run = await this.getAgentRun(runId);
+    const threadId = this.resolveAgentRunThreadId(run);
+
+    if (!threadId) {
+      throw new Error('Agent run has no persisted thread to retry');
+    }
+
+    const retryMessage =
+      message ??
+      `Retry agent run ${runId}. Continue from the prior run context and explain what changed before taking action.`;
+
+    return this.sendChatMessage(threadId, retryMessage);
+  }
+
+  private resolveAgentRunThreadId(run: AgentRunResponse): string | null {
+    const thread = run.thread;
+    if (typeof thread === 'string' && thread.length > 0) {
+      return thread;
+    }
+
+    if (thread && typeof thread === 'object') {
+      const threadRecord = thread as Record<string, unknown>;
+      const id = threadRecord.id ?? threadRecord._id;
+      if (typeof id === 'string' && id.length > 0) {
+        return id;
+      }
+    }
+
+    const metadata = run.metadata;
+    if (metadata && typeof metadata === 'object') {
+      const threadId = (metadata as Record<string, unknown>).threadId;
+      if (typeof threadId === 'string' && threadId.length > 0) {
+        return threadId;
+      }
+    }
+
+    return null;
+  }
+
   // ── Workflows ──
 
   createWorkflow(params: WorkflowCreateParams): Promise<WorkflowResponse> {
@@ -304,12 +381,118 @@ export class ClientService {
     return this.workflows.getWorkflowStatus(workflowId);
   }
 
+  inspectWorkflow(workflowId: string): Promise<WorkflowResponse> {
+    return this.workflows.inspectWorkflow(workflowId);
+  }
+
+  duplicateWorkflow(workflowId: string): Promise<WorkflowResponse> {
+    return this.workflows.duplicateWorkflow(workflowId);
+  }
+
+  setWorkflowSchedule(
+    workflowId: string,
+    params: WorkflowScheduleParams,
+  ): Promise<WorkflowScheduleResponse> {
+    return this.workflows.setWorkflowSchedule(workflowId, params);
+  }
+
   listWorkflows(params: WorkflowListParams = {}): Promise<WorkflowResponse[]> {
     return this.workflows.listWorkflows(params);
   }
 
+  listWorkflowRuns(
+    params: WorkflowRunListParams = {},
+  ): Promise<WorkflowRunResponse[]> {
+    return this.workflows.listWorkflowRuns(params);
+  }
+
+  getWorkflowRun(runId: string): Promise<WorkflowRunResponse> {
+    return this.workflows.getWorkflowRun(runId);
+  }
+
   listWorkflowTemplates(): Promise<WorkflowTemplate[]> {
     return this.workflows.listWorkflowTemplates();
+  }
+
+  // ── Social Messages ──
+
+  listSocialConversations(
+    params: SocialConversationListParams = {},
+  ): Promise<SocialConversationListResult> {
+    return this.socialMessages.listConversations(params);
+  }
+
+  getSocialConversation(
+    conversationId: string,
+    options: { includeMessages?: boolean; limit?: number } = {},
+  ): Promise<SocialConversationDetail> {
+    return this.socialMessages.getConversationDetail(conversationId, options);
+  }
+
+  listSocialMessages(
+    conversationId: string,
+    params: SocialMessageListParams = {},
+  ): Promise<Record<string, unknown>[]> {
+    return this.socialMessages.listMessages(conversationId, params);
+  }
+
+  createSocialReplyDraft(
+    conversationId: string,
+    params: SocialActionParams,
+  ): Promise<Record<string, unknown>> {
+    return this.socialMessages.createDraft(conversationId, params);
+  }
+
+  approveSocialDraft(
+    conversationId: string,
+    messageId: string,
+  ): Promise<Record<string, unknown>> {
+    return this.socialMessages.approveDraft(conversationId, messageId);
+  }
+
+  rejectSocialDraft(
+    conversationId: string,
+    messageId: string,
+    reason?: string,
+  ): Promise<Record<string, unknown>> {
+    return this.socialMessages.rejectDraft(conversationId, messageId, reason);
+  }
+
+  postSocialReply(
+    conversationId: string,
+    params: SocialActionParams,
+  ): Promise<Record<string, unknown>> {
+    return this.socialMessages.postReply(conversationId, params);
+  }
+
+  sendSocialDm(
+    conversationId: string,
+    params: SocialActionParams,
+  ): Promise<Record<string, unknown>> {
+    return this.socialMessages.sendDm(conversationId, params);
+  }
+
+  updateSocialTags(
+    conversationId: string,
+    tags: string[],
+  ): Promise<Record<string, unknown>> {
+    return this.socialMessages.updateTags(conversationId, tags);
+  }
+
+  assignSocialConversation(
+    conversationId: string,
+    assignedOwnerId?: string | null,
+  ): Promise<Record<string, unknown>> {
+    return this.socialMessages.assignConversation(
+      conversationId,
+      assignedOwnerId,
+    );
+  }
+
+  markSocialConversationResolved(
+    conversationId: string,
+  ): Promise<Record<string, unknown>> {
+    return this.socialMessages.markResolved(conversationId);
   }
 
   // ── Meta Ads ──
@@ -453,46 +636,6 @@ export class ClientService {
       limit,
       loginCustomerId,
     );
-  }
-
-  // ── Ad Insights (Content Loop) ──
-
-  getAdPerformanceInsights(params?: {
-    industry?: string;
-    platform?: string;
-  }): Promise<unknown> {
-    return this.ads.getAdPerformanceInsights(params);
-  }
-
-  getTopHeadlines(params?: {
-    industry?: string;
-    platform?: string;
-  }): Promise<unknown[]> {
-    return this.ads.getTopHeadlines(params);
-  }
-
-  suggestAdHeadlines(params: {
-    industry?: string;
-    platform?: string;
-    product?: string;
-  }): Promise<unknown> {
-    return this.ads.suggestAdHeadlines(params);
-  }
-
-  generateAdVariations(params: {
-    headline?: string;
-    body?: string;
-    platform?: string;
-    count?: number;
-  }): Promise<unknown> {
-    return this.ads.generateAdVariations(params);
-  }
-
-  benchmarkAdPerformance(params?: {
-    industry?: string;
-    platform?: string;
-  }): Promise<unknown> {
-    return this.ads.benchmarkAdPerformance(params);
   }
 
   // ── Darkroom / Training ──

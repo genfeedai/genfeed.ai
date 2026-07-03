@@ -1,33 +1,15 @@
-vi.mock('@genfeedai/prisma', () => ({
-  Prisma: {
-    empty: { sql: '', values: [] },
-    raw: (sql: string) => ({ sql, values: [] }),
-    sql: (strings: TemplateStringsArray, ...values: unknown[]) => {
-      const parts: string[] = [];
-      const parameters: unknown[] = [];
-
-      strings.forEach((part, index) => {
-        parts.push(part);
-        if (index >= values.length) {
-          return;
-        }
-
-        const value = values[index];
-        if (isSqlFragment(value)) {
-          parts.push(value.sql);
-          parameters.push(...value.values);
-          return;
-        }
-
-        parts.push('?');
-        parameters.push(value);
-      });
-
-      return { sql: parts.join(''), values: parameters };
-    },
-  },
-  PrismaClient: class {},
-}));
+// canonicalPrismaMock()'s Prisma.sql/raw/empty tagged-template implementation
+// is algorithmically equivalent to the hand-rolled version this replaces (both
+// walk `strings`/`values`, flatten nested sql fragments, join with `?`
+// placeholders) — every assertion below reads `.sql`/`.values` off the
+// captured query, never an exact-shape `toEqual`, so the extra `.text` field
+// canonicalPrismaMock()'s fragments carry is inert.
+vi.mock('@genfeedai/prisma', async () => {
+  const { canonicalPrismaMock } = await import(
+    '@api/shared/testing/prisma-mock'
+  );
+  return canonicalPrismaMock();
+});
 
 interface SqlFragmentMock {
   sql: string;
@@ -56,6 +38,41 @@ import { Test, TestingModule } from '@nestjs/testing';
 describe('EntityLeaderboardService', () => {
   let service: EntityLeaderboardService;
 
+  interface CapturedSqlQuery {
+    sql: string;
+    values: unknown[];
+  }
+
+  const captureSqlQuery = (
+    strings: TemplateStringsArray,
+    values: unknown[],
+  ): CapturedSqlQuery => {
+    const parts: string[] = [];
+    const parameters: unknown[] = [];
+
+    strings.forEach((part, index) => {
+      parts.push(part);
+      if (index >= values.length) {
+        return;
+      }
+
+      const value = values[index];
+      if (isSqlFragment(value)) {
+        parts.push(value.sql);
+        parameters.push(...value.values);
+        return;
+      }
+
+      parts.push('?');
+      parameters.push(value);
+    });
+
+    return {
+      sql: parts.join('').replace(/\s+/g, ' ').trim(),
+      values: parameters,
+    };
+  };
+
   const mockOrganizationsService = {
     count: vi.fn(),
     findAll: vi.fn(),
@@ -82,6 +99,21 @@ describe('EntityLeaderboardService', () => {
     organization: {
       count: vi.fn(),
     },
+  };
+
+  const captureQueryRawCalls = (
+    resultsByCall: unknown[][] = [],
+  ): CapturedSqlQuery[] => {
+    const capturedQueries: CapturedSqlQuery[] = [];
+
+    mockPrismaService.$queryRaw.mockImplementation(
+      (strings: TemplateStringsArray, ...values: unknown[]) => {
+        capturedQueries.push(captureSqlQuery(strings, values));
+        return Promise.resolve(resultsByCall[capturedQueries.length - 1] ?? []);
+      },
+    );
+
+    return capturedQueries;
   };
 
   beforeEach(async () => {
@@ -268,6 +300,20 @@ describe('EntityLeaderboardService', () => {
 
       expect(result).toHaveLength(5);
     });
+
+    it('should parameterize organization ids and date windows in raw analytics queries', async () => {
+      const capturedQueries = captureQueryRawCalls([[], []]);
+
+      await service.getOrganizationsLeaderboard('2025-01-01', '2025-01-31');
+
+      expect(capturedQueries).toHaveLength(2);
+      for (const query of capturedQueries) {
+        expect(query.sql).toContain('"organizationId" = ANY(?::text[])');
+        expect(query.sql).toContain('"date" >= ?');
+        expect(query.sql).toContain('"date" <= ?');
+        expect(query.values).toContainEqual([mockOrgId]);
+      }
+    });
   });
 
   // ==========================================================================
@@ -396,6 +442,20 @@ describe('EntityLeaderboardService', () => {
         { where: { isDeleted: false } },
         { pagination: false },
       );
+    });
+
+    it('should parameterize brand ids and date windows in raw analytics queries', async () => {
+      const capturedQueries = captureQueryRawCalls([[], []]);
+
+      await service.getBrandsLeaderboard('2025-01-01', '2025-01-31');
+
+      expect(capturedQueries).toHaveLength(2);
+      for (const query of capturedQueries) {
+        expect(query.sql).toContain('"brandId" = ANY(?::text[])');
+        expect(query.sql).toContain('"date" >= ?');
+        expect(query.sql).toContain('"date" <= ?');
+        expect(query.values).toContainEqual([mockBrandId]);
+      }
     });
   });
 

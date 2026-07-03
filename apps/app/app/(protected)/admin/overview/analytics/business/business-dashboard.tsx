@@ -372,7 +372,7 @@ export default function BusinessDashboard() {
 
       {/* Category Breakdown */}
       {data.ingredients.categoryBreakdown.length > 0 && (
-        <div className="rounded-lg border border-border bg-card p-4">
+        <div className="rounded-card border border-border bg-card p-4">
           <h3 className="mb-3 text-sm font-semibold text-foreground">
             Ingredient Category Breakdown
           </h3>

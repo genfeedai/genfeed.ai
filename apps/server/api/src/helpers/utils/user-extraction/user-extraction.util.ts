@@ -4,7 +4,7 @@ import { getUserRoomName } from '@libs/websockets/room-name.util';
  * User document structure from populated user references
  */
 export interface PopulatedUserDoc {
-  _id?: string;
+  id?: string;
   authProviderId?: string | null;
 }
 
@@ -41,7 +41,7 @@ export class UserExtractionUtil {
   static extractUserIds(
     userField:
       | PopulatedUserDoc
-      | { _id?: string; authProviderId?: string | null }
+      | { id?: string; authProviderId?: string | null }
       | string
       | null
       | undefined,
@@ -62,8 +62,8 @@ export class UserExtractionUtil {
       const userDoc = userField as PopulatedUserDoc;
 
       // Extract _id
-      if (typeof userDoc._id === 'string') {
-        dbUserId = userDoc._id;
+      if (typeof userDoc.id === 'string') {
+        dbUserId = userDoc.id;
       }
 
       // Extract authProviderId
@@ -88,7 +88,7 @@ export class UserExtractionUtil {
    * Handles populated and unpopulated references.
    */
   static extractBrandId(
-    brandField: { _id?: string } | string | null | undefined,
+    brandField: { id?: string } | string | null | undefined,
   ): string | undefined {
     if (!brandField) {
       return undefined;
@@ -99,9 +99,9 @@ export class UserExtractionUtil {
     }
 
     if (typeof brandField === 'object' && brandField !== null) {
-      const brandDoc = brandField as { _id?: string };
-      if (typeof brandDoc._id === 'string') {
-        return brandDoc._id;
+      const brandDoc = brandField as { id?: string };
+      if (typeof brandDoc.id === 'string') {
+        return brandDoc.id;
       }
     }
 

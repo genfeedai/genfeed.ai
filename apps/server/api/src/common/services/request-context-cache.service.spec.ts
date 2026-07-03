@@ -8,11 +8,11 @@ describe('RequestContextCacheService', () => {
 
   const mockSMembers = vi.fn();
   const mockUnlink = vi.fn();
-  const mockScanIterator = vi.fn();
+  const mockScan = vi.fn();
 
   const mockPublisher = {
-    scanIterator: mockScanIterator,
-    sMembers: mockSMembers,
+    scan: mockScan,
+    smembers: mockSMembers,
     unlink: mockUnlink,
   };
 
@@ -90,7 +90,7 @@ describe('RequestContextCacheService', () => {
       expect(mockUnlink).toHaveBeenCalledWith('rc:keys:user_empty');
     });
 
-    it('should log an error when sMembers throws', async () => {
+    it('should log an error when smembers throws', async () => {
       const authProviderId = 'user_error';
       const error = new Error('Redis connection lost');
       mockSMembers.mockRejectedValue(error);
@@ -111,7 +111,7 @@ describe('RequestContextCacheService', () => {
 
       await service.invalidateForOrganization('org_123');
 
-      expect(mockScanIterator).not.toHaveBeenCalled();
+      expect(mockScan).not.toHaveBeenCalled();
       expect(mockUnlink).not.toHaveBeenCalled();
     });
 
@@ -119,20 +119,18 @@ describe('RequestContextCacheService', () => {
       const orgId = 'org_xyz';
       const matchedKeys = ['rc:user1:org_xyz', 'rc:user2:org_xyz:brand1'];
 
-      async function* fakeIterator() {
-        for (const key of matchedKeys) {
-          yield key;
-        }
-      }
-      mockScanIterator.mockReturnValue(fakeIterator());
+      mockScan.mockResolvedValueOnce(['0', matchedKeys]);
       mockUnlink.mockResolvedValue(2);
 
       await service.invalidateForOrganization(orgId);
 
-      expect(mockScanIterator).toHaveBeenCalledWith({
-        COUNT: 100,
-        MATCH: `rc:*:${orgId}*`,
-      });
+      expect(mockScan).toHaveBeenCalledWith(
+        '0',
+        'MATCH',
+        `rc:*:${orgId}*`,
+        'COUNT',
+        100,
+      );
       expect(mockUnlink).toHaveBeenCalledWith(matchedKeys);
       expect(mockLogger.debug).toHaveBeenCalled();
     });
@@ -140,10 +138,7 @@ describe('RequestContextCacheService', () => {
     it('should skip unlink when no matching keys are found', async () => {
       const orgId = 'org_empty';
 
-      async function* emptyIterator() {
-        // yields nothing
-      }
-      mockScanIterator.mockReturnValue(emptyIterator());
+      mockScan.mockResolvedValueOnce(['0', []]);
 
       await service.invalidateForOrganization(orgId);
 
@@ -154,21 +149,11 @@ describe('RequestContextCacheService', () => {
       );
     });
 
-    it('should log an error when scanIterator throws', async () => {
+    it('should log an error when scan throws', async () => {
       const orgId = 'org_error';
       const error = new Error('SCAN failed');
 
-      // Simulate an async iterable that throws on iteration
-      const errorIterable = {
-        [Symbol.asyncIterator]() {
-          return {
-            next() {
-              return Promise.reject(error);
-            },
-          };
-        },
-      };
-      mockScanIterator.mockReturnValue(errorIterable);
+      mockScan.mockRejectedValueOnce(error);
 
       await service.invalidateForOrganization(orgId);
 

@@ -178,6 +178,7 @@ describe('ProvidersContent behavior', () => {
         showBilling: false,
         showCloudUpgradeCta: true,
         showCredits: false,
+        showLocalTools: true,
         showPricing: false,
       },
       workspace: {
@@ -268,6 +269,110 @@ describe('ProvidersContent behavior', () => {
     });
 
     expect(pushMock).toHaveBeenCalledWith('/settings/api-keys');
+  });
+
+  it('marks the saved access choice as the current selection', async () => {
+    getInstallReadinessMock.mockResolvedValue({
+      access: {
+        byokConfiguredProviders: [],
+        byokEnabled: false,
+        runtimeMode: 'server',
+        selectedMode: 'cloud',
+        serverDefaultsReady: true,
+      },
+      authMode: 'better_auth',
+      billingMode: 'oss_local',
+      localTools: {
+        anyDetected: false,
+        claude: false,
+        codex: false,
+        detected: [],
+      },
+      providers: {
+        anyConfigured: true,
+        configured: ['openai'],
+        fal: false,
+        imageGenerationReady: true,
+        openai: true,
+        replicate: false,
+        textGenerationReady: true,
+      },
+      ui: {
+        showBilling: false,
+        showCloudUpgradeCta: true,
+        showCredits: false,
+        showLocalTools: true,
+        showPricing: false,
+      },
+      workspace: {
+        brandId: 'brand-123',
+        hasBrand: true,
+        hasOrganization: true,
+        organizationId: 'org-123',
+      },
+    });
+
+    render(<ProvidersContent />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: 'Use Genfeed Cloud' }),
+      ).toBeEnabled();
+    });
+
+    expect(screen.getByText('Current')).toBeInTheDocument();
+  });
+
+  it('hides the local agent tools section when the deployment does not expose local tool detection', async () => {
+    getInstallReadinessMock.mockResolvedValue({
+      access: {
+        byokConfiguredProviders: [],
+        byokEnabled: false,
+        runtimeMode: 'server',
+        selectedMode: null,
+        serverDefaultsReady: true,
+      },
+      authMode: 'better_auth',
+      billingMode: 'cloud_billing',
+      localTools: {
+        anyDetected: false,
+        claude: false,
+        codex: false,
+        detected: [],
+      },
+      providers: {
+        anyConfigured: true,
+        configured: ['openai', 'replicate'],
+        fal: false,
+        imageGenerationReady: true,
+        openai: true,
+        replicate: true,
+        textGenerationReady: true,
+      },
+      ui: {
+        showBilling: true,
+        showCloudUpgradeCta: false,
+        showCredits: true,
+        showLocalTools: false,
+        showPricing: true,
+      },
+      workspace: {
+        brandId: 'brand-123',
+        hasBrand: true,
+        hasOrganization: true,
+        organizationId: 'org-123',
+      },
+    });
+
+    render(<ProvidersContent />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: 'Continue with server defaults' }),
+      ).toBeEnabled();
+    });
+
+    expect(screen.queryByText('Local agent tools')).not.toBeInTheDocument();
   });
 
   it('persists cloud mode and redirects to cloud signup with brand context', async () => {

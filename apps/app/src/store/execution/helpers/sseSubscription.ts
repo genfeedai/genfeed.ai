@@ -1,8 +1,9 @@
 import type { NodeStatus } from '@genfeedai/types';
 import { NodeStatusEnum } from '@genfeedai/types';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
+import { logger } from '@services/core/logger.service';
 import type { StoreApi } from 'zustand';
-import { logger } from '@/lib/logger';
+import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import { useWorkflowStore } from '@/store/workflowStore';
 import type {
   DebugPayload,
@@ -244,26 +245,31 @@ export function createExecutionSubscription(
             jobs: new Map(),
           });
 
+          captureAnalyticsEvent(ANALYTICS_EVENTS.WORKFLOW_RUN_COMPLETED, {
+            outcome:
+              data.status === 'completed' && !hasFailedNode
+                ? 'success'
+                : 'failure',
+          });
+
           if (data.status === 'failed' || hasFailedNode) {
-            logger.error(
-              'Workflow execution failed',
-              new Error('Execution failed'),
-              {
-                context: 'ExecutionStore',
-              },
-            );
+            logger.error('Workflow execution failed', {
+              context: 'ExecutionStore',
+              error: new Error('Execution failed'),
+            });
           }
         }
       } catch (error) {
-        logger.error('Failed to parse SSE message', error, {
+        logger.error('Failed to parse SSE message', {
           context: 'ExecutionStore',
+          error,
         });
       }
     })();
   };
 
   eventSource.onerror = (error) => {
-    logger.error('SSE connection error', error, { context: 'ExecutionStore' });
+    logger.error('SSE connection error', { context: 'ExecutionStore', error });
     eventSource.close();
     // Reconcile: fetch final execution state to recover any missed updates
     void reconcileNodeStatuses(executionId).then(() => {
@@ -363,16 +369,18 @@ export function createNodeExecutionSubscription(
           });
         }
       } catch (error) {
-        logger.error('Failed to parse SSE message (node execution)', error, {
+        logger.error('Failed to parse SSE message (node execution)', {
           context: 'ExecutionStore',
+          error,
         });
       }
     })();
   };
 
   eventSource.onerror = (error) => {
-    logger.error('SSE connection error (node execution)', error, {
+    logger.error('SSE connection error (node execution)', {
       context: 'ExecutionStore',
+      error,
     });
     eventSource.close();
     void reconcileNodeStatuses(executionId).then(() => {

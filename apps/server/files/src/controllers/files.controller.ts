@@ -15,6 +15,11 @@ import { ImagesSplitService } from '@files/services/images/images-split.service'
 import { S3Service } from '@files/services/s3/s3.service';
 import { VideoThumbnailService } from '@files/services/thumbnails/video-thumbnail.service';
 import { UploadService } from '@files/services/upload/upload.service';
+import type {
+  FileJobData,
+  ImageJobData,
+  VideoJobData,
+} from '@files/shared/interfaces/job.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import {
@@ -30,6 +35,7 @@ import {
   Res,
   StreamableFile,
 } from '@nestjs/common';
+import type { Job } from 'bullmq';
 import type { Response } from 'express';
 import { firstValueFrom } from 'rxjs';
 
@@ -102,7 +108,7 @@ export class FilesController {
         userId: body.userId,
       };
 
-      let job;
+      let job: Job<VideoJobData>;
       switch (body.type) {
         case JOB_TYPES.RESIZE_VIDEO:
           job = await this.videoQueueService.addResizeJob(jobData);
@@ -195,7 +201,7 @@ export class FilesController {
         userId: body.userId,
       };
 
-      let job;
+      let job: Job<ImageJobData>;
       switch (body.type) {
         case 'image-to-video':
           job = await this.imageQueueService.addImageToVideoJob(jobData);
@@ -258,7 +264,7 @@ export class FilesController {
         userId: body.userId,
       };
 
-      let job;
+      let job: Job<FileJobData>;
       switch (body.type) {
         case 'download-file':
           job = await this.fileQueueService.addDownloadJob(jobData);

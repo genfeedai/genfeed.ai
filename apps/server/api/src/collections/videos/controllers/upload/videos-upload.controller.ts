@@ -93,7 +93,7 @@ export class VideosUploadController {
         status: IngredientStatus.PROCESSING,
       });
 
-    const videoId = ingredientData._id;
+    const videoId = ingredientData.id;
     await this.websocketService.publishIngredientStatus(
       videoId,
       IngredientStatus.PROCESSING,
@@ -108,12 +108,12 @@ export class VideosUploadController {
         type: FileInputType.BUFFER,
       })
       .then(async (res) => {
-        await this.ingredientsService.patch(ingredientData._id, {
+        await this.ingredientsService.patch(ingredientData.id, {
           status: IngredientStatus.UPLOADED,
         });
 
         await this.metadataService.patch(
-          metadataData._id,
+          metadataData.id,
           new MetadataEntity(res),
         );
       })

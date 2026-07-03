@@ -25,7 +25,7 @@ const { mockApp } = vi.hoisted(() => ({
 }));
 
 vi.mock('@slack/bolt', () => ({
-  App: vi.fn(function () {
+  App: vi.fn(function mockAppCtor() {
     return mockApp;
   }),
 }));

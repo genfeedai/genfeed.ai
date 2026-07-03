@@ -65,7 +65,6 @@ import { BatchWorkflowProcessor } from '@workers/processors/api/collections/work
 import { WorkflowExecutionProcessor as CollectionsWorkflowExecutionProcessor } from '@workers/processors/api/collections/workflows/services/workflow-execution.processor';
 // --- queues/ processors ---
 import { AdBulkUploadProcessor } from '@workers/processors/api/queues/ad-bulk-upload/ad-bulk-upload.processor';
-import { AdInsightsAggregationProcessor } from '@workers/processors/api/queues/ad-insights-aggregation/ad-insights-aggregation.processor';
 import { AdOptimizationProcessor } from '@workers/processors/api/queues/ad-optimization/ad-optimization.processor';
 import { AdSyncGoogleProcessor } from '@workers/processors/api/queues/ad-sync-google/ad-sync-google.processor';
 import { AdSyncMetaProcessor } from '@workers/processors/api/queues/ad-sync-meta/ad-sync-meta.processor';
@@ -86,10 +85,6 @@ import { HeygenPollProcessor } from '@workers/processors/api/queues/heygen-poll/
 import { PatternExtractionProcessor } from '@workers/processors/api/queues/pattern-extraction/pattern-extraction.processor';
 import { ReplyBotPollingProcessor } from '@workers/processors/api/queues/reply-bot/reply-bot-polling.processor';
 import { TelegramDistributeProcessor } from '@workers/processors/api/queues/telegram-distribute/telegram-distribute.processor';
-import {
-  WorkflowExecutionProcessor as QueuesWorkflowExecutionProcessor,
-  WorkflowDelayProcessor,
-} from '@workers/processors/api/queues/workflow/workflow-execution.processor';
 // --- services/ processors ---
 import { CampaignMemoryProcessor } from '@workers/processors/api/services/agent-campaign/campaign-memory.processor';
 import { OrchestratorProcessor } from '@workers/processors/api/services/agent-campaign/orchestrator.processor';
@@ -161,9 +156,8 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     forwardRef(() => YoutubeModule),
   ],
   providers: [
-    // --- queues/ processors (22) ---
+    // --- queues/ processors (21) ---
     AdBulkUploadProcessor,
-    AdInsightsAggregationProcessor,
     AdOptimizationProcessor,
     AdSyncGoogleProcessor,
     AdSyncMetaProcessor,
@@ -184,8 +178,6 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     PatternExtractionProcessor,
     ReplyBotPollingProcessor,
     TelegramDistributeProcessor,
-    QueuesWorkflowExecutionProcessor,
-    WorkflowDelayProcessor,
 
     // --- services/ processors (8) ---
     BatchContentProcessor,

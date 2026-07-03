@@ -1,11 +1,11 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { AssetScope } from '@genfeedai/enums';
 import {
   CanActivate,
   ExecutionContext,
   ForbiddenException,
   Injectable,
-  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 
@@ -40,7 +40,7 @@ export class AssetAccessGuard implements CanActivate {
     const assetId = request.params.ingredientId || request.params.id;
 
     if (!assetId) {
-      throw new NotFoundException('Asset ID not provided');
+      throw new NotFoundException({ message: 'Asset ID not provided' });
     }
 
     // Find asset (include isDeleted check to avoid accessing soft-deleted assets)
@@ -50,7 +50,7 @@ export class AssetAccessGuard implements CanActivate {
     });
 
     if (!asset) {
-      throw new NotFoundException('Asset not found');
+      throw new NotFoundException('Asset');
     }
 
     const assetScope = asset.scope ?? AssetScope.USER;
@@ -147,7 +147,7 @@ export class AssetAccessGuard implements CanActivate {
       return ref;
     }
 
-    return ref?._id?.toString() ?? ref?.id?.toString();
+    return ref?.id?.toString() ?? ref?.id?.toString();
   }
 
   private getRefAuthProviderId(

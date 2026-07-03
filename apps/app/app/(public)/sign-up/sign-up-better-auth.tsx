@@ -69,9 +69,22 @@ export default function SignUpBetterAuth() {
     }
   }
 
-  async function handleGoogleSignUp() {
+  async function handleSocialSignUp(provider: 'google') {
     setErrorMessage(null);
-    await signIn.social({ callbackURL: authCallbackURL, provider: 'google' });
+    try {
+      const result = await signIn.social({
+        callbackURL: authCallbackURL,
+        provider,
+      });
+      if (result?.error) {
+        setErrorMessage(
+          result.error.message ??
+            'Failed to sign up with Google. Please try again.',
+        );
+      }
+    } catch {
+      setErrorMessage('Failed to sign up with Google. Please try again.');
+    }
   }
 
   if (!isMounted) {
@@ -137,7 +150,7 @@ export default function SignUpBetterAuth() {
         <Button
           type="button"
           variant={ButtonVariant.OUTLINE}
-          onClick={handleGoogleSignUp}
+          onClick={() => handleSocialSignUp('google')}
           className="w-full"
           withWrapper={false}
         >

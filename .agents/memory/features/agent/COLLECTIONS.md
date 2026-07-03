@@ -34,16 +34,18 @@ Canonical fields:
 - `updateThreadMetadata(threadId, organizationId, payload)`
 - `branchThread(threadId, organizationId, userId)` creates a new thread and copies messages
 
-**Controller endpoints:**
+**Controller endpoints:** canonical namespace is `/agent/threads`.
 
 | Method | Path | Operation |
 |--------|------|-----------|
-| `GET` | `/` | List user threads (filter by status) |
-| `GET` | `/:threadId` | Get thread by ID |
-| `POST` | `/` | Create new thread |
-| `POST` | `/:threadId/messages` | Add message |
-| `POST` | `/:threadId/branches` | Branch thread |
-| `PATCH` | `/:threadId` | Update metadata or status |
+| `GET` | `/agent/threads` | List user threads (filter by status) |
+| `GET` | `/agent/threads/:threadId` | Get thread by ID |
+| `POST` | `/agent/threads` | Create new thread |
+| `GET` | `/agent/threads/:threadId/messages` | List thread messages |
+| `GET` | `/agent/threads/:threadId/messages/:messageId` | Get one thread message |
+| `POST` | `/agent/threads/:threadId/messages` | Add message |
+| `POST` | `/agent/threads/:threadId/branches` | Branch thread |
+| `PATCH` | `/agent/threads/:threadId` | Update metadata or status |
 
 ## AgentMessage
 

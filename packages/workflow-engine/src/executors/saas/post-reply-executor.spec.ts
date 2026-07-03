@@ -1,8 +1,7 @@
 import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
-  createPostReplyExecutor,
-  type PostReplyExecutor,
+  PostReplyExecutor,
   type ReplyPublisher,
 } from '@workflow-engine/executors/saas/post-reply-executor';
 import type { ExecutableNode } from '@workflow-engine/types';
@@ -39,7 +38,7 @@ describe('PostReplyExecutor', () => {
   let mockPublisher: ReplyPublisher;
 
   beforeEach(() => {
-    executor = createPostReplyExecutor();
+    executor = new PostReplyExecutor();
     mockPublisher = vi.fn().mockResolvedValue({
       replyId: 'reply-123',
       replyUrl: 'https://x.com/user/status/reply-123',
@@ -52,7 +51,7 @@ describe('PostReplyExecutor', () => {
   });
 
   it('throws if publisher not configured', async () => {
-    const fresh = createPostReplyExecutor();
+    const fresh = new PostReplyExecutor();
     const input = makeInput({ platform: 'twitter', postId: '123', text: 'hi' });
     await expect(fresh.execute(input)).rejects.toThrow(
       'Reply publisher not configured',
@@ -94,6 +93,44 @@ describe('PostReplyExecutor', () => {
     expect(result.data).toMatchObject({ success: true });
   });
 
+  it('uses input values when config defaults are empty strings', async () => {
+    const input = makeInput(
+      { platform: 'twitter', postId: '', text: '' },
+      {
+        postId: 'tweet-from-edge',
+        text: 'From edge',
+      },
+    );
+
+    await executor.execute(input);
+
+    expect(mockPublisher).toHaveBeenCalledWith(
+      expect.objectContaining({
+        postId: 'tweet-from-edge',
+        text: 'From edge',
+      }),
+    );
+  });
+
+  it('forwards social inbox provenance metadata to the publisher', async () => {
+    const input = makeInput({
+      conversationId: 'conversation-1',
+      platform: 'youtube',
+      postId: 'comment-1',
+      text: 'Thanks for watching',
+    });
+
+    await executor.execute(input);
+
+    expect(mockPublisher).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversationId: 'conversation-1',
+        idempotencyKey: 'workflow:run-1:reply-1',
+        workflowRunId: 'run-1',
+      }),
+    );
+  });
+
   it('throws if postId missing', async () => {
     const input = makeInput({ platform: 'twitter', text: 'hello' });
     await expect(executor.execute(input)).rejects.toThrow(
@@ -125,7 +162,7 @@ describe('PostReplyExecutor', () => {
 
   it('validates valid platform', () => {
     const node: ExecutableNode = {
-      config: { platform: 'twitter' },
+      config: { platform: 'youtube' },
       id: 'r1',
       inputs: [],
       label: 'Reply',

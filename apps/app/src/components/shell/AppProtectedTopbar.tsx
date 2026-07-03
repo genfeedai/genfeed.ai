@@ -1,6 +1,7 @@
 'use client';
 
 import { APP_ROUTES } from '@genfeedai/constants';
+import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   getBrandEntityId,
@@ -13,6 +14,7 @@ import type { TopbarProps } from '@props/navigation/topbar.props';
 import MenuBrandSwitcher from '@ui/menus/switchers/MenuBrandSwitcher';
 import { Button } from '@ui/primitives/button';
 import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
+import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
 import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
 import TopbarEnd from '@ui/topbars/end/TopbarEnd';
 import Link from 'next/link';
@@ -21,17 +23,30 @@ import { Suspense, useCallback } from 'react';
 import { HiBars3, HiOutlineCommandLine, HiXMark } from 'react-icons/hi2';
 import { PiSidebarSimple } from 'react-icons/pi';
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
-import { appendSearchParamsToHref } from '@/lib/navigation/operator-shell';
+import { isHostedCloudApp } from '@/lib/config/edition';
+import {
+  appendSearchParamsToHref,
+  getBrandSwitchHref,
+} from '@/lib/navigation/operator-shell';
 
-function getCurrentBrandScopedPath(pathname: string): string {
-  const parts = pathname.split('/').filter(Boolean);
-
-  if (parts.length >= 3 && parts[1] !== '~') {
-    return `/${parts.slice(2).join('/')}`;
-  }
-
-  return APP_ROUTES.WORKSPACE.OVERVIEW;
-}
+const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
+  NonNullable<TopbarProps['currentApp']>,
+  string
+> = {
+  admin: 'Admin',
+  agent: 'Agent',
+  analytics: 'Analytics',
+  compose: 'Compose',
+  editor: 'Editor',
+  library: 'Library',
+  messages: 'Messages',
+  posts: 'Posts',
+  remix: 'Remix',
+  research: 'Research',
+  studio: 'Studio',
+  workflows: 'Workflows',
+  workspace: 'Workspace',
+};
 
 function AppProtectedTopbarContent({
   isMenuOpen,
@@ -49,6 +64,7 @@ function AppProtectedTopbarContent({
   const { push } = useRouter();
   const { brandId, brands, selectedBrand, setBrandId, setOrganizationId } =
     useBrand();
+  const { isSuperAdmin } = useAccessState();
   // Route props are authoritative; only fall back to useOrgUrl when the shell is
   // rendered without route context. On org-level `/:org/~/...` pages
   // effectiveBrandSlug stays undefined so the app switcher links into org-scoped
@@ -84,7 +100,11 @@ function AppProtectedTopbarContent({
 
       if (nextOrgSlug && nextBrand?.slug) {
         push(
-          `/${nextOrgSlug}/${nextBrand.slug}${getCurrentBrandScopedPath(pathname)}`,
+          getBrandSwitchHref({
+            nextBrandSlug: nextBrand.slug,
+            nextOrgSlug,
+            pathname,
+          }),
         );
       }
     },
@@ -94,6 +114,9 @@ function AppProtectedTopbarContent({
   const taskId = searchParams.get('taskId');
   const taskTitle = searchParams.get('taskTitle');
   const ToggleIcon = isMenuOpen ? HiXMark : HiBars3;
+  const shouldRenderAgentToggle =
+    Boolean(onAgentToggle) &&
+    (process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1' || !isHostedCloudApp());
   const backToTaskHref = taskId
     ? href(
         appendSearchParamsToHref(
@@ -105,8 +128,8 @@ function AppProtectedTopbarContent({
 
   return (
     <header className="ship-ui h-full w-full bg-transparent">
-      <div className="flex h-full w-full items-center justify-between gap-2.5 pl-3 pr-2 sm:px-4 lg:px-5">
-        <div className="flex min-w-0 items-center gap-2.5">
+      <div className="grid h-full w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2.5 pl-3 pr-2 sm:px-4 lg:px-5">
+        <div className="flex min-w-0 items-center gap-2.5 justify-self-start">
           {onMenuToggle ? (
             <Button
               type="button"
@@ -137,7 +160,7 @@ function AppProtectedTopbarContent({
           ) : null}
 
           {brands.length > 0 ? (
-            <div className="min-w-0 w-40 sm:w-56">
+            <div className="w-40 min-w-0 sm:w-56 md:w-[14.5rem]">
               <MenuBrandSwitcher
                 variant="labeled"
                 brands={brands}
@@ -148,7 +171,15 @@ function AppProtectedTopbarContent({
           ) : null}
         </div>
 
-        <div className="flex min-w-0 items-center gap-1.5">
+        <div className="hidden min-w-0 justify-center md:flex">
+          <TopbarBreadcrumbs
+            fallbackRootLabel={
+              TOPBAR_BREADCRUMB_ROOT_LABELS[currentApp ?? 'workspace']
+            }
+          />
+        </div>
+
+        <div className="flex min-w-0 items-center justify-end gap-1.5">
           {taskId ? (
             <div className="hidden items-center gap-2 rounded border border-border bg-background-secondary px-2 py-1 text-[11px] lg:flex">
               <span className="font-semibold uppercase tracking-[0.14em] text-emerald-200/80">
@@ -174,12 +205,14 @@ function AppProtectedTopbarContent({
             <AppSwitcher
               variant="icon"
               currentApp={currentApp ?? 'workspace'}
+              currentPath={pathname}
               orgSlug={effectiveOrgSlug}
               brandSlug={effectiveBrandSlug}
+              showAdmin={isSuperAdmin}
             />
           ) : null}
 
-          {onAgentToggle ? (
+          {shouldRenderAgentToggle ? (
             <Button
               type="button"
               variant={ButtonVariant.GHOST}

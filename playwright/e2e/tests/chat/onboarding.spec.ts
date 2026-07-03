@@ -164,10 +164,10 @@ test.describe('Agent Onboarding', () => {
   }) => {
     await mockThreads(authenticatedPage, []);
 
-    await authenticatedPage.goto('/chat/onboarding');
+    await authenticatedPage.goto('/agent/onboarding');
     await authenticatedPage.waitForLoadState('domcontentloaded');
 
-    await expect(authenticatedPage).toHaveURL(/\/chat\/onboarding(?:\/)?$/);
+    await expect(authenticatedPage).toHaveURL(/\/agent\/onboarding(?:\/)?$/);
     await expect(
       authenticatedPage.getByRole('heading', {
         name: 'Tell the agent what you create',
@@ -355,7 +355,7 @@ test.describe('Agent Onboarding', () => {
       },
     );
 
-    await authenticatedPage.goto('/chat/onboarding');
+    await authenticatedPage.goto('/agent/onboarding');
     await authenticatedPage.waitForLoadState('domcontentloaded');
     await authenticatedPage
       .getByLabel('What do you create?')
@@ -367,7 +367,7 @@ test.describe('Agent Onboarding', () => {
       .click();
 
     await expect(authenticatedPage).toHaveURL(
-      new RegExp(`/chat/onboarding/${threadId}$`),
+      new RegExp(`/agent/onboarding/${threadId}$`),
     );
     await expect(
       authenticatedPage.getByText(

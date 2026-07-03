@@ -207,7 +207,7 @@ describe('FanvueController', () => {
       });
 
       credentialsService.findOne.mockResolvedValue({
-        _id: 'test-object-id',
+        id: 'test-object-id',
         oauthToken: 'encrypted-verifier',
       });
 

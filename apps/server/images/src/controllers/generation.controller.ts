@@ -1,9 +1,16 @@
+import { GenerationRateLimitGuard } from '@images/guards/generation-rate-limit.guard';
+import { InternalApiKeyGuard } from '@images/guards/internal-api-key.guard';
+import type {
+  GenerateImageRequest,
+  GeneratePulidRequest,
+} from '@images/interfaces/images.interfaces';
 import { GenerationService } from '@images/services/generation.service';
 import { JobService } from '@images/services/job.service';
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Generation')
+@UseGuards(InternalApiKeyGuard)
 @Controller('generate')
 export class GenerationController {
   constructor(
@@ -12,34 +19,16 @@ export class GenerationController {
   ) {}
 
   @Post('image')
+  @UseGuards(GenerationRateLimitGuard)
   @ApiOperation({ summary: 'Queue image generation' })
-  generateImage(
-    @Body()
-    body: {
-      prompt: string;
-      negativePrompt?: string;
-      model?: string;
-      width?: number;
-      height?: number;
-      seed?: number;
-      lora?: string;
-    },
-  ) {
+  generateImage(@Body() body: GenerateImageRequest) {
     return this.generationService.generateImage(body);
   }
 
   @Post('pulid')
+  @UseGuards(GenerationRateLimitGuard)
   @ApiOperation({ summary: 'PuLID face-consistent generation' })
-  generatePulid(
-    @Body()
-    body: {
-      prompt: string;
-      referenceImageUrl: string;
-      model?: string;
-      width?: number;
-      height?: number;
-    },
-  ) {
+  generatePulid(@Body() body: GeneratePulidRequest) {
     return this.generationService.generatePulid(body);
   }
 

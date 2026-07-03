@@ -81,7 +81,3 @@ export class UpscaleExecutor extends BaseExecutor {
     };
   }
 }
-
-export function createUpscaleExecutor(): UpscaleExecutor {
-  return new UpscaleExecutor();
-}

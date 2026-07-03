@@ -43,7 +43,7 @@ const BRAND_SCOPED_PREFIXES = [
   'workspace',
 ] as const;
 
-const ORG_SCOPED_PREFIXES = ['chat', 'settings'] as const;
+const ORG_SCOPED_PREFIXES = ['agent', 'settings'] as const;
 
 const FLAT_PATH_REDIRECTS = new Map<string, string>([
   ['/analytics', '/analytics/overview'],
@@ -433,7 +433,7 @@ type CanonicalResolution = {
 
 const ORG_ROOT_APP_PREFIXES = [
   'analytics',
-  'chat',
+  'agent',
   'compose',
   'editor',
   'library',

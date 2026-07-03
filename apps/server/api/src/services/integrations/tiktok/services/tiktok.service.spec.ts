@@ -160,7 +160,7 @@ describe('TiktokService', () => {
   describe('refreshToken', () => {
     it('refreshes token and saves credentials', async () => {
       (credentialsMock.findOne as vi.Mock).mockResolvedValue({
-        _id: 'credential-id',
+        id: 'credential-id',
         refreshToken: 'ref',
       });
 

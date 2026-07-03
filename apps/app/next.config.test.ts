@@ -30,6 +30,19 @@ describe('app next.config redirects', () => {
     });
   });
 
+  it('redirects org/brand-scoped /:orgSlug/:brandSlug/workspace/inbox to its unread view', async () => {
+    const redirects = await config.redirects?.();
+    const scopedInboxRedirect = redirects?.find(
+      (redirect) => redirect.source === '/:orgSlug/:brandSlug/workspace/inbox',
+    );
+
+    expect(scopedInboxRedirect).toEqual({
+      destination: '/:orgSlug/:brandSlug/workspace/inbox/unread',
+      permanent: false,
+      source: '/:orgSlug/:brandSlug/workspace/inbox',
+    });
+  });
+
   it('rewrites clean local workspace routes into the default local shell scope', async () => {
     const rewrites = await config.rewrites?.();
     expect(rewrites).toContainEqual({

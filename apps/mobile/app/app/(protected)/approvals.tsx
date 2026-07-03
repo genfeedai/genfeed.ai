@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { EmptyState, LoadingScreen } from '@/components/ScreenStates';
-import { CONTENT_TYPE_LABELS, colors } from '@/constants';
+import { borderRadius, CONTENT_TYPE_LABELS, colors } from '@/constants';
 import {
   useApprovalActions,
   useApprovals,
@@ -443,7 +443,7 @@ const styles = StyleSheet.create({
   },
   badge: {
     backgroundColor: colors.bgTertiary,
-    borderRadius: 6,
+    borderRadius: borderRadius.md,
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.bgSecondary,
     borderColor: colors.bgTertiary,
-    borderRadius: 16,
+    borderRadius: borderRadius.xxxl,
     borderWidth: 1,
     flexDirection: 'row',
     gap: 12,
@@ -495,7 +495,7 @@ const styles = StyleSheet.create({
   checkbox: {
     alignItems: 'center',
     borderColor: colors.textSubtle,
-    borderRadius: 12,
+    borderRadius: borderRadius.xxl,
     borderWidth: 2,
     height: 24,
     justifyContent: 'center',
@@ -576,7 +576,7 @@ const styles = StyleSheet.create({
   },
   selectionButton: {
     backgroundColor: colors.bgBorder,
-    borderRadius: 8,
+    borderRadius: borderRadius.lg,
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
@@ -599,7 +599,7 @@ const styles = StyleSheet.create({
   },
   swipeAction: {
     alignItems: 'center',
-    borderRadius: 16,
+    borderRadius: borderRadius.xxxl,
     justifyContent: 'center',
     marginBottom: 12,
     width: 80,
@@ -613,7 +613,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   thumbnail: {
-    borderRadius: 12,
+    borderRadius: borderRadius.xxl,
     height: 64,
     width: 64,
   },

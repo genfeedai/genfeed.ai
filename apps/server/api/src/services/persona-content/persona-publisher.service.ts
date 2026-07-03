@@ -3,10 +3,11 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { type PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 export interface PublishInput {
   personaId: string;
@@ -96,7 +97,7 @@ export class PersonaPublisherService {
           user: input.user,
         } as Parameters<PostsService['create']>[0]);
 
-        postIds.push(String(post._id));
+        postIds.push(String(post.id));
       } catch (error) {
         this.loggerService.error(
           `${this.constructorName} ${caller} - Failed to create post for credential ${String(credentialId)}`,
@@ -128,7 +129,7 @@ export class PersonaPublisherService {
     });
 
     if (!persona) {
-      throw new NotFoundException('Persona not found');
+      throw new NotFoundException('Persona');
     }
 
     return persona;

@@ -2,6 +2,7 @@
 
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useSetupCard } from '@genfeedai/hooks/utils/use-setup-card/use-setup-card';
+import Card from '@ui/card/Card';
 import Link from 'next/link';
 import { HiCheck, HiChevronRight } from 'react-icons/hi2';
 
@@ -15,7 +16,10 @@ export default function SetupCard() {
   const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
   return (
-    <div className="mx-3 mb-3 border border-white/[0.06] bg-white/[0.03] p-3">
+    <Card
+      className="mx-3 mb-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)] bg-white/[0.03]"
+      bodyClassName="gap-0 p-3"
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <span className="text-[11px] font-semibold text-white/60">
@@ -58,6 +62,6 @@ export default function SetupCard() {
           </Link>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }

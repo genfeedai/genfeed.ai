@@ -31,94 +31,51 @@ import {
   ColorGradeExecutor,
   createColorGradeExecutor,
 } from '@workflow-engine/executors/saas/color-grade-executor';
-import {
-  ConditionExecutor,
-  createConditionExecutor,
-} from '@workflow-engine/executors/saas/condition-executor';
-import {
-  createDelayExecutor,
-  DelayExecutor,
-} from '@workflow-engine/executors/saas/delay-executor';
-import {
-  createEngagementTriggerExecutor,
-  EngagementTriggerExecutor,
-} from '@workflow-engine/executors/saas/engagement-trigger-executor';
+import { CommentTriggerExecutor } from '@workflow-engine/executors/saas/comment-trigger-executor';
+import { ConditionExecutor } from '@workflow-engine/executors/saas/condition-executor';
+import { DelayExecutor } from '@workflow-engine/executors/saas/delay-executor';
+import { EngagementTriggerExecutor } from '@workflow-engine/executors/saas/engagement-trigger-executor';
 import {
   createFilmGrainExecutor,
   FilmGrainExecutor,
 } from '@workflow-engine/executors/saas/film-grain-executor';
-import {
-  createImageGenExecutor,
-  ImageGenExecutor,
-} from '@workflow-engine/executors/saas/image-gen-executor';
+import { HookGeneratorExecutor } from '@workflow-engine/executors/saas/hook-generator-executor';
+import { ImageGenExecutor } from '@workflow-engine/executors/saas/image-gen-executor';
 import {
   createIterativeSeoRefineExecutor,
   IterativeSeoRefineExecutor,
 } from '@workflow-engine/executors/saas/iterative-seo-refine-executor';
-import {
-  createKeywordTriggerExecutor,
-  KeywordTriggerExecutor,
-} from '@workflow-engine/executors/saas/keyword-trigger-executor';
+import { KeywordTriggerExecutor } from '@workflow-engine/executors/saas/keyword-trigger-executor';
 import {
   createLensEffectsExecutor,
   LensEffectsExecutor,
 } from '@workflow-engine/executors/saas/lens-effects-executor';
-import {
-  createLipSyncExecutor,
-  LipSyncExecutor,
-} from '@workflow-engine/executors/saas/lip-sync-executor';
-import {
-  createMentionTriggerExecutor,
-  MentionTriggerExecutor,
-} from '@workflow-engine/executors/saas/mention-trigger-executor';
+import { LipSyncExecutor } from '@workflow-engine/executors/saas/lip-sync-executor';
+import { MentionTriggerExecutor } from '@workflow-engine/executors/saas/mention-trigger-executor';
 import {
   createMusicSourceExecutor,
   MusicSourceExecutor,
 } from '@workflow-engine/executors/saas/music-source-executor';
-import {
-  createNewFollowerTriggerExecutor,
-  NewFollowerTriggerExecutor,
-} from '@workflow-engine/executors/saas/new-follower-trigger-executor';
-import {
-  createNewLikeTriggerExecutor,
-  NewLikeTriggerExecutor,
-} from '@workflow-engine/executors/saas/new-like-trigger-executor';
-import {
-  createNewRepostTriggerExecutor,
-  NewRepostTriggerExecutor,
-} from '@workflow-engine/executors/saas/new-repost-trigger-executor';
+import { NewFollowerTriggerExecutor } from '@workflow-engine/executors/saas/new-follower-trigger-executor';
+import { NewLikeTriggerExecutor } from '@workflow-engine/executors/saas/new-like-trigger-executor';
+import { NewRepostTriggerExecutor } from '@workflow-engine/executors/saas/new-repost-trigger-executor';
 import {
   createPatternContextExecutor,
   PatternContextExecutor,
 } from '@workflow-engine/executors/saas/pattern-context-executor';
-import {
-  createPostPublishTriggerExecutor,
-  PostPublishTriggerExecutor,
-} from '@workflow-engine/executors/saas/post-publish-trigger-executor';
-import {
-  createPostReplyExecutor,
-  PostReplyExecutor,
-} from '@workflow-engine/executors/saas/post-reply-executor';
-import {
-  createPromptConstructorExecutor,
-  PromptConstructorExecutor,
-} from '@workflow-engine/executors/saas/prompt-constructor-executor';
+import { PostPublishTriggerExecutor } from '@workflow-engine/executors/saas/post-publish-trigger-executor';
+import { PostReplyExecutor } from '@workflow-engine/executors/saas/post-reply-executor';
+import { PromptConstructorExecutor } from '@workflow-engine/executors/saas/prompt-constructor-executor';
 import {
   createPublishExecutor,
   PublishExecutor,
 } from '@workflow-engine/executors/saas/publish-executor';
-import {
-  createReframeExecutor,
-  ReframeExecutor,
-} from '@workflow-engine/executors/saas/reframe-executor';
+import { ReframeExecutor } from '@workflow-engine/executors/saas/reframe-executor';
 import {
   createRssInputExecutor,
   RssInputExecutor,
 } from '@workflow-engine/executors/saas/rss-input-executor';
-import {
-  createSendDmExecutor,
-  SendDmExecutor,
-} from '@workflow-engine/executors/saas/send-dm-executor';
+import { SendDmExecutor } from '@workflow-engine/executors/saas/send-dm-executor';
 import {
   createSendEmailExecutor,
   SendEmailExecutor,
@@ -139,14 +96,8 @@ import {
   createSoundOverlayExecutor,
   SoundOverlayExecutor,
 } from '@workflow-engine/executors/saas/sound-overlay-executor';
-import {
-  createTextToSpeechExecutor,
-  TextToSpeechExecutor,
-} from '@workflow-engine/executors/saas/text-to-speech-executor';
-import {
-  createTrendDigestExecutor,
-  TrendDigestExecutor,
-} from '@workflow-engine/executors/saas/trend-digest-executor';
+import { TextToSpeechExecutor } from '@workflow-engine/executors/saas/text-to-speech-executor';
+import { TrendDigestExecutor } from '@workflow-engine/executors/saas/trend-digest-executor';
 import {
   createTrendTriggerExecutor,
   TrendTriggerExecutor,
@@ -159,18 +110,12 @@ import {
   createTweetRemixExecutor,
   TweetRemixExecutor,
 } from '@workflow-engine/executors/saas/tweet-remix-executor';
-import {
-  createUpscaleExecutor,
-  UpscaleExecutor,
-} from '@workflow-engine/executors/saas/upscale-executor';
+import { UpscaleExecutor } from '@workflow-engine/executors/saas/upscale-executor';
 import {
   createVideoInputExecutor,
   VideoInputExecutor,
 } from '@workflow-engine/executors/saas/video-input-executor';
-import {
-  createVoiceChangeExecutor,
-  VoiceChangeExecutor,
-} from '@workflow-engine/executors/saas/voice-change-executor';
+import { VoiceChangeExecutor } from '@workflow-engine/executors/saas/voice-change-executor';
 
 /**
  * Node Type to Executor Mapping
@@ -198,6 +143,7 @@ import {
  * | cinematicColorGrade | CinematicColorGradeExecutor | ./saas/cinematic-color-grade-executor.ts |
  * | filmGrain       | FilmGrainExecutor        | ./saas/film-grain-executor.ts         |
  * | lensEffects     | LensEffectsExecutor      | ./saas/lens-effects-executor.ts       |
+ * | hookGenerator   | HookGeneratorExecutor    | ./saas/hook-generator-executor.ts     |
  * | promptConstructor | PromptConstructorExecutor | ./saas/prompt-constructor-executor.ts |
  * | voiceChange     | VoiceChangeExecutor      | ./saas/voice-change-executor.ts       |
  * | lipSync         | LipSyncExecutor          | ./saas/lip-sync-executor.ts           |
@@ -275,11 +221,18 @@ export const EXECUTOR_REGISTRY: Record<string, ExecutorRegistryEntry> = {
     nodeType: 'colorGrade',
     requiresResolver: true,
   },
+  commentTrigger: {
+    description: 'Starts workflow when a social comment is detected',
+    executorClass: CommentTriggerExecutor,
+    factory: () => new CommentTriggerExecutor(),
+    nodeType: 'commentTrigger',
+    requiresResolver: true,
+  },
   condition: {
     description:
       'Evaluates conditions and branches workflow into true/false paths',
     executorClass: ConditionExecutor,
-    factory: () => createConditionExecutor(),
+    factory: () => new ConditionExecutor(),
     nodeType: 'condition',
     requiresResolver: false,
   },
@@ -287,7 +240,7 @@ export const EXECUTOR_REGISTRY: Record<string, ExecutorRegistryEntry> = {
     description:
       'Pauses workflow execution for configurable duration or until optimal time',
     executorClass: DelayExecutor,
-    factory: () => createDelayExecutor(),
+    factory: () => new DelayExecutor(),
     nodeType: 'delay',
     requiresResolver: true,
   },
@@ -295,7 +248,7 @@ export const EXECUTOR_REGISTRY: Record<string, ExecutorRegistryEntry> = {
     description:
       'Starts workflow when engagement metrics hit a configured threshold',
     executorClass: EngagementTriggerExecutor,
-    factory: () => createEngagementTriggerExecutor(),
+    factory: () => new EngagementTriggerExecutor(),
     nodeType: 'engagementTrigger',
     requiresResolver: true,
   },
@@ -307,11 +260,19 @@ export const EXECUTOR_REGISTRY: Record<string, ExecutorRegistryEntry> = {
     nodeType: 'filmGrain',
     requiresResolver: true,
   },
+  hookGenerator: {
+    description:
+      'Generates hook text, caption openings, hashtags, and slide prompts from trend and brand context',
+    executorClass: HookGeneratorExecutor,
+    factory: () => new HookGeneratorExecutor(),
+    nodeType: 'hookGenerator',
+    requiresResolver: false,
+  },
   imageGen: {
     description:
       'Generates images using AI models (Replicate, fal.ai, or self-hosted Genfeed AI)',
     executorClass: ImageGenExecutor,
-    factory: () => createImageGenExecutor(),
+    factory: () => new ImageGenExecutor(),
     nodeType: 'imageGen',
     requiresResolver: true,
   },
@@ -327,7 +288,7 @@ export const EXECUTOR_REGISTRY: Record<string, ExecutorRegistryEntry> = {
     description:
       'Starts workflow when a keyword or phrase is detected in social posts',
     executorClass: KeywordTriggerExecutor,
-    factory: () => createKeywordTriggerExecutor(),
+    factory: () => new KeywordTriggerExecutor(),
     nodeType: 'keywordTrigger',
     requiresResolver: true,
   },
@@ -343,14 +304,14 @@ export const EXECUTOR_REGISTRY: Record<string, ExecutorRegistryEntry> = {
     description:
       'Generates lip-synced video from source image/video and audio input',
     executorClass: LipSyncExecutor,
-    factory: () => createLipSyncExecutor(),
+    factory: () => new LipSyncExecutor(),
     nodeType: 'lipSync',
     requiresResolver: true,
   },
   mentionTrigger: {
     description: 'Starts workflow when the authenticated user is mentioned',
     executorClass: MentionTriggerExecutor,
-    factory: () => createMentionTriggerExecutor(),
+    factory: () => new MentionTriggerExecutor(),
     nodeType: 'mentionTrigger',
     requiresResolver: true,
   },
@@ -366,7 +327,7 @@ export const EXECUTOR_REGISTRY: Record<string, ExecutorRegistryEntry> = {
     description:
       'Starts workflow when a new follower matching criteria is detected',
     executorClass: NewFollowerTriggerExecutor,
-    factory: () => createNewFollowerTriggerExecutor(),
+    factory: () => new NewFollowerTriggerExecutor(),
     nodeType: 'newFollowerTrigger',
     requiresResolver: true,
   },
@@ -374,14 +335,14 @@ export const EXECUTOR_REGISTRY: Record<string, ExecutorRegistryEntry> = {
     description:
       'Starts workflow when a new like is detected on monitored posts',
     executorClass: NewLikeTriggerExecutor,
-    factory: () => createNewLikeTriggerExecutor(),
+    factory: () => new NewLikeTriggerExecutor(),
     nodeType: 'newLikeTrigger',
     requiresResolver: true,
   },
   newRepostTrigger: {
     description: 'Starts workflow when a new repost/retweet is detected',
     executorClass: NewRepostTriggerExecutor,
-    factory: () => createNewRepostTriggerExecutor(),
+    factory: () => new NewRepostTriggerExecutor(),
     nodeType: 'newRepostTrigger',
     requiresResolver: true,
   },
@@ -404,14 +365,14 @@ export const EXECUTOR_REGISTRY: Record<string, ExecutorRegistryEntry> = {
     description:
       'Starts an SEO-optimization workflow when content is published (post-published event)',
     executorClass: PostPublishTriggerExecutor,
-    factory: () => createPostPublishTriggerExecutor(),
+    factory: () => new PostPublishTriggerExecutor(),
     nodeType: 'postPublishTrigger',
     requiresResolver: false,
   },
   postReply: {
     description: 'Replies to a social media post on the specified platform',
     executorClass: PostReplyExecutor,
-    factory: () => createPostReplyExecutor(),
+    factory: () => new PostReplyExecutor(),
     nodeType: 'postReply',
     requiresResolver: true,
   },
@@ -419,7 +380,7 @@ export const EXECUTOR_REGISTRY: Record<string, ExecutorRegistryEntry> = {
     description:
       'Composes prompts from templates with {{variable}} substitution',
     executorClass: PromptConstructorExecutor,
-    factory: () => createPromptConstructorExecutor(),
+    factory: () => new PromptConstructorExecutor(),
     nodeType: 'promptConstructor',
     requiresResolver: false,
   },
@@ -433,7 +394,7 @@ export const EXECUTOR_REGISTRY: Record<string, ExecutorRegistryEntry> = {
   reframe: {
     description: 'Reframes image or video to a target aspect ratio using AI',
     executorClass: ReframeExecutor,
-    factory: () => createReframeExecutor(),
+    factory: () => new ReframeExecutor(),
     nodeType: 'reframe',
     requiresResolver: true,
   },
@@ -447,7 +408,7 @@ export const EXECUTOR_REGISTRY: Record<string, ExecutorRegistryEntry> = {
   sendDm: {
     description: 'Sends a direct message on the specified platform',
     executorClass: SendDmExecutor,
-    factory: () => createSendDmExecutor(),
+    factory: () => new SendDmExecutor(),
     nodeType: 'sendDm',
     requiresResolver: true,
   },
@@ -492,7 +453,7 @@ export const EXECUTOR_REGISTRY: Record<string, ExecutorRegistryEntry> = {
     description:
       'Converts text to speech audio using ElevenLabs or another TTS provider',
     executorClass: TextToSpeechExecutor,
-    factory: () => createTextToSpeechExecutor(),
+    factory: () => new TextToSpeechExecutor(),
     nodeType: 'textToSpeech',
     requiresResolver: true,
   },
@@ -500,7 +461,7 @@ export const EXECUTOR_REGISTRY: Record<string, ExecutorRegistryEntry> = {
     description:
       'Assembles a curated daily trends digest email from the global trend corpus',
     executorClass: TrendDigestExecutor,
-    factory: () => createTrendDigestExecutor(),
+    factory: () => new TrendDigestExecutor(),
     nodeType: 'trendDigest',
     requiresResolver: true,
   },
@@ -528,7 +489,7 @@ export const EXECUTOR_REGISTRY: Record<string, ExecutorRegistryEntry> = {
   upscale: {
     description: 'Upscales media resolution using AI (Real-ESRGAN, Topaz)',
     executorClass: UpscaleExecutor,
-    factory: () => createUpscaleExecutor(),
+    factory: () => new UpscaleExecutor(),
     nodeType: 'upscale',
     requiresResolver: true,
   },
@@ -542,7 +503,7 @@ export const EXECUTOR_REGISTRY: Record<string, ExecutorRegistryEntry> = {
   voiceChange: {
     description: 'Changes the voice of an audio file using AI voice conversion',
     executorClass: VoiceChangeExecutor,
-    factory: () => createVoiceChangeExecutor(),
+    factory: () => new VoiceChangeExecutor(),
     nodeType: 'voiceChange',
     requiresResolver: true,
   },
@@ -897,6 +858,14 @@ export class ExecutorRegistryInstance {
   getEngagementTriggerExecutor(): EngagementTriggerExecutor | undefined {
     const executor = this.executors.get('engagementTrigger');
     return executor instanceof EngagementTriggerExecutor ? executor : undefined;
+  }
+
+  /**
+   * Get the comment trigger executor for checker injection
+   */
+  getCommentTriggerExecutor(): CommentTriggerExecutor | undefined {
+    const executor = this.executors.get('commentTrigger');
+    return executor instanceof CommentTriggerExecutor ? executor : undefined;
   }
 
   /**

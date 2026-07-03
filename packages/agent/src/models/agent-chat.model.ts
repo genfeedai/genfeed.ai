@@ -2,6 +2,7 @@ import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-ac
 import type { ClipRunCardState } from '@genfeedai/agent/models/clip-run-card.model';
 import type { AgentThreadStatus } from '@genfeedai/enums';
 import type {
+  AgentClipRunIdentity,
   AgentDashboardOperation,
   AgentUIBlock,
 } from '@genfeedai/interfaces';
@@ -199,6 +200,7 @@ export interface AgentUiAction {
     autonomousMode?: boolean;
     durationSeconds?: number;
     format?: 'landscape' | 'portrait' | 'square';
+    identity?: AgentClipRunIdentity;
     inputValues?: Record<string, unknown>;
     mergeGeneratedVideos?: boolean;
     model?: string;

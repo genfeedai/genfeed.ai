@@ -1,9 +1,13 @@
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mockSearchParams = new URLSearchParams();
 const appSwitcherSpy = vi.hoisted(() => vi.fn());
+const mockAccessState = vi.hoisted(() => ({
+  isSuperAdmin: false,
+}));
+const originalLocation = window.location;
 
 vi.mock('@genfeedai/enums', () => ({
   ButtonSize: { ICON: 'icon' },
@@ -49,6 +53,13 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   }),
 }));
 
+vi.mock(
+  '@genfeedai/contexts/providers/access-state/access-state.provider',
+  () => ({
+    useAccessState: () => mockAccessState,
+  }),
+);
+
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
     children,
@@ -83,6 +94,7 @@ vi.mock('@ui/shell/app-switcher/AppSwitcher', () => ({
     brandSlug?: string;
     currentApp?: string;
     orgSlug: string;
+    showAdmin?: boolean;
     variant?: string;
   }) => {
     appSwitcherSpy(props);
@@ -128,21 +140,45 @@ const { default: AppProtectedTopbar } = await import('./AppProtectedTopbar');
 describe('AppProtectedTopbar', () => {
   beforeEach(() => {
     mockSearchParams = new URLSearchParams();
+    mockAccessState.isSuperAdmin = false;
     appSwitcherSpy.mockClear();
+    delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
+    delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...originalLocation, hostname: 'localhost' },
+      writable: true,
+    });
   });
 
-  it('renders the brand switcher on the left and app switcher with right-side controls', () => {
+  afterEach(() => {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: originalLocation,
+      writable: true,
+    });
+  });
+
+  it('renders brand scope on the left, breadcrumb title in the middle, and controls on the right', () => {
     render(<AppProtectedTopbar orgSlug="acme" currentApp="studio" />);
 
     const brandSwitcher = screen.getByTestId('brand-switcher');
+    const breadcrumbs = screen.getByRole('navigation', {
+      name: 'Breadcrumb',
+    });
     const switcher = screen.getByTestId('app-switcher');
     const cloudSyncIndicator = screen.getByTestId('cloud-sync-indicator');
 
     expect(brandSwitcher).toHaveTextContent('labeled');
+    expect(breadcrumbs).toHaveTextContent('Studio');
     expect(switcher).toHaveTextContent('icon');
     expect(switcher).toBeInTheDocument();
     expect(
-      brandSwitcher.compareDocumentPosition(switcher) &
+      brandSwitcher.compareDocumentPosition(breadcrumbs) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      breadcrumbs.compareDocumentPosition(switcher) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
@@ -181,6 +217,28 @@ describe('AppProtectedTopbar', () => {
     );
   });
 
+  it('enables the admin app switcher item for platform admins', () => {
+    mockAccessState.isSuperAdmin = true;
+
+    render(<AppProtectedTopbar orgSlug="acme" currentApp="workspace" />);
+
+    expect(appSwitcherSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        showAdmin: true,
+      }),
+    );
+  });
+
+  it('hides the admin app switcher item for non-admin users', () => {
+    render(<AppProtectedTopbar orgSlug="acme" currentApp="workspace" />);
+
+    expect(appSwitcherSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        showAdmin: false,
+      }),
+    );
+  });
+
   it('renders the cloud sync indicator beside the terminal dock control', () => {
     render(<AppProtectedTopbar isAgentCollapsed onAgentToggle={vi.fn()} />);
 
@@ -193,6 +251,20 @@ describe('AppProtectedTopbar', () => {
       terminalButton.compareDocumentPosition(cloudSyncIndicator) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  it('does not render the terminal dock control on the hosted app hostname', () => {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...originalLocation, hostname: 'app.genfeed.ai' },
+      writable: true,
+    });
+
+    render(<AppProtectedTopbar isAgentCollapsed onAgentToggle={vi.fn()} />);
+
+    expect(
+      screen.queryByRole('button', { name: 'Open terminal dock' }),
+    ).not.toBeInTheDocument();
   });
 
   it('renders credit balances before the topbar end slot', () => {

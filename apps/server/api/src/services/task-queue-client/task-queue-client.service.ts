@@ -17,6 +17,8 @@ export interface TaskJobRequest {
   priority?: number;
 }
 
+type TaskQueueJobType = 'caption' | 'clip' | 'resize' | 'transform' | 'upscale';
+
 /**
  * TaskQueueClientService
  *
@@ -39,78 +41,37 @@ export class TaskQueueClientService {
   }
 
   async queueTransformJob(data: TaskJobRequest) {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post(
-          `${this.filesServiceUrl}/tasks/queue/transform`,
-          data,
-        ),
-      );
-      this.logger.log(`Queued transform job for asset ${data.assetId}`);
-      return response.data;
-    } catch (error: unknown) {
-      this.logger.error('Failed to queue transform job', error);
-      throw error;
-    }
+    return this.queueJob('transform', data);
   }
 
   async queueUpscaleJob(data: TaskJobRequest) {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post(
-          `${this.filesServiceUrl}/tasks/queue/upscale`,
-          data,
-        ),
-      );
-      this.logger.log(`Queued upscale job for asset ${data.assetId}`);
-      return response.data;
-    } catch (error: unknown) {
-      this.logger.error('Failed to queue upscale job', error);
-      throw error;
-    }
+    return this.queueJob('upscale', data);
   }
 
   async queueCaptionJob(data: TaskJobRequest) {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post(
-          `${this.filesServiceUrl}/tasks/queue/caption`,
-          data,
-        ),
-      );
-      this.logger.log(`Queued caption job for asset ${data.assetId}`);
-      return response.data;
-    } catch (error: unknown) {
-      this.logger.error('Failed to queue caption job', error);
-      throw error;
-    }
+    return this.queueJob('caption', data);
   }
 
   async queueResizeJob(data: TaskJobRequest) {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post(
-          `${this.filesServiceUrl}/tasks/queue/resize`,
-          data,
-        ),
-      );
-      this.logger.log(`Queued resize job for asset ${data.assetId}`);
-      return response.data;
-    } catch (error: unknown) {
-      this.logger.error('Failed to queue resize job', error);
-      throw error;
-    }
+    return this.queueJob('resize', data);
   }
 
   async queueClipJob(data: TaskJobRequest) {
+    return this.queueJob('clip', data);
+  }
+
+  private async queueJob(type: TaskQueueJobType, data: TaskJobRequest) {
     try {
       const response = await firstValueFrom(
-        this.httpService.post(`${this.filesServiceUrl}/tasks/queue/clip`, data),
+        this.httpService.post(
+          `${this.filesServiceUrl}/tasks/queue/${type}`,
+          data,
+        ),
       );
-      this.logger.log(`Queued clip job for asset ${data.assetId}`);
+      this.logger.log(`Queued ${type} job for asset ${data.assetId}`);
       return response.data;
     } catch (error: unknown) {
-      this.logger.error('Failed to queue clip job', error);
+      this.logger.error(`Failed to queue ${type} job`, error);
       throw error;
     }
   }

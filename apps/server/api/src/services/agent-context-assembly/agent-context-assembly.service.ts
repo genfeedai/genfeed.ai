@@ -13,6 +13,10 @@ import type {
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { PatternMatcherService } from '@api/services/pattern-matcher/pattern-matcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import {
+  type BrandKitSourceBrand,
+  computeBrandKitReadiness,
+} from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -31,6 +35,9 @@ const CACHE_TTL_POSTS = 120; // 2 min
 const RECENT_POSTS_DAYS = 14;
 const RECENT_POSTS_LIMIT = 10;
 const MAX_POST_SUMMARY_LENGTH = 200;
+const DEFAULT_PRIMARY_COLOR = '#000000';
+const DEFAULT_SECONDARY_COLOR = '#FFFFFF';
+const DEFAULT_BACKGROUND_COLOR = 'transparent';
 
 @Injectable()
 export class AgentContextAssemblyService {
@@ -81,7 +88,7 @@ export class AgentContextAssemblyService {
       return null;
     }
 
-    const brandId = String(brand._id);
+    const brandId = String(brand.id);
     const layersUsed: string[] = ['brandIdentity'];
     const organizationSettings = await this.cacheService.getOrSet(
       this.cacheService.generateKey('org-settings', organizationId),
@@ -101,31 +108,22 @@ export class AgentContextAssemblyService {
     const resolvedStrategy = effectiveBrandAgentConfig.strategy ?? {};
     const resolvedPersona = effectiveBrandAgentConfig.persona;
     const resolvedDefaultModel = effectiveBrandAgentConfig.defaultModel;
-    const primaryColor =
-      typeof brand.primaryColor === 'string' && brand.primaryColor !== '#000000'
-        ? brand.primaryColor
-        : undefined;
-    const secondaryColor =
-      typeof brand.secondaryColor === 'string' &&
-      brand.secondaryColor !== '#FFFFFF'
-        ? brand.secondaryColor
-        : undefined;
-    const referenceImages = Array.isArray(brand.referenceImages)
-      ? brand.referenceImages.filter(
-          (
-            img,
-          ): img is {
-            category: string;
-            label?: string;
-            url?: string;
-          } =>
-            img !== null &&
-            typeof img === 'object' &&
-            !Array.isArray(img) &&
-            typeof (img as { category?: unknown }).category === 'string' &&
-            typeof (img as { url?: unknown }).url === 'string',
-        )
-      : [];
+    const primaryColor = this.readNonDefaultColor(
+      brand.primaryColor,
+      DEFAULT_PRIMARY_COLOR,
+    );
+    const secondaryColor = this.readNonDefaultColor(
+      brand.secondaryColor,
+      DEFAULT_SECONDARY_COLOR,
+    );
+    const backgroundColor = this.readNonDefaultColor(
+      brand.backgroundColor,
+      DEFAULT_BACKGROUND_COLOR,
+    );
+    const referenceImages = this.readReferenceImages(brand.referenceImages);
+    const logoUrl = this.readUrlField(brand.logo);
+    const bannerUrl = this.readUrlField(brand.banner);
+    const promptGuidelines = this.readTextField(brand.text);
 
     if (effectiveBrandAgentConfig.platformOverrideApplied) {
       layersUsed.push('platformOverride');
@@ -133,19 +131,28 @@ export class AgentContextAssemblyService {
 
     const context: AssembledBrandContext = {
       assembledAt: new Date(),
+      brandKitReadiness: computeBrandKitReadiness(
+        this.toBrandKitSourceBrand(brand),
+      ),
       brandDescription: brand.description ?? undefined,
       brandId,
       brandName: brand.label || 'Unknown Brand',
       defaultModel: resolvedDefaultModel ?? undefined,
       layersUsed,
       persona: resolvedPersona,
+      promptGuidelines,
     };
 
     // Visual identity (part of brandIdentity layer)
-    const hasNonDefaultColor = primaryColor !== undefined;
+    const hasVisualColor =
+      primaryColor !== undefined ||
+      secondaryColor !== undefined ||
+      backgroundColor !== undefined;
+    const hasVisualAsset = Boolean(logoUrl) || Boolean(bannerUrl);
     const hasReferenceImages = referenceImages.length > 0;
+    const fontFamily = this.readTextField(brand.fontFamily);
 
-    if (hasNonDefaultColor || hasReferenceImages) {
+    if (hasVisualColor || fontFamily || hasVisualAsset || hasReferenceImages) {
       context.visualIdentity = {};
 
       if (primaryColor) {
@@ -154,13 +161,20 @@ export class AgentContextAssemblyService {
       if (secondaryColor) {
         context.visualIdentity.secondaryColor = secondaryColor;
       }
-      if (brand.fontFamily) {
-        context.visualIdentity.fontFamily = brand.fontFamily;
+      if (backgroundColor) {
+        context.visualIdentity.backgroundColor = backgroundColor;
+      }
+      if (fontFamily) {
+        context.visualIdentity.fontFamily = fontFamily;
+      }
+      if (logoUrl) {
+        context.visualIdentity.logoUrl = logoUrl;
+      }
+      if (bannerUrl) {
+        context.visualIdentity.bannerUrl = bannerUrl;
       }
       if (hasReferenceImages) {
-        context.visualIdentity.referenceImages = referenceImages
-          .filter((img) => img.url)
-          .map((img) => ({ category: img.category, label: img.label }));
+        context.visualIdentity.referenceImages = referenceImages;
       }
     }
 
@@ -293,6 +307,10 @@ export class AgentContextAssemblyService {
     }
     sections.push(identity);
 
+    if (context.promptGuidelines) {
+      sections.push(`\n## Brand Guidelines\n${context.promptGuidelines}`);
+    }
+
     // Visual identity
     if (context.visualIdentity) {
       const visParts: string[] = [];
@@ -306,14 +324,27 @@ export class AgentContextAssemblyService {
           `- Secondary color: ${context.visualIdentity.secondaryColor}`,
         );
       }
+      if (context.visualIdentity.backgroundColor) {
+        visParts.push(
+          `- Background color: ${context.visualIdentity.backgroundColor}`,
+        );
+      }
       if (context.visualIdentity.fontFamily) {
         visParts.push(`- Font: ${context.visualIdentity.fontFamily}`);
+      }
+      if (context.visualIdentity.logoUrl) {
+        visParts.push(`- Logo reference: ${context.visualIdentity.logoUrl}`);
+      }
+      if (context.visualIdentity.bannerUrl) {
+        visParts.push(
+          `- Banner reference: ${context.visualIdentity.bannerUrl}`,
+        );
       }
       if (context.visualIdentity.referenceImages?.length) {
         const byCategory = new Map<string, string[]>();
         for (const img of context.visualIdentity.referenceImages) {
           const labels = byCategory.get(img.category) ?? [];
-          labels.push(img.label || 'untitled');
+          labels.push(img.label ? `${img.label} (${img.url})` : img.url);
           byCategory.set(img.category, labels);
         }
         for (const [cat, labels] of byCategory) {
@@ -490,6 +521,97 @@ export class AgentContextAssemblyService {
     }
 
     return sections.join('');
+  }
+
+  private readTextField(value: unknown): string | undefined {
+    return typeof value === 'string' && value.trim().length > 0
+      ? value
+      : undefined;
+  }
+
+  private readUrlField(value: unknown): string | undefined {
+    return this.readTextField(value);
+  }
+
+  private readNonDefaultColor(
+    value: unknown,
+    defaultValue: string,
+  ): string | undefined {
+    if (typeof value !== 'string' || value.trim().length === 0) {
+      return undefined;
+    }
+
+    return value.trim().toLowerCase() === defaultValue.toLowerCase()
+      ? undefined
+      : value;
+  }
+
+  private readReferenceImages(value: unknown): Array<{
+    category: string;
+    label?: string;
+    url: string;
+  }> {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value.flatMap((img) => {
+      if (typeof img === 'string') {
+        return this.readUrlField(img)
+          ? [{ category: 'reference', url: img }]
+          : [];
+      }
+
+      if (!img || typeof img !== 'object' || Array.isArray(img)) {
+        return [];
+      }
+
+      const record = img as Record<string, unknown>;
+      const url = this.readUrlField(record.url);
+      if (!url) {
+        return [];
+      }
+
+      return [
+        {
+          category: this.readTextField(record.category) ?? 'reference',
+          label: this.readTextField(record.label),
+          url,
+        },
+      ];
+    });
+  }
+
+  private toBrandKitSourceBrand(
+    brand: Record<string, unknown>,
+  ): BrandKitSourceBrand {
+    const source: BrandKitSourceBrand = {
+      agentConfig:
+        brand.agentConfig &&
+        typeof brand.agentConfig === 'object' &&
+        !Array.isArray(brand.agentConfig)
+          ? (brand.agentConfig as BrandKitSourceBrand['agentConfig'])
+          : undefined,
+      backgroundColor: this.readTextField(brand.backgroundColor),
+      bannerUrl: this.readUrlField(brand.banner),
+      description: this.readTextField(brand.description),
+      fontFamily: this.readTextField(brand.fontFamily),
+      id:
+        this.readTextField(brand.id) ??
+        this.readTextField(brand.id) ??
+        'unknown-brand',
+      label: this.readTextField(brand.label),
+      logoUrl: this.readUrlField(brand.logo),
+      organization:
+        this.readTextField(brand.organizationId) ??
+        this.readTextField(brand.organization),
+      primaryColor: this.readTextField(brand.primaryColor),
+      referenceImages: this.readReferenceImages(brand.referenceImages),
+      secondaryColor: this.readTextField(brand.secondaryColor),
+      text: this.readTextField(brand.text),
+    };
+
+    return source;
   }
 
   private async loadMemoryLayer(

@@ -5,9 +5,9 @@ import { AgentMessageBusService } from './agent-message-bus.service';
 
 const makePublisher = () => ({
   expire: vi.fn().mockResolvedValue(1),
-  lRange: vi.fn().mockResolvedValue([]),
-  lTrim: vi.fn().mockResolvedValue('OK'),
-  rPush: vi.fn().mockResolvedValue(1),
+  lrange: vi.fn().mockResolvedValue([]),
+  ltrim: vi.fn().mockResolvedValue('OK'),
+  rpush: vi.fn().mockResolvedValue(1),
 });
 
 describe('AgentMessageBusService', () => {
@@ -65,11 +65,11 @@ describe('AgentMessageBusService', () => {
     it('publishes message to Redis list and pub/sub channel', async () => {
       await service.publish(message);
 
-      expect(publisher.rPush).toHaveBeenCalledWith(
+      expect(publisher.rpush).toHaveBeenCalledWith(
         'campaign:campaign-123:message_history',
         JSON.stringify(message),
       );
-      expect(publisher.lTrim).toHaveBeenCalledWith(
+      expect(publisher.ltrim).toHaveBeenCalledWith(
         'campaign:campaign-123:message_history',
         -50,
         -1,
@@ -96,15 +96,15 @@ describe('AgentMessageBusService', () => {
       redisService.getPublisher.mockReturnValue(null as never);
       await service.publish(message);
 
-      expect(publisher.rPush).not.toHaveBeenCalled();
+      expect(publisher.rpush).not.toHaveBeenCalled();
       expect(loggerService.warn).toHaveBeenCalledWith(
         expect.stringContaining('Redis not available'),
         expect.any(Object),
       );
     });
 
-    it('logs error when rPush throws', async () => {
-      publisher.rPush.mockRejectedValue(new Error('Redis error'));
+    it('logs error when rpush throws', async () => {
+      publisher.rpush.mockRejectedValue(new Error('Redis error'));
       await service.publish(message);
       expect(loggerService.error).toHaveBeenCalled();
     });
@@ -138,7 +138,7 @@ describe('AgentMessageBusService', () => {
       await service.subscribe('campaign-xyz', handler);
 
       const inbound = { campaignId: 'campaign-xyz', type: 'update' };
-      capturedCallback!(inbound);
+      capturedCallback?.(inbound);
 
       expect(handler).toHaveBeenCalledWith(inbound);
     });
@@ -159,11 +159,11 @@ describe('AgentMessageBusService', () => {
         { campaignId: 'campaign-123', type: 'msg' },
         { campaignId: 'campaign-123', type: 'msg2' },
       ];
-      publisher.lRange.mockResolvedValue(msgs.map((m) => JSON.stringify(m)));
+      publisher.lrange.mockResolvedValue(msgs.map((m) => JSON.stringify(m)));
 
       const result = await service.getRecentMessages('campaign-123');
       expect(result).toEqual(msgs);
-      expect(publisher.lRange).toHaveBeenCalledWith(
+      expect(publisher.lrange).toHaveBeenCalledWith(
         'campaign:campaign-123:message_history',
         -50,
         -1,
@@ -171,17 +171,17 @@ describe('AgentMessageBusService', () => {
     });
 
     it('respects custom limit', async () => {
-      publisher.lRange.mockResolvedValue([]);
+      publisher.lrange.mockResolvedValue([]);
       await service.getRecentMessages('campaign-123', 10);
-      expect(publisher.lRange).toHaveBeenCalledWith(
+      expect(publisher.lrange).toHaveBeenCalledWith(
         'campaign:campaign-123:message_history',
         -10,
         -1,
       );
     });
 
-    it('returns empty array and logs error when lRange throws', async () => {
-      publisher.lRange.mockRejectedValue(new Error('Redis error'));
+    it('returns empty array and logs error when lrange throws', async () => {
+      publisher.lrange.mockRejectedValue(new Error('Redis error'));
       const result = await service.getRecentMessages('campaign-123');
       expect(result).toEqual([]);
       expect(loggerService.error).toHaveBeenCalled();

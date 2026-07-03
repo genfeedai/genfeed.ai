@@ -20,6 +20,7 @@ import { CreateMergedVideoDto } from '@api/collections/videos/dto/create-video.d
 import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
 import type { Video } from '@api/collections/videos/schemas/video.schema';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { requireVideoOutputPath } from '@api/collections/videos/utils/video-processing-result.util';
 import { ConfigService } from '@api/config/config.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -96,14 +97,6 @@ export class VideosRelationshipsController {
     private readonly websocketService: NotificationsPublisherService,
     private readonly whisperService: WhisperService,
   ) {}
-
-  private requireOutputPath(value: unknown): string {
-    if (typeof value !== 'string' || value.length === 0) {
-      throw new Error('Video processing result missing outputPath');
-    }
-
-    return value;
-  }
 
   @Get(':videoId/children')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -218,14 +211,14 @@ export class VideosRelationshipsController {
         status: IngredientStatus.PROCESSING,
       });
 
-    const ingredientId = String(ingredientData._id);
+    const ingredientId = String(ingredientData.id);
     const websocketURL = WebSocketPaths.video(ingredientId);
 
     // Create activity to track merge progress
     const activity = await this.activitiesService.create(
       new ActivityEntity({
         brand: publicMetadata.brand,
-        entityId: ingredientData._id,
+        entityId: ingredientData.id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.VIDEO_PROCESSING,
         organization: publicMetadata.organization,
@@ -239,7 +232,7 @@ export class VideosRelationshipsController {
         }),
       }),
     );
-    const activityId = activity._id.toString();
+    const activityId = activity.id.toString();
 
     // Queue merge videos operation
     this.fileQueueService
@@ -274,7 +267,7 @@ export class VideosRelationshipsController {
           job.jobId,
           300_000,
         );
-        let output = this.requireOutputPath(result.outputPath);
+        let output = requireVideoOutputPath(result.outputPath);
 
         if (isResizeEnabled) {
           // Queue portrait conversion in files.genfeed service
@@ -296,7 +289,7 @@ export class VideosRelationshipsController {
             portraitJob.jobId,
             180000, // 3 minutes for portrait conversion
           );
-          output = this.requireOutputPath(result.outputPath);
+          output = requireVideoOutputPath(result.outputPath);
         }
 
         // Upload to S3 the first version of the video
@@ -344,7 +337,7 @@ export class VideosRelationshipsController {
               captionsJob.jobId,
               180000, // 3 minutes for adding captions
             );
-            output = this.requireOutputPath(result.outputPath);
+            output = requireVideoOutputPath(result.outputPath);
           } catch (error: unknown) {
             this.loggerService.error(
               `Failed to generate or add captions for merged video ${ingredientId}`,
@@ -356,7 +349,7 @@ export class VideosRelationshipsController {
         }
 
         const meta = await this.filesClientService.uploadToS3(
-          ingredientData._id,
+          ingredientData.id,
           `videos`,
           {
             path: output,
@@ -364,14 +357,14 @@ export class VideosRelationshipsController {
           },
         );
 
-        await this.metadataService.patch(metadataData._id, {
+        await this.metadataService.patch(metadataData.id, {
           duration: meta.duration,
           height: meta.height,
           size: meta.size,
           width: meta.width,
         });
 
-        await this.ingredientsService.patch(ingredientData._id, {
+        await this.ingredientsService.patch(ingredientData.id, {
           status: IngredientStatus.GENERATED,
           transformations: [TransformationCategory.MERGED],
         });
@@ -381,7 +374,7 @@ export class VideosRelationshipsController {
           websocketURL,
           {
             eventType: WebSocketEventType.VIDEO_MERGED,
-            id: ingredientData._id,
+            id: ingredientData.id,
             status: WebSocketEventStatus.COMPLETED,
             transformation: TransformationCategory.MERGED,
           },
@@ -430,7 +423,7 @@ export class VideosRelationshipsController {
         });
 
         // Update ingredient status to failed
-        await this.ingredientsService.patch(ingredientData._id, {
+        await this.ingredientsService.patch(ingredientData.id, {
           status: IngredientStatus.FAILED,
         });
 

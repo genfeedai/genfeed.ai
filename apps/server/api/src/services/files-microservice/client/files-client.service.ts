@@ -5,17 +5,8 @@ import { IS_SELF_HOSTED } from '@genfeedai/config';
 import { FileInputType } from '@genfeedai/enums';
 import type {
   IApiUploadSource,
-  ICaptionConfig,
-  IDownloadHeaders,
   IFFprobeStream,
   IFileMetadata,
-  IGifOptions,
-  IImageInput,
-  IImageToVideoConfig,
-  IKenBurnsOptions,
-  IPortraitBlurOptions,
-  ISplitScreenOptions,
-  ISplitScreenVideo,
   IVideoDimensions,
   UploadSource,
 } from '@genfeedai/interfaces';
@@ -36,142 +27,6 @@ export class FilesClientService {
     this.filesServiceUrl =
       this.configService.get('GENFEEDAI_MICROSERVICES_FILES_URL') ||
       'http://localhost:3012';
-  }
-
-  async generateCaptions(
-    videoUrl: string,
-    captions: ICaptionConfig,
-    ingredientId: string,
-  ) {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post(
-          `${this.filesServiceUrl}/v1/files/processing/captions`,
-          {
-            captions,
-            ingredientId,
-            videoUrl,
-          },
-        ),
-      );
-      return response.data;
-    } catch (error: unknown) {
-      this.loggerService.error('Failed to generate captions', error);
-      throw error;
-    }
-  }
-
-  async createGif(videoUrl: string, outputPath: string, options?: IGifOptions) {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post(
-          `${this.filesServiceUrl}/v1/files/processing/gif`,
-          {
-            options,
-            outputPath,
-            videoUrl,
-          },
-        ),
-      );
-      return response.data;
-    } catch (error: unknown) {
-      this.loggerService.error('Failed to create GIF', error);
-      throw error;
-    }
-  }
-
-  async createVideoFromImages(
-    images: IImageInput[],
-    config: IImageToVideoConfig,
-    ingredientId: string,
-  ) {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post(
-          `${this.filesServiceUrl}/v1/files/processing/image-to-video`,
-          {
-            config,
-            images,
-            ingredientId,
-          },
-        ),
-      );
-      return response.data;
-    } catch (error: unknown) {
-      this.loggerService.error('Failed to create video from images', error);
-      throw error;
-    }
-  }
-
-  async applyKenBurnsEffect(
-    imageUrl: string,
-    duration: number,
-    ingredientId: string,
-    options?: IKenBurnsOptions,
-  ) {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post(
-          `${this.filesServiceUrl}/v1/files/processing/ken-burns`,
-          {
-            duration,
-            imageUrl,
-            ingredientId,
-            options,
-          },
-        ),
-      );
-      return response.data;
-    } catch (error: unknown) {
-      this.loggerService.error('Failed to apply Ken Burns effect', error);
-      throw error;
-    }
-  }
-
-  async applyPortraitBlur(
-    videoUrl: string,
-    ingredientId: string,
-    options?: IPortraitBlurOptions,
-  ) {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post(
-          `${this.filesServiceUrl}/v1/files/processing/portrait-blur`,
-          {
-            ingredientId,
-            options,
-            videoUrl,
-          },
-        ),
-      );
-      return response.data;
-    } catch (error: unknown) {
-      this.loggerService.error('Failed to apply portrait blur', error);
-      throw error;
-    }
-  }
-
-  async createSplitScreenVideo(
-    videos: ISplitScreenVideo[],
-    ingredientId: string,
-    options?: ISplitScreenOptions,
-  ) {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post(
-          `${this.filesServiceUrl}/v1/files/processing/split-screen`,
-          {
-            ingredientId,
-            options,
-            videos,
-          },
-        ),
-      );
-      return response.data;
-    } catch (error: unknown) {
-      this.loggerService.error('Failed to create split screen video', error);
-      throw error;
-    }
   }
 
   async resizeImage(imageData: Buffer, target: IVideoDimensions) {
@@ -208,65 +63,6 @@ export class FilesClientService {
       return Buffer.from(response.data.data, 'base64');
     } catch (error: unknown) {
       this.loggerService.error('Failed to resize image from URL', error);
-      throw error;
-    }
-  }
-
-  async resizeVideo(inputPath: string, target: IVideoDimensions) {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post(
-          `${this.filesServiceUrl}/v1/files/processing/resize-video`,
-          {
-            height: target.height,
-            inputPath,
-            width: target.width,
-          },
-        ),
-      );
-      return response.data;
-    } catch (error: unknown) {
-      this.loggerService.error('Failed to resize video', error);
-      throw error;
-    }
-  }
-
-  async downloadFile(
-    url: string,
-    outputPath: string,
-    headers?: IDownloadHeaders,
-  ) {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post(
-          `${this.filesServiceUrl}/v1/files/processing/download-file`,
-          {
-            headers,
-            outputPath,
-            url,
-          },
-        ),
-      );
-      return response.data;
-    } catch (error: unknown) {
-      this.loggerService.error('Failed to download file', error);
-      throw error;
-    }
-  }
-
-  async getVideoMetadata(videoPath: string) {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post(
-          `${this.filesServiceUrl}/v1/files/processing/get-video-metadata`,
-          {
-            videoPath,
-          },
-        ),
-      );
-      return response.data;
-    } catch (error: unknown) {
-      this.loggerService.error('Failed to get video metadata', error);
       throw error;
     }
   }
@@ -312,25 +108,6 @@ export class FilesClientService {
     }
   }
 
-  async extractFrames(videoPath: string, outputDir: string, fps?: number) {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post(
-          `${this.filesServiceUrl}/v1/files/processing/extract-frames`,
-          {
-            fps,
-            outputDir,
-            videoPath,
-          },
-        ),
-      );
-      return response.data;
-    } catch (error: unknown) {
-      this.loggerService.error('Failed to extract frames', error);
-      throw error;
-    }
-  }
-
   async generateThumbnail(
     videoUrl: string,
     ingredientId: string,
@@ -352,29 +129,6 @@ export class FilesClientService {
       return response.data;
     } catch (error: unknown) {
       this.loggerService.error('Failed to generate thumbnail', error);
-      throw error;
-    }
-  }
-
-  async mergeVideos(
-    videoPaths: string[],
-    outputPath: string,
-    transition?: string,
-  ) {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post(
-          `${this.filesServiceUrl}/v1/files/processing/merge-videos`,
-          {
-            outputPath,
-            transition,
-            videoPaths,
-          },
-        ),
-      );
-      return response.data;
-    } catch (error: unknown) {
-      this.loggerService.error('Failed to merge videos', error);
       throw error;
     }
   }

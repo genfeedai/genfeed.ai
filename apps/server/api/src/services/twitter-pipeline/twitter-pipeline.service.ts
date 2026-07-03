@@ -1,8 +1,13 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import {
+  SYSTEM_WORKFLOW_ACTION_IDS,
+  SystemWorkflowProvenanceService,
+} from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
+import { CredentialPlatform, WorkflowExecutionTrigger } from '@genfeedai/enums';
 import type {
   IReplyBotCredentialData,
   ITwitterOpportunity,
@@ -24,6 +29,7 @@ export class TwitterPipelineService {
     private readonly openRouterService: OpenRouterService,
     private readonly botActionExecutorService: BotActionExecutorService,
     private readonly credentialsService: CredentialsService,
+    private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
   ) {}
 
   private buildCredentialData(credential: {
@@ -38,10 +44,14 @@ export class TwitterPipelineService {
     }
 
     return {
-      accessToken: credential.accessToken,
-      accessTokenSecret: credential.accessTokenSecret ?? undefined,
+      accessToken: EncryptionUtil.decrypt(credential.accessToken),
+      accessTokenSecret: credential.accessTokenSecret
+        ? EncryptionUtil.decrypt(credential.accessTokenSecret)
+        : undefined,
       externalId: credential.externalId ?? undefined,
-      refreshToken: credential.refreshToken ?? undefined,
+      refreshToken: credential.refreshToken
+        ? EncryptionUtil.decrypt(credential.refreshToken)
+        : undefined,
       username: credential.externalHandle ?? undefined,
     };
   }
@@ -127,92 +137,118 @@ export class TwitterPipelineService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const credential = await this.credentialsService.findOne({
-        brand: brandId,
-        isDeleted: false,
-        organization: orgId,
-        platform: CredentialPlatform.TWITTER,
-      });
+      const { result } = await this.systemWorkflowProvenanceService.runAction(
+        {
+          actionType: `twitter-${request.type}`,
+          canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.TWITTER_PUBLISH_ACTION,
+          description:
+            'Publishes Twitter original, reply, and quote actions through connected brand credentials.',
+          failureMessage: (publishResult) =>
+            publishResult.success
+              ? undefined
+              : publishResult.error || 'Twitter publish failed',
+          inputValues: {
+            brandId,
+            targetTweetId: request.targetTweetId,
+            textLength: request.text.length,
+            type: request.type,
+          },
+          label: 'Twitter Publish Action',
+          organizationId: orgId,
+          source: 'TwitterPipelineService.publish',
+          trigger: WorkflowExecutionTrigger.API,
+        },
+        async () => {
+          const credential = await this.credentialsService.findOne({
+            brand: brandId,
+            isDeleted: false,
+            organization: orgId,
+            platform: CredentialPlatform.TWITTER,
+          });
 
-      if (!credential) {
-        return { error: 'Twitter credential not found', success: false };
-      }
+          if (!credential) {
+            return { error: 'Twitter credential not found', success: false };
+          }
 
-      const credentialData = this.buildCredentialData(credential);
-      if (!credentialData) {
-        return {
-          error: 'Twitter credential missing accessToken',
-          success: false,
-        };
-      }
-
-      switch (request.type) {
-        case 'reply': {
-          if (!request.targetTweetId) {
+          const credentialData = this.buildCredentialData(credential);
+          if (!credentialData) {
             return {
-              error: 'targetTweetId required for reply',
+              error: 'Twitter credential missing accessToken',
               success: false,
             };
           }
-          const replyResult = await this.botActionExecutorService.postReply(
-            credentialData,
-            {
-              authorId: '',
-              authorUsername: '',
-              createdAt: new Date(),
-              id: request.targetTweetId,
-              text: '',
-            },
-            request.text,
-          );
-          return {
-            error: replyResult.error,
-            success: replyResult.success,
-            tweetId: replyResult.contentId,
-            tweetUrl: replyResult.contentUrl,
-          };
-        }
 
-        case 'quote': {
-          if (!request.targetTweetId) {
-            return {
-              error: 'targetTweetId required for quote',
-              success: false,
-            };
+          switch (request.type) {
+            case 'reply': {
+              if (!request.targetTweetId) {
+                return {
+                  error: 'targetTweetId required for reply',
+                  success: false,
+                };
+              }
+              const replyResult = await this.botActionExecutorService.postReply(
+                credentialData,
+                {
+                  authorId: '',
+                  authorUsername: '',
+                  createdAt: new Date(),
+                  id: request.targetTweetId,
+                  text: '',
+                },
+                request.text,
+              );
+              return {
+                error: replyResult.error,
+                success: replyResult.success,
+                tweetId: replyResult.contentId,
+                tweetUrl: replyResult.contentUrl,
+              };
+            }
+
+            case 'quote': {
+              if (!request.targetTweetId) {
+                return {
+                  error: 'targetTweetId required for quote',
+                  success: false,
+                };
+              }
+              const quoteResult =
+                await this.botActionExecutorService.postQuoteTweet(
+                  credentialData,
+                  request.targetTweetId,
+                  request.text,
+                );
+              return {
+                error: quoteResult.error,
+                success: quoteResult.success,
+                tweetId: quoteResult.contentId,
+                tweetUrl: quoteResult.contentUrl,
+              };
+            }
+
+            case 'original': {
+              const tweetResult = await this.botActionExecutorService.postTweet(
+                credentialData,
+                request.text,
+              );
+              return {
+                error: tweetResult.error,
+                success: tweetResult.success,
+                tweetId: tweetResult.contentId,
+                tweetUrl: tweetResult.contentUrl,
+              };
+            }
+
+            default:
+              return {
+                error: `Unknown publish type: ${request.type}`,
+                success: false,
+              };
           }
-          const quoteResult =
-            await this.botActionExecutorService.postQuoteTweet(
-              credentialData,
-              request.targetTweetId,
-              request.text,
-            );
-          return {
-            error: quoteResult.error,
-            success: quoteResult.success,
-            tweetId: quoteResult.contentId,
-            tweetUrl: quoteResult.contentUrl,
-          };
-        }
+        },
+      );
 
-        case 'original': {
-          const tweetResult = await this.botActionExecutorService.postTweet(
-            credentialData,
-            request.text,
-          );
-          return {
-            error: tweetResult.error,
-            success: tweetResult.success,
-            tweetId: tweetResult.contentId,
-            tweetUrl: tweetResult.contentUrl,
-          };
-        }
-
-        default:
-          return {
-            error: `Unknown publish type: ${request.type}`,
-            success: false,
-          };
-      }
+      return result;
     } catch (error: unknown) {
       const errorMessage = (error as Error)?.message ?? 'Unknown error';
       this.loggerService.error(`${url} failed`, { error: errorMessage });

@@ -1,33 +1,15 @@
-vi.mock('@genfeedai/prisma', () => ({
-  Prisma: {
-    empty: { sql: '', values: [] },
-    raw: (sql: string) => ({ sql, values: [] }),
-    sql: (strings: TemplateStringsArray, ...values: unknown[]) => {
-      const parts: string[] = [];
-      const parameters: unknown[] = [];
-
-      strings.forEach((part, index) => {
-        parts.push(part);
-        if (index >= values.length) {
-          return;
-        }
-
-        const value = values[index];
-        if (isSqlFragment(value)) {
-          parts.push(value.sql);
-          parameters.push(...value.values);
-          return;
-        }
-
-        parts.push('?');
-        parameters.push(value);
-      });
-
-      return { sql: parts.join(''), values: parameters };
-    },
-  },
-  PrismaClient: class {},
-}));
+// canonicalPrismaMock()'s Prisma.sql/raw/empty tagged-template implementation
+// is algorithmically equivalent to the hand-rolled version this replaces (both
+// walk `strings`/`values`, flatten nested sql fragments, join with `?`
+// placeholders) — every assertion below reads `.sql`/`.values` off the
+// captured query, never an exact-shape `toEqual`, so the extra `.text` field
+// canonicalPrismaMock()'s fragments carry is inert.
+vi.mock('@genfeedai/prisma', async () => {
+  const { canonicalPrismaMock } = await import(
+    '@api/shared/testing/prisma-mock'
+  );
+  return canonicalPrismaMock();
+});
 
 interface SqlFragmentMock {
   sql: string;
@@ -369,6 +351,28 @@ describe('AnalyticsService', () => {
 
       expect(result).toEqual([]);
     });
+
+    it('should parameterize brand, organization, and date filters', async () => {
+      const capturedQueries = captureQueryRawCalls();
+      const brandId = "brand-filter-'1";
+      const organizationId = "org-filter-'1";
+
+      await service.getBestPostingTimes(
+        '2025-01-01',
+        '2025-01-31',
+        brandId,
+        organizationId,
+      );
+
+      expect(capturedQueries[0].sql).toContain('"date" >= ?');
+      expect(capturedQueries[0].sql).toContain('"date" <= ?');
+      expect(capturedQueries[0].sql).toContain('AND "brandId" = ?');
+      expect(capturedQueries[0].sql).toContain('AND "organizationId" = ?');
+      expect(capturedQueries[0].sql).not.toContain(brandId);
+      expect(capturedQueries[0].sql).not.toContain(organizationId);
+      expect(capturedQueries[0].values).toContain(brandId);
+      expect(capturedQueries[0].values).toContain(organizationId);
+    });
   });
 
   // ==========================================================================
@@ -520,6 +524,19 @@ describe('AnalyticsService', () => {
       expect(result[0].viewsPercentage).toBe(100);
       expect(result[0].postsPercentage).toBe(100);
     });
+
+    it('should parameterize brand and date filters', async () => {
+      const capturedQueries = captureQueryRawCalls();
+      const brandId = "brand-filter-'1";
+
+      await service.getPlatformComparison('2025-01-01', '2025-01-31', brandId);
+
+      expect(capturedQueries[0].sql).toContain('"date" >= ?');
+      expect(capturedQueries[0].sql).toContain('"date" <= ?');
+      expect(capturedQueries[0].sql).toContain('AND "brandId" = ?');
+      expect(capturedQueries[0].sql).not.toContain(brandId);
+      expect(capturedQueries[0].values).toContain(brandId);
+    });
   });
 
   // ==========================================================================
@@ -603,6 +620,27 @@ describe('AnalyticsService', () => {
 
       expect(result.metric).toBe('posts');
     });
+
+    it('should parameterize brand and date filters in current and previous windows', async () => {
+      const capturedQueries = captureQueryRawCalls([[], []]);
+      const brandId = "brand-filter-'1";
+
+      await service.getGrowthTrends(
+        '2025-01-01',
+        '2025-01-31',
+        AnalyticsMetric.VIEWS,
+        brandId,
+      );
+
+      expect(capturedQueries).toHaveLength(2);
+      for (const query of capturedQueries) {
+        expect(query.sql).toContain('"date" >= ?');
+        expect(query.sql).toContain('"date" <= ?');
+        expect(query.sql).toContain('AND "brandId" = ?');
+        expect(query.sql).not.toContain(brandId);
+        expect(query.values).toContain(brandId);
+      }
+    });
   });
 
   // ==========================================================================
@@ -649,17 +687,20 @@ describe('AnalyticsService', () => {
     it('should call $queryRaw when filtering by brand and platform', async () => {
       const capturedQueries = captureQueryRawCalls();
 
-      const brandId = 'brand-filter-1';
+      const brandId = "brand-filter-'1";
       await service.getEngagementBreakdown(
-        undefined,
-        undefined,
+        '2025-01-01',
+        '2025-01-31',
         brandId,
         CredentialPlatform.YOUTUBE,
       );
 
       expect(mockPrismaService.$queryRaw).toHaveBeenCalled();
+      expect(capturedQueries[0].sql).toContain('"date" >= ?');
+      expect(capturedQueries[0].sql).toContain('"date" <= ?');
       expect(capturedQueries[0].sql).toContain('AND "brandId" = ?');
       expect(capturedQueries[0].sql).toContain('AND "platform"::text = ?');
+      expect(capturedQueries[0].sql).not.toContain(brandId);
       expect(capturedQueries[0].values).toContain(brandId);
       expect(capturedQueries[0].values).toContain(CredentialPlatform.YOUTUBE);
     });
@@ -697,22 +738,29 @@ describe('AnalyticsService', () => {
       expect(result.analysis.topPlatforms).toHaveLength(1);
     });
 
-    it('should call $queryRaw when filtering by brandId', async () => {
-      mockPrismaService.$queryRaw.mockResolvedValue([]);
+    it('should parameterize brand, organization, and date filters in both raw queries', async () => {
+      const capturedQueries = captureQueryRawCalls([[], []]);
+      const brandId = "brand-filter-'1";
+      const organizationId = "org-filter-'1";
 
-      const brandId = 'brand-1';
-      await service.getViralHooks(undefined, undefined, brandId);
+      await service.getViralHooks(
+        '2025-01-01',
+        '2025-01-31',
+        brandId,
+        organizationId,
+      );
 
-      expect(mockPrismaService.$queryRaw).toHaveBeenCalled();
-    });
-
-    it('should call $queryRaw when filtering by organizationId', async () => {
-      mockPrismaService.$queryRaw.mockResolvedValue([]);
-
-      const orgId = 'org-1';
-      await service.getViralHooks(undefined, undefined, undefined, orgId);
-
-      expect(mockPrismaService.$queryRaw).toHaveBeenCalled();
+      expect(capturedQueries).toHaveLength(2);
+      for (const query of capturedQueries) {
+        expect(query.sql).toContain('pa."date" >= ?');
+        expect(query.sql).toContain('pa."date" <= ?');
+        expect(query.sql).toContain('AND pa."brandId" = ?');
+        expect(query.sql).toContain('AND pa."organizationId" = ?');
+        expect(query.sql).not.toContain(brandId);
+        expect(query.sql).not.toContain(organizationId);
+        expect(query.values).toContain(brandId);
+        expect(query.values).toContain(organizationId);
+      }
     });
   });
 });

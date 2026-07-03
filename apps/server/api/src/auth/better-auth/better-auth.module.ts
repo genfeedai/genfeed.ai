@@ -3,6 +3,7 @@ import { MembersModule } from '@api/collections/members/members.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { UserSetupModule } from '@api/collections/users/user-setup.module';
 import { UsersModule } from '@api/collections/users/users.module';
+import { CommonModule } from '@api/common/common.module';
 import { ConfigService } from '@api/config/config.service';
 import { CacheModule } from '@api/services/cache/cache.module';
 import { CacheClientService } from '@api/services/cache/services/cache-client.service';
@@ -17,9 +18,10 @@ import {
   parseCommaSeparated,
   parseTrustedOrigins,
   resolveBetterAuthBaseUrl,
+  resolveBooleanFlag,
   resolveCookieDomain,
   resolveExperimentalJoins,
-  resolveGoogleConfig,
+  resolveSocialProviderConfig,
 } from './better-auth.config';
 import {
   BETTER_AUTH_INSTANCE,
@@ -54,6 +56,7 @@ import { BetterAuthMailerService } from './services/better-auth-mailer.service';
     forwardRef(() => MembersModule),
     forwardRef(() => UserSetupModule),
     CacheModule,
+    CommonModule,
     NotificationsModule,
   ],
   providers: [
@@ -86,8 +89,8 @@ import { BetterAuthMailerService } from './services/better-auth-mailer.service';
 
         const secret = config.get('BETTER_AUTH_SECRET');
         if (!secret) {
-          // Fail fast at boot (surfaced by BOOT_SMOKE) rather than at first
-          // sign-in: a missing secret would silently break auth.
+          // Fail fast at boot (surfaced by the deploy boot-smoke gate) rather
+          // than at first sign-in: a missing secret would silently break auth.
           throw new Error(
             'BETTER_AUTH_SECRET is required when BETTER_AUTH_ENABLED=true',
           );
@@ -111,7 +114,11 @@ import { BetterAuthMailerService } from './services/better-auth-mailer.service';
               return;
             }
             try {
-              await cacheClient.instance.set(key, value, { EX: ttlSeconds });
+              if (ttlSeconds === undefined) {
+                await cacheClient.instance.set(key, value);
+              } else {
+                await cacheClient.instance.set(key, value, 'EX', ttlSeconds);
+              }
             } catch {
               // Fail open: never let a Redis error break auth rate limiting.
               return;
@@ -131,7 +138,11 @@ import { BetterAuthMailerService } from './services/better-auth-mailer.service';
           experimentalJoins: resolveExperimentalJoins(
             config.get('BETTER_AUTH_EXPERIMENTAL_JOINS'),
           ),
-          google: resolveGoogleConfig(
+          github: resolveSocialProviderConfig(
+            config.get('GITHUB_CLIENT_ID'),
+            config.get('GITHUB_CLIENT_SECRET'),
+          ),
+          google: resolveSocialProviderConfig(
             config.get('GOOGLE_CLIENT_ID'),
             config.get('GOOGLE_CLIENT_SECRET'),
           ),
@@ -139,6 +150,10 @@ import { BetterAuthMailerService } from './services/better-auth-mailer.service';
             config.get('BETTER_AUTH_IP_HEADERS'),
           ),
           rateLimitStore,
+          requireEmailVerification: resolveBooleanFlag(
+            config.get('BETTER_AUTH_REQUIRE_EMAIL_VERIFICATION'),
+            false,
+          ),
           // Awaited so provisioning completes before the create resolves; the
           // UserProvisioningListener (@OnEvent) runs under Nest DI.
           onUserCreated: async (event) => {
@@ -147,6 +162,8 @@ import { BetterAuthMailerService } from './services/better-auth-mailer.service';
           prisma,
           secret,
           sendMagicLink: (params) => mailer.sendMagicLink(params),
+          sendVerificationEmail: (params) =>
+            mailer.sendVerificationEmail(params),
           trustedOrigins: parseTrustedOrigins(
             config.get('BETTER_AUTH_TRUSTED_ORIGINS'),
           ),

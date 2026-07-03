@@ -1,6 +1,10 @@
 import { AgentCampaignsService } from '@api/collections/agent-campaigns/services/agent-campaigns.service';
 import { type AgentMemoryDocument } from '@api/collections/agent-memories/schemas/agent-memory.schema';
-import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
+import {
+  type AgentFeedbackMemoryDocument,
+  type AgentFeedbackMemoryInfluence,
+  AgentMemoriesService,
+} from '@api/collections/agent-memories/services/agent-memories.service';
 import { type AgentMessageDocument } from '@api/collections/agent-messages/schemas/agent-message.schema';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { CreateAgentRunDto } from '@api/collections/agent-runs/dto/create-agent-run.dto';
@@ -12,6 +16,7 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
+import { ConfigService } from '@api/config/config.service';
 import {
   fromPromiseEffect,
   runEffectPromise,
@@ -166,6 +171,7 @@ Guidelines:
 - When a user asks to do something (generate, create, schedule, etc.), use the appropriate tool immediately.
 - For batch requests like "create X posts for @handle": resolve the handle first, then call generate_content_batch.
 - For questions about data (analytics, credits, posts), call the relevant tool to get real data rather than guessing.
+- For questions about available Genfeed tools, MCP coverage, CLI capabilities, or "what can you do?", call \`list_genfeed_tools\` and answer from the live catalog.
 - For "publish this" or "publish the selected content" requests, call \`create_post\` with \`contentId\` or \`ingredientId\` so the user gets a publish confirmation card before anything is published.
 - For analytics requests about a specific selected content item or post, call \`get_analytics\` with \`contentId\`, \`ingredientId\`, or \`postId\`. Use organization summary analytics only for workspace-level questions.
 - For "current/selected brand" questions, call \`get_current_brand\`.
@@ -356,6 +362,27 @@ export interface AgentThreadUiActionRequest {
 const MAX_PAGE_CONTEXT_FIELD_LENGTH = 4_000;
 const RESULT_SUMMARY_MAX_LENGTH = 500;
 
+// During live token streaming, cancellation cannot be checked per token
+// (isRunCancelled is a Redis lookup); throttle it to at most once per this
+// interval so a cancelled run tears down the upstream stream promptly without
+// a lookup on every delta.
+const STREAM_CANCEL_CHECK_INTERVAL_MS = 750;
+// Per-token publish failures are swallowed to avoid aborting a live stream on a
+// transient Redis hiccup, but a sustained outage should be diagnosable — log at
+// most once per this interval per turn instead of once per dropped token.
+const STREAM_PUBLISH_LOG_INTERVAL_MS = 5_000;
+
+// Thrown from the streaming onToken callback when the run has been cancelled.
+// It unwinds the provider's for-await loop (tearing down the upstream HTTP/SDK
+// stream) and is caught at the dispatch site, which routes it to the
+// cancelled-stream handler rather than treating it as a generation error.
+class StreamCancelledError extends Error {
+  constructor() {
+    super('agent stream cancelled');
+    this.name = 'StreamCancelledError';
+  }
+}
+
 function clampPageContextField(value?: string): string | null {
   const normalized = value?.replace(/\s+/g, ' ').trim();
 
@@ -491,8 +518,20 @@ export class AgentOrchestratorService {
     private readonly agentProfileResolverService?: AgentProfileResolverService,
     @Optional()
     private readonly threadContextCompressorService?: ThreadContextCompressorService,
+    @Optional()
     private readonly skillRuntimeService?: SkillRuntimeService,
+    @Optional()
+    private readonly configService?: ConfigService,
   ) {}
+
+  /**
+   * Whether real token-by-token LLM streaming is enabled for agent chat.
+   * Defaults to false (legacy simulated word-split streaming) when the flag or
+   * ConfigService is unavailable, so behaviour is unchanged unless opted in.
+   */
+  private isRealTokenStreamingEnabled(): boolean {
+    return this.configService?.get('AGENT_TOKEN_STREAMING_ENABLED') === 'true';
+  }
 
   async chat(
     request: AgentChatRequest,
@@ -896,6 +935,8 @@ export class AgentOrchestratorService {
             );
           const memoryEntriesForResponse =
             this.buildMemoryEntriesForResponse(resolvedMemories);
+          const memoryInfluence =
+            this.buildMemoryInfluenceMetadata(resolvedMemories);
           const reasoning = assistantMessage.reasoning_content ?? null;
           const enhancedUiActions = this.buildAssistantUiActions({
             reviewRequired,
@@ -910,6 +951,7 @@ export class AgentOrchestratorService {
             }),
             isFallbackContent: normalizedContent.isFallback,
             memoryEntries: memoryEntriesForResponse,
+            memoryInfluence,
             ...this.buildResolvedModelMetadata(model, Array.from(actualModels)),
             reasoning,
             reviewRequired,
@@ -999,7 +1041,7 @@ export class AgentOrchestratorService {
           let toolName = requestedToolName;
 
           if (!allowedToolNames.has(requestedToolName)) {
-            const recoveredToolName = this.getUnknownToolRecovery(
+            const recoveredToolName = this.getGenerationPreparationRedirect(
               requestedToolName,
               allowedToolNames,
             );
@@ -1075,7 +1117,7 @@ export class AgentOrchestratorService {
 
           const preRemapToolName = toolName;
           const directGenerationOverride =
-            this.getGenerationPreparationOverride(toolName, allowedToolNames);
+            this.getGenerationPreparationRedirect(toolName, allowedToolNames);
           if (directGenerationOverride) {
             const originalToolName = toolName;
             toolName = directGenerationOverride;
@@ -1347,7 +1389,7 @@ export class AgentOrchestratorService {
       trigger: AgentExecutionTrigger.MANUAL,
       user: context.userId,
     } as unknown as CreateAgentRunDto);
-    const runId = String((createdRun as { _id: string })._id);
+    const runId = String((createdRun as { id: string }).id);
     const startedRun = await this.agentRunsService.start(
       runId,
       context.organizationId,
@@ -1495,6 +1537,7 @@ export class AgentOrchestratorService {
       const allUiActions: AgentUiAction[] = [];
       const memoryEntriesForResponse =
         this.buildMemoryEntriesForResponse(memoryEntries);
+      const memoryInfluence = this.buildMemoryInfluenceMetadata(memoryEntries);
       let highestRiskLevel: 'low' | 'medium' | 'high' = 'low';
       let reviewRequired = false;
       let latestUiBlocks: {
@@ -1542,6 +1585,13 @@ export class AgentOrchestratorService {
       let round = 0;
       const actualModels = new Set<string>();
 
+      // Real token streaming is skipped for title-seeding turns (seedTitle set,
+      // first message of a new thread) because the model returns a JSON
+      // {title, content} envelope there — streaming raw deltas would flash JSON
+      // at the user. Those turns keep the simulated word-split path.
+      const canStreamLiveTokens =
+        this.isRealTokenStreamingEnabled() && !(seedTitle ?? '').trim();
+
       while (round < AGENT_MAX_TOOL_ROUNDS) {
         if (await this.isRunCancelled(context)) {
           await this.handleCancelledStream(context, threadId);
@@ -1549,17 +1599,98 @@ export class AgentOrchestratorService {
         }
         round++;
 
-        const response = await this.llmDispatcher.chatCompletion(
-          this.buildAgentChatCompletionParams({
-            messages,
-            model,
-            prompt: latestUserMessage,
-            seedTitle: seedTitle ?? '',
-            source,
-            tools,
-          }),
-          context.organizationId,
-        );
+        const chatParams = this.buildAgentChatCompletionParams({
+          messages,
+          model,
+          prompt: latestUserMessage,
+          seedTitle: seedTitle ?? '',
+          source,
+          tools,
+        });
+
+        // Real deltas published live during this round; drives whether the
+        // final branch re-simulates word-split streaming or not.
+        let roundStreamedTokenCount = 0;
+        let lastCancelCheckAt = 0;
+        let lastPublishErrorLoggedAt = 0;
+
+        const onStreamToken = async (delta: string): Promise<void> => {
+          roundStreamedTokenCount++;
+
+          // Throttled cancellation check — unwinds the provider stream (and its
+          // upstream connection) instead of burning the whole generation after
+          // the user has already stopped the run.
+          const now = Date.now();
+          if (now - lastCancelCheckAt >= STREAM_CANCEL_CHECK_INTERVAL_MS) {
+            lastCancelCheckAt = now;
+            if (await this.isRunCancelled(context)) {
+              throw new StreamCancelledError();
+            }
+          }
+
+          await runEffectPromise(
+            this.publishStreamTokenEffect({
+              runId: context.runId,
+              threadId,
+              token: delta,
+              userId: context.userId,
+            }).pipe(
+              // Keep swallowing publish failures (a transient Redis hiccup must
+              // not abort a live stream) but surface a throttled log so a
+              // sustained outage is diagnosable rather than silent.
+              Effect.tapError((error) =>
+                Effect.sync(() => {
+                  const errorAt = Date.now();
+                  if (
+                    errorAt - lastPublishErrorLoggedAt >=
+                    STREAM_PUBLISH_LOG_INTERVAL_MS
+                  ) {
+                    lastPublishErrorLoggedAt = errorAt;
+                    this.loggerService.warn(
+                      `${this.constructorName} stream token publish failed (throttled)`,
+                      {
+                        error:
+                          error instanceof Error
+                            ? error.message
+                            : String(error),
+                        threadId,
+                      },
+                    );
+                  }
+                }),
+              ),
+              Effect.catchAll(() => Effect.void),
+            ),
+          );
+        };
+
+        // IIFE so a mid-stream cancellation (StreamCancelledError thrown from
+        // onStreamToken) is caught here and routed to the cancelled-stream
+        // handler; any other error still propagates as a real failure.
+        const response = await (async () => {
+          try {
+            return canStreamLiveTokens
+              ? await this.llmDispatcher.streamChatCompletionAggregated(
+                  chatParams,
+                  context.organizationId,
+                  onStreamToken,
+                )
+              : await this.llmDispatcher.chatCompletion(
+                  chatParams,
+                  context.organizationId,
+                );
+          } catch (error) {
+            if (error instanceof StreamCancelledError) {
+              return null;
+            }
+            throw error;
+          }
+        })();
+
+        if (!response) {
+          await this.handleCancelledStream(context, threadId);
+          return;
+        }
         const actualModel = await this.recordAgentResponseModel({
           actualModels: Array.from(actualModels),
           context,
@@ -1628,6 +1759,9 @@ export class AgentOrchestratorService {
               content,
               context,
               reasoning,
+              // When this round already streamed real deltas live, don't
+              // re-emit the content as simulated word-split tokens.
+              suppressTokenStreaming: roundStreamedTokenCount > 0,
               threadId,
             }),
           );
@@ -1650,6 +1784,7 @@ export class AgentOrchestratorService {
               creditsRemaining,
               isFallbackContent: normalizedContent.isFallback,
               memoryEntries: memoryEntriesForResponse,
+              memoryInfluence,
               ...this.buildResolvedModelMetadata(
                 model,
                 Array.from(actualModels),
@@ -1703,6 +1838,7 @@ export class AgentOrchestratorService {
               completionMetadata: {
                 isFallbackContent: normalizedContent.isFallback,
                 memoryEntries: memoryEntriesForResponse,
+                memoryInfluence,
                 ...this.buildResolvedModelMetadata(
                   model,
                   Array.from(actualModels),
@@ -1755,7 +1891,7 @@ export class AgentOrchestratorService {
           let toolName = requestedToolName;
 
           if (!allowedToolNames.has(requestedToolName)) {
-            const recoveredToolName = this.getUnknownToolRecovery(
+            const recoveredToolName = this.getGenerationPreparationRedirect(
               requestedToolName,
               allowedToolNames,
             );
@@ -1784,7 +1920,7 @@ export class AgentOrchestratorService {
 
           const preRemapToolName = toolName;
           const directGenerationOverride =
-            this.getGenerationPreparationOverride(toolName, allowedToolNames);
+            this.getGenerationPreparationRedirect(toolName, allowedToolNames);
           if (directGenerationOverride) {
             const originalToolName = toolName;
             toolName = directGenerationOverride;
@@ -2161,7 +2297,7 @@ export class AgentOrchestratorService {
     } as Record<string, unknown>);
     return {
       seedTitle,
-      threadId: String(thread._id ?? thread.id),
+      threadId: String(thread.id),
     };
   }
 
@@ -2325,7 +2461,7 @@ export class AgentOrchestratorService {
       user: { in: [userId] },
     });
 
-    return thread ? String(thread._id ?? thread.id) : null;
+    return thread ? String(thread.id) : null;
   }
 
   private async resolveThreadUiActionModel(
@@ -3615,17 +3751,20 @@ export class AgentOrchestratorService {
       })) as { systemPrompt?: string; memoryEntryIds?: string[] } | null;
     }
 
-    const memories = await this.agentMemoriesService.getMemoriesForPrompt(
-      context.userId,
-      context.organizationId,
-      {
-        campaignId: context.campaignId,
-        contentType: this.inferMemoryContentType(request.content),
-        limit: 8,
-        pinnedMemoryIds: thread?.memoryEntryIds,
-        query: request.content,
-      },
-    );
+    const memories =
+      await this.agentMemoriesService.getFeedbackMemoriesForGeneration(
+        context.userId,
+        context.organizationId,
+        {
+          brandId: policy.brandId,
+          campaignId: context.campaignId,
+          contentType: this.inferMemoryContentType(request.content),
+          limit: 8,
+          pinnedMemoryIds: thread?.memoryEntryIds,
+          platform: policy.platform,
+          query: request.content,
+        },
+      );
 
     const replyStyle = orgSettings?.agentReplyStyle;
     const subscriptionDefaultModel =
@@ -4086,26 +4225,7 @@ export class AgentOrchestratorService {
     return `Unknown tool requested by model: ${toolName}. Available tools: ${preview}${suffix}`;
   }
 
-  private getUnknownToolRecovery(
-    toolName: AgentToolName,
-    allowedTools: Set<AgentToolName>,
-  ): AgentToolName | null {
-    const canPrepareGeneration = allowedTools.has(
-      AgentToolName.PREPARE_GENERATION,
-    );
-    const isRecoverableGenerationTool =
-      toolName === AgentToolName.GENERATE_IMAGE ||
-      toolName === AgentToolName.GENERATE_VIDEO ||
-      toolName === AgentToolName.GENERATE_AS_IDENTITY;
-
-    if (canPrepareGeneration && isRecoverableGenerationTool) {
-      return AgentToolName.PREPARE_GENERATION;
-    }
-
-    return null;
-  }
-
-  private getGenerationPreparationOverride(
+  private getGenerationPreparationRedirect(
     toolName: AgentToolName,
     allowedTools: Set<AgentToolName>,
   ): AgentToolName | null {
@@ -4578,13 +4698,15 @@ export class AgentOrchestratorService {
   private buildMemoryEntriesForResponse(memoryEntries: AgentMemoryDocument[]) {
     return memoryEntries.map((memory) => {
       const timedMemory = memory as AgentMemoryDocument & { createdAt?: Date };
+      const influence = this.readMemoryInfluence(memory);
 
       return {
         confidence: memory.confidence,
         content: memory.content,
         contentType: memory.contentType,
         createdAt: timedMemory.createdAt?.toISOString(),
-        id: memory._id,
+        generationInfluence: influence,
+        id: memory.id,
         importance: memory.importance,
         kind: memory.kind,
         platform: memory.platform,
@@ -4597,6 +4719,58 @@ export class AgentOrchestratorService {
         tags: memory.tags ?? [],
       };
     });
+  }
+
+  private buildMemoryInfluenceMetadata(memoryEntries: AgentMemoryDocument[]) {
+    const entries = this.buildMemoryEntriesForResponse(memoryEntries)
+      .filter((entry) => entry.generationInfluence)
+      .map((entry) => ({
+        confidence: entry.confidence,
+        contentType: entry.contentType,
+        id: entry.id,
+        kind: entry.kind,
+        platform: entry.platform,
+        reasons: entry.generationInfluence?.reasons ?? [],
+        score: entry.generationInfluence?.score ?? 0,
+        sourceType: entry.sourceType,
+        summary: entry.summary || entry.content?.slice(0, 160),
+      }));
+
+    if (entries.length === 0) {
+      return {
+        entries: [],
+        mode: 'new_exploration',
+        rankingStrategy: [
+          'platform',
+          'contentType',
+          'recency',
+          'confidence',
+          'performanceRelevance',
+        ],
+        summary:
+          'No relevant prior feedback memory matched this generation request.',
+      };
+    }
+
+    const winningCount = entries.filter((entry) =>
+      ['pattern', 'winner', 'positive_example'].includes(String(entry.kind)),
+    ).length;
+
+    return {
+      entries,
+      mode: winningCount > 0 ? 'prior_winning_patterns' : 'prior_feedback',
+      rankingStrategy: [
+        'platform',
+        'contentType',
+        'recency',
+        'confidence',
+        'performanceRelevance',
+        'queryTerms',
+      ],
+      summary: `Using ${entries.length} prior feedback ${
+        entries.length === 1 ? 'memory' : 'memories'
+      } before generation.`,
+    };
   }
 
   private buildMemoryPromptSections(memories: AgentMemoryDocument[]): string {
@@ -4670,7 +4844,18 @@ export class AgentOrchestratorService {
 
     const prefix = qualifiers.length ? `[${qualifiers.join(' / ')}] ` : '';
     const snippet = base.length > 220 ? `${base.slice(0, 217)}...` : base;
-    return `- ${prefix}${snippet}`;
+    const influence = this.readMemoryInfluence(memory);
+    const topReason = influence?.reasons[0];
+    const influenceSuffix = influence
+      ? ` (score ${influence.score.toFixed(1)}${topReason ? `; ${topReason}` : ''})`
+      : '';
+    return `- ${prefix}${snippet}${influenceSuffix}`;
+  }
+
+  private readMemoryInfluence(
+    memory: AgentMemoryDocument,
+  ): AgentFeedbackMemoryInfluence | undefined {
+    return (memory as Partial<AgentFeedbackMemoryDocument>).generationInfluence;
   }
 
   private inferMemoryContentType(content: string): string {
@@ -4912,48 +5097,6 @@ export class AgentOrchestratorService {
     run: () => Promise<T>,
   ): Promise<T> {
     return runEffectPromise(this.runInThreadLaneEffect(threadId, run));
-  }
-
-  private async flushThreadMemory(
-    threadId: string,
-    context: AgentChatContext,
-    reason: 'archive' | 'branch',
-  ): Promise<void> {
-    if (!this.agentThreadEngineService) {
-      return;
-    }
-
-    const recentMessages = await this.agentMessagesService.getMessagesByRoom(
-      threadId,
-      context.organizationId,
-      { limit: 12, page: 1 },
-    );
-    const summary = recentMessages
-      .slice()
-      .reverse()
-      .filter(
-        (message) =>
-          message.role === AgentMessageRole.USER ||
-          message.role === AgentMessageRole.ASSISTANT,
-      )
-      .map((message) => `${message.role}: ${message.content ?? ''}`.trim())
-      .filter((entry) => entry.length > 0)
-      .join('\n')
-      .slice(0, 4000);
-
-    if (!summary) {
-      return;
-    }
-
-    await runEffectPromise(
-      this.recordThreadMemoryFlushEffect(
-        threadId,
-        context.organizationId,
-        context.userId,
-        summary,
-        ['agent-thread', reason],
-      ),
-    );
   }
 
   private async recordThreadTurnStarted(params: {
@@ -5243,6 +5386,7 @@ export class AgentOrchestratorService {
     context: AgentChatContext;
     reasoning: string | null;
     threadId: string;
+    suppressTokenStreaming?: boolean;
   }): Effect.Effect<void, unknown> {
     const publishReasoningEffect = params.reasoning
       ? this.publishStreamReasoningEffect({
@@ -5252,6 +5396,13 @@ export class AgentOrchestratorService {
           userId: params.context.userId,
         }).pipe(Effect.catchAll(() => Effect.void))
       : Effect.void;
+
+    // Real streaming already emitted the tokens live this turn — only the
+    // reasoning still needs publishing; the final content arrives via
+    // agent:done. Otherwise fall back to simulated word-split token streaming.
+    if (params.suppressTokenStreaming) {
+      return publishReasoningEffect.pipe(Effect.catchAll(() => Effect.void));
+    }
 
     const words = params.content.split(/(\s+)/).filter(Boolean);
 
@@ -5651,26 +5802,6 @@ export class AgentOrchestratorService {
     return this.agentThreadEngineService
       .recordProfileSnapshotEffect(threadId, organizationId, userId, profile)
       .pipe(Effect.asVoid);
-  }
-
-  private recordThreadMemoryFlushEffect(
-    threadId: string,
-    organizationId: string,
-    userId: string,
-    content: string,
-    tags: string[],
-  ): Effect.Effect<string | null, unknown> {
-    if (!this.agentThreadEngineService) {
-      return Effect.succeed(null);
-    }
-
-    return this.agentThreadEngineService.recordMemoryFlushEffect(
-      threadId,
-      organizationId,
-      userId,
-      content,
-      tags,
-    );
   }
 
   private runInThreadLaneEffect<T>(

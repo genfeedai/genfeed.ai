@@ -46,7 +46,7 @@ export function AssetControlsHeader({
     'flex items-center rounded-xl border border-white/10 bg-white/[0.03] p-1';
 
   return (
-    <div className="border-b border-white/[0.08] px-4 py-2">
+    <div className="w-full border-b border-white/[0.08] px-6 py-2">
       <div className="flex w-full items-center justify-between gap-3">
         <h1 className="text-sm font-semibold tracking-tight">
           {categoryLabel}

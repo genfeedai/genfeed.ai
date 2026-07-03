@@ -43,6 +43,8 @@
     "generate": "bun run scripts/generate.ts --skip-on-error",
     "generate:strict": "bun run scripts/generate.ts",
     "prepublishOnly": "bun run build",
+    "test": "vitest run --config vitest.config.ts",
+    "test:watch": "vitest watch --config vitest.config.ts",
     "type-check": "tsc --noEmit"
   },
   "sideEffects": false,

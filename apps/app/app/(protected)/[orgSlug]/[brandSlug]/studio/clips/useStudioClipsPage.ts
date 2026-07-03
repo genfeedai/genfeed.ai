@@ -1,4 +1,7 @@
+import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { GenerationType } from '@genfeedai/enums';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import type { IBrand, IOrganizationSetting } from '@genfeedai/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useDocumentVisibility } from '@hooks/ui/use-document-visibility/use-document-visibility';
 import type {
@@ -9,12 +12,94 @@ import type {
 } from '@props/studio/clips.props';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import { ClipsApiService } from './services/clips-api.service';
 
 const TERMINAL_PROJECT_STATUSES = new Set(['completed', 'failed']);
 
+type StudioClipIdentityField = 'avatar' | 'voice';
+type StudioClipIdentitySource = 'brand' | 'missing' | 'organization';
+
+interface StudioClipIdentityDefaults {
+  avatarId?: string;
+  avatarProvider: AvatarProvider;
+  isComplete: boolean;
+  missing: StudioClipIdentityField[];
+  source: StudioClipIdentitySource;
+  voiceId?: string;
+}
+
+interface StudioClipIdentityContext {
+  selectedBrand?: Pick<IBrand, 'agentConfig'> | null;
+  settings?: Pick<IOrganizationSetting, 'defaultVoiceRef'> | null;
+}
+
+function isHeygenProvider(provider?: string | null): boolean {
+  return provider?.toLowerCase() === 'heygen';
+}
+
+function readNonEmptyString(value?: string | null): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : undefined;
+}
+
+function resolveHeygenVoiceRef(
+  ref:
+    | NonNullable<IBrand['agentConfig']>['defaultVoiceRef']
+    | IOrganizationSetting['defaultVoiceRef']
+    | undefined,
+): string | undefined {
+  if (
+    ref?.source !== 'catalog' ||
+    !isHeygenProvider(ref.provider) ||
+    !ref.externalVoiceId
+  ) {
+    return undefined;
+  }
+
+  return readNonEmptyString(ref.externalVoiceId);
+}
+
+export function resolveStudioClipIdentityDefaults({
+  selectedBrand,
+  settings,
+}: StudioClipIdentityContext): StudioClipIdentityDefaults {
+  const brandConfig = selectedBrand?.agentConfig;
+  const brandAvatarId = readNonEmptyString(brandConfig?.heygenAvatarId);
+  const brandVoiceId =
+    readNonEmptyString(brandConfig?.heygenVoiceId) ??
+    resolveHeygenVoiceRef(brandConfig?.defaultVoiceRef);
+  const organizationVoiceId = resolveHeygenVoiceRef(settings?.defaultVoiceRef);
+  const avatarId = brandAvatarId;
+  const voiceId = brandVoiceId ?? organizationVoiceId;
+  const missing: StudioClipIdentityField[] = [];
+
+  if (!avatarId) {
+    missing.push('avatar');
+  }
+
+  if (!voiceId) {
+    missing.push('voice');
+  }
+
+  return {
+    avatarId,
+    avatarProvider: 'heygen',
+    isComplete: missing.length === 0,
+    missing,
+    source:
+      avatarId || brandVoiceId
+        ? 'brand'
+        : organizationVoiceId
+          ? 'organization'
+          : 'missing',
+    voiceId,
+  };
+}
+
 export function useStudioClipsPage() {
   const { getToken } = useAuthIdentity();
+  const { selectedBrand, settings } = useBrand();
 
   const resolveToken = useCallback(async (): Promise<string> => {
     return (await resolveAuthToken(getToken)) ?? '';
@@ -52,7 +137,31 @@ export function useStudioClipsPage() {
   const clipsPollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  // Guards against re-emitting a completion event when the poll effect re-runs
+  // (e.g. tab visibility toggles) after a project already reached a terminal state.
+  const clipCompletionReportedRef = useRef<string | null>(null);
   const isDocumentVisible = useDocumentVisibility();
+  const identityDefaults = useMemo(
+    () => resolveStudioClipIdentityDefaults({ selectedBrand, settings }),
+    [selectedBrand, settings],
+  );
+
+  useEffect(() => {
+    if (identityDefaults.avatarId && !avatarId) {
+      setAvatarId(identityDefaults.avatarId);
+      setAvatarProvider(identityDefaults.avatarProvider);
+    }
+
+    if (identityDefaults.voiceId && !voiceId) {
+      setVoiceId(identityDefaults.voiceId);
+    }
+  }, [
+    avatarId,
+    identityDefaults.avatarId,
+    identityDefaults.avatarProvider,
+    identityDefaults.voiceId,
+    voiceId,
+  ]);
 
   // ─── Step 1: Analyze ─────────────────────────────────────────
   const handleAnalyze = useCallback(async () => {
@@ -187,6 +296,10 @@ export function useStudioClipsPage() {
 
     setIsSubmitting(true);
     setError(null);
+    clipCompletionReportedRef.current = null;
+    captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_STARTED, {
+      generationType: GenerationType.CLIP,
+    });
 
     try {
       await clipsService.generateClips(project.projectId, {
@@ -204,6 +317,11 @@ export function useStudioClipsPage() {
       setProject((prev) => (prev ? { ...prev, status: 'generating' } : prev));
       setStep('progress');
     } catch (err: unknown) {
+      clipCompletionReportedRef.current = project.projectId;
+      captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_COMPLETED, {
+        generationType: GenerationType.CLIP,
+        outcome: 'failure',
+      });
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setIsSubmitting(false);
@@ -266,6 +384,13 @@ export function useStudioClipsPage() {
 
         if (TERMINAL_PROJECT_STATUSES.has(projectStatus)) {
           clearPendingPoll();
+          if (clipCompletionReportedRef.current !== project.projectId) {
+            clipCompletionReportedRef.current = project.projectId;
+            captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_COMPLETED, {
+              generationType: GenerationType.CLIP,
+              outcome: projectStatus === 'failed' ? 'failure' : 'success',
+            });
+          }
         } else {
           scheduleNextPoll();
         }
@@ -333,6 +458,7 @@ export function useStudioClipsPage() {
     error,
     handleAnalyze,
     handleGenerate,
+    identityDefaults,
     isSubmitting,
     maxClips,
     minViralityScore,

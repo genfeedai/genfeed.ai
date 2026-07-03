@@ -9,10 +9,12 @@ import { VideosModule } from '@api/collections/videos/videos.module';
 import { PublicArticlesController } from '@api/endpoints/public/controllers/articles/public.articles.controller';
 import { PublicBrandsController } from '@api/endpoints/public/controllers/brands/public.brands.controller';
 import { PublicImagesController } from '@api/endpoints/public/controllers/images/public.images.controller';
+import { PublicMediaController } from '@api/endpoints/public/controllers/media/public-media.controller';
 import { PublicMusicsController } from '@api/endpoints/public/controllers/musics/public.musics.controller';
 import { PublicPostsController } from '@api/endpoints/public/controllers/posts/public.posts.controller';
 import { PublicRSSController } from '@api/endpoints/public/controllers/rss/rss.controller';
 import { PublicVideosController } from '@api/endpoints/public/controllers/videos/public.videos.controller';
+import { PublicMediaService } from '@api/endpoints/public/services/public-media.service';
 import { RssService } from '@api/endpoints/public/services/rss.service';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { forwardRef, Module } from '@nestjs/common';
@@ -22,6 +24,7 @@ import { forwardRef, Module } from '@nestjs/common';
     PublicArticlesController,
     PublicBrandsController,
     PublicImagesController,
+    PublicMediaController,
     PublicMusicsController,
     PublicPostsController,
     PublicRSSController,
@@ -39,6 +42,6 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => PostsModule),
     forwardRef(() => VideosModule),
   ],
-  providers: [RssService],
+  providers: [PublicMediaService, RssService],
 })
 export class PublicModule {}

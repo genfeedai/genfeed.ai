@@ -1,3 +1,14 @@
+// Real, complete OrganizationCategory (BaseService.getPrismaEnumValues reads
+// enum value sets off this namespace directly — the hand-rolled version here
+// was missing AGENCY) plus real getModelMeta/PRISMA_MODEL_METADATA.Organization
+// via the light @genfeedai/prisma/testing subpath.
+vi.mock('@genfeedai/prisma', async () => {
+  const { canonicalPrismaMock } = await import(
+    '@api/shared/testing/prisma-mock'
+  );
+  return canonicalPrismaMock();
+});
+
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { OrganizationCategory } from '@genfeedai/enums';
@@ -66,5 +77,70 @@ describe('OrganizationsService', () => {
         }),
       }),
     );
+  });
+
+  /**
+   * Regression tests for the onboarding /brand-setup 500: generateUniqueSlug()
+   * was called without excludeOrgId, so an org's own current slug looked taken
+   * by its own findFirst check (TOCTOU self-collision).
+   */
+  describe('generateUniqueSlug', () => {
+    it('returns the base slug when unused', async () => {
+      organizationDelegate.findFirst.mockResolvedValue(null);
+
+      const slug = await service.generateUniqueSlug('Genfeed.ai');
+
+      expect(slug).toBe('genfeed-ai');
+      expect(organizationDelegate.findFirst).toHaveBeenCalledTimes(1);
+    });
+
+    it('appends an incrementing counter on collision', async () => {
+      organizationDelegate.findFirst
+        .mockResolvedValueOnce({ id: 'org_other' })
+        .mockResolvedValueOnce({ id: 'org_other' })
+        .mockResolvedValueOnce(null);
+
+      const slug = await service.generateUniqueSlug('Genfeed.ai');
+
+      expect(slug).toBe('genfeed-ai-3');
+      expect(organizationDelegate.findFirst).toHaveBeenCalledTimes(3);
+    });
+
+    it('does not self-collide when excludeOrgId matches the org holding the slug', async () => {
+      organizationDelegate.findFirst.mockImplementation(({ where }) => {
+        // Simulate the org's own current slug excluded via `id: { not: excludeOrgId }`.
+        if (where.id?.not === 'org_1') {
+          return Promise.resolve(null);
+        }
+        return Promise.resolve({ id: 'org_1' });
+      });
+
+      const slug = await service.generateUniqueSlug('Genfeed.ai', 'org_1');
+
+      expect(slug).toBe('genfeed-ai');
+      expect(organizationDelegate.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: { not: 'org_1' },
+          }),
+        }),
+      );
+    });
+
+    it('still detects a real collision with a different org when excludeOrgId is set', async () => {
+      organizationDelegate.findFirst
+        .mockResolvedValueOnce({ id: 'org_other' })
+        .mockResolvedValueOnce(null);
+
+      const slug = await service.generateUniqueSlug('Genfeed.ai', 'org_1');
+
+      expect(slug).toBe('genfeed-ai-2');
+    });
+
+    it('throws BadRequestException when the generated slug is too short', async () => {
+      await expect(service.generateUniqueSlug('!!')).rejects.toThrow(
+        'Label too short to generate a valid slug',
+      );
+    });
   });
 });

@@ -1,11 +1,6 @@
-import type {
-  AdHeadlineParams,
-  AdInsightsParams,
-  AdVariationsParams,
-} from './ads.client.types';
 import type { BaseApiClient } from './base-api-client';
 
-/** Meta Ads, Google Ads, and ad-insights (content-loop) read/generate methods. */
+/** Meta Ads and Google Ads read methods. */
 export class AdsClient {
   constructor(private readonly base: BaseApiClient) {}
 
@@ -255,63 +250,6 @@ export class AdsClient {
           ),
         ),
       this.base.failWith('Failed to get Google Ads search terms'),
-    );
-  }
-
-  // ── Ad Insights (Content Loop) ──
-
-  getAdPerformanceInsights(params?: AdInsightsParams): Promise<unknown> {
-    return this.base.request(
-      'getting ad performance insights',
-      async (http) =>
-        this.base.unwrapData(
-          await http.get('/ad-insights/benchmarks', { params }),
-        ),
-      this.base.failWith('Failed to get ad performance insights'),
-    );
-  }
-
-  getTopHeadlines(params?: AdInsightsParams): Promise<unknown[]> {
-    return this.base.request(
-      'getting top headlines',
-      async (http) =>
-        this.base.unwrapList(
-          await http.get('/ad-insights/top-headlines', { params }),
-        ),
-      this.base.failWith('Failed to get top headlines'),
-    );
-  }
-
-  suggestAdHeadlines(params: AdHeadlineParams): Promise<unknown> {
-    return this.base.request(
-      'suggesting ad headlines',
-      async (http) =>
-        this.base.unwrapData(
-          await http.post('/ad-insights/suggest-headlines', params),
-        ),
-      this.base.failWith('Failed to suggest ad headlines'),
-    );
-  }
-
-  generateAdVariations(params: AdVariationsParams): Promise<unknown> {
-    return this.base.request(
-      'generating ad variations',
-      async (http) =>
-        this.base.unwrapData(
-          await http.post('/ad-insights/generate-variations', params),
-        ),
-      this.base.failWith('Failed to generate ad variations'),
-    );
-  }
-
-  benchmarkAdPerformance(params?: AdInsightsParams): Promise<unknown> {
-    return this.base.request(
-      'benchmarking ad performance',
-      async (http) =>
-        this.base.unwrapData(
-          await http.get('/ad-insights/benchmarks', { params }),
-        ),
-      this.base.failWith('Failed to benchmark ad performance'),
     );
   }
 }

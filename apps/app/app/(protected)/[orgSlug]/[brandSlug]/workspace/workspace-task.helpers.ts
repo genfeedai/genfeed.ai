@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { IAgentRun } from '@genfeedai/interfaces';
 import { Task, type TaskEvent } from '@services/management/tasks.service';
 import { buildTaskLaunchHref } from '@/lib/navigation/operator-shell';
@@ -79,15 +80,15 @@ export const SECTION_COPY: Record<
   overview: {
     description:
       'Tasks, approvals, live work, and operator handoffs in one control surface.',
-    title: 'Workspace Dashboard',
+    title: 'Dashboard',
   },
 };
 
 export const ADVANCED_TOOLS = [
   {
     description: 'All conversations and threads live here.',
-    href: '/chat',
-    label: 'Chat',
+    href: APP_ROUTES.AGENT.ROOT,
+    label: 'Agent',
   },
   {
     description: 'Manual image generation and creative edits.',

@@ -1,0 +1,24 @@
+-- Enforce one analytics snapshot per (post, platform, day) on `post_analytics`
+-- (#1185, epic #1176). Mirrors the existing `ArticleAnalytics @@unique([articleId, date])`.
+-- Name MUST match Prisma's default for `@@unique([postId, platform, date])` on
+-- `@@map("post_analytics")` so schema and database stay drift-free.
+--
+-- Built CONCURRENTLY: `post_analytics` is a hot, continuously-written table, so a
+-- plain `CREATE UNIQUE INDEX` would take an ACCESS EXCLUSIVE lock for the whole
+-- build and stall live ingestion. CONCURRENTLY keeps reads/writes running.
+--
+-- CONCURRENTLY must run OUTSIDE a transaction block. Prisma runs a migration's
+-- statements without a wrapping transaction ONLY when the file contains just
+-- CONCURRENTLY index builds — an earlier `DO $$ … $$` dedup preflight in this
+-- file made Prisma wrap the whole migration in an implicit transaction, so the
+-- index build failed with "CREATE INDEX CONCURRENTLY cannot run inside a
+-- transaction block". This file therefore contains ONLY the bare CONCURRENTLY
+-- index, matching the proven precedent
+-- 20260618130000_add_app_shell_hot_path_indexes. See prisma/prisma#14456.
+--
+-- `IF NOT EXISTS` makes this a no-op where the index already exists (prod, where
+-- the app has run against this natural key). If duplicates exist on a populated
+-- DB the CONCURRENTLY build fails and leaves an INVALID index of the same name —
+-- DROP it, dedupe, then `prisma migrate resolve` + re-deploy. Do not blindly re-run.
+CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "post_analytics_postId_platform_date_key"
+  ON "post_analytics" ("postId", "platform", "date");

@@ -125,6 +125,32 @@ describe('ClipRunCard', () => {
     );
   });
 
+  it('shows resolved clip identity status', () => {
+    render(
+      <ClipRunCard
+        state={makeState({
+          identity: {
+            avatarId: 'avatar-1',
+            avatarProvider: 'heygen',
+            isComplete: true,
+            label: 'Brand clip defaults',
+            missing: [],
+            source: 'brand',
+            useIdentity: true,
+            voiceId: 'voice-1',
+            voiceProvider: 'heygen',
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByText('Clip identity')).toBeDefined();
+    expect(screen.getByText('Brand clip defaults')).toBeDefined();
+    expect(
+      screen.getByText('Avatar avatar-1 and voice voice-1 are ready.'),
+    ).toBeDefined();
+  });
+
   it('shows error state with message', () => {
     const state = makeState({
       status: 'failed',

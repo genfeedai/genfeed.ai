@@ -78,6 +78,7 @@ const EMPTY_READINESS: InstallReadinessResponse = {
     showBilling: false,
     showCloudUpgradeCta: true,
     showCredits: false,
+    showLocalTools: false,
     showPricing: false,
   },
   workspace: {
@@ -266,21 +267,24 @@ export default function ProvidersContent() {
       </h1>
 
       <p className="step-description opacity-0 mb-10 max-w-2xl text-lg text-white/40">
-        Genfeed uses the keys configured on this server by default. Add your own
-        API keys only if you want BYOK overrides, or switch to Genfeed Cloud if
-        you want the managed path instead.
+        Genfeed uses the server-configured providers by default. Add your own
+        provider API keys only if you want to override hosted access, or switch
+        to Genfeed Cloud if you want the managed path instead.
       </p>
 
       <div className="space-y-5">
         <ProvidersStatusCard accessStatusLabel={accessStatusLabel} />
 
-        <ProvidersToolList localToolRows={localToolRows} />
+        {readiness.ui.showLocalTools ? (
+          <ProvidersToolList localToolRows={localToolRows} />
+        ) : null}
 
         <ProvidersServerList providerRows={providerRows} />
 
         <ProvidersActionBar
           loading={loading}
           pendingMode={pendingMode}
+          selectedMode={readiness.access.selectedMode}
           onByokClick={(event) => {
             void handleByokClick(event);
           }}
