@@ -11,11 +11,11 @@ describe('AccessBootstrapCacheService', () => {
   let publisher: {
     expire: ReturnType<typeof vi.fn>;
     get: ReturnType<typeof vi.fn>;
-    sAdd: ReturnType<typeof vi.fn>;
-    sMembers: ReturnType<typeof vi.fn>;
-    setEx: ReturnType<typeof vi.fn>;
+    sadd: ReturnType<typeof vi.fn>;
+    smembers: ReturnType<typeof vi.fn>;
+    setex: ReturnType<typeof vi.fn>;
     unlink: ReturnType<typeof vi.fn>;
-    scanIterator: ReturnType<typeof vi.fn>;
+    scan: ReturnType<typeof vi.fn>;
   };
   let redisService: { getPublisher: ReturnType<typeof vi.fn> };
   let logger: {
@@ -44,10 +44,10 @@ describe('AccessBootstrapCacheService', () => {
     publisher = {
       expire: vi.fn().mockResolvedValue(1),
       get: vi.fn().mockResolvedValue(null),
-      sAdd: vi.fn().mockResolvedValue(1),
-      scanIterator: vi.fn(),
-      setEx: vi.fn().mockResolvedValue('OK'),
-      sMembers: vi.fn().mockResolvedValue([]),
+      sadd: vi.fn().mockResolvedValue(1),
+      scan: vi.fn(),
+      setex: vi.fn().mockResolvedValue('OK'),
+      smembers: vi.fn().mockResolvedValue([]),
       unlink: vi.fn().mockResolvedValue(1),
     };
     redisService = { getPublisher: vi.fn().mockReturnValue(publisher) };
@@ -111,23 +111,23 @@ describe('AccessBootstrapCacheService', () => {
     it('should do nothing when publisher is unavailable', async () => {
       redisService.getPublisher.mockReturnValue(null);
       await service.set('user-1', 'org-1', makePayload());
-      expect(publisher.setEx).not.toHaveBeenCalled();
+      expect(publisher.setex).not.toHaveBeenCalled();
     });
 
-    it('should call setEx, sAdd, and expire', async () => {
+    it('should call setex, sadd, and expire', async () => {
       const payload = makePayload();
       await service.set('user-1', 'org-1', payload);
-      expect(publisher.setEx).toHaveBeenCalledWith(
+      expect(publisher.setex).toHaveBeenCalledWith(
         'access-bootstrap:user-1:org-1',
         30,
         JSON.stringify(payload),
       );
-      expect(publisher.sAdd).toHaveBeenCalled();
+      expect(publisher.sadd).toHaveBeenCalled();
       expect(publisher.expire).toHaveBeenCalled();
     });
 
     it('should log error on redis failure without throwing', async () => {
-      publisher.setEx.mockRejectedValue(new Error('Redis write fail'));
+      publisher.setex.mockRejectedValue(new Error('Redis write fail'));
       await expect(
         service.set('user-1', 'org-1', makePayload()),
       ).resolves.toBeUndefined();
@@ -143,7 +143,7 @@ describe('AccessBootstrapCacheService', () => {
     });
 
     it('should unlink all user keys when found', async () => {
-      publisher.sMembers.mockResolvedValue([
+      publisher.smembers.mockResolvedValue([
         'access-bootstrap:user-1:org-1',
         'access-bootstrap:user-1:org-2',
       ]);
@@ -156,7 +156,7 @@ describe('AccessBootstrapCacheService', () => {
     });
 
     it('should only unlink the keys set when no keys exist', async () => {
-      publisher.sMembers.mockResolvedValue([]);
+      publisher.smembers.mockResolvedValue([]);
       await service.invalidateForUser('user-1');
       expect(publisher.unlink).toHaveBeenCalledWith(
         'access-bootstrap:keys:user-1',
@@ -164,13 +164,13 @@ describe('AccessBootstrapCacheService', () => {
     });
 
     it('should log debug on success', async () => {
-      publisher.sMembers.mockResolvedValue(['key1']);
+      publisher.smembers.mockResolvedValue(['key1']);
       await service.invalidateForUser('user-1');
       expect(logger.debug).toHaveBeenCalled();
     });
 
     it('should log error on redis failure without throwing', async () => {
-      publisher.sMembers.mockRejectedValue(new Error('Redis error'));
+      publisher.smembers.mockRejectedValue(new Error('Redis error'));
       await expect(
         service.invalidateForUser('user-1'),
       ).resolves.toBeUndefined();
@@ -186,10 +186,10 @@ describe('AccessBootstrapCacheService', () => {
     });
 
     it('should unlink matching keys found by scan', async () => {
-      async function* asyncGen() {
-        yield 'access-bootstrap:user-1:org-1';
-      }
-      publisher.scanIterator.mockReturnValue(asyncGen());
+      publisher.scan.mockResolvedValueOnce([
+        '0',
+        ['access-bootstrap:user-1:org-1'],
+      ]);
 
       await service.invalidateForOrganization('org-1');
 
@@ -199,10 +199,7 @@ describe('AccessBootstrapCacheService', () => {
     });
 
     it('should not call unlink when no keys matched', async () => {
-      async function* emptyGen() {
-        /* empty */
-      }
-      publisher.scanIterator.mockReturnValue(emptyGen());
+      publisher.scan.mockResolvedValueOnce(['0', []]);
 
       await service.invalidateForOrganization('org-1');
 
@@ -210,9 +207,7 @@ describe('AccessBootstrapCacheService', () => {
     });
 
     it('should log error on redis failure without throwing', async () => {
-      publisher.scanIterator.mockImplementation(() => {
-        throw new Error('Scan fail');
-      });
+      publisher.scan.mockRejectedValueOnce(new Error('Scan fail'));
       await expect(
         service.invalidateForOrganization('org-1'),
       ).resolves.toBeUndefined();

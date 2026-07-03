@@ -3,13 +3,13 @@ import { CacheClientService } from '@api/services/cache/services/cache-client.se
 import { CacheTagsService } from '@api/services/cache/services/cache-tags.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { RedisClientType } from 'redis';
+import type Redis from 'ioredis';
 
 describe('CacheService', () => {
   let service: CacheService;
   let loggerService: LoggerService;
   let cacheTagsService: CacheTagsService;
-  let mockRedisClient: vi.Mocked<RedisClientType>;
+  let mockRedisClient: vi.Mocked<Redis>;
 
   beforeEach(async () => {
     const mockLogger: LoggerService = {
@@ -23,18 +23,19 @@ describe('CacheService', () => {
       del: vi.fn(),
       exists: vi.fn(),
       expire: vi.fn(),
-      flushDb: vi.fn(),
+      flushdb: vi.fn(),
       get: vi.fn(),
-      incrBy: vi.fn(),
-      mGet: vi.fn(),
+      incrby: vi.fn(),
+      mget: vi.fn(),
       multi: vi.fn(() => ({
         del: vi.fn(),
         exec: vi.fn(),
         set: vi.fn(),
-        setEx: vi.fn(),
+        setex: vi.fn(),
       })),
-      setEx: vi.fn(),
-    } as unknown as vi.Mocked<RedisClientType>;
+      set: vi.fn(),
+      setex: vi.fn(),
+    } as unknown as vi.Mocked<Redis>;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -83,10 +84,10 @@ describe('CacheService', () => {
 
   describe('set', () => {
     it('writes value with default TTL', async () => {
-      mockRedisClient.setEx.mockResolvedValue('OK');
+      mockRedisClient.setex.mockResolvedValue('OK');
       const result = await service.set('key', { foo: 'bar' });
       expect(result).toBe(true);
-      expect(mockRedisClient.setEx).toHaveBeenCalledWith(
+      expect(mockRedisClient.setex).toHaveBeenCalledWith(
         'key',
         300,
         JSON.stringify({ foo: 'bar' }),
@@ -94,14 +95,14 @@ describe('CacheService', () => {
     });
 
     it('writes cache tags when provided', async () => {
-      mockRedisClient.setEx.mockResolvedValue('OK');
+      mockRedisClient.setex.mockResolvedValue('OK');
       await service.set('key', {}, { tags: ['tag'] });
       expect(cacheTagsService.setTags).toHaveBeenCalledWith('key', ['tag']);
     });
 
     it('gracefully handles errors', async () => {
       const error = new Error('oops');
-      mockRedisClient.setEx.mockRejectedValue(error);
+      mockRedisClient.setex.mockRejectedValue(error);
       const result = await service.set('key', {});
       expect(result).toBe(false);
       expect(loggerService.error).toHaveBeenCalledWith(
@@ -120,7 +121,7 @@ describe('CacheService', () => {
 
   describe('mget', () => {
     it('returns parsed values in order', async () => {
-      mockRedisClient.mGet.mockResolvedValue([JSON.stringify({ id: 1 }), null]);
+      mockRedisClient.mget.mockResolvedValue([JSON.stringify({ id: 1 }), null]);
       await expect(service.mget(['a', 'b'])).resolves.toEqual([
         { id: 1 },
         null,
@@ -130,18 +131,38 @@ describe('CacheService', () => {
 
   describe('flush', () => {
     it('flushes redis DB', async () => {
-      mockRedisClient.flushDb.mockResolvedValue('OK' as unknown as string);
+      mockRedisClient.flushdb.mockResolvedValue('OK' as unknown as 'OK');
       await expect(service.flush()).resolves.toBe(true);
     });
 
     it('logs flush errors with the existing payload shape', async () => {
       const error = new Error('flush failed');
-      mockRedisClient.flushDb.mockRejectedValue(error);
+      mockRedisClient.flushdb.mockRejectedValue(error);
       await expect(service.flush()).resolves.toBe(false);
       expect(loggerService.error).toHaveBeenCalledWith(
         'CacheService flush error',
         error,
       );
+    });
+  });
+
+  describe('acquireLock', () => {
+    it('acquires the lock using SET NX EX with positional args', async () => {
+      (mockRedisClient.set as vi.Mock).mockResolvedValue('OK');
+      const result = await service.acquireLock('resource', 60);
+      expect(result).toBe(true);
+      expect(mockRedisClient.set).toHaveBeenCalledWith(
+        'lock:resource',
+        expect.any(String),
+        'EX',
+        60,
+        'NX',
+      );
+    });
+
+    it('returns false when the lock is already held', async () => {
+      (mockRedisClient.set as vi.Mock).mockResolvedValue(null);
+      await expect(service.acquireLock('resource', 60)).resolves.toBe(false);
     });
   });
 

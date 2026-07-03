@@ -11,6 +11,7 @@ import {
 } from '@genfeedai/agent/utils/agent-thread-snapshot.util';
 import { extractThreadOutputs } from '@genfeedai/agent/utils/extract-thread-outputs';
 import { filterActionsByRole } from '@genfeedai/agent/utils/filter-actions-by-role';
+import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
 import type { AgentThreadStatus, MemberRole } from '@genfeedai/enums';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -108,10 +109,14 @@ interface UseAgentFullPageParams {
 export function useAgentFullPage({
   apiService,
   authReady,
-  threadId,
+  threadId: rawThreadId,
   onboardingMode,
   userRole,
 }: UseAgentFullPageParams) {
+  // Treat malformed ids (including the stringified "undefined" that a bad
+  // /agent/undefined URL produces) as "no thread" so the snapshot/thread/
+  // message fetches never fire against /threads/undefined/*.
+  const threadId = isRenderableThreadId(rawThreadId) ? rawThreadId : undefined;
   const [isLoadingThread, setIsLoadingThread] = useState(false);
   const [mobileChecklistOpen, setMobileChecklistOpen] = useState(false);
   const [mobileOutputsOpen, setMobileOutputsOpen] = useState(false);

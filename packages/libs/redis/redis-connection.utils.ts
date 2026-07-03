@@ -2,9 +2,8 @@
  * Shared Redis connection config utilities.
  * Single source of truth for TLS — derived from BOTH REDIS_TLS env var AND URL scheme.
  *
- * Two client stacks with different TLS APIs:
- * - node-redis v4 (createClient): socket.tls = true
- * - ioredis (BullMQ): tls = {} (empty object enables TLS)
+ * Single client stack — ioredis (also used by BullMQ under the hood):
+ * - ioredis: tls = {} (empty object enables TLS)
  */
 
 export interface ParsedRedisConfig {
@@ -15,11 +14,14 @@ export interface ParsedRedisConfig {
   url: string;
 }
 
-export type RedisReconnectStrategy = (retries: number) => number | false;
+/** ioredis retryStrategy return type: ms delay to retry, or non-number to stop retrying. */
+export type IoRedisRetryStrategy = (retries: number) => number | null;
 
-export interface NodeRedisConnectionOptions {
+export interface IoRedisConnectionOptions {
   connectTimeout?: number;
-  reconnectStrategy?: RedisReconnectStrategy;
+  /** Defaults to true — caller must invoke `.connect()` explicitly (matches prior node-redis usage). */
+  lazyConnect?: boolean;
+  retryStrategy?: IoRedisRetryStrategy;
 }
 
 /**
@@ -69,39 +71,26 @@ export function parseRedisConnection(configService: {
 }
 
 /**
- * Build node-redis v4 createClient socket options (for pub/sub, cache, etc.)
- * Returns a properly typed object for createClient({ socket: ... }).
- */
-export function buildNodeRedisSocketOptions(
-  config: ParsedRedisConfig,
-  connectTimeout = 3_000,
-): { connectTimeout: number; tls: true } | { connectTimeout: number } {
-  if (config.tls) {
-    return { connectTimeout, tls: true };
-  }
-  return { connectTimeout };
-}
-
-/**
- * Build node-redis v4 createClient options.
+ * Build ioredis client options (for pub/sub, cache, direct clients, etc.)
  * Keep REDIS_PASSWORD separate from REDIS_URL so production can inject the
  * password as an ECS secret without placing it in a plaintext env value.
+ *
+ * `lazyConnect` defaults to true so callers retain explicit control over when
+ * the connection is established (matching the previous node-redis
+ * `createClient()` + `.connect()` two-step lifecycle).
  */
-export function buildNodeRedisClientOptions(
+export function buildIoRedisClientOptions(
   config: ParsedRedisConfig,
-  options: NodeRedisConnectionOptions = {},
+  options: IoRedisConnectionOptions = {},
 ) {
-  const socket = {
-    ...buildNodeRedisSocketOptions(config, options.connectTimeout ?? 3_000),
-    ...(options.reconnectStrategy && {
-      reconnectStrategy: options.reconnectStrategy,
-    }),
-  };
-
   return {
+    connectTimeout: options.connectTimeout ?? 3_000,
+    host: config.host,
+    lazyConnect: options.lazyConnect ?? true,
     ...(config.password && { password: config.password }),
-    socket,
-    url: config.url,
+    port: config.port,
+    ...(options.retryStrategy && { retryStrategy: options.retryStrategy }),
+    ...(config.tls && { tls: {} }),
   };
 }
 

@@ -4,7 +4,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import type { RedisService } from '@libs/redis/redis.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import type { RedisClientType } from 'redis';
+import type Redis from 'ioredis';
 
 /** Minimum required fields for any job tracked by BaseJobService. */
 export interface BaseJob {
@@ -139,7 +139,7 @@ export class BaseJobService<T extends BaseJob> {
     }
 
     try {
-      await publisher.setEx(
+      await publisher.setex(
         this.buildJobKey(job.jobId),
         JOB_TTL_SECONDS,
         JSON.stringify(job),
@@ -215,19 +215,21 @@ export class BaseJobService<T extends BaseJob> {
     }
   }
 
-  private async collectJobKeys(publisher: RedisClientType): Promise<string[]> {
+  private async collectJobKeys(publisher: Redis): Promise<string[]> {
     const keys: string[] = [];
+    let cursor = '0';
 
-    for await (const key of publisher.scanIterator({
-      COUNT: 100,
-      MATCH: `jobs:${this.namespace}:*`,
-    })) {
-      if (Array.isArray(key)) {
-        keys.push(...key);
-      } else {
-        keys.push(key);
-      }
-    }
+    do {
+      const [nextCursor, foundKeys] = await publisher.scan(
+        cursor,
+        'MATCH',
+        `jobs:${this.namespace}:*`,
+        'COUNT',
+        100,
+      );
+      cursor = nextCursor;
+      keys.push(...foundKeys);
+    } while (cursor !== '0');
 
     return keys;
   }

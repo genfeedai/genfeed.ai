@@ -7,9 +7,9 @@ import {
   type OnModuleDestroy,
   type OnModuleInit,
 } from '@nestjs/common';
-import { createClient, type RedisClientType } from 'redis';
+import Redis from 'ioredis';
 import {
-  buildNodeRedisClientOptions,
+  buildIoRedisClientOptions,
   parseRedisConnection,
 } from './redis-connection.utils';
 
@@ -21,8 +21,8 @@ export class RedisService
   private static readonly CONNECT_TIMEOUT_MS = 3_000;
   private static readonly SUBSCRIBE_TIMEOUT_MS = 5_000;
   private readonly context = { service: RedisService.name };
-  private publisher!: RedisClientType;
-  private subscriber!: RedisClientType;
+  private publisher!: Redis;
+  private subscriber!: Redis;
   private handlers: Map<string, ((message: unknown) => void)[]> = new Map();
   private isInitialized = false;
   private pendingSubscriptions: Array<{
@@ -51,13 +51,13 @@ export class RedisService
     }
 
     const config = parseRedisConnection(this.configService);
-    const clientOptions = buildNodeRedisClientOptions(config, {
+    const clientOptions = buildIoRedisClientOptions(config, {
       connectTimeout: RedisService.CONNECT_TIMEOUT_MS,
-      reconnectStrategy: () => false as const, // Don't retry - fail fast
+      retryStrategy: () => null, // Don't retry - fail fast
     });
 
     try {
-      this.publisher = createClient(clientOptions);
+      this.publisher = new Redis(clientOptions);
       this.publisher.on('error', (err) =>
         this.logger.error('Redis Publisher Error', err, this.context),
       );
@@ -71,10 +71,20 @@ export class RedisService
         ),
       ]);
 
-      this.subscriber = createClient(clientOptions);
+      this.subscriber = new Redis(clientOptions);
       this.subscriber.on('error', (err) =>
         this.logger.error('Redis Subscriber Error', err, this.context),
       );
+      this.subscriber.on('message', (channel: string, message: string) => {
+        const parsedMessage = JSON.parse(message);
+        // Emit for EventEmitter listeners
+        this.emit('message', channel, message);
+        // Call specific handlers
+        const handlers = this.handlers.get(channel) || [];
+        for (const h of handlers) {
+          h(parsedMessage);
+        }
+      });
       await Promise.race([
         this.subscriber.connect(),
         new Promise((_, reject) =>
@@ -142,16 +152,7 @@ export class RedisService
       this.handlers.set(channel, []);
       try {
         await this.withTimeout(
-          this.subscriber.subscribe(channel, (message) => {
-            const parsedMessage = JSON.parse(message);
-            // Emit for EventEmitter listeners
-            this.emit('message', channel, message);
-            // Call specific handlers
-            const handlers = this.handlers.get(channel) || [];
-            for (const h of handlers) {
-              h(parsedMessage);
-            }
-          }),
+          this.subscriber.subscribe(channel),
           RedisService.SUBSCRIBE_TIMEOUT_MS,
           `Redis subscribe to ${channel} timed out after ${RedisService.SUBSCRIBE_TIMEOUT_MS}ms`,
         );
@@ -176,7 +177,7 @@ export class RedisService
    * Get the raw publisher client for direct Redis commands (sorted sets, etc.)
    * Returns null if Redis is not initialized.
    */
-  getPublisher(): RedisClientType | null {
+  getPublisher(): Redis | null {
     if (!this.isInitialized) {
       return null;
     }

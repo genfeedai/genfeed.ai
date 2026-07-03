@@ -110,7 +110,6 @@
         "react-hook-form": "7.80.0",
         "react-icons": "5.6.0",
         "recharts": "3.9.0",
-        "redis": "6.0.1",
         "reflect-metadata": "0.2.2",
         "replicate": "1.4.0",
         "resend": "6.14.0",
@@ -561,6 +560,7 @@
         "@genfeedai/prisma": "workspace:*",
         "@genfeedai/queue-contracts": "workspace:*",
         "@genfeedai/workflows": "workspace:*",
+        "@nestjs/event-emitter": "3.1.0",
       },
       "devDependencies": {
         "@nestjs/testing": "11.1.27",

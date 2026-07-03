@@ -1,7 +1,7 @@
-import type { RedisClientType } from 'redis';
+import type Redis from 'ioredis';
 
 export async function storeRedisSnapshot<T>(
-  publisher: RedisClientType,
+  publisher: Redis,
   cacheKey: string,
   keysSetKey: string,
   ttlSeconds: number,
@@ -9,17 +9,17 @@ export async function storeRedisSnapshot<T>(
   payload: T,
 ): Promise<void> {
   await Promise.all([
-    publisher.setEx(cacheKey, ttlSeconds, JSON.stringify(payload)),
-    publisher.sAdd(keysSetKey, cacheKey),
+    publisher.setex(cacheKey, ttlSeconds, JSON.stringify(payload)),
+    publisher.sadd(keysSetKey, cacheKey),
     publisher.expire(keysSetKey, keysSetTtlSeconds),
   ]);
 }
 
 export async function invalidateRedisSnapshot(
-  publisher: RedisClientType,
+  publisher: Redis,
   keysSetKey: string,
 ): Promise<number> {
-  const keys = await publisher.sMembers(keysSetKey);
+  const keys = await publisher.smembers(keysSetKey);
 
   if (keys.length > 0) {
     await publisher.unlink([...keys, keysSetKey]);
@@ -31,21 +31,24 @@ export async function invalidateRedisSnapshot(
 }
 
 export async function collectRedisKeysByPattern(
-  publisher: RedisClientType,
+  publisher: Redis,
   pattern: string,
 ): Promise<string[]> {
   const keys: string[] = [];
+  let cursor = '0';
 
-  for await (const key of publisher.scanIterator({
-    COUNT: 100,
-    MATCH: pattern,
-  })) {
-    if (Array.isArray(key)) {
-      keys.push(...key);
-    } else {
-      keys.push(key);
-    }
-  }
+  do {
+    const [nextCursor, foundKeys] = await publisher.scan(
+      cursor,
+      'MATCH',
+      pattern,
+      'COUNT',
+      100,
+    );
+
+    cursor = nextCursor;
+    keys.push(...foundKeys);
+  } while (cursor !== '0');
 
   return keys;
 }

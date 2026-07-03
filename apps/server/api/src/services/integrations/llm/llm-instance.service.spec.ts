@@ -142,7 +142,8 @@ describe('LlmInstanceService', () => {
       expect(redisSetMock).toHaveBeenCalledWith(
         LLM_LAST_REQUEST_KEY,
         expect.any(String),
-        { EX: 3600 },
+        'EX',
+        3600,
       );
       expect(ec2SendMock).not.toHaveBeenCalled();
     });
@@ -187,7 +188,8 @@ describe('LlmInstanceService', () => {
       expect(redisSetMock).toHaveBeenCalledWith(
         LLM_LAST_REQUEST_KEY,
         expect.any(String),
-        { EX: 3600 },
+        'EX',
+        3600,
       );
     });
 

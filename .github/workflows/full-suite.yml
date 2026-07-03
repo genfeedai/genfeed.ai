@@ -42,3 +42,29 @@ jobs:
     needs: [ci, build-verify]
     uses: ./.github/workflows/e2e.yml
     secrets: inherit
+
+  # Red-run fail-fast: once the CI gate and prod-image boot check have both
+  # completed and either failed, nothing downstream can succeed — cancel the
+  # whole run so expensive sibling jobs in the caller (e.g. the ~15-minute
+  # Self-Hosted Build Verify in docker-publish.yml, which shares this run_id)
+  # stop burning runners. `needs` waits for ALL listed jobs to finish, so every
+  # test shard still reports its result before this fires — no failure
+  # visibility is lost. On green runs `if: failure()` skips this job entirely.
+  # Trade-off: the run's overall conclusion becomes "cancelled" instead of
+  # "failure"; the failed jobs themselves still show red.
+  cancel-doomed-run:
+    name: Cancel doomed run
+    needs: [ci, build-verify]
+    if: failure()
+    # Cancelling a run needs actions:write. A reusable workflow cannot elevate
+    # past its caller's job grant, so every caller of full-suite.yml must also
+    # grant actions:write on its job (docker-publish.yml, deploy-ecs.yml).
+    permissions:
+      actions: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Cancel this run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh run cancel ${{ github.run_id }} --repo "${GITHUB_REPOSITORY}"

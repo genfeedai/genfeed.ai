@@ -7,7 +7,6 @@ import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/tra
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { EventBusService } from '@api/shared/services/event-bus/event-bus.service';
 import {
   ActivityKey,
   ActivitySource,
@@ -17,6 +16,7 @@ import type { ICreditsUtilsService } from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, Optional } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 /**
  * Enterprise credits utility service. The full implementation lives in OSS
@@ -31,7 +31,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
 
   constructor(
     private readonly loggerService: LoggerService,
-    private readonly eventBusService: EventBusService,
+    private readonly eventEmitter: EventEmitter2,
     private readonly prisma: PrismaService,
     private readonly creditBalanceService: CreditBalanceService,
     private readonly creditTransactionsService: CreditTransactionsService,
@@ -153,7 +153,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         where: { isDeleted: false, organizationId },
       });
 
-      this.eventBusService.emit('credits.activity', {
+      this.eventEmitter.emit('credits.activity', {
         brandId: String(defaultBrand?.id ?? organizationId),
         key: ActivityKey.CREDITS_REMOVE,
         organizationId: organizationId,
@@ -659,7 +659,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
           where: { isDeleted: false, organizationId },
         });
 
-        this.eventBusService.emit('credits.activity', {
+        this.eventEmitter.emit('credits.activity', {
           brandId: String(defaultBrand?.id ?? organizationId),
           key: ActivityKey.CREDITS_REMOVE_ALL,
           organizationId: organizationId,

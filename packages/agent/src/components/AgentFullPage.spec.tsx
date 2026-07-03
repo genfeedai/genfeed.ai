@@ -330,6 +330,22 @@ describe('AgentFullPage', () => {
     expect(storeState.setError).not.toHaveBeenCalled();
   });
 
+  it('never fetches thread data for a stringified "undefined" thread id', async () => {
+    const apiService = createApiService();
+
+    render(
+      <AgentFullPage apiService={apiService as never} threadId="undefined" />,
+    );
+
+    await waitFor(() => {
+      expect(storeState.setActiveThread).toHaveBeenCalledWith(null);
+    });
+
+    expect(apiService.getThread).not.toHaveBeenCalled();
+    expect(apiService.getMessages).not.toHaveBeenCalled();
+    expect(apiService.getThreadSnapshot).not.toHaveBeenCalled();
+  });
+
   it('surfaces a generic load error when bootstrap fails', async () => {
     const apiService = createApiService({
       getMessages: vi.fn(),

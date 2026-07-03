@@ -36,9 +36,9 @@ export class AgentMessageBusService {
 
     try {
       // Store in list for history
-      await publisher.rPush(listKey, serialized);
+      await publisher.rpush(listKey, serialized);
       // Trim to last N messages
-      await publisher.lTrim(listKey, -MAX_MESSAGES_PER_CAMPAIGN, -1);
+      await publisher.ltrim(listKey, -MAX_MESSAGES_PER_CAMPAIGN, -1);
       // Set TTL on the list
       await publisher.expire(listKey, MESSAGE_TTL_SECONDS);
 
@@ -103,7 +103,7 @@ export class AgentMessageBusService {
     }
 
     try {
-      const raw = await publisher.lRange(listKey, -limit, -1);
+      const raw = await publisher.lrange(listKey, -limit, -1);
       return raw.map((item) => JSON.parse(item) as IAgentCampaignMessage);
     } catch (error: unknown) {
       this.logger.error(

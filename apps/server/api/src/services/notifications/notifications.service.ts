@@ -9,7 +9,7 @@ import type {
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
-  buildNodeRedisClientOptions,
+  buildIoRedisClientOptions,
   parseRedisConnection,
 } from '@libs/redis/redis-connection.utils';
 import {
@@ -17,13 +17,13 @@ import {
   type OnModuleDestroy,
   type OnModuleInit,
 } from '@nestjs/common';
-import { createClient, type RedisClientType } from 'redis';
+import Redis from 'ioredis';
 
 export type { INotificationEvent as NotificationEvent };
 
 @Injectable()
 export class NotificationsService implements OnModuleInit, OnModuleDestroy {
-  private publisher: RedisClientType;
+  private publisher: Redis;
   private isShuttingDown = false;
   private readonly constructorName = this.constructor.name;
   private static readonly CONNECT_TIMEOUT_MS = 5_000;
@@ -33,10 +33,10 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
     private readonly logger: LoggerService,
   ) {
     const config = parseRedisConnection(this.configService);
-    this.publisher = createClient(
-      buildNodeRedisClientOptions(config, {
+    this.publisher = new Redis(
+      buildIoRedisClientOptions(config, {
         connectTimeout: NotificationsService.CONNECT_TIMEOUT_MS,
-        reconnectStrategy: () => false as const,
+        retryStrategy: () => null,
       }),
     );
 
@@ -66,7 +66,7 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
       this.isShuttingDown = true;
       // Remove all event listeners to prevent memory leaks
       this.publisher.removeAllListeners();
-      if (this.publisher.isOpen) {
+      if (this.publisher.status !== 'end') {
         await this.publisher.quit();
       }
       this.logger.log(`${this.constructorName} Redis publisher disconnected`);
@@ -120,17 +120,20 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
       return false;
     }
 
-    if (this.publisher.isReady) {
+    if (this.publisher.status === 'ready') {
       return true;
     }
 
-    if (this.publisher.isOpen) {
+    if (this.publisher.status !== 'end') {
       return false;
     }
 
     try {
       await this.connectPublisher('reconnect');
-      return this.publisher.isReady;
+      // Widen: TS narrows `status` to 'end' through the guard above and cannot
+      // see that connectPublisher mutates it.
+      const statusAfterReconnect: string = this.publisher.status;
+      return statusAfterReconnect === 'ready';
     } catch (error: unknown) {
       this.logger.error(`${this.constructorName} failed to reconnect`, error);
       return false;
@@ -140,7 +143,7 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
   private isClosedClientError(error: unknown): boolean {
     return (
       error instanceof Error &&
-      error.message.toLowerCase().includes('client is closed')
+      error.message.toLowerCase().includes('connection is closed')
     );
   }
 

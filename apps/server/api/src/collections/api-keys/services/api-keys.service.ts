@@ -304,10 +304,10 @@ export class ApiKeysService extends BaseService<
 
     try {
       // Remove expired entries outside the sliding window
-      await client.zRemRangeByScore(key, 0, windowStart);
+      await client.zremrangebyscore(key, 0, windowStart);
 
       // Count requests in the current window
-      const requestCount = await client.zCard(key);
+      const requestCount = await client.zcard(key);
 
       if (requestCount >= apiKey.rateLimit) {
         this.logger?.warn('API key rate limit exceeded', {
@@ -321,7 +321,7 @@ export class ApiKeysService extends BaseService<
       // Add the current request with timestamp as both score and member
       // Use timestamp + random suffix to ensure unique members
       const member = `${now}:${crypto.randomBytes(4).toString('hex')}`;
-      await client.zAdd(key, { score: now, value: member });
+      await client.zadd(key, now, member);
 
       // Set TTL on the key to auto-cleanup (slightly longer than the window)
       await client.expire(
