@@ -296,7 +296,7 @@ export class AgentThreadsController {
     }
 
     const dbUser = await this.usersService.findOne({ authProviderId }, []);
-    const fallbackUserId = dbUser?.id ?? dbUser?._id;
+    const fallbackUserId = dbUser?.id;
     if (!fallbackUserId) {
       throw new UnauthorizedException('User account not found');
     }

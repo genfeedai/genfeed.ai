@@ -157,7 +157,7 @@ describe('BaseService', () => {
       expect(delegate.create).toHaveBeenCalledWith({
         data: { foo: 'bar' },
       });
-      expect(result).toEqual({ ...created, _id: 'id_1' });
+      expect(result).toEqual({ ...created });
     });
 
     it('creates a document with include when populate is provided', async () => {
@@ -170,7 +170,7 @@ describe('BaseService', () => {
         data: { foo: 'bar' },
         include: { user: true },
       });
-      expect(result).toEqual({ ...created, _id: 'id_1' });
+      expect(result).toEqual({ ...created });
     });
 
     it('throws ValidationException when createDto is null', async () => {
@@ -707,7 +707,7 @@ describe('BaseService', () => {
       expect(delegate.findFirst).toHaveBeenCalledWith({
         where: { id: 'id_1' },
       });
-      expect(result).toEqual({ ...doc, _id: 'id_1' });
+      expect(result).toEqual({ ...doc });
     });
 
     it('normalizes enum filters', async () => {
@@ -768,7 +768,7 @@ describe('BaseService', () => {
         where: { id: 'id_1' },
         data: { foo: 'updated' },
       });
-      expect(result).toEqual({ ...updated, _id: 'id_1' });
+      expect(result).toEqual({ ...updated });
     });
 
     it('normalizes enum update data', async () => {
@@ -867,7 +867,7 @@ describe('BaseService', () => {
         where: { id: 'id_1' },
         data: { isDeleted: true },
       });
-      expect(result).toEqual({ ...deleted, _id: 'id_1' });
+      expect(result).toEqual({ ...deleted });
     });
 
     it('throws ValidationException when id is falsy', async () => {
@@ -1082,7 +1082,7 @@ describe('BaseService', () => {
         where: { id: 'id_1' },
         data: { isRead: true },
       });
-      expect(result).toEqual({ _id: 'id_1', id: 'id_1', isRead: true });
+      expect(result).toEqual({ id: 'id_1', isRead: true });
     });
 
     it('returns null when document not found or not in org', async () => {

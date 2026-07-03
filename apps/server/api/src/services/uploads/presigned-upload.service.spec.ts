@@ -48,7 +48,7 @@ describe('PresignedUploadService', () => {
     partial: Partial<IngredientEntity>,
   ): IngredientEntity =>
     ({
-      _id: mockIngredientId,
+      id: mockIngredientId,
       brand: 'test-object-id',
       category: IngredientCategory.IMAGE,
       extension: 'jpg',
@@ -491,7 +491,7 @@ describe('PresignedUploadService', () => {
 
       const mockIngredient = createIngredientDocument({
         category: IngredientCategory.IMAGE,
-        metadata: { _id: mockMetadataId } as never,
+        metadata: { id: mockMetadataId } as never,
       });
 
       ingredientsService.findOne.mockResolvedValue(mockIngredient);

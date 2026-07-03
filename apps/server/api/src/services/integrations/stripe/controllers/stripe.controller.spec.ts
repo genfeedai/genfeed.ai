@@ -93,13 +93,13 @@ describe('StripeController', () => {
 
     usersService = {
       findOne: vi.fn().mockResolvedValue({
-        _id: userId,
         authProviderId: 'authProvider_user_123',
+        id: userId,
       }),
     };
 
     organizationsService = {
-      findOne: vi.fn().mockResolvedValue({ _id: orgId }),
+      findOne: vi.fn().mockResolvedValue({ id: orgId }),
     };
 
     const module: TestingModule = await Test.createTestingModule({

@@ -47,20 +47,20 @@ describe('RedditController', () => {
   const credentialId = 'test-object-id';
 
   const mockBrand = {
-    _id: brandId,
+    id: brandId,
     organization: orgId,
   };
 
   beforeEach(async () => {
     brandsService = { findOne: vi.fn().mockResolvedValue(mockBrand) };
     credentialsService = {
-      findOne: vi.fn().mockResolvedValue({ _id: credentialId }),
+      findOne: vi.fn().mockResolvedValue({ id: credentialId }),
       patch: vi
         .fn()
         .mockImplementation((_id, data) =>
-          Promise.resolve({ _id: credentialId, ...data }),
+          Promise.resolve({ id: credentialId, ...data }),
         ),
-      saveCredentials: vi.fn().mockResolvedValue({ _id: credentialId }),
+      saveCredentials: vi.fn().mockResolvedValue({ id: credentialId }),
     };
     redditService = {
       generateAuthUrl: vi

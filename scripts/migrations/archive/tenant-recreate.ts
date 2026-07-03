@@ -35,7 +35,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { config } from 'dotenv';
 import { type Document, MongoClient } from 'mongodb';
 import { PrismaClient } from '../../packages/prisma/src/index';
-import { normalizePgUrl } from './_pg-ssl';
+import { normalizePgUrl } from '../_pg-ssl';
 
 const logger = new Logger('TenantRecreate');
 

@@ -243,7 +243,7 @@ export class OrganizationSettingsService extends BaseService<
       // Keep all models from the highest major version (including all minor versions)
       group.forEach((item) => {
         if (item.major === maxMajor) {
-          filteredModelIds.push(String(item.model._id));
+          filteredModelIds.push(String(item.model.id));
         }
       });
     });
@@ -338,7 +338,7 @@ export class OrganizationSettingsService extends BaseService<
       });
 
     if (shouldPersist) {
-      await this.patch(String(settings._id), {
+      await this.patch(String(settings.id), {
         onboardingJourneyMissions: nextState,
       });
     }

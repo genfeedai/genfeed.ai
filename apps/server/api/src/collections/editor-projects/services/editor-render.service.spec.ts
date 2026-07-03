@@ -79,7 +79,7 @@ describe('EditorRenderService', () => {
     tracks = [makeTrack(EditorTrackType.VIDEO)],
     settings = { fps: 30 },
   ) => ({
-    _id: projectId,
+    id: projectId,
     settings,
     tracks,
   });
@@ -104,7 +104,7 @@ describe('EditorRenderService', () => {
     };
     ingredientsService = {
       findOne: vi.fn().mockResolvedValue({
-        _id: videoIngredientId,
+        id: videoIngredientId,
         brand: null,
       }),
       patch: vi.fn().mockResolvedValue(undefined),
@@ -117,8 +117,8 @@ describe('EditorRenderService', () => {
     };
     sharedService = {
       saveDocuments: vi.fn().mockResolvedValue({
-        ingredientData: { _id: 'test-object-id' },
-        metadataData: { _id: 'test-object-id' },
+        ingredientData: { id: 'test-object-id' },
+        metadataData: { id: 'test-object-id' },
       }),
     };
     websocketService = {

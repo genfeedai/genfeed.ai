@@ -142,7 +142,7 @@ export class WorkflowsService extends BaseService<
     // If trigger is manual, start execution immediately
     if ((workflowData.trigger as string) === 'manual') {
       this.executeWorkflowCompat(
-        workflow._id.toString(),
+        String(workflow.id),
         userId,
         organizationId,
       ).catch((error) => {

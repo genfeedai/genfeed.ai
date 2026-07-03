@@ -14,7 +14,7 @@ vi.mock('@libs/utils/caller/caller.util', () => ({
 }));
 
 const makeCampaign = (overrides = {}) => ({
-  _id: '507f191e810c19729de860ee',
+  id: '507f191e810c19729de860ee',
   organization: '507f191e810c19729de860ee',
   status: CampaignStatus.ACTIVE,
   ...overrides,

@@ -19,6 +19,12 @@
       "@genfeedai/enums/*": ["../../../packages/enums/dist/*"],
       "@genfeedai/interfaces": ["../../../packages/interfaces/src/index.ts"],
       "@genfeedai/interfaces/*": ["../../../packages/interfaces/src/*"],
+      "@genfeedai/queue-contracts": [
+        "../../../packages/queue-contracts/src/index.ts"
+      ],
+      "@genfeedai/queue-contracts/*": [
+        "../../../packages/queue-contracts/src/*"
+      ],
       "@genfeedai/prisma": ["../../../packages/prisma/src/index.ts"],
       "@genfeedai/prisma/*": ["../../../packages/prisma/src/*"],
       "@genfeedai/serializers": ["../../../packages/serializers/src/index.ts"],

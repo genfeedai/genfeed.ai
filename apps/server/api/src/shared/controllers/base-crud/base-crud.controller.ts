@@ -9,8 +9,8 @@ import {
   getPublicMetadata,
 } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
-import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -418,7 +418,7 @@ export abstract class BaseCRUDController<
     const relationshipFields = ['parent', 'folder', 'brand', 'organization'];
     for (const field of relationshipFields) {
       if (Object.hasOwn(dto, field)) {
-        dto[field] = await ObjectIdUtil.convertRelationshipField(
+        dto[field] = await EntityIdUtil.convertRelationshipField(
           dto[field],
           field,
         );
@@ -466,9 +466,9 @@ export abstract class BaseCRUDController<
     // Default: user can only modify their own entities
     const entityRecord = entity as Record<string, unknown>;
     const entityUser = entityRecord.user as
-      | { _id?: { toString(): string }; toString(): string }
+      | { id?: { toString(): string }; toString(): string }
       | undefined;
-    const entityUserId = entityUser?._id?.toString() || entityUser?.toString();
+    const entityUserId = entityUser?.id?.toString() || entityUser?.toString();
     return entityUserId === publicMetadata.user;
   }
 

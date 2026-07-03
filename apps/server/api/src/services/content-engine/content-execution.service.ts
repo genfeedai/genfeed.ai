@@ -145,7 +145,7 @@ export class ContentExecutionService {
     userId: string,
     item: ContentPlanItemDocument,
   ): Promise<ExecutionResult> {
-    const itemId = String(item._id);
+    const itemId = String(item.id);
 
     await this.contentPlanItemsService.updateStatus(
       organizationId,
@@ -199,7 +199,7 @@ export class ContentExecutionService {
     _userId: string,
     item: ContentPlanItemDocument,
   ): Promise<ExecutionResult> {
-    const itemId = String(item._id);
+    const itemId = String(item.id);
     const skillSlug = item.skillSlug ?? 'content-writing';
     const itemPlatforms = item.platforms ?? [];
     const itemPrompt = item.prompt ?? undefined;
@@ -239,7 +239,7 @@ export class ContentExecutionService {
       type: result.draft.type,
     });
 
-    const draftId = String(draft._id);
+    const draftId = String(draft.id);
 
     await this.contentPlanItemsService.updateStatus(
       organizationId,
@@ -264,7 +264,7 @@ export class ContentExecutionService {
     userId: string,
     item: ContentPlanItemDocument,
   ): Promise<ExecutionResult> {
-    const itemId = String(item._id);
+    const itemId = String(item.id);
     const itemPlatforms = item.platforms ?? [];
     const itemPrompt = item.prompt ?? undefined;
     const itemTopic = item.topic ?? undefined;
@@ -359,7 +359,7 @@ export class ContentExecutionService {
       type: 'media',
     });
 
-    const draftId = String(draft._id);
+    const draftId = String(draft.id);
 
     await this.contentPlanItemsService.updateStatus(
       organizationId,

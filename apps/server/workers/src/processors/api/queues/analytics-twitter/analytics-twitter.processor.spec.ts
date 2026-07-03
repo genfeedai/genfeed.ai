@@ -83,13 +83,13 @@ describe('AnalyticsTwitterProcessor', () => {
     it('processes a batch of posts successfully', async () => {
       const posts = [
         {
-          _id: 'post_1',
+          id: 'post_1',
           brand: 'brand_1',
           externalId: 'tweet_111',
           organization: 'org_1',
         },
         {
-          _id: 'post_2',
+          id: 'post_2',
           brand: 'brand_1',
           externalId: 'tweet_222',
           organization: 'org_1',
@@ -129,7 +129,7 @@ describe('AnalyticsTwitterProcessor', () => {
 
     it('updates progress at 10%, 50%, 100%', async () => {
       const posts = [
-        { _id: 'p1', brand: 'b1', externalId: 'tw_1', organization: 'o1' },
+        { id: 'p1', brand: 'b1', externalId: 'tw_1', organization: 'o1' },
       ];
       credentialsService.findOne.mockResolvedValue({
         accessToken: 'at',
@@ -171,7 +171,7 @@ describe('AnalyticsTwitterProcessor', () => {
       const job = makeJob({
         credentialId: 'cred_missing',
         posts: [
-          { _id: 'p1', brand: 'b1', externalId: 'tw_1', organization: 'o1' },
+          { id: 'p1', brand: 'b1', externalId: 'tw_1', organization: 'o1' },
         ],
       });
 
@@ -186,13 +186,13 @@ describe('AnalyticsTwitterProcessor', () => {
     it('logs warn for tweets missing analytics and continues', async () => {
       const posts = [
         {
-          _id: 'post_1',
+          id: 'post_1',
           brand: 'b1',
           externalId: 'tweet_111',
           organization: 'o1',
         },
         {
-          _id: 'post_2',
+          id: 'post_2',
           brand: 'b1',
           externalId: 'tweet_missing',
           organization: 'o1',
@@ -230,7 +230,7 @@ describe('AnalyticsTwitterProcessor', () => {
   describe('process (API failure)', () => {
     it('throws and logs error when twitter batch fetch fails', async () => {
       const posts = [
-        { _id: 'p1', brand: 'b1', externalId: 'tw_1', organization: 'o1' },
+        { id: 'p1', brand: 'b1', externalId: 'tw_1', organization: 'o1' },
       ];
       credentialsService.findOne.mockResolvedValue({
         accessToken: 'at',
@@ -248,7 +248,7 @@ describe('AnalyticsTwitterProcessor', () => {
 
     it('does not log rate-limit errors separately when rateLimitReset is set', async () => {
       const posts = [
-        { _id: 'p1', brand: 'b1', externalId: 'tw_1', organization: 'o1' },
+        { id: 'p1', brand: 'b1', externalId: 'tw_1', organization: 'o1' },
       ];
       credentialsService.findOne.mockResolvedValue({
         accessToken: 'at',

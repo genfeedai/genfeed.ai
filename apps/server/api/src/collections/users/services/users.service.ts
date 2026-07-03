@@ -91,10 +91,10 @@ export class UsersService extends BaseService<
     authProviderId: string,
   ): Promise<string | null> {
     const user = await this.findOne({ authProviderId }, []);
-    if (!user?._id) {
+    if (!user?.id) {
       return null;
     }
-    return String(user._id);
+    return String(user.id);
   }
 
   /**

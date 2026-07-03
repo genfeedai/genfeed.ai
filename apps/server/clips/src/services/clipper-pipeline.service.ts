@@ -111,7 +111,7 @@ export class ClipperPipelineService {
 
       for (let i = 0; i < highlightResult.highlights.length; i++) {
         const highlight = highlightResult.highlights[i];
-        const clipResultId = clipResults[i]?._id;
+        const clipResultId = clipResults[i]?.id;
 
         try {
           await this.updateClipResult(clipResultId, { status: 'extracting' });
@@ -266,8 +266,8 @@ export class ClipperPipelineService {
   private async createClipResults(
     project: IClipProject,
     highlights: IHighlight[],
-  ): Promise<Array<{ _id: string }>> {
-    const results: Array<{ _id: string }> = [];
+  ): Promise<Array<{ id: string }>> {
+    const results: Array<{ id: string }> = [];
 
     for (let i = 0; i < highlights.length; i++) {
       const highlight = highlights[i];
@@ -281,7 +281,7 @@ export class ClipperPipelineService {
             endTime: highlight.end_time,
             index: i,
             organization: project.organization,
-            project: project._id,
+            project: project.id,
             startTime: highlight.start_time,
             summary: highlight.summary,
             tags: highlight.tags,

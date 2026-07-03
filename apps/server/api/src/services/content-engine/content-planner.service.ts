@@ -113,7 +113,7 @@ export class ContentPlannerService {
       status: ContentPlanStatus.DRAFT,
     });
 
-    const planId = String(plan._id);
+    const planId = String(plan.id);
 
     const itemInputs: CreateContentPlanItemInput[] = parsed.items.map(
       (item) => ({

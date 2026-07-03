@@ -85,13 +85,13 @@ describe('AgentOrchestratorService', () => {
     };
     const agentThreadsServiceMock = {
       addMessage: vi.fn().mockResolvedValue({}),
-      create: vi.fn().mockResolvedValue({ _id: CONVERSATION_ID }),
+      create: vi.fn().mockResolvedValue({ id: CONVERSATION_ID }),
       findOne: vi.fn().mockResolvedValue({
-        _id: CONVERSATION_ID,
+        id: CONVERSATION_ID,
         messages: [],
         planModeEnabled: false,
       }),
-      updateThreadMetadata: vi.fn().mockResolvedValue({ _id: CONVERSATION_ID }),
+      updateThreadMetadata: vi.fn().mockResolvedValue({ id: CONVERSATION_ID }),
     };
     const brandsServiceMock = {
       findOne: vi.fn().mockResolvedValue(null),
@@ -182,7 +182,7 @@ describe('AgentOrchestratorService', () => {
     };
     const agentRunsServiceMock = {
       complete: vi.fn().mockResolvedValue({ durationMs: 100 }),
-      create: vi.fn().mockResolvedValue({ _id: RUN_ID }),
+      create: vi.fn().mockResolvedValue({ id: RUN_ID }),
       isCancelled: vi.fn().mockResolvedValue(false),
       mergeMetadata: vi.fn().mockResolvedValue(undefined),
       patch: vi.fn().mockResolvedValue({}),
@@ -427,7 +427,7 @@ describe('AgentOrchestratorService', () => {
       onboardingCompleted: true,
     } as never);
     agentThreadsService.findOne.mockResolvedValue({
-      _id: CONVERSATION_ID,
+      id: CONVERSATION_ID,
       title: prompt,
     } as never);
     llmDispatcher.chatCompletion.mockResolvedValueOnce({
@@ -481,7 +481,7 @@ describe('AgentOrchestratorService', () => {
       onboardingCompleted: true,
     } as never);
     agentThreadsService.findOne.mockResolvedValueOnce({
-      _id: CONVERSATION_ID,
+      id: CONVERSATION_ID,
       title: 'Custom Thread Name',
     } as never);
     llmDispatcher.chatCompletion.mockResolvedValueOnce({
@@ -508,7 +508,7 @@ describe('AgentOrchestratorService', () => {
       onboardingCompleted: true,
     } as never);
     agentThreadsService.findOne.mockResolvedValue({
-      _id: CONVERSATION_ID,
+      id: CONVERSATION_ID,
       messages: [],
       planModeEnabled: true,
     } as never);

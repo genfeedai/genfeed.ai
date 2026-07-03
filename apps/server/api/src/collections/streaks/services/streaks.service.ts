@@ -346,7 +346,7 @@ export class StreaksService {
         (milestone) => milestone >= 30,
       ),
       currentStreak: streak.currentStreak,
-      id: String(streak._id),
+      id: String(streak.id),
       lastActivityDate: streak.lastActivityDate ?? null,
       lastBrokenAt: streak.lastBrokenAt ?? null,
       lastBrokenStreak: streak.lastBrokenStreak ?? null,

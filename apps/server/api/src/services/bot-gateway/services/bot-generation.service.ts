@@ -190,10 +190,10 @@ export class BotGenerationService {
       // Store callback context for when generation completes
       const contextWithIngredient: IBotCallbackContext = {
         ...callbackContext,
-        ingredientId: ingredientData._id.toString(),
+        ingredientId: ingredientData.id.toString(),
       };
       this.callbackContexts.set(
-        ingredientData._id.toString(),
+        ingredientData.id.toString(),
         contextWithIngredient,
       );
 
@@ -210,8 +210,8 @@ export class BotGenerationService {
       }
 
       this.loggerService.log(`${url} ingredient created`, {
-        ingredientId: ingredientData._id.toString(),
-        metadataId: metadataData._id.toString(),
+        ingredientId: ingredientData.id.toString(),
+        metadataId: metadataData.id.toString(),
       });
 
       // NOTE: The actual AI generation call would go here
@@ -219,7 +219,7 @@ export class BotGenerationService {
       // (like Replicate webhooks) will update the ingredient when generation completes
 
       return {
-        ingredientId: ingredientData._id.toString(),
+        ingredientId: ingredientData.id.toString(),
         message: `Generating your ${isImage ? 'image' : 'video'}...`,
       };
     } catch (error: unknown) {

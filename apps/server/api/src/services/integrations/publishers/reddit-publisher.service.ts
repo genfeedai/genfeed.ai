@@ -210,35 +210,35 @@ export class RedditPublisherService extends BasePublisherService {
         );
 
         if (commentResult?.commentId) {
-          await this.postsService.patch(child._id.toString(), {
+          await this.postsService.patch(child.id.toString(), {
             externalId: commentResult.commentId,
             publicationDate: new Date(),
             status: PostStatus.PUBLIC,
           });
 
           this.logger.log(`${url} posted comment`, {
-            childPostId: child._id.toString(),
+            childPostId: child.id.toString(),
             commentId: commentResult.commentId,
             order: child.order,
           });
         } else {
           this.logger.error(`${url} failed to post comment`, {
-            childPostId: child._id.toString(),
+            childPostId: child.id.toString(),
             order: child.order,
           });
 
-          await this.postsService.patch(child._id.toString(), {
+          await this.postsService.patch(child.id.toString(), {
             status: PostStatus.FAILED,
           });
         }
       } catch (error: unknown) {
         this.logger.error(`${url} error posting comment`, {
-          childPostId: child._id.toString(),
+          childPostId: child.id.toString(),
           error: (error as Error)?.message,
           order: child.order,
         });
 
-        await this.postsService.patch(child._id.toString(), {
+        await this.postsService.patch(child.id.toString(), {
           status: PostStatus.FAILED,
         });
       }

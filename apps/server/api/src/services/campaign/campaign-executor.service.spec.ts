@@ -91,7 +91,7 @@ describe('CampaignExecutorService', () => {
     overrides: Partial<OutreachCampaignDocument> = {},
   ): OutreachCampaignDocument =>
     ({
-      _id: campaignId,
+      id: campaignId,
       aiConfig: {
         context: 'some context',
         customInstructions: 'be nice',
@@ -111,7 +111,7 @@ describe('CampaignExecutorService', () => {
     overrides: Partial<CampaignTargetDocument> = {},
   ): CampaignTargetDocument =>
     ({
-      _id: targetId,
+      id: targetId,
       authorUsername: 'testuser',
       contentCreatedAt: new Date(),
       contentText: 'hello world',
@@ -122,7 +122,7 @@ describe('CampaignExecutorService', () => {
     }) as unknown as CampaignTargetDocument;
 
   const fakeCredential = {
-    _id: credentialId,
+    id: credentialId,
     accessToken: 'at',
     accessTokenSecret: 'ats',
     externalId: 'ext1',
@@ -335,7 +335,7 @@ describe('CampaignExecutorService', () => {
   describe('processPendingTargets', () => {
     it('should process a batch of pending targets', async () => {
       const campaign = makeCampaign();
-      const targets = [makeTarget(), makeTarget({ _id: 'test-object-id' })];
+      const targets = [makeTarget(), makeTarget({ id: 'test-object-id' })];
       mockCampaignTargetsService.getPendingTargets.mockResolvedValue(targets);
       mockOutreachCampaignsService.canReply.mockResolvedValue(true);
       mockCredentialsService.findOne.mockResolvedValue(fakeCredential);
@@ -355,8 +355,8 @@ describe('CampaignExecutorService', () => {
 
     it('should count skipped and failed separately', async () => {
       const campaign = makeCampaign();
-      const t1 = makeTarget({ _id: 'test-object-id' });
-      const t2 = makeTarget({ _id: 'test-object-id' });
+      const t1 = makeTarget({ id: 'test-object-id' });
+      const t2 = makeTarget({ id: 'test-object-id' });
       mockCampaignTargetsService.getPendingTargets.mockResolvedValue([t1, t2]);
       // First target: rate limited
       mockOutreachCampaignsService.canReply

@@ -148,7 +148,7 @@ export class OrganizationsSettingsController {
     );
 
     const data = await this.organizationSettingsService.patch(
-      organizationSettings._id,
+      organizationSettings.id,
       settingsDto,
     );
 

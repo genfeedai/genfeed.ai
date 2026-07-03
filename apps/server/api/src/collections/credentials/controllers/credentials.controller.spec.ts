@@ -194,19 +194,19 @@ describe('CredentialsController', () => {
     it('should return deduplicated mentions', async () => {
       credentialsService.find.mockResolvedValue([
         {
-          _id: '507f191e810c19729de860ee',
+          id: '507f191e810c19729de860ee',
           externalHandle: '@user1',
           externalName: 'User One',
           platform: CredentialPlatform.TWITTER,
         },
         {
-          _id: '507f191e810c19729de860ee',
+          id: '507f191e810c19729de860ee',
           externalHandle: '@user1',
           externalName: 'User One',
           platform: CredentialPlatform.TWITTER,
         },
         {
-          _id: '507f191e810c19729de860ee',
+          id: '507f191e810c19729de860ee',
           externalHandle: '@user2',
           externalName: 'User Two',
           platform: CredentialPlatform.INSTAGRAM,
@@ -375,7 +375,7 @@ describe('CredentialsController', () => {
       );
 
       credentialsService.findOne.mockResolvedValueOnce({
-        _id: credId,
+        id: credId,
         brand: '507f191e810c19729de860ee',
         organization: orgId,
         platform: CredentialPlatform.TWITTER,
@@ -456,7 +456,7 @@ describe('CredentialsController', () => {
   describe('getQuotaStatus', () => {
     it('should return quota status for a credential', async () => {
       credentialsService.findOne.mockResolvedValue({
-        _id: credId,
+        id: credId,
       });
       organizationsService.findOne.mockResolvedValue({
         _id: orgId,

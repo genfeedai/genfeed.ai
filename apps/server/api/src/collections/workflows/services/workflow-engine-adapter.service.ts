@@ -131,7 +131,6 @@ import { Inject, Injectable, Optional } from '@nestjs/common';
  * Represents a minimal subset of WorkflowDocument needed for conversion.
  */
 interface WorkflowDocumentShape {
-  _id?: string | { toString(): string };
   brands?: Array<string | { toString(): string }>;
   id?: string;
   nodes?: WorkflowVisualNode[];
@@ -603,7 +602,7 @@ export class WorkflowEngineAdapterService {
         if (!brand) return null;
         const brandDoc = brand as unknown as Record<string, unknown>;
         return {
-          brandId: String(brandDoc._id),
+          brandId: String(brandDoc.id),
           colors:
             (brandDoc.colors as {
               primary: string;
@@ -1643,7 +1642,7 @@ export class WorkflowEngineAdapterService {
             brand: brandId,
             category:
               ingredients.length > 0 ? PostCategory.IMAGE : PostCategory.TEXT,
-            credential: credential._id,
+            credential: credential.id,
             description: caption,
             ingredients,
             label: this.buildPostLabel(caption),
@@ -1654,7 +1653,7 @@ export class WorkflowEngineAdapterService {
             user: userId,
           });
 
-          postIds.push(post._id.toString());
+          postIds.push(post.id.toString());
           publishedPlatforms.push(platform);
         }
 
@@ -2312,7 +2311,7 @@ export class WorkflowEngineAdapterService {
             user: context.userId,
           });
 
-        const ingredientId = ingredientData._id.toString();
+        const ingredientId = ingredientData.id.toString();
         const job = await fileQueueService.processVideo({
           authProviderUserId: context.userId,
           ingredientId,
@@ -2344,7 +2343,7 @@ export class WorkflowEngineAdapterService {
           transformations: [TransformationCategory.CAPTIONED],
         });
         await metadataService.patch(
-          metadataData._id,
+          metadataData.id,
           new MetadataEntity(uploaded),
         );
 
@@ -2535,7 +2534,7 @@ export class WorkflowEngineAdapterService {
       const post = await postsService.create({
         brand: brandId,
         category: PostCategory.TEXT,
-        credential: credential._id,
+        credential: credential.id,
         description,
         ingredients: [],
         label: this.buildPostLabel(description),
@@ -2548,10 +2547,10 @@ export class WorkflowEngineAdapterService {
 
       return {
         description: post.description,
-        id: post._id.toString(),
+        id: post.id.toString(),
         platform: post.platform,
         post: {
-          id: post._id.toString(),
+          id: post.id.toString(),
           label: post.label,
           status: post.status,
         },
@@ -2592,9 +2591,9 @@ export class WorkflowEngineAdapterService {
         );
 
         return {
-          id: newsletter._id.toString(),
+          id: newsletter.id.toString(),
           newsletter: {
-            id: newsletter._id.toString(),
+            id: newsletter.id.toString(),
             label: newsletter.label,
             status: newsletter.status,
             topic: newsletter.topic,
@@ -2877,10 +2876,7 @@ export class WorkflowEngineAdapterService {
 
     return {
       edges,
-      id:
-        typeof workflowDoc._id === 'object' && workflowDoc._id
-          ? workflowDoc._id.toString()
-          : workflowDoc.id || '',
+      id: workflowDoc.id || '',
       lockedNodeIds: workflowDoc.lockedNodeIds || [],
       nodes,
       organizationId:
@@ -3181,8 +3177,8 @@ export class WorkflowEngineAdapterService {
         user: args.userId,
       });
 
-    const ingredientId = ingredientData._id.toString();
-    const metadataId = metadataData._id.toString();
+    const ingredientId = ingredientData.id.toString();
+    const metadataId = metadataData.id.toString();
 
     if (args.externalId) {
       await this.metadataService.patch(
@@ -3400,7 +3396,7 @@ export class WorkflowEngineAdapterService {
       return undefined;
     }
 
-    const id = (document as { _id?: { toString(): string } | string })._id;
+    const id = (document as { id?: { toString(): string } | string }).id;
     if (typeof id === 'string') {
       return id;
     }
@@ -3484,7 +3480,7 @@ export class WorkflowEngineAdapterService {
     const record = media as Record<string, unknown>;
     const candidates = [
       record.id,
-      record._id,
+      record.id,
       record.ingredientId,
       record.url,
       record.src,

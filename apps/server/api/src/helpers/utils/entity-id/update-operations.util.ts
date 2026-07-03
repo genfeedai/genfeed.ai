@@ -1,4 +1,4 @@
-import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 
 /**
  * Build a Prisma update payload from an update DTO.
@@ -26,7 +26,7 @@ export async function buildUpdateOperations<T extends Record<string, unknown>>(
   // Process each relationship field
   for (const fieldName of relationshipFields) {
     if (Object.hasOwn(updateDto, fieldName)) {
-      const convertedValue = await ObjectIdUtil.convertRelationshipField(
+      const convertedValue = await EntityIdUtil.convertRelationshipField(
         updateDto[fieldName],
         fieldName,
       );

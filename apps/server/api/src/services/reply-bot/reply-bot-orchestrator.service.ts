@@ -130,7 +130,7 @@ export class ReplyBotOrchestratorService {
     credential: IReplyBotCredentialData,
   ): Promise<ProcessingResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const botConfigId = botConfig._id.toString();
+    const botConfigId = botConfig.id.toString();
     const platform = credential.platform || ReplyBotPlatform.TWITTER;
 
     const result: ProcessingResult = {
@@ -287,7 +287,7 @@ export class ReplyBotOrchestratorService {
     // Get all active monitored accounts for this bot
     const monitoredAccounts =
       await this.monitoredAccountsService.findByBotConfig(
-        botConfig._id.toString(),
+        botConfig.id.toString(),
         organizationId,
       );
 
@@ -320,7 +320,7 @@ export class ReplyBotOrchestratorService {
       if (unprocessed.length > 0) {
         const latestId = unprocessed[0].id;
         await this.monitoredAccountsService.updateLastProcessed(
-          account._id.toString(),
+          account.id.toString(),
           organizationId,
           latestId,
         );
@@ -437,7 +437,7 @@ export class ReplyBotOrchestratorService {
     dmSent?: boolean;
   }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const botConfigId = botConfig._id.toString();
+    const botConfigId = botConfig.id.toString();
 
     // Check rate limits
     const rateCheck = await this.rateLimitService.checkRateLimit(
@@ -449,7 +449,7 @@ export class ReplyBotOrchestratorService {
       // Log skipped activity
       await this.botActivitiesService.create({
         // @ts-expect-error TS2353
-        botConfig: botConfig._id,
+        botConfig: botConfig.id,
         botType: botConfig.type,
         organization: organizationId,
         skipReason: BotActivitySkipReason.RATE_LIMITED,
@@ -469,7 +469,7 @@ export class ReplyBotOrchestratorService {
     // Create activity record in processing state
     const activity = await this.botActivitiesService.create({
       // @ts-expect-error TS2353
-      botConfig: botConfig._id,
+      botConfig: botConfig.id,
       botType: botConfig.type,
       organization: organizationId,
       status: BotActivityStatus.PROCESSING,
@@ -479,7 +479,7 @@ export class ReplyBotOrchestratorService {
       triggerTweetText: content.text,
     });
 
-    const activityId = activity._id.toString();
+    const activityId = activity.id.toString();
 
     try {
       // Generate AI reply

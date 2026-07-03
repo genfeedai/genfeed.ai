@@ -55,9 +55,9 @@ describe('AnalyticsSyncWorkflowService', () => {
   it('queries Facebook posts by organization and enqueues analytics chunks', async () => {
     postsService.findAll.mockResolvedValue({
       docs: Array.from({ length: 51 }, (_, index) => ({
-        _id: `post-${index}`,
+        id: `post-${index}`,
         brand: 'brand-1',
-        credential: { _id: 'credential-1' },
+        credential: { id: 'credential-1' },
         externalId: `facebook-${index}`,
         organization: 'org-1',
         platform: CredentialPlatform.FACEBOOK,
@@ -84,7 +84,7 @@ describe('AnalyticsSyncWorkflowService', () => {
       expect.objectContaining({
         posts: expect.arrayContaining([
           expect.objectContaining({
-            _id: 'post-0',
+            id: 'post-0',
             credential: 'credential-1',
             organization: 'org-1',
             platform: CredentialPlatform.FACEBOOK,
@@ -106,21 +106,21 @@ describe('AnalyticsSyncWorkflowService', () => {
     postsService.findAll.mockResolvedValue({
       docs: [
         {
-          _id: 'post-1',
+          id: 'post-1',
           brand: 'brand-1',
-          credential: { _id: 'credential-1' },
+          credential: { id: 'credential-1' },
           externalId: 'tweet-1',
           platform: CredentialPlatform.TWITTER,
         },
         {
-          _id: 'post-2',
+          id: 'post-2',
           brand: 'brand-1',
-          credential: { _id: 'credential-1' },
+          credential: { id: 'credential-1' },
           externalId: 'tweet-2',
           platform: CredentialPlatform.TWITTER,
         },
         {
-          _id: 'post-without-credential',
+          id: 'post-without-credential',
           brand: 'brand-1',
           externalId: 'tweet-3',
           platform: CredentialPlatform.TWITTER,
@@ -147,13 +147,13 @@ describe('AnalyticsSyncWorkflowService', () => {
         credentialId: 'credential-1',
         posts: [
           {
-            _id: 'post-1',
+            id: 'post-1',
             brand: 'brand-1',
             externalId: 'tweet-1',
             organization: 'org-1',
           },
           {
-            _id: 'post-2',
+            id: 'post-2',
             brand: 'brand-1',
             externalId: 'tweet-2',
             organization: 'org-1',
@@ -200,19 +200,19 @@ describe('AnalyticsSyncWorkflowService', () => {
     postsService.findAll.mockResolvedValue({
       docs: [
         {
-          _id: 'post-1',
+          id: 'post-1',
           brand: 'brand-1',
           externalId: 'video-1',
           platform: CredentialPlatform.YOUTUBE,
         },
         {
-          _id: 'post-2',
+          id: 'post-2',
           brand: 'brand-1',
           externalId: 'video-2',
           platform: CredentialPlatform.YOUTUBE,
         },
         {
-          _id: 'post-without-brand',
+          id: 'post-without-brand',
           externalId: 'video-3',
           platform: CredentialPlatform.YOUTUBE,
         },
@@ -228,13 +228,13 @@ describe('AnalyticsSyncWorkflowService', () => {
         organizationId: 'org-1',
         posts: [
           {
-            _id: 'post-1',
+            id: 'post-1',
             brand: 'brand-1',
             externalId: 'video-1',
             organization: 'org-1',
           },
           {
-            _id: 'post-2',
+            id: 'post-2',
             brand: 'brand-1',
             externalId: 'video-2',
             organization: 'org-1',

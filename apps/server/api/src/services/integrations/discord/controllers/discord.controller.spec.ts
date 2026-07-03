@@ -79,9 +79,9 @@ describe('DiscordController', () => {
     it('should update existing credential when one exists', async () => {
       const existingId = 'test-object-id';
       mockCredentialsService.findOne.mockResolvedValue({
-        _id: existingId,
+        id: existingId,
       });
-      mockCredentialsService.patch.mockResolvedValue({ _id: existingId });
+      mockCredentialsService.patch.mockResolvedValue({ id: existingId });
       mockDiscordService.generateAuthUrl.mockReturnValue(
         'https://discord.com/oauth2/authorize?...',
       );
@@ -111,7 +111,7 @@ describe('DiscordController', () => {
     it('should exchange code, get user info and update credential', async () => {
       const credentialId = 'test-object-id';
       mockCredentialsService.findOne.mockResolvedValue({
-        _id: credentialId,
+        id: credentialId,
       });
       mockDiscordService.exchangeCodeForToken.mockResolvedValue({
         access_token: 'access-token',
@@ -125,7 +125,7 @@ describe('DiscordController', () => {
         username: 'testuser',
       });
       mockCredentialsService.patch.mockResolvedValue({
-        _id: credentialId,
+        id: credentialId,
         isConnected: true,
       });
 
@@ -152,7 +152,7 @@ describe('DiscordController', () => {
           isConnected: true,
         }),
       );
-      expect(result).toEqual({ _id: credentialId, isConnected: true });
+      expect(result).toEqual({ id: credentialId, isConnected: true });
     });
 
     it('should throw BAD_REQUEST when no credential matches state', async () => {
@@ -171,7 +171,7 @@ describe('DiscordController', () => {
 
     it('should set avatar URL correctly when user has avatar', async () => {
       const credId = 'test-object-id';
-      mockCredentialsService.findOne.mockResolvedValue({ _id: credId });
+      mockCredentialsService.findOne.mockResolvedValue({ id: credId });
       mockDiscordService.exchangeCodeForToken.mockResolvedValue({
         access_token: 'token',
         expires_in: 3600,
@@ -182,7 +182,7 @@ describe('DiscordController', () => {
         id: '999',
         username: 'user',
       });
-      mockCredentialsService.patch.mockResolvedValue({ _id: credId });
+      mockCredentialsService.patch.mockResolvedValue({ id: credId });
 
       await controller.verify(
         user as Record<string, unknown>,

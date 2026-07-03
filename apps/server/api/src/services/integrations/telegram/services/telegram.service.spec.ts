@@ -112,9 +112,9 @@ describe('TelegramService', () => {
       vi.mocked(TelegramAuthUtil.verifyAuthData).mockReturnValue(true);
       const existingId = 'test-object-id';
       mockCredentialsService.findOne.mockResolvedValue({
-        _id: existingId,
+        id: existingId,
       });
-      const updated = { _id: existingId, isConnected: true };
+      const updated = { id: existingId, isConnected: true };
       mockCredentialsService.patch.mockResolvedValue(updated);
 
       const result = await service.verifyAndSaveAuth(
@@ -215,7 +215,7 @@ describe('TelegramService', () => {
     it('should disconnect and soft-delete credential', async () => {
       const credentialId = 'test-object-id';
       mockCredentialsService.findOne.mockResolvedValue({
-        _id: credentialId,
+        id: credentialId,
       });
       mockCredentialsService.patch.mockResolvedValue({ isDeleted: true });
 

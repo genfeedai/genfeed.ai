@@ -1553,7 +1553,7 @@ export class ArticlesService extends BaseService<
             .findAll({ where: {} }, { pagination: false })
             .then((result) =>
               result.docs.filter((u: Record<string, unknown>) =>
-                userIds.includes(String(u.id ?? u._id)),
+                userIds.includes(String(u.id)),
               ),
             )
         : Promise.resolve([]),
@@ -1562,17 +1562,17 @@ export class ArticlesService extends BaseService<
             .findAll({ where: {} }, { pagination: false })
             .then((result) =>
               result.docs.filter((o: Record<string, unknown>) =>
-                orgIds.includes(String(o.id ?? o._id)),
+                orgIds.includes(String(o.id)),
               ),
             )
         : Promise.resolve([]),
     ]);
 
     const usersMap = new Map(
-      users.map((u: Record<string, unknown>) => [String(u.id ?? u._id), u]),
+      users.map((u: Record<string, unknown>) => [String(u.id), u]),
     );
     const orgsMap = new Map(
-      orgs.map((o: Record<string, unknown>) => [String(o.id ?? o._id), o]),
+      orgs.map((o: Record<string, unknown>) => [String(o.id), o]),
     );
 
     for (const doc of docs) {

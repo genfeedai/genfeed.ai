@@ -34,7 +34,7 @@ export class YoutubeAuthService {
     }
 
     if (!credentials.refreshToken) {
-      await this.credentialsService.patch(credentials._id, {
+      await this.credentialsService.patch(credentials.id, {
         isConnected: false,
         isDeleted: false,
       });
@@ -124,7 +124,7 @@ export class YoutubeAuthService {
       }
 
       await this.credentialsService.patch(
-        credentials._id,
+        credentials.id,
         updateData as Partial<UpdateCredentialDto>,
       );
 
@@ -145,7 +145,7 @@ export class YoutubeAuthService {
         (error as Error)?.message?.includes('invalid_grant') ||
         axiosError?.code === 'invalid_grant';
 
-      await this.credentialsService.patch(credentials._id, {
+      await this.credentialsService.patch(credentials.id, {
         isConnected: false,
         isDeleted: false,
       });

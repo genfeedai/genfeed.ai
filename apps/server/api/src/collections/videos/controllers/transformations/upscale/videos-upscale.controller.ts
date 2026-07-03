@@ -134,7 +134,7 @@ export class VideosUpscaleController {
         });
 
       await this.metadataService.patch(
-        metadataData._id,
+        metadataData.id,
         new MetadataEntity({
           fps: targetFps,
           resolution: targetResolution,
@@ -148,14 +148,14 @@ export class VideosUpscaleController {
             typeof video.brand === 'string'
               ? video.brand
               : publicMetadata.brand,
-          entityId: ingredientData._id,
+          entityId: ingredientData.id,
           entityModel: ActivityEntityModel.INGREDIENT,
           key: ActivityKey.VIDEO_UPSCALE_PROCESSING,
           organization: publicMetadata.organization,
           source: ActivitySource.VIDEO_UPSCALE,
           user: publicMetadata.user,
           value: JSON.stringify({
-            ingredientId: ingredientData._id.toString(),
+            ingredientId: ingredientData.id.toString(),
             model,
             sourceId: videoId,
             type: 'transformation',
@@ -165,23 +165,23 @@ export class VideosUpscaleController {
 
       // Emit background-task-update WebSocket event for activities dropdown
       await this.websocketService.publishBackgroundTaskUpdate({
-        activityId: activity._id.toString(),
+        activityId: activity.id.toString(),
         label: 'Video Upscale',
         progress: 0,
         room: getUserRoomName(user.id),
         status: 'processing',
-        taskId: ingredientData._id.toString(),
+        taskId: ingredientData.id.toString(),
         userId: user.id,
       });
 
       if (this.configService.isDevelopment) {
         setTimeout(() => {
-          const websocketUrl = `/${ingredientData.type}s/${ingredientData._id}`;
+          const websocketUrl = `/${ingredientData.type}s/${ingredientData.id}`;
           void this.websocketService.publishVideoComplete(
             websocketUrl,
             {
               eventType: WebSocketEventType.VIDEO_REVERSED,
-              id: ingredientData._id,
+              id: ingredientData.id,
               status: WebSocketEventStatus.COMPLETED,
             },
             user.id,
@@ -212,12 +212,12 @@ export class VideosUpscaleController {
         promptParams,
       );
 
-      const ingredientId = String(ingredientData._id);
+      const ingredientId = String(ingredientData.id);
       const websocketUrl = WebSocketPaths.video(ingredientId);
 
       if (externalId) {
         await this.metadataService.patch(
-          metadataData._id,
+          metadataData.id,
           new MetadataEntity({
             externalId: externalId,
           }),

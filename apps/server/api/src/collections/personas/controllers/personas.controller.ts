@@ -8,8 +8,8 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
-import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { PersonaSerializer } from '@genfeedai/serializers';
@@ -52,10 +52,10 @@ export class PersonasController extends BaseCRUDController<
   ) {
     try {
       const { organization } = getPublicMetadata(user);
-      const personaId = ObjectIdUtil.toObjectId(id)!;
-      const orgId = ObjectIdUtil.toObjectId(organization)!;
+      const personaId = EntityIdUtil.toValidId(id)!;
+      const orgId = EntityIdUtil.toValidId(organization)!;
       const memberObjectIds = body.memberIds.map(
-        (memberId) => ObjectIdUtil.toObjectId(memberId)!,
+        (memberId) => EntityIdUtil.toValidId(memberId)!,
       );
 
       const persona = await this.personasService.assignMembers(

@@ -128,8 +128,8 @@ describe('BrandPersistenceService', () => {
     });
 
     it('switches to the label-matching brand and persists the selection', async () => {
-      const brand = { _id: 'brand_1' };
-      const matching = { _id: 'brand_2' };
+      const brand = { id: 'brand_1' };
+      const matching = { id: 'brand_2' };
       brandsService.findOne.mockResolvedValueOnce(matching);
 
       const result = await service.resolveWritableOnboardingBrand(
@@ -157,8 +157,8 @@ describe('BrandPersistenceService', () => {
     });
 
     it('keeps the original brand when the match is the same brand', async () => {
-      const brand = { _id: 'brand_1' };
-      brandsService.findOne.mockResolvedValueOnce({ _id: 'brand_1' });
+      const brand = { id: 'brand_1' };
+      brandsService.findOne.mockResolvedValueOnce({ id: 'brand_1' });
 
       const result = await service.resolveWritableOnboardingBrand(
         brand,
@@ -365,7 +365,7 @@ describe('BrandPersistenceService', () => {
 
     it('appends new images to the existing reference images', async () => {
       brandsService.findOne.mockResolvedValue({
-        _id: 'brand_1',
+        id: 'brand_1',
         referenceImages: [{ category: 'logo', url: 'https://old' }],
       });
 

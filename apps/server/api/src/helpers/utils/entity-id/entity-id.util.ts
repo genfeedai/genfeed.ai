@@ -4,12 +4,13 @@ import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 
 /**
- * Utility class for legacy id validation and conversion.
- * The name is kept for compatibility with existing callsites.
+ * Utility class for entity id validation and normalization.
+ * Entity ids are string ids (cuid/cuid2/uuid/ulid, plus legacy 24-char hex
+ * Mongo ids that survive as `mongoId` lookup aliases) — see `isEntityId`.
  */
-export class ObjectIdUtil {
+export class EntityIdUtil {
   // Common field names that should be validated as entity IDs
-  private static readonly OBJECTID_FIELDS = [
+  private static readonly ID_FIELDS = [
     '_id',
     'id',
     'user',
@@ -57,12 +58,12 @@ export class ObjectIdUtil {
     }
 
     return ids.map((id, index) =>
-      ObjectIdUtil.validate(id, `${fieldName}[${index}]`),
+      EntityIdUtil.validate(id, `${fieldName}[${index}]`),
     );
   }
 
   /**
-   * Process search parameters and validate known id fields with caching.
+   * Process search parameters and validate known id fields.
    */
   static async processSearchParams(
     params: BaseQueryDto,
@@ -70,24 +71,16 @@ export class ObjectIdUtil {
     const processed: Record<string, unknown> = {};
 
     for (const [key, value] of Object.entries(params)) {
-      if (ObjectIdUtil.OBJECTID_FIELDS.includes(key)) {
+      if (EntityIdUtil.ID_FIELDS.includes(key)) {
         if (value && typeof value === 'string') {
           try {
             const validated = await Promise.resolve(
-              ObjectIdUtil.validate(value, key),
+              EntityIdUtil.validate(value, key),
             );
             processed[key] = validated;
           } catch {
             processed[key] = value;
           }
-        } else if (Array.isArray(value)) {
-          // Handle arrays of ids (e.g., for in queries)
-          processed[key] = value.map((item) => {
-            if (isEntityId(item)) {
-              return item;
-            }
-            return item;
-          });
         } else {
           processed[key] = value;
         }
@@ -101,9 +94,9 @@ export class ObjectIdUtil {
   }
 
   /**
-   * Safely validate string id without throwing.
+   * Safely validate a string id without throwing.
    */
-  static toObjectId(id: string): string | null {
+  static toValidId(id: string): string | null {
     if (!isEntityId(id)) {
       return null;
     }
@@ -112,12 +105,10 @@ export class ObjectIdUtil {
   }
 
   /**
-   * Normalize a value to an id string, handling various input types.
+   * Normalize a value to an id string.
    * Returns undefined for invalid/empty values (does not throw).
    */
-  static normalizeToObjectId(
-    value: string | string | null | undefined,
-  ): string | undefined {
+  static normalizeId(value: string | null | undefined): string | undefined {
     if (!value) {
       return undefined;
     }
@@ -126,36 +117,23 @@ export class ObjectIdUtil {
       return value;
     }
 
-    if (typeof value === 'string') {
-      const trimmed = value.trim();
-      if (trimmed === '') {
-        return undefined;
-      }
-      try {
-        return trimmed;
-      } catch {
-        return undefined;
-      }
-    }
-
-    return undefined;
+    const trimmed = value.trim();
+    return trimmed === '' ? undefined : trimmed;
   }
 
   /**
    * Normalize an array of values to id strings, filtering out invalid entries.
    */
-  static normalizeArrayToObjectIds(
+  static normalizeIds(
     values: Array<string | null | undefined> | undefined,
   ): string[] | undefined {
     if (!values || !Array.isArray(values)) {
       return undefined;
     }
 
-    const normalized = values
-      .map((v) => ObjectIdUtil.normalizeToObjectId(v))
+    return values
+      .map((v) => EntityIdUtil.normalizeId(v))
       .filter((v): v is string => v !== undefined);
-
-    return normalized;
   }
 
   /**
@@ -163,16 +141,6 @@ export class ObjectIdUtil {
    */
   static isValid(id: unknown): id is string {
     return isEntityId(id);
-  }
-
-  /**
-   * Convert id to string safely.
-   */
-  static toString(id: string | { toString(): string }): string {
-    if (typeof id === 'string') {
-      return id;
-    }
-    return id.toString();
   }
 
   /**
@@ -189,60 +157,32 @@ export class ObjectIdUtil {
     return {
       ...dto,
       organization: publicMetadata.organization
-        ? ObjectIdUtil.validate(publicMetadata.organization, 'organization')
+        ? EntityIdUtil.validate(publicMetadata.organization, 'organization')
         : undefined,
-      user: ObjectIdUtil.validate(publicMetadata.user, 'user'),
+      user: EntityIdUtil.validate(publicMetadata.user, 'user'),
     };
   }
 
   /**
-   * Validate pagination parameters
-   */
-  static validatePaginationParams(
-    page?: number,
-    limit?: number,
-  ): {
-    page: number;
-    limit: number;
-  } {
-    const validatedPage = Math.max(1, Math.floor(Number(page) || 1));
-    const validatedLimit = Math.min(
-      100,
-      Math.max(1, Math.floor(Number(limit) || 10)),
-    );
-
-    if (validatedPage > 10000) {
-      throw new ValidationException(
-        'Page number is too large. Maximum allowed is 10000.',
-      );
-    }
-
-    return {
-      limit: validatedLimit,
-      page: validatedPage,
-    };
-  }
-
-  /**
-   * Create a secure query object with id validation and caching.
+   * Create a secure query object with id validation.
    */
   static async createSecureQuery(
     baseQuery: Record<string, unknown>,
     userContext?: IAuthPublicMetadata,
   ): Promise<Record<string, unknown>> {
     const processedQuery: Record<string, unknown> =
-      (await ObjectIdUtil.processSearchParams(
+      (await EntityIdUtil.processSearchParams(
         baseQuery as unknown as BaseQueryDto,
       )) as unknown as Record<string, unknown>;
 
     // Add user context if provided
     if (userContext) {
-      processedQuery.user = await ObjectIdUtil.validate(
+      processedQuery.user = await EntityIdUtil.validate(
         userContext.user,
         'user',
       );
       if (userContext.organization) {
-        processedQuery.organization = await ObjectIdUtil.validate(
+        processedQuery.organization = await EntityIdUtil.validate(
           userContext.organization,
           'organization',
         );
@@ -255,27 +195,6 @@ export class ObjectIdUtil {
     }
 
     return processedQuery;
-  }
-
-  /**
-   * Validate array of entity ids for bulk operations.
-   */
-  static validateBulkIds(ids: string[], maxCount: number = 100): string[] {
-    if (!Array.isArray(ids)) {
-      throw new ValidationException('IDs must be provided as an array');
-    }
-
-    if (ids.length === 0) {
-      throw new ValidationException('At least one ID must be provided');
-    }
-
-    if (ids.length > maxCount) {
-      throw new ValidationException(
-        `Too many IDs provided. Maximum allowed is ${maxCount}`,
-      );
-    }
-
-    return ObjectIdUtil.validateMany(ids, 'ids');
   }
 
   /**
@@ -293,7 +212,7 @@ export class ObjectIdUtil {
 
     // Handle valid string id
     if (typeof value === 'string') {
-      return await Promise.resolve(ObjectIdUtil.validate(value, fieldName));
+      return await Promise.resolve(EntityIdUtil.validate(value, fieldName));
     }
 
     // Handle empty object {} - treat as null (remove relationship)

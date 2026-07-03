@@ -78,7 +78,7 @@ export class MusicsUploadController {
       status: IngredientStatus.UPLOADED,
     });
 
-    await this.filesClientService.uploadToS3(ingredientData._id, `musics`, {
+    await this.filesClientService.uploadToS3(ingredientData.id, `musics`, {
       contentType: file.mimetype || 'audio/mpeg',
       data: file.buffer,
       type: FileInputType.BUFFER,

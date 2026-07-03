@@ -100,7 +100,7 @@ describe('TaskRoutingService', () => {
             slug: 'newsletter-pro',
             workflowStage: 'creation',
           },
-          variant: { _id: 'variant-123' },
+          variant: { id: 'variant-123' },
         },
       ]);
 

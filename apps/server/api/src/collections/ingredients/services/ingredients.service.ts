@@ -83,7 +83,7 @@ export class IngredientsService extends BaseService<
     );
 
     this.logger.debug(`${this.constructorName} create success`, {
-      id: result._id,
+      id: result.id,
     });
     return result;
   }

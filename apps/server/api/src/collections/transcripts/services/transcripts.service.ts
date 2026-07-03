@@ -76,12 +76,12 @@ export class TranscriptsService extends BaseService<
       await this.fileQueueService.processFile({
         ingredientId:
           transcript.id ??
-          (transcript as Record<string, unknown>)._id?.toString(),
+          (transcript as Record<string, unknown>).id?.toString(),
         organizationId,
         params: {
           transcriptId:
             transcript.id ??
-            (transcript as Record<string, unknown>)._id?.toString(),
+            (transcript as Record<string, unknown>).id?.toString(),
           youtubeId,
           youtubeUrl: createTranscriptDto.youtubeUrl,
         },

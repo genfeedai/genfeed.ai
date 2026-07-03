@@ -399,7 +399,7 @@ describe('VoicesController', () => {
       const ingredientId = '507f191e810c19729de860ee';
 
       sharedService.saveDocuments.mockResolvedValue({
-        ingredientData: { _id: ingredientId },
+        ingredientData: { id: ingredientId },
       });
       elevenLabsService.generateAndUploadAudio.mockResolvedValue({
         audioUrl: 'https://cdn.example.com/audio.mp3',
@@ -407,7 +407,7 @@ describe('VoicesController', () => {
       });
       voicesService.patchAll.mockResolvedValue({});
       voicesService.findOne.mockResolvedValue({
-        _id: ingredientId,
+        id: ingredientId,
         status: 'generated',
         url: 'https://cdn.example.com/audio.mp3',
       });

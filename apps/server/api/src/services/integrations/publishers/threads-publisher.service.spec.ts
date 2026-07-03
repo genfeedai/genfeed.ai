@@ -217,8 +217,8 @@ describe('ThreadsPublisherService', () => {
           category: PostCategory.IMAGE,
           description: 'Carousel caption',
           ingredients: [
-            { _id: 'image-1', category: IngredientCategory.IMAGE },
-            { _id: 'video-1', category: IngredientCategory.VIDEO },
+            { category: IngredientCategory.IMAGE, id: 'image-1' },
+            { category: IngredientCategory.VIDEO, id: 'video-1' },
           ],
         },
         postId: 'post-1',
@@ -253,9 +253,9 @@ describe('ThreadsPublisherService', () => {
       } as never;
       const children = [
         {
-          _id: { toString: () => 'c1' },
           category: PostCategory.VIDEO,
           description: 'Video reply',
+          id: { toString: () => 'c1' },
           ingredients: ['video-1'],
           order: 0,
         },
@@ -289,15 +289,15 @@ describe('ThreadsPublisherService', () => {
       } as never;
       const children = [
         {
-          _id: { toString: () => 'c2' },
           category: 'text',
           description: 'Second reply',
+          id: { toString: () => 'c2' },
           order: 2,
         },
         {
-          _id: { toString: () => 'c1' },
           category: 'text',
           description: 'First reply',
+          id: { toString: () => 'c1' },
           order: 1,
         },
       ];
@@ -340,9 +340,9 @@ describe('ThreadsPublisherService', () => {
       } as never;
       const children = [
         {
-          _id: { toString: () => 'c1' },
           category: 'text',
           description: 'Reply',
+          id: { toString: () => 'c1' },
           order: 1,
         },
       ];

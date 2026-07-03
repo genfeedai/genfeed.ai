@@ -139,7 +139,7 @@ export class CronYoutubeStatusService {
           targetStatus,
           `YouTube reports ${videoStatus.privacyStatus} - syncing post from ${post.status} to ${targetStatus}`,
           async () => {
-            await this.postsService.patch(post._id.toString(), updateData);
+            await this.postsService.patch(post.id.toString(), updateData);
           },
         );
 
@@ -197,7 +197,7 @@ export class CronYoutubeStatusService {
           'deleted',
           'Video no longer exists on YouTube - marking post as deleted',
           async () => {
-            await this.postsService.patch(post._id.toString(), {
+            await this.postsService.patch(post.id.toString(), {
               isDeleted: true,
             });
           },
