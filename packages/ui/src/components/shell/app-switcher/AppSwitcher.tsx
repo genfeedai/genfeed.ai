@@ -26,6 +26,7 @@ import { Button } from '../../../primitives/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -497,11 +498,10 @@ function AppBoardSection({
   section: AppSwitcherSectionConfig;
 }) {
   return (
-    <div
+    <DropdownMenuGroup
       key={section.id}
       aria-labelledby={`app-switcher-${section.id}`}
       className="min-w-0 rounded-md bg-foreground/[0.018] p-2 shadow-border"
-      role="group"
     >
       <DropdownMenuLabel
         id={`app-switcher-${section.id}`}
@@ -520,7 +520,7 @@ function AppBoardSection({
           />
         ))}
       </div>
-    </div>
+    </DropdownMenuGroup>
   );
 }
 
@@ -536,10 +536,9 @@ function AppCompactSection({
   section: AppSwitcherSectionConfig;
 }) {
   return (
-    <div
+    <DropdownMenuGroup
       aria-labelledby={`app-switcher-${section.id}`}
       className="min-w-0"
-      role="group"
     >
       <DropdownMenuLabel
         id={`app-switcher-${section.id}`}
@@ -558,7 +557,7 @@ function AppCompactSection({
           />
         ))}
       </div>
-    </div>
+    </DropdownMenuGroup>
   );
 }
 
@@ -679,10 +678,9 @@ export function AppSwitcher({
           </div>
 
           {adminSection ? (
-            <div
+            <DropdownMenuGroup
               aria-labelledby={`app-switcher-${adminSection.id}`}
               className="min-w-0"
-              role="group"
             >
               <DropdownMenuLabel
                 id={`app-switcher-${adminSection.id}`}
@@ -700,7 +698,7 @@ export function AppSwitcher({
                   variant="admin"
                 />
               ))}
-            </div>
+            </DropdownMenuGroup>
           ) : null}
         </div>
       </DropdownMenuContent>
