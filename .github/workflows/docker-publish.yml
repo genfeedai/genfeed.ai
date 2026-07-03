@@ -65,9 +65,12 @@ jobs:
     needs: validate-master-ref
     # Mirror deploy-ecs.yml's qa-before-deploy grant: ci.yml requests
     # pull-requests/statuses write, build-verify needs packages:write (GHCR
-    # cache login). A reusable workflow is capped by the caller's job-level
-    # permissions, so they must be declared here, not just at workflow top-level.
+    # cache login), and full-suite's cancel-doomed-run needs actions:write to
+    # cancel this run on a red gate. A reusable workflow is capped by the
+    # caller's job-level permissions, so they must be declared here, not just
+    # at workflow top-level.
     permissions:
+      actions: write
       contents: read
       packages: write
       pull-requests: write
