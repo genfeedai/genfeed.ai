@@ -130,7 +130,7 @@ export class KlingWebhookService {
       }
 
       if (Object.keys(updateData).length > 0) {
-        await this.metadataService.patch(metadata._id, updateData);
+        await this.metadataService.patch(metadata.id, updateData);
       }
 
       this.loggerService.log(`${url} completed`, {

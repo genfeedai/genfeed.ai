@@ -452,7 +452,7 @@ export class ContextsService {
       for (const base of contextBases) {
         const baseId = String(
           (base as Record<string, unknown>).id ??
-            (base as Record<string, unknown>)._id,
+            (base as Record<string, unknown>).id,
         );
         await this.adjustContextBaseMetric(baseId, 'usageCount', 1);
       }
@@ -554,7 +554,7 @@ export class ContextsService {
 
       const contextBaseId = String(
         (contextBase as Record<string, unknown>).id ??
-          (contextBase as Record<string, unknown>)._id,
+          (contextBase as Record<string, unknown>).id,
       );
 
       for (const post of posts) {
@@ -680,7 +680,7 @@ export class ContextsService {
     for (const contextBase of contextBases) {
       const contextBaseId = String(
         (contextBase as Record<string, unknown>).id ??
-          (contextBase as Record<string, unknown>)._id,
+          (contextBase as Record<string, unknown>).id,
       );
       const entries = await this.findSimilarEntries(
         contextBaseId,

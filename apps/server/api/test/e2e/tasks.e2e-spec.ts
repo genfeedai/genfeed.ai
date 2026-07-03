@@ -129,7 +129,7 @@ describe('Tasks E2E Tests', () => {
     testOrganization = createTestOrganization({
       _id: generateIdString(),
       label: 'Tasks Test Organization',
-      user: testUser._id,
+      user: testUser.id,
     });
 
     otherOrganization = createTestOrganization({
@@ -153,7 +153,7 @@ describe('Tasks E2E Tests', () => {
         identifier: 'GENA-20',
         isDeleted: false,
         linkedEntities: [],
-        organization: testOrganization._id,
+        organization: testOrganization.id,
         priority: 'high',
         status: 'todo',
         taskNumber: 20,
@@ -166,7 +166,7 @@ describe('Tasks E2E Tests', () => {
         identifier: 'GENA-99',
         isDeleted: false,
         linkedEntities: [],
-        organization: otherOrganization._id,
+        organization: otherOrganization.id,
         priority: 'low',
         status: 'backlog',
         taskNumber: 99,
@@ -184,8 +184,8 @@ describe('Tasks E2E Tests', () => {
       [method](url)
       .set('Authorization', 'Bearer mock-jwt-token')
       .set('x-authProvider-user-id', testUser.authProviderId)
-      .set('x-user-id', testUser._id.toString())
-      .set('x-organization-id', testOrganization._id.toString());
+      .set('x-user-id', testUser.id.toString())
+      .set('x-organization-id', testOrganization.id.toString());
   }
 
   describe('GET /v1/tasks', () => {

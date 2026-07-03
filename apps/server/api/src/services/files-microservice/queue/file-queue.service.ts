@@ -54,7 +54,7 @@ export class FileQueueService {
    * Refresh YouTube OAuth token
    */
   private async refreshYoutubeToken(credential: {
-    _id: string;
+    id: string;
     refreshToken: string;
   }): Promise<{
     access_token?: string | null;
@@ -102,7 +102,7 @@ export class FileQueueService {
         updateData.accessTokenExpiry = new Date(newCredentials.expiry_date);
       }
 
-      await this.credentialsService.patch(credential._id, updateData);
+      await this.credentialsService.patch(credential.id, updateData);
 
       this.loggerService.log('YouTube token refreshed successfully');
 
@@ -111,7 +111,7 @@ export class FileQueueService {
       this.loggerService.error('Failed to refresh YouTube token', error);
 
       // Mark credential as disconnected
-      await this.credentialsService.patch(credential._id, {
+      await this.credentialsService.patch(credential.id, {
         isConnected: false,
       });
 
@@ -313,7 +313,7 @@ export class FileQueueService {
       // Refresh token to ensure it's valid
       this.loggerService.log('Refreshing YouTube token before upload');
       await this.refreshYoutubeToken({
-        _id: credential._id,
+        id: credential.id,
         refreshToken: this.requireEncryptedToken(
           credential.refreshToken,
           'YouTube refreshToken',

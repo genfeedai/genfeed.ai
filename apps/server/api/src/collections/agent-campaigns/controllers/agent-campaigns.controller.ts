@@ -9,7 +9,7 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
-import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { IAgentCampaignStatusResponse } from '@genfeedai/interfaces';
@@ -133,7 +133,7 @@ export class AgentCampaignsController extends BaseCRUDController<
     const publicMetadata = getPublicMetadata(user);
 
     const entityOrganizationId =
-      (entity.organization as unknown as { _id: string })?._id?.toString() ||
+      (entity.organization as unknown as { id: string })?.id?.toString() ||
       entity.organization?.toString();
 
     if (
@@ -156,23 +156,23 @@ export class AgentCampaignsController extends BaseCRUDController<
     }
 
     const { user: metadataUserId } = getPublicMetadata(user);
-    if (ObjectIdUtil.isValid(metadataUserId)) {
+    if (EntityIdUtil.isValid(metadataUserId)) {
       const metadataUserDoc = await this.usersService.findOne(
         { _id: metadataUserId, authProviderId },
         [],
       );
-      if (metadataUserDoc?._id) {
-        return String(metadataUserDoc._id);
+      if (metadataUserDoc?.id) {
+        return String(metadataUserDoc.id);
       }
     }
 
     const dbUser = await this.usersService.findOne({ authProviderId }, []);
-    if (!dbUser?._id) {
+    if (!dbUser?.id) {
       throw new UnauthorizedException('User account not found');
     }
 
-    const mongoUserId = String(dbUser._id);
-    if (!ObjectIdUtil.isValid(mongoUserId)) {
+    const mongoUserId = String(dbUser.id);
+    if (!EntityIdUtil.isValid(mongoUserId)) {
       throw new UnauthorizedException('Invalid user account reference');
     }
 

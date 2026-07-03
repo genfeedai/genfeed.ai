@@ -105,11 +105,11 @@ describe('IngredientsController (cloneIngredient)', () => {
   describe('cloneIngredient', () => {
     it('creates a copy and uploads file', async () => {
       const serviceFindOneSpy = vi.spyOn(service, 'findOne').mockResolvedValue({
-        _id: '1',
+        id: '1',
         brand: 'acc',
         category: IngredientCategory.IMAGE,
         metadata: {
-          _id: 'meta',
+          id: 'meta',
           duration: 0,
           extension: MetadataExtension.JPEG,
           height: 200,
@@ -126,8 +126,8 @@ describe('IngredientsController (cloneIngredient)', () => {
       const sharedServiceSaveDocumentsSpy = vi
         .spyOn(sharedService, 'saveDocuments')
         .mockResolvedValue({
-          ingredientData: { _id: '2' },
-          metadataData: { _id: 'meta2' },
+          ingredientData: { id: '2' },
+          metadataData: { id: 'meta2' },
         });
 
       const filesClientServiceUploadToS3Spy = vi

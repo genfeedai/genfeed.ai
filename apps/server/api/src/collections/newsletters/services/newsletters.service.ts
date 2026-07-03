@@ -255,7 +255,7 @@ export class NewslettersService extends BaseService<
       brandVoice: buildBrandVoiceSummary(brand),
       contextSources: [],
       recentNewsletters: recentNewsletters.map((item) => ({
-        id: item._id.toString(),
+        id: item.id.toString(),
         label: item.label,
         publishedAt: item.publishedAt,
         status: item.status,
@@ -263,7 +263,7 @@ export class NewslettersService extends BaseService<
         topic: item.topic,
       })),
       selectedContext: selectedContext.map((item) => ({
-        id: item._id.toString(),
+        id: item.id.toString(),
         label: item.label,
         publishedAt: item.publishedAt,
         status: item.status,
@@ -382,7 +382,7 @@ export class NewslettersService extends BaseService<
     const payload: UpdateNewsletterDto = {
       angle: dto.angle,
       content: generatedContent,
-      contextNewsletterIds: contextNewsletters.map((item) => item._id),
+      contextNewsletterIds: contextNewsletters.map((item) => item.id),
       generationPrompt: prompt,
       label,
       sourceRefs,
@@ -466,8 +466,8 @@ export class NewslettersService extends BaseService<
     const docs = documents as unknown as NewsletterDocument[];
     return docs.sort(
       (left, right) =>
-        ids.findIndex((item) => item === left._id.toString()) -
-        ids.findIndex((item) => item === right._id.toString()),
+        ids.findIndex((item) => item === left.id.toString()) -
+        ids.findIndex((item) => item === right.id.toString()),
     );
   }
 

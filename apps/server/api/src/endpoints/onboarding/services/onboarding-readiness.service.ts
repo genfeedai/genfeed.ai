@@ -196,11 +196,11 @@ export class OnboardingReadinessService {
         const [brand, settings] = await Promise.all([
           this.brandsService.findOne({
             isDeleted: false,
-            organization: organization._id,
+            organization: organization.id,
           }),
           this.organizationSettingsService.findOne({
             isDeleted: false,
-            organization: organization._id,
+            organization: organization.id,
           }),
         ]);
 

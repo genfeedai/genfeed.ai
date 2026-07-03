@@ -34,7 +34,7 @@ describe('AccountPublishingContextService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     credentialsService.findOne.mockResolvedValue({
-      _id: credentialId,
+      id: credentialId,
       accessToken: 'secret-token',
       brand: brandId,
       externalHandle: 'vincent',

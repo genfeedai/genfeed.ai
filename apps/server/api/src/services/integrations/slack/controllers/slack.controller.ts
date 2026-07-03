@@ -51,7 +51,7 @@ export class SlackController {
     });
 
     if (existingCredential) {
-      await this.credentialsService.patch(existingCredential._id, {
+      await this.credentialsService.patch(existingCredential.id, {
         isConnected: false,
         isDeleted: false,
         oauthState: state,
@@ -127,7 +127,7 @@ export class SlackController {
     const userInfo = await this.slackService.getUserInfo(accessToken);
 
     const updatedCredential = await this.credentialsService.patch(
-      credential._id,
+      credential.id,
       {
         accessToken,
         externalHandle: userInfo.user,

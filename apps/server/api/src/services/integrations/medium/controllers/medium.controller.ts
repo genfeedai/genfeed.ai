@@ -86,7 +86,7 @@ export class MediumController {
 
       // Generate state for OAuth
       const state = JSON.stringify({
-        brandId: brand._id.toString(),
+        brandId: brand.id.toString(),
         organizationId:
           brand.organization?.toString() ?? publicMetadata.organization,
         userId: publicMetadata.user,
@@ -152,7 +152,7 @@ export class MediumController {
 
       // Update the credential with the access token
       const credential = await this.credentialsService.patch(
-        existingCredential._id,
+        existingCredential.id,
         {
           accessToken,
           accessTokenExpiry: expiryDate,

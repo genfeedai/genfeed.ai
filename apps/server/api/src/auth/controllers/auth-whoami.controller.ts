@@ -1,6 +1,6 @@
 import { MembersService } from '@api/collections/members/services/members.service';
 import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
-import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Controller, Get, Req } from '@nestjs/common';
@@ -41,7 +41,7 @@ export class AuthWhoamiController {
     const context = req.context;
     const contextUserId = context?.userId ?? meta.user;
     const contextOrganizationId = context?.organizationId ?? meta.organization;
-    const mongoUserId = ObjectIdUtil.isValid(contextUserId)
+    const mongoUserId = EntityIdUtil.isValid(contextUserId)
       ? String(contextUserId)
       : '';
     const authUserId = user?.id || '';

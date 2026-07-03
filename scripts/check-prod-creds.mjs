@@ -1,13 +1,12 @@
-// One-shot prod credential smoke test: AWS S3 + MongoDB + Postgres.
+// One-shot prod credential smoke test: AWS S3 + Postgres.
 // Creds are read from env (the companion check-prod-creds.sh pulls them from
 // SSM via substitution, so no secret value is ever printed or stored on disk).
-// READ-ONLY: ListBuckets / Mongo ping / SELECT 1. Prints a PASS/FAIL matrix only.
+// READ-ONLY: ListBuckets / SELECT 1. Prints a PASS/FAIL matrix only.
 //
 // Usage:  bash scripts/check-prod-creds.sh
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { ListBucketsCommand, S3Client } from '@aws-sdk/client-s3';
-import { MongoClient } from 'mongodb';
 
 // pg is bun-isolated (not hoisted) — resolve it from node_modules/.bun directly.
 async function loadPg() {
@@ -39,20 +38,6 @@ try {
   out.push(['AWS S3', true, `${(r.Buckets ?? []).length} buckets visible`]);
 } catch (e) {
   out.push(['AWS S3', false, e?.name || e?.message]);
-}
-
-try {
-  if (!process.env.__MONGO) throw new Error('no MONGODB_URL');
-  const m = new MongoClient(process.env.__MONGO, {
-    serverSelectionTimeoutMS: 10000,
-  });
-  await m.connect();
-  await m.db().command({ ping: 1 });
-  const db = m.db().databaseName;
-  await m.close();
-  out.push(['MongoDB', true, `ping ok, db=${db}`]);
-} catch (e) {
-  out.push(['MongoDB', false, e?.codeName || e?.message]);
 }
 
 try {

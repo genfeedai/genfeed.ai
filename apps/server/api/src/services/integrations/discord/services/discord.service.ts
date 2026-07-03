@@ -243,7 +243,7 @@ export class DiscordService {
 
       // Update credential with new tokens
       const updatedCredential = await this.credentialsService.patch(
-        credential._id,
+        credential.id,
         {
           accessToken: access_token,
           accessTokenExpiry: expires_in
@@ -256,7 +256,7 @@ export class DiscordService {
       );
 
       this.loggerService.log(`${url} token refreshed`, {
-        credentialId: credential._id,
+        credentialId: credential.id,
       });
 
       return updatedCredential;
@@ -276,7 +276,7 @@ export class DiscordService {
       });
 
       if (credential) {
-        await this.credentialsService.patch(credential._id, {
+        await this.credentialsService.patch(credential.id, {
           isConnected: false,
         });
       }
@@ -318,13 +318,13 @@ export class DiscordService {
         );
       }
 
-      await this.credentialsService.patch(credential._id, {
+      await this.credentialsService.patch(credential.id, {
         isConnected: false,
         isDeleted: true,
       });
 
       this.loggerService.log(`${url} disconnected credential`, {
-        credentialId: credential._id,
+        credentialId: credential.id,
       });
 
       return { success: true };

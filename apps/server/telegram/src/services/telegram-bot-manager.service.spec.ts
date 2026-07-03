@@ -10,11 +10,17 @@ vi.mock('grammy', () => {
     use: vi.fn(),
   };
   return {
-    Bot: vi.fn(() => mockBot),
-    InlineKeyboard: vi.fn().mockImplementation(() => ({
-      row: vi.fn().mockReturnThis(),
-      text: vi.fn().mockReturnThis(),
-    })),
+    Bot: vi.fn(function mockBotCtor() {
+      return mockBot;
+    }),
+    InlineKeyboard: vi
+      .fn()
+      .mockImplementation(function mockInlineKeyboardCtor() {
+        return {
+          row: vi.fn().mockReturnThis(),
+          text: vi.fn().mockReturnThis(),
+        };
+      }),
   };
 });
 

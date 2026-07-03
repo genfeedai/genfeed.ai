@@ -110,7 +110,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -132,7 +132,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -154,7 +154,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -182,7 +182,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -204,7 +204,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -226,7 +226,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -248,7 +248,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -274,7 +274,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -296,7 +296,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -318,7 +318,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -340,7 +340,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -368,7 +368,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -390,7 +390,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -412,7 +412,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -434,7 +434,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -468,7 +468,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -496,7 +496,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -526,7 +526,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -558,7 +558,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -590,7 +590,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -618,7 +618,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -648,7 +648,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -676,7 +676,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -704,7 +704,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -734,7 +734,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -760,7 +760,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -786,7 +786,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -808,7 +808,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -838,7 +838,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -860,7 +860,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -882,7 +882,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -904,7 +904,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -926,7 +926,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -948,7 +948,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -970,7 +970,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -992,7 +992,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1014,7 +1014,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1036,7 +1036,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1058,7 +1058,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1080,7 +1080,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1102,7 +1102,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1124,7 +1124,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1146,7 +1146,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1168,7 +1168,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1190,7 +1190,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1218,7 +1218,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1240,7 +1240,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1262,7 +1262,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1284,7 +1284,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1314,7 +1314,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1342,7 +1342,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1370,7 +1370,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1392,7 +1392,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1414,7 +1414,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1436,7 +1436,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1458,7 +1458,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1480,7 +1480,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1502,7 +1502,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1524,7 +1524,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1546,7 +1546,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1568,7 +1568,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1594,7 +1594,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1616,7 +1616,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1646,7 +1646,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1668,7 +1668,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1690,7 +1690,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1712,7 +1712,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1734,7 +1734,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1756,7 +1756,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1778,7 +1778,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1806,7 +1806,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1834,7 +1834,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1860,7 +1860,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1890,7 +1890,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1912,7 +1912,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1934,7 +1934,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }
@@ -1956,7 +1956,7 @@ describe('Serializer Configs', () => {
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
+          if ('ref' in rel) expect(rel.ref).toBe('id');
           if ('attributes' in rel)
             expect(Array.isArray(rel.attributes)).toBe(true);
         }

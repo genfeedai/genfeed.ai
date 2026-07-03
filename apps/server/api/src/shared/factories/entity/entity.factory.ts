@@ -75,9 +75,9 @@ export class EntityFactory {
         if (
           value &&
           typeof value === 'object' &&
-          (value as Record<string, unknown>)._id
+          (value as Record<string, unknown>).id
         ) {
-          plain[field] = (value as Record<string, unknown>)._id;
+          plain[field] = (value as Record<string, unknown>).id;
         }
       });
     }

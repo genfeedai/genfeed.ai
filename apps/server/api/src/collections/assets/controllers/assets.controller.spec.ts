@@ -38,7 +38,7 @@ describe('AssetsController', () => {
   } as unknown as Request;
 
   const mockAsset = {
-    _id: mockAssetId,
+    id: mockAssetId,
     category: AssetCategory.LOGO,
     isDeleted: false,
     parent: mockBrandId,

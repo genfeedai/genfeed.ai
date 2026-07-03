@@ -79,7 +79,7 @@ describe('BrandCreditsGuard', () => {
       .mockResolvedValue(true);
 
     organizationSettingsService.findOne.mockResolvedValue({
-      _id: '507f191e810c19729de860ee',
+      id: '507f191e810c19729de860ee',
       brandsLimit: 2,
     });
     brandsService.findAll.mockResolvedValue({ docs: [1, 2] });
@@ -97,7 +97,7 @@ describe('BrandCreditsGuard', () => {
 
     const settingsId = '507f191e810c19729de860ee';
     organizationSettingsService.findOne.mockResolvedValue({
-      _id: settingsId,
+      id: settingsId,
       brandsLimit: 1,
     });
     brandsService.findAll.mockResolvedValue({ docs: [1] });

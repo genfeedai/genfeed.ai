@@ -91,7 +91,7 @@ export class ShopifyController {
         source: 'shopify',
       },
       name: dto.shopDomain.replace('.myshopify.com', ''),
-      organization: organization._id,
+      organization: organization.id,
     } as unknown as Record<string, unknown>);
 
     // Create default brand for the shop
@@ -102,21 +102,21 @@ export class ShopifyController {
         source: 'shopify',
       },
       name: dto.shopDomain.replace('.myshopify.com', ''),
-      organization: organization._id,
-      user: user._id,
+      organization: organization.id,
+      user: user.id,
     } as unknown as Record<string, unknown>);
 
     // Create API key with Shopify-specific scopes
     // @ts-expect-error TS2345
     const { plainKey, apiKey } = await this.apiKeysService.createWithKey({
-      brand: brand._id as string,
+      brand: brand.id as string,
       description: 'Auto-provisioned API key for Shopify integration',
       metadata: {
         shopDomain: dto.shopDomain,
         source: 'shopify',
       },
       name: `Shopify - ${dto.shopDomain}`,
-      organization: organization._id as string,
+      organization: organization.id as string,
       rateLimit: 100, // Higher rate limit for Shopify apps
       scopes: [
         ApiKeyScope.IMAGES_READ,
@@ -126,22 +126,22 @@ export class ShopifyController {
         ApiKeyScope.CREDITS_READ,
         ApiKeyScope.POSTS_CREATE,
       ],
-      user: user._id as string,
+      user: user.id as string,
     } as unknown as Record<string, unknown>);
 
     this.logger.log(`${url} - Account provisioned successfully`, {
       apiKeyId: apiKey.id,
-      brandId: brand._id,
-      organizationId: organization._id,
+      brandId: brand.id,
+      organizationId: organization.id,
       shopDomain: dto.shopDomain,
-      userId: user._id,
+      userId: user.id,
     });
 
     return {
       apiKey: plainKey,
-      brandId: String(brand._id),
-      orgId: String(organization._id),
-      userId: String(user._id),
+      brandId: String(brand.id),
+      orgId: String(organization.id),
+      userId: String(user.id),
     };
   }
 }

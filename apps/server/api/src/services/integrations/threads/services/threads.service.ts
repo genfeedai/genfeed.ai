@@ -114,7 +114,7 @@ export class ThreadsService {
     }
 
     if (!credential.accessToken) {
-      await this.credentialsService.patch(credential._id, {
+      await this.credentialsService.patch(credential.id, {
         isConnected: false,
       });
       throw new Error(
@@ -144,7 +144,7 @@ export class ThreadsService {
       this.loggerService.log(`${url} succeeded`, response.data);
 
       const updatedCredential = await this.credentialsService.patch(
-        credential._id,
+        credential.id,
         {
           accessToken: access_token,
           accessTokenExpiry: expires_in
@@ -157,7 +157,7 @@ export class ThreadsService {
       return updatedCredential;
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
-      await this.credentialsService.patch(credential._id, {
+      await this.credentialsService.patch(credential.id, {
         isConnected: false,
       });
       throw error;

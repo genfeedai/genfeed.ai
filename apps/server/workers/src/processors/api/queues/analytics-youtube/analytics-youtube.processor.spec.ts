@@ -52,7 +52,7 @@ describe('AnalyticsYouTubeProcessor', () => {
 
   const makePosts = (count: number) =>
     Array.from({ length: count }, (_, i) => ({
-      _id: `post-${i}`,
+      id: `post-${i}`,
       brand: brandId,
       externalId: `vid-${i}`,
       organization: orgId,

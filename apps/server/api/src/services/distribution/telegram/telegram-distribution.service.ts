@@ -97,18 +97,18 @@ export class TelegramDistributionService {
       const telegramMessageId = result.result?.message_id?.toString();
 
       await this.distributionsService.markAsPublished(
-        distribution._id.toString(),
+        distribution.id.toString(),
         telegramMessageId,
       );
 
       this.loggerService.log(`${url} sent successfully`, {
         chatId: options.chatId,
         contentType: options.contentType,
-        distributionId: distribution._id,
+        distributionId: distribution.id,
       });
 
       return {
-        distributionId: distribution._id.toString(),
+        distributionId: distribution.id.toString(),
         telegramMessageId,
       };
     } catch (error: unknown) {
@@ -116,7 +116,7 @@ export class TelegramDistributionService {
         error instanceof Error ? error.message : 'Unknown error';
 
       await this.distributionsService.markAsFailed(
-        distribution._id.toString(),
+        distribution.id.toString(),
         errorMessage,
       );
 
@@ -147,14 +147,14 @@ export class TelegramDistributionService {
     );
 
     this.loggerService.log(`${url} scheduled distribution`, {
-      distributionId: distribution._id,
+      distributionId: distribution.id,
       scheduledAt: options.scheduledAt,
     });
 
     const now = Date.now();
     const scheduledAtMs = options.scheduledAt.getTime();
     const delayMs = Math.max(0, scheduledAtMs - now);
-    const distributionId = distribution._id.toString();
+    const distributionId = distribution.id.toString();
     const queueData: TelegramDistributeJobData = {
       distributionId,
       organizationId: options.organizationId,
@@ -207,7 +207,7 @@ export class TelegramDistributionService {
         );
       }
 
-      await this.distributionsService.patch(distribution._id, {
+      await this.distributionsService.patch(distribution.id, {
         status: PublishStatus.PUBLISHING,
       });
 
@@ -225,7 +225,7 @@ export class TelegramDistributionService {
       const telegramMessageId = result.result?.message_id?.toString();
 
       await this.distributionsService.markAsPublished(
-        distribution._id.toString(),
+        distribution.id.toString(),
         telegramMessageId,
       );
 
@@ -237,7 +237,7 @@ export class TelegramDistributionService {
         error instanceof Error ? error.message : 'Unknown error';
 
       await this.distributionsService.markAsFailed(
-        distribution._id.toString(),
+        distribution.id.toString(),
         errorMessage,
       );
 

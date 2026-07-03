@@ -17,7 +17,6 @@ export class TrainingEntity extends BaseEntity implements TrainingDocument {
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
 
-  declare readonly _id: string;
   declare readonly organization?: string;
   declare readonly user?: string;
   declare readonly brand?: string | null;

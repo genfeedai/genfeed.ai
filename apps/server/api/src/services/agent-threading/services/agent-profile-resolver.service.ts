@@ -1,4 +1,4 @@
-import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { getAgentTypeConfig } from '@api/services/agent-orchestrator/constants/agent-type-config.constant';
 import type { AgentType } from '@genfeedai/enums';
 import { Injectable } from '@nestjs/common';
@@ -29,12 +29,8 @@ export class AgentProfileResolverService {
     const typeConfig = context.agentType
       ? getAgentTypeConfig(context.agentType)
       : null;
-    const campaignObjectId = ObjectIdUtil.normalizeToObjectId(
-      context.campaignId,
-    );
-    const strategyObjectId = ObjectIdUtil.normalizeToObjectId(
-      context.strategyId,
-    );
+    const campaignObjectId = EntityIdUtil.normalizeId(context.campaignId);
+    const strategyObjectId = EntityIdUtil.normalizeId(context.strategyId);
     const routeKey = [
       context.agentType ?? 'general',
       campaignObjectId?.toString() ?? 'none',

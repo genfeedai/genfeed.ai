@@ -63,7 +63,7 @@ describe('MemberCreditsGuard', () => {
       .mockResolvedValue(true);
 
     organizationSettingsService.findOne.mockResolvedValue({
-      _id: '507f191e810c19729de860ee',
+      id: '507f191e810c19729de860ee',
       seatsLimit: 1,
     });
     membersService.findAll.mockResolvedValue({ docs: [1] });

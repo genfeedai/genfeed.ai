@@ -72,7 +72,7 @@ export class LinkedInController {
       );
 
       const state = JSON.stringify({
-        brandId: brand._id.toString(),
+        brandId: brand.id.toString(),
         organizationId:
           brand.organization?.toString() ?? publicMetadata.organization,
         userId: publicMetadata.user,
@@ -135,7 +135,7 @@ export class LinkedInController {
       // Update the credential with the access token
       // If reconnecting the same account, reactivate previously deleted credential
       const credential = await this.credentialsService.patch(
-        existingCredential._id,
+        existingCredential.id,
         {
           accessToken,
           externalHandle: `${profile.firstName} ${profile.lastName}`,

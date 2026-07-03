@@ -30,7 +30,7 @@ interface LinkedInTrendTopic {
 }
 
 interface LinkedInCredential {
-  _id: string;
+  id: string;
   accessToken?: string | null;
   refreshToken?: string | null;
 }
@@ -236,7 +236,7 @@ export class LinkedInService {
             decryptedRefreshToken,
           );
 
-        return await this.credentialsService.patch(credentials._id, {
+        return await this.credentialsService.patch(credentials.id, {
           accessToken: refreshResponse.access_token,
           accessTokenExpiry: refreshResponse.expires_in
             ? new Date(Date.now() + refreshResponse.expires_in * 1000)
@@ -253,7 +253,7 @@ export class LinkedInService {
     } catch (error: unknown) {
       this.loggerService.error('Refresh token failed', error);
       // Mark credential as disconnected if refresh fails
-      await this.credentialsService.patch(credentials._id, {
+      await this.credentialsService.patch(credentials.id, {
         isConnected: false,
       });
       throw error;

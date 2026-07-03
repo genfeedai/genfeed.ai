@@ -159,7 +159,7 @@ export class VideoCompletionService implements OnModuleInit {
         : ingredient?.metadata &&
             typeof ingredient.metadata === 'object' &&
             '_id' in ingredient.metadata
-          ? String((ingredient.metadata as { _id: string })._id)
+          ? String((ingredient.metadata as { id: string }).id)
           : undefined;
 
     if (!metadataId) {

@@ -31,16 +31,16 @@ describe('VideosCaptionsController', () => {
   const mockReq = {} as Request;
 
   const mockVideo = {
-    _id: '507f1f77bcf86cd799439011',
     brand: '507f1f77bcf86cd799439014',
     captions: [
       {
-        _id: '507f1f77bcf86cd799439015',
         content: 'Test caption content',
         format: 'srt',
+        id: '507f1f77bcf86cd799439015',
         language: 'en',
       },
     ],
+    id: '507f1f77bcf86cd799439011',
     organization: '507f1f77bcf86cd799439013',
     user: '507f1f77bcf86cd799439012',
   };
@@ -163,10 +163,10 @@ describe('VideosCaptionsController', () => {
       );
       mockServices.sharedService.saveDocuments.mockResolvedValue({
         ingredientData: {
-          _id: '507f1f77bcf86cd799439016',
+          id: '507f1f77bcf86cd799439016',
         },
         metadataData: {
-          _id: '507f1f77bcf86cd799439017',
+          id: '507f1f77bcf86cd799439017',
         },
       });
       mockServices.configService.get.mockReturnValue('https://api.example.com');

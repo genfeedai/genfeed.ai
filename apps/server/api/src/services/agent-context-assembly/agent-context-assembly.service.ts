@@ -88,7 +88,7 @@ export class AgentContextAssemblyService {
       return null;
     }
 
-    const brandId = String(brand._id);
+    const brandId = String(brand.id);
     const layersUsed: string[] = ['brandIdentity'];
     const organizationSettings = await this.cacheService.getOrSet(
       this.cacheService.generateKey('org-settings', organizationId),
@@ -598,7 +598,7 @@ export class AgentContextAssemblyService {
       fontFamily: this.readTextField(brand.fontFamily),
       id:
         this.readTextField(brand.id) ??
-        this.readTextField(brand._id) ??
+        this.readTextField(brand.id) ??
         'unknown-brand',
       label: this.readTextField(brand.label),
       logoUrl: this.readUrlField(brand.logo),

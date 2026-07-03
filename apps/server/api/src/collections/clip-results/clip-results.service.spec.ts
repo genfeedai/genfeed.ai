@@ -195,7 +195,7 @@ describe('ClipResultsService', () => {
     });
     expect(result[0]).toEqual(
       expect.objectContaining({
-        _id: 'clip-1',
+        id: 'clip-1',
         title: 'Clip',
       }),
     );
@@ -235,7 +235,7 @@ describe('ClipResultsService', () => {
     });
     expect(result).toEqual(
       expect.objectContaining({
-        _id: 'clip-1',
+        id: 'clip-1',
         title: 'Clip',
       }),
     );

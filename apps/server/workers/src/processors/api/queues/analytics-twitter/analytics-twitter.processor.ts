@@ -117,14 +117,14 @@ export class AnalyticsTwitterProcessor extends WorkerHost {
 
         if (analytics) {
           await this.postAnalyticsService.processTwitterAnalytics(
-            post._id,
+            post.id,
             analytics,
           );
 
           processed++;
         } else {
           this.logger.warn(
-            `No analytics found for tweet ${post.externalId} (post ${post._id})`,
+            `No analytics found for tweet ${post.externalId} (post ${post.id})`,
           );
         }
       }

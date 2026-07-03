@@ -18,7 +18,7 @@ describe('StartTrainingDto validation', () => {
     expect(errors.some((error) => error.property === 'sourceIds')).toBe(false);
   });
 
-  it('rejects a malformed sourceId so it cannot reach toObjectId and become null', async () => {
+  it('rejects a malformed sourceId so it cannot reach toValidId and become null', async () => {
     const dto = plainToInstance(StartTrainingDto, {
       ...base,
       sourceIds: ['507f1f77bcf86cd799439011', 'not-an-id'],

@@ -245,7 +245,7 @@ describe('TrainingsController', () => {
       const mockSources = Array(10)
         .fill(null)
         .map(() => ({
-          _id: '507f191e810c19729de860ee',
+          id: '507f191e810c19729de860ee',
           category: IngredientCategory.IMAGE,
           metadata: { extension: 'jpg' },
         }));
@@ -334,7 +334,7 @@ describe('TrainingsController', () => {
       const mockSources = Array(10)
         .fill(null)
         .map(() => ({
-          _id: '507f191e810c19729de860ee',
+          id: '507f191e810c19729de860ee',
           category: IngredientCategory.IMAGE,
           metadata: { extension: 'jpg' },
         }));
@@ -397,7 +397,7 @@ describe('TrainingsController', () => {
 
     it('should handle ObjectId instances correctly', () => {
       const entity = {
-        user: { _id: mockUser.publicMetadata.user },
+        user: { id: mockUser.publicMetadata.user },
       };
 
       const result = controller.canUserModifyEntity(mockUser, entity);

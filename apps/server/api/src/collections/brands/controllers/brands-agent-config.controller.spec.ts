@@ -23,7 +23,7 @@ describe('BrandsController agent-config endpoint', () => {
   } as unknown as User;
 
   const mockBrand = {
-    _id: '507f191e810c19729de860ee'.toString(),
+    id: '507f191e810c19729de860ee'.toString(),
     isDeleted: false,
     label: 'Test Brand',
     slug: 'test-handle',
@@ -109,11 +109,11 @@ describe('BrandsController agent-config endpoint', () => {
     await controller.updateAgentConfig(
       mockRequest,
       mockUser,
-      mockBrand._id,
+      mockBrand.id,
       validDto,
     );
     expect(mockBrandsService.updateAgentConfig).toHaveBeenCalledWith(
-      mockBrand._id,
+      mockBrand.id,
       orgId,
       validDto,
     );
@@ -124,7 +124,7 @@ describe('BrandsController agent-config endpoint', () => {
     const result = await controller.updateAgentConfig(
       mockRequest,
       mockUser,
-      mockBrand._id,
+      mockBrand.id,
       validDto,
     );
     expect(result).toHaveProperty('data');
@@ -135,7 +135,7 @@ describe('BrandsController agent-config endpoint', () => {
     await controller.updateAgentConfig(
       mockRequest,
       mockUser,
-      mockBrand._id,
+      mockBrand.id,
       validDto,
     );
     expect(BrandSerializer.serialize).toHaveBeenCalled();
@@ -146,7 +146,7 @@ describe('BrandsController agent-config endpoint', () => {
     await controller.updateAgentConfig(
       mockRequest,
       mockUser,
-      mockBrand._id,
+      mockBrand.id,
       validDto,
     );
     expect(BrandSerializer.serialize).toHaveBeenCalledWith(mockBrand);
@@ -160,7 +160,7 @@ describe('BrandsController agent-config endpoint', () => {
       controller.updateAgentConfig(
         mockRequest,
         mockUser,
-        mockBrand._id,
+        mockBrand.id,
         validDto,
       ),
     ).rejects.toThrow('DB error');
@@ -174,7 +174,7 @@ describe('BrandsController agent-config endpoint', () => {
     const result = await controller.updateAgentConfig(
       mockRequest,
       mockUser,
-      mockBrand._id,
+      mockBrand.id,
       minimalDto,
     );
     expect(result).toHaveProperty('data');
@@ -184,7 +184,7 @@ describe('BrandsController agent-config endpoint', () => {
     mockIngredientsService.findAvatarImageById.mockResolvedValueOnce(null);
 
     await expect(
-      controller.updateAgentConfig(mockRequest, mockUser, mockBrand._id, {
+      controller.updateAgentConfig(mockRequest, mockUser, mockBrand.id, {
         defaultAvatarIngredientId: 'bad-avatar',
       } as UpdateBrandAgentConfigDto),
     ).rejects.toThrow(
@@ -199,7 +199,7 @@ describe('BrandsController agent-config endpoint', () => {
     await controller.updateAgentConfig(
       mockRequest,
       mockUser,
-      mockBrand._id,
+      mockBrand.id,
       validDto,
     );
     expect(mockBrandsService.updateAgentConfig).toHaveBeenCalledWith(

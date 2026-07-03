@@ -5,7 +5,7 @@ import { TrainingsService } from '@api/collections/trainings/services/trainings.
 import { AdminFleetCharacterService } from '@api/endpoints/admin/fleet/services/fleet-character.service';
 import { AdminFleetTrainingService } from '@api/endpoints/admin/fleet/services/fleet-training.service';
 import { AdminFleetValueReader } from '@api/endpoints/admin/fleet/services/fleet-value-reader.util';
-import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   DarkroomReviewStatus as DarkroomReviewStatusEnum,
@@ -147,11 +147,11 @@ export class AdminFleetTrainingOrchestratorService {
               organizationId,
               {
                 isDeleted: false,
-                persona: persona._id,
+                persona: persona.id,
                 reviewStatus: DarkroomReviewStatusEnum.APPROVED,
               },
             )
-          ).map((ingredient) => ingredient._id.toString());
+          ).map((ingredient) => ingredient.id.toString());
 
     const training = await this.trainingsService.create({
       baseModel,
@@ -161,19 +161,19 @@ export class AdminFleetTrainingOrchestratorService {
       loraName,
       loraRank,
       model: baseModel,
-      organization: ObjectIdUtil.toObjectId(organizationId)!,
-      persona: persona._id,
+      organization: EntityIdUtil.toValidId(organizationId)!,
+      persona: persona.id,
       personaSlug: data.personaSlug,
       progress: 0,
       provider: TrainingProvider.GENFEED_AI,
-      sources: sourceIds.map((id) => ObjectIdUtil.toObjectId(id)!),
+      sources: sourceIds.map((id) => EntityIdUtil.toValidId(id)!),
       stage: TrainingStage.QUEUED,
       steps,
       trigger: triggerWord,
-      user: ObjectIdUtil.toObjectId(userId)!,
+      user: EntityIdUtil.toValidId(userId)!,
     } as Parameters<TrainingsService['create']>[0]);
 
-    await this.personasService.patch(persona._id.toString(), {
+    await this.personasService.patch(persona.id.toString(), {
       loraModelPath: undefined,
       loraStatus: LoraStatus.TRAINING,
     });
@@ -188,14 +188,14 @@ export class AdminFleetTrainingOrchestratorService {
         organizationId,
         personaSlug: data.personaSlug,
         steps,
-        trainingId: training._id.toString(),
+        trainingId: training.id.toString(),
         triggerWord,
       })
       .catch((error) => {
         this.loggerService.error(caller, {
           error: error instanceof Error ? error.message : String(error),
           message: 'Training pipeline failed',
-          trainingId: training._id.toString(),
+          trainingId: training.id.toString(),
         });
       });
 

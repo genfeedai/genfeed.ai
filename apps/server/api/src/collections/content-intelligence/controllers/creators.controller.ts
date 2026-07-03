@@ -84,7 +84,7 @@ const CreatorAnalysisSerializer = {
         status: doc.status,
         tags: doc.tags,
       },
-      id: doc._id?.toString(),
+      id: doc.id?.toString(),
       type: 'creator-analysis',
     };
   },
