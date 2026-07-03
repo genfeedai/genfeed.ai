@@ -330,4 +330,52 @@ describe('DesktopSyncService', () => {
       }),
     ).rejects.toMatchObject({ status: 415 });
   });
+
+  it('rejects a push against a soft-deleted cloud asset and surfaces updatedAt as the tombstone instant', async () => {
+    const { prisma, service } = buildService();
+    // deletedAt is no longer stored on Asset (isDeleted is the sole soft-delete
+    // signal); the desktop tombstone timeline must therefore be fed from
+    // updatedAt. This locks that wire contract so a future refactor can't
+    // silently drop or repoint the tombstone instant.
+    const deletedInstant = new Date('2026-05-01T12:00:00.000Z');
+    prisma.asset.findFirst.mockResolvedValue({
+      cloudObjectKey: `${organizationId}/hash/logo.png`,
+      id: 'asset-cloud',
+      isDeleted: true,
+      residency: 'synced',
+      updatedAt: deletedInstant,
+      uploadPolicy: 'full',
+    });
+
+    const result = await service.pushAssets(makeUser(), {
+      assets: [
+        {
+          displayName: 'logo.png',
+          id: 'asset-local',
+          kind: 'image',
+          mimeType: 'image/png',
+          origin: 'local-import',
+          originalFileName: 'logo.png',
+          residency: 'local-only',
+          sha256: 'hash',
+          sizeBytes: 128,
+          uploadPolicy: 'full',
+        },
+      ],
+    });
+
+    expect(result.data).toMatchObject({ accepted: 0, rejected: 1 });
+    expect(result.data.assets[0]).toMatchObject({
+      cloudAssetId: 'asset-cloud',
+      deletedAt: deletedInstant,
+      localAssetId: 'asset-local',
+      reason: 'cloud-deleted',
+      residency: 'synced',
+      status: 'rejected',
+      updatedAt: deletedInstant,
+    });
+    // Soft-deleted match short-circuits before any write.
+    expect(prisma.asset.create).not.toHaveBeenCalled();
+    expect(prisma.asset.update).not.toHaveBeenCalled();
+  });
 });
