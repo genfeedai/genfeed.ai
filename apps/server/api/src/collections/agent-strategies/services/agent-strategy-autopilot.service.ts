@@ -15,6 +15,7 @@ import { EvaluationsOperationsService } from '@api/collections/evaluations/servi
 import { OptimizersService } from '@api/collections/optimizers/services/optimizers.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { ReviewBatchItemFormat } from '@api/services/batch-generation/constants/review-batch-item-format.constant';
 import { ContentGatewayService } from '@api/services/content-gateway/content-gateway.service';
@@ -29,7 +30,7 @@ import {
   PostStatus,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 export interface BudgetPacingState {
   expectedSpendToDate: number;
@@ -378,7 +379,7 @@ export class AgentStrategyAutopilotService {
     );
 
     if (!strategy) {
-      throw new NotFoundException('Strategy not found');
+      throw new NotFoundException('Strategy');
     }
 
     return strategy;

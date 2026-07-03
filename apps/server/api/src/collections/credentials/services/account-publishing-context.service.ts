@@ -1,6 +1,7 @@
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import type {
@@ -12,7 +13,7 @@ import type {
   Publishability,
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 export interface ResolveAccountPublishingContextParams {
   brandId: string;
@@ -75,9 +76,9 @@ export class AccountPublishingContextService {
     });
 
     if (!credential) {
-      throw new NotFoundException(
-        'The specified account does not exist or is not connected',
-      );
+      throw new NotFoundException({
+        message: 'The specified account does not exist or is not connected',
+      });
     }
 
     const platform = normalizeCredentialPlatform(credential.platform);

@@ -203,7 +203,9 @@ describe('SocialMessagesPage', () => {
 
     expect(screen.getAllByText('Taylor')).not.toHaveLength(0);
     expect(screen.getAllByText('Need pricing help')).not.toHaveLength(0);
-    expect(screen.getByText('Here is a drafted answer.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Here is a drafted answer.'),
+    ).toBeInTheDocument();
 
     const automationLink = screen.getByRole('link', { name: /Automation/i });
     expect(automationLink).toHaveAttribute(

@@ -1,6 +1,7 @@
 import { EvaluationsService } from '@api/collections/evaluations/services/evaluations.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { Status } from '@genfeedai/enums';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMocks() {

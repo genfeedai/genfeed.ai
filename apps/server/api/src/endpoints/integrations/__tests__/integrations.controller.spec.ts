@@ -5,11 +5,12 @@ import { CreateIntegrationDto } from '@api/endpoints/integrations/dto/create-int
 import { UpdateIntegrationDto } from '@api/endpoints/integrations/dto/update-integration.dto';
 import { InternalIntegrationsController } from '@api/endpoints/integrations/integrations.controller';
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/enums';
 import type { OrgIntegration } from '@genfeedai/prisma';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -167,12 +168,12 @@ describe('OrganizationsIntegrationsController', () => {
     });
 
     it('should handle not found errors', async () => {
-      const error = new NotFoundException('Integration not found');
+      const error = new NotFoundException('Integration');
       service.findOne.mockRejectedValue(error);
 
       await expect(
         controller.findOne(mockReq, mockUser, 'org-123', 'non-existent-id'),
-      ).rejects.toThrow('Integration not found');
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -210,7 +211,7 @@ describe('OrganizationsIntegrationsController', () => {
     });
 
     it('should handle update errors', async () => {
-      const error = new NotFoundException('Integration not found');
+      const error = new NotFoundException('Integration');
       service.update.mockRejectedValue(error);
 
       await expect(
@@ -221,7 +222,7 @@ describe('OrganizationsIntegrationsController', () => {
           'non-existent-id',
           updateDto,
         ),
-      ).rejects.toThrow('Integration not found');
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should allow partial updates', async () => {
@@ -262,12 +263,12 @@ describe('OrganizationsIntegrationsController', () => {
     });
 
     it('should handle removal errors', async () => {
-      const error = new NotFoundException('Integration not found');
+      const error = new NotFoundException('Integration');
       service.remove.mockRejectedValue(error);
 
       await expect(
         controller.remove(mockUser, 'org-123', 'non-existent-id'),
-      ).rejects.toThrow('Integration not found');
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

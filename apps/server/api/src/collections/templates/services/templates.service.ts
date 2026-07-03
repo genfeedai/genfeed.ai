@@ -9,13 +9,15 @@ import { UseTemplateDto } from '@api/collections/templates/dto/use-template.dto'
 import type { TemplateDocument } from '@api/collections/templates/schemas/template.schema';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import Handlebars from 'handlebars';
 
 type Template = TemplateDocument;
@@ -181,14 +183,12 @@ export class TemplatesService {
       where.organizationId = organization;
     }
 
-    const template = await this.prisma.template.findFirst({
-      include: { metadata: true },
-      where: where as never,
-    });
-
-    if (!template) {
-      throw new NotFoundException('Template not found');
-    }
+    const template = await findOrThrow(
+      this.prisma.template,
+      { include: { metadata: true }, where: where as never },
+      'Template',
+      id,
+    );
 
     return template as unknown as Template;
   }
@@ -206,13 +206,12 @@ export class TemplatesService {
       where.organizationId = organization;
     }
 
-    const existing = await this.prisma.template.findFirst({
-      where: where as never,
-    });
-
-    if (!existing) {
-      throw new NotFoundException('Template not found');
-    }
+    await findOrThrow(
+      this.prisma.template,
+      { where: where as never },
+      'Template',
+      id,
+    );
 
     const result = await this.prisma.template.update({
       data: dto as never,
@@ -231,13 +230,12 @@ export class TemplatesService {
       where.organizationId = organization;
     }
 
-    const existing = await this.prisma.template.findFirst({
-      where: where as never,
-    });
-
-    if (!existing) {
-      throw new NotFoundException('Template not found');
-    }
+    await findOrThrow(
+      this.prisma.template,
+      { where: where as never },
+      'Template',
+      id,
+    );
 
     await this.prisma.template.update({
       data: { isDeleted: true } as never,

@@ -14,12 +14,14 @@ import type {
 } from '@api/collections/profiles/schemas/profile.schema';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 type Profile = ProfileDocument;
 
@@ -230,13 +232,11 @@ export class ProfilesService {
    * Find one profile
    */
   async findOne(id: string, organizationId: string): Promise<Profile> {
-    const profile = await this.prisma.profile.findFirst({
-      where: { id, isDeleted: false, organizationId },
-    });
-
-    if (!profile) {
-      throw new NotFoundException('Profile not found');
-    }
+    const profile = await findOrThrow(
+      this.prisma.profile,
+      { where: { id, isDeleted: false, organizationId } },
+      'Profile',
+    );
 
     return this.normalizeProfile(profile as unknown as ProfileDocument);
   }
@@ -269,13 +269,11 @@ export class ProfilesService {
       await this.unsetDefaultProfiles(organizationId, id);
     }
 
-    const existing = await this.prisma.profile.findFirst({
-      where: { id, isDeleted: false, organizationId },
-    });
-
-    if (!existing) {
-      throw new NotFoundException('Profile not found');
-    }
+    const existing = await findOrThrow(
+      this.prisma.profile,
+      { where: { id, isDeleted: false, organizationId } },
+      'Profile',
+    );
 
     const result = await this.prisma.profile.update({
       data: {
@@ -294,13 +292,11 @@ export class ProfilesService {
    * Delete profile
    */
   async remove(id: string, organizationId: string): Promise<void> {
-    const existing = await this.prisma.profile.findFirst({
-      where: { id, isDeleted: false, organizationId },
-    });
-
-    if (!existing) {
-      throw new NotFoundException('Profile not found');
-    }
+    await findOrThrow(
+      this.prisma.profile,
+      { where: { id, isDeleted: false, organizationId } },
+      'Profile',
+    );
 
     await this.prisma.profile.update({
       data: { isDeleted: true } as never,

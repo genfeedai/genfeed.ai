@@ -4,15 +4,13 @@ import type {
   CampaignRateLimits,
   OutreachCampaignDocument,
 } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { CampaignStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 // ---------------------------------------------------------------------------
 // Helper: defensively parse the `config` JSON column
@@ -140,17 +138,17 @@ export class OutreachCampaignsService {
   ): Promise<string | undefined> {
     if (!brandId) return undefined;
 
-    const brand = await this.prisma.brand.findFirst({
-      where: {
-        OR: [{ id: brandId }, { mongoId: brandId }],
-        isDeleted: false,
-        organizationId,
+    const brand = await findOrThrow(
+      this.prisma.brand,
+      {
+        where: {
+          OR: [{ id: brandId }, { mongoId: brandId }],
+          isDeleted: false,
+          organizationId,
+        },
       },
-    });
-
-    if (!brand) {
-      throw new NotFoundException('Brand not found');
-    }
+      'Brand',
+    );
 
     return brand.id;
   }
@@ -161,20 +159,20 @@ export class OutreachCampaignsService {
     brandId: string | undefined,
     platform: string,
   ): Promise<void> {
-    const credential = await this.prisma.credential.findFirst({
-      where: {
-        OR: [{ id: credentialId }, { mongoId: credentialId }],
-        isConnected: true,
-        isDeleted: false,
-        organizationId,
-        platform: toPrismaCredentialPlatform(platform) as never,
-        ...(brandId ? { brandId } : {}),
+    await findOrThrow(
+      this.prisma.credential,
+      {
+        where: {
+          OR: [{ id: credentialId }, { mongoId: credentialId }],
+          isConnected: true,
+          isDeleted: false,
+          organizationId,
+          platform: toPrismaCredentialPlatform(platform) as never,
+          ...(brandId ? { brandId } : {}),
+        },
       },
-    });
-
-    if (!credential) {
-      throw new NotFoundException('Credential not found');
-    }
+      'Credential',
+    );
   }
 
   async createScoped(
@@ -272,13 +270,12 @@ export class OutreachCampaignsService {
     id: string,
     updateDto: UpdateOutreachCampaignDto,
   ): Promise<OutreachCampaignDocument> {
-    const existing = await this.prisma.outreachCampaign.findFirst({
-      where: { id, isDeleted: false },
-    });
-
-    if (!existing) {
-      throw new NotFoundException(`Campaign ${id} not found`);
-    }
+    const existing = await findOrThrow(
+      this.prisma.outreachCampaign,
+      { where: { id, isDeleted: false } },
+      'Campaign',
+      id,
+    );
 
     const existingConfig = parseConfig(
       (existing as unknown as Record<string, unknown>).config,

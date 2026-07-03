@@ -30,6 +30,7 @@ import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   getIsSuperAdmin,
@@ -69,7 +70,6 @@ import {
   Get,
   HttpException,
   HttpStatus,
-  NotFoundException,
   Param,
   Patch,
   Post,
@@ -162,7 +162,9 @@ export class OrganizationsController extends BaseCRUDController<
   ): Promise<unknown> {
     const org = await this.organizationsService.findBySlug(slug);
     if (!org) {
-      throw new NotFoundException(`Organization with slug "${slug}" not found`);
+      throw new NotFoundException({
+        message: `Organization with slug "${slug}" not found`,
+      });
     }
     return serializeSingle(request, OrganizationSerializer, org);
   }

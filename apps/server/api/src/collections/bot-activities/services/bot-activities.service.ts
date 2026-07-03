@@ -3,12 +3,13 @@ import type {
   BotActivity,
   BotActivityDocument,
 } from '@api/collections/bot-activities/schemas/bot-activity.schema';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { BotActivityStatus } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 export interface BotActivityStats {
   total: number;
@@ -224,7 +225,7 @@ export class BotActivitiesService extends BaseService<
       { status: BotActivityStatus.PROCESSING },
     ).then((activity) => {
       if (!activity) {
-        throw new NotFoundException('Bot activity not found');
+        throw new NotFoundException('Bot activity');
       }
 
       return activity;
@@ -261,7 +262,7 @@ export class BotActivitiesService extends BaseService<
     return this.patchActivity(id, { id, isDeleted: false }, updateData).then(
       (activity) => {
         if (!activity) {
-          throw new NotFoundException('Bot activity not found');
+          throw new NotFoundException('Bot activity');
         }
 
         return activity;
@@ -288,7 +289,7 @@ export class BotActivitiesService extends BaseService<
       },
     ).then((activity) => {
       if (!activity) {
-        throw new NotFoundException('Bot activity not found');
+        throw new NotFoundException('Bot activity');
       }
 
       return activity;
@@ -309,7 +310,7 @@ export class BotActivitiesService extends BaseService<
       },
     ).then((activity) => {
       if (!activity) {
-        throw new NotFoundException('Bot activity not found');
+        throw new NotFoundException('Bot activity');
       }
 
       return activity;

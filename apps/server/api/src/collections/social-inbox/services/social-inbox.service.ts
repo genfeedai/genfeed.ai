@@ -6,18 +6,15 @@ import {
   type SocialMessageDocument,
 } from '@api/collections/social-inbox/schemas/social-inbox.schema';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { PostStatus } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-  Optional,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 export interface SocialInboxScope {
   organizationId: string;
@@ -139,13 +136,11 @@ export class SocialInboxService {
     scope: SocialInboxScope,
     conversationId: string,
   ): Promise<SocialConversationDocument> {
-    const conversation = await this.prisma.socialConversation.findFirst({
-      where: this.buildConversationIdentityWhere(scope, conversationId),
-    });
-
-    if (!conversation) {
-      throw new NotFoundException('Social conversation not found');
-    }
+    const conversation = await findOrThrow(
+      this.prisma.socialConversation,
+      { where: this.buildConversationIdentityWhere(scope, conversationId) },
+      'Social conversation',
+    );
 
     return this.toConversationDocument(conversation);
   }
@@ -1082,19 +1077,19 @@ export class SocialInboxService {
   ): Promise<SocialMessageDocument> {
     await this.getConversation(scope, conversationId);
 
-    const draft = await this.prisma.socialMessage.findFirst({
-      where: {
-        conversationId,
-        id: messageId,
-        isDeleted: false,
-        organizationId: scope.organizationId,
-        status: 'draft',
+    const draft = await findOrThrow(
+      this.prisma.socialMessage,
+      {
+        where: {
+          conversationId,
+          id: messageId,
+          isDeleted: false,
+          organizationId: scope.organizationId,
+          status: 'draft',
+        },
       },
-    });
-
-    if (!draft) {
-      throw new NotFoundException('Draft message not found');
-    }
+      'Draft message',
+    );
 
     return this.toMessageDocument(draft);
   }

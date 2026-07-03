@@ -7,8 +7,10 @@ import type {
   WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import {
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
@@ -25,12 +27,7 @@ import type {
 } from '@genfeedai/workflow-engine';
 import { buildWorkflowEtaSnapshot } from '@helpers/generation-eta.helper';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-  Optional,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 // =============================================================================
 // TYPES
@@ -289,13 +286,12 @@ export class WorkflowExecutorService {
     metadata?: Record<string, unknown>,
     trigger: WorkflowExecutionTrigger = WorkflowExecutionTrigger.MANUAL,
   ): Promise<WorkflowExecutionResult> {
-    const workflowDoc = await this.prisma.workflow.findFirst({
-      where: { id: workflowId, isDeleted: false, organizationId },
-    });
-
-    if (!workflowDoc) {
-      throw new NotFoundException(`Workflow ${workflowId} not found`);
-    }
+    const workflowDoc = await findOrThrow(
+      this.prisma.workflow,
+      { where: { id: workflowId, isDeleted: false, organizationId } },
+      'Workflow',
+      workflowId,
+    );
 
     return this.executeWorkflowDocument(
       this.normalizeWorkflowDocument(workflowDoc),
@@ -336,13 +332,12 @@ export class WorkflowExecutorService {
       throw new NotFoundException(`Execution ${executionId} not found`);
     }
 
-    const workflowDoc = await this.prisma.workflow.findFirst({
-      where: { id: workflowId, isDeleted: false, organizationId },
-    });
-
-    if (!workflowDoc) {
-      throw new NotFoundException(`Workflow ${workflowId} not found`);
-    }
+    const workflowDoc = await findOrThrow(
+      this.prisma.workflow,
+      { where: { id: workflowId, isDeleted: false, organizationId } },
+      'Workflow',
+      workflowId,
+    );
 
     const normalizedWorkflowDoc = this.normalizeWorkflowDocument(workflowDoc);
     const workflowLabel = this.getWorkflowLabel(normalizedWorkflowDoc);

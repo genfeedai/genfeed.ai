@@ -4,6 +4,7 @@ import type { AgentRunDocument } from '@api/collections/agent-runs/schemas/agent
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { AgentExecutionStatus } from '@genfeedai/enums';
@@ -19,7 +20,7 @@ import type {
 } from '@genfeedai/types';
 import { DEFAULT_AGENT_RUN_TIME_RANGE } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 type AgentRunStatsSummary = Omit<
   AgentRunStats,
@@ -191,7 +192,9 @@ export class AgentRunsService extends BaseService<
     const organizationId = dto.organizationId as string | undefined;
 
     if (!organizationId) {
-      throw new NotFoundException('Organization context is required');
+      throw new NotFoundException({
+        message: 'Organization context is required',
+      });
     }
 
     // Ensure the org field in the DTO comes only from the validated value above —

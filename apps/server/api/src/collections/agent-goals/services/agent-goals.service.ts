@@ -2,13 +2,14 @@ import { CreateAgentGoalDto } from '@api/collections/agent-goals/dto/create-agen
 import { UpdateAgentGoalDto } from '@api/collections/agent-goals/dto/update-agent-goal.dto';
 import type { AgentGoalMetric } from '@api/collections/agent-goals/schemas/agent-goal.schema';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { LoggerService } from '@libs/logger/logger.service';
 import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+  findOrThrow,
+  findUniqueOrThrow,
+} from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 interface AnalyticsOverview {
   avgEngagementRate: number;
@@ -69,13 +70,12 @@ export class AgentGoalsService {
     dto: UpdateAgentGoalDto,
     organizationId: string,
   ): Promise<Record<string, unknown>> {
-    const goal = await this.prisma.agentGoal.findFirst({
-      where: { id: goalId, isDeleted: false, organizationId },
-    });
-
-    if (!goal) {
-      throw new NotFoundException(`Agent goal ${goalId} not found`);
-    }
+    const goal = await findOrThrow(
+      this.prisma.agentGoal,
+      { where: { id: goalId, isDeleted: false, organizationId } },
+      'Agent goal',
+      goalId,
+    );
 
     const existingConfig = this.readConfig(goal);
 
@@ -119,13 +119,12 @@ export class AgentGoalsService {
     goalId: string,
     organizationId: string,
   ): Promise<Record<string, unknown>> {
-    const goal = await this.prisma.agentGoal.findFirst({
-      where: { id: goalId, isDeleted: false, organizationId },
-    });
-
-    if (!goal) {
-      throw new NotFoundException(`Agent goal ${goalId} not found`);
-    }
+    const goal = await findOrThrow(
+      this.prisma.agentGoal,
+      { where: { id: goalId, isDeleted: false, organizationId } },
+      'Agent goal',
+      goalId,
+    );
 
     // Domain fields live in config
     const config = this.readConfig(goal);
@@ -159,14 +158,11 @@ export class AgentGoalsService {
       where: { id: goalId },
     });
 
-    const updatedGoal = await this.prisma.agentGoal.findUnique({
-      where: { id: goalId },
-    });
-    if (!updatedGoal) {
-      throw new NotFoundException(
-        `Agent goal ${goalId} not found after update`,
-      );
-    }
+    const updatedGoal = await findUniqueOrThrow(
+      this.prisma.agentGoal,
+      { where: { id: goalId } },
+      'Agent goal not found after update',
+    );
 
     // Merge config fields into the returned record for callers
     const updatedConfig = this.readConfig(updatedGoal);

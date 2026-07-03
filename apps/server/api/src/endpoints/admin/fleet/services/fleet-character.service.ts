@@ -1,8 +1,9 @@
 import { type PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 /**
  * Owns fleet persona (character) reads/writes and the single shared
@@ -39,14 +40,11 @@ export class AdminFleetCharacterService {
   async requirePersonaBySlug(
     slug: string,
     organizationId: string,
-    notFoundMessage?: string,
   ): Promise<PersonaDocument> {
     const persona = await this.findPersonaBySlug(slug, organizationId);
 
     if (!persona) {
-      throw new NotFoundException(
-        notFoundMessage ?? `Character "${slug}" not found`,
-      );
+      throw new NotFoundException('Character', slug);
     }
 
     return persona;
@@ -74,11 +72,7 @@ export class AdminFleetCharacterService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(caller, { organizationId, slug });
 
-    return this.requirePersonaBySlug(
-      slug,
-      organizationId,
-      `Character with slug "${slug}" not found`,
-    );
+    return this.requirePersonaBySlug(slug, organizationId);
   }
 
   /**

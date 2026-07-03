@@ -4,9 +4,9 @@ import { EditorRenderService } from '@api/collections/editor-projects/services/e
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { ConfigService } from '@api/config/config.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { LoggerService } from '@libs/logger/logger.service';
-import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -14,7 +14,7 @@ import { EditorProjectsController } from './editor-projects.controller';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn((type: string, id: string) => {
-    throw new NotFoundException(`${type} ${id} not found`);
+    throw new NotFoundException(type, id);
   }),
   serializeCollection: vi.fn((_req, _ser, data) => ({ data })),
   serializeSingle: vi.fn((_req, _ser, data) => ({ data })),

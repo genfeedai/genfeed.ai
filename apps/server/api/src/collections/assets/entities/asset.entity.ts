@@ -28,5 +28,4 @@ export class AssetEntity extends BaseEntity implements Asset {
   declare readonly uploadPolicy: string | null;
   declare readonly originalFileName: string | null;
   declare readonly displayName: string | null;
-  declare readonly deletedAt: Date | null;
 }
