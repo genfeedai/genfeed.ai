@@ -1,16 +1,13 @@
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import { type ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import {
   getDefaultModel,
   OpenRouterModelTier,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 
 @Injectable()
 export class HighlightRewriteService {
@@ -62,24 +59,24 @@ Return ONLY the rewritten script. No explanation, no markdown, just the script t
       });
 
     if (!project) {
-      throw new NotFoundException(`ClipProject ${projectId} not found`);
+      throw new NotFoundException('ClipProject', projectId);
     }
 
     const highlights = project.highlights || [];
     const highlight = highlights.find((h) => h.id === highlightId);
 
     if (!highlight) {
-      throw new NotFoundException(
-        `Highlight ${highlightId} not found in project ${projectId}`,
-      );
+      throw new NotFoundException({
+        message: `Highlight ${highlightId} not found in project ${projectId}`,
+      });
     }
 
     const originalScript = highlight.summary || '';
 
     if (!originalScript.trim()) {
-      throw new NotFoundException(
-        `Highlight ${highlightId} has no script to rewrite`,
-      );
+      throw new NotFoundException({
+        message: `Highlight ${highlightId} has no script to rewrite`,
+      });
     }
 
     const prompt = this.buildPrompt(originalScript, platform, tone);

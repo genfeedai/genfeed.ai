@@ -10,16 +10,13 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 const PLATFORM_MAP: Record<string, CredentialPlatform> = {
   instagram: CredentialPlatform.INSTAGRAM,
@@ -269,7 +266,7 @@ export class ContextsService {
     });
 
     if (!contextBase) {
-      throw new NotFoundException('Context base not found');
+      throw new NotFoundException('Context base');
     }
 
     return this.normalizeContextBase(contextBase);
@@ -285,7 +282,7 @@ export class ContextsService {
     });
 
     if (!existing) {
-      throw new NotFoundException('Context base not found');
+      throw new NotFoundException('Context base');
     }
 
     // Validate that the supplied sourceBrand belongs to the caller's org to
@@ -317,7 +314,7 @@ export class ContextsService {
     });
 
     if (!existing) {
-      throw new NotFoundException('Context base not found');
+      throw new NotFoundException('Context base');
     }
 
     await this.prisma.contextBase.update({
@@ -385,7 +382,7 @@ export class ContextsService {
     });
 
     if (!existing) {
-      throw new NotFoundException('Entry not found');
+      throw new NotFoundException('Entry');
     }
 
     await this.prisma.contextEntry.update({

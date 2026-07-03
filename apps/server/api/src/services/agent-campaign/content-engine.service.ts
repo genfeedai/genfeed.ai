@@ -10,6 +10,7 @@ import {
   type AnalyticsBestPostingTime,
   AnalyticsService,
 } from '@api/endpoints/analytics/analytics.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
 import { CampaignMemoryQueueService } from '@api/services/agent-campaign/campaign-memory-queue.service';
 import {
@@ -29,7 +30,7 @@ import {
 } from '@genfeedai/enums';
 import type { IAgentCampaignContentRotation } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 interface AnalyticsOverview {
   avgEngagementRate?: number;
@@ -166,7 +167,7 @@ export class ContentEngineService {
     });
 
     if (!campaign) {
-      throw new NotFoundException(`Campaign ${campaignId} not found`);
+      throw new NotFoundException('Campaign', campaignId);
     }
 
     if (campaign.status !== 'active') {
@@ -385,9 +386,7 @@ export class ContentEngineService {
     );
 
     if (!campaign) {
-      throw new NotFoundException(
-        `Campaign ${input.campaignId} not found in organization ${input.organizationId}`,
-      );
+      throw new NotFoundException('Campaign', input.campaignId);
     }
 
     if (campaign.status !== 'active') {
@@ -938,7 +937,7 @@ export class ContentEngineService {
     });
 
     if (!campaign) {
-      throw new NotFoundException(`Campaign ${campaignId} not found`);
+      throw new NotFoundException('Campaign', campaignId);
     }
 
     if (campaign.status !== 'active') {

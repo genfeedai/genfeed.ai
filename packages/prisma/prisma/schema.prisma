@@ -1350,6 +1350,7 @@ model OrgIntegration {
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
 
+  @@index([organizationId, isDeleted])
   @@map("org_integrations")
 }
 
@@ -1693,6 +1694,7 @@ model Bookmark {
   generatedIngredients Ingredient[] @relation("bookmark_generated")
   ingredients          Ingredient[]
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("bookmarks")
 }
 
@@ -1772,6 +1774,7 @@ model TrackedLink {
   linkClicks               LinkClick[]
   subscriptionAttributions SubscriptionAttribution[] @relation("attribution_link")
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("tracked_links")
 }
 
@@ -1988,6 +1991,7 @@ model Schedule {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt])
   @@map("schedules")
 }
 
@@ -2036,6 +2040,7 @@ model Distribution {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("distributions")
 }
 
@@ -2076,6 +2081,7 @@ model Customer {
 
   subscriptions Subscription[]
 
+  @@index([organizationId, isDeleted])
   @@map("customers")
 }
 
@@ -2099,6 +2105,7 @@ model Subscription {
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
 
+  @@index([organizationId, isDeleted])
   @@map("subscriptions")
 }
 
@@ -2138,6 +2145,7 @@ model SubscriptionAttribution {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
+  @@index([organizationId])
   @@map("subscription_attributions")
 }
 
@@ -2186,6 +2194,7 @@ model CustomerInstance {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  @@index([organizationId, isDeleted])
   @@map("customer_instances")
 }
 
@@ -2228,6 +2237,7 @@ model Article {
   seoScore     Float?
   seoBreakdown Json?
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([slug])
   @@map("articles")
 }
@@ -2294,6 +2304,7 @@ model Newsletter {
   contextNewsletters Newsletter[] @relation("newsletter_context")
   contextOf          Newsletter[] @relation("newsletter_context")
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("newsletters")
 }
 
@@ -2312,6 +2323,7 @@ model Transcript {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("transcripts")
 }
 
@@ -2445,6 +2457,7 @@ model AgentThread {
   contextStates ThreadContextState[]
   tasks         Task[]                @relation("task_planning_thread")
 
+  @@index([organizationId, isDeleted, updatedAt(sort: Desc)])
   @@map("agent_threads")
 }
 
@@ -2652,6 +2665,7 @@ model AgentStrategy {
   agentType String?
   platforms String[] @default([])
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("agent_strategies")
 }
 
@@ -2669,6 +2683,7 @@ model AgentStrategyOpportunity {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("agent_strategy_opportunities")
 }
 
@@ -2686,6 +2701,7 @@ model AgentStrategyReport {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("agent_strategy_reports")
 }
 
@@ -2712,6 +2728,7 @@ model AgentCampaign {
 
   status String? @default("draft")
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("agent_campaigns")
 }
 
@@ -2733,6 +2750,7 @@ model AgentGoal {
 
   strategies AgentStrategy[]
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("agent_goals")
 }
 
@@ -2766,6 +2784,7 @@ model AgentMemory {
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
 
+  @@index([organizationId, createdAt(sort: Desc)])
   @@map("agent_memories")
 }
 
@@ -2837,6 +2856,7 @@ model AgentWorkflow {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted])
   @@map("agent_workflows")
 }
 
@@ -2924,6 +2944,7 @@ model WorkflowExecution {
 
   trigger String?
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("workflow_executions")
 }
 
@@ -2987,6 +3008,7 @@ model CronJob {
 
   runs CronRun[]
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("cron_jobs")
 }
 
@@ -3008,6 +3030,7 @@ model CronRun {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("cron_runs")
 }
 
@@ -3078,6 +3101,7 @@ model TaskComment {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, taskId, createdAt])
   @@map("task_comments")
 }
 
@@ -3118,6 +3142,7 @@ model Bot {
   platforms String[] @default([])
   category  String?
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("bots")
 }
 
@@ -3139,6 +3164,7 @@ model BotActivity {
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("bot_activities")
 }
 
@@ -3163,6 +3189,7 @@ model ReplyBotConfig {
   actionType String?
   isActive   Boolean @default(true)
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("reply_bot_configs")
 }
 
@@ -3189,6 +3216,7 @@ model MonitoredAccount {
 
   isActive Boolean @default(true)
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("monitored_accounts")
 }
 
@@ -3273,6 +3301,7 @@ model ContentPattern {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("content_patterns")
 }
 
@@ -3291,6 +3320,7 @@ model CreatorAnalysis {
   contentPatterns  ContentPattern[]
   patternPlaybooks PatternPlaybook[]
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("creator_analyses")
 }
 
@@ -3307,6 +3337,7 @@ model PatternPlaybook {
 
   sourceCreators CreatorAnalysis[]
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("pattern_playbooks")
 }
 
@@ -3322,6 +3353,7 @@ model CreativePattern {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted])
   @@map("creative_patterns")
 }
 
@@ -3379,6 +3411,7 @@ model ContentPlan {
 
   items ContentPlanItem[]
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("content_plans")
 }
 
@@ -3396,6 +3429,7 @@ model ContentPlanItem {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt])
   @@map("content_plan_items")
 }
 
@@ -3428,6 +3462,7 @@ model Optimization {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("optimizations")
 }
 
@@ -3445,6 +3480,7 @@ model Evaluation {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted, updatedAt(sort: Desc)])
   @@map("evaluations")
 }
 
@@ -3481,6 +3517,7 @@ model Insight {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("insights")
 }
 
@@ -3496,6 +3533,7 @@ model Forecast {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted])
   @@map("forecasts")
 }
 
@@ -3517,6 +3555,7 @@ model AdBulkUploadJob {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("ad_bulk_upload_jobs")
 }
 
@@ -3532,6 +3571,7 @@ model AdCreativeMapping {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted])
   @@map("ad_creative_mappings")
 }
 
@@ -3545,6 +3585,7 @@ model AdOptimizationAuditLog {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("ad_optimization_audit_logs")
 }
 
@@ -3571,6 +3612,7 @@ model AdOptimizationRecommendation {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("ad_optimization_recommendations")
 }
 
@@ -3607,6 +3649,7 @@ model AdPerformance {
   @@index([isDeleted, scope, industry])
   @@index([isDeleted, scope, adPlatform, industry])
   @@index([isDeleted, scope, spendBucket, adPlatform, industry])
+  @@index([organizationId, isDeleted])
   @@map("ad_performance")
 }
 
@@ -3635,6 +3678,7 @@ model Trend {
   sourceReferenceLinks TrendSourceReferenceLink[]
   remixLineages        TrendRemixLineage[]        @relation("remix_lineage_trends")
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([isDeleted, organizationId, platform, updatedAt], map: "trends_freshness_org_idx")
   @@map("trends")
 }
@@ -3684,6 +3728,7 @@ model TrendPreferences {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, brandId])
   @@map("trend_preferences")
 }
 
@@ -3794,6 +3839,7 @@ model OutreachCampaign {
   campaignType String?
   isActive     Boolean @default(true)
 
+  @@index([organizationId, isDeleted])
   @@map("outreach_campaigns")
 }
 
@@ -3821,6 +3867,7 @@ model CampaignTarget {
   updatedAt       DateTime         @updatedAt
 
   @@index([campaignId, status])
+  @@index([campaignId, createdAt])
   @@map("campaign_targets")
 }
 
@@ -3871,6 +3918,7 @@ model ElementCameraMovement {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("elements_camera_movements")
 }
 
@@ -3885,6 +3933,7 @@ model ElementLens {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("elements_lenses")
 }
 
@@ -3899,6 +3948,7 @@ model ElementLighting {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("elements_lightings")
 }
 
@@ -3913,6 +3963,7 @@ model ElementMood {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("elements_moods")
 }
 
@@ -3929,6 +3980,7 @@ model ElementScene {
 
   isFavorite Boolean @default(false)
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("elements_scenes")
 }
 
@@ -3945,6 +3997,7 @@ model ElementSound {
 
   isFavorite Boolean @default(false)
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("elements_sounds")
 }
 
@@ -3959,6 +4012,7 @@ model ElementStyle {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("elements_styles")
 }
 
@@ -3973,6 +4027,7 @@ model FontFamilyRecord {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("font_families")
 }
 
@@ -3992,6 +4047,7 @@ model Preset {
   isActive   Boolean @default(true)
   isFavorite Boolean @default(false)
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("presets")
 }
 
@@ -4011,6 +4067,7 @@ model Caption {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("captions")
 }
 
@@ -4078,6 +4135,7 @@ model EditorProject {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("editor_projects")
 }
 
@@ -4132,6 +4190,7 @@ model ContextBase {
 
   entries ContextEntry[]
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("context_bases")
 }
 
@@ -4161,6 +4220,7 @@ model Skill {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("skills")
 }
 
@@ -4203,6 +4263,7 @@ model Template {
   version     Int?
   usageCount  Int?
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("templates")
 }
 
@@ -4238,6 +4299,7 @@ model TemplateUsage {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId])
   @@map("template_usages")
 }
 
@@ -4273,6 +4335,7 @@ model Watchlist {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([brandId, isDeleted, createdAt(sort: Desc)])
   @@map("watchlists")
 }
 
@@ -4293,6 +4356,7 @@ model Goal {
   status String?
   level  String?
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("goals")
 }
 
@@ -4308,6 +4372,7 @@ model Streak {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, userId])
   @@map("streaks")
 }
 
@@ -4359,6 +4424,7 @@ model Profile {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("profiles")
 }
 
@@ -4501,6 +4567,7 @@ model Run {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("runs")
 }
 

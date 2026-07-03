@@ -1,5 +1,6 @@
 import type { PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
 import { HedraService } from '@api/services/integrations/hedra/services/hedra.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
@@ -11,7 +12,6 @@ import type {
 import { PersonaContentService } from '@api/services/persona-content/persona-content.service';
 import { AvatarProvider, VoiceProvider } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

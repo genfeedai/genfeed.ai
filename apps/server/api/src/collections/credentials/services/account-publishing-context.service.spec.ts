@@ -1,7 +1,7 @@
 import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { CredentialPlatform } from '@genfeedai/enums';
-import { NotFoundException } from '@nestjs/common';
 
 describe('AccountPublishingContextService', () => {
   const credentialId = 'cred-1';

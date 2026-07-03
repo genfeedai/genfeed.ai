@@ -4,6 +4,7 @@ import type {
   StreakDocument,
   StreakMilestoneHistoryEntry,
 } from '@api/collections/streaks/schemas/streak.schema';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActivityKey } from '@genfeedai/enums';
@@ -21,7 +22,6 @@ import {
   forwardRef,
   Inject,
   Injectable,
-  NotFoundException,
 } from '@nestjs/common';
 
 const QUALIFYING_ACTIVITY_KEYS = new Set<ActivityKey>([
@@ -492,7 +492,7 @@ export class StreaksService {
     let streak = await this.getStreak(userId, organizationId);
 
     if (!streak) {
-      throw new NotFoundException('Streak not found');
+      throw new NotFoundException('Streak');
     }
 
     if (streak.streakFreezes <= 0) {

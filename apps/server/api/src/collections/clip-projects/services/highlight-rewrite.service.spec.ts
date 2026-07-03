@@ -1,7 +1,5 @@
-import {
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { InternalServerErrorException } from '@nestjs/common';
 import { HighlightRewriteService } from './highlight-rewrite.service';
 
 describe('HighlightRewriteService', () => {

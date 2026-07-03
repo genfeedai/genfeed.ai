@@ -1,8 +1,10 @@
 import { TemplateMetadataEntity } from '@api/collections/template-metadata/entities/template-metadata.entity';
 import type { TemplateMetadataDocument } from '@api/collections/template-metadata/schemas/template-metadata.schema';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import type { Prisma } from '@genfeedai/prisma';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class TemplateMetadataService {
@@ -46,13 +48,12 @@ export class TemplateMetadataService {
     templateId: string,
     updates: Partial<TemplateMetadataEntity>,
   ): Promise<TemplateMetadataEntity> {
-    const existing = await this.prisma.templateMetadata.findFirst({
-      where: { isDeleted: false, templateId },
-    });
-
-    if (!existing) {
-      throw new NotFoundException('Template metadata not found');
-    }
+    const existing = await findOrThrow(
+      this.prisma.templateMetadata,
+      { where: { isDeleted: false, templateId } },
+      'Template metadata',
+      templateId,
+    );
 
     const result = await this.prisma.templateMetadata.update({
       data: updates as never,

@@ -1,7 +1,7 @@
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { AdminFleetCharacterService } from '@api/endpoints/admin/fleet/services/fleet-character.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { LoggerService } from '@libs/logger/logger.service';
-import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -65,32 +65,22 @@ describe('AdminFleetCharacterService', () => {
       ).resolves.toBe(persona);
     });
 
-    it('throws NotFoundException with the default message when absent', async () => {
+    it('throws NotFoundException with the character slug when absent', async () => {
       personasService.findOne.mockResolvedValue(null);
 
       await expect(
         service.requirePersonaBySlug('ghost', 'org-123'),
-      ).rejects.toThrow(new NotFoundException('Character "ghost" not found'));
-    });
-
-    it('throws NotFoundException with a custom message when provided', async () => {
-      personasService.findOne.mockResolvedValue(null);
-
-      await expect(
-        service.requirePersonaBySlug('ghost', 'org-123', 'custom message'),
-      ).rejects.toThrow(new NotFoundException('custom message'));
+      ).rejects.toThrow(new NotFoundException('Character', 'ghost'));
     });
   });
 
   describe('getCharacterBySlug', () => {
-    it('preserves the slug-specific not-found message', async () => {
+    it('throws NotFoundException with the character slug when absent', async () => {
       personasService.findOne.mockResolvedValue(null);
 
       await expect(
         service.getCharacterBySlug('ghost', 'org-123'),
-      ).rejects.toThrow(
-        new NotFoundException('Character with slug "ghost" not found'),
-      );
+      ).rejects.toThrow(new NotFoundException('Character', 'ghost'));
     });
   });
 

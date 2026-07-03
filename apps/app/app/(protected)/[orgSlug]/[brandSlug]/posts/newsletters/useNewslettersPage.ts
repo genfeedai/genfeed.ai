@@ -1,4 +1,5 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { GenerationType } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Newsletter } from '@models/content/newsletter.model';
@@ -8,6 +9,10 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
+
+/** Newsletters publish to the email/newsletter channel rather than a social platform. */
+const NEWSLETTER_PUBLISH_PLATFORM = 'newsletter';
 
 type TopicProposal = {
   angle: string;
@@ -238,6 +243,9 @@ export function useNewslettersPage() {
     }
 
     setIsGeneratingDraft(true);
+    captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_STARTED, {
+      generationType: GenerationType.NEWSLETTER,
+    });
 
     try {
       const service = await getService();
@@ -252,8 +260,16 @@ export function useNewslettersPage() {
       await refresh();
       setSelectedNewsletterId(draft.id);
       await loadContext(draft.id);
+      captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_COMPLETED, {
+        generationType: GenerationType.NEWSLETTER,
+        outcome: 'success',
+      });
       notificationsService.success('Newsletter draft ready for review');
     } catch (error) {
+      captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_COMPLETED, {
+        generationType: GenerationType.NEWSLETTER,
+        outcome: 'failure',
+      });
       logger.error('Failed to generate newsletter draft', error);
       notificationsService.error('Failed to generate draft');
     } finally {
@@ -347,6 +363,9 @@ export function useNewslettersPage() {
     try {
       const service = await getService();
       await service.publish(id);
+      captureAnalyticsEvent(ANALYTICS_EVENTS.POST_PUBLISHED, {
+        platform: NEWSLETTER_PUBLISH_PLATFORM,
+      });
       await refresh();
       await loadContext(id);
       notificationsService.success('Newsletter published');

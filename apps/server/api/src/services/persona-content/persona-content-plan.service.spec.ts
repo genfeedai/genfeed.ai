@@ -1,13 +1,13 @@
 import type { PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import {
   type ContentPlanInput,
   PersonaContentPlanService,
 } from '@api/services/persona-content/persona-content-plan.service';
 import { PersonaContentFormat, PostCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

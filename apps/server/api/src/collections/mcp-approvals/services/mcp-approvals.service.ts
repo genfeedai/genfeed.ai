@@ -6,11 +6,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { McpApprovalStatus } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 /**
  * Hard ceiling on concurrently-PENDING approvals per organization. Caps the
@@ -137,13 +133,7 @@ export class McpApprovalsService extends BaseService<
     if (count === 0) {
       // Either the approval does not exist / is cross-org, or it was already
       // resolved by a concurrent caller. Distinguish the two for a clear error.
-      const existing = (await this.delegate.findFirst({
-        where: { id, organizationId, isDeleted: false },
-      })) as McpApprovalDocument | null;
-
-      if (!existing) {
-        throw new NotFoundException('MCP approval not found');
-      }
+      await this.findOneWithOrganization(id, organizationId);
 
       throw new BadRequestException('Approval already resolved');
     }

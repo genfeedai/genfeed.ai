@@ -15,6 +15,7 @@ import {
 } from '@api/collections/workflows/system-workflow.contract';
 import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { EntityFactory } from '@api/shared/factories/entity/entity.factory';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
@@ -25,12 +26,7 @@ import {
   WorkflowStepStatus,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-  Optional,
-} from '@nestjs/common';
+import { ForbiddenException, Injectable, Optional } from '@nestjs/common';
 
 /**
  * Core workflow service: CRUD/templating, lifecycle transitions, node locks,
@@ -230,7 +226,7 @@ export class WorkflowsService extends BaseService<
     });
 
     if (!workflowDoc) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
 
     if (!this.shouldUseNodeExecutor(workflowDoc)) {
@@ -347,7 +343,7 @@ export class WorkflowsService extends BaseService<
     });
 
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
     this.assertWorkflowMutable(workflow);
 
@@ -399,7 +395,7 @@ export class WorkflowsService extends BaseService<
     });
 
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
     this.assertWorkflowMutable(workflow);
 
@@ -425,7 +421,7 @@ export class WorkflowsService extends BaseService<
     });
 
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
     this.assertWorkflowMutable(workflow);
 
@@ -452,7 +448,7 @@ export class WorkflowsService extends BaseService<
     });
 
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
     this.assertWorkflowMutable(workflow);
 
@@ -482,7 +478,7 @@ export class WorkflowsService extends BaseService<
     });
 
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
     this.assertWorkflowMutable(workflow);
 
@@ -514,7 +510,7 @@ export class WorkflowsService extends BaseService<
     });
 
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
 
     return workflow;
@@ -545,7 +541,7 @@ export class WorkflowsService extends BaseService<
     });
 
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
 
     return workflow;

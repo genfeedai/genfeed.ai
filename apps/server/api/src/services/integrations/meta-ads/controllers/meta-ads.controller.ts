@@ -3,6 +3,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import type {
   CreateAdParams,
@@ -22,7 +23,6 @@ import {
   Controller,
   Delete,
   Get,
-  NotFoundException,
   Param,
   Patch,
   Post,
@@ -369,9 +369,10 @@ export class MetaAdsController {
     });
 
     if (!credential?.accessToken) {
-      throw new NotFoundException(
-        'Facebook credential not found. Please connect your Facebook account first.',
-      );
+      throw new NotFoundException({
+        message:
+          'Facebook credential not found. Please connect your Facebook account first.',
+      });
     }
 
     // Decrypt the stored token
