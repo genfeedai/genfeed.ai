@@ -8,8 +8,12 @@ import TopbarPublic from '@ui/topbars/public/TopbarPublic';
 import {
   HiBuildingOffice2,
   HiCloud,
+  HiFilm,
   HiGlobeAlt,
   HiMegaphone,
+  HiPaperAirplane,
+  HiRectangleStack,
+  HiRocketLaunch,
   HiShoppingCart,
   HiStar,
   HiUserCircle,
@@ -33,6 +37,24 @@ const PRODUCT_LINKS = [
     href: '/integrations',
     icon: HiGlobeAlt,
     label: 'Integrations',
+  },
+  {
+    description: 'The complete AI content creation workspace',
+    href: '/studio',
+    icon: HiFilm,
+    label: 'Studio',
+  },
+  {
+    description: 'Deterministic workflow control for agentic execution',
+    href: '/workflows',
+    icon: HiRectangleStack,
+    label: 'Workflows',
+  },
+  {
+    description: 'Schedule and publish across 10+ social platforms',
+    href: '/publisher',
+    icon: HiPaperAirplane,
+    label: 'Publisher',
   },
 ];
 
@@ -66,6 +88,12 @@ const USE_CASES_LINKS = [
     href: '/use-cases/marketers',
     icon: HiMegaphone,
     label: 'Marketers',
+  },
+  {
+    description: 'Build an audience without hiring a team',
+    href: '/use-cases/founders',
+    icon: HiRocketLaunch,
+    label: 'Founders',
   },
 ];
 

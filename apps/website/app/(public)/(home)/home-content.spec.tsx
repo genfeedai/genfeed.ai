@@ -85,7 +85,7 @@ vi.mock('@helpers/business/pricing/pricing.helper', () => ({
 }));
 
 describe('HomeContent', () => {
-  it('renders a single hero H1 with the primary hero CTAs', () => {
+  it('renders a single hero H1 with self-serve and demo CTAs', () => {
     render(<HomeContent />);
 
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
@@ -96,14 +96,43 @@ describe('HomeContent', () => {
       screen.getAllByRole('link', { name: /start cloud app/i }).length,
     ).toBeGreaterThanOrEqual(1);
     expect(
-      screen.getByRole('link', { name: /see formats/i }),
-    ).toBeInTheDocument();
+      screen.getAllByRole('link', { name: /book a demo/i }).length,
+    ).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders the generated output wall', () => {
+  it('renders the how-it-works and generated output wall', () => {
     render(<HomeContent />);
 
     expect(screen.getByTestId('home-hero-output-wall')).toBeInTheDocument();
+    expect(
+      screen.getByText('From one brief to everything you publish.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Start from a brief')).toBeInTheDocument();
+  });
+
+  it('renders the example-campaign proof section', () => {
+    render(<HomeContent />);
+
+    expect(
+      screen.getByText('Brand-safe, approval-ready, and tracked.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('kai.travels')).toBeInTheDocument();
+  });
+
+  it('renders both audience lanes with deep links to persona pages', () => {
+    render(<HomeContent />);
+
+    expect(
+      screen.getByText(
+        'Built for solo creators — and the agencies who scale them.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /genfeed for creators/i }),
+    ).toHaveAttribute('href', '/use-cases/creators');
+    expect(
+      screen.getByRole('link', { name: /genfeed for agencies/i }),
+    ).toHaveAttribute('href', '/use-cases/agencies');
   });
 
   it('renders the pricing section with all three plans', () => {
@@ -117,9 +146,11 @@ describe('HomeContent', () => {
     expect(screen.getByText('Custom')).toBeInTheDocument();
   });
 
-  it('renders the final CTA and shared footer', () => {
+  it('renders the FAQ, final CTA, and shared footer', () => {
     render(<HomeContent />);
 
+    expect(screen.getByText('Questions, answered.')).toBeInTheDocument();
+    expect(screen.getByText('What is Genfeed?')).toBeInTheDocument();
     expect(screen.getByText('Start with the cloud app.')).toBeInTheDocument();
     expect(screen.getByTestId('home-footer')).toBeInTheDocument();
   });
