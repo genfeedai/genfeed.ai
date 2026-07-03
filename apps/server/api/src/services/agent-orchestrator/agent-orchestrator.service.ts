@@ -362,6 +362,27 @@ export interface AgentThreadUiActionRequest {
 const MAX_PAGE_CONTEXT_FIELD_LENGTH = 4_000;
 const RESULT_SUMMARY_MAX_LENGTH = 500;
 
+// During live token streaming, cancellation cannot be checked per token
+// (isRunCancelled is a Redis lookup); throttle it to at most once per this
+// interval so a cancelled run tears down the upstream stream promptly without
+// a lookup on every delta.
+const STREAM_CANCEL_CHECK_INTERVAL_MS = 750;
+// Per-token publish failures are swallowed to avoid aborting a live stream on a
+// transient Redis hiccup, but a sustained outage should be diagnosable — log at
+// most once per this interval per turn instead of once per dropped token.
+const STREAM_PUBLISH_LOG_INTERVAL_MS = 5_000;
+
+// Thrown from the streaming onToken callback when the run has been cancelled.
+// It unwinds the provider's for-await loop (tearing down the upstream HTTP/SDK
+// stream) and is caught at the dispatch site, which routes it to the
+// cancelled-stream handler rather than treating it as a generation error.
+class StreamCancelledError extends Error {
+  constructor() {
+    super('agent stream cancelled');
+    this.name = 'StreamCancelledError';
+  }
+}
+
 function clampPageContextField(value?: string): string | null {
   const normalized = value?.replace(/\s+/g, ' ').trim();
 
@@ -1590,26 +1611,86 @@ export class AgentOrchestratorService {
         // Real deltas published live during this round; drives whether the
         // final branch re-simulates word-split streaming or not.
         let roundStreamedTokenCount = 0;
-        const response = canStreamLiveTokens
-          ? await this.llmDispatcher.streamChatCompletionAggregated(
-              chatParams,
-              context.organizationId,
-              async (delta: string) => {
-                roundStreamedTokenCount++;
-                await runEffectPromise(
-                  this.publishStreamTokenEffect({
-                    runId: context.runId,
-                    threadId,
-                    token: delta,
-                    userId: context.userId,
-                  }).pipe(Effect.catchAll(() => Effect.void)),
+        let lastCancelCheckAt = 0;
+        let lastPublishErrorLoggedAt = 0;
+
+        const onStreamToken = async (delta: string): Promise<void> => {
+          roundStreamedTokenCount++;
+
+          // Throttled cancellation check — unwinds the provider stream (and its
+          // upstream connection) instead of burning the whole generation after
+          // the user has already stopped the run.
+          const now = Date.now();
+          if (now - lastCancelCheckAt >= STREAM_CANCEL_CHECK_INTERVAL_MS) {
+            lastCancelCheckAt = now;
+            if (await this.isRunCancelled(context)) {
+              throw new StreamCancelledError();
+            }
+          }
+
+          await runEffectPromise(
+            this.publishStreamTokenEffect({
+              runId: context.runId,
+              threadId,
+              token: delta,
+              userId: context.userId,
+            }).pipe(
+              // Keep swallowing publish failures (a transient Redis hiccup must
+              // not abort a live stream) but surface a throttled log so a
+              // sustained outage is diagnosable rather than silent.
+              Effect.tapError((error) =>
+                Effect.sync(() => {
+                  const errorAt = Date.now();
+                  if (
+                    errorAt - lastPublishErrorLoggedAt >=
+                    STREAM_PUBLISH_LOG_INTERVAL_MS
+                  ) {
+                    lastPublishErrorLoggedAt = errorAt;
+                    this.loggerService.warn(
+                      `${this.constructorName} stream token publish failed (throttled)`,
+                      {
+                        error:
+                          error instanceof Error
+                            ? error.message
+                            : String(error),
+                        threadId,
+                      },
+                    );
+                  }
+                }),
+              ),
+              Effect.catchAll(() => Effect.void),
+            ),
+          );
+        };
+
+        // IIFE so a mid-stream cancellation (StreamCancelledError thrown from
+        // onStreamToken) is caught here and routed to the cancelled-stream
+        // handler; any other error still propagates as a real failure.
+        const response = await (async () => {
+          try {
+            return canStreamLiveTokens
+              ? await this.llmDispatcher.streamChatCompletionAggregated(
+                  chatParams,
+                  context.organizationId,
+                  onStreamToken,
+                )
+              : await this.llmDispatcher.chatCompletion(
+                  chatParams,
+                  context.organizationId,
                 );
-              },
-            )
-          : await this.llmDispatcher.chatCompletion(
-              chatParams,
-              context.organizationId,
-            );
+          } catch (error) {
+            if (error instanceof StreamCancelledError) {
+              return null;
+            }
+            throw error;
+          }
+        })();
+
+        if (!response) {
+          await this.handleCancelledStream(context, threadId);
+          return;
+        }
         const actualModel = await this.recordAgentResponseModel({
           actualModels: Array.from(actualModels),
           context,
