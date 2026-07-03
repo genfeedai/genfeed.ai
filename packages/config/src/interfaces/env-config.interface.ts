@@ -81,6 +81,7 @@ export interface IEnvConfig {
   AGENT_CONTEXT_COMPRESSION_ENABLED?: string;
   AGENT_CONTEXT_COMPRESSION_MODEL?: string;
   AGENT_CONTEXT_WINDOW_SIZE?: number;
+  AGENT_TOKEN_STREAMING_ENABLED?: string;
   MAX_TOKENS?: number;
 
   // === fal.ai ===
