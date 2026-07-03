@@ -232,7 +232,7 @@ export const createTestOrganization = (
  * Create test brand data
  */
 export const createTestBrand = (overrides: Record<string, unknown> = {}) => ({
-  _id: generateIdString(),
+  id: generateIdString(),
   backgroundColor: 'transparent',
   createdAt: new Date(),
   description: 'Test brand description',
@@ -256,7 +256,7 @@ export const createTestBrand = (overrides: Record<string, unknown> = {}) => ({
  * Create test user data
  */
 export const createTestUser = (overrides: Record<string, unknown> = {}) => ({
-  _id: generateIdString(),
+  id: generateIdString(),
   authProviderId: `authProvider_${generateIdString()}`,
   createdAt: new Date(),
   email: `test-${Date.now()}@example.com`,
@@ -273,7 +273,7 @@ export const createTestUser = (overrides: Record<string, unknown> = {}) => ({
  * Create test member data
  */
 export const createTestMember = (overrides: Record<string, unknown> = {}) => ({
-  _id: generateIdString(),
+  id: generateIdString(),
   createdAt: new Date(),
   isActive: true,
   isDeleted: false,
@@ -290,7 +290,7 @@ export const createTestMember = (overrides: Record<string, unknown> = {}) => ({
 export const createTestCredential = (
   overrides: Record<string, unknown> = {},
 ) => ({
-  _id: generateIdString(),
+  id: generateIdString(),
   accessToken: 'mock-access-token',
   brand: generateIdString(),
   createdAt: new Date(),
@@ -311,7 +311,7 @@ export const createTestCredential = (
  * Create test video data
  */
 export const createTestVideo = (overrides: Record<string, unknown> = {}) => ({
-  _id: generateIdString(),
+  id: generateIdString(),
   brand: generateIdString(),
   createdAt: new Date(),
   description: 'Test video description',
@@ -331,7 +331,7 @@ export const createTestVideo = (overrides: Record<string, unknown> = {}) => ({
  * Create test post data
  */
 export const createTestPost = (overrides: Record<string, unknown> = {}) => ({
-  _id: generateIdString(),
+  id: generateIdString(),
   brand: generateIdString(),
   caption: 'Test post caption',
   createdAt: new Date(),
@@ -353,7 +353,7 @@ export const createTestPost = (overrides: Record<string, unknown> = {}) => ({
 export const createTestIngredient = (
   overrides: Record<string, unknown> = {},
 ) => ({
-  _id: generateIdString(),
+  id: generateIdString(),
   brand: generateIdString(),
   category: 'video',
   createdAt: new Date(),
@@ -372,7 +372,7 @@ export const createTestIngredient = (
  * Create test tag data
  */
 export const createTestTag = (overrides: Record<string, unknown> = {}) => ({
-  _id: generateIdString(),
+  id: generateIdString(),
   color: '#FF0000',
   createdAt: new Date(),
   isDeleted: false,
@@ -387,7 +387,7 @@ export const createTestTag = (overrides: Record<string, unknown> = {}) => ({
  * Create test asset data
  */
 export const createTestAsset = (overrides: Record<string, unknown> = {}) => ({
-  _id: generateIdString(),
+  id: generateIdString(),
   category: 'image',
   createdAt: new Date(),
   isDeleted: false,
@@ -403,7 +403,7 @@ export const createTestAsset = (overrides: Record<string, unknown> = {}) => ({
  * Create test credit data
  */
 export const createTestCredit = (overrides: Record<string, unknown> = {}) => ({
-  _id: generateIdString(),
+  id: generateIdString(),
   balance: 10000,
   createdAt: new Date(),
   isDeleted: false,
@@ -418,7 +418,7 @@ export const createTestCredit = (overrides: Record<string, unknown> = {}) => ({
 export const createTestOrganizationSetting = (
   overrides: Record<string, unknown> = {},
 ) => ({
-  _id: generateIdString(),
+  id: generateIdString(),
   brandsLimit: 10,
   createdAt: new Date(),
   enabledModels: [],

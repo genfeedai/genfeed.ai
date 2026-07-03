@@ -88,21 +88,21 @@ describe('Brands E2E Tests', () => {
 
     // Create test user
     testUser = createTestUser({
-      _id: generateIdString(),
+      id: generateIdString(),
       authProviderId: 'authProvider_brand_test_user',
       email: 'brand-test@example.com',
     });
 
     // Create test organization
     testOrganization = createTestOrganization({
-      _id: generateIdString(),
+      id: generateIdString(),
       label: 'Brand Test Organization',
       user: testUser.id,
     });
 
     // Create test member (owner)
     testMember = createTestMember({
-      _id: generateIdString(),
+      id: generateIdString(),
       organization: testOrganization.id,
       role: 'owner',
       user: testUser.id,
@@ -110,7 +110,7 @@ describe('Brands E2E Tests', () => {
 
     // Create test brand
     testBrand = createTestBrand({
-      _id: generateIdString(),
+      id: generateIdString(),
       description: 'A test brand for E2E testing',
       label: 'Test Brand',
       organization: testOrganization.id,
@@ -125,13 +125,13 @@ describe('Brands E2E Tests', () => {
     await dbHelper.seedCollection('brands', [testBrand]);
     await dbHelper.seedCollection('organization-settings', [
       createTestOrganizationSetting({
-        _id: generateIdString(),
+        id: generateIdString(),
         organization: testOrganization.id,
       }),
     ]);
     await dbHelper.seedCollection('credit-balances', [
       createTestCredit({
-        _id: generateIdString(),
+        id: generateIdString(),
         balance: 50000,
         organization: testOrganization.id,
       }),
@@ -154,14 +154,14 @@ describe('Brands E2E Tests', () => {
       // Add more brands for testing
       const additionalBrands = [
         createTestBrand({
-          _id: generateIdString(),
+          id: generateIdString(),
           label: 'Alpha Brand',
           organization: testOrganization.id,
           slug: `brand-alpha-${Date.now()}`,
           user: testUser.id,
         }),
         createTestBrand({
-          _id: generateIdString(),
+          id: generateIdString(),
           label: 'Beta Brand',
           organization: testOrganization.id,
           slug: `brand-beta-${Date.now()}`,
@@ -212,7 +212,7 @@ describe('Brands E2E Tests', () => {
     it('should filter out deleted brands by default', async () => {
       // Create a deleted brand
       const deletedBrand = createTestBrand({
-        _id: generateIdString(),
+        id: generateIdString(),
         isDeleted: true,
         label: 'Deleted Brand',
         organization: testOrganization.id,
@@ -309,7 +309,7 @@ describe('Brands E2E Tests', () => {
     it('should return brand with populated assets', async () => {
       // Create logo asset
       const logoAsset = createTestAsset({
-        _id: generateIdString(),
+        id: generateIdString(),
         category: 'image',
         organization: testOrganization.id,
         type: 'logo',
@@ -584,7 +584,7 @@ describe('Brands E2E Tests', () => {
     it('should not affect other brands when deleting', async () => {
       // Create another brand
       const anotherBrand = createTestBrand({
-        _id: generateIdString(),
+        id: generateIdString(),
         label: 'Another Brand',
         organization: testOrganization.id,
         slug: `another-brand-${Date.now()}`,
@@ -610,7 +610,7 @@ describe('Brands E2E Tests', () => {
       // Create credentials for the brand
       const credentials = [
         createTestCredential({
-          _id: generateIdString(),
+          id: generateIdString(),
           brand: testBrand.id,
           externalHandle: '@testchannel',
           isConnected: true,
@@ -619,7 +619,7 @@ describe('Brands E2E Tests', () => {
           user: testUser.id,
         }),
         createTestCredential({
-          _id: generateIdString(),
+          id: generateIdString(),
           brand: testBrand.id,
           externalHandle: '@testtiktok',
           isConnected: true,
@@ -651,26 +651,26 @@ describe('Brands E2E Tests', () => {
     beforeEach(async () => {
       // Create another organization with a brand
       otherUser = createTestUser({
-        _id: generateIdString(),
+        id: generateIdString(),
         authProviderId: 'authProvider_other_brand_user',
         email: 'other-brand@example.com',
       });
 
       otherOrganization = createTestOrganization({
-        _id: generateIdString(),
+        id: generateIdString(),
         label: 'Other Organization',
         user: otherUser.id,
       });
 
       const otherMember = createTestMember({
-        _id: generateIdString(),
+        id: generateIdString(),
         organization: otherOrganization.id,
         role: 'owner',
         user: otherUser.id,
       });
 
       otherBrand = createTestBrand({
-        _id: generateIdString(),
+        id: generateIdString(),
         label: 'Other Org Brand',
         organization: otherOrganization.id,
         slug: `other-org-brand-${Date.now()}`,
@@ -683,7 +683,7 @@ describe('Brands E2E Tests', () => {
       await dbHelper.seedCollection('brands', [otherBrand]);
       await dbHelper.seedCollection('organization-settings', [
         createTestOrganizationSetting({
-          _id: generateIdString(),
+          id: generateIdString(),
           organization: otherOrganization.id,
         }),
       ]);
@@ -745,7 +745,7 @@ describe('Brands E2E Tests', () => {
       // Create brands with searchable names
       const searchableBrands = [
         createTestBrand({
-          _id: generateIdString(),
+          id: generateIdString(),
           description: 'A technology focused startup',
           label: 'Tech Startup Brand',
           organization: testOrganization.id,
@@ -753,7 +753,7 @@ describe('Brands E2E Tests', () => {
           user: testUser.id,
         }),
         createTestBrand({
-          _id: generateIdString(),
+          id: generateIdString(),
           description: 'A food and beverage company',
           label: 'Food Company Brand',
           organization: testOrganization.id,
