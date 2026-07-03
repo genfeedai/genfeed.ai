@@ -217,7 +217,7 @@ export const createE2ETestApp = async (
 export const createTestOrganization = (
   overrides: Record<string, unknown> = {},
 ) => ({
-  _id: generateIdString(),
+  id: generateIdString(),
   category: 'business',
   createdAt: new Date(),
   isDeleted: false,
@@ -457,7 +457,7 @@ export const createTestOrganizationSetting = (
 export const createTestIntegration = (
   overrides: Record<string, unknown> = {},
 ) => ({
-  _id: generateIdString(),
+  id: generateIdString(),
   config: { allowedUserIds: [], defaultWorkflow: 'wf-test' },
   createdAt: new Date(),
   encryptedToken: 'encrypted:test-bot-token',
