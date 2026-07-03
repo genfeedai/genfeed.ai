@@ -36,6 +36,16 @@ const config = createAppNextConfig({
   ],
   redirects: async () => [
     {
+      destination: '/pricing',
+      permanent: true,
+      source: '/core',
+    },
+    {
+      destination: '/pricing',
+      permanent: true,
+      source: '/host',
+    },
+    {
       destination: '/use-cases/creators',
       permanent: true,
       source: '/creators',
