@@ -1,4 +1,6 @@
+import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
+import { buildSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
 import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -82,6 +84,26 @@ afterEach(() => {
 });
 
 describe('WorkflowSchedulerService — job scheduler registration', () => {
+  it('never registers job schedulers for system workflows (their actions fire from the workers sweep scheduler)', async () => {
+    const { queueService, service } = createService({});
+
+    await service.scheduleWorkflow({
+      id: 'wf-system',
+      isScheduleEnabled: true,
+      metadata: {
+        systemWorkflow: buildSystemWorkflowMetadata({
+          canonicalId: 'scheduled-post-publishing',
+        }),
+      },
+      schedule: '*/15 * * * *',
+    } as unknown as WorkflowDocument);
+
+    expect(queueService.upsertWorkflowScheduler).not.toHaveBeenCalled();
+    expect(queueService.removeWorkflowScheduler).toHaveBeenCalledWith(
+      'wf-system',
+    );
+  });
+
   it('upserts a BullMQ job scheduler when a schedule is set and enabled', async () => {
     const prisma = createMockPrisma();
     prisma.workflow.findFirst.mockResolvedValue({ id: 'wf-1' });

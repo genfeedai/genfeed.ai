@@ -3,6 +3,7 @@ import type { WorkflowDocument } from '@api/collections/workflows/schemas/workfl
 import { LegacyWorkflowStepRunner } from '@api/collections/workflows/services/legacy-workflow-step-runner.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
+import { getSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
 import { ConfigService } from '@api/config/config.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/enums';
@@ -98,6 +99,23 @@ export class WorkflowSchedulerService implements OnModuleInit {
     );
 
     if (!workflow.schedule || !workflow.isScheduleEnabled) {
+      await this.unscheduleWorkflow(workflowId);
+      return;
+    }
+
+    // System workflows carry a schedule for display, but their actions fire
+    // from the workers sweep scheduler — the engine has no executor for
+    // systemWorkflowAction nodes, so firing here would only record failures.
+    // Also drops schedulers for pre-fix rows seeded with isScheduleEnabled: true.
+    if (
+      getSystemWorkflowMetadata(
+        (workflow as unknown as Record<string, unknown>).metadata,
+      )
+    ) {
+      this.logger.log(
+        `Skipping user-workflow scheduling for system workflow ${workflowId}`,
+        'WorkflowSchedulerService',
+      );
       await this.unscheduleWorkflow(workflowId);
       return;
     }

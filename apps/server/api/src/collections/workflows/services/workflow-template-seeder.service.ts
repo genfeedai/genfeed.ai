@@ -478,7 +478,10 @@ export class WorkflowTemplateSeederService {
           executionCount: 0,
           inputVariables: [],
           isDeleted: false,
-          isScheduleEnabled: Boolean(definition.schedule),
+          // Schedule is display metadata only: system actions fire from the
+          // workers sweep scheduler, never from the user-workflow scheduler
+          // (no engine executor exists for systemWorkflowAction nodes).
+          isScheduleEnabled: false,
           label: definition.label,
           metadata: this.buildSeededSystemWorkflowMetadata({
             changeSummary: definition.changeSummary,
