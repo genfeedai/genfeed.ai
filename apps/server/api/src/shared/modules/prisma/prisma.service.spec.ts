@@ -6,6 +6,15 @@ import { createPrismaPgConfig } from './prisma.service';
 
 let tempDirectories: string[] = [];
 
+const defaultPool = {
+  connectionTimeoutMillis: 10_000,
+  idleTimeoutMillis: 300_000,
+  keepAlive: true,
+  max: 10,
+  maxLifetimeSeconds: 1_800,
+  min: 2,
+} as const;
+
 function pgUrl(host: string, query = ''): string {
   return [
     'postgresql',
@@ -36,11 +45,12 @@ afterEach(() => {
 });
 
 describe('createPrismaPgConfig', () => {
-  it('leaves ordinary local Postgres URLs unchanged', () => {
+  it('applies warm pool defaults to ordinary local Postgres URLs', () => {
     const connectionString = pgUrl('localhost');
 
     expect(createPrismaPgConfig(connectionString)).toEqual({
       connectionString,
+      ...defaultPool,
     });
   });
 
@@ -51,7 +61,7 @@ describe('createPrismaPgConfig', () => {
       createPrismaPgConfig(connectionString, {
         caFilePaths: [writeCaFile()],
       }),
-    ).toEqual({ connectionString });
+    ).toEqual({ connectionString, ...defaultPool });
   });
 
   it('maps sslmode=no-verify to encrypted TLS without chain verification', () => {
@@ -62,6 +72,7 @@ describe('createPrismaPgConfig', () => {
     expect(createPrismaPgConfig(connectionString)).toEqual({
       connectionString: pgUrl('db.example.com'),
       ssl: { rejectUnauthorized: false },
+      ...defaultPool,
     });
   });
 
@@ -71,6 +82,7 @@ describe('createPrismaPgConfig', () => {
     expect(createPrismaPgConfig(connectionString)).toEqual({
       connectionString: pgUrl('db.example.com'),
       ssl: { rejectUnauthorized: false },
+      ...defaultPool,
     });
   });
 
@@ -84,21 +96,45 @@ describe('createPrismaPgConfig', () => {
     ).toEqual({
       connectionString: pgUrl('db.example.com'),
       ssl: { ca: 'require-ca', rejectUnauthorized: true },
+      ...defaultPool,
     });
   });
 
-  it('preserves other query params when stripping sslmode', () => {
+  it('resolves Prisma pool params into pg pool config and strips them', () => {
     const connectionString = pgUrl(
       'db.example.com',
-      '?schema=public&sslmode=no-verify&connection_limit=5',
+      '?schema=public&sslmode=no-verify&connection_limit=5&pool_timeout=20',
     );
 
     expect(createPrismaPgConfig(connectionString)).toEqual({
-      connectionString: pgUrl(
-        'db.example.com',
-        '?schema=public&connection_limit=5',
-      ),
+      connectionString: pgUrl('db.example.com', '?schema=public'),
       ssl: { rejectUnauthorized: false },
+      ...defaultPool,
+      connectionTimeoutMillis: 20_000,
+      max: 5,
+    });
+  });
+
+  it('caps the warm floor at connection_limit for tiny pools', () => {
+    const connectionString = pgUrl('db.example.com', '?connection_limit=1');
+
+    expect(createPrismaPgConfig(connectionString)).toEqual({
+      connectionString: pgUrl('db.example.com'),
+      ...defaultPool,
+      max: 1,
+      min: 1,
+    });
+  });
+
+  it('ignores malformed pool params and keeps defaults', () => {
+    const connectionString = pgUrl(
+      'db.example.com',
+      '?connection_limit=zero&pool_timeout=-5',
+    );
+
+    expect(createPrismaPgConfig(connectionString)).toEqual({
+      connectionString: pgUrl('db.example.com'),
+      ...defaultPool,
     });
   });
 
@@ -114,6 +150,7 @@ describe('createPrismaPgConfig', () => {
     ).toEqual({
       connectionString,
       ssl: { ca: 'explicit-ca', rejectUnauthorized: true },
+      ...defaultPool,
     });
   });
 
@@ -127,6 +164,7 @@ describe('createPrismaPgConfig', () => {
     ).toEqual({
       connectionString,
       ssl: { ca: 'pg-ca', rejectUnauthorized: true },
+      ...defaultPool,
     });
   });
 
