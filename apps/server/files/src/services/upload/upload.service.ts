@@ -36,12 +36,8 @@ export class UploadService {
     hasAudio: boolean;
   }> {
     const metadata = await this.ffmpegService.getVideoMetadata(filePath);
-    const videoStream = metadata.streams?.find(
-      (s: unknown) => s.codec_type === 'video',
-    );
-    const audioStream = metadata.streams?.find(
-      (s: unknown) => s.codec_type === 'audio',
-    );
+    const videoStream = metadata.streams?.find((s) => s.codec_type === 'video');
+    const audioStream = metadata.streams?.find((s) => s.codec_type === 'audio');
     return {
       duration: Number(metadata.format?.duration) || 0,
       hasAudio: !!audioStream,
@@ -197,8 +193,9 @@ export class UploadService {
             const downloadDuration = Date.now() - downloadStartTime;
 
             body = Buffer.from(res.data);
+            const rawContentType = res.headers['content-type'];
             contentType = this.resolveContentType(
-              res.headers['content-type'],
+              typeof rawContentType === 'string' ? rawContentType : undefined,
               remoteUrl,
             );
 

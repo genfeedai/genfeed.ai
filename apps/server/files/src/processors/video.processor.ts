@@ -6,7 +6,9 @@ import type { HookRemixJobData } from '@files/services/hook-remix/hook-remix.int
 import { HookRemixService } from '@files/services/hook-remix/hook-remix.service';
 import { S3Service } from '@files/services/s3/s3.service';
 import { WebSocketService } from '@files/services/websocket/websocket.service';
+import type { FFmpegProgress } from '@files/shared/interfaces/ffmpeg.interfaces';
 import {
+  JobProgress,
   JobResult,
   VideoJobData,
 } from '@files/shared/interfaces/job.interface';
@@ -17,6 +19,16 @@ import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject } from '@nestjs/common';
 import { Job } from 'bullmq';
+
+interface VideoCompletionResult {
+  ingredientId?: string;
+  outputPath?: string;
+  s3Key?: string;
+  url?: string;
+  duration?: number;
+  startTime?: number;
+  endTime?: number;
+}
 
 @Processor(QUEUE_NAMES.VIDEO_PROCESSING)
 export class VideoProcessor extends WorkerHost {
@@ -69,7 +81,7 @@ export class VideoProcessor extends WorkerHost {
   /**
    * Convert FFmpegProgress to JobProgress
    */
-  private convertToJobProgress(ffmpegProgress: unknown): unknown {
+  private convertToJobProgress(ffmpegProgress: FFmpegProgress): JobProgress {
     return {
       fps: ffmpegProgress.fps,
       frames: ffmpegProgress.frames,
@@ -88,7 +100,7 @@ export class VideoProcessor extends WorkerHost {
     userId: string,
     organizationId: string,
     status: 'completed' | 'failed',
-    result?: unknown,
+    result?: VideoCompletionResult | null,
     error?: string,
   ): Promise<void> {
     try {
@@ -130,7 +142,7 @@ export class VideoProcessor extends WorkerHost {
     websocketUrl: string,
     authProviderUserId?: string,
     room?: string,
-  ): (progress: unknown) => void {
+  ): (progress: FFmpegProgress) => void {
     return (progress) => {
       this.webSocketService.emitProgress(
         websocketUrl,

@@ -4,6 +4,7 @@ import { ConfigService } from '@files/config/config.service';
 import { TempFileCleanupCron } from '@files/cron/temp-file-cleanup.cron';
 import { FileQueueService } from '@files/queues/file-queue.service';
 import { ImageQueueService } from '@files/queues/image-queue.service';
+import type { JobPriority, JobType } from '@files/queues/queue.constants';
 import { JOB_PRIORITY, JOB_TYPES } from '@files/queues/queue.constants';
 import { VideoQueueService } from '@files/queues/video-queue.service';
 import { YoutubeQueueService } from '@files/queues/youtube-queue.service';
@@ -17,8 +18,12 @@ import { VideoThumbnailService } from '@files/services/thumbnails/video-thumbnai
 import { UploadService } from '@files/services/upload/upload.service';
 import type {
   FileJobData,
+  FileProcessingParams,
   ImageJobData,
+  ImageProcessingParams,
   VideoJobData,
+  VideoProcessingParams,
+  YoutubeCredential,
 } from '@files/shared/interfaces/job.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -40,6 +45,70 @@ import type { Response } from 'express';
 import { firstValueFrom } from 'rxjs';
 
 type S3KeyGenerator = (type: string, key: string) => string;
+
+interface ProcessVideoRequestBody {
+  authProviderUserId?: string;
+  id?: string;
+  ingredientId: string;
+  organizationId: string;
+  params: VideoProcessingParams;
+  priority?: JobPriority;
+  room?: string;
+  s3Bucket?: string;
+  type: JobType;
+  userId: string;
+  websocketUrl?: string;
+}
+
+interface ProcessImageRequestBody {
+  authProviderUserId?: string;
+  id?: string;
+  ingredientId: string;
+  organizationId: string;
+  params: ImageProcessingParams;
+  priority?: JobPriority;
+  room?: string;
+  s3Bucket?: string;
+  type: JobType;
+  userId: string;
+  websocketUrl?: string;
+}
+
+interface ProcessFileRequestBody {
+  authProviderUserId?: string;
+  delay?: number;
+  filePath?: string;
+  id?: string;
+  ingredientId: string;
+  organizationId: string;
+  params: FileProcessingParams;
+  priority?: JobPriority;
+  room?: string;
+  s3Bucket?: string;
+  type: JobType;
+  url?: string;
+  userId: string;
+  websocketUrl?: string;
+}
+
+interface ProcessYoutubeRequestBody {
+  authProviderUserId?: string;
+  brandId?: string;
+  credential: YoutubeCredential;
+  description: string;
+  id?: string;
+  ingredientId: string;
+  organizationId: string;
+  postId: string;
+  priority?: JobPriority;
+  room?: string;
+  scheduledDate?: string;
+  status?: 'public' | 'private' | 'scheduled' | 'unlisted';
+  tags?: string[];
+  title: string;
+  userId: string;
+  websocketUrl?: string;
+}
 
 const SKILLS_PRO_DOWNLOAD_KEY_PREFIX = 'skills/v1/';
 
@@ -88,7 +157,7 @@ export class FilesController {
   ) {}
 
   @Post('process/video')
-  async processVideo(@Body() body: unknown) {
+  async processVideo(@Body() body: ProcessVideoRequestBody) {
     try {
       const jobData = {
         authProviderUserId: body.authProviderUserId,
@@ -98,7 +167,7 @@ export class FilesController {
         metadata: {
           s3Bucket: body.s3Bucket,
           websocketUrl:
-            body.websocketUrl || this.configService.get('WEBSOCKET_URL'),
+            body.websocketUrl || this.configService.get('WEBSOCKET_URL') || '',
         },
         organizationId: body.organizationId,
         params: body.params,
@@ -181,7 +250,7 @@ export class FilesController {
   }
 
   @Post('process/image')
-  async processImage(@Body() body: unknown) {
+  async processImage(@Body() body: ProcessImageRequestBody) {
     try {
       const jobData = {
         authProviderUserId: body.authProviderUserId,
@@ -191,7 +260,7 @@ export class FilesController {
         metadata: {
           s3Bucket: body.s3Bucket,
           websocketUrl:
-            body.websocketUrl || this.configService.get('WEBSOCKET_URL'),
+            body.websocketUrl || this.configService.get('WEBSOCKET_URL') || '',
         },
         organizationId: body.organizationId,
         params: body.params,
@@ -241,7 +310,7 @@ export class FilesController {
   }
 
   @Post('process/file')
-  async processFile(@Body() body: unknown) {
+  async processFile(@Body() body: ProcessFileRequestBody) {
     try {
       const jobData = {
         authProviderUserId: body.authProviderUserId,
@@ -253,7 +322,7 @@ export class FilesController {
         metadata: {
           s3Bucket: body.s3Bucket,
           websocketUrl:
-            body.websocketUrl || this.configService.get('WEBSOCKET_URL'),
+            body.websocketUrl || this.configService.get('WEBSOCKET_URL') || '',
         },
         organizationId: body.organizationId,
         params: body.params,
@@ -310,7 +379,7 @@ export class FilesController {
   }
 
   @Post('process/youtube')
-  async processYoutube(@Body() body: unknown) {
+  async processYoutube(@Body() body: ProcessYoutubeRequestBody) {
     try {
       const status = body.status || 'unlisted'; // Default to unlisted if no status provided
       const jobData = {
@@ -324,7 +393,7 @@ export class FilesController {
         isUnlisted: status === 'unlisted',
         metadata: {
           websocketUrl:
-            body.websocketUrl || this.configService.get('WEBSOCKET_URL'),
+            body.websocketUrl || this.configService.get('WEBSOCKET_URL') || '',
         },
         organizationId: body.organizationId,
         postId: body.postId,
@@ -531,8 +600,11 @@ export class FilesController {
       );
 
       // Determine audio extension from Content-Type or URL
+      const rawAudioContentType = audioResponse.headers['content-type'];
       const audioContentType =
-        audioResponse.headers['content-type'] || 'audio/mpeg';
+        (typeof rawAudioContentType === 'string'
+          ? rawAudioContentType
+          : undefined) || 'audio/mpeg';
       let audioExt = '.mp3';
       if (audioContentType.includes('wav')) {
         audioExt = '.wav';
@@ -864,8 +936,10 @@ export class FilesController {
           }
 
           // Determine file extension from URL or Content-Type
+          const rawContentType = response.headers['content-type'];
           const contentType =
-            response.headers['content-type'] || 'application/octet-stream';
+            (typeof rawContentType === 'string' ? rawContentType : undefined) ||
+            'application/octet-stream';
           const extension = this.getFileExtensionFromContentType(contentType);
 
           const tempFileName = `metadata_${Date.now()}_${Math.random().toString(36).substring(7)}${extension}`;

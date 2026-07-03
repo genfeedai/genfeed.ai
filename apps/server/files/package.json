@@ -5,7 +5,9 @@
     "@genfeedai/storage": "workspace:*"
   },
   "description": "Genfeed Files Service",
-  "devDependencies": {},
+  "devDependencies": {
+    "@types/ffprobe-static": "2.0.3"
+  },
   "main": "../dist/apps/files/main.js",
   "name": "@genfeedai/files",
   "private": true,
@@ -28,7 +30,8 @@
     "test": "vitest run --config vitest.config.ts",
     "test:cov": "vitest run --coverage --config vitest.config.ts",
     "test:e2e": "vitest run --config vitest.config.ts",
-    "test:watch": "vitest watch --config vitest.config.ts"
+    "test:watch": "vitest watch --config vitest.config.ts",
+    "type-check": "tsc --noEmit -p tsconfig.typecheck.json"
   },
   "version": "1.0.0",
   "type": "module"

@@ -136,7 +136,7 @@ export class WebSocketService {
   async emitStatus(
     websocketUrl: string,
     status: string,
-    data?: unknown,
+    data?: Record<string, unknown>,
     userId?: string,
   ) {
     if (this.redisPublisher?.status !== 'ready') {
@@ -162,7 +162,7 @@ export class WebSocketService {
     }
   }
 
-  async sendProgress(ingredientId: string, progress: unknown) {
+  async sendProgress(ingredientId: string, progress: Record<string, unknown>) {
     if (this.redisPublisher?.status !== 'ready') {
       this.logger.warn('Redis not connected, skipping progress emission');
       return;

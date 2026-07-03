@@ -87,7 +87,7 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
    * Get or create a bot-owned webhook for a channel
    */
   async getOrCreateWebhook(
-    channelId: string,
+    channelId: string | undefined,
     webhookName: string,
   ): Promise<WebhookClient | null> {
     if (!channelId) {
@@ -283,7 +283,10 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
 
     const results = await Promise.all(
       channels
-        .filter(({ channelId }) => !!channelId)
+        .filter(
+          (channel): channel is { channelId: string; name: string } =>
+            !!channel.channelId,
+        )
         .map(async ({ name, channelId }) => ({
           name,
           ...(await this.testChannel(channelId)),

@@ -5,7 +5,12 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@notifications/config/config.service';
 import { DiscordBotService } from '@notifications/services/discord/discord-bot.service';
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  type WebhookMessageCreateOptions,
+} from 'discord.js';
 
 @Injectable()
 export class DiscordService {
@@ -62,7 +67,7 @@ export class DiscordService {
 
       const managerUrl = this.configService.get('GENFEEDAI_APP_URL');
       const ingredientManagerUrl = managerUrl
-        ? `${managerUrl}/ingredients/${categoryString}/${ingredient.id}`
+        ? `${managerUrl}/ingredients/${categoryString}/${ingredient._id}`
         : null;
 
       const buttons = this.buildIngredientButtons(
@@ -71,7 +76,7 @@ export class DiscordService {
         ingredientManagerUrl,
       );
 
-      const embed: unknown = {
+      const embed: IDiscordEmbed = {
         color: embedColor,
         timestamp: new Date().toISOString(),
         title: embedTitle,
@@ -102,7 +107,7 @@ export class DiscordService {
         });
 
         // Second message: embed with details and buttons
-        const detailsPayload: unknown = {
+        const detailsPayload: WebhookMessageCreateOptions = {
           avatarURL: avatarUrl,
           embeds: [embed],
           username: 'Genfeed.ai',
@@ -118,7 +123,7 @@ export class DiscordService {
         await webhookClient.send(detailsPayload);
       } else {
         // For images: single message with embed
-        const messagePayload: unknown = {
+        const messagePayload: WebhookMessageCreateOptions = {
           avatarURL: avatarUrl,
           embeds: [embed],
           username: 'Genfeed.ai',
@@ -137,7 +142,7 @@ export class DiscordService {
       this.loggerService.log(`${url} succeeded`, {
         category,
         cdnUrl,
-        ingredientId: ingredient.id,
+        ingredientId: ingredient._id,
       });
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
@@ -206,7 +211,7 @@ export class DiscordService {
           ? `Published to ${platformCount} Platforms`
           : `Published to ${platformName}`;
 
-      const embed: unknown = {
+      const embed: IDiscordEmbed = {
         color: embedColor,
         description:
           post.description?.substring(0, 300) ||
@@ -266,7 +271,7 @@ export class DiscordService {
         );
       }
 
-      const messagePayload: unknown = {
+      const messagePayload: WebhookMessageCreateOptions = {
         embeds: [embed],
       };
 
@@ -374,7 +379,7 @@ export class DiscordService {
   }
 
   private getIngredientEmbedColor(category: IngredientCategory): number {
-    const colorMap: Record<IngredientCategory, number> = {
+    const colorMap: Partial<Record<IngredientCategory, number>> = {
       [IngredientCategory.IMAGE]: 0x00ff00,
       [IngredientCategory.VIDEO]: 0x0099ff,
       [IngredientCategory.AUDIO]: 0xff00ff,
@@ -590,7 +595,7 @@ export class DiscordService {
       const articleUrl =
         article.publicUrl || `https://genfeed.ai/articles/${article.slug}`;
 
-      const embed: unknown = {
+      const embed: IDiscordEmbed = {
         color: 0xff6b00, // Orange for articles
         timestamp: new Date().toISOString(),
         title: article.label,
@@ -616,7 +621,7 @@ export class DiscordService {
           .setURL(articleUrl),
       );
 
-      const messagePayload: unknown = {
+      const messagePayload: WebhookMessageCreateOptions = {
         components: [actionRow],
         embeds: [embed],
       };
@@ -722,10 +727,10 @@ export class DiscordService {
 
       const managerUrl = this.configService.get('GENFEEDAI_APP_URL');
       const userManagerUrl = managerUrl
-        ? `${managerUrl}/admin/users/${user.id}`
+        ? `${managerUrl}/admin/users/${user._id}`
         : null;
 
-      const embed: unknown = {
+      const embed: IDiscordEmbed = {
         color: user.isInvited ? 0x5865f2 : 0x00ff00,
         description: `**${displayName}**${user.email ? `\n${user.email}` : ''}`,
         timestamp: new Date().toISOString(),
@@ -751,7 +756,7 @@ export class DiscordService {
         );
       }
 
-      const messagePayload: unknown = {
+      const messagePayload: WebhookMessageCreateOptions = {
         embeds: [embed],
       };
 
@@ -767,7 +772,7 @@ export class DiscordService {
       this.loggerService.log(`${url} succeeded`, {
         email: user.email,
         isInvited: user.isInvited,
-        userId: user.id,
+        userId: user._id,
       });
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);

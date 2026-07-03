@@ -6,6 +6,13 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 
+export interface SplitScreenVideoOptions {
+  dimensions?: { width: number; height: number };
+  topClip?: string;
+  bottomClip?: string;
+  layout?: 'horizontal' | 'vertical' | 'grid';
+}
+
 @Injectable()
 export class FilesSplitScreenService extends FilesService {
   constructor(
@@ -55,7 +62,7 @@ export class FilesSplitScreenService extends FilesService {
   public createSplitScreenVideo(
     _videos: string[],
     ingredientId: string,
-    options?: unknown,
+    options?: SplitScreenVideoOptions,
   ): Promise<string> {
     const dimensions = options?.dimensions || { height: 1920, width: 1080 };
     const topClip = options?.topClip || 'clip-0.mp4';
