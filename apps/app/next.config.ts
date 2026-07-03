@@ -4,6 +4,24 @@ import { createAppNextConfig } from '@genfeedai/next-config';
 import bundleAnalyzer from '@next/bundle-analyzer';
 import type { NextConfig } from 'next';
 
+// Deterministic, empty-string-safe build id. A plain `??` chain does NOT skip
+// empty strings, and Vercel sets VERCEL_GIT_COMMIT_SHA="" on CLI deploys with no
+// git metadata. An empty buildId makes Next.js embed "b":"" in RSC flight
+// payloads, so the App Router treats every navigation as a cross-deployment
+// change and forces a full hard reload (and silently disables version checks).
+// firstNonBlank skips blank/whitespace values; the dev-* fallback guarantees the
+// id is never empty so generateBuildId never returns "".
+const firstNonBlank = (
+  ...values: Array<string | undefined>
+): string | undefined => values.find((value) => value?.trim());
+
+const buildId =
+  firstNonBlank(
+    process.env.BUILD_ID,
+    process.env.VERCEL_GIT_COMMIT_SHA,
+    process.env.NEXT_PUBLIC_BUILD_ID,
+  ) ?? `dev-${Date.now()}`;
+
 const withBundleAnalyzer = bundleAnalyzer({
   analyzerMode: process.env.BUNDLE_ANALYZE === 'json' ? 'json' : 'static',
   enabled: process.env.ANALYZE === 'true',
@@ -164,7 +182,17 @@ const config = createAppNextConfig({
 
 config.env = {
   ...(config.env ?? {}),
+  NEXT_PUBLIC_BUILD_ID: buildId,
   NEXT_PUBLIC_GENFEED_CLOUD,
+};
+
+config.generateBuildId = async () => {
+  if (!buildId.trim()) {
+    throw new Error(
+      'generateBuildId: computed buildId is empty; refusing to build.',
+    );
+  }
+  return buildId;
 };
 
 config.experimental = {
