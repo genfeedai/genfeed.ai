@@ -27,7 +27,7 @@ export const FAQ_ITEMS_CORE: FAQItem[] = [
   },
   {
     answer:
-      'Start with the Cloud App for $49/mo plus pay-as-you-go output. Self-host Core for free when you want to run your own infrastructure.',
+      'Start with the Cloud App for $49/mo plus pay-as-you-go output. Move to Cloud Teams when you need paid seats, shared approvals, multi-organization workflows, and managed billing.',
     question: 'How do I get started?',
   },
   {
@@ -61,7 +61,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
       },
       {
         answer:
-          'Start with the Cloud App for $49/mo plus pay-as-you-go output. Self-host Core for free when you want to run your own infrastructure.',
+          'Start with the Cloud App for $49/mo plus pay-as-you-go output. Move to Cloud Teams when you need paid seats, shared approvals, multi-organization workflows, and managed billing.',
         question: 'How do I get started?',
       },
     ],
@@ -71,17 +71,17 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
     questions: [
       {
         answer:
-          'Genfeed separates platform access from output usage. Cloud App starts at $49/mo plus pay-as-you-go output. Cloud Teams is higher-entry B2B for collaboration, multi-org, and multi-brand workflows. Core remains free to self-host with your own AI keys.',
+          'Genfeed separates platform access from output usage. Cloud App starts at $49/mo plus pay-as-you-go output. Cloud Teams adds paid seats, collaboration, multi-organization workflows, and managed billing. Enterprise is custom.',
         question: 'How does pricing work?',
       },
       {
         answer:
-          'Cloud App is $49/month plus pay-as-you-go output. Cloud Teams starts at $499/month for collaboration, multi-org, and multi-brand use cases. Enterprise is custom. Self-hosted Core is free.',
+          'Cloud App is $49/month plus pay-as-you-go output. Cloud Teams starts at $499/month for collaboration, multi-organization, and multi-brand use cases. Enterprise is custom.',
         question: 'What are the pricing tiers?',
       },
       {
         answer:
-          'Yes. Self-host Core on your own infrastructure for free when you want control. The default managed path is Cloud App at $49/mo plus usage.',
+          'No. The managed product starts with Cloud App at $49/mo plus usage-based output. The entry plan is priced around real production output instead of an artificial free tier.',
         question: 'Is there a free option?',
       },
       {
@@ -141,7 +141,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
       },
       {
         answer:
-          'Core includes API access when you self-host. Managed API access depends on Cloud App, Cloud Teams, or Enterprise scope. Contact sales for production API terms.',
+          'Managed API access depends on Cloud App, Cloud Teams, or Enterprise scope. Contact sales for production API terms.',
         question: 'Do you have an API?',
       },
     ],

@@ -49,14 +49,14 @@ describe('HomeHero', () => {
       screen.getByRole('link', { name: /start cloud app/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /view pricing/i }),
+      screen.getByRole('link', { name: /see formats/i }),
     ).toBeInTheDocument();
   });
 
-  it('renders the card deck visual instead of the poster visual', () => {
+  it('renders the generated output wall instead of the old card deck', () => {
     render(<HomeHero />);
 
-    expect(screen.getByTestId('home-hero-card-deck')).toBeInTheDocument();
-    expect(screen.queryByTestId('home-hero-poster')).not.toBeInTheDocument();
+    expect(screen.getByTestId('home-hero-output-wall')).toBeInTheDocument();
+    expect(screen.queryByTestId('home-hero-card-deck')).not.toBeInTheDocument();
   });
 });

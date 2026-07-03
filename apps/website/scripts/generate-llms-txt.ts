@@ -161,7 +161,7 @@ function buildLlmsIndex(): string {
   lines.push('# Genfeed.ai');
   lines.push('');
   lines.push(
-    '> AI-first content creation platform. Generate videos, images, voice, and articles at scale with 50+ AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. Start with Cloud App from $49/month plus PAYG output, or self-host Core for free.',
+    '> AI-first content creation platform. Generate videos, images, voice, and articles at scale with 50+ AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. Start with Cloud App from $49/month plus PAYG output.',
   );
   lines.push('');
 
@@ -197,13 +197,10 @@ function buildLlmsIndex(): string {
   lines.push('## Resources');
   lines.push('');
   lines.push(
-    `- [Pricing](${BASE_URL}/pricing): Cloud App ($49/mo + PAYG output), Cloud Teams (from $499/mo + PAYG output), Enterprise (custom), Core (free self-hosted)`,
+    `- [Pricing](${BASE_URL}/pricing): Cloud App ($49/mo + PAYG output), Cloud Teams (from $499/mo + PAYG output), Enterprise (custom)`,
   );
   lines.push(
     `- [FAQ](${BASE_URL}/faq): Frequently asked questions about the platform`,
-  );
-  lines.push(
-    '- [Open Source Core](https://github.com/genfeedai/genfeed.ai): Self-host Genfeed with your own AI keys',
   );
   lines.push(
     `- [Generative Engine Optimization](${BASE_URL}/articles): Create citation-ready long-form content with answer blocks, source attribution, and Article/FAQ/HowTo structured data`,
@@ -240,7 +237,7 @@ function buildLlmsFull(): string {
   s.push('# Genfeed.ai');
   s.push('');
   s.push(
-    '> AI-first content creation platform. Generate videos, images, voice, and articles at scale with 50+ AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. Start with Cloud App from $49/month plus PAYG output, or self-host Core for free.',
+    '> AI-first content creation platform. Generate videos, images, voice, and articles at scale with 50+ AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. Start with Cloud App from $49/month plus PAYG output.',
   );
   s.push('');
 
@@ -267,11 +264,7 @@ function buildLlmsFull(): string {
   s.push(
     '- **Generative Engine Optimization**: Make long-form content citation-ready for AI answer engines with direct answer blocks, source attribution, and Article/FAQ/HowTo structured data',
   );
-  s.push(
-    '- **Open source core**: Self-host for free with your own AI keys (BYOK)',
-  );
   s.push('');
-
   // Products
   s.push('---');
   s.push('');
@@ -311,11 +304,13 @@ function buildLlmsFull(): string {
   s.push('## Pricing');
   s.push('');
   s.push(
-    'Genfeed separates platform access from output usage. Cloud App starts at $49/month plus pay-as-you-go output. Cloud Teams is higher-entry B2B for collaboration, multi-org, and multi-brand use cases. Core remains free to self-host with your own AI keys.',
+    'Genfeed separates platform access from output usage. Cloud App starts at $49/month plus pay-as-you-go output. Cloud Teams is higher-entry B2B for paid seats, collaboration, multi-organization, and multi-brand use cases. Enterprise is custom.',
   );
   s.push('');
 
-  for (const plan of websitePlans) {
+  for (const plan of websitePlans.filter((item) =>
+    ['Hosted', 'Cloud Teams', 'Enterprise'].includes(item.label),
+  )) {
     const priceStr =
       plan.price === 0
         ? 'Free'

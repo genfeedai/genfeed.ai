@@ -18,15 +18,14 @@ import {
   WebSection,
 } from '@web-components/content/NeuralGrid';
 import PageLayout from '@web-components/PageLayout';
-import Link from 'next/link';
 import { HiCheckCircle } from 'react-icons/hi2';
-import { LuArrowRight, LuSparkles } from 'react-icons/lu';
+import { LuArrowRight } from 'react-icons/lu';
 
 const CALENDLY_URL =
   process.env.NEXT_PUBLIC_CALENDLY_URL ||
   'https://calendly.com/vincent-genfeed/30min';
 
-const PLAN_ORDER = ['Hosted', 'Cloud Teams', 'Enterprise', 'Self-Hosted'];
+const PLAN_ORDER = ['Hosted', 'Cloud Teams', 'Enterprise'];
 const FEATURED_TIER = 'Hosted';
 
 const FAQ_ITEMS = [
@@ -49,11 +48,6 @@ const FAQ_ITEMS = [
     answer:
       'Cloud Teams adds collaboration workspaces, roles, organization boundaries, brand operations, shared approvals, managed billing, and priority support.',
     question: 'When should I use Cloud Teams?',
-  },
-  {
-    answer:
-      'Yes. Self-hosted Core remains free for teams that want to run Genfeed on their own infrastructure with their own AI keys.',
-    question: 'Can I still self-host?',
   },
   {
     answer:
@@ -97,10 +91,6 @@ function getPriceQualifier(plan: (typeof websitePlans)[number]): string {
     return '/month + PAYG output';
   }
 
-  if (plan.type === 'byok') {
-    return 'Self-managed';
-  }
-
   return 'Custom terms';
 }
 
@@ -123,14 +113,7 @@ export default function PricingContent() {
   return (
     <div ref={containerRef}>
       <PageLayout
-        badge="Pricing"
-        badgeIcon={LuSparkles}
-        title={
-          <>
-            Cloud app pricing,{' '}
-            <span className="italic font-light">usage-based output.</span>
-          </>
-        }
+        title={<>Cloud app pricing, usage-based output.</>}
         description="Start with managed Genfeed. Pay for platform access, then pay only for the videos, images, and voice output you create."
       >
         <WebSection maxWidth="lg" py="md">
@@ -149,24 +132,20 @@ export default function PricingContent() {
         <WebSection maxWidth="full" py="md">
           <SectionHeader
             title="Choose the smallest managed plan that fits."
-            description="The website leads with the Cloud App. Self-hosting is still available, but it is no longer the default buyer path."
+            description="The website leads with the Cloud App. Teams add paid seats, shared approvals, managed billing, and multi-organization control when the workflow needs it."
             className="[&_h2]:text-5xl mb-4"
           />
 
-          <NeuralGrid columns={4} className="gsap-grid">
+          <NeuralGrid columns={3} className="gsap-grid">
             {getOrderedPlans().map((plan, index) => {
               const isFeatured = plan.label === FEATURED_TIER;
-              const isSelfHosted = plan.type === 'byok';
               const isEnterprise = plan.type === 'enterprise';
-              const ctaHref = isSelfHosted
-                ? '/host'
-                : isFeatured
-                  ? signUpHref
-                  : plan.ctaHref || CALENDLY_URL;
+              const ctaHref = isFeatured
+                ? signUpHref
+                : plan.ctaHref || CALENDLY_URL;
               const ctaLabel = isFeatured
                 ? 'Start Cloud App'
                 : plan.cta || 'Get Started';
-              const isExternal = !isSelfHosted;
 
               return (
                 <NeuralGridItem
@@ -190,7 +169,7 @@ export default function PricingContent() {
                   <div className="mb-2">
                     <span
                       className={cn(
-                        'text-5xl font-serif',
+                        'text-5xl font-semibold tracking-[-0.03em]',
                         isFeatured && 'text-inv-fg',
                       )}
                     >
@@ -245,17 +224,9 @@ export default function PricingContent() {
                       isFeatured ? ButtonVariant.BLACK : ButtonVariant.OUTLINE
                     }
                   >
-                    {isExternal ? (
-                      <a
-                        href={ctaHref}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {ctaLabel}
-                      </a>
-                    ) : (
-                      <Link href={ctaHref}>{ctaLabel}</Link>
-                    )}
+                    <a href={ctaHref} target="_blank" rel="noopener noreferrer">
+                      {ctaLabel}
+                    </a>
                   </Button>
                 </NeuralGridItem>
               );

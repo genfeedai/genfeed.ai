@@ -21,11 +21,11 @@ export default function HomeCTA(): React.ReactElement {
         <VStack className="items-center text-center gap-8 max-w-3xl mx-auto">
           <Heading
             as="h2"
-            className="text-5xl sm:text-6xl md:text-7xl font-serif tracking-normal leading-none"
+            className="text-5xl font-semibold leading-none tracking-[-0.03em] sm:text-6xl md:text-7xl"
           >
             Start with the cloud app.
             <br />
-            <span className="font-light italic gen-text-heading">
+            <span className="gen-text-heading">
               Scale usage as output grows.
             </span>
           </Heading>
