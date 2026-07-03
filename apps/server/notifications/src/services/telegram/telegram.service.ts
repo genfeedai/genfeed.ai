@@ -34,6 +34,13 @@ export class TelegramService {
 
     try {
       const token = this.configService.get('TELEGRAM_BOT_TOKEN');
+      if (!token) {
+        this.loggerService.warn(
+          'Telegram bot enabled but TELEGRAM_BOT_TOKEN is missing',
+          this.context,
+        );
+        return;
+      }
       this.bot = new Bot(token);
       this.loggerService.log(
         'Telegram notification bot initialized (API-only mode)',

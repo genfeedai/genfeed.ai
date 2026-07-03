@@ -5,6 +5,7 @@ import { ConfigService } from '@files/config/config.service';
 import { ffmpegEscapeString } from '@files/helpers/utils/string/string.util';
 import { FilesService } from '@files/services/files/files.service';
 import { SlideText, Word } from '@files/shared/interfaces/caption.interface';
+import { FFprobeData } from '@files/shared/interfaces/ffmpeg.interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
@@ -36,7 +37,7 @@ export class FilesCaptionsService extends FilesService {
     });
   }
 
-  private async probeVideo(filePath: string): Promise<unknown> {
+  private async probeVideo(filePath: string): Promise<FFprobeData> {
     const { stdout } = await this.execFileAsync('ffprobe', [
       '-v',
       'error',
@@ -46,7 +47,7 @@ export class FilesCaptionsService extends FilesService {
       '-show_format',
       filePath,
     ]);
-    return JSON.parse(stdout);
+    return JSON.parse(stdout) as FFprobeData;
   }
 
   private parseTimeToMs(time: string): number {
@@ -80,7 +81,7 @@ export class FilesCaptionsService extends FilesService {
     const words = this.filterCaptions(srtContent);
 
     const metaData = await this.probeVideo(inputPath);
-    const stream = metaData.streams.find((s: unknown) => s.width && s.height);
+    const stream = metaData.streams.find((s) => s.width && s.height);
     const meta = { height: stream?.height || 0, width: stream?.width || 0 };
 
     const filters = this.getDrawtextFilters(fontFamily, words, meta);

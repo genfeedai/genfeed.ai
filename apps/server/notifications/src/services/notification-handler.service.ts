@@ -1,14 +1,21 @@
-import process from 'node:process';
 import { IngredientCategory } from '@genfeedai/enums';
+import type {
+  ICrmLeadOutreachEmailPayload,
+  IVideoStatusEmailPayload,
+  IWorkflowStatusEmailPayload,
+} from '@genfeedai/interfaces';
 import {
   buildSystemEmailHtml,
   escapeSystemEmailHtml,
 } from '@helpers/email/system-email.helper';
-import type { NotificationEvent } from '@libs/interfaces/events.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { DiscordService } from '@notifications/services/discord/discord.service';
+import {
+  isNotificationEvent,
+  type NotificationEvent,
+} from '@notifications/services/notification-handler.types';
 import { ResendService } from '@notifications/services/resend/resend.service';
 import { SlackService } from '@notifications/services/slack/slack.service';
 import { TelegramService } from '@notifications/services/telegram/telegram.service';
@@ -31,51 +38,58 @@ export class NotificationHandlerService implements OnModuleInit {
   }
 
   private async subscribeToNotifications() {
-    await this.redisService.subscribe(
-      'notifications',
-      (event: NotificationEvent) => {
-        this.logger.log(
-          `Received notification event: ${event.type}:${event.action}`,
+    await this.redisService.subscribe('notifications', (message: unknown) => {
+      if (!isNotificationEvent(message)) {
+        this.logger.warn(
+          'Received malformed notification event - skipping',
           this.context,
         );
+        return;
+      }
 
-        (async () => {
-          try {
-            await this.handleEvent(event);
-          } catch (error: unknown) {
-            this.logger.error(
-              `Failed to handle event ${event.type}:${event.action}`,
-              error,
-              this.context,
-            );
+      const event = message;
 
-            const retryCount = event.retryCount ?? 0;
-            if (retryCount < 3) {
-              setTimeout(() => {
-                this.redisService
-                  .publish('notifications', {
-                    ...event,
-                    retryCount: retryCount + 1,
-                  })
-                  .catch((err) =>
-                    this.logger.error(
-                      'Failed to publish retry notification',
-                      err,
-                      this.context,
-                    ),
-                  );
-              }, 5000 * Math.max(retryCount, 1));
-            }
-          }
-        })().catch((err) =>
+      this.logger.log(
+        `Received notification event: ${event.type}:${event.action}`,
+        this.context,
+      );
+
+      (async () => {
+        try {
+          await this.handleEvent(event);
+        } catch (error: unknown) {
           this.logger.error(
-            'Failed to process notification event',
-            err,
+            `Failed to handle event ${event.type}:${event.action}`,
+            error,
             this.context,
-          ),
-        );
-      },
-    );
+          );
+
+          const retryCount = event.retryCount ?? 0;
+          if (retryCount < 3) {
+            setTimeout(() => {
+              this.redisService
+                .publish('notifications', {
+                  ...event,
+                  retryCount: retryCount + 1,
+                })
+                .catch((err) =>
+                  this.logger.error(
+                    'Failed to publish retry notification',
+                    err,
+                    this.context,
+                  ),
+                );
+            }, 5000 * Math.max(retryCount, 1));
+          }
+        }
+      })().catch((err) =>
+        this.logger.error(
+          'Failed to process notification event',
+          err,
+          this.context,
+        ),
+      );
+    });
 
     this.logger.log('Subscribed to all notification events', this.context);
   }
@@ -101,72 +115,116 @@ export class NotificationHandlerService implements OnModuleInit {
     const { action, payload } = event;
 
     switch (action) {
-      case 'ingredient_notification':
+      case 'ingredient_notification': {
+        if (!('cdnUrl' in payload) || !('ingredient' in payload)) {
+          this.logger.warn(
+            'ingredient_notification payload missing cdnUrl/ingredient - skipping',
+            this.context,
+          );
+          break;
+        }
+        const category =
+          typeof payload.category === 'string'
+            ? (payload.category as IngredientCategory)
+            : IngredientCategory.IMAGE;
+        const ingredient = payload.ingredient as Record<string, unknown>;
         await this.discordService.sendIngredientNotification(
-          payload.category || IngredientCategory.IMAGE,
+          category,
           payload.cdnUrl,
-          payload.ingredient,
-        );
-        break;
-
-      case 'post_notification':
-        await this.discordService.sendPostCard(payload);
-        break;
-
-      case 'article_notification':
-        await this.discordService.sendArticleNotification(payload);
-        break;
-
-      case 'vercel_notification':
-        await this.discordService.sendVercelNotification(payload.embed);
-        break;
-
-      case 'chromatic_notification':
-        await this.discordService.sendChromaticNotification(payload.embed);
-        break;
-
-      case 'user_notification':
-        await this.discordService.sendUserCreatedNotification(payload);
-        break;
-
-      case 'model_discovery':
-        await this.discordService.sendModelDiscoveryNotification(
-          payload as {
-            modelKey: string;
-            category: string;
-            estimatedCost: number;
-            providerCostUsd: number;
-            provider: string;
-            qualityTier?: string;
-            speedTier?: string;
+          {
+            _id: String(ingredient._id || ''),
+            brand:
+              typeof ingredient.brand === 'object' && ingredient.brand !== null
+                ? (ingredient.brand as { label?: string })
+                : undefined,
+            metadata:
+              typeof ingredient.metadata === 'object' &&
+              ingredient.metadata !== null
+                ? (ingredient.metadata as {
+                    width?: number;
+                    height?: number;
+                    duration?: number;
+                    model?: string;
+                    externalProvider?: string;
+                  })
+                : undefined,
+            prompt:
+              typeof ingredient.prompt === 'object' &&
+              ingredient.prompt !== null
+                ? (ingredient.prompt as { original?: string })
+                : undefined,
+            thumbnailUrl:
+              typeof ingredient.thumbnailUrl === 'string'
+                ? ingredient.thumbnailUrl
+                : undefined,
           },
         );
         break;
+      }
+
+      case 'post_notification':
+        if ('platform' in payload && 'externalId' in payload) {
+          await this.discordService.sendPostCard(payload);
+        }
+        break;
+
+      case 'article_notification':
+        if ('label' in payload && 'slug' in payload) {
+          await this.discordService.sendArticleNotification(payload);
+        }
+        break;
+
+      case 'vercel_notification':
+        if ('embed' in payload) {
+          await this.discordService.sendVercelNotification(payload.embed);
+        }
+        break;
+
+      case 'chromatic_notification':
+        if ('embed' in payload) {
+          await this.discordService.sendChromaticNotification(payload.embed);
+        }
+        break;
+
+      case 'user_notification':
+        if ('_id' in payload) {
+          await this.discordService.sendUserCreatedNotification(payload);
+        }
+        break;
+
+      case 'model_discovery':
+        if ('modelKey' in payload) {
+          await this.discordService.sendModelDiscoveryNotification(payload);
+        }
+        break;
 
       case 'low_credits_alert':
-        await this.discordService.sendLowCreditsAlert(
-          payload as { organizationId: string; balance: number },
-        );
+        if ('organizationId' in payload && 'balance' in payload) {
+          await this.discordService.sendLowCreditsAlert(payload);
+        }
         break;
 
       case 'streak_at_risk':
       case 'streak_broken':
       case 'streak_freeze_used':
       case 'streak_milestone': {
-        const cardPayload = payload as {
-          card?: {
-            color?: number;
-            description?: string;
-            title?: string;
-          };
-        };
+        // Streak events are published by StreaksService#sendDiscordNotification with a
+        // `{ card: { color, description, title } }` payload shape that predates (and isn't
+        // represented in) `INotificationPayloadTypes` — narrow defensively via `in` checks.
+        const card =
+          'card' in payload &&
+          typeof payload.card === 'object' &&
+          payload.card !== null
+            ? (payload.card as {
+                color?: unknown;
+                description?: unknown;
+                title?: unknown;
+              })
+            : undefined;
         await this.discordService.sendStreakNotification({
-          color:
-            typeof cardPayload.card?.color === 'number'
-              ? cardPayload.card.color
-              : 0xf97316,
-          description: String(cardPayload.card?.description || ''),
-          title: String(cardPayload.card?.title || 'GenFeed streak'),
+          color: typeof card?.color === 'number' ? card.color : 0xf97316,
+          description: String(card?.description || ''),
+          title: String(card?.title || 'GenFeed streak'),
         });
         break;
       }
@@ -187,31 +245,51 @@ export class NotificationHandlerService implements OnModuleInit {
     const { action, payload } = event;
 
     switch (action) {
-      case 'ingredient_notification':
-        if (payload.chatId && payload.cdnUrl) {
-          const caption = payload.ingredient?.name
-            ? `*${payload.ingredient.name}*\nGenerated with GenFeed AI`
+      // Neither branch below is currently reachable: no producer publishes
+      // `ingredient_notification`/`post_notification` with `type: 'telegram'` (both are
+      // Discord-only in notifications.service.ts today), but the fields are narrowed
+      // defensively in case that changes.
+      case 'ingredient_notification': {
+        const chatId = 'chatId' in payload ? payload.chatId : undefined;
+        const cdnUrl = 'cdnUrl' in payload ? payload.cdnUrl : undefined;
+        const ingredientLabel =
+          'ingredient' in payload &&
+          typeof payload.ingredient === 'object' &&
+          payload.ingredient !== null &&
+          typeof (payload.ingredient as Record<string, unknown>).label ===
+            'string'
+            ? ((payload.ingredient as Record<string, unknown>).label as string)
+            : undefined;
+        if (typeof chatId === 'string' && typeof cdnUrl === 'string') {
+          const caption = ingredientLabel
+            ? `*${ingredientLabel}*\nGenerated with GenFeed AI`
             : 'Generated with GenFeed AI';
-          await this.telegramService.sendPhoto(
-            payload.chatId,
-            payload.cdnUrl,
-            caption,
-          );
+          await this.telegramService.sendPhoto(chatId, cdnUrl, caption);
         }
         break;
+      }
 
-      case 'post_notification':
-        if (payload.chatId) {
-          const text = payload.title
-            ? `*New Post:* ${payload.title}\n${payload.description || ''}`
-            : 'New post published';
-          await this.telegramService.sendMessage(payload.chatId, text);
+      case 'post_notification': {
+        const chatId = 'chatId' in payload ? payload.chatId : undefined;
+        const title = 'title' in payload ? payload.title : undefined;
+        const description =
+          'description' in payload ? payload.description : undefined;
+        if (typeof chatId === 'string') {
+          const text =
+            typeof title === 'string'
+              ? `*New Post:* ${title}\n${typeof description === 'string' ? description : ''}`
+              : 'New post published';
+          await this.telegramService.sendMessage(chatId, text);
         }
         break;
+      }
 
       case 'send_message':
-        if (payload.chatId && payload.text) {
-          await this.telegramService.sendMessage(payload.chatId, payload.text);
+        if ('chatId' in payload && 'message' in payload) {
+          await this.telegramService.sendMessage(
+            payload.chatId,
+            payload.message,
+          );
         }
         break;
 
@@ -224,52 +302,57 @@ export class NotificationHandlerService implements OnModuleInit {
     const { action, payload } = event;
 
     switch (action) {
-      case 'send_email':
-        await this.resendService.sendEmail({
-          from: typeof payload.from === 'string' ? payload.from : undefined,
-          html: String(payload.html || payload.content || payload.text || ''),
-          replyTo:
-            typeof payload.replyTo === 'string' ? payload.replyTo : undefined,
-          subject: String(payload.subject || 'Genfeed notification'),
-          text: typeof payload.text === 'string' ? payload.text : undefined,
-          to: String(payload.to || ''),
-        });
+      case 'send_email': {
+        const from =
+          'from' in payload && typeof payload.from === 'string'
+            ? payload.from
+            : undefined;
+        const html =
+          'html' in payload && typeof payload.html === 'string'
+            ? payload.html
+            : '';
+        const subject =
+          'subject' in payload && typeof payload.subject === 'string'
+            ? payload.subject
+            : 'Genfeed notification';
+        const to =
+          'to' in payload && typeof payload.to === 'string' ? payload.to : '';
+
+        await this.resendService.sendEmail({ from, html, subject, to });
         break;
+      }
 
       case 'crm_lead_outreach':
-        await this.sendCrmLeadOutreachEmail(payload);
+        if ('to' in payload && 'leadId' in payload && 'leadName' in payload) {
+          await this.sendCrmLeadOutreachEmail(payload);
+        }
         break;
 
       case 'video_status_email':
-        await this.sendVideoStatusEmail(payload);
+        if ('to' in payload && 'status' in payload && 'path' in payload) {
+          await this.sendVideoStatusEmail(payload);
+        }
         break;
 
       case 'workflow_status_email':
-        await this.sendWorkflowStatusEmail(payload);
+        if (
+          'to' in payload &&
+          'workflowId' in payload &&
+          'workflowLabel' in payload
+        ) {
+          await this.sendWorkflowStatusEmail(payload);
+        }
         break;
 
       case 'low_credits_alert':
-        if (payload.to) {
-          const subject = 'Your Genfeed credits are running low';
-          const html = this.wrapEmailTemplate({
-            body: `<p>Your Genfeed account has ${payload.balance} credits remaining.</p><p>Top up to continue generating content without interruption.</p>`,
-            ctaLabel: 'Top Up Now',
-            ctaUrl: `${process.env.GENFEEDAI_APP_URL || 'https://app.genfeed.ai'}/settings/billing`,
-            title: subject,
-          });
-
-          await this.resendService.sendEmail({
-            html,
-            subject,
-            text: `Your Genfeed account has ${payload.balance} credits remaining. Top up to continue generating content without interruption.`,
-            to: String(payload.to),
-          });
-        } else {
-          this.logger.warn(
-            'low_credits_alert email skipped - no recipient address in payload',
-            this.context,
-          );
-        }
+        // NotificationsService#sendLowCreditsAlert publishes `{ balance, organizationId }`
+        // for this action/type pair — `ILowCreditsAlertPayload` carries no recipient email
+        // address, so this alert has never actually been deliverable via email. Surfacing
+        // that explicitly rather than silently reading a field the payload never has.
+        this.logger.warn(
+          'low_credits_alert email skipped - ILowCreditsAlertPayload carries no recipient address',
+          this.context,
+        );
         break;
 
       default:
@@ -280,32 +363,50 @@ export class NotificationHandlerService implements OnModuleInit {
   private async handleSlackAction(event: NotificationEvent): Promise<void> {
     const { action, payload } = event;
 
+    // None of the branches below are currently reachable: no producer publishes any
+    // action with `type: 'slack'` today (confirmed via repo-wide grep against
+    // notifications.service.ts). `INotificationPayloadTypes` has no dedicated Slack
+    // payload shape, so fields are narrowed defensively against the closest matching
+    // union members (ingredient/post/telegram-message shapes) in case this is wired up.
     switch (action) {
-      case 'ingredient_notification':
-        if (payload.channelId && payload.cdnUrl) {
-          const comment = payload.ingredient?.name
-            ? `*${payload.ingredient.name}*\nGenerated with GenFeed AI`
+      case 'ingredient_notification': {
+        const channelId = 'chatId' in payload ? payload.chatId : undefined;
+        const cdnUrl = 'cdnUrl' in payload ? payload.cdnUrl : undefined;
+        const ingredientLabel =
+          'ingredient' in payload &&
+          typeof payload.ingredient === 'object' &&
+          payload.ingredient !== null &&
+          typeof (payload.ingredient as Record<string, unknown>).label ===
+            'string'
+            ? ((payload.ingredient as Record<string, unknown>).label as string)
+            : undefined;
+        if (typeof channelId === 'string' && typeof cdnUrl === 'string') {
+          const comment = ingredientLabel
+            ? `*${ingredientLabel}*\nGenerated with GenFeed AI`
             : 'Generated with GenFeed AI';
-          await this.slackService.sendFile(
-            payload.channelId,
-            payload.cdnUrl,
-            comment,
-          );
+          await this.slackService.sendFile(channelId, cdnUrl, comment);
         }
         break;
+      }
 
-      case 'post_notification':
-        if (payload.channelId) {
-          const text = payload.title
-            ? `*New Post:* ${payload.title}\n${payload.description || ''}`
-            : 'New post published';
-          await this.slackService.sendMessage(payload.channelId, text);
+      case 'post_notification': {
+        const channelId = 'chatId' in payload ? payload.chatId : undefined;
+        const title = 'title' in payload ? payload.title : undefined;
+        const description =
+          'description' in payload ? payload.description : undefined;
+        if (typeof channelId === 'string') {
+          const text =
+            typeof title === 'string'
+              ? `*New Post:* ${title}\n${typeof description === 'string' ? description : ''}`
+              : 'New post published';
+          await this.slackService.sendMessage(channelId, text);
         }
         break;
+      }
 
       case 'send_message':
-        if (payload.channelId && payload.text) {
-          await this.slackService.sendMessage(payload.channelId, payload.text);
+        if ('chatId' in payload && 'message' in payload) {
+          await this.slackService.sendMessage(payload.chatId, payload.message);
         }
         break;
 
@@ -328,7 +429,7 @@ export class NotificationHandlerService implements OnModuleInit {
   }
 
   private async sendCrmLeadOutreachEmail(
-    payload: Record<string, unknown>,
+    payload: ICrmLeadOutreachEmailPayload,
   ): Promise<void> {
     const leadId = String(payload.leadId || '');
     const leadName = String(payload.leadName || 'there');
@@ -355,7 +456,7 @@ export class NotificationHandlerService implements OnModuleInit {
   }
 
   private async sendVideoStatusEmail(
-    payload: Record<string, unknown>,
+    payload: IVideoStatusEmailPayload,
   ): Promise<void> {
     const status = String(payload.status || '');
     const isFailure = status === 'failed';
@@ -391,7 +492,7 @@ export class NotificationHandlerService implements OnModuleInit {
   }
 
   private async sendWorkflowStatusEmail(
-    payload: Record<string, unknown>,
+    payload: IWorkflowStatusEmailPayload,
   ): Promise<void> {
     const status = String(payload.status || '');
     const isFailure = status === 'failed';

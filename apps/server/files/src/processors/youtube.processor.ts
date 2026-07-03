@@ -290,7 +290,7 @@ export class YoutubeProcessor extends WorkerHost {
   private async updateTranscriptStatus(
     transcriptId: string,
     status: string,
-    additionalData: unknown = {},
+    additionalData: Record<string, unknown> = {},
   ): Promise<void> {
     const apiUrl = `${this.apiBaseUrl}/transcripts/${transcriptId}`;
 

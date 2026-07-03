@@ -83,7 +83,7 @@ export class JobLifecyclePublisherService implements OnModuleInit {
     queueType: string,
     jobId: string,
     status: string,
-    additionalData?: unknown,
+    additionalData?: Record<string, unknown>,
   ) {
     try {
       const payload = {

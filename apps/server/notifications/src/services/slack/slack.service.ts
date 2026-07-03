@@ -2,7 +2,18 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@notifications/config/config.service';
+import type { ChatPostMessageArguments } from '@slack/web-api';
 import { WebClient } from '@slack/web-api';
+
+// `@slack/web-api` re-exports `ChatPostMessageArguments` (a union over
+// `ChannelAndText | ChannelAndBlocks | ...`) but not the `Block`/`KnownBlock`
+// element types from `@slack/types` directly. Extract the `blocks`-bearing
+// union member to get the element type without adding a new dependency.
+type ChannelAndBlocksArguments = Extract<
+  ChatPostMessageArguments,
+  { blocks: unknown }
+>;
+type SlackBlock = ChannelAndBlocksArguments['blocks'][number];
 
 @Injectable()
 export class SlackService {
@@ -19,7 +30,7 @@ export class SlackService {
   private initClient(): void {
     const token = this.configService.get('SLACK_NOTIFICATION_BOT_TOKEN');
 
-    if (!token) {
+    if (typeof token !== 'string' || !token) {
       this.loggerService.log(
         'Slack notification bot not configured - skipping initialization',
         this.context,
@@ -45,7 +56,7 @@ export class SlackService {
   public async sendMessage(
     channelId: string,
     text: string,
-    blocks?: Record<string, unknown>[],
+    blocks?: SlackBlock[],
   ): Promise<void> {
     const url = `${SlackService.name} ${CallerUtil.getCallerName()}`;
 
@@ -56,7 +67,7 @@ export class SlackService {
 
     try {
       await this.client.chat.postMessage({
-        blocks: blocks as unknown[],
+        blocks,
         channel: channelId,
         text,
       });
@@ -83,7 +94,7 @@ export class SlackService {
 
     try {
       // Send the file URL as a message with an image block
-      const blocks: Record<string, unknown>[] = [];
+      const blocks: SlackBlock[] = [];
 
       if (comment) {
         blocks.push({
@@ -99,7 +110,7 @@ export class SlackService {
       });
 
       await this.client.chat.postMessage({
-        blocks: blocks as unknown[],
+        blocks,
         channel: channelId,
         text: comment || 'Shared file',
       });

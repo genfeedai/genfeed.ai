@@ -6,6 +6,12 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 
+export interface PortraitBlurOptions {
+  inputType?: string;
+  videoFile?: string;
+  dimensions?: { width: number; height: number };
+}
+
 @Injectable()
 export class FilesPortraitBlurService extends FilesService {
   constructor(
@@ -55,7 +61,7 @@ export class FilesPortraitBlurService extends FilesService {
   public async applyPortraitBlur(
     _videoUrl: string,
     ingredientId: string,
-    options?: unknown,
+    options?: PortraitBlurOptions,
   ): Promise<string> {
     const inputType = options?.inputType || 'videos';
     const videoFile = options?.videoFile || 'input.mp4';

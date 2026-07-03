@@ -4,7 +4,7 @@
  */
 export interface CacheOptions {
   ttl?: number;
-  keyGenerator?: (...args: unknown[]) => string;
+  keyGenerator?: (...args: never[]) => string;
   cacheType?: unknown;
 }
 

@@ -24,7 +24,7 @@ export class GlobalCaches {
 }
 
 export class CacheUtil {
-  private static cache = new Map<string, unknown>();
+  private static cache = new Map<string, CacheResult<unknown>>();
 
   static set(key: string, value: unknown, ttlMs?: number): void {
     CacheUtil.cache.set(key, {
@@ -44,7 +44,7 @@ export class CacheUtil {
       return null;
     }
 
-    return item.value;
+    return item.value as T;
   }
 
   static has(key: string): boolean {
