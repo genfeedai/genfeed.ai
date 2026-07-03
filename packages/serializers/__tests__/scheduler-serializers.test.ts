@@ -73,7 +73,7 @@ describe('Built server serializers', () => {
 describe('Release group serialization', () => {
   test('serializes a partially-published release with mixed target states', () => {
     const result = ReleaseGroupSerializer.serialize({
-      _id: 'rel_1',
+      id: 'rel_1',
       baseContent: 'Launch day is here.',
       idempotencyKey: 'idem-1',
       status: 'partially-published',
@@ -82,13 +82,13 @@ describe('Release group serialization', () => {
       title: 'Launch',
       targets: [
         {
-          _id: 'tgt_1',
+          id: 'tgt_1',
           executionState: 'published',
           externalProviderId: 'tw_1',
           platform: 'twitter',
         },
         {
-          _id: 'tgt_2',
+          id: 'tgt_2',
           error: { code: 'rate_limited', isRetryable: true },
           executionState: 'failed',
           platform: 'linkedin',
@@ -127,7 +127,7 @@ describe('Channel target serialization', () => {
     ['skipped'],
   ])('serializes a target in "%s" execution state', (executionState) => {
     const result = ChannelTargetSerializer.serialize({
-      _id: `tgt_${executionState}`,
+      id: `tgt_${executionState}`,
       executionState,
       platform: 'twitter',
       timezone: 'America/New_York',
@@ -147,7 +147,7 @@ describe('Channel target serialization', () => {
 
   test('serializes provider ids and structured error detail', () => {
     const result = ChannelTargetSerializer.serialize({
-      _id: 'tgt_err',
+      id: 'tgt_err',
       error: {
         code: 'permission_denied',
         isRetryable: false,
@@ -174,7 +174,7 @@ describe('Channel target serialization', () => {
 describe('Recurrence + attachment serialization', () => {
   test('serializes a recurrence rule with DST-safe fields', () => {
     const result = RecurrenceRuleSerializer.serialize({
-      _id: 'rec_1',
+      id: 'rec_1',
       frequency: 'weekly',
       interval: 1,
       nextRunAt: '2026-08-08T09:00:00Z',
@@ -191,7 +191,7 @@ describe('Recurrence + attachment serialization', () => {
 
   test('serializes a per-platform signature attachment', () => {
     const result = ReleaseAttachmentSerializer.serialize({
-      _id: 'att_1',
+      id: 'att_1',
       body: '— Sent from Genfeed',
       kind: 'signature',
       order: 0,
