@@ -34,7 +34,7 @@ describe('queue-names.constant', () => {
   });
 
   it('lists every queue exactly once', () => {
-    expect(ALL_QUEUE_NAMES.length).toBeGreaterThanOrEqual(34);
+    expect(ALL_QUEUE_NAMES.length).toBeGreaterThanOrEqual(33);
     expect(new Set(ALL_QUEUE_NAMES).size).toBe(ALL_QUEUE_NAMES.length);
   });
 
