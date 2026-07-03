@@ -359,6 +359,36 @@ describe('BrandInterviewService', () => {
       expect(result.isComplete).toBe(false);
     });
 
+    it('does not re-ask a previously skipped field after answering another (regression)', async () => {
+      // 'description' was skipped earlier (recorded in askedFieldKeys) and is
+      // still incomplete on the brand. Answering 'text' must not bring the
+      // skipped 'description' question back — otherwise the interview can never
+      // complete while any field stays skipped.
+      const session = makeSession({
+        askedFieldKeys: ['description'],
+        currentFieldKey: 'text',
+      });
+      const brandAfterWrite = makeEmptyBrand();
+      // 'text' is written; 'description' deliberately remains null (incomplete).
+      Object.assign(brandAfterWrite, { text: 'You are Acme...' });
+
+      interviewDelegate.findFirst.mockResolvedValue(session);
+      brandDelegate.findFirst.mockResolvedValue(brandAfterWrite);
+      brandDelegate.update.mockResolvedValue(brandAfterWrite);
+      interviewDelegate.update.mockImplementation((args) =>
+        Promise.resolve({ ...session, ...args.data }),
+      );
+
+      const result = await service.submitAnswer(
+        'interview-1',
+        'org-1',
+        'user-1',
+        'You are Acme...',
+      );
+
+      expect(result.nextQuestion?.fieldKey).not.toBe('description');
+    });
+
     it('marks session completed when all in-scope fields are answered', async () => {
       // Simulate a brand that has ALL in-scope fields filled (completeness returns no incomplete)
       const fullyFilledBrand = makeEmptyBrand({

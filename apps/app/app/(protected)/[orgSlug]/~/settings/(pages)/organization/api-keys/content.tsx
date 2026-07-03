@@ -196,7 +196,12 @@ function parseExpiresAt(value: string): string | undefined {
     return undefined;
   }
 
-  return new Date(value).toISOString();
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return undefined;
+  }
+
+  return date.toISOString();
 }
 
 function formatLastUsed(value?: string | null): string {

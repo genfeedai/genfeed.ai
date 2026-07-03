@@ -16,7 +16,10 @@ on:
   workflow_call:
 
 concurrency:
-  group: full-suite-${{ github.ref }}
+  # Include the workflow name so a workflow_call invocation (where github.workflow
+  # is the caller's name, e.g. the production deploy) does not share a group with a
+  # manual workflow_dispatch on the same ref and silently cancel an in-flight deploy.
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
