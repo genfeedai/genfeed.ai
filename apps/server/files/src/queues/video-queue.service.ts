@@ -62,6 +62,11 @@ const VIDEO_JOB_CONFIGS: Partial<Record<JobType, JobConfig>> = {
     defaultPriority: JOB_PRIORITY.NORMAL,
     delay: 2000,
   },
+  [JOB_TYPES.CLIP_TRIM]: {
+    attempts: 3,
+    defaultPriority: JOB_PRIORITY.NORMAL,
+    delay: 2000,
+  },
   [JOB_TYPES.EXTRACT_FRAMES]: {
     attempts: 3,
     defaultPriority: JOB_PRIORITY.NORMAL,
@@ -139,6 +144,10 @@ export class VideoQueueService extends BaseQueueService<VideoJobData> {
 
   async addTrimJob(data: VideoJobData): Promise<Job<VideoJobData>> {
     return this.addJob(JOB_TYPES.TRIM_VIDEO, data, 'trim');
+  }
+
+  async addClipTrimJob(data: VideoJobData): Promise<Job<VideoJobData>> {
+    return this.addJob(JOB_TYPES.CLIP_TRIM, data, 'clip trim');
   }
 
   async addExtractFramesJob(data: VideoJobData): Promise<Job<VideoJobData>> {

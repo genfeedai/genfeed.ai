@@ -166,10 +166,14 @@ describe('FFmpegTransformService', () => {
       ).rejects.toThrow('Duration must be positive');
     });
 
-    it('should throw when duration is out of allowed range', async () => {
+    it('should accept durations outside the legacy 2-15s trim window', async () => {
       await expect(
         service.trimVideo('/in/video.mp4', '/out/trimmed.mp4', 0, 20),
-      ).rejects.toThrow('Duration must be between 2 and 15 seconds');
+      ).resolves.toBeUndefined();
+
+      await expect(
+        service.trimVideo('/in/video.mp4', '/out/trimmed.mp4', 0, 1),
+      ).resolves.toBeUndefined();
     });
 
     it('should pass valid args to executeFFmpeg', async () => {

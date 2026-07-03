@@ -231,6 +231,7 @@ export interface JobResult {
   success: boolean;
   outputPath?: string;
   s3Key?: string;
+  url?: string;
   duration?: number;
   width?: number;
   height?: number;
