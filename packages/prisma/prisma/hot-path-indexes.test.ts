@@ -53,6 +53,17 @@ describe('app shell hot-path Prisma indexes', () => {
 // regression fails CI. Partial (Stripe) indexes are raw-SQL-only and the
 // post_analytics one is Prisma's default `@@unique` name, so we assert against
 // the migration SQL rather than schema.prisma.
+const dedupePreflightMigration =
+  'migrations/20260703120050_preflight_hot_table_unique_dedupe/migration.sql';
+
+// Strip `--` comment lines so structural checks inspect executable SQL only —
+// the migration comments legitimately mention `DO $$` and `CONCURRENTLY`.
+const stripSqlComments = (sql: string): string =>
+  sql
+    .split('\n')
+    .filter((line) => !line.trim().startsWith('--'))
+    .join('\n');
+
 const concurrentUniqueIndexMigrations = [
   {
     file: 'migrations/20260703120100_add_post_analytics_daily_unique/migration.sql',
@@ -86,11 +97,32 @@ describe('hot-path unique indexes build CONCURRENTLY (#1185/#1194)', () => {
           new RegExp(`CREATE UNIQUE INDEX (IF NOT EXISTS )?"${indexName}"`),
         );
       });
-    });
 
-    it(`${file} keeps its dedup preflight guard`, () => {
-      // Do NOT weaken the pre-existing-duplicate safety when fixing locking.
-      expect(source).toContain('RAISE EXCEPTION');
+      // A CONCURRENTLY build cannot share a file with a `DO $$ … $$` block:
+      // Prisma wraps a mixed-statement migration in a transaction and
+      // CONCURRENTLY cannot run inside one. Guard against reintroducing it.
+      it('carries no in-file transaction block that would break CONCURRENTLY', () => {
+        expect(stripSqlComments(source)).not.toContain('DO $$');
+      });
     });
   }
+
+  // The pre-existing-duplicate safety is NOT weakened — it lives in a dedicated,
+  // transaction-safe preflight migration that runs before the index builds.
+  it('keeps the dedup preflight guard in its own migration', () => {
+    const preflight = readFileSync(
+      join(prismaDir, dedupePreflightMigration),
+      'utf8',
+    );
+    const preflightSql = stripSqlComments(preflight);
+    // Preflight must be transaction-safe (no CONCURRENTLY) and cover all three
+    // hot tables with an aborting duplicate check.
+    expect(preflightSql).not.toContain('CONCURRENTLY');
+    for (const table of ['post_analytics', 'customers', 'subscriptions']) {
+      expect(preflightSql).toContain(`FROM "${table}"`);
+    }
+    expect(
+      (preflightSql.match(/RAISE EXCEPTION/g) ?? []).length,
+    ).toBeGreaterThanOrEqual(3);
+  });
 });
