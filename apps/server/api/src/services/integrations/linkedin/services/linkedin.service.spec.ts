@@ -187,7 +187,7 @@ describe('LinkedInService', () => {
     it('should refresh token and update credential', async () => {
       const credId = 'test-object-id';
       mockCredentialsService.findOne.mockResolvedValue({
-        _id: credId,
+        id: credId,
         refreshToken: 'encrypted-refresh-token',
       });
       mockAuthClientInstance.exchangeRefreshTokenForAccessToken.mockResolvedValue(
@@ -198,7 +198,7 @@ describe('LinkedInService', () => {
         },
       );
       mockCredentialsService.patch.mockResolvedValue({
-        _id: credId,
+        id: credId,
         accessToken: 'new-access-token',
         isConnected: true,
       });
@@ -224,7 +224,7 @@ describe('LinkedInService', () => {
 
     it('should return existing credentials when no refresh token', async () => {
       const cred = {
-        _id: 'test-object-id',
+        id: 'test-object-id',
         accessToken: 'existing-token',
         refreshToken: null,
       };
@@ -237,7 +237,7 @@ describe('LinkedInService', () => {
     it('should mark credential as disconnected on refresh failure', async () => {
       const credId = 'test-object-id';
       mockCredentialsService.findOne.mockResolvedValue({
-        _id: credId,
+        id: credId,
         refreshToken: 'encrypted-token',
       });
       mockAuthClientInstance.exchangeRefreshTokenForAccessToken.mockRejectedValue(
