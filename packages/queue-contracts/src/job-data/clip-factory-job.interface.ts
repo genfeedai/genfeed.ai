@@ -1,12 +1,10 @@
-import type { AvatarVideoProviderName } from '@api/services/avatar-video/avatar-video-provider.interface';
-
 /**
- * Clip Factory queue constants.
+ * Clip Factory queue contract.
  *
  * Isolated queue so the clip-factory workload can be moved to a dedicated
  * worker instance without code changes.
  */
-export const CLIP_FACTORY_QUEUE = 'clip-factory';
+export type AvatarVideoProviderName = 'heygen' | 'did' | 'tavus' | 'musetalk';
 
 export const CLIP_FACTORY_JOB_NAME = 'clip-factory-run';
 

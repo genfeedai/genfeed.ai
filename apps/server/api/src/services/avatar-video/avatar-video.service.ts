@@ -1,11 +1,9 @@
-import type {
-  AvatarVideoProvider,
-  AvatarVideoProviderName,
-} from '@api/services/avatar-video/avatar-video-provider.interface';
+import type { AvatarVideoProvider } from '@api/services/avatar-video/avatar-video-provider.interface';
 import { DidAvatarProvider } from '@api/services/avatar-video/providers/did-avatar.provider';
 import { HeygenAvatarProvider } from '@api/services/avatar-video/providers/heygen-avatar.provider';
 import { MusetalkAvatarProvider } from '@api/services/avatar-video/providers/musetalk-avatar.provider';
 import { TavusAvatarProvider } from '@api/services/avatar-video/providers/tavus-avatar.provider';
+import type { AvatarVideoProviderName } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

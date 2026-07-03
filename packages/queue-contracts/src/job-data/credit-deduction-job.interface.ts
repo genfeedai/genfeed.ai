@@ -1,4 +1,4 @@
-import { ActivitySource } from '@genfeedai/enums';
+import type { ActivitySource } from '@genfeedai/enums';
 
 export interface CreditDeductionJobData {
   type: 'deduct-credits' | 'record-byok-usage';

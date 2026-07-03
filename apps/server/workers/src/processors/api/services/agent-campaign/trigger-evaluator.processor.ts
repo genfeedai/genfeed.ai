@@ -1,6 +1,8 @@
-import { TRIGGER_EVALUATION_QUEUE } from '@api/services/agent-campaign/orchestrator.constants';
 import { TriggerEvaluatorService } from '@api/services/agent-campaign/trigger-evaluator.service';
-import { type TriggerEvaluationJobData } from '@api/services/agent-campaign/trigger-evaluator-queue.service';
+import {
+  TRIGGER_EVALUATION_QUEUE,
+  type TriggerEvaluationJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';

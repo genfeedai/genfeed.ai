@@ -1,6 +1,8 @@
 import { ContentEngineService } from '@api/services/agent-campaign/content-engine.service';
-import { ORCHESTRATOR_RUN_QUEUE } from '@api/services/agent-campaign/orchestrator.constants';
-import { OrchestratorRunJobData } from '@api/services/agent-campaign/orchestrator-queue.service';
+import {
+  ORCHESTRATOR_RUN_QUEUE,
+  OrchestratorRunJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';

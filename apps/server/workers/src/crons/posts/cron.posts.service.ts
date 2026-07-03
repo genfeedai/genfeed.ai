@@ -29,7 +29,6 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
 
 type CronPostChild = {
   _id?: unknown;
@@ -64,11 +63,9 @@ export class CronPostsService {
   ) {}
 
   /**
-   * Cron job to publish scheduled posts
-   * Runs every 10 seconds
+   * Publishes due scheduled posts. Fired every 15 minutes by the
+   * system-sweeps BullMQ Job Scheduler (SystemSweepsProcessor).
    */
-  // Run every 15 minutes to check for scheduled posts
-  @Cron('*/15 * * * *')
   async publishScheduledPosts(): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 

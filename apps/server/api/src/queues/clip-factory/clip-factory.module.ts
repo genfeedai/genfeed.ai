@@ -1,5 +1,5 @@
-import { CLIP_FACTORY_QUEUE } from '@api/queues/clip-factory/clip-factory.constants';
 import { ClipFactoryQueueService } from '@api/queues/clip-factory/clip-factory-queue.service';
+import { CLIP_FACTORY_QUEUE } from '@genfeedai/queue-contracts';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 

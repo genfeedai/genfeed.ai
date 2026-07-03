@@ -43,6 +43,31 @@ describe('WorkspaceSurface', () => {
     expect(container.querySelector('.px-4')).toBeInTheDocument();
   });
 
+  it('renders the canonical dashboard card surface for the card tone', () => {
+    const { container } = render(
+      <WorkspaceSurface tone="card">Body</WorkspaceSurface>,
+    );
+
+    const section = container.querySelector('section');
+    expect(section).toHaveClass('bg-card');
+    expect(section).toHaveClass('shadow-border');
+    expect(section).toHaveClass('rounded-card');
+    expect(section).not.toHaveClass('gen-shell-panel');
+  });
+
+  it('does not change the shell-panel treatment of existing tones', () => {
+    for (const tone of ['default', 'muted', 'elevated'] as const) {
+      const { container, unmount } = render(
+        <WorkspaceSurface tone={tone}>Body</WorkspaceSurface>,
+      );
+
+      const section = container.querySelector('section');
+      expect(section).toHaveClass('gen-shell-panel');
+      expect(section).not.toHaveClass('bg-card');
+      unmount();
+    }
+  });
+
   it('can render without a frame', () => {
     const { container } = render(
       <WorkspaceSurface framed={false}>Body</WorkspaceSurface>,

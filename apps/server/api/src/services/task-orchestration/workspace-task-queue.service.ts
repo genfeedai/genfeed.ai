@@ -1,41 +1,18 @@
+import {
+  WORKSPACE_TASK_QUEUE,
+  WorkspaceTaskJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
-
-export interface WorkspaceTaskJobData {
-  /** Workspace task document ID */
-  taskId: string;
-  /** Organization context (multi-tenancy) */
-  organizationId: string;
-  /** User who created the task */
-  userId: string;
-  /** Raw user request */
-  request: string;
-  /** Output type hint */
-  outputType?: string;
-  /** Target platforms */
-  platforms?: string[];
-  /** Brand ID */
-  brandId?: string;
-  /** Brand name for context */
-  brandName?: string;
-  /** HeyGen avatar ID (facecam tasks only) */
-  heygenAvatarId?: string;
-  /** Provider-agnostic voice ID (facecam tasks) — can be a HeyGen catalog ID, ElevenLabs ID, or Voice document _id */
-  voiceId?: string;
-  /** Voice provider hint — determines how voiceId is resolved (heygen | elevenlabs | genfeed-ai | hedra) */
-  voiceProvider?: string;
-  /** Explicit ElevenLabs voice ID (facecam tasks) when caller pins the ElevenLabs provider directly */
-  elevenlabsVoiceId?: string;
-}
 
 @Injectable()
 export class WorkspaceTaskQueueService {
   private readonly logContext = 'WorkspaceTaskQueueService';
 
   constructor(
-    @InjectQueue('workspace-task')
+    @InjectQueue(WORKSPACE_TASK_QUEUE)
     private readonly queue: Queue<WorkspaceTaskJobData>,
     private readonly logger: LoggerService,
   ) {}

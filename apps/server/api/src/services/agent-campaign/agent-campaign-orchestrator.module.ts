@@ -10,14 +10,14 @@ import { QueuesModule } from '@api/queues/core/queues.module';
 import { CampaignMemoryQueueService } from '@api/services/agent-campaign/campaign-memory-queue.service';
 import { ContentEngineService } from '@api/services/agent-campaign/content-engine.service';
 import { ContentRotationService } from '@api/services/agent-campaign/content-rotation.service';
+import { OrchestratorQueueService } from '@api/services/agent-campaign/orchestrator-queue.service';
+import { TriggerEvaluatorService } from '@api/services/agent-campaign/trigger-evaluator.service';
+import { TriggerEvaluatorQueueService } from '@api/services/agent-campaign/trigger-evaluator-queue.service';
 import {
   CAMPAIGN_MEMORY_EXTRACTION_QUEUE,
   ORCHESTRATOR_RUN_QUEUE,
   TRIGGER_EVALUATION_QUEUE,
-} from '@api/services/agent-campaign/orchestrator.constants';
-import { OrchestratorQueueService } from '@api/services/agent-campaign/orchestrator-queue.service';
-import { TriggerEvaluatorService } from '@api/services/agent-campaign/trigger-evaluator.service';
-import { TriggerEvaluatorQueueService } from '@api/services/agent-campaign/trigger-evaluator-queue.service';
+} from '@genfeedai/queue-contracts';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { BullModule } from '@nestjs/bullmq';
 import { forwardRef, Module } from '@nestjs/common';

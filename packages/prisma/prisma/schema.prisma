@@ -2223,6 +2223,7 @@ model Article {
   seoScore     Float?
   seoBreakdown Json?
 
+  @@index([slug])
   @@map("articles")
 }
 

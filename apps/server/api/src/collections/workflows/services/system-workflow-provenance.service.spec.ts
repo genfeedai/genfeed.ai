@@ -96,7 +96,9 @@ describe('SystemWorkflowProvenanceService', () => {
     expect(mockPrisma.workflow.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          isScheduleEnabled: true,
+          // System action schedules are display metadata; firing happens in
+          // the workers sweep scheduler (issue #1092).
+          isScheduleEnabled: false,
           metadata: expect.objectContaining({
             sourceTemplateChangeSummary:
               'Initial scheduled publish workflow wrapper.',

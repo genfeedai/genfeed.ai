@@ -1,6 +1,11 @@
 'use client';
 
 import { createContext, type ReactNode, use, useEffect } from 'react';
+import {
+  configureExecutionHeaders,
+  configureExecutionHttpClient,
+} from '../stores/execution/executionApi';
+import { configureWorkflowLogger } from '../stores/executionLogger';
 import { configurePromptLibrary } from '../stores/promptLibraryStore';
 import type { WorkflowUIConfig } from './types';
 
@@ -31,6 +36,22 @@ export function WorkflowUIProvider({
       configurePromptLibrary(config.promptLibrary);
     }
   }, [config.promptLibrary]);
+
+  // Register the execution-store logger (SSE failures, failed runs). Resets to
+  // a no-op when unset so the package stays observable-agnostic standalone.
+  useEffect(() => {
+    configureWorkflowLogger(config.logger);
+  }, [config.logger]);
+
+  // Register the execution HTTP client + provider auth headers. Both reset to
+  // the package's bare-fetch / no-header defaults when unset.
+  useEffect(() => {
+    configureExecutionHttpClient(config.executionHttpClient);
+  }, [config.executionHttpClient]);
+
+  useEffect(() => {
+    configureExecutionHeaders(config.executionHeaders);
+  }, [config.executionHeaders]);
 
   return (
     <WorkflowUIContext.Provider value={config}>

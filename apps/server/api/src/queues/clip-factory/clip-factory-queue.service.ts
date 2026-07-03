@@ -2,7 +2,7 @@ import {
   CLIP_FACTORY_JOB_NAME,
   CLIP_FACTORY_QUEUE,
   ClipFactoryJobData,
-} from '@api/queues/clip-factory/clip-factory.constants';
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';

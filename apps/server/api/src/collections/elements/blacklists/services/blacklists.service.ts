@@ -1,6 +1,7 @@
 import { CreateElementBlacklistDto } from '@api/collections/elements/blacklists/dto/create-blacklist.dto';
 import { UpdateElementBlacklistDto } from '@api/collections/elements/blacklists/dto/update-blacklist.dto';
 import type { ElementBlacklistDocument } from '@api/collections/elements/blacklists/schemas/blacklist.schema';
+import { CacheService } from '@api/services/cache/services/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -15,8 +16,9 @@ export class ElementsBlacklistsService extends BaseService<
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
+    cacheService: CacheService,
   ) {
-    super(prisma, 'elementBlacklist', logger);
+    super(prisma, 'elementBlacklist', logger, undefined, cacheService);
   }
 
   async delete(id: string): Promise<ElementBlacklistDocument | null> {

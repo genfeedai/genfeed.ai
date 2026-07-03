@@ -1,6 +1,5 @@
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import type { ThreadsAnalyticsJobData } from '@api/queues/analytics-threads/analytics-threads-job.interface';
 import { ThreadsService } from '@api/services/integrations/threads/services/threads.service';
 import {
   BrokenCircuitError,
@@ -8,11 +7,15 @@ import {
   type ProcessorCircuitBreaker,
 } from '@api/shared/utils/circuit-breaker/circuit-breaker.util';
 import { CredentialPlatform } from '@genfeedai/enums';
+import {
+  ANALYTICS_THREADS_QUEUE,
+  ThreadsAnalyticsJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 
-@Processor('analytics-threads')
+@Processor(ANALYTICS_THREADS_QUEUE)
 export class AnalyticsThreadsProcessor extends WorkerHost {
   private readonly DEFAULT_DELAY_MS = 2000;
   private readonly circuitBreaker: ProcessorCircuitBreaker;
