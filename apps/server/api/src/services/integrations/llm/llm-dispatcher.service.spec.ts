@@ -21,15 +21,18 @@ describe('LlmDispatcherService', () => {
   let anthropicService: {
     chatCompletion: ReturnType<typeof vi.fn>;
     streamChatCompletion: ReturnType<typeof vi.fn>;
+    streamChatCompletionAggregated: ReturnType<typeof vi.fn>;
   };
   let openAiLlmService: {
     chatCompletion: ReturnType<typeof vi.fn>;
     streamChatCompletion: ReturnType<typeof vi.fn>;
+    streamChatCompletionAggregated: ReturnType<typeof vi.fn>;
   };
   let openAiOAuthService: { refreshAccessToken: ReturnType<typeof vi.fn> };
   let openRouterService: {
     chatCompletion: ReturnType<typeof vi.fn>;
     streamChatCompletion: ReturnType<typeof vi.fn>;
+    streamChatCompletionAggregated: ReturnType<typeof vi.fn>;
   };
   let byokService: {
     resolveApiKey: ReturnType<typeof vi.fn>;
@@ -67,10 +70,12 @@ describe('LlmDispatcherService', () => {
     anthropicService = {
       chatCompletion: vi.fn().mockResolvedValue(mockResponse),
       streamChatCompletion: vi.fn().mockResolvedValue(new ReadableStream()),
+      streamChatCompletionAggregated: vi.fn().mockResolvedValue(mockResponse),
     };
     openAiLlmService = {
       chatCompletion: vi.fn().mockResolvedValue(mockResponse),
       streamChatCompletion: vi.fn().mockResolvedValue(new ReadableStream()),
+      streamChatCompletionAggregated: vi.fn().mockResolvedValue(mockResponse),
     };
     openAiOAuthService = {
       refreshAccessToken: vi.fn(),
@@ -78,6 +83,7 @@ describe('LlmDispatcherService', () => {
     openRouterService = {
       chatCompletion: vi.fn().mockResolvedValue(mockResponse),
       streamChatCompletion: vi.fn().mockResolvedValue(new ReadableStream()),
+      streamChatCompletionAggregated: vi.fn().mockResolvedValue(mockResponse),
     };
     byokService = {
       resolveApiKey: vi.fn().mockResolvedValue(null),
@@ -358,6 +364,102 @@ describe('LlmDispatcherService', () => {
         expect.any(Object),
         'byok-key',
       );
+    });
+  });
+
+  describe('streamChatCompletionAggregated', () => {
+    it('should route anthropic/ models to AnthropicService', async () => {
+      const result = await service.streamChatCompletionAggregated(
+        makeParams('anthropic/claude-sonnet-4-5-20250929'),
+      );
+
+      expect(
+        anthropicService.streamChatCompletionAggregated,
+      ).toHaveBeenCalled();
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('should route openai/ models to OpenAiLlmService', async () => {
+      await service.streamChatCompletionAggregated(makeParams('openai/gpt-4o'));
+
+      expect(
+        openAiLlmService.streamChatCompletionAggregated,
+      ).toHaveBeenCalled();
+    });
+
+    it('should route other models to OpenRouterService', async () => {
+      await service.streamChatCompletionAggregated(
+        makeParams('deepseek/deepseek-chat'),
+      );
+
+      expect(
+        openRouterService.streamChatCompletionAggregated,
+      ).toHaveBeenCalled();
+    });
+
+    it('should forward the onToken callback to the provider', async () => {
+      const onToken = vi.fn();
+
+      await service.streamChatCompletionAggregated(
+        makeParams('anthropic/claude-sonnet-4-5-20250929'),
+        undefined,
+        onToken,
+      );
+
+      expect(
+        anthropicService.streamChatCompletionAggregated,
+      ).toHaveBeenCalledWith(expect.any(Object), undefined, onToken);
+    });
+
+    it('should warm and stream local/ models via GPU vLLM URL', async () => {
+      configService.get.mockReturnValue('http://10.0.0.10:8000');
+      const onToken = vi.fn();
+
+      await service.streamChatCompletionAggregated(
+        makeParams('local/my-model'),
+        undefined,
+        onToken,
+      );
+
+      expect(llmInstanceService.ensureRunning).toHaveBeenCalled();
+      expect(
+        openAiLlmService.streamChatCompletionAggregated,
+      ).toHaveBeenCalledWith(
+        expect.any(Object),
+        undefined,
+        onToken,
+        'http://10.0.0.10:8000/v1',
+      );
+    });
+
+    it('should fall back to deepseek streaming when GPU_LLM_URL is unset', async () => {
+      configService.get.mockReturnValue('');
+
+      await service.streamChatCompletionAggregated(
+        makeParams('local/my-model'),
+      );
+
+      expect(
+        openRouterService.streamChatCompletionAggregated,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({ model: 'deepseek/deepseek-chat' }),
+        undefined,
+        undefined,
+      );
+      expect(loggerService.warn).toHaveBeenCalled();
+    });
+
+    it('should resolve BYOK key when organizationId is provided', async () => {
+      byokService.resolveApiKey.mockResolvedValue({ apiKey: 'byok-key' });
+
+      await service.streamChatCompletionAggregated(
+        makeParams('anthropic/claude-sonnet-4-5-20250929'),
+        orgId,
+      );
+
+      expect(
+        anthropicService.streamChatCompletionAggregated,
+      ).toHaveBeenCalledWith(expect.any(Object), 'byok-key', undefined);
     });
   });
 });

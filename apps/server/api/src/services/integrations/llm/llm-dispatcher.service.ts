@@ -7,6 +7,7 @@ import { OpenAiOAuthService } from '@api/services/integrations/openai-llm/servic
 import type {
   OpenRouterChatCompletionParams,
   OpenRouterChatCompletionResponse,
+  OpenRouterStreamTokenHandler,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { ByokProvider } from '@genfeedai/enums';
@@ -182,6 +183,72 @@ export class LlmDispatcherService {
     }
   }
 
+  /**
+   * Real incremental streaming chat completion. Surfaces text deltas through
+   * `onToken` as the model generates them and resolves with the same
+   * OpenRouter-shaped aggregated response `chatCompletion` returns (text +
+   * tool calls + usage), so the caller's tool loop and accounting are
+   * unchanged. Reuses the same provider routing, BYOK resolution, local-vLLM
+   * warm-up, and 401-refresh behaviour as `chatCompletion`.
+   */
+  async streamChatCompletionAggregated(
+    params: OpenRouterChatCompletionParams,
+    organizationId?: string,
+    onToken?: OpenRouterStreamTokenHandler,
+  ): Promise<OpenRouterChatCompletionResponse> {
+    const provider = this.resolveProvider(params.model);
+
+    if (provider === 'local') {
+      return this.callLocalProviderStreaming(params, onToken);
+    }
+
+    let apiKeyOverride: string | undefined;
+
+    if (organizationId) {
+      apiKeyOverride = await this.resolveApiKey(organizationId, provider);
+
+      if (apiKeyOverride) {
+        this.loggerService.log(
+          `${this.constructorName}: Using BYOK key for ${provider} (streaming)`,
+        );
+      }
+    }
+
+    this.loggerService.log(
+      `${this.constructorName}: Streaming ${params.model} → ${provider}`,
+    );
+
+    try {
+      return await this.callProviderStreaming(
+        provider,
+        params,
+        apiKeyOverride,
+        onToken,
+      );
+    } catch (error: unknown) {
+      if (
+        organizationId &&
+        provider === 'openai' &&
+        apiKeyOverride &&
+        this.isUnauthorizedError(error)
+      ) {
+        const refreshedKey = await this.tryRefreshAndRetry(organizationId);
+        if (refreshedKey) {
+          this.loggerService.log(
+            `${this.constructorName}: Retrying stream after token refresh`,
+          );
+          return this.callProviderStreaming(
+            provider,
+            params,
+            refreshedKey,
+            onToken,
+          );
+        }
+      }
+      throw error;
+    }
+  }
+
   private async callProvider(
     provider: LlmProvider,
     params: OpenRouterChatCompletionParams,
@@ -195,6 +262,70 @@ export class LlmDispatcherService {
       default:
         return this.openRouterService.chatCompletion(params, apiKeyOverride);
     }
+  }
+
+  private async callProviderStreaming(
+    provider: LlmProvider,
+    params: OpenRouterChatCompletionParams,
+    apiKeyOverride?: string,
+    onToken?: OpenRouterStreamTokenHandler,
+  ): Promise<OpenRouterChatCompletionResponse> {
+    switch (provider) {
+      case 'anthropic':
+        return this.anthropicService.streamChatCompletionAggregated(
+          params,
+          apiKeyOverride,
+          onToken,
+        );
+      case 'openai':
+        return this.openAiLlmService.streamChatCompletionAggregated(
+          params,
+          apiKeyOverride,
+          onToken,
+        );
+      default:
+        return this.openRouterService.streamChatCompletionAggregated(
+          params,
+          apiKeyOverride,
+          onToken,
+        );
+    }
+  }
+
+  /**
+   * Streaming variant of {@link callLocalProvider}: warms the vLLM instance and
+   * streams from it, falling back to OpenRouter deepseek when GPU_LLM_URL is
+   * unset.
+   */
+  private async callLocalProviderStreaming(
+    params: OpenRouterChatCompletionParams,
+    onToken?: OpenRouterStreamTokenHandler,
+  ): Promise<OpenRouterChatCompletionResponse> {
+    const llmUrl = String(this.configService.get('GPU_LLM_URL') || '');
+
+    if (!llmUrl) {
+      this.loggerService.warn(
+        `${this.constructorName}: GPU_LLM_URL not configured — streaming falls back to deepseek/deepseek-chat`,
+      );
+      return this.openRouterService.streamChatCompletionAggregated(
+        { ...params, model: 'deepseek/deepseek-chat' },
+        undefined,
+        onToken,
+      );
+    }
+
+    this.loggerService.log(
+      `${this.constructorName}: Streaming ${params.model} → local vLLM at ${llmUrl}`,
+    );
+
+    await this.llmInstanceService.ensureRunning();
+
+    return this.openAiLlmService.streamChatCompletionAggregated(
+      params,
+      undefined,
+      onToken,
+      `${llmUrl}/v1`,
+    );
   }
 
   /**

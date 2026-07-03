@@ -265,4 +265,116 @@ describe('OpenAiLlmService', () => {
       expect(stream).toBeInstanceOf(ReadableStream);
     });
   });
+
+  describe('streamChatCompletionAggregated', () => {
+    it('should emit each text delta and aggregate the full content', async () => {
+      async function* asyncGen() {
+        yield { choices: [{ delta: { content: 'Hello' } }], id: 'chunk-1' };
+        yield { choices: [{ delta: { content: ' world' } }] };
+        yield {
+          choices: [{ delta: {}, finish_reason: 'stop' }],
+          usage: { completion_tokens: 2, prompt_tokens: 3, total_tokens: 5 },
+        };
+      }
+      mockCreate.mockResolvedValue(asyncGen());
+
+      const tokens: string[] = [];
+      const result = await service.streamChatCompletionAggregated(
+        makeParams(),
+        undefined,
+        async (delta: string) => {
+          tokens.push(delta);
+        },
+      );
+
+      expect(tokens).toEqual(['Hello', ' world']);
+      expect(result.choices[0]?.message.content).toBe('Hello world');
+      expect(result.choices[0]?.finish_reason).toBe('stop');
+      expect(result.id).toBe('chunk-1');
+      expect(result.usage.total_tokens).toBe(5);
+    });
+
+    it('should request usage via stream_options', async () => {
+      async function* asyncGen() {
+        yield { choices: [{ delta: { content: 'x' } }] };
+      }
+      mockCreate.mockResolvedValue(asyncGen());
+
+      await service.streamChatCompletionAggregated(makeParams());
+
+      const callArgs = mockCreate.mock.calls[0][0] as Record<string, unknown>;
+      expect(callArgs.stream).toBe(true);
+      expect(callArgs.stream_options).toEqual({ include_usage: true });
+    });
+
+    it('should accumulate tool-call fragments split across chunks', async () => {
+      async function* asyncGen() {
+        yield {
+          choices: [
+            {
+              delta: {
+                tool_calls: [
+                  {
+                    function: { arguments: '', name: 'search' },
+                    id: 'call-1',
+                    index: 0,
+                  },
+                ],
+              },
+            },
+          ],
+        };
+        yield {
+          choices: [
+            {
+              delta: {
+                tool_calls: [
+                  { function: { arguments: '{"q":"weat' }, index: 0 },
+                ],
+              },
+            },
+          ],
+        };
+        yield {
+          choices: [
+            {
+              delta: {
+                tool_calls: [{ function: { arguments: 'her"}' }, index: 0 }],
+              },
+              finish_reason: 'tool_calls',
+            },
+          ],
+        };
+      }
+      mockCreate.mockResolvedValue(asyncGen());
+
+      const result = await service.streamChatCompletionAggregated(makeParams());
+
+      const toolCalls = result.choices[0]?.message.tool_calls;
+      expect(toolCalls).toHaveLength(1);
+      expect(toolCalls?.[0]).toEqual({
+        function: { arguments: '{"q":"weather"}', name: 'search' },
+        id: 'call-1',
+        type: 'function',
+      });
+      expect(result.choices[0]?.message.content).toBeNull();
+      expect(result.choices[0]?.finish_reason).toBe('tool_calls');
+    });
+
+    it('should surface provider stream errors', async () => {
+      async function* asyncGen() {
+        yield { choices: [{ delta: { content: 'partial' } }] };
+        throw { message: 'stream disconnected', status: 500 };
+      }
+      mockCreate.mockResolvedValue(asyncGen());
+
+      await expect(
+        service.streamChatCompletionAggregated(makeParams()),
+      ).rejects.toMatchObject({ status: 500 });
+      expect(loggerService.error).toHaveBeenCalledWith(
+        expect.stringContaining('streamChatCompletionAggregated failed'),
+        expect.objectContaining({ status: 500 }),
+      );
+    });
+  });
 });

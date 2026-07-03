@@ -79,9 +79,11 @@ export class StripeController {
         });
       }
 
-      // Find user by authProviderId to get user ObjectId
+      // Load the current user's DB record by id.
+      // Post-Better-Auth cutover, user.id is the Genfeed User.id (JWT sub),
+      // not a legacy external auth-provider id.
       const dbUser = await this.usersService.findOne({
-        authProviderId: user.id,
+        _id: user.id,
         isDeleted: false,
       });
       if (!dbUser) {
@@ -183,7 +185,7 @@ export class StripeController {
       }
 
       const dbUser = await this.usersService.findOne({
-        authProviderId: user.id,
+        _id: user.id,
         isDeleted: false,
       });
       if (!dbUser) {
