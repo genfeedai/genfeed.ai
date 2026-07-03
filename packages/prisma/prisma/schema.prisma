@@ -1958,8 +1958,9 @@ model PostAnalytics {
   // One analytics snapshot per post, per platform, per day. The ingestion
   // service (`upsertTodaysAnalytics`) upserts on this exact tuple and relies on
   // a P2002 to serialize concurrent writers — mirrors ArticleAnalytics'
-  // `@@unique([articleId, date])`. `date` is always normalized to UTC midnight
-  // by the writer, so the tuple is a true daily natural key.
+  // `@@unique([articleId, date])`. `date` is normalized to local-server midnight
+  // by the writer (`.setHours(0, 0, 0, 0)`), so the tuple is a true daily natural
+  // key for a fixed server timezone.
   @@unique([postId, platform, date])
   @@index([date(sort: Desc)])
   @@index([organizationId, date(sort: Desc)])

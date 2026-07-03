@@ -20,11 +20,31 @@
 -- they live in raw SQL only, exactly like the #892 default-recurring-workflow
 -- partial unique index. There is deliberately no schema.prisma counterpart.
 --
+-- Built CONCURRENTLY: locking
+-- ---------------------------
+-- `customers` and `subscriptions` are hot, continuously-written billing tables
+-- (every Stripe webhook upserts against them). A plain `CREATE UNIQUE INDEX`
+-- takes an ACCESS EXCLUSIVE lock for the whole build and would stall live
+-- webhook processing, so each index is built CONCURRENTLY — reads and writes
+-- keep running throughout. CONCURRENTLY cannot run inside a transaction block;
+-- Prisma 7.8.0+ executes each migration statement without wrapping the migration
+-- in a transaction (including shadow-database replay during `migrate dev`), so
+-- each preflight `DO` block and its `CREATE UNIQUE INDEX CONCURRENTLY` run as
+-- separate, autocommitted statements. See prisma/prisma#14456 and the 7.8.0
+-- release notes.
+--
 -- Safety against existing duplicates
 -- ----------------------------------
--- Each index is preceded by a preflight that aborts the (transactional)
--- migration if a live duplicate already exists, surfacing the pre-existing bug
--- for a reviewed manual merge rather than failing mid-build or corrupting data.
+-- Each index is preceded by a preflight (its own statement) that aborts the
+-- migration if a live duplicate already exists. The preflight only reads
+-- (SELECT COUNT), so its RAISE fails the migration before that index is built,
+-- surfacing the pre-existing bug for a reviewed manual merge rather than failing
+-- mid-build or corrupting data.
+--
+-- NOTE: a CONCURRENTLY build that fails midway leaves an INVALID index of the
+-- same name and marks this migration failed. Because of `IF NOT EXISTS` a blind
+-- re-run would skip rebuilding it — DROP the invalid index, then
+-- `prisma migrate resolve` + re-deploy. Do not blindly re-run.
 
 -- ── customers.stripeCustomerId ──────────────────────────────────────────────
 DO $$
@@ -45,7 +65,7 @@ BEGIN
   END IF;
 END$$;
 
-CREATE UNIQUE INDEX IF NOT EXISTS "customers_stripeCustomerId_live_key"
+CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "customers_stripeCustomerId_live_key"
   ON "customers" ("stripeCustomerId")
   WHERE "stripeCustomerId" IS NOT NULL AND "isDeleted" = false;
 
@@ -68,6 +88,6 @@ BEGIN
   END IF;
 END$$;
 
-CREATE UNIQUE INDEX IF NOT EXISTS "subscriptions_stripeSubscriptionId_live_key"
+CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "subscriptions_stripeSubscriptionId_live_key"
   ON "subscriptions" ("stripeSubscriptionId")
   WHERE "stripeSubscriptionId" IS NOT NULL AND "isDeleted" = false;
