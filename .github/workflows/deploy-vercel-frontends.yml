@@ -33,6 +33,12 @@ jobs:
           - label: docs.genfeed.ai
             project_id: prj_SdDiBAjBgxhqmsbDBZ6mmIOAnqUL
     env:
+      # Git auto-deploy is disabled in each vercel.json, so `vercel build` runs
+      # without Git deployment context and Vercel leaves VERCEL_GIT_COMMIT_SHA="".
+      # An empty buildId makes the App Router hard-reload on every navigation, so
+      # feed the real master commit SHA as BUILD_ID (apps/app's next.config reads
+      # it first). website/docs ignore this and keep Next's default buildId.
+      BUILD_ID: ${{ github.sha }}
       VERCEL_ORG_ID: team_hFVCbNU4RnfEpQOeSWRxmhEJ
       VERCEL_PROJECT_ID: ${{ matrix.project_id }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
