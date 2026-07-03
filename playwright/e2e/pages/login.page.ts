@@ -25,7 +25,6 @@ export class LoginPage {
 
   // Social login buttons
   readonly googleButton: Locator;
-  readonly githubButton: Locator;
 
   // Error messages
   readonly errorMessage: Locator;
@@ -62,9 +61,6 @@ export class LoginPage {
     // Social login
     this.googleButton = page.locator(
       'button:has-text("Google"), [data-localization-key="socialButtonsBlockButton__google"]',
-    );
-    this.githubButton = page.locator(
-      'button:has-text("GitHub"), [data-localization-key="socialButtonsBlockButton__github"]',
     );
 
     // Error messages
@@ -170,13 +166,6 @@ export class LoginPage {
    */
   async loginWithGoogle(): Promise<void> {
     await this.googleButton.click();
-  }
-
-  /**
-   * Click GitHub sign in button
-   */
-  async loginWithGithub(): Promise<void> {
-    await this.githubButton.click();
   }
 
   /**

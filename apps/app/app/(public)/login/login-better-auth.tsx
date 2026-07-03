@@ -15,7 +15,6 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
-import { FaGithub } from 'react-icons/fa6';
 import { FcGoogle } from 'react-icons/fc';
 import {
   getAuthCallbackURL,
@@ -130,7 +129,7 @@ export default function LoginBetterAuth({
     }
   }
 
-  async function handleSocialSignIn(provider: 'github' | 'google') {
+  async function handleSocialSignIn(provider: 'google') {
     setSocialErrorMessage(null);
     setErrorMessage(null);
     setPasswordErrorMessage(null);
@@ -142,16 +141,14 @@ export default function LoginBetterAuth({
         provider,
       });
       if (result?.error) {
-        const label = provider === 'google' ? 'Google' : 'GitHub';
         setSocialErrorMessage(
           result.error.message ??
-            `Failed to continue with ${label}. Please try again.`,
+            'Failed to continue with Google. Please try again.',
         );
       }
     } catch {
-      const label = provider === 'google' ? 'Google' : 'GitHub';
       setSocialErrorMessage(
-        `Failed to continue with ${label}. Please try again.`,
+        'Failed to continue with Google. Please try again.',
       );
     } finally {
       setIsSocialSubmitting(false);
@@ -315,18 +312,6 @@ export default function LoginBetterAuth({
             withWrapper={false}
           >
             Google
-          </Button>
-
-          <Button
-            type="button"
-            variant={ButtonVariant.OUTLINE}
-            onClick={() => handleSocialSignIn('github')}
-            icon={<FaGithub className="size-4" aria-hidden="true" />}
-            isLoading={isSocialSubmitting}
-            className={AUTH_BUTTON_CLASS_NAME}
-            withWrapper={false}
-          >
-            Sign in with GitHub
           </Button>
 
           <Button
