@@ -139,7 +139,6 @@ render_minimal_service_override_files() {
   write_service_override_file "${ROOT_DIR}/apps/server/mcp/.env.${DEPLOY_ENV}" "MCP_SENTRY_DSN"
   write_service_override_file "${ROOT_DIR}/apps/server/notifications/.env.${DEPLOY_ENV}" "NOTIFICATIONS_SENTRY_DSN"
   write_service_override_file "${ROOT_DIR}/apps/server/workers/.env.${DEPLOY_ENV}" "WORKERS_SENTRY_DSN"
-  write_service_override_file "${ROOT_DIR}/apps/server/clips/.env.${DEPLOY_ENV}" "CLIPS_SENTRY_DSN"
   write_service_override_file "${ROOT_DIR}/apps/server/discord/.env.${DEPLOY_ENV}" "DISCORD_SENTRY_DSN"
   write_service_override_file "${ROOT_DIR}/apps/server/slack/.env.${DEPLOY_ENV}" "SLACK_SENTRY_DSN"
   write_service_override_file "${ROOT_DIR}/apps/server/telegram/.env.${DEPLOY_ENV}" "TELEGRAM_SENTRY_DSN"

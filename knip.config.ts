@@ -68,10 +68,6 @@ const config: KnipConfig = {
       entry: ['src/main.ts'],
       ignore: ['dist/**', 'scripts/**'],
     },
-    'apps/server/clips': {
-      entry: ['src/main.ts'],
-      ignore: ['dist/**'],
-    },
     'apps/server/discord': {
       entry: ['src/main.ts'],
       ignore: ['dist/**'],
