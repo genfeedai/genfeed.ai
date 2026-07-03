@@ -9,6 +9,7 @@ import {
   type WorkflowDocument,
   type WorkflowStep,
 } from '@api/collections/workflows/schemas/workflow.schema';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
   type TaskJobRequest,
@@ -25,12 +26,7 @@ import {
   WorkflowStepStatus,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-  Optional,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 /**
  * Legacy step-based workflow execution engine.
@@ -73,11 +69,11 @@ export class LegacyWorkflowStepRunner extends BaseService<
       isDeleted: false,
     });
     if (!workflowDoc) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
     const workflow = EntityFactory.fromDocument(WorkflowEntity, workflowDoc);
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
 
     if (!workflow.user || !workflow.organization) {
