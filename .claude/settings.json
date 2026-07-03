@@ -1,10 +1,37 @@
 {
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-edit-biome.sh",
+            "type": "command"
+          }
+        ],
+        "matcher": "Edit|Write"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-bash-guard.py",
+            "type": "command"
+          }
+        ],
+        "matcher": "Bash"
+      }
+    ]
+  },
   "permissions": {
     "deny": [
       "Bash(curl:*)",
       "Bash(wget:*)",
+      "Edit(**/.env*)",
+      "Read(**/*.pem)",
       "Read(**/.env*)",
-      "Read(**/secrets/**)"
+      "Read(**/secrets/**)",
+      "Write(**/.env*)"
     ]
   }
 }
