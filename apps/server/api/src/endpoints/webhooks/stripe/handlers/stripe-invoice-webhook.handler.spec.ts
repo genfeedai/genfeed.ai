@@ -45,7 +45,7 @@ describe('StripeInvoiceWebhookHandler', () => {
   }
 
   const monthlySubscription = {
-    _id: 'sub_db_1',
+    id: 'sub_db_1',
     organization: 'org_1',
     status: 'active',
     stripeSubscriptionId: 'sub_stripe_1',
@@ -165,7 +165,7 @@ describe('StripeInvoiceWebhookHandler', () => {
 
     it('marks onboarding complete on the first subscription invoice', async () => {
       usersService.findOne.mockResolvedValue({
-        _id: 'user_1',
+        id: 'user_1',
         isOnboardingCompleted: false,
       });
 
@@ -180,7 +180,7 @@ describe('StripeInvoiceWebhookHandler', () => {
       );
 
       expect(supportService.markOnboardingComplete).toHaveBeenCalledWith({
-        _id: 'user_1',
+        id: 'user_1',
         isOnboardingCompleted: false,
       });
       expect(

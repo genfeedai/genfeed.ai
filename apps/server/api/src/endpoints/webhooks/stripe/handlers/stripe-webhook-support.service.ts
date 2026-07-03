@@ -37,7 +37,7 @@ type CreditsActivity = {
 };
 
 type OnboardingUser = {
-  _id: string;
+  id: string;
   isOnboardingCompleted?: boolean;
 };
 
@@ -118,7 +118,7 @@ export class StripeWebhookSupportService {
       return;
     }
 
-    await this.usersService.patch(dbUser._id, {
+    await this.usersService.patch(dbUser.id, {
       isOnboardingCompleted: true,
       onboardingCompletedAt: new Date(),
       onboardingStepsCompleted: ['brand', 'plan'],
@@ -141,7 +141,7 @@ export class StripeWebhookSupportService {
     );
 
     let dbUser = subscription
-      ? await this.usersService.findOne({ _id: subscription.user })
+      ? await this.usersService.findOne({ id: subscription.user })
       : null;
 
     // Fallback: find user by checkout session email
@@ -173,9 +173,9 @@ export class StripeWebhookSupportService {
             (
               await this.organizationsService.findOne({
                 isDeleted: false,
-                user: String(dbUser._id),
+                user: String(dbUser.id),
               })
-            )?._id ?? '',
+            )?.id ?? '',
           );
       if (organizationId) {
         await this.updateOrganizationTierAndModels(
@@ -188,20 +188,18 @@ export class StripeWebhookSupportService {
         // to resolve the org rather than silently dropping the tier write.
         this.loggerService.warn(
           `${url} could not resolve organization to persist subscription tier`,
-          { sessionId: session.id, subscriptionTier, userId: dbUser._id },
+          { sessionId: session.id, subscriptionTier, userId: dbUser.id },
         );
       }
     }
-    await this.accessBootstrapCacheService.invalidateForUser(
-      String(dbUser._id),
-    );
+    await this.accessBootstrapCacheService.invalidateForUser(String(dbUser.id));
 
     await this.markOnboardingComplete(dbUser);
 
     this.loggerService.log(`${url} onboarding marked complete`, {
       email: dbUser.email,
       sessionId: session.id,
-      userId: dbUser._id,
+      userId: dbUser.id,
     });
   }
 
@@ -220,12 +218,9 @@ export class StripeWebhookSupportService {
         organization: organizationId,
       });
       if (orgSetting) {
-        await this.organizationSettingsService.patch(
-          orgSetting._id.toString(),
-          {
-            hasEverHadCredits: true,
-          },
-        );
+        await this.organizationSettingsService.patch(orgSetting.id.toString(), {
+          hasEverHadCredits: true,
+        });
       }
     } catch (error: unknown) {
       this.loggerService.warn(`${url} failed to set hasEverHadCredits flag`, {
@@ -256,7 +251,7 @@ export class StripeWebhookSupportService {
     }
 
     try {
-      await this.organizationSettingsService.patch(orgSetting._id.toString(), {
+      await this.organizationSettingsService.patch(orgSetting.id.toString(), {
         byokBillingStatus: status,
       });
     } catch (patchError: unknown) {
@@ -371,7 +366,7 @@ export class StripeWebhookSupportService {
       const enabledModelIds =
         await this.organizationSettingsService.getLatestMajorVersionModelIds();
 
-      await this.organizationSettingsService.patch(orgSetting._id.toString(), {
+      await this.organizationSettingsService.patch(orgSetting.id.toString(), {
         enabledModels: enabledModelIds,
         subscriptionTier: tier,
       });

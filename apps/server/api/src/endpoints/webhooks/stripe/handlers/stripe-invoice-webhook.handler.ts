@@ -74,7 +74,7 @@ export class StripeInvoiceWebhookHandler {
 
       // Update subscription status
       const updatedSubscription = await this.subscriptionsService.patch(
-        String(subscription._id),
+        String(subscription.id),
         {
           status: 'active',
         },
@@ -198,7 +198,7 @@ export class StripeInvoiceWebhookHandler {
   ): Promise<void> {
     try {
       const dbUser = await this.usersService.findOne({
-        _id: subscription.user,
+        id: subscription.user,
       });
 
       if (dbUser && !dbUser.isOnboardingCompleted) {
@@ -207,12 +207,12 @@ export class StripeInvoiceWebhookHandler {
         // isOnboardingCompleted is persisted on the User row above (epic
         // #735, Phase C — no legacy auth provider publicMetadata write-back).
         await this.accessBootstrapCacheService.invalidateForUser(
-          String(dbUser._id),
+          String(dbUser.id),
         );
 
         this.loggerService.log(
           `${url} onboarding marked complete via invoice.paid`,
-          { userId: dbUser._id },
+          { userId: dbUser.id },
         );
       }
     } catch (error: unknown) {
@@ -255,12 +255,12 @@ export class StripeInvoiceWebhookHandler {
 
         // Update subscription status to past_due so the app can show
         // a banner prompting the user to update their payment method
-        await this.subscriptionsService.patch(String(subscription._id), {
+        await this.subscriptionsService.patch(String(subscription.id), {
           status: 'past_due',
         });
 
         this.loggerService.log(`${url} subscription marked as past_due`, {
-          subscriptionId: subscription._id,
+          subscriptionId: subscription.id,
         });
       }
     } catch (error: unknown) {

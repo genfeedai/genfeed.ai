@@ -45,9 +45,9 @@ type ManagedCheckoutUser = {
 };
 
 type ManagedCheckoutResources = {
-  brand: { _id: string };
-  organization: { _id: string };
-  orgSetting: { _id: string } | null;
+  brand: { id: string };
+  organization: { id: string };
+  orgSetting: { id: string } | null;
 };
 
 /** Handles checkout.session.completed Stripe webhook events (all sub-types). */
@@ -216,15 +216,15 @@ export class StripeCheckoutWebhookHandler {
       );
 
     const dbUser = await this.usersService.findOne({
-      _id: subscription.user,
+      id: subscription.user,
     });
 
     // Balance (credit-balance table) and isOnboardingCompleted (User row)
     // are persisted to the DB below (epic #735, Phase C — no legacy auth provider
     // publicMetadata write-back).
-    if (dbUser?._id) {
+    if (dbUser?.id) {
       await this.accessBootstrapCacheService.invalidateForUser(
-        dbUser._id.toString(),
+        dbUser.id.toString(),
       );
     }
 
@@ -353,7 +353,7 @@ export class StripeCheckoutWebhookHandler {
     }
 
     await this.supportService.addPurchasedCredits(
-      String(organization._id),
+      String(organization.id),
       creditsToAdd,
       'managed-inference',
       `Managed credit pack purchase (${creditsToAdd} credits)`,
@@ -361,17 +361,17 @@ export class StripeCheckoutWebhookHandler {
 
     const plainKey = await this.ensureManagedApiKey(
       session,
-      String(organization._id),
-      String(dbUser._id),
+      String(organization.id),
+      String(dbUser.id),
     );
 
     await this.usersService.patch(
-      String(dbUser._id),
+      String(dbUser.id),
       this.buildManagedCheckoutUserPatch(session, dbUser),
     );
 
     if (orgSetting) {
-      await this.organizationSettingsService.patch(String(orgSetting._id), {
+      await this.organizationSettingsService.patch(String(orgSetting.id), {
         hasEverHadCredits: true,
       });
     }
@@ -379,33 +379,31 @@ export class StripeCheckoutWebhookHandler {
     // User row (onboarding + stripeCustomerId), org settings (hasEverHadCredits),
     // and credit balance are all persisted to the DB above; both identity
     // resolvers route from the DB (epic #735, Phase C — no legacy auth provider write-back).
-    await this.accessBootstrapCacheService.invalidateForUser(
-      String(dbUser._id),
-    );
+    await this.accessBootstrapCacheService.invalidateForUser(String(dbUser.id));
 
     await this.supportService.recordCreditsActivity({
-      brandId: String(brand._id),
-      organizationId: String(organization._id),
+      brandId: String(brand.id),
+      organizationId: String(organization.id),
       source: ActivitySource.PAY_AS_YOU_GO,
-      userId: String(dbUser._id),
+      userId: String(dbUser.id),
       value: String(creditsToAdd),
     });
 
     this.loggerService.log(`${url} managed checkout credits added`, {
       creditsAdded: creditsToAdd,
       email,
-      organizationId: organization._id,
+      organizationId: organization.id,
       sessionId: session.id,
-      userId: dbUser._id,
+      userId: dbUser.id,
     });
 
     return {
       apiKey: plainKey,
       apiKeyAlreadyExists: plainKey === null,
-      brandId: String(brand._id),
+      brandId: String(brand.id),
       email,
-      organizationId: String(organization._id),
-      userId: String(dbUser._id),
+      organizationId: String(organization.id),
+      userId: String(dbUser.id),
     };
   }
 
@@ -475,7 +473,7 @@ export class StripeCheckoutWebhookHandler {
           throw error;
         }
         if (dbUser.isDeleted === true) {
-          dbUser = await this.usersService.patch(String(dbUser._id), {
+          dbUser = await this.usersService.patch(String(dbUser.id), {
             isDeleted: false,
           });
         }
@@ -489,7 +487,7 @@ export class StripeCheckoutWebhookHandler {
     if (isNewUser) {
       const userCreatedEvent: IBetterAuthUserCreatedEvent = {
         email,
-        userId: String(dbUser._id),
+        userId: String(dbUser.id),
       };
       await this.eventEmitter.emitAsync(
         BETTER_AUTH_USER_CREATED_EVENT,
@@ -506,14 +504,14 @@ export class StripeCheckoutWebhookHandler {
   ): Promise<ManagedCheckoutResources> {
     let organization = await this.organizationsService.findOne({
       isDeleted: false,
-      user: String(dbUser._id),
+      user: String(dbUser.id),
     });
 
     let brand = organization
       ? await this.brandsService.findOne(
           {
             isDeleted: false,
-            organizationId: String(organization._id),
+            organizationId: String(organization.id),
           },
           [],
         )
@@ -521,7 +519,7 @@ export class StripeCheckoutWebhookHandler {
 
     if (!organization || !brand) {
       const setupResult = await this.userSetupService.initializeUserResources(
-        String(dbUser._id),
+        String(dbUser.id),
         OrganizationCategory.BUSINESS,
       );
 
@@ -531,31 +529,31 @@ export class StripeCheckoutWebhookHandler {
 
     let orgSetting = await this.organizationSettingsService.findOne({
       isDeleted: false,
-      organization: String(organization._id),
+      organization: String(organization.id),
     });
 
     if (!orgSetting) {
       await this.userSetupService.initializeUserResources(
-        String(dbUser._id),
+        String(dbUser.id),
         OrganizationCategory.BUSINESS,
       );
       orgSetting = await this.organizationSettingsService.findOne({
         isDeleted: false,
-        organization: String(organization._id),
+        organization: String(organization.id),
       });
     }
 
     brand = await this.brandsService.findOne(
       {
         isDeleted: false,
-        organizationId: String(organization._id),
+        organizationId: String(organization.id),
       },
       [],
     );
 
     if (!brand) {
       throw new Error(
-        `Brand not found for managed checkout organization ${organization._id}`,
+        `Brand not found for managed checkout organization ${organization.id}`,
       );
     }
 
@@ -638,7 +636,7 @@ export class StripeCheckoutWebhookHandler {
 
       // Find user
       const dbUser = await this.usersService.findOne({
-        _id: userId,
+        id: userId,
       });
 
       if (!dbUser) {
@@ -676,7 +674,7 @@ export class StripeCheckoutWebhookHandler {
         }
 
         return this.addCreditsToOrgFromUserCheckout(
-          fallbackOrg._id.toString(),
+          fallbackOrg.id.toString(),
           dbUser,
           session,
           url,
@@ -684,7 +682,7 @@ export class StripeCheckoutWebhookHandler {
       }
 
       await this.addCreditsToOrgFromUserCheckout(
-        creatorOrg._id.toString(),
+        creatorOrg.id.toString(),
         dbUser,
         session,
         url,
@@ -699,11 +697,11 @@ export class StripeCheckoutWebhookHandler {
 
   private async addCreditsToOrgFromUserCheckout(
     organizationId: string,
-    dbUser: { _id: string; authProviderId?: string | null },
+    dbUser: { id: string; authProviderId?: string | null },
     session: StripeCheckoutSession,
     url: string,
   ): Promise<void> {
-    const userId = dbUser._id.toString();
+    const userId = dbUser.id.toString();
 
     // Calculate credits from payment
     const creditsToAdd = this.supportService.resolveCheckoutCredits(

@@ -49,7 +49,7 @@ describe('StripeSubscriptionWebhookHandler', () => {
   }
 
   const dbSubscription = {
-    _id: 'sub_db_1',
+    id: 'sub_db_1',
     organization: 'org_1',
     user: 'user_1',
   };
@@ -134,7 +134,7 @@ describe('StripeSubscriptionWebhookHandler', () => {
     it('patches the subscription and invalidates the user caches', async () => {
       subscriptionsService.findOne.mockResolvedValue(dbSubscription);
       subscriptionsService.patch.mockResolvedValue(dbSubscription);
-      usersService.findOne.mockResolvedValue({ _id: 'user_1' });
+      usersService.findOne.mockResolvedValue({ id: 'user_1' });
 
       await handler.handleSubscriptionUpdated(stripeSubscription(), 'test');
 
@@ -164,7 +164,7 @@ describe('StripeSubscriptionWebhookHandler', () => {
     it('soft-deletes, removes credits on immediate cancellation, and resets the tier to BYOK', async () => {
       subscriptionsService.findOne.mockResolvedValue(dbSubscription);
       subscriptionsService.patch.mockResolvedValue(dbSubscription);
-      usersService.findOne.mockResolvedValue({ _id: 'user_1' });
+      usersService.findOne.mockResolvedValue({ id: 'user_1' });
 
       await handler.handleSubscriptionDeleted(
         stripeSubscription({ cancel_at_period_end: false }),
@@ -191,7 +191,7 @@ describe('StripeSubscriptionWebhookHandler', () => {
     it('keeps credits when the subscription cancels at period end', async () => {
       subscriptionsService.findOne.mockResolvedValue(dbSubscription);
       subscriptionsService.patch.mockResolvedValue(dbSubscription);
-      usersService.findOne.mockResolvedValue({ _id: 'user_1' });
+      usersService.findOne.mockResolvedValue({ id: 'user_1' });
 
       await handler.handleSubscriptionDeleted(
         stripeSubscription({ cancel_at_period_end: true }),

@@ -47,7 +47,7 @@ export class StripeSubscriptionWebhookHandler {
       const subscriptionData = this.buildSubscriptionCreatePatch(subscription);
 
       const updatedSubscription = await this.subscriptionsService.patch(
-        String(existingSubscription._id),
+        String(existingSubscription.id),
         subscriptionData,
       );
 
@@ -160,7 +160,7 @@ export class StripeSubscriptionWebhookHandler {
       };
 
       const updatedSubscription = await this.subscriptionsService.patch(
-        String(existingSubscription._id),
+        String(existingSubscription.id),
         updateData,
       );
 
@@ -178,7 +178,7 @@ export class StripeSubscriptionWebhookHandler {
       );
 
       // Invalidate request context cache so updated subscription info is reflected immediately
-      const userId = user._id?.toString();
+      const userId = user.id?.toString();
       if (userId) {
         await this.supportService.invalidateUserCaches(userId);
       }
@@ -223,7 +223,7 @@ export class StripeSubscriptionWebhookHandler {
 
       // Soft delete subscription and update cancellation details
       const updatedSubscription = await this.subscriptionsService.patch(
-        String(existingSubscription._id),
+        String(existingSubscription.id),
         {
           cancelAtPeriodEnd: subscription.cancel_at_period_end,
           isDeleted: true,
@@ -254,7 +254,7 @@ export class StripeSubscriptionWebhookHandler {
       );
 
       // Invalidate request context cache so canceled subscription is reflected immediately
-      const userId = user._id?.toString();
+      const userId = user.id?.toString();
       if (userId) {
         await this.supportService.invalidateUserCaches(userId);
       }
@@ -280,16 +280,16 @@ export class StripeSubscriptionWebhookHandler {
 
   /** Look up the subscription's user; warns and returns null when missing. */
   private async findSubscriptionUser(
-    existingSubscription: Pick<ISubscriptionOssReadModel, '_id' | 'user'>,
+    existingSubscription: Pick<ISubscriptionOssReadModel, 'id' | 'user'>,
     url: string,
   ) {
     const user = await this.usersService.findOne({
-      _id: existingSubscription.user,
+      id: existingSubscription.user,
     });
 
     if (!user) {
       this.loggerService.warn(`${url} user not found for subscription`, {
-        subscriptionId: existingSubscription._id,
+        subscriptionId: existingSubscription.id,
       });
       return null;
     }

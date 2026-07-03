@@ -43,7 +43,7 @@ describe('StripeCustomerWebhookHandler', () => {
   });
 
   it('syncs the subscription when the customer is known', async () => {
-    const dbSubscription = { _id: 'sub_db_1', organization: 'org_1' };
+    const dbSubscription = { id: 'sub_db_1', organization: 'org_1' };
     subscriptionsService.findByStripeCustomerId.mockResolvedValue(
       dbSubscription,
     );

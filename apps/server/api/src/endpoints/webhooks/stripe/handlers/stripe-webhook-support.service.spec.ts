@@ -164,7 +164,7 @@ describe('StripeWebhookSupportService', () => {
   describe('markOnboardingComplete', () => {
     it('patches the onboarding fields for incomplete users', async () => {
       await service.markOnboardingComplete({
-        _id: 'user_1',
+        id: 'user_1',
         isOnboardingCompleted: false,
       });
 
@@ -177,7 +177,7 @@ describe('StripeWebhookSupportService', () => {
 
     it('is a no-op for already-onboarded users', async () => {
       await service.markOnboardingComplete({
-        _id: 'user_1',
+        id: 'user_1',
         isOnboardingCompleted: true,
       });
 
@@ -210,7 +210,7 @@ describe('StripeWebhookSupportService', () => {
     it('falls back to the session email and completes onboarding', async () => {
       subscriptionsService.findByStripeCustomerId.mockResolvedValue(null);
       usersService.findOne.mockResolvedValue({
-        _id: 'user_1',
+        id: 'user_1',
         email: 'ada@example.com',
         isOnboardingCompleted: false,
       });
@@ -235,11 +235,11 @@ describe('StripeWebhookSupportService', () => {
         user: 'user_1',
       });
       usersService.findOne.mockResolvedValue({
-        _id: 'user_1',
+        id: 'user_1',
         email: 'ada@example.com',
         isOnboardingCompleted: true,
       });
-      organizationSettingsService.findOne.mockResolvedValue({ _id: 'os_1' });
+      organizationSettingsService.findOne.mockResolvedValue({ id: 'os_1' });
 
       await service.markOnboardingCompleteFromSession(
         session,
@@ -256,7 +256,7 @@ describe('StripeWebhookSupportService', () => {
 
   describe('setHasEverHadCredits', () => {
     it('patches the org setting when found', async () => {
-      organizationSettingsService.findOne.mockResolvedValue({ _id: 'os_1' });
+      organizationSettingsService.findOne.mockResolvedValue({ id: 'os_1' });
 
       await service.setHasEverHadCredits('org_1', 'test');
 
@@ -266,7 +266,7 @@ describe('StripeWebhookSupportService', () => {
     });
 
     it('warns instead of throwing when the patch fails', async () => {
-      organizationSettingsService.findOne.mockResolvedValue({ _id: 'os_1' });
+      organizationSettingsService.findOne.mockResolvedValue({ id: 'os_1' });
       organizationSettingsService.patch.mockRejectedValue(new Error('boom'));
 
       await service.setHasEverHadCredits('org_1', 'test');
@@ -280,7 +280,7 @@ describe('StripeWebhookSupportService', () => {
 
   describe('setByokBillingStatus', () => {
     it('patches the billing status on the org setting', async () => {
-      organizationSettingsService.findOne.mockResolvedValue({ _id: 'os_1' });
+      organizationSettingsService.findOne.mockResolvedValue({ id: 'os_1' });
 
       await service.setByokBillingStatus(
         'org_1',
@@ -296,7 +296,7 @@ describe('StripeWebhookSupportService', () => {
     });
 
     it('logs patch failures with the caller-provided message', async () => {
-      organizationSettingsService.findOne.mockResolvedValue({ _id: 'os_1' });
+      organizationSettingsService.findOne.mockResolvedValue({ id: 'os_1' });
       organizationSettingsService.patch.mockRejectedValue(new Error('boom'));
 
       await service.setByokBillingStatus(
@@ -388,7 +388,7 @@ describe('StripeWebhookSupportService', () => {
 
   describe('updateOrganizationTierAndModels', () => {
     it('patches the tier and refreshed model list', async () => {
-      organizationSettingsService.findOne.mockResolvedValue({ _id: 'os_1' });
+      organizationSettingsService.findOne.mockResolvedValue({ id: 'os_1' });
 
       await service.updateOrganizationTierAndModels(
         'org_1',
