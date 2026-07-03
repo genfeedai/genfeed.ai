@@ -52,7 +52,17 @@ export function buildRateLimitStorage(store: IBetterAuthRateLimitStore): {
   return {
     get: async (key) => {
       const raw = await store.get(`${RATE_LIMIT_KEY_PREFIX}${key}`);
-      return raw ? (JSON.parse(raw) as RateLimit) : null;
+      if (!raw) {
+        return null;
+      }
+      try {
+        return JSON.parse(raw) as RateLimit;
+      } catch {
+        // Corrupt or foreign value at this key (e.g. another app sharing the
+        // Redis instance). Fail open — treat it as no existing window rather
+        // than letting a SyntaxError surface from the rate limiter as a 500.
+        return null;
+      }
     },
     set: async (key, value) => {
       await store.set(

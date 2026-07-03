@@ -194,10 +194,23 @@ export class InvitationService {
     });
 
     if (input.sendEmail !== false) {
-      await this.sendInvitationEmail({
-        invitation: { ...invitation, organization },
-        token,
-      });
+      try {
+        await this.sendInvitationEmail({
+          invitation: { ...invitation, organization },
+          token,
+        });
+      } catch (error) {
+        // The invitation row is already committed. A delivery failure must not
+        // bubble as a 500 — that would make the caller believe the invite failed
+        // and re-invite, which supersedes (revokes) this committed token and
+        // leaves it permanently unacceptable. Log and continue; it can be resent.
+        this.logger.error('Failed to send invitation email', {
+          email,
+          error,
+          invitationId: invitation.id,
+          organizationId: input.organizationId,
+        });
+      }
     }
 
     return toInvitationView(invitation);

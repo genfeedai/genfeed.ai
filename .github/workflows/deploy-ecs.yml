@@ -403,9 +403,16 @@ jobs:
 
   post-deploy-smoke:
     name: Post-deploy smoke
-    needs: deploy-vercel-frontends
+    # Smoke the live API surface whenever the ECS deploy succeeded. A Vercel
+    # frontend failure must not SKIP this job (default needs-failure behavior),
+    # otherwise an API regression ships unverified when a frontend deploy flakes.
+    needs: [deploy, deploy-vercel-frontends]
+    if: ${{ always() && needs.deploy.result == 'success' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # Worst-case sequential retry budget across the 6 URLs is ~20m
+    # (7 attempts x 20s max-time + 6 x 10s retry-delay per URL); keep the timeout
+    # above it so an unresponsive endpoint surfaces as a failure, not a silent cancel.
+    timeout-minutes: 25
     permissions:
       contents: read
     steps:

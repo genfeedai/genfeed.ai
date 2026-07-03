@@ -111,32 +111,46 @@ export class ApiKeysService extends BaseService<
       organizationId: string;
     },
   ): Promise<{ apiKey: ApiKeyDocument; plainKey: string }> {
-    let replacement: { apiKey: ApiKeyDocument; plainKey: string } | undefined;
+    const replacement = await this.createWithKey(createApiKeyDto);
 
     try {
-      replacement = await this.createWithKey(createApiKeyDto);
       await this.revoke(keyId);
+    } catch (error) {
+      // The original key could not be retired — roll back the replacement so we
+      // don't leave two active keys for the same logical credential, then
+      // surface the failure to the caller.
+      try {
+        await this.revoke(replacement.apiKey.id);
+      } catch (cleanupError) {
+        this.logger?.error('Failed to clean up replacement API key', {
+          cleanupError,
+          originalKeyId: keyId,
+          replacementKeyId: replacement.apiKey.id,
+        });
+      }
+
+      throw error;
+    }
+
+    // Rotation has logically succeeded: the original key is revoked and the new
+    // key has already been issued to the caller. Cache invalidation is
+    // best-effort — a Redis failure here must never revoke the freshly issued
+    // replacement and leave the user with zero valid keys.
+    try {
       await this.invalidateRotationCaches(
         createApiKeyDto.organizationId,
         keyId,
         replacement.apiKey.id,
       );
-      return replacement;
-    } catch (error) {
-      if (replacement?.apiKey.id) {
-        try {
-          await this.revoke(replacement.apiKey.id);
-        } catch (cleanupError) {
-          this.logger?.error('Failed to clean up replacement API key', {
-            cleanupError,
-            originalKeyId: keyId,
-            replacementKeyId: replacement.apiKey.id,
-          });
-        }
-      }
-
-      throw error;
+    } catch (cacheError) {
+      this.logger?.error('Failed to invalidate API key caches after rotation', {
+        cacheError,
+        originalKeyId: keyId,
+        replacementKeyId: replacement.apiKey.id,
+      });
     }
+
+    return replacement;
   }
 
   private async invalidateRotationCaches(

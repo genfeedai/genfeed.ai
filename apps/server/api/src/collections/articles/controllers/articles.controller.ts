@@ -453,6 +453,12 @@ export class ArticlesController extends BaseCRUDController<
   }
 
   @Post(':articleId/seo-scores')
+  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @Credits({
+    description: 'SEO scoring (text model)',
+    modelKey: DEFAULT_MINI_TEXT_MODEL,
+    source: ActivitySource.ARTICLE_ENHANCEMENT,
+  })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async scoreSeo(
     @Req() request: Request,
