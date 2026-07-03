@@ -38,6 +38,7 @@
 - [Failed deploys never burn a version](release_tag_after_green_deploy.md) — pre-gate release cutting is normal; on deploy failure fix master and re-cut the SAME version (delete unconsumed tag), never bump
 - [Production deploys master-only](production_deploy_master_only.md) — Never deploy any non-master ref to production unless Vincent explicitly overrides; production deploys run from GitHub CI on master
 - [Vercel release gate](feedback_vercel_release_gate.md) — SaaS Vercel frontends deploy only through the API-first production release workflow; Vercel Git auto-deploy stays disabled
+- [PRD-pass verify state first](prd_pass_verify_state_first.md) — On any epic PRD pass, verify child issue states via `gh` + audit real code before trusting the epic body; never rewrite closed/shipped cards
 
 ## References
 
