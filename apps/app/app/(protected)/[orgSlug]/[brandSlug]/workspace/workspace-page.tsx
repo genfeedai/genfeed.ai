@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IAgentRun, IAnalytics } from '@genfeedai/interfaces';
 import type { AgentRunStats } from '@genfeedai/types';
 import { useTrends } from '@hooks/data/trends/use-trends/use-trends';
@@ -11,7 +11,9 @@ import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Card from '@ui/card/Card';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
+import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
+import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Button } from '@ui/primitives/button';
 import dynamic from 'next/dynamic';
 import { Suspense, startTransition, useMemo } from 'react';
@@ -95,6 +97,7 @@ function WorkspacePageContentContent({
     visibleInboxTasks,
     sectionCopy,
     workspaceActionError,
+    workspaceLoadWarning,
     workspaceTasks,
   } = useWorkspacePageContent({
     defaultInboxView,
@@ -202,6 +205,12 @@ function WorkspacePageContentContent({
         <p className="mb-4 rounded-md border border-rose-400/30 bg-rose-400/8 px-3 py-2 text-xs text-rose-200">
           {workspaceActionError}
         </p>
+      ) : null}
+
+      {workspaceLoadWarning ? (
+        <Alert type={AlertCategory.WARNING} className="mb-4">
+          {workspaceLoadWarning}
+        </Alert>
       ) : null}
 
       {isTaskComposerOpen ? (
@@ -360,7 +369,7 @@ export default function WorkspacePageContent(
   props: Parameters<typeof WorkspacePageContentContent>[0],
 ) {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
       <WorkspacePageContentContent {...props} />
     </Suspense>
   );

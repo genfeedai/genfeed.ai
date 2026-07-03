@@ -137,6 +137,10 @@ vi.mock('@services/management/tasks.service', async () => {
   };
 });
 
+vi.mock('@sentry/nextjs', () => ({
+  addBreadcrumb: vi.fn(),
+}));
+
 vi.mock('@tiptap/react', () => ({
   EditorContent: ({
     editor,
