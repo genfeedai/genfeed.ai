@@ -2,6 +2,7 @@ import { NodeStatusEnum } from '@genfeedai/types';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import { logger } from '@services/core/logger.service';
 import type { StateCreator } from 'zustand';
+import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import { apiClient } from '@/lib/api/client';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useWorkflowStore } from '@/store/workflowStore';
@@ -315,6 +316,7 @@ export const createExecutionSlice: StateCreator<
     }
 
     set({ isRunning: true });
+    captureAnalyticsEvent(ANALYTICS_EVENTS.WORKFLOW_RUN_STARTED, {});
 
     for (const node of workflowStore.nodes) {
       workflowStore.updateNodeData(node.id, {

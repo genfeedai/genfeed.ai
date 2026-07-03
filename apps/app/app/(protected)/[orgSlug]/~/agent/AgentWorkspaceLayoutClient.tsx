@@ -30,6 +30,7 @@ import {
   useMemo,
   useRef,
 } from 'react';
+import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
 import { AgentWorkspaceContext } from './agent-workspace-context';
 
@@ -197,6 +198,9 @@ function AgentWorkspaceLayoutClientContent({ children }: PropsWithChildren) {
         : orgHref(`${APP_ROUTES.AGENT.ROOT}/${activeThreadId}`);
       newRouteBaselineThreadRef.current = activeThreadId;
       pendingNavigationThreadRef.current = activeThreadId;
+      captureAnalyticsEvent(ANALYTICS_EVENTS.AGENT_THREAD_CREATED, {
+        agentType: isOnboarding ? 'onboarding' : 'standard',
+      });
       replace(nextRoute);
     }
   }, [
