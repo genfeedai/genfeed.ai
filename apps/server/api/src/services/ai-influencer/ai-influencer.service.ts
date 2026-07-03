@@ -3,6 +3,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { type PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { ConfigService } from '@api/config/config.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { FalService } from '@api/services/integrations/fal/fal.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
@@ -18,7 +19,7 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 /** Supported social platforms for AI influencer posts */
 export type AiInfluencerPlatform =
@@ -368,7 +369,7 @@ export class AiInfluencerService {
       this.loggerService.warn(caller, {
         message: `Persona not found: ${slug}`,
       });
-      throw new NotFoundException(`Persona with slug "${slug}" not found`);
+      throw new NotFoundException('Persona', slug);
     }
 
     this.loggerService.log(caller, {

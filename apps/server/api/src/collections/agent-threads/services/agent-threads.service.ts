@@ -1,13 +1,14 @@
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import type { AgentRunDocument } from '@api/collections/agent-runs/schemas/agent-run.schema';
 import type { AgentRoomDocument } from '@api/collections/agent-threads/schemas/agent-thread.schema';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import type { AgentThreadSnapshotDocument } from '@api/services/agent-threading/schemas/agent-thread-snapshot.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { AgentExecutionStatus, AgentThreadStatus } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 type ThreadRunStatus =
   | 'queued'
@@ -122,7 +123,7 @@ export class AgentThreadsService extends BaseService<
     });
 
     if (!parent) {
-      throw new NotFoundException(`Thread "${threadId}" not found`);
+      throw new NotFoundException('Thread', threadId);
     }
 
     const cloned = await this.create({
@@ -165,7 +166,7 @@ export class AgentThreadsService extends BaseService<
     })) as AgentRoomDocument | null;
 
     if (!updated) {
-      throw new NotFoundException(`Thread "${threadId}" not found`);
+      throw new NotFoundException('Thread', threadId);
     }
 
     return updated;
@@ -182,7 +183,7 @@ export class AgentThreadsService extends BaseService<
     })) as AgentRoomDocument | null;
 
     if (!updated) {
-      throw new NotFoundException(`Thread "${threadId}" not found`);
+      throw new NotFoundException('Thread', threadId);
     }
 
     return updated;

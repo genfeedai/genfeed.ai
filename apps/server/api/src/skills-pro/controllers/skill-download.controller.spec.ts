@@ -1,6 +1,7 @@
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { SkillDownloadController } from '@api/skills-pro/controllers/skill-download.controller';
 import { SkillDownloadService } from '@api/skills-pro/services/skill-download.service';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('SkillDownloadController', () => {
@@ -139,7 +140,7 @@ describe('SkillDownloadController', () => {
 
     it('should propagate NotFoundException when receipt is invalid', async () => {
       skillDownloadService.getDownloadUrl.mockRejectedValue(
-        new NotFoundException('Receipt not found'),
+        new NotFoundException('Receipt'),
       );
 
       await expect(

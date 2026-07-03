@@ -11,6 +11,7 @@ import {
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
@@ -34,7 +35,6 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  NotFoundException,
   Optional,
   Param,
   Patch,
@@ -259,7 +259,7 @@ export class TasksController extends BaseCRUDController<
       organization,
     );
     if (!doc) {
-      throw new NotFoundException(`Task ${identifier} not found`);
+      throw new NotFoundException('Task', identifier);
     }
     return serializeSingle(request, TaskSerializer, doc);
   }
@@ -278,7 +278,7 @@ export class TasksController extends BaseCRUDController<
     });
 
     if (!doc) {
-      throw new NotFoundException(`Task not found`);
+      throw new NotFoundException('Task');
     }
 
     return serializeSingle(request, TaskSerializer, doc);

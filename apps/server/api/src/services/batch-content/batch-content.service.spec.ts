@@ -1,4 +1,5 @@
 import type { BrandsService } from '@api/collections/brands/services/brands.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { BatchContentService } from '@api/services/batch-content/batch-content.service';
 import type { BatchContentQueueService } from '@api/services/batch-content/batch-content-queue.service';
 import type {
@@ -7,7 +8,7 @@ import type {
 } from '@api/services/batch-content/interfaces/batch-content.interfaces';
 import type { ContentDraft } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { ForbiddenException } from '@nestjs/common';
 
 function createMockLogger(): LoggerService {
   return {

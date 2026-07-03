@@ -1,9 +1,9 @@
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { BatchContentQueueService } from '@api/services/batch-content/batch-content-queue.service';
 import type { BatchContentRequest } from '@api/services/batch-content/interfaces/batch-content.interfaces';
 import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type { ContentDraft } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { NotFoundException } from '@nestjs/common';
 import type { Queue } from 'bullmq';
 
 function createMockLogger(): LoggerService {

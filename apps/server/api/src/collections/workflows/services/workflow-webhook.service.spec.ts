@@ -1,6 +1,6 @@
 import { WorkflowWebhookService } from '@api/collections/workflows/services/workflow-webhook.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { WorkflowExecutionTrigger } from '@genfeedai/enums';
-import { NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowWebhookService', () => {

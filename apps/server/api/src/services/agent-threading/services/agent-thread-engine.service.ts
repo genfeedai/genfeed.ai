@@ -1,5 +1,6 @@
 import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import {
   fromPromiseEffect,
   runEffectPromise,
@@ -15,12 +16,7 @@ import { ThreadContextCompressorService } from '@api/services/agent-threading/se
 import { AgentThreadEventType } from '@api/services/agent-threading/types/agent-thread.types';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-  Optional,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 import { Effect } from 'effect';
 
 export interface AppendAgentThreadEventParams {
@@ -403,7 +399,7 @@ export class AgentThreadEngineService {
       );
 
       if (!snapshot) {
-        throw new NotFoundException('Thread snapshot not found');
+        throw new NotFoundException('Thread snapshot');
       }
 
       return snapshot;
@@ -444,9 +440,7 @@ export class AgentThreadEngineService {
       );
 
       if (!snapshotRow) {
-        return yield* Effect.fail(
-          new NotFoundException('Input request not found'),
-        );
+        return yield* Effect.fail(new NotFoundException('Input request'));
       }
 
       const snapshotData = (snapshotRow.data as Record<string, unknown>) ?? {};
@@ -458,9 +452,7 @@ export class AgentThreadEngineService {
       );
 
       if (reqIndex === -1) {
-        return yield* Effect.fail(
-          new NotFoundException('Input request not found'),
-        );
+        return yield* Effect.fail(new NotFoundException('Input request'));
       }
 
       // Update the request in-place
@@ -493,9 +485,7 @@ export class AgentThreadEngineService {
       );
 
       if (!inputRequest) {
-        return yield* Effect.fail(
-          new NotFoundException('Input request not found'),
-        );
+        return yield* Effect.fail(new NotFoundException('Input request'));
       }
 
       yield* this.appendEventEffect({

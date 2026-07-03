@@ -11,6 +11,7 @@ import { RunEntity } from '@api/collections/runs/entities/run.entity';
 import { RunsService } from '@api/collections/runs/services/runs.service';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
@@ -22,7 +23,6 @@ import {
   Body,
   Controller,
   Get,
-  NotFoundException,
   Param,
   Patch,
   Post,
@@ -176,7 +176,7 @@ export class RunsController {
     const run = await this.runsService.getRun(runId, organizationId);
 
     if (!run) {
-      throw new NotFoundException('Run not found');
+      throw new NotFoundException('Run');
     }
 
     return serializeSingle(request, RunSerializer, run);
@@ -201,7 +201,7 @@ export class RunsController {
     const run = await this.runsService.updateRun(runId, organizationId, dto);
 
     if (!run) {
-      throw new NotFoundException('Run not found');
+      throw new NotFoundException('Run');
     }
 
     return serializeSingle(request, RunSerializer, run);
@@ -225,7 +225,7 @@ export class RunsController {
     const run = await this.runsService.executeRun(runId, organizationId);
 
     if (!run) {
-      throw new NotFoundException('Run not found');
+      throw new NotFoundException('Run');
     }
 
     return serializeSingle(request, RunSerializer, run);
@@ -249,7 +249,7 @@ export class RunsController {
     const run = await this.runsService.cancelRun(runId, organizationId);
 
     if (!run) {
-      throw new NotFoundException('Run not found');
+      throw new NotFoundException('Run');
     }
 
     return serializeSingle(request, RunSerializer, run);
@@ -273,7 +273,7 @@ export class RunsController {
     const events = await this.runsService.getRunEvents(runId, organizationId);
 
     if (!events) {
-      throw new NotFoundException('Run not found');
+      throw new NotFoundException('Run');
     }
 
     return events;
@@ -302,7 +302,7 @@ export class RunsController {
     );
 
     if (!run) {
-      throw new NotFoundException('Run not found');
+      throw new NotFoundException('Run');
     }
 
     return serializeSingle(request, RunSerializer, run);

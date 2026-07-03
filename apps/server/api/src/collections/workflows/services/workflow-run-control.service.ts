@@ -5,6 +5,7 @@ import { type WorkflowVisualNode } from '@api/collections/workflows/schemas/work
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
   WorkflowExecutionStatus,
@@ -20,12 +21,7 @@ import {
   type NodeStatusChangeEvent,
 } from '@genfeedai/workflow-engine';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-  Optional,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 /**
  * Run-control surface for node-based workflow executions: partial (subset of
@@ -68,7 +64,7 @@ export class WorkflowRunControlService {
     });
 
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
 
     // Validate nodes exist
@@ -293,7 +289,7 @@ export class WorkflowRunControlService {
     });
 
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
 
     // Find the failed execution from the workflow-executions collection
@@ -305,7 +301,7 @@ export class WorkflowRunControlService {
     });
 
     if (!failedRun) {
-      throw new NotFoundException(`Execution run ${runId} not found`);
+      throw new NotFoundException('Execution run', runId);
     }
 
     if (String(failedRun.status) !== WorkflowExecutionStatus.FAILED) {
@@ -354,7 +350,7 @@ export class WorkflowRunControlService {
     });
 
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
 
     // Get real organization credit balance
@@ -403,7 +399,7 @@ export class WorkflowRunControlService {
     });
 
     if (!execution) {
-      throw new NotFoundException(`Execution run ${runId} not found`);
+      throw new NotFoundException('Execution run', runId);
     }
 
     return {

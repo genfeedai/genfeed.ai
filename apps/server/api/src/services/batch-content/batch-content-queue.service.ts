@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import type {
   BatchContentItemJobData,
   BatchContentRequest,
@@ -10,7 +11,7 @@ import { BATCH_CONTENT_QUEUE } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
 
 interface BatchTracker {
@@ -100,14 +101,14 @@ export class BatchContentQueueService {
     const tracker = this.batchTrackers.get(batchId);
 
     if (!tracker) {
-      throw new NotFoundException(`Batch ${batchId} not found`);
+      throw new NotFoundException('Batch', batchId);
     }
 
     if (
       tracker.status.organizationId !== organizationId ||
       tracker.status.brandId !== brandId
     ) {
-      throw new NotFoundException(`Batch ${batchId} not found`);
+      throw new NotFoundException('Batch', batchId);
     }
 
     return {
@@ -158,7 +159,7 @@ export class BatchContentQueueService {
     const tracker = this.batchTrackers.get(batchId);
 
     if (!tracker) {
-      throw new NotFoundException(`Batch ${batchId} not found`);
+      throw new NotFoundException('Batch', batchId);
     }
 
     return (tracker.endedAt ?? Date.now()) - tracker.startedAt;

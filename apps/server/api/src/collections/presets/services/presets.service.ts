@@ -1,15 +1,12 @@
 import { CreatePresetDto } from '@api/collections/presets/dto/create-preset.dto';
 import { UpdatePresetDto } from '@api/collections/presets/dto/update-preset.dto';
 import { type PresetDocument } from '@api/collections/presets/schemas/preset.schema';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 
 @Injectable()
 export class PresetsService extends BaseService<
@@ -68,7 +65,7 @@ export class PresetsService extends BaseService<
     ).find((item) => this.readPresetKey(item) === key);
 
     if (!preset) {
-      throw new NotFoundException(`Preset with key '${key}' not found`);
+      throw new NotFoundException('Preset', key);
     }
 
     return preset as unknown as PresetDocument;

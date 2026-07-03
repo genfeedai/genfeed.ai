@@ -1,4 +1,5 @@
 import { TrackedLinksService } from '@api/collections/tracked-links/services/tracked-links.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BadRequestException } from '@nestjs/common';
 
@@ -119,7 +120,7 @@ describe('TrackedLinksService', () => {
         },
         'org-1',
       ),
-    ).rejects.toThrow('Brand not found');
+    ).rejects.toThrow(NotFoundException);
 
     expect(prisma.trackedLink.create).not.toHaveBeenCalled();
   });
@@ -142,7 +143,7 @@ describe('TrackedLinksService', () => {
         },
         'org-1',
       ),
-    ).rejects.toThrow('Content not found');
+    ).rejects.toThrow(NotFoundException);
 
     expect(prisma.trackedLink.create).not.toHaveBeenCalled();
   });
@@ -223,7 +224,7 @@ describe('TrackedLinksService', () => {
 
     await expect(
       service.update('link-1', 'org-1', { isActive: false }),
-    ).rejects.toThrow('Tracked link not found');
+    ).rejects.toThrow(NotFoundException);
   });
 
   it('scopes delete writes to the authenticated organization', async () => {
@@ -244,7 +245,7 @@ describe('TrackedLinksService', () => {
     prisma.trackedLink.updateMany.mockResolvedValue({ count: 0 });
 
     await expect(service.delete('link-1', 'org-1')).rejects.toThrow(
-      'Tracked link not found',
+      NotFoundException,
     );
   });
 
