@@ -11,12 +11,15 @@ import {
   type ProcessorCircuitBreaker,
 } from '@api/shared/utils/circuit-breaker/circuit-breaker.util';
 import { CredentialPlatform } from '@genfeedai/enums';
-import type { SocialAnalyticsJobData } from '@genfeedai/interfaces';
+import {
+  ANALYTICS_SOCIAL_QUEUE,
+  SocialAnalyticsJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 
-@Processor('analytics-social')
+@Processor(ANALYTICS_SOCIAL_QUEUE)
 export class AnalyticsSocialProcessor extends WorkerHost {
   private readonly DEFAULT_DELAY_MS = 2000;
   private readonly circuitBreaker: ProcessorCircuitBreaker;

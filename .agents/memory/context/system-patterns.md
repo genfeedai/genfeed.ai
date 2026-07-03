@@ -11,7 +11,7 @@ author: Claude Code PM System
 
 ### Multi-Tenancy (Enterprise Only)
 
-Multi-tenant organization isolation is an enterprise feature. Enforcement currently lives in the OSS API: the global `CombinedAuthGuard` (APP_GUARD, `apps/server/api/src/helpers/guards/combined-auth/`) enforces org-scoped access and tenant queries include `{ organizationId, isDeleted: false }`. Use `@Public()` to opt out of auth. `ee/packages/multi-tenancy/` is a Phase C extraction scaffold (issue #87) — the code has not moved there yet.
+Multi-tenant organization isolation is an enterprise feature as a *product* boundary, but its enforcement lives in the OSS API by design: the global `CombinedAuthGuard` (APP_GUARD, `apps/server/api/src/helpers/guards/combined-auth/`) enforces org-scoped access and tenant queries include `{ organizationId, isDeleted: false }`. Use `@Public()` to opt out of auth. There is no `ee/packages/multi-tenancy` package — resolved in #1093: the guard is the OSS auth entry point and query scoping is deployment-mode-agnostic, so no separable EE code unit exists.
 
 Single-tenant (default self-hosted) deployments do NOT require `organization` in queries — only `{ isDeleted: false }`.
 

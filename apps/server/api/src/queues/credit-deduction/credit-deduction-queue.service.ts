@@ -1,4 +1,7 @@
-import { CreditDeductionJobData } from '@api/queues/credit-deduction/credit-deduction-job.interface';
+import {
+  CREDIT_DEDUCTION_QUEUE,
+  CreditDeductionJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
@@ -9,7 +12,7 @@ export class CreditDeductionQueueService {
   private readonly constructorName = 'CreditDeductionQueueService';
 
   constructor(
-    @InjectQueue('credit-deduction') private readonly queue: Queue,
+    @InjectQueue(CREDIT_DEDUCTION_QUEUE) private readonly queue: Queue,
     private readonly logger: LoggerService,
   ) {}
 

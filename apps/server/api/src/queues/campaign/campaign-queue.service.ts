@@ -6,9 +6,13 @@
  * - Scheduling targets for execution
  * - Managing rate-limited job execution
  */
+
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
-import type { CampaignProcessingJobData } from '@api/queues/campaign/campaign-job.interface';
 import { CampaignStatus } from '@genfeedai/enums';
+import {
+  CAMPAIGN_PROCESSING_QUEUE,
+  CampaignProcessingJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -20,7 +24,7 @@ export class CampaignQueueService implements OnModuleInit {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
-    @InjectQueue('campaign-processing')
+    @InjectQueue(CAMPAIGN_PROCESSING_QUEUE)
     @Optional()
     private readonly campaignQueue: Queue<CampaignProcessingJobData>,
     @Optional() private readonly campaignsService: OutreachCampaignsService,

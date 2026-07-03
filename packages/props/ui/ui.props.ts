@@ -69,8 +69,6 @@ export interface ContainerProps {
   fullWidth?: boolean;
   left?: ReactNode;
   right?: ReactNode;
-  topbarRight?: ReactNode;
-  promoteHeaderToTopbarOnScroll?: boolean;
 }
 
 export interface LinkProps {

@@ -7,6 +7,10 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { QueueService } from '@api/queues/core/queue.service';
+import {
+  ANALYTICS_SYNC_QUEUE,
+  EMAIL_DIGEST_QUEUE,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { IsDateString, IsEmail, IsOptional, IsString } from 'class-validator';
@@ -61,7 +65,7 @@ export class AnalyticsSyncController {
     const publicMetadata = getPublicMetadata(user);
     const organizationId = publicMetadata.organization;
 
-    const job = await this.queueService.add('analytics-sync', {
+    const job = await this.queueService.add(ANALYTICS_SYNC_QUEUE, {
       brandId: dto.brandId,
       incremental: !dto.since,
       organizationId,
@@ -135,7 +139,7 @@ export class AnalyticsSyncController {
     const publicMetadata = getPublicMetadata(user);
     const organizationId = publicMetadata.organization;
 
-    const job = await this.queueService.add('email-digest', {
+    const job = await this.queueService.add(EMAIL_DIGEST_QUEUE, {
       brandId: dto.brandId,
       endDate: dto.endDate,
       organizationId,

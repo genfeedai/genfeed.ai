@@ -1,7 +1,10 @@
 import { CreativePatternsService } from '@api/collections/creative-patterns/creative-patterns.service';
-import type { PatternExtractionJobData } from '@api/queues/pattern-extraction/pattern-extraction-job.interface';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { PatternType } from '@genfeedai/interfaces';
+import {
+  PATTERN_EXTRACTION_QUEUE,
+  PatternExtractionJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
@@ -87,7 +90,7 @@ function classifyContentStructure(text: string): string {
 }
 
 @Injectable()
-@Processor('pattern-extraction')
+@Processor(PATTERN_EXTRACTION_QUEUE)
 export class PatternExtractionProcessor extends WorkerHost {
   private readonly constructorName = this.constructor.name;
 

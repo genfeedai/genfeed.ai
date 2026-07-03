@@ -15,6 +15,7 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
@@ -92,6 +93,7 @@ import {
   createSeoRewriteExecutor,
   createSeoScoreExecutor,
   createTrendTriggerExecutor,
+  type DmSender,
   EngagementTriggerExecutor,
   HookGeneratorExecutor,
   ImageGenExecutor,
@@ -107,6 +109,7 @@ import {
   PostReplyExecutor,
   PromptConstructorExecutor,
   ReframeExecutor,
+  type ReplyPublisher,
   SendDmExecutor,
   type SeoRewriteResolver,
   type SeoScoreResolver,
@@ -307,6 +310,7 @@ export class WorkflowEngineAdapterService {
     @Optional()
     private readonly workflowExecutionQueueService?: WorkflowExecutionQueueService,
     @Optional() private readonly youtubeSocialAdapter?: YoutubeSocialAdapter,
+    @Optional() private readonly socialInboxService?: SocialInboxService,
   ) {
     this.engine = new WorkflowEngine({
       maxConcurrency: 3,
@@ -1872,11 +1876,19 @@ export class WorkflowEngineAdapterService {
     // Wire dispatching publishers/checkers that route to the correct platform adapter.
     // YouTube is backed by its own adapter because it uses the YouTube Data API,
     // not the Twitter/Instagram social adapter factory.
-    if (this.socialAdapterFactory || this.youtubeSocialAdapter) {
+    if (
+      this.socialAdapterFactory ||
+      this.youtubeSocialAdapter ||
+      this.socialInboxService
+    ) {
       const socialAdapterFactory = this.socialAdapterFactory;
       const youtubeSocialAdapter = this.youtubeSocialAdapter;
 
       postReplyExecutor.setPublisher((params) => {
+        if (params.conversationId) {
+          return this.publishSocialInboxReply(params);
+        }
+
         if (params.platform === 'youtube') {
           if (!youtubeSocialAdapter) {
             throw new Error('YouTube social adapter is not available');
@@ -1895,6 +1907,10 @@ export class WorkflowEngineAdapterService {
       });
 
       sendDmExecutor.setSender((params) => {
+        if (params.conversationId) {
+          return this.sendSocialInboxDm(params);
+        }
+
         if (!socialAdapterFactory) {
           throw new Error(
             `${params.platform} social adapter factory is not available`,
@@ -2071,6 +2087,64 @@ export class WorkflowEngineAdapterService {
       commentTriggerExecutor.nodeType,
       this.wrapEngineExecutor(commentTriggerExecutor),
     );
+  }
+
+  private async publishSocialInboxReply(
+    params: Parameters<ReplyPublisher>[0],
+  ): Promise<{ replyId: string; replyUrl: string }> {
+    if (!this.socialInboxService) {
+      throw new Error('Social inbox action service is not available');
+    }
+    if (!params.conversationId) {
+      throw new Error('conversationId is required for social inbox replies');
+    }
+
+    const message = await this.socialInboxService.postReply(
+      {
+        brandId: params.brandId,
+        organizationId: params.organizationId,
+        userId: params.userId,
+      },
+      params.conversationId,
+      {
+        idempotencyKey: params.idempotencyKey,
+        text: params.text,
+        workflowRunId: params.workflowRunId,
+      },
+    );
+
+    return {
+      replyId: message.externalMessageId ?? message.id,
+      replyUrl: message.sourceUrl ?? '',
+    };
+  }
+
+  private async sendSocialInboxDm(
+    params: Parameters<DmSender>[0],
+  ): Promise<{ messageId: string }> {
+    if (!this.socialInboxService) {
+      throw new Error('Social inbox action service is not available');
+    }
+    if (!params.conversationId) {
+      throw new Error('conversationId is required for social inbox DMs');
+    }
+
+    const message = await this.socialInboxService.sendDm(
+      {
+        brandId: params.brandId,
+        organizationId: params.organizationId,
+        userId: params.userId,
+      },
+      params.conversationId,
+      {
+        idempotencyKey: params.idempotencyKey,
+        recipientId: params.recipientId,
+        text: params.text,
+        workflowRunId: params.workflowRunId,
+      },
+    );
+
+    return { messageId: message.externalMessageId ?? message.id };
   }
 
   /**

@@ -4,15 +4,21 @@ import {
   toContentRunJsonValue,
 } from '@api/collections/content-runs/utils/content-run-data.util';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import {
+  ContentOptimizationService,
+  type WinnerContentSignal,
+} from '@api/services/content-optimization/content-optimization.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
   ContentRunAnalyticsSummary,
   ContentRunRecommendation,
   ContentRunVariant,
 } from '@genfeedai/interfaces';
+import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 type ContentRunRow = {
+  brandId?: string | null;
   config: unknown;
   id: string;
   status: string;
@@ -67,7 +73,11 @@ type VariantAccumulator = {
 
 @Injectable()
 export class ContentRunRecommendationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly contentOptimizationService: ContentOptimizationService,
+    private readonly logger: LoggerService,
+  ) {}
 
   private readConfig(run: ContentRunRow): Record<string, unknown> {
     return isContentRunRecord(run.config) ? run.config : {};
@@ -339,11 +349,56 @@ export class ContentRunRecommendationsService {
       where: { id: runId },
     })) as unknown as Record<string, unknown>;
 
+    const winner = scores[0];
+    if (winner) {
+      await this.requeueWinnerIntoTrends(organizationId, run, config, winner);
+    }
+
     return {
       analyticsSummary,
       recommendations,
       scores,
       updatedRun: hydrateContentRun(updatedRun) ?? updatedRun,
     };
+  }
+
+  /**
+   * Feed the run's winning variant back into trend ingestion (issue #166).
+   * Best-effort: a trend-enrichment failure must never break run analysis, and
+   * the enrichment itself is gated per-org/brand by the trend opt-in flag.
+   */
+  private async requeueWinnerIntoTrends(
+    organizationId: string,
+    run: ContentRunRow,
+    config: Record<string, unknown>,
+    winner: RunVariantScore,
+  ): Promise<void> {
+    try {
+      const brief = isContentRunRecord(config.brief) ? config.brief : {};
+      const hook =
+        this.readString(brief.hypothesis) ??
+        this.readString(brief.angle) ??
+        winner.variantId;
+
+      const signal: WinnerContentSignal = {
+        avgEngagementRate: winner.avgEngagementRate,
+        contentRunId: run.id,
+        format: winner.format,
+        hook,
+        platform: winner.platform,
+        variantId: winner.variantId,
+      };
+
+      await this.contentOptimizationService.requeueWinnerIntoTrends(
+        organizationId,
+        this.readString(run.brandId),
+        signal,
+      );
+    } catch (error) {
+      this.logger.warn(
+        'Failed to requeue winner into trends; continuing run analysis',
+        { error, runId: run.id },
+      );
+    }
   }
 }

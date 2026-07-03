@@ -598,6 +598,7 @@ export class TrendsController {
     const preferences = await this.trendPreferencesService.savePreferences(
       organizationId,
       {
+        autoRequeueWinners: dto.autoRequeueWinners,
         brandId: dto.brandId || publicMetadata?.brand,
         categories: dto.categories,
         hashtags: dto.hashtags,
@@ -609,6 +610,7 @@ export class TrendsController {
     return {
       message: 'Trend preferences saved successfully',
       preferences: {
+        autoRequeueWinners: preferences.autoRequeueWinners ?? false,
         categories: preferences.categories || [],
         hashtags: preferences.hashtags || [],
         keywords: preferences.keywords || [],

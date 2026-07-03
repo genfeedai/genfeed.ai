@@ -44,6 +44,8 @@ import {
   type WorkflowGraphEdgeLike,
   type WorkflowGraphNodeLike,
 } from '@/features/workflows/utils/workflow-graph';
+import { apiClient } from '@/lib/api/client';
+import { getExecutionProviderHeaders } from '@/lib/api/execution-headers';
 import WorkflowEditorToolbarNavigation from '../components/WorkflowEditorToolbarNavigation';
 
 type WorkflowStoreState = ReturnType<typeof useWorkflowStore.getState>;
@@ -189,6 +191,15 @@ export default function WorkflowNewPageClient() {
 
   const workflowUiConfig = useMemo<WorkflowUIConfig>(
     () => ({
+      executionHeaders: getExecutionProviderHeaders,
+      executionHttpClient: {
+        post: <T,>(
+          path: string,
+          body?: Record<string, unknown>,
+          options?: { headers?: Record<string, string> },
+        ): Promise<T> => apiClient.post<T>(path, body, options),
+      },
+      logger,
       workflowsApi: {
         setThumbnail: async (selectedWorkflowId, thumbnailUrl, nodeId) => {
           const service = await getWorkflowService();

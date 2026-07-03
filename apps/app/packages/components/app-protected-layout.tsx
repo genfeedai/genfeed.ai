@@ -114,6 +114,7 @@ function AppLayoutWithDynamicMenu({
     isMoodboardRoute,
     isOrgRoute,
     isPromptBarRoute,
+    isResearchRoute,
     isSettingsRoute,
     isStudioRoute,
     isWorkflowsRoute,
@@ -132,6 +133,7 @@ function AppLayoutWithDynamicMenu({
     libraryMenuItems,
     menuItems,
     orgMenuItems,
+    researchMenuItems,
     secondaryMenuItems,
     settingsMenuItems,
     studioMenuItems,
@@ -176,6 +178,7 @@ function AppLayoutWithDynamicMenu({
         isFocusedOnboardingRoute={isFocusedOnboardingRoute}
         isLibraryRoute={isLibraryRoute}
         isOrgRoute={isOrgRoute}
+        isResearchRoute={isResearchRoute}
         isSettingsRoute={isSettingsRoute}
         isStudioRoute={isStudioRoute}
         isWorkflowsRoute={isWorkflowsRoute}
@@ -185,6 +188,7 @@ function AppLayoutWithDynamicMenu({
         libraryMenuItems={libraryMenuItems}
         menuItems={menuItems}
         orgMenuItems={orgMenuItems}
+        researchMenuItems={researchMenuItems}
         secondaryMenuItems={secondaryMenuItems}
         settingsMenuItems={settingsMenuItems}
         studioMenuItems={studioMenuItems}
@@ -211,12 +215,14 @@ function AppLayoutWithDynamicMenu({
     isLibraryRoute,
     isMoodboardRoute,
     isOrgRoute,
+    isResearchRoute,
     isSettingsRoute,
     isStudioRoute,
     isWorkflowsRoute,
     libraryMenuItems,
     menuItems,
     orgMenuItems,
+    researchMenuItems,
     renderConversations,
     secondaryMenuItems,
     settingsMenuItems,

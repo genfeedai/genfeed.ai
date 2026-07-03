@@ -1,5 +1,6 @@
 import { BrandMemoryModule } from '@api/collections/brand-memory/brand-memory.module';
 import { ContentPerformanceModule } from '@api/collections/content-performance/content-performance.module';
+import { TrendsModule } from '@api/collections/trends/trends.module';
 import { ConfigModule } from '@api/config/config.module';
 import { ContentOptimizationController } from '@api/services/content-optimization/content-optimization.controller';
 import { ContentOptimizationService } from '@api/services/content-optimization/content-optimization.service';
@@ -18,6 +19,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => BrandMemoryModule),
     forwardRef(() => ContentPerformanceModule),
     forwardRef(() => OpenAiLlmModule),
+    forwardRef(() => TrendsModule),
     BullModule.registerQueue({
       defaultJobOptions: {
         attempts: 3,

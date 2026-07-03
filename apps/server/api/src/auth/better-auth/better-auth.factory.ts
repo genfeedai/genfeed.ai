@@ -93,7 +93,6 @@ export function buildBetterAuthOrganizationOptions(
           logo: 'authProviderLogoUrl',
           name: 'label',
           slug: 'slug',
-          updatedAt: 'updatedAt',
         },
         additionalFields: {
           category: {
