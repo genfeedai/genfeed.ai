@@ -152,9 +152,9 @@ describe('JobService', () => {
 
   describe('Redis persistence', () => {
     it('persists jobs under the images namespace', async () => {
-      const setEx = vi.fn(async () => undefined);
+      const setex = vi.fn(async () => undefined);
       const redisService = {
-        getPublisher: vi.fn(() => ({ setEx })),
+        getPublisher: vi.fn(() => ({ setex })),
       } as unknown as RedisService;
       const redisBackedService = new JobService(
         logger as unknown as LoggerService,
@@ -166,7 +166,7 @@ describe('JobService', () => {
         type: 'image-gen',
       });
 
-      expect(setEx).toHaveBeenCalledWith(
+      expect(setex).toHaveBeenCalledWith(
         `jobs:images:${job.jobId}`,
         86400,
         JSON.stringify(job),

@@ -182,9 +182,9 @@ describe('JobService (videos)', () => {
 
   describe('Redis persistence', () => {
     it('persists jobs under the videos namespace', async () => {
-      const setEx = vi.fn(async () => undefined);
+      const setex = vi.fn(async () => undefined);
       const redisService = {
-        getPublisher: vi.fn(() => ({ setEx })),
+        getPublisher: vi.fn(() => ({ setex })),
       } as unknown as RedisService;
       const redisBackedService = new JobService(
         mockLoggerService as unknown as LoggerService,
@@ -196,7 +196,7 @@ describe('JobService (videos)', () => {
         type: 'render',
       });
 
-      expect(setEx).toHaveBeenCalledWith(
+      expect(setex).toHaveBeenCalledWith(
         `jobs:videos:${job.jobId}`,
         86400,
         JSON.stringify(job),
