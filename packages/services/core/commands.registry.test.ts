@@ -9,7 +9,9 @@ const { mockEnvironmentService, mockRegisterCommands } = vi.hoisted(() => ({
     },
     currentApp: 'app',
   },
-  mockRegisterCommands: vi.fn(),
+  mockRegisterCommands: vi.fn((commands: { id: string }[]): string[] =>
+    commands.map((command) => command.id),
+  ),
 }));
 
 vi.mock('@services/core/environment.service', () => ({
@@ -723,6 +725,15 @@ describe('commands.registry', () => {
       registerDefaultCommands(TEST_ORG, TEST_BRAND);
 
       expect(mockRegisterCommands).toHaveBeenCalledTimes(1);
+    });
+
+    it('should return the registered command ids for cleanup', () => {
+      const registeredIds = registerDefaultCommands(TEST_ORG, TEST_BRAND);
+      const defaultCommands = createDefaultCommands(TEST_ORG, TEST_BRAND);
+
+      expect(registeredIds).toEqual(
+        defaultCommands.map((command) => command.id),
+      );
     });
   });
 
