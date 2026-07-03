@@ -31,7 +31,8 @@ import { getGenfeedCorsOptions } from '@libs/config/cors.config';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   buildBullMQConnection,
-  parseRedisConnection,
+  parseRedisConnectionForWorkload,
+  RedisWorkload,
 } from '@libs/redis/redis-connection.utils';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
@@ -261,7 +262,10 @@ async function main() {
     const serverAdapter = new ExpressAdapter();
     serverAdapter.setBasePath('/admin/queues');
 
-    const redisConfig = parseRedisConnection(configService);
+    const redisConfig = parseRedisConnectionForWorkload(
+      configService,
+      RedisWorkload.QUEUE,
+    );
     const bullBoardConnection = buildBullMQConnection(redisConfig);
     const monitoredQueueNames = [
       'default',

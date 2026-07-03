@@ -27,14 +27,13 @@ async function main() {
   const logger = app.get<LoggerService>(LoggerService);
   const port = configService.get('PORT');
 
-  // Configure Redis Socket.IO adapter
-  const redisTls = Boolean(configService.get('REDIS_TLS'));
+  // Configure Redis Socket.IO adapter. Pass the ConfigService through so the
+  // adapter resolves its own isolated SOCKET workload connection (#1186),
+  // including any REDIS_SOCKET_URL / REDIS_SOCKET_DB override.
   const redisIoAdapter = new RedisIoAdapter(
     app,
-    configService.get('REDIS_URL') || 'redis://localhost:6379',
+    { get: (key: string) => configService.get(key as never) },
     logger,
-    redisTls,
-    configService.get('REDIS_PASSWORD'),
   );
 
   try {
