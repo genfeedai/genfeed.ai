@@ -11,9 +11,11 @@
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
 import { HighlightRewriteService } from '@api/collections/clip-projects/services/highlight-rewrite.service';
+import { RawCutClipService } from '@api/collections/clip-projects/services/raw-cut-clip.service';
 import { ClipResultsModule } from '@api/collections/clip-results/clip-results.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { AvatarVideoModule } from '@api/services/avatar-video/avatar-video.module';
+import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { forwardRef, Module } from '@nestjs/common';
 
@@ -22,17 +24,20 @@ import { forwardRef, Module } from '@nestjs/common';
     ClipProjectsService,
     ClipGenerationService,
     HighlightRewriteService,
+    RawCutClipService,
   ],
   imports: [
     forwardRef(() => ClipResultsModule),
     forwardRef(() => CreditsModule),
     forwardRef(() => AvatarVideoModule),
     forwardRef(() => OpenRouterModule),
+    forwardRef(() => FileQueueModule),
   ],
   providers: [
     ClipProjectsService,
     ClipGenerationService,
     HighlightRewriteService,
+    RawCutClipService,
   ],
 })
 export class ClipProjectsCoreModule {}
