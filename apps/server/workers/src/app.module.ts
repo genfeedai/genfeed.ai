@@ -1,9 +1,9 @@
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
-import { EventBusModule } from '@api/shared/services/event-bus/event-bus.module';
 import { SharedModule } from '@api/shared/shared.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { RedisModule } from '@libs/redis/redis.module';
 import { Module } from '@nestjs/common';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SentryModule } from '@sentry/nestjs/setup';
 import { ConfigModule } from '@workers/config/config.module';
@@ -49,7 +49,18 @@ import { SystemSweepsModule } from '@workers/scheduling/system-sweeps.module';
 
     // Shared Services (global in API, must be explicitly imported here)
     SharedModule,
-    EventBusModule,
+    EventEmitterModule.forRoot({
+      // Delimiter for nested events (e.g., 'video.created')
+      delimiter: '.',
+      // Ignore errors thrown by listeners
+      ignoreErrors: false,
+      // Maximum number of listeners per event
+      maxListeners: 20,
+      // Enable verbose error logging
+      verboseMemoryLeak: true,
+      // Use wildcards for event matching
+      wildcard: true,
+    }),
 
     // Database (Prisma — replaces the legacy document-store connections)
     PrismaModule,

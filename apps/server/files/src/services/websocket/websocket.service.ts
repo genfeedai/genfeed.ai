@@ -1,18 +1,17 @@
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { ConfigService } from '@files/config/config.service';
 import type { JobProgress } from '@files/shared/interfaces/job.interface';
 import {
-  buildNodeRedisClientOptions,
+  buildIoRedisClientOptions,
   parseRedisConnection,
 } from '@libs/redis/redis-connection.utils';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable, Logger } from '@nestjs/common';
-import { createClient, type RedisClientType } from 'redis';
+import Redis from 'ioredis';
 
 @Injectable()
 export class WebSocketService {
   private readonly logger = new Logger(WebSocketService.name);
-  private redisPublisher!: RedisClientType;
+  private redisPublisher!: Redis;
 
   constructor(private configService: ConfigService) {
     this.initRedis().catch((error) => {
@@ -24,8 +23,8 @@ export class WebSocketService {
     try {
       const config = parseRedisConnection(this.configService);
 
-      this.redisPublisher = createClient(
-        buildNodeRedisClientOptions(config, {
+      this.redisPublisher = new Redis(
+        buildIoRedisClientOptions(config, {
           connectTimeout: 3_000,
         }),
       );
@@ -47,7 +46,7 @@ export class WebSocketService {
     userId?: string,
     room?: string,
   ) {
-    if (!this.redisPublisher?.isOpen) {
+    if (this.redisPublisher?.status !== 'ready') {
       this.logger.warn('Redis not connected, skipping progress emission');
       return;
     }
@@ -78,7 +77,7 @@ export class WebSocketService {
     userId?: string,
     room?: string,
   ) {
-    if (!this.redisPublisher?.isOpen) {
+    if (this.redisPublisher?.status !== 'ready') {
       this.logger.warn('Redis not connected, skipping success emission');
       return;
     }
@@ -109,7 +108,7 @@ export class WebSocketService {
     userId?: string,
     room?: string,
   ) {
-    if (!this.redisPublisher?.isOpen) {
+    if (this.redisPublisher?.status !== 'ready') {
       this.logger.warn('Redis not connected, skipping error emission');
       return;
     }
@@ -140,7 +139,7 @@ export class WebSocketService {
     data?: unknown,
     userId?: string,
   ) {
-    if (!this.redisPublisher?.isOpen) {
+    if (this.redisPublisher?.status !== 'ready') {
       this.logger.warn('Redis not connected, skipping status emission');
       return;
     }
@@ -164,7 +163,7 @@ export class WebSocketService {
   }
 
   async sendProgress(ingredientId: string, progress: unknown) {
-    if (!this.redisPublisher?.isOpen) {
+    if (this.redisPublisher?.status !== 'ready') {
       this.logger.warn('Redis not connected, skipping progress emission');
       return;
     }
@@ -190,7 +189,7 @@ export class WebSocketService {
   }
 
   async disconnect() {
-    if (this.redisPublisher?.isOpen) {
+    if (this.redisPublisher?.status === 'ready') {
       try {
         await this.redisPublisher.quit();
         this.logger.log('Disconnected from Redis');

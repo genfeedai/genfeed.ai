@@ -79,7 +79,9 @@ export class StripeWebhookController {
         const acquired = await publisher.set(
           idempotencyKey,
           new Date().toISOString(),
-          { EX: WEBHOOK_IDEMPOTENCY_TTL, NX: true },
+          'EX',
+          WEBHOOK_IDEMPOTENCY_TTL,
+          'NX',
         );
 
         if (!acquired) {

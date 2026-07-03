@@ -106,8 +106,8 @@ export class RequestContextMiddleware implements NestMiddleware {
       if (publisher) {
         const keysSetKey = buildRcKeysSetKey(userId);
         await Promise.all([
-          publisher.setEx(cacheKey, RC_TTL, JSON.stringify(requestContext)),
-          publisher.sAdd(keysSetKey, cacheKey),
+          publisher.setex(cacheKey, RC_TTL, JSON.stringify(requestContext)),
+          publisher.sadd(keysSetKey, cacheKey),
           publisher.expire(keysSetKey, RC_KEYS_SET_TTL),
         ]);
       }
@@ -166,7 +166,7 @@ export class RequestContextMiddleware implements NestMiddleware {
       };
 
       if (publisher) {
-        await publisher.setEx(
+        await publisher.setex(
           SELF_HOSTED_CONTEXT_CACHE_KEY,
           RC_TTL,
           JSON.stringify(requestContext),

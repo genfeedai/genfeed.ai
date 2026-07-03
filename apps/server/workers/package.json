@@ -7,7 +7,8 @@
     "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/prisma": "workspace:*",
     "@genfeedai/queue-contracts": "workspace:*",
-    "@genfeedai/workflows": "workspace:*"
+    "@genfeedai/workflows": "workspace:*",
+    "@nestjs/event-emitter": "3.1.0"
   },
   "description": "Genfeed Workers Service (Cron Jobs)",
   "devDependencies": {

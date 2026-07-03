@@ -1,13 +1,13 @@
 import type { Server as HttpServer } from 'node:http';
 import type { LoggerService } from '@libs/logger/logger.service';
 import {
-  buildNodeRedisClientOptions,
+  buildIoRedisClientOptions,
   parseRedisConnection,
 } from '@libs/redis/redis-connection.utils';
 import type { INestApplicationContext } from '@nestjs/common';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
-import { createClient } from 'redis';
+import Redis from 'ioredis';
 import { Server, type ServerOptions } from 'socket.io';
 
 export class RedisIoAdapter extends IoAdapter {
@@ -43,7 +43,7 @@ export class RedisIoAdapter extends IoAdapter {
       },
     });
 
-    const pubClient = createClient(buildNodeRedisClientOptions(config));
+    const pubClient = new Redis(buildIoRedisClientOptions(config));
     const subClient = pubClient.duplicate();
 
     try {

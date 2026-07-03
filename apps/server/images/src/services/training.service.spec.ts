@@ -15,23 +15,28 @@ vi.mock('node:child_process', () => ({
   spawn: (...args: unknown[]) => mockSpawn(...args),
 }));
 
-/** In-memory fake of the node-redis publisher surface used by the store. */
+/** In-memory fake of the ioredis publisher surface used by the store. */
 function createMockPublisher() {
   const store = new Map<string, string>();
 
   return {
     get: vi.fn(async (key: string) => store.get(key) ?? null),
-    scanIterator: vi.fn(({ MATCH }: { COUNT: number; MATCH: string }) => {
-      const prefix = MATCH.slice(0, -1);
-      return (async function* () {
-        for (const key of store.keys()) {
-          if (key.startsWith(prefix)) {
-            yield key;
-          }
-        }
-      })();
-    }),
-    setEx: vi.fn(async (key: string, _ttl: number, value: string) => {
+    scan: vi.fn(
+      async (
+        _cursor: string,
+        _match: string,
+        pattern: string,
+        _count: string,
+        _countValue: number,
+      ) => {
+        const prefix = pattern.slice(0, -1);
+        const foundKeys = Array.from(store.keys()).filter((key) =>
+          key.startsWith(prefix),
+        );
+        return ['0', foundKeys] as [string, string[]];
+      },
+    ),
+    setex: vi.fn(async (key: string, _ttl: number, value: string) => {
       store.set(key, value);
     }),
     store,

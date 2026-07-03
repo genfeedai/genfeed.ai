@@ -63,7 +63,7 @@ export class BetterAuthIdentityCacheService {
     }
 
     try {
-      await publisher.setEx(
+      await publisher.setex(
         buildIdentityKey(userId),
         IDENTITY_TTL_SECONDS,
         JSON.stringify(identity),

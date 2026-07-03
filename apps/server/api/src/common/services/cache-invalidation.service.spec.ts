@@ -91,16 +91,21 @@ describe('CacheInvalidationService', () => {
   describe('invalidatePattern', () => {
     it('should scan and unlink all keys matching the pattern', async () => {
       mockScan
-        .mockResolvedValueOnce({
-          cursor: '42',
-          keys: ['brands:list:org1', 'brands:list:org2'],
-        })
-        .mockResolvedValueOnce({ cursor: '0', keys: ['brands:list:org3'] });
+        .mockResolvedValueOnce(['42', ['brands:list:org1', 'brands:list:org2']])
+        .mockResolvedValueOnce(['0', ['brands:list:org3']]);
       mockUnlink.mockResolvedValue(1);
 
       await service.invalidatePattern('brands:list:*');
 
       expect(mockScan).toHaveBeenCalledTimes(2);
+      expect(mockScan).toHaveBeenNthCalledWith(
+        1,
+        '0',
+        'MATCH',
+        'brands:list:*',
+        'COUNT',
+        100,
+      );
       expect(mockUnlink).toHaveBeenCalledTimes(2);
       expect(mockUnlink).toHaveBeenNthCalledWith(1, [
         'brands:list:org1',
@@ -110,7 +115,7 @@ describe('CacheInvalidationService', () => {
     });
 
     it('should stop scanning when cursor returns 0', async () => {
-      mockScan.mockResolvedValueOnce({ cursor: '0', keys: [] });
+      mockScan.mockResolvedValueOnce(['0', []]);
 
       await service.invalidatePattern('brands:*');
 
@@ -120,8 +125,8 @@ describe('CacheInvalidationService', () => {
 
     it('should skip unlink when a scan page returns no keys', async () => {
       mockScan
-        .mockResolvedValueOnce({ cursor: '5', keys: [] })
-        .mockResolvedValueOnce({ cursor: '0', keys: ['brands:list:org1'] });
+        .mockResolvedValueOnce(['5', []])
+        .mockResolvedValueOnce(['0', ['brands:list:org1']]);
       mockUnlink.mockResolvedValue(1);
 
       await service.invalidatePattern('brands:list:*');

@@ -247,6 +247,8 @@ jobs:
           cache-turbo: 'false'
       - name: Architecture Guards
         run: bun run check:architecture
+      - name: Desktop Schema Drift
+        run: bun run check:desktop-schema-drift
       - name: SQL Risk Audit
         run: bun run audit:api:sql:ci
       - name: UI Guards

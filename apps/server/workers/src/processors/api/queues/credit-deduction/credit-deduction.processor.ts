@@ -115,10 +115,13 @@ export class CreditDeductionProcessor extends WorkerHost {
       }
 
       const debounceKey = `low-credits-notified:${organizationId}`;
-      const wasSet = await publisher.set(debounceKey, '1', {
-        EX: LOW_CREDITS_DEBOUNCE_TTL_SECONDS,
-        NX: true,
-      });
+      const wasSet = await publisher.set(
+        debounceKey,
+        '1',
+        'EX',
+        LOW_CREDITS_DEBOUNCE_TTL_SECONDS,
+        'NX',
+      );
 
       if (!wasSet) {
         this.logger.debug(

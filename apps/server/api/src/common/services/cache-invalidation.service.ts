@@ -2,7 +2,7 @@ import { CacheClientService } from '@api/services/cache/services/cache-client.se
 import { CacheTagsService } from '@api/services/cache/services/cache-tags.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import type { RedisClientType } from 'redis';
+import type Redis from 'ioredis';
 
 @Injectable()
 export class CacheInvalidationService {
@@ -14,7 +14,7 @@ export class CacheInvalidationService {
     private readonly logger: LoggerService,
   ) {}
 
-  private get client(): RedisClientType {
+  private get client(): Redis {
     return this.cacheClientService.instance;
   }
 
@@ -50,13 +50,15 @@ export class CacheInvalidationService {
       let totalUnlinked = 0;
 
       do {
-        const reply = await this.client.scan(cursor, {
-          COUNT: 100,
-          MATCH: pattern,
-        });
+        const [nextCursor, keys] = await this.client.scan(
+          cursor,
+          'MATCH',
+          pattern,
+          'COUNT',
+          100,
+        );
 
-        cursor = reply.cursor;
-        const keys = reply.keys as string[];
+        cursor = nextCursor;
 
         if (keys.length) {
           await this.client.unlink(keys);
