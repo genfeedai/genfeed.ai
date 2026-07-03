@@ -67,8 +67,9 @@ describe('FeatureFlagGuard', () => {
       featureFlagService as never,
     );
 
+    // Canonical 404 shape (#1147): NotFoundException('Route') → "Route not found".
     expect(() => guard.canActivate(createContext() as never)).toThrowError(
-      'Not Found',
+      'Route not found',
     );
   });
 
