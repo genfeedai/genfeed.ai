@@ -105,32 +105,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     {
       changeFrequency: 'weekly',
       lastModified: new Date(),
-      priority: 0.9,
-      url: 'https://genfeed.ai/brand-os',
-    },
-    {
-      changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.8,
       url: 'https://genfeed.ai/integrations',
     },
     {
       changeFrequency: 'weekly',
       lastModified: new Date(),
-      priority: 0.4,
-      url: 'https://genfeed.ai/core',
-    },
-    {
-      changeFrequency: 'weekly',
-      lastModified: new Date(),
       priority: 0.8,
       url: 'https://genfeed.ai/cloud',
-    },
-    {
-      changeFrequency: 'weekly',
-      lastModified: new Date(),
-      priority: 0.4,
-      url: 'https://genfeed.ai/host',
     },
     {
       changeFrequency: 'monthly',

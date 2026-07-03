@@ -9,7 +9,7 @@ import { HStack, VStack } from '@ui/layout/stack';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import Link from 'next/link';
-import { HiCloud, HiCurrencyDollar, HiServerStack } from 'react-icons/hi2';
+import { HiBuildingOffice2, HiCloud } from 'react-icons/hi2';
 import { LuArrowRight, LuCheck } from 'react-icons/lu';
 
 const CALENDLY_URL =
@@ -53,20 +53,16 @@ export default function HomePricing(): React.ReactElement {
       <div className="container mx-auto px-6">
         <div className="mb-12 grid gap-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(320px,0.55fr)] lg:items-end">
           <VStack className="gap-4">
-            <HStack className="items-center gap-3">
-              <HiCurrencyDollar className="size-4 gen-icon" />
-              <Text className="gen-label gen-text-accent">Pricing</Text>
-            </HStack>
             <Heading
               as="h2"
-              className="max-w-3xl text-4xl font-serif tracking-normal sm:text-5xl"
+              className="max-w-3xl text-4xl font-semibold leading-tight tracking-[-0.03em] sm:text-5xl"
             >
               Pay for access. Then pay for what you create.
             </Heading>
             <Text className="max-w-2xl text-base leading-7 gen-text-muted">
-              The website now sells the cloud app first. Self-hosting stays
-              available, but the default path is managed: sign up, create, and
-              let usage scale with output.
+              Start with managed Genfeed, then scale into paid seats, approvals,
+              multi-organization workflows, and managed billing when your
+              content operation grows.
             </Text>
           </VStack>
 
@@ -116,7 +112,7 @@ export default function HomePricing(): React.ReactElement {
                     )}
                   >
                     {isTeamCloud ? (
-                      <HiServerStack className="size-4" />
+                      <HiBuildingOffice2 className="size-4" />
                     ) : (
                       <HiCloud className="size-4" />
                     )}
