@@ -8,7 +8,7 @@ describe('BetterAuthIdentityCacheService', () => {
   let service: BetterAuthIdentityCacheService;
   let publisher: {
     get: ReturnType<typeof vi.fn>;
-    setEx: ReturnType<typeof vi.fn>;
+    setex: ReturnType<typeof vi.fn>;
     unlink: ReturnType<typeof vi.fn>;
   };
   let redisService: { getPublisher: ReturnType<typeof vi.fn> };
@@ -29,7 +29,7 @@ describe('BetterAuthIdentityCacheService', () => {
   beforeEach(async () => {
     publisher = {
       get: vi.fn().mockResolvedValue(null),
-      setEx: vi.fn().mockResolvedValue('OK'),
+      setex: vi.fn().mockResolvedValue('OK'),
       unlink: vi.fn().mockResolvedValue(1),
     };
     redisService = { getPublisher: vi.fn().mockReturnValue(publisher) };
@@ -76,7 +76,7 @@ describe('BetterAuthIdentityCacheService', () => {
     it('writes the identity with a TTL', async () => {
       await service.set('user-1', identity);
 
-      expect(publisher.setEx).toHaveBeenCalledWith(
+      expect(publisher.setex).toHaveBeenCalledWith(
         'ba-identity:user-1',
         expect.any(Number),
         JSON.stringify(identity),
@@ -84,7 +84,7 @@ describe('BetterAuthIdentityCacheService', () => {
     });
 
     it('swallows write failures', async () => {
-      publisher.setEx.mockRejectedValue(new Error('redis down'));
+      publisher.setex.mockRejectedValue(new Error('redis down'));
 
       await expect(service.set('user-1', identity)).resolves.toBeUndefined();
       expect(logger.error).toHaveBeenCalled();
