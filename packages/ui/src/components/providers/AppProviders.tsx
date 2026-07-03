@@ -37,9 +37,9 @@ export default function AppProviders({
   enableSystem = false,
   googleAnalyticsId,
   includeLazyModalErrorDebug = true,
-  includeSpeedInsights = true,
+  includeSpeedInsights = false,
   includeToaster = true,
-  includeVercelAnalytics = true,
+  includeVercelAnalytics = false,
   storageKey = THEME_STORAGE_KEY,
 }: AppProvidersProps) {
   const [queryClient] = useState(makeQueryClient);

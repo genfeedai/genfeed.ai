@@ -111,6 +111,8 @@ export default async function RootLayout({ children }: LayoutProps) {
         initialTheme={initialTheme}
         storageKey={THEME_STORAGE_KEY}
         googleAnalyticsId={EnvironmentService.GA_ID}
+        includeSpeedInsights={EnvironmentService.isVercelSpeedInsightsEnabled}
+        includeVercelAnalytics={EnvironmentService.isVercelWebAnalyticsEnabled}
         marketingConsentDefault={EnvironmentService.marketing.consentDefault}
         marketingGtmContainerId={EnvironmentService.marketing.gtmContainerId}
         marketingLinkedinConversionIds={

@@ -235,6 +235,40 @@ export const EnvironmentService = {
     return process.env.NODE_ENV === 'test';
   },
 
+  /** True when running on Vercel's build/runtime (VERCEL=1). */
+  get isVercelRuntime(): boolean {
+    return process.env.VERCEL === '1';
+  },
+
+  /**
+   * Whether to load Vercel Web Analytics (`@vercel/analytics`). Injecting
+   * `<Analytics/>` requests `/_vercel/insights/script.js`, which Vercel only
+   * serves when Web Analytics is enabled in the project dashboard — being on
+   * Vercel is necessary but not sufficient (#1228). Require an explicit opt-in
+   * (`NEXT_PUBLIC_VERCEL_WEB_ANALYTICS_ENABLED=1`) that mirrors the dashboard
+   * toggle so we never request a script that 404s.
+   */
+  get isVercelWebAnalyticsEnabled(): boolean {
+    return (
+      this.isVercelRuntime &&
+      process.env.NEXT_PUBLIC_VERCEL_WEB_ANALYTICS_ENABLED === '1'
+    );
+  },
+
+  /**
+   * Whether to load Vercel Speed Insights (`@vercel/speed-insights`). Injecting
+   * `<SpeedInsights/>` requests `/_vercel/speed-insights/script.js`, served only
+   * when Speed Insights is enabled in the project dashboard. Gate it behind an
+   * explicit opt-in (`NEXT_PUBLIC_VERCEL_SPEED_INSIGHTS_ENABLED=1`) for the same
+   * reason (#1228).
+   */
+  get isVercelSpeedInsightsEnabled(): boolean {
+    return (
+      this.isVercelRuntime &&
+      process.env.NEXT_PUBLIC_VERCEL_SPEED_INSIGHTS_ENABLED === '1'
+    );
+  },
+
   JWT_LABEL: process.env.NEXT_PUBLIC_JWT_LABEL || 'genfeed-jwt',
 
   LOGO_ALT: 'Genfeed.ai',

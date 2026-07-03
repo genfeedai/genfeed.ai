@@ -5,6 +5,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const appProvidersSpy = vi.fn();
 
+const environmentServiceMock = vi.hoisted(() => ({
+  GA_ID: 'ga-test',
+  isVercelSpeedInsightsEnabled: false,
+  isVercelWebAnalyticsEnabled: false,
+}));
+
 vi.mock('@styles/globals.css', () => ({}));
 
 vi.mock('@genfeedai/fonts', () => ({
@@ -23,9 +29,7 @@ vi.mock('@helpers/ui/theme/theme.helper', () => ({
 }));
 
 vi.mock('@services/core/environment.service', () => ({
-  EnvironmentService: {
-    GA_ID: 'ga-test',
-  },
+  EnvironmentService: environmentServiceMock,
 }));
 
 vi.mock('@ui/providers/AppProviders', () => ({
@@ -60,23 +64,25 @@ vi.mock('@ui/shell/metadata', () => ({
 }));
 
 describe('app root layout', () => {
-  const originalVercelEnv = process.env.VERCEL;
+  const originalDesktopShellEnv = process.env.NEXT_PUBLIC_DESKTOP_SHELL;
 
   beforeEach(() => {
     appProvidersSpy.mockClear();
+    environmentServiceMock.isVercelSpeedInsightsEnabled = false;
+    environmentServiceMock.isVercelWebAnalyticsEnabled = false;
+    delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
   });
 
   afterEach(() => {
-    if (originalVercelEnv === undefined) {
-      delete process.env.VERCEL;
+    if (originalDesktopShellEnv === undefined) {
+      delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
       return;
     }
 
-    process.env.VERCEL = originalVercelEnv;
+    process.env.NEXT_PUBLIC_DESKTOP_SHELL = originalDesktopShellEnv;
   });
 
   it('boots the app with a single root AppProviders wrapper', async () => {
-    process.env.VERCEL = '1';
     const { default: RootLayout } = await import('./layout');
 
     render(
@@ -90,16 +96,52 @@ describe('app root layout', () => {
     expect(appProvidersSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         googleAnalyticsId: 'ga-test',
-        includeSpeedInsights: true,
-        includeVercelAnalytics: true,
         initialTheme: 'dark',
         storageKey: 'theme',
       }),
     );
   });
 
-  it('does not inject Vercel providers outside the Vercel runtime', async () => {
-    delete process.env.VERCEL;
+  it('injects Vercel providers only when the products are enabled', async () => {
+    environmentServiceMock.isVercelSpeedInsightsEnabled = true;
+    environmentServiceMock.isVercelWebAnalyticsEnabled = true;
+    const { default: RootLayout } = await import('./layout');
+
+    render(
+      await RootLayout({
+        children: <div>App child</div>,
+      } as never),
+    );
+
+    expect(appProvidersSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        includeSpeedInsights: true,
+        includeVercelAnalytics: true,
+      }),
+    );
+  });
+
+  it('does not inject Vercel providers when the products are not enabled', async () => {
+    const { default: RootLayout } = await import('./layout');
+
+    render(
+      await RootLayout({
+        children: <div>App child</div>,
+      } as never),
+    );
+
+    expect(appProvidersSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        includeSpeedInsights: false,
+        includeVercelAnalytics: false,
+      }),
+    );
+  });
+
+  it('never injects Vercel providers in the desktop shell even when enabled', async () => {
+    process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
+    environmentServiceMock.isVercelSpeedInsightsEnabled = true;
+    environmentServiceMock.isVercelWebAnalyticsEnabled = true;
     const { default: RootLayout } = await import('./layout');
 
     render(
