@@ -450,13 +450,6 @@
         "vitest": "4.1.9",
       },
     },
-    "apps/server/clips": {
-      "name": "@genfeedai/clips",
-      "version": "1.0.0",
-      "dependencies": {
-        "@genfeedai/config": "workspace:*",
-      },
-    },
     "apps/server/discord": {
       "name": "@genfeedai/discord",
       "version": "1.0.0",
@@ -1939,8 +1932,6 @@
     "@genfeedai/cli": ["@genfeedai/cli@workspace:packages/cli"],
 
     "@genfeedai/client": ["@genfeedai/client@workspace:packages/client"],
-
-    "@genfeedai/clips": ["@genfeedai/clips@workspace:apps/server/clips"],
 
     "@genfeedai/config": ["@genfeedai/config@workspace:packages/config"],
 

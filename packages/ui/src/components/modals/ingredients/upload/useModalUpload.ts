@@ -428,6 +428,7 @@ export function useModalUpload({
               selectedFile,
               presignedData.uploadUrl,
               handleProgress,
+              { key: presignedData.s3Key, type: category },
             );
             uploaded = await mediaService.confirmUpload(presignedData.id);
             logger.info(`${url} success (presigned)`, uploaded);

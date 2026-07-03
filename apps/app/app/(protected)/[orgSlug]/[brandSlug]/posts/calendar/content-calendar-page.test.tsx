@@ -8,7 +8,23 @@ import '@testing-library/jest-dom/vitest';
 const findPostsMock = vi.fn();
 const findArticlesMock = vi.fn();
 const pushMock = vi.fn();
+const setDateRangeMock = vi.fn();
 const useAuthedServiceMock = vi.fn();
+const getPostsServiceMock = vi.fn(async () => ({ findAll: findPostsMock }));
+const getArticlesServiceMock = vi.fn(async () => ({
+  findAll: findArticlesMock,
+}));
+const calendarRenderProps: Array<{
+  getEventColor: (item: {
+    id: string;
+    itemType: string;
+    status: string;
+  }) => string;
+  items: Array<{ id: string }>;
+  modal: ReactNode;
+  onDatesChange: (start: Date, end: Date) => void;
+  onEventClick: (item: { id: string }) => void;
+}> = [];
 let useAuthedServiceCallCount = 0;
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -28,7 +44,7 @@ vi.mock('@hooks/utils/use-calendar-week-range/use-calendar-week-range', () => ({
       end: new Date('2026-03-16T00:00:00.000Z'),
       start: new Date('2026-03-10T00:00:00.000Z'),
     },
-    vi.fn(),
+    setDateRangeMock,
   ]),
 }));
 
@@ -51,20 +67,38 @@ vi.mock('next/navigation', () => ({
 vi.mock('@ui/calendar/content-calendar/ContentCalendar', () => ({
   default: ({
     items,
+    getEventColor,
     modal,
+    onDatesChange,
     onEventClick,
   }: {
+    getEventColor: (item: {
+      id: string;
+      itemType: string;
+      status: string;
+    }) => string;
     items: Array<{ id: string }>;
     modal: ReactNode;
+    onDatesChange: (start: Date, end: Date) => void;
     onEventClick: (item: { id: string }) => void;
-  }) => (
-    <div>
-      <button type="button" onClick={() => onEventClick(items[0])}>
-        Open first item
-      </button>
-      {modal}
-    </div>
-  ),
+  }) => {
+    calendarRenderProps.push({
+      getEventColor,
+      items,
+      modal,
+      onDatesChange,
+      onEventClick,
+    });
+
+    return (
+      <div>
+        <button type="button" onClick={() => onEventClick(items[0])}>
+          Open first item
+        </button>
+        {modal}
+      </div>
+    );
+  },
 }));
 
 vi.mock('@pages/posts/detail/PostDetailOverlay', () => ({
@@ -78,15 +112,16 @@ vi.mock('@pages/posts/detail/PostDetailOverlay', () => ({
 describe('ContentCalendarPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    calendarRenderProps.length = 0;
     useAuthedServiceCallCount = 0;
     useAuthedServiceMock.mockImplementation(() => {
       useAuthedServiceCallCount += 1;
 
       if (useAuthedServiceCallCount % 2 === 1) {
-        return vi.fn(async () => ({ findAll: findPostsMock }));
+        return getPostsServiceMock;
       }
 
-      return vi.fn(async () => ({ findAll: findArticlesMock }));
+      return getArticlesServiceMock;
     });
     findPostsMock.mockResolvedValue([
       {
@@ -106,12 +141,39 @@ describe('ContentCalendarPage', () => {
     await waitFor(() => {
       expect(findPostsMock).toHaveBeenCalled();
       expect(findArticlesMock).toHaveBeenCalled();
+      expect(
+        calendarRenderProps[calendarRenderProps.length - 1]?.items,
+      ).toHaveLength(1);
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Open first item' }));
 
     expect(screen.getByTestId('post-detail-overlay')).toHaveTextContent(
       `post-456:${PageScope.PUBLISHER}`,
+    );
+  });
+
+  it('keeps calendar callback props stable after content loads', async () => {
+    render(<ContentCalendarPage />);
+
+    await waitFor(() => {
+      expect(findPostsMock).toHaveBeenCalled();
+      expect(findArticlesMock).toHaveBeenCalled();
+      expect(calendarRenderProps.length).toBeGreaterThan(1);
+    });
+
+    const firstRenderProps = calendarRenderProps[0];
+    const latestRenderProps =
+      calendarRenderProps[calendarRenderProps.length - 1];
+
+    expect(latestRenderProps?.onEventClick).toBe(
+      firstRenderProps?.onEventClick,
+    );
+    expect(latestRenderProps?.onDatesChange).toBe(
+      firstRenderProps?.onDatesChange,
+    );
+    expect(latestRenderProps?.getEventColor).toBe(
+      firstRenderProps?.getEventColor,
     );
   });
 });

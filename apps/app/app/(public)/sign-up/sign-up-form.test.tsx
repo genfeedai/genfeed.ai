@@ -76,8 +76,11 @@ describe('SignUpForm', () => {
       screen.getByRole('button', { name: 'Continue with email' }),
     ).toBeDisabled();
     expect(
-      screen.getByRole('button', { name: 'Continue with GitHub' }),
+      screen.getByRole('button', { name: 'Continue with Google' }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Continue with GitHub' }),
+    ).toBeNull();
   });
 
   it('sends a sign-up magic link with the callback URL', async () => {
@@ -133,19 +136,19 @@ describe('SignUpForm', () => {
     );
   });
 
-  it('starts GitHub sign-up with the callback URL', async () => {
+  it('starts Google sign-up with the callback URL', async () => {
     window.history.replaceState({}, '', '/sign-up?callbackUrl=%2Fonboarding');
 
     render(<SignUpForm />);
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Continue with GitHub' }),
+      screen.getByRole('button', { name: 'Continue with Google' }),
     );
 
     await waitFor(() => {
       expect(authClientMocks.social).toHaveBeenCalledWith({
         callbackURL: absoluteCallback('/onboarding'),
-        provider: 'github',
+        provider: 'google',
       });
     });
   });

@@ -18,6 +18,23 @@ interface FullCalendarHostProps {
   options: CalendarOptions;
 }
 
+interface CalendarDateRange {
+  end: Date;
+  start: Date;
+}
+
+function isSameDateRange(
+  dateRange: CalendarDateRange | null,
+  start: Date,
+  end: Date,
+): boolean {
+  return (
+    dateRange !== null &&
+    dateRange.start.getTime() === start.getTime() &&
+    dateRange.end.getTime() === end.getTime()
+  );
+}
+
 function FullCalendarHost({ options }: FullCalendarHostProps) {
   const [loadError, setLoadError] = useState<Error | null>(null);
   const calendarRef = useRef<FullCalendarInstance | null>(null);
@@ -90,7 +107,8 @@ export default function ContentCalendar<T extends CalendarItem>({
   filterControls,
   modal,
 }: ContentCalendarProps<T>) {
-  const [, setDateRange] = useState<{ start: Date; end: Date } | null>(null);
+  const dateRangeRef = useRef<CalendarDateRange | null>(null);
+  const [, setDateRange] = useState<CalendarDateRange | null>(null);
 
   const events: EventInput[] = useMemo(
     () =>
@@ -127,11 +145,18 @@ export default function ContentCalendar<T extends CalendarItem>({
 
   const handleDatesSet = useCallback(
     (arg: DatesSetArg) => {
-      setDateRange({
-        end: arg.end,
-        start: arg.start,
-      });
-      onDatesChange(arg.start, arg.end);
+      if (isSameDateRange(dateRangeRef.current, arg.start, arg.end)) {
+        return;
+      }
+
+      const nextDateRange = {
+        end: new Date(arg.end),
+        start: new Date(arg.start),
+      };
+
+      dateRangeRef.current = nextDateRange;
+      setDateRange(nextDateRange);
+      onDatesChange(nextDateRange.start, nextDateRange.end);
     },
     [onDatesChange],
   );

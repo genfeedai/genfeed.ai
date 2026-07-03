@@ -143,18 +143,14 @@ test.describe('Login Page', () => {
       const hasGoogleButton = await loginPage.googleButton
         .isVisible()
         .catch(() => false);
-      const hasGithubButton = await loginPage.githubButton
-        .isVisible()
-        .catch(() => false);
-
-      if (!hasGoogleButton && !hasGithubButton) {
+      if (!hasGoogleButton) {
         test.skip(
           true,
           'Social login is not enabled in the current Better Auth configuration',
         );
       }
 
-      expect(hasGoogleButton || hasGithubButton).toBe(true);
+      expect(hasGoogleButton).toBe(true);
     });
   });
 

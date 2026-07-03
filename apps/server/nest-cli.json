@@ -66,21 +66,6 @@
       "sourceRoot": "api/src",
       "type": "application"
     },
-    "clips": {
-      "compilerOptions": {
-        "builder": {
-          "options": {
-            "configPath": "clips/webpack.config.cjs"
-          },
-          "type": "webpack"
-        },
-        "tsConfigPath": "clips/tsconfig.app.json"
-      },
-      "entryFile": "main",
-      "root": "clips",
-      "sourceRoot": "clips/src",
-      "type": "application"
-    },
     "discord": {
       "compilerOptions": {
         "builder": {

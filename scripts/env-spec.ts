@@ -395,30 +395,6 @@ export const ENV_TARGETS: EnvTarget[] = [
     },
   },
   {
-    id: 'clips',
-    path: 'apps/server/clips',
-    generatedFileByMode: {
-      local: 'apps/server/clips/.env.local',
-      staging: 'apps/server/clips/.env.staging',
-      production: 'apps/server/clips/.env.production',
-    },
-    localLegacyFile: 'apps/server/clips/.env',
-    sharedKeys: [
-      'GENFEEDAI_API_KEY',
-      'GENFEEDAI_API_URL',
-      'GENFEEDAI_MICROSERVICES_FILES_URL',
-      'OPENROUTER_API_KEY',
-      'SENTRY_AUTH_TOKEN',
-      'SENTRY_ENVIRONMENT',
-    ],
-    directKeys: [],
-    mappedKeys: {
-      CLIPS_PORT: 'PORT',
-      CLIPS_SENTRY_DSN: 'SENTRY_DSN',
-      CLIPS_SERVICE_NAME: 'SERVICE_NAME',
-    },
-  },
-  {
     id: 'docs',
     path: 'apps/docs',
     generatedFileByMode: {
@@ -712,9 +688,6 @@ export const ROOT_ENV_SECTIONS: EnvSection[] = [
       'TELEGRAM_PORT',
       'TELEGRAM_SERVICE_NAME',
       'TELEGRAM_SENTRY_DSN',
-      'CLIPS_PORT',
-      'CLIPS_SERVICE_NAME',
-      'CLIPS_SENTRY_DSN',
       'OPENROUTER_API_KEY',
     ],
   },

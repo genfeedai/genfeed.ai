@@ -10,7 +10,6 @@
 #   files         3012
 #   workers       3013
 #   mcp           3014
-#   clips         3015
 #   discord       3016
 #   slack         3018
 #   telegram      3019
@@ -208,47 +207,6 @@ services:
       retries: 5
       start_period: 90s
 
-  # ── Clips ───────────────────────────────────────────────────────
-
-  clips:
-    image: ${SERVER_IMAGE:-ghcr.io/genfeedai/genfeed.ai/server:${IMAGE_TAG:-latest}}
-    command: ["bun", "--filter", "@genfeedai/clips", "start:prod"]
-    container_name: genfeed-ai-clips
-    mem_limit: 384m
-    depends_on:
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    ports:
-      - '${CLIPS_PORT:-3015}:${CLIPS_PORT:-3015}'
-    env_file:
-      - ../.env.production
-      - ../apps/server/clips/.env.production
-    environment:
-      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
-      - GENFEEDAI_API_URL=http://api:${API_PORT:-3010}
-      - GENFEEDAI_API_KEY=${GENFEEDAI_API_KEY}
-      - GENFEEDAI_MICROSERVICES_FILES_URL=http://files:${FILES_PORT:-3012}
-      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
-      - NODE_ENV=production
-      - PORT=${CLIPS_PORT:-3015}
-      - SERVICE_NAME=clips
-      - VERSION=1.0.0
-    volumes:
-      - clips-logs:/usr/src/app/apps/server/clips/logs
-    networks:
-      - genfeed-infra
-      - genfeed-api
-    healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:${CLIPS_PORT:-3015}/v1/health']
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 40s
 
   # ── Bot services ────────────────────────────────────────────────
 
@@ -412,8 +370,6 @@ volumes:
   redis-data:
     driver: local
   api-logs:
-    driver: local
-  clips-logs:
     driver: local
   discord-logs:
     driver: local
