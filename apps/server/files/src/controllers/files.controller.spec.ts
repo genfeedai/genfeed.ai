@@ -75,6 +75,7 @@ describe('FilesController', () => {
     addResizeVideoJob: vi.fn().mockResolvedValue(mockJob),
     addReverseJob: vi.fn().mockResolvedValue(mockJob),
     addTextOverlayJob: vi.fn().mockResolvedValue(mockJob),
+    addClipTrimJob: vi.fn().mockResolvedValue(mockJob),
     addTrimJob: vi.fn().mockResolvedValue(mockJob),
     addVideoToAudioJob: vi.fn().mockResolvedValue(mockJob),
     getJob: vi.fn(),
@@ -225,6 +226,7 @@ describe('FilesController', () => {
     mockVideoQueueService.addResizeVideoJob.mockResolvedValue(mockJob);
     mockVideoQueueService.addReverseJob.mockResolvedValue(mockJob);
     mockVideoQueueService.addTextOverlayJob.mockResolvedValue(mockJob);
+    mockVideoQueueService.addClipTrimJob.mockResolvedValue(mockJob);
     mockVideoQueueService.addTrimJob.mockResolvedValue(mockJob);
     mockVideoQueueService.addVideoToAudioJob.mockResolvedValue(mockJob);
     mockVideoQueueService.getJobCounts.mockResolvedValue({
@@ -489,6 +491,18 @@ describe('FilesController', () => {
       const result = await controller.processVideo(body);
 
       expect(videoQueueService.addTrimJob).toHaveBeenCalled();
+      expect(result.jobId).toBe('job_123');
+    });
+
+    it('should process CLIP_TRIM job', async () => {
+      const body = {
+        ...baseBody,
+        params: { endTime: 40, startTime: 10 },
+        type: JOB_TYPES.CLIP_TRIM,
+      };
+      const result = await controller.processVideo(body);
+
+      expect(videoQueueService.addClipTrimJob).toHaveBeenCalled();
       expect(result.jobId).toBe('job_123');
     });
 

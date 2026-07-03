@@ -146,6 +146,10 @@ export class FilesController {
           job = await this.videoQueueService.addTrimJob(jobData);
           break;
 
+        case JOB_TYPES.CLIP_TRIM:
+          job = await this.videoQueueService.addClipTrimJob(jobData);
+          break;
+
         case JOB_TYPES.EXTRACT_FRAMES:
           job = await this.videoQueueService.addExtractFramesJob(jobData);
           break;

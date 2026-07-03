@@ -139,6 +139,10 @@ describe('VideoProcessor', () => {
     webSocketService = new MockWebSocketService();
     loggerService = new MockLoggerService();
 
+    const hookRemixService = {
+      processHookRemix: vi.fn().mockResolvedValue({ success: true }),
+    };
+
     const mockRedisService = {
       publish: vi.fn().mockResolvedValue(1),
       subscribe: vi.fn(),
@@ -167,9 +171,11 @@ describe('VideoProcessor', () => {
 
     redisService = module.get(RedisService);
 
-    // VideoProcessor constructor order: FFmpegService, S3Service, WebSocketService, RedisService, LoggerService
+    // VideoProcessor constructor order: FFmpegService, HookRemixService,
+    // S3Service, WebSocketService, RedisService, LoggerService
     processor = new VideoProcessor(
       ffmpegService as unknown as never,
+      hookRemixService as unknown as never,
       s3Service as unknown as never,
       webSocketService as unknown as never,
       redisService,
@@ -776,6 +782,99 @@ describe('VideoProcessor', () => {
         10,
         expect.any(Function),
       );
+    });
+  });
+
+  // ==========================================================================
+  // handleClipTrim
+  // ==========================================================================
+  describe('handleClipTrim', () => {
+    it('should trim an out-of-range (30s) duration successfully and return url + s3Key', async () => {
+      const data = createMockJobData({
+        params: { endTime: 40, startTime: 10 },
+      });
+      const job = createMockJob(JOB_TYPES.CLIP_TRIM, data);
+
+      const result = await processor.handleClipTrim(job);
+
+      expect(result.success).toBe(true);
+      expect(result.s3Key).toBeDefined();
+      expect(result.url).toBeDefined();
+      expect(ffmpegService.trimVideo).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+        10,
+        30, // duration = endTime - startTime
+        expect.any(Function),
+      );
+    });
+
+    it('should not throw the trim duration guard error for out-of-range durations', async () => {
+      const data = createMockJobData({
+        params: { endTime: 40, startTime: 10 },
+      });
+      const job = createMockJob(JOB_TYPES.CLIP_TRIM, data);
+
+      const result = await processor.handleClipTrim(job);
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should download input and upload the trimmed output via mocked services', async () => {
+      const data = createMockJobData({
+        params: { endTime: 40, s3Key: 'source-video-key', startTime: 10 },
+      });
+      const job = createMockJob(JOB_TYPES.CLIP_TRIM, data);
+
+      await processor.handleClipTrim(job);
+
+      expect(s3Service.downloadFile).toHaveBeenCalled();
+      expect(s3Service.uploadFile).toHaveBeenCalled();
+      expect(s3Service.getPublicUrl).toHaveBeenCalled();
+    });
+
+    it('should download from URL when inputPath provided instead of s3Key', async () => {
+      const data = createMockJobData({
+        params: {
+          endTime: 40,
+          inputPath: 'https://example.com/video.mp4',
+          s3Key: undefined,
+          startTime: 10,
+        },
+      });
+      const job = createMockJob(JOB_TYPES.CLIP_TRIM, data);
+
+      await processor.handleClipTrim(job);
+
+      expect(s3Service.downloadFromUrl).toHaveBeenCalled();
+    });
+
+    it('should cleanup temp files after processing', async () => {
+      const data = createMockJobData({
+        params: { endTime: 40, startTime: 10 },
+      });
+      const job = createMockJob(JOB_TYPES.CLIP_TRIM, data);
+
+      await processor.handleClipTrim(job);
+
+      expect(ffmpegService.cleanupTempFiles).toHaveBeenCalledWith(
+        data.ingredientId,
+        'clip-trim',
+      );
+    });
+
+    it('should handle errors during clip trim', async () => {
+      const data = createMockJobData({
+        params: { endTime: 40, startTime: 10 },
+      });
+      const job = createMockJob(JOB_TYPES.CLIP_TRIM, data);
+      const error = new Error('Clip trim failed');
+      ffmpegService.trimVideo.mockRejectedValueOnce(error);
+
+      await expect(processor.handleClipTrim(job)).rejects.toThrow(
+        'Clip trim failed',
+      );
+      expect(webSocketService.emitError).toHaveBeenCalled();
     });
   });
 
