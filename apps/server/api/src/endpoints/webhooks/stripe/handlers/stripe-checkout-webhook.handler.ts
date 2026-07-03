@@ -6,6 +6,7 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UserEntity } from '@api/collections/users/entities/user.entity';
+import type { UserDocument } from '@api/collections/users/schemas/user.schema';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
@@ -40,7 +41,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { nanoid } from 'nanoid';
 
 type ManagedCheckoutUser = {
-  dbUser: UserEntity;
+  dbUser: UserDocument;
   isNewUser: boolean;
 };
 
@@ -410,7 +411,7 @@ export class StripeCheckoutWebhookHandler {
   /** Mark onboarding complete and capture the Stripe customer id on the user row. */
   private buildManagedCheckoutUserPatch(
     session: StripeCheckoutSession,
-    dbUser: UserEntity,
+    dbUser: UserDocument,
   ): Record<string, unknown> {
     const userPatch: Record<string, unknown> = {
       isOnboardingCompleted: true,
@@ -500,7 +501,7 @@ export class StripeCheckoutWebhookHandler {
 
   /** Resolve (or defensively initialize) the user's org, brand, and settings. */
   private async resolveManagedCheckoutResources(
-    dbUser: UserEntity,
+    dbUser: UserDocument,
   ): Promise<ManagedCheckoutResources> {
     let organization = await this.organizationsService.findOne({
       isDeleted: false,
