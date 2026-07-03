@@ -4,9 +4,51 @@
  *
  * Single client stack — ioredis (also used by BullMQ under the hood):
  * - ioredis: tls = {} (empty object enables TLS)
+ *
+ * Workload isolation (#1186): the four independent Redis consumers — BullMQ
+ * queues, HTTP response cache, Better Auth rate limiting, and the socket.io
+ * fan-out adapter — resolve their connection through {@link RedisWorkload} so
+ * load on one cannot contend for the same logical database / command throughput
+ * as the others. Each workload defaults to a distinct logical database on the
+ * base `REDIS_URL`, and can be pointed at a fully separate instance later via a
+ * per-workload `REDIS_<WORKLOAD>_URL` override — no coordinated multi-service
+ * deploy required, since every override falls back to the shared base config.
  */
 
+/**
+ * The four independent Redis consumers that must not contend for the same
+ * connection/command throughput. `DEFAULT` is the shared application pub/sub bus
+ * (integration events, websocket delivery) whose publisher/subscriber pairing is
+ * matched across services — it stays on the base connection (logical DB 0).
+ */
+export enum RedisWorkload {
+  CACHE = 'CACHE',
+  DEFAULT = 'DEFAULT',
+  QUEUE = 'QUEUE',
+  RATE_LIMIT = 'RATELIMIT',
+  SOCKET = 'SOCKET',
+}
+
+/**
+ * Default logical database index per workload. Queues stay on DB 0 so in-flight
+ * jobs are preserved and every queue-touching service (api/workers/files/clips)
+ * agrees on the same namespace without coordination; the other workloads move to
+ * dedicated indices so a spike or flush on one cannot evict/starve another.
+ */
+const WORKLOAD_DEFAULT_DB: Record<RedisWorkload, number> = {
+  [RedisWorkload.DEFAULT]: 0,
+  [RedisWorkload.QUEUE]: 0,
+  [RedisWorkload.CACHE]: 1,
+  [RedisWorkload.RATE_LIMIT]: 2,
+  [RedisWorkload.SOCKET]: 3,
+};
+
 export interface ParsedRedisConfig {
+  /**
+   * Logical Redis database index. Omitted for the base/default connection so
+   * ioredis uses its own default (DB 0); set explicitly for isolated workloads.
+   */
+  db?: number;
   host: string;
   password?: string;
   port: number;
@@ -70,6 +112,67 @@ export function parseRedisConnection(configService: {
   };
 }
 
+/** Coerce a numeric config value; ignore absent/boolean/non-numeric values. */
+function toOptionalNumber(
+  value: string | boolean | number | undefined,
+): number | undefined {
+  if (
+    value === undefined ||
+    value === null ||
+    value === '' ||
+    typeof value === 'boolean'
+  ) {
+    return undefined;
+  }
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+/**
+ * Parse the Redis connection for a specific {@link RedisWorkload}, applying its
+ * isolation boundary. Resolution order for the endpoint:
+ * - `REDIS_<WORKLOAD>_URL` (e.g. `REDIS_QUEUE_URL`) if set — lets prod point a
+ *   workload at a fully separate instance/cluster;
+ * - otherwise the shared base `REDIS_URL`.
+ *
+ * The logical database index resolves from `REDIS_<WORKLOAD>_DB` if set,
+ * otherwise the workload's default index ({@link WORKLOAD_DEFAULT_DB}). Password
+ * and TLS fall back to the base config when the per-workload URL omits them, so
+ * a single injected `REDIS_PASSWORD` secret still covers every workload.
+ *
+ * The `DEFAULT` workload is intentionally identical to {@link parseRedisConnection}
+ * (base connection, DB 0, no explicit `db`) so the shared application pub/sub bus
+ * stays exactly where matched publishers/subscribers already expect it.
+ */
+export function parseRedisConnectionForWorkload(
+  configService: {
+    get: (key: string) => string | boolean | number | undefined;
+  },
+  workload: RedisWorkload,
+): ParsedRedisConfig {
+  if (workload === RedisWorkload.DEFAULT) {
+    return parseRedisConnection(configService);
+  }
+
+  const overrideUrl = configService.get(`REDIS_${workload}_URL`);
+  const base = parseRedisConnection({
+    get: (key) => {
+      // Route REDIS_URL to the per-workload override when present; every other
+      // key (REDIS_PASSWORD, REDIS_TLS) still falls back to the base config.
+      if (key === 'REDIS_URL' && overrideUrl) {
+        return overrideUrl;
+      }
+      return configService.get(key);
+    },
+  });
+
+  const db =
+    toOptionalNumber(configService.get(`REDIS_${workload}_DB`)) ??
+    WORKLOAD_DEFAULT_DB[workload];
+
+  return { ...base, db };
+}
+
 /**
  * Build ioredis client options (for pub/sub, cache, direct clients, etc.)
  * Keep REDIS_PASSWORD separate from REDIS_URL so production can inject the
@@ -85,6 +188,7 @@ export function buildIoRedisClientOptions(
 ) {
   return {
     connectTimeout: options.connectTimeout ?? 3_000,
+    ...(config.db !== undefined && { db: config.db }),
     host: config.host,
     lazyConnect: options.lazyConnect ?? true,
     ...(config.password && { password: config.password }),
@@ -102,6 +206,7 @@ export function buildBullMQConnection(config: ParsedRedisConfig) {
   return {
     host: config.host,
     port: config.port,
+    ...(config.db !== undefined && { db: config.db }),
     ...(config.password && { password: config.password }),
     connectTimeout: 3_000,
     enableOfflineQueue: false,

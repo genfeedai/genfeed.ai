@@ -1,148 +1,20 @@
+import { WorkloadRedisClientService } from '@api/common/services/workload-redis-client.service';
 import { ConfigService } from '@api/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  buildIoRedisClientOptions,
-  parseRedisConnection,
-} from '@libs/redis/redis-connection.utils';
-import {
-  Injectable,
-  type OnModuleDestroy,
-  type OnModuleInit,
-} from '@nestjs/common';
-import Redis from 'ioredis';
+import { RedisWorkload } from '@libs/redis/redis-connection.utils';
+import { Injectable } from '@nestjs/common';
 
+/**
+ * ioredis client dedicated to the HTTP response cache workload (#1186).
+ *
+ * Isolated on its own logical DB (`REDIS_CACHE_DB`, default 1) — or a dedicated
+ * instance via `REDIS_CACHE_URL` — so a cache tag-invalidation storm (SCAN +
+ * UNLINK fan-out) cannot contend with queue, auth rate-limit, or socket.io
+ * throughput. Lifecycle and reconnect behavior live in the shared base.
+ */
 @Injectable()
-export class CacheClientService implements OnModuleInit, OnModuleDestroy {
-  private readonly client: Redis;
-  private readonly constructorName = this.constructor.name;
-
-  private static readonly MAX_RECONNECT_RETRIES = 10;
-  private static readonly MAX_RECONNECT_DELAY_MS = 30_000;
-  private static readonly DISCONNECT_TIMEOUT_MS = 3_000;
-  private static readonly FORCE_DISCONNECT_TIMEOUT_MS = 500;
-
-  constructor(
-    private readonly configService: ConfigService,
-    private readonly logger: LoggerService,
-  ) {
-    const config = parseRedisConnection(this.configService);
-
-    this.client = new Redis(
-      buildIoRedisClientOptions(config, {
-        connectTimeout: 3_000,
-        retryStrategy: (retries: number) => {
-          if (retries >= CacheClientService.MAX_RECONNECT_RETRIES) {
-            this.logger.error(
-              `${this.constructorName} max reconnect attempts reached (${retries}), giving up`,
-            );
-            return null;
-          }
-          const delay = Math.min(
-            100 * 2 ** retries,
-            CacheClientService.MAX_RECONNECT_DELAY_MS,
-          );
-          this.logger.warn(
-            `${this.constructorName} reconnecting in ${delay}ms (attempt ${retries + 1}/${CacheClientService.MAX_RECONNECT_RETRIES})`,
-          );
-          return delay;
-        },
-      }),
-    );
-
-    this.client.on('error', (error: Error) => {
-      this.logger.error(`${this.constructorName} Redis client error`, error);
-    });
-
-    this.client.on('connect', () => {
-      this.logger.log(`${this.constructorName} Redis client connected`);
-    });
-
-    this.client.on('ready', () => {
-      this.logger.log(`${this.constructorName} Redis client ready`);
-    });
-  }
-
-  get isReady(): boolean {
-    return this.client.status === 'ready';
-  }
-
-  get instance(): Redis {
-    return this.client;
-  }
-
-  async onModuleInit(): Promise<void> {
-    const CONNECT_TIMEOUT = 3_000;
-    try {
-      await Promise.race([
-        this.client.connect(),
-        new Promise((_, reject) =>
-          setTimeout(
-            () => reject(new Error('Redis connection timeout')),
-            CONNECT_TIMEOUT,
-          ),
-        ),
-      ]);
-      this.logger.log(`${this.constructorName} initialized successfully`);
-    } catch (error: unknown) {
-      this.logger.warn(
-        `${this.constructorName} failed to connect - cache disabled`,
-        error,
-      );
-    }
-  }
-
-  async onModuleDestroy(): Promise<void> {
-    try {
-      // Remove all event listeners to prevent memory leaks
-      this.client.removeAllListeners();
-      await this.withTimeout(
-        this.client.quit(),
-        CacheClientService.DISCONNECT_TIMEOUT_MS,
-        'Redis disconnect timeout',
-      );
-      this.logger.log(`${this.constructorName} disconnected`);
-    } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} disconnect error`, error);
-      await this.forceCloseClient();
-    }
-  }
-
-  private async forceCloseClient(): Promise<void> {
-    try {
-      await this.withTimeout(
-        Promise.resolve(this.client.disconnect()),
-        CacheClientService.FORCE_DISCONNECT_TIMEOUT_MS,
-        'Redis force disconnect timeout',
-      );
-    } catch (error: unknown) {
-      this.logger.error(
-        `${this.constructorName} force disconnect error`,
-        error,
-      );
-    }
-  }
-
-  private async withTimeout<T>(
-    operation: Promise<T>,
-    timeoutMs: number,
-    timeoutMessage: string,
-  ): Promise<T> {
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
-
-    try {
-      return await Promise.race([
-        operation,
-        new Promise<never>((_resolve, reject) => {
-          timeoutId = setTimeout(
-            () => reject(new Error(timeoutMessage)),
-            timeoutMs,
-          );
-        }),
-      ]);
-    } finally {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    }
+export class CacheClientService extends WorkloadRedisClientService {
+  constructor(configService: ConfigService, logger: LoggerService) {
+    super(configService, logger, RedisWorkload.CACHE);
   }
 }

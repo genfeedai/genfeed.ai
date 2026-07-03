@@ -39,6 +39,16 @@ export interface IEnvConfig {
   REDIS_URL?: string;
   REDIS_PASSWORD?: string;
   REDIS_TLS?: boolean;
+  // Per-workload isolation overrides (#1186) — each falls back to REDIS_URL / a
+  // per-workload default logical DB when unset.
+  REDIS_QUEUE_URL?: string;
+  REDIS_QUEUE_DB?: number;
+  REDIS_CACHE_URL?: string;
+  REDIS_CACHE_DB?: number;
+  REDIS_RATELIMIT_URL?: string;
+  REDIS_RATELIMIT_DB?: number;
+  REDIS_SOCKET_URL?: string;
+  REDIS_SOCKET_DB?: number;
 
   // === AWS / S3 ===
   AWS_ACCESS_KEY_ID?: string;

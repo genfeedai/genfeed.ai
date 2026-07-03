@@ -11,7 +11,8 @@ import { LoggerModule } from '@libs/logger/logger.module';
 import { RedisModule } from '@libs/redis/redis.module';
 import {
   buildBullMQConnection,
-  parseRedisConnection,
+  parseRedisConnectionForWorkload,
+  RedisWorkload,
 } from '@libs/redis/redis-connection.utils';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
@@ -37,7 +38,10 @@ import { ScheduleModule } from '@nestjs/schedule';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const config = parseRedisConnection(configService);
+        const config = parseRedisConnectionForWorkload(
+          configService,
+          RedisWorkload.QUEUE,
+        );
         return { connection: buildBullMQConnection(config) };
       },
     }),

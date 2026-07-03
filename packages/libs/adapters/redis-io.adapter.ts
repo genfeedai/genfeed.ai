@@ -2,7 +2,8 @@ import type { Server as HttpServer } from 'node:http';
 import type { LoggerService } from '@libs/logger/logger.service';
 import {
   buildIoRedisClientOptions,
-  parseRedisConnection,
+  parseRedisConnectionForWorkload,
+  RedisWorkload,
 } from '@libs/redis/redis-connection.utils';
 import type { INestApplicationContext } from '@nestjs/common';
 import { IoAdapter } from '@nestjs/platform-socket.io';
@@ -10,17 +11,28 @@ import { createAdapter } from '@socket.io/redis-adapter';
 import Redis from 'ioredis';
 import { Server, type ServerOptions } from 'socket.io';
 
+/** Minimal config accessor — satisfied by ConfigService and plain shims alike. */
+type RedisConfigAccessor = {
+  get: (key: string) => string | boolean | number | undefined;
+};
+
 export class RedisIoAdapter extends IoAdapter {
   private readonly constructorName: string = String(this.constructor.name);
   private adapterConstructor!: ReturnType<typeof createAdapter>;
   private appRef: INestApplicationContext | undefined;
 
+  /**
+   * @param configAccessor A `{ get }` accessor (e.g. the service ConfigService)
+   *   used to resolve the SOCKET workload connection. Reading through the config
+   *   accessor — rather than pre-extracted discrete values — lets the socket.io
+   *   fan-out honor its `REDIS_SOCKET_URL` / `REDIS_SOCKET_DB` isolation overrides
+   *   (#1186) so it can be pointed at a dedicated instance/DB independent of the
+   *   queue, cache, and rate-limit workloads.
+   */
   constructor(
     app: INestApplicationContext | undefined,
-    private readonly redisUrl: string,
+    private readonly configAccessor: RedisConfigAccessor,
     private readonly loggerService: LoggerService,
-    private readonly redisTls: boolean = false,
-    private readonly redisPassword?: string,
   ) {
     // Don't pass app to parent - we'll handle server creation ourselves
     super();
@@ -28,20 +40,10 @@ export class RedisIoAdapter extends IoAdapter {
   }
 
   async connectToRedis(): Promise<void> {
-    const config = parseRedisConnection({
-      get: (key) => {
-        if (key === 'REDIS_URL') {
-          return this.redisUrl;
-        }
-        if (key === 'REDIS_TLS') {
-          return this.redisTls;
-        }
-        if (key === 'REDIS_PASSWORD') {
-          return this.redisPassword;
-        }
-        return undefined;
-      },
-    });
+    const config = parseRedisConnectionForWorkload(
+      this.configAccessor,
+      RedisWorkload.SOCKET,
+    );
 
     const pubClient = new Redis(buildIoRedisClientOptions(config));
     const subClient = pubClient.duplicate();
