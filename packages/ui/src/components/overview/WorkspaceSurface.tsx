@@ -2,9 +2,12 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { HTMLAttributes, ReactElement, ReactNode } from 'react';
 
 type WorkspaceSurfaceDensity = 'compact' | 'comfortable';
-type WorkspaceSurfaceTone = 'default' | 'muted' | 'elevated';
+export type WorkspaceSurfaceTone = 'default' | 'muted' | 'elevated' | 'card';
 
 const FRAME_TONE_CLASSES: Record<WorkspaceSurfaceTone, string> = {
+  // Canonical dashboard card surface (DESIGN.md §Card): bg-card + inset
+  // shadow-border instead of the shell-panel drop shadow.
+  card: 'ship-ui rounded-card bg-card text-card-foreground shadow-border',
   default:
     'ship-ui gen-shell-panel rounded-md border-white/[0.06] bg-background/88 shadow-[0_28px_72px_-48px_rgba(0,0,0,0.92)]',
   elevated:
@@ -53,7 +56,10 @@ export function WorkspaceSurface({
       {...props}
       className={cn(
         framed
-          ? cn('rounded', FRAME_TONE_CLASSES[tone])
+          ? cn(
+              tone === 'card' ? 'rounded-card' : 'rounded',
+              FRAME_TONE_CLASSES[tone],
+            )
           : 'ship-ui border-0 bg-transparent shadow-none',
         className,
       )}

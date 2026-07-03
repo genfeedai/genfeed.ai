@@ -1,5 +1,11 @@
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import WorkspacePageContent from './workspace-page';
 
@@ -419,5 +425,16 @@ describe('WorkspacePageContent', () => {
     expect(screen.getByText('Operator tools')).toBeVisible();
     expect(screen.getByLabelText('Studio Image')).toBeVisible();
     expect(screen.getByLabelText('Studio Video')).toBeVisible();
+  });
+
+  it('wraps the overview inbox preview in the canonical dashboard card', async () => {
+    render(<WorkspacePageContent section="overview" />);
+
+    const inbox = await screen.findByTestId('workspace-inbox');
+
+    expect(within(inbox).getByText('Inbox')).toBeInTheDocument();
+    expect(
+      within(inbox).getByText('Latest items waiting on your review.'),
+    ).toBeInTheDocument();
   });
 });

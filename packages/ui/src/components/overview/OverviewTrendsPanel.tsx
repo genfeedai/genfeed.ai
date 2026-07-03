@@ -5,7 +5,10 @@ import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useMemo } from 'react';
 import { HiOutlineArrowRight } from 'react-icons/hi2';
-import { WorkspaceSurface } from './WorkspaceSurface';
+import {
+  WorkspaceSurface,
+  type WorkspaceSurfaceTone,
+} from './WorkspaceSurface';
 
 const PLATFORM_BADGE_CLASSES: Record<string, string> = {
   instagram: 'bg-fuchsia-500/12 text-fuchsia-300 border-fuchsia-500/20',
@@ -35,12 +38,15 @@ export interface OverviewTrendsPanelProps {
   isLoading: boolean;
   trends: TrendItem[];
   viewAllHref: string;
+  /** Surface tone; defaults to the canonical dashboard card surface */
+  tone?: WorkspaceSurfaceTone;
 }
 
 export function OverviewTrendsPanel({
   isLoading,
   trends,
   viewAllHref,
+  tone = 'card',
 }: OverviewTrendsPanelProps) {
   const topTrends = useMemo(
     () =>
@@ -52,7 +58,7 @@ export function OverviewTrendsPanel({
     <WorkspaceSurface
       eyebrow="Social Trends"
       title="Research Trends"
-      tone="default"
+      tone={tone}
       className="flex h-full flex-col gap-4"
       data-testid="overview-trends-panel"
       actions={
