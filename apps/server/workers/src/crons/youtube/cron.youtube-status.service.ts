@@ -1,12 +1,19 @@
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import {
+  SYSTEM_WORKFLOW_ACTION_IDS,
+  SystemWorkflowProvenanceService,
+} from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
-import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostStatus,
+  WorkflowExecutionTrigger,
+} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 
 const YOUTUBE_PRIVACY_STATUS_MAP: Record<string, PostStatus> = {
   private: PostStatus.PRIVATE,
@@ -22,14 +29,15 @@ export class CronYoutubeStatusService {
     private readonly logger: LoggerService,
     private readonly postsService: PostsService,
     private readonly youtubeService: YoutubeService,
+    private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
   ) {}
 
   /**
-   * Check status of non-public YouTube videos every 15 minutes
-   * Syncs database status with actual YouTube video status
-   * Stops checking once video becomes PUBLIC (final state)
+   * Checks status of non-public YouTube videos and syncs database status
+   * with the actual YouTube video status. Stops checking once a video
+   * becomes PUBLIC (final state). Fired daily at 1am UTC by the
+   * system-sweeps BullMQ Job Scheduler (SystemSweepsProcessor).
    */
-  @Cron(CronExpression.EVERY_DAY_AT_1AM)
   async checkScheduledYoutubeVideos() {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(`${url} started`);
@@ -95,7 +103,7 @@ export class CronYoutubeStatusService {
 
     try {
       if (!post.credential) {
-        this.logger.warn(`${url} post ${post.id} has no credential`);
+        this.logger.warn(`${url} post ${post._id} has no credential`);
         return;
       }
 
@@ -106,7 +114,7 @@ export class CronYoutubeStatusService {
         post.externalId,
       );
 
-      this.logger.log(`${url} post ${post.id} video ${post.externalId}`, {
+      this.logger.log(`${url} post ${post._id} video ${post.externalId}`, {
         privacyStatus: videoStatus.privacyStatus,
         publishAt: videoStatus.publishAt,
       });
@@ -126,13 +134,20 @@ export class CronYoutubeStatusService {
           updateData.publicationDate = new Date();
         }
 
-        await this.postsService.patch(post.id.toString(), updateData);
+        await this.recordStatusTransition(
+          post,
+          targetStatus,
+          `YouTube reports ${videoStatus.privacyStatus} - syncing post from ${post.status} to ${targetStatus}`,
+          async () => {
+            await this.postsService.patch(post.id.toString(), updateData);
+          },
+        );
 
         this.logger.log(
           `${url} YouTube video ${post.externalId} status synced`,
           {
             newStatus: targetStatus,
-            postId: post.id,
+            postId: post._id,
             previousStatus: post.status,
             youtubePrivacyStatus: videoStatus.privacyStatus,
           },
@@ -157,7 +172,7 @@ export class CronYoutubeStatusService {
               hoursSinceScheduled: Math.round(
                 timeSinceScheduled / (60 * 60 * 1000),
               ),
-              postId: post.id,
+              postId: post._id,
               publishAt: videoStatus.publishAt,
               scheduledDate: scheduledDate.toISOString(),
             },
@@ -174,20 +189,71 @@ export class CronYoutubeStatusService {
       ) {
         this.logger.warn(
           `${url} video ${post.externalId} not found on YouTube, marking post as deleted`,
-          { postId: post.id },
+          { postId: post._id },
         );
 
-        await this.postsService.patch(post.id.toString(), {
-          isDeleted: true,
-        });
+        await this.recordStatusTransition(
+          post,
+          'deleted',
+          'Video no longer exists on YouTube - marking post as deleted',
+          async () => {
+            await this.postsService.patch(post.id.toString(), {
+              isDeleted: true,
+            });
+          },
+        );
 
         return;
       }
 
       this.logger.error(
-        `${url} failed to check status for post ${post.id}`,
+        `${url} failed to check status for post ${post._id}`,
         error,
       );
+    }
+  }
+
+  /**
+   * Applies a post status transition inside a system workflow execution so
+   * the reconciliation is tenant-inspectable (issue #1092). Provenance or
+   * patch failures are logged and left for the next daily sweep - non-public
+   * posts stay in the check window for 7 days.
+   */
+  private async recordStatusTransition(
+    post: PostEntity,
+    outcome: string,
+    detail: string,
+    transition: () => Promise<void>,
+  ): Promise<void> {
+    try {
+      await this.systemWorkflowProvenanceService.runAction(
+        {
+          actionType: 'youtube-status-reconciliation',
+          canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.YOUTUBE_STATUS_RECONCILIATION,
+          description:
+            'Syncs recent YouTube video visibility with the actual status reported by YouTube.',
+          inputValues: {
+            detail,
+            outcome,
+            postId: String(post._id),
+            videoId: post.externalId,
+          },
+          label: 'YouTube Status Reconciliation',
+          metadata: { platform: CredentialPlatform.YOUTUBE },
+          organizationId: post.organization.toString(),
+          schedule: '0 1 * * *',
+          source: 'CronYoutubeStatusService.checkPostStatus',
+          trigger: WorkflowExecutionTrigger.SCHEDULED,
+          userId: post.user?.toString(),
+        },
+        transition,
+      );
+    } catch (error: unknown) {
+      this.logger.error('Failed to record YouTube status transition', {
+        error: (error as Error)?.message,
+        outcome,
+        postId: String(post._id),
+      });
     }
   }
 }

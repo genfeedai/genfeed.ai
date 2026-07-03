@@ -1,14 +1,49 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import {
+  SYSTEM_WORKFLOW_ACTION_IDS,
+  SystemWorkflowProvenanceService,
+} from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
+import { PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronTiktokStatusService } from '@workers/crons/tiktok/cron.tiktok-status.service';
 
 describe('CronTiktokStatusService', () => {
   let service: CronTiktokStatusService;
+  let postsService: {
+    findAll: ReturnType<typeof vi.fn>;
+    patch: ReturnType<typeof vi.fn>;
+  };
+  let tiktokService: {
+    getPublishStatus: ReturnType<typeof vi.fn>;
+    refreshToken: ReturnType<typeof vi.fn>;
+  };
+  let provenanceService: { runAction: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
+    postsService = {
+      findAll: vi.fn().mockResolvedValue({ docs: [] }),
+      patch: vi.fn(),
+    };
+    tiktokService = {
+      getPublishStatus: vi.fn(),
+      refreshToken: vi.fn(),
+    };
+    provenanceService = {
+      runAction: vi.fn(
+        async (_input: unknown, action: () => Promise<unknown>) => ({
+          provenance: {
+            executionId: 'execution-1',
+            workflowId: 'workflow-1',
+            workflowLabel: 'TikTok Status Reconciliation',
+          },
+          result: await action(),
+        }),
+      ),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CronTiktokStatusService,
@@ -22,23 +57,21 @@ describe('CronTiktokStatusService', () => {
         },
         {
           provide: PostsService,
-          useValue: {
-            findAll: vi.fn().mockResolvedValue({ docs: [] }),
-            patch: vi.fn(),
-          },
+          useValue: postsService,
         },
         {
           provide: TiktokService,
-          useValue: {
-            getPublishStatus: vi.fn(),
-            refreshToken: vi.fn(),
-          },
+          useValue: tiktokService,
         },
         {
           provide: CredentialsService,
           useValue: {
             patch: vi.fn(),
           },
+        },
+        {
+          provide: SystemWorkflowProvenanceService,
+          useValue: provenanceService,
         },
       ],
     }).compile();
@@ -48,5 +81,99 @@ describe('CronTiktokStatusService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  it('records verified publications through the system workflow provenance service', async () => {
+    const post = {
+      _id: 'post-1',
+      brand: 'brand-1',
+      credential: {
+        _id: 'credential-1',
+        accessToken: 'encrypted-token',
+        externalHandle: 'creator',
+        isConnected: true,
+      },
+      externalId: 'publish-1',
+      organization: 'org-1',
+      updatedAt: new Date().toISOString(),
+      user: 'user-1',
+    };
+    postsService.findAll.mockResolvedValue({ docs: [post] });
+    // Empty access token bypasses EncryptionUtil.decrypt (no key needed in tests)
+    tiktokService.refreshToken.mockResolvedValue({ accessToken: '' });
+    tiktokService.getPublishStatus.mockResolvedValue({
+      publicly_available_post_id: ['tiktok-post-1'],
+      status: 'PUBLISH_COMPLETE',
+    });
+
+    await service.checkPendingTiktokPosts();
+
+    expect(provenanceService.runAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.TIKTOK_STATUS_RECONCILIATION,
+        organizationId: 'org-1',
+      }),
+      expect.any(Function),
+    );
+    expect(postsService.patch).toHaveBeenCalledWith(
+      'post-1',
+      expect.objectContaining({
+        externalId: 'tiktok-post-1',
+        status: PostStatus.PUBLIC,
+      }),
+    );
+  });
+
+  it('marks timed-out pending posts failed inside a provenance execution', async () => {
+    const post = {
+      _id: 'post-2',
+      brand: 'brand-1',
+      credential: {
+        _id: 'credential-1',
+        accessToken: 'encrypted-token',
+        isConnected: true,
+      },
+      externalId: 'publish-2',
+      organization: 'org-1',
+      // Became PENDING 48h ago - beyond the 24h max age
+      updatedAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+      user: 'user-1',
+    };
+    postsService.findAll.mockResolvedValue({ docs: [post] });
+
+    await service.checkPendingTiktokPosts();
+
+    expect(provenanceService.runAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.TIKTOK_STATUS_RECONCILIATION,
+      }),
+      expect.any(Function),
+    );
+    expect(postsService.patch).toHaveBeenCalledWith('post-2', {
+      status: PostStatus.FAILED,
+    });
+    expect(tiktokService.getPublishStatus).not.toHaveBeenCalled();
+  });
+
+  it('continues the sweep when provenance recording fails', async () => {
+    const post = {
+      _id: 'post-3',
+      brand: 'brand-1',
+      credential: {
+        _id: 'credential-1',
+        accessToken: 'encrypted-token',
+        isConnected: true,
+      },
+      externalId: 'publish-3',
+      organization: 'org-1',
+      updatedAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+      user: 'user-1',
+    };
+    postsService.findAll.mockResolvedValue({ docs: [post] });
+    provenanceService.runAction.mockRejectedValue(
+      new Error('provenance unavailable'),
+    );
+
+    await expect(service.checkPendingTiktokPosts()).resolves.toBeUndefined();
   });
 });

@@ -10,6 +10,7 @@ import { UpdateUserOnboardingDto } from '@api/collections/users/dto/update-user-
 import { UserEntity } from '@api/collections/users/entities/user.entity';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
+import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -80,6 +81,7 @@ export class UsersController {
     private readonly membersService: MembersService,
     private readonly requestContextCacheService: RequestContextCacheService,
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
+    private readonly betterAuthIdentityCacheService: BetterAuthIdentityCacheService,
   ) {}
 
   private readObjectRecord(value: unknown): Record<string, unknown> {
@@ -152,6 +154,7 @@ export class UsersController {
     await Promise.all([
       this.requestContextCacheService.invalidateForUser(userId),
       this.accessBootstrapCacheService.invalidateForUser(userId),
+      this.betterAuthIdentityCacheService.invalidateForUser(userId),
     ]);
   }
 

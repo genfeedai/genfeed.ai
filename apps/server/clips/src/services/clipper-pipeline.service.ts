@@ -266,8 +266,8 @@ export class ClipperPipelineService {
   private async createClipResults(
     project: IClipProject,
     highlights: IHighlight[],
-  ): Promise<Array<{ _id: string }>> {
-    const results: Array<{ _id: string }> = [];
+  ): Promise<Array<{ id: string }>> {
+    const results: Array<{ id: string }> = [];
 
     for (let i = 0; i < highlights.length; i++) {
       const highlight = highlights[i];

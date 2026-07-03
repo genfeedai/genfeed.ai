@@ -26,6 +26,10 @@ vi.mock('next/link', () => ({
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/research/socials',
+  useRouter: () => ({
+    prefetch: vi.fn(),
+    push: vi.fn(),
+  }),
   useSearchParams: () => ({
     toString: () => '',
   }),
@@ -35,35 +39,35 @@ describe('SocialsNavigation', () => {
   it('renders all expected tab links', () => {
     render(<SocialsNavigation active="overview" />);
 
-    expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute(
       'href',
       '/research/socials',
     );
-    expect(screen.getByRole('tab', { name: 'X' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'X' })).toHaveAttribute(
       'href',
       '/research/twitter',
     );
-    expect(screen.getByRole('tab', { name: 'Instagram' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Instagram' })).toHaveAttribute(
       'href',
       '/research/instagram',
     );
-    expect(screen.getByRole('tab', { name: 'YouTube' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'YouTube' })).toHaveAttribute(
       'href',
       '/research/youtube',
     );
-    expect(screen.getByRole('tab', { name: 'TikTok' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'TikTok' })).toHaveAttribute(
       'href',
       '/research/tiktok',
     );
-    expect(screen.getByRole('tab', { name: 'LinkedIn' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'LinkedIn' })).toHaveAttribute(
       'href',
       '/research/linkedin',
     );
-    expect(screen.getByRole('tab', { name: 'Reddit' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Reddit' })).toHaveAttribute(
       'href',
       '/research/reddit',
     );
-    expect(screen.getByRole('tab', { name: 'Pinterest' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Pinterest' })).toHaveAttribute(
       'href',
       '/research/pinterest',
     );
@@ -72,42 +76,40 @@ describe('SocialsNavigation', () => {
   it('marks the overview tab as active on the socials landing page', () => {
     render(<SocialsNavigation active="overview" />);
 
-    expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute(
       'data-state',
       'active',
     );
-    expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute(
-      'aria-selected',
-      'true',
+    expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute(
+      'aria-current',
+      'page',
     );
-    expect(screen.getByRole('tab', { name: 'X' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'X' })).toHaveAttribute(
       'data-state',
       'inactive',
     );
-    expect(screen.getByRole('tab', { name: 'X' })).toHaveAttribute(
-      'aria-selected',
-      'false',
+    expect(screen.getByRole('link', { name: 'X' })).not.toHaveAttribute(
+      'aria-current',
     );
   });
 
   it('marks the matching platform tab as active on platform pages', () => {
     render(<SocialsNavigation active="twitter" />);
 
-    expect(screen.getByRole('tab', { name: 'X' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'X' })).toHaveAttribute(
       'data-state',
       'active',
     );
-    expect(screen.getByRole('tab', { name: 'X' })).toHaveAttribute(
-      'aria-selected',
-      'true',
+    expect(screen.getByRole('link', { name: 'X' })).toHaveAttribute(
+      'aria-current',
+      'page',
     );
-    expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute(
       'data-state',
       'inactive',
     );
-    expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute(
-      'aria-selected',
-      'false',
+    expect(screen.getByRole('link', { name: 'Overview' })).not.toHaveAttribute(
+      'aria-current',
     );
   });
 });

@@ -13,6 +13,7 @@ import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
+import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
 import { type ChangeEvent, useMemo, useState } from 'react';
@@ -91,153 +92,156 @@ export default function TrendsList() {
   const currentError = error || videosError;
 
   return (
-    <Container
-      description="Actual posts and videos trending across platforms, ready to remix."
-      icon={HiOutlineArrowTrendingUp}
-      label="Trending Content"
-      right={
-        <ButtonRefresh isRefreshing={isRefreshing} onClick={handleRefresh} />
-      }
-    >
-      <div className="mb-6">
-        <SocialsNavigation active="overview" />
-      </div>
+    <>
+      <SectionTopbar
+        title="Trending Content"
+        subtitle="Actual posts and videos trending across platforms, ready to remix."
+        icon={HiOutlineArrowTrendingUp}
+        actions={
+          <ButtonRefresh isRefreshing={isRefreshing} onClick={handleRefresh} />
+        }
+        tabs={<SocialsNavigation active="overview" />}
+      />
 
-      {!isLoading && !currentError ? (
-        <div className="mb-5 flex flex-wrap items-baseline gap-x-6 gap-y-2">
-          <div className="flex items-baseline gap-2">
-            <span className="text-[11px] uppercase tracking-[0.18em] text-foreground/40">
-              Total Posts
-            </span>
-            <span className="text-lg font-semibold text-foreground">
-              {summary.totalItems ?? items.length}
-            </span>
-          </div>
-          <div className="hidden h-4 w-px bg-white/[0.08] sm:block" />
-          <div className="flex items-baseline gap-2">
-            <span className="text-[11px] uppercase tracking-[0.18em] text-foreground/40">
-              Connected
-            </span>
-            <span className="text-lg font-semibold text-foreground">
-              {summary.connectedPlatforms.length}
-            </span>
-          </div>
-          <div className="hidden h-4 w-px bg-white/[0.08] sm:block" />
-          <div className="flex items-baseline gap-2">
-            <span className="text-[11px] uppercase tracking-[0.18em] text-foreground/40">
-              Trend Topics
-            </span>
-            <span className="text-lg font-semibold text-foreground">
-              {summary.totalTrends}
-            </span>
-          </div>
-        </div>
-      ) : null}
-
-      {currentError && !isLoading ? (
-        <Alert type={AlertCategory.ERROR}>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="space-y-1">
-              <div className="font-medium">Failed to load the content feed</div>
-              <div className="text-xs text-foreground/70">
-                Retry to fetch the latest precomputed trend content.
-              </div>
+      <Container>
+        {!isLoading && !currentError ? (
+          <div className="mb-5 flex flex-wrap items-baseline gap-x-6 gap-y-2">
+            <div className="flex items-baseline gap-2">
+              <span className="text-[11px] uppercase tracking-[0.18em] text-foreground/40">
+                Total Posts
+              </span>
+              <span className="text-lg font-semibold text-foreground">
+                {summary.totalItems ?? items.length}
+              </span>
             </div>
-            <Button
-              label="Retry"
-              onClick={() => {
-                handleRefresh().catch(() => {
-                  /* surfaced via hook */
-                });
-              }}
-              variant={ButtonVariant.OUTLINE}
+            <div className="hidden h-4 w-px bg-white/[0.08] sm:block" />
+            <div className="flex items-baseline gap-2">
+              <span className="text-[11px] uppercase tracking-[0.18em] text-foreground/40">
+                Connected
+              </span>
+              <span className="text-lg font-semibold text-foreground">
+                {summary.connectedPlatforms.length}
+              </span>
+            </div>
+            <div className="hidden h-4 w-px bg-white/[0.08] sm:block" />
+            <div className="flex items-baseline gap-2">
+              <span className="text-[11px] uppercase tracking-[0.18em] text-foreground/40">
+                Trend Topics
+              </span>
+              <span className="text-lg font-semibold text-foreground">
+                {summary.totalTrends}
+              </span>
+            </div>
+          </div>
+        ) : null}
+
+        {currentError && !isLoading ? (
+          <Alert type={AlertCategory.ERROR}>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="space-y-1">
+                <div className="font-medium">
+                  Failed to load the content feed
+                </div>
+                <div className="text-xs text-foreground/70">
+                  Retry to fetch the latest precomputed trend content.
+                </div>
+              </div>
+              <Button
+                label="Retry"
+                onClick={() => {
+                  handleRefresh().catch(() => {
+                    /* surfaced via hook */
+                  });
+                }}
+                variant={ButtonVariant.OUTLINE}
+              />
+            </div>
+          </Alert>
+        ) : null}
+
+        <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="w-full md:max-w-md">
+            <FormSearchbar
+              value={search}
+              onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                setSearch(event.target.value)
+              }
+              onClear={() => setSearch('')}
+              placeholder="Search trending content"
             />
           </div>
-        </Alert>
-      ) : null}
-
-      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="w-full md:max-w-md">
-          <FormSearchbar
-            value={search}
-            onChange={(event: ChangeEvent<HTMLInputElement>) =>
-              setSearch(event.target.value)
-            }
-            onClear={() => setSearch('')}
-            placeholder="Search trending content"
-          />
+          <Badge variant="ghost">
+            {isLoading ? 'Loading' : `${filteredItems.length} remixable items`}
+          </Badge>
         </div>
-        <Badge variant="ghost">
-          {isLoading ? 'Loading' : `${filteredItems.length} remixable items`}
-        </Badge>
-      </div>
 
-      {isLoading ? (
-        <div className="py-8 text-sm text-foreground/40">
-          Loading content feed…
-        </div>
-      ) : null}
+        {isLoading ? (
+          <div className="py-8 text-sm text-foreground/40">
+            Loading content feed…
+          </div>
+        ) : null}
 
-      {!isLoading && !currentError ? (
-        <div className="space-y-8">
-          <section className="space-y-4">
-            <div className="flex items-center gap-2">
-              <HiOutlineArrowTrendingUp className="size-5 text-foreground/70" />
-              <h2 className="text-lg font-semibold text-foreground">
-                Trending Content Feed
-              </h2>
-              <Badge variant="ghost">Content-first</Badge>
-            </div>
-
-            {filteredItems.length === 0 ? (
-              <div className="py-8 text-center text-sm text-foreground/40">
-                {search.trim()
-                  ? 'No trending content matches your search.'
-                  : 'No remixable trend content is available right now.'}
+        {!isLoading && !currentError ? (
+          <div className="space-y-8">
+            <section className="space-y-4">
+              <div className="flex items-center gap-2">
+                <HiOutlineArrowTrendingUp className="size-5 text-foreground/70" />
+                <h2 className="text-lg font-semibold text-foreground">
+                  Trending Content Feed
+                </h2>
+                <Badge variant="ghost">Content-first</Badge>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {filteredItems.map((item) => (
-                  <TrendContentCard key={item.id} item={item} />
-                ))}
-              </div>
-            )}
-          </section>
 
-          <section className="space-y-4">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <HiOutlineFilm className="size-5 text-foreground/70" />
-                  <h2 className="text-lg font-semibold text-foreground">
-                    Viral Videos
-                  </h2>
-                  <Badge variant="ghost">Cross-platform</Badge>
+              {filteredItems.length === 0 ? (
+                <div className="py-8 text-center text-sm text-foreground/40">
+                  {search.trim()
+                    ? 'No trending content matches your search.'
+                    : 'No remixable trend content is available right now.'}
                 </div>
-                <div className="text-sm text-foreground/55">
-                  Breakout video patterns adjacent to the saved trend feed.
+              ) : (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {filteredItems.map((item) => (
+                    <TrendContentCard key={item.id} item={item} />
+                  ))}
                 </div>
+              )}
+            </section>
+
+            <section className="space-y-4">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <HiOutlineFilm className="size-5 text-foreground/70" />
+                    <h2 className="text-lg font-semibold text-foreground">
+                      Viral Videos
+                    </h2>
+                    <Badge variant="ghost">Cross-platform</Badge>
+                  </div>
+                  <div className="text-sm text-foreground/55">
+                    Breakout video patterns adjacent to the saved trend feed.
+                  </div>
+                </div>
+
+                <Badge variant={isLoadingVideos ? 'ghost' : 'info'}>
+                  {isLoadingVideos ? 'Loading' : `${viralVideos.length} videos`}
+                </Badge>
               </div>
 
-              <Badge variant={isLoadingVideos ? 'ghost' : 'info'}>
-                {isLoadingVideos ? 'Loading' : `${viralVideos.length} videos`}
-              </Badge>
-            </div>
-
-            {viralVideos.length === 0 ? (
-              <div className="py-3 text-sm text-foreground/40">
-                No viral videos available right now.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {viralVideos.map((video: ITrendVideo) => (
-                  <ViralVideoCard key={video.id} video={video} />
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
-      ) : null}
-    </Container>
+              {viralVideos.length === 0 ? (
+                <div className="py-3 text-sm text-foreground/40">
+                  No viral videos available right now.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {viralVideos.map((video: ITrendVideo) => (
+                    <ViralVideoCard key={video.id} video={video} />
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+        ) : null}
+      </Container>
+    </>
   );
 }

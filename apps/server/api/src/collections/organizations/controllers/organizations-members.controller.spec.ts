@@ -21,6 +21,9 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { UsersService } from '@api/collections/users/services/users.service';
+import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
+import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
+import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { ConfigService } from '@api/config/config.service';
 import { MemberCreditsGuard } from '@api/helpers/guards/member-credits/member-credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -101,6 +104,18 @@ describe('OrganizationsMembersController', () => {
     findAll: vi.fn(),
   };
 
+  const mockRequestContextCacheService = {
+    invalidateForUser: vi.fn().mockResolvedValue(undefined),
+  };
+
+  const mockAccessBootstrapCacheService = {
+    invalidateForUser: vi.fn().mockResolvedValue(undefined),
+  };
+
+  const mockBetterAuthIdentityCacheService = {
+    invalidateForUser: vi.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [OrganizationsMembersController],
@@ -144,6 +159,18 @@ describe('OrganizationsMembersController', () => {
         {
           provide: BrandsService,
           useValue: mockBrandsService,
+        },
+        {
+          provide: RequestContextCacheService,
+          useValue: mockRequestContextCacheService,
+        },
+        {
+          provide: AccessBootstrapCacheService,
+          useValue: mockAccessBootstrapCacheService,
+        },
+        {
+          provide: BetterAuthIdentityCacheService,
+          useValue: mockBetterAuthIdentityCacheService,
         },
       ],
     })

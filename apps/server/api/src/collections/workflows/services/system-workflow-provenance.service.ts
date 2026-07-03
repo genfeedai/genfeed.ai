@@ -19,7 +19,10 @@ export const SYSTEM_WORKFLOW_ACTION_IDS = {
   CAMPAIGN_REPLY_AUTOMATION: 'campaign-reply-automation',
   REPLY_DM_AUTOMATION: 'reply-dm-automation',
   SCHEDULED_POST_PUBLISHING: 'scheduled-post-publishing',
+  STREAK_MAINTENANCE: 'streak-maintenance',
+  TIKTOK_STATUS_RECONCILIATION: 'tiktok-status-reconciliation',
   TWITTER_PUBLISH_ACTION: 'twitter-publish-action',
+  YOUTUBE_STATUS_RECONCILIATION: 'youtube-status-reconciliation',
 } as const;
 
 export type SystemWorkflowActionId =
@@ -74,6 +77,33 @@ export const SYSTEM_WORKFLOW_ACTION_DEFINITIONS: readonly SystemWorkflowActionDe
       description:
         'Generates and sends outreach campaign DMs through connected brand credentials.',
       label: 'Campaign DM Automation',
+    },
+    {
+      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.TIKTOK_STATUS_RECONCILIATION,
+      changeSummary:
+        'Initial TikTok publish-status reconciliation system workflow action wrapper.',
+      description:
+        'Verifies pending TikTok publications and reconciles post status once moderation completes.',
+      label: 'TikTok Status Reconciliation',
+      schedule: '*/5 * * * *',
+    },
+    {
+      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.YOUTUBE_STATUS_RECONCILIATION,
+      changeSummary:
+        'Initial YouTube publish-status reconciliation system workflow action wrapper.',
+      description:
+        'Syncs recent YouTube video visibility with the actual status reported by YouTube.',
+      label: 'YouTube Status Reconciliation',
+      schedule: '0 1 * * *',
+    },
+    {
+      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.STREAK_MAINTENANCE,
+      changeSummary:
+        'Initial streak maintenance system workflow action wrapper.',
+      description:
+        'Processes daily streak state: at-risk reminders, streak freezes, and broken streaks.',
+      label: 'Streak Maintenance',
+      schedule: '30 0 * * *',
     },
   ];
 
@@ -224,7 +254,10 @@ export class SystemWorkflowProvenanceService {
               executionCount: 0,
               inputVariables: [],
               isDeleted: false,
-              isScheduleEnabled: Boolean(input.schedule),
+              // Schedule is display metadata only: system actions fire from the
+              // workers sweep scheduler, never from the user-workflow scheduler
+              // (no engine executor exists for systemWorkflowAction nodes).
+              isScheduleEnabled: false,
               label: input.label,
               metadata: {
                 sourceIssue: 1011,
