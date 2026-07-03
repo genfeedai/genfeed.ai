@@ -254,10 +254,9 @@ async function main() {
     app.useGlobalFilters(new HttpExceptionFilter(logger, configService));
 
     // Bull Board setup — monitors every BullMQ queue across api, workers,
-    // files, and clips. Keep this list in sync with the registerQueue calls in
-    // apps/server/workers/src/queues/queues.module.ts,
-    // apps/server/files/src/queues/queues.module.ts, and
-    // apps/server/clips/src/app.module.ts.
+    // and files. Keep this list in sync with the registerQueue calls in
+    // apps/server/workers/src/queues/queues.module.ts and
+    // apps/server/files/src/queues/queues.module.ts.
     const serverAdapter = new ExpressAdapter();
     serverAdapter.setBasePath('/admin/queues');
 
@@ -296,7 +295,6 @@ async function main() {
       // clips
       'clip-analyze',
       'clip-factory',
-      'clipper-processing',
       // files service
       'file-processing',
       'image-processing',

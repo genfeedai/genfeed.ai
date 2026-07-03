@@ -52,7 +52,6 @@ COPY apps/server/notifications/package.json ./apps/server/notifications/
 COPY apps/server/telegram/package.json ./apps/server/telegram/
 COPY apps/server/discord/package.json ./apps/server/discord/
 COPY apps/server/slack/package.json ./apps/server/slack/
-COPY apps/server/clips/package.json ./apps/server/clips/
 COPY apps/server/images/package.json ./apps/server/images/
 COPY apps/server/voices/package.json ./apps/server/voices/
 COPY apps/server/videos/package.json ./apps/server/videos/
@@ -172,8 +171,7 @@ RUN set -e && \
     bun --filter @genfeedai/telegram build:prod & pid1=$! && \
     bun --filter @genfeedai/discord build & pid2=$! && \
     bun --filter @genfeedai/slack build:prod & pid3=$! && \
-    bun --filter @genfeedai/clips build:prod & pid4=$! && \
-    wait $pid1 $pid2 $pid3 $pid4
+    wait $pid1 $pid2 $pid3
 
 # Batch 3: GPU fleet services (3 builds)
 RUN set -e && \
@@ -189,7 +187,7 @@ RUN set -e && \
 # Verify the critical bundles exist before proceeding.
 RUN echo "Checking build outputs..." && \
     ls -la apps/server/dist/apps/ 2>/dev/null || echo "dist/apps/ directory missing!" && \
-    for svc in api workers files mcp notifications telegram discord slack clips images voices videos; do \
+    for svc in api workers files mcp notifications telegram discord slack images voices videos; do \
       if test -f "apps/server/dist/apps/$svc/main.js"; then \
         SIZE=$(stat -c%s "apps/server/dist/apps/$svc/main.js"); \
         echo "✅ $svc bundle ($(( SIZE / 1024 ))KB)"; \
@@ -234,7 +232,6 @@ RUN mkdir -p apps/server/api \
              apps/server/telegram \
              apps/server/discord \
              apps/server/slack \
-             apps/server/clips \
              apps/server/images \
              apps/server/voices \
              apps/server/videos \
@@ -283,7 +280,6 @@ COPY --from=builder /usr/src/app/apps/server/notifications/package.json ./apps/s
 COPY --from=builder /usr/src/app/apps/server/telegram/package.json ./apps/server/telegram/package.json
 COPY --from=builder /usr/src/app/apps/server/discord/package.json ./apps/server/discord/package.json
 COPY --from=builder /usr/src/app/apps/server/slack/package.json ./apps/server/slack/package.json
-COPY --from=builder /usr/src/app/apps/server/clips/package.json ./apps/server/clips/package.json
 COPY --from=builder /usr/src/app/apps/server/images/package.json ./apps/server/images/package.json
 COPY --from=builder /usr/src/app/apps/server/voices/package.json ./apps/server/voices/package.json
 COPY --from=builder /usr/src/app/apps/server/videos/package.json ./apps/server/videos/package.json
@@ -330,7 +326,6 @@ RUN mkdir -p /usr/src/app/public/tmp \
     chown -R appuser:appuser \
         /usr/src/app/apps/server/dist \
         /usr/src/app/apps/server/api \
-        /usr/src/app/apps/server/clips \
         /usr/src/app/apps/server/discord \
         /usr/src/app/apps/server/files \
         /usr/src/app/apps/server/images \
