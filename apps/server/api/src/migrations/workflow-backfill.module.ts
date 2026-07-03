@@ -3,6 +3,7 @@ import { DefaultRecurringContentService } from '@api/collections/brands/services
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CronJobsService } from '@api/collections/cron-jobs/services/cron-jobs.service';
 import type { LegacyWorkflowStepRunner } from '@api/collections/workflows/services/legacy-workflow-step-runner.service';
+import { WorkflowTemplateSeederService } from '@api/collections/workflows/services/workflow-template-seeder.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { ConfigModule } from '@api/config/config.module';
 import type { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
@@ -22,6 +23,11 @@ import { Module } from '@nestjs/common';
     WorkflowsService,
     DefaultRecurringContentService,
     WorkflowDeploymentBackfillService,
+    // Seeding moved out of WorkflowsService in #754; the backfill service
+    // resolves this via ModuleRef per-org. Its only required deps (Prisma,
+    // Logger) come from the imported modules; WorkflowExecutionQueueService is
+    // @Optional and guarded in the seeder, so it's safe to omit here.
+    WorkflowTemplateSeederService,
     {
       inject: [PrismaService, WorkflowsService, LoggerService],
       provide: CronJobsService,
