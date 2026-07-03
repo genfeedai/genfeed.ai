@@ -69,7 +69,6 @@ locals {
     files         = { filter = "@genfeedai/files", port = 3012, cpu = 256, mem = 512, alb = false, health_grace = 60, desired = 1 }
     mcp           = { filter = "@genfeedai/mcp", port = 3014, cpu = 256, mem = 512, alb = true, health_grace = 60, desired = 1 }
     notifications = { filter = "@genfeedai/notifications", port = 3011, cpu = 256, mem = 512, alb = true, health_grace = 60, desired = 1 }
-    clips         = { filter = "@genfeedai/clips", port = 3015, cpu = 256, mem = 512, alb = false, health_grace = 60, desired = 0 }
     discord       = { filter = "@genfeedai/discord", port = 3016, cpu = 256, mem = 512, alb = false, health_grace = 60, desired = 0 }
     slack         = { filter = "@genfeedai/slack", port = 3018, cpu = 256, mem = 512, alb = false, health_grace = 60, desired = 0 }
     telegram      = { filter = "@genfeedai/telegram", port = 3019, cpu = 256, mem = 512, alb = false, health_grace = 60, desired = 0 }
