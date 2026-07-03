@@ -34,9 +34,9 @@ export async function buildReferenceImageUrl(params: {
       isDeleted: false,
     });
 
-    if (imageIngredient?._id) {
+    if (imageIngredient?.id) {
       return `${configService.ingredientsEndpoint}/images/${
-        imageIngredient._id
+        imageIngredient.id
       }`;
     }
 
@@ -47,10 +47,10 @@ export async function buildReferenceImageUrl(params: {
       isDeleted: false,
     });
 
-    if (videoIngredient?._id) {
+    if (videoIngredient?.id) {
       // Use the video's thumbnail as the reference image
       return `${configService.ingredientsEndpoint}/thumbnails/${
-        videoIngredient._id
+        videoIngredient.id
       }`;
     }
 
@@ -60,8 +60,8 @@ export async function buildReferenceImageUrl(params: {
       isDeleted: false,
     });
 
-    if (asset?._id) {
-      return `${configService.ingredientsEndpoint}/references/${asset._id}`;
+    if (asset?.id) {
+      return `${configService.ingredientsEndpoint}/references/${asset.id}`;
     }
 
     loggerService?.warn('Reference not found or invalid', {

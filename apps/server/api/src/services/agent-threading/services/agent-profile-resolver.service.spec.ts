@@ -19,9 +19,9 @@ vi.mock(
   }),
 );
 
-vi.mock('@api/helpers/utils/objectid/objectid.util', () => ({
-  ObjectIdUtil: {
-    normalizeToObjectId: vi.fn((id?: string) => {
+vi.mock('@api/helpers/utils/entity-id/entity-id.util', () => ({
+  EntityIdUtil: {
+    normalizeId: vi.fn((id?: string) => {
       if (!id) return undefined;
       return id;
     }),

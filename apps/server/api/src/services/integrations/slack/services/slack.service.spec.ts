@@ -440,10 +440,10 @@ describe('SlackService', () => {
         organization: orgId,
         platform: CredentialPlatform.SLACK,
       });
-      expect(credentialsService.patch).toHaveBeenCalledWith(
-        mockCredential._id,
-        { isConnected: false, isDeleted: true },
-      );
+      expect(credentialsService.patch).toHaveBeenCalledWith(mockCredential.id, {
+        isConnected: false,
+        isDeleted: true,
+      });
       expect(loggerService.log).toHaveBeenCalled();
     });
 

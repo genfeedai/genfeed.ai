@@ -254,8 +254,8 @@ export class TaskRoutingService {
       reviewTriggered: requiresApproval,
       routingSummary: `Resolved the request using the brand skill "${targetSkill.name}" (${targetSkill.slug}) for the ${taskIntent.workflowStage} stage.`,
       skillsUsed: targetSkill.slug ? [targetSkill.slug] : [],
-      skillVariantIds: matchedSkill.variant?._id
-        ? [String(matchedSkill.variant._id)]
+      skillVariantIds: matchedSkill.variant?.id
+        ? [String(matchedSkill.variant.id)]
         : [],
       status: requiresApproval
         ? 'in_review'

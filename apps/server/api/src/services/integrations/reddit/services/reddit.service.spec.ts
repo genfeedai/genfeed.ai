@@ -58,7 +58,7 @@ describe('RedditService', () => {
     const orgId = '507f191e810c19729de860ea';
     const brandId = '507f191e810c19729de860eb';
     (credentialsService.findOne as vi.Mock).mockResolvedValue({
-      _id: 'cred',
+      id: 'cred',
       refreshToken: 'refresh',
     });
     (httpService.post as vi.Mock).mockReturnValue(

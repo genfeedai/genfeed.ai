@@ -92,7 +92,7 @@ export class ActivityUpdateService {
       );
 
       activity = await this.activitiesService.patch(
-        existingActivity._id.toString(),
+        existingActivity.id.toString(),
         {
           key: activityKey,
           value: buildCompletionValue({
@@ -122,7 +122,7 @@ export class ActivityUpdateService {
       const room = resolveRoom(userRoom, userId);
 
       await this.websocketService.publishBackgroundTaskUpdate({
-        activityId: activity._id.toString(),
+        activityId: activity.id.toString(),
         label: getActivityLabel(activityKey),
         progress: 100,
         resultId: ingredientId,
@@ -181,7 +181,7 @@ export class ActivityUpdateService {
       );
 
       activity = await this.activitiesService.patch(
-        existingActivity._id.toString(),
+        existingActivity.id.toString(),
         {
           key: activityKey,
           value: buildFailureValue({
@@ -211,7 +211,7 @@ export class ActivityUpdateService {
       const room = resolveRoom(userRoom, userId);
 
       await this.websocketService.publishBackgroundTaskUpdate({
-        activityId: activity._id.toString(),
+        activityId: activity.id.toString(),
         error: errorMessage || 'Generation failed',
         label: getActivityLabel(activityKey),
         room: room || getUserRoomName(userId),

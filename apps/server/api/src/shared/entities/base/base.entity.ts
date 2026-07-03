@@ -1,5 +1,4 @@
 export abstract class BaseEntity {
-  declare readonly _id: string;
   declare readonly id: string;
   declare readonly mongoId: string | null;
   declare readonly organizationId: string;

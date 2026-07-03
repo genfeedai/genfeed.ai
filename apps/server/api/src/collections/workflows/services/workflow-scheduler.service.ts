@@ -94,7 +94,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
    */
   async scheduleWorkflow(workflow: WorkflowDocument): Promise<void> {
     const workflowId = String(
-      (workflow as unknown as Record<string, unknown>)._id ??
+      (workflow as unknown as Record<string, unknown>).id ??
         (workflow as unknown as { id: string }).id,
     );
 

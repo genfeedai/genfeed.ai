@@ -4,8 +4,8 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
-import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { PersonaContentService } from '@api/services/persona-content/persona-content.service';
 import { PersonaContentPlanService } from '@api/services/persona-content/persona-content-plan.service';
@@ -49,10 +49,10 @@ export class PersonasContentController {
     try {
       const { organization, user: dbUserId } = getPublicMetadata(user);
       const result = await this.personaContentService.generatePhoto({
-        organization: ObjectIdUtil.toObjectId(organization)!,
-        personaId: ObjectIdUtil.toObjectId(id)!,
+        organization: EntityIdUtil.toValidId(organization)!,
+        personaId: EntityIdUtil.toValidId(id)!,
         prompt: body.prompt,
-        user: ObjectIdUtil.toObjectId(dbUserId)!,
+        user: EntityIdUtil.toValidId(dbUserId)!,
       });
 
       return { data: result };
@@ -72,10 +72,10 @@ export class PersonasContentController {
       const { organization, user: dbUserId } = getPublicMetadata(user);
       const result = await this.personaContentService.generateVideo({
         aspectRatio: body.aspectRatio,
-        organization: ObjectIdUtil.toObjectId(organization)!,
-        personaId: ObjectIdUtil.toObjectId(id)!,
+        organization: EntityIdUtil.toValidId(organization)!,
+        personaId: EntityIdUtil.toValidId(id)!,
         script: body.script,
-        user: ObjectIdUtil.toObjectId(dbUserId)!,
+        user: EntityIdUtil.toValidId(dbUserId)!,
       });
 
       return { data: result };
@@ -95,12 +95,12 @@ export class PersonasContentController {
       const { organization, user: dbUserId } = getPublicMetadata(user);
       const result = await this.personaContentService.generateVoice({
         ingredientId: body.ingredientId
-          ? ObjectIdUtil.toObjectId(body.ingredientId)!
+          ? EntityIdUtil.toValidId(body.ingredientId)!
           : undefined,
-        organization: ObjectIdUtil.toObjectId(organization)!,
-        personaId: ObjectIdUtil.toObjectId(id)!,
+        organization: EntityIdUtil.toValidId(organization)!,
+        personaId: EntityIdUtil.toValidId(id)!,
         text: body.text,
-        user: ObjectIdUtil.toObjectId(dbUserId)!,
+        user: EntityIdUtil.toValidId(dbUserId)!,
       });
 
       return { data: result };
@@ -146,14 +146,14 @@ export class PersonasContentController {
       );
 
       const input = {
-        brand: ObjectIdUtil.toObjectId(brand)!,
+        brand: EntityIdUtil.toValidId(brand)!,
         credentialId: body.credentialId
-          ? ObjectIdUtil.toObjectId(body.credentialId)!
+          ? EntityIdUtil.toValidId(body.credentialId)!
           : undefined,
         days,
-        organization: ObjectIdUtil.toObjectId(organization)!,
-        personaId: ObjectIdUtil.toObjectId(id)!,
-        user: ObjectIdUtil.toObjectId(dbUserId)!,
+        organization: EntityIdUtil.toValidId(organization)!,
+        personaId: EntityIdUtil.toValidId(id)!,
+        user: EntityIdUtil.toValidId(dbUserId)!,
       };
 
       const plan =
@@ -196,18 +196,18 @@ export class PersonasContentController {
     try {
       const { organization, brand, user: dbUserId } = getPublicMetadata(user);
       const result = await this.personaPublisherService.publishToAll({
-        brand: ObjectIdUtil.toObjectId(brand)!,
+        brand: EntityIdUtil.toValidId(brand)!,
         category: body.category,
         description: body.description,
         ingredientIds: body.ingredientIds?.map(
-          (iid) => ObjectIdUtil.toObjectId(iid)!,
+          (iid) => EntityIdUtil.toValidId(iid)!,
         ),
-        organization: ObjectIdUtil.toObjectId(organization)!,
-        personaId: ObjectIdUtil.toObjectId(id)!,
+        organization: EntityIdUtil.toValidId(organization)!,
+        personaId: EntityIdUtil.toValidId(id)!,
         scheduledDate: body.scheduledDate
           ? new Date(body.scheduledDate)
           : undefined,
-        user: ObjectIdUtil.toObjectId(dbUserId)!,
+        user: EntityIdUtil.toValidId(dbUserId)!,
       });
 
       return { data: result };
@@ -230,9 +230,9 @@ export class PersonasContentController {
       const posts = await this.postsService.findAll({
         isDeleted: false,
         limit: Number(limit),
-        organization: ObjectIdUtil.toObjectId(organization)!,
+        organization: EntityIdUtil.toValidId(organization)!,
         page: Number(page),
-        persona: ObjectIdUtil.toObjectId(id)!,
+        persona: EntityIdUtil.toValidId(id)!,
       });
 
       return serializeCollection(

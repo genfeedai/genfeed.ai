@@ -1,5 +1,5 @@
-import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
-import { buildUpdateOperations } from '@api/helpers/utils/objectid/update-operations.util';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
+import { buildUpdateOperations } from '@api/helpers/utils/entity-id/update-operations.util';
 
 describe('buildUpdateOperations', () => {
   afterEach(() => {
@@ -12,7 +12,7 @@ describe('buildUpdateOperations', () => {
   it('converts relationship fields into plain Prisma update data', async () => {
     const folderId = '507f191e810c19729de860ee';
     const spy = vi
-      .spyOn(ObjectIdUtil, 'convertRelationshipField')
+      .spyOn(EntityIdUtil, 'convertRelationshipField')
       .mockResolvedValue(folderId);
 
     const result = await buildUpdateOperations(
@@ -28,7 +28,7 @@ describe('buildUpdateOperations', () => {
   });
 
   it('keeps null relationship values as null updates', async () => {
-    vi.spyOn(ObjectIdUtil, 'convertRelationshipField')
+    vi.spyOn(EntityIdUtil, 'convertRelationshipField')
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce('507f191e810c19729de860ee');
 
@@ -44,7 +44,7 @@ describe('buildUpdateOperations', () => {
   });
 
   it('returns null fields when no relationship value remains', async () => {
-    vi.spyOn(ObjectIdUtil, 'convertRelationshipField').mockResolvedValue(null);
+    vi.spyOn(EntityIdUtil, 'convertRelationshipField').mockResolvedValue(null);
 
     const result = await buildUpdateOperations({ parent: null }, ['parent']);
 

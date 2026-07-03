@@ -17,7 +17,7 @@ import type {
 
 type BrandSource = Pick<
   Brand,
-  | '_id'
+  | 'id'
   | 'agentConfig'
   | 'description'
   | 'label'
@@ -190,7 +190,7 @@ export const buildHarnessInput = (params: {
   const personaProfile = buildHarnessPersonaProfile(params.persona);
 
   return {
-    brandId: params.brand?._id?.toString?.(),
+    brandId: params.brand?.id?.toString?.(),
     brandName: toOptionalString(params.brand?.label),
     intent: params.intent,
     organizationId: params.organizationId,

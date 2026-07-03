@@ -58,7 +58,7 @@ describe('AiInfluencerService', () => {
     overrides: Partial<PersonaDocument> = {},
   ): PersonaDocument =>
     ({
-      _id: mockPersonaId,
+      id: mockPersonaId,
       bio: 'A lifestyle influencer sharing daily vibes',
       brand: mockBrandId,
       contentStrategy: {
@@ -82,7 +82,7 @@ describe('AiInfluencerService', () => {
   // Mock ingredient
   const createMockIngredient = (): IngredientDocument =>
     ({
-      _id: mockIngredientId,
+      id: mockIngredientId,
       brand: mockBrandId,
       cdnUrl: 'https://cdn.fal.ai/generated/test-image.jpg',
       organization: mockOrganizationId,
@@ -736,7 +736,7 @@ describe('AiInfluencerService', () => {
     it('should find all autopilot personas and generate posts', async () => {
       const persona1 = createMockPersona({ slug: 'persona-1' });
       const persona2 = createMockPersona({
-        _id: '507f1f77bcf86cd799439099',
+        id: '507f1f77bcf86cd799439099',
         slug: 'persona-2',
       });
 
@@ -817,7 +817,7 @@ describe('AiInfluencerService', () => {
     it('should continue with other personas when one fails', async () => {
       const persona1 = createMockPersona({ slug: 'persona-fail' });
       const persona2 = createMockPersona({
-        _id: '507f1f77bcf86cd799439099',
+        id: '507f1f77bcf86cd799439099',
         slug: 'persona-ok',
       });
 

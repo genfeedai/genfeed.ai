@@ -75,7 +75,7 @@ export class RedditController {
 
     try {
       const credential = await this.credentialsService.findOne({
-        brand: brand._id,
+        brand: brand.id,
         organization: brand.organization,
         platform: CredentialPlatform.REDDIT,
       });
@@ -89,7 +89,7 @@ export class RedditController {
       }
 
       const state = JSON.stringify({
-        brandId: brand._id.toString(),
+        brandId: brand.id.toString(),
         organizationId:
           brand.organization?.toString() ?? publicMetadata.organization,
         userId: publicMetadata.user,
@@ -168,7 +168,7 @@ export class RedditController {
       }
 
       let credential = await this.credentialsService.patch(
-        existingCredential._id,
+        existingCredential.id,
         {
           accessToken: access_token,
           accessTokenExpiry: expires_in
@@ -189,7 +189,7 @@ export class RedditController {
         }),
       );
 
-      credential = await this.credentialsService.patch(credential._id, {
+      credential = await this.credentialsService.patch(credential.id, {
         externalHandle: profileRes.data?.name,
         externalId: profileRes.data?.id,
       });

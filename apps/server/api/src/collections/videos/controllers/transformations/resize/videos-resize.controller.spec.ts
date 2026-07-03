@@ -43,8 +43,8 @@ const mockRequest = {
 } as unknown as Request;
 
 const mockVideo = {
-  _id: '507f1f77bcf86cd799439011',
   brand: '507f1f77bcf86cd799439014',
+  id: '507f1f77bcf86cd799439011',
   organization: '507f1f77bcf86cd799439013',
   user: '507f1f77bcf86cd799439012',
 };
@@ -76,8 +76,8 @@ describe('VideosResizeController', () => {
     metadataService: { patch: vi.fn() },
     sharedService: {
       saveDocuments: vi.fn().mockResolvedValue({
-        ingredientData: { _id: ingredientId },
-        metadataData: { _id: metadataId },
+        ingredientData: { id: ingredientId },
+        metadataData: { id: metadataId },
       }),
     },
     videosService: { findOne: vi.fn() },

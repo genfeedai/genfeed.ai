@@ -75,7 +75,7 @@ export class MemberCreditsGuard extends CreditsGuard implements CanActivate {
 
     (request as unknown as Record<string, unknown>).seatsLimit = {
       current: activeMembersCount, // Pass the actual current count, not the limit
-      id: settings._id.toString(),
+      id: settings.id.toString(),
     };
 
     return super.canActivate(context);

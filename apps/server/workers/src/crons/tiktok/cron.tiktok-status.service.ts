@@ -29,7 +29,7 @@ type TiktokError = {
 
 type TiktokPost = PostEntity & {
   credential?: {
-    _id?: string;
+    id?: string;
     accessToken?: string | null;
     externalHandle?: string | null;
     isConnected?: boolean;
@@ -152,11 +152,11 @@ export class CronTiktokStatusService {
       // Check if post has been PENDING too long (use updatedAt since that's when it became PENDING)
       const pendingSince = new Date(post.updatedAt);
       if (pendingSince < maxAge) {
-        this.logger.warn(`${url} post ${post._id} exceeded max pending age`, {
+        this.logger.warn(`${url} post ${post.id} exceeded max pending age`, {
           hoursPending: Math.round(
             (now.getTime() - pendingSince.getTime()) / (60 * 60 * 1000),
           ),
-          postId: post._id,
+          postId: post.id,
           publishId,
         });
 
@@ -171,15 +171,15 @@ export class CronTiktokStatusService {
       const credential = (
         post as unknown as {
           credential?: {
-            _id?: string;
+            id?: string;
             accessToken?: string;
             externalHandle?: string;
             isConnected?: boolean;
           };
         }
       ).credential;
-      if (!credential?._id || !credential.accessToken) {
-        this.logger.warn(`${url} post ${post._id} has no valid credential`);
+      if (!credential?.id || !credential.accessToken) {
+        this.logger.warn(`${url} post ${post.id} has no valid credential`);
         await this.markPostFailed(
           post,
           'TikTok credential not found - please reconnect',
@@ -190,7 +190,7 @@ export class CronTiktokStatusService {
       // Check if credential is already disconnected
       if (credential.isConnected === false) {
         this.logger.warn(
-          `${url} post ${post._id} has disconnected credential - marking as failed`,
+          `${url} post ${post.id} has disconnected credential - marking as failed`,
         );
         await this.markPostFailed(
           post,
@@ -203,7 +203,7 @@ export class CronTiktokStatusService {
       const refreshedCredential = await this.tiktokService.refreshToken(
         post.organization.toString(),
         post.brand.toString(),
-        credential._id,
+        credential.id,
       );
 
       const decryptedAccessToken = EncryptionUtil.decrypt(
@@ -220,7 +220,7 @@ export class CronTiktokStatusService {
       );
 
       const hasPostId = !!statusData?.publicly_available_post_id?.[0];
-      this.logger.log(`${url} post ${post._id} status check`, {
+      this.logger.log(`${url} post ${post.id} status check`, {
         hasPostId,
         publicly_available_post_id: statusData?.publicly_available_post_id,
         publishId,
@@ -238,7 +238,7 @@ export class CronTiktokStatusService {
           'published',
           `TikTok moderation completed - post ${postId} is live`,
           async () => {
-            await this.postsService.patch(post._id.toString(), {
+            await this.postsService.patch(post.id.toString(), {
               externalId: postId, // Replace publish_id with actual post_id
               publicationDate: new Date(),
               status: PostStatus.PUBLIC,
@@ -246,7 +246,7 @@ export class CronTiktokStatusService {
           },
         );
 
-        this.logger.log(`${url} post ${post._id} verified and published`, {
+        this.logger.log(`${url} post ${post.id} verified and published`, {
           postId,
           publishId,
           url: postUrl,
@@ -264,12 +264,12 @@ export class CronTiktokStatusService {
           (now.getTime() - pendingSince.getTime()) / (60 * 60 * 1000),
         );
         this.logger.log(
-          `${url} post ${post._id} is PUBLISH_COMPLETE but no post_id yet - will retry next cron run`,
+          `${url} post ${post.id} is PUBLISH_COMPLETE but no post_id yet - will retry next cron run`,
           { hoursPending, publishId },
         );
       }
     } catch (error: unknown) {
-      this.logger.error(`${url} failed for post ${post._id}`, {
+      this.logger.error(`${url} failed for post ${post.id}`, {
         error: (error as Error)?.message,
         publishId,
       });
@@ -288,7 +288,7 @@ export class CronTiktokStatusService {
       if (this.isAuthError(error)) {
         const errorCode = this.getErrorCode(error);
         this.logger.warn(
-          `${url} auth error for post ${post._id} - marking credential as disconnected`,
+          `${url} auth error for post ${post.id} - marking credential as disconnected`,
           { errorCode },
         );
 
@@ -298,15 +298,15 @@ export class CronTiktokStatusService {
           (
             post as unknown as {
               credential?: {
-                _id?: string;
+                id?: string;
                 accessToken?: string;
                 isConnected?: boolean;
               };
             }
-          ).credential?._id
+          ).credential?.id
         ) {
           try {
-            const credentialId = post.credential?._id;
+            const credentialId = post.credential?.id;
             if (!credentialId) {
               return;
             }
@@ -341,12 +341,12 @@ export class CronTiktokStatusService {
     reason: string,
   ): Promise<void> {
     await this.recordStatusTransition(post, 'failed', reason, async () => {
-      await this.postsService.patch(String(post._id), {
+      await this.postsService.patch(String(post.id), {
         status: PostStatus.FAILED,
       });
     });
 
-    this.logger.warn(`Post ${String(post._id)} marked as failed`, {
+    this.logger.warn(`Post ${String(post.id)} marked as failed`, {
       reason,
     });
   }
@@ -374,7 +374,7 @@ export class CronTiktokStatusService {
           inputValues: {
             detail,
             outcome,
-            postId: String(post._id),
+            postId: String(post.id),
             publishId: post.externalId,
           },
           label: 'TikTok Status Reconciliation',
@@ -391,7 +391,7 @@ export class CronTiktokStatusService {
       this.logger.error('Failed to record TikTok status transition', {
         error: (error as Error)?.message,
         outcome,
-        postId: String(post._id),
+        postId: String(post.id),
       });
     }
   }

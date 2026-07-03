@@ -62,7 +62,7 @@ export class DiscordService {
 
       const managerUrl = this.configService.get('GENFEEDAI_APP_URL');
       const ingredientManagerUrl = managerUrl
-        ? `${managerUrl}/ingredients/${categoryString}/${ingredient._id}`
+        ? `${managerUrl}/ingredients/${categoryString}/${ingredient.id}`
         : null;
 
       const buttons = this.buildIngredientButtons(
@@ -137,7 +137,7 @@ export class DiscordService {
       this.loggerService.log(`${url} succeeded`, {
         category,
         cdnUrl,
-        ingredientId: ingredient._id,
+        ingredientId: ingredient.id,
       });
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
@@ -722,7 +722,7 @@ export class DiscordService {
 
       const managerUrl = this.configService.get('GENFEEDAI_APP_URL');
       const userManagerUrl = managerUrl
-        ? `${managerUrl}/admin/users/${user._id}`
+        ? `${managerUrl}/admin/users/${user.id}`
         : null;
 
       const embed: unknown = {
@@ -767,7 +767,7 @@ export class DiscordService {
       this.loggerService.log(`${url} succeeded`, {
         email: user.email,
         isInvited: user.isInvited,
-        userId: user._id,
+        userId: user.id,
       });
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);

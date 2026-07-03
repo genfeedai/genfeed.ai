@@ -50,8 +50,8 @@ describe('BotGenerationService', () => {
     defaultVideoModel: null,
   };
   const mockSettings = { defaultImageModel: null, defaultVideoModel: null };
-  const mockIngredientData = { _id: ingredientId };
-  const mockMetadataData = { _id: 'test-object-id' };
+  const mockIngredientData = { id: ingredientId };
+  const mockMetadataData = { id: 'test-object-id' };
 
   beforeEach(async () => {
     brandsService = { findOne: vi.fn().mockResolvedValue(mockBrand) };

@@ -83,7 +83,7 @@ export class CronContentEngineService {
           const message =
             error instanceof Error ? error.message : 'Unknown error';
           this.logger.error(
-            `Brand ${brand._id} content engine failed: ${message}`,
+            `Brand ${brand.id} content engine failed: ${message}`,
             'CronContentEngineService',
           );
         }
@@ -106,14 +106,14 @@ export class CronContentEngineService {
   }
 
   private async processBrand(brand: {
-    _id: string;
+    id: string;
     organization?: unknown;
     organizationId?: string | null;
     user?: unknown;
     userId?: string | null;
     agentConfig?: unknown;
   }): Promise<void> {
-    const brandId = String(brand._id);
+    const brandId = String(brand.id);
     const organizationId = String(brand.organization ?? brand.organizationId);
     const userId = brand.user
       ? String(brand.user)
@@ -152,14 +152,14 @@ export class CronContentEngineService {
     );
 
     this.logger.log(
-      `Generated plan ${plan._id} with ${items.length} items for brand ${brandId}`,
+      `Generated plan ${plan.id} with ${items.length} items for brand ${brandId}`,
       'CronContentEngineService',
     );
 
     const result = await this.contentExecutionService.executePlan(
       organizationId,
       brandId,
-      String(plan._id),
+      String(plan.id),
       userId,
     );
 

@@ -23,7 +23,7 @@ function createMockClipResultsService(): Mocked<
   Pick<ClipResultsService, 'create' | 'patch'>
 > {
   return {
-    create: vi.fn().mockResolvedValue({ _id: 'clip-result-1' }),
+    create: vi.fn().mockResolvedValue({ id: 'clip-result-1' }),
     patch: vi.fn().mockResolvedValue({}),
   };
 }
@@ -105,8 +105,8 @@ describe('ClipGenerationService', () => {
     });
 
     clipResultsService.create
-      .mockResolvedValueOnce({ _id: 'cr-1' })
-      .mockResolvedValueOnce({ _id: 'cr-2' });
+      .mockResolvedValueOnce({ id: 'cr-1' })
+      .mockResolvedValueOnce({ id: 'cr-2' });
 
     const result = await service.generateClips(input);
 
@@ -201,8 +201,8 @@ describe('ClipGenerationService', () => {
       });
 
     clipResultsService.create
-      .mockResolvedValueOnce({ _id: 'cr-1' })
-      .mockResolvedValueOnce({ _id: 'cr-2' });
+      .mockResolvedValueOnce({ id: 'cr-1' })
+      .mockResolvedValueOnce({ id: 'cr-2' });
 
     const result = await service.generateClips(
       makeInput({
@@ -239,8 +239,8 @@ describe('ClipGenerationService', () => {
       });
 
     clipResultsService.create
-      .mockResolvedValueOnce({ _id: 'cr-1' })
-      .mockResolvedValueOnce({ _id: 'cr-2' });
+      .mockResolvedValueOnce({ id: 'cr-1' })
+      .mockResolvedValueOnce({ id: 'cr-2' });
 
     const result = await service.generateClips(
       makeInput({

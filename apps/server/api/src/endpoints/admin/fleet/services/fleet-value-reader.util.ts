@@ -43,7 +43,7 @@ export const AdminFleetValueReader = {
 
     const record = AdminFleetValueReader.readObjectRecord(value);
     const nestedId =
-      AdminFleetValueReader.readString(record?._id) ??
+      AdminFleetValueReader.readString(record?.id) ??
       AdminFleetValueReader.readString(record?.id) ??
       AdminFleetValueReader.readString(record?.mongoId);
 
@@ -225,8 +225,8 @@ export const AdminFleetValueReader = {
       createdAt:
         ingredient.createdAt?.toISOString() ?? new Date().toISOString(),
       error: ingredient.generationError ?? undefined,
-      ingredientId: ingredient._id.toString(),
-      jobId: ingredient._id.toString(),
+      ingredientId: ingredient.id.toString(),
+      jobId: ingredient.id.toString(),
       model: ingredient.modelUsed ?? ingredient.generationSource ?? '',
       personaSlug: ingredient.personaSlug ?? '',
       progress: ingredient.generationProgress ?? 0,

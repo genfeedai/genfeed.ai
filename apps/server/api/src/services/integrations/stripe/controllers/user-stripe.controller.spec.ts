@@ -76,8 +76,8 @@ describe('UserStripeController', () => {
   } as unknown as User;
 
   const mockDbUser = {
-    _id: dbUserId,
     authProviderId: 'authProvider_user_1',
+    id: dbUserId,
     stripeCustomerId: 'cus_existing',
   };
 
@@ -112,7 +112,7 @@ describe('UserStripeController', () => {
     };
 
     organizationsService = {
-      findOne: vi.fn().mockResolvedValue({ _id: 'test-object-id' }),
+      findOne: vi.fn().mockResolvedValue({ id: 'test-object-id' }),
     };
 
     const module: TestingModule = await Test.createTestingModule({

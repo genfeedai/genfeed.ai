@@ -75,11 +75,11 @@ export class CampaignExecutorService {
       // Check if campaign is still active
       if (campaign.status !== CampaignStatus.ACTIVE) {
         await this.campaignTargetsService.markAsSkipped(
-          target._id.toString(),
+          target.id.toString(),
           CampaignSkipReason.CAMPAIGN_PAUSED,
         );
         await this.campaignsService.incrementSkippedCounter(
-          campaign._id.toString(),
+          campaign.id.toString(),
         );
 
         return {
@@ -91,15 +91,15 @@ export class CampaignExecutorService {
       // Check rate limits
       // @ts-expect-error TS2554
       const canReply = await this.campaignsService.canReply(
-        campaign._id.toString(),
+        campaign.id.toString(),
       );
       if (!canReply) {
         await this.campaignTargetsService.markAsSkipped(
-          target._id.toString(),
+          target.id.toString(),
           CampaignSkipReason.RATE_LIMITED,
         );
         await this.campaignsService.incrementSkippedCounter(
-          campaign._id.toString(),
+          campaign.id.toString(),
         );
 
         return {
@@ -109,7 +109,7 @@ export class CampaignExecutorService {
       }
 
       // Mark target as processing
-      await this.campaignTargetsService.markAsProcessing(target._id.toString());
+      await this.campaignTargetsService.markAsProcessing(target.id.toString());
 
       // Get credential
       const credential = await this.credentialsService.findOne({
@@ -122,11 +122,11 @@ export class CampaignExecutorService {
       if (!credential) {
         const errorMessage = 'Credential not found';
         await this.campaignTargetsService.markAsFailed(
-          target._id.toString(),
+          target.id.toString(),
           errorMessage,
         );
         await this.campaignsService.incrementFailedCounter(
-          campaign._id.toString(),
+          campaign.id.toString(),
         );
 
         return {
@@ -146,11 +146,11 @@ export class CampaignExecutorService {
       if (!credentialData) {
         const errorMessage = 'Credential is missing an access token';
         await this.campaignTargetsService.markAsFailed(
-          target._id.toString(),
+          target.id.toString(),
           errorMessage,
         );
         await this.campaignsService.incrementFailedCounter(
-          campaign._id.toString(),
+          campaign.id.toString(),
         );
 
         return {
@@ -171,9 +171,9 @@ export class CampaignExecutorService {
                 ? undefined
                 : replyResult.error || 'Campaign reply failed',
             inputValues: {
-              campaignId: campaign._id.toString(),
+              campaignId: campaign.id.toString(),
               platform: campaign.platform,
-              targetId: target._id.toString(),
+              targetId: target.id.toString(),
             },
             label: 'Campaign Reply Automation',
             organizationId: campaign.organization.toString(),
@@ -194,12 +194,12 @@ export class CampaignExecutorService {
 
       if (!postResult.success) {
         await this.campaignTargetsService.markAsFailed(
-          target._id.toString(),
+          target.id.toString(),
           postResult.error || 'Failed to post reply',
           (target.retryCount || 0) + 1,
         );
         await this.campaignsService.incrementFailedCounter(
-          campaign._id.toString(),
+          campaign.id.toString(),
         );
 
         return {
@@ -209,7 +209,7 @@ export class CampaignExecutorService {
       }
 
       // Mark as replied
-      await this.campaignTargetsService.markAsReplied(target._id.toString(), {
+      await this.campaignTargetsService.markAsReplied(target.id.toString(), {
         replyExternalId: postResult.tweetId || '',
         replyText,
         replyUrl: postResult.tweetUrl || '',
@@ -217,13 +217,13 @@ export class CampaignExecutorService {
 
       // Update campaign counters
       await this.campaignsService.incrementReplyCounters(
-        campaign._id.toString(),
+        campaign.id.toString(),
       );
 
       this.loggerService.log(`${url} success`, {
-        campaignId: campaign._id,
+        campaignId: campaign.id,
         replyId: postResult.tweetId,
-        targetId: target._id,
+        targetId: target.id,
       });
 
       return {
@@ -236,18 +236,18 @@ export class CampaignExecutorService {
       const errorMessage = (error as Error)?.message || 'Unknown error';
 
       this.loggerService.error(`${url} failed`, {
-        campaignId: campaign._id,
+        campaignId: campaign.id,
         error,
-        targetId: target._id,
+        targetId: target.id,
       });
 
       await this.campaignTargetsService.markAsFailed(
-        target._id.toString(),
+        target.id.toString(),
         errorMessage,
         (target.retryCount || 0) + 1,
       );
       await this.campaignsService.incrementFailedCounter(
-        campaign._id.toString(),
+        campaign.id.toString(),
       );
 
       return {
@@ -423,7 +423,7 @@ export class CampaignExecutorService {
     try {
       const pendingTargets =
         await this.campaignTargetsService.getPendingTargets(
-          campaign._id.toString(),
+          campaign.id.toString(),
           limit,
         );
 
@@ -448,14 +448,14 @@ export class CampaignExecutorService {
       }
 
       this.loggerService.log(`${url} batch complete`, {
-        campaignId: campaign._id,
+        campaignId: campaign.id,
         ...results,
       });
 
       return results;
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, {
-        campaignId: campaign._id,
+        campaignId: campaign.id,
         error,
       });
       throw error;

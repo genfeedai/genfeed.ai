@@ -133,7 +133,7 @@ export class SkillRuntimeService {
     };
     const doc =
       typeof maybeDoc.toObject === 'function' ? maybeDoc.toObject() : skill;
-    const slug = this.readString(doc.slug) ?? String(doc._id);
+    const slug = this.readString(doc.slug) ?? String(doc.id);
 
     return {
       instructions:

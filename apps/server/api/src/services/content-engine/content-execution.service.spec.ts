@@ -220,7 +220,7 @@ describe('ContentExecutionService', () => {
   describe('executeSingleItem', () => {
     it('should fetch the item and execute it', async () => {
       const item = makeItem();
-      const itemId = String(item._id);
+      const itemId = String(item.id);
       mockContentPlanItemsService.getByIdOrFail.mockResolvedValue(item);
       mockSkillExecutorService.execute.mockResolvedValue({
         draft: {
@@ -250,7 +250,7 @@ describe('ContentExecutionService', () => {
 
     it('should increment plan executed count on success', async () => {
       const item = makeItem();
-      const itemId = String(item._id);
+      const itemId = String(item.id);
       mockContentPlanItemsService.getByIdOrFail.mockResolvedValue(item);
       mockSkillExecutorService.execute.mockResolvedValue({
         draft: {
@@ -272,7 +272,7 @@ describe('ContentExecutionService', () => {
 
     it('should not increment plan count on failure', async () => {
       const item = makeItem();
-      const itemId = String(item._id);
+      const itemId = String(item.id);
       mockContentPlanItemsService.getByIdOrFail.mockResolvedValue(item);
       mockSkillExecutorService.execute.mockRejectedValue(new Error('fail'));
 
@@ -322,14 +322,14 @@ describe('ContentExecutionService', () => {
 
       expect(mockContentPlanItemsService.updateStatus).toHaveBeenCalledWith(
         orgId,
-        String(item._id),
+        String(item.id),
         ContentPlanItemStatus.EXECUTING,
       );
       expect(mockContentPlanItemsService.updateStatus).toHaveBeenCalledWith(
         orgId,
-        String(item._id),
+        String(item.id),
         ContentPlanItemStatus.COMPLETED,
-        expect.objectContaining({ contentDraftId: String(mockDraft._id) }),
+        expect.objectContaining({ contentDraftId: String(mockDraft.id) }),
       );
     });
 
@@ -401,7 +401,7 @@ describe('ContentExecutionService', () => {
       });
       expect(mockContentPlanItemsService.updateStatus).toHaveBeenCalledWith(
         orgId,
-        String(item._id),
+        String(item.id),
         ContentPlanItemStatus.FAILED,
         { error: 'skill exploded' },
       );

@@ -25,7 +25,7 @@ describe('Serializer Configurations', () => {
     test('should have ingredients relationship configuration', () => {
       const ingredients = postSerializerConfig.ingredients;
 
-      expect(ingredients).toHaveProperty('ref', '_id');
+      expect(ingredients).toHaveProperty('ref', 'id');
       expect(ingredients).toHaveProperty('type', 'ingredient');
       expect(ingredients).toHaveProperty('attributes');
       expect(ingredients).toHaveProperty('metadata');
@@ -36,7 +36,7 @@ describe('Serializer Configurations', () => {
     test('should have credential relationship configuration', () => {
       const credential = postSerializerConfig.credential;
 
-      expect(credential).toHaveProperty('ref', '_id');
+      expect(credential).toHaveProperty('ref', 'id');
       expect(credential).toHaveProperty('type', 'credential');
       expect(credential).toHaveProperty('attributes');
 
@@ -46,7 +46,7 @@ describe('Serializer Configurations', () => {
     test('should have user relationship configuration', () => {
       const user = postSerializerConfig.user;
 
-      expect(user).toHaveProperty('ref', '_id');
+      expect(user).toHaveProperty('ref', 'id');
       expect(user).toHaveProperty('type', 'user');
       expect(user).toHaveProperty('attributes');
 
@@ -56,7 +56,7 @@ describe('Serializer Configurations', () => {
     test('should have tags relationship configuration', () => {
       const tags = postSerializerConfig.tags;
 
-      expect(tags).toHaveProperty('ref', '_id');
+      expect(tags).toHaveProperty('ref', 'id');
       expect(tags).toHaveProperty('type', 'tag');
       expect(tags).toHaveProperty('attributes');
 

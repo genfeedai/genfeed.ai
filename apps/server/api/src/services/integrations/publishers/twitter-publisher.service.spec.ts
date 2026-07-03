@@ -510,14 +510,14 @@ describe('TwitterPublisherService', () => {
 
     const mockChildren = [
       {
-        _id: '507f1f77bcf86cd799439030',
+        id: '507f1f77bcf86cd799439030',
         category: PostCategory.TEXT,
         description: '<p>Child 1</p>',
         ingredients: [],
         order: 1,
       },
       {
-        _id: '507f1f77bcf86cd799439031',
+        id: '507f1f77bcf86cd799439031',
         category: PostCategory.IMAGE,
         description: '<p>Child 2</p>',
         ingredients: [mockIngredientId],
@@ -556,7 +556,7 @@ describe('TwitterPublisherService', () => {
       // Should update both children with their external IDs
       expect(postsService.patch).toHaveBeenCalledTimes(2);
       expect(postsService.patch).toHaveBeenCalledWith(
-        mockChildren[0]._id.toString(),
+        mockChildren[0].id.toString(),
         expect.objectContaining({
           externalId: expect.any(String),
           status: PostStatus.PUBLIC,
@@ -590,7 +590,7 @@ describe('TwitterPublisherService', () => {
 
       // First patch should be for the child with order 1
       expect(postsService.patch.mock.calls[0][0]).toBe(
-        mockChildren[0]._id.toString(),
+        mockChildren[0].id.toString(),
       );
     });
 
@@ -608,7 +608,7 @@ describe('TwitterPublisherService', () => {
       );
 
       expect(postsService.patch).toHaveBeenCalledWith(
-        singleChild[0]._id.toString(),
+        singleChild[0].id.toString(),
         expect.objectContaining({
           status: PostStatus.FAILED,
         }),
@@ -787,7 +787,7 @@ describe('TwitterPublisherService', () => {
     it('should handle populated ingredient objects', () => {
       const postWithPopulatedIngredients = {
         ...mockImagePost,
-        ingredients: [{ _id: mockIngredientId, name: 'Test Ingredient' }],
+        ingredients: [{ id: mockIngredientId, name: 'Test Ingredient' }],
       };
 
       const result = (service as any).extractMediaInfo(

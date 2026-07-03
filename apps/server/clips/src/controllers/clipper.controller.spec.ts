@@ -75,7 +75,7 @@ describe('ClipperController', () => {
     };
 
     it('should create project and queue process job', async () => {
-      const projectData = { _id: 'project-abc' };
+      const projectData = { id: 'project-abc' };
       httpService.post.mockReturnValue(
         of({ data: projectData }) as ReturnType<typeof httpService.post>,
       );
@@ -105,8 +105,8 @@ describe('ClipperController', () => {
       expect(result).toEqual({ data: projectData, success: true });
     });
 
-    it('should use nested data._id when project returns data wrapper', async () => {
-      const projectData = { data: { _id: 'nested-project-id' } };
+    it('should use nested data.id when project returns data wrapper', async () => {
+      const projectData = { data: { id: 'nested-project-id' } };
       httpService.post.mockReturnValue(
         of({ data: projectData }) as ReturnType<typeof httpService.post>,
       );
@@ -123,7 +123,7 @@ describe('ClipperController', () => {
 
     it('should use empty string as name if none provided', async () => {
       const bodyWithoutName = { ...createBody, name: undefined };
-      const projectData = { _id: 'project-abc' };
+      const projectData = { id: 'project-abc' };
       httpService.post.mockReturnValue(
         of({ data: projectData }) as ReturnType<typeof httpService.post>,
       );

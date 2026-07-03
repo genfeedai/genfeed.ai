@@ -66,7 +66,7 @@ describe('ReplicateWebhookService', () => {
       webhook_metadata: { metadataId },
     });
 
-    deps.metadataService.findOne.mockResolvedValue({ _id: metadataId });
+    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
     deps.metadataService.patch.mockResolvedValue({});
 
     await service.handleCallback(body);
@@ -126,7 +126,7 @@ describe('ReplicateWebhookService', () => {
       webhook_metadata: { metadataId },
     });
 
-    deps.metadataService.findOne.mockResolvedValue({ _id: metadataId });
+    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
     deps.metadataService.patch.mockResolvedValue({});
 
     await service.handleCallback(body);
@@ -147,7 +147,7 @@ describe('ReplicateWebhookService', () => {
       webhook_metadata: { metadataId },
     });
 
-    deps.metadataService.findOne.mockResolvedValue({ _id: metadataId });
+    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
     deps.metadataService.patch.mockResolvedValue({});
 
     await service.handleCallback(body);
@@ -166,7 +166,7 @@ describe('ReplicateWebhookService', () => {
       webhook_metadata: { metadataId },
     });
 
-    deps.metadataService.findOne.mockResolvedValue({ _id: metadataId });
+    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
     deps.metadataService.patch.mockResolvedValue({});
 
     await service.handleCallback(body);
@@ -184,7 +184,7 @@ describe('ReplicateWebhookService', () => {
       webhook_metadata: { metadataId },
     });
 
-    deps.metadataService.findOne.mockResolvedValue({ _id: metadataId });
+    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
     deps.metadataService.patch.mockResolvedValue({});
 
     await service.handleCallback(body);
@@ -204,7 +204,7 @@ describe('ReplicateWebhookService', () => {
       webhook_metadata: { metadataId },
     });
 
-    deps.metadataService.findOne.mockResolvedValue({ _id: metadataId });
+    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
     deps.metadataService.patch.mockResolvedValue({});
 
     await service.handleCallback(body);
@@ -240,7 +240,7 @@ describe('ReplicateWebhookService', () => {
     deps.microservicesService.notifyWebhook.mockRejectedValue(
       new Error('Notification failed'),
     );
-    deps.metadataService.findOne.mockResolvedValue({ _id: metadataId });
+    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
     deps.metadataService.patch.mockResolvedValue({});
 
     // The service catches notifyWebhook errors with .catch(), so this should not throw

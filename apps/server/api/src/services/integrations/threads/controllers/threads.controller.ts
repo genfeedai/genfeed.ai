@@ -112,7 +112,7 @@ export class ThreadsController {
 
     const appId = this.configService.get('THREADS_CLIENT_ID');
     const state = JSON.stringify({
-      brandId: brand._id,
+      brandId: brand.id,
       organizationId: brand.organization,
       userId: publicMetadata.user,
     });
@@ -272,7 +272,7 @@ export class ThreadsController {
 
       // Update the credential with the access token
       const credential = await this.credentialsService.patch(
-        existingCredential._id,
+        existingCredential.id,
         {
           accessToken: access_token,
           accessTokenExpiry: expires_in

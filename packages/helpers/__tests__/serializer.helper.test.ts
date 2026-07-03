@@ -103,7 +103,7 @@ describe('Serializer Helper', () => {
         relationships: {
           author: {
             attributes: ['name'],
-            ref: '_id',
+            ref: 'id',
             type: 'user',
           },
         },
@@ -151,7 +151,7 @@ describe('Serializer Helper', () => {
         relationships: {
           author: {
             attributes: ['name', 'email'],
-            ref: '_id',
+            ref: 'id',
             type: 'user',
           },
         },
@@ -161,7 +161,7 @@ describe('Serializer Helper', () => {
       const serializer = getSerializer(config);
       const testData = {
         author: {
-          _id: 'user-123',
+          id: 'user-123',
           email: 'john@example.com',
           name: 'John Doe',
         },

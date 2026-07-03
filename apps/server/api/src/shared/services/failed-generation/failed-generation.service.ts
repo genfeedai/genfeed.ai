@@ -109,7 +109,7 @@ export class FailedGenerationService {
           }
 
           // Update activity with failure data
-          await this.activitiesService.patch(existingActivity._id.toString(), {
+          await this.activitiesService.patch(existingActivity.id.toString(), {
             key: activityMetadata.key,
             value: JSON.stringify({
               ...parsedValue,

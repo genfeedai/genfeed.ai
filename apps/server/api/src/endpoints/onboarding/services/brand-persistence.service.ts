@@ -84,7 +84,7 @@ export class BrandPersistenceService {
   }
 
   async resolveWritableOnboardingBrand(
-    brand: { _id: string; label?: string | null },
+    brand: { id: string; label?: string | null },
     organizationId: string,
     userId: string,
     label?: string,
@@ -104,12 +104,12 @@ export class BrandPersistenceService {
       'none',
     );
 
-    if (!matchingBrand || String(matchingBrand._id) === String(brand._id)) {
+    if (!matchingBrand || String(matchingBrand.id) === String(brand.id)) {
       return brand;
     }
 
     await this.brandsService.selectBrandForUser(
-      String(matchingBrand._id),
+      String(matchingBrand.id),
       String(userId),
       String(organizationId),
     );
@@ -122,7 +122,7 @@ export class BrandPersistenceService {
         organization: String(organizationId),
         user: String(userId),
       },
-      String(matchingBrand._id),
+      String(matchingBrand.id),
     );
 
     return matchingBrand;
@@ -342,7 +342,7 @@ export class BrandPersistenceService {
     }
 
     const brandId_str = String(
-      (brand as Record<string, unknown>).id ?? brand._id,
+      (brand as Record<string, unknown>).id ?? brand.id,
     );
     const existingImages = this.brandDataMapper.readBrandReferenceImages(
       brand.referenceImages,

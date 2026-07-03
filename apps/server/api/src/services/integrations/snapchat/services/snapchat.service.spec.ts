@@ -208,7 +208,7 @@ describe('SnapchatService', () => {
       await service.refreshToken(orgId, brandId);
 
       expect(credentialsService.patch).toHaveBeenCalledWith(
-        mockCredential._id,
+        mockCredential.id,
         expect.objectContaining({ accessToken: 'new-acc', isConnected: true }),
       );
     });

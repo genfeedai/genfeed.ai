@@ -28,7 +28,7 @@ export class HeygenWebhookService {
   }
 
   private getDocumentId(value: { _id?: unknown; id?: unknown }): string {
-    return String(value._id ?? value.id);
+    return String(value.id);
   }
 
   async handleCallback(body: HeygenWebhookPayload) {
@@ -99,10 +99,10 @@ export class HeygenWebhookService {
         });
       }
 
-      if (!ingredient && metadata?._id) {
+      if (!ingredient && metadata?.id) {
         ingredient = await this.ingredientsService.findOne({
           isDeleted: false,
-          metadataId: metadata._id,
+          metadataId: metadata.id,
         });
       }
 
@@ -133,7 +133,7 @@ export class HeygenWebhookService {
         updateData.error = JSON.stringify(event_data);
       } else if (event_type === 'avatar_video.success' && successVideoUrl) {
         await this.webhooksService.processMediaForIngredient(
-          ingredient._id.toString(),
+          ingredient.id.toString(),
           'avatar',
           successVideoUrl,
           providerVideoId,

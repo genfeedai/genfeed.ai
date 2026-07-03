@@ -140,8 +140,8 @@ export class ContentGeneratorService {
       results.push(generated);
 
       // Track pattern usage
-      if (pattern._id) {
-        await this.patternStoreService.incrementUsage(pattern._id);
+      if (pattern.id) {
+        await this.patternStoreService.incrementUsage(pattern.id);
       }
     }
 
@@ -290,7 +290,7 @@ export class ContentGeneratorService {
         cta: parsed.cta,
         hashtags: dto.hashtags ?? extractHashtags(parsed.content),
         hook: parsed.hook,
-        patternId: pattern._id?.toString(),
+        patternId: pattern.id?.toString(),
         patternUsed: pattern.extractedFormula ?? 'pattern',
       };
     } catch (error: unknown) {
@@ -519,7 +519,7 @@ Respond with JSON array:
     return {
       content,
       hashtags: dto.hashtags ?? [],
-      patternId: pattern._id?.toString(),
+      patternId: pattern.id?.toString(),
       patternUsed: pattern.extractedFormula ?? 'pattern',
     };
   }
