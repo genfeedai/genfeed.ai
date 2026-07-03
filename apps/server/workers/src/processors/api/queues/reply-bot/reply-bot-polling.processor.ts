@@ -1,9 +1,5 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
-import type {
-  ReplyBotPollingJobData,
-  ReplyBotPollingResult,
-} from '@api/queues/reply-bot/reply-bot-polling-job.interface';
 import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-orchestrator.service';
 import {
   BrokenCircuitError,
@@ -12,6 +8,11 @@ import {
 } from '@api/shared/utils/circuit-breaker/circuit-breaker.util';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
+import {
+  REPLY_BOT_POLLING_QUEUE,
+  ReplyBotPollingJobData,
+  ReplyBotPollingResult,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
@@ -20,7 +21,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-@Processor('reply-bot-polling')
+@Processor(REPLY_BOT_POLLING_QUEUE)
 export class ReplyBotPollingProcessor extends WorkerHost {
   private readonly circuitBreaker: ProcessorCircuitBreaker;
 

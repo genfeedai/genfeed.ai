@@ -161,7 +161,7 @@ describe('AgentThreadsController', () => {
 
     it('should not throw 401 when metadata user id is missing but a legacy _id is found', async () => {
       const resolvedMongoUserId = 'legacy_mongo_id';
-      usersService.findOne.mockResolvedValueOnce({ _id: resolvedMongoUserId });
+      usersService.findOne.mockResolvedValueOnce({ id: resolvedMongoUserId });
       service.getUserThreads.mockResolvedValue([]);
 
       await controller.listThreads(

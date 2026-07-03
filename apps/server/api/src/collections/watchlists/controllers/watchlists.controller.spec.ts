@@ -1,6 +1,7 @@
 import { WatchlistsController } from '@api/collections/watchlists/controllers/watchlists.controller';
 import { WatchlistsService } from '@api/collections/watchlists/services/watchlists.service';
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { ConflictException } from '@nestjs/common';
 
 describe('WatchlistsController', () => {
   let controller: WatchlistsController;

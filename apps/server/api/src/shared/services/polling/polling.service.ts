@@ -196,7 +196,7 @@ export class PollingService {
 
         // Sort results to match input order
         return ingredientIds
-          .map((id) => results.find((r) => r._id.toString() === id))
+          .map((id) => results.find((r) => r.id.toString() === id))
           .filter((r): r is IngredientDocument => r !== undefined);
       }
 

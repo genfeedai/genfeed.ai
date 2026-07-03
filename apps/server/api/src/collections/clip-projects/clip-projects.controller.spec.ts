@@ -52,7 +52,6 @@ function createProject(
   organizationId: string,
 ): ClipProjectDocument {
   return {
-    _id: projectId,
     highlights: [
       {
         clip_type: 'hook',
@@ -65,6 +64,7 @@ function createProject(
         virality_score: 85,
       },
     ],
+    id: projectId,
     isDeleted: false,
     organization: organizationId,
     status: 'analyzed',
@@ -144,7 +144,7 @@ describe('ClipProjectsController', () => {
       };
 
       vi.mocked(clipProjectsService.create).mockResolvedValue({
-        _id: projectId,
+        id: projectId,
       } as ClipProjectDocument);
       clipFactoryQueueService.enqueue.mockResolvedValue('clip-factory-job-1');
 
@@ -332,8 +332,8 @@ describe('ClipProjectsController', () => {
       project,
     );
     clipResultsService.findProjectResultForHandoff.mockResolvedValue({
-      _id: 'clip-result-1',
       duration: 12,
+      id: 'clip-result-1',
       readiness: {
         blockingReasons: [],
         readyActions: ['download', 'edit', 'publish'],
@@ -345,7 +345,6 @@ describe('ClipProjectsController', () => {
       videoUrl: 'https://cdn.genfeed.ai/clip.mp4',
     });
     editorProjectsService.create.mockResolvedValue({
-      _id: 'editor-project-1',
       id: 'editor-project-1',
     });
 
@@ -392,7 +391,7 @@ describe('ClipProjectsController', () => {
       project,
     );
     clipResultsService.findProjectResultForHandoff.mockResolvedValue({
-      _id: 'clip-result-1',
+      id: 'clip-result-1',
       readiness: {
         blockingReasons: [],
         readyActions: ['download', 'edit', 'publish'],
@@ -451,7 +450,7 @@ describe('ClipProjectsController', () => {
       project,
     );
     clipResultsService.findProjectResultForHandoff.mockResolvedValue({
-      _id: 'clip-result-1',
+      id: 'clip-result-1',
       readiness: {
         blockingReasons: [],
         readyActions: ['download'],

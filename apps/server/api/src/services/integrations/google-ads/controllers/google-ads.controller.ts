@@ -73,7 +73,7 @@ export class GoogleAdsController {
     }
 
     const state = JSON.stringify({
-      brandId: brand._id,
+      brandId: brand.id,
       organizationId: brand.organization,
       userId: publicMetadata.user,
     });
@@ -136,7 +136,7 @@ export class GoogleAdsController {
     const primaryCustomer = customers[0];
 
     const updatedCredential = await this.credentialsService.patch(
-      credential._id,
+      credential.id,
       {
         accessToken: tokens.accessToken,
         accessTokenExpiry: tokens.expiresIn

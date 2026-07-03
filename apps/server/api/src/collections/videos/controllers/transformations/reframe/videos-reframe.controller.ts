@@ -184,33 +184,33 @@ export class VideosReframeController {
         organization: isEntityId(parent.organization)
           ? parent.organization
           : publicMetadata.organization,
-        parent: parent._id,
-        prompt: promptData._id,
+        parent: parent.id,
+        prompt: promptData.id,
         status: IngredientStatus.PROCESSING,
         transformations: [TransformationCategory.REFRAMED],
         width: targetWidth,
       });
 
-    await this.videosService.patch(ingredientData._id, {
-      prompt: promptData._id,
+    await this.videosService.patch(ingredientData.id, {
+      prompt: promptData.id,
     });
 
-    const websocketUrl = WebSocketPaths.video(ingredientData._id);
+    const websocketUrl = WebSocketPaths.video(ingredientData.id);
 
     // Create activity for video reframe start
     const activity = await this.activitiesService.create(
       new ActivityEntity({
         brand: isEntityId(parent.brand) ? parent.brand : publicMetadata.brand,
-        entityId: ingredientData._id,
+        entityId: ingredientData.id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.VIDEO_REFRAME_PROCESSING,
         organization: publicMetadata.organization,
         source: ActivitySource.VIDEO_REFRAME,
         user: publicMetadata.user,
         value: JSON.stringify({
-          ingredientId: ingredientData._id.toString(),
+          ingredientId: ingredientData.id.toString(),
           model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
-          sourceId: parent._id.toString(),
+          sourceId: parent.id.toString(),
           type: 'transformation',
         }),
       }),
@@ -218,18 +218,18 @@ export class VideosReframeController {
 
     // Emit background-task-update WebSocket event for activities dropdown
     await this.websocketService.publishBackgroundTaskUpdate({
-      activityId: activity._id.toString(),
+      activityId: activity.id.toString(),
       label: 'Video Reframe',
       progress: 0,
       room: getUserRoomName(user.id),
       status: 'processing',
-      taskId: ingredientData._id.toString(),
+      taskId: ingredientData.id.toString(),
       userId: user.id,
     });
 
     url = 'ReplicateService reframeVideo';
     try {
-      const parentId = String(parent?._id);
+      const parentId = String(parent?.id);
       const parentVideoUrl = `${this.configService.ingredientsEndpoint}/videos/${parentId}`;
 
       const { input: promptParams } =
@@ -298,16 +298,16 @@ export class VideosReframeController {
         }
 
         await this.metadataService.patch(
-          metadataData._id,
+          metadataData.id,
           new MetadataEntity({
             externalId: generationId,
-            prompt: promptData._id,
+            prompt: promptData.id,
           }),
         );
       } else {
         await this.failedGenerationService.handleFailedVideoGeneration(
           this.videosService,
-          ingredientData._id,
+          ingredientData.id,
           websocketUrl,
           user.id,
           getUserRoomName(user.id),
@@ -318,7 +318,7 @@ export class VideosReframeController {
 
       await this.failedGenerationService.handleFailedVideoGeneration(
         this.videosService,
-        ingredientData._id,
+        ingredientData.id,
         websocketUrl,
         user.id,
         getUserRoomName(user.id),

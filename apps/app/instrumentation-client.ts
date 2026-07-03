@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/nextjs';
+import { initAnalytics } from '@/lib/analytics';
 
 Sentry.init({
   debug: false,
@@ -24,5 +25,9 @@ Sentry.init({
 
   tracesSampleRate: 0.2,
 });
+
+// Product analytics (Genfeed Cloud only). No-ops — and never loads posthog-js —
+// in self-hosted or desktop builds. See src/lib/analytics/posthog-client.ts.
+initAnalytics();
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

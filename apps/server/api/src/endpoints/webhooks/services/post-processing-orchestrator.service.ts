@@ -72,7 +72,7 @@ export class PostProcessingOrchestratorService {
       this.triggerAutoEvaluationAsync(ingredient).catch((error: unknown) => {
         this.loggerService.error(`${this.logContext} auto-evaluation failed`, {
           error: getErrorMessage(error),
-          ingredientId: ingredient._id,
+          ingredientId: ingredient.id,
         });
       });
     });
@@ -84,7 +84,7 @@ export class PostProcessingOrchestratorService {
     if (!this.evaluationsService) {
       this.loggerService.debug(
         `${this.logContext} EvaluationsService not available`,
-        { ingredientId: ingredient._id },
+        { ingredientId: ingredient.id },
       );
       return;
     }
@@ -95,7 +95,7 @@ export class PostProcessingOrchestratorService {
 
     if (!orgSettings?.isAutoEvaluateEnabled) {
       this.loggerService.debug(`${this.logContext} auto-evaluate disabled`, {
-        ingredientId: ingredient._id,
+        ingredientId: ingredient.id,
         organizationId: ingredient.organization,
       });
       return;
@@ -113,7 +113,7 @@ export class PostProcessingOrchestratorService {
         `${this.logContext} category not supported for auto-evaluation`,
         {
           category: ingredient.category,
-          ingredientId: ingredient._id,
+          ingredientId: ingredient.id,
         },
       );
       return;
@@ -123,7 +123,7 @@ export class PostProcessingOrchestratorService {
     if (!userId) {
       this.loggerService.warn(
         `${this.logContext} no userId for auto-evaluation`,
-        { ingredientId: ingredient._id },
+        { ingredientId: ingredient.id },
       );
       return;
     }
@@ -132,14 +132,14 @@ export class PostProcessingOrchestratorService {
     if (!brandId) {
       this.loggerService.debug(
         `${this.logContext} no brandId for auto-evaluation, skipping`,
-        { ingredientId: ingredient._id },
+        { ingredientId: ingredient.id },
       );
       return;
     }
 
     await this.evaluationsService.evaluateContent(
       ingredient.category as IngredientCategory,
-      String(ingredient._id),
+      String(ingredient.id),
       EvaluationType.PRE_PUBLICATION,
       String(ingredient.organization),
       userId,
@@ -148,7 +148,7 @@ export class PostProcessingOrchestratorService {
 
     this.loggerService.log(`${this.logContext} auto-evaluation triggered`, {
       category: ingredient.category,
-      ingredientId: ingredient._id,
+      ingredientId: ingredient.id,
     });
   }
 }

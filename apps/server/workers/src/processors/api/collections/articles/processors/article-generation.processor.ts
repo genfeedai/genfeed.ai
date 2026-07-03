@@ -1,4 +1,5 @@
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { ARTICLE_GENERATION_QUEUE } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import type { Job } from 'bullmq';
@@ -10,7 +11,7 @@ interface ArticleGenerationJobData {
   brandId: string;
 }
 
-@Processor('article-generation')
+@Processor(ARTICLE_GENERATION_QUEUE)
 export class ArticleGenerationProcessor extends WorkerHost {
   constructor(
     private readonly articlesService: ArticlesService,
@@ -39,7 +40,7 @@ export class ArticleGenerationProcessor extends WorkerHost {
       await job.updateProgress(100);
 
       this.logger.log(
-        `Article generated successfully: ${article._id} from transcript ${transcriptId}`,
+        `Article generated successfully: ${article.id} from transcript ${transcriptId}`,
       );
     } catch (error: unknown) {
       this.logger.error(

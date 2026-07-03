@@ -62,7 +62,7 @@ const DEFAULT_OPTIONS: ISerializerOptions = {
 
 const MODE_OPTIONS: Record<SerializerMode, ISerializerOptions> = {
   api: {
-    id: '_id',
+    id: 'id',
     keyForAttribute: 'camelCase',
     nullIfMissing: true,
     pluralizeType: false,

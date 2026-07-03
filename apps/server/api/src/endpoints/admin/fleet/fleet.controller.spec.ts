@@ -14,9 +14,9 @@ vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
   },
 }));
 
-vi.mock('@api/helpers/utils/objectid/objectid.util', () => ({
-  ObjectIdUtil: {
-    toObjectId: vi.fn((s: unknown) => s),
+vi.mock('@api/helpers/utils/entity-id/entity-id.util', () => ({
+  EntityIdUtil: {
+    toValidId: vi.fn((s: unknown) => s),
   },
 }));
 
@@ -37,9 +37,9 @@ import {
 import { AdminFleetController } from '@api/endpoints/admin/fleet/fleet.controller';
 import { AdminFleetService } from '@api/endpoints/admin/fleet/fleet.service';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { NotFoundException } from '@nestjs/common';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import type { Request } from 'express';
 
@@ -167,7 +167,7 @@ describe('AdminFleetController', () => {
 
       it('should handle character not found', async () => {
         adminFleetService.getCharacterBySlug.mockRejectedValue(
-          new NotFoundException('Character not found'),
+          new NotFoundException('Character'),
         );
 
         await expect(
@@ -217,7 +217,7 @@ describe('AdminFleetController', () => {
         };
 
         const mockCharacter = {
-          _id: 'char1',
+          id: 'char1',
           name: 'Test',
           slug: 'test',
         };
@@ -280,7 +280,7 @@ describe('AdminFleetController', () => {
     describe('deleteCharacter', () => {
       it('should soft-delete a character', async () => {
         const mockCharacter = {
-          _id: 'char1',
+          id: 'char1',
           name: 'Test',
           slug: 'test',
         };

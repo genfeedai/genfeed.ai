@@ -1,4 +1,4 @@
-// Server serializers - built with server mode (using _id for IDs)
+// Server serializers — JSON:API output keyed on the record's string `id`
 export * from '@serializers/server/admin';
 export * from '@serializers/server/analytics';
 export * from '@serializers/server/automation';

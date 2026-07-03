@@ -13,17 +13,16 @@ describe('InternalWorkflowExecutionsController', () => {
 
   const mockRequest = {} as Request;
   const mockWorkflow = {
-    _id: '507f1f77bcf86cd799439014',
+    id: '507f1f77bcf86cd799439014',
     organization: '507f1f77bcf86cd799439012',
     user: '507f1f77bcf86cd799439011',
   };
   const mockExecution = {
-    _id: '507f1f77bcf86cd799439015',
     id: '507f1f77bcf86cd799439015',
     organization: '507f1f77bcf86cd799439012',
     status: 'running',
     user: mockWorkflow.user,
-    workflow: mockWorkflow._id,
+    workflow: mockWorkflow.id,
   };
 
   const mockWorkflowExecutorService = {
@@ -91,7 +90,7 @@ describe('InternalWorkflowExecutionsController', () => {
       '507f1f77bcf86cd799439012',
       {
         inputValues: { prompt: 'hello' },
-        workflow: mockWorkflow._id,
+        workflow: mockWorkflow.id,
       },
     );
 

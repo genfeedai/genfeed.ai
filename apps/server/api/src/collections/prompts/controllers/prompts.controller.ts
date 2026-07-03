@@ -209,12 +209,12 @@ export class PromptsController {
       .then(async (result) => {
         this.loggerService.log(`${url} succeeded`, { result });
 
-        await this.promptsService.patch(data._id, {
+        await this.promptsService.patch(data.id, {
           enhanced: result,
           status: PromptStatus.GENERATED,
         });
 
-        await this.websocketService.emit(WebSocketPaths.prompt(data._id), {
+        await this.websocketService.emit(WebSocketPaths.prompt(data.id), {
           result,
           status: Status.COMPLETED,
         });
@@ -248,11 +248,11 @@ export class PromptsController {
           });
         }
 
-        await this.promptsService.patch(data._id, {
+        await this.promptsService.patch(data.id, {
           status: PromptStatus.FAILED,
         });
 
-        await this.websocketService.emit(WebSocketPaths.prompt(data._id), {
+        await this.websocketService.emit(WebSocketPaths.prompt(data.id), {
           error: (error as Error)?.message || 'An error occurred',
           status: Status.FAILED,
         });
@@ -429,7 +429,7 @@ export class PromptsController {
         downloadData: {
           category: prompt.category ?? undefined,
           original: prompt.original,
-          promptId: prompt._id,
+          promptId: prompt.id,
           template: promptTemplate,
           title: promptTitle,
           variables: [],

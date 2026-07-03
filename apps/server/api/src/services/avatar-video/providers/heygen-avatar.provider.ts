@@ -3,11 +3,11 @@ import type {
   AvatarVideoJobInput,
   AvatarVideoJobResult,
   AvatarVideoProvider,
-  AvatarVideoProviderName,
 } from '@api/services/avatar-video/avatar-video-provider.interface';
 import { ByokService } from '@api/services/byok/byok.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { ApiKeyCategory, ByokProvider } from '@genfeedai/enums';
+import type { AvatarVideoProviderName } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';

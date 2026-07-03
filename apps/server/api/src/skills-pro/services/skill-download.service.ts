@@ -1,14 +1,11 @@
 import { ConfigService } from '@api/config/config.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SkillRegistryService } from '@api/skills-pro/services/skill-registry.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 type SkillReceiptData = {
   receiptId?: string;
@@ -91,7 +88,9 @@ export class SkillDownloadService {
     });
 
     if (!receipt) {
-      throw new NotFoundException('Receipt not found or not completed');
+      throw new NotFoundException({
+        message: 'Receipt not found or not completed',
+      });
     }
 
     if (!skillSlug) {
@@ -106,7 +105,9 @@ export class SkillDownloadService {
     );
 
     if (!skillEntry) {
-      throw new NotFoundException(`Skill "${skillSlug}" not found in registry`);
+      throw new NotFoundException({
+        message: `Skill "${skillSlug}" not found in registry`,
+      });
     }
 
     // Generate presigned download URL via files microservice

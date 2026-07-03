@@ -163,6 +163,12 @@ export class KlingAIService {
         status: axiosError?.response?.status,
         statusText: axiosError?.response?.statusText,
       });
+
+      // Rethrow so a non-200 response or transport error surfaces to the
+      // caller instead of resolving `undefined` — otherwise a hard provider
+      // failure looks like a silently missing request_id on the revenue path.
+      // Mirrors the other provider services (e.g. HeyGen).
+      throw error;
     }
   }
 
@@ -216,6 +222,12 @@ export class KlingAIService {
         status: axiosError?.response?.status,
         statusText: axiosError?.response?.statusText,
       });
+
+      // Rethrow so a non-200 response or transport error surfaces to the
+      // caller instead of resolving `undefined` — otherwise a hard provider
+      // failure looks like a silently missing request_id on the revenue path.
+      // Mirrors the other provider services (e.g. HeyGen).
+      throw error;
     }
   }
 
@@ -268,6 +280,12 @@ export class KlingAIService {
         status: axiosError?.response?.status,
         statusText: axiosError?.response?.statusText,
       });
+
+      // Rethrow so a non-200 response or transport error surfaces to the
+      // caller instead of resolving `undefined` — otherwise a hard provider
+      // failure looks like a silently missing request_id on the revenue path.
+      // Mirrors the other provider services (e.g. HeyGen).
+      throw error;
     }
   }
 

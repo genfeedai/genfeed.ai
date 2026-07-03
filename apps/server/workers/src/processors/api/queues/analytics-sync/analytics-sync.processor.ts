@@ -2,17 +2,20 @@ import {
   type AnalyticsSyncResult,
   AnalyticsSyncService,
 } from '@api/collections/content-performance/services/analytics-sync.service';
-import type { AnalyticsSyncJobData } from '@api/queues/analytics-sync/analytics-sync-job.interface';
 import {
   BrokenCircuitError,
   createProcessorCircuitBreaker,
   type ProcessorCircuitBreaker,
 } from '@api/shared/utils/circuit-breaker/circuit-breaker.util';
+import {
+  ANALYTICS_SYNC_QUEUE,
+  AnalyticsSyncJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 
-@Processor('analytics-sync')
+@Processor(ANALYTICS_SYNC_QUEUE)
 export class AnalyticsSyncProcessor extends WorkerHost {
   private readonly circuitBreaker: ProcessorCircuitBreaker;
 

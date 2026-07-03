@@ -78,30 +78,30 @@ describe('BatchInterpolationController', () => {
   } as unknown as User;
 
   const mockModel = {
-    _id: '507f1f77bcf86cd799439020',
     category: 'video',
     cost: 5,
     hasInterpolation: true,
+    id: '507f1f77bcf86cd799439020',
     key: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1,
   };
 
   const mockBrand = {
-    _id: '507f1f77bcf86cd799439014',
+    id: '507f1f77bcf86cd799439014',
     organization: '507f1f77bcf86cd799439013',
   };
 
-  const mockPrompt = { _id: '507f1f77bcf86cd799439030' };
+  const mockPrompt = { id: '507f1f77bcf86cd799439030' };
 
   const mockIngredientData = {
-    _id: '507f1f77bcf86cd799439040',
+    id: '507f1f77bcf86cd799439040',
   };
 
   const mockMetadataData = {
-    _id: '507f1f77bcf86cd799439050',
+    id: '507f1f77bcf86cd799439050',
   };
 
   const mockActivity = {
-    _id: '507f1f77bcf86cd799439060',
+    id: '507f1f77bcf86cd799439060',
   };
 
   const mockPairs = [
@@ -256,7 +256,7 @@ describe('BatchInterpolationController', () => {
           isMergeEnabled: false,
           jobs: [
             expect.objectContaining({
-              id: mockIngredientData._id.toString(),
+              id: mockIngredientData.id.toString(),
               pairIndex: 0,
               status: 'processing',
             }),
@@ -371,7 +371,7 @@ describe('BatchInterpolationController', () => {
         await controller.createBatchInterpolation(mockReq, mockDto, mockUser);
 
         expect(metadataService.patch).toHaveBeenCalledWith(
-          mockMetadataData._id.toString(),
+          mockMetadataData.id.toString(),
           expect.objectContaining({
             externalId: 'replicate-generation-id-123',
           }),

@@ -23,9 +23,9 @@ describe('ActivityUpdateService', () => {
 
   beforeEach(() => {
     activitiesService = {
-      create: vi.fn().mockResolvedValue({ _id: mockObjectId }),
+      create: vi.fn().mockResolvedValue({ id: mockObjectId }),
       findOne: vi.fn(),
-      patch: vi.fn().mockResolvedValue({ _id: mockObjectId }),
+      patch: vi.fn().mockResolvedValue({ id: mockObjectId }),
     };
     websocketService = {
       publishBackgroundTaskUpdate: vi.fn(),
@@ -57,7 +57,7 @@ describe('ActivityUpdateService', () => {
 
     it('should update existing processing activity', async () => {
       const existingActivity = {
-        _id: mockObjectId,
+        id: mockObjectId,
         value: JSON.stringify({ ingredientId: 'old', type: 'generation' }),
       };
       activitiesService.findOne.mockResolvedValue(existingActivity);
@@ -192,7 +192,7 @@ describe('ActivityUpdateService', () => {
 
     it('should update existing processing activity with failure', async () => {
       const existingActivity = {
-        _id: mockObjectId,
+        id: mockObjectId,
         value: JSON.stringify({ ingredientId: 'old' }),
       };
       activitiesService.findOne.mockResolvedValue(existingActivity);

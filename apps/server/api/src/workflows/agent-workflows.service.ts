@@ -1,4 +1,5 @@
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import {
   computeAgentWorkflowGateStatus,
   getNextAgentWorkflowPhase,
@@ -16,11 +17,7 @@ import { CreateAgentWorkflowDto } from '@api/workflows/dto/create-agent-workflow
 import { UpdateAgentWorkflowStateDto } from '@api/workflows/dto/update-agent-workflow-state.dto';
 import type { AgentWorkflow } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 type WorkflowConfig = AgentWorkflowDocumentShape & {
   agentId: string;
@@ -301,17 +298,17 @@ export class AgentWorkflowsService {
     workflowId: string,
     organizationId: string,
   ): Promise<AgentWorkflow> {
-    const workflow = await this.prisma.agentWorkflow.findFirst({
-      where: {
-        id: workflowId,
-        isDeleted: false,
-        organizationId,
+    const workflow = await findOrThrow(
+      this.prisma.agentWorkflow,
+      {
+        where: {
+          id: workflowId,
+          isDeleted: false,
+          organizationId,
+        },
       },
-    });
-
-    if (!workflow) {
-      throw new NotFoundException('Agent workflow not found');
-    }
+      'Agent workflow not found',
+    );
 
     return workflow;
   }

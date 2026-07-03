@@ -181,13 +181,13 @@ export class SlackService {
         );
       }
 
-      await this.credentialsService.patch(credential._id, {
+      await this.credentialsService.patch(credential.id, {
         isConnected: false,
         isDeleted: true,
       });
 
       this.loggerService.log(`${url} disconnected credential`, {
-        credentialId: credential._id,
+        credentialId: credential.id,
       });
 
       return { success: true };

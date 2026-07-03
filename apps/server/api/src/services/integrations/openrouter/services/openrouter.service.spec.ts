@@ -249,4 +249,79 @@ describe('OpenRouterService', () => {
       );
     });
   });
+
+  describe('streamChatCompletionAggregated', () => {
+    it('emits text deltas and aggregates content, id and usage', async () => {
+      const fakeStream = Readable.from([
+        'data: {"id":"gen-9","choices":[{"delta":{"content":"Hello"}}]}\n\n',
+        'data: {"id":"gen-9","choices":[{"delta":{"content":" world"}}]}\n\n',
+        'data: {"choices":[{"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":3,"completion_tokens":2,"total_tokens":5}}\n\n',
+        'data: [DONE]\n\n',
+      ]);
+      httpService.post.mockReturnValue(of(makeAxiosResponse(fakeStream)));
+
+      const tokens: string[] = [];
+      const result = await service.streamChatCompletionAggregated(
+        defaultParams,
+        undefined,
+        async (delta: string) => {
+          tokens.push(delta);
+        },
+      );
+
+      expect(tokens).toEqual(['Hello', ' world']);
+      expect(result.choices[0]?.message.content).toBe('Hello world');
+      expect(result.choices[0]?.finish_reason).toBe('stop');
+      expect(result.id).toBe('gen-9');
+      expect(result.usage.total_tokens).toBe(5);
+    });
+
+    it('requests usage inclusion and forces stream: true', async () => {
+      httpService.post.mockReturnValue(
+        of(makeAxiosResponse(Readable.from(['data: [DONE]\n\n']))),
+      );
+
+      await service.streamChatCompletionAggregated(defaultParams);
+
+      const body = httpService.post.mock.calls[0][1] as Record<string, unknown>;
+      expect(body.stream).toBe(true);
+      expect(body.usage).toEqual({ include: true });
+    });
+
+    it('accumulates tool-call fragments split across SSE chunks', async () => {
+      const fakeStream = Readable.from([
+        'data: {"id":"gen-1","choices":[{"delta":{"tool_calls":[{"index":0,"id":"call-1","function":{"name":"search","arguments":""}}]}}]}\n\n',
+        'data: {"id":"gen-1","choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\\"q\\":\\"we"}}]}}]}\n\n',
+        'data: {"id":"gen-1","choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"ather\\"}"}}]},"finish_reason":"tool_calls"}]}\n\n',
+        'data: [DONE]\n\n',
+      ]);
+      httpService.post.mockReturnValue(of(makeAxiosResponse(fakeStream)));
+
+      const result =
+        await service.streamChatCompletionAggregated(defaultParams);
+
+      const toolCalls = result.choices[0]?.message.tool_calls;
+      expect(toolCalls).toHaveLength(1);
+      expect(toolCalls?.[0]).toEqual({
+        function: { arguments: '{"q":"weather"}', name: 'search' },
+        id: 'call-1',
+        type: 'function',
+      });
+      expect(result.choices[0]?.finish_reason).toBe('tool_calls');
+    });
+
+    it('logs and rethrows on streaming HTTP failure', async () => {
+      httpService.post.mockReturnValue(
+        throwError(() => new Error('Network timeout')),
+      );
+
+      await expect(
+        service.streamChatCompletionAggregated(defaultParams),
+      ).rejects.toThrow('Network timeout');
+      expect(loggerService.error).toHaveBeenCalledWith(
+        expect.stringContaining('streamChatCompletionAggregated failed'),
+        expect.any(Object),
+      );
+    });
+  });
 });

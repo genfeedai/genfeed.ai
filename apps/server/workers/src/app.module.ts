@@ -33,6 +33,7 @@ import { CronWorkflowsModule } from '@workers/crons/workflows/cron.workflows.mod
 import { CronYoutubeModule } from '@workers/crons/youtube/cron.youtube.module';
 import { ProcessorsModule } from '@workers/processors/processors.module';
 import { CronSchedulerControlService } from '@workers/scheduling/cron-scheduler-control.service';
+import { SystemSweepsModule } from '@workers/scheduling/system-sweeps.module';
 
 @Module({
   imports: [
@@ -55,6 +56,9 @@ import { CronSchedulerControlService } from '@workers/scheduling/cron-scheduler-
 
     // BullMQ Processor Modules (moved from API — issue #84)
     ProcessorsModule,
+
+    // System sweep schedulers (tenant-product automation, issue #1092)
+    SystemSweepsModule,
 
     // Cron Modules (moved from API)
     CronPatternExtractionModule,

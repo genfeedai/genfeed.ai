@@ -2,14 +2,11 @@ import { PromptsService } from '@api/collections/prompts/services/prompts.servic
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import { ListingType, PromptCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 interface InstallResult {
   resourceId: string;
@@ -46,7 +43,7 @@ export class MarketplaceInstallService {
       await this.marketplaceApiClient.getListingDownloadData(listingId);
 
     if (!listingData) {
-      throw new NotFoundException('Listing not found');
+      throw new NotFoundException('Listing');
     }
 
     const { downloadData, title, type } = listingData;
@@ -113,7 +110,7 @@ export class MarketplaceInstallService {
     );
 
     return {
-      resourceId: workflow._id.toString(),
+      resourceId: workflow.id.toString(),
       resourceType: 'workflow',
       title: workflow.label || title,
     };
@@ -144,7 +141,7 @@ export class MarketplaceInstallService {
     });
 
     return {
-      resourceId: prompt._id.toString(),
+      resourceId: prompt.id.toString(),
       resourceType: 'prompt',
       title,
     };
@@ -175,7 +172,7 @@ export class MarketplaceInstallService {
     } as unknown as Parameters<SkillsService['createSkill']>[1]);
 
     return {
-      resourceId: skill._id.toString(),
+      resourceId: skill.id.toString(),
       resourceType: 'skill',
       title,
     };

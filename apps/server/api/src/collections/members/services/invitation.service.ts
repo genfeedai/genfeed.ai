@@ -1,5 +1,6 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { ConfigService } from '@api/config/config.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -14,7 +15,6 @@ import {
   ForbiddenException,
   GoneException,
   Injectable,
-  NotFoundException,
 } from '@nestjs/common';
 
 const INVITATION_TOKEN_BYTES = 32;
@@ -154,7 +154,7 @@ export class InvitationService {
     });
 
     if (!organization) {
-      throw new NotFoundException('Organization not found');
+      throw new NotFoundException('Organization');
     }
 
     await this.assertNoActiveMember(email, input.organizationId);
@@ -290,7 +290,7 @@ export class InvitationService {
       });
 
       if (!invitation || invitation.isDeleted) {
-        throw new NotFoundException('Invitation not found');
+        throw new NotFoundException('Invitation');
       }
 
       this.assertInvitationAcceptable(invitation);
@@ -415,7 +415,7 @@ export class InvitationService {
     });
 
     if (!invitation) {
-      throw new NotFoundException('Invitation not found');
+      throw new NotFoundException('Invitation');
     }
 
     if (invitation.organizationId !== organizationId) {

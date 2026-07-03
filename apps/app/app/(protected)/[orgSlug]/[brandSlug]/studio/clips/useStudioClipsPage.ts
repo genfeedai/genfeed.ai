@@ -1,4 +1,5 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { GenerationType } from '@genfeedai/enums';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import type { IBrand, IOrganizationSetting } from '@genfeedai/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
@@ -11,6 +12,7 @@ import type {
 } from '@props/studio/clips.props';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import { ClipsApiService } from './services/clips-api.service';
 
 const TERMINAL_PROJECT_STATUSES = new Set(['completed', 'failed']);
@@ -135,6 +137,9 @@ export function useStudioClipsPage() {
   const clipsPollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  // Guards against re-emitting a completion event when the poll effect re-runs
+  // (e.g. tab visibility toggles) after a project already reached a terminal state.
+  const clipCompletionReportedRef = useRef<string | null>(null);
   const isDocumentVisible = useDocumentVisibility();
   const identityDefaults = useMemo(
     () => resolveStudioClipIdentityDefaults({ selectedBrand, settings }),
@@ -291,6 +296,10 @@ export function useStudioClipsPage() {
 
     setIsSubmitting(true);
     setError(null);
+    clipCompletionReportedRef.current = null;
+    captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_STARTED, {
+      generationType: GenerationType.CLIP,
+    });
 
     try {
       await clipsService.generateClips(project.projectId, {
@@ -308,6 +317,11 @@ export function useStudioClipsPage() {
       setProject((prev) => (prev ? { ...prev, status: 'generating' } : prev));
       setStep('progress');
     } catch (err: unknown) {
+      clipCompletionReportedRef.current = project.projectId;
+      captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_COMPLETED, {
+        generationType: GenerationType.CLIP,
+        outcome: 'failure',
+      });
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setIsSubmitting(false);
@@ -370,6 +384,13 @@ export function useStudioClipsPage() {
 
         if (TERMINAL_PROJECT_STATUSES.has(projectStatus)) {
           clearPendingPoll();
+          if (clipCompletionReportedRef.current !== project.projectId) {
+            clipCompletionReportedRef.current = project.projectId;
+            captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_COMPLETED, {
+              generationType: GenerationType.CLIP,
+              outcome: projectStatus === 'failed' ? 'failure' : 'success',
+            });
+          }
         } else {
           scheduleNextPoll();
         }

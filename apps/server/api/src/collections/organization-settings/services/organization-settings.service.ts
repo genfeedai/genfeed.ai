@@ -140,6 +140,10 @@ export class OrganizationSettingsService extends BaseService<
         organization.userId,
         organizationId,
       );
+
+      // Seeded schedules fire via BullMQ job schedulers; register them now so
+      // they don't wait for the next service restart.
+      await workflowSeeder.syncOrganizationWorkflowSchedulers(organizationId);
     } catch (error) {
       // Swallowed so a non-critical provisioning step never fails org creation,
       // but reported to Sentry as well as the log: otherwise new-org workflow
@@ -239,7 +243,7 @@ export class OrganizationSettingsService extends BaseService<
       // Keep all models from the highest major version (including all minor versions)
       group.forEach((item) => {
         if (item.major === maxMajor) {
-          filteredModelIds.push(String(item.model._id));
+          filteredModelIds.push(String(item.model.id));
         }
       });
     });
@@ -334,7 +338,7 @@ export class OrganizationSettingsService extends BaseService<
       });
 
     if (shouldPersist) {
-      await this.patch(String(settings._id), {
+      await this.patch(String(settings.id), {
         onboardingJourneyMissions: nextState,
       });
     }

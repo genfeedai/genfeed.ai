@@ -6,6 +6,7 @@ import { WatchlistsService } from '@api/collections/watchlists/services/watchlis
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
@@ -19,7 +20,6 @@ import {
   Controller,
   Delete,
   Get,
-  NotFoundException,
   Param,
   Patch,
   Post,
@@ -51,7 +51,7 @@ export class WatchlistsController {
     const brandId = (req.query.brand as string) || brand;
 
     if (!brandId) {
-      throw new NotFoundException('Account ID is required');
+      throw new NotFoundException({ message: 'Account ID is required' });
     }
 
     const items = await this.service.findAllByAccount(brandId);
@@ -72,7 +72,7 @@ export class WatchlistsController {
       isDeleted: false,
     });
     if (!item) {
-      throw new NotFoundException('Watchlist item not found');
+      throw new NotFoundException('Watchlist item');
     }
     return serializeSingle(req, WatchlistSerializer, item);
   }
@@ -124,7 +124,7 @@ export class WatchlistsController {
     const brandId = (req.query.brand as string) || brand;
 
     if (!brandId) {
-      throw new NotFoundException('Account ID is required');
+      throw new NotFoundException({ message: 'Account ID is required' });
     }
 
     const existing = await this.service.findByHandle(
@@ -167,7 +167,7 @@ export class WatchlistsController {
       isDeleted: false,
     });
     if (!existing) {
-      throw new NotFoundException('Watchlist item not found');
+      throw new NotFoundException('Watchlist item');
     }
 
     // If updating platform or handle, check for duplicates

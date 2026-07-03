@@ -1,8 +1,8 @@
 import type { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import type { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
 import type { ConfigService } from '@api/config/config.service';
-import type { ClipFactoryJobData } from '@api/queues/clip-factory/clip-factory.constants';
 import type { WhisperService } from '@api/services/whisper/whisper.service';
+import type { ClipFactoryJobData } from '@genfeedai/queue-contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { HttpService } from '@nestjs/axios';
 import type { Job } from 'bullmq';

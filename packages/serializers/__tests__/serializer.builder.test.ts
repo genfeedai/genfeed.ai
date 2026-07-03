@@ -26,11 +26,11 @@ describe('serializer.builder', () => {
   });
 
   describe('rel', () => {
-    it('should create a relationship with _id reference', () => {
+    it('should create a relationship with id reference', () => {
       const relationship = rel('user', ['name', 'email']);
       expect(relationship).toEqual({
         attributes: ['name', 'email'],
-        ref: '_id',
+        ref: 'id',
         type: 'user',
       });
     });
@@ -39,7 +39,7 @@ describe('serializer.builder', () => {
       const relationship = rel('user', []);
       expect(relationship).toEqual({
         attributes: [],
-        ref: '_id',
+        ref: 'id',
         type: 'user',
       });
     });
@@ -55,10 +55,10 @@ describe('serializer.builder', () => {
         attributes: ['title', 'content'],
         author: {
           attributes: ['name'],
-          ref: '_id',
+          ref: 'id',
           type: 'user',
         },
-        ref: '_id',
+        ref: 'id',
         type: 'post',
       });
     });
@@ -81,7 +81,7 @@ describe('serializer.builder', () => {
       const nested = nestedRel('post', ['title'], {});
       expect(nested).toEqual({
         attributes: ['title'],
-        ref: '_id',
+        ref: 'id',
         type: 'post',
       });
     });
@@ -102,7 +102,7 @@ describe('serializer.builder', () => {
       });
       expect(config).toMatchObject({
         attributes: ['title'],
-        author: { attributes: ['name'], ref: '_id', type: 'user' },
+        author: { attributes: ['name'], ref: 'id', type: 'user' },
         type: 'post',
       });
     });
@@ -127,7 +127,7 @@ describe('serializer.builder', () => {
       expect(result.UserSerializer).toBeDefined();
     });
 
-    it('should create serializer with _id mapping for server package', () => {
+    it('should create serializer with id mapping for server package', () => {
       const result = buildSerializer('server', {
         attributes: ['name', 'email'],
         type: 'user',
@@ -162,7 +162,7 @@ describe('serializer.builder', () => {
         relationships: {
           author: {
             attributes: ['name'],
-            ref: '_id',
+            ref: 'id',
             type: 'user',
           },
         },
@@ -200,13 +200,13 @@ describe('serializer.builder', () => {
       });
     });
 
-    it('should serialize data correctly with server _id mapping', () => {
+    it('should serialize data correctly with server id mapping', () => {
       const { UserSerializer } = buildSerializer('server', {
         attributes: ['name', 'email'],
         type: 'user',
       });
 
-      const testData = { _id: '123', email: 'john@test.com', name: 'John' };
+      const testData = { id: '123', email: 'john@test.com', name: 'John' };
       const serialized = UserSerializer.serialize(testData);
 
       expect(serialized.data.id).toBe('123');
@@ -222,7 +222,7 @@ describe('serializer.builder', () => {
 
       const testData = {
         author: {
-          _id: 'user-1',
+          id: 'user-1',
           email: 'john@test.com',
           name: 'John',
         },

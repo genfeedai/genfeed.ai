@@ -1,5 +1,6 @@
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import { ConfigService } from '@api/config/config.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import {
   type UnipileAccount,
   type UnipileConnection,
@@ -27,11 +28,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
 const UNIPILE_PROVIDER = getIntegrationProviderDefinition('unipile');
@@ -354,7 +351,9 @@ export class UnipileService {
       };
     }
 
-    throw new NotFoundException('Unipile integration not configured');
+    throw new NotFoundException({
+      message: 'Unipile integration not configured',
+    });
   }
 
   private async request<T>(

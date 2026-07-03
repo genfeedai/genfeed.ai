@@ -217,7 +217,7 @@ export class ModelsService extends BaseService<
 
   private getTrainingId(training: TrainingDocument): string {
     const trainingId =
-      this.readString(training._id) ?? this.readString(training.id);
+      this.readString(training.id) ?? this.readString(training.id);
     if (!trainingId) {
       throw new Error('Training id is required to create a model');
     }
@@ -756,7 +756,7 @@ export class ModelsService extends BaseService<
       key: `genfeedai/${organizationSlug}/${trainingSlug}`,
       label: trainingLabel,
       organization: organizationId,
-      parentModel: parentModel?._id ?? parentModel?.id,
+      parentModel: parentModel?.id ?? parentModel?.id,
       provider: ModelProvider.GENFEED_AI,
       supportsFeatures,
       training: trainingId,

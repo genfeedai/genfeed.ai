@@ -23,12 +23,14 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
+import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   getIsSuperAdmin,
@@ -68,7 +70,6 @@ import {
   Get,
   HttpException,
   HttpStatus,
-  NotFoundException,
   Param,
   Patch,
   Post,
@@ -105,6 +106,7 @@ export class OrganizationsController extends BaseCRUDController<
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly requestContextCacheService: RequestContextCacheService,
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
+    private readonly betterAuthIdentityCacheService: BetterAuthIdentityCacheService,
   ) {
     super(
       loggerService,
@@ -160,7 +162,9 @@ export class OrganizationsController extends BaseCRUDController<
   ): Promise<unknown> {
     const org = await this.organizationsService.findBySlug(slug);
     if (!org) {
-      throw new NotFoundException(`Organization with slug "${slug}" not found`);
+      throw new NotFoundException({
+        message: `Organization with slug "${slug}" not found`,
+      });
     }
     return serializeSingle(request, OrganizationSerializer, org);
   }
@@ -177,7 +181,7 @@ export class OrganizationsController extends BaseCRUDController<
     @Body() body: { slug: string },
   ): Promise<unknown> {
     const existing = await this.organizationsService.findBySlug(body.slug);
-    if (existing && existing._id.toString() !== id) {
+    if (existing && existing.id.toString() !== id) {
       throw new BadRequestException(`Slug "${body.slug}" is already taken`);
     }
     const org = await this.organizationsService.patch(id, {
@@ -501,14 +505,14 @@ export class OrganizationsController extends BaseCRUDController<
         .map(async (org) => {
           const brand = await this.brandsService.findOne({
             isDeleted: false,
-            organization: org._id,
+            organization: org.id,
           });
           return {
             brand: brand
-              ? { id: brand._id.toString(), label: brand.label }
+              ? { id: brand.id.toString(), label: brand.label }
               : null,
-            id: org._id.toString(),
-            isActive: publicMetadata.organization === org._id.toString(),
+            id: org.id.toString(),
+            isActive: publicMetadata.organization === org.id.toString(),
             label: org.label,
             slug: org.slug ?? '',
           };
@@ -586,12 +590,13 @@ export class OrganizationsController extends BaseCRUDController<
     if (member) {
       await this.membersService.setLastUsedBrand(
         { isActive: true, isDeleted: false, organization: orgId, user: userId },
-        brand._id.toString(),
+        brand.id.toString(),
       );
     }
     await Promise.all([
       this.requestContextCacheService.invalidateForUser(userId),
       this.accessBootstrapCacheService.invalidateForUser(userId),
+      this.betterAuthIdentityCacheService.invalidateForUser(userId),
     ]);
 
     const org = await this.organizationsService.findOne({
@@ -600,7 +605,7 @@ export class OrganizationsController extends BaseCRUDController<
     });
 
     return {
-      brand: { id: brand._id.toString(), label: brand.label },
+      brand: { id: brand.id.toString(), label: brand.label },
       organization: { id: orgId, label: org?.label ?? '' },
     };
   }
@@ -657,7 +662,7 @@ export class OrganizationsController extends BaseCRUDController<
       userId,
     } as unknown as Parameters<typeof this.organizationsService.create>[0]);
 
-    const orgId = org._id;
+    const orgId = org.id;
 
     // Step 2: Create org settings
     const enabledModelIds =
@@ -703,7 +708,7 @@ export class OrganizationsController extends BaseCRUDController<
 
     await this.provisionDefaultRecurringWorkflows(
       orgId.toString(),
-      brand._id.toString(),
+      brand.id.toString(),
       userId,
     );
 
@@ -729,7 +734,7 @@ export class OrganizationsController extends BaseCRUDController<
     await this.membersService.create({
       isActive: true,
       organizationId: orgId,
-      roleId: String(adminRole._id),
+      roleId: String(adminRole.id),
       userId,
     } as unknown as Parameters<typeof this.membersService.create>[0]);
 
@@ -737,26 +742,27 @@ export class OrganizationsController extends BaseCRUDController<
     // — no legacy auth provider write-back). Both identity resolvers pick up
     // lastUsedOrganizationId + the member's lastUsedBrandId on the next request.
     await this.usersService.patch(userId, {
-      lastUsedOrganizationId: org._id.toString(),
+      lastUsedOrganizationId: org.id.toString(),
     });
     await this.membersService.setLastUsedBrand(
       {
         isActive: true,
         isDeleted: false,
-        organization: org._id.toString(),
+        organization: org.id.toString(),
         user: userId,
       },
-      brand._id.toString(),
+      brand.id.toString(),
     );
 
     await Promise.all([
       this.requestContextCacheService.invalidateForUser(userId),
       this.accessBootstrapCacheService.invalidateForUser(userId),
+      this.betterAuthIdentityCacheService.invalidateForUser(userId),
     ]);
 
     return {
-      brand: { id: brand._id.toString(), label: brand.label },
-      organization: { id: org._id.toString(), label: org.label },
+      brand: { id: brand.id.toString(), label: brand.label },
+      organization: { id: org.id.toString(), label: org.label },
     };
   }
 

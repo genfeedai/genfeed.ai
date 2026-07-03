@@ -11,7 +11,7 @@ describe('ContentRotationService', () => {
     overrides: Partial<AgentStrategyDocument>,
   ): AgentStrategyDocument {
     return {
-      _id: 'strategy-default',
+      id: 'strategy-default',
       agentType: 'general',
       creditsUsedThisWeek: 0,
       dailyCreditBudget: 10,
@@ -32,7 +32,6 @@ describe('ContentRotationService', () => {
 
   function run(targetKey: string): AgentRunDocument {
     return {
-      _id: `run-${targetKey}`,
       id: `run-${targetKey}`,
       isDeleted: false,
       metadata: { contentRotationTargetKey: targetKey },
@@ -45,13 +44,13 @@ describe('ContentRotationService', () => {
 
   it('selects the most underrepresented configured topic bucket', () => {
     const launch = strategy({
-      _id: 'launch-strategy',
+      id: 'launch-strategy',
       label: 'Launch',
       platforms: ['linkedin'],
       topics: ['launch'],
     });
     const education = strategy({
-      _id: 'education-strategy',
+      id: 'education-strategy',
       label: 'Education',
       platforms: ['linkedin'],
       topics: ['education'],
@@ -79,12 +78,12 @@ describe('ContentRotationService', () => {
 
   it('scopes rotation targets by platform and strategy when configured', () => {
     const xStrategy = strategy({
-      _id: 'x-strategy',
+      id: 'x-strategy',
       platforms: ['twitter'],
       topics: ['launch'],
     });
     const linkedinStrategy = strategy({
-      _id: 'linkedin-strategy',
+      id: 'linkedin-strategy',
       platforms: ['linkedin'],
       topics: ['launch'],
     });
@@ -116,8 +115,8 @@ describe('ContentRotationService', () => {
 
   it('falls back to original strategies when weights are missing or unusable', () => {
     const strategies = [
-      strategy({ _id: 'one', topics: ['one'] }),
-      strategy({ _id: 'two', topics: ['two'] }),
+      strategy({ id: 'one', topics: ['one'] }),
+      strategy({ id: 'two', topics: ['two'] }),
     ];
 
     expect(

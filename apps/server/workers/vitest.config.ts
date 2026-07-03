@@ -64,6 +64,10 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, '../../../packages/harness/src'),
       },
       {
+        find: '@genfeedai/pricing',
+        replacement: path.resolve(serviceDir, '../../../packages/pricing/src'),
+      },
+      {
         find: /^@genfeedai\/harness\/(.*)$/,
         replacement: path.resolve(
           serviceDir,
@@ -152,6 +156,20 @@ export default defineConfig({
         replacement: path.resolve(
           serviceDir,
           '../../../packages/interfaces/src/$1',
+        ),
+      },
+      {
+        find: '@genfeedai/queue-contracts',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/queue-contracts/src',
+        ),
+      },
+      {
+        find: /^@genfeedai\/queue-contracts\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/queue-contracts/src/$1',
         ),
       },
       {

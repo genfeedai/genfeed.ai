@@ -104,7 +104,7 @@ export class WebhooksController {
     this.logger.log(`Webhook triggered: ${webhookId}`, {
       payloadKeys: Object.keys(payload),
       webhookId,
-      workflowId: workflow._id.toString(),
+      workflowId: workflow.id.toString(),
     });
 
     try {

@@ -17,20 +17,20 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
+import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
+import { HeygenAvatarProvider } from '@api/services/avatar-video/providers/heygen-avatar.provider';
 import {
   HEYGEN_POLL_DELAY_MS,
   HEYGEN_POLL_MAX_ATTEMPTS,
-  HEYGEN_POLL_QUEUE_NAME,
+  HEYGEN_POLL_QUEUE,
   HeygenPollJobData,
-  HeygenPollQueueService,
-} from '@api/queues/heygen-poll/heygen-poll-queue.service';
-import { HeygenAvatarProvider } from '@api/services/avatar-video/providers/heygen-avatar.provider';
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { forwardRef, Inject } from '@nestjs/common';
 import { Job } from 'bullmq';
 
-@Processor(HEYGEN_POLL_QUEUE_NAME, {
+@Processor(HEYGEN_POLL_QUEUE, {
   concurrency: 5,
   limiter: { duration: 60000, max: 30 },
 })

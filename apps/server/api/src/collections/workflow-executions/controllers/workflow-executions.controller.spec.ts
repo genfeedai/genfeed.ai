@@ -6,8 +6,8 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 import { WorkflowExecutionsController } from '@api/collections/workflow-executions/controllers/workflow-executions.controller';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('WorkflowExecutionsController', () => {

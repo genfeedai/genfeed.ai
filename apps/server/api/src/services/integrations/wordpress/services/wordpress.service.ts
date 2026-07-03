@@ -130,7 +130,7 @@ export class WordpressService {
       );
 
       this.loggerService.log(`${url} token is valid`, {
-        credentialId: credential._id,
+        credentialId: credential.id,
       });
 
       return { isValid: true };

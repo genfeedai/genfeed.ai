@@ -1,12 +1,13 @@
 import { CreateDistributionDto } from '@api/collections/distributions/dto/create-distribution.dto';
 import { DistributionEntity } from '@api/collections/distributions/entities/distribution.entity';
 import type { DistributionDocument } from '@api/collections/distributions/schemas/distribution.schema';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { DistributionPlatform, PublishStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class DistributionsService extends BaseService<
@@ -112,7 +113,7 @@ export class DistributionsService extends BaseService<
     });
 
     if (!distribution) {
-      throw new NotFoundException('Distribution not found');
+      throw new NotFoundException('Distribution');
     }
 
     return distribution as unknown as DistributionDocument;
@@ -169,9 +170,9 @@ export class DistributionsService extends BaseService<
     const distribution = await this.findOneByOrganization(id, organizationId);
 
     if (distribution.status !== PublishStatus.SCHEDULED) {
-      throw new NotFoundException(
-        'Only scheduled distributions can be cancelled',
-      );
+      throw new NotFoundException({
+        message: 'Only scheduled distributions can be cancelled',
+      });
     }
 
     const updated = await this.prisma.distribution.update({

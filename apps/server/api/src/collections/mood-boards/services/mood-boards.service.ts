@@ -1,10 +1,11 @@
 import type { CreateMoodBoardDto } from '@api/collections/mood-boards/dto/create-mood-board.dto';
 import type { UpdateMoodBoardDto } from '@api/collections/mood-boards/dto/update-mood-board.dto';
 import type { MoodBoardDocument } from '@api/collections/mood-boards/schemas/mood-board.schema';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class MoodBoardsService extends BaseService<
@@ -32,7 +33,7 @@ export class MoodBoardsService extends BaseService<
     });
 
     if (!brand) {
-      throw new NotFoundException(`Brand ${brandId} not found`);
+      throw new NotFoundException('Brand', brandId);
     }
 
     const record = await this.prisma.moodBoard.upsert({

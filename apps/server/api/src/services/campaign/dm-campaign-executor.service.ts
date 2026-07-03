@@ -351,11 +351,11 @@ export class DmCampaignExecutorService {
   }
 
   private getCampaignId(campaign: OutreachCampaignDocument): string {
-    return String(campaign.id ?? campaign._id);
+    return String(campaign.id);
   }
 
   private getTargetId(target: CampaignTargetDocument): string {
-    return String(target.id ?? target._id);
+    return String(target.id);
   }
 
   private delay(ms: number): Promise<void> {

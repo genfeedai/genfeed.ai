@@ -42,6 +42,12 @@ function createMockQueueService() {
   };
 }
 
+function createMockSchedulerService() {
+  return {
+    executeScheduledWorkflow: vi.fn().mockResolvedValue(undefined),
+  };
+}
+
 function createMockJob(
   data: WorkflowExecutionJobData,
   overrides: Record<string, unknown> = {},
@@ -59,17 +65,19 @@ describe('WorkflowExecutionProcessor', () => {
   let mockLogger: ReturnType<typeof createMockLogger>;
   let mockExecutor: ReturnType<typeof createMockExecutorService>;
   let mockQueue: ReturnType<typeof createMockQueueService>;
+  let mockScheduler: ReturnType<typeof createMockSchedulerService>;
 
   beforeEach(() => {
     mockLogger = createMockLogger();
     mockExecutor = createMockExecutorService();
     mockQueue = createMockQueueService();
+    mockScheduler = createMockSchedulerService();
 
     processor = new (
       WorkflowExecutionProcessor as unknown as new (
         ...args: unknown[]
       ) => WorkflowExecutionProcessor
-    )(mockLogger, mockExecutor, mockQueue);
+    )(mockLogger, mockExecutor, mockQueue, mockScheduler);
   });
 
   describe('process - trigger jobs', () => {
@@ -204,6 +212,33 @@ describe('WorkflowExecutionProcessor', () => {
       await expect(processor.process(job as never)).rejects.toThrow(
         'missing delayResumeData',
       );
+    });
+  });
+
+  describe('process - scheduled-fire jobs', () => {
+    it('should execute the scheduled workflow via the scheduler service', async () => {
+      const job = createMockJob({
+        type: 'scheduled-fire',
+        workflowId: 'wf-1',
+      });
+
+      const result = await processor.process(job as never);
+
+      expect(mockScheduler.executeScheduledWorkflow).toHaveBeenCalledWith(
+        'wf-1',
+      );
+      expect(result).toEqual({ workflowId: 'wf-1' });
+    });
+
+    it('should throw when workflowId is missing', async () => {
+      const job = createMockJob({
+        type: 'scheduled-fire',
+      });
+
+      await expect(processor.process(job as never)).rejects.toThrow(
+        'missing workflowId',
+      );
+      expect(mockScheduler.executeScheduledWorkflow).not.toHaveBeenCalled();
     });
   });
 

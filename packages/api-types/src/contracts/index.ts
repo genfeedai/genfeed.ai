@@ -10,3 +10,4 @@
 
 export * from '@api-types/contracts/ingredients.contract';
 export * from '@api-types/contracts/posts.contract';
+export * from '@api-types/contracts/scheduler.contract';

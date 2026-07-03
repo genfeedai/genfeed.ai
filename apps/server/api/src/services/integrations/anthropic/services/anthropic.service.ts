@@ -10,6 +10,7 @@ import type {
   OpenRouterChatCompletionParams,
   OpenRouterChatCompletionResponse,
   OpenRouterMessage,
+  OpenRouterStreamTokenHandler,
   OpenRouterTool,
   OpenRouterToolCallResponse,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
@@ -338,6 +339,68 @@ export class AnthropicService {
     } catch (error: unknown) {
       this.loggerService.error(
         `${this.constructorName}.streamChatCompletion failed`,
+        this.getSafeErrorDetails(error),
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Real incremental streaming that also returns the fully aggregated response
+   * (text + tool calls + usage). Text deltas are surfaced through `onToken` as
+   * the model generates them; the resolved value is the same OpenRouter-shaped
+   * response `chatCompletion` returns, so the caller's tool-loop, credit, and
+   * persistence logic stay unchanged.
+   */
+  async streamChatCompletionAggregated(
+    params: OpenRouterChatCompletionParams,
+    apiKeyOverride?: string,
+    onToken?: OpenRouterStreamTokenHandler,
+  ): Promise<OpenRouterChatCompletionResponse> {
+    const apiKey = this.resolveApiKey(apiKeyOverride);
+    const client = this.createClient(apiKey);
+
+    try {
+      const model = params.model.replace(/^anthropic\//, '');
+      const { messages, system } = this.extractSystemPrompt(params.messages);
+      const maxTokens = this.resolveMaxTokens(model, params.max_tokens);
+
+      const streamParams: Anthropic.MessageCreateParamsNonStreaming = {
+        max_tokens: maxTokens,
+        messages,
+        model,
+        temperature: params.temperature,
+      };
+
+      if (system) {
+        streamParams.system = system;
+      }
+
+      if (params.tools && params.tools.length > 0) {
+        streamParams.tools = this.convertTools(params.tools);
+      }
+
+      const stream = client.messages.stream(streamParams);
+
+      for await (const event of stream) {
+        if (
+          event.type === 'content_block_delta' &&
+          'delta' in event &&
+          (event.delta as { type: string; text?: string }).type === 'text_delta'
+        ) {
+          const text = (event.delta as { type: string; text: string }).text;
+          if (text && onToken) {
+            await onToken(text);
+          }
+        }
+      }
+
+      const finalMessage = await stream.finalMessage();
+
+      return this.convertResponse(finalMessage as Message, model);
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.constructorName}.streamChatCompletionAggregated failed`,
         this.getSafeErrorDetails(error),
       );
       throw error;

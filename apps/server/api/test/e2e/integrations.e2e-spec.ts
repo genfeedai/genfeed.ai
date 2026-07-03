@@ -65,8 +65,7 @@ describe('Integrations E2E Tests', () => {
     await dbHelper.seedCollection('organizations', [testOrganization]);
   });
 
-  const orgPath = () =>
-    `/v1/organizations/${testOrganization._id}/integrations`;
+  const orgPath = () => `/v1/organizations/${testOrganization.id}/integrations`;
   const unwrapResource = (body: unknown): Record<string, unknown> => {
     const record = body as { data?: { attributes?: Record<string, unknown> } };
     return record?.data?.attributes ?? (body as Record<string, unknown>);
@@ -177,11 +176,11 @@ describe('Integrations E2E Tests', () => {
     it('should list all integrations for an org', async () => {
       // Seed integrations directly
       const telegramIntegration = createTestIntegration({
-        organization: testOrganization._id,
+        organization: testOrganization.id,
         platform: 'telegram',
       });
       const discordIntegration = createTestIntegration({
-        organization: testOrganization._id,
+        organization: testOrganization.id,
         platform: 'discord',
       });
 
@@ -205,12 +204,12 @@ describe('Integrations E2E Tests', () => {
     it('should exclude soft-deleted integrations', async () => {
       const activeIntegration = createTestIntegration({
         isDeleted: false,
-        organization: testOrganization._id,
+        organization: testOrganization.id,
         platform: 'telegram',
       });
       const deletedIntegration = createTestIntegration({
         isDeleted: true,
-        organization: testOrganization._id,
+        organization: testOrganization.id,
         platform: 'discord',
       });
 
@@ -241,14 +240,14 @@ describe('Integrations E2E Tests', () => {
   describe('PATCH /v1/organizations/:organizationId/integrations/:id', () => {
     it('should update integration config', async () => {
       const integration = createTestIntegration({
-        organization: testOrganization._id,
+        organization: testOrganization.id,
         platform: 'telegram',
       });
 
       await dbHelper.seedCollection('orgintegrations', [integration]);
 
       const response = await request(app.getHttpServer())
-        .patch(`${orgPath()}/${integration._id}`)
+        .patch(`${orgPath()}/${integration.id}`)
         .send({
           config: { defaultWorkflow: 'new-workflow' },
         })
@@ -275,14 +274,14 @@ describe('Integrations E2E Tests', () => {
   describe('DELETE /v1/organizations/:organizationId/integrations/:id', () => {
     it('should soft delete an integration', async () => {
       const integration = createTestIntegration({
-        organization: testOrganization._id,
+        organization: testOrganization.id,
         platform: 'telegram',
       });
 
       await dbHelper.seedCollection('orgintegrations', [integration]);
 
       await request(app.getHttpServer())
-        .delete(`${orgPath()}/${integration._id}`)
+        .delete(`${orgPath()}/${integration.id}`)
         .expect(204);
 
       // Verify it's gone from list
@@ -304,7 +303,7 @@ describe('Integrations E2E Tests', () => {
 
     it('should return 404 on re-delete of already deleted integration', async () => {
       const integration = createTestIntegration({
-        organization: testOrganization._id,
+        organization: testOrganization.id,
         platform: 'telegram',
       });
 
@@ -312,12 +311,12 @@ describe('Integrations E2E Tests', () => {
 
       // First delete
       await request(app.getHttpServer())
-        .delete(`${orgPath()}/${integration._id}`)
+        .delete(`${orgPath()}/${integration.id}`)
         .expect(204);
 
       // Second delete — should be 404
       await request(app.getHttpServer())
-        .delete(`${orgPath()}/${integration._id}`)
+        .delete(`${orgPath()}/${integration.id}`)
         .expect(404);
     });
   });

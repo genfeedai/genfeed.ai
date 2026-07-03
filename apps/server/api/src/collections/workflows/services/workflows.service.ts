@@ -3,6 +3,10 @@ import { UpdateWorkflowDto } from '@api/collections/workflows/dto/update-workflo
 import { WorkflowEntity } from '@api/collections/workflows/entities/workflow.entity';
 import { type WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { LegacyWorkflowStepRunner } from '@api/collections/workflows/services/legacy-workflow-step-runner.service';
+import {
+  WorkflowExecutionQueueService,
+  type WorkflowSchedulerSyncRow,
+} from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import {
   buildSystemWorkflowDuplicateMetadata,
@@ -11,6 +15,7 @@ import {
 } from '@api/collections/workflows/system-workflow.contract';
 import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { EntityFactory } from '@api/shared/factories/entity/entity.factory';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
@@ -21,12 +26,7 @@ import {
   WorkflowStepStatus,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-  Optional,
-} from '@nestjs/common';
+import { ForbiddenException, Injectable, Optional } from '@nestjs/common';
 
 /**
  * Core workflow service: CRUD/templating, lifecycle transitions, node locks,
@@ -51,6 +51,8 @@ export class WorkflowsService extends BaseService<
     private readonly legacyWorkflowStepRunner?: LegacyWorkflowStepRunner,
     @Optional()
     private readonly workflowExecutorService?: WorkflowExecutorService,
+    @Optional()
+    private readonly workflowExecutionQueueService?: WorkflowExecutionQueueService,
   ) {
     super(prisma, 'workflow', logger);
   }
@@ -63,6 +65,31 @@ export class WorkflowsService extends BaseService<
     throw new ForbiddenException(
       'System workflows are immutable. Duplicate the workflow before editing or deleting it.',
     );
+  }
+
+  /**
+   * Upsert or remove the BullMQ job scheduler for one workflow row based on
+   * its current schedule/enabled/status state. No-ops when the queue service
+   * is not wired (tests, contexts without BullMQ).
+   */
+  private async syncWorkflowScheduler(
+    workflow: WorkflowSchedulerSyncRow,
+  ): Promise<void> {
+    await this.workflowExecutionQueueService?.syncWorkflowScheduler(workflow);
+  }
+
+  /**
+   * Soft-delete a workflow and drop its BullMQ job scheduler so the schedule
+   * stops firing immediately.
+   */
+  override async remove(id: string): Promise<WorkflowDocument | null> {
+    const removed = await super.remove(id);
+
+    if (removed) {
+      await this.syncWorkflowScheduler({ id, isDeleted: true });
+    }
+
+    return removed;
   }
 
   @HandleErrors('create workflow', 'workflows')
@@ -102,10 +129,16 @@ export class WorkflowsService extends BaseService<
       user: userId,
     });
 
+    // Register the BullMQ job scheduler when the workflow is created with an
+    // enabled schedule (template-seeded or explicit).
+    await this.syncWorkflowScheduler(
+      workflow as unknown as WorkflowSchedulerSyncRow,
+    );
+
     // If trigger is manual, start execution immediately
     if ((workflowData.trigger as string) === 'manual') {
       this.executeWorkflowCompat(
-        workflow._id.toString(),
+        String(workflow.id),
         userId,
         organizationId,
       ).catch((error) => {
@@ -193,7 +226,7 @@ export class WorkflowsService extends BaseService<
     });
 
     if (!workflowDoc) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
 
     if (!this.shouldUseNodeExecutor(workflowDoc)) {
@@ -310,7 +343,7 @@ export class WorkflowsService extends BaseService<
     });
 
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
     this.assertWorkflowMutable(workflow);
 
@@ -362,7 +395,7 @@ export class WorkflowsService extends BaseService<
     });
 
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
     this.assertWorkflowMutable(workflow);
 
@@ -388,7 +421,7 @@ export class WorkflowsService extends BaseService<
     });
 
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
     this.assertWorkflowMutable(workflow);
 
@@ -415,7 +448,7 @@ export class WorkflowsService extends BaseService<
     });
 
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
     this.assertWorkflowMutable(workflow);
 
@@ -445,7 +478,7 @@ export class WorkflowsService extends BaseService<
     });
 
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
     this.assertWorkflowMutable(workflow);
 
@@ -477,7 +510,7 @@ export class WorkflowsService extends BaseService<
     });
 
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
 
     return workflow;
@@ -508,7 +541,7 @@ export class WorkflowsService extends BaseService<
     });
 
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
 
     return workflow;

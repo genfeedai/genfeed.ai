@@ -49,7 +49,6 @@ export class AdminFleetMediaService {
     const persona = await this.characterService.requirePersonaBySlug(
       data.personaSlug,
       organizationId,
-      `Character "${data.personaSlug}" not found`,
     );
 
     let audioUrl = data.audioUrl;

@@ -345,15 +345,6 @@ export abstract class BaseService<
 
     const normalized: Record<string, unknown> = { ...document };
 
-    const legacyId =
-      typeof normalized.mongoId === 'string' && normalized.mongoId.length > 0
-        ? normalized.mongoId
-        : normalized.id;
-
-    if (normalized._id === undefined && typeof legacyId === 'string') {
-      normalized._id = legacyId;
-    }
-
     if (
       normalized.organization === undefined &&
       typeof normalized.organizationId === 'string'

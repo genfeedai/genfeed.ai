@@ -11,6 +11,7 @@ import { AdOptimizationRecommendationsService } from '@api/collections/ad-optimi
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import {
   extractRequestContext,
   getPublicMetadata,
@@ -25,7 +26,6 @@ import {
   Body,
   Controller,
   Get,
-  NotFoundException,
   Param,
   Post,
   Put,
@@ -84,7 +84,7 @@ export class MetaAdsOptimizationController {
     );
 
     if (!rec) {
-      throw new NotFoundException(`Recommendation ${id} not found`);
+      throw new NotFoundException('Recommendation', id);
     }
 
     return rec;
@@ -106,7 +106,7 @@ export class MetaAdsOptimizationController {
     );
 
     if (!rec) {
-      throw new NotFoundException(`Recommendation ${id} not found`);
+      throw new NotFoundException('Recommendation', id);
     }
 
     return rec;
@@ -127,7 +127,7 @@ export class MetaAdsOptimizationController {
     )) as AdOptimizationRecommendationDocument | null;
 
     if (!rec) {
-      throw new NotFoundException(`Recommendation ${id} not found`);
+      throw new NotFoundException('Recommendation', id);
     }
 
     if (rec.status !== 'approved') {
@@ -258,9 +258,10 @@ export class MetaAdsOptimizationController {
     });
 
     if (!credential?.accessToken) {
-      throw new NotFoundException(
-        'Facebook credential not found. Please connect your Facebook account first.',
-      );
+      throw new NotFoundException({
+        message:
+          'Facebook credential not found. Please connect your Facebook account first.',
+      });
     }
 
     return EncryptionUtil.decrypt(credential.accessToken);

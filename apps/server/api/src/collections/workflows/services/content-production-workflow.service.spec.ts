@@ -40,7 +40,7 @@ describe('ContentProductionWorkflowService', () => {
     brandsService.findForOrganization.mockResolvedValue([]);
     contentPlannerService.generatePlan.mockResolvedValue({
       items: [{}],
-      plan: { _id: 'plan-1' },
+      plan: { id: 'plan-1' },
     });
     contentExecutionService.executePlan.mockResolvedValue({
       results: [{ contentDraftId: 'draft-1' }],

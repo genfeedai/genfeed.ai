@@ -4,10 +4,11 @@ import { WorkflowExecutorService } from '@api/collections/workflows/services/wor
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { ConfigService } from '@api/config/config.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, NotFoundException, Optional } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 
 export type WorkflowWebhookAuthType = 'none' | 'secret' | 'bearer';
 
@@ -129,7 +130,9 @@ export class WorkflowWebhookService {
     const workflow = await this.findByWebhookId(webhookId);
 
     if (!workflow) {
-      throw new NotFoundException('Webhook not found or workflow deleted');
+      throw new NotFoundException({
+        message: 'Webhook not found or workflow deleted',
+      });
     }
 
     // Update webhook stats
@@ -137,7 +140,7 @@ export class WorkflowWebhookService {
       typeof workflow.webhookTriggerCount === 'number'
         ? workflow.webhookTriggerCount
         : 0;
-    await this.patchWorkflowConfig(workflow._id.toString(), {
+    await this.patchWorkflowConfig(String(workflow.id), {
       webhookLastTriggeredAt: new Date().toISOString(),
       webhookTriggerCount: currentWebhookTriggerCount + 1,
     });
@@ -155,11 +158,9 @@ export class WorkflowWebhookService {
         );
       }
 
-      await this.legacyWorkflowStepRunner.executeWorkflow(
-        workflow._id.toString(),
-      );
+      await this.legacyWorkflowStepRunner.executeWorkflow(String(workflow.id));
       return {
-        runId: workflow._id.toString(),
+        runId: String(workflow.id),
         status: 'started',
       };
     }
@@ -171,7 +172,7 @@ export class WorkflowWebhookService {
     }
 
     const result = await this.workflowExecutorService.executeManualWorkflow(
-      workflow._id.toString(),
+      String(workflow.id),
       workflow.user.toString(),
       workflow.organization.toString(),
       payload,
@@ -221,7 +222,7 @@ export class WorkflowWebhookService {
     });
 
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException('Workflow');
     }
 
     const nextConfig = {

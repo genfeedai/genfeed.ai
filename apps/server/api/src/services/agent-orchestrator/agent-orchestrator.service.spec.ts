@@ -8,6 +8,7 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
+import { ConfigService } from '@api/config/config.service';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
@@ -28,6 +29,7 @@ const RUN_ID = '67a123456789012345678904';
 
 describe('AgentOrchestratorService', () => {
   let service: AgentOrchestratorService;
+  let configService: vi.Mocked<ConfigService>;
   let llmDispatcher: vi.Mocked<LlmDispatcherService>;
   let agentThreadsService: vi.Mocked<AgentThreadsService>;
   let organizationsService: vi.Mocked<OrganizationsService>;
@@ -65,6 +67,32 @@ describe('AgentOrchestratorService', () => {
           total_tokens: 40,
         },
       }),
+      // Emits real deltas through onToken, mirroring the aggregating streamer.
+      streamChatCompletionAggregated: vi.fn(
+        async (
+          _params: unknown,
+          _organizationId: unknown,
+          onToken?: (delta: string) => Promise<void>,
+        ) => {
+          if (onToken) {
+            await onToken('Hello ');
+            await onToken('streamed');
+          }
+          return {
+            choices: [{ message: { content: 'Hello streamed' } }],
+            usage: {
+              completion_tokens: 20,
+              prompt_tokens: 20,
+              total_tokens: 40,
+            },
+          };
+        },
+      ),
+    };
+    // Defaults to '' so the streaming flag reads false — existing tests keep the
+    // legacy simulated word-split path. Individual tests opt in per-key.
+    const configServiceMock = {
+      get: vi.fn().mockReturnValue(''),
     };
     const agentMessagesServiceMock = {
       addMessage: vi.fn().mockResolvedValue({ _id: 'msg-1' }),
@@ -85,13 +113,13 @@ describe('AgentOrchestratorService', () => {
     };
     const agentThreadsServiceMock = {
       addMessage: vi.fn().mockResolvedValue({}),
-      create: vi.fn().mockResolvedValue({ _id: CONVERSATION_ID }),
+      create: vi.fn().mockResolvedValue({ id: CONVERSATION_ID }),
       findOne: vi.fn().mockResolvedValue({
-        _id: CONVERSATION_ID,
+        id: CONVERSATION_ID,
         messages: [],
         planModeEnabled: false,
       }),
-      updateThreadMetadata: vi.fn().mockResolvedValue({ _id: CONVERSATION_ID }),
+      updateThreadMetadata: vi.fn().mockResolvedValue({ id: CONVERSATION_ID }),
     };
     const brandsServiceMock = {
       findOne: vi.fn().mockResolvedValue(null),
@@ -182,7 +210,7 @@ describe('AgentOrchestratorService', () => {
     };
     const agentRunsServiceMock = {
       complete: vi.fn().mockResolvedValue({ durationMs: 100 }),
-      create: vi.fn().mockResolvedValue({ _id: RUN_ID }),
+      create: vi.fn().mockResolvedValue({ id: RUN_ID }),
       isCancelled: vi.fn().mockResolvedValue(false),
       mergeMetadata: vi.fn().mockResolvedValue(undefined),
       patch: vi.fn().mockResolvedValue({}),
@@ -255,6 +283,7 @@ describe('AgentOrchestratorService', () => {
             AgentRunsService,
             AgentThreadEngineService,
             AgentRuntimeSessionService,
+            ConfigService,
           ],
           provide: AgentOrchestratorService,
           useFactory: (
@@ -274,6 +303,7 @@ describe('AgentOrchestratorService', () => {
             agentRunsSvc: AgentRunsService,
             threadEngineSvc: AgentThreadEngineService,
             runtimeSessionSvc: AgentRuntimeSessionService,
+            configServiceSvc: ConfigService,
           ) =>
             new AgentOrchestratorService(
               loggerService,
@@ -296,6 +326,9 @@ describe('AgentOrchestratorService', () => {
               runtimeSessionSvc,
               undefined,
               undefined,
+              undefined,
+              undefined,
+              configServiceSvc,
             ),
         },
         {
@@ -366,10 +399,15 @@ describe('AgentOrchestratorService', () => {
           provide: AgentRuntimeSessionService,
           useValue: agentRuntimeSessionServiceMock,
         },
+        {
+          provide: ConfigService,
+          useValue: configServiceMock,
+        },
       ],
     }).compile();
 
     service = module.get(AgentOrchestratorService);
+    configService = module.get(ConfigService);
     agentThreadsService = module.get(AgentThreadsService);
     agentMemoriesService = module.get(AgentMemoriesService);
     llmDispatcher = module.get(LlmDispatcherService);
@@ -427,7 +465,7 @@ describe('AgentOrchestratorService', () => {
       onboardingCompleted: true,
     } as never);
     agentThreadsService.findOne.mockResolvedValue({
-      _id: CONVERSATION_ID,
+      id: CONVERSATION_ID,
       title: prompt,
     } as never);
     llmDispatcher.chatCompletion.mockResolvedValueOnce({
@@ -481,7 +519,7 @@ describe('AgentOrchestratorService', () => {
       onboardingCompleted: true,
     } as never);
     agentThreadsService.findOne.mockResolvedValueOnce({
-      _id: CONVERSATION_ID,
+      id: CONVERSATION_ID,
       title: 'Custom Thread Name',
     } as never);
     llmDispatcher.chatCompletion.mockResolvedValueOnce({
@@ -508,7 +546,7 @@ describe('AgentOrchestratorService', () => {
       onboardingCompleted: true,
     } as never);
     agentThreadsService.findOne.mockResolvedValue({
-      _id: CONVERSATION_ID,
+      id: CONVERSATION_ID,
       messages: [],
       planModeEnabled: true,
     } as never);
@@ -1450,6 +1488,66 @@ describe('AgentOrchestratorService', () => {
         }),
       ]),
     );
+  });
+
+  it('streams real LLM deltas via agent:token when AGENT_TOKEN_STREAMING_ENABLED is on', async () => {
+    organizationsService.findOne.mockResolvedValue({
+      onboardingCompleted: true,
+    } as never);
+    configService.get.mockImplementation((key: string) =>
+      key === 'AGENT_TOKEN_STREAMING_ENABLED' ? 'true' : '',
+    );
+
+    // Existing thread → empty seedTitle → live streaming path is eligible.
+    await service.chatStream(
+      { content: 'Stream this for real', threadId: CONVERSATION_ID },
+      { organizationId: ORG_ID, userId: USER_ID },
+    );
+
+    for (let i = 0; i < 20; i++) {
+      if (streamPublisher.publishDone.mock.calls.length > 0) {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+
+    // Real streaming call is used instead of the blocking chatCompletion.
+    expect(llmDispatcher.streamChatCompletionAggregated).toHaveBeenCalled();
+    expect(llmDispatcher.chatCompletion).not.toHaveBeenCalled();
+
+    // Real provider deltas are published as agent:token events, in order.
+    const streamedTokens = streamPublisher.publishToken.mock.calls.map(
+      (call) => (call[0] as { token: string }).token,
+    );
+    expect(streamedTokens).toEqual(['Hello ', 'streamed']);
+
+    expect(streamPublisher.publishDone).toHaveBeenCalledWith(
+      expect.objectContaining({ fullContent: 'Hello streamed' }),
+    );
+  });
+
+  it('keeps the simulated word-split path when the streaming flag is off', async () => {
+    organizationsService.findOne.mockResolvedValue({
+      onboardingCompleted: true,
+    } as never);
+    // configService.get already returns '' by default → flag off.
+
+    await service.chatStream(
+      { content: 'Stream this simulated', threadId: CONVERSATION_ID },
+      { organizationId: ORG_ID, userId: USER_ID },
+    );
+
+    for (let i = 0; i < 20; i++) {
+      if (streamPublisher.publishDone.mock.calls.length > 0) {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+
+    expect(llmDispatcher.chatCompletion).toHaveBeenCalled();
+    expect(llmDispatcher.streamChatCompletionAggregated).not.toHaveBeenCalled();
+    // Legacy path word-splits the final content into tokens.
+    expect(streamPublisher.publishToken).toHaveBeenCalled();
   });
 
   it('should publish failed tool completion for unknown tool in chatStream()', async () => {

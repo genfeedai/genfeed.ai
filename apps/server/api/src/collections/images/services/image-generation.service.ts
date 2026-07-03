@@ -241,7 +241,7 @@ export class ImageGenerationService {
         width,
       });
 
-    const websocketUrl = WebSocketPaths.image(ingredientData._id);
+    const websocketUrl = WebSocketPaths.image(ingredientData.id);
 
     const context: GenerationContext = {
       brand,
@@ -252,7 +252,7 @@ export class ImageGenerationService {
       metadataData,
       model,
       outputs,
-      pendingIngredientIds: [ingredientData._id.toString()],
+      pendingIngredientIds: [ingredientData.id.toString()],
       promptBuilderBrand,
       promptData,
       publicMetadata,
@@ -267,7 +267,7 @@ export class ImageGenerationService {
     };
 
     // Create activity + websocket update for image generation start
-    await this.createImagePlaceholderActivity(context, ingredientData._id);
+    await this.createImagePlaceholderActivity(context, ingredientData.id);
 
     const plan = await this.dispatchGeneration(context, provider);
 
@@ -464,7 +464,7 @@ export class ImageGenerationService {
     const { metadataData, ingredientData } =
       await this.sharedService.saveDocuments(user, {
         ...createImageDto,
-        brand: brand._id,
+        brand: brand.id,
         category: IngredientCategory.IMAGE,
         extension: MetadataExtension.JPEG,
         height,
@@ -473,7 +473,7 @@ export class ImageGenerationService {
         parent: isEntityId(createImageDto.parent)
           ? createImageDto.parent
           : undefined,
-        prompt: promptData._id,
+        prompt: promptData.id,
         // Template tracking
         promptTemplate: imageTemplateUsed,
         style,
@@ -481,8 +481,8 @@ export class ImageGenerationService {
         width,
       });
 
-    await this.imagesService.patch(ingredientData._id, {
-      prompt: promptData._id,
+    await this.imagesService.patch(ingredientData.id, {
+      prompt: promptData.id,
     });
 
     return { ingredientData, metadataData, promptData };
@@ -745,7 +745,7 @@ export class ImageGenerationService {
       this.loggerService.warn(
         'waitForCompletion requested for unsupported provider',
         {
-          ingredientId: context.ingredientData._id,
+          ingredientId: context.ingredientData.id,
           model: context.model,
         },
       );
@@ -764,7 +764,7 @@ export class ImageGenerationService {
   ): Promise<unknown> {
     if (plan.kind === 'inline') {
       return this.imagesService.findOne(
-        { _id: context.ingredientData._id },
+        { _id: context.ingredientData.id },
         IMAGE_POPULATE,
       );
     }
@@ -772,7 +772,7 @@ export class ImageGenerationService {
     if (plan.kind === 'poll-multiple') {
       const completedIngredients =
         await this.pollingService.waitForMultipleIngredientsCompletion(
-          plan.pollIds ?? [context.ingredientData._id.toString()],
+          plan.pollIds ?? [context.ingredientData.id.toString()],
           180_000, // 3 minutes timeout
           2_000, // 2 seconds poll interval
           IMAGE_POPULATE,
@@ -782,7 +782,7 @@ export class ImageGenerationService {
 
     // poll-single
     return this.pollingService.waitForIngredientCompletion(
-      context.ingredientData._id.toString(),
+      context.ingredientData.id.toString(),
       180000, // 3 minutes timeout
       2000, // 2 seconds poll interval
       IMAGE_POPULATE,
@@ -803,7 +803,7 @@ export class ImageGenerationService {
     }
 
     const ingredient = await this.imagesService.findOne(
-      { _id: context.ingredientData._id },
+      { _id: context.ingredientData.id },
       IMAGE_POPULATE,
     );
 
@@ -827,7 +827,7 @@ export class ImageGenerationService {
     context: GenerationContext,
     error: unknown,
     label: string,
-    ingredientId: SavedIngredient['_id'] = context.ingredientData._id,
+    ingredientId: SavedIngredient['id'] = context.ingredientData.id,
   ): Promise<never> {
     this.loggerService.error(`${label} failed`, error);
     const errorMessage = getErrorMessage(error);
@@ -859,7 +859,7 @@ export class ImageGenerationService {
   ): Promise<void> {
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: context.brand._id,
+        brand: context.brand.id,
         entityId: ingredientId,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.IMAGE_PROCESSING,
@@ -875,7 +875,7 @@ export class ImageGenerationService {
     );
 
     await this.websocketService.publishBackgroundTaskUpdate({
-      activityId: activity._id.toString(),
+      activityId: activity.id.toString(),
       label: 'Image Generation',
       progress: 0,
       room: getUserRoomName(context.user.id),
@@ -909,7 +909,7 @@ export class ImageGenerationService {
       );
 
       const uploadMeta = await this.filesClientService.uploadToS3(
-        ingredientData._id.toString(),
+        ingredientData.id.toString(),
         'images',
         {
           contentType: 'image/png',
@@ -920,20 +920,20 @@ export class ImageGenerationService {
 
       await Promise.all([
         this.metadataService.patch(
-          metadataData._id,
+          metadataData.id,
           new MetadataEntity({
             height: uploadMeta.height,
-            prompt: promptData._id,
+            prompt: promptData.id,
             size: uploadMeta.size,
             width: uploadMeta.width,
           }),
         ),
-        this.imagesService.patch(ingredientData._id, {
+        this.imagesService.patch(ingredientData.id, {
           cdnUrl:
             typeof uploadMeta.publicUrl === 'string'
               ? uploadMeta.publicUrl
               : undefined,
-          prompt: promptData._id,
+          prompt: promptData.id,
           s3Key:
             typeof uploadMeta.s3Key === 'string' ? uploadMeta.s3Key : undefined,
           status: IngredientStatus.GENERATED,
@@ -941,8 +941,8 @@ export class ImageGenerationService {
         this.websocketService.publishVideoComplete(
           websocketUrl,
           {
-            id: ingredientData._id.toString(),
-            ingredientId: ingredientData._id.toString(),
+            id: ingredientData.id.toString(),
+            ingredientId: ingredientData.id.toString(),
             status: 'completed',
           },
           user.id,
@@ -950,7 +950,7 @@ export class ImageGenerationService {
         ),
       ]);
 
-      return ingredientData._id.toString();
+      return ingredientData.id.toString();
     })().catch((error: unknown) =>
       this.handleProviderFailure(
         context,
@@ -982,10 +982,10 @@ export class ImageGenerationService {
         }
 
         await this.metadataService.patch(
-          metadataData._id,
+          metadataData.id,
           new MetadataEntity({
             externalId: generationId,
-            prompt: promptData._id,
+            prompt: promptData.id,
           }),
         );
 
@@ -1019,7 +1019,7 @@ export class ImageGenerationService {
         }
 
         await this.metadataService.patch(
-          metadataData._id,
+          metadataData.id,
           new MetadataEntity({
             externalId: generationId,
           }),
@@ -1073,10 +1073,10 @@ export class ImageGenerationService {
           buildFalInput(),
         );
         await this.metadataService.patch(
-          metadataData._id,
+          metadataData.id,
           new MetadataEntity({
             externalId: falResult.url,
-            prompt: promptData._id,
+            prompt: promptData.id,
           }),
         );
         primaryUrl = falResult.url;
@@ -1085,7 +1085,7 @@ export class ImageGenerationService {
           context,
           error,
           'FalService generateImage',
-          context.ingredientData._id,
+          context.ingredientData.id,
         );
       }
 
@@ -1114,23 +1114,23 @@ export class ImageGenerationService {
     // Capture the additional output's id as soon as its placeholder exists so a
     // generation/patch failure marks that specific output, not the (already
     // succeeded) primary.
-    let additionalIngredientId: SavedIngredient['_id'] | null = null;
+    let additionalIngredientId: SavedIngredient['id'] | null = null;
     try {
       const {
         metadataData: additionalMetadata,
         ingredientData: additionalIngredient,
       } = await this.sharedService.saveDocuments(context.user, {
         ...createImageDto,
-        brand: brand._id,
+        brand: brand.id,
         category: IngredientCategory.IMAGE,
         extension: MetadataExtension.JPG,
         model: context.model,
         organization: publicMetadata.organization,
         parent: context.ingredientData.parent,
-        prompt: promptData._id,
+        prompt: promptData.id,
         status: IngredientStatus.PROCESSING,
       });
-      additionalIngredientId = additionalIngredient._id;
+      additionalIngredientId = additionalIngredient.id;
 
       const additionalResult = await this.falService.generateImage(
         context.model,
@@ -1139,14 +1139,14 @@ export class ImageGenerationService {
 
       await Promise.all([
         this.metadataService.patch(
-          additionalMetadata._id,
+          additionalMetadata.id,
           new MetadataEntity({
             externalId: additionalResult.url,
-            prompt: promptData._id,
+            prompt: promptData.id,
           }),
         ),
-        this.imagesService.patch(additionalIngredient._id, {
-          prompt: promptData._id,
+        this.imagesService.patch(additionalIngredient.id, {
+          prompt: promptData.id,
         }),
       ]);
 
@@ -1156,7 +1156,7 @@ export class ImageGenerationService {
       try {
         await this.createImagePlaceholderActivity(
           context,
-          additionalIngredient._id,
+          additionalIngredient.id,
         );
       } catch (activityError: unknown) {
         this.loggerService.error(
@@ -1165,7 +1165,7 @@ export class ImageGenerationService {
         );
       }
 
-      context.pendingIngredientIds.push(additionalIngredient._id.toString());
+      context.pendingIngredientIds.push(additionalIngredient.id.toString());
     } catch (error: unknown) {
       // Mark the specific additional output that failed; never fall back to the
       // primary, which is a different (already-succeeded) output.
@@ -1244,7 +1244,7 @@ export class ImageGenerationService {
     );
 
     // Track all placeholder ingredient IDs - start with first one
-    const pollIds: string[] = [context.ingredientData._id.toString()];
+    const pollIds: string[] = [context.ingredientData.id.toString()];
 
     const generationPromise = (async () => {
       // Primary generation: a failure here is attributed to the primary
@@ -1264,7 +1264,7 @@ export class ImageGenerationService {
           context,
           error,
           'ReplicateService generateImage',
-          context.ingredientData._id,
+          context.ingredientData.id,
         );
       }
 
@@ -1285,7 +1285,7 @@ export class ImageGenerationService {
             context,
             error,
             'ReplicateService generateImage',
-            context.ingredientData._id,
+            context.ingredientData.id,
           );
         }
       } else if (context.outputs > 1) {
@@ -1300,7 +1300,7 @@ export class ImageGenerationService {
         // Single output - use original external ID
         try {
           await this.metadataService.patch(
-            context.metadataData._id,
+            context.metadataData.id,
             new MetadataEntity({
               externalId: generationId,
             }),
@@ -1310,7 +1310,7 @@ export class ImageGenerationService {
             context,
             error,
             'ReplicateService generateImage',
-            context.ingredientData._id,
+            context.ingredientData.id,
           );
         }
       }
@@ -1334,7 +1334,7 @@ export class ImageGenerationService {
     const { createImageDto, brand, promptData, publicMetadata } = context;
 
     await this.metadataService.patch(
-      context.metadataData._id,
+      context.metadataData.id,
       new MetadataEntity({
         externalId: `${generationId}_0`,
       }),
@@ -1345,13 +1345,13 @@ export class ImageGenerationService {
       Array.from({ length: context.outputs - 1 }, () => {
         return this.sharedService.saveDocuments(context.user, {
           ...createImageDto,
-          brand: brand._id,
+          brand: brand.id,
           category: IngredientCategory.IMAGE,
           extension: MetadataExtension.JPG,
           model: context.model,
           organization: publicMetadata.organization,
           parent: context.ingredientData.parent,
-          prompt: promptData._id,
+          prompt: promptData.id,
           status: IngredientStatus.PROCESSING,
         });
       }),
@@ -1364,13 +1364,13 @@ export class ImageGenerationService {
           const i = index + 1;
           return [
             this.metadataService.patch(
-              addMeta._id,
+              addMeta.id,
               new MetadataEntity({
                 externalId: `${generationId}_${i}`,
               }),
             ),
-            this.imagesService.patch(addIngredient._id, {
-              prompt: promptData._id,
+            this.imagesService.patch(addIngredient.id, {
+              prompt: promptData.id,
             }),
           ];
         },
@@ -1380,13 +1380,13 @@ export class ImageGenerationService {
     // Create activities for each additional placeholder (batch model path)
     await Promise.all(
       additionalDocuments.map(({ ingredientData: addIngredient }) =>
-        this.createImagePlaceholderActivity(context, addIngredient._id),
+        this.createImagePlaceholderActivity(context, addIngredient.id),
       ),
     );
 
     // Push additional ingredient IDs to tracking array for polling
     additionalDocuments.forEach(({ ingredientData: addIngredient }) => {
-      pollIds.push(addIngredient._id.toString());
+      pollIds.push(addIngredient.id.toString());
     });
 
     this.loggerService.log(
@@ -1415,7 +1415,7 @@ export class ImageGenerationService {
 
     try {
       await this.metadataService.patch(
-        context.metadataData._id,
+        context.metadataData.id,
         new MetadataEntity({
           externalId: generationId,
         }),
@@ -1425,7 +1425,7 @@ export class ImageGenerationService {
         context,
         error,
         'ReplicateService generateImage',
-        context.ingredientData._id,
+        context.ingredientData.id,
       );
     }
 
@@ -1434,23 +1434,23 @@ export class ImageGenerationService {
     for (let i = 1; i < context.outputs; i++) {
       // Capture the additional output's id as soon as its placeholder exists so
       // a generation/patch failure marks that specific output, not the primary.
-      let additionalIngredientId: SavedIngredient['_id'] | null = null;
+      let additionalIngredientId: SavedIngredient['id'] | null = null;
       try {
         const {
           metadataData: additionalMetadata,
           ingredientData: additionalIngredient,
         } = await this.sharedService.saveDocuments(context.user, {
           ...createImageDto,
-          brand: brand._id,
+          brand: brand.id,
           category: IngredientCategory.IMAGE,
           extension: MetadataExtension.JPG,
           model: context.model,
           organization: publicMetadata.organization,
           parent: context.ingredientData.parent,
-          prompt: promptData._id,
+          prompt: promptData.id,
           status: IngredientStatus.PROCESSING,
         });
-        additionalIngredientId = additionalIngredient._id;
+        additionalIngredientId = additionalIngredient.id;
 
         // Make separate API call for each output
         const additionalGenerationId =
@@ -1464,23 +1464,23 @@ export class ImageGenerationService {
 
         await Promise.all([
           this.metadataService.patch(
-            additionalMetadata._id,
+            additionalMetadata.id,
             new MetadataEntity({
               externalId: additionalGenerationId,
             }),
           ),
-          this.imagesService.patch(additionalIngredient._id, {
-            prompt: promptData._id,
+          this.imagesService.patch(additionalIngredient.id, {
+            prompt: promptData.id,
           }),
         ]);
 
         await this.createImagePlaceholderActivity(
           context,
-          additionalIngredient._id,
+          additionalIngredient.id,
         );
 
         // Push this additional ingredient ID to tracking array for polling
-        pollIds.push(additionalIngredient._id.toString());
+        pollIds.push(additionalIngredient.id.toString());
       } catch (error: unknown) {
         // Mark the specific additional output that failed; never fall back to
         // the primary, which is a different output.

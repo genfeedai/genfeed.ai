@@ -2,16 +2,13 @@ import { type AgentCampaignDocument } from '@api/collections/agent-campaigns/sch
 import { AgentCampaignsService } from '@api/collections/agent-campaigns/services/agent-campaigns.service';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
 import { isOrchestratorAgentType } from '@api/services/agent-orchestrator/constants/agent-type.constants';
 import { AgentExecutionTrigger } from '@genfeedai/enums';
 import type { IAgentCampaignStatusResponse } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 @Injectable()
 export class AgentCampaignExecutionService {
@@ -39,9 +36,9 @@ export class AgentCampaignExecutionService {
     );
 
     if (!campaign) {
-      throw new NotFoundException(
-        `Campaign ${campaignId} not found in organization ${organizationId}`,
-      );
+      throw new NotFoundException({
+        message: `Campaign ${campaignId} not found in organization ${organizationId}`,
+      });
     }
 
     if (campaign.status === 'active') {
@@ -60,7 +57,9 @@ export class AgentCampaignExecutionService {
     } as Record<string, unknown>);
 
     if (!updated) {
-      throw new NotFoundException(`Failed to update campaign ${campaignId}`);
+      throw new NotFoundException({
+        message: `Failed to update campaign ${campaignId}`,
+      });
     }
 
     // Trigger each agent strategy
@@ -148,9 +147,9 @@ export class AgentCampaignExecutionService {
     );
 
     if (!campaign) {
-      throw new NotFoundException(
-        `Campaign ${campaignId} not found in organization ${organizationId}`,
-      );
+      throw new NotFoundException({
+        message: `Campaign ${campaignId} not found in organization ${organizationId}`,
+      });
     }
 
     if (campaign.status !== 'active') {
@@ -164,7 +163,9 @@ export class AgentCampaignExecutionService {
     } as Record<string, unknown>);
 
     if (!updated) {
-      throw new NotFoundException(`Failed to update campaign ${campaignId}`);
+      throw new NotFoundException({
+        message: `Failed to update campaign ${campaignId}`,
+      });
     }
 
     // Pause each agent strategy
@@ -259,9 +260,9 @@ export class AgentCampaignExecutionService {
     );
 
     if (!campaign) {
-      throw new NotFoundException(
-        `Campaign ${campaignId} not found in organization ${organizationId}`,
-      );
+      throw new NotFoundException({
+        message: `Campaign ${campaignId} not found in organization ${organizationId}`,
+      });
     }
 
     // Count running agents by checking which strategies are active

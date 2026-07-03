@@ -112,7 +112,7 @@ export class VideosEditsController {
       this.fileQueueService
         .processVideo({
           authProviderUserId: user.id,
-          ingredientId: ingredientData._id.toString(),
+          ingredientId: ingredientData.id.toString(),
           organizationId: publicMetadata.organization,
           params: {
             endTime: trimParams.endTime,
@@ -122,7 +122,7 @@ export class VideosEditsController {
           room: getUserRoomName(user.id),
           type: 'trim-video',
           userId: publicMetadata.user,
-          websocketUrl: `/videos/${ingredientData._id}`,
+          websocketUrl: `/videos/${ingredientData.id}`,
         })
         .then(async (job) => {
           const result = await this.fileQueueService.waitForJob(
@@ -131,7 +131,7 @@ export class VideosEditsController {
           );
           const output = requireVideoOutputPath(result.outputPath);
           const meta = await this.filesClientService.uploadToS3(
-            ingredientData._id,
+            ingredientData.id,
             `videos`,
             {
               path: output,
@@ -139,23 +139,23 @@ export class VideosEditsController {
             },
           );
 
-          await this.metadataService.patch(metadataData._id, {
+          await this.metadataService.patch(metadataData.id, {
             duration: meta.duration,
             height: meta.height,
             size: meta.size,
             width: meta.width,
           });
 
-          await this.ingredientsService.patch(ingredientData._id, {
+          await this.ingredientsService.patch(ingredientData.id, {
             status: IngredientStatus.GENERATED,
           });
 
-          const websocketUrl = WebSocketPaths.video(ingredientData._id);
+          const websocketUrl = WebSocketPaths.video(ingredientData.id);
           await this.websocketService.publishVideoComplete(
             websocketUrl,
             {
               eventType: WebSocketEventType.VIDEO_TRIMMED,
-              id: ingredientData._id,
+              id: ingredientData.id,
               status: WebSocketEventStatus.COMPLETED,
             },
             user.id,
@@ -174,7 +174,7 @@ export class VideosEditsController {
         .catch(async (error: unknown) => {
           this.loggerService.error(`${url} trimVideo failed`, error);
 
-          const websocketUrl = WebSocketPaths.video(ingredientData._id);
+          const websocketUrl = WebSocketPaths.video(ingredientData.id);
           await this.websocketService.publishMediaFailed(
             websocketUrl,
             'Failed to trim video',
@@ -251,7 +251,7 @@ export class VideosEditsController {
       this.fileQueueService
         .processVideo({
           authProviderUserId: user.id,
-          ingredientId: ingredientData._id.toString(),
+          ingredientId: ingredientData.id.toString(),
           organizationId: publicMetadata.organization,
           params: {
             height: originalMetadata.height,
@@ -263,7 +263,7 @@ export class VideosEditsController {
           room: getUserRoomName(user.id),
           type: 'add-text-overlay',
           userId: publicMetadata.user,
-          websocketUrl: `/videos/${ingredientData._id}`,
+          websocketUrl: `/videos/${ingredientData.id}`,
         })
         .then(async (job) => {
           const result = await this.fileQueueService.waitForJob(
@@ -272,7 +272,7 @@ export class VideosEditsController {
           );
           const output = requireVideoOutputPath(result.outputPath);
           const meta = await this.filesClientService.uploadToS3(
-            ingredientData._id,
+            ingredientData.id,
             `videos`,
             {
               path: output,
@@ -280,7 +280,7 @@ export class VideosEditsController {
             },
           );
 
-          await this.metadataService.patch(metadataData._id, {
+          await this.metadataService.patch(metadataData.id, {
             duration: meta.duration,
             height: meta.height,
             label: `Text Overlay: ${createVideoDto.text}`,
@@ -288,16 +288,16 @@ export class VideosEditsController {
             width: meta.width,
           });
 
-          await this.ingredientsService.patch(ingredientData._id, {
+          await this.ingredientsService.patch(ingredientData.id, {
             status: IngredientStatus.GENERATED,
           });
 
-          const websocketUrl = WebSocketPaths.video(ingredientData._id);
+          const websocketUrl = WebSocketPaths.video(ingredientData.id);
           await this.websocketService.publishVideoComplete(
             websocketUrl,
             {
               eventType: WebSocketEventType.VIDEO_REVERSED,
-              id: ingredientData._id,
+              id: ingredientData.id,
               status: WebSocketEventStatus.COMPLETED,
             },
             user.id,

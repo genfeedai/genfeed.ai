@@ -153,7 +153,7 @@ export class ModelDiscoveryService {
 
       // Patch with dynamic fields not in CreateModelDto but supported by schema
       const now = new Date();
-      await this.modelsService.patch(draftModel._id, {
+      await this.modelsService.patch(draftModel.id, {
         costPerUnit: pricing.costPerUnit,
         discoveredAt: now,
         isDiscovered: true,

@@ -53,11 +53,11 @@ describe('getSerializer', () => {
     expect(result.data).toHaveProperty('type', 'users');
   });
 
-  it('uses _id as identifier in api mode', () => {
+  it('uses id as identifier in api mode', () => {
     const serializer = getSerializer(config, 'api');
     const result = serializer.serialize({
-      _id: 'abc123',
       email: 'test@example.com',
+      id: 'abc123',
       name: 'Test',
     }) as { data: { id: string } };
 

@@ -17,7 +17,7 @@ export enum ClipType {
 }
 
 export interface IClipResult {
-  _id: string;
+  id: string;
   user: string;
   organization: string;
   project: string;
