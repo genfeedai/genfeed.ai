@@ -16,7 +16,7 @@ describe('AdminFleetAssetService.reviewAsset', () => {
   let adminFleetTrainingService: Record<string, ReturnType<typeof vi.fn>>;
 
   const imageAsset = {
-    _id: { toString: () => 'asset-1' },
+    id: { toString: () => 'asset-1' },
     category: IngredientCategory.IMAGE,
     cdnUrl: 'https://cdn/asset-1.jpg',
     generationPrompt: 'a portrait',

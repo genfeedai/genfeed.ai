@@ -92,7 +92,7 @@ export class AdAutomationWorkflowService {
 
     const runId = randomUUID();
     const jobData: AdOptimizationJobData = {
-      configId: String(config._id),
+      configId: String(config.id),
       organizationId,
       runId,
     };
@@ -268,7 +268,7 @@ export class AdAutomationWorkflowService {
   ): Promise<boolean> {
     try {
       const accessToken = this.decryptOptional(credential.accessToken);
-      const credentialId = String(credential._id);
+      const credentialId = String(credential.id);
       const brandId = this.readCredentialBrandId(credential);
 
       if (!accessToken || !brandId) {
@@ -312,7 +312,7 @@ export class AdAutomationWorkflowService {
       return true;
     } catch (error) {
       this.logger.error(`${this.logContext} failed Meta ad sync enqueue`, {
-        credentialId: credential._id,
+        credentialId: credential.id,
         error,
         organizationId,
       });
@@ -327,7 +327,7 @@ export class AdAutomationWorkflowService {
     try {
       const accessToken = this.decryptOptional(credential.accessToken);
       const refreshToken = this.decryptOptional(credential.refreshToken);
-      const credentialId = String(credential._id);
+      const credentialId = String(credential.id);
       const brandId = this.readCredentialBrandId(credential);
 
       if (!accessToken || !refreshToken || !brandId) {
@@ -381,7 +381,7 @@ export class AdAutomationWorkflowService {
       return true;
     } catch (error) {
       this.logger.error(`${this.logContext} failed Google Ads sync enqueue`, {
-        credentialId: credential._id,
+        credentialId: credential.id,
         error,
         organizationId,
       });
@@ -395,7 +395,7 @@ export class AdAutomationWorkflowService {
   ): Promise<boolean> {
     try {
       const accessToken = this.decryptOptional(credential.accessToken);
-      const credentialId = String(credential._id);
+      const credentialId = String(credential.id);
       const brandId = this.readCredentialBrandId(credential);
 
       if (!accessToken || !brandId) {
@@ -441,7 +441,7 @@ export class AdAutomationWorkflowService {
       return true;
     } catch (error) {
       this.logger.error(`${this.logContext} failed TikTok Ads sync enqueue`, {
-        credentialId: credential._id,
+        credentialId: credential.id,
         error,
         organizationId,
       });

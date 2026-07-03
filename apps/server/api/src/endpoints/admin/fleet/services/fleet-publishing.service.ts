@@ -2,7 +2,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { AdminFleetValueReader } from '@api/endpoints/admin/fleet/services/fleet-value-reader.util';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
@@ -120,9 +120,9 @@ export class AdminFleetPublishingService {
           case 'facebook': {
             // Facebook requires pageId and pageAccessToken
             const fbCredential = await this.credentialsService.findOne({
-              brand: ObjectIdUtil.toObjectId(brandId)!,
+              brand: EntityIdUtil.toValidId(brandId)!,
               isDeleted: false,
-              organization: ObjectIdUtil.toObjectId(organizationId)!,
+              organization: EntityIdUtil.toValidId(organizationId)!,
               platform: CredentialPlatform.FACEBOOK,
             });
 

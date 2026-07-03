@@ -143,7 +143,7 @@ export class AdminFleetAssetService {
       sourceUrl,
       ingredient.category,
     );
-    const datasetKey = `darkroom/datasets/${slug}/${ingredient._id.toString()}.${extension}`;
+    const datasetKey = `darkroom/datasets/${slug}/${ingredient.id.toString()}.${extension}`;
     await this.filesClientService.uploadToS3(datasetKey, 'images', {
       type: FileInputType.URL,
       url: sourceUrl,
@@ -154,7 +154,7 @@ export class AdminFleetAssetService {
       AdminFleetValueReader.readString(ingredient.generationPrompt) ??
       AdminFleetValueReader.readString(ingredient.text);
     if (caption) {
-      const captionKey = `darkroom/datasets/${slug}/${ingredient._id.toString()}.txt`;
+      const captionKey = `darkroom/datasets/${slug}/${ingredient.id.toString()}.txt`;
       await this.filesClientService.uploadToS3(captionKey, 'images', {
         contentType: 'text/plain',
         data: Buffer.from(caption, 'utf8'),
@@ -171,7 +171,7 @@ export class AdminFleetAssetService {
       ),
     );
 
-    await this.ingredientsService.patch(ingredient._id.toString(), {
+    await this.ingredientsService.patch(ingredient.id.toString(), {
       generationCompletedAt: ingredient.generationCompletedAt ?? new Date(),
     } as Parameters<IngredientsService['patch']>[1]);
   }

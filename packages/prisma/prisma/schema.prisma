@@ -1721,7 +1721,6 @@ model Asset {
   uploadPolicy       String?
   originalFileName   String?
   displayName        String?
-  deletedAt          DateTime?
   isDeleted          Boolean       @default(false)
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
@@ -1956,6 +1955,12 @@ model PostAnalytics {
 
   ingredients Ingredient[] @relation("post_analytics_ingredients")
 
+  // One analytics snapshot per post, per platform, per day. The ingestion
+  // service (`upsertTodaysAnalytics`) upserts on this exact tuple and relies on
+  // a P2002 to serialize concurrent writers — mirrors ArticleAnalytics'
+  // `@@unique([articleId, date])`. `date` is always normalized to UTC midnight
+  // by the writer, so the tuple is a true daily natural key.
+  @@unique([postId, platform, date])
   @@index([date(sort: Desc)])
   @@index([organizationId, date(sort: Desc)])
   @@index([brandId, date(sort: Desc)])

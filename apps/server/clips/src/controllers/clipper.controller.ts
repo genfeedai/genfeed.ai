@@ -65,13 +65,13 @@ export class ClipperController {
       const project = response.data;
 
       await this.clipperQueueService.addProcessJob(
-        project._id || project.data?._id,
+        project.id || project.data?.id,
         body.userId,
         body.organizationId,
       );
 
       this.logger.log(
-        `${methodName} Project created and queued: ${project._id || project.data?._id}`,
+        `${methodName} Project created and queued: ${project.id || project.data?.id}`,
       );
 
       return {

@@ -58,7 +58,7 @@ describe('ContentOrchestrationService', () => {
   };
 
   const mockPersona = {
-    _id: baseConfig.personaId,
+    id: baseConfig.personaId,
     credentials: [{ platform: 'tiktok' }],
     name: 'Test Persona',
   };
@@ -92,8 +92,8 @@ describe('ContentOrchestrationService', () => {
 
     mockSharedService = {
       saveDocumentsInternal: vi.fn().mockResolvedValue({
-        ingredientData: { _id: ingredientId },
-        metadataData: { _id: metadataId },
+        ingredientData: { id: ingredientId },
+        metadataData: { id: metadataId },
       }),
     };
 

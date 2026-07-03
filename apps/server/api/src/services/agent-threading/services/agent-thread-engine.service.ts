@@ -5,7 +5,7 @@ import {
   fromPromiseEffect,
   runEffectPromise,
 } from '@api/helpers/utils/effect/effect.util';
-import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import type { AgentInputRequestDocument } from '@api/services/agent-threading/schemas/agent-input-request.schema';
 import type { AgentProfileSnapshotDocument } from '@api/services/agent-threading/schemas/agent-profile-snapshot.schema';
 import type { AgentThreadEventDocument } from '@api/services/agent-threading/schemas/agent-thread-event.schema';
@@ -616,10 +616,10 @@ export class AgentThreadEngineService {
       );
 
       yield* this.appendEventEffect({
-        commandId: `memory-flush:${threadId}:${memory._id}`,
+        commandId: `memory-flush:${threadId}:${memory.id}`,
         organizationId,
         payload: {
-          memoryId: String(memory._id),
+          memoryId: String(memory.id),
           summary: content.slice(0, 200),
         },
         threadId,
@@ -627,7 +627,7 @@ export class AgentThreadEngineService {
         userId,
       });
 
-      return String(memory._id);
+      return String(memory.id);
     });
   }
 
@@ -659,10 +659,10 @@ export class AgentThreadEngineService {
     status?: string;
     title?: string;
   }> {
-    if (!ObjectIdUtil.isValid(threadId)) {
+    if (!EntityIdUtil.isValid(threadId)) {
       throw new BadRequestException('Invalid threadId');
     }
-    if (!ObjectIdUtil.isValid(organizationId)) {
+    if (!EntityIdUtil.isValid(organizationId)) {
       throw new BadRequestException('Invalid organizationId');
     }
 
@@ -673,7 +673,7 @@ export class AgentThreadEngineService {
     };
 
     if (userId) {
-      if (!ObjectIdUtil.isValid(userId)) {
+      if (!EntityIdUtil.isValid(userId)) {
         throw new BadRequestException('Invalid userId');
       }
       query.user = userId;

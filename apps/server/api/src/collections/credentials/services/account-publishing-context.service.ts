@@ -122,7 +122,7 @@ export class AccountPublishingContextService {
       account: {
         externalUrl: readString(credential.externalUrl),
         handle: this.getCredentialHandle(credential),
-        id: String(credential._id ?? credential.id),
+        id: String(credential.id),
         label: this.getCredentialLabel(credential, platform),
         platform,
       },

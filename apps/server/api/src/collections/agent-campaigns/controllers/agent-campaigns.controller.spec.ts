@@ -81,10 +81,10 @@ describe('AgentCampaignsController', () => {
   describe('executeCampaign', () => {
     it('uses the Mongo user id from public metadata when executing', async () => {
       mockUsersService.findOne.mockResolvedValue({
-        _id: '507f1f77bcf86cd799439014',
+        id: '507f1f77bcf86cd799439014',
       });
       mockExecutionService.execute.mockResolvedValue({
-        _id: 'campaign-1',
+        id: 'campaign-1',
       });
 
       await controller.executeCampaign('campaign-1', mockUser as any);
@@ -113,10 +113,10 @@ describe('AgentCampaignsController', () => {
       };
 
       mockUsersService.findOne.mockResolvedValueOnce({
-        _id: '507f1f77bcf86cd799439099',
+        id: '507f1f77bcf86cd799439099',
       });
       mockExecutionService.execute.mockResolvedValue({
-        _id: 'campaign-2',
+        id: 'campaign-2',
       });
 
       await controller.executeCampaign(
@@ -208,7 +208,7 @@ describe('AgentCampaignsController', () => {
   describe('canUserModifyEntity', () => {
     it('should return true when entity organization matches user organization', () => {
       const entity = {
-        organization: { _id: '507f1f77bcf86cd799439012' },
+        organization: { id: '507f1f77bcf86cd799439012' },
       };
       expect(
         controller.canUserModifyEntity(mockUser as any, entity as any),

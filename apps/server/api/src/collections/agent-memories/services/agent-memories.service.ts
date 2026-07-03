@@ -566,7 +566,7 @@ export class AgentMemoriesService extends BaseService<
   }
 
   private resolveMemoryId(memory: AgentMemoryDocument): string {
-    const id = memory.id ?? memory._id;
+    const id = memory.id;
     return typeof id === 'string' ? id : String(id ?? '');
   }
 

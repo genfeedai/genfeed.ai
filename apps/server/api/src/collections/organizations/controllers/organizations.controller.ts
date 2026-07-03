@@ -181,7 +181,7 @@ export class OrganizationsController extends BaseCRUDController<
     @Body() body: { slug: string },
   ): Promise<unknown> {
     const existing = await this.organizationsService.findBySlug(body.slug);
-    if (existing && existing._id.toString() !== id) {
+    if (existing && existing.id.toString() !== id) {
       throw new BadRequestException(`Slug "${body.slug}" is already taken`);
     }
     const org = await this.organizationsService.patch(id, {
@@ -505,14 +505,14 @@ export class OrganizationsController extends BaseCRUDController<
         .map(async (org) => {
           const brand = await this.brandsService.findOne({
             isDeleted: false,
-            organization: org._id,
+            organization: org.id,
           });
           return {
             brand: brand
-              ? { id: brand._id.toString(), label: brand.label }
+              ? { id: brand.id.toString(), label: brand.label }
               : null,
-            id: org._id.toString(),
-            isActive: publicMetadata.organization === org._id.toString(),
+            id: org.id.toString(),
+            isActive: publicMetadata.organization === org.id.toString(),
             label: org.label,
             slug: org.slug ?? '',
           };
@@ -590,7 +590,7 @@ export class OrganizationsController extends BaseCRUDController<
     if (member) {
       await this.membersService.setLastUsedBrand(
         { isActive: true, isDeleted: false, organization: orgId, user: userId },
-        brand._id.toString(),
+        brand.id.toString(),
       );
     }
     await Promise.all([
@@ -605,7 +605,7 @@ export class OrganizationsController extends BaseCRUDController<
     });
 
     return {
-      brand: { id: brand._id.toString(), label: brand.label },
+      brand: { id: brand.id.toString(), label: brand.label },
       organization: { id: orgId, label: org?.label ?? '' },
     };
   }
@@ -662,7 +662,7 @@ export class OrganizationsController extends BaseCRUDController<
       userId,
     } as unknown as Parameters<typeof this.organizationsService.create>[0]);
 
-    const orgId = org._id;
+    const orgId = org.id;
 
     // Step 2: Create org settings
     const enabledModelIds =
@@ -708,7 +708,7 @@ export class OrganizationsController extends BaseCRUDController<
 
     await this.provisionDefaultRecurringWorkflows(
       orgId.toString(),
-      brand._id.toString(),
+      brand.id.toString(),
       userId,
     );
 
@@ -734,7 +734,7 @@ export class OrganizationsController extends BaseCRUDController<
     await this.membersService.create({
       isActive: true,
       organizationId: orgId,
-      roleId: String(adminRole._id),
+      roleId: String(adminRole.id),
       userId,
     } as unknown as Parameters<typeof this.membersService.create>[0]);
 
@@ -742,16 +742,16 @@ export class OrganizationsController extends BaseCRUDController<
     // — no legacy auth provider write-back). Both identity resolvers pick up
     // lastUsedOrganizationId + the member's lastUsedBrandId on the next request.
     await this.usersService.patch(userId, {
-      lastUsedOrganizationId: org._id.toString(),
+      lastUsedOrganizationId: org.id.toString(),
     });
     await this.membersService.setLastUsedBrand(
       {
         isActive: true,
         isDeleted: false,
-        organization: org._id.toString(),
+        organization: org.id.toString(),
         user: userId,
       },
-      brand._id.toString(),
+      brand.id.toString(),
     );
 
     await Promise.all([
@@ -761,8 +761,8 @@ export class OrganizationsController extends BaseCRUDController<
     ]);
 
     return {
-      brand: { id: brand._id.toString(), label: brand.label },
-      organization: { id: org._id.toString(), label: org.label },
+      brand: { id: brand.id.toString(), label: brand.label },
+      organization: { id: org.id.toString(), label: org.label },
     };
   }
 

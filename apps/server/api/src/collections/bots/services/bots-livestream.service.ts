@@ -152,14 +152,6 @@ export class BotsLivestreamService {
 
   private normalizeBotDocument(bot: BotDocument): BotDocument {
     const normalized = { ...bot } as Record<string, unknown>;
-    const legacyId =
-      typeof normalized.mongoId === 'string' && normalized.mongoId.length > 0
-        ? normalized.mongoId
-        : normalized.id;
-
-    if (normalized._id === undefined && typeof legacyId === 'string') {
-      normalized._id = legacyId;
-    }
 
     if (
       normalized.organization === undefined &&
@@ -333,14 +325,6 @@ export class BotsLivestreamService {
     session: Record<string, unknown>,
   ): LivestreamBotSessionDocument {
     const normalized = { ...session };
-    const legacyId =
-      typeof normalized.mongoId === 'string' && normalized.mongoId.length > 0
-        ? normalized.mongoId
-        : normalized.id;
-
-    if (normalized._id === undefined && typeof legacyId === 'string') {
-      normalized._id = legacyId;
-    }
 
     mergeLegacyPayload(normalized, normalized.data);
 
@@ -520,7 +504,7 @@ export class BotsLivestreamService {
     bot: BotDocument,
   ): Promise<LivestreamBotSessionDocument> {
     const normalizedBot = this.normalizeBotDocument(bot);
-    const botId = String(normalizedBot.id ?? normalizedBot._id);
+    const botId = String(normalizedBot.id);
     const organizationId = String(
       normalizedBot.organizationId ?? normalizedBot.organization,
     );

@@ -65,11 +65,11 @@ describe('ImagesTransformationsController', () => {
   } as unknown as Request;
 
   const mockImage = {
-    _id: '507f1f77bcf86cd799439014',
+    id: '507f1f77bcf86cd799439014',
     brand: '507f1f77bcf86cd799439013',
     category: 'image',
     metadata: {
-      _id: '507f1f77bcf86cd799439015',
+      id: '507f1f77bcf86cd799439015',
       height: 1080,
       width: 1920,
     },
@@ -80,7 +80,7 @@ describe('ImagesTransformationsController', () => {
   const mockServices = {
     activitiesService: {
       create: vi.fn().mockResolvedValue({
-        _id: '507f1f77bcf86cd799439020',
+        id: '507f1f77bcf86cd799439020',
       }),
     },
     configService: {
@@ -132,7 +132,7 @@ describe('ImagesTransformationsController', () => {
     },
     promptsService: {
       create: vi.fn().mockResolvedValue({
-        _id: '507f1f77bcf86cd799439016',
+        id: '507f1f77bcf86cd799439016',
         original: 'Test prompt',
       }),
     },
@@ -148,10 +148,10 @@ describe('ImagesTransformationsController', () => {
     sharedService: {
       saveDocuments: vi.fn().mockResolvedValue({
         ingredientData: {
-          _id: '507f1f77bcf86cd799439017',
+          id: '507f1f77bcf86cd799439017',
         },
         metadataData: {
-          _id: '507f1f77bcf86cd799439018',
+          id: '507f1f77bcf86cd799439018',
         },
       }),
     },

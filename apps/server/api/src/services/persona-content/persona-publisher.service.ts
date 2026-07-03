@@ -97,7 +97,7 @@ export class PersonaPublisherService {
           user: input.user,
         } as Parameters<PostsService['create']>[0]);
 
-        postIds.push(String(post._id));
+        postIds.push(String(post.id));
       } catch (error) {
         this.loggerService.error(
           `${this.constructorName} ${caller} - Failed to create post for credential ${String(credentialId)}`,

@@ -3,7 +3,7 @@ import {
   fromPromiseEffect,
   runEffectPromise,
 } from '@api/helpers/utils/effect/effect.util';
-import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import {
   AgentThreadEngineService,
   type AppendAgentThreadEventParams,
@@ -60,7 +60,7 @@ export class AgentStreamPublisherService {
       return;
     }
     try {
-      if (!ObjectIdUtil.isValid(threadId)) {
+      if (!EntityIdUtil.isValid(threadId)) {
         return;
       }
 

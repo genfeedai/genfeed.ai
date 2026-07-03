@@ -72,7 +72,7 @@ export class AdBulkUploadService {
       videos: resolvedMedia.videos,
     });
 
-    const jobId = String(jobDoc._id);
+    const jobId = String(jobDoc.id);
 
     const queueData: AdBulkUploadJobData = {
       accessToken: input.accessToken,

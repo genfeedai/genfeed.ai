@@ -60,12 +60,12 @@ export class AutoMergeService {
       return undefined;
     }
 
-    if (typeof value._id === 'string') {
-      return value._id;
+    if (typeof value.id === 'string') {
+      return value.id;
     }
 
-    if (value._id && typeof value._id.toString === 'function') {
-      return value._id.toString();
+    if (value.id && typeof value.id.toString === 'function') {
+      return value.id.toString();
     }
 
     if (typeof value.id === 'string') {
@@ -86,7 +86,7 @@ export class AutoMergeService {
       return ref;
     }
 
-    return ref?._id?.toString() ?? ref?.id?.toString();
+    return ref?.id?.toString() ?? ref?.id?.toString();
   }
 
   private toUserReference(
@@ -124,7 +124,7 @@ export class AutoMergeService {
         this.loggerService.error(`${this.logContext} auto-merge check failed`, {
           error: getErrorMessage(error),
           groupId: ingredient.groupId,
-          ingredientId: ingredient._id,
+          ingredientId: ingredient.id,
         });
       });
     });
@@ -143,14 +143,14 @@ export class AutoMergeService {
     if (!groupId || !isMergeEnabled) {
       this.loggerService.debug(
         `${this.logContext} not part of merge-enabled group`,
-        { groupId, ingredientId: ingredient._id, isMergeEnabled },
+        { groupId, ingredientId: ingredient.id, isMergeEnabled },
       );
       return;
     }
 
     this.loggerService.log(`${this.logContext} checking group completion`, {
       groupId,
-      ingredientId: ingredient._id,
+      ingredientId: ingredient.id,
     });
 
     const groupVideos = await this.findGroupVideos(groupId);
@@ -174,7 +174,7 @@ export class AutoMergeService {
       return;
     }
 
-    const videoIds = groupVideos.map((v) => v._id.toString());
+    const videoIds = groupVideos.map((v) => v.id.toString());
 
     this.loggerService.log(`${this.logContext} triggering auto-merge`, {
       groupId,
@@ -249,7 +249,7 @@ export class AutoMergeService {
     if (existingMerge) {
       this.loggerService.debug(
         `${this.logContext} merge already exists for group`,
-        { existingMergeId: existingMerge._id, groupId },
+        { existingMergeId: existingMerge.id, groupId },
       );
       return true;
     }
@@ -334,7 +334,7 @@ export class AutoMergeService {
       user: dbUserId,
     } as Parameters<typeof this.ingredientsService.create>[0]);
 
-    const mergedIngredientId = String(ingredientData._id);
+    const mergedIngredientId = String(ingredientData.id);
     const websocketURL = WebSocketPaths.video(mergedIngredientId);
     const room =
       resolveRoom(userRoom, resolvedUserId) || getUserRoomName(resolvedUserId);
@@ -342,7 +342,7 @@ export class AutoMergeService {
     const activity = await this.activitiesService.create(
       new ActivityEntity({
         brand: this.getRefId(ingredient.brand),
-        entityId: ingredientData._id,
+        entityId: ingredientData.id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.VIDEO_PROCESSING,
         organization: organizationId,
@@ -357,7 +357,7 @@ export class AutoMergeService {
         }),
       }),
     );
-    const activityId = activity._id.toString();
+    const activityId = activity.id.toString();
 
     if (userId) {
       await this.websocketService.publishBackgroundTaskUpdate({
@@ -397,7 +397,7 @@ export class AutoMergeService {
         if (!output) {
           throw new Error('Auto-merge job returned no output path');
         }
-        const ingredientId = String(ingredientData._id);
+        const ingredientId = String(ingredientData.id);
 
         const meta = await this.filesClientService.uploadToS3(
           ingredientId,

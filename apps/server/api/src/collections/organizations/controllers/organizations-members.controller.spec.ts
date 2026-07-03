@@ -241,7 +241,7 @@ describe('OrganizationsMembersController', () => {
       mockOrganizationsService.findOne.mockResolvedValue(mockOrganization);
       mockUsersService.findOne.mockResolvedValue(null);
       mockRolesService.findOne.mockResolvedValue({
-        _id: '507f1f77bcf86cd799439014',
+        id: '507f1f77bcf86cd799439014',
         key: 'user',
       });
       mockMembersService.create.mockResolvedValue(mockMember);

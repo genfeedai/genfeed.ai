@@ -607,7 +607,7 @@ export class TrackedLinksService {
       contentType: linkDoc.contentType as string | undefined,
       createdAt: linkDoc.createdAt,
       lastClickAt: linkDoc.stats?.lastClickAt,
-      linkId: String(linkDoc.id ?? linkDoc._id),
+      linkId: String(linkDoc.id),
       platform: linkDoc.platform as string | undefined,
       shortUrl: linkDoc.shortUrl as string,
       totalClicks: linkDoc.stats?.totalClicks ?? 0,

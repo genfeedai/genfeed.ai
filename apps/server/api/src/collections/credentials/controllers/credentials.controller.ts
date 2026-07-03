@@ -17,7 +17,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
-import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -263,7 +263,7 @@ export class CredentialsController {
       mentions.push({
         avatar: cred.externalAvatar ?? null,
         handle: cred.externalHandle,
-        id: cred._id.toString(),
+        id: cred.id.toString(),
         name: cred.externalName ?? cred.externalHandle,
         platform: toCredentialPlatform(cred.platform),
       });
@@ -338,14 +338,14 @@ export class CredentialsController {
       await refresher.refreshToken(credentialOrganizationId, credentialBrandId);
 
       const updatedCredential = await this.credentialsService.findOne({
-        _id: credential._id,
+        _id: credential.id,
       });
 
       return updatedCredential
         ? serializeSingle(request, CredentialSerializer, updatedCredential)
         : returnNotFound(this.constructorName, credentialId);
     } catch {
-      await this.credentialsService.patch(credential._id, {
+      await this.credentialsService.patch(credential.id, {
         isConnected: false,
       });
 
@@ -411,7 +411,7 @@ export class CredentialsController {
       // Get all available handles from the Instagram service
       const pages = await this.instagramService.getInstagramPages(
         publicMetadata.organization,
-        brand._id.toString(),
+        brand.id.toString(),
       );
 
       return serializeCollection(request, CredentialInstagramPagesSerializer, {
@@ -452,7 +452,7 @@ export class CredentialsController {
         });
 
         if (credential) {
-          await this.credentialsService.patch(credential._id, {
+          await this.credentialsService.patch(credential.id, {
             isConnected: false,
           });
         }
@@ -523,7 +523,7 @@ export class CredentialsController {
     });
 
     const data: CredentialDocument = await this.credentialsService.patch(
-      credential._id,
+      credential.id,
       sanitizedUpdate as Partial<UpdateCredentialDto>,
     );
 
@@ -572,7 +572,7 @@ export class CredentialsController {
   ) {
     const publicMetadata = getPublicMetadata(user);
 
-    const enrichedBody = ObjectIdUtil.enrichWithUserContext(
+    const enrichedBody = EntityIdUtil.enrichWithUserContext(
       // @ts-expect-error TS2345
       createTagDto,
       publicMetadata,
@@ -633,7 +633,7 @@ export class CredentialsController {
     return {
       data: {
         attributes: quotaStatus,
-        id: credential._id.toString(),
+        id: credential.id.toString(),
         type: 'quota-status',
       },
     };

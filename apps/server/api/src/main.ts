@@ -23,7 +23,6 @@ import {
 } from '@api/helpers/interceptors/performance/performance.interceptor';
 import { MemoryMonitorService } from '@api/helpers/memory/monitor/memory-monitor.service';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
-import { ResponseIdNormalizerInterceptor } from '@api/interceptors/response-id-normalizer.interceptor';
 import { TimeoutInterceptor } from '@api/interceptors/timeout.interceptor';
 import { createBullBoard } from '@bull-board/api';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
@@ -238,7 +237,6 @@ async function main() {
       configService.get('API_METRICS_LOGGING') === 'true';
 
     const interceptors = [
-      new ResponseIdNormalizerInterceptor(),
       ...(redisCacheInterceptor ? [redisCacheInterceptor] : []),
       new TimeoutInterceptor(),
       new PerformanceInterceptor(logger, configService, memoryMonitor),

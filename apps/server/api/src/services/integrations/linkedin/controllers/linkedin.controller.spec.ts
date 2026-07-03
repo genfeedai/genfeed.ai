@@ -82,7 +82,7 @@ describe('LinkedInController', () => {
 
   describe('connect', () => {
     it('should save credentials and return auth URL', async () => {
-      const brand = { _id: brandId, organization: orgId };
+      const brand = { id: brandId, organization: orgId };
       mockBrandsService.findOne.mockResolvedValue(brand);
       mockCredentialsService.saveCredentials.mockResolvedValue({});
       mockLinkedInService.generateAuthUrl.mockReturnValue(
@@ -114,7 +114,7 @@ describe('LinkedInController', () => {
 
     it('should return internal error when OAuth init fails', async () => {
       mockBrandsService.findOne.mockResolvedValue({
-        _id: brandId,
+        id: brandId,
         organization: orgId,
       });
       mockCredentialsService.saveCredentials.mockRejectedValue(
@@ -149,9 +149,9 @@ describe('LinkedInController', () => {
         id: 'li-user-123',
         lastName: 'Doe',
       });
-      mockCredentialsService.findOne.mockResolvedValue({ _id: credId });
+      mockCredentialsService.findOne.mockResolvedValue({ id: credId });
       mockCredentialsService.patch.mockResolvedValue({
-        _id: credId,
+        id: credId,
         isConnected: true,
       });
 
@@ -160,7 +160,7 @@ describe('LinkedInController', () => {
         state,
       });
 
-      expect(result.data).toEqual({ _id: credId, isConnected: true });
+      expect(result.data).toEqual({ id: credId, isConnected: true });
       expect(mockCredentialsService.patch).toHaveBeenCalledWith(
         credId,
         expect.objectContaining({

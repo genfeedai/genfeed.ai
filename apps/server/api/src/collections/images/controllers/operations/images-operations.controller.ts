@@ -247,14 +247,14 @@ export class ImagesOperationsController {
         ...metadataFields,
         height: frameHeight,
         // Add "splitted" tag
-        tags: [splittedTag._id],
+        tags: [splittedTag.id],
         // Set frame-specific dimensions from actual buffer metadata
         width: frameWidth,
       });
 
       // Upload frame to S3
       await this.filesClientService.uploadToS3(
-        ingredientData._id.toString(),
+        ingredientData.id.toString(),
         'images',
         {
           contentType: 'image/jpeg',
@@ -264,14 +264,14 @@ export class ImagesOperationsController {
       );
 
       // Update status
-      await this.imagesService.patch(ingredientData._id, {
+      await this.imagesService.patch(ingredientData.id, {
         status: IngredientStatus.GENERATED,
       });
 
       frameResults.push({
-        id: ingredientData._id.toString(),
+        id: ingredientData.id.toString(),
         index: i,
-        url: `${this.configService.ingredientsEndpoint}/images/${ingredientData._id}`,
+        url: `${this.configService.ingredientsEndpoint}/images/${ingredientData.id}`,
       });
     }
 
@@ -311,6 +311,6 @@ export class ImagesOperationsController {
       return ref;
     }
 
-    return ref?._id?.toString() ?? ref?.id?.toString();
+    return ref?.id?.toString() ?? ref?.id?.toString();
   }
 }

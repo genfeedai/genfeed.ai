@@ -28,7 +28,7 @@ import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
 
 interface MutableEntityReference {
-  _id?: string | string;
+  id?: string;
 }
 
 interface MutableEntity {
@@ -120,7 +120,7 @@ export class BotsController extends BaseCRUDController<
       mutableEntity.user &&
       typeof mutableEntity.user === 'object' &&
       '_id' in mutableEntity.user
-        ? mutableEntity.user._id?.toString()
+        ? mutableEntity.user.id?.toString()
         : mutableEntity.user?.toString();
     if (entityUserId && entityUserId === publicMetadata.user) {
       return true;
@@ -130,7 +130,7 @@ export class BotsController extends BaseCRUDController<
       mutableEntity.brand &&
       typeof mutableEntity.brand === 'object' &&
       '_id' in mutableEntity.brand
-        ? mutableEntity.brand._id?.toString()
+        ? mutableEntity.brand.id?.toString()
         : mutableEntity.brand?.toString();
     if (
       entityBrandId &&
@@ -144,7 +144,7 @@ export class BotsController extends BaseCRUDController<
       mutableEntity.organization &&
       typeof mutableEntity.organization === 'object' &&
       '_id' in mutableEntity.organization
-        ? mutableEntity.organization._id?.toString()
+        ? mutableEntity.organization.id?.toString()
         : mutableEntity.organization?.toString();
     if (
       entityOrganizationId &&

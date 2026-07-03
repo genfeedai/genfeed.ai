@@ -385,7 +385,8 @@ export class SkillsService {
   /**
    * Normalize a raw Prisma Skill row into a SkillDocument-compatible shape.
    * Spreads config fields to the top level so existing callers continue to work,
-   * and exposes `id` as both `.id` and `._id` for backward compatibility.
+   * and exposes the row id as both `id` and the legacy `_id` alias for
+   * backward compatibility.
    */
   private normalizeSkill(row: Record<string, unknown>): SkillDocument {
     const config = this.getConfig(row);

@@ -149,7 +149,7 @@ export class GoogleSearchConsoleService {
           EncryptionUtil.decrypt(credential.refreshToken),
         );
 
-      return await this.credentialsService.patch(credential._id, {
+      return await this.credentialsService.patch(credential.id, {
         accessToken: tokens.accessToken,
         accessTokenExpiry: tokens.expiresIn
           ? new Date(Date.now() + tokens.expiresIn * 1000)
@@ -160,7 +160,7 @@ export class GoogleSearchConsoleService {
       });
     } catch (error: unknown) {
       this.loggerService.error(`${caller} failed`, error);
-      await this.credentialsService.patch(credential._id, {
+      await this.credentialsService.patch(credential.id, {
         isConnected: false,
       });
       throw error;

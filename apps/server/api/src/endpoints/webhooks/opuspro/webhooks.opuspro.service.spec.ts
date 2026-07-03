@@ -98,7 +98,7 @@ describe('OpusProWebhookService', () => {
 
       microservicesService.notifyWebhook.mockResolvedValue(undefined);
       metadataService.findOne.mockResolvedValue({
-        _id: mockId,
+        id: mockId,
       } as never);
 
       await service.handleCallback(payload);
@@ -156,7 +156,7 @@ describe('OpusProWebhookService', () => {
       } as OpusProWebhookPayload;
 
       microservicesService.notifyWebhook.mockResolvedValue(undefined);
-      metadataService.findOne.mockResolvedValue({ _id: mockId } as never);
+      metadataService.findOne.mockResolvedValue({ id: mockId } as never);
       metadataService.patch.mockResolvedValue({} as never);
 
       await service.handleCallback(payload);
@@ -179,7 +179,7 @@ describe('OpusProWebhookService', () => {
       } as OpusProWebhookPayload;
 
       microservicesService.notifyWebhook.mockResolvedValue(undefined);
-      metadataService.findOne.mockResolvedValue({ _id: mockId } as never);
+      metadataService.findOne.mockResolvedValue({ id: mockId } as never);
       metadataService.patch.mockResolvedValue({} as never);
 
       await service.handleCallback(payload);
@@ -198,7 +198,7 @@ describe('OpusProWebhookService', () => {
       } as OpusProWebhookPayload;
 
       microservicesService.notifyWebhook.mockResolvedValue(undefined);
-      metadataService.findOne.mockResolvedValue({ _id: mockId } as never);
+      metadataService.findOne.mockResolvedValue({ id: mockId } as never);
       metadataService.patch.mockResolvedValue({} as never);
 
       await service.handleCallback(payload);
@@ -219,7 +219,7 @@ describe('OpusProWebhookService', () => {
       } as OpusProWebhookPayload;
 
       microservicesService.notifyWebhook.mockResolvedValue(undefined);
-      metadataService.findOne.mockResolvedValue({ _id: mockId } as never);
+      metadataService.findOne.mockResolvedValue({ id: mockId } as never);
 
       await service.handleCallback(payload);
 
@@ -234,7 +234,7 @@ describe('OpusProWebhookService', () => {
       } as OpusProWebhookPayload;
 
       microservicesService.notifyWebhook.mockResolvedValue(undefined);
-      metadataService.findOne.mockResolvedValue({ _id: mockId } as never);
+      metadataService.findOne.mockResolvedValue({ id: mockId } as never);
 
       await service.handleCallback(payload);
 

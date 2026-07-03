@@ -96,19 +96,19 @@ describe('VideosController', () => {
   } as unknown as User;
 
   const mockVideo = {
-    _id: mockVideoId,
     brand: mockBrandId,
     category: IngredientCategory.VIDEO,
+    id: mockVideoId,
     isDeleted: false,
     metadata: {
-      _id: mockMetadataId,
       duration: 10,
       height: 1080,
+      id: mockMetadataId,
       width: 1920,
     },
     organization: mockOrgId,
     prompt: {
-      _id: mockPromptId,
+      id: mockPromptId,
       original: 'Test prompt',
     },
     status: IngredientStatus.GENERATED,
@@ -117,7 +117,7 @@ describe('VideosController', () => {
   };
 
   const mockBrand = {
-    _id: mockBrandId,
+    id: mockBrandId,
     agentConfig: {
       voice: {
         audience: ['tech professionals'],
@@ -138,7 +138,7 @@ describe('VideosController', () => {
   };
 
   const mockActivity = {
-    _id: mockActivityId,
+    id: mockActivityId,
     toString: () => mockActivityId.toString(),
   };
 
@@ -155,11 +155,11 @@ describe('VideosController', () => {
 
   const mockSavedDocuments = {
     ingredientData: {
-      _id: mockVideoId,
+      id: mockVideoId,
       toString: () => mockVideoId.toString(),
     },
     metadataData: {
-      _id: mockMetadataId,
+      id: mockMetadataId,
     },
   };
 
@@ -306,7 +306,7 @@ describe('VideosController', () => {
           provide: PromptsService,
           useValue: {
             create: vi.fn().mockResolvedValue({
-              _id: mockPromptId,
+              id: mockPromptId,
               original: 'Test prompt',
             }),
             findOne: vi.fn().mockResolvedValue(null),
@@ -1179,8 +1179,8 @@ describe('VideosController', () => {
 
     it('should use existing prompt when prompt ID is provided', async () => {
       const existingPrompt = {
-        _id: mockPromptId,
         enhanced: 'Enhanced prompt text',
+        id: mockPromptId,
         original: 'Original prompt text',
       };
 
@@ -1228,7 +1228,7 @@ describe('VideosController', () => {
 
       const ingredientsService = testingModule.get(IngredientsService);
       (ingredientsService.findOne as vi.Mock).mockResolvedValueOnce({
-        _id: endFrameId,
+        id: endFrameId,
       });
 
       const promptBuilder = testingModule.get(PromptBuilderService);

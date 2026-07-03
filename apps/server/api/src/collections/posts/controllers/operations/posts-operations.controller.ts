@@ -93,7 +93,7 @@ export class PostsOperationsController {
       return ref;
     }
 
-    return ref?._id?.toString() ?? ref?.id?.toString();
+    return ref?.id?.toString() ?? ref?.id?.toString();
   }
 
   private getBadRequestResponse(
@@ -401,8 +401,8 @@ export class PostsOperationsController {
       ]);
 
       // Create lookup maps for O(1) access
-      const postMap = new Map(posts.map((p) => [p._id.toString(), p]));
-      const ingredientSet = new Set(ingredients.map((i) => i._id.toString()));
+      const postMap = new Map(posts.map((p) => [p.id.toString(), p]));
+      const ingredientSet = new Set(ingredients.map((i) => i.id.toString()));
 
       for (const tweet of dto.tweets) {
         // Find the post from pre-fetched data
@@ -443,13 +443,13 @@ export class PostsOperationsController {
         await this.activitiesService.create(
           new ActivityEntity({
             brand: publicMetadata.brand,
-            entityId: updatedPost._id,
+            entityId: updatedPost.id,
             entityModel: ActivityEntityModel.POST,
             key: ActivityKey.VIDEO_SCHEDULED,
             organization: publicMetadata.organization,
             source: ActivitySource.SCRIPT,
             user: publicMetadata.user,
-            value: (updatedPost._id as string).toString(),
+            value: (updatedPost.id as string).toString(),
           }),
         );
       }
@@ -717,13 +717,13 @@ export class PostsOperationsController {
       await this.activitiesService.create(
         new ActivityEntity({
           brand: publicMetadata.brand,
-          entityId: remixPost._id,
+          entityId: remixPost.id,
           entityModel: ActivityEntityModel.POST,
           key: ActivityKey.POST_CREATED,
           organization: publicMetadata.organization,
           source: ActivitySource.WEB,
           user: publicMetadata.user,
-          value: (remixPost._id as string).toString(),
+          value: (remixPost.id as string).toString(),
         }),
       );
 

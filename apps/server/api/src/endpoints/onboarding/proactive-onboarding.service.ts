@@ -145,20 +145,20 @@ export class ProactiveOnboardingService {
           isSelected: false,
           label: dto.brandName || lead.data.company || name,
           onboardingCompleted: true,
-          user: placeholderUser._id,
+          user: placeholderUser.id,
         });
 
         // Create member record (inactive until signup)
         const roleId = await this.resolveDefaultRoleId();
         await this.membersService.create({
           isActive: false,
-          organization: shadowOrg._id,
+          organization: shadowOrg.id,
           role: roleId,
-          user: placeholderUser._id,
+          user: placeholderUser.id,
         });
       }
 
-      const shadowOrgId = shadowOrg._id.toString();
+      const shadowOrgId = shadowOrg.id.toString();
       const shadowOrgUserId = this.resolveOrganizationOwnerId(shadowOrg);
 
       // 3. Scrape brand
@@ -264,7 +264,7 @@ export class ProactiveOnboardingService {
         }) as unknown as Parameters<BrandsService['create']>[0],
       );
 
-      await this.brandsService.patch(brand._id.toString(), {
+      await this.brandsService.patch(brand.id.toString(), {
         agentConfig: {
           enabledSkills: [],
           voice: brandVoice
@@ -300,19 +300,19 @@ export class ProactiveOnboardingService {
         organizationId,
         ProactiveOnboardingStatus.BRAND_READY,
         {
-          proactiveBrandId: brand._id.toString(),
+          proactiveBrandId: brand.id.toString(),
           proactiveOrganizationId: shadowOrgId,
         },
       );
 
       this.loggerService.log('Proactive onboarding: brand prepared', {
-        brandId: brand._id,
+        brandId: brand.id,
         leadId,
         shadowOrgId,
       });
 
       return {
-        brandId: brand._id.toString(),
+        brandId: brand.id.toString(),
         organizationId: shadowOrgId,
         success: true,
       };
@@ -572,7 +572,7 @@ export class ProactiveOnboardingService {
           colors: [brand.primaryColor, brand.secondaryColor].filter(
             Boolean,
           ) as string[],
-          id: brand._id.toString(),
+          id: brand.id.toString(),
           name: brand.label || '',
           voiceTone: brand.description || undefined,
         };
@@ -625,7 +625,7 @@ export class ProactiveOnboardingService {
 
       if (org) {
         result.organization = {
-          id: org._id.toString(),
+          id: org.id.toString(),
           label: org.label,
         };
       }
@@ -908,7 +908,7 @@ export class ProactiveOnboardingService {
   }
 
   private resolveOrganizationOwnerId(shadowOrg: {
-    _id?: string;
+    id?: string;
     user?: unknown;
     userId?: unknown;
   }): string {
@@ -917,7 +917,7 @@ export class ProactiveOnboardingService {
 
     if (!ownerId) {
       throw new BadRequestException(
-        `Shadow organization "${shadowOrg._id ?? 'unknown'}" has no owner`,
+        `Shadow organization "${shadowOrg.id ?? 'unknown'}" has no owner`,
       );
     }
 
@@ -932,8 +932,8 @@ export class ProactiveOnboardingService {
     if (value && typeof value === 'object') {
       const candidate = value as { _id?: unknown; id?: unknown };
 
-      if (typeof candidate._id === 'string') {
-        return candidate._id;
+      if (typeof candidate.id === 'string') {
+        return candidate.id;
       }
       if (typeof candidate.id === 'string') {
         return candidate.id;
@@ -954,13 +954,13 @@ export class ProactiveOnboardingService {
         key: 'user',
       }));
 
-    if (!role?._id) {
+    if (!role?.id) {
       throw new NotFoundException(
         'No valid default role found for proactive onboarding',
       );
     }
 
-    return role._id.toString();
+    return role.id.toString();
   }
 
   private getPrepStage(status?: ProactiveOnboardingStatus): string {

@@ -11,7 +11,6 @@ export interface ArticleViralityAnalysis {
 
 export interface ArticleDocument
   extends Omit<PrismaArticle, 'category' | 'scope' | 'tags'> {
-  _id: string;
   brand?: string | null;
   organization?: string | null;
   user?: string | null;

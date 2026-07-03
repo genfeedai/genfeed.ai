@@ -417,7 +417,6 @@ export class DesktopSyncService {
         select: {
           cloudObjectKey: true,
           createdAt: true,
-          deletedAt: true,
           displayName: true,
           id: true,
           isDeleted: true,
@@ -503,12 +502,15 @@ export class DesktopSyncService {
           },
         });
 
-        if (existing?.deletedAt || existing?.isDeleted) {
+        if (existing?.isDeleted) {
           rejected++;
           assets.push({
             cloudAssetId: existing.id,
             cloudObjectKey: existing.cloudObjectKey,
-            deletedAt: existing.deletedAt,
+            // Soft-delete timestamp is no longer stored on Asset (isDeleted is the
+            // sole soft-delete signal); surface updatedAt as the deletion instant
+            // so the desktop client's tombstone timeline stays populated.
+            deletedAt: existing.updatedAt,
             localAssetId: asset.id,
             reason: 'cloud-deleted',
             residency: existing.residency,
@@ -811,7 +813,7 @@ export class DesktopSyncService {
       try {
         if (op.entityType === 'asset' && op.operation === 'delete') {
           await this.prisma.asset.updateMany({
-            data: { deletedAt: new Date(), isDeleted: true },
+            data: { isDeleted: true },
             where: {
               localAssetId: op.entityId,
               parentOrgId: organizationId,

@@ -95,9 +95,9 @@ export class UserStripeController {
         });
       }
 
-      // Find user by authProviderId
+      // Load the current user's DB record by id (Better Auth: user.id is the Genfeed User.id).
       const dbUser = await this.usersService.findOne({
-        authProviderId: user.id,
+        _id: user.id,
         isDeleted: false,
       });
       if (!dbUser) {
@@ -110,7 +110,7 @@ export class UserStripeController {
       if (!stripeCustomerId) {
         const name = [firstName, lastName].filter(Boolean).join(' ');
         const stripeCustomer = await this.stripeService.createUserCustomer(
-          dbUser._id.toString(),
+          dbUser.id.toString(),
           email,
           name || undefined,
         );
@@ -119,14 +119,14 @@ export class UserStripeController {
         // Update user with Stripe customer ID
         await this.usersService.patch(
           // @ts-expect-error TS2345
-          { _id: dbUser._id },
+          { _id: dbUser.id },
           { stripeCustomerId },
         );
       }
 
       // Get or create user subscription record
       await this.userSubscriptionsService.getOrCreateSubscription(
-        dbUser._id.toString(),
+        dbUser.id.toString(),
         stripeCustomerId,
       );
 
@@ -141,7 +141,7 @@ export class UserStripeController {
         stripeCustomerId,
         stripePriceId,
         successUrl,
-        userId: dbUser._id.toString(),
+        userId: dbUser.id.toString(),
       });
 
       return serializeSingle(request, StripeUrlSerializer, session);
@@ -180,9 +180,9 @@ export class UserStripeController {
     }
 
     try {
-      // Find user by authProviderId
+      // Load the current user's DB record by id (Better Auth: user.id is the Genfeed User.id).
       const dbUser = await this.usersService.findOne({
-        authProviderId: user.id,
+        _id: user.id,
         isDeleted: false,
       });
       if (!dbUser) {
@@ -222,9 +222,9 @@ export class UserStripeController {
     this.loggerService.log(url);
 
     try {
-      // Find user by authProviderId
+      // Load the current user's DB record by id (Better Auth: user.id is the Genfeed User.id).
       const dbUser = await this.usersService.findOne({
-        authProviderId: user.id,
+        _id: user.id,
         isDeleted: false,
       });
       if (!dbUser) {
@@ -233,7 +233,7 @@ export class UserStripeController {
 
       // Get user subscription
       const subscription = await this.userSubscriptionsService.findByUser(
-        dbUser._id.toString(),
+        dbUser.id.toString(),
       );
 
       // Get user's creator org credit balance
@@ -241,12 +241,12 @@ export class UserStripeController {
       const creatorOrg = await this.organizationsService.findOne({
         category: OrganizationCategory.CREATOR,
         isDeleted: false,
-        members: dbUser._id,
+        members: dbUser.id,
       });
 
       if (creatorOrg) {
         balance = await this.creditsUtilsService.getOrganizationCreditsBalance(
-          creatorOrg._id.toString(),
+          creatorOrg.id.toString(),
         );
       }
       const subscriptionPlan =

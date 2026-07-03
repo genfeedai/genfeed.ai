@@ -31,7 +31,7 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
 type CronPostChild = {
-  _id?: unknown;
+  id?: unknown;
   category?: unknown;
   description?: string;
   ingredients?: unknown[];
@@ -159,7 +159,7 @@ export class CronPostsService {
             await this.activitiesService.create(
               new ActivityEntity({
                 brand: post.brand,
-                entityId: post._id,
+                entityId: post.id,
                 entityModel: ActivityEntityModel.POST,
                 key: ActivityKey.POST_PUBLISHED,
                 organization: post.organization,
@@ -177,7 +177,7 @@ export class CronPostsService {
         } catch (error: unknown) {
           this.logger.error(`${url} failed to process post`, {
             error: (error as Error)?.message,
-            postId: post._id,
+            postId: post.id,
           });
         }
       });
@@ -195,7 +195,7 @@ export class CronPostsService {
 
     // Mark post as PROCESSING immediately to prevent race conditions and show user feedback
     // lastAttemptAt enforces 60s backoff between attempts
-    await this.postsService.patch(post._id.toString(), {
+    await this.postsService.patch(post.id.toString(), {
       lastAttemptAt: new Date(),
       status: PostStatus.PROCESSING,
     });
@@ -207,8 +207,8 @@ export class CronPostsService {
       });
 
       if (!credential) {
-        this.logger.error(`${url} credential not found`, { postId: post._id });
-        await this.postsService.patch(post._id, { status: PostStatus.FAILED });
+        this.logger.error(`${url} credential not found`, { postId: post.id });
+        await this.postsService.patch(post.id, { status: PostStatus.FAILED });
         return this.createFailedResult('', 'Credential not found');
       }
 
@@ -219,9 +219,9 @@ export class CronPostsService {
 
       if (!organization) {
         this.logger.error(`${url} organization not found`, {
-          postId: post._id,
+          postId: post.id,
         });
-        await this.postsService.patch(post._id, { status: PostStatus.FAILED });
+        await this.postsService.patch(post.id, { status: PostStatus.FAILED });
         return this.createFailedResult('', 'Organization not found');
       }
 
@@ -235,10 +235,10 @@ export class CronPostsService {
           currentCount: quotaCheck.currentCount,
           dailyLimit: quotaCheck.dailyLimit,
           platform: credential.platform,
-          postId: post._id,
+          postId: post.id,
         });
 
-        await this.postsService.patch(post._id, { status: PostStatus.FAILED });
+        await this.postsService.patch(post.id, { status: PostStatus.FAILED });
         await this.logQuotaExceededActivity(
           post,
           quotaCheck,
@@ -254,9 +254,9 @@ export class CronPostsService {
       if (!publisher) {
         this.logger.error(`${url} unsupported platform`, {
           platform: credential.platform,
-          postId: post._id,
+          postId: post.id,
         });
-        await this.postsService.patch(post._id, { status: PostStatus.FAILED });
+        await this.postsService.patch(post.id, { status: PostStatus.FAILED });
         return this.createFailedResult(platform, 'Unsupported platform');
       }
 
@@ -267,7 +267,7 @@ export class CronPostsService {
         organization,
         organizationId: post.organization.toString(),
         post,
-        postId: post._id.toString(),
+        postId: post.id.toString(),
       };
 
       // Publish using the platform publisher, with a durable workflow execution
@@ -285,7 +285,7 @@ export class CronPostsService {
           inputValues: {
             brandId: post.brand.toString(),
             platform: credential.platform,
-            postId: post._id.toString(),
+            postId: post.id.toString(),
             scheduledDate:
               post.scheduledDate instanceof Date
                 ? post.scheduledDate.toISOString()
@@ -293,11 +293,11 @@ export class CronPostsService {
           },
           label: 'Scheduled Post Publishing',
           metadata: {
-            credentialId: credential._id?.toString?.() ?? credential.id,
+            credentialId: credential.id?.toString?.() ?? credential.id,
             hasThreadChildren: Boolean(post.children?.length),
           },
           organizationId: post.organization.toString(),
-          postIds: [post._id.toString()],
+          postIds: [post.id.toString()],
           schedule: '*/15 * * * *',
           source: 'CronPostsService.publishSinglePost',
           trigger: WorkflowExecutionTrigger.SCHEDULED,
@@ -311,7 +311,7 @@ export class CronPostsService {
         if (result.status === PostStatus.PENDING) {
           // Store publish_id temporarily, mark as PENDING
           // Cron job will verify and update to PUBLIC once platform confirms
-          await this.postsService.patch(post._id, {
+          await this.postsService.patch(post.id, {
             externalId: result.externalId, // publish_id stored here temporarily
             status: PostStatus.PENDING,
             // Do NOT set publicationDate yet - not actually published
@@ -321,7 +321,7 @@ export class CronPostsService {
             `${url} post marked PENDING for deferred verification`,
             {
               platform: credential.platform,
-              postId: post._id.toString(),
+              postId: post.id.toString(),
               publishId: result.externalId,
             },
           );
@@ -330,7 +330,7 @@ export class CronPostsService {
         }
 
         // Immediate success - update post with external ID and status
-        await this.postsService.patch(post._id, {
+        await this.postsService.patch(post.id, {
           externalId: result.externalId,
           externalShortcode: result.externalShortcode ?? undefined,
           publicationDate: new Date(),
@@ -352,7 +352,7 @@ export class CronPostsService {
               {
                 childrenCount: children.length,
                 platform: credential.platform,
-                postId: post._id.toString(),
+                postId: post.id.toString(),
               },
             );
           }
@@ -362,7 +362,7 @@ export class CronPostsService {
           childrenCount: children.length,
           externalId: result.externalId,
           platform: credential.platform,
-          postId: post._id.toString(),
+          postId: post.id.toString(),
         });
       } else if (!result.success) {
         // Handle retry logic
@@ -392,21 +392,21 @@ export class CronPostsService {
     const currentRetryCount = post.retryCount || 0;
 
     if (canRetry) {
-      await this.postsService.patch(post._id.toString(), {
+      await this.postsService.patch(post.id.toString(), {
         lastAttemptAt: new Date(),
         retryCount: currentRetryCount + 1,
       });
 
       this.logger.log(
         `${url} will retry post (attempt ${currentRetryCount + 1}/${this.MAX_RETRY_ATTEMPTS}) after ${this.RETRY_BACKOFF_SECONDS}s backoff`,
-        { postId: post._id },
+        { postId: post.id },
       );
 
       return true;
     }
 
     // Max retries reached - mark parent and children as failed
-    await this.postsService.patch(post._id.toString(), {
+    await this.postsService.patch(post.id.toString(), {
       status: PostStatus.FAILED,
     });
     await this.failChildren(post, 'Parent post failed');
@@ -463,7 +463,7 @@ export class CronPostsService {
       canRetry,
       error: errorMessage,
       isRetryable,
-      postId: post._id,
+      postId: post.id,
       retryCount: currentRetryCount,
     });
 
@@ -528,7 +528,7 @@ export class CronPostsService {
       const maxRepeats = post.maxRepeats || 0;
 
       // Increment repeatCount on the current post that just published
-      await this.postsService.patch(post._id.toString(), {
+      await this.postsService.patch(post.id.toString(), {
         repeatCount: nextRepeatCount,
       });
 
@@ -536,7 +536,7 @@ export class CronPostsService {
       if (maxRepeats > 0 && nextRepeatCount >= maxRepeats) {
         this.logger.log(`${url} maximum repeats reached`, {
           maxRepeats,
-          postId: post._id,
+          postId: post.id,
           repeatCount: nextRepeatCount,
         });
         return;
@@ -546,7 +546,7 @@ export class CronPostsService {
       if (post.repeatEndDate && new Date() >= new Date(post.repeatEndDate)) {
         this.logger.log(`${url} repeat end date reached`, {
           endDate: post.repeatEndDate,
-          postId: post._id,
+          postId: post.id,
         });
         return;
       }
@@ -554,7 +554,7 @@ export class CronPostsService {
       const nextDate = this.calculateNextScheduleDate(post);
       if (!nextDate) {
         this.logger.warn(`${url} unable to calculate next schedule date`, {
-          postId: post._id,
+          postId: post.id,
         });
         return;
       }
@@ -591,7 +591,7 @@ export class CronPostsService {
       if (children.length > 0) {
         await this.cloneChildrenForRepeat(
           children,
-          newPost._id.toString(),
+          newPost.id.toString(),
           post,
           nextDate, // Use new parent's scheduled date, not the old one
           url,
@@ -600,15 +600,15 @@ export class CronPostsService {
 
       this.logger.log(`${url} scheduled next repeat post`, {
         childrenCloned: children.length,
-        newPostId: newPost._id,
+        newPostId: newPost.id,
         nextDate,
-        originalPostId: post._id,
+        originalPostId: post.id,
         repeatCount: nextRepeatCount,
       });
     } catch (error: unknown) {
       this.logger.error(`${url} failed to schedule next repeat`, {
         error,
-        postId: post._id,
+        postId: post.id,
       });
     }
   }
@@ -629,8 +629,8 @@ export class CronPostsService {
         // Extract ingredient IDs (handle both ObjectId and populated objects)
         const ingredientIds = childIngredients
           .map((ingredient: unknown) =>
-            ingredient && typeof ingredient === 'object' && '_id' in ingredient
-              ? (ingredient as { _id?: unknown })._id
+            ingredient && typeof ingredient === 'object' && 'id' in ingredient
+              ? (ingredient as { id?: unknown }).id
               : ingredient,
           )
           .map((ingredient) => String(ingredient));
@@ -657,7 +657,7 @@ export class CronPostsService {
         this.logger.error(`${url} failed to clone child for repeat`, {
           error: (error as Error)?.message,
           newParentId,
-          originalChildId: String(child._id),
+          originalChildId: String(child.id),
         });
       }
     }
@@ -731,7 +731,7 @@ export class CronPostsService {
     await this.activitiesService.create(
       new ActivityEntity({
         brand: post.brand,
-        entityId: post._id,
+        entityId: post.id,
         entityModel: ActivityEntityModel.POST,
         key: ActivityKey.POST_FAILED,
         organization: post.organization,
@@ -756,20 +756,20 @@ export class CronPostsService {
 
     this.logger.log(`${url} failing ${children.length} children`, {
       childrenCount: children.length,
-      parentPostId: post._id.toString(),
+      parentPostId: post.id.toString(),
       reason,
     });
 
     for (const child of children) {
       try {
-        await this.postsService.patch(child._id.toString(), {
+        await this.postsService.patch(child.id.toString(), {
           status: PostStatus.FAILED,
         });
       } catch (error: unknown) {
         this.logger.error(`${url} failed to mark child as failed`, {
-          childPostId: child._id.toString(),
+          childPostId: child.id.toString(),
           error: (error as Error)?.message,
-          parentPostId: post._id.toString(),
+          parentPostId: post.id.toString(),
         });
       }
     }
@@ -785,7 +785,7 @@ export class CronPostsService {
     await this.activitiesService.create(
       new ActivityEntity({
         brand: post.brand,
-        entityId: post._id,
+        entityId: post.id,
         entityModel: ActivityEntityModel.POST,
         key: ActivityKey.POST_FAILED,
         organization: post.organization,

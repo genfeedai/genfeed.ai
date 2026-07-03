@@ -156,7 +156,7 @@ export class OnboardingPreviewService {
         );
 
         // 7. Save preview URL to brand
-        await this.brandsService.patch(brand._id, {
+        await this.brandsService.patch(brand.id, {
           // @ts-expect-error onboardingPreviewUrl is valid
           onboardingPreviewUrl: publicUrl,
         });

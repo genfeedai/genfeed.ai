@@ -52,11 +52,11 @@ describe('MusicsOperationsController', () => {
 
   const mockServices = {
     activitiesService: {
-      create: vi.fn().mockResolvedValue({ _id: '507f191e810c19729de860ee' }),
+      create: vi.fn().mockResolvedValue({ id: '507f191e810c19729de860ee' }),
     },
     brandsService: {
       findOne: vi.fn().mockResolvedValue({
-        _id: '507f1f77bcf86cd799439013',
+        id: '507f1f77bcf86cd799439013',
       }),
     },
     creditsUtilsService: { deductCreditsFromOrganization: vi.fn() },
@@ -81,7 +81,7 @@ describe('MusicsOperationsController', () => {
     },
     promptsService: {
       create: vi.fn().mockResolvedValue({
-        _id: '507f1f77bcf86cd799439016',
+        id: '507f1f77bcf86cd799439016',
         original: mockCreateMusicDto.text,
       }),
     },
@@ -98,10 +98,10 @@ describe('MusicsOperationsController', () => {
     sharedService: {
       saveDocuments: vi.fn().mockResolvedValue({
         ingredientData: {
-          _id: '507f1f77bcf86cd799439014',
+          id: '507f1f77bcf86cd799439014',
         },
         metadataData: {
-          _id: '507f1f77bcf86cd799439015',
+          id: '507f1f77bcf86cd799439015',
         },
       }),
     },

@@ -223,7 +223,7 @@ export class WorkflowExecutorService {
       {
         workflowIds: matchingWorkflows.map((w) =>
           String(
-            (w as unknown as Record<string, unknown>)._id ??
+            (w as unknown as Record<string, unknown>).id ??
               (w as unknown as { id: string }).id,
           ),
         ),
@@ -238,7 +238,7 @@ export class WorkflowExecutorService {
         results.push(result);
       } catch (error) {
         const workflowId = String(
-          (workflow as unknown as Record<string, unknown>)._id ??
+          (workflow as unknown as Record<string, unknown>).id ??
             (workflow as unknown as { id: string }).id,
         );
         this.logger.error(
@@ -630,7 +630,7 @@ export class WorkflowExecutorService {
   ): Promise<WorkflowExecutionResult> {
     const workflowLabel = this.getWorkflowLabel(workflowDoc);
     const workflowId = String(
-      (workflowDoc as unknown as Record<string, unknown>)._id ??
+      (workflowDoc as unknown as Record<string, unknown>).id ??
         (workflowDoc as unknown as { id: string }).id,
     );
     const startedAt = new Date();
@@ -676,7 +676,7 @@ export class WorkflowExecutorService {
     );
 
     const executionId = String(
-      (execution as unknown as Record<string, unknown>)._id ??
+      (execution as unknown as Record<string, unknown>).id ??
         (execution as unknown as { id: string }).id,
     );
 

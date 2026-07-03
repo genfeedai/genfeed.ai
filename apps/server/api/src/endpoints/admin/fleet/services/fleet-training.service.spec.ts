@@ -32,7 +32,7 @@ describe('AdminFleetTrainingService', () => {
 
     personasService = {
       findOne: vi.fn().mockResolvedValue({
-        _id: { toString: () => 'persona-1' },
+        id: { toString: () => 'persona-1' },
         isDeleted: false,
         slug: 'alice',
       }),

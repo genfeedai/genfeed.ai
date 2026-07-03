@@ -110,7 +110,7 @@ export class MarketplaceInstallService {
     );
 
     return {
-      resourceId: workflow._id.toString(),
+      resourceId: workflow.id.toString(),
       resourceType: 'workflow',
       title: workflow.label || title,
     };
@@ -141,7 +141,7 @@ export class MarketplaceInstallService {
     });
 
     return {
-      resourceId: prompt._id.toString(),
+      resourceId: prompt.id.toString(),
       resourceType: 'prompt',
       title,
     };
@@ -172,7 +172,7 @@ export class MarketplaceInstallService {
     } as unknown as Parameters<SkillsService['createSkill']>[1]);
 
     return {
-      resourceId: skill._id.toString(),
+      resourceId: skill.id.toString(),
       resourceType: 'skill',
       title,
     };

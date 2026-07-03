@@ -14,9 +14,9 @@ vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
   },
 }));
 
-vi.mock('@api/helpers/utils/objectid/objectid.util', () => ({
-  ObjectIdUtil: {
-    toObjectId: vi.fn((s: unknown) => s),
+vi.mock('@api/helpers/utils/entity-id/entity-id.util', () => ({
+  EntityIdUtil: {
+    toValidId: vi.fn((s: unknown) => s),
   },
 }));
 
@@ -217,7 +217,7 @@ describe('AdminFleetController', () => {
         };
 
         const mockCharacter = {
-          _id: 'char1',
+          id: 'char1',
           name: 'Test',
           slug: 'test',
         };
@@ -280,7 +280,7 @@ describe('AdminFleetController', () => {
     describe('deleteCharacter', () => {
       it('should soft-delete a character', async () => {
         const mockCharacter = {
-          _id: 'char1',
+          id: 'char1',
           name: 'Test',
           slug: 'test',
         };

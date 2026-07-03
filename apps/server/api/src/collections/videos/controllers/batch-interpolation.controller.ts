@@ -290,7 +290,7 @@ export class BatchInterpolationController {
         // Create video ingredient with groupId for batch tracking
         const { metadataData, ingredientData } =
           await this.sharedService.saveDocuments(user, {
-            brand: brand._id,
+            brand: brand.id,
             category: IngredientCategory.VIDEO,
             extension: MetadataExtension.MP4,
             groupId,
@@ -299,7 +299,7 @@ export class BatchInterpolationController {
             isMergeEnabled: dto.isMergeEnabled || false,
             model: dto.modelKey,
             organization: brand.organization,
-            prompt: promptData._id,
+            prompt: promptData.id,
             promptTemplate: templateUsed,
             references: [pair.startImageId],
             status: IngredientStatus.PROCESSING,
@@ -307,13 +307,13 @@ export class BatchInterpolationController {
             width,
           });
 
-        const ingredientId = ingredientData._id.toString();
+        const ingredientId = ingredientData.id.toString();
 
         // Create activity for tracking
         const activity = await this.activitiesService.create(
           new ActivityEntity({
-            brand: brand._id,
-            entityId: ingredientData._id,
+            brand: brand.id,
+            entityId: ingredientData.id,
             entityModel: ActivityEntityModel.INGREDIENT,
             key: ActivityKey.VIDEO_PROCESSING,
             organization: publicMetadata.organization,
@@ -339,7 +339,7 @@ export class BatchInterpolationController {
           : `Interpolation ${i + 1}/${pairs.length}`;
 
         await this.websocketService.publishBackgroundTaskUpdate({
-          activityId: activity._id.toString(),
+          activityId: activity.id.toString(),
           label,
           progress: 0,
           room: getUserRoomName(user.id),
@@ -357,7 +357,7 @@ export class BatchInterpolationController {
         if (generationId) {
           // Update metadata with external ID
           await this.metadataService.patch(
-            metadataData._id.toString(),
+            metadataData.id.toString(),
             new MetadataEntity({
               externalId: generationId,
             }),

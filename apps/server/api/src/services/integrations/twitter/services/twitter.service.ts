@@ -174,7 +174,7 @@ export class TwitterService {
           expiresIn,
         } = await client.refreshOAuth2Token(decryptedRefreshToken);
 
-        return await this.credentialsService.patch(credentials._id, {
+        return await this.credentialsService.patch(credentials.id, {
           accessToken,
           accessTokenExpiry: expiresIn
             ? new Date(Date.now() + expiresIn * 1000)
@@ -185,7 +185,7 @@ export class TwitterService {
         });
       } else {
         // OAuth 1.0a credential — requires reconnection via OAuth 2.0
-        await this.credentialsService.patch(credentials._id, {
+        await this.credentialsService.patch(credentials.id, {
           isConnected: false,
         });
         throw new Error(
@@ -195,7 +195,7 @@ export class TwitterService {
     } catch (error: unknown) {
       this.loggerService.error('Refresh token failed', error);
       // Mark credential as disconnected if refresh fails
-      await this.credentialsService.patch(credentials._id, {
+      await this.credentialsService.patch(credentials.id, {
         isConnected: false,
       });
 

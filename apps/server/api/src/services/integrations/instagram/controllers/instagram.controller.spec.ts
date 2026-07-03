@@ -196,7 +196,7 @@ describe('InstagramController', () => {
           data: { access_token: 'long-lived-token', expires_in: 5184000 },
         }),
       );
-      credentialsFindOneMock.mockResolvedValue({ _id: credId });
+      credentialsFindOneMock.mockResolvedValue({ id: credId });
       credentialsPatchMock.mockResolvedValue({
         _id: credId,
         isConnected: true,

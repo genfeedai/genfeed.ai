@@ -37,7 +37,7 @@ describe('PostGenerationService', () => {
   };
 
   const mockPost = {
-    _id: postId,
+    id: postId,
     brand: brandId,
     credential: credentialId,
     description: 'Test post description',
@@ -67,7 +67,7 @@ describe('PostGenerationService', () => {
     surface: 'post',
   };
 
-  const mockActivity = { _id: '507f191e810c19729de860ee' };
+  const mockActivity = { id: '507f191e810c19729de860ee' };
 
   const mockActivitiesService = {
     create: vi.fn().mockResolvedValue(mockActivity),
@@ -316,7 +316,7 @@ Tweet 3: Tech innovation is changing the world.`,
       mockActivitiesService.create.mockRejectedValueOnce(
         new Error('activity store down'),
       );
-      const secondPost = { ...mockPost, _id: '507f1f77bcf86cd799439015' };
+      const secondPost = { ...mockPost, id: '507f1f77bcf86cd799439015' };
 
       await service.generateAccountContentAsync(
         { count: 2, credential: credentialId, format: 'post', topic: 'AI' },
@@ -329,11 +329,11 @@ Tweet 3: Tech innovation is changing the world.`,
       expect(mockActivitiesService.patch).not.toHaveBeenCalled();
       // Both placeholder posts are driven out of PROCESSING into FAILED.
       expect(mockPostsService.patch).toHaveBeenCalledWith(
-        String(mockPost._id),
+        String(mockPost.id),
         expect.objectContaining({ status: PostStatus.FAILED }),
       );
       expect(mockPostsService.patch).toHaveBeenCalledWith(
-        String(secondPost._id),
+        String(secondPost.id),
         expect.objectContaining({ status: PostStatus.FAILED }),
       );
     });
@@ -342,8 +342,8 @@ Tweet 3: Tech innovation is changing the world.`,
   describe('expandThreadAsync', () => {
     const originalPost = { ...mockPost, description: 'Original tweet content' };
     const childPosts = [
-      { ...mockPost, _id: '507f1f77bcf86cd799439021' },
-      { ...mockPost, _id: '507f1f77bcf86cd799439022' },
+      { ...mockPost, id: '507f1f77bcf86cd799439021' },
+      { ...mockPost, id: '507f1f77bcf86cd799439022' },
     ];
 
     it('marks every child FAILED when activity creation throws (issue #861)', async () => {
@@ -360,11 +360,11 @@ Tweet 3: Tech innovation is changing the world.`,
 
       expect(mockActivitiesService.patch).not.toHaveBeenCalled();
       expect(mockPostsService.patch).toHaveBeenCalledWith(
-        String(childPosts[0]._id),
+        String(childPosts[0].id),
         expect.objectContaining({ status: PostStatus.FAILED }),
       );
       expect(mockPostsService.patch).toHaveBeenCalledWith(
-        String(childPosts[1]._id),
+        String(childPosts[1].id),
         expect.objectContaining({ status: PostStatus.FAILED }),
       );
     });
@@ -391,11 +391,11 @@ Tweet 3: Tech innovation is changing the world.`,
       );
       // ...and every child is marked FAILED instead.
       expect(mockPostsService.patch).toHaveBeenCalledWith(
-        String(childPosts[0]._id),
+        String(childPosts[0].id),
         expect.objectContaining({ status: PostStatus.FAILED }),
       );
       expect(mockPostsService.patch).toHaveBeenCalledWith(
-        String(childPosts[1]._id),
+        String(childPosts[1].id),
         expect.objectContaining({ status: PostStatus.FAILED }),
       );
     });

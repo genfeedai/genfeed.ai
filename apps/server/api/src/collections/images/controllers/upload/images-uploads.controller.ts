@@ -168,7 +168,7 @@ export class ImagesUploadsController {
     });
 
     await this.filesClientService.uploadToS3(
-      ingredientData._id,
+      ingredientData.id,
       `${category}s`,
       {
         contentType: validatedFile.mimetype || contentType,
@@ -210,7 +210,7 @@ export class ImagesUploadsController {
       status: IngredientStatus.UPLOADED,
     });
 
-    await this.filesClientService.uploadToS3(ingredientData._id, 'images', {
+    await this.filesClientService.uploadToS3(ingredientData.id, 'images', {
       contentType,
       data: Buffer.from(res.data),
       type: FileInputType.BUFFER,
@@ -252,11 +252,11 @@ export class ImagesUploadsController {
     );
 
     // Emit websocket event for upload completion
-    const websocketUrl = WebSocketPaths.image(ingredient._id.toString());
+    const websocketUrl = WebSocketPaths.image(ingredient.id.toString());
     await this.websocketService.publishVideoComplete(
       websocketUrl,
       // @ts-expect-error TS2345
-      ingredient._id.toString(),
+      ingredient.id.toString(),
       user.id,
       getUserRoomName(user.id),
     );

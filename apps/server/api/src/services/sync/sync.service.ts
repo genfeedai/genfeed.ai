@@ -331,7 +331,7 @@ export class SyncService {
     };
 
     const localId = String(
-      created._id ?? (created as Record<string, unknown>).id,
+      created.id ?? (created as Record<string, unknown>).id,
     );
     await this.workflowsService.patch(localId, { cloudSync });
 

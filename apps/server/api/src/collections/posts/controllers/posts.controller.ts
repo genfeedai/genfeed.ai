@@ -131,7 +131,7 @@ export class PostsController extends BaseCRUDController<
       return value;
     }
 
-    return value?._id ?? value?.id;
+    return value?.id ?? value?.id;
   }
 
   private getPostCategoryFromIngredient(
@@ -234,7 +234,7 @@ export class PostsController extends BaseCRUDController<
         // Verify all requested ingredients were found
         if (ingredients.length !== createPostDto.ingredients.length) {
           // Find which ingredient IDs are missing
-          const foundIds = new Set(ingredients.map((i) => i._id.toString()));
+          const foundIds = new Set(ingredients.map((i) => i.id.toString()));
           const missingId = createPostDto.ingredients.find(
             (id) => !foundIds.has(id.toString()),
           );
@@ -251,7 +251,7 @@ export class PostsController extends BaseCRUDController<
 
         // Preserve the original order of ingredients
         const ingredientMap = new Map(
-          ingredients.map((i) => [i._id.toString(), i]),
+          ingredients.map((i) => [i.id.toString(), i]),
         );
         ingredientIds = createPostDto.ingredients.map((id) => id);
         firstIngredient =
@@ -275,7 +275,7 @@ export class PostsController extends BaseCRUDController<
           );
         }
 
-        ingredientIds = campaignIngredients.map((ingredient) => ingredient._id);
+        ingredientIds = campaignIngredients.map((ingredient) => ingredient.id);
         [firstIngredient = null] = campaignIngredients;
       }
 
@@ -338,7 +338,7 @@ export class PostsController extends BaseCRUDController<
             ? (this.getIngredientRefId(firstIngredient.brand) ??
               publicMetadata.brand)
             : publicMetadata.brand,
-          entityId: data._id,
+          entityId: data.id,
           entityModel: ActivityEntityModel.POST,
           key: warmupHoldReason
             ? ActivityKey.POST_CREATED
@@ -349,7 +349,7 @@ export class PostsController extends BaseCRUDController<
             : publicMetadata.organization,
           source: ActivitySource.SCRIPT,
           user: publicMetadata.user,
-          value: (data._id as string).toString(),
+          value: (data.id as string).toString(),
         }),
       );
 
@@ -359,7 +359,7 @@ export class PostsController extends BaseCRUDController<
       ) {
         this.postsService.handleYoutubePost(data).catch((error) => {
           this.loggerService.error(
-            `Failed to trigger YouTube upload for post ${data._id}: ${error.message}`,
+            `Failed to trigger YouTube upload for post ${data.id}: ${error.message}`,
             error.stack,
           );
         });

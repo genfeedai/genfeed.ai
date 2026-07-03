@@ -5,7 +5,7 @@ import { AdminFleetGenerationJob } from '@api/endpoints/admin/fleet/interfaces/f
 import { AdminFleetCharacterService } from '@api/endpoints/admin/fleet/services/fleet-character.service';
 import { AdminFleetValueReader } from '@api/endpoints/admin/fleet/services/fleet-value-reader.util';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
@@ -134,17 +134,17 @@ export class AdminFleetGenerationService {
     const ingredient =
       options.ingredientId === undefined
         ? await this.ingredientsService.create({
-            brand: ObjectIdUtil.toObjectId(brandId)!,
+            brand: EntityIdUtil.toValidId(brandId)!,
             cdnUrl,
             ...AdminFleetValueReader.getDefaultFleetModerationState(),
             generationSource: model,
             modelUsed: model,
-            organization: ObjectIdUtil.toObjectId(organizationId)!,
-            persona: persona._id,
+            organization: EntityIdUtil.toValidId(organizationId)!,
+            persona: persona.id,
             personaSlug,
             s3Key: `darkroom/${personaSlug}/${filename}`,
             status: IngredientStatus.GENERATED,
-            user: ObjectIdUtil.toObjectId(userId)!,
+            user: EntityIdUtil.toValidId(userId)!,
           } as Parameters<IngredientsService['create']>[0])
         : await this.ingredientsService.patch(options.ingredientId, {
             cdnUrl,
@@ -160,7 +160,7 @@ export class AdminFleetGenerationService {
           });
 
     this.loggerService.log(caller, {
-      ingredientId: ingredient._id.toString(),
+      ingredientId: ingredient.id.toString(),
       message: 'Image generated successfully',
     });
 
@@ -181,7 +181,7 @@ export class AdminFleetGenerationService {
     const loraPath = dto.lora || undefined;
 
     const ingredient = await this.ingredientsService.create({
-      brand: ObjectIdUtil.toObjectId(brandId)!,
+      brand: EntityIdUtil.toValidId(brandId)!,
       category: 'image',
       ...AdminFleetValueReader.getDefaultFleetModerationState(),
       generationError: undefined,
@@ -193,15 +193,15 @@ export class AdminFleetGenerationService {
       loraUsed: loraPath,
       modelUsed: dto.model || MODEL_KEYS.GENFEED_AI_FLUX2_DEV,
       negativePrompt: dto.negativePrompt,
-      organization: ObjectIdUtil.toObjectId(organizationId)!,
-      persona: persona._id,
+      organization: EntityIdUtil.toValidId(organizationId)!,
+      persona: persona.id,
       personaSlug: dto.personaSlug,
       status: IngredientStatus.PROCESSING,
-      user: ObjectIdUtil.toObjectId(userId)!,
+      user: EntityIdUtil.toValidId(userId)!,
     } as Parameters<IngredientsService['create']>[0]);
 
     void this.processGenerationJob(
-      ingredient._id.toString(),
+      ingredient.id.toString(),
       organizationId,
       brandId,
       userId,
@@ -295,7 +295,7 @@ export class AdminFleetGenerationService {
       clearInterval(pulse);
       await this.updateGenerationJob(jobId, {
         cdnUrl: ingredient.cdnUrl ?? undefined,
-        ingredientId: ingredient._id.toString(),
+        ingredientId: ingredient.id.toString(),
         progress: 100,
         stage: 'completed',
         status: 'completed',

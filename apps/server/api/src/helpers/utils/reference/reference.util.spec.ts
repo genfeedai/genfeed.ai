@@ -57,7 +57,7 @@ describe('buildReferenceImageUrl', () => {
       createMocks();
 
     (ingredientsService.findOne as vi.Mock).mockResolvedValue({
-      _id: referenceId,
+      id: referenceId,
     });
 
     const url = await buildReferenceImageUrl({
@@ -85,7 +85,7 @@ describe('buildReferenceImageUrl', () => {
     // First call (IMAGE) returns null, second call (VIDEO) returns the video
     (ingredientsService.findOne as vi.Mock)
       .mockResolvedValueOnce(null) // IMAGE check
-      .mockResolvedValueOnce({ _id: referenceId }); // VIDEO check
+      .mockResolvedValueOnce({ id: referenceId }); // VIDEO check
 
     const url = await buildReferenceImageUrl({
       assetsService,
@@ -110,7 +110,7 @@ describe('buildReferenceImageUrl', () => {
     // Both IMAGE and VIDEO checks return null
     (ingredientsService.findOne as vi.Mock).mockResolvedValue(null);
     (assetsService.findOne as vi.Mock).mockResolvedValue({
-      _id: referenceId,
+      id: referenceId,
     });
 
     const url = await buildReferenceImageUrl({
@@ -211,13 +211,13 @@ describe('buildReferenceImageUrls', () => {
     // id2: IMAGE not found, VIDEO not found, ASSET found
     // invalidId: findOne throws (invalid ObjectId), caught and returns null
     (ingredientsService.findOne as vi.Mock)
-      .mockResolvedValueOnce({ _id: id1 }) // id1: IMAGE check - found
+      .mockResolvedValueOnce({ id: id1 }) // id1: IMAGE check - found
       .mockResolvedValueOnce(null) // id2: IMAGE check - not found
       .mockResolvedValueOnce(null) // id2: VIDEO check - not found
       .mockRejectedValueOnce(new Error('Invalid ObjectId')); // invalidId: throws
 
     (assetsService.findOne as vi.Mock).mockResolvedValueOnce({
-      _id: id2,
+      id: id2,
     });
 
     const result = await buildReferenceImageUrls({

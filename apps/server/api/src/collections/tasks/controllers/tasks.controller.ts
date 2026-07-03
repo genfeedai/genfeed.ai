@@ -227,7 +227,7 @@ export class TasksController extends BaseCRUDController<
   ): boolean {
     const publicMetadata = getPublicMetadata(user);
     const entityOrganizationId =
-      (entity.organization as unknown as { _id?: string })?._id?.toString() ||
+      (entity.organization as unknown as { id?: string })?.id?.toString() ||
       entity.organization?.toString();
 
     return entityOrganizationId === publicMetadata.organization;
@@ -550,7 +550,7 @@ export class TasksController extends BaseCRUDController<
             outputType: taskExt.outputType,
             platforms: taskExt.platforms,
             request: taskExt.request,
-            taskId: task._id.toString(),
+            taskId: task.id.toString(),
             userId: metadataUserId,
           });
         }),

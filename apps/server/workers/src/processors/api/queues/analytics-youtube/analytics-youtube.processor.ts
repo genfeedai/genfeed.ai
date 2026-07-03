@@ -77,13 +77,13 @@ export class AnalyticsYouTubeProcessor extends WorkerHost {
 
         if (analytics) {
           await this.postAnalyticsService.processYouTubeAnalytics(
-            post._id,
+            post.id,
             analytics,
           );
           processed++;
         } else {
           this.logger.warn(
-            `No analytics found for video ${post.externalId} (post ${post._id})`,
+            `No analytics found for video ${post.externalId} (post ${post.id})`,
           );
         }
       }

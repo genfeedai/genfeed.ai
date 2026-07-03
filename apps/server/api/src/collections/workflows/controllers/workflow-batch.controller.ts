@@ -47,12 +47,12 @@ export class WorkflowBatchController {
     id?: string | { toString(): string };
     ingredientId: string | { toString(): string };
   }): string {
-    if (typeof item._id === 'string') {
-      return item._id;
+    if (typeof item.id === 'string') {
+      return item.id;
     }
 
-    if (item._id && typeof item._id.toString === 'function') {
-      return item._id.toString();
+    if (item.id && typeof item.id.toString === 'function') {
+      return item.id.toString();
     }
 
     if (typeof item.id === 'string') {
@@ -81,7 +81,7 @@ export class WorkflowBatchController {
 
     return {
       data: {
-        _id: job._id.toString(),
+        _id: job.id.toString(),
         completedCount: this.normalizeCount(job.completedCount),
         createdAt: job.createdAt?.toISOString(),
         failedCount: this.normalizeCount(job.failedCount),
@@ -132,7 +132,7 @@ export class WorkflowBatchController {
 
     return {
       data: jobs.map((job) => ({
-        _id: job._id.toString(),
+        _id: job.id.toString(),
         completedCount: this.normalizeCount(job.completedCount),
         createdAt: job.createdAt?.toISOString(),
         failedCount: this.normalizeCount(job.failedCount),
@@ -173,11 +173,11 @@ export class WorkflowBatchController {
     });
 
     // Mark as processing
-    await this.batchWorkflowService.markProcessing(batchJob._id.toString());
+    await this.batchWorkflowService.markProcessing(batchJob.id.toString());
 
     // Enqueue all items
     const itemJobs = batchJob.items.map((item) => ({
-      batchJobId: batchJob._id.toString(),
+      batchJobId: batchJob.id.toString(),
       ingredientId: item.ingredientId.toString(),
       itemId: this.getBatchItemId(item),
       organizationId: publicMetadata.organization,
@@ -189,7 +189,7 @@ export class WorkflowBatchController {
 
     return {
       data: {
-        batchJobId: batchJob._id.toString(),
+        batchJobId: batchJob.id.toString(),
         totalCount: this.normalizeCount(batchJob.totalCount),
       },
     };

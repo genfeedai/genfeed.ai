@@ -225,7 +225,7 @@ export class VideoGenerationService {
         ...(validationOrgId ? { organization: validationOrgId } : {}),
       });
 
-      if (!prompt?._id) {
+      if (!prompt?.id) {
         throw new HttpException(
           {
             detail: 'The referenced prompt could not be found',
@@ -296,7 +296,7 @@ export class VideoGenerationService {
         // Persist against the resolved brand (which honors createVideoDto.brand)
         // rather than the token default, matching the brand used everywhere else
         // in this flow (saveDocuments, activities, cleanup).
-        brand: brand._id,
+        brand: brand.id,
         camera: createVideoDto.camera,
         category: PromptCategory.MODELS_PROMPT_VIDEO,
         mood: createVideoDto.mood,
@@ -317,7 +317,7 @@ export class VideoGenerationService {
         bookmark: createVideoDto.bookmark
           ? (createVideoDto.bookmark as string)
           : undefined,
-        brand: brand._id,
+        brand: brand.id,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.VIDEO,
         ),
@@ -325,7 +325,7 @@ export class VideoGenerationService {
         height,
         model,
         organization: brand.organization,
-        prompt: promptData._id,
+        prompt: promptData.id,
 
         // Template tracking
         promptTemplate: templateUsed,
@@ -339,9 +339,9 @@ export class VideoGenerationService {
 
     // Create activity + websocket update for video generation start
     await this.createVideoPlaceholderActivity({
-      brandId: brand._id,
+      brandId: brand.id,
       authProviderUserId: user.id,
-      ingredientId: ingredientData._id,
+      ingredientId: ingredientData.id,
       model,
       organization: publicMetadata.organization,
       user: publicMetadata.user,
@@ -356,7 +356,7 @@ export class VideoGenerationService {
     });
 
     // Track all placeholder ingredient IDs
-    const pendingIngredientIds: string[] = [ingredientData._id.toString()];
+    const pendingIngredientIds: string[] = [ingredientData.id.toString()];
 
     try {
       // When generation is triggered, deduct credits
@@ -387,7 +387,7 @@ export class VideoGenerationService {
           // Batch-capable models (trained models): single API call with multiple outputs, multiple results in one generation
           // First output uses indexed externalId
           await this.metadataService.patch(
-            metadataData._id,
+            metadataData.id,
             new MetadataEntity({
               externalId: `${generationId}_0`,
             }),
@@ -399,7 +399,7 @@ export class VideoGenerationService {
             Array.from({ length: outputs - 1 }, () => {
               return this.sharedService.saveDocuments(user, {
                 ...createVideoDto,
-                brand: brand._id,
+                brand: brand.id,
                 category: CategoryPrismaUtil.toIngredientCategory(
                   IngredientCategory.VIDEO,
                 ),
@@ -407,7 +407,7 @@ export class VideoGenerationService {
                 height,
                 model,
                 organization: brand.organization,
-                prompt: promptData._id,
+                prompt: promptData.id,
                 references:
                   referenceIds.length > 0
                     ? referenceIds.map((id) => id)
@@ -424,7 +424,7 @@ export class VideoGenerationService {
           // the outer catch tears them down if a subsequent patch throws.
           pendingIngredientIds.push(
             ...additionalDocuments.map(({ ingredientData }) =>
-              ingredientData._id.toString(),
+              ingredientData.id.toString(),
             ),
           );
 
@@ -436,7 +436,7 @@ export class VideoGenerationService {
             additionalDocuments.map(
               ({ metadataData: additionalMetadata }, index) =>
                 this.metadataService.patch(
-                  additionalMetadata._id,
+                  additionalMetadata.id,
                   new MetadataEntity({
                     externalId: `${generationId}_${index + 1}`,
                   }),
@@ -448,9 +448,9 @@ export class VideoGenerationService {
           await Promise.all(
             additionalDocuments.map(({ ingredientData: addIngredient }) =>
               this.createVideoPlaceholderActivity({
-                brandId: brand._id,
+                brandId: brand.id,
                 authProviderUserId: user.id,
-                ingredientId: addIngredient._id,
+                ingredientId: addIngredient.id,
                 model,
                 organization: publicMetadata.organization,
                 user: publicMetadata.user,
@@ -471,7 +471,7 @@ export class VideoGenerationService {
         } else if (outputs > 1) {
           // Non-batch models (VEO, Sora, KlingAI, etc.): make multiple separate API calls
           await this.metadataService.patch(
-            metadataData._id,
+            metadataData.id,
             new MetadataEntity({
               externalId: generationId,
             }),
@@ -486,7 +486,7 @@ export class VideoGenerationService {
               ingredientData: additionalIngredient,
             } = await this.sharedService.saveDocuments(user, {
               ...createVideoDto,
-              brand: brand._id,
+              brand: brand.id,
               category: CategoryPrismaUtil.toIngredientCategory(
                 IngredientCategory.VIDEO,
               ),
@@ -494,7 +494,7 @@ export class VideoGenerationService {
               height,
               model,
               organization: brand.organization,
-              prompt: promptData._id,
+              prompt: promptData.id,
               references:
                 referenceIds.length > 0
                   ? referenceIds.map((id) => id)
@@ -506,7 +506,7 @@ export class VideoGenerationService {
 
             // Track the placeholder before the external call so the outer catch
             // cleans it up if the provider call below throws.
-            pendingIngredientIds.push(additionalIngredient._id.toString());
+            pendingIngredientIds.push(additionalIngredient.id.toString());
 
             // Make separate API call for each output based on model
             const additionalGenerationId: string | null =
@@ -536,21 +536,21 @@ export class VideoGenerationService {
             // Parallelize the patch operations
             await Promise.all([
               this.metadataService.patch(
-                additionalMetadata._id,
+                additionalMetadata.id,
                 new MetadataEntity({
                   externalId: additionalGenerationId,
                 }),
               ),
-              this.videosService.patch(additionalIngredient._id, {
-                prompt: promptData._id,
+              this.videosService.patch(additionalIngredient.id, {
+                prompt: promptData.id,
               }),
             ]);
 
             // Create activity for this additional output (non-batch path)
             await this.createVideoPlaceholderActivity({
-              brandId: brand._id,
+              brandId: brand.id,
               authProviderUserId: user.id,
-              ingredientId: additionalIngredient._id,
+              ingredientId: additionalIngredient.id,
               model,
               organization: publicMetadata.organization,
               user: publicMetadata.user,
@@ -569,7 +569,7 @@ export class VideoGenerationService {
         } else {
           // Single output - use original external ID
           await this.metadataService.patch(
-            metadataData._id,
+            metadataData.id,
             new MetadataEntity({
               externalId: generationId,
             }),
@@ -602,7 +602,7 @@ export class VideoGenerationService {
             user.id,
             getUserRoomName(user.id),
             {
-              brand: brand._id.toString(),
+              brand: brand.id.toString(),
               key: ActivityKey.VIDEO_FAILED,
               organization: publicMetadata.organization,
               source: ActivitySource.VIDEO_GENERATION,
@@ -625,11 +625,11 @@ export class VideoGenerationService {
       try {
         await this.bookmarksService.addGeneratedIngredient(
           createVideoDto.bookmark,
-          ingredientData._id,
+          ingredientData.id,
         );
         this.loggerService.log('Linked video to bookmark', {
           bookmarkId: createVideoDto.bookmark,
-          videoId: ingredientData._id,
+          videoId: ingredientData.id,
         });
       } catch (error: unknown) {
         this.loggerService.warn(
@@ -651,7 +651,7 @@ export class VideoGenerationService {
     // Handle background music orchestration (runs in background)
     if (createVideoDto.backgroundMusic) {
       const orchestrationContext = {
-        brandId: brand._id.toString(),
+        brandId: brand.id.toString(),
         authProviderUserId: user.id,
         organizationId: publicMetadata.organization,
         userId: publicMetadata.user,
@@ -660,7 +660,7 @@ export class VideoGenerationService {
       // Start orchestration in background - don't await
       this.videoMusicOrchestrationService
         .orchestrateVideoWithMusic(
-          ingredientData._id.toString(),
+          ingredientData.id.toString(),
           createVideoDto.backgroundMusic,
           createVideoDto.duration || 10,
           createVideoDto.musicVolume ?? 30,
@@ -670,13 +670,13 @@ export class VideoGenerationService {
         .then((mergedVideoId) => {
           this.loggerService.log('Video+music orchestration completed', {
             mergedVideoId,
-            originalVideoId: ingredientData._id.toString(),
+            originalVideoId: ingredientData.id.toString(),
           });
         })
         .catch((error: unknown) => {
           this.loggerService.error('Video+music orchestration failed', {
             error: (error as Error)?.message || 'Unknown error',
-            originalVideoId: ingredientData._id.toString(),
+            originalVideoId: ingredientData.id.toString(),
           });
         });
     }
@@ -709,7 +709,7 @@ export class VideoGenerationService {
         if ((error as Error).name === 'PollingTimeoutError') {
           // Return what we have even if timeout
           const ingredient = await this.videosService.findOne(
-            { _id: ingredientData._id },
+            { _id: ingredientData.id },
             [
               PopulatePatterns.promptFull,
               PopulatePatterns.metadataFull,
@@ -953,7 +953,7 @@ export class VideoGenerationService {
     );
 
     await this.websocketService.publishBackgroundTaskUpdate({
-      activityId: activity._id.toString(),
+      activityId: activity.id.toString(),
       label: 'Video Generation',
       progress: 0,
       room: getUserRoomName(params.authProviderUserId),

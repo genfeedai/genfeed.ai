@@ -123,7 +123,7 @@ export class ReplyBotQueueService implements OnModuleInit {
       const organizations = orgsResult.docs || [];
 
       for (const org of organizations) {
-        const orgId = (org._id as string).toString();
+        const orgId = (org.id as string).toString();
 
         // Check if org has active reply bot configs
         const activeBots = await this.replyBotConfigsService.findActive(orgId);
@@ -135,13 +135,13 @@ export class ReplyBotQueueService implements OnModuleInit {
         // Find a valid Twitter credential for this org
         const credential = await this.credentialsService.findOne({
           isDeleted: false,
-          organization: org._id,
+          organization: org.id,
           platform: CredentialPlatform.TWITTER,
         });
 
         if (credential) {
           results.push({
-            credentialId: (credential._id as string).toString(),
+            credentialId: (credential.id as string).toString(),
             organizationId: orgId,
           });
         } else {

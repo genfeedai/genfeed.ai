@@ -28,7 +28,7 @@ describe('TrainingsOperationsController', () => {
   } as unknown as User;
 
   const mockTraining = {
-    _id: '507f1f77bcf86cd799439014',
+    id: '507f1f77bcf86cd799439014',
     organization: '507f1f77bcf86cd799439012',
     sources: Array.from(
       { length: 10 },
@@ -39,7 +39,7 @@ describe('TrainingsOperationsController', () => {
   };
 
   const mockSourceDocs = Array.from({ length: 10 }, (_, i) => ({
-    _id: `507f1f77bcf86cd79943${String(i).padStart(4, '0')}`,
+    id: `507f1f77bcf86cd79943${String(i).padStart(4, '0')}`,
     metadata: { extension: 'jpg' },
   }));
 

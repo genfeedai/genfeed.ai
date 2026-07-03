@@ -140,7 +140,7 @@ export class WorkflowWebhookService {
       typeof workflow.webhookTriggerCount === 'number'
         ? workflow.webhookTriggerCount
         : 0;
-    await this.patchWorkflowConfig(workflow._id.toString(), {
+    await this.patchWorkflowConfig(String(workflow.id), {
       webhookLastTriggeredAt: new Date().toISOString(),
       webhookTriggerCount: currentWebhookTriggerCount + 1,
     });
@@ -158,11 +158,9 @@ export class WorkflowWebhookService {
         );
       }
 
-      await this.legacyWorkflowStepRunner.executeWorkflow(
-        workflow._id.toString(),
-      );
+      await this.legacyWorkflowStepRunner.executeWorkflow(String(workflow.id));
       return {
-        runId: workflow._id.toString(),
+        runId: String(workflow.id),
         status: 'started',
       };
     }
@@ -174,7 +172,7 @@ export class WorkflowWebhookService {
     }
 
     const result = await this.workflowExecutorService.executeManualWorkflow(
-      workflow._id.toString(),
+      String(workflow.id),
       workflow.user.toString(),
       workflow.organization.toString(),
       payload,

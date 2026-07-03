@@ -130,7 +130,7 @@ export class VideoProvenanceService {
       throw new NotFoundException('Video', videoId);
     }
 
-    const assetId = video.id ?? video._id ?? videoId;
+    const assetId = video.id ?? videoId;
 
     const metadata = video.metadataId
       ? ((await this.metadataService.findOne({

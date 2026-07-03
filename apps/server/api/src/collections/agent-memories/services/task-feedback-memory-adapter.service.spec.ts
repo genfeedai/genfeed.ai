@@ -9,7 +9,7 @@ describe('TaskFeedbackMemoryAdapterService', () => {
   const userId = 'user-1';
 
   const task = {
-    _id: 'task-1',
+    id: 'task-1',
     approvedOutputIds: ['output-existing'],
     brand: 'brand-1',
     eventStream: [],

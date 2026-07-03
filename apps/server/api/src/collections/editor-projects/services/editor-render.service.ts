@@ -70,20 +70,20 @@ export class EditorRenderService {
 
       const jobResponse = await this.fileQueueService.processVideo({
         authProviderUserId: user.id,
-        ingredientId: ingredientData._id.toString(),
+        ingredientId: ingredientData.id.toString(),
         organizationId: orgId,
         params: renderParams.jobParams,
         room: getUserRoomName(user.id),
         type: renderParams.jobType,
         userId: publicMetadata.user,
-        websocketUrl: `/videos/${ingredientData._id}`,
+        websocketUrl: `/videos/${ingredientData.id}`,
       });
 
       // Handle async completion in background
       this.handleAsyncCompletion(
         id,
-        ingredientData._id.toString(),
-        metadataData._id.toString(),
+        ingredientData.id.toString(),
+        metadataData.id.toString(),
         jobResponse.jobId,
         renderParams.hasTextOverlay,
         renderParams.textLabel,

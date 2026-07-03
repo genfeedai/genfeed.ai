@@ -152,7 +152,7 @@ describe('KlingWebhookService', () => {
         task_status: 'succeed',
       } as KlingAIWebhookPayload;
 
-      deps.metadataService.findOne.mockResolvedValue({ _id: metadataId });
+      deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
       deps.metadataService.patch.mockResolvedValue({});
 
       await service.handleCallback(body);
@@ -173,7 +173,7 @@ describe('KlingWebhookService', () => {
         task_status: 'succeed',
       } as KlingAIWebhookPayload;
 
-      deps.metadataService.findOne.mockResolvedValue({ _id: metadataId });
+      deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
       deps.metadataService.patch.mockResolvedValue({});
 
       await service.handleCallback(body);
@@ -193,7 +193,7 @@ describe('KlingWebhookService', () => {
         task_status: 'failed',
       } as KlingAIWebhookPayload;
 
-      deps.metadataService.findOne.mockResolvedValue({ _id: metadataId });
+      deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
       deps.metadataService.patch.mockResolvedValue({});
 
       await service.handleCallback(body);

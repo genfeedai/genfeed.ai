@@ -125,7 +125,7 @@ export class AvatarVideoGenerationService {
 
       const { ingredientData, metadataData } =
         await this.sharedService.saveDocumentsInternal({
-          brand: brand._id,
+          brand: brand.id,
           category: IngredientCategory.AVATAR,
           extension: MetadataExtension.MP4,
           model: MODEL_KEYS.HEYGEN_AVATAR,
@@ -138,7 +138,7 @@ export class AvatarVideoGenerationService {
           user: context.userId,
         });
 
-      ingredientId = String(ingredientData._id);
+      ingredientId = String(ingredientData.id);
 
       const heygenByokKey = await this.byokService.resolveApiKey(
         context.organizationId,
@@ -159,7 +159,7 @@ export class AvatarVideoGenerationService {
       );
 
       await this.metadataService.patch(
-        metadataData._id,
+        metadataData.id,
         new MetadataEntity({
           duration: audioDuration > 0 ? audioDuration : undefined,
           externalId,
@@ -474,7 +474,7 @@ export class AvatarVideoGenerationService {
         return avatarIngredient.cdnUrl;
       }
 
-      return `${this.configService.ingredientsEndpoint}/avatars/${avatarIngredient._id}`;
+      return `${this.configService.ingredientsEndpoint}/avatars/${avatarIngredient.id}`;
     }
 
     if (!params.avatarId) {

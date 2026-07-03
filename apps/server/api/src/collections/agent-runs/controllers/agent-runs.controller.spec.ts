@@ -226,7 +226,7 @@ describe('AgentRunsController', () => {
 
   describe('canUserModifyEntity', () => {
     it('should return true when organization matches', () => {
-      const entity = { organization: { _id: '507f1f77bcf86cd799439012' } };
+      const entity = { organization: { id: '507f1f77bcf86cd799439012' } };
       expect(
         controller.canUserModifyEntity(mockUser as any, entity as any),
       ).toBe(true);

@@ -1,6 +1,6 @@
 export interface TwitterAnalyticsJobData {
   posts: Array<{
-    _id: string;
+    id: string;
     externalId: string;
     organization: string;
     brand: string;
