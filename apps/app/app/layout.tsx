@@ -12,6 +12,7 @@ import { createAppMetadata, createPwaMetadata } from '@ui/shell/metadata';
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import DesktopDragStrip from '@/components/desktop/DesktopDragStrip';
+import DeploymentVersionWatcher from '@/components/version/DeploymentVersionWatcher';
 
 const { name, description } = metadataHelper;
 const pwaConfig = createPwaMetadata('app');
@@ -64,6 +65,9 @@ export default async function RootLayout({ children }: LayoutProps) {
           {createRuntimeConfigScript()}
         </Script>
         <DesktopDragStrip />
+        {/* Desktop ships as a bundled app with its own update path; the deploy
+            skew watcher only applies to the Vercel-hosted studio. */}
+        {!isDesktopShell ? <DeploymentVersionWatcher /> : null}
         {children}
       </AppProviders>
     </AppHtmlDocument>
