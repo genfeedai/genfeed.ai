@@ -1526,6 +1526,108 @@ describe('AgentOrchestratorService', () => {
     );
   });
 
+  it('cancels mid-stream and tears down the round when the run is cancelled during streaming', async () => {
+    organizationsService.findOne.mockResolvedValue({
+      onboardingCompleted: true,
+    } as never);
+    configService.get.mockImplementation((key: string) =>
+      key === 'AGENT_TOKEN_STREAMING_ENABLED' ? 'true' : '',
+    );
+
+    // Not cancelled at the round boundary, but cancelled once the first delta
+    // arrives — flag flips only after streaming has begun, so it's robust to
+    // however many cancellation checks run before the stream starts.
+    let streamingStarted = false;
+    llmDispatcher.streamChatCompletionAggregated.mockImplementation(
+      async (
+        _params: unknown,
+        _organizationId: unknown,
+        onToken?: (delta: string) => Promise<void>,
+      ) => {
+        streamingStarted = true;
+        if (onToken) {
+          await onToken('Hello ');
+          await onToken('streamed');
+        }
+        return {
+          choices: [{ message: { content: 'Hello streamed' } }],
+          usage: {
+            completion_tokens: 20,
+            prompt_tokens: 20,
+            total_tokens: 40,
+          },
+        };
+      },
+    );
+    agentRunsService.isCancelled.mockImplementation(
+      async () => streamingStarted,
+    );
+
+    await service.chatStream(
+      { content: 'Stop me mid-stream', threadId: CONVERSATION_ID },
+      { organizationId: ORG_ID, userId: USER_ID },
+    );
+
+    for (let i = 0; i < 20; i++) {
+      if (
+        streamPublisher.publishWorkEvent.mock.calls.some(
+          (call) => (call[0] as { event?: string }).event === 'cancelled',
+        )
+      ) {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+
+    // Cancelled-stream handler ran...
+    expect(streamPublisher.publishWorkEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ event: 'cancelled', status: 'cancelled' }),
+    );
+    // ...the round short-circuited before emitting a final response...
+    expect(streamPublisher.publishDone).not.toHaveBeenCalled();
+    // ...and the cancel check fired before the first token was published.
+    expect(streamPublisher.publishToken).not.toHaveBeenCalled();
+  });
+
+  it('logs but swallows token-publish failures so a live stream still completes', async () => {
+    organizationsService.findOne.mockResolvedValue({
+      onboardingCompleted: true,
+    } as never);
+    configService.get.mockImplementation((key: string) =>
+      key === 'AGENT_TOKEN_STREAMING_ENABLED' ? 'true' : '',
+    );
+    // Simulate a Redis publish outage for the duration of the stream.
+    streamPublisher.publishToken.mockRejectedValue(
+      new Error('redis unavailable'),
+    );
+
+    // loggerMock is injected as the service's logger; reach it to assert the
+    // throttled diagnostic without exposing a new outer binding.
+    const { loggerService } = service as unknown as {
+      loggerService: { warn: ReturnType<typeof vi.fn> };
+    };
+
+    await service.chatStream(
+      { content: 'Stream through a publish outage', threadId: CONVERSATION_ID },
+      { organizationId: ORG_ID, userId: USER_ID },
+    );
+
+    for (let i = 0; i < 20; i++) {
+      if (streamPublisher.publishDone.mock.calls.length > 0) {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+
+    // Publish failures were swallowed — the stream still completed...
+    expect(streamPublisher.publishDone).toHaveBeenCalled();
+    // ...but surfaced a throttled diagnostic instead of dropping silently.
+    expect(loggerService.warn).toHaveBeenCalledWith(
+      expect.stringContaining('stream token publish failed'),
+      expect.objectContaining({ error: 'redis unavailable' }),
+    );
+  });
+
   it('keeps the simulated word-split path when the streaming flag is off', async () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
