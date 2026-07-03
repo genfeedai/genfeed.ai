@@ -58,7 +58,7 @@ describe('Integrations E2E Tests', () => {
     await dbHelper.clearDatabase();
 
     testOrganization = createTestOrganization({
-      _id: generateIdString(),
+      id: generateIdString(),
       label: 'Integration Test Org',
     });
 

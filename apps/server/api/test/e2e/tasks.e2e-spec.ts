@@ -121,19 +121,19 @@ describe('Tasks E2E Tests', () => {
     await dbHelper.clearDatabase();
 
     testUser = createTestUser({
-      _id: generateIdString(),
+      id: generateIdString(),
       authProviderId: 'authProvider_task_test_user',
       email: 'tasks-test@example.com',
     });
 
     testOrganization = createTestOrganization({
-      _id: generateIdString(),
+      id: generateIdString(),
       label: 'Tasks Test Organization',
       user: testUser.id,
     });
 
     otherOrganization = createTestOrganization({
-      _id: generateIdString(),
+      id: generateIdString(),
       label: 'Other Tasks Organization',
       user: generateIdString(),
     });
@@ -147,7 +147,7 @@ describe('Tasks E2E Tests', () => {
     ]);
     await dbHelper.seedCollection('tasks', [
       {
-        _id: scopedTaskId,
+        id: scopedTaskId,
         assigneeAgentId: 'agent-1',
         createdAt: new Date('2026-04-01T10:00:00.000Z'),
         identifier: 'GENA-20',
@@ -161,7 +161,7 @@ describe('Tasks E2E Tests', () => {
         updatedAt: new Date('2026-04-01T10:00:00.000Z'),
       },
       {
-        _id: generateIdString(),
+        id: generateIdString(),
         createdAt: new Date('2026-04-01T11:00:00.000Z'),
         identifier: 'GENA-99',
         isDeleted: false,
