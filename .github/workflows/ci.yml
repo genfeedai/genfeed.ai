@@ -28,8 +28,16 @@ on:
         required: false
         default: false
 
+# The `ci-` prefix is REQUIRED. `github.workflow` resolves to the top-level
+# workflow name even inside a `workflow_call`, so without a distinct prefix this
+# group collides with a caller that uses the same `${{ github.workflow }}-${{
+# github.ref }}` shape (full-suite.yml → deploy-ecs.yml). On the release/deploy
+# path `ci` runs UNDER full-suite, both computed the same group with
+# cancel-in-progress, and the nested `ci` cancelled itself at startup (0 jobs) —
+# tripping cancel-doomed-run and silently killing every production deploy. The
+# prefix keeps push-CI dedup ("ci-CI-<ref>") while never matching a caller group.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
