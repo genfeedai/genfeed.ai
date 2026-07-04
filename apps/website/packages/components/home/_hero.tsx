@@ -24,12 +24,12 @@ const HERO_METRICS: HeroMetric[] = [
 
 const HERO_OUTCOMES: HeroMetric[] = [
   { label: 'from one campaign brief', value: 'Every format' },
-  { label: 'auto-routed per job, never picked', value: 'Best model' },
-  { label: 'credits, not gatekeeping', value: 'Pay per output' },
+  { label: 'usage-based generation', value: 'Lower cost' },
+  { label: 'post-generation KPI readout', value: 'Performance loop' },
 ];
 
 export default function HomeHero(): React.ReactElement {
-  const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
+  const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=hosted`;
 
   return (
     <section className="relative overflow-hidden border-b border-edge/5 bg-background">
@@ -61,7 +61,7 @@ export default function HomeHero(): React.ReactElement {
                 trackingName="hero_cta_click"
               >
                 <a href={signUpHref} rel="noopener noreferrer" target="_blank">
-                  Start Creating Free
+                  Start Cloud App
                   <LuArrowRight className="size-4" />
                 </a>
               </ButtonTracked>
@@ -112,25 +112,20 @@ export default function HomeHero(): React.ReactElement {
               <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_54%,rgba(5,6,7,0.82))]" />
             </div>
 
-            <div className="relative z-10 mx-3 -mt-12 overflow-hidden rounded-md bg-edge/10 shadow-border-strong lg:mx-8">
-              <p className="border-b border-edge/5 bg-background/95 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-surface/35 backdrop-blur">
-                Sample campaign readout
-              </p>
-              <div className="grid sm:grid-cols-4">
-                {HERO_METRICS.map((metric) => (
-                  <div
-                    key={metric.value}
-                    className="border-b border-edge/5 bg-background/95 px-4 py-3 backdrop-blur last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0"
-                  >
-                    <p className="text-sm font-semibold tracking-[-0.02em] text-surface">
-                      {metric.value}
-                    </p>
-                    <p className="mt-1 text-[11px] leading-4 text-surface/38">
-                      {metric.label}
-                    </p>
-                  </div>
-                ))}
-              </div>
+            <div className="relative z-10 mx-3 -mt-12 grid overflow-hidden rounded-md bg-edge/10 shadow-border-strong sm:grid-cols-4 lg:mx-8">
+              {HERO_METRICS.map((metric) => (
+                <div
+                  key={metric.value}
+                  className="border-b border-edge/5 bg-background/95 px-4 py-3 backdrop-blur last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0"
+                >
+                  <p className="text-sm font-semibold tracking-[-0.02em] text-surface">
+                    {metric.value}
+                  </p>
+                  <p className="mt-1 text-[11px] leading-4 text-surface/38">
+                    {metric.label}
+                  </p>
+                </div>
+              ))}
             </div>
           </figure>
         </div>
