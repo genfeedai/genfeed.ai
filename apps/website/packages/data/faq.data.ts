@@ -17,7 +17,7 @@ export interface FAQCategory {
 export const FAQ_ITEMS_CORE: FAQItem[] = [
   {
     answer:
-      'Genfeed is a content intelligence platform for serious creators. We help you discover trending topics, generate AI content (videos, images, voice, articles), distribute everywhere, track ROI, and optimize with AI insights—all in one platform.',
+      'Genfeed is a content intelligence platform for serious creators. We help you discover trending topics, generate AI content (videos, images, voice, articles), distribute everywhere, track ROI, and optimize with AI insights, all in one platform.',
     question: 'What is Genfeed?',
   },
   {
@@ -51,7 +51,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
     questions: [
       {
         answer:
-          'Genfeed is a content intelligence platform for serious creators. We help you discover trending topics, generate AI content (videos, images, voice, articles), distribute everywhere, track ROI, and optimize with AI insights—all in one platform.',
+          'Genfeed is a content intelligence platform for serious creators. We help you discover trending topics, generate AI content (videos, images, voice, articles), distribute everywhere, track ROI, and optimize with AI insights, all in one platform.',
         question: 'What is Genfeed?',
       },
       {
@@ -71,7 +71,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
     questions: [
       {
         answer:
-          'Credits buy output: 1 credit is one cent at the pay-as-you-go rate. Signing up is free — you only pay for what you generate. Subscriptions include monthly credits at a ~40% better rate and unlock more brands, channels, and seats.',
+          'Credits buy output: 1 credit is one cent at the pay-as-you-go rate. Signing up is free, so you only pay for what you generate. Subscriptions include monthly credits at a ~40% better rate and unlock more brands, channels, and seats.',
         question: 'How does pricing work?',
       },
       {
@@ -81,7 +81,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
       },
       {
         answer:
-          'Yes. Signing up costs nothing and there is no monthly fee on Pay As You Go — you buy credits and spend them on output. Developers can also self-host the open-source core from GitHub.',
+          'Yes. Signing up costs nothing and there is no monthly fee on Pay As You Go: you buy credits and spend them on output. Developers can also self-host the open-source core from GitHub.',
         question: 'Is there a free option?',
       },
       {
@@ -106,7 +106,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
     questions: [
       {
         answer:
-          'You never pick a model. The Genfeed router sends every job to the best premium model for the format, brief, and budget — and upgrades automatically as better models ship. You see the output and its credit price, not a model menu.',
+          'You never pick a model. The Genfeed router sends every job to the best premium model for the format, brief, and budget, and it upgrades automatically as better models ship. You see the output and its credit price, not a model menu.',
         question: 'Which AI models do you use?',
       },
       {
@@ -131,7 +131,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
     questions: [
       {
         answer:
-          'Pay As You Go includes a personal workspace, 1 brand kit, 3 connected channels, auto-routed premium models, and multi-platform publishing — with no monthly fee. Creator adds 8,000 monthly credits at a better rate, 5 brand kits, and 15 channels.',
+          'Pay As You Go includes a personal workspace, 1 brand kit, 3 connected channels, auto-routed premium models, and multi-platform publishing, with no monthly fee. Creator adds 8,000 monthly credits at a better rate, 5 brand kits, and 15 channels.',
         question: "What's included in the free and Creator plans?",
       },
       {

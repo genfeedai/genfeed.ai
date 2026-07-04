@@ -12,3 +12,29 @@ export interface DemoCardProps {
   videoUrl?: string;
   platform?: string;
 }
+
+export interface AudienceBenefit {
+  label: string;
+}
+
+export interface OutputFormat {
+  credits: number;
+  description: string;
+  /** Sample output asset shown in the format tile (public/images/home/formats) */
+  image: string;
+  priceSuffix?: string;
+  title: string;
+}
+
+export interface HowStep {
+  description: string;
+  step: string;
+  title: string;
+}
+
+export interface ExampleCampaign {
+  caption: string;
+  handle: string;
+  likes: string;
+  status: string;
+}

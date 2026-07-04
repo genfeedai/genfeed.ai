@@ -73,7 +73,7 @@ const NAV_LINKS = [{ href: '/pricing', label: 'Pricing' }];
 
 export default function WebsiteTopbar() {
   const { isSignedIn } = useAuthIdentity();
-  const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=hosted`;
+  const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
 
   return (
     <TopbarPublic
@@ -112,7 +112,8 @@ export default function WebsiteTopbar() {
                 className="h-9 px-5 text-sm uppercase"
               >
                 <a href={signUpHref} target="_blank" rel="noopener noreferrer">
-                  Start Cloud App
+                  <span className="hidden sm:inline">Start Creating Free</span>
+                  <span className="sm:hidden">Start Free</span>
                 </a>
               </Button>
             </>

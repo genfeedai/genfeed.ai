@@ -170,7 +170,7 @@ export const websitePlans: PricingPlanProps[] = [
     ctaHref: `${process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'https://app.genfeed.ai'}/sign-up?plan=payg`,
     description: 'Free account with pay-per-output credits',
     features: [
-      'No monthly fee — buy credits, spend on any format',
+      'No monthly fee, buy credits and spend on any format',
       'Credits at the standard rate (1 credit = $0.01)',
       'Best model auto-routed for every job',
       '1 brand kit',

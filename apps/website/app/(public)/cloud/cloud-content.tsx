@@ -70,13 +70,9 @@ const TEAMS = [
   },
 ];
 
-const CALENDLY_URL =
-  process.env.NEXT_PUBLIC_CALENDLY_URL ||
-  'https://calendly.com/vincent-genfeed/30min';
-
 export default function CloudContent() {
   const containerRef = useMarketingEntrance();
-  const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=hosted`;
+  const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
 
   return (
     <div ref={containerRef}>
@@ -187,7 +183,7 @@ export default function CloudContent() {
         >
           <Button size={ButtonSize.PUBLIC} asChild>
             <a href={signUpHref} target="_blank" rel="noopener noreferrer">
-              Start Cloud App
+              Start Creating Free
               <LuArrowRight className="size-4" />
             </a>
           </Button>
@@ -196,7 +192,11 @@ export default function CloudContent() {
             variant={ButtonVariant.SECONDARY}
             asChild
           >
-            <a href={CALENDLY_URL} target="_blank" rel="noopener noreferrer">
+            <a
+              href={EnvironmentService.calendly}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               Book a Demo
             </a>
           </Button>

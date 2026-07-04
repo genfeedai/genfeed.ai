@@ -28,17 +28,13 @@ import PageLayout from '@web-components/PageLayout';
 import { HiCheckCircle } from 'react-icons/hi2';
 import { LuArrowRight } from 'react-icons/lu';
 
-const CALENDLY_URL =
-  process.env.NEXT_PUBLIC_CALENDLY_URL ||
-  'https://calendly.com/vincent-genfeed/30min';
-
 const PLAN_ORDER = ['Pay As You Go', 'Hosted', 'Cloud Teams', 'Enterprise'];
 const FEATURED_TIER = 'Hosted';
 
 const FAQ_ITEMS = [
   {
     answer:
-      'Signing up is free. Credits buy the output you generate — images, reels, ads, articles, avatar clips, and voice. Subscriptions exist to make credits cheaper and to unlock more brands, channels, and seats.',
+      'Signing up is free. Credits buy the output you generate: images, reels, ads, articles, avatar clips, and voice. Subscriptions exist to make credits cheaper and to unlock more brands, channels, and seats.',
     question: 'How does pricing work?',
   },
   {
@@ -48,12 +44,12 @@ const FAQ_ITEMS = [
   },
   {
     answer:
-      'No. Genfeed routes every job to the best model for the format, brief, and budget — you never pick a model, manage keys, or pay to experiment across providers.',
+      'No. Genfeed routes every job to the best model for the format, brief, and budget, so you never pick a model, manage keys, or pay to experiment across providers.',
     question: 'Do I need to choose AI models?',
   },
   {
     answer:
-      'Creator ($49/month) includes 8,000 credits — about $80 of pay-as-you-go output — plus 5 brand kits and 15 connected channels. Cloud Teams ($499/month) includes 5 seats, 80,000 credits in a shared pool, multi-organization control, and approvals.',
+      'Creator ($49/month) includes 8,000 credits (about $80 of pay-as-you-go output) plus 5 brand kits and 15 connected channels. Cloud Teams ($499/month) includes 5 seats, 80,000 credits in a shared pool, multi-organization control, and approvals.',
     question: 'What do subscriptions add?',
   },
   {
@@ -126,7 +122,7 @@ function getDisplayName(label: string): string {
 
 function getPriceQualifier(plan: (typeof websitePlans)[number]): string {
   if (plan.type === 'payg') {
-    return 'No monthly fee — buy credit packs as you go';
+    return 'No monthly fee, buy credit packs as you go';
   }
 
   if (plan.type === 'subscription') {
@@ -184,7 +180,7 @@ export default function PricingContent() {
                 ? paygSignUpHref
                 : isFeatured
                   ? creatorSignUpHref
-                  : plan.ctaHref || CALENDLY_URL;
+                  : plan.ctaHref || EnvironmentService.calendly;
               const ctaLabel = plan.cta || 'Get Started';
 
               return (
@@ -201,7 +197,7 @@ export default function PricingContent() {
                   {isFeatured ? (
                     <div className="absolute right-6 top-6">
                       <span className="bg-zinc-950 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-surface">
-                        Best rate
+                        Popular
                       </span>
                     </div>
                   ) : null}
@@ -227,14 +223,26 @@ export default function PricingContent() {
                         </span>
                       </div>
                     ) : (
-                      <span
-                        className={cn(
-                          'text-5xl font-semibold tracking-[-0.03em]',
-                          isFeatured && 'text-inv-fg',
-                        )}
-                      >
-                        {isEnterprise ? 'Custom' : formatPrice(plan.price)}
-                      </span>
+                      <div className="flex items-baseline gap-1.5">
+                        <span
+                          className={cn(
+                            'text-5xl font-semibold tracking-[-0.03em]',
+                            isFeatured && 'text-inv-fg',
+                          )}
+                        >
+                          {isEnterprise ? 'Custom' : formatPrice(plan.price)}
+                        </span>
+                        {plan.type === 'subscription' ? (
+                          <span
+                            className={cn(
+                              'text-sm font-medium',
+                              isFeatured ? 'text-inv-fg/45' : 'text-surface/40',
+                            )}
+                          >
+                            /mo
+                          </span>
+                        ) : null}
+                      </div>
                     )}
                   </div>
 
@@ -311,7 +319,7 @@ export default function PricingContent() {
         <WebSection maxWidth="lg" py="md">
           <SectionHeader
             title="What output costs."
-            description="Every job shows its price before you run it. The router picks the best model for each format — the price below is what you pay, whatever model runs."
+            description="Every job shows its price before you run it. The router picks the best model for each format, and the price below is what you pay, whatever model runs."
             className="[&_h2]:text-5xl mb-4"
           />
 
@@ -380,7 +388,11 @@ export default function PricingContent() {
             size={ButtonSize.PUBLIC}
             asChild
           >
-            <a href={CALENDLY_URL} target="_blank" rel="noopener noreferrer">
+            <a
+              href={EnvironmentService.calendly}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               Book a Demo
             </a>
           </Button>
