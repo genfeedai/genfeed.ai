@@ -17,7 +17,7 @@ import {
 
 const PRODUCT_LINKS = [
   {
-    description: '$49/mo platform access + PAYG output',
+    description: 'Free to start — credits buy your output',
     href: '/pricing',
     icon: HiCloud,
     label: 'Cloud App',
