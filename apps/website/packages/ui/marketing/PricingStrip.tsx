@@ -71,7 +71,7 @@ export default function PricingStrip({
 
               <div
                 className={cn(
-                  'text-2xl font-serif',
+                  'text-2xl font-semibold',
                   inverted ? 'text-inv-fg' : 'text-surface',
                 )}
               >

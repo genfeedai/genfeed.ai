@@ -60,7 +60,7 @@ const SectionHeader = memo(function SectionHeader({
         </div>
       )}
 
-      <h2 className={cn('font-serif mb-4', sizeConfig.title)}>{title}</h2>
+      <h2 className={cn('font-semibold mb-4', sizeConfig.title)}>{title}</h2>
 
       {description && (
         <p

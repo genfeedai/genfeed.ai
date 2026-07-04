@@ -75,11 +75,8 @@ export default function TermsPage() {
       <PageLayout
         badge="Legal"
         badgeIcon={LuFileText}
-        title={
-          <>
-            Terms of <span className="italic font-light">Service</span>
-          </>
-        }
+        compact
+        title={<>Terms of Service</>}
         description="Legal terms for using Genfeed. All purchases final. No refunds."
       >
         {/* Main Terms */}
@@ -133,7 +130,7 @@ export default function TermsPage() {
         <section className="py-32 bg-fill/[0.02] gsap-section">
           <div className="container mx-auto px-6">
             <div className="text-center mb-16">
-              <h2 className="text-5xl font-serif mb-6">
+              <h2 className="text-5xl font-semibold mb-6">
                 Additional Legal Info
               </h2>
               <p className="text-surface/50 max-w-xl mx-auto">
@@ -173,7 +170,7 @@ export default function TermsPage() {
           <div className="container mx-auto px-6">
             <div className="text-center max-w-3xl mx-auto">
               <LuMail className="size-12 mx-auto text-surface/30 mb-8" />
-              <h2 className="text-5xl font-serif mb-10">Questions?</h2>
+              <h2 className="text-5xl font-semibold mb-10">Questions?</h2>
               <p className="text-surface/40 text-xl mb-12 font-medium">
                 If you have any questions about these terms, please contact our
                 support team.

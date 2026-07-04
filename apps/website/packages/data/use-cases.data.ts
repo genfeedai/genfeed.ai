@@ -152,14 +152,16 @@ export const useCases: UseCase[] = [
     ],
   },
   {
-    audience: 'Marketing agencies, content agencies, social media managers',
+    audience:
+      'Marketing agencies, paid social & Meta ads agencies, social media managers',
     cta: 'Get Started',
     description:
-      'Create content for all your clients from one dashboard. Track performance, automate workflows, and scale without hiring.',
+      'Create content and ad creative for all your clients from one dashboard. Spin up campaign variations, track performance, and scale without hiring.',
     headline: 'Manage 10+ Clients Without 10+ Tools',
     painPoints: [
       'Managing 10+ client accounts across different tools',
       'Clients asking "which post drove sales?"',
+      'Burning hours producing ad creative and variations for every test',
       'Team members using different tools/workflows',
       "Can't scale beyond 15-20 clients per team",
       'High tool costs eating into margins',
@@ -170,6 +172,7 @@ export const useCases: UseCase[] = [
     },
     results: [
       'Manage 3x more clients with same team',
+      'Ship 5x more ad creative variations per campaign',
       'Reduce tool costs by 60% (consolidate 5+ tools)',
       'Show clients ROI, increase retention 40%',
       'Save 20+ hours/week per client',
@@ -177,12 +180,13 @@ export const useCases: UseCase[] = [
     slug: 'agencies',
     solutions: [
       'Manage all clients from one dashboard',
+      'Generate ad creative and hooks in bulk for Meta, TikTok, and Reels',
       'Show clients exact ROI per post',
       'Team collaboration with approval workflows',
       'Automate recurring content (daily posts, weekly reports)',
       'White-label option for enterprise clients',
     ],
-    subtitle: 'Content & Marketing Agencies',
+    subtitle: 'Content, Marketing & Paid Social Agencies',
     title: 'Genfeed for Agencies',
     workflow: [
       {

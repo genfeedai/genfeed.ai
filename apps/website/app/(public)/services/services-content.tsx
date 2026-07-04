@@ -75,11 +75,8 @@ export default function ServicesContent() {
       <PageLayout
         badge="Services"
         badgeIcon={LuSparkles}
-        title={
-          <>
-            Professional <span className="italic font-light">services.</span>
-          </>
-        }
+        compact
+        title={<>Professional services.</>}
         description="Let us create for you, get your team up to speed, or plan your content strategy."
       >
         <WebSection maxWidth="full">
@@ -122,7 +119,7 @@ export default function ServicesContent() {
                   <div className="mb-2">
                     <span
                       className={cn(
-                        'text-3xl font-serif',
+                        'text-3xl font-semibold',
                         isFeatured && 'text-inv-fg',
                       )}
                     >

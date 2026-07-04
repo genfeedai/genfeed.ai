@@ -194,6 +194,7 @@ export default function StudioContent() {
         }
         heroProof={HERO_PROOF}
         heroVisual={HERO_VISUAL}
+        compact
         title="Studio"
         description="Create AI content in minutes, not hours."
       >

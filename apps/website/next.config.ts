@@ -60,16 +60,6 @@ const config = createAppNextConfig({
       permanent: true,
       source: '/influencers',
     },
-    {
-      destination: '/use-cases/:slug',
-      permanent: true,
-      source: '/for/:slug',
-    },
-    {
-      destination: '/use-cases/creators',
-      permanent: true,
-      source: '/for',
-    },
   ],
   sentryProject: 'genfeed-ai',
 });

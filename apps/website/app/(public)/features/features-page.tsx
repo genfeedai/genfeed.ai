@@ -58,12 +58,8 @@ export default function FeaturesPage(): React.ReactElement {
       <PageLayout
         badge="Platform Capabilities"
         badgeIcon={LuLayers}
-        title={
-          <>
-            What Genfeed Does{' '}
-            <span className="text-surface italic font-light">For You</span>
-          </>
-        }
+        compact
+        title={<>What Genfeed Does For You</>}
         description="Every feature saves you time and eliminates busywork. Here is exactly what you get."
       >
         {/* Features Grid */}
@@ -114,7 +110,7 @@ export default function FeaturesPage(): React.ReactElement {
                     <span className="text-[10px] font-black uppercase tracking-widest text-surface/40 mb-2">
                       Case Study 01
                     </span>
-                    <h4 className="text-3xl font-serif text-surface">
+                    <h4 className="text-3xl font-semibold text-surface">
                       The Architecture of Speed
                     </h4>
                   </div>
@@ -122,7 +118,7 @@ export default function FeaturesPage(): React.ReactElement {
               </div>
               <div className="w-full lg:w-1/2 space-y-12">
                 <div>
-                  <h2 className="text-5xl font-serif mb-8">
+                  <h2 className="text-5xl font-semibold mb-8">
                     Built for Speed and Quality.
                   </h2>
                   <p className="text-lg text-surface/40 leading-relaxed">
@@ -134,13 +130,17 @@ export default function FeaturesPage(): React.ReactElement {
                 </div>
                 <div className="grid grid-cols-2 gap-8">
                   <div className="p-8 border border-edge/5">
-                    <span className="text-4xl font-serif block mb-2">250%</span>
+                    <span className="text-4xl font-semibold block mb-2">
+                      250%
+                    </span>
                     <span className="text-[10px] font-black uppercase tracking-widest text-surface/30">
                       Efficiency Increase
                     </span>
                   </div>
                   <div className="p-8 border border-edge/5">
-                    <span className="text-4xl font-serif block mb-2">0.4s</span>
+                    <span className="text-4xl font-semibold block mb-2">
+                      0.4s
+                    </span>
                     <span className="text-[10px] font-black uppercase tracking-widest text-surface/30">
                       Average Latency
                     </span>
@@ -165,7 +165,7 @@ export default function FeaturesPage(): React.ReactElement {
         <section className="py-40">
           <div className="container mx-auto px-6">
             <div className="text-center max-w-3xl mx-auto">
-              <h2 className="text-6xl font-serif mb-10">
+              <h2 className="text-6xl font-semibold mb-10">
                 Start Creating Today
               </h2>
               <p className="text-surface/40 text-xl mb-12 font-medium">

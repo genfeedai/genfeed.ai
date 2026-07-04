@@ -213,6 +213,7 @@ export default function WorkflowsContent() {
         }
         heroProof={HERO_PROOF}
         heroVisual={HERO_VISUAL}
+        compact
         title="Workflows"
         description="Deterministic workflow control for agentic execution."
       >

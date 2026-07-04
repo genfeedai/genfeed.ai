@@ -120,7 +120,7 @@ function Button({
   onClick,
   onMouseDown,
   size = ButtonSize.DEFAULT,
-  textTransform = 'none',
+  textTransform,
   tooltip,
   tooltipPosition = 'bottom',
   type = 'button',
@@ -132,7 +132,13 @@ function Button({
   const Comp = asChild ? Slot : 'button';
   const isButtonDisabled = disabled || isDisabled || isLoading;
   const resolvedVariant = variant ?? ButtonVariant.DEFAULT;
-  const transformClass = TEXT_TRANSFORM_CLASSES[textTransform] ?? 'normal-case';
+  // PUBLIC (marketing) buttons declare uppercase in their size styles; honor
+  // that as the default so website CTAs stay consistent with the topbar without
+  // each caller re-specifying it. Explicit textTransform still wins.
+  const effectiveTextTransform =
+    textTransform ?? (size === ButtonSize.PUBLIC ? 'uppercase' : 'none');
+  const transformClass =
+    TEXT_TRANSFORM_CLASSES[effectiveTextTransform] ?? 'normal-case';
   const variantClassName = getVariantOverrideClassName(resolvedVariant);
   const sizeClassName = getSizeOverrideClassName(size);
 
