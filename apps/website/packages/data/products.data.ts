@@ -577,7 +577,7 @@ export const products: Product[] = [
     name: 'Studio',
     pricing: {
       recommended: 'Hosted',
-      why: '$49/month platform access plus PAYG output is the entry managed path for creators posting daily.',
+      why: 'Start free with pay-per-output credits; the Creator subscription ($49/month, 8,000 credits included) is the better rate for daily publishing.',
     },
     relatedProducts: ['publisher', 'workflows', 'intelligence'],
     slug: 'studio',

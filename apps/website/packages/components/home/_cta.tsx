@@ -13,7 +13,7 @@ const CALENDLY_URL =
   'https://calendly.com/vincent-genfeed/30min';
 
 export default function HomeCTA(): React.ReactElement {
-  const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=hosted`;
+  const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
 
   return (
     <section className="gen-section-spacing-xl relative overflow-hidden gen-grain">
@@ -23,20 +23,18 @@ export default function HomeCTA(): React.ReactElement {
             as="h2"
             className="text-5xl font-semibold leading-none tracking-[-0.03em] sm:text-6xl md:text-7xl"
           >
-            Start with the cloud app.
+            Start free.
             <br />
-            <span className="gen-text-heading">
-              Scale usage as output grows.
-            </span>
+            <span className="gen-text-heading">Pay for what you create.</span>
           </Heading>
 
           <Text
             as="p"
             className="text-lg md:text-xl gen-text-muted max-w-xl leading-relaxed"
           >
-            The shortest path is managed Genfeed: no deployment, no model
-            routing, no quota guessing. Book a demo when a team workflow needs
-            design before rollout.
+            No subscription required. Sign up, brief the platform, and spend
+            credits only on the output you keep. Book a demo when a team rollout
+            needs planning first.
           </Text>
 
           <HStack className="flex-wrap justify-center gap-3">
@@ -47,7 +45,7 @@ export default function HomeCTA(): React.ReactElement {
               trackingName="cta_final_click"
             >
               <a href={signUpHref} target="_blank" rel="noopener noreferrer">
-                Start Cloud App
+                Start Creating Free
                 <LuArrowRight className="size-4" />
               </a>
             </ButtonTracked>

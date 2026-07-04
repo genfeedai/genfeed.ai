@@ -34,6 +34,11 @@ const WEBSITE_SECTIONS: FooterSection[] = [
       { href: '/chatgpt', label: 'ChatGPT' },
       { href: '/skills', label: 'Skills' },
       { href: '/docs', label: 'Docs' },
+      {
+        external: true,
+        href: 'https://github.com/genfeedai/genfeed.ai',
+        label: 'GitHub',
+      },
     ],
     title: 'Developers',
   },

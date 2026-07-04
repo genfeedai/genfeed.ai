@@ -46,7 +46,7 @@ describe('HomeHero', () => {
 
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     expect(
-      screen.getByRole('link', { name: /start cloud app/i }),
+      screen.getByRole('link', { name: /start creating free/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /see formats/i }),
@@ -58,5 +58,11 @@ describe('HomeHero', () => {
 
     expect(screen.getByTestId('home-hero-output-wall')).toBeInTheDocument();
     expect(screen.queryByTestId('home-hero-card-deck')).not.toBeInTheDocument();
+  });
+
+  it('labels the hero metrics as a sample campaign readout', () => {
+    render(<HomeHero />);
+
+    expect(screen.getByText(/sample campaign readout/i)).toBeInTheDocument();
   });
 });

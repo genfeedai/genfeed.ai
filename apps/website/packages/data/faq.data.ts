@@ -27,7 +27,7 @@ export const FAQ_ITEMS_CORE: FAQItem[] = [
   },
   {
     answer:
-      'Start with the Cloud App for $49/mo plus pay-as-you-go output. Move to Cloud Teams when you need paid seats, shared approvals, multi-organization workflows, and managed billing.',
+      'Sign up free and buy credits for the output you generate. Subscribe to Creator ($49/mo, 8,000 credits included) when you publish weekly, or Cloud Teams when you need seats, shared approvals, and multi-organization workflows.',
     question: 'How do I get started?',
   },
   {
@@ -61,7 +61,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
       },
       {
         answer:
-          'Start with the Cloud App for $49/mo plus pay-as-you-go output. Move to Cloud Teams when you need paid seats, shared approvals, multi-organization workflows, and managed billing.',
+          'Sign up free and buy credits for the output you generate. Subscribe to Creator ($49/mo, 8,000 credits included) when you publish weekly, or Cloud Teams when you need seats, shared approvals, and multi-organization workflows.',
         question: 'How do I get started?',
       },
     ],
@@ -71,28 +71,33 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
     questions: [
       {
         answer:
-          'Genfeed separates platform access from output usage. Cloud App starts at $49/mo plus pay-as-you-go output. Cloud Teams adds paid seats, collaboration, multi-organization workflows, and managed billing. Enterprise is custom.',
+          'Credits buy output: 1 credit is one cent at the pay-as-you-go rate. Signing up is free — you only pay for what you generate. Subscriptions include monthly credits at a ~40% better rate and unlock more brands, channels, and seats.',
         question: 'How does pricing work?',
       },
       {
         answer:
-          'Cloud App is $49/month plus pay-as-you-go output. Cloud Teams starts at $499/month for collaboration, multi-organization, and multi-brand use cases. Enterprise is custom.',
+          'Pay As You Go is free with credit packs. Creator is $49/month with 8,000 credits included. Cloud Teams is $499/month with 5 seats and an 80,000-credit shared pool, then $49 per extra seat. Enterprise is custom.',
         question: 'What are the pricing tiers?',
       },
       {
         answer:
-          'No. The managed product starts with Cloud App at $49/mo plus usage-based output. The entry plan is priced around real production output instead of an artificial free tier.',
+          'Yes. Signing up costs nothing and there is no monthly fee on Pay As You Go — you buy credits and spend them on output. Developers can also self-host the open-source core from GitHub.',
         question: 'Is there a free option?',
       },
       {
         answer:
-          'The entry Cloud App plan does not bundle output quotas. You pay for the videos, images, and voice output you create.',
-        question: 'What happens when I create more?',
+          'An image is 50 credits ($0.50), an 8-second reel is 600 credits ($6.00), a voiceover is 17 credits per minute, and an article is 25 credits. Every job shows its price before you run it, and credit packs above $999 include bonus credits.',
+        question: 'What does output cost?',
       },
       {
         answer:
-          'Cloud Teams is for agencies and teams that need shared workspaces, organization boundaries, brand systems, approvals, managed billing, and priority support.',
-        question: 'When do I need Cloud?',
+          'Pay As You Go includes 1 brand kit and 3 connected channels. Creator raises that to 5 brand kits and 15 channels. Cloud Teams and Enterprise remove the limits and add organizations, seats, and shared approvals.',
+        question: 'How many brands and channels can I connect?',
+      },
+      {
+        answer:
+          'Cloud Teams is for agencies and teams that need shared workspaces, organization boundaries, brand systems, approvals, a shared credit pool, managed billing, and priority support.',
+        question: 'When do I need Cloud Teams?',
       },
     ],
   },
@@ -101,8 +106,8 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
     questions: [
       {
         answer:
-          'We use premium AI models including Veo-3 and Kling for videos, Flux-pro and Imagen for images, ElevenLabs for voice, Hedra for avatars, and GPT-4 for articles. All models are included in your credit purchase.',
-        question: 'What AI models do you use?',
+          'You never pick a model. The Genfeed router sends every job to the best premium model for the format, brief, and budget — and upgrades automatically as better models ship. You see the output and its credit price, not a model menu.',
+        question: 'Which AI models do you use?',
       },
       {
         answer:
@@ -126,12 +131,12 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
     questions: [
       {
         answer:
-          'Cloud App includes managed platform access, a personal workspace, one brand kit, premium AI models, multi-platform publishing, and pay-as-you-go output.',
-        question: "What's included in Cloud App?",
+          'Pay As You Go includes a personal workspace, 1 brand kit, 3 connected channels, auto-routed premium models, and multi-platform publishing — with no monthly fee. Creator adds 8,000 monthly credits at a better rate, 5 brand kits, and 15 channels.',
+        question: "What's included in the free and Creator plans?",
       },
       {
         answer:
-          'Cloud Teams adds collaboration workspaces, multi-organization accounts, multi-brand operations, roles, shared approvals, managed billing, priority support, and advanced analytics.',
+          'Cloud Teams adds 5 seats, an 80,000-credit shared pool, collaboration workspaces, multi-organization accounts, multi-brand operations, roles, shared approvals, managed billing, priority support, and advanced analytics.',
         question: 'What extra features come with Cloud Teams?',
       },
       {
