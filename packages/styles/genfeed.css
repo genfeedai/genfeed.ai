@@ -200,43 +200,21 @@
    Interactive States
    -------------------------------------------------------------------------- */
 .gen-hover-lift {
-  transition:
-    transform 0.3s ease-out,
-    box-shadow 0.3s ease-out;
+  transition: transform 0.3s ease-out;
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: var(--shadow-glow-md);
-  }
-}
-
-.gen-hover-glow {
-  transition:
-    box-shadow 0.3s ease-out,
-    border-color 0.3s ease-out;
-
-  &:hover {
-    box-shadow: var(--shadow-glow-lg);
-    border-color: rgba(255, 255, 255, 0.15);
-
-    :root[data-theme="light"] &,
-    .light & {
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-      border-color: rgba(0, 0, 0, 0.12);
-    }
   }
 }
 
 .node-card {
   transition:
     transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1),
-    box-shadow 0.6s ease,
     border-color 0.6s ease;
   cursor: pointer;
 
   &:hover {
     border-color: var(--overlay-white-20);
-    box-shadow: 0 0 60px var(--overlay-white-20);
     transform: scale(1.05);
     z-index: 60;
   }
@@ -245,7 +223,6 @@
   .light & {
     &:hover {
       border-color: var(--overlay-black-20);
-      box-shadow: 0 4px 30px var(--overlay-black-10);
     }
   }
 }
@@ -306,21 +283,6 @@
 /* --------------------------------------------------------------------------
    Hero Utilities
    -------------------------------------------------------------------------- */
-.gen-hero-glow {
-  background: radial-gradient(
-    circle at 30% 50%,
-    rgba(255, 255, 255, 0.05),
-    transparent 60%
-  );
-
-  :root[data-theme="light"] & {
-    background: radial-gradient(
-      circle at 30% 50%,
-      rgba(0, 0, 0, 0.03),
-      transparent 60%
-    );
-  }
-}
 
 /* --------------------------------------------------------------------------
    Cinematic Utilities
@@ -431,26 +393,18 @@
   }
 }
 
+/* Flat hairline card — no spotlight tint, no drop shadow, no hover lift.
+   Interaction is border emphasis only, per the monochrome design direction. */
 .gen-card-spotlight {
   position: relative;
   overflow: hidden;
   border-radius: var(--radius-card);
   border: 1px solid var(--gen-accent-border);
-  background: color-mix(
-    in srgb,
-    hsl(var(--background)) 82%,
-    hsl(var(--gen-accent)) 18%
-  );
-  box-shadow: 0 22px 50px -34px rgba(0, 0, 0, 0.55);
-  transition:
-    border-color 0.3s ease,
-    box-shadow 0.3s ease,
-    transform 0.3s ease;
+  background: hsl(var(--card));
+  transition: border-color 0.3s ease;
 
   &:hover {
     border-color: var(--gen-accent-hover);
-    box-shadow: 0 28px 64px -34px rgba(0, 0, 0, 0.68);
-    transform: translateY(-2px);
   }
 }
 
@@ -562,8 +516,6 @@
   border-radius: var(--radius-card);
   border: 1px solid color-mix(in srgb, hsl(var(--gen-accent)) 72%, white 28%);
   background: color-mix(in srgb, hsl(var(--gen-accent)) 82%, black 18%);
-  box-shadow: 0 28px 64px -34px
-    color-mix(in srgb, hsl(var(--gen-accent)) 45%, black 55%);
   color: hsl(var(--background));
 }
 

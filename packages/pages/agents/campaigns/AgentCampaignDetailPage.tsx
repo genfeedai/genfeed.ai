@@ -1,6 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import type { IAgentCampaignStatusResponse } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -166,7 +167,7 @@ export default function AgentCampaignDetailPage() {
             </>
           }
           variant={ButtonVariant.SECONDARY}
-          onClick={() => router.push('/orchestration/campaigns')}
+          onClick={() => router.push(APP_ROUTES.ORCHESTRATION.CAMPAIGNS)}
         />
       </Container>
     );
@@ -230,7 +231,7 @@ export default function AgentCampaignDetailPage() {
         <AgentCampaignDetailHeader
           campaign={campaign}
           creditsPercent={creditsPercent}
-          onBack={() => router.push('/orchestration/campaigns')}
+          onBack={() => router.push(APP_ROUTES.ORCHESTRATION.CAMPAIGNS)}
           status={status}
         />
 

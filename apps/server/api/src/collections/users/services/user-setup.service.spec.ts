@@ -325,6 +325,28 @@ describe('UserSetupService', () => {
         );
       });
 
+      it('should reuse the org from an existing membership even when the legacy user-owned lookup misses (#1227 no duplicate org)', async () => {
+        // Membership points at the org, but the legacy `Organization.user`
+        // ownership lookup returns nothing — the old dedup path would have
+        // created a second "Default Organization".
+        mockMembersService.findOne.mockResolvedValue(mockMember);
+        mockOrganizationsService.findOne.mockImplementation(
+          (filter: Record<string, unknown>) =>
+            Promise.resolve(filter._id ? mockOrg : null),
+        );
+
+        const result = await service.initializeUserResources(userId);
+
+        expect(result.organization).toBe(mockOrg);
+        expect(mockOrganizationsService.create).not.toHaveBeenCalled();
+        expect(mockLogger.warn).toHaveBeenCalledWith(
+          expect.stringContaining(
+            'Organization already exists (via membership)',
+          ),
+          expect.any(String),
+        );
+      });
+
       it('should return existing org settings without creating new ones', async () => {
         mockOrganizationSettingsService.findOne.mockResolvedValue(
           mockOrgSettings,

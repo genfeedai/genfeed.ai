@@ -1,5 +1,6 @@
 'use client';
 
+import { createBrandAppRoute } from '@genfeedai/constants';
 import {
   useConfirmModal,
   useUploadModal,
@@ -151,7 +152,11 @@ export function useBrandDetail(): UseBrandDetailReturn {
     );
     const canonicalRouteMatch = pathname.match(/\/settings(\/.*)?$/);
     const suffix = oldRouteMatch?.[1] ?? canonicalRouteMatch?.[1] ?? '';
-    const canonicalPath = `/${orgSlug}/${matchedRouteBrand.slug}/settings${suffix}`;
+    const canonicalPath = createBrandAppRoute(
+      orgSlug,
+      matchedRouteBrand.slug,
+      `/settings${suffix}`,
+    );
     const usesIdAsSlug = matchedRouteBrand.id === routeBrandParam;
 
     if ((oldRouteMatch || usesIdAsSlug) && pathname !== canonicalPath) {

@@ -11,7 +11,6 @@ const postMock = vi.fn();
 const generateAccountContentMock = vi.fn();
 const generateTweetsMock = vi.fn();
 const generateThreadMock = vi.fn();
-const trackMock = vi.fn();
 const useBrandMock = vi.fn();
 const copyToClipboardMock = vi.fn();
 const workingTitlePlaceholder = 'Optional internal title for the draft';
@@ -49,10 +48,6 @@ vi.mock('next/navigation', () => ({
     replace: replaceMock,
   }),
   useSearchParams: () => searchParamsState,
-}));
-
-vi.mock('@vercel/analytics', () => ({
-  track: (...args: unknown[]) => trackMock(...args),
 }));
 
 vi.mock('@/lib/desktop/runtime', () => ({
@@ -135,10 +130,6 @@ describe('PostsWritePage', () => {
 
     expect(pushMock).toHaveBeenCalledWith(
       '/moonrise-org/moonrise-studio/posts/post-1',
-    );
-    expect(trackMock).toHaveBeenCalledWith(
-      'content_write_blank_draft_started',
-      expect.objectContaining({ hasPrefilledIngredient: false }),
     );
   });
 
@@ -225,10 +216,6 @@ describe('PostsWritePage', () => {
     expect(pushMock).toHaveBeenCalledWith(
       '/moonrise-org/moonrise-studio/posts/generated-1',
     );
-    expect(trackMock).toHaveBeenCalledWith(
-      'content_write_prompt_generated',
-      expect.objectContaining({ mode: 'post' }),
-    );
   });
 
   it('generates a thread from the prompt and redirects to the root draft', async () => {
@@ -266,10 +253,6 @@ describe('PostsWritePage', () => {
 
     expect(pushMock).toHaveBeenCalledWith(
       '/moonrise-org/moonrise-studio/posts/thread-root',
-    );
-    expect(trackMock).toHaveBeenCalledWith(
-      'content_write_prompt_generated',
-      expect.objectContaining({ mode: 'thread' }),
     );
   });
 

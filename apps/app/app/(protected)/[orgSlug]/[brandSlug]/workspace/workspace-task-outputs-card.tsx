@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { Task } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
@@ -51,7 +52,7 @@ export function WorkspaceTaskOutputsCard({
           size={ButtonSize.SM}
           className="font-semibold"
         >
-          <Link href="/library/ingredients">Open library</Link>
+          <Link href={APP_ROUTES.LIBRARY.INGREDIENTS}>Open library</Link>
         </Button>
       </div>
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import {
@@ -170,7 +171,7 @@ export default function ProactiveContent() {
     return (
       <ProactiveErrorState
         error={error}
-        onContinueSelfServe={() => push('/onboarding/brand')}
+        onContinueSelfServe={() => push(APP_ROUTES.ONBOARDING.BRAND)}
       />
     );
   }
@@ -181,8 +182,8 @@ export default function ProactiveContent() {
         workspace={workspace}
         statusLabel={statusLabel}
         isRefreshing={isRefreshing}
-        onConfigureProviders={() => push('/onboarding/providers')}
-        onContinueSelfServe={() => push('/onboarding/brand')}
+        onConfigureProviders={() => push(APP_ROUTES.ONBOARDING.PROVIDERS)}
+        onContinueSelfServe={() => push(APP_ROUTES.ONBOARDING.BRAND)}
       />
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
