@@ -5,13 +5,17 @@
  * See: https://github.com/genfeedai/genfeed.ai/issues/486
  *
  * Pricing Strategy:
- * - Self-hosted core is free with bring-your-own AI keys
- * - Cloud App starts at $49/month plus pay-as-you-go output
- * - Cloud is higher-entry B2B for collaboration, multi-org, and multi-brand use
- * - Credits are tracked internally but NEVER shown to users
- * - Auto-select premium AI models (no user decision fatigue)
+ * - Credits are the user-facing unit of output: 1 credit = $0.01 at the
+ *   pay-as-you-go rate (~70% margin on provider cost, see applyMargin)
+ * - Pay As You Go is free to join: buy credit packs, spend on any output
+ * - Subscriptions sell a better credit rate, not access: included monthly
+ *   credits are priced at ~50% margin (Creator $49 → 8,000 credits ≈ $80 of
+ *   PAYG output; Cloud Teams $499 → 80,000 credits ≈ $800 of PAYG output)
+ * - Brand kits, connected channels, and seats are gated by tier
+ * - Models are never user-selected: the Genfeed router picks the best model
+ *   for each format, brief, and budget
  *
- * @updated 2026-01-21
+ * @updated 2026-07-03
  */
 
 import type {
@@ -42,6 +46,8 @@ interface PricingPlanProps {
   description: string;
   /** Billing interval */
   interval: 'month' | 'year' | 'payg';
+  /** Credits included every month (subscriptions only) */
+  includedCredits?: number | null;
   /** Feature list for pricing card */
   features: string[];
   /** Monthly price in USD (null for contact sales) */
@@ -109,6 +115,8 @@ export function applyMargin(providerCostUsd: number): number {
  * See: https://github.com/genfeedai/genfeed.ai/issues?q=is%3Aissue+pricing
  */
 export const INTERNAL_CREDIT_COSTS = {
+  /** Long-form article: 25 credits = $0.25 (70% margin on ~$0.075 LLM cost) */
+  articlePerPost: 25,
   /** Avatar/Lip-sync per second: 100 credits = $1.00/sec */
   avatarPerSecond: 100,
   /** Image (1K/2K): 50 credits = $0.50 (70% margin on $0.15 cost) */
@@ -149,54 +157,57 @@ export const AVATAR_CREDIT_COSTS = {
 
 /**
  * Website pricing plans - displayed on public pricing page
- * OSS core, hosted PAYG, and B2B cloud positioning
+ * Free-to-join PAYG credits, subscriptions with included credits, B2B cloud
  */
 export const websitePlans: PricingPlanProps[] = [
-  // Self-Hosted Tier - Deploy on your own infrastructure ($0)
+  // Pay As You Go Tier - free account, credits only ($0/month)
   {
-    cta: 'Deploy Free',
-    ctaHref: '/host',
-    description: 'Deploy on your infrastructure',
+    cta: 'Start Free',
+    ctaHref: `${process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'https://app.genfeed.ai'}/sign-up?plan=payg`,
+    description: 'Free account with pay-per-output credits',
     features: [
-      'Full platform access',
-      'Your own AI keys',
-      'Your own infrastructure',
-      'Community support',
-      'AGPL-3.0 license',
-    ],
-    interval: 'payg',
-    label: 'Self-Hosted',
-    outputs: null,
-    price: 0,
-    target: 'Developers and teams who want full control',
-    type: 'byok',
-    valueProposition: 'Full platform on your servers. You manage everything.',
-  },
-
-  // Hosted / Cloud App Tier - $49/month + PAYG output
-  {
-    cta: 'Start Cloud App',
-    ctaHref: `${process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'https://app.genfeed.ai'}/sign-up?plan=hosted`,
-    description: 'Managed app access with usage-based output',
-    features: [
-      '$49/month platform access',
-      'Pay-as-you-go videos, images, and voice',
-      'No infrastructure to manage',
-      'Premium AI models (auto-selected)',
-      'Personal workspace',
+      'No monthly fee — buy credits, spend on any format',
+      'Credits at the standard rate (1 credit = $0.01)',
+      'Best model auto-routed for every job',
       '1 brand kit',
+      '3 connected channels',
       'Multi-platform publishing',
       'Email support',
     ],
     interval: 'payg',
+    label: 'Pay As You Go',
+    outputs: null,
+    price: 0,
+    target: 'Creators testing Genfeed or running bursty campaigns',
+    type: 'payg',
+    valueProposition:
+      'Sign up free. Buy credits. Pay only for the output you actually generate.',
+  },
+
+  // Hosted / Creator Tier - $49/month subscription with included credits
+  {
+    cta: 'Start Creator',
+    ctaHref: `${process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'https://app.genfeed.ai'}/sign-up?plan=hosted`,
+    description: 'Monthly subscription with included credits at a better rate',
+    features: [
+      '8,000 credits included monthly (≈ $80 of pay-as-you-go output)',
+      'Included credits ~40% cheaper than the standard rate',
+      'Best model auto-routed for every job',
+      '5 brand kits',
+      '15 connected channels',
+      'Top up with credit packs anytime',
+      'Email support',
+    ],
+    includedCredits: 8_000,
+    interval: 'month',
     label: 'Hosted',
     outputs: null,
     price: 49,
     stripePriceId: STRIPE_PRICE_IDS.pro,
-    target: 'Creators and founders who want managed Genfeed without DevOps',
-    type: 'payg',
+    target: 'Creators and founders publishing every week',
+    type: 'subscription',
     valueProposition:
-      'Start hosted for a small platform fee, then pay only for the output you create.',
+      'For steady publishing: a monthly fee that buys more output per dollar, plus more brands and channels.',
   },
 
   // Cloud Teams Tier - higher-entry B2B cloud
@@ -205,16 +216,16 @@ export const websitePlans: PricingPlanProps[] = [
     ctaHref: CALENDLY_URL,
     description: 'B2B cloud for teams, organizations, and brands',
     features: [
-      'Collaboration workspaces',
+      '80,000 credits included monthly (≈ $800 of pay-as-you-go output)',
+      '5 team seats included, then $49/seat/month',
+      'Shared credit pool with budgets',
       'Multi-organization account model',
       'Multi-brand operations',
-      'Roles and team permissions',
-      'Shared brand kits and approvals',
-      'Managed infrastructure and updates',
+      'Roles, shared approvals, and brand kits',
       'Priority support (24hr)',
       'Advanced analytics',
-      'PAYG output with managed billing',
     ],
+    includedCredits: 80_000,
     interval: 'month',
     label: 'Cloud Teams',
     outputs: null,
@@ -223,7 +234,7 @@ export const websitePlans: PricingPlanProps[] = [
     target: 'Agencies and teams managing multiple brands or organizations',
     type: 'subscription',
     valueProposition:
-      'A managed collaboration layer for teams that have outgrown a single hosted workspace.',
+      'Seats plus a shared credit pool for teams that have outgrown a single workspace.',
   },
 
   // Enterprise Tier - custom B2B deployment

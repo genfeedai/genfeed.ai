@@ -2,7 +2,14 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import {
+  AVATAR_CREDIT_COSTS,
+  BYOK_CREDIT_VALUE_DOLLARS,
+  creditPackPrice,
+  creditPackTotalCredits,
   formatPrice,
+  INTERNAL_CREDIT_COSTS,
+  VIDEO_CREDIT_COSTS,
+  WEBSITE_CREDIT_PACKS,
   websitePlans,
 } from '@helpers/business/pricing/pricing.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -25,29 +32,34 @@ const CALENDLY_URL =
   process.env.NEXT_PUBLIC_CALENDLY_URL ||
   'https://calendly.com/vincent-genfeed/30min';
 
-const PLAN_ORDER = ['Hosted', 'Cloud Teams', 'Enterprise'];
+const PLAN_ORDER = ['Pay As You Go', 'Hosted', 'Cloud Teams', 'Enterprise'];
 const FEATURED_TIER = 'Hosted';
 
 const FAQ_ITEMS = [
   {
     answer:
-      'Genfeed separates platform access from output usage. Start with the Cloud App at $49/month, then pay as you go for videos, images, and voice output.',
+      'Signing up is free. Credits buy the output you generate — images, reels, ads, articles, avatar clips, and voice. Subscriptions exist to make credits cheaper and to unlock more brands, channels, and seats.',
     question: 'How does pricing work?',
   },
   {
     answer:
-      'No. The entry cloud plan does not bundle artificial quotas. Output usage scales with what you actually create.',
-    question: 'Are credits shown to customers?',
+      'One credit is one cent at the pay-as-you-go rate. An image is 50 credits ($0.50), an 8-second reel is 600 credits ($6.00), a voiceover is 17 credits per minute, and an article is 25 credits. You see the cost of every job before you run it.',
+    question: 'What does output cost?',
   },
   {
     answer:
-      'Cloud App and Cloud Teams use managed premium models. You do not need to configure model keys to start creating.',
-    question: 'Do I need my own AI keys?',
+      'No. Genfeed routes every job to the best model for the format, brief, and budget — you never pick a model, manage keys, or pay to experiment across providers.',
+    question: 'Do I need to choose AI models?',
   },
   {
     answer:
-      'Cloud Teams adds collaboration workspaces, roles, organization boundaries, brand operations, shared approvals, managed billing, and priority support.',
-    question: 'When should I use Cloud Teams?',
+      'Creator ($49/month) includes 8,000 credits — about $80 of pay-as-you-go output — plus 5 brand kits and 15 connected channels. Cloud Teams ($499/month) includes 5 seats, 80,000 credits in a shared pool, multi-organization control, and approvals.',
+    question: 'What do subscriptions add?',
+  },
+  {
+    answer:
+      'Pay As You Go includes 1 brand kit and 3 connected channels. Creator raises that to 5 brand kits and 15 channels. Cloud Teams and Enterprise remove the limits and add organizations and seats.',
+    question: 'How many brands and channels can I connect?',
   },
   {
     answer:
@@ -56,12 +68,42 @@ const FAQ_ITEMS = [
   },
 ];
 
-const PAYG_RULES = [
-  'Cloud app first',
-  '$49/month platform access',
-  'Pay-as-you-go output',
-  'Book a demo for team rollout',
+const PRICING_RULES = [
+  'Free to sign up',
+  'Credits buy every format',
+  'Subscriptions make credits cheaper',
+  'Seats and shared pools for teams',
 ] as const;
+
+interface OutputCostRow {
+  credits: number;
+  label: string;
+  suffix?: string;
+}
+
+const OUTPUT_COSTS: OutputCostRow[] = [
+  { credits: INTERNAL_CREDIT_COSTS.image, label: 'Image (1K/2K)' },
+  { credits: INTERNAL_CREDIT_COSTS.image4k, label: 'Image (4K)' },
+  { credits: VIDEO_CREDIT_COSTS.video8s, label: 'Short video (8s)' },
+  { credits: AVATAR_CREDIT_COSTS.avatar4s, label: 'Avatar clip (4s)' },
+  {
+    credits: INTERNAL_CREDIT_COSTS.voicePerMinute,
+    label: 'Voiceover',
+    suffix: '/min',
+  },
+  {
+    credits: INTERNAL_CREDIT_COSTS.articlePerPost,
+    label: 'Article / SEO post',
+  },
+];
+
+function formatCredits(credits: number): string {
+  return `${credits.toLocaleString()} credits`;
+}
+
+function formatCreditsDollars(credits: number): string {
+  return `$${(credits * BYOK_CREDIT_VALUE_DOLLARS).toFixed(2)}`;
+}
 
 function getOrderedPlans() {
   const plansByLabel = new Map(websitePlans.map((plan) => [plan.label, plan]));
@@ -79,46 +121,43 @@ function getOrderedPlans() {
 }
 
 function getDisplayName(label: string): string {
-  return label === 'Hosted' ? 'Cloud App' : label;
+  return label === 'Hosted' ? 'Creator' : label;
 }
 
 function getPriceQualifier(plan: (typeof websitePlans)[number]): string {
   if (plan.type === 'payg') {
-    return '/month platform access + PAYG output';
+    return 'No monthly fee — buy credit packs as you go';
   }
 
   if (plan.type === 'subscription') {
-    return '/month + PAYG output';
+    const credits = plan.includedCredits?.toLocaleString();
+
+    return plan.label === 'Cloud Teams'
+      ? `/month · 5 seats + ${credits} credits`
+      : `/month · ${credits} credits included`;
   }
 
   return 'Custom terms';
 }
 
 function getPlanSummary(plan: (typeof websitePlans)[number]): string {
-  if (plan.label === 'Hosted') {
-    return 'The default path: managed Genfeed, managed models, and usage-based output billing.';
-  }
-
-  if (plan.label === 'Cloud Teams') {
-    return 'B2B cloud for collaboration, organizations, brands, approvals, and managed billing.';
-  }
-
   return plan.valueProposition || plan.description;
 }
 
 export default function PricingContent() {
   const containerRef = useMarketingEntrance({ hero: false, sections: false });
-  const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=hosted`;
+  const paygSignUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
+  const creatorSignUpHref = `${EnvironmentService.apps.app}/sign-up?plan=hosted`;
 
   return (
     <div ref={containerRef}>
       <PageLayout
-        title={<>Cloud app pricing, usage-based output.</>}
-        description="Start with managed Genfeed. Pay for platform access, then pay only for the videos, images, and voice output you create."
+        title={<>Credits for output. Subscriptions for scale.</>}
+        description="Signing up is free. Credits buy the content you generate; a subscription makes those credits cheaper and unlocks more brands, channels, and seats."
       >
         <WebSection maxWidth="lg" py="md">
           <div className="grid gap-px overflow-hidden border border-edge/5 bg-fill/5 md:grid-cols-4">
-            {PAYG_RULES.map((rule) => (
+            {PRICING_RULES.map((rule) => (
               <div key={rule} className="bg-background px-5 py-4">
                 <div className="flex items-center gap-2 text-sm text-surface/65">
                   <HiCheckCircle className="size-4 text-success" />
@@ -131,21 +170,22 @@ export default function PricingContent() {
 
         <WebSection maxWidth="full" py="md">
           <SectionHeader
-            title="Choose the smallest managed plan that fits."
-            description="The website leads with the Cloud App. Teams add paid seats, shared approvals, managed billing, and multi-organization control when the workflow needs it."
+            title="Start free. Subscribe when volume makes it cheaper."
+            description="Pay As You Go covers bursty campaigns with zero commitment. Creator and Cloud Teams include monthly credits at a ~40% better rate, plus more brands, channels, and seats."
             className="[&_h2]:text-5xl mb-4"
           />
 
-          <NeuralGrid columns={3} className="gsap-grid">
+          <NeuralGrid columns={4} className="gsap-grid">
             {getOrderedPlans().map((plan, index) => {
               const isFeatured = plan.label === FEATURED_TIER;
               const isEnterprise = plan.type === 'enterprise';
-              const ctaHref = isFeatured
-                ? signUpHref
-                : plan.ctaHref || CALENDLY_URL;
-              const ctaLabel = isFeatured
-                ? 'Start Cloud App'
-                : plan.cta || 'Get Started';
+              const isPayg = plan.type === 'payg';
+              const ctaHref = isPayg
+                ? paygSignUpHref
+                : isFeatured
+                  ? creatorSignUpHref
+                  : plan.ctaHref || CALENDLY_URL;
+              const ctaLabel = plan.cta || 'Get Started';
 
               return (
                 <NeuralGridItem
@@ -161,7 +201,7 @@ export default function PricingContent() {
                   {isFeatured ? (
                     <div className="absolute right-6 top-6">
                       <span className="bg-zinc-950 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-surface">
-                        Default
+                        Best rate
                       </span>
                     </div>
                   ) : null}
@@ -234,10 +274,56 @@ export default function PricingContent() {
           </NeuralGrid>
         </WebSection>
 
+        <WebSection maxWidth="lg" py="md">
+          <SectionHeader
+            title="What output costs."
+            description="Every job shows its price before you run it. The router picks the best model for each format — the price below is what you pay, whatever model runs."
+            className="[&_h2]:text-5xl mb-4"
+          />
+
+          <div className="grid gap-px overflow-hidden border border-edge/5 bg-fill/5 sm:grid-cols-2 lg:grid-cols-3">
+            {OUTPUT_COSTS.map((row) => (
+              <div
+                key={row.label}
+                className="flex items-baseline justify-between gap-4 bg-background px-5 py-4"
+              >
+                <span className="text-sm text-surface/65">{row.label}</span>
+                <span className="text-sm font-semibold text-surface">
+                  {formatCredits(row.credits)}
+                  <span className="ml-2 font-normal text-surface/40">
+                    ≈ {formatCreditsDollars(row.credits)}
+                    {row.suffix ?? ''}
+                  </span>
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-px grid gap-px overflow-hidden border border-edge/5 bg-fill/5 sm:grid-cols-3">
+            {WEBSITE_CREDIT_PACKS.map((pack) => (
+              <div key={pack.label} className="bg-background px-5 py-4">
+                <div className="text-xs font-bold uppercase tracking-widest text-surface/35">
+                  {pack.label} pack
+                </div>
+                <div className="mt-1 text-sm text-surface/65">
+                  ${creditPackPrice(pack).toLocaleString()} →{' '}
+                  {creditPackTotalCredits(pack).toLocaleString()} credits
+                  {pack.bonus ? (
+                    <span className="text-success">
+                      {' '}
+                      (+{pack.bonus.toLocaleString()} bonus)
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
+        </WebSection>
+
         <WebSection bg="bordered" maxWidth="md">
           <SectionHeader
             title="Common Questions"
-            description="Pricing is intentionally simple: managed access first, usage-based output second."
+            description="Pricing is intentionally simple: free to join, credits for output, subscriptions for better rates and scale."
             className="[&_h2]:text-5xl"
           />
 
@@ -246,12 +332,12 @@ export default function PricingContent() {
 
         <CtaSection
           bg="subtle"
-          title="Start with Cloud App."
+          title="Start free. Pay for what you create."
           description="Book a demo only when the rollout needs team planning or enterprise terms."
         >
           <Button size={ButtonSize.PUBLIC} asChild>
-            <a href={signUpHref} target="_blank" rel="noopener noreferrer">
-              Start Cloud App
+            <a href={paygSignUpHref} target="_blank" rel="noopener noreferrer">
+              Start Creating Free
               <LuArrowRight className="size-4" />
             </a>
           </Button>
