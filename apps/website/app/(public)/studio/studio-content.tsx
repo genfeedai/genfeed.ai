@@ -319,7 +319,7 @@ export default function StudioContent() {
 
         {/* Pricing CTA */}
         <section className="max-w-4xl mx-auto pb-16 px-6">
-          <div className="text-center p-12 bg-[hsl(var(--gen-accent))] shadow-[var(--shadow-glow-md)]">
+          <div className="text-center p-12 bg-[hsl(var(--gen-accent))]">
             <div className="flex justify-center mb-4">
               <HiSparkles className="size-8 text-inv-fg" />
             </div>
