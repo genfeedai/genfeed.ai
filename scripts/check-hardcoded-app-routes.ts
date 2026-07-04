@@ -49,6 +49,9 @@ const EXCLUDE_GLOBS = [
   '**/dist/**',
   '**/.next/**',
   '**/routes.constant.ts',
+  // Marketplace surface — its nav (/free, /prompts, /images, /library, ...) are
+  // marketplace-app routes, NOT the studio APP_ROUTES tree. Out of scope here.
+  '**/topbars/MarketplaceTopbar.tsx',
 ];
 
 /**
@@ -125,12 +128,11 @@ const OBJECT_PROP_PATTERN = new RegExp(
  * documented; every entry is a deliberate exception, not a TODO to ignore.
  */
 const ALLOWLISTED_ROUTE_VALUES = new Set([
-  // Marketplace topbar link. `APP_ROUTES.LIBRARY.ROOT` resolves to
-  // '/library/ingredients', so there is no exact constant for bare '/library'.
-  '/library',
-  // admin/overview/analytics/* tabs are missing the '/admin' prefix and have no
-  // matching constants. Tracked as a separate bug — do not mask it by forcing a
-  // wrong or invented constant here.
+  // admin/(protected)/admin/** tab hrefs are stale leftovers from when admin was
+  // a standalone app (commit "remove admin app"): they use pre-merge bare paths
+  // (/overview/..., /content/..., /automation/...) that no longer resolve now
+  // that admin lives under /admin/**. Fixing them is a dedicated admin-nav repair
+  // (some targets don't exist even when prefixed) — allowlisted, not masked.
   '/overview/analytics/all',
   '/overview/analytics/organizations',
   '/overview/analytics/brands',

@@ -1,6 +1,5 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize } from '@genfeedai/enums';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
@@ -10,7 +9,7 @@ import Link from 'next/link';
 
 const NAV_LINKS = [
   { href: '/free', label: 'Free' },
-  { href: APP_ROUTES.WORKFLOWS.ROOT, label: 'Workflows' },
+  { href: '/workflows', label: 'Workflows' },
   { href: '/prompts', label: 'Prompts' },
   { href: '/images', label: 'Images' },
   { href: '/videos', label: 'Videos' },
