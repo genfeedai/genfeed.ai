@@ -202,7 +202,17 @@ export default function OrganizationSwitcher() {
 
       {/* Create Organization Modal */}
       <Modal.Root open={createModal.isOpen} onOpenChange={createModal.setOpen}>
-        <Modal.Content size="sm">
+        {/*
+          Don't restore focus to the "New Organization" footer button on close —
+          Radix's default focus return leaves a blue :focus-visible ring on that
+          button (#1227). The brand switcher's "New Brand" overlay renders
+          globally and never returns focus to its button, so it has no such ring;
+          this mirrors that behavior.
+        */}
+        <Modal.Content
+          size="sm"
+          onCloseAutoFocus={(event) => event.preventDefault()}
+        >
           <Modal.Header>
             <Modal.Title>Create Organization</Modal.Title>
             <Modal.Description>
