@@ -119,12 +119,34 @@ export default function HomePricing(): React.ReactElement {
                     <Text>{isCloudApp ? 'Cloud App' : plan.label}</Text>
                   </HStack>
 
-                  <Heading as="h3" className="text-3xl font-black text-surface">
-                    {formatPlanPrice(plan.price)}
-                  </Heading>
+                  {plan.launchPrice != null ? (
+                    <HStack className="items-baseline gap-2">
+                      <Text className="text-lg font-semibold text-surface/40 line-through">
+                        {formatPlanPrice(plan.price)}
+                      </Text>
+                      <Heading
+                        as="h3"
+                        className="text-3xl font-black text-surface"
+                      >
+                        {formatPlanPrice(plan.launchPrice)}
+                      </Heading>
+                    </HStack>
+                  ) : (
+                    <Heading
+                      as="h3"
+                      className="text-3xl font-black text-surface"
+                    >
+                      {formatPlanPrice(plan.price)}
+                    </Heading>
+                  )}
                   <Text className="text-xs leading-5 text-surface/45">
                     {priceQualifier}
                   </Text>
+                  {plan.launchNote ? (
+                    <Text className="text-xs font-semibold uppercase tracking-widest text-surface/50">
+                      {plan.launchNote}
+                    </Text>
+                  ) : null}
                 </VStack>
 
                 <Text className="text-sm leading-6 text-surface/55">

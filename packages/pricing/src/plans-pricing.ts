@@ -62,6 +62,10 @@ interface PricingPlanProps {
   target?: string;
   /** Value proposition one-liner */
   valueProposition?: string;
+  /** Discounted monthly price shown alongside the standard price (launch pricing) */
+  launchPrice?: number;
+  /** Explanatory note shown under launch pricing (e.g. duration/terms) */
+  launchNote?: string;
 }
 
 const CALENDLY_URL =
@@ -201,6 +205,8 @@ export const websitePlans: PricingPlanProps[] = [
     includedCredits: 8_000,
     interval: 'month',
     label: 'Hosted',
+    launchNote: 'Launch pricing — first 12 months, then $49/month',
+    launchPrice: 39,
     outputs: null,
     price: 49,
     stripePriceId: STRIPE_PRICE_IDS.pro,

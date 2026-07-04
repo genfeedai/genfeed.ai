@@ -168,6 +168,114 @@ describe('StripeService', () => {
     });
   });
 
+  describe('launch promotion code on Creator/Pro subscription checkout', () => {
+    it('uses allow_promotion_codes when STRIPE_PROMOTION_CODE_LAUNCH is unset', async () => {
+      const createSpy = vi
+        .spyOn(service.stripe.checkout.sessions, 'create')
+        .mockResolvedValue({
+          id: 'sess',
+        } as unknown as Stripe.Checkout.Session);
+
+      await service.createPaymentSession('cust', 'pro_id', 'http://origin');
+
+      const callArg = createSpy.mock.calls[0][0];
+      expect(callArg.allow_promotion_codes).toBe(true);
+      expect(callArg).not.toHaveProperty('discounts');
+    });
+
+    it('applies discounts with the configured promotion code when set for the Pro price', async () => {
+      const configGetMock = vi.fn((key: string) => {
+        const map: Record<string, string> = {
+          GENFEEDAI_APP_URL: 'http://localhost:3000',
+          STRIPE_API_VERSION: '2026-01-28.clover',
+          STRIPE_PRICE_PAYG: 'payg_id',
+          STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY: 'enterprise_id',
+          STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY: 'pro_id',
+          STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY: 'scale_id',
+          STRIPE_PROMOTION_CODE_LAUNCH: 'promo_launch123',
+          STRIPE_SECRET_KEY: 'sk_test',
+        };
+        return map[key];
+      });
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          StripeService,
+          { provide: ConfigService, useValue: { get: configGetMock } },
+          {
+            provide: LoggerService,
+            useValue: { error: vi.fn(), log: vi.fn() },
+          },
+        ],
+      }).compile();
+
+      const scopedService = module.get<StripeService>(StripeService);
+
+      const createSpy = vi
+        .spyOn(scopedService.stripe.checkout.sessions, 'create')
+        .mockResolvedValue({
+          id: 'sess',
+        } as unknown as Stripe.Checkout.Session);
+
+      await scopedService.createPaymentSession(
+        'cust',
+        'pro_id',
+        'http://origin',
+      );
+
+      const callArg = createSpy.mock.calls[0][0];
+      expect(callArg.discounts).toEqual([
+        { promotion_code: 'promo_launch123' },
+      ]);
+      expect(callArg).not.toHaveProperty('allow_promotion_codes');
+    });
+
+    it('does not apply the launch promotion code to other subscription tiers', async () => {
+      const configGetMock = vi.fn((key: string) => {
+        const map: Record<string, string> = {
+          GENFEEDAI_APP_URL: 'http://localhost:3000',
+          STRIPE_API_VERSION: '2026-01-28.clover',
+          STRIPE_PRICE_PAYG: 'payg_id',
+          STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY: 'enterprise_id',
+          STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY: 'pro_id',
+          STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY: 'scale_id',
+          STRIPE_PROMOTION_CODE_LAUNCH: 'promo_launch123',
+          STRIPE_SECRET_KEY: 'sk_test',
+        };
+        return map[key];
+      });
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          StripeService,
+          { provide: ConfigService, useValue: { get: configGetMock } },
+          {
+            provide: LoggerService,
+            useValue: { error: vi.fn(), log: vi.fn() },
+          },
+        ],
+      }).compile();
+
+      const scopedService = module.get<StripeService>(StripeService);
+
+      const createSpy = vi
+        .spyOn(scopedService.stripe.checkout.sessions, 'create')
+        .mockResolvedValue({
+          id: 'sess',
+        } as unknown as Stripe.Checkout.Session);
+
+      await scopedService.createPaymentSession(
+        'cust',
+        'enterprise_id',
+        'http://origin',
+      );
+
+      const callArg = createSpy.mock.calls[0][0];
+      expect(callArg.allow_promotion_codes).toBe(true);
+      expect(callArg).not.toHaveProperty('discounts');
+    });
+  });
+
   describe('createManagedPaymentSession', () => {
     it('creates a public managed checkout with customer_email and managed metadata', async () => {
       const createSpy = vi

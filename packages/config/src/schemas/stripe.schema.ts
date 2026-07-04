@@ -19,6 +19,7 @@ export const stripeSchema = {
   STRIPE_PAYG_CREDITS: Joi.number().default(1_000),
   STRIPE_PRICE_PAYG: conditionalRequired(),
   STRIPE_PRICE_SKILLS_PRO: Joi.string().optional(),
+  STRIPE_PROMOTION_CODE_LAUNCH: Joi.string().optional().allow(''),
   STRIPE_PROMOTION_CODE_SKILLS_PRO: Joi.string().optional().allow(''),
   STRIPE_PRICE_SUBSCRIPTION_CREATOR_MONTHLY: Joi.string().optional(),
   STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY: Joi.string().optional(),
