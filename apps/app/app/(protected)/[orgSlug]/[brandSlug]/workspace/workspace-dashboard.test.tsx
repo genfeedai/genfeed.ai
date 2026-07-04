@@ -117,7 +117,7 @@ function makeTask(overrides: Record<string, unknown> = {}) {
 
 describe('workspace dashboard sections', () => {
   it('renders agent cards with live, queued, completed, and view-all states', () => {
-    render(
+    const { container } = render(
       <DashboardAgentCards
         activeRuns={[
           makeRun(),
@@ -156,6 +156,11 @@ describe('workspace dashboard sections', () => {
       'href',
       '/orchestration/runs',
     );
+
+    // Regression (#1229): agent-run cards must use the shared Card tokens,
+    // never the lighter bespoke background-secondary/tertiary grays.
+    expect(container.querySelector('.bg-background-secondary')).toBeNull();
+    expect(container.querySelector('.bg-background-tertiary')).toBeNull();
   });
 
   it('returns no agent cards when there are no runs', () => {

@@ -1,6 +1,7 @@
 'use client';
 
 import { signOut } from '@genfeedai/auth-client';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
@@ -20,7 +21,7 @@ export default function LogoutPage() {
         // with an unhandled promise rejection.
       }
       if (!isCancelled) {
-        push('/login');
+        push(APP_ROUTES.LOGIN);
       }
     }
 

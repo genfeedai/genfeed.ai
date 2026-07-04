@@ -1,3 +1,4 @@
+import { createBrandAppRoute } from '@genfeedai/constants';
 import { useSidebarNavigation } from '@genfeedai/contexts/ui/sidebar-navigation-context';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { useThemeLogo } from '@genfeedai/hooks/ui/use-theme-logo/use-theme-logo';
@@ -87,7 +88,11 @@ export function useMenuShared({
 
         if (routeBrandSlug) {
           const suffix = rest.length > 0 ? `/${rest.join('/')}` : '';
-          return `/${orgSlug}/${routeBrandSlug}/settings${suffix}`;
+          return createBrandAppRoute(
+            orgSlug,
+            routeBrandSlug,
+            `/settings${suffix}`,
+          );
         }
       }
 

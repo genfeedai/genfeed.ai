@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
@@ -11,11 +12,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
+import Image from 'next/image';
 import Link from 'next/link';
 import type { ComponentType } from 'react';
 import {
+  HiOutlineArrowRightOnRectangle,
   HiOutlineBuildingOffice2,
-  HiOutlineCog6Tooth,
   HiOutlineQuestionMarkCircle,
   HiOutlineTag,
   HiOutlineUser,
@@ -30,30 +32,37 @@ interface DropdownItem {
 interface UserDropdownProps {
   userName: string;
   userEmail: string;
+  imageUrl?: string | null;
   settingsScope?: 'all' | 'user';
   side?: 'top' | 'bottom';
 }
 
 export default function UserDropdown({
+  imageUrl,
   settingsScope = 'all',
   side = 'top',
   userName,
   userEmail,
 }: UserDropdownProps) {
   const { orgHref } = useOrgUrl();
+  const initial = userName.trim().charAt(0).toUpperCase() || 'U';
   // Cross-scope switcher for the scope-specific Settings sidebar: each entry
   // enters a settings scope, whose sidebar then shows only that scope's pages
   // (see buildSettingsMenuItems). Help is part of the personal scope. See #1231.
   const allDropdownItems: DropdownItem[] = [
-    { href: '/settings', icon: HiOutlineUser, label: 'Personal' },
+    { href: APP_ROUTES.SETTINGS.ROOT, icon: HiOutlineUser, label: 'Personal' },
     {
-      href: orgHref('/settings'),
+      href: orgHref(APP_ROUTES.SETTINGS.ROOT),
       icon: HiOutlineBuildingOffice2,
       label: 'Organization',
     },
-    { href: orgHref('/settings/brands'), icon: HiOutlineTag, label: 'Brands' },
     {
-      href: '/settings/help',
+      href: orgHref(APP_ROUTES.SETTINGS.BRANDS),
+      icon: HiOutlineTag,
+      label: 'Brands',
+    },
+    {
+      href: APP_ROUTES.SETTINGS.HELP,
       icon: HiOutlineQuestionMarkCircle,
       label: 'Help',
     },
@@ -71,10 +80,23 @@ export default function UserDropdown({
         <Button
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
-          className="size-8 rounded-lg flex items-center justify-center text-foreground/30 hover:text-foreground/60 hover:bg-foreground/[0.06] transition-colors flex-shrink-0 cursor-pointer"
-          ariaLabel="Settings"
+          className="size-8 flex-shrink-0 cursor-pointer overflow-hidden rounded-full transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
+          ariaLabel="Open account menu"
         >
-          <HiOutlineCog6Tooth className="size-4" />
+          {imageUrl ? (
+            <Image
+              src={imageUrl}
+              alt={userName}
+              width={32}
+              height={32}
+              className="size-8 rounded-full object-cover object-center"
+              sizes="32px"
+            />
+          ) : (
+            <span className="flex size-8 items-center justify-center rounded-full bg-foreground/15 text-sm font-semibold text-foreground/80">
+              {initial}
+            </span>
+          )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent side={side} align="end" className="w-56">
@@ -95,6 +117,13 @@ export default function UserDropdown({
             </Link>
           </DropdownMenuItem>
         ))}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href={APP_ROUTES.LOGOUT} className="cursor-pointer">
+            <HiOutlineArrowRightOnRectangle className="size-4" />
+            Sign out
+          </Link>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

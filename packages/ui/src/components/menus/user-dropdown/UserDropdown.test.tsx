@@ -6,7 +6,9 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
-    orgHref: (href: string) => `/acme/~${href.replace(/^\//, '')}`,
+    // Mirrors the real orgHref: prefixes the `/:orgSlug/~` scope, keeping the
+    // leading slash so org settings resolve to the canonical `/:org/~/settings`.
+    orgHref: (href: string) => `/acme/~${href}`,
   }),
 }));
 
@@ -25,13 +27,45 @@ vi.mock('next/link', () => ({
   ),
 }));
 
+vi.mock('next/image', () => ({
+  default: ({ src, alt }: { src: string; alt: string }) => (
+    <img src={src} alt={alt} />
+  ),
+}));
+
 describe('UserDropdown', () => {
+  it('renders an initials avatar trigger when no image is provided', () => {
+    render(<UserDropdown userName="Test User" userEmail="test@example.com" />);
+
+    const trigger = screen.getByRole('button', { name: 'Open account menu' });
+    expect(trigger).toHaveTextContent('T');
+  });
+
+  it('renders the user avatar image when provided', () => {
+    render(
+      <UserDropdown
+        userName="Test User"
+        userEmail="test@example.com"
+        imageUrl="https://cdn.example.com/avatar.png"
+      />,
+    );
+
+    expect(screen.getByRole('img', { name: 'Test User' })).toHaveAttribute(
+      'src',
+      'https://cdn.example.com/avatar.png',
+    );
+  });
+
   it('switches between the settings scopes (Help lives in the personal scope)', () => {
     render(<UserDropdown userName="Test User" userEmail="test@example.com" />);
 
-    fireEvent.pointerDown(screen.getByRole('button', { name: 'Settings' }));
+    fireEvent.pointerDown(
+      screen.getByRole('button', { name: 'Open account menu' }),
+    );
 
-    const items = screen.getAllByRole('menuitem');
+    const items = screen
+      .getAllByRole('menuitem')
+      .filter((item) => item.textContent !== 'Sign out');
 
     expect(items.map((item) => item.textContent)).toEqual([
       'Personal',
@@ -45,10 +79,10 @@ describe('UserDropdown', () => {
     );
     expect(
       screen.getByRole('menuitem', { name: /Organization/i }),
-    ).toHaveAttribute('href', '/acme/~settings');
+    ).toHaveAttribute('href', '/acme/~/settings');
     expect(screen.getByRole('menuitem', { name: /Brands/i })).toHaveAttribute(
       'href',
-      '/acme/~settings/brands',
+      '/acme/~/settings/brands',
     );
     // Help is a personal-scope destination, not org-scoped.
     expect(screen.getByRole('menuitem', { name: /Help/i })).toHaveAttribute(
@@ -57,7 +91,7 @@ describe('UserDropdown', () => {
     );
   });
 
-  it('limits topbar user settings to personal destinations', () => {
+  it('limits topbar user settings to personal destinations plus sign out', () => {
     render(
       <UserDropdown
         settingsScope="user"
@@ -66,18 +100,53 @@ describe('UserDropdown', () => {
       />,
     );
 
-    fireEvent.pointerDown(screen.getByRole('button', { name: 'Settings' }));
+    fireEvent.pointerDown(
+      screen.getByRole('button', { name: 'Open account menu' }),
+    );
 
     expect(screen.getByRole('menuitem', { name: /Personal/i })).toHaveAttribute(
       'href',
       '/settings',
     );
-    expect(screen.getByRole('menuitem', { name: /Help/i })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /Help/i })).toHaveAttribute(
+      'href',
+      '/settings/help',
+    );
+    expect(screen.getByRole('menuitem', { name: /Sign out/i })).toHaveAttribute(
+      'href',
+      '/logout',
+    );
     expect(
       screen.queryByRole('menuitem', { name: /Organization/i }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('menuitem', { name: /Brands/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it('exposes organization and brand settings in the full-scope menu', () => {
+    render(
+      <UserDropdown
+        settingsScope="all"
+        userName="Test User"
+        userEmail="test@example.com"
+      />,
+    );
+
+    fireEvent.pointerDown(
+      screen.getByRole('button', { name: 'Open account menu' }),
+    );
+
+    expect(
+      screen.getByRole('menuitem', { name: /Organization/i }),
+    ).toHaveAttribute('href', '/acme/~/settings');
+    expect(screen.getByRole('menuitem', { name: /Brands/i })).toHaveAttribute(
+      'href',
+      '/acme/~/settings/brands',
+    );
+    expect(screen.getByRole('menuitem', { name: /Sign out/i })).toHaveAttribute(
+      'href',
+      '/logout',
+    );
   });
 });

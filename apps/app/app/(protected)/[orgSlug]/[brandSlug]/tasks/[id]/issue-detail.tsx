@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
   type IssueComment,
@@ -312,7 +313,7 @@ export default function IssueDetail({
             <HiOutlineExclamationTriangle className="mb-3 size-8 text-white/20" />
             <p className="text-sm text-white/50">Issue not found</p>
             <Link
-              href="/tasks"
+              href={APP_ROUTES.TASKS.ROOT}
               className="mt-3 text-xs text-blue-400 hover:text-blue-300"
             >
               Back to issues
@@ -327,7 +328,7 @@ export default function IssueDetail({
     <Container>
       <div className="mb-4">
         <Link
-          href="/tasks"
+          href={APP_ROUTES.TASKS.ROOT}
           className="inline-flex items-center gap-1 text-xs text-white/40 transition-colors hover:text-white/60"
         >
           <HiArrowLeft className="size-3" />

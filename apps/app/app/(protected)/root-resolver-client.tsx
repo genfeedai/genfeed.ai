@@ -1,6 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { createBrandAppRoute } from '@genfeedai/constants';
 import { useAccessState } from '@providers/access-state/access-state.provider';
 import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { useRouter } from 'next/navigation';
@@ -57,7 +58,11 @@ export default function ProtectedRootResolver() {
 
       if (orgSlug && brandSlug) {
         nextMessage = 'Opening workspace...';
-        nextUrl = `/${orgSlug}/${brandSlug}/workspace/overview`;
+        nextUrl = createBrandAppRoute(
+          orgSlug,
+          brandSlug,
+          '/workspace/overview',
+        );
       } else {
         const fallbackOrgSlug = getBrandOrganizationSlug(brands[0]);
         nextMessage =

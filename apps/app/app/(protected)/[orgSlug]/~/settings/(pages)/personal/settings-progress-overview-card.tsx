@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { SetupCardStep } from '@hooks/utils/use-setup-card/use-setup-card';
 import Card from '@ui/card/Card';
 import KeyMetric from '@ui/display/key-metric/KeyMetric';
@@ -59,7 +60,7 @@ export default function SettingsProgressOverviewCard({
           </Link>
         ) : (
           <Link
-            href="/compose"
+            href={APP_ROUTES.COMPOSE.ROOT}
             className="inline-flex items-center gap-2 rounded-full border border-orange-400/25 bg-orange-400/10 px-4 py-2 text-sm font-medium text-orange-100 transition-colors hover:bg-orange-400/15"
           >
             <HiOutlineSparkles className="size-4" />

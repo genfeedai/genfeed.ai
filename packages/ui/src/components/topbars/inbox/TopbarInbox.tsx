@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { useBackgroundTaskContext } from '@genfeedai/contexts/ui/background-task-context';
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
@@ -222,14 +223,14 @@ export default function TopbarInbox() {
 
           <div className="grid grid-cols-2 gap-2">
             <Link
-              href="/workspace/inbox/unread"
+              href={APP_ROUTES.WORKSPACE.INBOX_UNREAD}
               onClick={() => setIsOpen(false)}
               className="inline-flex h-9 items-center justify-center bg-foreground px-3 py-2 text-sm font-semibold text-background transition-colors duration-150 hover:bg-foreground/90"
             >
               Open Inbox
             </Link>
             <Link
-              href="/workspace/activity"
+              href={APP_ROUTES.WORKSPACE.ACTIVITY}
               onClick={() => setIsOpen(false)}
               className="inline-flex h-9 items-center justify-center gap-2 border border-foreground/[0.08] bg-foreground/[0.03] px-3 py-2 text-sm font-semibold text-foreground transition-colors duration-150 hover:bg-foreground/[0.06]"
             >

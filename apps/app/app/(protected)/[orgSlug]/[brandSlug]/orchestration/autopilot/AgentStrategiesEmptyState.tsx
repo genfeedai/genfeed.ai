@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
@@ -30,7 +31,7 @@ export default function AgentStrategiesEmptyState({
           variant={ButtonVariant.DEFAULT}
           onClick={onAddClick}
         />
-        <Link href="/orchestration/new">
+        <Link href={APP_ROUTES.ORCHESTRATION.NEW}>
           <Button label="Open Full Wizard" variant={ButtonVariant.SECONDARY} />
         </Link>
       </div>
