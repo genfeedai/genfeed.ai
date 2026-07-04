@@ -1,6 +1,6 @@
 'use client';
 
-import { COMPOSE_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES, COMPOSE_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IAgentRun, IAnalytics } from '@genfeedai/interfaces';
 import type { OverviewCard } from '@genfeedai/interfaces/ui/overview-card.interface';
@@ -380,7 +380,7 @@ export default function OverviewPageContent({
           reviewInbox.readyCount > 0
             ? `${reviewInbox.readyCount} items are ready to review before posting`
             : 'No assets are waiting for review right now',
-        href: '/posts/review',
+        href: APP_ROUTES.POSTS.REVIEW,
         icon: HiOutlineClipboardDocumentCheck,
         id: 'review',
         label: 'Publishing Inbox',
@@ -389,7 +389,7 @@ export default function OverviewPageContent({
         color: 'bg-cyan-500/18 text-cyan-200',
         cta: 'Open Schedule',
         description: 'Manage drafts, scheduled posts, and publishing windows',
-        href: '/posts?status=scheduled',
+        href: APP_ROUTES.POSTS.SCHEDULED,
         icon: HiOutlineCalendar,
         id: 'schedule',
         label: 'Schedule',
@@ -407,7 +407,7 @@ export default function OverviewPageContent({
         color: 'bg-fuchsia-500/18 text-fuchsia-200',
         cta: 'Open Remix',
         description: 'Turn winners into follow-ups and fresh variants',
-        href: '/posts/remix',
+        href: APP_ROUTES.POSTS.REMIX,
         icon: HiOutlinePlayCircle,
         id: 'remix',
         label: 'Remix',

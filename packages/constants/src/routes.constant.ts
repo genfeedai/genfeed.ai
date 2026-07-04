@@ -152,10 +152,11 @@ export const APP_ROUTES = {
     ANALYTICS: '/posts/analytics',
     CALENDAR: '/posts/calendar',
     NEWSLETTERS: '/posts/newsletters',
+    PUBLISHED: '/posts/published',
     REMIX: '/posts/remix',
     REVIEW: '/posts/review',
     ROOT: '/posts',
-    SCHEDULED: '/posts?status=scheduled',
+    SCHEDULED: '/posts/scheduled',
   },
   RESEARCH: {
     ADS: '/research/ads',

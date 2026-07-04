@@ -3,10 +3,9 @@ import {
   prefetchServerQuery,
   ServerQueryHydrationBoundary,
 } from '@app-server/query-hydration.server';
-import { PageScope } from '@genfeedai/enums';
+import { PageScope, PostStatus } from '@genfeedai/enums';
 import {
   normalizePostsPlatform,
-  normalizePublisherPostsStatus,
   type PublisherPostsStatus,
 } from '@helpers/content/posts.helper';
 import PostsList from '@pages/posts/list/posts-list';
@@ -32,9 +31,12 @@ export async function renderPostsListPage({
   scope?: PageScope;
   statusOverride?: PublisherPostsStatus;
 }) {
-  const { page, platform, search, sort, status } = await searchParams;
-  const normalizedStatus =
-    statusOverride ?? normalizePublisherPostsStatus(status);
+  const { page, platform, search, sort } = await searchParams;
+  // `status` no longer comes from the query string — nested routes
+  // (/posts/scheduled, /posts/published) pass `statusOverride`, and the /posts
+  // index is always the Drafts view. Legacy `?status=` links are redirected to
+  // their canonical path in page.tsx.
+  const normalizedStatus = statusOverride ?? PostStatus.DRAFT;
   const parsedPage = Math.floor(Number.parseInt(page ?? '1', 10));
   const currentPage = Number.isFinite(parsedPage) ? Math.max(1, parsedPage) : 1;
   const normalizedPlatform = normalizePostsPlatform(platform);
