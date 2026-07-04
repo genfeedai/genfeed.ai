@@ -9,7 +9,10 @@ import {
 } from '@app-config/menu-items.config';
 import { ORG_MENU_ITEMS } from '@app-config/org-menu-items.config';
 import { RESEARCH_MENU_ITEMS } from '@app-config/research-menu-items.config';
-import { SETTINGS_MENU_ITEMS } from '@app-config/settings-menu-items.config';
+import {
+  buildSettingsMenuItems,
+  type SettingsScope,
+} from '@app-config/settings-menu-items.config';
 import { STUDIO_MENU_ITEMS } from '@app-config/studio-menu-items.config';
 import { WORKFLOWS_MENU_ITEMS } from '@app-config/workflows-menu-items.config';
 import {
@@ -44,7 +47,12 @@ import {
   type EntityOverlayVisibilityDetail,
   isDesktopAgentViewport,
 } from '@services/core/agent-overlay-coordination.service';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import {
+  useParams,
+  usePathname,
+  useRouter,
+  useSearchParams,
+} from 'next/navigation';
 import {
   type ReactNode,
   useCallback,
@@ -97,6 +105,7 @@ export function useAppProtectedLayout(
   initialBootstrap?: ProtectedBootstrapData | null,
 ) {
   const rawPathname = usePathname();
+  const routeParams = useParams<{ brandSlug?: string; orgSlug?: string }>();
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
 
@@ -494,15 +503,27 @@ export function useAppProtectedLayout(
     [taskContextSearchParams],
   );
 
+  // The settings sidebar is scope-specific: brand route → brand pages, org
+  // route → org pages, otherwise personal pages. Scope is derived from the route
+  // params (brandSlug/orgSlug), not selected-brand context.
+  const settingsScope: SettingsScope = routeParams.brandSlug
+    ? 'brand'
+    : routeParams.orgSlug
+      ? 'organization'
+      : 'personal';
+
   const settingsMenuItems = useMemo(
     () =>
-      SETTINGS_MENU_ITEMS.map(
+      buildSettingsMenuItems({
+        scope: settingsScope,
+        isEnterprise: isEEEnabled(),
+      }).map(
         (item): MenuItemConfig => ({
           ...item,
           href: withTaskContextHref(item.href, taskContextSearchParams),
         }),
       ),
-    [taskContextSearchParams],
+    [settingsScope, taskContextSearchParams],
   );
 
   const adminMenuItems = useMemo(
