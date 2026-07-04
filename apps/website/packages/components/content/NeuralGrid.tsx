@@ -183,7 +183,7 @@ function CtaSection({
     >
       <div className="container mx-auto px-6">
         <div className="text-center max-w-3xl mx-auto">
-          <h2 className="text-6xl font-serif mb-10">{title}</h2>
+          <h2 className="text-6xl font-semibold mb-10">{title}</h2>
           {description && (
             <p className="text-surface/40 text-xl mb-12 font-medium">
               {description}

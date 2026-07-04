@@ -28,10 +28,10 @@ export default function SkillsBundleCta({
             <div className="text-inv-fg/30 text-xs font-black uppercase tracking-widest mb-6">
               All Pro Skills Included
             </div>
-            <h2 className="text-5xl font-serif text-inv-fg mb-4">
+            <h2 className="text-5xl font-semibold text-inv-fg mb-4">
               Get Pro Skills
             </h2>
-            <div className="text-6xl font-serif text-inv-fg mb-8">
+            <div className="text-6xl font-semibold text-inv-fg mb-8">
               ${bundlePrice}
             </div>
             <Button

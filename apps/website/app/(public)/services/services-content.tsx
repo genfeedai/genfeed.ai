@@ -122,7 +122,7 @@ export default function ServicesContent() {
                   <div className="mb-2">
                     <span
                       className={cn(
-                        'text-3xl font-serif',
+                        'text-3xl font-semibold',
                         isFeatured && 'text-inv-fg',
                       )}
                     >

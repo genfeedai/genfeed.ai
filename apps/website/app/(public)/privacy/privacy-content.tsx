@@ -127,7 +127,9 @@ export default function PrivacyContent() {
         <section className="py-32 bg-fill/[0.02] gsap-section">
           <div className="container mx-auto px-6">
             <div className="text-center mb-16">
-              <h2 className="text-5xl font-serif mb-6">Your Privacy Rights</h2>
+              <h2 className="text-5xl font-semibold mb-6">
+                Your Privacy Rights
+              </h2>
               <p className="text-surface/50 max-w-xl mx-auto">
                 We believe in transparency and your right to control your data.
               </p>
@@ -166,7 +168,7 @@ export default function PrivacyContent() {
           <div className="container mx-auto px-6">
             <div className="text-center max-w-3xl mx-auto">
               <LuMail className="size-12 mx-auto text-surface/30 mb-8" />
-              <h2 className="text-5xl font-serif mb-10">Questions?</h2>
+              <h2 className="text-5xl font-semibold mb-10">Questions?</h2>
               <p className="text-surface/40 text-xl mb-12 font-medium">
                 If you have any questions about our privacy practices, please
                 contact our privacy team.

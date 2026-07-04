@@ -132,7 +132,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
               <div className="text-surface/20 text-xs font-black uppercase tracking-widest mb-6">
                 {category.label}
               </div>
-              <h2 className="text-5xl font-serif mb-6">{category.title}</h2>
+              <h2 className="text-5xl font-semibold mb-6">{category.title}</h2>
               <p className="text-surface/50 max-w-xl mx-auto">
                 {category.subtitle}
               </p>
@@ -175,7 +175,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
               <div className="text-surface/20 text-xs font-black uppercase tracking-widest mb-6">
                 Premium
               </div>
-              <h2 className="text-5xl font-serif mb-6">Pro Skills</h2>
+              <h2 className="text-5xl font-semibold mb-6">Pro Skills</h2>
               <p className="text-surface/50 max-w-xl mx-auto">
                 Paid operating systems for source-to-brief, brand voice,
                 production queues, performance loops, and platform warmup. All
@@ -226,7 +226,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
               <div className="text-surface/20 text-xs font-black uppercase tracking-widest mb-6">
                 Quick Start
               </div>
-              <h2 className="text-4xl font-serif mb-4">One Command</h2>
+              <h2 className="text-4xl font-semibold mb-4">One Command</h2>
               <p className="text-surface/40 text-sm leading-relaxed mb-6">
                 Install all {FREE_SKILL_COUNT} free skills with a single
                 command. Your agent learns each skill and activates it at

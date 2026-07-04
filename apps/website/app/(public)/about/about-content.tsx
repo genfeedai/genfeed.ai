@@ -25,7 +25,7 @@ export default function AboutContent() {
       >
         {/* Hero */}
         <section className="about-hero max-w-4xl mx-auto py-20 text-center">
-          <h1 className="font-serif-italic text-5xl md:text-6xl mb-4">
+          <h1 className="font-semibold text-5xl md:text-6xl mb-4">
             About <span className="text-primary">Genfeed</span>
           </h1>
           <p className="text-xl text-foreground/70">
