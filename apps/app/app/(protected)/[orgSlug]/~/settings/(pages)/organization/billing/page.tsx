@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { redirect } from 'next/navigation';
@@ -9,7 +10,7 @@ export const generateMetadata = createPageMetadata('Billing Settings');
 
 export default function SettingsOrganizationBillingRoute() {
   if (!isEEEnabled()) {
-    redirect('/settings/api-keys');
+    redirect(APP_ROUTES.SETTINGS.API_KEYS);
   }
 
   return (

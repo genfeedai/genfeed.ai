@@ -36,6 +36,11 @@ const checks = [
     name: 'Org-scoped navigation (no bare router.push/replace in [orgSlug] tree)',
     required: true,
   },
+  {
+    command: ['bun', 'run', 'scripts/check-hardcoded-app-routes.ts'],
+    name: 'Hardcoded app routes (nav sinks must use APP_ROUTES / route builders)',
+    required: true,
+  },
 ] as const;
 
 let failed = false;

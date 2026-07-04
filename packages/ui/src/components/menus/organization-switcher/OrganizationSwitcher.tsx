@@ -1,5 +1,6 @@
 'use client';
 
+import { createOrganizationAppRoute } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
@@ -118,7 +119,7 @@ export default function OrganizationSwitcher() {
   const displayLabel = error ?? activeOrg?.label ?? 'Organization';
   const handleOpenOrganizationSettings = useCallback(
     (organizationSlug: string) => {
-      push(`/${organizationSlug}/~/settings`);
+      push(createOrganizationAppRoute(organizationSlug, '/settings'));
     },
     [push],
   );
