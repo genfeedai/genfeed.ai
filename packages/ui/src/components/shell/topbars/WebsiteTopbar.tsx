@@ -118,7 +118,7 @@ export default function WebsiteTopbar() {
                 href={`${EnvironmentService.apps.app}/login`}
                 className="hidden text-xs font-bold uppercase tracking-[0.1em] text-surface/60 transition-colors hover:text-surface lg:block"
               >
-                Log in
+                Login
               </a>
               <Button
                 asChild
@@ -131,7 +131,7 @@ export default function WebsiteTopbar() {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  Book Demo
+                  Book demo
                 </a>
               </Button>
               <Button
@@ -140,7 +140,7 @@ export default function WebsiteTopbar() {
                 className="h-9 px-5 text-sm uppercase"
               >
                 <a href={signUpHref} target="_blank" rel="noopener noreferrer">
-                  Start Cloud App
+                  Sign up
                 </a>
               </Button>
             </>

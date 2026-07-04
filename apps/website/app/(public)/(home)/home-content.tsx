@@ -179,7 +179,7 @@ function HomeHero(): React.ReactElement {
                 trackingName="hero_cta_click"
               >
                 <a href={signUpHref} rel="noopener noreferrer" target="_blank">
-                  Start Cloud App
+                  Sign up
                   <LuArrowRight className="size-4" />
                 </a>
               </ButtonTracked>
@@ -421,7 +421,7 @@ function HomeAudiences(): React.ReactElement {
                 trackingName="audience_cta_click"
               >
                 <a href={signUpHref} rel="noopener noreferrer" target="_blank">
-                  Start Cloud App
+                  Sign up
                   <LuArrowRight className="size-4" />
                 </a>
               </ButtonTracked>
@@ -546,7 +546,7 @@ function HomePricing(): React.ReactElement {
             const ctaHref = isCloudApp
               ? signUpHref
               : plan.ctaHref || CALENDLY_URL;
-            const ctaLabel = isCloudApp ? 'Start Cloud App' : plan.cta;
+            const ctaLabel = isCloudApp ? 'Sign up' : plan.cta;
 
             return (
               <div
@@ -636,7 +636,7 @@ function HomePricing(): React.ReactElement {
             variant={ButtonVariant.OUTLINE}
           >
             <a href={CALENDLY_URL} rel="noopener noreferrer" target="_blank">
-              Book a Demo
+              Book a demo
             </a>
           </ButtonTracked>
         </HStack>
@@ -705,20 +705,16 @@ function HomeCTA(): React.ReactElement {
             as="h2"
             className="text-5xl font-semibold leading-none tracking-[-0.03em] sm:text-6xl md:text-7xl"
           >
-            Start with the cloud app.
-            <br />
-            <span className="gen-text-heading">
-              Scale usage as output grows.
-            </span>
+            Start creating in minutes.
           </Heading>
 
           <Text
             as="p"
             className="text-lg md:text-xl gen-text-muted max-w-xl leading-relaxed"
           >
-            The shortest path is managed Genfeed: no deployment, no model
-            routing, no quota guessing. Book a demo when a team workflow needs
-            design before rollout.
+            Sign up and turn one brief into a full campaign — images, video,
+            voice, and copy. Book a demo if you&apos;re rolling this out across
+            a team or client roster.
           </Text>
 
           <HStack className="flex-wrap justify-center gap-3">
@@ -729,7 +725,7 @@ function HomeCTA(): React.ReactElement {
               trackingName="cta_final_click"
             >
               <a href={signUpHref} target="_blank" rel="noopener noreferrer">
-                Start Cloud App
+                Sign up
                 <LuArrowRight className="size-4" />
               </a>
             </ButtonTracked>
@@ -742,7 +738,7 @@ function HomeCTA(): React.ReactElement {
               variant={ButtonVariant.OUTLINE}
             >
               <a href={CALENDLY_URL} target="_blank" rel="noopener noreferrer">
-                Book a Demo
+                Book a demo
               </a>
             </ButtonTracked>
           </HStack>

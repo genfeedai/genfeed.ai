@@ -93,7 +93,7 @@ describe('HomeContent', () => {
       screen.getByText('Generate everything you publish.'),
     ).toBeInTheDocument();
     expect(
-      screen.getAllByRole('link', { name: /start cloud app/i }).length,
+      screen.getAllByRole('link', { name: /sign up/i }).length,
     ).toBeGreaterThanOrEqual(1);
     expect(
       screen.getAllByRole('link', { name: /book a demo/i }).length,
@@ -151,7 +151,7 @@ describe('HomeContent', () => {
 
     expect(screen.getByText('Questions, answered.')).toBeInTheDocument();
     expect(screen.getByText('What is Genfeed?')).toBeInTheDocument();
-    expect(screen.getByText('Start with the cloud app.')).toBeInTheDocument();
+    expect(screen.getByText('Start creating in minutes.')).toBeInTheDocument();
     expect(screen.getByTestId('home-footer')).toBeInTheDocument();
   });
 });
