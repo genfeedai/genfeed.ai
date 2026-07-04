@@ -191,9 +191,18 @@ export function useMenuShared({
         return false;
       }
 
+      // Root items that share a path prefix with their siblings (e.g. an
+      // "Overview"/"General" at /settings sitting above /settings/members)
+      // must match the current route exactly, otherwise they light up on every
+      // descendant route. `pathname` is already normalized to the config-level
+      // path, so compare against the item's config href directly.
+      if (item.isExactMatch) {
+        return pathname === item.href;
+      }
+
       return isActive(item.href);
     },
-    [isActive, routeScope],
+    [isActive, pathname, routeScope],
   );
 
   // Group items by their group field, preserving order

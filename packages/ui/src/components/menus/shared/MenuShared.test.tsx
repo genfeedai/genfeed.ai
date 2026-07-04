@@ -159,13 +159,19 @@ vi.mock('@ui/menus/item/MenuItem', () => ({
   default: ({
     badgeCount,
     href,
+    isActive,
     label,
   }: {
     badgeCount?: number;
     href?: string;
+    isActive?: boolean;
     label: string;
   }) => (
-    <div data-href={href} data-testid="menu-item">
+    <div
+      data-active={isActive ? 'true' : 'false'}
+      data-href={href}
+      data-testid="menu-item"
+    >
       {label}
       {badgeCount ? ` (${badgeCount})` : ''}
     </div>
@@ -553,6 +559,80 @@ describe('MenuShared', () => {
     } finally {
       consoleError.mockRestore();
     }
+  });
+
+  describe('settings exact-match active state', () => {
+    // Mirrors the nested settings sidebar (#1231/#1264 follow-up): scope-scoped
+    // items sharing the /settings root must only light up on an exact route.
+    const settingsConfig: MenuConfig = {
+      items: [
+        {
+          href: '/settings',
+          hrefScope: 'personal',
+          isExactMatch: true,
+          label: 'Personal',
+        },
+        {
+          href: '/settings',
+          hrefScope: 'organization',
+          isExactMatch: true,
+          label: 'General',
+        },
+        {
+          href: '/settings/members',
+          hrefScope: 'organization',
+          label: 'Members',
+        },
+        {
+          href: '/settings',
+          hrefScope: 'brand',
+          isExactMatch: true,
+          label: 'Overview',
+        },
+        {
+          href: '/settings/voice',
+          hrefScope: 'brand',
+          label: 'Voice',
+        },
+      ],
+      logoHref: '/',
+    };
+
+    const activeLabels = () =>
+      screen
+        .getAllByTestId('menu-item')
+        .filter((node) => node.getAttribute('data-active') === 'true')
+        .map((node) => node.textContent);
+
+    it('activates only the personal root on /settings', () => {
+      mockPathname.value = '/settings';
+      render(<MenuShared config={settingsConfig} sectionLabel="Settings" />);
+      expect(activeLabels()).toEqual(['Personal']);
+    });
+
+    it('activates General (not Members) on the org settings root', () => {
+      mockPathname.value = '/acme/~/settings';
+      render(<MenuShared config={settingsConfig} sectionLabel="Settings" />);
+      expect(activeLabels()).toEqual(['General']);
+    });
+
+    it('activates Members only — not the General root — on an org sub-route', () => {
+      mockPathname.value = '/acme/~/settings/members';
+      render(<MenuShared config={settingsConfig} sectionLabel="Settings" />);
+      expect(activeLabels()).toEqual(['Members']);
+    });
+
+    it('activates the brand Overview root on the brand settings root', () => {
+      mockPathname.value = '/acme/moonrise-studio/settings';
+      render(<MenuShared config={settingsConfig} sectionLabel="Settings" />);
+      expect(activeLabels()).toEqual(['Overview']);
+    });
+
+    it('activates Voice only — not the Overview root — on a brand sub-route', () => {
+      mockPathname.value = '/acme/moonrise-studio/settings/voice';
+      render(<MenuShared config={settingsConfig} sectionLabel="Settings" />);
+      expect(activeLabels()).toEqual(['Voice']);
+    });
   });
 
   it('routes the conversations new agent thread CTA directly to /agent/new', () => {
