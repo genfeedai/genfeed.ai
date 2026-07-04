@@ -8,12 +8,8 @@ import TopbarPublic from '@ui/topbars/public/TopbarPublic';
 import {
   HiBuildingOffice2,
   HiCloud,
-  HiFilm,
   HiGlobeAlt,
   HiMegaphone,
-  HiPaperAirplane,
-  HiRectangleStack,
-  HiRocketLaunch,
   HiShoppingCart,
   HiStar,
   HiUserCircle,
@@ -21,7 +17,7 @@ import {
 
 const PRODUCT_LINKS = [
   {
-    description: '$49/mo platform access + PAYG output',
+    description: 'Free to start — credits buy your output',
     href: '/pricing',
     icon: HiCloud,
     label: 'Cloud App',
@@ -37,24 +33,6 @@ const PRODUCT_LINKS = [
     href: '/integrations',
     icon: HiGlobeAlt,
     label: 'Integrations',
-  },
-  {
-    description: 'The complete AI content creation workspace',
-    href: '/studio',
-    icon: HiFilm,
-    label: 'Studio',
-  },
-  {
-    description: 'Deterministic workflow control for agentic execution',
-    href: '/workflows',
-    icon: HiRectangleStack,
-    label: 'Workflows',
-  },
-  {
-    description: 'Schedule and publish across 10+ social platforms',
-    href: '/publisher',
-    icon: HiPaperAirplane,
-    label: 'Publisher',
   },
 ];
 
@@ -89,12 +67,6 @@ const USE_CASES_LINKS = [
     icon: HiMegaphone,
     label: 'Marketers',
   },
-  {
-    description: 'Build an audience without hiring a team',
-    href: '/use-cases/founders',
-    icon: HiRocketLaunch,
-    label: 'Founders',
-  },
 ];
 
 const NAV_LINKS = [{ href: '/pricing', label: 'Pricing' }];
@@ -118,7 +90,7 @@ export default function WebsiteTopbar() {
                 href={`${EnvironmentService.apps.app}/login`}
                 className="hidden text-xs font-bold uppercase tracking-[0.1em] text-surface/60 transition-colors hover:text-surface lg:block"
               >
-                Login
+                Log in
               </a>
               <Button
                 asChild
@@ -131,7 +103,7 @@ export default function WebsiteTopbar() {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  Book demo
+                  Book Demo
                 </a>
               </Button>
               <Button
@@ -140,7 +112,7 @@ export default function WebsiteTopbar() {
                 className="h-9 px-5 text-sm uppercase"
               >
                 <a href={signUpHref} target="_blank" rel="noopener noreferrer">
-                  Sign up
+                  Start Cloud App
                 </a>
               </Button>
             </>
