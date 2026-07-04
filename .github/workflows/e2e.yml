@@ -10,8 +10,16 @@ on:
 
 # Include the workflow name in the group so a full-suite.yml workflow_call on the
 # same ref does not cancel the weekly cron run of this workflow (and vice versa).
+# The `e2e-` prefix is REQUIRED — same reason as ci.yml. `github.workflow`
+# resolves to the top-level workflow name inside a `workflow_call`, so without a
+# distinct prefix this group collides with the caller (full-suite.yml → the
+# production deploy) that uses the same `${{ github.workflow }}-${{ github.ref }}`
+# shape. On the deploy path E2E runs UNDER full-suite; both computed the same
+# group with cancel-in-progress, so the nested E2E cancelled itself at startup
+# (0 jobs) and failed the deploy. The prefix keeps E2E dedup while never matching
+# a caller group.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: e2e-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
