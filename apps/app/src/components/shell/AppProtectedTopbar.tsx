@@ -129,7 +129,7 @@ function AppProtectedTopbarContent({
   return (
     <header className="ship-ui h-full w-full bg-transparent">
       <div className="grid h-full w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2.5 pl-3 pr-2 sm:px-4 lg:px-5">
-        <div className="flex min-w-0 items-center gap-2.5 justify-self-start">
+        <div className="flex min-w-0 items-center gap-2 justify-self-start">
           {onMenuToggle ? (
             <Button
               type="button"
@@ -160,7 +160,7 @@ function AppProtectedTopbarContent({
           ) : null}
 
           {brands.length > 0 ? (
-            <div className="w-40 min-w-0 sm:w-56 md:w-[14.5rem]">
+            <div className="w-36 min-w-0 sm:w-44 md:w-48">
               <MenuBrandSwitcher
                 variant="labeled"
                 brands={brands}
@@ -201,17 +201,6 @@ function AppProtectedTopbarContent({
             </div>
           ) : null}
 
-          {effectiveOrgSlug ? (
-            <AppSwitcher
-              variant="icon"
-              currentApp={currentApp ?? 'workspace'}
-              currentPath={pathname}
-              orgSlug={effectiveOrgSlug}
-              brandSlug={effectiveBrandSlug}
-              showAdmin={isSuperAdmin}
-            />
-          ) : null}
-
           {shouldRenderAgentToggle ? (
             <Button
               type="button"
@@ -230,9 +219,24 @@ function AppProtectedTopbarContent({
 
           <CloudSyncIndicator />
 
-          <TopbarCreditsBar />
+          {/* Grouped account controls: section switcher sits directly beside
+              the settings/user menu so they read as one cluster. */}
+          <div className="flex items-center gap-0.5">
+            {effectiveOrgSlug ? (
+              <AppSwitcher
+                variant="icon"
+                currentApp={currentApp ?? 'workspace'}
+                currentPath={pathname}
+                orgSlug={effectiveOrgSlug}
+                brandSlug={effectiveBrandSlug}
+                showAdmin={isSuperAdmin}
+              />
+            ) : null}
 
-          <TopbarEnd />
+            <TopbarEnd />
+          </div>
+
+          <TopbarCreditsBar />
         </div>
       </div>
     </header>
