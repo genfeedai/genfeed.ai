@@ -1,5 +1,6 @@
 'use client';
 
+import { createBrandAppRoute } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import type { IMoodBoardLayoutItem } from '@genfeedai/interfaces';
 import { useMoodBoard } from '@hooks/data/content/use-mood-board/use-mood-board';
@@ -55,7 +56,7 @@ export default function MoodBoardCanvasClient(): React.JSX.Element {
   const handleClose = useCallback(() => {
     const { orgSlug, brandSlug } = params;
     if (orgSlug && brandSlug) {
-      router.push(`/${orgSlug}/${brandSlug}/library/images`);
+      router.push(createBrandAppRoute(orgSlug, brandSlug, '/library/images'));
       return;
     }
     router.back();

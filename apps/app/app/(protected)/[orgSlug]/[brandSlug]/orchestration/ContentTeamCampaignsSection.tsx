@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { AgentCampaign } from '@services/automation/agent-campaigns.service';
 import type { AgentStrategy } from '@services/automation/agent-strategies.service';
@@ -74,7 +75,9 @@ export default function ContentTeamCampaignsSection({
           variant={ButtonVariant.SECONDARY}
           size={ButtonSize.SM}
         >
-          <Link href="/orchestration/orchestrator">Launch Orchestrator</Link>
+          <Link href={APP_ROUTES.ORCHESTRATION.ORCHESTRATOR}>
+            Launch Orchestrator
+          </Link>
         </PrimitiveButton>
       </div>
 
@@ -100,7 +103,9 @@ export default function ContentTeamCampaignsSection({
             variant={ButtonVariant.DEFAULT}
             size={ButtonSize.SM}
           >
-            <Link href="/orchestration/orchestrator">Set Up Campaign Lead</Link>
+            <Link href={APP_ROUTES.ORCHESTRATION.ORCHESTRATOR}>
+              Set Up Campaign Lead
+            </Link>
           </PrimitiveButton>
         </Card>
       ) : (
@@ -153,14 +158,16 @@ export default function ContentTeamCampaignsSection({
                   variant={ButtonVariant.SECONDARY}
                   size={ButtonSize.SM}
                 >
-                  <Link href="/orchestration/campaigns">Open Campaigns</Link>
+                  <Link href={APP_ROUTES.ORCHESTRATION.CAMPAIGNS}>
+                    Open Campaigns
+                  </Link>
                 </PrimitiveButton>
                 <PrimitiveButton
                   asChild
                   variant={ButtonVariant.SECONDARY}
                   size={ButtonSize.SM}
                 >
-                  <Link href="/orchestration/orchestrator">
+                  <Link href={APP_ROUTES.ORCHESTRATION.ORCHESTRATOR}>
                     Adjust Orchestrator
                   </Link>
                 </PrimitiveButton>

@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { IStreakMilestoneState } from '@genfeedai/types';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useStreak } from '@hooks/data/streaks/use-streak/use-streak';
@@ -109,7 +110,7 @@ export default function StreaksPage() {
           </div>
 
           <Link
-            href="/studio/image"
+            href={APP_ROUTES.STUDIO.IMAGE}
             className="inline-flex items-center gap-2 rounded-full border border-orange-300/30 bg-orange-400/10 px-4 py-2 text-sm font-medium text-orange-100 transition-colors hover:bg-orange-400/15"
           >
             <HiOutlineSparkles className="size-4" />

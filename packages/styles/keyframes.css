@@ -98,21 +98,6 @@
   animation-delay: 500ms;
 }
 
-/* Glow pulse animation for active/focus states */
-@keyframes glow-pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 hsl(var(--primary) / 0.2);
-  }
-  50% {
-    box-shadow: 0 0 20px 4px hsl(var(--primary) / 0.15);
-  }
-}
-
-.animate-glow-pulse {
-  animation: glow-pulse 2s ease-in-out infinite;
-}
-
 /* Slide in from right for table actions */
 @keyframes slide-in-right {
   0% {
@@ -142,16 +127,6 @@
   }
 }
 
-@keyframes gen-glow-pulse {
-  0%,
-  100% {
-    box-shadow: var(--shadow-glow-sm);
-  }
-  50% {
-    box-shadow: var(--shadow-glow-md);
-  }
-}
-
 @keyframes gen-float {
   0%,
   100% {
@@ -162,47 +137,12 @@
   }
 }
 
-@keyframes gen-border-glow {
-  0%,
-  100% {
-    border-color: rgba(255, 255, 255, 0.08);
-  }
-  50% {
-    border-color: rgba(255, 255, 255, 0.2);
-  }
-}
-
-@keyframes gen-scale-in-glow {
-  0% {
-    opacity: 0;
-    transform: scale(0.95);
-    box-shadow: none;
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-    box-shadow: var(--shadow-glow-sm);
-  }
-}
-
 .animate-gen-fade-up {
   animation: gen-fade-up 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-.animate-gen-glow {
-  animation: gen-glow-pulse 3s ease-in-out infinite;
-}
-
 .animate-gen-float {
   animation: gen-float 4s ease-in-out infinite;
-}
-
-.animate-gen-border-glow {
-  animation: gen-border-glow 2s ease-in-out infinite;
-}
-
-.animate-gen-scale-in-glow {
-  animation: gen-scale-in-glow 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 /* Staggered animation delays for bento grids */

@@ -29,7 +29,6 @@ const mocks = vi.hoisted(() => ({
   renderProject: vi.fn(),
   seekToFrame: vi.fn(),
   success: vi.fn(),
-  track: vi.fn(),
   update: vi.fn(),
 }));
 
@@ -80,10 +79,6 @@ vi.mock('@services/core/notifications.service', () => ({
       success: mocks.success,
     }),
   },
-}));
-
-vi.mock('@vercel/analytics', () => ({
-  track: mocks.track,
 }));
 
 vi.mock('next/navigation', () => ({
@@ -410,9 +405,6 @@ describe('EditorPageContent', () => {
     await renderLoadedEditor();
 
     expect(mocks.findById).toHaveBeenCalledWith('editor-123');
-    expect(mocks.track).toHaveBeenCalledWith('studio_editor_opened', {
-      surface: 'canvas',
-    });
 
     fireEvent.click(screen.getByRole('button', { name: 'Play Pause' }));
     expect(mocks.play).toHaveBeenCalled();

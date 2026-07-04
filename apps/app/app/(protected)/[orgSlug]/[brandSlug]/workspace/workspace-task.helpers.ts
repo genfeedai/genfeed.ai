@@ -92,22 +92,22 @@ export const ADVANCED_TOOLS = [
   },
   {
     description: 'Manual image generation and creative edits.',
-    href: '/studio/image',
+    href: APP_ROUTES.STUDIO.IMAGE,
     label: 'Studio Image',
   },
   {
     description: 'Manual video generation and editing.',
-    href: '/studio/video',
+    href: APP_ROUTES.STUDIO.VIDEO,
     label: 'Studio Video',
   },
   {
     description: 'Workflow builder for repeatable automation.',
-    href: '/workflows',
+    href: APP_ROUTES.WORKFLOWS.ROOT,
     label: 'Workflows',
   },
   {
     description: 'Operator view for live runs and execution state.',
-    href: '/orchestration/runs',
+    href: APP_ROUTES.ORCHESTRATION.RUNS,
     label: 'Runs',
   },
 ];
@@ -115,17 +115,17 @@ export const ADVANCED_TOOLS = [
 export const LIBRARY_SNAPSHOT_LINKS = [
   {
     description: 'Ingredients and reusable source material.',
-    href: '/library/ingredients',
+    href: APP_ROUTES.LIBRARY.INGREDIENTS,
     label: 'Ingredients',
   },
   {
     description: 'Generated images, videos, and motion assets.',
-    href: '/library/images',
+    href: APP_ROUTES.LIBRARY.IMAGES,
     label: 'Media',
   },
   {
     description: 'Voice, music, and caption assets ready for reuse.',
-    href: '/library/voices',
+    href: APP_ROUTES.LIBRARY.VOICES,
     label: 'Audio + captions',
   },
 ];

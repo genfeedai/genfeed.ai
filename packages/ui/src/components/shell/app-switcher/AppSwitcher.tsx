@@ -1,5 +1,9 @@
 'use client';
 
+import {
+  createBrandAppRoute,
+  createOrganizationAppRoute,
+} from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { AppContext, AppSwitcherItemConfig } from '@genfeedai/interfaces';
@@ -58,8 +62,8 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         label: 'Workspace',
         route: (org, brand) =>
           brand
-            ? `/${org}/${brand}/workspace/overview`
-            : `/${org}/~/workspace/overview`,
+            ? createBrandAppRoute(org, brand, '/workspace/overview')
+            : createOrganizationAppRoute(org, '/workspace/overview'),
       },
       {
         description: 'Ask and execute.',
@@ -67,7 +71,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         id: 'agent',
         itemKey: 'home-agent',
         label: 'Agent',
-        route: (org) => `/${org}/~/agent`,
+        route: (org) => createOrganizationAppRoute(org, '/agent'),
       },
       {
         description: 'Reply to audience.',
@@ -76,7 +80,9 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         itemKey: 'home-messages',
         label: 'Messages',
         route: (org, brand) =>
-          brand ? `/${org}/${brand}/messages` : `/${org}/~/overview`,
+          brand
+            ? createBrandAppRoute(org, brand, '/messages')
+            : createOrganizationAppRoute(org, '/overview'),
       },
     ],
   },
@@ -91,7 +97,9 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         itemKey: 'trends-discovery',
         label: 'Discovery',
         route: (org, brand) =>
-          brand ? `/${org}/${brand}/research/discovery` : `/${org}/~/overview`,
+          brand
+            ? createBrandAppRoute(org, brand, '/research/discovery')
+            : createOrganizationAppRoute(org, '/overview'),
       },
       {
         description: 'Watch platforms.',
@@ -100,7 +108,9 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         itemKey: 'trends-socials',
         label: 'Socials',
         route: (org, brand) =>
-          brand ? `/${org}/${brand}/research/socials` : `/${org}/~/overview`,
+          brand
+            ? createBrandAppRoute(org, brand, '/research/socials')
+            : createOrganizationAppRoute(org, '/overview'),
       },
       {
         description: 'Study ads.',
@@ -109,7 +119,9 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         itemKey: 'trends-ads',
         label: 'Ads',
         route: (org, brand) =>
-          brand ? `/${org}/${brand}/research/ads` : `/${org}/~/overview`,
+          brand
+            ? createBrandAppRoute(org, brand, '/research/ads')
+            : createOrganizationAppRoute(org, '/overview'),
       },
     ],
   },
@@ -125,7 +137,9 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         itemKey: 'create-studio',
         label: 'Studio',
         route: (org, brand) =>
-          brand ? `/${org}/${brand}/studio/image` : `/${org}/~/studio/image`,
+          brand
+            ? createBrandAppRoute(org, brand, '/studio/image')
+            : createOrganizationAppRoute(org, '/studio/image'),
       },
       {
         description: 'Adapt winners.',
@@ -134,7 +148,9 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         itemKey: 'create-remix',
         label: 'Remix',
         route: (org, brand) =>
-          brand ? `/${org}/${brand}/posts/remix` : `/${org}/~/posts`,
+          brand
+            ? createBrandAppRoute(org, brand, '/posts/remix')
+            : createOrganizationAppRoute(org, '/posts'),
       },
       {
         description: 'Use source assets.',
@@ -143,7 +159,9 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         itemKey: 'create-library',
         label: 'Library',
         route: (org, brand) =>
-          brand ? `/${org}/${brand}/library/ingredients` : `/${org}/~/library`,
+          brand
+            ? createBrandAppRoute(org, brand, '/library/ingredients')
+            : createOrganizationAppRoute(org, '/library'),
       },
       {
         description: 'Scale creation.',
@@ -152,7 +170,9 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         itemKey: 'create-batch',
         label: 'Batch',
         route: (org, brand) =>
-          brand ? `/${org}/${brand}/studio/batch` : `/${org}/~/studio/batch`,
+          brand
+            ? createBrandAppRoute(org, brand, '/studio/batch')
+            : createOrganizationAppRoute(org, '/studio/batch'),
       },
     ],
   },
@@ -167,7 +187,9 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         itemKey: 'publish-posts',
         label: 'Posts',
         route: (org, brand) =>
-          brand ? `/${org}/${brand}/posts` : `/${org}/~/posts`,
+          brand
+            ? createBrandAppRoute(org, brand, '/posts')
+            : createOrganizationAppRoute(org, '/posts'),
       },
       {
         description: 'Approve content.',
@@ -176,7 +198,9 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         itemKey: 'publish-review',
         label: 'Review',
         route: (org, brand) =>
-          brand ? `/${org}/${brand}/posts/review` : `/${org}/~/posts`,
+          brand
+            ? createBrandAppRoute(org, brand, '/posts/review')
+            : createOrganizationAppRoute(org, '/posts'),
       },
       {
         description: 'Plan schedule.',
@@ -185,7 +209,9 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         itemKey: 'publish-calendar',
         label: 'Calendar',
         route: (org, brand) =>
-          brand ? `/${org}/${brand}/posts/calendar` : `/${org}/~/posts`,
+          brand
+            ? createBrandAppRoute(org, brand, '/posts/calendar')
+            : createOrganizationAppRoute(org, '/posts'),
       },
       {
         description: 'Queued posts.',
@@ -194,7 +220,9 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         itemKey: 'publish-scheduled',
         label: 'Scheduled',
         route: (org, brand) =>
-          brand ? `/${org}/${brand}/posts/scheduled` : `/${org}/~/posts`,
+          brand
+            ? createBrandAppRoute(org, brand, '/posts/scheduled')
+            : createOrganizationAppRoute(org, '/posts'),
       },
     ],
   },
@@ -210,8 +238,8 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         label: 'Overview',
         route: (org, brand) =>
           brand
-            ? `/${org}/${brand}/analytics/overview`
-            : `/${org}/~/analytics/overview`,
+            ? createBrandAppRoute(org, brand, '/analytics/overview')
+            : createOrganizationAppRoute(org, '/analytics/overview'),
       },
       {
         description: 'Inspect posts.',
@@ -221,8 +249,8 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         label: 'Post Analytics',
         route: (org, brand) =>
           brand
-            ? `/${org}/${brand}/analytics/posts`
-            : `/${org}/~/analytics/overview`,
+            ? createBrandAppRoute(org, brand, '/analytics/posts')
+            : createOrganizationAppRoute(org, '/analytics/overview'),
       },
       {
         description: 'Spot patterns.',
@@ -232,8 +260,8 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         label: 'Trend Analytics',
         route: (org, brand) =>
           brand
-            ? `/${org}/${brand}/analytics/trends`
-            : `/${org}/~/analytics/overview`,
+            ? createBrandAppRoute(org, brand, '/analytics/trends')
+            : createOrganizationAppRoute(org, '/analytics/overview'),
       },
       {
         activeIds: ['workflows'],
@@ -243,7 +271,9 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         itemKey: 'analytics-repeat',
         label: 'Repeat',
         route: (org, brand) =>
-          brand ? `/${org}/${brand}/workflows` : `/${org}/~/workflows`,
+          brand
+            ? createBrandAppRoute(org, brand, '/workflows')
+            : createOrganizationAppRoute(org, '/workflows'),
       },
     ],
   },

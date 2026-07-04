@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAgentCampaigns } from '@hooks/data/agent-campaigns/use-agent-campaigns';
@@ -261,7 +262,7 @@ function ActiveCampaignCards({ campaigns }: { campaigns: AgentCampaign[] }) {
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.XS}
           >
-            <Link href="/orchestration/campaigns">View All</Link>
+            <Link href={APP_ROUTES.ORCHESTRATION.CAMPAIGNS}>View All</Link>
           </Button>
         )}
       </div>
@@ -385,7 +386,7 @@ export default function AgentCampaignsPage() {
       icon={HiOutlineRectangleGroup}
       right={
         <Button asChild variant={ButtonVariant.DEFAULT} size={ButtonSize.SM}>
-          <Link href="/orchestration/campaigns/new">
+          <Link href={APP_ROUTES.ORCHESTRATION.CAMPAIGNS_NEW}>
             <HiPlus /> New Campaign
           </Link>
         </Button>
@@ -429,7 +430,7 @@ export default function AgentCampaignsPage() {
             </p>
           </div>
           <Button asChild variant={ButtonVariant.DEFAULT} size={ButtonSize.SM}>
-            <Link href="/orchestration/campaigns/new">
+            <Link href={APP_ROUTES.ORCHESTRATION.CAMPAIGNS_NEW}>
               <HiPlus /> New Campaign
             </Link>
           </Button>

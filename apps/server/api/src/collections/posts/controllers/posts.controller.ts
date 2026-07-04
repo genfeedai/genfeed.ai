@@ -26,7 +26,6 @@ import {
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
-import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -438,7 +437,12 @@ export class PostsController extends BaseCRUDController<
   }
 
   @Get()
-  @RolesDecorator('superadmin')
+  // No @RolesDecorator here: the posts list backs normal-user surfaces (e.g. the
+  // brand calendar). `buildFindAllQuery` already scopes results to the caller via
+  // `buildOwnershipFilter` (own/org posts) or, for superadmins passing explicit
+  // org/brand params, `buildAdminFilter`. The class-level RolesGuard still
+  // enforces org membership. The prior `@RolesDecorator('superadmin')` was a
+  // carried-over migration artifact that 403'd every non-superadmin (#1223).
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findAll(
     @Req() request: Request,

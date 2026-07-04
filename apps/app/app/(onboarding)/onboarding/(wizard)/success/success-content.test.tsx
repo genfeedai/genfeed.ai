@@ -4,9 +4,6 @@ import { describe, expect, it } from 'vitest';
 
 describe('app/(onboarding)/onboarding/(wizard)/success/success-content.tsx', () => {
   it('keeps an exported contract in place', () => {
-    const orgSlugPlaceholder = `\${orgSlug}`;
-    const brandSlugPlaceholder = `\${brandSlug}`;
-
     const source = readFileSync(
       join(
         process.cwd(),
@@ -20,8 +17,10 @@ describe('app/(onboarding)/onboarding/(wizard)/success/success-content.tsx', () 
     expect(source).toContain('forceRefresh: true');
     expect(source).toContain('user?.reload()');
     expect(source).toContain(
-      `window.location.assign(\`/${orgSlugPlaceholder}/${brandSlugPlaceholder}/workspace/overview\`)`,
+      "createBrandAppRoute(orgSlug, brandSlug, '/workspace/overview')",
     );
-    expect(source).toContain("window.location.assign('/workspace/overview')");
+    expect(source).toContain(
+      'window.location.assign(APP_ROUTES.WORKSPACE.OVERVIEW)',
+    );
   });
 });

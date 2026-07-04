@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import { Platform, PostStatus } from '@genfeedai/enums';
 import * as formatHelper from '@helpers/formatting/format/format.helper';
 import type { TabItem } from '@props/ui/navigation/tabs.props';
@@ -137,14 +138,14 @@ export function getPublisherPostsStatusPath(
   const normalizedStatus = normalizePublisherPostsStatus(status);
 
   if (normalizedStatus === PostStatus.SCHEDULED) {
-    return '/posts/scheduled';
+    return APP_ROUTES.POSTS.SCHEDULED;
   }
 
   if (normalizedStatus === PostStatus.PUBLIC) {
-    return '/posts/published';
+    return APP_ROUTES.POSTS.PUBLISHED;
   }
 
-  return '/posts';
+  return APP_ROUTES.POSTS.ROOT;
 }
 
 export function getPublisherPostsStatusFromPathname(

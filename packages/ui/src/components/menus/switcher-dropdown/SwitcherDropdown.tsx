@@ -7,7 +7,13 @@ import type {
   SwitcherDropdownProps,
 } from '@genfeedai/props/ui/menus/switcher-dropdown.props';
 import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
+import {
+  Command,
+  CommandEmpty,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@ui/primitives/command';
 import {
   Popover,
   PopoverPanelContent,
@@ -15,15 +21,8 @@ import {
 } from '@ui/primitives/popover';
 import Image from 'next/image';
 import type React from 'react';
-import {
-  cloneElement,
-  isValidElement,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
-import { HiCheck, HiMagnifyingGlass, HiPlus } from 'react-icons/hi2';
+import { cloneElement, isValidElement, useCallback, useState } from 'react';
+import { HiCheck, HiPlus } from 'react-icons/hi2';
 // Relative import: @ui/lib/* isn't aliased (the @ui test alias maps to
 // src/components), and accordion.tsx sources this same hook the same way.
 import { useMounted } from '../../../lib/hooks';
@@ -48,7 +47,6 @@ export default function SwitcherDropdown({
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const searchInputRef = useRef<HTMLInputElement>(null);
   const resolvedFooterActions =
     footerActions && footerActions.length > 0
       ? footerActions
@@ -56,6 +54,10 @@ export default function SwitcherDropdown({
         ? [footerAction]
         : [];
 
+  // cmdk owns keyboard nav, type-ahead highlight, and listbox ARIA, but we
+  // keep filtering/ordering explicit (shouldFilter={false}) to preserve the
+  // existing substring match + alphabetical label sort rather than cmdk's
+  // fuzzy command-score ranking.
   const filteredItems = items
     .filter((item) =>
       item.label.toLowerCase().includes(searchTerm.toLowerCase()),
@@ -67,16 +69,6 @@ export default function SwitcherDropdown({
     setSearchTerm('');
     onOpenChange?.(false);
   }, [onOpenChange]);
-
-  // Focus search on open
-  useEffect(() => {
-    if (isOpen && hasSearch) {
-      const timeoutId = setTimeout(() => {
-        searchInputRef.current?.focus();
-      }, 50);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [isOpen, hasSearch]);
 
   const handleSelect = useCallback(
     (id: string) => {
@@ -143,27 +135,23 @@ export default function SwitcherDropdown({
           width: `max(var(--radix-popover-trigger-width), ${minWidth}px)`,
         }}
       >
-        {/* Search */}
-        {hasSearch && (
-          <div className="px-2 pt-1.5 pb-1">
-            <div className="relative">
-              <HiMagnifyingGlass className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-foreground/40" />
-              <Input
-                ref={searchInputRef}
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder={searchPlaceholder}
-                className="py-1.5 pl-8 pr-3"
-              />
-            </div>
-          </div>
-        )}
+        <Command shouldFilter={false} className="bg-transparent">
+          {/* Search — Radix focuses the first focusable child on open, so the
+              input is focused automatically without a manual timeout. */}
+          {hasSearch && (
+            <CommandInput
+              value={searchTerm}
+              onValueChange={setSearchTerm}
+              placeholder={searchPlaceholder}
+            />
+          )}
 
-        {/* Items */}
-        <div className="max-h-64 overflow-y-auto py-0.5">
-          {filteredItems.length > 0 ? (
-            filteredItems.map((item) => (
+          <CommandList className="max-h-64 py-0.5">
+            <CommandEmpty>
+              {items.length === 0 ? 'Loading…' : 'No results'}
+            </CommandEmpty>
+
+            {filteredItems.map((item) => (
               <SwitcherItem
                 key={item.id}
                 item={item}
@@ -173,13 +161,9 @@ export default function SwitcherDropdown({
                   item.trailingAction?.onAction();
                 }}
               />
-            ))
-          ) : (
-            <div className="p-3 text-xs text-foreground/40 text-center">
-              {items.length === 0 ? 'Loading…' : 'No results'}
-            </div>
-          )}
-        </div>
+            ))}
+          </CommandList>
+        </Command>
 
         {/* Footer */}
         {resolvedFooterActions.length > 0 && (
@@ -227,17 +211,19 @@ function SwitcherItem({
 
   return (
     <div className="group flex w-full items-center">
-      <Button
-        variant={ButtonVariant.UNSTYLED}
-        withWrapper={false}
-        onClick={() => !item.isActive && onSelect(item.id)}
-        isDisabled={item.isActive}
+      {/* cmdk Item = the selectable row. The active row is `disabled` so cmdk
+          skips it in keyboard nav and never fires onSelect for it. The gear is
+          a sibling (below), not nested here, to avoid interactive-in-interactive. */}
+      <CommandItem
+        value={item.id}
+        disabled={item.isActive}
+        onSelect={() => onSelect(item.id)}
         className={cn(
-          'flex min-w-0 flex-1 items-center gap-2.5 py-2 pl-3 text-sm transition-colors duration-150',
+          'flex min-w-0 flex-1 items-center gap-2.5 rounded-none py-2 pl-3 text-sm transition-colors duration-150',
           item.trailingAction ? 'pr-1' : 'pr-3',
           item.isActive
-            ? 'text-foreground cursor-default'
-            : 'text-foreground/70 hover:text-foreground hover:bg-foreground/[0.06] cursor-pointer',
+            ? 'cursor-default text-foreground data-[disabled=true]:opacity-100'
+            : 'cursor-pointer text-foreground/70 data-[selected=true]:bg-foreground/[0.06] data-[selected=true]:text-foreground',
         )}
       >
         {/* Avatar */}
@@ -271,7 +257,7 @@ function SwitcherItem({
         {item.isActive && (
           <HiCheck className="size-3.5 text-primary flex-shrink-0" />
         )}
-      </Button>
+      </CommandItem>
 
       {item.trailingAction && TrailingIcon ? (
         <Button

@@ -19,14 +19,6 @@ vi.mock('@ui/providers/ThemeCookieSync', () => ({
   default: () => null,
 }));
 
-vi.mock('@vercel/analytics/react', () => ({
-  Analytics: () => null,
-}));
-
-vi.mock('@vercel/speed-insights/next', () => ({
-  SpeedInsights: () => null,
-}));
-
 vi.mock('next-themes', () => ({
   ThemeProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
   useTheme: () => ({ resolvedTheme: 'dark' }),
@@ -54,9 +46,7 @@ describe('website AppProviders', () => {
         googleAnalyticsId="G-123"
         initialTheme="dark"
         includeLazyModalErrorDebug={false}
-        includeSpeedInsights={false}
         includeToaster={false}
-        includeVercelAnalytics={false}
         marketingConsentDefault="denied"
         marketingGtmContainerId="GTM-123"
         marketingLinkedinConversionIds={{ book_call: 12345 }}

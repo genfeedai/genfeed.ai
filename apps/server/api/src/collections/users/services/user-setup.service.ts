@@ -144,10 +144,52 @@ export class UserSetupService {
     }
   }
 
+  /**
+   * Resolve the organization a user already belongs to via the `members`
+   * collection — the source of truth that findMine and switchOrganization use.
+   * Returns null when the user has no active membership or the referenced org
+   * is missing/deleted.
+   */
+  private async findMembershipOrganization(
+    userId: string,
+  ): Promise<OrganizationDocument | null> {
+    const membership = await this.membersService.findOne({
+      isActive: true,
+      isDeleted: false,
+      user: userId,
+    });
+
+    if (!membership?.organization) {
+      return null;
+    }
+
+    return this.organizationsService.findOne({
+      _id: membership.organization,
+      isDeleted: false,
+    });
+  }
+
   private async getOrCreateOrganization(
     userId: string,
     category?: OrganizationCategory,
   ): Promise<{ organization: OrganizationDocument; wasCreated: boolean }> {
+    // Membership is the source of truth for org access — findMine and
+    // switchOrganization both resolve a user's orgs via the `members`
+    // collection. Dedupe on membership first so a stale or missing legacy
+    // `Organization.user` ownership field can't spawn a second
+    // "Default Organization" for a user who already belongs to one (#1227).
+    const memberOrganization = await this.findMembershipOrganization(userId);
+
+    if (memberOrganization) {
+      this.logger.warn(
+        `Organization already exists (via membership) for user ${userId}`,
+        this.context,
+      );
+      return { organization: memberOrganization, wasCreated: false };
+    }
+
+    // Legacy fallback: organizations created before membership became the
+    // source of truth are keyed by the `user` ownership field.
     const existing = await this.organizationsService.findOne({
       isDeleted: false,
       user: userId,

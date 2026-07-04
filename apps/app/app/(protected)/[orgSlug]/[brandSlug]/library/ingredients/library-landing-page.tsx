@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import CardIcon from '@ui/card/icon/CardIcon';
 import Container from '@ui/layout/container/Container';
@@ -32,7 +33,7 @@ interface LibraryCategoryCardConfig {
 const VISUAL_CATEGORY_CARDS: LibraryCategoryCardConfig[] = [
   {
     description: 'Motion-ready edits, exports, and reusable clips.',
-    href: '/library/videos',
+    href: APP_ROUTES.LIBRARY.VIDEOS,
     icon: HiOutlineVideoCamera,
     id: 'videos',
     kicker: 'Motion',
@@ -41,7 +42,7 @@ const VISUAL_CATEGORY_CARDS: LibraryCategoryCardConfig[] = [
   },
   {
     description: 'Stills, references, and brand visual building blocks.',
-    href: '/library/images',
+    href: APP_ROUTES.LIBRARY.IMAGES,
     icon: HiOutlinePhoto,
     id: 'images',
     kicker: 'Still',
@@ -50,7 +51,7 @@ const VISUAL_CATEGORY_CARDS: LibraryCategoryCardConfig[] = [
   },
   {
     description: 'Short-form loops and reaction-ready motion snippets.',
-    href: '/library/gifs',
+    href: APP_ROUTES.LIBRARY.GIFS,
     icon: HiOutlinePlayCircle,
     id: 'gifs',
     kicker: 'Loop',
@@ -59,7 +60,7 @@ const VISUAL_CATEGORY_CARDS: LibraryCategoryCardConfig[] = [
   },
   {
     description: 'Character presets and presenter surfaces for video creation.',
-    href: '/library/avatars',
+    href: APP_ROUTES.LIBRARY.AVATARS,
     icon: HiOutlineSparkles,
     id: 'avatars',
     kicker: 'Persona',
@@ -71,7 +72,7 @@ const VISUAL_CATEGORY_CARDS: LibraryCategoryCardConfig[] = [
 const UTILITY_CATEGORY_CARDS: LibraryCategoryCardConfig[] = [
   {
     description: 'Voice presets and cloned speakers ready for narration.',
-    href: '/library/voices',
+    href: APP_ROUTES.LIBRARY.VOICES,
     icon: HiOutlineMicrophone,
     id: 'voices',
     kicker: 'Voice',
@@ -80,7 +81,7 @@ const UTILITY_CATEGORY_CARDS: LibraryCategoryCardConfig[] = [
   },
   {
     description: 'Music cues and background tracks organized for reuse.',
-    href: '/library/music',
+    href: APP_ROUTES.LIBRARY.MUSIC,
     icon: HiOutlineMusicalNote,
     id: 'music',
     kicker: 'Audio',
@@ -90,7 +91,7 @@ const UTILITY_CATEGORY_CARDS: LibraryCategoryCardConfig[] = [
   {
     description:
       'Captions and copy-ready text assets for publishing workflows.',
-    href: '/library/captions',
+    href: APP_ROUTES.LIBRARY.CAPTIONS,
     icon: HiOutlineFolder,
     id: 'captions',
     kicker: 'Text',

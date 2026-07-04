@@ -362,7 +362,7 @@ export default function WorkflowsContent() {
 
         {/* Pricing CTA */}
         <section className="max-w-4xl mx-auto pb-16 px-6">
-          <div className="text-center p-12 gen-card-featured shadow-[var(--shadow-glow-md)]">
+          <div className="text-center p-12 gen-card-featured">
             <div className="flex justify-center mb-4">
               <HiSquaresPlus className="size-8 text-inv-fg" />
             </div>
