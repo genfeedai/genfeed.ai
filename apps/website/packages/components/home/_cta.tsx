@@ -39,7 +39,7 @@ export default function HomeCTA(): React.ReactElement {
               trackingName="cta_final_click"
             >
               <a href={signUpHref} target="_blank" rel="noopener noreferrer">
-                Start Creating Free
+                Start free
                 <LuArrowRight className="size-4" />
               </a>
             </ButtonTracked>

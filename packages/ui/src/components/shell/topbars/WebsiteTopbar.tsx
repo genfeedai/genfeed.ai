@@ -112,8 +112,7 @@ export default function WebsiteTopbar() {
                 className="h-9 px-5 text-sm uppercase"
               >
                 <a href={signUpHref} target="_blank" rel="noopener noreferrer">
-                  <span className="hidden sm:inline">Start Creating Free</span>
-                  <span className="sm:hidden">Start Free</span>
+                  Start free
                 </a>
               </Button>
             </>

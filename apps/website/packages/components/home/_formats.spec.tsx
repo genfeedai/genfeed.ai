@@ -21,7 +21,7 @@ describe('HomeFormats', () => {
       }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /generate your first asset/i }),
+      screen.getByRole('link', { name: /generate an asset/i }),
     ).toBeInTheDocument();
   });
 

@@ -99,7 +99,7 @@ export default function HomeFormats(): React.ReactElement {
               variant={ButtonVariant.OUTLINE}
             >
               <a href={signUpHref} rel="noopener noreferrer" target="_blank">
-                Generate Your First Asset
+                Generate an asset
                 <LuArrowRight className="size-3" />
               </a>
             </ButtonTracked>

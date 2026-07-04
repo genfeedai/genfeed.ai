@@ -34,7 +34,7 @@ describe('HomeHero', () => {
 
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     expect(
-      screen.getByRole('link', { name: /start creating free/i }),
+      screen.getByRole('link', { name: /start free/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /book a demo/i }),
@@ -44,9 +44,10 @@ describe('HomeHero', () => {
   it('points the primary CTA at the pay-as-you-go sign-up', () => {
     render(<HomeHero />);
 
-    expect(
-      screen.getByRole('link', { name: /start creating free/i }),
-    ).toHaveAttribute('href', expect.stringContaining('plan=payg'));
+    expect(screen.getByRole('link', { name: /start free/i })).toHaveAttribute(
+      'href',
+      expect.stringContaining('plan=payg'),
+    );
   });
 
   it('renders the generated output wall instead of the old card deck', () => {

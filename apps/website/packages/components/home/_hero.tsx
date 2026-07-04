@@ -31,16 +31,17 @@ export default function HomeHero(): React.ReactElement {
           <div className="max-w-[42rem] self-center">
             <Heading
               as="h1"
-              className="hero-headline max-w-[42rem] text-5xl font-semibold leading-[0.95] tracking-[-0.03em] text-surface sm:text-6xl md:text-7xl xl:text-[5.3rem]"
+              className="hero-headline max-w-[42rem] text-[2.75rem] font-semibold leading-[0.9] tracking-[-0.035em] text-surface sm:text-6xl md:text-7xl xl:text-[5.75rem]"
             >
-              Generate everything you publish.
+              <span className="block">One prompt.</span>
+              <span className="block text-surface/60">Publish everywhere.</span>
             </Heading>
 
             <Text
               as="p"
               className="hero-description mt-6 max-w-xl text-base leading-7 text-surface/62 md:text-lg"
             >
-              One brief becomes the full internet campaign: images, reels, ads,
+              It becomes the full internet campaign: images, reels, ads,
               articles, captions, newsletters, voice, clips, and the readout
               that tells you what worked.
             </Text>
@@ -54,7 +55,7 @@ export default function HomeHero(): React.ReactElement {
                 trackingName="hero_cta_click"
               >
                 <a href={signUpHref} rel="noopener noreferrer" target="_blank">
-                  Start Creating Free
+                  Start free
                   <LuArrowRight className="size-4" />
                 </a>
               </ButtonTracked>

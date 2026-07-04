@@ -379,7 +379,7 @@ export default function PricingContent() {
         >
           <Button size={ButtonSize.PUBLIC} asChild>
             <a href={paygSignUpHref} target="_blank" rel="noopener noreferrer">
-              Start Creating Free
+              Start free
               <LuArrowRight className="size-4" />
             </a>
           </Button>

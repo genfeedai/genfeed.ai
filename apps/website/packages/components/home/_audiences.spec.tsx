@@ -52,9 +52,10 @@ describe('HomeAudiences', () => {
         name: /run every client's creative from one place\./i,
       }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /start creating free/i }),
-    ).toHaveAttribute('href', expect.stringContaining('plan=payg'));
+    expect(screen.getByRole('link', { name: /start free/i })).toHaveAttribute(
+      'href',
+      expect.stringContaining('plan=payg'),
+    );
     expect(
       screen.getByRole('link', { name: /genfeed for agencies/i }),
     ).toHaveAttribute('href', '/use-cases/agencies');
