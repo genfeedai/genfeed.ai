@@ -38,42 +38,6 @@ describe('EnvironmentService', () => {
     });
   });
 
-  describe('Vercel analytics gating', () => {
-    it('does not enable Vercel analytics off the Vercel runtime, even with the flags set', () => {
-      vi.stubEnv('VERCEL', '');
-      vi.stubEnv('NEXT_PUBLIC_VERCEL_WEB_ANALYTICS_ENABLED', '1');
-      vi.stubEnv('NEXT_PUBLIC_VERCEL_SPEED_INSIGHTS_ENABLED', '1');
-      expect(EnvironmentService.isVercelRuntime).toBe(false);
-      expect(EnvironmentService.isVercelWebAnalyticsEnabled).toBe(false);
-      expect(EnvironmentService.isVercelSpeedInsightsEnabled).toBe(false);
-    });
-
-    it('does not enable Vercel analytics on Vercel when the products are not opted in', () => {
-      vi.stubEnv('VERCEL', '1');
-      vi.stubEnv('NEXT_PUBLIC_VERCEL_WEB_ANALYTICS_ENABLED', '');
-      vi.stubEnv('NEXT_PUBLIC_VERCEL_SPEED_INSIGHTS_ENABLED', '');
-      expect(EnvironmentService.isVercelRuntime).toBe(true);
-      expect(EnvironmentService.isVercelWebAnalyticsEnabled).toBe(false);
-      expect(EnvironmentService.isVercelSpeedInsightsEnabled).toBe(false);
-    });
-
-    it('enables each Vercel product only when on Vercel and explicitly opted in', () => {
-      vi.stubEnv('VERCEL', '1');
-      vi.stubEnv('NEXT_PUBLIC_VERCEL_WEB_ANALYTICS_ENABLED', '1');
-      vi.stubEnv('NEXT_PUBLIC_VERCEL_SPEED_INSIGHTS_ENABLED', '1');
-      expect(EnvironmentService.isVercelWebAnalyticsEnabled).toBe(true);
-      expect(EnvironmentService.isVercelSpeedInsightsEnabled).toBe(true);
-    });
-
-    it('gates the two Vercel products independently', () => {
-      vi.stubEnv('VERCEL', '1');
-      vi.stubEnv('NEXT_PUBLIC_VERCEL_WEB_ANALYTICS_ENABLED', '1');
-      vi.stubEnv('NEXT_PUBLIC_VERCEL_SPEED_INSIGHTS_ENABLED', '');
-      expect(EnvironmentService.isVercelWebAnalyticsEnabled).toBe(true);
-      expect(EnvironmentService.isVercelSpeedInsightsEnabled).toBe(false);
-    });
-  });
-
   describe('API endpoints', () => {
     it('returns default API endpoint when NEXT_PUBLIC_API_ENDPOINT is not set', () => {
       delete process.env.NEXT_PUBLIC_API_ENDPOINT;

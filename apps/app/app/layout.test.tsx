@@ -7,8 +7,6 @@ const appProvidersSpy = vi.fn();
 
 const environmentServiceMock = vi.hoisted(() => ({
   GA_ID: 'ga-test',
-  isVercelSpeedInsightsEnabled: false,
-  isVercelWebAnalyticsEnabled: false,
 }));
 
 vi.mock('@styles/globals.css', () => ({}));
@@ -39,8 +37,6 @@ vi.mock('@ui/providers/AppProviders', () => ({
   }: {
     children: ReactNode;
     googleAnalyticsId?: string;
-    includeSpeedInsights?: boolean;
-    includeVercelAnalytics?: boolean;
     initialTheme: string;
     storageKey?: string;
   }) => {
@@ -68,8 +64,6 @@ describe('app root layout', () => {
 
   beforeEach(() => {
     appProvidersSpy.mockClear();
-    environmentServiceMock.isVercelSpeedInsightsEnabled = false;
-    environmentServiceMock.isVercelWebAnalyticsEnabled = false;
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
   });
 
@@ -98,62 +92,6 @@ describe('app root layout', () => {
         googleAnalyticsId: 'ga-test',
         initialTheme: 'dark',
         storageKey: 'theme',
-      }),
-    );
-  });
-
-  it('injects Vercel providers only when the products are enabled', async () => {
-    environmentServiceMock.isVercelSpeedInsightsEnabled = true;
-    environmentServiceMock.isVercelWebAnalyticsEnabled = true;
-    const { default: RootLayout } = await import('./layout');
-
-    render(
-      await RootLayout({
-        children: <div>App child</div>,
-      } as never),
-    );
-
-    expect(appProvidersSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        includeSpeedInsights: true,
-        includeVercelAnalytics: true,
-      }),
-    );
-  });
-
-  it('does not inject Vercel providers when the products are not enabled', async () => {
-    const { default: RootLayout } = await import('./layout');
-
-    render(
-      await RootLayout({
-        children: <div>App child</div>,
-      } as never),
-    );
-
-    expect(appProvidersSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        includeSpeedInsights: false,
-        includeVercelAnalytics: false,
-      }),
-    );
-  });
-
-  it('never injects Vercel providers in the desktop shell even when enabled', async () => {
-    process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
-    environmentServiceMock.isVercelSpeedInsightsEnabled = true;
-    environmentServiceMock.isVercelWebAnalyticsEnabled = true;
-    const { default: RootLayout } = await import('./layout');
-
-    render(
-      await RootLayout({
-        children: <div>App child</div>,
-      } as never),
-    );
-
-    expect(appProvidersSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        includeSpeedInsights: false,
-        includeVercelAnalytics: false,
       }),
     );
   });

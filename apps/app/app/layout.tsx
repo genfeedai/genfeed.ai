@@ -57,12 +57,6 @@ export default async function RootLayout({ children }: LayoutProps) {
         initialTheme={initialTheme}
         storageKey={THEME_STORAGE_KEY}
         googleAnalyticsId={googleAnalyticsId}
-        includeSpeedInsights={
-          !isDesktopShell && EnvironmentService.isVercelSpeedInsightsEnabled
-        }
-        includeVercelAnalytics={
-          !isDesktopShell && EnvironmentService.isVercelWebAnalyticsEnabled
-        }
       >
         <Script id="genfeed-runtime-config" strategy="beforeInteractive">
           {createRuntimeConfigScript()}

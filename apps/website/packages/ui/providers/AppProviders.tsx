@@ -4,8 +4,6 @@ import { BetterAuthProvider } from '@genfeedai/auth-client/react';
 import { dark } from '@genfeedai/auth-client/themes';
 import { THEME_STORAGE_KEY } from '@genfeedai/constants';
 import ThemeCookieSync from '@ui/providers/ThemeCookieSync';
-import { Analytics } from '@vercel/analytics/react';
-import { SpeedInsights } from '@vercel/speed-insights/next';
 import dynamic from 'next/dynamic';
 import { ThemeProvider, useTheme } from 'next-themes';
 import type { ReactNode } from 'react';
@@ -36,9 +34,7 @@ export interface AppProvidersProps {
   googleAnalyticsId?: string;
   includeLazyModalErrorDebug?: boolean;
   includeMarketingTracking?: boolean;
-  includeSpeedInsights?: boolean;
   includeToaster?: boolean;
-  includeVercelAnalytics?: boolean;
   marketingConsentDefault?: 'denied' | 'granted';
   marketingGtmContainerId?: string;
   marketingLinkedinConversionIds?: MarketingTrackingConfig['linkedinConversionIds'];
@@ -81,9 +77,7 @@ export default function AppProviders({
   googleAnalyticsId,
   includeLazyModalErrorDebug = true,
   includeMarketingTracking = true,
-  includeSpeedInsights = false,
   includeToaster = true,
-  includeVercelAnalytics = false,
   marketingConsentDefault = 'denied',
   marketingGtmContainerId,
   marketingLinkedinConversionIds,
@@ -121,8 +115,6 @@ export default function AppProviders({
         <Toaster richColors closeButton position="top-right" />
       ) : null}
       {includeLazyModalErrorDebug ? <LazyModalErrorDebug /> : null}
-      {includeVercelAnalytics ? <Analytics /> : null}
-      {includeSpeedInsights ? <SpeedInsights /> : null}
     </>
   );
 
