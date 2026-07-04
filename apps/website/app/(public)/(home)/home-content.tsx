@@ -48,7 +48,7 @@ const CALENDLY_URL =
   'https://calendly.com/vincent-genfeed/30min';
 
 const EYEBROW_CLASS =
-  'text-xs font-bold uppercase tracking-widest text-surface/50';
+  'text-xs font-bold uppercase tracking-widest text-surface/65';
 
 const HERO_METRICS: HeroMetric[] = [
   { label: 'generated for launch', value: '42 assets' },
@@ -163,7 +163,7 @@ function HomeHero(): React.ReactElement {
 
             <Text
               as="p"
-              className="hero-description mt-6 max-w-xl text-base leading-7 text-surface/62 md:text-lg"
+              className="hero-description mt-6 max-w-xl text-base leading-7 text-surface/72 md:text-lg"
             >
               One brief becomes the full internet campaign: images, reels, ads,
               articles, captions, newsletters, voice, clips, and the readout
@@ -211,7 +211,7 @@ function HomeHero(): React.ReactElement {
                   <p className="text-sm font-semibold tracking-[-0.02em] text-surface">
                     {metric.value}
                   </p>
-                  <p className="mt-1 text-xs leading-5 text-surface/40">
+                  <p className="mt-1 text-xs leading-5 text-surface/58">
                     {metric.label}
                   </p>
                 </div>
@@ -245,7 +245,7 @@ function HomeHero(): React.ReactElement {
                   <p className="text-sm font-semibold tracking-[-0.02em] text-surface">
                     {metric.value}
                   </p>
-                  <p className="mt-1 text-[11px] leading-4 text-surface/38">
+                  <p className="mt-1 text-[11px] leading-4 text-surface/55">
                     {metric.label}
                   </p>
                 </div>
@@ -288,7 +288,7 @@ function HomeHowItWorks(): React.ReactElement {
               <Heading as="h3" className="text-xl font-semibold text-surface">
                 {item.title}
               </Heading>
-              <Text className="text-sm leading-6 text-surface/55">
+              <Text className="text-sm leading-6 text-surface/70">
                 {item.description}
               </Text>
             </div>
@@ -335,7 +335,7 @@ function HomeProof(): React.ReactElement {
                     <Text className="text-sm font-semibold text-surface">
                       {campaign.handle}
                     </Text>
-                    <Text className="text-[11px] leading-4 text-surface/40">
+                    <Text className="text-[11px] leading-4 text-surface/58">
                       Instagram
                     </Text>
                   </VStack>
@@ -348,12 +348,12 @@ function HomeProof(): React.ReactElement {
                 </HStack>
               </HStack>
 
-              <Text className="text-sm leading-6 text-surface/60">
+              <Text className="text-sm leading-6 text-surface/72">
                 {campaign.caption}
               </Text>
 
-              <HStack className="items-center gap-2 border-t border-edge/5 pt-3 text-xs text-surface/40">
-                <Text className="font-semibold text-surface/60">
+              <HStack className="items-center gap-2 border-t border-edge/5 pt-3 text-xs text-surface/58">
+                <Text className="font-semibold text-surface/72">
                   {campaign.likes}
                 </Text>
                 <Text>likes</Text>
@@ -393,7 +393,7 @@ function HomeAudiences(): React.ReactElement {
 
         <div className="grid grid-cols-1 gap-px bg-edge/5 lg:grid-cols-2">
           <div className="flex flex-col gap-5 bg-background p-8">
-            <HStack className="items-center gap-2 text-surface/60">
+            <HStack className="items-center gap-2 text-surface/72">
               <HiUser className="size-4" />
               <Text className={EYEBROW_CLASS}>Solo creators</Text>
             </HStack>
@@ -404,13 +404,13 @@ function HomeAudiences(): React.ReactElement {
               {CREATOR_BENEFITS.map((benefit) => (
                 <li key={benefit.label} className="flex items-start gap-3">
                   <LuCheck className="mt-0.5 size-4 shrink-0 text-success" />
-                  <Text className="text-sm leading-6 text-surface/60">
+                  <Text className="text-sm leading-6 text-surface/72">
                     {benefit.label}
                   </Text>
                 </li>
               ))}
             </ul>
-            <Text className="text-xs leading-5 text-surface/45">
+            <Text className="text-xs leading-5 text-surface/60">
               Cloud App · $49/mo + pay for the output you generate
             </Text>
             <HStack className="mt-auto flex-wrap items-center gap-4 pt-2">
@@ -427,7 +427,7 @@ function HomeAudiences(): React.ReactElement {
               </ButtonTracked>
               <Link
                 href="/use-cases/creators"
-                className="text-sm font-medium text-surface/60 underline-offset-4 hover:text-surface hover:underline"
+                className="text-sm font-medium text-surface/72 underline-offset-4 hover:text-surface hover:underline"
               >
                 Genfeed for creators →
               </Link>
@@ -436,7 +436,7 @@ function HomeAudiences(): React.ReactElement {
 
           <div className="flex flex-col gap-5 bg-white/[0.04] p-8">
             <HStack className="items-center justify-between">
-              <HStack className="items-center gap-2 text-surface/60">
+              <HStack className="items-center gap-2 text-surface/72">
                 <HiBuildingOffice2 className="size-4" />
                 <Text className={EYEBROW_CLASS}>
                   Agencies &amp; paid social
@@ -455,13 +455,13 @@ function HomeAudiences(): React.ReactElement {
               {AGENCY_BENEFITS.map((benefit) => (
                 <li key={benefit.label} className="flex items-start gap-3">
                   <LuCheck className="mt-0.5 size-4 shrink-0 text-success" />
-                  <Text className="text-sm leading-6 text-surface/60">
+                  <Text className="text-sm leading-6 text-surface/72">
                     {benefit.label}
                   </Text>
                 </li>
               ))}
             </ul>
-            <Text className="text-xs leading-5 text-surface/45">
+            <Text className="text-xs leading-5 text-surface/60">
               Cloud Teams · multi-client workspaces, approvals, managed billing
             </Text>
             <HStack className="mt-auto flex-wrap items-center gap-4 pt-2">
@@ -482,7 +482,7 @@ function HomeAudiences(): React.ReactElement {
               </ButtonTracked>
               <Link
                 href="/use-cases/agencies"
-                className="text-sm font-medium text-surface/60 underline-offset-4 hover:text-surface hover:underline"
+                className="text-sm font-medium text-surface/72 underline-offset-4 hover:text-surface hover:underline"
               >
                 Genfeed for agencies →
               </Link>
@@ -523,7 +523,7 @@ function HomePricing(): React.ReactElement {
               {PAYG_EXPLAINERS.map((item) => (
                 <HStack key={item} className="items-start gap-3">
                   <LuCheck className="mt-0.5 size-4 shrink-0 text-success" />
-                  <Text className="text-sm leading-6 text-surface/60">
+                  <Text className="text-sm leading-6 text-surface/72">
                     {item}
                   </Text>
                 </HStack>
@@ -560,7 +560,7 @@ function HomePricing(): React.ReactElement {
                   <HStack
                     className={cn(
                       'items-center gap-2 text-xs font-bold uppercase tracking-widest',
-                      isCloudApp ? 'text-surface/60' : 'text-surface/35',
+                      isCloudApp ? 'text-surface/72' : 'text-surface/35',
                     )}
                   >
                     {isTeamCloud ? (
@@ -574,12 +574,12 @@ function HomePricing(): React.ReactElement {
                   <Heading as="h3" className="text-3xl font-black text-surface">
                     {formatPlanPrice(plan.price)}
                   </Heading>
-                  <Text className="text-xs leading-5 text-surface/45">
+                  <Text className="text-xs leading-5 text-surface/60">
                     {priceQualifier}
                   </Text>
                 </VStack>
 
-                <Text className="text-sm leading-6 text-surface/55">
+                <Text className="text-sm leading-6 text-surface/70">
                   {isCloudApp
                     ? 'Managed Genfeed for founders and creators who want the app without operating infrastructure.'
                     : plan.valueProposition || plan.description}
@@ -591,7 +591,7 @@ function HomePricing(): React.ReactElement {
                   {plan.features.slice(0, 4).map((feature) => (
                     <li key={feature} className="flex items-start gap-2">
                       <LuCheck className="mt-0.5 size-3.5 shrink-0 text-surface/30" />
-                      <Text className="text-xs leading-5 text-surface/50">
+                      <Text className="text-xs leading-5 text-surface/65">
                         {feature}
                       </Text>
                     </li>
@@ -669,7 +669,7 @@ function HomeFAQ(): React.ReactElement {
               <AccordionTrigger className="py-4 text-left text-base font-medium hover:no-underline">
                 {item.question}
               </AccordionTrigger>
-              <AccordionContent className="pb-4 leading-relaxed text-surface/60">
+              <AccordionContent className="pb-4 leading-relaxed text-surface/72">
                 {item.answer}
               </AccordionContent>
             </AccordionItem>
