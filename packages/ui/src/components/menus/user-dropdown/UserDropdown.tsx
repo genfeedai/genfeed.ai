@@ -41,9 +41,9 @@ export default function UserDropdown({
   userEmail,
 }: UserDropdownProps) {
   const { orgHref } = useOrgUrl();
-  // Keep this list in sync with the settings sidebar (`SETTINGS_MENU_ITEMS` in
-  // apps/app/packages/config/settings-menu-items.config.ts) — same items,
-  // order, labels, and destinations. See #1231.
+  // Cross-scope switcher for the scope-specific Settings sidebar: each entry
+  // enters a settings scope, whose sidebar then shows only that scope's pages
+  // (see buildSettingsMenuItems). Help is part of the personal scope. See #1231.
   const allDropdownItems: DropdownItem[] = [
     { href: '/settings', icon: HiOutlineUser, label: 'Personal' },
     {
@@ -53,7 +53,7 @@ export default function UserDropdown({
     },
     { href: orgHref('/settings/brands'), icon: HiOutlineTag, label: 'Brands' },
     {
-      href: orgHref('/settings/help'),
+      href: '/settings/help',
       icon: HiOutlineQuestionMarkCircle,
       label: 'Help',
     },

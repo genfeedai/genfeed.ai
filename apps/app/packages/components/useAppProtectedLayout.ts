@@ -9,7 +9,10 @@ import {
 } from '@app-config/menu-items.config';
 import { ORG_MENU_ITEMS } from '@app-config/org-menu-items.config';
 import { RESEARCH_MENU_ITEMS } from '@app-config/research-menu-items.config';
-import { buildSettingsMenuItems } from '@app-config/settings-menu-items.config';
+import {
+  buildSettingsMenuItems,
+  type SettingsScope,
+} from '@app-config/settings-menu-items.config';
 import { STUDIO_MENU_ITEMS } from '@app-config/studio-menu-items.config';
 import { WORKFLOWS_MENU_ITEMS } from '@app-config/workflows-menu-items.config';
 import {
@@ -102,7 +105,7 @@ export function useAppProtectedLayout(
   initialBootstrap?: ProtectedBootstrapData | null,
 ) {
   const rawPathname = usePathname();
-  const routeParams = useParams<{ brandSlug?: string }>();
+  const routeParams = useParams<{ brandSlug?: string; orgSlug?: string }>();
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
 
@@ -500,10 +503,19 @@ export function useAppProtectedLayout(
     [taskContextSearchParams],
   );
 
+  // The settings sidebar is scope-specific: brand route → brand pages, org
+  // route → org pages, otherwise personal pages. Scope is derived from the route
+  // params (brandSlug/orgSlug), not selected-brand context.
+  const settingsScope: SettingsScope = routeParams.brandSlug
+    ? 'brand'
+    : routeParams.orgSlug
+      ? 'organization'
+      : 'personal';
+
   const settingsMenuItems = useMemo(
     () =>
       buildSettingsMenuItems({
-        routeBrandSlug: routeParams.brandSlug,
+        scope: settingsScope,
         isEnterprise: isEEEnabled(),
       }).map(
         (item): MenuItemConfig => ({
@@ -511,7 +523,7 @@ export function useAppProtectedLayout(
           href: withTaskContextHref(item.href, taskContextSearchParams),
         }),
       ),
-    [routeParams.brandSlug, taskContextSearchParams],
+    [settingsScope, taskContextSearchParams],
   );
 
   const adminMenuItems = useMemo(

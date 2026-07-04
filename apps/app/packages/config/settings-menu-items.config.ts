@@ -18,7 +18,6 @@ import {
   HiOutlineShieldCheck,
   HiOutlineSparkles,
   HiOutlineSquares2X2,
-  HiOutlineTag,
   HiOutlineUser,
   HiOutlineUsers,
   HiPaperAirplane,
@@ -26,13 +25,9 @@ import {
   HiShieldCheck,
   HiSparkles,
   HiSquares2X2,
-  HiTag,
   HiUser,
   HiUsers,
 } from 'react-icons/hi2';
-
-const ORGANIZATION_GROUP = 'Organization';
-const BRANDS_GROUP = 'Brands';
 
 // Brand settings live at brand-scoped `/settings/*` paths (no route constants —
 // they resolve against the current brandSlug via the sidebar's `prefixHref`).
@@ -44,151 +39,21 @@ const BRAND_SETTINGS = {
   VOICE: '/settings/voice',
 } as const;
 
+/** Which settings context the sidebar is rendering. */
+export type SettingsScope = 'personal' | 'organization' | 'brand';
+
 export interface BuildSettingsMenuItemsParams {
   /**
-   * Brand slug from the current route (`/[orgSlug]/[brandSlug]/settings/*`).
-   * When present the Brands entry expands into that brand's sub-pages; when
-   * absent it stays a single flat "Brands" link. Sourced from the route — NOT
-   * the selected-brand context — so brand sub-pages never appear on personal or
-   * org settings routes where their brand-scoped hrefs cannot resolve.
+   * The current settings context, derived from the route. Each scope renders
+   * ONLY its own pages — the sidebar never mixes scopes. Scope switching is
+   * handled by the gear dropdown / org + brand switchers, not the sidebar.
    */
-  routeBrandSlug?: string;
-  /** EE build — gates the Organization Billing entry. */
+  scope: SettingsScope;
+  /** EE build — gates the organization Billing entry. */
   isEnterprise?: boolean;
 }
 
-/**
- * Builds the Settings sidebar menu: one "Settings" section (applied by the
- * shell via `sectionLabel`) containing Personal, an Organization sub-group, the
- * Brands entry, and Help. Sub-pages that were previously in-page tabs now live
- * here as nested menu items. Keep in sync with the gear dropdown in
- * `packages/ui/.../user-dropdown/UserDropdown.tsx`.
- */
-export function buildSettingsMenuItems({
-  routeBrandSlug,
-  isEnterprise = false,
-}: BuildSettingsMenuItemsParams = {}): MenuItemConfig[] {
-  const organizationItems: MenuItemConfig[] = [
-    {
-      group: ORGANIZATION_GROUP,
-      href: APP_ROUTES.SETTINGS.ROOT,
-      hrefScope: 'organization',
-      isCollapsible: true,
-      isExactMatch: true,
-      label: 'General',
-      outline: HiOutlineBuildingOffice2,
-      solid: HiBuildingOffice2,
-    },
-    {
-      group: ORGANIZATION_GROUP,
-      href: APP_ROUTES.SETTINGS.MEMBERS,
-      hrefScope: 'organization',
-      label: 'Members',
-      outline: HiOutlineUsers,
-      solid: HiUsers,
-    },
-    ...(isEnterprise
-      ? [
-          {
-            group: ORGANIZATION_GROUP,
-            href: APP_ROUTES.SETTINGS.BILLING,
-            hrefScope: 'organization' as const,
-            label: 'Billing',
-            outline: HiOutlineCreditCard,
-            solid: HiCreditCard,
-          },
-        ]
-      : []),
-    {
-      group: ORGANIZATION_GROUP,
-      href: APP_ROUTES.SETTINGS.API_KEYS,
-      hrefScope: 'organization',
-      label: 'API Keys',
-      outline: HiOutlineKey,
-      solid: HiKey,
-    },
-    {
-      group: ORGANIZATION_GROUP,
-      href: APP_ROUTES.SETTINGS.POLICY,
-      hrefScope: 'organization',
-      label: 'Policy',
-      outline: HiOutlineShieldCheck,
-      solid: HiShieldCheck,
-    },
-  ];
-
-  const brandsItems: MenuItemConfig[] = routeBrandSlug
-    ? [
-        {
-          group: BRANDS_GROUP,
-          href: APP_ROUTES.SETTINGS.BRANDS,
-          hrefScope: 'organization',
-          isCollapsible: true,
-          isExactMatch: true,
-          label: 'All Brands',
-          outline: HiOutlineTag,
-          solid: HiTag,
-        },
-        {
-          group: BRANDS_GROUP,
-          href: APP_ROUTES.SETTINGS.ROOT,
-          hrefScope: 'brand',
-          isExactMatch: true,
-          label: 'Overview',
-          outline: HiOutlineSquares2X2,
-          solid: HiSquares2X2,
-        },
-        {
-          group: BRANDS_GROUP,
-          href: BRAND_SETTINGS.VOICE,
-          hrefScope: 'brand',
-          label: 'Voice',
-          outline: HiOutlineMicrophone,
-          solid: HiMicrophone,
-        },
-        {
-          group: BRANDS_GROUP,
-          href: BRAND_SETTINGS.HARNESS,
-          hrefScope: 'brand',
-          label: 'Harness',
-          outline: HiOutlineSparkles,
-          solid: HiSparkles,
-        },
-        {
-          group: BRANDS_GROUP,
-          href: BRAND_SETTINGS.INTERVIEW,
-          hrefScope: 'brand',
-          label: 'Interview',
-          outline: HiOutlineChatBubbleLeftRight,
-          solid: HiChatBubbleLeftRight,
-        },
-        {
-          group: BRANDS_GROUP,
-          href: BRAND_SETTINGS.PUBLISHING,
-          hrefScope: 'brand',
-          label: 'Publishing',
-          outline: HiOutlinePaperAirplane,
-          solid: HiPaperAirplane,
-        },
-        {
-          group: BRANDS_GROUP,
-          href: BRAND_SETTINGS.AGENT_DEFAULTS,
-          hrefScope: 'brand',
-          label: 'Agent Defaults',
-          outline: HiOutlineCpuChip,
-          solid: HiCpuChip,
-        },
-      ]
-    : [
-        {
-          href: APP_ROUTES.SETTINGS.BRANDS,
-          hrefScope: 'organization',
-          label: 'Brands',
-          outline: HiOutlineTag,
-          solid: HiTag,
-        },
-      ];
-
+function buildPersonalMenuItems(): MenuItemConfig[] {
   return [
     {
       href: APP_ROUTES.SETTINGS.ROOT,
@@ -198,16 +63,129 @@ export function buildSettingsMenuItems({
       outline: HiOutlineUser,
       solid: HiUser,
     },
-    ...organizationItems,
-    ...brandsItems,
     {
       href: APP_ROUTES.SETTINGS.HELP,
-      hrefScope: 'organization',
+      hrefScope: 'personal',
       label: 'Help',
       outline: HiOutlineQuestionMarkCircle,
       solid: HiQuestionMarkCircle,
     },
   ];
+}
+
+function buildOrganizationMenuItems(isEnterprise: boolean): MenuItemConfig[] {
+  return [
+    {
+      href: APP_ROUTES.SETTINGS.ROOT,
+      hrefScope: 'organization',
+      isExactMatch: true,
+      label: 'General',
+      outline: HiOutlineBuildingOffice2,
+      solid: HiBuildingOffice2,
+    },
+    {
+      href: APP_ROUTES.SETTINGS.MEMBERS,
+      hrefScope: 'organization',
+      label: 'Members',
+      outline: HiOutlineUsers,
+      solid: HiUsers,
+    },
+    ...(isEnterprise
+      ? [
+          {
+            href: APP_ROUTES.SETTINGS.BILLING,
+            hrefScope: 'organization' as const,
+            label: 'Billing',
+            outline: HiOutlineCreditCard,
+            solid: HiCreditCard,
+          },
+        ]
+      : []),
+    {
+      href: APP_ROUTES.SETTINGS.API_KEYS,
+      hrefScope: 'organization',
+      label: 'API Keys',
+      outline: HiOutlineKey,
+      solid: HiKey,
+    },
+    {
+      href: APP_ROUTES.SETTINGS.POLICY,
+      hrefScope: 'organization',
+      label: 'Policy',
+      outline: HiOutlineShieldCheck,
+      solid: HiShieldCheck,
+    },
+  ];
+}
+
+function buildBrandMenuItems(): MenuItemConfig[] {
+  return [
+    {
+      href: APP_ROUTES.SETTINGS.ROOT,
+      hrefScope: 'brand',
+      isExactMatch: true,
+      label: 'Overview',
+      outline: HiOutlineSquares2X2,
+      solid: HiSquares2X2,
+    },
+    {
+      href: BRAND_SETTINGS.VOICE,
+      hrefScope: 'brand',
+      label: 'Voice',
+      outline: HiOutlineMicrophone,
+      solid: HiMicrophone,
+    },
+    {
+      href: BRAND_SETTINGS.HARNESS,
+      hrefScope: 'brand',
+      label: 'Harness',
+      outline: HiOutlineSparkles,
+      solid: HiSparkles,
+    },
+    {
+      href: BRAND_SETTINGS.INTERVIEW,
+      hrefScope: 'brand',
+      label: 'Interview',
+      outline: HiOutlineChatBubbleLeftRight,
+      solid: HiChatBubbleLeftRight,
+    },
+    {
+      href: BRAND_SETTINGS.PUBLISHING,
+      hrefScope: 'brand',
+      label: 'Publishing',
+      outline: HiOutlinePaperAirplane,
+      solid: HiPaperAirplane,
+    },
+    {
+      href: BRAND_SETTINGS.AGENT_DEFAULTS,
+      hrefScope: 'brand',
+      label: 'Agent Defaults',
+      outline: HiOutlineCpuChip,
+      solid: HiCpuChip,
+    },
+  ];
+}
+
+/**
+ * Builds the Settings sidebar menu for a single scope. The sidebar is
+ * scope-specific: loading organization settings shows only organization pages,
+ * personal settings shows only personal pages (+ Help), and a brand's settings
+ * show only that brand's pages. Keep the gear dropdown
+ * (`packages/ui/.../user-dropdown/UserDropdown.tsx`) as the cross-scope switcher.
+ */
+export function buildSettingsMenuItems({
+  scope,
+  isEnterprise = false,
+}: BuildSettingsMenuItemsParams): MenuItemConfig[] {
+  if (scope === 'brand') {
+    return buildBrandMenuItems();
+  }
+
+  if (scope === 'organization') {
+    return buildOrganizationMenuItems(isEnterprise);
+  }
+
+  return buildPersonalMenuItems();
 }
 
 export const SETTINGS_LOGO_HREF = APP_ROUTES.WORKSPACE.OVERVIEW;

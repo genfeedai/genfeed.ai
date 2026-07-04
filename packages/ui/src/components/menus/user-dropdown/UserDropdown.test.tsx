@@ -26,7 +26,7 @@ vi.mock('next/link', () => ({
 }));
 
 describe('UserDropdown', () => {
-  it('stays consistent with the settings sidebar order and destinations', () => {
+  it('switches between the settings scopes (Help lives in the personal scope)', () => {
     render(<UserDropdown userName="Test User" userEmail="test@example.com" />);
 
     fireEvent.pointerDown(screen.getByRole('button', { name: 'Settings' }));
@@ -50,9 +50,10 @@ describe('UserDropdown', () => {
       'href',
       '/acme/~settings/brands',
     );
+    // Help is a personal-scope destination, not org-scoped.
     expect(screen.getByRole('menuitem', { name: /Help/i })).toHaveAttribute(
       'href',
-      '/acme/~settings/help',
+      '/settings/help',
     );
   });
 
