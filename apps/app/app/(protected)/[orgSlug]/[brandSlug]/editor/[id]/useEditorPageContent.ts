@@ -22,6 +22,7 @@ import { EditorProjectsService } from '@services/editor/editor-projects.service'
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import type { EditorPreviewRef } from './EditorPreview';
 
 const DEFAULT_FPS = 30;
@@ -74,6 +75,12 @@ export function useEditorPageContent(projectId: string) {
     selectedTrackId: null,
     zoom: 2,
   });
+
+  useEffect(() => {
+    captureAnalyticsEvent(ANALYTICS_EVENTS.STUDIO_EDITOR_OPENED, {
+      surface: 'canvas',
+    });
+  }, []);
 
   // Load existing project by ID
   useEffect(() => {

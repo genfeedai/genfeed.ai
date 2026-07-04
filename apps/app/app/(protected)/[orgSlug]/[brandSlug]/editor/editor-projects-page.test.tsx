@@ -2,9 +2,11 @@ import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ANALYTICS_EVENTS } from '@/lib/analytics';
 import EditorProjectsPage from './editor-projects-page';
 
 const mocks = vi.hoisted(() => ({
+  captureAnalyticsEvent: vi.fn(),
   deleteProject: vi.fn(),
   findAll: vi.fn(),
   getEditorService: vi.fn(),
@@ -28,6 +30,11 @@ vi.mock('@services/editor/editor-projects.service', () => ({
   EditorProjectsService: {
     getInstance: vi.fn(),
   },
+}));
+
+vi.mock('@/lib/analytics', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/analytics')>()),
+  captureAnalyticsEvent: mocks.captureAnalyticsEvent,
 }));
 
 vi.mock('next/link', () => ({
@@ -120,6 +127,10 @@ describe('EditorProjectsPage', () => {
 
     render(<EditorProjectsPage />);
 
+    expect(mocks.captureAnalyticsEvent).toHaveBeenCalledWith(
+      ANALYTICS_EVENTS.STUDIO_EDITOR_OPENED,
+      { surface: 'index' },
+    );
     expect(await screen.findByText('Your Projects (2)')).toBeVisible();
     expect(screen.getByText('Launch cut')).toBeVisible();
     expect(screen.getByText('30m ago')).toBeVisible();

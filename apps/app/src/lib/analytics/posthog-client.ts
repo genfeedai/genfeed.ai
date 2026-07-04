@@ -1,12 +1,13 @@
 'use client';
 
-import type { PostHog } from 'posthog-js';
+import type { CaptureResult, PostHog } from 'posthog-js';
 import { isCloudConnected } from '@/lib/config/edition';
 import { isDesktopShell } from '@/lib/desktop/runtime';
 import type {
   AnalyticsEvent,
   AnalyticsEventProperties,
 } from './analytics-events';
+import { sanitizeAnalyticsUrl } from './analytics-url';
 
 /**
  * Gated PostHog client for Genfeed Cloud product analytics (issue #1178).
@@ -40,6 +41,61 @@ export function isAnalyticsEnabled(): boolean {
 }
 
 /**
+ * Property keys that can hold free-text (page titles, search terms) and must
+ * never leave the client (issue #1178, FR8). `title` is `document.title` on
+ * $pageview; `utm_term`/`ph_keyword` are free-text search-campaign params.
+ */
+const FREE_TEXT_PROPERTY_KEYS = new Set(['ph_keyword', 'title', 'utm_term']);
+/** A property value worth sanitising as a URL: absolute or path-relative. */
+const URL_LIKE_RE = /^(?:https?:\/\/|\/)/;
+/** Bound on recursion into nested property bags ($set/$set_once/$groups). */
+const MAX_SCRUB_DEPTH = 6;
+
+/**
+ * Recursively reduce a property value to its privacy-safe form: URL-bearing
+ * strings become bounded route templates; everything else passes through.
+ * Objects/arrays are walked in place (and mutated) so nested $set/$set_once
+ * payloads are covered.
+ */
+function scrubPropertyValue(value: unknown, depth: number): unknown {
+  if (typeof value === 'string') {
+    return URL_LIKE_RE.test(value) ? sanitizeAnalyticsUrl(value) : value;
+  }
+  if (depth >= MAX_SCRUB_DEPTH || value === null || typeof value !== 'object') {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => scrubPropertyValue(item, depth + 1));
+  }
+  const record = value as Record<string, unknown>;
+  for (const key of Object.keys(record)) {
+    if (FREE_TEXT_PROPERTY_KEYS.has(key)) {
+      delete record[key];
+      continue;
+    }
+    record[key] = scrubPropertyValue(record[key], depth + 1);
+  }
+  return record;
+}
+
+/**
+ * `before_send` hook — the final-payload scrub applied to every outbound event.
+ * Runs after PostHog has assembled all auto-properties ($current_url, $referrer,
+ * $pathname, $initial_current_url, document.title, …) and person $set/$set_once
+ * bags, so it is the one place that guarantees no free-text or raw tenant URL
+ * ever reaches ingestion. `sanitize_properties` is deprecated in posthog-js and
+ * does not see the final $set, so it is deliberately not used.
+ */
+function scrubEventProperties(
+  event: CaptureResult | null,
+): CaptureResult | null {
+  if (event?.properties) {
+    scrubPropertyValue(event.properties, 0);
+  }
+  return event;
+}
+
+/**
  * Initialise the PostHog client once, only when analytics is enabled. Safe to
  * call on every app boot: it no-ops on the server, when disabled, or when
  * already initialised. Never awaited by callers — initialisation is best-effort.
@@ -61,7 +117,16 @@ export function initAnalytics(): void {
         // no clicked element text (post titles, generated copy) can ever leak
         // into events, and session recording is off (a non-goal of #1178).
         autocapture: false,
-        capture_pageview: true,
+        // Last-mile privacy scrub (issue #1178, FR8): reduce every outbound
+        // event's URL-bearing properties to bounded route templates and drop
+        // free-text keys. Required now that pageviews capture in-app navigation.
+        before_send: scrubEventProperties,
+        // Capture $pageview on the initial load AND every App Router (History
+        // API) navigation. Plain `true` fires only once at init and then goes
+        // silent for client-side navigation, hiding in-app page usage.
+        capture_pageview: 'history_change',
+        // Keep replay hard-off: $snapshot bypasses before_send property
+        // scrubbing, so enabling it would break the FR8 privacy boundary.
         disable_session_recording: true,
         // Only build person profiles once a user is identified — keeps
         // anonymous, self-serve traffic out of person-based billing/analytics.

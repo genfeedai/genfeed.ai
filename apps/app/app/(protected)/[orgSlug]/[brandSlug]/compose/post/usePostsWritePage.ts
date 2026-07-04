@@ -78,6 +78,10 @@ export function usePostsWritePage() {
   );
 
   useEffect(() => {
+    captureAnalyticsEvent(ANALYTICS_EVENTS.CONTENT_WRITE_OPENED, {});
+  }, []);
+
+  useEffect(() => {
     if (prefilledTitle) {
       setWorkingTitle((currentValue) => currentValue || prefilledTitle);
     }
@@ -144,6 +148,14 @@ export function usePostsWritePage() {
         status: PostStatus.DRAFT,
       });
 
+      captureAnalyticsEvent(
+        ANALYTICS_EVENTS.CONTENT_WRITE_BLANK_DRAFT_STARTED,
+        {
+          credentialId: selectedCredential.id,
+          hasPrefilledIngredient: Boolean(preselectedIngredientId),
+          platform: selectedCredential.platform,
+        },
+      );
       push(href(`/posts/${createdPost.id}`));
     } catch {
       setError('Failed to create draft. Please try again.');
@@ -217,6 +229,10 @@ export function usePostsWritePage() {
           prompt: prompt.trim(),
           title: nextTitle,
         }).catch(() => undefined);
+        captureAnalyticsEvent(ANALYTICS_EVENTS.CONTENT_WRITE_PROMPT_GENERATED, {
+          platform: desktopPlatform,
+          source: 'desktop-ipc',
+        });
         return;
       }
 
@@ -262,6 +278,11 @@ export function usePostsWritePage() {
           prompt: prompt.trim(),
           title: nextTitle,
         }).catch(() => undefined);
+        captureAnalyticsEvent(ANALYTICS_EVENTS.CONTENT_WRITE_PROMPT_GENERATED, {
+          credentialId: selectedCredential.id,
+          platform: selectedCredential.platform,
+          source: 'desktop-ipc-fallback',
+        });
         return;
       }
 
@@ -270,6 +291,10 @@ export function usePostsWritePage() {
         throw new Error('Missing generated post');
       }
 
+      captureAnalyticsEvent(ANALYTICS_EVENTS.CONTENT_WRITE_PROMPT_GENERATED, {
+        credentialId: selectedCredential.id,
+        platform: selectedCredential.platform,
+      });
       captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_COMPLETED, {
         generationType,
         outcome: 'success',

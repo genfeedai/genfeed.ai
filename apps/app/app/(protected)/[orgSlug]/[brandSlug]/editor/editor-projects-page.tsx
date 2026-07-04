@@ -19,6 +19,7 @@ import {
   HiOutlineSparkles,
   HiOutlineTrash,
 } from 'react-icons/hi2';
+import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 
 const features = [
   {
@@ -96,6 +97,9 @@ export default function EditorProjectsPage() {
   }, [getEditorService]);
 
   useEffect(() => {
+    captureAnalyticsEvent(ANALYTICS_EVENTS.STUDIO_EDITOR_OPENED, {
+      surface: 'index',
+    });
     loadProjects();
   }, [loadProjects]);
 
