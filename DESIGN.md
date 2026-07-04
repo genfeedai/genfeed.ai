@@ -355,6 +355,33 @@ Brand OS preview surfaces distinguish four roles:
 Do not use campaign-scale roles inside authenticated settings pages unless the
 screen is explicitly presenting a single launch artifact.
 
+## Color Entry — Content Is the Accent
+
+Genfeed chrome is a neutral studio: the gallery wall, not the art. The product's
+output (generated images, video, audio artwork) is inherently colorful, so the
+interface never competes with it. This is the studio rationale (Adobe, Figma,
+Frame.io — neutral chrome so content color reads true), not a dev-tool
+aesthetic borrowed for its own sake.
+
+Color enters the UI through exactly four doors:
+
+1. **User content** — generated media is the primary color source. Render it
+   borderless and full-bleed wherever possible; chrome recedes behind it.
+2. **Platform brand identifiers** — the platform tokens above, scoped to
+   badges/icons only.
+3. **Semantic status** — success/warning/danger/info, for state, never decoration.
+4. **Categorical palettes** — workflow-node and tag colors, for function
+   (identification), never chrome.
+
+Everything else — buttons, cards, borders, hovers, focus rings — is grayscale.
+Ambient treatments may derive tint FROM focused content (e.g. a low-opacity
+dominant-color wash behind a media canvas); chrome never imposes its own hue
+onto content.
+
+No glow textures: no `box-shadow` halos, spotlight tints, or pulsing glow
+animations in chrome. Elevation comes from background layering and inset-shadow
+containment only.
+
 ## Do's and Don'ts
 
 - **Do** use background layering for hierarchy instead of heavy borders.
@@ -369,3 +396,5 @@ screen is explicitly presenting a single launch artifact.
 - **Don't** add new semantic colors without updating this DESIGN.md.
 - **Don't** use large decorative gradients as core product surfaces.
 - **Don't** nest cards inside cards.
+- **Don't** add colored accents or glow/spotlight shadows to chrome — color
+  enters only through the four doors in "Color Entry" above.
