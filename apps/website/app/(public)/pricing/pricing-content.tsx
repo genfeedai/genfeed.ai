@@ -150,40 +150,66 @@ export default function PricingContent() {
               return (
                 <NeuralGridItem
                   key={plan.label}
+                  inverted={isFeatured}
                   padding="lg"
                   className={cn(
                     'relative gsap-card',
-                    isFeatured ? 'bg-white/[0.04]' : 'bg-fill/[0.02]',
+                    !isFeatured && 'bg-fill/[0.02]',
                   )}
                   tierLabel={`${String(index + 1).padStart(2, '0')} / ${getDisplayName(plan.label)}`}
                 >
                   {isFeatured ? (
                     <div className="absolute right-6 top-6">
-                      <span className="border border-surface/25 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-surface/70">
+                      <span className="bg-zinc-950 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-surface">
                         Default
                       </span>
                     </div>
                   ) : null}
 
                   <div className="mb-2">
-                    <span className="text-5xl font-semibold tracking-[-0.03em] text-surface">
+                    <span
+                      className={cn(
+                        'text-5xl font-semibold tracking-[-0.03em]',
+                        isFeatured && 'text-inv-fg',
+                      )}
+                    >
                       {isEnterprise ? 'Custom' : formatPrice(plan.price)}
                     </span>
                   </div>
 
-                  <div className="mb-8 text-sm text-surface/55">
+                  <div
+                    className={cn(
+                      'mb-8 text-sm',
+                      isFeatured ? 'text-inv-fg/50' : 'text-surface/40',
+                    )}
+                  >
                     {getPriceQualifier(plan)}
                   </div>
 
-                  <p className="mb-8 text-sm leading-6 text-surface/70">
+                  <p
+                    className={cn(
+                      'mb-8 text-sm leading-6',
+                      isFeatured ? 'text-inv-fg/60' : 'text-surface/50',
+                    )}
+                  >
                     {getPlanSummary(plan)}
                   </p>
 
                   <ul className="mb-auto space-y-4">
                     {plan.features.slice(0, 5).map((feature) => (
                       <li key={feature} className="flex items-start gap-3">
-                        <HiCheckCircle className="mt-0.5 size-4 shrink-0 text-surface/45" />
-                        <span className="text-sm text-surface/75">
+                        <HiCheckCircle
+                          className={cn(
+                            'mt-0.5 size-4 shrink-0',
+                            isFeatured ? 'text-inv-fg/35' : 'text-surface/40',
+                          )}
+                        />
+                        <span
+                          className={cn(
+                            'text-sm',
+                            isFeatured ? 'text-inv-fg/60' : 'text-surface/60',
+                          )}
+                        >
                           {feature}
                         </span>
                       </li>
@@ -195,7 +221,7 @@ export default function PricingContent() {
                     className="mt-12 w-full justify-center"
                     size={ButtonSize.PUBLIC}
                     variant={
-                      isFeatured ? ButtonVariant.DEFAULT : ButtonVariant.OUTLINE
+                      isFeatured ? ButtonVariant.BLACK : ButtonVariant.OUTLINE
                     }
                   >
                     <a href={ctaHref} target="_blank" rel="noopener noreferrer">
