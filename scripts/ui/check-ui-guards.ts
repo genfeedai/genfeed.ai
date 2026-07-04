@@ -27,6 +27,23 @@ const checks = [
     required: true,
   },
   {
+    // Repo-wide scan (no file args) — blocks hand-rolled card surfaces that
+    // bypass the shared Card. Baseline lives in the script's allowlist so this
+    // is green on master; new violations fail. Also runs in pre-commit via
+    // lint-staged.
+    command: ['bash', 'scripts/lint-no-bespoke-card.sh'],
+    name: 'Bespoke card surfaces',
+    required: true,
+  },
+  {
+    // Repo-wide scan (no file args) — blocks raw HTML elements that bypass
+    // @ui/primitives. Previously only gated staged files via lint-staged
+    // (skippable with --no-verify / non-hook commits); this enforces it in CI.
+    command: ['bash', 'scripts/lint-no-raw-html.sh'],
+    name: 'Raw HTML elements',
+    required: true,
+  },
+  {
     command: ['bun', 'run', 'scripts/check-modal-standard-usage.ts'],
     name: 'Modal architecture',
     required: true,
