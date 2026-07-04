@@ -8,6 +8,7 @@ vi.mock('@services/core/logger.service', () => ({
 
 import type { ICommand } from '@genfeedai/interfaces/ui/command-palette.interface';
 import { CommandPaletteService } from '@services/core/command-palette.service';
+import { logger } from '@services/core/logger.service';
 
 function makeCommand(
   id: string,
@@ -56,6 +57,70 @@ describe('CommandPaletteService', () => {
         makeCommand('b', 'Beta'),
       ]);
       expect(CommandPaletteService.getCommandCount()).toBe(2);
+    });
+
+    it('returns the ids that were registered', () => {
+      const registeredIds = CommandPaletteService.registerCommands([
+        makeCommand('a', 'Alpha'),
+        makeCommand('b', 'Beta'),
+      ]);
+      expect(registeredIds).toEqual(['a', 'b']);
+    });
+
+    it('returns only newly registered ids when some already exist', () => {
+      CommandPaletteService.registerCommand(makeCommand('a', 'Alpha'));
+      const registeredIds = CommandPaletteService.registerCommands([
+        makeCommand('a', 'Alpha Again'),
+        makeCommand('b', 'Beta'),
+      ]);
+      expect(registeredIds).toEqual(['b']);
+      expect(CommandPaletteService.getCommandCount()).toBe(2);
+    });
+  });
+
+  describe('unregisterCommands', () => {
+    it('removes all given commands', () => {
+      CommandPaletteService.registerCommands([
+        makeCommand('a', 'Alpha'),
+        makeCommand('b', 'Beta'),
+      ]);
+      CommandPaletteService.unregisterCommands(['a', 'b']);
+      expect(CommandPaletteService.getCommandCount()).toBe(0);
+    });
+
+    it('does not throw for unknown command ids', () => {
+      CommandPaletteService.registerCommand(makeCommand('keep', 'Keep'));
+      expect(() =>
+        CommandPaletteService.unregisterCommands(['ghost', 'keep']),
+      ).not.toThrow();
+      expect(CommandPaletteService.getCommandCount()).toBe(0);
+    });
+  });
+
+  describe('remount lifecycle (register → unregister → register)', () => {
+    it('does not warn "Commands already registered" when re-registering after cleanup', () => {
+      const commands = [makeCommand('a', 'Alpha'), makeCommand('b', 'Beta')];
+
+      // Mount: register
+      const registeredIds = CommandPaletteService.registerCommands(commands);
+      // Unmount cleanup: unregister exactly what was registered
+      CommandPaletteService.unregisterCommands(registeredIds);
+      // Remount (re-navigation / StrictMode): register again
+      CommandPaletteService.registerCommands(commands);
+
+      expect(logger.warn).not.toHaveBeenCalled();
+      expect(CommandPaletteService.getCommandCount()).toBe(2);
+    });
+
+    it('keeps each command exactly once after remount', () => {
+      const commands = [makeCommand('a', 'Alpha')];
+
+      const registeredIds = CommandPaletteService.registerCommands(commands);
+      CommandPaletteService.unregisterCommands(registeredIds);
+      CommandPaletteService.registerCommands(commands);
+
+      const ids = CommandPaletteService.getAllCommands().map((c) => c.id);
+      expect(ids.filter((id) => id === 'a')).toHaveLength(1);
     });
   });
 

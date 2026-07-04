@@ -35,7 +35,7 @@ export const competitors: Competitor[] = [
       {
         competitor: '$144-912',
         feature: 'Entry price',
-        genfeed: '$49/mo + PAYG',
+        genfeed: 'Free + pay-per-output credits',
       },
     ],
     genfeedAdvantages: [
@@ -84,7 +84,7 @@ export const competitors: Competitor[] = [
       {
         competitor: '$120',
         feature: 'Entry price',
-        genfeed: '$49/mo + PAYG',
+        genfeed: 'Free + pay-per-output credits',
       },
     ],
     genfeedAdvantages: [
@@ -132,7 +132,7 @@ export const competitors: Competitor[] = [
       {
         competitor: '$348-1548',
         feature: 'Entry price',
-        genfeed: '$49/mo + PAYG',
+        genfeed: 'Free + pay-per-output credits',
       },
     ],
     genfeedAdvantages: [
@@ -181,7 +181,7 @@ export const competitors: Competitor[] = [
       {
         competitor: '$588-1500',
         feature: 'Entry price',
-        genfeed: '$49/mo + PAYG',
+        genfeed: 'Free + pay-per-output credits',
       },
     ],
     genfeedAdvantages: [
@@ -225,7 +225,7 @@ export const competitors: Competitor[] = [
       {
         competitor: '$72-1440',
         feature: 'Entry price',
-        genfeed: '$49/mo + PAYG',
+        genfeed: 'Free + pay-per-output credits',
       },
     ],
     genfeedAdvantages: [
@@ -278,7 +278,7 @@ export const competitors: Competitor[] = [
       {
         competitor: '$144-288',
         feature: 'Entry price',
-        genfeed: '$49/mo + PAYG',
+        genfeed: 'Free + pay-per-output credits',
       },
     ],
     genfeedAdvantages: [
@@ -326,7 +326,7 @@ export const competitors: Competitor[] = [
       {
         competitor: '$264-708',
         feature: 'Entry price',
-        genfeed: '$49/mo + PAYG',
+        genfeed: 'Free + pay-per-output credits',
       },
     ],
     genfeedAdvantages: [
@@ -376,7 +376,7 @@ export const competitors: Competitor[] = [
       {
         competitor: '$288-576',
         feature: 'Entry price',
-        genfeed: '$49/mo + PAYG',
+        genfeed: 'Free + pay-per-output credits',
       },
     ],
     genfeedAdvantages: [
@@ -430,7 +430,7 @@ export const competitors: Competitor[] = [
       {
         competitor: '$228-468',
         feature: 'Entry price',
-        genfeed: '$49/mo + PAYG',
+        genfeed: 'Free + pay-per-output credits',
       },
     ],
     genfeedAdvantages: [
@@ -479,7 +479,7 @@ export const competitors: Competitor[] = [
       {
         competitor: '$180-360',
         feature: 'Entry price',
-        genfeed: '$49/mo + PAYG',
+        genfeed: 'Free + pay-per-output credits',
       },
     ],
     genfeedAdvantages: [
@@ -533,7 +533,7 @@ export const competitors: Competitor[] = [
       {
         competitor: '$348-1788',
         feature: 'Entry price',
-        genfeed: '$49/mo + PAYG',
+        genfeed: 'Free + pay-per-output credits',
       },
     ],
     genfeedAdvantages: [
@@ -583,7 +583,7 @@ export const competitors: Competitor[] = [
       {
         competitor: 'Free-$96',
         feature: 'Entry price',
-        genfeed: '$49/mo + PAYG',
+        genfeed: 'Free + pay-per-output credits',
       },
     ],
     genfeedAdvantages: [

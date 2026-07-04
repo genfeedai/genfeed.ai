@@ -304,23 +304,25 @@ function buildLlmsFull(): string {
   s.push('## Pricing');
   s.push('');
   s.push(
-    'Genfeed separates platform access from output usage. Cloud App starts at $49/month plus pay-as-you-go output. Cloud Teams is higher-entry B2B for paid seats, collaboration, multi-organization, and multi-brand use cases. Enterprise is custom.',
+    'Genfeed is free to join: credits buy the output you generate (1 credit = $0.01 at the pay-as-you-go rate). Subscriptions include monthly credits at a ~40% better rate and unlock more brands, channels, and seats. Creator is $49/month with 8,000 credits included. Cloud Teams is $499/month with 5 seats and an 80,000-credit shared pool. Enterprise is custom.',
   );
   s.push('');
 
   for (const plan of websitePlans.filter((item) =>
-    ['Hosted', 'Cloud Teams', 'Enterprise'].includes(item.label),
+    ['Pay As You Go', 'Hosted', 'Cloud Teams', 'Enterprise'].includes(
+      item.label,
+    ),
   )) {
     const priceStr =
       plan.price === 0
-        ? 'Free'
+        ? 'Free — pay-per-output credits'
         : plan.price === null
           ? 'Contact Sales'
-          : plan.type === 'payg'
-            ? `$${plan.price.toLocaleString()}/month + PAYG output`
+          : plan.includedCredits
+            ? `$${plan.price.toLocaleString()}/month with ${plan.includedCredits.toLocaleString()} credits included`
             : `$${plan.price.toLocaleString()}/month`;
 
-    const displayLabel = plan.label === 'Hosted' ? 'Cloud App' : plan.label;
+    const displayLabel = plan.label === 'Hosted' ? 'Creator' : plan.label;
 
     s.push(`### ${displayLabel} — ${priceStr}`);
     s.push('');
@@ -362,7 +364,7 @@ function buildLlmsFull(): string {
   s.push('## AI Models');
   s.push('');
   s.push(
-    'Genfeed integrates 50+ AI models across multiple categories. Models are auto-selected for best quality on Cloud App, with production model controls available through Cloud Teams and Enterprise scopes.',
+    'Genfeed integrates 50+ AI models across multiple categories. Users never pick a model: the Genfeed router sends every job to the best model for the format, brief, and budget, with production model controls available through Enterprise scope.',
   );
   s.push('');
 
