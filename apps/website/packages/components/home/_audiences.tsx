@@ -99,7 +99,7 @@ export default function HomeAudiences(): React.ReactElement {
             </HStack>
           </div>
 
-          <div className="flex flex-col gap-5 bg-white/[0.04] p-8">
+          <div className="flex flex-col gap-5 bg-background p-8 shadow-border">
             <HStack className="items-center justify-between">
               <HStack className="items-center gap-2 text-surface/72">
                 <HiBuildingOffice2 className="size-4" />

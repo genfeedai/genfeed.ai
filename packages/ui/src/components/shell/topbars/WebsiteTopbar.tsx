@@ -17,7 +17,7 @@ import {
 
 const PRODUCT_LINKS = [
   {
-    description: 'Free to start — credits buy your output',
+    description: 'Free to start, credits buy your output',
     href: '/pricing',
     icon: HiCloud,
     label: 'Cloud App',
