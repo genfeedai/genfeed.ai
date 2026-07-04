@@ -13,10 +13,12 @@ import {
 } from '@testing-library/react';
 import { type Ref, useImperativeHandle } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ANALYTICS_EVENTS } from '@/lib/analytics';
 import type { EditorPreviewRef } from './EditorPreview';
 import EditorPageContent from './editor-page-content';
 
 const mocks = vi.hoisted(() => ({
+  captureAnalyticsEvent: vi.fn(),
   error: vi.fn(),
   findById: vi.fn(),
   href: vi.fn((path: string) => `/org/acme/brand/demo${path}`),
@@ -29,7 +31,6 @@ const mocks = vi.hoisted(() => ({
   renderProject: vi.fn(),
   seekToFrame: vi.fn(),
   success: vi.fn(),
-  track: vi.fn(),
   update: vi.fn(),
 }));
 
@@ -82,8 +83,9 @@ vi.mock('@services/core/notifications.service', () => ({
   },
 }));
 
-vi.mock('@vercel/analytics', () => ({
-  track: mocks.track,
+vi.mock('@/lib/analytics', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/analytics')>()),
+  captureAnalyticsEvent: mocks.captureAnalyticsEvent,
 }));
 
 vi.mock('next/navigation', () => ({
@@ -410,9 +412,10 @@ describe('EditorPageContent', () => {
     await renderLoadedEditor();
 
     expect(mocks.findById).toHaveBeenCalledWith('editor-123');
-    expect(mocks.track).toHaveBeenCalledWith('studio_editor_opened', {
-      surface: 'canvas',
-    });
+    expect(mocks.captureAnalyticsEvent).toHaveBeenCalledWith(
+      ANALYTICS_EVENTS.STUDIO_EDITOR_OPENED,
+      { surface: 'canvas' },
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Play Pause' }));
     expect(mocks.play).toHaveBeenCalled();

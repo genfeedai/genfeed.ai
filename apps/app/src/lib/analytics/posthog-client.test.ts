@@ -87,6 +87,71 @@ describe('initAnalytics', () => {
     );
   });
 
+  it('captures pageviews on every SPA navigation with a before_send scrub', async () => {
+    const client = await loadClient();
+    client.initAnalytics();
+    await flushInit();
+    const config = mocks.posthogInit.mock.calls[0]?.[1] as {
+      capture_pageview: unknown;
+      before_send: unknown;
+      disable_session_recording: unknown;
+    };
+    expect(config.capture_pageview).toBe('history_change');
+    expect(typeof config.before_send).toBe('function');
+    // Replay must stay off — $snapshot bypasses before_send scrubbing.
+    expect(config.disable_session_recording).toBe(true);
+  });
+
+  it('before_send strips free-text and reduces URL properties to route templates', async () => {
+    const client = await loadClient();
+    client.initAnalytics();
+    await flushInit();
+    const config = mocks.posthogInit.mock.calls[0]?.[1] as {
+      before_send: (event: unknown) => { properties: Record<string, unknown> };
+    };
+
+    const scrubbed = config.before_send({
+      event: '$pageview',
+      properties: {
+        $current_url:
+          'https://app.genfeed.ai/acme/brand/compose/post?title=Secret%20Post&description=xyz',
+        $pathname: '/acme/brand/posts/3f2504e0-4f89-41d3-9a0c-0305e82c3301',
+        $prev_pageview_pathname:
+          '/acme/brand/editor/3f2504e0-4f89-41d3-9a0c-0305e82c3301',
+        $referrer: 'https://app.genfeed.ai/acme/brand/posts/x?title=leak',
+        $set_once: {
+          $initial_current_url:
+            'https://app.genfeed.ai/acme/brand/compose/post?title=Secret%20Post',
+        },
+        title: 'Secret Post — Genfeed',
+        utm_term: 'a secret search phrase',
+      },
+    });
+
+    const props = scrubbed.properties;
+    // No query string and no free-text survives on any value.
+    for (const value of [
+      props.$current_url,
+      props.$referrer,
+      (props.$set_once as Record<string, unknown>).$initial_current_url,
+    ]) {
+      expect(String(value)).not.toContain('?');
+      expect(String(value)).not.toMatch(/secret|leak/i);
+    }
+    // Free-text keys are dropped entirely.
+    expect(props.title).toBeUndefined();
+    expect(props.utm_term).toBeUndefined();
+    // Tenant slugs templatized, ids collapsed — on top-level and nested bags.
+    expect(props.$current_url).toBe(
+      'https://app.genfeed.ai/:org/:brand/compose/post',
+    );
+    expect(props.$pathname).toBe('/:org/:brand/posts/:id');
+    expect(props.$prev_pageview_pathname).toBe('/:org/:brand/editor/:id');
+    expect(
+      (props.$set_once as Record<string, unknown>).$initial_current_url,
+    ).toBe('https://app.genfeed.ai/:org/:brand/compose/post');
+  });
+
   it('never constructs the client in self-hosted mode', async () => {
     mocks.isCloudConnected.mockReturnValue(false);
     const client = await loadClient();
@@ -152,18 +217,22 @@ describe('captureAnalyticsEvent', () => {
 });
 
 describe('event taxonomy', () => {
-  it('exposes exactly the six required events as snake_case slugs', () => {
+  it('exposes the declared events as unique snake_case slugs', () => {
     const values = Object.values(ANALYTICS_EVENTS);
     expect(new Set(values).size).toBe(values.length);
     for (const name of values) {
       expect(name).toMatch(/^[a-z][a-z_]*[a-z]$/);
     }
-    expect(values).toEqual(
-      expect.arrayContaining([
+    expect(new Set(values)).toEqual(
+      new Set([
         'agent_thread_created',
+        'content_write_blank_draft_started',
+        'content_write_opened',
+        'content_write_prompt_generated',
         'generation_completed',
         'generation_started',
         'post_published',
+        'studio_editor_opened',
         'workflow_run_completed',
         'workflow_run_started',
       ]),

@@ -8,7 +8,6 @@ import { EditorProjectsService } from '@services/editor/editor-projects.service'
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
-import { track } from '@vercel/analytics';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -20,6 +19,7 @@ import {
   HiOutlineSparkles,
   HiOutlineTrash,
 } from 'react-icons/hi2';
+import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 
 const features = [
   {
@@ -97,7 +97,9 @@ export default function EditorProjectsPage() {
   }, [getEditorService]);
 
   useEffect(() => {
-    track('studio_editor_opened', { surface: 'index' });
+    captureAnalyticsEvent(ANALYTICS_EVENTS.STUDIO_EDITOR_OPENED, {
+      surface: 'index',
+    });
     loadProjects();
   }, [loadProjects]);
 

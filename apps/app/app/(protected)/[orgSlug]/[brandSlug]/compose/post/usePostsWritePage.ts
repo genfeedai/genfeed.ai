@@ -10,7 +10,6 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { PostsService } from '@services/content/posts.service';
 import { ClipboardService } from '@services/core/clipboard.service';
-import { track } from '@vercel/analytics';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
@@ -79,7 +78,7 @@ export function usePostsWritePage() {
   );
 
   useEffect(() => {
-    track('content_write_opened');
+    captureAnalyticsEvent(ANALYTICS_EVENTS.CONTENT_WRITE_OPENED, {});
   }, []);
 
   useEffect(() => {
@@ -149,11 +148,14 @@ export function usePostsWritePage() {
         status: PostStatus.DRAFT,
       });
 
-      track('content_write_blank_draft_started', {
-        credentialId: selectedCredential.id,
-        hasPrefilledIngredient: Boolean(preselectedIngredientId),
-        platform: selectedCredential.platform,
-      });
+      captureAnalyticsEvent(
+        ANALYTICS_EVENTS.CONTENT_WRITE_BLANK_DRAFT_STARTED,
+        {
+          credentialId: selectedCredential.id,
+          hasPrefilledIngredient: Boolean(preselectedIngredientId),
+          platform: selectedCredential.platform,
+        },
+      );
       push(href(`/posts/${createdPost.id}`));
     } catch {
       setError('Failed to create draft. Please try again.');
@@ -227,11 +229,9 @@ export function usePostsWritePage() {
           prompt: prompt.trim(),
           title: nextTitle,
         }).catch(() => undefined);
-        track('content_write_prompt_generated', {
-          mode,
+        captureAnalyticsEvent(ANALYTICS_EVENTS.CONTENT_WRITE_PROMPT_GENERATED, {
           platform: desktopPlatform,
           source: 'desktop-ipc',
-          tone,
         });
         return;
       }
@@ -278,12 +278,10 @@ export function usePostsWritePage() {
           prompt: prompt.trim(),
           title: nextTitle,
         }).catch(() => undefined);
-        track('content_write_prompt_generated', {
+        captureAnalyticsEvent(ANALYTICS_EVENTS.CONTENT_WRITE_PROMPT_GENERATED, {
           credentialId: selectedCredential.id,
-          mode,
           platform: selectedCredential.platform,
           source: 'desktop-ipc-fallback',
-          tone,
         });
         return;
       }
@@ -293,11 +291,9 @@ export function usePostsWritePage() {
         throw new Error('Missing generated post');
       }
 
-      track('content_write_prompt_generated', {
+      captureAnalyticsEvent(ANALYTICS_EVENTS.CONTENT_WRITE_PROMPT_GENERATED, {
         credentialId: selectedCredential.id,
-        mode,
         platform: selectedCredential.platform,
-        tone,
       });
       captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_COMPLETED, {
         generationType,

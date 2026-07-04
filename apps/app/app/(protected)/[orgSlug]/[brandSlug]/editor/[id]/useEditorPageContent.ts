@@ -19,10 +19,10 @@ import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { EditorProjectsService } from '@services/editor/editor-projects.service';
-import { track } from '@vercel/analytics';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import type { EditorPreviewRef } from './EditorPreview';
 
 const DEFAULT_FPS = 30;
@@ -77,7 +77,9 @@ export function useEditorPageContent(projectId: string) {
   });
 
   useEffect(() => {
-    track('studio_editor_opened', { surface: 'canvas' });
+    captureAnalyticsEvent(ANALYTICS_EVENTS.STUDIO_EDITOR_OPENED, {
+      surface: 'canvas',
+    });
   }, []);
 
   // Load existing project by ID

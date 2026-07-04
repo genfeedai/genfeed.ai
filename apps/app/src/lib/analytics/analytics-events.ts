@@ -16,9 +16,13 @@ import type { GenerationType } from '@genfeedai/enums';
  */
 export const ANALYTICS_EVENTS = {
   AGENT_THREAD_CREATED: 'agent_thread_created',
+  CONTENT_WRITE_BLANK_DRAFT_STARTED: 'content_write_blank_draft_started',
+  CONTENT_WRITE_OPENED: 'content_write_opened',
+  CONTENT_WRITE_PROMPT_GENERATED: 'content_write_prompt_generated',
   GENERATION_COMPLETED: 'generation_completed',
   GENERATION_STARTED: 'generation_started',
   POST_PUBLISHED: 'post_published',
+  STUDIO_EDITOR_OPENED: 'studio_editor_opened',
   WORKFLOW_RUN_COMPLETED: 'workflow_run_completed',
   WORKFLOW_RUN_STARTED: 'workflow_run_started',
 } as const;
@@ -30,6 +34,15 @@ export type AnalyticsEvent =
 export type AnalyticsOutcome = 'failure' | 'success';
 
 /**
+ * Which generation path produced a compose-surface draft. Desktop paths run
+ * over the local IPC bridge; the cloud path (no source) generates server-side.
+ */
+export type PromptGeneratedSource = 'desktop-ipc' | 'desktop-ipc-fallback';
+
+/** Which studio editor surface was opened — the project index or the canvas. */
+export type StudioEditorSurface = 'canvas' | 'index';
+
+/**
  * Property shape for each event. Keys map 1:1 to {@link ANALYTICS_EVENTS} values.
  * Every property is a bounded identifier — never free-text.
  */
@@ -37,6 +50,26 @@ export interface AnalyticsEventProperties {
   [ANALYTICS_EVENTS.AGENT_THREAD_CREATED]: {
     /** Optional agent-type slug (e.g. the configured agent kind), never a title. */
     readonly agentType?: string;
+  };
+  [ANALYTICS_EVENTS.CONTENT_WRITE_OPENED]: Record<string, never>;
+  [ANALYTICS_EVENTS.CONTENT_WRITE_BLANK_DRAFT_STARTED]: {
+    /** Opaque internal credential id — a bounded identifier, never user copy. */
+    readonly credentialId: string;
+    /** Whether the draft was seeded from a preselected ingredient. */
+    readonly hasPrefilledIngredient: boolean;
+    /** Connected-platform slug (e.g. "x", "linkedin"), never post content. */
+    readonly platform: string;
+  };
+  [ANALYTICS_EVENTS.CONTENT_WRITE_PROMPT_GENERATED]: {
+    /** Opaque internal credential id; absent on the desktop-only path. */
+    readonly credentialId?: string;
+    /** Connected- or desktop-platform slug, never the prompt/generated text. */
+    readonly platform: string;
+    /** Which generation path ran; absent for the default cloud path. */
+    readonly source?: PromptGeneratedSource;
+  };
+  [ANALYTICS_EVENTS.STUDIO_EDITOR_OPENED]: {
+    readonly surface: StudioEditorSurface;
   };
   [ANALYTICS_EVENTS.GENERATION_STARTED]: {
     readonly generationType: GenerationType;
