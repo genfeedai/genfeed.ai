@@ -36,6 +36,14 @@ const checks = [
     required: true,
   },
   {
+    // Repo-wide scan (no file args) — blocks raw HTML elements that bypass
+    // @ui/primitives. Previously only gated staged files via lint-staged
+    // (skippable with --no-verify / non-hook commits); this enforces it in CI.
+    command: ['bash', 'scripts/lint-no-raw-html.sh'],
+    name: 'Raw HTML elements',
+    required: true,
+  },
+  {
     command: ['bun', 'run', 'scripts/check-modal-standard-usage.ts'],
     name: 'Modal architecture',
     required: true,

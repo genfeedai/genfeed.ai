@@ -66,6 +66,28 @@ for rule in "${IMPORT_RULES[@]}"; do
   fi
 done
 
+# CI full-scan mode: with no file arguments, check the whole repo. lint-staged
+# passes staged files as arguments and skips this branch. Rather than looping
+# every tracked .ts/.tsx (10k+ files, ~2 greps each), a single repo-wide
+# `git grep -l` narrows to the handful of files that contain a raw element or a
+# banned import; the per-file logic below (exclusions, comment filtering) then
+# runs only on those candidates. Behaviour-preserving: a file matching neither
+# pattern can never produce a violation, and an over-inclusive filter only adds
+# candidates the per-file check then clears.
+#
+# The filter strips the `\b` anchors from PATTERN — `git grep -E` does not
+# honour `\b` (it would match nothing and silently pass). Dropping it just
+# widens the candidate set (e.g. `<input` also matches `<inputs`), which the
+# real `\b` per-file check re-narrows. git grep also respects .gitignore and
+# scans only tracked content, so node_modules/dist are skipped for free.
+if [ "$#" -eq 0 ]; then
+  cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  FILTER_PATTERN="${PATTERN//\\b/}|$IMPORT_PATTERN"
+  while IFS= read -r scan_file; do
+    set -- "$@" "$scan_file"
+  done < <(git grep -lE "$FILTER_PATTERN" -- '*.ts' '*.tsx' || true)
+fi
+
 violations=0
 violated_files=()
 
