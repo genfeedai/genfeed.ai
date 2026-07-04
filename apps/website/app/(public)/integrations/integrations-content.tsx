@@ -132,6 +132,7 @@ export default function IntegrationsContent() {
         }
         heroProof={HERO_PROOF}
         heroVisual={HERO_VISUAL}
+        compact
         title="Integrations"
         description="Connect Genfeed to your favorite platforms. Generate and publish AI content everywhere."
       >

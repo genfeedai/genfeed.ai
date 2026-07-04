@@ -79,12 +79,8 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
       <PageLayout
         badge="Open Source Skills"
         badgeIcon={LuBrainCircuit}
-        title={
-          <>
-            {FREE_SKILL_COUNT} Skills.{' '}
-            <span className="italic font-light">One Command.</span>
-          </>
-        }
+        compact
+        title={<>{FREE_SKILL_COUNT} Skills. One Command.</>}
         description="Content creation, SEO, advertising, GTM, image prompting, platform development, and analysis as Claude Code skills. Works standalone. Works better with Genfeed."
         heroActions={
           <div className="flex flex-col items-center gap-6">

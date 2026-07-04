@@ -68,11 +68,8 @@ export default function PrivacyContent() {
       <PageLayout
         badge="Legal"
         badgeIcon={LuShield}
-        title={
-          <>
-            Privacy <span className="italic font-light">Policy</span>
-          </>
-        }
+        compact
+        title={<>Privacy Policy</>}
         description="How we protect your data. We don't sell your information."
       >
         {/* Main Privacy Sections */}

@@ -58,12 +58,8 @@ export default function FeaturesPage(): React.ReactElement {
       <PageLayout
         badge="Platform Capabilities"
         badgeIcon={LuLayers}
-        title={
-          <>
-            What Genfeed Does{' '}
-            <span className="text-surface italic font-light">For You</span>
-          </>
-        }
+        compact
+        title={<>What Genfeed Does For You</>}
         description="Every feature saves you time and eliminates busywork. Here is exactly what you get."
       >
         {/* Features Grid */}

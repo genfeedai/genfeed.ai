@@ -5,6 +5,7 @@ export interface PosterHeroPageProps {
   badge?: string;
   badgeIcon?: ComponentType<IconBaseProps>;
   children: ReactNode;
+  compact?: boolean;
   description?: ReactNode;
   heroActions?: ReactNode;
   heroDetails?: ReactNode;
@@ -14,6 +15,7 @@ export interface PosterHeroPageProps {
 
 export default function PosterHeroPage({
   children,
+  compact = false,
   description,
   heroActions,
   heroDetails,
@@ -26,14 +28,22 @@ export default function PosterHeroPage({
         <div className="container mx-auto px-6">
           <div
             className={[
-              'grid min-h-[calc(100vh-8rem)] items-center gap-10 py-8 lg:gap-14',
+              compact
+                ? 'grid items-start gap-10 pt-16 pb-4 lg:gap-14'
+                : 'grid min-h-[calc(100vh-8rem)] items-center gap-10 py-8 lg:gap-14',
               heroVisual
                 ? 'lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]'
                 : 'lg:grid-cols-1',
             ].join(' ')}
           >
             <div className="max-w-2xl">
-              <h1 className="text-5xl font-semibold leading-[0.95] tracking-[-0.03em] text-foreground sm:text-6xl md:text-7xl lg:text-[5.4rem]">
+              <h1
+                className={
+                  compact
+                    ? 'text-4xl font-semibold leading-[1.05] tracking-[-0.03em] text-foreground sm:text-5xl'
+                    : 'text-5xl font-semibold leading-[0.95] tracking-[-0.03em] text-foreground sm:text-6xl md:text-7xl lg:text-[5.4rem]'
+                }
+              >
                 {title}
               </h1>
 

@@ -75,11 +75,8 @@ export default function TermsPage() {
       <PageLayout
         badge="Legal"
         badgeIcon={LuFileText}
-        title={
-          <>
-            Terms of <span className="italic font-light">Service</span>
-          </>
-        }
+        compact
+        title={<>Terms of Service</>}
         description="Legal terms for using Genfeed. All purchases final. No refunds."
       >
         {/* Main Terms */}

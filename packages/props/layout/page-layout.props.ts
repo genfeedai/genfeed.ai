@@ -5,6 +5,7 @@ export interface PageLayoutProps {
   children: ReactNode;
   badge?: string;
   badgeIcon?: ComponentType<IconBaseProps>;
+  compact?: boolean;
   description?: string;
   heroActions?: ReactNode;
   heroDetails?: ReactNode;

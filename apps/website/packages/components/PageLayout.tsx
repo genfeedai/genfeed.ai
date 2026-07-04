@@ -9,6 +9,7 @@ export default function PageLayout({
   children,
   badge,
   badgeIcon: BadgeIcon,
+  compact,
   description,
   heroActions,
   heroDetails,
@@ -45,6 +46,7 @@ export default function PageLayout({
     <PosterHeroPage
       badge={badge}
       badgeIcon={BadgeIcon}
+      compact={compact}
       description={description}
       heroActions={heroActions}
       heroDetails={heroDetails}

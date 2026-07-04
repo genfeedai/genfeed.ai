@@ -192,6 +192,7 @@ export default function PublisherContent() {
         }
         heroProof={HERO_PROOF}
         heroVisual={HERO_VISUAL}
+        compact
         title="Publisher"
         description="Publish your content, everywhere, instantly."
       >

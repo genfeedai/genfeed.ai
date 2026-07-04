@@ -20,6 +20,7 @@ export default function AboutContent() {
   return (
     <div ref={containerRef}>
       <PageLayout
+        compact
         title="About Genfeed"
         description="About Genfeed - Built by AI, for creators who track revenue"
       >

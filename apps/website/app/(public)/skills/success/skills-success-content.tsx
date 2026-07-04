@@ -27,11 +27,8 @@ export default function SkillsSuccessContent() {
       <PageLayout
         badge="Complete"
         badgeIcon={LuCheck}
-        title={
-          <>
-            Purchase <span className="italic font-light">Complete</span>
-          </>
-        }
+        compact
+        title={<>Purchase Complete</>}
         description="Check your email for your receipt ID, then install your skills."
       >
         {/* Install Instructions */}
