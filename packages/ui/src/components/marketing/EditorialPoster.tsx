@@ -53,7 +53,7 @@ export default function EditorialPoster({
           ) : null}
 
           <div className="max-w-2xl space-y-4">
-            <h2 className="text-4xl font-serif leading-[0.92] tracking-[-0.04em] text-foreground sm:text-5xl lg:text-6xl">
+            <h2 className="text-4xl font-semibold leading-[0.92] tracking-[-0.04em] text-foreground sm:text-5xl lg:text-6xl">
               {title}
             </h2>
 
