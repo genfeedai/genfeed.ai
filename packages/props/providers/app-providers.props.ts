@@ -7,8 +7,6 @@ export interface AppProvidersProps {
   enableSystem?: boolean;
   googleAnalyticsId?: string;
   includeLazyModalErrorDebug?: boolean;
-  includeSpeedInsights?: boolean;
   includeToaster?: boolean;
-  includeVercelAnalytics?: boolean;
   storageKey?: string;
 }

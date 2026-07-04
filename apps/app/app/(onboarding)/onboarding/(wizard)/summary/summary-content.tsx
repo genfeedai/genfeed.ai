@@ -1,6 +1,7 @@
 'use client';
 
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import type { OnboardingAccessMode } from '@genfeedai/interfaces';
@@ -274,13 +275,13 @@ export default function SummaryContent() {
 
     setPendingMode('byok');
     await persistAccessMode('byok');
-    push('/settings/api-keys');
+    push(APP_ROUTES.SETTINGS.API_KEYS);
   };
 
   const handleContinueSelfHosted = async () => {
     setPendingMode('server');
     await persistAccessMode('server');
-    push('/onboarding/success');
+    push(APP_ROUTES.ONBOARDING.SUCCESS);
   };
 
   const handleCloudContinue = async () => {
@@ -387,7 +388,7 @@ export default function SummaryContent() {
                 <CurrentBadge />
               ) : null}
               <Link
-                href="/settings/api-keys"
+                href={APP_ROUTES.SETTINGS.API_KEYS}
                 onClick={(event) => {
                   void handleByokClick(event);
                 }}
@@ -459,7 +460,7 @@ export default function SummaryContent() {
             variant={ButtonVariant.GHOST}
             size={ButtonSize.SM}
             withWrapper={false}
-            onClick={() => push('/onboarding/providers')}
+            onClick={() => push(APP_ROUTES.ONBOARDING.PROVIDERS)}
             icon={<HiArrowLeft className="size-4" />}
             className="h-8 rounded-full border border-white/10 bg-white/[0.03] px-4 text-white/45 hover:border-white/15 hover:bg-white/[0.06] hover:text-white/75"
           >

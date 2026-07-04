@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { AnalyticsMetric, ButtonVariant, PageScope } from '@genfeedai/enums';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useTopPosts } from '@hooks/data/analytics/use-top-posts/use-top-posts';
@@ -186,7 +187,7 @@ export default function AnalyticsPostsList() {
             <Button
               label="Clear Focus"
               variant={ButtonVariant.OUTLINE}
-              onClick={() => router.push('/analytics/posts')}
+              onClick={() => router.push(APP_ROUTES.ANALYTICS.POSTS)}
             />
           ) : null}
           <Button

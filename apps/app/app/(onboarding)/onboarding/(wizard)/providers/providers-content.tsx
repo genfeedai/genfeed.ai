@@ -1,6 +1,7 @@
 'use client';
 
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import type { OnboardingAccessMode } from '@genfeedai/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
@@ -230,7 +231,7 @@ export default function ProvidersContent() {
   const handleServerContinue = async () => {
     setPendingMode('server');
     await persistAccessMode('server');
-    push('/onboarding/summary');
+    push(APP_ROUTES.ONBOARDING.SUMMARY);
   };
 
   const handleByokClick = async (
@@ -244,7 +245,7 @@ export default function ProvidersContent() {
 
     setPendingMode('byok');
     await persistAccessMode('byok');
-    push('/settings/api-keys');
+    push(APP_ROUTES.SETTINGS.API_KEYS);
   };
 
   const handleCloudContinue = async () => {
@@ -294,7 +295,7 @@ export default function ProvidersContent() {
           onCloudContinue={() => {
             void handleCloudContinue();
           }}
-          onBack={() => push('/onboarding/brand')}
+          onBack={() => push(APP_ROUTES.ONBOARDING.BRAND)}
         />
       </div>
     </div>

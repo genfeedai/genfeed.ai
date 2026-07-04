@@ -1,4 +1,5 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { CampaignTargetStatus } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
@@ -209,7 +210,7 @@ export function useOutreachCampaignDetail() {
   }, [targets]);
 
   const handleBack = useCallback(() => {
-    router.push('/orchestration/outreach-campaigns');
+    router.push(APP_ROUTES.ORCHESTRATION.OUTREACH_CAMPAIGNS);
   }, [router]);
 
   return {

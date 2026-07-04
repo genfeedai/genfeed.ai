@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { AgentType, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
@@ -196,7 +197,7 @@ export default function AgentHubPage() {
       description="Manage your content agents."
       icon={HiOutlineCpuChip}
       right={
-        <Link href="/orchestration/new">
+        <Link href={APP_ROUTES.ORCHESTRATION.NEW}>
           <Button
             label={
               <>
@@ -232,7 +233,7 @@ export default function AgentHubPage() {
               Create your first agent to start automating content creation
             </p>
           </div>
-          <Link href="/orchestration/new">
+          <Link href={APP_ROUTES.ORCHESTRATION.NEW}>
             <Button
               label="Create your first agent"
               variant={ButtonVariant.DEFAULT}

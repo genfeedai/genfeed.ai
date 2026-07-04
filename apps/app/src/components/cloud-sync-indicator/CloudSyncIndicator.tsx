@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
@@ -28,7 +29,7 @@ export default function CloudSyncIndicator() {
 
   const handleConnect = async () => {
     if (!desktop) {
-      window.location.assign('/login?callbackUrl=/');
+      window.location.assign(`${APP_ROUTES.LOGIN}?callbackUrl=/`);
       return;
     }
 

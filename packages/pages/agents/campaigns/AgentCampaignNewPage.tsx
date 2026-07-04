@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import type { ICreateAgentCampaignDto } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -105,7 +106,7 @@ export default function AgentCampaignNewPage() {
 
         await service.create(payload);
         notificationsService.success('Campaign created successfully');
-        router.push('/orchestration/campaigns');
+        router.push(APP_ROUTES.ORCHESTRATION.CAMPAIGNS);
       } catch (error) {
         logger.error('Failed to create agent campaign', { error });
         notificationsService.error('Failed to create campaign');
@@ -259,7 +260,7 @@ export default function AgentCampaignNewPage() {
             label="Cancel"
             type="button"
             variant={ButtonVariant.SECONDARY}
-            onClick={() => router.push('/orchestration/campaigns')}
+            onClick={() => router.push(APP_ROUTES.ORCHESTRATION.CAMPAIGNS)}
           />
         </div>
       </form>

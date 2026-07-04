@@ -1,6 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   buildDefaultVoiceRefFromVoice,
   type DefaultVoiceRef,
@@ -284,8 +285,8 @@ export default function BrandDetailIdentityCard({
             currentAvatarSummary={currentAvatarSummary}
             currentVoiceSummary={currentVoiceSummary}
             onSave={handleSave}
-            onBrowseAvatars={() => router.push('/library/avatars')}
-            onBrowseVoices={() => router.push('/library/voices')}
+            onBrowseAvatars={() => router.push(APP_ROUTES.LIBRARY.AVATARS)}
+            onBrowseVoices={() => router.push(APP_ROUTES.LIBRARY.VOICES)}
           />
         </div>
       </div>

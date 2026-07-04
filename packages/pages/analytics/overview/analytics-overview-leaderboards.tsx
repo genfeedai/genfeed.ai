@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   ButtonSize,
   ButtonVariant,
@@ -186,12 +187,12 @@ export default function AnalyticsOverviewLeaderboards({
           description="As soon as posts start collecting views and engagement, this module will highlight the strongest creative in the selected range."
           icon={HiOutlineNewspaper}
           primaryAction={{
-            href: '/posts',
+            href: APP_ROUTES.POSTS.ROOT,
             label: 'Draft content',
             variant: ButtonVariant.DEFAULT,
           }}
           secondaryAction={{
-            href: '/posts?status=public',
+            href: APP_ROUTES.POSTS.PUBLISHED,
             label: 'Browse published posts',
             variant: ButtonVariant.SECONDARY,
           }}

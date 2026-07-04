@@ -1,10 +1,8 @@
 'use client';
 
-import { track } from '@vercel/analytics';
 import {
   BROWSER_AND_SERVER_MARKETING_EVENTS,
   createMarketingEventId,
-  type MarketingEventPayload,
   META_EVENT_NAMES,
   WEBSITE_MARKETING_EVENTS,
   type WebsiteMarketingEvent,
@@ -232,10 +230,6 @@ export function trackWebsiteMarketingEvent(
   const eventId = event.eventId || createMarketingEventId(event.name);
   const nextEvent = { ...event, eventId };
 
-  track(event.name, {
-    eventId,
-    ...(event.payload as MarketingEventPayload | undefined),
-  });
   dispatchBrowserVendorEvents(nextEvent, config);
   sendServerConversion(nextEvent);
 
