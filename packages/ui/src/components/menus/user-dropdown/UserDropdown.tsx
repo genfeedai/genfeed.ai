@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
@@ -42,7 +43,7 @@ export default function UserDropdown({
 }: UserDropdownProps) {
   const { orgHref } = useOrgUrl();
   const allDropdownItems: DropdownItem[] = [
-    { href: '/settings', icon: HiOutlineUser, label: 'Personal' },
+    { href: APP_ROUTES.SETTINGS.ROOT, icon: HiOutlineUser, label: 'Personal' },
     {
       href: orgHref('/settings'),
       icon: HiOutlineBuildingOffice2,

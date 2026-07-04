@@ -36,6 +36,7 @@ const logger = {
 const INCLUDE_GLOBS = [
   'apps/app/**/*.{ts,tsx}',
   'packages/ui/src/**/*.{ts,tsx}',
+  'packages/pages/**/*.{ts,tsx}',
 ];
 
 const EXCLUDE_GLOBS = [
@@ -108,6 +109,34 @@ const NAV_CALL_PATTERN = new RegExp(
   'g',
 );
 
+/**
+ * Object-property route data: `href: '/x'` / `to: '/x'` inside menu/tab/card
+ * config objects. Only `href`/`to` keys (colon form) — NOT `path:` (used for
+ * non-navigation values like cookie paths) — to avoid false positives.
+ */
+const OBJECT_PROP_PATTERN = new RegExp(
+  `\\b(?:href|to):\\s*${ROUTE_LITERAL}`,
+  'g',
+);
+
+/**
+ * Route-root literals that intentionally remain — no exact `APP_ROUTES` constant
+ * exists, or the value is pending a separate fix. Keep this list short and
+ * documented; every entry is a deliberate exception, not a TODO to ignore.
+ */
+const ALLOWLISTED_ROUTE_VALUES = new Set([
+  // Marketplace topbar link. `APP_ROUTES.LIBRARY.ROOT` resolves to
+  // '/library/ingredients', so there is no exact constant for bare '/library'.
+  '/library',
+  // admin/overview/analytics/* tabs are missing the '/admin' prefix and have no
+  // matching constants. Tracked as a separate bug — do not mask it by forcing a
+  // wrong or invented constant here.
+  '/overview/analytics/all',
+  '/overview/analytics/organizations',
+  '/overview/analytics/brands',
+  '/overview/analytics/business',
+]);
+
 type Violation = {
   file: string;
   line: number;
@@ -123,7 +152,7 @@ function collect(
 ): void {
   for (const match of content.matchAll(pattern)) {
     const routePath = match[2];
-    if (!routePath) {
+    if (!routePath || ALLOWLISTED_ROUTE_VALUES.has(routePath)) {
       continue;
     }
     const index = match.index ?? 0;
@@ -141,6 +170,7 @@ function findViolations(filePath: string, rootDir: string): Violation[] {
   const violations: Violation[] = [];
   collect(content, JSX_ATTR_PATTERN, filePath, rootDir, violations);
   collect(content, NAV_CALL_PATTERN, filePath, rootDir, violations);
+  collect(content, OBJECT_PROP_PATTERN, filePath, rootDir, violations);
   return violations;
 }
 
