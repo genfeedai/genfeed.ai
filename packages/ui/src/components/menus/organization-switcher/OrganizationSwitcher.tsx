@@ -9,7 +9,7 @@ import { Modal } from '@ui/modals/compound/modal.compound';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useReducer } from 'react';
 import { HiChevronDown, HiOutlineCog6Tooth } from 'react-icons/hi2';
 import { useCreateOrganizationModal } from './use-create-organization-modal';
@@ -67,6 +67,9 @@ export default function OrganizationSwitcher() {
     OrganizationsService.getInstance(token),
   );
   const { push } = useRouter();
+  const params = useParams<{ orgSlug?: string }>();
+  const currentOrgSlug =
+    typeof params?.orgSlug === 'string' ? params.orgSlug : undefined;
 
   const [{ error, isSwitching, orgs }, dispatch] = useReducer(
     switcherReducer,
@@ -97,24 +100,45 @@ export default function OrganizationSwitcher() {
     };
   }, [getOrgsService]);
 
+  // Mirror the brand switcher: the active org is the one you're actually
+  // viewing (URL slug), so the checkmark and trigger label stay in sync with
+  // the route. Fall back to the server's isActive (derived from
+  // lastUsedOrganizationId) on non-org routes like /admin or /settings where no
+  // orgSlug param exists.
+  const activeOrgId =
+    (currentOrgSlug && orgs.find((o) => o.slug === currentOrgSlug)?.id) ||
+    orgs.find((o) => o.isActive)?.id ||
+    null;
+  const activeOrg = orgs.find((o) => o.id === activeOrgId);
+
   const handleSwitch = useCallback(
     async (orgId: string) => {
-      if (isSwitching) {
+      if (isSwitching || orgId === activeOrgId) {
         return;
       }
       dispatch({ type: 'SWITCH_START' });
       try {
         const svc = await getOrgsService();
         await svc.switchOrganization(orgId);
-        window.location.reload();
+        // Navigate to the target org's landing route so the URL reflects the
+        // now-active org. The previous flow reloaded the *current* URL, which
+        // still carried the old org slug, so the app rebooted on the same org
+        // and nothing appeared to switch (#1227). A full navigation (matching
+        // the create-organization flow) re-syncs session-scoped workspace data
+        // across the org boundary; org-landing then routes to the default brand.
+        const target = orgs.find((o) => o.id === orgId);
+        if (target?.slug) {
+          window.location.assign(`/${target.slug}`);
+        } else {
+          window.location.reload();
+        }
       } catch {
         dispatch({ type: 'SWITCH_FAILED' });
       }
     },
-    [getOrgsService, isSwitching],
+    [activeOrgId, getOrgsService, isSwitching, orgs],
   );
 
-  const activeOrg = orgs.find((o) => o.isActive);
   const displayLabel = error ?? activeOrg?.label ?? 'Organization';
   const handleOpenOrganizationSettings = useCallback(
     (organizationSlug: string) => {
@@ -129,7 +153,7 @@ export default function OrganizationSwitcher() {
         className="w-full"
         items={orgs.map((o) => ({
           id: o.id,
-          isActive: o.isActive,
+          isActive: o.id === activeOrgId,
           label: o.label,
           trailingAction: {
             ariaLabel: `Open ${o.label} settings`,
@@ -178,7 +202,17 @@ export default function OrganizationSwitcher() {
 
       {/* Create Organization Modal */}
       <Modal.Root open={createModal.isOpen} onOpenChange={createModal.setOpen}>
-        <Modal.Content size="sm">
+        {/*
+          Don't restore focus to the "New Organization" footer button on close —
+          Radix's default focus return leaves a blue :focus-visible ring on that
+          button (#1227). The brand switcher's "New Brand" overlay renders
+          globally and never returns focus to its button, so it has no such ring;
+          this mirrors that behavior.
+        */}
+        <Modal.Content
+          size="sm"
+          onCloseAutoFocus={(event) => event.preventDefault()}
+        >
           <Modal.Header>
             <Modal.Title>Create Organization</Modal.Title>
             <Modal.Description>
