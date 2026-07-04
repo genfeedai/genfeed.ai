@@ -120,7 +120,11 @@ const protectedRouteBuckets: RouteBucket[] = [
   routeBucket(
     'protected root',
     protectedRoutes,
-    (route) => route === '/' || route === '/settings' || route === '/test-org',
+    (route) =>
+      route === '/' ||
+      route === '/settings' ||
+      route.startsWith('/settings/') ||
+      route === '/test-org',
   ),
   routeBucket('protected analytics', protectedRoutes, (route) =>
     route.startsWith('/test-org/brand-1/analytics'),
