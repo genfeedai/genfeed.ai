@@ -18,7 +18,7 @@ import { LuArrowRight } from 'react-icons/lu';
 interface OutputFormat {
   credits: number;
   description: string;
-  /** Placeholder asset — swap src for the CDN URL once uploaded */
+  /** Sample output asset shown in the format tile (public/images/home/formats) */
   image: string;
   priceSuffix?: string;
   title: string;
@@ -33,35 +33,35 @@ const OUTPUT_FORMATS: OutputFormat[] = [
     credits: INTERNAL_CREDIT_COSTS.image,
     description:
       'On-brand stills for feeds, stories, and product drops — sized per platform.',
-    image: '/images/home/formats/images.png',
+    image: '/images/home/formats/images.webp',
     title: 'Images & posts',
   },
   {
     credits: VIDEO_CREDIT_COSTS.video8s,
     description:
       'Hook-first short video rendered from the same brief, ready for TikTok, Reels, and Shorts.',
-    image: '/images/home/formats/reels.png',
+    image: '/images/home/formats/reels.webp',
     title: 'Reels & short video',
   },
   {
     credits: INTERNAL_CREDIT_COSTS.image,
     description:
       'Ad creatives in every ratio with copy variants you can A/B test the same day.',
-    image: '/images/home/formats/ads.png',
+    image: '/images/home/formats/ads.webp',
     title: 'Ad creatives',
   },
   {
     credits: AVATAR_CREDIT_COSTS.avatar4s,
     description:
       'Talking-head avatar clips with lip-synced voice — no camera, no reshoots.',
-    image: '/images/home/formats/avatars.png',
+    image: '/images/home/formats/avatars.webp',
     title: 'Avatar clips',
   },
   {
     credits: INTERNAL_CREDIT_COSTS.voicePerMinute,
     description:
       'Natural voiceovers and audio reads for clips, podcasts, and dubs.',
-    image: '/images/home/formats/voice.png',
+    image: '/images/home/formats/voice.webp',
     priceSuffix: '/min',
     title: 'Voiceovers',
   },
@@ -69,7 +69,7 @@ const OUTPUT_FORMATS: OutputFormat[] = [
     credits: INTERNAL_CREDIT_COSTS.articlePerPost,
     description:
       'Long-form articles and SEO posts drafted from the brief, with captions included.',
-    image: '/images/home/formats/articles.png',
+    image: '/images/home/formats/articles.webp',
     title: 'Articles & SEO',
   },
 ];
