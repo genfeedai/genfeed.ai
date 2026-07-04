@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
@@ -196,7 +197,7 @@ export default function OutreachCampaignWizard() {
             variant={ButtonVariant.SECONDARY}
             onClick={
               currentStep === 1
-                ? () => router.push('/orchestration/outreach-campaigns')
+                ? () => router.push(APP_ROUTES.ORCHESTRATION.OUTREACH_CAMPAIGNS)
                 : handleBack
             }
           />

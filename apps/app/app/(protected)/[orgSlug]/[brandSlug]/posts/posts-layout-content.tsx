@@ -4,10 +4,10 @@ import {
   PostsLayoutContext,
   type RefreshFunction,
 } from '@contexts/posts/posts-layout-context';
+import { PostStatus } from '@genfeedai/enums';
 import {
   getPublisherPostsHref,
   getPublisherPostsStatusFromPathname,
-  normalizePublisherPostsStatus,
 } from '@helpers/content/posts.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
@@ -127,9 +127,9 @@ function PostsLayoutContentContent({ children }: { children: ReactNode }) {
     pathname?.match(/^\/posts\/[^/]+$/) &&
     !KNOWN_SUB_ROUTES.includes(lastSegment ?? '');
   const statusFromPathname = getPublisherPostsStatusFromPathname(pathname);
-  const activeStatus =
-    statusFromPathname ??
-    normalizePublisherPostsStatus(parsedSearchParams.get('status'));
+  // Status is derived solely from the nested route path; the /posts index is
+  // the Drafts view. Query `?status=` is no longer a navigation source.
+  const activeStatus = statusFromPathname ?? PostStatus.DRAFT;
   const activeTab = useMemo(() => {
     return href(
       getPublisherPostsHref({

@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   AgentExecutionStatus,
   ButtonSize,
@@ -161,7 +162,7 @@ function AgentRunCard({ run }: { run: IAgentRun }) {
           className="opacity-0 transition-opacity group-hover:opacity-100"
         >
           <Link
-            href={`/orchestration/runs/${run.id}`}
+            href={`${APP_ROUTES.ORCHESTRATION.RUNS}/${run.id}`}
             aria-label={`Open ${run.label}`}
           >
             <HiOutlineArrowRight className="size-3.5" />
@@ -224,7 +225,7 @@ export function DashboardAgentCards({
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.XS}
           >
-            <Link href="/orchestration/runs">View All</Link>
+            <Link href={APP_ROUTES.ORCHESTRATION.RUNS}>View All</Link>
           </Button>
         )}
       </div>
@@ -667,7 +668,7 @@ export function DashboardRecentActivity({
           size={ButtonSize.XS}
           className="h-auto px-0 text-[11px] font-normal text-foreground/45 hover:bg-transparent"
         >
-          <Link href="/workspace/inbox/unread">View All &rarr;</Link>
+          <Link href={APP_ROUTES.WORKSPACE.INBOX_UNREAD}>View All &rarr;</Link>
         </Button>
       </div>
       <Card bodyClassName="p-0">
@@ -771,7 +772,7 @@ export function DashboardRecentTasks({
           size={ButtonSize.XS}
           className="h-auto px-0 text-[11px] font-normal text-foreground/45 hover:bg-transparent"
         >
-          <Link href="/workspace/inbox/unread">View All &rarr;</Link>
+          <Link href={APP_ROUTES.WORKSPACE.INBOX_UNREAD}>View All &rarr;</Link>
         </Button>
       </div>
       <Card bodyClassName="p-0">
@@ -849,7 +850,7 @@ export function WorkspaceDashboard({
   reviewInbox,
   runs,
   stats,
-  trendsHref = '/research/discovery',
+  trendsHref = APP_ROUTES.RESEARCH.DISCOVERY,
   trendItems = [],
   workspaceTasks,
 }: DashboardProps) {

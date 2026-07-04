@@ -1,7 +1,11 @@
 'use client';
 
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
-import { getResumeStep, ONBOARDING_STEPS } from '@genfeedai/constants';
+import {
+  APP_ROUTES,
+  getResumeStep,
+  ONBOARDING_STEPS,
+} from '@genfeedai/constants';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -20,7 +24,7 @@ export default function OnboardingRootPage() {
     }
 
     if (authUser?.publicMetadata?.proactiveLeadId) {
-      replace('/onboarding/proactive');
+      replace(APP_ROUTES.ONBOARDING.PROACTIVE);
       return;
     }
 
@@ -35,7 +39,7 @@ export default function OnboardingRootPage() {
     // duplicates) and the summary step only persists an access preference.
     // Mid-onboarding users still resume at their first incomplete step.
     if (hasCompletedAllOnboardingSteps) {
-      replace('/onboarding/brand');
+      replace(APP_ROUTES.ONBOARDING.BRAND);
       return;
     }
 

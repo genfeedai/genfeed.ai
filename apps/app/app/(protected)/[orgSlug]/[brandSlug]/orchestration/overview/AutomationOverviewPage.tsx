@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { OverviewCard } from '@genfeedai/interfaces/ui/overview-card.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -31,7 +32,7 @@ export default function AutomationOverviewPage() {
       color: 'bg-cyan-500/12 text-cyan-300',
       cta: 'Inspect Workspace',
       description: 'Start from the unified agents workspace overview',
-      href: '/orchestration/library',
+      href: APP_ROUTES.ORCHESTRATION.LIBRARY,
       icon: HiOutlineCog6Tooth,
       id: 'library',
       label: 'Library',
@@ -40,7 +41,7 @@ export default function AutomationOverviewPage() {
       color: 'bg-amber-500/12 text-amber-300',
       cta: 'Open Runs',
       description: 'Track active, failed, and completed agent runs',
-      href: '/orchestration/runs',
+      href: APP_ROUTES.ORCHESTRATION.RUNS,
       icon: HiOutlineCpuChip,
       id: 'runs',
       label: 'Runs',
@@ -60,7 +61,7 @@ export default function AutomationOverviewPage() {
       cta: 'Open Autopilot',
       description:
         'Manage agent policies that schedule adaptive autonomous runs',
-      href: '/orchestration/autopilot',
+      href: APP_ROUTES.ORCHESTRATION.AUTOPILOT,
       icon: HiChatBubbleLeftRight,
       id: 'strategies',
       label: 'Autopilot',
@@ -69,7 +70,7 @@ export default function AutomationOverviewPage() {
       color: 'bg-orange-500/12 text-orange-300',
       cta: 'Open Configuration',
       description: 'Tune workspace-wide configuration and operating defaults',
-      href: '/orchestration/configuration',
+      href: APP_ROUTES.ORCHESTRATION.CONFIGURATION,
       icon: HiClipboardDocumentList,
       id: 'configuration',
       label: 'Configuration',
@@ -78,7 +79,7 @@ export default function AutomationOverviewPage() {
       color: 'bg-pink-500/12 text-pink-300',
       cta: 'View Analytics',
       description: 'Performance metrics and insights',
-      href: '/orchestration/analytics',
+      href: APP_ROUTES.ORCHESTRATION.ANALYTICS,
       icon: HiPresentationChartLine,
       id: 'analytics',
       label: 'Analytics',
@@ -91,7 +92,7 @@ export default function AutomationOverviewPage() {
       cta: 'Open Library',
       description:
         'Enable or inspect agent roles for content, engagement, and support.',
-      href: '/orchestration/library',
+      href: APP_ROUTES.ORCHESTRATION.LIBRARY,
       icon: HiOutlineCog6Tooth,
       kicker: 'Workspace',
       label: 'Agent Library',
@@ -100,7 +101,7 @@ export default function AutomationOverviewPage() {
       color: 'bg-amber-500/12 text-amber-300',
       cta: 'Open Runs',
       description: 'Review live work, failures, and completed outputs.',
-      href: '/orchestration/runs',
+      href: APP_ROUTES.ORCHESTRATION.RUNS,
       icon: HiOutlineQueueList,
       kicker: 'Operations',
       label: 'Run Console',
@@ -120,7 +121,7 @@ export default function AutomationOverviewPage() {
       cta: 'Open Autopilot',
       description:
         'Use autopilot policies when the agent should decide what to do each run.',
-      href: '/orchestration/autopilot',
+      href: APP_ROUTES.ORCHESTRATION.AUTOPILOT,
       icon: HiChatBubbleLeftRight,
       kicker: 'Guidance',
       label: 'Autopilot Policies',
@@ -129,7 +130,7 @@ export default function AutomationOverviewPage() {
       color: 'bg-pink-500/12 text-pink-300',
       cta: 'Open Analytics',
       description: 'Review automation performance and outcome analytics.',
-      href: '/orchestration/analytics',
+      href: APP_ROUTES.ORCHESTRATION.ANALYTICS,
       icon: HiSparkles,
       kicker: 'Insight',
       label: 'Automation Metrics',
@@ -138,7 +139,7 @@ export default function AutomationOverviewPage() {
       color: 'bg-orange-500/12 text-orange-300',
       cta: 'Open Configuration',
       description: 'Tune workspace defaults, policies, and operator settings.',
-      href: '/orchestration/configuration',
+      href: APP_ROUTES.ORCHESTRATION.CONFIGURATION,
       icon: HiBolt,
       kicker: 'Controls',
       label: 'Configuration Center',

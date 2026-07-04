@@ -2,6 +2,7 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
+import { APP_ROUTES, createBrandAppRoute } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/types';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
@@ -137,9 +138,11 @@ export default function SuccessContent() {
     const brandSlug = selectedBrand?.slug ?? '';
 
     if (orgSlug && brandSlug) {
-      window.location.assign(`/${orgSlug}/${brandSlug}/workspace/overview`);
+      window.location.assign(
+        createBrandAppRoute(orgSlug, brandSlug, '/workspace/overview'),
+      );
     } else {
-      window.location.assign('/workspace/overview');
+      window.location.assign(APP_ROUTES.WORKSPACE.OVERVIEW);
     }
   };
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { createBrandAppRoute } from '@genfeedai/constants';
 import { useBrandOverlay } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import { getBrandOrganizationSlug } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { ButtonVariant } from '@genfeedai/enums';
@@ -82,7 +83,8 @@ export default function MenuBrandSwitcher({
               ? {
                   ariaLabel: `Open ${b.label ?? 'brand'} settings`,
                   icon: HiOutlineCog6Tooth,
-                  onAction: () => push(`/${orgSlug}/${b.slug}/settings`),
+                  onAction: () =>
+                    push(createBrandAppRoute(orgSlug, b.slug, '/settings')),
                 }
               : undefined,
         };

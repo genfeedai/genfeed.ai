@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { LinkCategory, type OrganizationCategory } from '@genfeedai/enums';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
@@ -207,7 +208,7 @@ function BrandContentContent() {
           await service.updateBrandName(effectiveBrandName);
         }
 
-        push('/onboarding/providers');
+        push(APP_ROUTES.ONBOARDING.PROVIDERS);
       } catch (error) {
         logger.error('Failed to continue onboarding', error);
         setSubmitting(false);

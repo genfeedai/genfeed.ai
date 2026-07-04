@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { AgentType, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentRuns } from '@hooks/data/agent-runs/use-agent-runs';
@@ -155,7 +156,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
       <Container label="Agent Detail" icon={HiOutlineCpuChip}>
         <div className="py-16 text-center text-foreground/50">
           Agent not found.{' '}
-          <Link href="/orchestration" className="underline">
+          <Link href={APP_ROUTES.ORCHESTRATION.ROOT} className="underline">
             Back to Agent Hub
           </Link>
         </div>
@@ -169,7 +170,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
       description={`${typeLabel} agent`}
       icon={HiOutlineCpuChip}
       left={
-        <Link href="/orchestration">
+        <Link href={APP_ROUTES.ORCHESTRATION.ROOT}>
           <Button
             label={
               <>

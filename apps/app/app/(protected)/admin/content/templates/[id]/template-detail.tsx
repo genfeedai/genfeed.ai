@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { IContentTemplate } from '@genfeedai/interfaces/content/template-ui.interface';
 import { Pre } from '@genfeedai/ui';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -65,7 +66,7 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
       <div className="min-h-screen bg-background/40 px-4 py-6 sm:px-6 lg:px-10">
         <Breadcrumb
           segments={[
-            { href: '/content/templates', label: 'Templates' },
+            { href: APP_ROUTES.ADMIN.CONTENT.TEMPLATES, label: 'Templates' },
             { href: pathname, label: 'Loading...' },
           ]}
         />
@@ -82,7 +83,7 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
       <div className="min-h-screen bg-background/40 px-4 py-6 sm:px-6 lg:px-10">
         <Breadcrumb
           segments={[
-            { href: '/content/templates', label: 'Templates' },
+            { href: APP_ROUTES.ADMIN.CONTENT.TEMPLATES, label: 'Templates' },
             { href: pathname, label: 'Not Found' },
           ]}
         />
@@ -102,7 +103,7 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
     <div className="min-h-screen bg-background/40 px-4 py-6 sm:px-6 lg:px-10">
       <Breadcrumb
         segments={[
-          { href: '/content/templates', label: 'Templates' },
+          { href: APP_ROUTES.ADMIN.CONTENT.TEMPLATES, label: 'Templates' },
           { href: pathname, label: template.name },
         ]}
       />

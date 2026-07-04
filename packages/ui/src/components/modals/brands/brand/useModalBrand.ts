@@ -1,6 +1,6 @@
 'use client';
 
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { createBrandAppRoute, MODEL_KEYS } from '@genfeedai/constants';
 import {
   useConfirmModal,
   useUploadModal,
@@ -714,7 +714,7 @@ export function useModalBrand(
     : 'Create a new brand without leaving the current page.';
 
   const navigateToBrandSettings = activeBrand?.slug
-    ? () => push(`/${orgSlug}/${activeBrand.slug}/settings`)
+    ? () => push(createBrandAppRoute(orgSlug, activeBrand.slug, '/settings'))
     : undefined;
 
   const organizationSettingsDefaults = settings as
