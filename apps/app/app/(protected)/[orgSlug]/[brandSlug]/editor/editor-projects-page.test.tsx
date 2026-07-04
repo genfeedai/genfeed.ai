@@ -8,7 +8,6 @@ const mocks = vi.hoisted(() => ({
   deleteProject: vi.fn(),
   findAll: vi.fn(),
   getEditorService: vi.fn(),
-  track: vi.fn(),
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -29,10 +28,6 @@ vi.mock('@services/editor/editor-projects.service', () => ({
   EditorProjectsService: {
     getInstance: vi.fn(),
   },
-}));
-
-vi.mock('@vercel/analytics', () => ({
-  track: mocks.track,
 }));
 
 vi.mock('next/link', () => ({
@@ -125,9 +120,6 @@ describe('EditorProjectsPage', () => {
 
     render(<EditorProjectsPage />);
 
-    expect(mocks.track).toHaveBeenCalledWith('studio_editor_opened', {
-      surface: 'index',
-    });
     expect(await screen.findByText('Your Projects (2)')).toBeVisible();
     expect(screen.getByText('Launch cut')).toBeVisible();
     expect(screen.getByText('30m ago')).toBeVisible();

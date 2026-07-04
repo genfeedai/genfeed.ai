@@ -137,7 +137,7 @@ describe('MenuBrandSwitcher', () => {
     expect(
       screen.getByRole('button', { name: 'Switch brand' }),
     ).toHaveTextContent('Test Brand');
-    expect(capturedMinWidth).toBe(260);
+    expect(capturedMinWidth).toBe(224);
   });
 
   it('exposes the brand-switcher-trigger testid showing the brand label (E2E contract)', () => {

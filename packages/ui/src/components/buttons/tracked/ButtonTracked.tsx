@@ -1,7 +1,6 @@
 'use client';
 
 import { Button, type ButtonProps } from '@ui/primitives/button';
-import { track } from '@vercel/analytics';
 
 type TrackingData = Record<string, string | number | boolean>;
 
@@ -17,8 +16,6 @@ export default function ButtonTracked({
   ...props
 }: ButtonTrackedProps) {
   const activateButtonTracked = (e: React.MouseEvent<HTMLButtonElement>) => {
-    track(trackingName, trackingData);
-
     if (typeof window !== 'undefined') {
       window.dispatchEvent(
         new CustomEvent('genfeed:marketing:button-click', {

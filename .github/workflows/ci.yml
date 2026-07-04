@@ -5,6 +5,10 @@ on:
     branches: [master]
   pull_request:
     branches: [master]
+    # `labeled`/`unlabeled` on top of the defaults so adding/removing the
+    # `full-suite` label re-runs CI (flipping a PR between focused and full
+    # tests) without needing a new push.
+    types: [opened, synchronize, reopened, labeled, unlabeled]
   # Allow this gate to be run as a reusable workflow (e.g. by full-suite.yml,
   # which chains CI → E2E on demand). Secrets are inherited.
   workflow_call:
@@ -339,14 +343,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: trust
-    # Runs on every event: workflow_call (release/full-suite) AND pull_request /
-    # push so the focused `test-app-changed` gate below can read its outputs. The
-    # heavy sharded test-* jobs keep their own `&& workflow_call` gate, so
-    # broadening this does not trigger the full matrix on PRs.
+    # Runs on every event: workflow_call (release/full-suite), pull_request, and
+    # push. The focused `*-changed` gates read `app`/`api`; the sharded matrices
+    # and `*-changed` gates read `broad` to decide focused-vs-full on a PR.
     if: needs.trust.outputs.is-trusted == 'true'
     outputs:
       app: ${{ steps.scope.outputs.app }}
       api: ${{ steps.scope.outputs.api }}
+      # `broad` = the diff touches a cross-cutting surface (core shared packages,
+      # lockfile, turbo config, or this workflow) whose blast radius the static
+      # `--changed`/`--affected` graph can under-count. When true, a PR runs the
+      # FULL sharded matrix instead of the focused per-diff tests. Always 'false'
+      # for non-PR events — the release/deploy path gates the full matrix on
+      # run_heavy_tests instead.
+      broad: ${{ steps.scope.outputs.broad }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -357,6 +367,7 @@ jobs:
           if [ "${{ github.event_name }}" != "pull_request" ]; then
             echo "app=true" >> "$GITHUB_OUTPUT"
             echo "api=true" >> "$GITHUB_OUTPUT"
+            echo "broad=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -374,12 +385,23 @@ jobs:
             echo "api=false" >> "$GITHUB_OUTPUT"
           fi
 
+          # Big-scope auto-detect: a change to a core shared package (ripples into
+          # most of the graph), the dependency/build config, or this CI file
+          # forces the full sharded matrix even on a PR.
+          if echo "$CHANGED_FILES" | grep -E '^(packages/(prisma|enums|interfaces|queue-contracts|serializers|config|helpers|utils|constants|types)/|bun\.lock$|package\.json$|turbo\.json$|\.github/workflows/ci\.yml$)' >/dev/null; then
+            echo "broad=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "broad=false" >> "$GITHUB_OUTPUT"
+          fi
+
   test-packages:
     name: Test Packages
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: trust
-    if: needs.trust.outputs.is-trusted == 'true' && inputs.run_heavy_tests
+    # Affected-only on PRs (the run step scopes to `turbo --affected`), full on
+    # the release/deploy path (run_heavy_tests).
+    if: needs.trust.outputs.is-trusted == 'true' && (inputs.run_heavy_tests || github.event_name == 'pull_request')
     steps:
       - uses: actions/checkout@v5
         with:
@@ -401,7 +423,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: trust
-    if: needs.trust.outputs.is-trusted == 'true' && inputs.run_heavy_tests
+    # Affected-only on PRs (the run step scopes to `turbo --affected`), full on
+    # the release/deploy path (run_heavy_tests).
+    if: needs.trust.outputs.is-trusted == 'true' && (inputs.run_heavy_tests || github.event_name == 'pull_request')
     steps:
       - uses: actions/checkout@v5
         with:
@@ -423,7 +447,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: trust
-    if: needs.trust.outputs.is-trusted == 'true' && inputs.run_heavy_tests
+    # Affected-only on PRs (the run step scopes to `turbo --affected`), full on
+    # the release/deploy path (run_heavy_tests).
+    if: needs.trust.outputs.is-trusted == 'true' && (inputs.run_heavy_tests || github.event_name == 'pull_request')
     steps:
       - uses: actions/checkout@v5
         with:
@@ -445,7 +471,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: trust
-    if: needs.trust.outputs.is-trusted == 'true' && inputs.run_heavy_tests
+    # Affected-only on PRs (the run step scopes to `turbo --affected`), full on
+    # the release/deploy path (run_heavy_tests).
+    if: needs.trust.outputs.is-trusted == 'true' && (inputs.run_heavy_tests || github.event_name == 'pull_request')
     steps:
       - uses: actions/checkout@v5
         with:
@@ -467,7 +495,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [trust, test-scope]
-    if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.app == 'true' && inputs.run_heavy_tests
+    # Full sharded suite: the release/deploy path (run_heavy_tests), OR a
+    # big-scope PR — auto-detected core change (`broad`) or an explicit
+    # `full-suite` label. Focused PRs use `test-app-changed` instead.
+    if: >-
+      needs.trust.outputs.is-trusted == 'true'
+      && needs.test-scope.outputs.app == 'true'
+      && (inputs.run_heavy_tests
+        || needs.test-scope.outputs.broad == 'true'
+        || contains(github.event.pull_request.labels.*.name, 'full-suite'))
     strategy:
       fail-fast: false
       matrix:
@@ -487,21 +523,28 @@ jobs:
         env:
           NODE_ENV: test
 
-  # Focused, blocking app tests on every PR and master push: runs only the
-  # @genfeedai/app tests whose module graph touches the diff (vitest --changed),
-  # so it stays fast while pinning any regression to the single PR/merge that
-  # introduced it. The full sharded `test-app` matrix above still runs the whole
-  # suite via workflow_call (full-suite / release), which catches cross-cutting
-  # tests that --changed's static graph can miss (e.g. filesystem-scan contracts).
+  # Focused, blocking app tests on master push and every non-big-scope PR: runs
+  # only the @genfeedai/app tests whose module graph touches the diff
+  # (vitest --changed), so it stays fast while pinning any regression to the
+  # single PR/merge that introduced it. Big-scope PRs and the release/deploy path
+  # run the full sharded `test-app` matrix above instead, which catches
+  # cross-cutting tests that --changed's static graph can miss (e.g.
+  # filesystem-scan contracts).
   test-app-changed:
     name: Test App (changed)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [trust, test-scope]
+    # Focused per-diff tests: master push (post-merge) and every PR that is NOT
+    # big-scope. Big-scope PRs (core change or `full-suite` label) run the full
+    # `test-app` matrix instead, so skip here to avoid double work.
     if: >-
       needs.trust.outputs.is-trusted == 'true'
       && needs.test-scope.outputs.app == 'true'
-      && github.event_name == 'push'
+      && (github.event_name == 'push'
+        || (github.event_name == 'pull_request'
+          && needs.test-scope.outputs.broad != 'true'
+          && !contains(github.event.pull_request.labels.*.name, 'full-suite')))
     steps:
       - uses: actions/checkout@v5
         with:
@@ -526,22 +569,28 @@ jobs:
         env:
           NODE_ENV: test
 
-  # Focused, blocking API tests on every master push (post-merge only — never on
-  # PRs): mirrors test-app-changed for apps/server/api — runs only the API tests
-  # whose module graph touches the diff (vitest --changed), so it stays fast while
-  # pinning any regression to the single merge that introduced it. The full sharded
-  # test-api matrix below still runs the whole suite via workflow_call
-  # (full-suite / release / deploy), which catches cross-cutting tests the
-  # --changed static graph can miss.
+  # Focused, blocking API tests on master push and every non-big-scope PR:
+  # mirrors test-app-changed for apps/server/api — runs only the API tests whose
+  # module graph touches the diff (vitest --changed), so it stays fast while
+  # pinning any regression to the single PR/merge that introduced it. Big-scope
+  # PRs and the release/deploy path run the full sharded test-api matrix below
+  # instead, which catches cross-cutting tests the --changed static graph can
+  # miss.
   test-api-changed:
     name: Test API (changed)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [trust, test-scope]
+    # Focused per-diff tests: master push (post-merge) and every PR that is NOT
+    # big-scope. Big-scope PRs (core change or `full-suite` label) run the full
+    # `test-api` matrix instead, so skip here to avoid double work.
     if: >-
       needs.trust.outputs.is-trusted == 'true'
       && needs.test-scope.outputs.api == 'true'
-      && github.event_name == 'push'
+      && (github.event_name == 'push'
+        || (github.event_name == 'pull_request'
+          && needs.test-scope.outputs.broad != 'true'
+          && !contains(github.event.pull_request.labels.*.name, 'full-suite')))
     steps:
       - uses: actions/checkout@v5
         with:
@@ -572,7 +621,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [trust, test-scope]
-    if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.api == 'true' && inputs.run_heavy_tests
+    # Full sharded suite: the release/deploy path (run_heavy_tests), OR a
+    # big-scope PR — auto-detected core change (`broad`) or an explicit
+    # `full-suite` label. Focused PRs use `test-api-changed` instead.
+    if: >-
+      needs.trust.outputs.is-trusted == 'true'
+      && needs.test-scope.outputs.api == 'true'
+      && (inputs.run_heavy_tests
+        || needs.test-scope.outputs.broad == 'true'
+        || contains(github.event.pull_request.labels.*.name, 'full-suite'))
     strategy:
       fail-fast: false
       matrix:

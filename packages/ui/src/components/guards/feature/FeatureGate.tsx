@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
 import { useFeatureFlag } from '@genfeedai/hooks/feature-flags/use-feature-flag';
 import type { FeatureGateProps } from '@genfeedai/props/guards/feature-gate.props';
@@ -36,7 +37,7 @@ export default function FeatureGate({ flagKey, children }: FeatureGateProps) {
           This feature is currently unavailable.
         </p>
         <Link
-          href="/workspace"
+          href={APP_ROUTES.WORKSPACE.ROOT}
           className="text-sm font-medium text-primary underline-offset-4 hover:underline"
         >
           Back to Workspace

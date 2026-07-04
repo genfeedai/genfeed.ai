@@ -1,6 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { APP_ROUTES, createBrandAppRoute } from '@genfeedai/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Brand } from '@models/organization/brand.model';
 import Image from 'next/image';
@@ -15,7 +16,11 @@ import {
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 
 function BrandCard({ brand, orgSlug }: { brand: Brand; orgSlug: string }) {
-  const cardHref = `/${orgSlug}/${brand.slug}/workspace/overview`;
+  const cardHref = createBrandAppRoute(
+    orgSlug,
+    brand.slug,
+    '/workspace/overview',
+  );
 
   return (
     <Link
@@ -77,12 +82,14 @@ export default function OrgLandingContent() {
     }
 
     if (brands.length === 0) {
-      replace('/onboarding');
+      replace(APP_ROUTES.ONBOARDING.ROOT);
       return;
     }
 
     if (brands.length <= 1 && primaryBrandSlug) {
-      replace(`/${orgSlug}/${primaryBrandSlug}/workspace/overview`);
+      replace(
+        createBrandAppRoute(orgSlug, primaryBrandSlug, '/workspace/overview'),
+      );
     }
   }, [brands.length, isReady, orgSlug, primaryBrandSlug, replace]);
 

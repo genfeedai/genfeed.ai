@@ -104,6 +104,27 @@ vi.mock('@genfeedai/enums', () => ({
   ButtonVariant: { GHOST: 'ghost', UNSTYLED: 'unstyled' },
 }));
 
+// Mock the route builders — avoids pulling the full @genfeedai/constants barrel
+// (carousel.constant.ts needs the real CredentialPlatform enum, which is not in
+// the @genfeedai/enums mock above). Mirrors packages/constants/src/routes.constant.ts.
+vi.mock('@genfeedai/constants', () => {
+  const normalize = (routePath: string) =>
+    routePath.length === 0 || routePath === '/'
+      ? ''
+      : routePath.startsWith('/')
+        ? routePath
+        : `/${routePath}`;
+  return {
+    createBrandAppRoute: (
+      orgSlug: string,
+      brandSlug: string,
+      routePath = '/',
+    ) => `/${orgSlug}/${brandSlug}${normalize(routePath)}`,
+    createOrganizationAppRoute: (orgSlug: string, routePath = '/') =>
+      `/${orgSlug}/~${normalize(routePath)}`,
+  };
+});
+
 vi.mock('@genfeedai/helpers/formatting/cn/cn.util', () => ({
   cn: (...classes: (string | false | undefined | null)[]) =>
     classes.filter(Boolean).join(' '),

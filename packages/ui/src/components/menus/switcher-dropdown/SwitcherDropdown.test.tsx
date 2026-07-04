@@ -37,6 +37,9 @@ describe('SwitcherDropdown', () => {
 
     globalThis.ResizeObserver =
       MockResizeObserver as unknown as typeof ResizeObserver;
+
+    // cmdk calls scrollIntoView on the highlighted item; jsdom lacks it.
+    Element.prototype.scrollIntoView = vi.fn();
   });
 
   it('renders the trigger', () => {
@@ -66,6 +69,38 @@ describe('SwitcherDropdown', () => {
     fireEvent.click(screen.getByText('Open'));
     fireEvent.click(screen.getByText('Alpha'));
     expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('exposes listbox/option roles and marks the active row non-selectable', () => {
+    renderDropdown();
+    fireEvent.click(screen.getByText('Open'));
+
+    // cmdk renders a listbox of options (was a plain list of buttons before).
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+    const options = screen.getAllByRole('option');
+    expect(options).toHaveLength(3);
+
+    // The active row (Alpha) is disabled and shows the check.
+    const activeOption = options.find((option) =>
+      option.textContent?.includes('Alpha'),
+    );
+    expect(activeOption).toHaveAttribute('aria-disabled', 'true');
+    expect(activeOption?.querySelector('svg')).not.toBeNull();
+  });
+
+  it('selects the highlighted item via arrow-down + Enter (cmdk keyboard nav)', () => {
+    const onSelect = vi.fn();
+    renderDropdown({ hasSearch: true, onSelect });
+    fireEvent.click(screen.getByText('Open'));
+
+    const input = screen.getByPlaceholderText('Search…');
+    // Active row (Alpha) is skipped by cmdk, so the initial highlight is Beta.
+    // ArrowDown moves it to Gamma; Enter selects the highlighted item.
+    fireEvent.keyDown(input, { key: 'ArrowDown' });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect).toHaveBeenCalledWith('3');
   });
 
   it('calls onOpenChange when opening', () => {

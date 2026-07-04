@@ -1,6 +1,7 @@
 'use client';
 
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import type { LayoutProps } from '@props/layout/layout.props';
@@ -26,12 +27,12 @@ export default function ModelsLayout({ children }: LayoutProps) {
       description="Manage AI models, their configurations, and availability settings"
       icon={HiOutlineCpuChip}
       tabs={[
-        { href: '/automation/models/all', label: 'All' },
-        { href: '/automation/models/image', label: 'Image' },
-        { href: '/automation/models/video', label: 'Video' },
-        { href: '/automation/models/music', label: 'Music' },
-        { href: '/automation/models/text', label: 'Text' },
-        { href: '/automation/models/other', label: 'Other' },
+        { href: `${APP_ROUTES.ADMIN.AUTOMATION.MODELS}/all`, label: 'All' },
+        { href: `${APP_ROUTES.ADMIN.AUTOMATION.MODELS}/image`, label: 'Image' },
+        { href: `${APP_ROUTES.ADMIN.AUTOMATION.MODELS}/video`, label: 'Video' },
+        { href: `${APP_ROUTES.ADMIN.AUTOMATION.MODELS}/music`, label: 'Music' },
+        { href: `${APP_ROUTES.ADMIN.AUTOMATION.MODELS}/text`, label: 'Text' },
+        { href: `${APP_ROUTES.ADMIN.AUTOMATION.MODELS}/other`, label: 'Other' },
       ]}
       right={
         <>
