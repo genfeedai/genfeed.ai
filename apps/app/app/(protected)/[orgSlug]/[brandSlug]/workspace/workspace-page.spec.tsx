@@ -35,6 +35,23 @@ vi.mock('@genfeedai/auth-client/react', () => ({
   }),
 }));
 
+// Stop the real Better Auth browser client (a module-level `createAuthClient`
+// singleton in @genfeedai/auth-client) from mounting its nanostores session
+// store. That store schedules a broadcast-channel session-refresh timer that
+// fires AFTER this test's jsdom `window` is torn down, throwing
+// "ReferenceError: window is not defined" from cleanupBroadcastSetup — a benign
+// teardown race that vitest v4 counts as a fatal unhandled error.
+vi.mock('better-auth/react', () => ({
+  createAuthClient: () => ({
+    $fetch: vi.fn().mockResolvedValue({ data: null }),
+    getSession: vi.fn().mockResolvedValue({ data: null }),
+    signIn: { magicLink: vi.fn() },
+    signOut: vi.fn(),
+    signUp: {},
+    useSession: vi.fn(() => ({ data: null, isPending: false })),
+  }),
+}));
+
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: 'brand-1',
