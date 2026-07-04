@@ -56,28 +56,33 @@ runs:
         restore-keys: |
           ${{ runner.os }}-turbo-
 
-    # Retry with backoff: a postinstall script (notably ffmpeg-static, which
-    # pulls its binary from the GitHub releases CDN) can fail transiently and
+    # Retry with exponential backoff: a postinstall script (notably ffmpeg-static,
+    # which pulls its binary from the GitHub releases CDN) can fail transiently and
     # take the whole `bun install` down with it. bun install is idempotent, so
-    # re-running re-attempts only the missing download. 3 attempts, 15s/30s
-    # backoff — turns a flaky CDN into a self-healing step for every caller.
+    # re-running re-attempts only the missing download. A cold-cache release/deploy
+    # runs this step across ~15 parallel jobs, so with only 3 attempts a single
+    # persistently-flaky CDN window would fail a job and (via cancel-doomed-run)
+    # cancel the entire production deploy. 5 attempts with 10/20/40/80s backoff
+    # turns a flaky CDN into a self-healing step even under sustained transients.
     - name: Install dependencies
       shell: bash
+      env:
+        MAX_ATTEMPTS: '5'
       run: |
-        for attempt in 1 2 3; do
-          echo "::group::install attempt ${attempt}/3: ${{ inputs.install-command }}"
+        for attempt in $(seq 1 "${MAX_ATTEMPTS}"); do
+          echo "::group::install attempt ${attempt}/${MAX_ATTEMPTS}: ${{ inputs.install-command }}"
           if ${{ inputs.install-command }}; then
             echo "::endgroup::"
             exit 0
           fi
           echo "::endgroup::"
-          if [ "${attempt}" -lt 3 ]; then
-            backoff=$((attempt * 15))
-            echo "::warning::install attempt ${attempt} failed; retrying in ${backoff}s"
+          if [ "${attempt}" -lt "${MAX_ATTEMPTS}" ]; then
+            backoff=$((10 * 2 ** (attempt - 1)))
+            echo "::warning::install attempt ${attempt}/${MAX_ATTEMPTS} failed; retrying in ${backoff}s"
             sleep "${backoff}"
           fi
         done
-        echo "::error::install failed after 3 attempts"
+        echo "::error::install failed after ${MAX_ATTEMPTS} attempts"
         exit 1
 
     # Playwright browser binaries — key matches the strategy used by the inline
