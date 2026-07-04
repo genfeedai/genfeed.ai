@@ -46,6 +46,9 @@ export default function UserDropdown({
 }: UserDropdownProps) {
   const { orgHref } = useOrgUrl();
   const initial = userName.trim().charAt(0).toUpperCase() || 'U';
+  // Cross-scope switcher for the scope-specific Settings sidebar: each entry
+  // enters a settings scope, whose sidebar then shows only that scope's pages
+  // (see buildSettingsMenuItems). Help is part of the personal scope. See #1231.
   const allDropdownItems: DropdownItem[] = [
     { href: APP_ROUTES.SETTINGS.ROOT, icon: HiOutlineUser, label: 'Personal' },
     {
@@ -59,7 +62,7 @@ export default function UserDropdown({
       label: 'Brands',
     },
     {
-      href: orgHref(APP_ROUTES.SETTINGS.HELP),
+      href: APP_ROUTES.SETTINGS.HELP,
       icon: HiOutlineQuestionMarkCircle,
       label: 'Help',
     },

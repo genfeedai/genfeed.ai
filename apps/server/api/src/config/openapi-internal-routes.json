@@ -1,0 +1,41 @@
+{
+  "description": "Internal routes excluded from API-MCP parity (#1246/#1247). Every operation in openapi/openapi.json whose path starts with one of these prefixes is infrastructure-only (health probes, inbound provider webhooks/callbacks, platform-admin infra, docs meta endpoints) and never becomes an MCP tool. Prefixes match document path keys, which do NOT include the /v1 global prefix (that lives in the spec's servers entry). Entries must keep matching at least one real operation — scripts/validate-openapi-spec.ts fails on stale prefixes.",
+  "internalRoutes": [
+    {
+      "pathPrefix": "/health",
+      "reason": "Infra liveness/readiness probes"
+    },
+    {
+      "pathPrefix": "/webhooks/",
+      "reason": "Inbound provider/bot webhooks (signature-verified, machine-called)"
+    },
+    {
+      "pathPrefix": "/telegram-bot/webhook",
+      "reason": "Inbound Telegram bot webhook"
+    },
+    {
+      "pathPrefix": "/services/facebook/callback",
+      "reason": "OAuth provider browser-redirect callback"
+    },
+    {
+      "pathPrefix": "/services/google-ads/oauth/callback",
+      "reason": "OAuth provider browser-redirect callback"
+    },
+    {
+      "pathPrefix": "/internal/",
+      "reason": "Service-to-service internal endpoints (API-key guarded, not user-callable)"
+    },
+    {
+      "pathPrefix": "/admin/",
+      "reason": "Platform-admin infra (fleet/EC2/darkroom operations)"
+    },
+    {
+      "pathPrefix": "/openapi.json",
+      "reason": "Docs meta endpoint (the spec itself)"
+    },
+    {
+      "pathPrefix": "/gpt-actions.json",
+      "reason": "Docs meta endpoint (curated GPT Actions subset)"
+    }
+  ]
+}

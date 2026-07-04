@@ -26,7 +26,7 @@ import type { Request } from 'express';
 
 @ApiTags('Agent Threads')
 @Controller('agent/threads')
-export class AgentThreadsController {
+export class AgentThreadRuntimeController {
   constructor(
     private readonly agentThreadEngineService: AgentThreadEngineService,
     private readonly agentThreadsService: AgentThreadsService,

@@ -379,18 +379,6 @@ export function createSettingsCommands(orgSlug: string): ICommand[] {
         : 'API Keys & Providers',
       priority: 6,
     },
-    {
-      action: () => {
-        navigate(`${orgPath}/settings/admin`);
-      },
-      category: 'settings',
-      description: 'Manage customer-facing admin settings in the main app',
-      icon: HiOutlineWrenchScrewdriver,
-      id: 'settings-admin',
-      keywords: ['admin', 'settings', 'organization', 'workspace'],
-      label: 'Admin Settings',
-      priority: 6,
-    },
   ];
 }
 
@@ -497,12 +485,15 @@ export function createDefaultCommands(
 
 /**
  * Register all default commands for a given org/brand context.
+ *
+ * Returns the ids that were actually registered so callers can
+ * unregister them on unmount (see useDefaultCommandsRegistration).
  */
 export function registerDefaultCommands(
   orgSlug: string,
   brandSlug: string,
-): void {
-  CommandPaletteService.registerCommands(
+): string[] {
+  return CommandPaletteService.registerCommands(
     createDefaultCommands(orgSlug, brandSlug),
   );
 }

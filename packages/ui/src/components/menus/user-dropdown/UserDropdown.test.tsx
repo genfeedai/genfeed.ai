@@ -56,6 +56,41 @@ describe('UserDropdown', () => {
     );
   });
 
+  it('switches between the settings scopes (Help lives in the personal scope)', () => {
+    render(<UserDropdown userName="Test User" userEmail="test@example.com" />);
+
+    fireEvent.pointerDown(
+      screen.getByRole('button', { name: 'Open account menu' }),
+    );
+
+    const items = screen
+      .getAllByRole('menuitem')
+      .filter((item) => item.textContent !== 'Sign out');
+
+    expect(items.map((item) => item.textContent)).toEqual([
+      'Personal',
+      'Organization',
+      'Brands',
+      'Help',
+    ]);
+    expect(screen.getByRole('menuitem', { name: /Personal/i })).toHaveAttribute(
+      'href',
+      '/settings',
+    );
+    expect(
+      screen.getByRole('menuitem', { name: /Organization/i }),
+    ).toHaveAttribute('href', '/acme/~/settings');
+    expect(screen.getByRole('menuitem', { name: /Brands/i })).toHaveAttribute(
+      'href',
+      '/acme/~/settings/brands',
+    );
+    // Help is a personal-scope destination, not org-scoped.
+    expect(screen.getByRole('menuitem', { name: /Help/i })).toHaveAttribute(
+      'href',
+      '/settings/help',
+    );
+  });
+
   it('limits topbar user settings to personal destinations plus sign out', () => {
     render(
       <UserDropdown
@@ -75,7 +110,7 @@ describe('UserDropdown', () => {
     );
     expect(screen.getByRole('menuitem', { name: /Help/i })).toHaveAttribute(
       'href',
-      '/acme/~/settings/help',
+      '/settings/help',
     );
     expect(screen.getByRole('menuitem', { name: /Sign out/i })).toHaveAttribute(
       'href',

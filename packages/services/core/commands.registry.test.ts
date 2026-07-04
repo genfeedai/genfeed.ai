@@ -9,7 +9,9 @@ const { mockEnvironmentService, mockRegisterCommands } = vi.hoisted(() => ({
     },
     currentApp: 'app',
   },
-  mockRegisterCommands: vi.fn(),
+  mockRegisterCommands: vi.fn((commands: { id: string }[]): string[] =>
+    commands.map((command) => command.id),
+  ),
 }));
 
 vi.mock('@services/core/environment.service', () => ({
@@ -412,7 +414,7 @@ describe('commands.registry', () => {
     it('should have correct number of settings commands', () => {
       const settingsCommands = createSettingsCommands(TEST_ORG);
 
-      expect(settingsCommands.length).toBe(5);
+      expect(settingsCommands.length).toBe(4);
     });
 
     it('should have personal settings command', () => {
@@ -507,26 +509,6 @@ describe('commands.registry', () => {
 
       expect(window.location.href).toBe(
         `https://app.genfeed.ai/${TEST_ORG}/~/settings/api-keys`,
-      );
-    });
-
-    it('should have instance admin command', () => {
-      const settingsCommands = createSettingsCommands(TEST_ORG);
-      const adminCmd = settingsCommands.find((c) => c.id === 'settings-admin');
-
-      expect(adminCmd).toBeDefined();
-      expect(adminCmd?.label).toBe('Admin Settings');
-      expect(adminCmd?.keywords).toContain('admin');
-    });
-
-    it('instance admin action should navigate to the settings admin route', () => {
-      const settingsCommands = createSettingsCommands(TEST_ORG);
-      const adminCmd = settingsCommands.find((c) => c.id === 'settings-admin');
-
-      adminCmd?.action();
-
-      expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/~/settings/admin`,
       );
     });
   });
@@ -723,6 +705,15 @@ describe('commands.registry', () => {
       registerDefaultCommands(TEST_ORG, TEST_BRAND);
 
       expect(mockRegisterCommands).toHaveBeenCalledTimes(1);
+    });
+
+    it('should return the registered command ids for cleanup', () => {
+      const registeredIds = registerDefaultCommands(TEST_ORG, TEST_BRAND);
+      const defaultCommands = createDefaultCommands(TEST_ORG, TEST_BRAND);
+
+      expect(registeredIds).toEqual(
+        defaultCommands.map((command) => command.id),
+      );
     });
   });
 

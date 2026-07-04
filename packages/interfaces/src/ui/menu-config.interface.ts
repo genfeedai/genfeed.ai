@@ -25,6 +25,8 @@ export interface MenuItemConfig {
   solid?: ComponentType<{ className?: string }>;
   group?: string;
   matchPaths?: string[];
+  /** When true, this item is active only on an exact route match, not on descendant routes. Use for root items (e.g. an Overview at /settings) that share a path prefix with sibling sub-pages. */
+  isExactMatch?: boolean;
   /** Skip nested sidebar for this group — navigate directly on icon click */
   directNavigation?: boolean;
   /** When true on the first item of a group, the group renders as a single drill-down row with > chevron */

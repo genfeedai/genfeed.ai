@@ -4,7 +4,7 @@ import PricingContent from '@public/pricing/pricing-content';
 
 export const generateMetadata = createPageMetadataWithCanonical(
   'Pricing',
-  'Cloud app access from $49/mo plus pay-as-you-go output. Add paid team seats and multi-organization workflows when your content operation grows.',
+  'Free to sign up — credits buy the output you generate. Subscriptions from $49/mo include monthly credits at a better rate, plus more brands, channels, and seats.',
   '/pricing',
 );
 
@@ -12,7 +12,7 @@ const saasJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'WebPage',
   description:
-    'Genfeed Cloud App pricing starts at $49/month plus pay-as-you-go output. Cloud Teams adds paid seats, collaboration, multi-organization workflows, and managed billing.',
+    'Genfeed is free to join with pay-per-output credits. Creator ($49/month) includes 8,000 credits at a better rate. Cloud Teams ($499/month) adds seats, a shared credit pool, and multi-organization workflows.',
   mainEntity: {
     '@type': 'Product',
     brand: { '@type': 'Organization', name: 'Genfeed' },
@@ -23,8 +23,17 @@ const saasJsonLd = {
       {
         '@type': 'Offer',
         description:
-          'Managed cloud app access for creators and founders. Platform access is billed monthly, with output billed as pay-as-you-go usage.',
-        name: 'Cloud App',
+          'Free account with pay-per-output credits. Buy credit packs and spend them on images, video, voice, and articles.',
+        name: 'Pay As You Go',
+        price: '0',
+        priceCurrency: 'USD',
+        url: 'https://genfeed.ai/pricing',
+      },
+      {
+        '@type': 'Offer',
+        description:
+          'Monthly subscription with 8,000 included credits at a better rate, 5 brand kits, and 15 connected channels.',
+        name: 'Creator',
         price: '49',
         priceCurrency: 'USD',
         priceSpecification: {
@@ -36,7 +45,7 @@ const saasJsonLd = {
       {
         '@type': 'Offer',
         description:
-          'B2B cloud for agencies and teams managing multiple organizations, brands, approvals, and managed billing.',
+          'B2B cloud with 5 seats, an 80,000-credit shared pool, multi-organization workflows, approvals, and managed billing.',
         name: 'Cloud Teams',
         price: '499',
         priceCurrency: 'USD',

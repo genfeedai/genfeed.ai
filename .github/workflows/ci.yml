@@ -650,6 +650,46 @@ jobs:
           NODE_ENV: test
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
 
+  # OpenAPI spec gate (#1247): the committed artifact at
+  # apps/server/api/openapi/openapi.json is the single source of truth for MCP
+  # tool generation (#1246). This job regenerates it from the compiled bundle
+  # (headless emit — no DB/Redis, exits before the listener) and fails when the
+  # committed spec drifted or the emit is non-deterministic.
+  openapi-drift:
+    name: OpenAPI Spec Drift
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: [trust, test-scope]
+    if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.api == 'true'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          bun-version: '1.3.14'
+      - name: Build api (compiled bundle)
+        # The api package emits to apps/server/dist, outside apps/server/api.
+        # Force a real build so a Turbo cache-hit replay cannot skip restoring
+        # the compiled bundle the emit gate loads (same rationale as
+        # build-verify.yml api-boot-check).
+        run: bunx turbo run build --filter=@genfeedai/api --force
+      - name: Emit spec twice — must be byte-identical
+        run: |
+          cd apps/server/api
+          bun run scripts/emit-openapi.ts --skip-build --out=/tmp/openapi-emit-1.json
+          bun run scripts/emit-openapi.ts --skip-build --out=/tmp/openapi-emit-2.json
+          cmp /tmp/openapi-emit-1.json /tmp/openapi-emit-2.json
+      - name: Committed spec must match generated
+        run: |
+          if ! cmp apps/server/api/openapi/openapi.json /tmp/openapi-emit-1.json; then
+            echo "::error::apps/server/api/openapi/openapi.json is stale — regenerate with: bun run --filter=@genfeedai/api openapi:emit"
+            exit 1
+          fi
+      - name: Validate spec (operationId coverage/uniqueness + allowlist)
+        run: cd apps/server/api && bun run openapi:validate
+
   build:
     name: Build
     runs-on: ubuntu-latest

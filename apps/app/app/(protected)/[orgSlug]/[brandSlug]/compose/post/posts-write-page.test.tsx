@@ -3,6 +3,7 @@ import '@testing-library/jest-dom/vitest';
 import { PostStatus } from '@genfeedai/enums';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ANALYTICS_EVENTS } from '@/lib/analytics';
 
 const pushMock = vi.fn();
 const replaceMock = vi.fn();
@@ -11,6 +12,7 @@ const postMock = vi.fn();
 const generateAccountContentMock = vi.fn();
 const generateTweetsMock = vi.fn();
 const generateThreadMock = vi.fn();
+const captureAnalyticsEventMock = vi.fn();
 const useBrandMock = vi.fn();
 const copyToClipboardMock = vi.fn();
 const workingTitlePlaceholder = 'Optional internal title for the draft';
@@ -50,6 +52,12 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => searchParamsState,
 }));
 
+vi.mock('@/lib/analytics', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/analytics')>()),
+  captureAnalyticsEvent: (...args: unknown[]) =>
+    captureAnalyticsEventMock(...args),
+}));
+
 vi.mock('@/lib/desktop/runtime', () => ({
   getDesktopBridge: desktopRuntimeMocks.getDesktopBridge,
   isDesktopShell: desktopRuntimeMocks.isDesktopShell,
@@ -83,6 +91,15 @@ describe('PostsWritePage', () => {
     });
     desktopRuntimeMocks.getDesktopBridge.mockReturnValue(null);
     desktopRuntimeMocks.isDesktopShell.mockReturnValue(false);
+  });
+
+  it('captures content_write_opened on mount', () => {
+    render(<PostsWritePage />);
+
+    expect(captureAnalyticsEventMock).toHaveBeenCalledWith(
+      ANALYTICS_EVENTS.CONTENT_WRITE_OPENED,
+      {},
+    );
   });
 
   it('shows the empty state when no connected accounts are available', () => {
@@ -130,6 +147,14 @@ describe('PostsWritePage', () => {
 
     expect(pushMock).toHaveBeenCalledWith(
       '/moonrise-org/moonrise-studio/posts/post-1',
+    );
+    expect(captureAnalyticsEventMock).toHaveBeenCalledWith(
+      ANALYTICS_EVENTS.CONTENT_WRITE_BLANK_DRAFT_STARTED,
+      {
+        credentialId: 'cred-1',
+        hasPrefilledIngredient: false,
+        platform: 'twitter',
+      },
     );
   });
 
@@ -216,6 +241,10 @@ describe('PostsWritePage', () => {
     expect(pushMock).toHaveBeenCalledWith(
       '/moonrise-org/moonrise-studio/posts/generated-1',
     );
+    expect(captureAnalyticsEventMock).toHaveBeenCalledWith(
+      ANALYTICS_EVENTS.CONTENT_WRITE_PROMPT_GENERATED,
+      { credentialId: 'cred-1', platform: 'twitter' },
+    );
   });
 
   it('generates a thread from the prompt and redirects to the root draft', async () => {
@@ -253,6 +282,10 @@ describe('PostsWritePage', () => {
 
     expect(pushMock).toHaveBeenCalledWith(
       '/moonrise-org/moonrise-studio/posts/thread-root',
+    );
+    expect(captureAnalyticsEventMock).toHaveBeenCalledWith(
+      ANALYTICS_EVENTS.CONTENT_WRITE_PROMPT_GENERATED,
+      { credentialId: 'cred-1', platform: 'twitter' },
     );
   });
 

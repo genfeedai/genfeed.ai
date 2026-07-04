@@ -74,10 +74,10 @@ describe('pricing.helper', () => {
       expect(websitePlans).toHaveLength(4);
     });
 
-    it('should have Self-Hosted, Hosted, Cloud Teams, Enterprise labels in order', () => {
+    it('should have Pay As You Go, Hosted, Cloud Teams, Enterprise labels in order', () => {
       const labels = websitePlans.map((p) => p.label);
       expect(labels).toEqual([
-        'Self-Hosted',
+        'Pay As You Go',
         'Hosted',
         'Cloud Teams',
         'Enterprise',
@@ -86,7 +86,12 @@ describe('pricing.helper', () => {
 
     it('should have correct plan types', () => {
       const types = websitePlans.map((p) => p.type);
-      expect(types).toEqual(['byok', 'payg', 'subscription', 'enterprise']);
+      expect(types).toEqual([
+        'payg',
+        'subscription',
+        'subscription',
+        'enterprise',
+      ]);
     });
 
     it('should have correct prices', () => {
@@ -94,20 +99,24 @@ describe('pricing.helper', () => {
       expect(prices).toEqual([0, 49, 499, null]);
     });
 
-    it('Self-Hosted plan should have null outputs', () => {
-      const selfHosted = websitePlans[0];
-      expect(selfHosted.outputs).toBeNull();
+    it('Pay As You Go plan should be free to join with no included credits', () => {
+      const payg = websitePlans[0];
+      expect(payg.outputs).toBeNull();
+      expect(payg.price).toBe(0);
+      expect(payg.includedCredits).toBeUndefined();
     });
 
-    it('Hosted plan should use PAYG output', () => {
+    it('Hosted plan should be a subscription with included credits', () => {
       const hosted = websitePlans[1];
       expect(hosted.outputs).toBeNull();
-      expect(hosted.interval).toBe('payg');
+      expect(hosted.interval).toBe('month');
+      expect(hosted.includedCredits).toBe(8_000);
     });
 
-    it('Cloud Teams plan should be B2B cloud without bundled output quotas', () => {
+    it('Cloud Teams plan should be B2B cloud with a shared credit pool', () => {
       const cloudTeams = websitePlans[2];
       expect(cloudTeams.outputs).toBeNull();
+      expect(cloudTeams.includedCredits).toBe(80_000);
       expect(cloudTeams.features).toContain('Multi-organization account model');
       expect(cloudTeams.features).toContain('Multi-brand operations');
     });
@@ -129,8 +138,8 @@ describe('pricing.helper', () => {
       expect(getPlanByLabel('cloud teams')?.price).toBe(499);
     });
 
-    it('should find Self-Hosted plan', () => {
-      expect(getPlanByLabel('self-hosted')?.price).toBe(0);
+    it('should find Pay As You Go plan', () => {
+      expect(getPlanByLabel('pay as you go')?.price).toBe(0);
     });
 
     it('should find Enterprise plan', () => {
