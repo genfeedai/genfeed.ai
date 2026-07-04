@@ -5,6 +5,7 @@ import {
   AnalyticsProvider,
   useAnalyticsContext,
 } from '@contexts/analytics/analytics-context';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { Timeframe } from '@genfeedai/enums';
 import type { LayoutProps } from '@props/layout/layout.props';
 import Container from '@ui/layout/container/Container';
@@ -20,10 +21,16 @@ function AnalyticsLayoutContent({ children }: LayoutProps) {
       description="Track platform performance, usage statistics, and growth metrics"
       icon={HiOutlineChartBar}
       tabs={[
-        { href: '/overview/analytics/all', label: 'Overview' },
-        { href: '/overview/analytics/organizations', label: 'Organizations' },
-        { href: '/overview/analytics/brands', label: 'Brands' },
-        { href: '/overview/analytics/business', label: 'Business' },
+        { href: APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ALL, label: 'Overview' },
+        {
+          href: APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS,
+          label: 'Organizations',
+        },
+        { href: APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_BRANDS, label: 'Brands' },
+        {
+          href: APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_BUSINESS,
+          label: 'Business',
+        },
       ]}
       right={
         <div className="flex items-center gap-2">

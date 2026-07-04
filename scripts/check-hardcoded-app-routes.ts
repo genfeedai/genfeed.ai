@@ -126,18 +126,9 @@ const OBJECT_PROP_PATTERN = new RegExp(
  * Route-root literals that intentionally remain — no exact `APP_ROUTES` constant
  * exists, or the value is pending a separate fix. Keep this list short and
  * documented; every entry is a deliberate exception, not a TODO to ignore.
+ * Currently empty: the admin tab-strip debt it once held has been migrated.
  */
-const ALLOWLISTED_ROUTE_VALUES = new Set([
-  // admin/(protected)/admin/** tab hrefs are stale leftovers from when admin was
-  // a standalone app (commit "remove admin app"): they use pre-merge bare paths
-  // (/overview/..., /content/..., /automation/...) that no longer resolve now
-  // that admin lives under /admin/**. Fixing them is a dedicated admin-nav repair
-  // (some targets don't exist even when prefixed) — allowlisted, not masked.
-  '/overview/analytics/all',
-  '/overview/analytics/organizations',
-  '/overview/analytics/brands',
-  '/overview/analytics/business',
-]);
+const ALLOWLISTED_ROUTE_VALUES = new Set<string>([]);
 
 type Violation = {
   file: string;
