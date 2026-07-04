@@ -4,6 +4,7 @@ import {
   AgentExecutionStatus,
   ButtonSize,
   ButtonVariant,
+  CardVariant,
 } from '@genfeedai/enums';
 import type { IAgentRun } from '@genfeedai/interfaces';
 import type { TrendItem } from '@genfeedai/props/trends/trends-page.props';
@@ -126,10 +127,14 @@ function AgentRunCard({ run }: { run: IAgentRun }) {
       : (run.label?.split(' ')?.[0] ?? 'Agent');
 
   return (
-    <div className="group relative flex flex-col gap-2 rounded-md border border-border bg-background-secondary p-3 transition-colors hover:border-border-strong hover:bg-background-tertiary">
+    <Card
+      variant={CardVariant.DEFAULT}
+      className="group"
+      bodyClassName="gap-2 p-3"
+    >
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2">
-          <div className="flex size-6 items-center justify-center rounded border border-border bg-background-tertiary">
+          <div className="flex size-6 items-center justify-center rounded border border-border bg-muted">
             <HiOutlineCpuChip className="size-3.5 text-foreground/60" />
           </div>
           <div>
@@ -164,7 +169,7 @@ function AgentRunCard({ run }: { run: IAgentRun }) {
         </Button>
       </div>
 
-      <div className="rounded border border-border bg-background-tertiary/50 px-2.5 py-2">
+      <div className="rounded border border-border bg-muted/50 px-2.5 py-2">
         <p className="line-clamp-1 text-[12px] font-medium text-foreground/75">
           {run.label}
         </p>
@@ -175,7 +180,7 @@ function AgentRunCard({ run }: { run: IAgentRun }) {
             : (run.summary ?? run.objective ?? 'Run completed')}
         </p>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -230,12 +235,9 @@ export function DashboardAgentCards({
               'agent-run-skeleton-2',
               'agent-run-skeleton-3',
             ].map((key) => (
-              <div
-                key={key}
-                className="rounded-md border border-border bg-background-secondary p-3"
-              >
+              <Card key={key} variant={CardVariant.DEFAULT} bodyClassName="p-3">
                 <WorkspaceTaskRowsSkeleton rows={1} />
-              </div>
+              </Card>
             ))
           : displayRuns.map((run) => <AgentRunCard key={run.id} run={run} />)}
       </div>
