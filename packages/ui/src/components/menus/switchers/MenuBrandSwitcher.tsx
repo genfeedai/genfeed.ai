@@ -1,5 +1,6 @@
 'use client';
 
+import { createBrandAppRoute } from '@genfeedai/constants';
 import { useBrandOverlay } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import { getBrandOrganizationSlug } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { ButtonVariant } from '@genfeedai/enums';
@@ -82,7 +83,8 @@ export default function MenuBrandSwitcher({
               ? {
                   ariaLabel: `Open ${b.label ?? 'brand'} settings`,
                   icon: HiOutlineCog6Tooth,
-                  onAction: () => push(`/${orgSlug}/${b.slug}/settings`),
+                  onAction: () =>
+                    push(createBrandAppRoute(orgSlug, b.slug, '/settings')),
                 }
               : undefined,
         };
@@ -97,7 +99,7 @@ export default function MenuBrandSwitcher({
             'transition-all',
             'hover:bg-foreground/10 transition-colors duration-200',
             variant === 'labeled'
-              ? 'flex h-7 min-w-0 w-full items-center gap-2 rounded-md px-2 text-left'
+              ? 'flex h-7 min-w-0 w-full items-center gap-1.5 rounded-md px-2 text-left'
               : 'flex items-center justify-center p-1',
             isUpdating && 'opacity-50 cursor-not-allowed',
             isOpen && 'bg-foreground/10',
@@ -150,7 +152,7 @@ export default function MenuBrandSwitcher({
       onSelect={(id) => void handleSelect(id)}
       isDisabled={isUpdating}
       hasSearch={brands.length >= 5}
-      minWidth={variant === 'labeled' ? 260 : 220}
+      minWidth={variant === 'labeled' ? 224 : 220}
       searchPlaceholder="Search brands…"
       footerActions={[
         {

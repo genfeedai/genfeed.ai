@@ -67,6 +67,7 @@ describe('TopbarEnd', () => {
     expect(screen.getByTestId('topbar-user-button')).toBeInTheDocument();
     expect(userDropdownSpy).toHaveBeenCalledWith(
       expect.objectContaining({
+        imageUrl: null,
         settingsScope: 'user',
         side: 'bottom',
         userEmail: 'test@example.com',

@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { OnboardingAccessMode } from '@genfeedai/interfaces';
 import { Button } from '@ui/primitives/button';
@@ -49,7 +50,7 @@ export default function ProvidersActionBar({
           <div className="relative w-full md:w-auto">
             {selectedMode === 'byok' ? <CurrentBadge /> : null}
             <Link
-              href="/settings/api-keys"
+              href={APP_ROUTES.SETTINGS.API_KEYS}
               onClick={(event) => {
                 onByokClick(event);
               }}

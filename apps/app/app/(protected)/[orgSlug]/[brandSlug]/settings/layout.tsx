@@ -1,5 +1,6 @@
 'use client';
 
+import { createBrandAppRoute } from '@genfeedai/constants';
 import type { LayoutProps } from '@props/layout/layout.props';
 import Container from '@ui/layout/container/Container';
 import Tabs from '@ui/navigation/tabs/Tabs';
@@ -15,7 +16,7 @@ export default function BrandSettingsLayout({ children }: LayoutProps) {
   }
 
   const settingsHref = (path = '') =>
-    `/${orgSlug}/${brandSlug}/settings${path}`;
+    createBrandAppRoute(orgSlug, brandSlug, `/settings${path}`);
 
   const items = [
     {

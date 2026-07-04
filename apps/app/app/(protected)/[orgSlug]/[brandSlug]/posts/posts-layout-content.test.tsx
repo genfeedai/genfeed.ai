@@ -28,10 +28,10 @@ vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
 
 describe('PostsLayoutContent', () => {
   beforeEach(() => {
-    usePathnameMock.mockReturnValue('/posts');
+    usePathnameMock.mockReturnValue('/posts/scheduled');
     useRouterMock.mockReturnValue({ refresh: vi.fn() });
     useSearchParamsMock.mockReturnValue(
-      new URLSearchParams('platform=youtube&status=scheduled'),
+      new URLSearchParams('platform=youtube'),
     );
   });
 

@@ -17,6 +17,7 @@ export default function TopbarEnd() {
       <UserDropdown
         settingsScope="user"
         side="bottom"
+        imageUrl={user.imageUrl}
         userName={user.fullName ?? 'User'}
         userEmail={user.primaryEmailAddress?.emailAddress ?? ''}
       />

@@ -54,7 +54,10 @@ import { BookmarkSerializer } from '@serializers/server/content/bookmark.seriali
 import { LinkSerializer } from '@serializers/server/content/link.serializer';
 import { NewsSerializer } from '@serializers/server/content/news.serializer';
 import { PersonaSerializer } from '@serializers/server/content/persona.serializer';
-import { PostSerializer } from '@serializers/server/content/post.serializer';
+import {
+  PostListSerializer,
+  PostSerializer,
+} from '@serializers/server/content/post.serializer';
 import { PresignedUploadSerializer } from '@serializers/server/content/presigned-upload.serializer';
 import { TemplateSerializer } from '@serializers/server/content/template.serializer';
 import { TranscriptSerializer } from '@serializers/server/content/transcript.serializer';
@@ -679,6 +682,45 @@ describe('Server Serializers', () => {
 
     it('should have a serialize method', () => {
       expect(typeof PostSerializer.serialize).toBe('function');
+    });
+  });
+
+  // Regression for #1223: `PostListSerializer` was previously destructured as
+  // `const { PostListSerializer } = buildSerializer('server', postListSerializerConfig)`.
+  // Because `buildSerializer` keys its return object by the config `type`
+  // (`post`), that destructure resolved to `undefined`, and the posts list
+  // endpoint silently returned a raw `docs` array instead of a JSON:API
+  // collection document — breaking the calendar client. It was never imported
+  // here, so the "is defined" smoke test never caught it.
+  describe('PostListSerializer (#1223)', () => {
+    it('is defined (not undefined — the destructured name must match the type-derived key)', () => {
+      expect(PostListSerializer).toBeTruthy();
+    });
+
+    it('should be a function (serializer)', () => {
+      expect(typeof PostListSerializer).toBe('object');
+    });
+
+    it('should have a serialize method', () => {
+      expect(typeof PostListSerializer.serialize).toBe('function');
+    });
+
+    it('serializes an array into a JSON:API collection document ({ data: [...] })', () => {
+      const output = PostListSerializer.serialize([
+        { id: 'ckpost0000000000000000001', label: 'A', status: 'draft' },
+        { id: 'ckpost0000000000000000002', label: 'B', status: 'published' },
+      ]) as { data: Array<{ id: string; type: string }> };
+
+      expect(Array.isArray(output.data)).toBe(true);
+      expect(output.data).toHaveLength(2);
+      expect(output.data[0]).toMatchObject({
+        id: 'ckpost0000000000000000001',
+        type: 'post',
+      });
+    });
+
+    it('serializes an empty list into { data: [] }', () => {
+      expect(PostListSerializer.serialize([])).toEqual({ data: [] });
     });
   });
 

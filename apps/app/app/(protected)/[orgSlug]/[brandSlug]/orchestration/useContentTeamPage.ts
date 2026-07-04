@@ -1,4 +1,5 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentCampaigns } from '@hooks/data/agent-campaigns/use-agent-campaigns';
@@ -158,7 +159,7 @@ export function useContentTeamPage() {
         accent: activeGoal
           ? `${formatCompactNumber(activeGoal.currentValue)} of ${formatCompactNumber(activeGoal.targetValue)} ${activeGoal.metric.replace('_', ' ')}`
           : 'Set a company goal for the orchestrator to optimize against.',
-        href: '/orchestration/orchestrator',
+        href: APP_ROUTES.ORCHESTRATION.ORCHESTRATOR,
         label: 'Mission',
         tone: 'HQ',
         value: activeGoal?.label ?? 'No active goal',
@@ -168,7 +169,7 @@ export function useContentTeamPage() {
           reviewInbox.readyCount > 0
             ? `${reviewInbox.readyCount} ready and ${reviewInbox.pendingCount} still generating`
             : 'No reviews waiting right now.',
-        href: '/posts/review',
+        href: APP_ROUTES.POSTS.REVIEW,
         label: 'Review Queue',
         tone: 'Approval',
         value: String(reviewInbox.readyCount + reviewInbox.pendingCount),
@@ -178,14 +179,14 @@ export function useContentTeamPage() {
           scheduledPostsPerWeek > 0
             ? `${scheduledPostsPerWeek} planned outputs across ${strategies.length} specialists`
             : 'No publishing cadence configured yet.',
-        href: '/orchestration/autopilot',
+        href: APP_ROUTES.ORCHESTRATION.AUTOPILOT,
         label: 'Calendar Pressure',
         tone: 'Cadence',
         value: `${scheduledPostsPerWeek}/week`,
       },
       {
         accent: `${stats?.completedToday ?? 0} completed, ${stats?.failedToday ?? 0} failed, ${activeRuns.length} active`,
-        href: '/orchestration/runs',
+        href: APP_ROUTES.ORCHESTRATION.RUNS,
         label: 'Run Health',
         tone: 'Operations',
         value: String(stats?.totalRuns ?? strategies.length),
@@ -195,7 +196,7 @@ export function useContentTeamPage() {
           dailyCreditBudget > 0
             ? `${creditsUsedToday} used today across ${dailyCreditBudget} planned credits`
             : 'No credit allocation configured yet.',
-        href: '/orchestration/campaigns',
+        href: APP_ROUTES.ORCHESTRATION.CAMPAIGNS,
         label: 'Budget Burn',
         tone: 'Finance',
         value: `${formatCompactNumber(creditsUsedToday)} / ${formatCompactNumber(dailyCreditBudget)}`,
@@ -227,7 +228,7 @@ export function useContentTeamPage() {
       },
       {
         accent: `${strategies.filter((strategy) => strategy.isActive).length} active specialists are eligible for adaptive runs.`,
-        href: '/orchestration/autopilot',
+        href: APP_ROUTES.ORCHESTRATION.AUTOPILOT,
         label: 'Adaptive Policies',
         tone: 'Autopilot',
         value: String(
@@ -239,7 +240,7 @@ export function useContentTeamPage() {
           brandLabelsById.size > 0
             ? `${brandLabelsById.size} brand context${brandLabelsById.size === 1 ? '' : 's'} available for shared defaults.`
             : 'No brand context loaded.',
-        href: '/posts/review',
+        href: APP_ROUTES.POSTS.REVIEW,
         label: 'Review Inbox',
         tone: 'Approvals',
         value: String(reviewInbox.readyCount),

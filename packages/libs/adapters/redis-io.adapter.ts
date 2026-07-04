@@ -1,4 +1,5 @@
 import type { Server as HttpServer } from 'node:http';
+import { getGenfeedCorsOrigins } from '@libs/config/cors.config';
 import type { LoggerService } from '@libs/logger/logger.service';
 import {
   buildIoRedisClientOptions,
@@ -63,19 +64,26 @@ export class RedisIoAdapter extends IoAdapter {
   }
 
   createIOServer(port: number, options?: ServerOptions): Server {
-    const isDevelopment = process.env.NODE_ENV === 'development';
-    const corsOrigin = isDevelopment
-      ? [
-          /^http:\/\/(localhost|127\.0\.0\.1|local\.genfeed\.ai):3000$/,
-          /^http:\/\/local\.genfeed\.ai:30(1[0-9]|20)$/,
-        ]
-      : [
-          /^https:\/\/genfeed\.ai$/,
-          /^https:\/\/(admin|analytics|automation|publisher|dashboard|docs|login|manager|storyboard|stock|studio)\.genfeed\.ai$/,
-        ];
-
+    // Reuse the shared CORS allowlist (@libs/config/cors.config) that the HTTP
+    // layer already uses. The socket adapter previously carried its own
+    // hardcoded origin list which had drifted from the canonical
+    // GENFEED_SUBDOMAINS — notably omitting `app`, so WebSocket handshakes from
+    // https://app.genfeed.ai were CORS-rejected (repeated "Socket disconnected"
+    // on the production app) even though its REST calls were allowed. Sharing
+    // one source of truth keeps the two layers from diverging again.
+    const chromeExtensionId = this.configAccessor.get('CHROME_EXTENSION_ID');
     const serverOptions: Partial<ServerOptions> = {
-      cors: { credentials: true, origin: corsOrigin },
+      cors: {
+        credentials: true,
+        origin: getGenfeedCorsOrigins({
+          chromeExtensionId:
+            typeof chromeExtensionId === 'string' &&
+            chromeExtensionId.length > 0
+              ? chromeExtensionId
+              : undefined,
+          isDevelopment: process.env.NODE_ENV === 'development',
+        }),
+      },
       ...options,
     };
 

@@ -1,0 +1,52 @@
+# Allowlist for scripts/lint-no-bespoke-card.sh
+#
+# One repo-relative path per line. A listed file is fully exempt from the
+# bespoke-card guard. `#` comments and blank lines are ignored.
+#
+# Two kinds of entries, split below:
+#   • PERMANENT — a legitimate non-card surface that should never be a Card.
+#   • BASELINE  — a real bespoke card frozen so the guard can ship green on
+#                 master. Migrate these to the shared Card and DELETE the line.
+#                 Tracked in: https://github.com/genfeedai/genfeed.ai/issues/1271
+#
+# Whole-file (not file:line) entries are used on purpose: line numbers drift as
+# files change and would make CI red on unrelated edits. This mirrors the
+# existing baseline convention in scripts/check-raw-button-usage.ts. The cost is
+# that a *new* bespoke card added to an already-listed file won't be caught —
+# acceptable, since the migration removes these files from the list and re-arms
+# them, and every other file in the tree is guarded.
+
+# ─── PERMANENT: ReactFlow node primitives ─────────────────────────────────────
+# A graph node is not a content card. Product decision (#1271): keep these as a
+# separate node primitive; they are not scheduled for Card migration.
+apps/app/src/features/workflows/nodes/UnknownWorkflowNode.tsx
+apps/app/src/features/workflows/nodes/TemplateCompatibilityNode.tsx
+apps/app/src/features/workflows/components/ui/card/NodeCard.tsx
+
+# ─── BASELINE: migrate to the shared Card, then remove the line (#1271) ────────
+apps/app/app/(protected)/admin/overview/analytics/business/business-dashboard.tsx
+apps/app/app/(protected)/[orgSlug]/org-landing-content.tsx
+apps/app/app/(protected)/[orgSlug]/[brandSlug]/analytics/insights/insights-overview.tsx
+# workspace-dashboard lines 129/235 are the #1229 "Running Agents" cards; live on
+# master until that fix merges, at which point drop this line.
+apps/app/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-dashboard.tsx
+apps/app/packages/components/research/ads/AdsResearchAdCards.tsx
+apps/app/packages/components/research/ads/AdsResearchDetailSidebar.tsx
+apps/app/packages/components/research/ads/AdsResearchPageClient.tsx
+apps/app/src/features/workflows/pages/library/EmptyWorkflowState.tsx
+apps/app/src/features/workflows/pages/library/WorkflowCardDropdown.tsx
+apps/app/src/features/workflows/pages/batch/BatchWorkflowPage.tsx
+packages/pages/studio/generate/components/StoryboardPanel.tsx
+packages/pages/brands/components/brand-kit/BrandKitReviewCard.tsx
+packages/pages/twitter-pipeline/components/tweet-card.tsx
+packages/pages/twitter-pipeline/twitter-pipeline-engage.tsx
+packages/pages/twitter-pipeline/components/opportunity-card.tsx
+
+# ─── Verified NON-tripping (documented; no entry needed) ──────────────────────
+# These were audited and do NOT match the signature (single-side borders, no
+# rounded corner, or a real Card), so they need no allowlist entry:
+#   apps/app/src/components/ui/card.tsx           (shadcn-API shim → canonical chrome)
+#   apps/app/app/error.tsx, apps/app/app/global-error.tsx   (full-screen overlays)
+#   EditorToolbar / EditorTimeline / EditorTextPanel / EditorEffectsPanel
+#   ExecutionPanel / StudioEditDetailHeader        (editor chrome panels)
+# If any later trips the guard after a refactor, add its path above with a reason.

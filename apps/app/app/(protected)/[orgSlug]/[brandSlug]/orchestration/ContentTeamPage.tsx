@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
@@ -42,7 +43,7 @@ export default function ContentTeamPage() {
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
           >
-            <Link href="/orchestration/hire">
+            <Link href={APP_ROUTES.ORCHESTRATION.HIRE}>
               <HiPlus /> Hire Agent
             </Link>
           </PrimitiveButton>
@@ -51,7 +52,7 @@ export default function ContentTeamPage() {
             variant={ButtonVariant.DEFAULT}
             size={ButtonSize.SM}
           >
-            <Link href="/orchestration/orchestrator">
+            <Link href={APP_ROUTES.ORCHESTRATION.ORCHESTRATOR}>
               <HiOutlineRectangleGroup /> Launch Orchestrator
             </Link>
           </PrimitiveButton>
@@ -90,7 +91,7 @@ export default function ContentTeamPage() {
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
           >
-            <Link href="/orchestration/hire">Hire Agent</Link>
+            <Link href={APP_ROUTES.ORCHESTRATION.HIRE}>Hire Agent</Link>
           </PrimitiveButton>
         </div>
 
@@ -118,7 +119,9 @@ export default function ContentTeamPage() {
               variant={ButtonVariant.DEFAULT}
               size={ButtonSize.SM}
             >
-              <Link href="/orchestration/hire">Hire Your First Agent</Link>
+              <Link href={APP_ROUTES.ORCHESTRATION.HIRE}>
+                Hire Your First Agent
+              </Link>
             </PrimitiveButton>
           </Card>
         ) : (

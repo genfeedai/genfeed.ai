@@ -1,6 +1,7 @@
 'use client';
 
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IFleetAsset, IFleetCharacter } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -154,7 +155,7 @@ export default function CharacterDetail({ slug }: CharacterDetailProps) {
         <div className="flex items-center gap-3">
           <Button asChild variant={ButtonVariant.GHOST} size={ButtonSize.SM}>
             <Link
-              href="/admin/fleet/characters"
+              href={APP_ROUTES.ADMIN.FLEET.CHARACTERS}
               aria-label="Back to characters"
             >
               <HiArrowLeft className="size-5 text-foreground/60 transition-colors hover:text-foreground" />

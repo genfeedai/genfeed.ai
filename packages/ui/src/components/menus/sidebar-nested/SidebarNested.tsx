@@ -1,5 +1,6 @@
 'use client';
 
+import { createBrandAppRoute } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
@@ -93,7 +94,11 @@ export default function SidebarNested({
 
         if (routeBrandSlug) {
           const suffix = rest.length > 0 ? `/${rest.join('/')}` : '';
-          return `/${orgSlug}/${routeBrandSlug}/settings${suffix}`;
+          return createBrandAppRoute(
+            orgSlug,
+            routeBrandSlug,
+            `/settings${suffix}`,
+          );
         }
       }
 

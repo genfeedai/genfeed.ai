@@ -1,6 +1,7 @@
 'use client';
 
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { LayoutProps } from '@props/layout/layout.props';
 import Container from '@ui/layout/container/Container';
 import { useRouter } from 'next/navigation';
@@ -23,8 +24,8 @@ export default function PromptsLayout({ children }: LayoutProps) {
       description="Manage AI prompts and reusable templates"
       icon={HiCommandLine}
       tabs={[
-        { href: '/content/prompts/list', label: 'Prompts' },
-        { href: '/content/prompts/templates', label: 'Templates' },
+        { href: APP_ROUTES.ADMIN.CONTENT.PROMPTS_LIST, label: 'Prompts' },
+        { href: APP_ROUTES.ADMIN.CONTENT.TEMPLATES, label: 'Templates' },
       ]}
       right={
         <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
