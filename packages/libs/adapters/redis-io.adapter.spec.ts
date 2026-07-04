@@ -159,4 +159,65 @@ describe('RedisIoAdapter', () => {
 
     server.close();
   });
+
+  describe('createIOServer CORS (shared allowlist, #1224)', () => {
+    /** Mirror how the `cors` package evaluates an array of string | RegExp. */
+    const originAllows = (
+      origins: (string | RegExp)[],
+      origin: string,
+    ): boolean =>
+      origins.some((entry) =>
+        entry instanceof RegExp ? entry.test(origin) : entry === origin,
+      );
+
+    const buildServerOrigins = (nodeEnv: string): (string | RegExp)[] => {
+      const previousNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = nodeEnv;
+      try {
+        const appRef = { getHttpServer: () => createServer() };
+        const adapter = new RedisIoAdapter(
+          appRef as unknown as never,
+          accessor(),
+          loggerService,
+        );
+        const server = adapter.createIOServer(0);
+        const origins =
+          (
+            server.engine as unknown as {
+              opts?: { cors?: { origin?: (string | RegExp)[] } };
+            }
+          ).opts?.cors?.origin ?? [];
+        server.close();
+        return origins;
+      } finally {
+        process.env.NODE_ENV = previousNodeEnv;
+      }
+    };
+
+    it('allows the production app origin app.genfeed.ai (the #1224 regression)', () => {
+      const origins = buildServerOrigins('production');
+
+      // The exact origin that was being CORS-rejected → "Socket disconnected".
+      expect(originAllows(origins, 'https://app.genfeed.ai')).toBe(true);
+      // Sibling subdomains from the canonical GENFEED_SUBDOMAINS list.
+      expect(originAllows(origins, 'https://admin.genfeed.ai')).toBe(true);
+      expect(originAllows(origins, 'https://studio.genfeed.ai')).toBe(true);
+    });
+
+    it('still rejects unauthorized and non-https origins in production', () => {
+      const origins = buildServerOrigins('production');
+
+      expect(originAllows(origins, 'https://evil.genfeed.ai')).toBe(false);
+      expect(originAllows(origins, 'http://app.genfeed.ai')).toBe(false);
+      // Stale origins removed by consolidating onto the shared allowlist.
+      expect(originAllows(origins, 'https://dashboard.genfeed.ai')).toBe(false);
+    });
+
+    it('allows the local app origin in development', () => {
+      const origins = buildServerOrigins('development');
+
+      expect(originAllows(origins, 'http://localhost:3000')).toBe(true);
+      expect(originAllows(origins, 'http://local.genfeed.ai:3011')).toBe(true);
+    });
+  });
 });
