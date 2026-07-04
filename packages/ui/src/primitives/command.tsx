@@ -5,13 +5,18 @@ import {
   Command as ShipCommand,
   CommandEmpty as ShipCommandEmpty,
   CommandGroup as ShipCommandGroup,
+  CommandInput as ShipCommandInput,
   CommandItem as ShipCommandItem,
   CommandList as ShipCommandList,
   CommandSeparator as ShipCommandSeparator,
   CommandShortcut as ShipCommandShortcut,
 } from '@shipshitdev/ui/primitives';
-import { Command as CommandPrimitive } from 'cmdk';
-import { Search } from 'lucide-react';
+// Types only: cmdk's prop shapes are identical to ship's bundled copy, but ship
+// bundles its OWN cmdk instance — so every RENDERED command part must come from
+// @shipshitdev/ui/primitives to share one context. Using the standalone package
+// for rendering (e.g. CommandPrimitive.Input) mounts a detached context and
+// throws "Cannot read properties of undefined (reading 'subscribe')".
+import type { Command as CommandPrimitive } from 'cmdk';
 import type { ComponentPropsWithRef, HTMLAttributes } from 'react';
 import { cn } from '../lib/utils';
 import { Dialog, DialogContent } from './dialog';
@@ -43,23 +48,14 @@ function CommandInput({
   ...props
 }: ComponentPropsWithRef<typeof CommandPrimitive.Input>) {
   return (
-    <div
-      className="ship-ui flex items-center border-b border-border px-3"
-      data-cmdk-input-wrapper=""
-    >
-      <Search className="mr-2 size-4 shrink-0 text-muted" />
-      <CommandPrimitive.Input
-        ref={ref}
-        className={cn(
-          'flex h-11 w-full rounded-md bg-transparent py-3 text-sm text-primary outline-none placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50',
-          className,
-        )}
-        {...props}
-      />
-    </div>
+    <ShipCommandInput
+      ref={ref}
+      className={cn('ship-ui', className)}
+      {...props}
+    />
   );
 }
-CommandInput.displayName = CommandPrimitive.Input.displayName;
+CommandInput.displayName = 'CommandInput';
 
 function CommandList({
   ref,
