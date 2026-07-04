@@ -27,6 +27,15 @@ const checks = [
     required: true,
   },
   {
+    // Repo-wide scan (no file args) — blocks hand-rolled card surfaces that
+    // bypass the shared Card. Baseline lives in the script's allowlist so this
+    // is green on master; new violations fail. Also runs in pre-commit via
+    // lint-staged.
+    command: ['bash', 'scripts/lint-no-bespoke-card.sh'],
+    name: 'Bespoke card surfaces',
+    required: true,
+  },
+  {
     command: ['bun', 'run', 'scripts/check-modal-standard-usage.ts'],
     name: 'Modal architecture',
     required: true,
