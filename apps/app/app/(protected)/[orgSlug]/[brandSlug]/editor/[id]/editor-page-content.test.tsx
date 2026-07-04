@@ -544,6 +544,18 @@ describe('EditorPageContent', () => {
   it('supports keyboard shortcuts without hijacking form inputs', async () => {
     await renderLoadedEditor();
 
+    // The shortcut handler seeks via previewRef.current?.seekToFrame(...),
+    // which is optional-chained: it silently no-ops until the preview ref is
+    // populated (a commit after the loaded UI text appears). Probe with Home
+    // (deterministic seek to 0) until the handler actually fires, then reset so
+    // the assertions below start from a known-wired state. Without this, the
+    // first ArrowRight can land before the ref is set and the test flakes.
+    await waitFor(() => {
+      fireEvent.keyDown(window, { key: 'Home' });
+      expect(mocks.seekToFrame).toHaveBeenCalledWith(0);
+    });
+    mocks.seekToFrame.mockClear();
+
     fireEvent.keyDown(window, { key: 'ArrowRight' });
     fireEvent.keyDown(window, { key: 'ArrowLeft', shiftKey: true });
     fireEvent.keyDown(window, { key: 'Home' });

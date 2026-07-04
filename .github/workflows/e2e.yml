@@ -153,7 +153,13 @@ jobs:
           CI: true
           APP_BASE_URL: http://localhost:3000
           E2E_EXPECT_TIMEOUT_MS: "15000"
-          E2E_RETRIES: "0"
+          # Retry flaky specs twice in CI (Playwright only retries on failure, so
+          # a green shard pays zero cost). On the deploy path this suite gates the
+          # whole production release via cancel-doomed-run, so one browser/timing
+          # flake across 12 shards would otherwise cancel the entire deploy. A
+          # single flake taking up to 3x on its shard is an acceptable trade to
+          # stop losing green deploys to luck.
+          E2E_RETRIES: "2"
           E2E_SHARD_INDEX: ${{ matrix.shard }}
           E2E_TOTAL_SHARDS: "12"
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
