@@ -23,6 +23,11 @@ import {
 } from '@api/helpers/interceptors/performance/performance.interceptor';
 import { MemoryMonitorService } from '@api/helpers/memory/monitor/memory-monitor.service';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
+import {
+  buildStableOpenApiDocument,
+  createOpenApiBuilderOptions,
+} from '@api/helpers/utils/openapi/openapi-document.util';
+import { maybeEmitOpenApiDocument } from '@api/helpers/utils/openapi/openapi-emit.util';
 import { TimeoutInterceptor } from '@api/interceptors/timeout.interceptor';
 import { createBullBoard } from '@bull-board/api';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
@@ -36,7 +41,6 @@ import {
 } from '@libs/redis/redis-connection.utils';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Queue } from 'bullmq';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
@@ -93,6 +97,12 @@ async function main() {
     });
     console.info('API bootstrap: Nest application created');
 
+    // Headless OpenAPI emit gate (#1247): writes the deterministic spec
+    // artifact and exits before any middleware, queues, or the listener.
+    if (maybeEmitOpenApiDocument(app)) {
+      process.exit(0);
+    }
+
     const configService = app.get(ConfigService);
     logger = app.get<LoggerService>(LoggerService);
     const port = configService.get('PORT');
@@ -112,17 +122,11 @@ async function main() {
     const description =
       configService.get('npm_package_description') ?? 'Genfeed.ai API';
 
-    const options = new DocumentBuilder()
-      .setTitle('Genfeed.ai API')
-      .setDescription(description)
-      .setVersion(version)
-      .addBearerAuth()
-      .addServer('/v1')
-      .build();
+    const options = createOpenApiBuilderOptions({ description, version });
 
     const docsService = app.get(DocsService);
     docsService.setOpenApiDocumentFactory(() =>
-      SwaggerModule.createDocument(app, options),
+      buildStableOpenApiDocument(app, options),
     );
     docsService.setGptActionsSpec(gptActionsSpec);
 

@@ -1,7 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { UsersService } from '@api/collections/users/services/users.service';
 import type { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
-import { AgentThreadsController } from '@api/services/agent-threading/controllers/agent-threads.controller';
+import { AgentThreadRuntimeController } from '@api/services/agent-threading/controllers/agent-thread-runtime.controller';
 import type { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
@@ -19,7 +19,7 @@ vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
   },
 }));
 
-describe('Threading AgentThreadsController', () => {
+describe('Threading AgentThreadRuntimeController', () => {
   const organizationId = 'org_current';
   const userId = 'user_current';
   const threadId = 'thread_current';
@@ -31,7 +31,7 @@ describe('Threading AgentThreadsController', () => {
     },
   } as unknown as User;
 
-  let controller: AgentThreadsController;
+  let controller: AgentThreadRuntimeController;
   let usersService: { findOne: ReturnType<typeof vi.fn> };
   let agentOrchestratorService: {
     handleThreadUiAction: ReturnType<typeof vi.fn>;
@@ -45,7 +45,7 @@ describe('Threading AgentThreadsController', () => {
       handleThreadUiAction: vi.fn(),
     };
 
-    controller = new AgentThreadsController(
+    controller = new AgentThreadRuntimeController(
       {
         getSnapshot: vi.fn(),
         getSnapshotEffect: vi.fn(() =>
