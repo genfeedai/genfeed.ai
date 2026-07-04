@@ -24,6 +24,9 @@ import {
   useState,
 } from 'react';
 import { HiCheck, HiMagnifyingGlass, HiPlus } from 'react-icons/hi2';
+// Relative import: @ui/lib/* isn't aliased (the @ui test alias maps to
+// src/components), and accordion.tsx sources this same hook the same way.
+import { useMounted } from '../../../lib/hooks';
 
 export default function SwitcherDropdown({
   items,
@@ -38,7 +41,10 @@ export default function SwitcherDropdown({
   hasSearch = false,
   searchPlaceholder = 'Search…',
 }: SwitcherDropdownProps) {
-  const [isMounted, setIsMounted] = useState(false);
+  // Client-only mount guard: the Popover renders after hydration so the
+  // trigger's SSR markup matches. Sourced from the shared hook so the
+  // mount-effect state lives in one place instead of flashing inline here.
+  const isMounted = useMounted();
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -61,10 +67,6 @@ export default function SwitcherDropdown({
     setSearchTerm('');
     onOpenChange?.(false);
   }, [onOpenChange]);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   // Focus search on open
   useEffect(() => {

@@ -202,11 +202,19 @@ export class BrandInterviewService {
       completeness.incompleteFields.map((f) => f.key),
     );
 
-    // Next field: in-scope, incomplete, not already answered in this session
+    // Next field: in-scope, incomplete, and not already answered or skipped in
+    // this session. askedFieldKeys tracks both answered and skipped fields, so
+    // excluding it (mirroring skipField) prevents a previously-skipped question
+    // from being re-presented after the user answers another field — which would
+    // otherwise keep the interview from ever completing.
     const answeredInSession = new Set(Object.keys(updatedAnsweredFields));
+    const askedSet = new Set(askedFieldKeys);
     const nextFieldKey =
       IN_SCOPE_FIELD_KEYS.find(
-        (k) => incompleteKeys.has(k) && !answeredInSession.has(k),
+        (k) =>
+          incompleteKeys.has(k) &&
+          !answeredInSession.has(k) &&
+          !askedSet.has(k),
       ) ?? null;
 
     const isComplete = nextFieldKey === null;

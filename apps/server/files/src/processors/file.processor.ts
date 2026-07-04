@@ -125,19 +125,17 @@ export class FileProcessor extends WorkerHost {
       };
 
       // Extract data from frames
-      const images = frames
-        .map((frame: unknown) => frame.image)
-        .filter(Boolean);
-      const voices = frames
-        .map((frame: unknown) => frame.voice)
-        .filter(Boolean);
+      const isDefined = (value: string | undefined): value is string =>
+        Boolean(value);
+      const images = frames.map((frame) => frame.image).filter(isDefined);
+      const voices = frames.map((frame) => frame.voice).filter(isDefined);
       const imageToVideos = frames
-        .map((frame: unknown) => frame.imageToVideo)
-        .filter(Boolean);
+        .map((frame) => frame.imageToVideo)
+        .filter(isDefined);
 
-      results.captions = frames.map((frame: unknown) => ({
+      results.captions = frames.map((frame) => ({
         duration: frame.duration,
-        overlayText: frame.overlayText,
+        overlayText: frame.overlayText || '',
         voiceText: frame.voiceText,
       }));
 

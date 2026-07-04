@@ -2,8 +2,15 @@ import {
   buildBullMQConnection,
   buildIoRedisClientOptions,
   parseRedisConnection,
+  parseRedisConnectionForWorkload,
+  RedisWorkload,
 } from '@libs/redis/redis-connection.utils';
 import { describe, expect, it } from 'vitest';
+
+/** Build a config accessor from a plain env map for the workload tests. */
+function envAccessor(env: Record<string, string | boolean | number>) {
+  return { get: (key: string) => env[key] };
+}
 
 describe('redis connection utilities', () => {
   it('builds lazy BullMQ options without startup version checks', () => {
@@ -109,5 +116,126 @@ describe('redis connection utilities', () => {
       port: 6379,
       retryStrategy,
     });
+  });
+
+  it('includes the logical db in ioredis options only when set', () => {
+    const withDb = buildIoRedisClientOptions({
+      db: 2,
+      host: 'localhost',
+      port: 6379,
+      tls: false,
+      url: 'redis://localhost:6379',
+    });
+    expect(withDb).toMatchObject({ db: 2 });
+
+    const withoutDb = buildIoRedisClientOptions({
+      host: 'localhost',
+      port: 6379,
+      tls: false,
+      url: 'redis://localhost:6379',
+    });
+    expect(withoutDb).not.toHaveProperty('db');
+  });
+
+  it('includes the logical db in BullMQ options only when set', () => {
+    const withDb = buildBullMQConnection({
+      db: 0,
+      host: 'localhost',
+      port: 6379,
+      tls: false,
+      url: 'redis://localhost:6379',
+    });
+    expect(withDb).toMatchObject({ db: 0 });
+
+    const withoutDb = buildBullMQConnection({
+      host: 'localhost',
+      port: 6379,
+      tls: false,
+      url: 'redis://localhost:6379',
+    });
+    expect(withoutDb).not.toHaveProperty('db');
+  });
+});
+
+describe('parseRedisConnectionForWorkload — workload isolation (#1186)', () => {
+  const baseEnv = { REDIS_URL: 'redis://redis.internal:6379' };
+
+  it('DEFAULT workload matches the base connection with no explicit db', () => {
+    const accessor = envAccessor(baseEnv);
+    expect(
+      parseRedisConnectionForWorkload(accessor, RedisWorkload.DEFAULT),
+    ).toEqual(parseRedisConnection(accessor));
+    expect(
+      parseRedisConnectionForWorkload(accessor, RedisWorkload.DEFAULT).db,
+    ).toBeUndefined();
+  });
+
+  it('assigns each workload its own default logical db on the shared base', () => {
+    const accessor = envAccessor(baseEnv);
+    expect(
+      parseRedisConnectionForWorkload(accessor, RedisWorkload.QUEUE).db,
+    ).toBe(0);
+    expect(
+      parseRedisConnectionForWorkload(accessor, RedisWorkload.CACHE).db,
+    ).toBe(1);
+    expect(
+      parseRedisConnectionForWorkload(accessor, RedisWorkload.RATE_LIMIT).db,
+    ).toBe(2);
+    expect(
+      parseRedisConnectionForWorkload(accessor, RedisWorkload.SOCKET).db,
+    ).toBe(3);
+    // All four share the same host — isolation is by db until a per-workload
+    // URL points one at a dedicated instance.
+    for (const workload of [
+      RedisWorkload.QUEUE,
+      RedisWorkload.CACHE,
+      RedisWorkload.RATE_LIMIT,
+      RedisWorkload.SOCKET,
+    ]) {
+      expect(parseRedisConnectionForWorkload(accessor, workload).host).toBe(
+        'redis.internal',
+      );
+    }
+  });
+
+  it('routes a workload to its dedicated instance via REDIS_<WORKLOAD>_URL', () => {
+    const accessor = envAccessor({
+      ...baseEnv,
+      REDIS_CACHE_URL: 'redis://cache.internal:6380',
+    });
+    const cache = parseRedisConnectionForWorkload(
+      accessor,
+      RedisWorkload.CACHE,
+    );
+    expect(cache.host).toBe('cache.internal');
+    expect(cache.port).toBe(6380);
+    // Other workloads still resolve against the base endpoint.
+    expect(
+      parseRedisConnectionForWorkload(accessor, RedisWorkload.QUEUE).host,
+    ).toBe('redis.internal');
+  });
+
+  it('lets REDIS_<WORKLOAD>_DB override the default index', () => {
+    const accessor = envAccessor({ ...baseEnv, REDIS_RATELIMIT_DB: 7 });
+    expect(
+      parseRedisConnectionForWorkload(accessor, RedisWorkload.RATE_LIMIT).db,
+    ).toBe(7);
+  });
+
+  it('falls back to the base password and TLS when the workload URL omits them', () => {
+    const accessor = envAccessor({
+      REDIS_URL: 'redis://redis.internal:6379',
+      REDIS_PASSWORD: 'secret-from-ssm',
+      REDIS_TLS: true,
+      REDIS_SOCKET_URL: 'redis://socket.internal:6390',
+    });
+    const socket = parseRedisConnectionForWorkload(
+      accessor,
+      RedisWorkload.SOCKET,
+    );
+    expect(socket.host).toBe('socket.internal');
+    expect(socket.password).toBe('secret-from-ssm');
+    expect(socket.tls).toBe(true);
+    expect(socket.db).toBe(3);
   });
 });

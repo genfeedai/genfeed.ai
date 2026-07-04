@@ -27,4 +27,15 @@ describe('auth callback URL helpers', () => {
       'genfeedai-desktop://auth',
     );
   });
+
+  it('rewrites external and dangerous-scheme callbacks to the origin root', () => {
+    const root = `${window.location.origin}/`;
+    expect(toAbsoluteAuthCallbackURL('https://evil.com/phish')).toBe(root);
+    expect(toAbsoluteAuthCallbackURL('http://evil.com')).toBe(root);
+    expect(toAbsoluteAuthCallbackURL('//evil.com')).toBe(root);
+    expect(toAbsoluteAuthCallbackURL('javascript:alert(1)')).toBe(root);
+    expect(
+      toAbsoluteAuthCallbackURL('data:text/html,<script>alert(1)</script>'),
+    ).toBe(root);
+  });
 });

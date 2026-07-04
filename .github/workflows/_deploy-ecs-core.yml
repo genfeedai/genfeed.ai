@@ -67,6 +67,20 @@ jobs:
           # changed before reusing an older immutable image tag.
           fetch-depth: 50
 
+      # Bun + the one dependency the ECS poll script needs (@aws-sdk/client-ecs).
+      # scripts/deploy is a self-contained package with its OWN lockfile, NOT a
+      # root workspace member, so this installs exactly one dependency tree — the
+      # monorepo's heavy postinstall chain (prisma generate, ffmpeg, playwright,
+      # …) never runs on the critical deploy path.
+      - name: Setup Bun (ECS poll script)
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+
+      - name: Install ECS poll script deps (isolated)
+        working-directory: scripts/deploy
+        run: bun install --frozen-lockfile
+
       - name: Validate ref is master
         run: |
           # Check the FULL ref, not GITHUB_REF_NAME: the short name strips the
@@ -293,39 +307,16 @@ jobs:
           TASK_DEFINITION=$(tofu output -raw migrate_task_definition_arn)
           SUBNETS=$(tofu output -json task_subnets | jq -r 'join(",")')
           SG=$(tofu output -raw task_security_group)
-          echo "Running migrate task on $CLUSTER ($TASK_DEFINITION)..."
-          # FARGATE — the cluster is Fargate-only (no EC2 capacity); assignPublicIp
-          # DISABLED since tasks egress via NAT from the private subnets.
-          TASK_ARN=$(aws ecs run-task --cluster "$CLUSTER" --task-definition "$TASK_DEFINITION" \
-            --launch-type FARGATE \
-            --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SG],assignPublicIp=DISABLED}" \
-            --query 'tasks[0].taskArn' --output text)
-          # run-task emits the literal "None" when the tasks[] array is empty
-          # (capacity / IAM / quota failure). Guard so we fail with an actionable
-          # message instead of a cryptic "wait" parameter-validation error.
-          if [ -z "$TASK_ARN" ] || [ "$TASK_ARN" = "None" ]; then
-            echo "::error::ECS run-task launched no migrate task (capacity, IAM, or quota failure)"; exit 1
-          fi
-          # Bound the wait: bare 'aws ecs wait tasks-stopped' polls silently for
-          # up to ~10 min then fails opaquely. Poll describe-tasks with a deadline
-          # and surface lastStatus / stoppedReason for fast diagnosis.
-          DEADLINE=$((SECONDS + 900))
-          while :; do
-            STATUS=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
-              --query 'tasks[0].lastStatus' --output text)
-            [ "$STATUS" = "STOPPED" ] && break
-            if [ "$SECONDS" -ge "$DEADLINE" ]; then
-              REASON=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
-                --query 'tasks[0].stoppedReason' --output text)
-              echo "::error::migrate task did not stop within 10m (last status: $STATUS, reason: $REASON)"; exit 1
-            fi
-            echo "  migrate task status: $STATUS ($((DEADLINE - SECONDS))s remaining)"
-            sleep 6
-          done
-          CODE=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
-            --query 'tasks[0].containers[0].exitCode' --output text)
-          echo "migrate exit code: $CODE"
-          [ "$CODE" = "0" ] || { echo "::error::migration failed"; exit 1; }
+          # FARGATE one-off task, wait for STOPPED, gate on exit code 0. The run +
+          # native waiter + typed exit-code classification live in the tested
+          # scripts/deploy/ecs-run-task-and-wait.ts (15m window, was 900s here).
+          bun "${GITHUB_WORKSPACE}/scripts/deploy/ecs-run-task-and-wait.ts" \
+            --phase migrate \
+            --cluster "$CLUSTER" \
+            --task-definition "$TASK_DEFINITION" \
+            --subnets "$SUBNETS" \
+            --security-groups "$SG" \
+            --timeout-seconds 900
 
       - name: Run workflow migration/backfill (one-off task, gated before services roll)
         working-directory: ${{ env.TF_DIR }}
@@ -335,76 +326,35 @@ jobs:
           TASK_DEFINITION=$(tofu output -raw workflow_backfill_task_definition_arn)
           SUBNETS=$(tofu output -json task_subnets | jq -r 'join(",")')
           SG=$(tofu output -raw task_security_group)
-          echo "Running workflow backfill task on $CLUSTER ($TASK_DEFINITION)..."
-          TASK_ARN=$(aws ecs run-task --cluster "$CLUSTER" --task-definition "$TASK_DEFINITION" \
-            --launch-type FARGATE \
-            --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SG],assignPublicIp=DISABLED}" \
-            --query 'tasks[0].taskArn' --output text)
-          if [ -z "$TASK_ARN" ] || [ "$TASK_ARN" = "None" ]; then
-            echo "::error::ECS run-task launched no workflow backfill task (capacity, IAM, or quota failure)"; exit 1
-          fi
-          DEADLINE=$((SECONDS + 1200))
-          while :; do
-            STATUS=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
-              --query 'tasks[0].lastStatus' --output text)
-            [ "$STATUS" = "STOPPED" ] && break
-            if [ "$SECONDS" -ge "$DEADLINE" ]; then
-              REASON=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
-                --query 'tasks[0].stoppedReason' --output text)
-              echo "::error::workflow backfill task did not stop within 20m (last status: $STATUS, reason: $REASON)"; exit 1
-            fi
-            echo "  workflow backfill task status: $STATUS ($((DEADLINE - SECONDS))s remaining)"
-            sleep 6
-          done
-          CODE=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
-            --query 'tasks[0].containers[0].exitCode' --output text)
-          echo "workflow backfill exit code: $CODE"
-          [ "$CODE" = "0" ] || { echo "::error::workflow backfill failed"; exit 1; }
+          # 20m window (was 1200s here) — same tested runner/waiter as migrate.
+          bun "${GITHUB_WORKSPACE}/scripts/deploy/ecs-run-task-and-wait.ts" \
+            --phase workflow-backfill \
+            --cluster "$CLUSTER" \
+            --task-definition "$TASK_DEFINITION" \
+            --subnets "$SUBNETS" \
+            --security-groups "$SG" \
+            --timeout-seconds 1200
 
       - name: Boot smoke — verify new image boots (gated before services roll)
         working-directory: ${{ env.TF_DIR }}
         run: |
           set -euo pipefail
-          # Run the api as a one-off task and require localhost /v1/health to
-          # answer. This catches both crash-on-boot failures and "loads but never
-          # binds the port" failures before any service rolls.
+          # Run the api as a one-off task; the task's own command requires localhost
+          # /v1/health to answer (see boot_smoke task def). Catches crash-on-boot and
+          # "loads but never binds the port" before any service rolls. --stop-on-timeout
+          # reclaims the runaway task, as the old inline loop did. 10m window (was 600s).
           CLUSTER=$(tofu output -raw cluster_name)
           TASK_DEFINITION=$(tofu output -raw boot_smoke_task_definition_arn)
           SUBNETS=$(tofu output -json task_subnets | jq -r 'join(",")')
           SG=$(tofu output -raw task_security_group)
-          echo "Running boot smoke on $CLUSTER ($TASK_DEFINITION)..."
-          TASK_ARN=$(aws ecs run-task --cluster "$CLUSTER" --task-definition "$TASK_DEFINITION" \
-            --launch-type FARGATE \
-            --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SG],assignPublicIp=DISABLED}" \
-            --query 'tasks[0].taskArn' --output text)
-          # run-task emits the literal "None" when the tasks[] array is empty
-          # (capacity / IAM / quota failure). Guard so we fail with an actionable
-          # message instead of a cryptic "wait" parameter-validation error.
-          if [ -z "$TASK_ARN" ] || [ "$TASK_ARN" = "None" ]; then
-            echo "::error::ECS run-task launched no boot-smoke task (capacity, IAM, or quota failure)"; exit 1
-          fi
-          # Bound the wait: bare 'aws ecs wait tasks-stopped' polls silently for
-          # up to ~10 min then fails opaquely. Poll describe-tasks with a deadline
-          # and surface lastStatus / stoppedReason for fast diagnosis.
-          DEADLINE=$((SECONDS + 600))
-          while :; do
-            STATUS=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
-              --query 'tasks[0].lastStatus' --output text)
-            [ "$STATUS" = "STOPPED" ] && break
-            if [ "$SECONDS" -ge "$DEADLINE" ]; then
-              REASON=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
-                --query 'tasks[0].stoppedReason' --output text)
-              aws ecs stop-task --cluster "$CLUSTER" --task "$TASK_ARN" \
-                --reason "deploy boot-smoke timed out before rollout" >/dev/null || true
-              echo "::error::boot smoke task did not stop within 15m (last status: $STATUS, reason: $REASON)"; exit 1
-            fi
-            echo "  boot smoke task status: $STATUS ($((DEADLINE - SECONDS))s remaining)"
-            sleep 6
-          done
-          CODE=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
-            --query 'tasks[0].containers[0].exitCode' --output text)
-          echo "boot smoke exit code: $CODE"
-          [ "$CODE" = "0" ] || { echo "::error::API failed to boot (crash-on-boot) — aborting before rolling services"; exit 1; }
+          bun "${GITHUB_WORKSPACE}/scripts/deploy/ecs-run-task-and-wait.ts" \
+            --phase boot-smoke \
+            --cluster "$CLUSTER" \
+            --task-definition "$TASK_DEFINITION" \
+            --subnets "$SUBNETS" \
+            --security-groups "$SG" \
+            --timeout-seconds 600 \
+            --stop-on-timeout
 
       - name: Tofu apply (roll services to new image)
         working-directory: ${{ env.TF_DIR }}
@@ -437,33 +387,16 @@ jobs:
           TASK_DEFINITION=$(tofu output -raw credential_backfill_task_definition_arn)
           SUBNETS=$(tofu output -json task_subnets | jq -r 'join(",")')
           SG=$(tofu output -raw task_security_group)
-          echo "Running credential-encryption backfill task on $CLUSTER ($TASK_DEFINITION)..."
-          TASK_ARN=$(aws ecs run-task --cluster "$CLUSTER" --task-definition "$TASK_DEFINITION" \
-            --launch-type FARGATE \
-            --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SG],assignPublicIp=DISABLED}" \
-            --query 'tasks[0].taskArn' --output text)
-          if [ -z "$TASK_ARN" ] || [ "$TASK_ARN" = "None" ]; then
-            echo "::error::ECS run-task launched no credential backfill task (capacity, IAM, or quota failure)"; exit 1
-          fi
-          DEADLINE=$((SECONDS + 1200))
-          while :; do
-            STATUS=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
-              --query 'tasks[0].lastStatus' --output text)
-            [ "$STATUS" = "STOPPED" ] && break
-            if [ "$SECONDS" -ge "$DEADLINE" ]; then
-              REASON=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
-                --query 'tasks[0].stoppedReason' --output text)
-              aws ecs stop-task --cluster "$CLUSTER" --task "$TASK_ARN" \
-                --reason "deploy credential-encryption backfill timed out" >/dev/null || true
-              echo "::error::credential backfill task did not stop within 20m (last status: $STATUS, reason: $REASON)"; exit 1
-            fi
-            echo "  credential backfill task status: $STATUS ($((DEADLINE - SECONDS))s remaining)"
-            sleep 6
-          done
-          CODE=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
-            --query 'tasks[0].containers[0].exitCode' --output text)
-          echo "credential backfill exit code: $CODE"
-          [ "$CODE" = "0" ] || { echo "::error::credential-encryption backfill failed"; exit 1; }
+          # 20m window (was 1200s here). --stop-on-timeout reclaims the task on
+          # timeout, matching the old inline loop.
+          bun "${GITHUB_WORKSPACE}/scripts/deploy/ecs-run-task-and-wait.ts" \
+            --phase credential-backfill \
+            --cluster "$CLUSTER" \
+            --task-definition "$TASK_DEFINITION" \
+            --subnets "$SUBNETS" \
+            --security-groups "$SG" \
+            --timeout-seconds 1200 \
+            --stop-on-timeout
 
   deploy-vercel-frontends:
     name: Deploy Vercel frontends
@@ -475,9 +408,16 @@ jobs:
 
   post-deploy-smoke:
     name: Post-deploy smoke
-    needs: deploy-vercel-frontends
+    # Smoke the live API surface whenever the ECS deploy succeeded. A Vercel
+    # frontend failure must not SKIP this job (default needs-failure behavior),
+    # otherwise an API regression ships unverified when a frontend deploy flakes.
+    needs: [deploy, deploy-vercel-frontends]
+    if: ${{ always() && needs.deploy.result == 'success' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # Worst-case sequential retry budget across the 6 URLs is ~20m
+    # (7 attempts x 20s max-time + 6 x 10s retry-delay per URL); keep the timeout
+    # above it so an unresponsive endpoint surfaces as a failure, not a silent cancel.
+    timeout-minutes: 25
     permissions:
       contents: read
     steps:

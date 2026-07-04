@@ -11,13 +11,20 @@ export default function LogoutPage() {
     let isCancelled = false;
 
     async function performSignOut() {
-      await signOut();
+      try {
+        await signOut();
+      } catch {
+        // Sign-out is best-effort from the client's perspective. Even if the
+        // request rejects (e.g. the API is unreachable) we must still navigate
+        // to /login rather than stranding the user on the "Signing out…" screen
+        // with an unhandled promise rejection.
+      }
       if (!isCancelled) {
         push('/login');
       }
     }
 
-    performSignOut();
+    void performSignOut();
 
     return () => {
       isCancelled = true;

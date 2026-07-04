@@ -54,6 +54,16 @@ vi.mock('../../../primitives/dropdown-menu', () => ({
   DropdownMenuContent: ({ children }: { children: ReactNode }) => (
     <div>{children}</div>
   ),
+  DropdownMenuGroup: ({
+    children,
+    ...props
+  }: React.HTMLAttributes<HTMLDivElement> & { children: ReactNode }) => (
+    // Radix DropdownMenu.Group renders role="group"; mirror that so
+    // getByRole('group') resolves the same as production.
+    <div role="group" {...props}>
+      {children}
+    </div>
+  ),
   DropdownMenuItem: ({
     asChild,
     children,

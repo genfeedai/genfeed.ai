@@ -1,0 +1,50 @@
+# CI for the isolated deploy-time scripts (scripts/deploy).
+#
+# scripts/deploy is intentionally NOT a root workspace member — it carries its
+# own lockfile so the production deploy path installs a single dependency tree.
+# That isolation means the root type-check/test tasks don't cover it, so this
+# workflow type-checks and unit-tests it on its own whenever it changes.
+name: Deploy scripts CI
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "scripts/deploy/**"
+      - ".github/workflows/deploy-scripts-ci.yml"
+  pull_request:
+    paths:
+      - "scripts/deploy/**"
+      - ".github/workflows/deploy-scripts-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-scripts-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Type-check + unit test ECS poll script
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: scripts/deploy
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+
+      - name: Install (isolated, frozen lockfile)
+        run: bun install --frozen-lockfile
+
+      - name: Type-check
+        run: bunx tsc --noEmit
+
+      - name: Unit tests
+        run: bun test

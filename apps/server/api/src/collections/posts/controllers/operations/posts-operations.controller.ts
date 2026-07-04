@@ -817,6 +817,13 @@ export class PostsOperationsController {
   }
 
   @Post(':postId/seo-scores')
+  @Credits({
+    description: 'SEO scoring (text model)',
+    modelKey: DEFAULT_MINI_TEXT_MODEL,
+    source: ActivitySource.POST_ENHANCEMENT,
+  })
+  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseInterceptors(CreditsInterceptor)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async scoreSeo(
     @Req() request: Request,

@@ -1197,14 +1197,14 @@ describe('FFmpegService', () => {
       ).rejects.toThrow('Duration must be positive');
     });
 
-    it('should reject duration outside valid range', async () => {
-      await expect(
-        service.trimVideo('/input.mp4', '/output.mp4', 0, 1),
-      ).rejects.toThrow('Duration must be between 2 and 15 seconds');
+    it('should accept durations outside the legacy 2-15s trim window', async () => {
+      await service.trimVideo('/input.mp4', '/output.mp4', 0, 1);
+      await service.trimVideo('/input.mp4', '/output.mp4', 0, 20);
 
-      await expect(
-        service.trimVideo('/input.mp4', '/output.mp4', 0, 20),
-      ).rejects.toThrow('Duration must be between 2 and 15 seconds');
+      expect(mockSpawn).toHaveBeenCalledWith(
+        '/usr/bin/ffmpeg',
+        expect.arrayContaining(['-t', '20']),
+      );
     });
   });
 

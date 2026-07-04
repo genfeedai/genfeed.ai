@@ -107,9 +107,6 @@ export class FFmpegTransformService {
     if (duration <= 0) {
       throw new Error('Duration must be positive');
     }
-    if (duration < 2 || duration > 15) {
-      throw new Error('Duration must be between 2 and 15 seconds');
-    }
 
     const args = SecurityUtil.sanitizeCommandArgs([
       '-ss',

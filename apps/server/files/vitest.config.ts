@@ -110,7 +110,6 @@ export default defineConfig({
       'src/controllers/controllers.module.spec.ts',
       'src/controllers/files.controller.spec.ts',
       'src/processors/processors.module.spec.ts',
-      'src/processors/video.processor.spec.ts',
       'src/services/services.module.spec.ts',
       'src/services/ffmpeg/ffmpeg.module.spec.ts',
       'src/services/ffmpeg/services/ffmpeg.service.spec.ts',

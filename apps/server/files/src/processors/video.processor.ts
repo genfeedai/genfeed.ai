@@ -6,7 +6,9 @@ import type { HookRemixJobData } from '@files/services/hook-remix/hook-remix.int
 import { HookRemixService } from '@files/services/hook-remix/hook-remix.service';
 import { S3Service } from '@files/services/s3/s3.service';
 import { WebSocketService } from '@files/services/websocket/websocket.service';
+import type { FFmpegProgress } from '@files/shared/interfaces/ffmpeg.interfaces';
 import {
+  JobProgress,
   JobResult,
   VideoJobData,
 } from '@files/shared/interfaces/job.interface';
@@ -17,6 +19,16 @@ import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject } from '@nestjs/common';
 import { Job } from 'bullmq';
+
+interface VideoCompletionResult {
+  ingredientId?: string;
+  outputPath?: string;
+  s3Key?: string;
+  url?: string;
+  duration?: number;
+  startTime?: number;
+  endTime?: number;
+}
 
 @Processor(QUEUE_NAMES.VIDEO_PROCESSING)
 export class VideoProcessor extends WorkerHost {
@@ -49,6 +61,8 @@ export class VideoProcessor extends WorkerHost {
         return await this.handleMirror(job);
       case JOB_TYPES.TRIM_VIDEO:
         return await this.handleTrim(job);
+      case JOB_TYPES.CLIP_TRIM:
+        return await this.handleClipTrim(job);
       case JOB_TYPES.ADD_TEXT_OVERLAY:
         return await this.handleTextOverlay(job);
       case JOB_TYPES.CONVERT_TO_PORTRAIT:
@@ -69,7 +83,7 @@ export class VideoProcessor extends WorkerHost {
   /**
    * Convert FFmpegProgress to JobProgress
    */
-  private convertToJobProgress(ffmpegProgress: unknown): unknown {
+  private convertToJobProgress(ffmpegProgress: FFmpegProgress): JobProgress {
     return {
       fps: ffmpegProgress.fps,
       frames: ffmpegProgress.frames,
@@ -88,7 +102,7 @@ export class VideoProcessor extends WorkerHost {
     userId: string,
     organizationId: string,
     status: 'completed' | 'failed',
-    result?: unknown,
+    result?: VideoCompletionResult | null,
     error?: string,
   ): Promise<void> {
     try {
@@ -130,7 +144,7 @@ export class VideoProcessor extends WorkerHost {
     websocketUrl: string,
     authProviderUserId?: string,
     room?: string,
-  ): (progress: unknown) => void {
+  ): (progress: FFmpegProgress) => void {
     return (progress) => {
       this.webSocketService.emitProgress(
         websocketUrl,
@@ -798,6 +812,83 @@ export class VideoProcessor extends WorkerHost {
     } catch (error: unknown) {
       const message = getErrorMessage(error);
       this.logger.error(`Trim job failed: ${message}`);
+      this.webSocketService.emitError(
+        metadata.websocketUrl,
+        message,
+        authProviderUserId,
+        room,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Clip-ready trim primitive: cuts an arbitrary time range from a source
+   * video with no duration guard. Returns a public URL alongside the s3Key
+   * so downstream clip pipelines can consume the result directly.
+   */
+  async handleClipTrim(job: Job<VideoJobData>): Promise<JobResult> {
+    const {
+      ingredientId,
+      params,
+      metadata,
+      userId,
+      organizationId,
+      authProviderUserId,
+      room,
+    } = job.data;
+    this.logger.log(`Processing clip trim for ${ingredientId}`);
+
+    try {
+      const tempPath = this.ffmpegService.getTempPath(
+        'clip-trim',
+        ingredientId,
+      );
+      const inputPath = path.join(tempPath, 'input.mp4');
+      const outputPath = path.join(tempPath, 'output.mp4');
+
+      await this.downloadInput(params, inputPath);
+
+      const startTime = params.startTime || 0;
+      const endTime = params.endTime || params.duration || 0;
+      const duration = endTime - startTime;
+
+      await this.ffmpegService.trimVideo(
+        inputPath,
+        outputPath,
+        startTime,
+        duration,
+        this.createProgressCallback(
+          metadata.websocketUrl,
+          authProviderUserId,
+          room,
+        ),
+      );
+
+      const s3Key = this.s3Service.generateS3Key('videos', ingredientId);
+      await this.s3Service.uploadFile(s3Key, outputPath, 'video/mp4');
+      const url = this.s3Service.getPublicUrl(s3Key);
+      this.ffmpegService.cleanupTempFiles(ingredientId, 'clip-trim');
+
+      await this.publishVideoCompletion(
+        ingredientId,
+        userId,
+        organizationId,
+        'completed',
+        {
+          duration,
+          endTime,
+          ingredientId,
+          s3Key,
+          startTime,
+          url,
+        },
+      );
+
+      return { outputPath, s3Key, success: true, url };
+    } catch (error: unknown) {
+      const message = getErrorMessage(error);
+      this.logger.error(`Clip trim job failed: ${message}`);
       this.webSocketService.emitError(
         metadata.websocketUrl,
         message,

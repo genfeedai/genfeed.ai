@@ -9,6 +9,14 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 
+export interface CreateVideoFromImagesConfig {
+  slideText?: SlideText[];
+  fontFamily?: string;
+  dimensions?: { width: number; height: number };
+  isWatermarkEnabled?: boolean;
+  websocketURL?: string;
+}
+
 @Injectable()
 export class FilesImageToVideoService extends FilesService {
   constructor(
@@ -303,7 +311,7 @@ export class FilesImageToVideoService extends FilesService {
 
   public async createVideoFromImages(
     _images: string[],
-    config: unknown,
+    config: CreateVideoFromImagesConfig,
     ingredientId: string,
   ): Promise<string> {
     const slideText: SlideText[] = config.slideText || [];

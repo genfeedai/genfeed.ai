@@ -4,6 +4,8 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 import { ConfigService } from '@files/config/config.service';
 import type { SlideText } from '@files/shared/interfaces/caption.interface';
+import type { FFprobeData } from '@files/shared/interfaces/ffmpeg.interfaces';
+import type { FileFrame } from '@files/shared/interfaces/job.interface';
 import { MetadataExtension } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -128,18 +130,20 @@ export class FilesService {
 
   public async prepareAllFiles(
     ingredientId: string,
-    frames: unknown[],
+    frames: FileFrame[],
     musicId: string,
   ) {
-    const images: unknown[] = frames.map((frame: unknown) => frame.image);
-    const voices: unknown[] = frames.map((frame: unknown) => frame.voice);
-    const imageToVideos: unknown[] = frames
-      .map((frame: unknown) => frame.imageToVideo)
-      .filter((item) => item !== undefined);
+    const isDefined = (value: string | undefined): value is string =>
+      value !== undefined;
+    const images = frames.map((frame) => frame.image).filter(isDefined);
+    const voices = frames.map((frame) => frame.voice).filter(isDefined);
+    const imageToVideos = frames
+      .map((frame) => frame.imageToVideo)
+      .filter(isDefined);
 
-    const captions: SlideText[] = frames.map((frame: unknown) => ({
+    const captions: SlideText[] = frames.map((frame) => ({
       duration: frame.duration,
-      overlayText: frame.overlayText,
+      overlayText: frame.overlayText || '',
       voiceText: frame.voiceText,
     }));
 
@@ -305,10 +309,8 @@ export class FilesService {
             '-show_format',
             inputPath,
           ]);
-          const probe = JSON.parse(stdout);
-          const stream = probe.streams?.find(
-            (s: unknown) => s.width && s.height,
-          );
+          const probe = JSON.parse(stdout) as FFprobeData;
+          const stream = probe.streams?.find((s) => s.width && s.height);
           videoHeight = stream?.height || 1080;
         } catch (error: unknown) {
           this.loggerService.error(

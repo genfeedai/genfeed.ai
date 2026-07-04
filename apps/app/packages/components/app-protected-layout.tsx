@@ -12,6 +12,7 @@ import ProductionDataBanner from '@ui/banners/production-data/ProductionDataBann
 import { CommandPaletteInitializer } from '@ui/command-palette/command-palette-initializer/CommandPaletteInitializer';
 import OnboardingGuard from '@ui/guards/onboarding/OnboardingGuard';
 import AppLayout from '@ui/layouts/app/AppLayout';
+import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import AdminTopbar from '@ui/shell/topbars/AdminTopbar';
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
@@ -361,7 +362,7 @@ export default function AppProtectedLayout(
   props: Parameters<typeof AppProtectedLayoutContent>[0],
 ) {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
       <AppProtectedLayoutContent {...props} />
     </Suspense>
   );

@@ -8,6 +8,7 @@ import type { AgentRunStats } from '@genfeedai/types';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
+import * as Sentry from '@sentry/nextjs';
 import { AgentRunsService } from '@services/ai/agent-runs.service';
 import { Task, TasksService } from '@services/management/tasks.service';
 import { WebSocketPaths } from '@utils/network/websocket.util';
@@ -33,6 +34,31 @@ import {
   type WorkspaceSection,
   type WorkspaceTaskRealtimePayload,
 } from './workspace-task.helpers';
+
+const WORKSPACE_OVERVIEW_LOAD_TIMEOUT_MS = 15_000;
+const WORKSPACE_OVERVIEW_LOAD_WARNING =
+  'Workspace data is taking longer than expected. You can keep this page open or try again.';
+
+type WorkspaceOverviewLoadScope = 'runs' | 'tasks';
+type WorkspaceLoadWarningState = Partial<
+  Record<WorkspaceOverviewLoadScope, true>
+>;
+
+function addWorkspaceLoadTimeoutBreadcrumb(
+  scope: WorkspaceOverviewLoadScope,
+  pathname: string,
+) {
+  Sentry.addBreadcrumb({
+    category: 'workspace.overview',
+    data: {
+      pathname,
+      scope,
+      timeoutMs: WORKSPACE_OVERVIEW_LOAD_TIMEOUT_MS,
+    },
+    level: 'warning',
+    message: 'Workspace overview data load timed out',
+  });
+}
 
 export interface UseWorkspacePageContentParams {
   defaultInboxView?: InboxView;
@@ -79,11 +105,45 @@ export function useWorkspacePageContent({
   const [agentStats, setAgentStats] = useState<AgentRunStats | null>(
     initialStats,
   );
+  const [workspaceLoadWarnings, setWorkspaceLoadWarnings] =
+    useState<WorkspaceLoadWarningState>({});
   const [isWorkspaceRunsLoading, setWorkspaceRunsLoading] = useState(
     section === 'overview',
   );
   const [isWorkspaceTasksLoading, setWorkspaceTasksLoading] = useState(true);
   const [workspaceTasks, setWorkspaceTasks] = useState<Task[]>([]);
+
+  const markWorkspaceLoadWarning = useCallback(
+    (scope: WorkspaceOverviewLoadScope) => {
+      setWorkspaceLoadWarnings((current) =>
+        current[scope] ? current : { ...current, [scope]: true },
+      );
+    },
+    [],
+  );
+
+  const clearWorkspaceLoadWarning = useCallback(
+    (scope: WorkspaceOverviewLoadScope) => {
+      setWorkspaceLoadWarnings((current) => {
+        if (!current[scope]) {
+          return current;
+        }
+
+        const next = { ...current };
+        delete next[scope];
+        return next;
+      });
+    },
+    [],
+  );
+
+  const workspaceLoadWarning = useMemo(
+    () =>
+      workspaceLoadWarnings.tasks || workspaceLoadWarnings.runs
+        ? WORKSPACE_OVERVIEW_LOAD_WARNING
+        : null,
+    [workspaceLoadWarnings],
+  );
 
   const reviewInboxTasks = useMemo(
     () =>
@@ -242,7 +302,20 @@ export function useWorkspacePageContent({
 
   useEffect(() => {
     const controller = new AbortController();
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
     setWorkspaceTasksLoading(true);
+    clearWorkspaceLoadWarning('tasks');
+
+    if (section === 'overview') {
+      timeoutId = setTimeout(() => {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        markWorkspaceLoadWarning('tasks');
+        addWorkspaceLoadTimeoutBreadcrumb('tasks', pathname);
+      }, WORKSPACE_OVERVIEW_LOAD_TIMEOUT_MS);
+    }
 
     const loadWorkspaceTasks = async () => {
       try {
@@ -263,6 +336,10 @@ export function useWorkspacePageContent({
       } finally {
         if (!controller.signal.aborted) {
           setWorkspaceTasksLoading(false);
+          clearWorkspaceLoadWarning('tasks');
+        }
+        if (timeoutId) {
+          clearTimeout(timeoutId);
         }
       }
     };
@@ -271,8 +348,17 @@ export function useWorkspacePageContent({
 
     return () => {
       controller.abort();
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
     };
-  }, [getToken]);
+  }, [
+    clearWorkspaceLoadWarning,
+    getToken,
+    markWorkspaceLoadWarning,
+    pathname,
+    section,
+  ]);
 
   useEffect(() => {
     if (section !== 'overview') {
@@ -281,7 +367,18 @@ export function useWorkspacePageContent({
     }
 
     let isMounted = true;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
     setWorkspaceRunsLoading(true);
+    clearWorkspaceLoadWarning('runs');
+
+    timeoutId = setTimeout(() => {
+      if (!isMounted) {
+        return;
+      }
+
+      markWorkspaceLoadWarning('runs');
+      addWorkspaceLoadTimeoutBreadcrumb('runs', pathname);
+    }, WORKSPACE_OVERVIEW_LOAD_TIMEOUT_MS);
 
     const loadWorkspaceRuns = async () => {
       try {
@@ -318,6 +415,10 @@ export function useWorkspacePageContent({
       } finally {
         if (isMounted) {
           setWorkspaceRunsLoading(false);
+          clearWorkspaceLoadWarning('runs');
+        }
+        if (timeoutId) {
+          clearTimeout(timeoutId);
         }
       }
     };
@@ -326,8 +427,17 @@ export function useWorkspacePageContent({
 
     return () => {
       isMounted = false;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
     };
-  }, [getToken, section]);
+  }, [
+    clearWorkspaceLoadWarning,
+    getToken,
+    markWorkspaceLoadWarning,
+    pathname,
+    section,
+  ]);
 
   useEffect(() => {
     if (!organizationId) {
@@ -503,6 +613,7 @@ export function useWorkspacePageContent({
     unreadInboxTasks,
     visibleInboxTasks,
     workspaceActionError,
+    workspaceLoadWarning,
     workspaceTasks,
   };
 }

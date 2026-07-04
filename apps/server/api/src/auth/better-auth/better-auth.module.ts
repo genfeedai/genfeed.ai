@@ -6,7 +6,6 @@ import { UsersModule } from '@api/collections/users/users.module';
 import { CommonModule } from '@api/common/common.module';
 import { ConfigService } from '@api/config/config.service';
 import { CacheModule } from '@api/services/cache/cache.module';
-import { CacheClientService } from '@api/services/cache/services/cache-client.service';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IS_BETTER_AUTH_ENABLED } from '@genfeedai/config';
@@ -37,6 +36,7 @@ import { UserProvisioningListener } from './listeners/user-provisioning.listener
 import { BetterAuthStrategy } from './passport/better-auth.strategy';
 import { BetterAuthIdentityResolverService } from './services/better-auth-identity-resolver.service';
 import { BetterAuthMailerService } from './services/better-auth-mailer.service';
+import { RateLimitClientService } from './services/rate-limit-client.service';
 
 /**
  * Better Auth module (epic #735).
@@ -64,6 +64,7 @@ import { BetterAuthMailerService } from './services/better-auth-mailer.service';
     BetterAuthIdentityResolverService,
     BetterAuthStrategy,
     BetterAuthService,
+    RateLimitClientService,
     UserProvisioningListener,
     {
       inject: [
@@ -71,7 +72,7 @@ import { BetterAuthMailerService } from './services/better-auth-mailer.service';
         ConfigService,
         BetterAuthMailerService,
         EventEmitter2,
-        CacheClientService,
+        RateLimitClientService,
       ],
       provide: BETTER_AUTH_INSTANCE,
       useFactory: (
@@ -79,7 +80,7 @@ import { BetterAuthMailerService } from './services/better-auth-mailer.service';
         config: ConfigService,
         mailer: BetterAuthMailerService,
         eventEmitter: EventEmitter2,
-        cacheClient: CacheClientService,
+        rateLimitClient: RateLimitClientService,
       ): BetterAuthInstance | null => {
         // Enabled by default; explicit offline/local runs can set
         // BETTER_AUTH_ENABLED=false to skip the auth handler.
@@ -96,28 +97,35 @@ import { BetterAuthMailerService } from './services/better-auth-mailer.service';
           );
         }
 
-        // Shared Redis KV for rate-limit counters. Fails open — a Redis outage
+        // Isolated Redis KV for rate-limit counters (#1186) — its own logical DB
+        // (or dedicated instance) so a queue backlog or cache-invalidation storm
+        // can't add latency to the hot auth path. Fails open — a Redis outage
         // degrades cross-instance limiting rather than breaking authentication.
         const rateLimitStore: IBetterAuthRateLimitStore = {
           get: async (key) => {
-            if (!cacheClient.isReady) {
+            if (!rateLimitClient.isReady) {
               return null;
             }
             try {
-              return (await cacheClient.instance.get(key)) ?? null;
+              return (await rateLimitClient.instance.get(key)) ?? null;
             } catch {
               return null;
             }
           },
           set: async (key, value, ttlSeconds) => {
-            if (!cacheClient.isReady) {
+            if (!rateLimitClient.isReady) {
               return;
             }
             try {
               if (ttlSeconds === undefined) {
-                await cacheClient.instance.set(key, value);
+                await rateLimitClient.instance.set(key, value);
               } else {
-                await cacheClient.instance.set(key, value, 'EX', ttlSeconds);
+                await rateLimitClient.instance.set(
+                  key,
+                  value,
+                  'EX',
+                  ttlSeconds,
+                );
               }
             } catch {
               // Fail open: never let a Redis error break auth rate limiting.

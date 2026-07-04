@@ -1,11 +1,12 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { ConfigService } from '@files/config/config.service';
+import type { YoutubeCredential } from '@files/shared/interfaces/job.interface';
 import { PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
-import { google } from 'googleapis';
+import { Auth, google, youtube_v3 } from 'googleapis';
 
 @Injectable()
 export class YoutubeService {
@@ -19,7 +20,7 @@ export class YoutubeService {
   /**
    * Initialize YouTube API with credentials
    */
-  private initializeYoutubeAPI(credential: unknown): void {
+  private initializeYoutubeAPI(credential: YoutubeCredential): void {
     const oauth2Client = new google.auth.OAuth2(
       credential.clientId,
       credential.clientSecret,
@@ -32,7 +33,7 @@ export class YoutubeService {
     });
 
     // Handle token refresh
-    oauth2Client.on('tokens', (tokens: unknown) => {
+    oauth2Client.on('tokens', (tokens: Auth.Credentials) => {
       if (tokens.refresh_token) {
         this.logger.log('Refresh token received');
       }
@@ -50,7 +51,7 @@ export class YoutubeService {
    * Upload video to YouTube with specified privacy status
    */
   async uploadVideo(params: {
-    credential: unknown;
+    credential: YoutubeCredential;
     ingredientId: string;
     title: string;
     description: string;
@@ -112,7 +113,7 @@ export class YoutubeService {
         scheduledDate && new Date(scheduledDate) > new Date();
 
       let privacyStatus: string;
-      let statusConfig: unknown;
+      let statusConfig: youtube_v3.Schema$VideoStatus;
 
       if (hasFutureScheduledDate) {
         // Future scheduled date: upload as private with publishAt
@@ -148,7 +149,7 @@ export class YoutubeService {
       }
 
       // Prepare upload request
-      const body: unknown = {
+      const body: youtube_v3.Params$Resource$Videos$Insert = {
         media: {
           body: fs.createReadStream(filePath),
         },

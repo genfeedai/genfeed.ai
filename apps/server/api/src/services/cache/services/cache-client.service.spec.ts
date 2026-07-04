@@ -77,8 +77,11 @@ describe('CacheClientService', () => {
     mockRedisClient.status = 'ready';
   });
 
-  it('should read REDIS_URL from ConfigService', () => {
-    expect(mockConfigService.get).toHaveBeenCalledWith('REDIS_URL');
+  it('should resolve the isolated cache Redis connection from ConfigService', () => {
+    // The cache workload reads its own override first (#1186), falling back to
+    // the shared base URL, and applies its dedicated logical DB.
+    expect(mockConfigService.get).toHaveBeenCalledWith('REDIS_CACHE_URL');
+    expect(mockConfigService.get).toHaveBeenCalledWith('REDIS_CACHE_DB');
   });
 
   /* ---------- retry strategy ---------- */

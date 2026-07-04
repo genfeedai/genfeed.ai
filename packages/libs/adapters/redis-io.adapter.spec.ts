@@ -27,6 +27,11 @@ type RedisClientSubset = Pick<Redis, 'connect' | 'duplicate'>;
 describe('RedisIoAdapter', () => {
   const redisUrl = 'redis://localhost:6379';
 
+  /** Build the `{ get }` config accessor the adapter now reads (#1186). */
+  const accessor = (env: Record<string, string | boolean | number> = {}) => ({
+    get: (key: string) => ({ REDIS_URL: redisUrl, ...env })[key],
+  });
+
   const loggerService: Mocked<Pick<LoggerService, 'error' | 'log' | 'warn'>> = {
     error: vi.fn(),
     log: vi.fn(),
@@ -51,7 +56,7 @@ describe('RedisIoAdapter', () => {
   });
 
   it('should be defined', () => {
-    const adapter = new RedisIoAdapter(undefined, redisUrl, loggerService);
+    const adapter = new RedisIoAdapter(undefined, accessor(), loggerService);
     expect(adapter).toBeDefined();
   });
 
@@ -69,7 +74,7 @@ describe('RedisIoAdapter', () => {
       >,
     );
 
-    const adapter = new RedisIoAdapter(undefined, redisUrl, loggerService);
+    const adapter = new RedisIoAdapter(undefined, accessor(), loggerService);
     await adapter.connectToRedis();
 
     expect(pubClient.connect).toHaveBeenCalledOnce();
@@ -94,15 +99,19 @@ describe('RedisIoAdapter', () => {
 
     const adapter = new RedisIoAdapter(
       undefined,
-      'rediss://redis.internal:6379',
+      accessor({
+        REDIS_PASSWORD: 'secret-from-ssm',
+        REDIS_URL: 'rediss://redis.internal:6379',
+      }),
       loggerService,
-      false,
-      'secret-from-ssm',
     );
     await adapter.connectToRedis();
 
+    // The socket.io adapter resolves the isolated SOCKET workload, so the client
+    // options carry its dedicated logical DB (default 3) alongside TLS/password.
     expect(vi.mocked(Redis)).toHaveBeenCalledWith({
       connectTimeout: 3000,
+      db: 3,
       host: 'redis.internal',
       lazyConnect: true,
       password: 'secret-from-ssm',
@@ -120,7 +129,7 @@ describe('RedisIoAdapter', () => {
 
     vi.mocked(Redis).mockImplementation(() => pubClient as unknown as Redis);
 
-    const adapter = new RedisIoAdapter(undefined, redisUrl, loggerService);
+    const adapter = new RedisIoAdapter(undefined, accessor(), loggerService);
     await adapter.connectToRedis();
 
     expect(loggerService.error).toHaveBeenCalledWith(
@@ -136,7 +145,7 @@ describe('RedisIoAdapter', () => {
 
     const adapter = new RedisIoAdapter(
       appRef as unknown as never,
-      redisUrl,
+      accessor(),
       loggerService,
     );
 

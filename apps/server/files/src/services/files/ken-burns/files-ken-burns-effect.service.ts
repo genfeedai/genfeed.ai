@@ -8,6 +8,15 @@ import { ImagesToVideoConfig } from '@libs/interfaces/video.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
+export interface KenBurnsEffectOptions {
+  slideText?: SlideText[];
+  isClipSelected?: boolean;
+  fontFamily?: string;
+  dimensions?: { width: number; height: number };
+  isWatermarkEnabled?: boolean;
+  websocketURL?: string;
+}
+
 @Injectable()
 export class FilesKenBurnsEffectService {
   private readonly imagesToVideoConfig: ImagesToVideoConfig = {
@@ -293,7 +302,7 @@ export class FilesKenBurnsEffectService {
     _imageUrl: string,
     duration: number,
     ingredientId: string,
-    options?: unknown,
+    options?: KenBurnsEffectOptions,
   ): Promise<string> {
     const slideText: SlideText[] = options?.slideText || [
       {

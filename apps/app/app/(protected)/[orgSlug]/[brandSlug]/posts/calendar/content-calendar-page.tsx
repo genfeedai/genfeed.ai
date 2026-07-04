@@ -23,7 +23,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import ContentCalendar from '@ui/calendar/content-calendar/ContentCalendar';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { HiDocumentText, HiListBullet } from 'react-icons/hi2';
 
 const DEFAULT_COLOR = '#8b5cf6';
@@ -171,18 +171,32 @@ export default function ContentCalendarPage(): React.JSX.Element {
     return [...postItems, ...articleItems];
   }, [posts, articles]);
 
-  const handleEventClick = (item: ContentCalendarItem) => {
+  const handleEventClick = useCallback(
+    (item: ContentCalendarItem) => {
+      if (item.itemType === 'article') {
+        push(`${COMPOSE_ROUTES.ARTICLE}?id=${item.article.id}`);
+        return;
+      }
+
+      setSelectedPostId(item.post.id);
+    },
+    [push],
+  );
+
+  const handleDatesChange = useCallback(
+    (start: Date, end: Date) => {
+      setDateRange({ end, start });
+    },
+    [setDateRange],
+  );
+
+  const getEventColor = useCallback((item: ContentCalendarItem) => {
     if (item.itemType === 'article') {
-      push(`${COMPOSE_ROUTES.ARTICLE}?id=${item.article.id}`);
-      return;
+      return getArticleColor(item.status);
     }
 
-    setSelectedPostId(item.post.id);
-  };
-
-  const handleDatesChange = (start: Date, end: Date) => {
-    setDateRange({ end, start });
-  };
+    return getPlatformColor(item.status);
+  }, []);
 
   const filterControls = (
     <div className="flex items-center gap-2">
@@ -214,11 +228,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
       items={calendarItems}
       onEventClick={handleEventClick}
       onDatesChange={handleDatesChange}
-      getEventColor={(item) =>
-        item.itemType === 'article'
-          ? getArticleColor(item.status)
-          : getPlatformColor(item.status)
-      }
+      getEventColor={getEventColor}
       filterControls={filterControls}
       modal={modal}
     />

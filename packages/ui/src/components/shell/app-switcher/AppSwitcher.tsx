@@ -26,8 +26,10 @@ import { Button } from '../../../primitives/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../../../primitives/dropdown-menu';
 
@@ -262,6 +264,10 @@ const ADMIN_APP_SWITCHER_SECTION: AppSwitcherSectionConfig = {
   ],
 };
 
+const PRIMARY_APP_SWITCHER_SECTION_IDS = new Set(['home', 'create', 'publish']);
+
+const SECONDARY_APP_SWITCHER_SECTION_IDS = new Set(['trends', 'analytics']);
+
 function withPreservedSearch(path: string, preservedSearch?: string): string {
   if (!preservedSearch) {
     return path;
@@ -364,7 +370,7 @@ function getActiveItemKey({
   return apps.find((app) => isActiveApp(app, currentApp))?.itemKey;
 }
 
-function AppDropdownItem({
+function AppBoardTile({
   app,
   isActive,
   href,
@@ -384,21 +390,21 @@ function AppDropdownItem({
         aria-current={isActive ? 'page' : undefined}
         onClick={onNavigateStart}
         className={cn(
-          'flex min-h-11 items-start gap-2.5 rounded-md border border-transparent p-2 text-left text-[13px] outline-none transition-colors',
+          'flex min-h-[5.25rem] min-w-0 flex-col items-start rounded-md bg-foreground/[0.025] p-2 text-left text-[13px] outline-none transition-colors',
           'hover:bg-foreground/[0.06] focus:bg-foreground/[0.06]',
-          isActive && 'border-foreground/[0.08] bg-foreground/[0.06]',
+          isActive && 'bg-foreground/[0.06] shadow-border-strong',
         )}
       >
         <Icon
           className={cn(
-            'mt-0.5 size-4 shrink-0',
+            'mb-2 size-4 shrink-0',
             isActive ? 'text-foreground' : 'text-foreground/50',
           )}
         />
-        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="flex min-w-0 flex-1 flex-col">
           <span
             className={cn(
-              'truncate',
+              'break-words leading-4',
               isActive
                 ? 'font-medium text-foreground'
                 : 'font-medium text-foreground/85',
@@ -408,13 +414,150 @@ function AppDropdownItem({
           </span>
           <span
             aria-hidden="true"
-            className="truncate text-[12px] leading-4 text-foreground/45"
+            className="mt-1 break-words text-[12px] leading-4 text-foreground/45"
           >
             {app.description}
           </span>
         </span>
       </Link>
     </DropdownMenuItem>
+  );
+}
+
+function AppCompactItem({
+  app,
+  isActive,
+  href,
+  onNavigateStart,
+  variant = 'inline',
+}: {
+  app: LifecycleAppSwitcherItemConfig;
+  isActive: boolean;
+  href: string;
+  onNavigateStart: () => void;
+  variant?: 'inline' | 'admin';
+}) {
+  const Icon = app.icon;
+
+  return (
+    <DropdownMenuItem asChild>
+      <Link
+        href={href}
+        aria-current={isActive ? 'page' : undefined}
+        onClick={onNavigateStart}
+        className={cn(
+          'min-w-0 rounded-md text-left text-[13px] outline-none transition-colors',
+          'hover:bg-foreground/[0.06] focus:bg-foreground/[0.06]',
+          isActive && 'bg-foreground/[0.06] shadow-border-strong',
+          variant === 'admin'
+            ? 'flex min-h-[3.25rem] items-start gap-2.5 px-2.5 py-2'
+            : 'inline-flex min-h-7 items-center gap-1.5 px-2 py-1.5',
+        )}
+      >
+        <Icon
+          className={cn(
+            'size-3.5 shrink-0',
+            variant === 'admin' && 'mt-0.5',
+            isActive ? 'text-foreground' : 'text-foreground/50',
+          )}
+        />
+        <span className="min-w-0">
+          <span
+            className={cn(
+              'block truncate',
+              isActive
+                ? 'font-medium text-foreground'
+                : 'font-medium text-foreground/85',
+            )}
+          >
+            {app.label}
+          </span>
+          {variant === 'admin' ? (
+            <span
+              aria-hidden="true"
+              className="mt-0.5 block truncate text-[12px] leading-4 text-foreground/45"
+            >
+              {app.description}
+            </span>
+          ) : null}
+        </span>
+      </Link>
+    </DropdownMenuItem>
+  );
+}
+
+function AppBoardSection({
+  activeItemKey,
+  getAppHref,
+  onNavigateStart,
+  section,
+}: {
+  activeItemKey?: string;
+  getAppHref: (app: AppSwitcherItemConfig) => string;
+  onNavigateStart: () => void;
+  section: AppSwitcherSectionConfig;
+}) {
+  return (
+    <DropdownMenuGroup
+      key={section.id}
+      aria-labelledby={`app-switcher-${section.id}`}
+      className="min-w-0 rounded-md bg-foreground/[0.018] p-2 shadow-border"
+    >
+      <DropdownMenuLabel
+        id={`app-switcher-${section.id}`}
+        className="px-0 pb-2 pt-0"
+      >
+        {section.label}
+      </DropdownMenuLabel>
+      <div className="grid grid-cols-2 gap-1.5">
+        {section.apps.map((app) => (
+          <AppBoardTile
+            key={app.itemKey}
+            app={app}
+            isActive={app.itemKey === activeItemKey}
+            href={getAppHref(app)}
+            onNavigateStart={onNavigateStart}
+          />
+        ))}
+      </div>
+    </DropdownMenuGroup>
+  );
+}
+
+function AppCompactSection({
+  activeItemKey,
+  getAppHref,
+  onNavigateStart,
+  section,
+}: {
+  activeItemKey?: string;
+  getAppHref: (app: AppSwitcherItemConfig) => string;
+  onNavigateStart: () => void;
+  section: AppSwitcherSectionConfig;
+}) {
+  return (
+    <DropdownMenuGroup
+      aria-labelledby={`app-switcher-${section.id}`}
+      className="min-w-0"
+    >
+      <DropdownMenuLabel
+        id={`app-switcher-${section.id}`}
+        className="px-0 pb-1 pt-0"
+      >
+        {section.label}
+      </DropdownMenuLabel>
+      <div className="flex flex-wrap gap-1">
+        {section.apps.map((app) => (
+          <AppCompactItem
+            key={app.itemKey}
+            app={app}
+            isActive={app.itemKey === activeItemKey}
+            href={getAppHref(app)}
+            onNavigateStart={onNavigateStart}
+          />
+        ))}
+      </div>
+    </DropdownMenuGroup>
   );
 }
 
@@ -441,6 +584,13 @@ export function AppSwitcher({
     ? [...APP_SWITCHER_SECTIONS, ADMIN_APP_SWITCHER_SECTION]
     : APP_SWITCHER_SECTIONS;
   const apps = sections.flatMap((section) => section.apps);
+  const primarySections = APP_SWITCHER_SECTIONS.filter((section) =>
+    PRIMARY_APP_SWITCHER_SECTION_IDS.has(section.id),
+  );
+  const secondarySections = APP_SWITCHER_SECTIONS.filter((section) =>
+    SECONDARY_APP_SWITCHER_SECTION_IDS.has(section.id),
+  );
+  const adminSection = showAdmin ? ADMIN_APP_SWITCHER_SECTION : undefined;
   const activeItemKey = getActiveItemKey({
     apps,
     brandSlug,
@@ -485,7 +635,7 @@ export function AppSwitcher({
       <DropdownMenuContent
         align="end"
         sideOffset={8}
-        className="max-h-[80vh] w-[calc(100vw-2rem)] overflow-y-auto p-2 sm:w-[44rem]"
+        className="max-h-[80vh] w-[calc(100vw-2rem)] overflow-y-auto p-2 sm:w-[42rem]"
         onCloseAutoFocus={(event) => {
           if (!preventTriggerAutoFocusRef.current) {
             return;
@@ -495,33 +645,61 @@ export function AppSwitcher({
           preventTriggerAutoFocusRef.current = false;
         }}
       >
-        <div className="grid gap-2 sm:grid-cols-5">
-          {sections.map((section) => (
-            <div
+        <div className="grid gap-2 sm:grid-cols-3">
+          {primarySections.map((section) => (
+            <AppBoardSection
               key={section.id}
-              aria-labelledby={`app-switcher-${section.id}`}
+              section={section}
+              activeItemKey={activeItemKey}
+              getAppHref={getAppHref}
+              onNavigateStart={handleNavigateStart}
+            />
+          ))}
+        </div>
+
+        <DropdownMenuSeparator className="my-2" />
+
+        <div
+          className={cn(
+            'grid gap-2',
+            adminSection && 'sm:grid-cols-[minmax(0,1fr)_12rem]',
+          )}
+        >
+          <div className="grid min-w-0 gap-2 sm:grid-cols-2">
+            {secondarySections.map((section) => (
+              <AppCompactSection
+                key={section.id}
+                section={section}
+                activeItemKey={activeItemKey}
+                getAppHref={getAppHref}
+                onNavigateStart={handleNavigateStart}
+              />
+            ))}
+          </div>
+
+          {adminSection ? (
+            <DropdownMenuGroup
+              aria-labelledby={`app-switcher-${adminSection.id}`}
               className="min-w-0"
-              role="group"
             >
               <DropdownMenuLabel
-                id={`app-switcher-${section.id}`}
-                className="px-2 pb-1 pt-0"
+                id={`app-switcher-${adminSection.id}`}
+                className="px-0 pb-1 pt-0"
               >
-                {section.label}
+                {adminSection.label}
               </DropdownMenuLabel>
-              <div className="space-y-1">
-                {section.apps.map((app) => (
-                  <AppDropdownItem
-                    key={app.itemKey}
-                    app={app}
-                    isActive={app.itemKey === activeItemKey}
-                    href={getAppHref(app)}
-                    onNavigateStart={handleNavigateStart}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
+              {adminSection.apps.map((app) => (
+                <AppCompactItem
+                  key={app.itemKey}
+                  app={app}
+                  isActive={app.itemKey === activeItemKey}
+                  href={getAppHref(app)}
+                  onNavigateStart={handleNavigateStart}
+                  variant="admin"
+                />
+              ))}
+            </DropdownMenuGroup>
+          ) : null}
         </div>
       </DropdownMenuContent>
     </DropdownMenu>

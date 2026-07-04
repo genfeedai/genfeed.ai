@@ -46,21 +46,23 @@ export interface TaskProcessingConfig {
   count?: number;
 }
 
+export interface YoutubeCredential {
+  clientId: string;
+  clientSecret: string;
+  accessToken: string;
+  refreshToken: string;
+  redirectUri: string;
+}
+
 export interface YoutubeJobData extends BaseJobData {
   postId: string;
-  credential: {
-    clientId: string;
-    clientSecret: string;
-    accessToken: string;
-    refreshToken: string;
-    redirectUri: string;
-  };
+  credential: YoutubeCredential;
   brandId?: string;
   title: string;
   description: string;
   tags?: string[];
   isUnlisted: boolean;
-  status?: 'public' | 'private' | 'scheduled';
+  status?: 'public' | 'private' | 'scheduled' | 'unlisted';
   scheduledDate?: string;
 }
 
@@ -162,6 +164,15 @@ export interface ImageProcessingParams {
   quality?: number;
 }
 
+export interface FileFrame {
+  image?: string;
+  voice?: string;
+  imageToVideo?: string;
+  duration: number;
+  overlayText?: string;
+  voiceText: string;
+}
+
 export interface FileProcessingParams {
   // Download params
   url?: string;
@@ -169,7 +180,7 @@ export interface FileProcessingParams {
   index?: number;
 
   // Prepare files params
-  frames?: unknown[];
+  frames?: FileFrame[];
   musicId?: string;
 
   // Cleanup params
@@ -220,6 +231,7 @@ export interface JobResult {
   success: boolean;
   outputPath?: string;
   s3Key?: string;
+  url?: string;
   duration?: number;
   width?: number;
   height?: number;

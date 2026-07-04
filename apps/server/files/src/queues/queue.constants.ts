@@ -14,6 +14,7 @@ export const JOB_TYPES = {
   CAPTION_MEDIA: 'caption-media',
   CLEANUP_TEMP_FILES: 'cleanup-temp-files',
   CLIP_MEDIA: 'clip-media',
+  CLIP_TRIM: 'clip-trim',
   CONVERT_TO_PORTRAIT: 'convert-to-portrait',
   CREATE_CLIPS: 'create-clips',
 
