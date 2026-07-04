@@ -166,7 +166,6 @@ export const APP_ROUTES = {
     SOCIALS: '/research/socials',
   },
   SETTINGS: {
-    ADMIN: '/settings/admin',
     API_KEYS: '/settings/api-keys',
     BILLING: '/settings/billing',
     BRANDS: '/settings/brands',

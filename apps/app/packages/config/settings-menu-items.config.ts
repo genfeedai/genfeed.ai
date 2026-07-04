@@ -5,12 +5,14 @@ import {
   HiChatBubbleLeftRight,
   HiCpuChip,
   HiCreditCard,
+  HiCube,
   HiKey,
   HiMicrophone,
   HiOutlineBuildingOffice2,
   HiOutlineChatBubbleLeftRight,
   HiOutlineCpuChip,
   HiOutlineCreditCard,
+  HiOutlineCube,
   HiOutlineKey,
   HiOutlineMicrophone,
   HiOutlinePaperAirplane,
@@ -18,6 +20,7 @@ import {
   HiOutlineShieldCheck,
   HiOutlineSparkles,
   HiOutlineSquares2X2,
+  HiOutlineTag,
   HiOutlineUser,
   HiOutlineUsers,
   HiPaperAirplane,
@@ -25,6 +28,7 @@ import {
   HiShieldCheck,
   HiSparkles,
   HiSquares2X2,
+  HiTag,
   HiUser,
   HiUsers,
 } from 'react-icons/hi2';
@@ -114,6 +118,26 @@ function buildOrganizationMenuItems(isEnterprise: boolean): MenuItemConfig[] {
       label: 'Policy',
       outline: HiOutlineShieldCheck,
       solid: HiShieldCheck,
+    },
+    {
+      // Hub to the all-brands list; each brand's own settings open in the
+      // brand scope from there.
+      href: APP_ROUTES.SETTINGS.BRANDS,
+      hrefScope: 'organization',
+      label: 'Brands',
+      outline: HiOutlineTag,
+      solid: HiTag,
+    },
+    {
+      // Org model settings: enable/disable the models the admin app publishes
+      // and pick the org default (used by the studio prompt bar). `/settings/
+      // models` redirects to the first tab; the prefix keeps this row active
+      // across every model type.
+      href: APP_ROUTES.SETTINGS.MODELS,
+      hrefScope: 'organization',
+      label: 'Models',
+      outline: HiOutlineCube,
+      solid: HiCube,
     },
   ];
 }

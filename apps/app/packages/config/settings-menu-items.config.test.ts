@@ -30,10 +30,17 @@ describe('buildSettingsMenuItems', () => {
   });
 
   describe('organization scope', () => {
-    it('shows only the organization pages (no Brands, no Help)', () => {
+    it('shows the organization pages plus the Brands and Models hubs (no Help)', () => {
       expect(
         buildSettingsMenuItems({ scope: 'organization' }).map((i) => i.label),
-      ).toEqual(['General', 'Members', 'API Keys', 'Policy']);
+      ).toEqual([
+        'General',
+        'Members',
+        'API Keys',
+        'Policy',
+        'Brands',
+        'Models',
+      ]);
     });
 
     it('adds Billing only on the enterprise edition', () => {
@@ -42,7 +49,15 @@ describe('buildSettingsMenuItems', () => {
           scope: 'organization',
           isEnterprise: true,
         }).map((i) => i.label),
-      ).toEqual(['General', 'Members', 'Billing', 'API Keys', 'Policy']);
+      ).toEqual([
+        'General',
+        'Members',
+        'Billing',
+        'API Keys',
+        'Policy',
+        'Brands',
+        'Models',
+      ]);
     });
 
     it('scopes every entry to the organization and marks General exact', () => {
@@ -55,6 +70,16 @@ describe('buildSettingsMenuItems', () => {
       );
       expect(items.find((i) => i.label === 'General')?.isExactMatch).toBe(true);
       expect(items.find((i) => i.label === 'General')?.href).toBe('/settings');
+    });
+
+    it('points Brands and Models at their hubs (prefix-active, not exact)', () => {
+      const items = buildSettingsMenuItems({ scope: 'organization' });
+      expect(items.find((i) => i.label === 'Brands')?.href).toBe(
+        '/settings/brands',
+      );
+      const models = items.find((i) => i.label === 'Models');
+      expect(models?.href).toBe('/settings/models');
+      expect(models?.isExactMatch).toBeUndefined();
     });
   });
 
