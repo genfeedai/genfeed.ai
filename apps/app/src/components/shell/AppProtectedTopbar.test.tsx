@@ -168,6 +168,7 @@ describe('AppProtectedTopbar', () => {
     });
     const switcher = screen.getByTestId('app-switcher');
     const cloudSyncIndicator = screen.getByTestId('cloud-sync-indicator');
+    const credits = screen.getByTestId('topbar-credits-bar');
 
     expect(brandSwitcher).toHaveTextContent('labeled');
     expect(breadcrumbs).toHaveTextContent('Studio');
@@ -178,11 +179,17 @@ describe('AppProtectedTopbar', () => {
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      breadcrumbs.compareDocumentPosition(switcher) &
+      breadcrumbs.compareDocumentPosition(cloudSyncIndicator) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+    // Cloud-sync sits before the grouped app-switcher/settings cluster.
     expect(
-      switcher.compareDocumentPosition(cloudSyncIndicator) &
+      cloudSyncIndicator.compareDocumentPosition(switcher) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // Credits are pinned to the far right, after the app-switcher cluster.
+    expect(
+      switcher.compareDocumentPosition(credits) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
@@ -267,14 +274,22 @@ describe('AppProtectedTopbar', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders credit balances before the topbar end slot', () => {
+  it('groups the app switcher beside the settings menu and pins credits to the far right', () => {
     render(<AppProtectedTopbar />);
 
-    const credits = screen.getByTestId('topbar-credits-bar');
+    const switcher = screen.getByTestId('app-switcher');
     const topbarEnd = screen.getByTestId('topbar-end');
+    const credits = screen.getByTestId('topbar-credits-bar');
 
+    // App switcher renders immediately before the settings/user menu so they
+    // read as one grouped cluster.
     expect(
-      credits.compareDocumentPosition(topbarEnd) &
+      switcher.compareDocumentPosition(topbarEnd) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // Credits render after the settings menu, at the far right of the bar.
+    expect(
+      topbarEnd.compareDocumentPosition(credits) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });

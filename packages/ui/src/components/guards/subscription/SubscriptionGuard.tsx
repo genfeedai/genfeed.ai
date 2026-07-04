@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import type { SubscriptionGuardProps } from '@genfeedai/props/guards/subscription-guard.props';
 import { useRouter } from 'next/navigation';
@@ -38,7 +39,7 @@ export default function SubscriptionGuard({
     }
 
     if (!isSubscribed) {
-      replace('/onboarding/providers');
+      replace(APP_ROUTES.ONBOARDING.PROVIDERS);
       return;
     }
 

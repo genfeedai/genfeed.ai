@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PostsController } from '@api/collections/posts/controllers/posts.controller';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
@@ -143,5 +144,101 @@ describe('PostsController.create account-health warmup gate', () => {
       }),
     );
     expect(postsService.handleYoutubePost).not.toHaveBeenCalled();
+  });
+});
+
+describe('PostsController.findAll (#1223)', () => {
+  const request = {
+    get: vi.fn().mockReturnValue('localhost'),
+    headers: {},
+    originalUrl: '/v1/posts',
+    path: '/posts',
+    protocol: 'https',
+  } as never;
+
+  const makeController = (findAll: ReturnType<typeof vi.fn>) =>
+    new PostsController(
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      { findAll } as never,
+      { debug: vi.fn(), error: vi.fn(), log: vi.fn() } as never,
+    );
+
+  const paginated = (docs: Array<Record<string, unknown>>) => ({
+    docs,
+    hasNextPage: false,
+    hasPrevPage: false,
+    limit: 20,
+    nextPage: null,
+    page: 1,
+    pages: 1,
+    pagingCounter: 1,
+    prevPage: null,
+    total: docs.length,
+    totalDocs: docs.length,
+    totalPages: 1,
+  });
+
+  it('returns a JSON:API collection document ({ data: [...] }), not a raw docs array', async () => {
+    const findAll = vi.fn().mockResolvedValue(
+      paginated([
+        {
+          id: 'ckpost0000000000000000001',
+          label: 'A',
+          status: PostStatus.DRAFT,
+        },
+        {
+          id: 'ckpost0000000000000000002',
+          label: 'B',
+          status: PostStatus.SCHEDULED,
+        },
+      ]),
+    );
+    const controller = makeController(findAll);
+
+    const result = (await controller.findAll(
+      request,
+      makeUser(),
+      {} as PostsQueryDto,
+    )) as { data: Array<{ id: string; type: string }> };
+
+    // Before the fix, `PostListSerializer` was `undefined`, so
+    // `serializeCollection` returned the raw `docs` array — the exact shape the
+    // calendar client rejects with "expected collection data".
+    expect(Array.isArray(result)).toBe(false);
+    expect(Array.isArray(result.data)).toBe(true);
+    expect(result.data).toHaveLength(2);
+    expect(result.data[0]).toMatchObject({
+      id: 'ckpost0000000000000000001',
+      type: 'post',
+    });
+  });
+
+  it('serializes an empty result set as { data: [] }', async () => {
+    const findAll = vi.fn().mockResolvedValue(paginated([]));
+    const controller = makeController(findAll);
+
+    const result = (await controller.findAll(
+      request,
+      makeUser(),
+      {} as PostsQueryDto,
+    )) as { data: unknown[] };
+
+    expect(result.data).toEqual([]);
+  });
+
+  it('is no longer restricted to superadmins (no roles metadata on the handler)', () => {
+    // The prior `@RolesDecorator('superadmin')` 403'd every non-superadmin,
+    // breaking the normal-user calendar. Removing it falls back to the
+    // class-level RolesGuard (org-membership) + ownership-scoped query.
+    const roles = Reflect.getMetadata(
+      'roles',
+      PostsController.prototype.findAll,
+    );
+    expect(roles).toBeUndefined();
   });
 });

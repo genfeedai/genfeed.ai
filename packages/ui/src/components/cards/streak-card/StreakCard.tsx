@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useStreak } from '@genfeedai/hooks/data/streaks/use-streak/use-streak';
 import { STREAK_CELEBRATION_EVENT } from '@genfeedai/services/engagement/streak-events';
@@ -95,7 +96,7 @@ export default function StreakCard() {
       </p>
 
       <Link
-        href="/settings"
+        href={APP_ROUTES.SETTINGS.ROOT}
         className="flex items-center justify-between border border-white/8 bg-white/[0.04] px-2.5 py-2 text-[12px] text-white/80 transition-colors duration-150 hover:bg-white/[0.06]"
       >
         <span>

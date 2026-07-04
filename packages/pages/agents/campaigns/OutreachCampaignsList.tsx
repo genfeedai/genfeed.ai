@@ -1,6 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant, CampaignStatus } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
@@ -138,7 +139,7 @@ export default function OutreachCampaignsList() {
   );
 
   const handleCreateCampaign = useCallback(() => {
-    router.push('/orchestration/outreach-campaigns/new');
+    router.push(APP_ROUTES.ORCHESTRATION.OUTREACH_CAMPAIGNS_NEW);
   }, [router]);
 
   const handleConfigureCampaign = useCallback(

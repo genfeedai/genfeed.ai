@@ -21,6 +21,7 @@ export default function SidebarUserProfile({
     return (
       <div className="border-t border-border p-3 flex justify-center">
         <UserDropdown
+          imageUrl={user.imageUrl}
           userName={user.fullName ?? 'User'}
           userEmail={user.primaryEmailAddress?.emailAddress ?? ''}
         />
@@ -37,6 +38,7 @@ export default function SidebarUserProfile({
           </p>
         </div>
         <UserDropdown
+          imageUrl={user.imageUrl}
           userName={user.fullName ?? 'User'}
           userEmail={user.primaryEmailAddress?.emailAddress ?? ''}
         />

@@ -1,6 +1,6 @@
 'use client';
 
-import { COMPOSE_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES, COMPOSE_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IAgentRun, IAnalytics } from '@genfeedai/interfaces';
 import type { OverviewCard } from '@genfeedai/interfaces/ui/overview-card.interface';
@@ -194,7 +194,7 @@ function buildSectionSummaries(
     },
     {
       color: 'bg-emerald-500/12 text-emerald-300',
-      href: '/analytics/overview',
+      href: APP_ROUTES.ANALYTICS.OVERVIEW,
       icon: HiOutlineChartBar,
       kicker: 'Measure',
       label: 'Analytics',
@@ -215,7 +215,7 @@ function buildSectionSummaries(
     },
     {
       color: 'bg-violet-500/12 text-violet-300',
-      href: '/orchestration/overview',
+      href: APP_ROUTES.ORCHESTRATION.OVERVIEW,
       icon: HiOutlineCog6Tooth,
       kicker: 'Automate',
       label: 'Automation',
@@ -236,7 +236,7 @@ function buildSectionSummaries(
     },
     {
       color: 'bg-amber-500/12 text-amber-300',
-      href: '/library/images',
+      href: APP_ROUTES.LIBRARY.IMAGES,
       icon: HiOutlinePhoto,
       kicker: 'Reuse',
       label: 'Library',
@@ -359,7 +359,7 @@ export default function OverviewPageContent({
         color: 'bg-sky-500/18 text-sky-200',
         cta: 'Open Research',
         description: 'Start with the strongest live signals',
-        href: '/research/discovery',
+        href: APP_ROUTES.RESEARCH.DISCOVERY,
         icon: HiOutlineArrowTrendingUp,
         id: 'trends',
         label: 'Research',
@@ -380,7 +380,7 @@ export default function OverviewPageContent({
           reviewInbox.readyCount > 0
             ? `${reviewInbox.readyCount} items are ready to review before posting`
             : 'No assets are waiting for review right now',
-        href: '/posts/review',
+        href: APP_ROUTES.POSTS.REVIEW,
         icon: HiOutlineClipboardDocumentCheck,
         id: 'review',
         label: 'Publishing Inbox',
@@ -389,7 +389,7 @@ export default function OverviewPageContent({
         color: 'bg-cyan-500/18 text-cyan-200',
         cta: 'Open Schedule',
         description: 'Manage drafts, scheduled posts, and publishing windows',
-        href: '/posts?status=scheduled',
+        href: APP_ROUTES.POSTS.SCHEDULED,
         icon: HiOutlineCalendar,
         id: 'schedule',
         label: 'Schedule',
@@ -398,7 +398,7 @@ export default function OverviewPageContent({
         color: 'bg-violet-500/18 text-violet-200',
         cta: 'View Analytics',
         description: 'Track cross-platform performance',
-        href: '/analytics/overview',
+        href: APP_ROUTES.ANALYTICS.OVERVIEW,
         icon: HiOutlineChartBar,
         id: 'analytics',
         label: 'Analytics',
@@ -407,7 +407,7 @@ export default function OverviewPageContent({
         color: 'bg-fuchsia-500/18 text-fuchsia-200',
         cta: 'Open Remix',
         description: 'Turn winners into follow-ups and fresh variants',
-        href: '/posts/remix',
+        href: APP_ROUTES.POSTS.REMIX,
         icon: HiOutlinePlayCircle,
         id: 'remix',
         label: 'Remix',
@@ -416,7 +416,7 @@ export default function OverviewPageContent({
         color: 'bg-rose-500/18 text-rose-200',
         cta: 'Open Agents',
         description: 'Monitor agent runs, workflows, and brand operations',
-        href: '/orchestration/runs',
+        href: APP_ROUTES.ORCHESTRATION.RUNS,
         icon: HiOutlineSparkles,
         id: 'automations',
         label: 'Agents',

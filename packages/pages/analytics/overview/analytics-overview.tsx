@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant, CardVariant, PageScope } from '@genfeedai/enums';
 import type { IAnalytics } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -195,7 +196,7 @@ export default function AnalyticsOverview({
             description="After connected accounts publish content and analytics sync back, this chart will show which platforms are growing, flat, or underperforming."
             icon={HiOutlineChartBar}
             primaryAction={{
-              href: '/posts',
+              href: APP_ROUTES.POSTS.ROOT,
               label: 'Create a post',
               variant: ButtonVariant.DEFAULT,
             }}

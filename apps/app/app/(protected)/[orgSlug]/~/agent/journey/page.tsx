@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   type IOnboardingJourneyMissionState,
   ONBOARDING_JOURNEY_MISSIONS,
@@ -81,7 +82,7 @@ export default function ChatJourneyPage() {
             </p>
           </div>
           <Link
-            href="/onboarding/providers"
+            href={APP_ROUTES.ONBOARDING.PROVIDERS}
             className="inline-flex rounded-full border border-primary/30 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10"
           >
             Back to onboarding
