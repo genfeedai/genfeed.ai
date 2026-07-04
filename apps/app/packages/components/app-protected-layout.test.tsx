@@ -242,9 +242,12 @@ vi.mock('@services/core/command-palette.service', () => ({
     getAllCommands: vi.fn(() => []),
     getRecentCommands: vi.fn(() => []),
     registerCommand: vi.fn(),
-    registerCommands: vi.fn(),
+    registerCommands: vi.fn((commands: { id: string }[]): string[] =>
+      commands.map((command) => command.id),
+    ),
     searchCommands: vi.fn(() => []),
     unregisterCommand: vi.fn(),
+    unregisterCommands: vi.fn(),
   },
 }));
 

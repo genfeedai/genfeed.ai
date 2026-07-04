@@ -37,8 +37,11 @@ class CommandPaletteServiceClass {
 
   /**
    * Register multiple commands
+   *
+   * Returns the ids that were actually registered (already-registered ids
+   * are skipped) so callers can unregister exactly what they own on cleanup.
    */
-  registerCommands(commands: ICommand[]): void {
+  registerCommands(commands: ICommand[]): string[] {
     const registeredIds: string[] = [];
     const skippedIds: string[] = [];
 
@@ -64,6 +67,8 @@ class CommandPaletteServiceClass {
         count: skippedIds.length,
       });
     }
+
+    return registeredIds;
   }
 
   /**
@@ -79,6 +84,36 @@ class CommandPaletteServiceClass {
 
     this.commands.delete(commandId);
     logger.info('Command unregistered', { commandId });
+  }
+
+  /**
+   * Unregister multiple commands
+   */
+  unregisterCommands(commandIds: string[]): void {
+    const removedIds: string[] = [];
+    const missingIds: string[] = [];
+
+    commandIds.forEach((commandId) => {
+      if (this.commands.delete(commandId)) {
+        removedIds.push(commandId);
+      } else {
+        missingIds.push(commandId);
+      }
+    });
+
+    if (removedIds.length > 0) {
+      logger.info('Commands unregistered', {
+        commandIds: removedIds,
+        count: removedIds.length,
+      });
+    }
+
+    if (missingIds.length > 0) {
+      logger.error('Commands not found for unregistration', {
+        commandIds: missingIds,
+        count: missingIds.length,
+      });
+    }
   }
 
   /**

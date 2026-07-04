@@ -497,12 +497,15 @@ export function createDefaultCommands(
 
 /**
  * Register all default commands for a given org/brand context.
+ *
+ * Returns the ids that were actually registered so callers can
+ * unregister them on unmount (see useDefaultCommandsRegistration).
  */
 export function registerDefaultCommands(
   orgSlug: string,
   brandSlug: string,
-): void {
-  CommandPaletteService.registerCommands(
+): string[] {
+  return CommandPaletteService.registerCommands(
     createDefaultCommands(orgSlug, brandSlug),
   );
 }
