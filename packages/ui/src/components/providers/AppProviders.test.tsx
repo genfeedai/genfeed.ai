@@ -7,14 +7,6 @@ vi.mock('@ui/providers/ThemeCookieSync', () => ({
   default: () => null,
 }));
 
-vi.mock('@vercel/analytics/react', () => ({
-  Analytics: () => null,
-}));
-
-vi.mock('@vercel/speed-insights/next', () => ({
-  SpeedInsights: () => null,
-}));
-
 vi.mock('next-themes', () => ({
   ThemeProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
@@ -25,9 +17,7 @@ describe('AppProviders', () => {
       <AppProviders
         initialTheme="dark"
         includeLazyModalErrorDebug={false}
-        includeSpeedInsights={false}
         includeToaster={false}
-        includeVercelAnalytics={false}
       >
         <div>Child content</div>
       </AppProviders>,
@@ -42,9 +32,7 @@ describe('AppProviders', () => {
         initialTheme="light"
         enableSystem
         includeLazyModalErrorDebug={false}
-        includeSpeedInsights={false}
         includeToaster={false}
-        includeVercelAnalytics={false}
       >
         <div>Light child</div>
       </AppProviders>,

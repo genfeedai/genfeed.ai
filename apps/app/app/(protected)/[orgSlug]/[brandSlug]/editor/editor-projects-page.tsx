@@ -8,7 +8,6 @@ import { EditorProjectsService } from '@services/editor/editor-projects.service'
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
-import { track } from '@vercel/analytics';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -97,7 +96,6 @@ export default function EditorProjectsPage() {
   }, [getEditorService]);
 
   useEffect(() => {
-    track('studio_editor_opened', { surface: 'index' });
     loadProjects();
   }, [loadProjects]);
 
