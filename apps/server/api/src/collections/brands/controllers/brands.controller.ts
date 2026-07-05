@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { STRATEGY_TEMPLATES } from '@api/collections/brands/constants/strategy-templates.constant';
@@ -12,10 +13,7 @@ import { ManualBrandKitDto } from '@api/collections/brands/dto/manual-brand-kit.
 import { ToggleBrandSkillDto } from '@api/collections/brands/dto/toggle-brand-skill.dto';
 import { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import { UpdateBrandAgentConfigDto } from '@api/collections/brands/dto/update-brand-agent-config.dto';
-import {
-  Brand,
-  type BrandDocument,
-} from '@api/collections/brands/schemas/brand.schema';
+import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
@@ -40,12 +38,12 @@ import {
   getIsSuperAdmin,
   getPublicMetadata,
 } from '@api/helpers/utils/auth/auth.util';
-import { BrandFilterUtil } from '@api/helpers/utils/brand-filter/brand-filter.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { ActivityKey, ActivitySource } from '@genfeedai/enums';
 import type {
   IBrandKitAssetImportResponse,
   JsonApiCollectionResponse,
@@ -128,9 +126,14 @@ export class BrandsController extends BaseCRUDController<
     const requestedOrgId = (updateDto as { organizationId?: string })
       .organizationId;
 
-    // No org change requested → default CRUD patch.
+    // No org change requested → default CRUD patch. Drop any stray consent token so it
+    // never reaches a column-level update (it is only meaningful on a relocation).
     if (!requestedOrgId) {
-      return super.patch(request, user, id, updateDto);
+      const { relocationAck: _omitAck, ...rest } = updateDto as Record<
+        string,
+        unknown
+      >;
+      return super.patch(request, user, id, rest as UpdateBrandDto);
     }
 
     const existing = (await this.brandsService.findOne({ _id: id })) as
@@ -144,24 +147,75 @@ export class BrandsController extends BaseCRUDController<
     }
 
     // Same org → not a relocation; apply the remaining fields via the default patch.
+    // Strip both the org trigger and the consent token — neither is a Brand column, so
+    // a retry that lands here after the move already committed would otherwise try to
+    // persist `relocationAck` and be rejected by Prisma.
     if (existing.organizationId === requestedOrgId) {
-      const { organizationId: _omit, ...rest } = updateDto as Record<
-        string,
-        unknown
-      >;
+      const {
+        organizationId: _omitOrg,
+        relocationAck: _omitAck,
+        ...rest
+      } = updateDto as Record<string, unknown>;
       return super.patch(request, user, id, rest as UpdateBrandDto);
     }
 
     const publicMetadata = getPublicMetadata(user);
-    const moved = await this.brandsService.relocateToOrganization(
+    const { brand: moved, summary } =
+      await this.brandsService.relocateToOrganization(id, updateDto, {
+        isSuperAdmin: getIsSuperAdmin(user, request),
+        userId: publicMetadata.user,
+      });
+
+    await this.activitiesService.create(
+      new ActivityEntity({
+        brand: id,
+        key: ActivityKey.BRAND_RELOCATED,
+        organization: requestedOrgId,
+        source: ActivitySource.BRAND_RELOCATION,
+        user: publicMetadata.user,
+        value: JSON.stringify(summary),
+      }),
+    );
+
+    return {
+      ...serializeSingle(request, BrandSerializer, moved),
+      meta: summary,
+    };
+  }
+
+  /**
+   * Preview the impact of relocating a brand to another organization: how many
+   * dedicated (sole-brand) workflows will move with it, how many shared workflows
+   * will be cloned into the destination org, and how many members will lose access.
+   * Returns an `ackToken` that the client must echo back on the PATCH when the move
+   * would clone shared workflows — the server recomputes and verifies this token
+   * inside the relocation transaction so a stale or missing token is rejected.
+   */
+  @Get(':id/relocation-preview')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async previewRelocation(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Query('organizationId') organizationId: string,
+  ) {
+    if (!organizationId) {
+      throw new BadRequestException(
+        'organizationId query parameter is required',
+      );
+    }
+
+    const publicMetadata = getPublicMetadata(user);
+    const preview = await this.brandsService.previewRelocation(
       id,
-      updateDto,
+      organizationId,
       {
         isSuperAdmin: getIsSuperAdmin(user, request),
         userId: publicMetadata.user,
       },
     );
-    return serializeSingle(request, BrandSerializer, moved);
+
+    return { data: preview };
   }
 
   /**

@@ -35,6 +35,7 @@ export enum ActivitySource {
   VOICE_GENERATION = 'voice-generate',
   TREND_SCAN = 'trend-scan',
   BRAND_INTERVIEW = 'brand-interview',
+  BRAND_RELOCATION = 'brand-relocation',
 }
 
 export enum ActivityKey {
@@ -88,6 +89,7 @@ export enum ActivityKey {
   PROMPT_REMIX_PROCESSING = 'prompt-remix-processing',
   PROMPT_REMIX_COMPLETED = 'prompt-remix-completed',
   PROMPT_REMIX_FAILED = 'prompt-remix-failed',
+  BRAND_RELOCATED = 'brand-relocated',
 }
 
 export enum ActivityStatus {
