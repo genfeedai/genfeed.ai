@@ -13,6 +13,7 @@ import {
   HiMegaphone,
   HiPaperAirplane,
   HiRectangleStack,
+  HiRocketLaunch,
   HiShoppingCart,
   HiSparkles,
   HiSquares2X2,
@@ -82,34 +83,46 @@ const PRODUCT_LINKS = [
 
 const USE_CASES_LINKS = [
   {
-    description: 'Virtual influencers that post 24/7',
-    href: '/use-cases/ai-influencers',
-    icon: HiStar,
-    label: 'AI Influencers',
-  },
-  {
     description: '10x output, track what converts',
+    group: 'Creators',
     href: '/use-cases/creators',
     icon: HiUserCircle,
     label: 'Content Creators',
   },
   {
+    description: 'Virtual influencers that post 24/7',
+    group: 'Creators',
+    href: '/use-cases/ai-influencers',
+    icon: HiStar,
+    label: 'AI Influencers',
+  },
+  {
+    description: 'Launch and grow without a team',
+    group: 'Creators',
+    href: '/use-cases/founders',
+    icon: HiRocketLaunch,
+    label: 'Founders',
+  },
+  {
     description: 'Scale client content, white-label',
+    group: 'Business',
     href: '/use-cases/agencies',
     icon: HiBuildingOffice2,
     label: 'Agencies',
   },
   {
-    description: 'Product content at scale',
-    href: '/use-cases/ecommerce',
-    icon: HiShoppingCart,
-    label: 'E-commerce',
-  },
-  {
     description: 'Campaign content and reporting',
+    group: 'Business',
     href: '/use-cases/marketers',
     icon: HiMegaphone,
     label: 'Marketers',
+  },
+  {
+    description: 'Product content at scale',
+    group: 'Business',
+    href: '/use-cases/ecommerce',
+    icon: HiShoppingCart,
+    label: 'E-commerce',
   },
 ];
 

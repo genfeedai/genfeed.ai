@@ -27,7 +27,7 @@ import {
 import PageLayout from '@web-components/PageLayout';
 import { HiCheckCircle } from 'react-icons/hi2';
 
-const PLAN_ORDER = ['Pay As You Go', 'Hosted', 'Cloud Teams', 'Enterprise'];
+const PLAN_ORDER = ['Pay As You Go', 'Hosted', 'Cloud Teams'];
 const FEATURED_TIER = 'Hosted';
 
 const FAQ_ITEMS = [
@@ -134,8 +134,8 @@ function getPriceQualifier(plan: (typeof websitePlans)[number]): string {
     const credits = plan.includedCredits?.toLocaleString();
 
     return plan.label === 'Cloud Teams'
-      ? `/month · 5 seats + ${credits} credits`
-      : `/month · ${credits} credits included`;
+      ? `5 seats + ${credits} credits`
+      : `${credits} credits included`;
   }
 
   return 'Custom terms';
@@ -149,6 +149,7 @@ export default function PricingContent() {
   const containerRef = useMarketingEntrance({ hero: false, sections: false });
   const paygSignUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
   const creatorSignUpHref = `${EnvironmentService.apps.app}/sign-up?plan=hosted`;
+  const enterprisePlan = websitePlans.find((p) => p.type === 'enterprise');
 
   return (
     <div ref={containerRef}>
@@ -176,10 +177,9 @@ export default function PricingContent() {
             className="[&_h2]:text-5xl mb-4"
           />
 
-          <NeuralGrid columns={4} className="gsap-grid">
+          <NeuralGrid columns={3} className="gsap-grid">
             {getOrderedPlans().map((plan, index) => {
               const isFeatured = plan.label === FEATURED_TIER;
-              const isEnterprise = plan.type === 'enterprise';
               const isPayg = plan.type === 'payg';
               const ctaHref = isPayg
                 ? paygSignUpHref
@@ -215,11 +215,16 @@ export default function PricingContent() {
                         <span className="text-5xl font-semibold tracking-[-0.03em]">
                           {formatPrice(plan.launchPrice)}
                         </span>
+                        {plan.type === 'subscription' ? (
+                          <span className="text-sm font-medium text-surface/40">
+                            /mo
+                          </span>
+                        ) : null}
                       </div>
                     ) : (
                       <div className="flex items-baseline gap-1.5">
                         <span className="text-5xl font-semibold tracking-[-0.03em]">
-                          {isEnterprise ? 'Custom' : formatPrice(plan.price)}
+                          {formatPrice(plan.price)}
                         </span>
                         {plan.type === 'subscription' ? (
                           <span className="text-sm font-medium text-surface/40">
@@ -276,6 +281,37 @@ export default function PricingContent() {
               );
             })}
           </NeuralGrid>
+
+          {enterprisePlan ? (
+            <div className="mt-4 flex flex-col gap-6 border border-edge/5 bg-background p-8 md:flex-row md:items-center md:justify-between">
+              <div className="max-w-2xl">
+                <div className="mb-3 text-[10px] font-black uppercase tracking-widest text-surface/45">
+                  Enterprise
+                </div>
+                <h3 className="mb-2 text-2xl font-semibold tracking-[-0.02em]">
+                  Your own studio, fully managed.
+                </h3>
+                <p className="text-sm leading-6 text-surface/50">
+                  Custom output terms, unlimited seats and organizations, full
+                  API access, white-label, SSO, and a dedicated account manager.
+                </p>
+              </div>
+              <Button
+                asChild
+                className="shrink-0"
+                size={ButtonSize.PUBLIC}
+                variant={ButtonVariant.OUTLINE}
+              >
+                <a
+                  href={enterprisePlan.ctaHref || EnvironmentService.calendly}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Book a Demo
+                </a>
+              </Button>
+            </div>
+          ) : null}
         </WebSection>
 
         <WebSection maxWidth="lg" py="md">
