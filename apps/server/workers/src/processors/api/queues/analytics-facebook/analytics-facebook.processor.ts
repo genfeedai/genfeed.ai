@@ -7,13 +7,13 @@ import {
   createProcessorCircuitBreaker,
   type ProcessorCircuitBreaker,
 } from '@api/shared/utils/circuit-breaker/circuit-breaker.util';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform } from '@genfeedai/enums';
 import {
   ANALYTICS_FACEBOOK_QUEUE,
   FacebookAnalyticsJobData,
 } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 

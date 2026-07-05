@@ -14,7 +14,6 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { GoogleAdsMetricsParams } from '@api/services/integrations/google-ads/interfaces/google-ads.interface';
 import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
 import { GoogleAdsOAuthService } from '@api/services/integrations/google-ads/services/google-ads-oauth.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform, MemberRole } from '@genfeedai/enums';
 import {
   CredentialOAuthSerializer,
@@ -22,6 +21,7 @@ import {
 } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {
   Body,
   Controller,

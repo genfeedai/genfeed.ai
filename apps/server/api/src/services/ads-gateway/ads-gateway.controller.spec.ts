@@ -15,9 +15,9 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AdsGatewayController } from '@api/services/ads-gateway/ads-gateway.controller';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import type { AdsAdapterContext } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
