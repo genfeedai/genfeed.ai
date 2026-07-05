@@ -4,7 +4,9 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import {
   AVATAR_CREDIT_COSTS,
   BYOK_CREDIT_VALUE_DOLLARS,
+  creditPackEffectiveRate,
   creditPackPrice,
+  creditPackSavingsPercent,
   creditPackTotalCredits,
   formatPrice,
   INTERNAL_CREDIT_COSTS,
@@ -55,6 +57,11 @@ const FAQ_ITEMS = [
     answer:
       'Pay As You Go includes 1 brand kit and 3 connected channels. Creator raises that to unlimited brands and 15 channels. Teams and Enterprise remove the channel limits and add organizations and seats.',
     question: 'How many brands and channels can I connect?',
+  },
+  {
+    answer:
+      'Yes. API access is included on every paid plan at the same credit price — generate in the studio or via code, and it draws from the same credit balance. Creator gets standard rate limits, Teams higher limits, and Enterprise custom limits with an SLA.',
+    question: 'Is there an API?',
   },
   {
     answer:
@@ -282,6 +289,12 @@ export default function PricingContent() {
             })}
           </NeuralGrid>
 
+          <p className="mt-6 text-center text-sm text-surface/50">
+            Every paid plan includes API access at the same credit price —
+            create in the studio or via code, and it draws from the same credit
+            balance. Higher plans get higher rate limits.
+          </p>
+
           {enterprisePlan ? (
             <div className="mt-4 flex flex-col gap-6 border border-edge/5 bg-background p-8 md:flex-row md:items-center md:justify-between">
               <div className="max-w-2xl">
@@ -339,24 +352,42 @@ export default function PricingContent() {
             ))}
           </div>
 
-          <div className="mt-px grid gap-px overflow-hidden border border-edge/5 bg-fill/5 sm:grid-cols-3">
-            {WEBSITE_CREDIT_PACKS.map((pack) => (
-              <div key={pack.label} className="bg-background px-5 py-4">
-                <div className="text-xs font-bold uppercase tracking-widest text-surface/35">
-                  {pack.label} pack
+          <p className="mt-8 mb-2 text-sm font-medium text-surface/70">
+            Buy more, pay less — bigger packs lower your effective per-credit
+            rate.
+          </p>
+          <div className="grid gap-px overflow-hidden border border-edge/5 bg-fill/5 sm:grid-cols-3">
+            {WEBSITE_CREDIT_PACKS.map((pack) => {
+              const savings = creditPackSavingsPercent(pack);
+
+              return (
+                <div key={pack.label} className="bg-background px-5 py-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-xs font-bold uppercase tracking-widest text-surface/35">
+                      {pack.label} pack
+                    </div>
+                    {savings > 0 ? (
+                      <span className="shrink-0 border border-success/40 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-success">
+                        Save {savings}%
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="mt-1 text-sm text-surface/65">
+                    ${creditPackPrice(pack).toLocaleString()} →{' '}
+                    {creditPackTotalCredits(pack).toLocaleString()} credits
+                    {pack.bonus ? (
+                      <span className="text-success">
+                        {' '}
+                        (+{pack.bonus.toLocaleString()} bonus)
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="mt-1 text-xs text-surface/40">
+                    ${creditPackEffectiveRate(pack).toFixed(4)}/credit
+                  </div>
                 </div>
-                <div className="mt-1 text-sm text-surface/65">
-                  ${creditPackPrice(pack).toLocaleString()} →{' '}
-                  {creditPackTotalCredits(pack).toLocaleString()} credits
-                  {pack.bonus ? (
-                    <span className="text-success">
-                      {' '}
-                      (+{pack.bonus.toLocaleString()} bonus)
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </WebSection>
 

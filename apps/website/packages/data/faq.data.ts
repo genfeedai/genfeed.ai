@@ -81,6 +81,11 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
       },
       {
         answer:
+          'Yes. API access is included on every paid plan at the same credit price — generate in the studio or via code, drawing from the same credit balance. Creator gets standard rate limits, Teams higher limits, and Enterprise custom limits with an SLA.',
+        question: 'Is there an API?',
+      },
+      {
+        answer:
           'Yes. Signing up costs nothing and there is no monthly fee on Pay As You Go: you buy credits and spend them on output. Developers can also self-host the open-source core from GitHub.',
         question: 'Is there a free option?',
       },

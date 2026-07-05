@@ -201,6 +201,7 @@ export const websitePlans: PricingPlanProps[] = [
       'Best model auto-routed for every job',
       'Unlimited brands',
       '15 connected channels',
+      'API access (standard rate limits)',
       'Top up with credit packs anytime',
       'Email support',
     ],
@@ -230,6 +231,7 @@ export const websitePlans: PricingPlanProps[] = [
       'Multi-organization account model',
       'Unlimited brands',
       'Roles and shared approvals',
+      'API access (higher rate limits)',
       'Priority support (24hr)',
       'Advanced analytics',
     ],
@@ -254,7 +256,7 @@ export const websitePlans: PricingPlanProps[] = [
       'Custom output terms',
       'Unlimited team seats',
       'Unlimited organizations and brand kits',
-      'Full API access',
+      'Full API access (custom rate limits + SLA)',
       'White-label (custom domain + branding)',
       'Dedicated Slack support',
       'SSO & team management',
@@ -481,6 +483,30 @@ export function creditsToOutputEstimate(credits: number): {
  */
 export function creditPackPrice(pack: CreditPackTier): number {
   return pack.credits * 0.01;
+}
+
+/**
+ * Base pay-as-you-go rate: 1 credit = $0.01. Bonus credits on larger packs
+ * lower the effective per-credit price — this is the volume discount.
+ */
+export const BASE_CREDIT_RATE = 0.01;
+
+/**
+ * Effective per-credit price for a pack: price ÷ total credits (base + bonus).
+ * Falls below BASE_CREDIT_RATE as bonus credits grow.
+ */
+export function creditPackEffectiveRate(pack: CreditPackTier): number {
+  return creditPackPrice(pack) / creditPackTotalCredits(pack);
+}
+
+/**
+ * Volume-discount percentage vs the base rate, rounded. Returns 0 when the
+ * pack has no bonus credits.
+ */
+export function creditPackSavingsPercent(pack: CreditPackTier): number {
+  return Math.round(
+    (1 - creditPackEffectiveRate(pack) / BASE_CREDIT_RATE) * 100,
+  );
 }
 
 /**
