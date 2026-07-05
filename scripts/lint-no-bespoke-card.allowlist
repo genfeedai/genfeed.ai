@@ -23,15 +23,6 @@ apps/app/src/features/workflows/nodes/UnknownWorkflowNode.tsx
 apps/app/src/features/workflows/nodes/TemplateCompatibilityNode.tsx
 apps/app/src/features/workflows/components/ui/card/NodeCard.tsx
 
-# ─── PERMANENT: dashed empty-state affordance ─────────────────────────────────
-# Not a content card — a "no items yet" empty state whose dashed 1px border is
-# the affordance (mirrors the dashed empty-state at WorkflowLibraryPage.tsx:163,
-# which the guard already tolerates via `border-2`). The shared empty-state
-# primitive (CardEmpty) supports a single action, but this surface has two
-# actions (Browse Templates + Create Workflow), so migrating it would be a
-# redesign. Kept as-is per #1271 ("mechanical consolidation, not a redesign").
-apps/app/src/features/workflows/pages/library/EmptyWorkflowState.tsx
-
 # ─── Verified NON-tripping (documented; no entry needed) ──────────────────────
 # These were audited and do NOT match the signature (single-side borders, no
 # rounded corner, or a real Card), so they need no allowlist entry:
