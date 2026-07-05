@@ -25,6 +25,7 @@ vi.mock('@services/core/environment.service', () => ({
     apps: {
       app: 'https://app.genfeed.ai',
     },
+    calendly: 'https://calendly.com/genfeed/demo',
   },
 }));
 
