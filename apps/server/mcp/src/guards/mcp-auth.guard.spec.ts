@@ -1,7 +1,12 @@
 import { IS_PUBLIC_KEY } from '@libs/decorators/public.decorator';
 import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
 import { AuthService } from '@mcp/services/auth.service';
-import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { RateLimitService } from '@mcp/services/rate-limit.service';
+import {
+  ExecutionContext,
+  HttpException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -19,11 +24,27 @@ describe('McpAuthGuard', () => {
     getAllAndOverride: vi.fn(),
   };
 
+  const allowedResult = {
+    allowed: true,
+    limit: 60,
+    remaining: 59,
+    resetAt: 0,
+    retryAfterSeconds: 0,
+  };
+
+  const mockRateLimitService = {
+    consume: vi.fn(),
+    keyFor: vi.fn().mockReturnValue('mcp:ratelimit:tok:abc'),
+  };
+
+  const mockResponse = { setHeader: vi.fn() };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         McpAuthGuard,
         { provide: AuthService, useValue: mockAuthService },
+        { provide: RateLimitService, useValue: mockRateLimitService },
         { provide: Reflector, useValue: mockReflector },
       ],
     }).compile();
@@ -31,6 +52,8 @@ describe('McpAuthGuard', () => {
     guard = module.get<McpAuthGuard>(McpAuthGuard);
     _authService = module.get<AuthService>(AuthService);
     _reflector = module.get<Reflector>(Reflector);
+    mockRateLimitService.consume.mockResolvedValue(allowedResult);
+    mockRateLimitService.keyFor.mockReturnValue('mcp:ratelimit:tok:abc');
   });
 
   afterEach(() => {
@@ -49,6 +72,7 @@ describe('McpAuthGuard', () => {
             authorization: authHeader,
           },
         }),
+        getResponse: vi.fn().mockReturnValue(mockResponse),
       }),
     } as unknown as ExecutionContext;
   };
@@ -116,6 +140,7 @@ describe('McpAuthGuard', () => {
         getHandler: vi.fn(),
         switchToHttp: vi.fn().mockReturnValue({
           getRequest: vi.fn().mockReturnValue(mockRequest),
+          getResponse: vi.fn().mockReturnValue(mockResponse),
         }),
       } as unknown as ExecutionContext;
 
@@ -148,6 +173,7 @@ describe('McpAuthGuard', () => {
         getHandler: vi.fn(),
         switchToHttp: vi.fn().mockReturnValue({
           getRequest: vi.fn().mockReturnValue(mockRequest),
+          getResponse: vi.fn().mockReturnValue(mockResponse),
         }),
       } as unknown as ExecutionContext;
 
@@ -166,6 +192,27 @@ describe('McpAuthGuard', () => {
       const context = createMockExecutionContext('Bearer bad-token');
 
       await expect(guard.canActivate(context)).rejects.toThrow('Invalid token');
+    });
+
+    it('throws 429 when the rate limit is exceeded, before auth runs', async () => {
+      mockReflector.getAllAndOverride.mockReturnValue(false);
+      mockAuthService.extractBearerToken.mockReturnValue('some-token');
+      mockRateLimitService.consume.mockResolvedValue({
+        allowed: false,
+        limit: 60,
+        remaining: 0,
+        resetAt: 123,
+        retryAfterSeconds: 42,
+      });
+      const context = createMockExecutionContext('Bearer some-token');
+
+      await expect(guard.canActivate(context)).rejects.toMatchObject({
+        status: 429,
+      });
+      expect(guard.canActivate(context)).rejects.toBeInstanceOf(HttpException);
+      // Auth must not run once the caller is over the limit.
+      expect(mockAuthService.authenticateRequest).not.toHaveBeenCalled();
+      expect(mockResponse.setHeader).toHaveBeenCalledWith('Retry-After', '42');
     });
   });
 

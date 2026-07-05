@@ -5,6 +5,7 @@ import { McpController } from '@mcp/mcp/controllers/mcp.controller';
 import { MCPService } from '@mcp/mcp/services/mcp.service';
 import { AuthService } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
+import { RateLimitService } from '@mcp/services/rate-limit.service';
 import { ServerService } from '@mcp/services/server.service';
 import { StreamableHttpService } from '@mcp/services/streamable-http.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
@@ -20,6 +21,7 @@ import { APP_GUARD } from '@nestjs/core';
     ClientService,
     MCPService,
     McpAuthGuard,
+    RateLimitService,
     ServerService,
     StreamableHttpService,
     ToolRegistryService,

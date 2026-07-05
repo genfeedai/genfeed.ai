@@ -1,9 +1,15 @@
 import { IS_PUBLIC_KEY } from '@libs/decorators/public.decorator';
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import {
+  applyRateLimitHeaders,
+  RateLimitService,
+} from '@mcp/services/rate-limit.service';
+import {
   CanActivate,
   ExecutionContext,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -13,6 +19,7 @@ import { Reflector } from '@nestjs/core';
 export class McpAuthGuard implements CanActivate {
   constructor(
     private readonly authService: AuthService,
+    private readonly rateLimitService: RateLimitService,
     private readonly reflector: Reflector,
   ) {}
 
@@ -27,8 +34,22 @@ export class McpAuthGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
+    const response = context.switchToHttp().getResponse();
     const authHeader = request.headers.authorization;
     const token = this.authService.extractBearerToken(authHeader);
+
+    // Same sliding window as the raw /mcp transport; keyed by hashed token
+    // (or IP when absent) so both entry points share one budget per caller.
+    const rateLimit = await this.rateLimitService.consume(
+      this.rateLimitService.keyFor(token, request.ip),
+    );
+    applyRateLimitHeaders(response, rateLimit);
+    if (!rateLimit.allowed) {
+      throw new HttpException(
+        `Rate limit exceeded. Retry after ${rateLimit.retryAfterSeconds}s.`,
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
 
     if (!token) {
       throw new UnauthorizedException(
