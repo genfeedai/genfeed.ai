@@ -26,7 +26,7 @@ Defaults:
   --config=${DEFAULT_CONFIG}
   --project=${DEFAULT_PROJECT}
   --scope=core
-  --retries=\${E2E_RETRIES:-0}`);
+  --retries  (unset: playwright.config.ts decides via E2E_RETRIES / isCI ? 2 : 0)`);
 }
 
 function parseShard(value) {
@@ -77,7 +77,11 @@ let config = DEFAULT_CONFIG;
 let project = DEFAULT_PROJECT;
 let scope = 'core';
 let shard = null;
-let retries = process.env.E2E_RETRIES ?? '0';
+// Retries are owned by playwright.config.ts (it reads E2E_RETRIES directly, else
+// isCI ? 2 : 0). This runner only forwards an EXPLICIT `--retries=` override and
+// must never inject a default — the old `?? '0'` clobbered the config's CI
+// default of 2 on the deploy gate, silently disabling flake retries there.
+let explicitRetries = null;
 
 for (let i = 0; i < ownArgs.length; i += 1) {
   const arg = ownArgs[i];
@@ -108,7 +112,7 @@ for (let i = 0; i < ownArgs.length; i += 1) {
   }
 
   if (arg.startsWith('--retries=')) {
-    retries = arg.slice('--retries='.length);
+    explicitRetries = arg.slice('--retries='.length);
     continue;
   }
 
@@ -139,14 +143,16 @@ if (project && !hasOption(playwrightArgs, '--project')) {
 
 args.push(`--shard=${shard}`);
 
-if (!hasOption(playwrightArgs, '--retries')) {
-  args.push(`--retries=${retries}`);
+// Only forward retries when explicitly overridden on the CLI; otherwise leave it
+// to playwright.config.ts (single authority — see explicitRetries above).
+if (explicitRetries !== null && !hasOption(playwrightArgs, '--retries')) {
+  args.push(`--retries=${explicitRetries}`);
 }
 
 args.push(...playwrightArgs);
 
 writeStdout(
-  `[e2e-sharded] running ${project || 'all projects'} shard ${shard} (scope: ${scope}, retries: ${retries})`,
+  `[e2e-sharded] running ${project || 'all projects'} shard ${shard} (scope: ${scope}, retries: ${explicitRetries ?? 'config/E2E_RETRIES'})`,
 );
 
 const result = spawnSync('bunx', args, {

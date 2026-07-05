@@ -280,7 +280,6 @@ export interface IEnvConfig {
 
   // === FFmpeg (Files service) ===
   FFMPEG_THREADS?: number;
-  FFMPEG_PATH?: string;
   FFMPEG_VIDEO_CODEC?: string;
   FFMPEG_AUDIO_CODEC?: string;
   FFMPEG_CRF?: string;

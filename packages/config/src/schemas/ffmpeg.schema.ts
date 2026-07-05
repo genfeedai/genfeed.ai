@@ -7,7 +7,6 @@ export const ffmpegSchema = {
   FFMPEG_AUDIO_CODEC: Joi.string().optional(),
   FFMPEG_CRF: Joi.string().optional(),
   FFMPEG_MAX_PROCESSES: Joi.string().optional(),
-  FFMPEG_PATH: Joi.string().optional(),
   FFMPEG_PIXEL_FORMAT: Joi.string().optional(),
   FFMPEG_PRESET: Joi.string().optional(),
   FFMPEG_TEMP_DIR: Joi.string().optional(),

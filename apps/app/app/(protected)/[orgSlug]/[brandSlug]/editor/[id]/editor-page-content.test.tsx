@@ -544,12 +544,18 @@ describe('EditorPageContent', () => {
   it('supports keyboard shortcuts without hijacking form inputs', async () => {
     await renderLoadedEditor();
 
-    // The shortcut handler seeks via previewRef.current?.seekToFrame(...),
-    // which is optional-chained: it silently no-ops until the preview ref is
-    // populated (a commit after the loaded UI text appears). Probe with Home
-    // (deterministic seek to 0) until the handler actually fires, then reset so
-    // the assertions below start from a known-wired state. Without this, the
-    // first ArrowRight can land before the ref is set and the test flakes.
+    // The shortcut handler is attached by a useEffect (passive-effect phase:
+    // window.addEventListener('keydown', ...) in useEditorPageContent). That
+    // phase can flush AFTER findByText('Launch Reel') resolves, so the very
+    // first synthetic keydown may land before the listener exists and be
+    // dropped entirely — the deploy-gate failure showed only 3 of 4 seeks, with
+    // the first ArrowRight→seek(1) missing (calls were [0, 0, 119]). The
+    // previewRef itself (useImperativeHandle → layout-effect) is wired earlier,
+    // so this is a listener-registration race, not a ref-population one. Probe
+    // with Home (deterministic seek to 0) until the handler responds — proving
+    // both listener and ref are live — then reset for the real assertions. The
+    // component is not racy in production: the listener attaches before any human
+    // could press a key; only the synchronous test needs this settle.
     await waitFor(() => {
       fireEvent.keyDown(window, { key: 'Home' });
       expect(mocks.seekToFrame).toHaveBeenCalledWith(0);

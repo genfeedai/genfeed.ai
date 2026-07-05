@@ -107,19 +107,24 @@ jobs:
           flags: api-e2e
           fail_ci_if_error: false
 
-  # Frontend Core E2E — sharded 12-way. Each shard is an independent machine
-  # running ~1/12 of the app-core specs with 2 workers, so a fix only needs the
-  # affected shard re-run ("Re-run failed jobs" carries the green shards forward
-  # unchanged). fail-fast:false keeps every shard's result independent.
+  # Frontend Core E2E — sharded 4-way. The CI "core" scope is only ~7 spec files
+  # (smoke/ + core/ + one shell contract; see scripts/e2e-sharded.mjs), whose
+  # actual test time is ~1 min. 12 shards spun up 12 VMs — 12 installs, 12 app
+  # builds, 12 independent flake dice — for that ~1 min of work, and each job
+  # rolls the ffmpeg/browser/timing dice that, via cancel-doomed-run, can cancel
+  # the whole deploy. 4 shards (~2 files each) is the right balance: ~2 min more
+  # test wall on a gate whose CI stage already takes 20+ min, minus 8 flake
+  # sources from the deploy AND-gate. Each shard is independent (fail-fast:false),
+  # so "Re-run failed jobs" carries the green shards forward unchanged.
   e2e-frontend:
-    name: Frontend E2E (Shard ${{ matrix.shard }}/12)
+    name: Frontend E2E (Shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
       fail-fast: false
-      max-parallel: 12
+      max-parallel: 4
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v5
 
@@ -144,7 +149,7 @@ jobs:
           # api-interceptor mocks; localhost:3010 is NOT intercepted.
           NEXT_PUBLIC_API_ENDPOINT: https://api.genfeed.ai/v1
 
-      - name: Run core E2E shard ${{ matrix.shard }}/12
+      - name: Run core E2E shard ${{ matrix.shard }}/4
         # --reporter=blob (passed inline, overriding the config reporter) so the
         # merge job can stitch all shards into one HTML report. The helper keeps
         # local and CI sharding behavior identical.
@@ -153,15 +158,22 @@ jobs:
           CI: true
           APP_BASE_URL: http://localhost:3000
           E2E_EXPECT_TIMEOUT_MS: "15000"
-          # Retry flaky specs twice in CI (Playwright only retries on failure, so
-          # a green shard pays zero cost). On the deploy path this suite gates the
-          # whole production release via cancel-doomed-run, so one browser/timing
-          # flake across 12 shards would otherwise cancel the entire deploy. A
-          # single flake taking up to 3x on its shard is an acceptable trade to
-          # stop losing green deploys to luck.
-          E2E_RETRIES: "2"
+          # Retry policy is split by trigger, and E2E_RETRIES is now the SINGLE
+          # source of truth (playwright.config.ts reads it directly;
+          # scripts/e2e-sharded.mjs no longer injects a competing --retries=0).
+          #  - deploy/dispatch/full-suite path → 2: this suite gates the whole
+          #    production release via cancel-doomed-run, so one browser/timing
+          #    flake would otherwise cancel the deploy. Playwright only retries on
+          #    failure, so green shards pay zero cost.
+          #  - nightly cron (schedule) → 0: retries there would mask flake and
+          #    silence the alarm the nightly exists to raise. Keep it honest.
+          # Written as `!= 'schedule' && '2' || '0'` on purpose: GitHub Actions
+          # coerces the string '0' to falsy, so a `== 'schedule' && '0' || '2'`
+          # form would wrongly yield 2 for the nightly. Keeping '0' in the `||`
+          # fallback position (never the `&&` result) sidesteps that coercion.
+          E2E_RETRIES: ${{ github.event_name != 'schedule' && '2' || '0' }}
           E2E_SHARD_INDEX: ${{ matrix.shard }}
-          E2E_TOTAL_SHARDS: "12"
+          E2E_TOTAL_SHARDS: "4"
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
           NEXT_PUBLIC_BETTER_AUTH_ENABLED: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
 
