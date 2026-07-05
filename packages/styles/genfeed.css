@@ -383,6 +383,65 @@
   }
 }
 
+/* Ambient content wash — a low-opacity radial tint DERIVED from the focused
+   media's dominant colour (set via the inline `--gen-ambient-color` custom
+   property). Sits behind content, never on chrome. This is the sanctioned
+   content-derived ambient treatment from DESIGN.md → "Color Entry", not a
+   chrome glow: it is a background radial, carries no box-shadow, and disables
+   when no colour is supplied. Opacity is theme-aware (dark-first). */
+.gen-ambient-wash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.16;
+  background: radial-gradient(
+    120% 120% at 50% 0%,
+    var(--gen-ambient-color, transparent) 0%,
+    transparent 62%
+  );
+  transition:
+    opacity 700ms ease,
+    background 700ms ease;
+
+  :root[data-theme="light"] &,
+  .light & {
+    opacity: 0.09;
+  }
+}
+
+.gen-ambient-wash--center {
+  background: radial-gradient(
+    100% 100% at 50% 50%,
+    var(--gen-ambient-color, transparent) 0%,
+    transparent 60%
+  );
+}
+
+.gen-ambient-wash--subtle {
+  opacity: 0.09;
+
+  :root[data-theme="light"] &,
+  .light & {
+    opacity: 0.05;
+  }
+}
+
+.gen-ambient-wash--bold {
+  opacity: 0.24;
+
+  :root[data-theme="light"] &,
+  .light & {
+    opacity: 0.14;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gen-ambient-wash {
+    transition: none;
+  }
+}
+
 .gen-contact-sheet {
   box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.5);
   border: 1px solid var(--gen-accent-border);
