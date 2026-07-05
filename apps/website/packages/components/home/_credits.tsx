@@ -4,7 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import {
   creditPackPrice,
   creditPackTotalCredits,
-  getHostedPlan,
+  getProPlan,
   WEBSITE_CREDIT_PACKS,
 } from '@helpers/business/pricing/pricing.helper';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -22,7 +22,7 @@ const CREDIT_EXPLAINERS = [
 ] as const;
 
 export default function HomeCredits(): React.ReactElement {
-  const hostedPlan = getHostedPlan();
+  const proPlan = getProPlan();
 
   return (
     <section
@@ -82,9 +82,9 @@ export default function HomeCredits(): React.ReactElement {
           ))}
         </div>
 
-        {hostedPlan.launchNote ? (
+        {proPlan.launchNote ? (
           <Text className="mt-8 text-center text-xs font-semibold uppercase tracking-widest text-surface/50">
-            {hostedPlan.launchNote}
+            {proPlan.launchNote}
           </Text>
         ) : null}
 
