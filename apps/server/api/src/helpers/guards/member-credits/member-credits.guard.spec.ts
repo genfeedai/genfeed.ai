@@ -5,9 +5,10 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { MemberCreditsGuard } from '@api/helpers/guards/member-credits/member-credits.guard';
 import { ByokService } from '@api/services/byok/byok.service';
+import { SubscriptionTier } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import type { ExecutionContext } from '@nestjs/common';
+import { type ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
 const createContext = (): ExecutionContext => {
@@ -74,6 +75,58 @@ describe('MemberCreditsGuard', () => {
     expect(result).toBe(true);
     expect(spy).toHaveBeenCalled();
     expect(context.switchToHttp().getRequest().seatsLimit).toBeDefined();
+
+    spy.mockRestore();
+  });
+
+  it.each([
+    SubscriptionTier.SCALE,
+    SubscriptionTier.ENTERPRISE,
+  ])('allows adding members without the credit gate for the %s tier', async (tier) => {
+    const spy = vi
+      .spyOn(CreditsGuard.prototype, 'canActivate')
+      .mockResolvedValue(true);
+
+    // Stored seatsLimit is well below the member count: an unlimited tier
+    // must ignore it and never fall through to the credit path.
+    organizationSettingsService.findOne.mockResolvedValue({
+      id: '507f191e810c19729de860ee',
+      seatsLimit: 3,
+      subscriptionTier: tier,
+    });
+    membersService.findAll.mockResolvedValue({
+      docs: new Array(50).fill(1),
+    });
+
+    const context = createContext();
+    const result = await guard.canActivate(context);
+
+    expect(result).toBe(true);
+    expect(spy).not.toHaveBeenCalled();
+    expect(context.switchToHttp().getRequest().seatsLimit).toBeUndefined();
+
+    spy.mockRestore();
+  });
+
+  it('throws once an unlimited tier hits the fair-use ceiling', async () => {
+    const spy = vi
+      .spyOn(CreditsGuard.prototype, 'canActivate')
+      .mockResolvedValue(true);
+
+    organizationSettingsService.findOne.mockResolvedValue({
+      id: '507f191e810c19729de860ee',
+      seatsLimit: 3,
+      subscriptionTier: SubscriptionTier.ENTERPRISE,
+    });
+    // At the fair-use ceiling — a defensive abuse backstop, not a billing gate.
+    membersService.findAll.mockResolvedValue({
+      docs: new Array(1000).fill(1),
+    });
+
+    await expect(guard.canActivate(createContext())).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+    expect(spy).not.toHaveBeenCalled();
 
     spy.mockRestore();
   });

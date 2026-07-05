@@ -2,6 +2,10 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { MembersService } from '@api/collections/members/services/members.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import {
+  resolveEffectiveSeatsLimit,
+  UNLIMITED_SEATS_FAIR_USE_CEILING,
+} from '@api/collections/organization-settings/utils/seat-policy.util';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ByokService } from '@api/services/byok/byok.service';
 import { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
@@ -10,6 +14,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import {
   type CanActivate,
   type ExecutionContext,
+  ForbiddenException,
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
@@ -69,7 +74,24 @@ export class MemberCreditsGuard extends CreditsGuard implements CanActivate {
 
     const activeMembersCount = activeMembers.docs.length;
 
-    if (activeMembersCount < settings.seatsLimit) {
+    const effectiveSeatsLimit = resolveEffectiveSeatsLimit(
+      settings.subscriptionTier,
+      settings.seatsLimit,
+    );
+
+    // Unlimited-seat tiers (Cloud Teams / Enterprise): seats are included, so
+    // adding a member is never a billing gate. A single high fair-use ceiling
+    // guards against abuse/DB bloat only — it is not a product limit.
+    if (effectiveSeatsLimit === null) {
+      if (activeMembersCount >= UNLIMITED_SEATS_FAIR_USE_CEILING) {
+        throw new ForbiddenException(
+          'Team seat count exceeds the fair-use ceiling. Contact support to raise it.',
+        );
+      }
+      return true;
+    }
+
+    if (activeMembersCount < effectiveSeatsLimit) {
       return true;
     }
 
