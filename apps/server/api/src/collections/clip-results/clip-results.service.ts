@@ -23,6 +23,7 @@ const RESULT_SCALAR_KEYS = new Set([
   'id',
   'isDeleted',
   'isSelected',
+  'mode',
   'mongoId',
   'organization',
   'organizationId',
@@ -167,6 +168,7 @@ export class ClipResultsService extends BaseService<
 
     this.assignIfOwn(data, dto, 'providerJobId');
     this.assignIfOwn(data, dto, 'viralityScore');
+    this.assignIfOwn(data, dto, 'mode');
     this.assignIfOwn(data, dto, 'status');
     this.assignIfOwn(data, dto, 'isSelected');
     this.assignIfOwn(data, dto, 'readiness');
