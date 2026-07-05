@@ -135,7 +135,7 @@ export function useAgentStrategiesPage() {
     async (strategy: AgentStrategy) => {
       try {
         const service = await getService();
-        await service.toggle(strategy.id);
+        await service.setActive(strategy.id, !strategy.isActive);
         notificationsService.success(
           strategy.isActive ? 'Strategy paused' : 'Strategy activated',
         );

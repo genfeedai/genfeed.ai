@@ -11,7 +11,7 @@ import { HiOutlinePlayCircle } from 'react-icons/hi2';
 
 type Props = {
   onRunNow: (strategyId: string) => Promise<void>;
-  onToggle: (strategyId: string) => Promise<void>;
+  onToggle: (strategyId: string, isActive: boolean) => Promise<void>;
   strategy: AgentStrategy;
 };
 
@@ -80,7 +80,7 @@ export default function ContentTeamMemberCard({
         />
         <Button
           label={strategy.isActive ? 'Pause' : 'Activate'}
-          onClick={() => onToggle(strategy.id)}
+          onClick={() => onToggle(strategy.id, !strategy.isActive)}
           size={ButtonSize.SM}
           variant={ButtonVariant.SECONDARY}
         />

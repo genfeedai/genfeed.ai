@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { GetForecastDto } from '@api/collections/insights/dto/forecast.dto';
 import { PredictViralDto } from '@api/collections/insights/dto/predict-viral.dto';
+import { UpdateInsightDto } from '@api/collections/insights/dto/update-insight.dto';
 import { InsightsService } from '@api/collections/insights/services/insights.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
@@ -217,34 +218,21 @@ export class InsightsController {
   }
 
   /**
-   * Mark insight as read
+   * Update an insight's read/dismissed flags.
    */
-  @Patch(':insightId/read')
+  @Patch(':insightId')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async markAsRead(
+  async updateInsight(
     @Req() req: Request,
     @Param('insightId') insightId: string,
     @CurrentUser() user: User,
+    @Body() dto: UpdateInsightDto,
   ) {
     const { organization } = getPublicMetadata(user);
-    const data = await this.insightsService.markAsRead(insightId, organization);
-    return serializeSingle(req, InsightSerializer, data);
-  }
-
-  /**
-   * Mark insight as dismissed
-   */
-  @Patch(':insightId/dismiss')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async markAsDismissed(
-    @Req() req: Request,
-    @Param('insightId') insightId: string,
-    @CurrentUser() user: User,
-  ) {
-    const { organization } = getPublicMetadata(user);
-    const data = await this.insightsService.markAsDismissed(
+    const data = await this.insightsService.update(
       insightId,
       organization,
+      dto,
     );
     return serializeSingle(req, InsightSerializer, data);
   }
