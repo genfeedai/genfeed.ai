@@ -894,6 +894,26 @@ export abstract class BaseService<
         throw new ValidationException('Search parameters are required');
       }
 
+      // Guard: a primary-key lookup with a missing id must never fall through
+      // to an unscoped findFirst. normalizeWhere drops undefined values, so
+      // `findOne({ _id: undefined })` would silently return the first row in
+      // the table — a cross-tenant read. Treat it as "not found" instead.
+      const voidableIdKeys = ['_id', 'id'] as const;
+      const hasVoidIdParam = voidableIdKeys.some(
+        (key) =>
+          key in params &&
+          (params[key] === undefined ||
+            params[key] === null ||
+            params[key] === ''),
+      );
+      if (hasVoidIdParam) {
+        this.logger?.warn(
+          'findOne called with an empty identifier — returning null instead of an unscoped first-row read',
+          { model: this.modelName, params },
+        );
+        return null;
+      }
+
       this.logger?.debug('Finding document', { params, populate });
 
       const where = this.normalizeWhere(params);
