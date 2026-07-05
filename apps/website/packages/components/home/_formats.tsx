@@ -7,12 +7,12 @@ import {
   INTERNAL_CREDIT_COSTS,
   VIDEO_CREDIT_COSTS,
 } from '@helpers/business/pricing/pricing.helper';
+import type { OutputFormat } from '@props/website/home.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import { VStack } from '@ui/layout/stack';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
-import type { OutputFormat } from '@props/website/home.props';
 import Image from 'next/image';
 import { LuArrowRight } from 'react-icons/lu';
 

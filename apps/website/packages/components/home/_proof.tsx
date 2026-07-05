@@ -1,9 +1,9 @@
 'use client';
 
+import type { ExampleCampaign } from '@props/website/home.props';
 import { HStack, VStack } from '@ui/layout/stack';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
-import type { ExampleCampaign } from '@props/website/home.props';
 
 const EYEBROW_CLASS =
   'text-xs font-bold uppercase tracking-widest text-surface/65';

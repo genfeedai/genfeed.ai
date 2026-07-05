@@ -2,12 +2,12 @@
 
 import { ButtonSize } from '@genfeedai/enums';
 import { getHostedPlan } from '@helpers/business/pricing/pricing.helper';
+import type { AudienceBenefit } from '@props/website/home.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import { HStack, VStack } from '@ui/layout/stack';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
-import type { AudienceBenefit } from '@props/website/home.props';
 import Link from 'next/link';
 import { HiBuildingOffice2, HiUser } from 'react-icons/hi2';
 import { LuArrowRight, LuCheck } from 'react-icons/lu';
