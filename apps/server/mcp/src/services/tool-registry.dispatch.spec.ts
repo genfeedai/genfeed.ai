@@ -36,6 +36,10 @@ describe('ToolRegistryService.classify', () => {
     ['start_training', 'training-pipeline'],
     ['generate_darkroom_content', 'darkroom-generation'],
     ['post_social_reply', 'social-messages'],
+    // OpenAPI-generated tools (#1248): the `__` namespace routes to the
+    // generated executor kind so the boot drift guard stays green pre-#1249.
+    ['brands__create', 'generated'],
+    ['content_plans__find_all', 'generated'],
     ['a_tool_that_does_not_exist', 'unknown'],
     // resolve_approval is handled upstream in handleToolCall, so it is not a
     // classify-dispatch target.
@@ -73,6 +77,9 @@ describe('ToolRegistryService.validateDispatchCoverage', () => {
       { name: 'get_video_status' },
       { name: 'list_meta_campaigns' },
       { name: 'resolve_approval' },
+      // A generated tool must route (to the 'generated' kind), not trip the
+      // guard, even though its dispatcher does not exist yet (#1249).
+      { name: 'brands__create' },
       ...approvalGated.map((name) => ({ name })),
     ];
     expect(() => ToolRegistryService.validateDispatchCoverage()).not.toThrow();

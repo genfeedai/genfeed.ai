@@ -130,6 +130,17 @@ const isDarkroomGenerationTool = (name: string): boolean =>
   name === 'get_darkroom_job_status';
 
 /**
+ * OpenAPI-generated MCP tools (#1248) are namespaced `<domain>__<action>`; the
+ * `__` separator is never used by a hand-authored tool (asserted in the
+ * `@genfeedai/tools` registry tests), so it uniquely identifies the generated
+ * baseline. These tools are surfaced for discovery but their generic API
+ * dispatcher is the next sub-issue (#1249) — until then they classify to their
+ * own executor kind (keeping the boot drift guard green) and calling one returns
+ * a clear "not wired yet" error rather than a boot crash.
+ */
+const isGeneratedTool = (name: string): boolean => name.includes('__');
+
+/**
  * Which executor handles a tool name. `'unknown'` means no dispatch path exists
  * — the drift guard rejects any MCP-surfaced tool that classifies as unknown so
  * a registry/handler mismatch fails the boot health check instead of surfacing
@@ -149,6 +160,7 @@ type ExecutorKind =
   | 'training-pipeline'
   | 'darkroom-generation'
   | 'social-messages'
+  | 'generated'
   | 'unknown';
 
 /**
@@ -358,6 +370,10 @@ export class ToolRegistryService implements OnModuleInit {
     if (TRAINING_PIPELINE_TOOL_NAMES.has(name)) return 'training-pipeline';
     if (isDarkroomGenerationTool(name)) return 'darkroom-generation';
     if (SOCIAL_MESSAGES_TOOL_NAMES.has(name)) return 'social-messages';
+    // Checked last: a hand-authored tool that (hypothetically) matched an
+    // earlier branch keeps its real executor; only otherwise-unclassified
+    // `<domain>__<action>` names fall through to the generated baseline.
+    if (isGeneratedTool(name)) return 'generated';
     return 'unknown';
   }
 
@@ -387,6 +403,15 @@ export class ToolRegistryService implements OnModuleInit {
         return handleDarkroomGenerationTool(this.clientService, name, args);
       case 'social-messages':
         return handleSocialMessagesTool(this.clientService, name, args);
+      case 'generated':
+        // Generated tools are surfaced for discovery (#1248) but their generic
+        // authenticated API dispatcher lands in #1249. Fail with a clear,
+        // actionable message instead of a misleading "Unknown tool".
+        throw new Error(
+          `Generated MCP tool "${name}" is not executable yet — its API ` +
+            'dispatcher arrives in a follow-up (#1249). It is currently ' +
+            'exposed for discovery only.',
+        );
       default:
         throw new Error(`Unknown tool: ${name}`);
     }
