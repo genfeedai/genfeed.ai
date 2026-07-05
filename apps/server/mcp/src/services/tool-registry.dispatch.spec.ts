@@ -13,12 +13,17 @@ import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 
 const mockState = vi.hoisted(() => ({
   tools: [] as { name: string }[],
+  generatedNames: new Set<string>(),
 }));
 
 vi.mock('@genfeedai/tools', () => ({
   getToolByName: vi.fn(),
   getToolsForSurface: vi.fn(() => mockState.tools),
   toMcpTools: vi.fn((tools) => tools),
+  isGeneratedApiTool: vi.fn((name: string) =>
+    mockState.generatedNames.has(name),
+  ),
+  isGeneratedWriteTool: vi.fn(() => false),
 }));
 
 describe('ToolRegistryService.classify', () => {
@@ -42,6 +47,16 @@ describe('ToolRegistryService.classify', () => {
     ['resolve_approval', 'unknown'],
   ])('classifies %s as %s', (name, kind) => {
     expect(ToolRegistryService.classify(name)).toBe(kind);
+  });
+
+  it('classifies an OpenAPI-generated tool as openapi-generic', () => {
+    mockState.generatedNames = new Set(['api_clip_projects_create']);
+    expect(ToolRegistryService.classify('api_clip_projects_create')).toBe(
+      'openapi-generic',
+    );
+    // A name the registry does not know is still unknown, even api_-prefixed.
+    expect(ToolRegistryService.classify('api_not_generated')).toBe('unknown');
+    mockState.generatedNames = new Set();
   });
 });
 

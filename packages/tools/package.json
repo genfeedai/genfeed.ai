@@ -29,6 +29,7 @@
     "build": "tsc --build && test -f dist/index.js",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
+    "gen:openapi-tools": "bun run scripts/generate-openapi-tools.ts",
     "test": "vitest run --config vitest.config.ts",
     "type-check": "tsc --noEmit"
   },

@@ -29,6 +29,8 @@ vi.mock('@genfeedai/tools', () => ({
     },
   ]),
   toMcpTools: vi.fn((tools: unknown) => tools),
+  isGeneratedApiTool: vi.fn(() => false),
+  isGeneratedWriteTool: vi.fn(() => false),
 }));
 
 vi.mock('@mcp/services/client.service', () => ({

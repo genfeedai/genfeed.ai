@@ -109,6 +109,7 @@ export class StreamableHttpService {
       clientService,
       this.logger,
       authContext?.role ?? 'user',
+      this.configService.get('MCP_GENERATED_TOOLS_ADVERTISED') === true,
     );
 
     const server = new Server(

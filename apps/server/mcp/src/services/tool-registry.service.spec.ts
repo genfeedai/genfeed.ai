@@ -159,6 +159,8 @@ vi.mock('@genfeedai/tools', () => ({
   getToolByName: vi.fn((name: string) => TOOLS_BY_NAME.get(name)),
   getToolsForSurface: vi.fn(() => MOCK_TOOLS),
   toMcpTools: vi.fn((tools) => tools),
+  isGeneratedApiTool: vi.fn(() => false),
+  isGeneratedWriteTool: vi.fn(() => false),
 }));
 
 vi.mock('@mcp/guards/mcp-auth.guard', () => ({

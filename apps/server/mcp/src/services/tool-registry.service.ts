@@ -2,6 +2,8 @@ import { AgentToolName, type AgentToolResult } from '@genfeedai/interfaces';
 import {
   getToolByName,
   getToolsForSurface,
+  isGeneratedApiTool,
+  isGeneratedWriteTool,
   toMcpTools,
 } from '@genfeedai/tools';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -19,6 +21,7 @@ import { handleAgentChatTool } from '@mcp/tools/agent-chat.tool';
 import { handleDarkroomGenerationTool } from '@mcp/tools/darkroom-generation.tool';
 import { handleGoogleAdsTool } from '@mcp/tools/google-ads.tool';
 import { handleMetaAdsTool } from '@mcp/tools/meta-ads.tool';
+import { handleOpenApiGenericTool } from '@mcp/tools/openapi-generic.tool';
 import {
   handleSocialMessagesTool,
   SOCIAL_MESSAGES_TOOL_NAMES,
@@ -149,6 +152,7 @@ type ExecutorKind =
   | 'training-pipeline'
   | 'darkroom-generation'
   | 'social-messages'
+  | 'openapi-generic'
   | 'unknown';
 
 /**
@@ -236,6 +240,10 @@ export class ToolRegistryService implements OnModuleInit {
     // resolved as a DI singleton (e.g. `ServerService`), there is no per-request
     // role, so it falls back to `'user'` — deny-by-default for admin tools.
     @Optional() private readonly requestRole: McpRole = 'user',
+    // When false (default), OpenAPI-generated tools (#1246) are withheld from
+    // the advertised `tools/list` — they remain callable-by-name and
+    // approval-gated. `buildServer` forwards MCP_GENERATED_TOOLS_ADVERTISED.
+    @Optional() private readonly advertiseGeneratedTools: boolean = false,
   ) {}
 
   /**
@@ -244,7 +252,14 @@ export class ToolRegistryService implements OnModuleInit {
    * cannot invoke.
    */
   getAllTools(): McpTool[] {
-    return toMcpTools(getToolsForSurface('mcp')) as McpTool[];
+    const tools = toMcpTools(getToolsForSurface('mcp')) as McpTool[];
+    // OpenAPI-generated tools stay callable-by-name and approval-gated, but are
+    // withheld from the advertised list unless MCP_GENERATED_TOOLS_ADVERTISED is
+    // set — ~1165 generated tools would otherwise swamp client tool pickers
+    // before the ergonomic filtering layer (#1252) lands. The boot-time drift
+    // guard still validates the full surface (it reads getToolsForSurface).
+    if (this.advertiseGeneratedTools) return tools;
+    return tools.filter((tool) => !isGeneratedApiTool(tool.name));
   }
 
   /**
@@ -309,8 +324,11 @@ export class ToolRegistryService implements OnModuleInit {
         return await this.handleResolveApproval(args ?? {});
       }
 
-      // Mutating tools persist a pending approval instead of executing.
-      if (APPROVAL_REQUIRED_TOOLS.has(name)) {
+      // Mutating tools persist a pending approval instead of executing. Curated
+      // writes are enumerated in APPROVAL_REQUIRED_TOOLS; OpenAPI-generated
+      // writes (#1250) are gated by HTTP verb (POST/PATCH/PUT/DELETE) so all
+      // ~656 generated mutations are covered without a hand-maintained list.
+      if (APPROVAL_REQUIRED_TOOLS.has(name) || isGeneratedWriteTool(name)) {
         const approval = await this.clientService.createApproval(
           name,
           args ?? {},
@@ -358,6 +376,9 @@ export class ToolRegistryService implements OnModuleInit {
     if (TRAINING_PIPELINE_TOOL_NAMES.has(name)) return 'training-pipeline';
     if (isDarkroomGenerationTool(name)) return 'darkroom-generation';
     if (SOCIAL_MESSAGES_TOOL_NAMES.has(name)) return 'social-messages';
+    // OpenAPI-generated tools (#1246) resolve last: their `api_*` namespace never
+    // overlaps a curated set, so precedence here never changes existing routing.
+    if (isGeneratedApiTool(name)) return 'openapi-generic';
     return 'unknown';
   }
 
@@ -387,6 +408,17 @@ export class ToolRegistryService implements OnModuleInit {
         return handleDarkroomGenerationTool(this.clientService, name, args);
       case 'social-messages':
         return handleSocialMessagesTool(this.clientService, name, args);
+      case 'openapi-generic': {
+        // The generic dispatcher returns raw unwrapped API data (not an
+        // AgentToolResult envelope); errors are thrown by the client and caught
+        // by handleToolCall's try/catch, so the success path just formats data.
+        const result = await handleOpenApiGenericTool(
+          this.clientService,
+          name,
+          args,
+        );
+        return this.toMcpDataResult(result);
+      }
       default:
         throw new Error(`Unknown tool: ${name}`);
     }
@@ -521,6 +553,22 @@ export class ToolRegistryService implements OnModuleInit {
       content: [
         {
           text: JSON.stringify(payload, null, 2),
+          type: 'text',
+        },
+      ],
+    };
+  }
+
+  /**
+   * Wrap raw API data (from the generic OpenAPI dispatcher) into the MCP text
+   * result shape. Unlike {@link toMcpResult}, there is no success/error envelope
+   * — non-2xx responses throw upstream and are surfaced by handleToolCall.
+   */
+  private toMcpDataResult(data: unknown) {
+    return {
+      content: [
+        {
+          text: JSON.stringify(data ?? {}, null, 2),
           type: 'text',
         },
       ],

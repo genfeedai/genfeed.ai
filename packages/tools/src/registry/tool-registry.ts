@@ -1,3 +1,5 @@
+import { GENERATED_MCP_TOOLS } from '../generated/index.js';
+import type { SourceTool } from '../interfaces/source-tool.interface.js';
 import type {
   CanonicalToolDefinition,
   ToolCategory,
@@ -119,7 +121,19 @@ const roleWeight: Record<ToolRequiredRole, number> = {
   user: 0,
 };
 
-export const ALL_TOOLS: CanonicalToolDefinition[] = SOURCE_TOOLS.map(
+const curatedNames = new Set(SOURCE_TOOLS.map((tool) => tool.name));
+
+/**
+ * Curated tools plus OpenAPI-generated tools (#1246). Curated definitions are
+ * canonical: a generated tool whose name a curated tool already claims is
+ * dropped (generated names are `api_*`-namespaced, so no clash exists today).
+ */
+const REGISTERED_TOOLS: SourceTool[] = [
+  ...SOURCE_TOOLS,
+  ...GENERATED_MCP_TOOLS.filter((tool) => !curatedNames.has(tool.name)),
+];
+
+export const ALL_TOOLS: CanonicalToolDefinition[] = REGISTERED_TOOLS.map(
   (tool) => ({
     category: inferCategory(tool.name),
     creditCost: tool.creditCost,

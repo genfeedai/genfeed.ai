@@ -21,6 +21,8 @@ vi.mock('@genfeedai/tools', () => ({
   ),
   getToolsForSurface: vi.fn(() => []),
   toMcpTools: vi.fn((tools) => tools),
+  isGeneratedApiTool: vi.fn(() => false),
+  isGeneratedWriteTool: vi.fn(() => false),
 }));
 
 function build(role: 'user' | 'admin') {

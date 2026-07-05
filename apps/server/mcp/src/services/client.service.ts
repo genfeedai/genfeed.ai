@@ -1,4 +1,5 @@
 import type { AgentToolResult } from '@genfeedai/interfaces';
+import type { GeneratedRoute } from '@genfeedai/tools';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
 import { AdsClient } from '@mcp/services/client/ads.client';
@@ -19,6 +20,7 @@ import { ContentClient } from '@mcp/services/client/content.client';
 import { DarkroomClient } from '@mcp/services/client/darkroom.client';
 import { LinkedInClient } from '@mcp/services/client/linkedin.client';
 import { MediaClient } from '@mcp/services/client/media.client';
+import { OpenApiClient } from '@mcp/services/client/openapi.client';
 import {
   type SocialActionParams,
   type SocialConversationDetail,
@@ -112,6 +114,7 @@ export class ClientService {
   // False positive below: the 14-char type name "LinkedInClient" next to the
   // `linkedin` identifier matches the default gitleaks linkedin-client-id rule.
   private readonly linkedin: LinkedInClient; // gitleaks:allow
+  private readonly openApi: OpenApiClient;
 
   constructor(
     logger: LoggerService,
@@ -129,6 +132,7 @@ export class ClientService {
     this.darkroom = new DarkroomClient(this.base);
     this.socialMessages = new SocialMessagesClient(this.base);
     this.linkedin = new LinkedInClient(this.base);
+    this.openApi = new OpenApiClient(this.base);
   }
 
   setBearerToken(token: string): void {
@@ -733,5 +737,14 @@ export class ClientService {
     timeRange: string = '7d',
   ): Promise<Record<string, unknown>> {
     return this.linkedin.getLinkedInAnalytics(contentId, timeRange);
+  }
+
+  // ── Generic OpenAPI-generated tool dispatch ──
+
+  executeGeneratedOperation(
+    route: GeneratedRoute,
+    args: Record<string, unknown>,
+  ): Promise<unknown> {
+    return this.openApi.executeOperation(route, args);
   }
 }

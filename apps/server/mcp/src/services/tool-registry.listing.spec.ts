@@ -39,6 +39,8 @@ vi.mock('@genfeedai/tools', () => ({
   getToolByName: vi.fn(),
   getToolsForSurface: vi.fn(() => ALL_TOOLS),
   toMcpTools: vi.fn((tools) => tools),
+  isGeneratedApiTool: vi.fn(() => false),
+  isGeneratedWriteTool: vi.fn(() => false),
 }));
 
 function build(role: 'user' | 'admin' | 'superadmin') {

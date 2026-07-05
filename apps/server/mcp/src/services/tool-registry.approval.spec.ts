@@ -23,12 +23,46 @@ const MOCK_TOOLS: Record<
     requiredRole: 'admin',
     surfaces: { mcp: true },
   },
+  // OpenAPI-generated tools (#1250): a write (POST) and a read (GET).
+  api_things_create: {
+    name: 'api_things_create',
+    requiredRole: 'user',
+    surfaces: { mcp: true },
+  },
+  api_things_find_all: {
+    name: 'api_things_find_all',
+    requiredRole: 'user',
+    surfaces: { mcp: true },
+  },
+};
+
+const GENERATED_ROUTES: Record<string, { method: string; isWrite: boolean }> = {
+  api_things_create: { method: 'post', isWrite: true },
+  api_things_find_all: { method: 'get', isWrite: false },
 };
 
 vi.mock('@genfeedai/tools', () => ({
   getToolByName: vi.fn((name: string) => MOCK_TOOLS[name]),
   getToolsForSurface: vi.fn(() => Object.values(MOCK_TOOLS)),
   toMcpTools: vi.fn((tools) => tools),
+  isGeneratedApiTool: vi.fn((name: string) => name in GENERATED_ROUTES),
+  isGeneratedWriteTool: vi.fn(
+    (name: string) => GENERATED_ROUTES[name]?.isWrite === true,
+  ),
+  getGeneratedRoute: vi.fn((name: string) =>
+    name in GENERATED_ROUTES
+      ? {
+          bodyMode: 'none',
+          bodyParams: [],
+          isWrite: GENERATED_ROUTES[name].isWrite,
+          method: GENERATED_ROUTES[name].method,
+          operationId: name,
+          path: '/things',
+          pathParams: [],
+          queryParams: [],
+        }
+      : undefined,
+  ),
 }));
 
 vi.mock('@mcp/guards/mcp-auth.guard', () => ({
@@ -48,6 +82,7 @@ function build() {
     executeAgentTool: vi
       .fn()
       .mockResolvedValue({ data: { id: 'post-1' }, success: true }),
+    executeGeneratedOperation: vi.fn().mockResolvedValue({ things: [] }),
     getApproval: vi.fn(),
     // resolveApproval now performs the atomic CLAIM (PENDING -> APPROVED) and
     // returns the claimed approval, so its default resolves with toolName + args.
@@ -225,6 +260,46 @@ describe('ToolRegistryService — approval queue', () => {
       'apr-1',
       expect.objectContaining({ error: expect.stringContaining('boom') }),
     );
+  });
+
+  it('approval-gates a generated WRITE tool by verb instead of executing it', async () => {
+    // #1250: POST/PATCH/PUT/DELETE generated tools route through the approval
+    // gate via isGeneratedWriteTool — no per-tool enumeration.
+    const { client, registry } = build();
+    client.createApproval.mockResolvedValue({
+      id: 'apr-9',
+      status: 'PENDING',
+      toolName: 'api_things_create',
+    });
+
+    const result = (await registry.handleToolCall({
+      arguments: { name: 'widget' },
+      name: 'api_things_create',
+    })) as { isError?: boolean; content: { text: string }[] };
+
+    expect(client.createApproval).toHaveBeenCalledWith('api_things_create', {
+      name: 'widget',
+    });
+    expect(client.executeGeneratedOperation).not.toHaveBeenCalled();
+    expect(result.isError).toBeFalsy();
+    expect(result.content[0].text).toContain('requires approval');
+  });
+
+  it('executes a generated READ tool directly without an approval', async () => {
+    const { client, registry } = build();
+
+    const result = (await registry.handleToolCall({
+      arguments: {},
+      name: 'api_things_find_all',
+    })) as { isError?: boolean; content: { text: string }[] };
+
+    expect(client.createApproval).not.toHaveBeenCalled();
+    expect(client.executeGeneratedOperation).toHaveBeenCalledWith(
+      expect.objectContaining({ method: 'get', isWrite: false }),
+      {},
+    );
+    expect(result.isError).toBeFalsy();
+    expect(result.content[0].text).toContain('things');
   });
 
   it('errors when resolve_approval is missing arguments', async () => {
