@@ -34,7 +34,7 @@ describe('HomeHero', () => {
 
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     expect(
-      screen.getByRole('link', { name: /start free/i }),
+      screen.getByRole('link', { name: /create now/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /book a demo/i }),
@@ -44,7 +44,7 @@ describe('HomeHero', () => {
   it('points the primary CTA at the pay-as-you-go sign-up', () => {
     render(<HomeHero />);
 
-    expect(screen.getByRole('link', { name: /start free/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /create now/i })).toHaveAttribute(
       'href',
       expect.stringContaining('plan=payg'),
     );

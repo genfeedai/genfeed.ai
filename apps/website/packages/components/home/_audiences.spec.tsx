@@ -52,7 +52,7 @@ describe('HomeAudiences', () => {
         name: /run every client's creative from one place\./i,
       }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /start free/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /create now/i })).toHaveAttribute(
       'href',
       expect.stringContaining('plan=payg'),
     );

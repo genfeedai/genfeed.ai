@@ -86,7 +86,7 @@ export default function HomeAudiences(): React.ReactElement {
                 trackingName="audience_cta_click"
               >
                 <a href={signUpHref} rel="noopener noreferrer" target="_blank">
-                  Start free
+                  Create now
                   <LuArrowRight className="size-4" />
                 </a>
               </ButtonTracked>

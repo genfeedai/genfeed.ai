@@ -183,7 +183,7 @@ export default function CloudContent() {
         >
           <Button size={ButtonSize.PUBLIC} asChild>
             <a href={signUpHref} target="_blank" rel="noopener noreferrer">
-              Start free
+              Create now
               <LuArrowRight className="size-4" />
             </a>
           </Button>

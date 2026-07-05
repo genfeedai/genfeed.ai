@@ -112,7 +112,7 @@ export default function WebsiteTopbar() {
                 className="h-9 px-5 text-sm uppercase"
               >
                 <a href={signUpHref} target="_blank" rel="noopener noreferrer">
-                  Start free
+                  Create now
                 </a>
               </Button>
             </>

@@ -27,11 +27,11 @@ export default function HomeHero(): React.ReactElement {
   return (
     <section className="relative overflow-hidden border-b border-edge/5 bg-background">
       <div className="container mx-auto px-6">
-        <div className="grid min-h-[calc(100svh-5.5rem)] items-center gap-12 py-14 lg:grid-cols-[minmax(0,0.74fr)_minmax(560px,1.26fr)] lg:gap-16 lg:py-16 xl:gap-20">
+        <div className="grid min-h-[calc(100svh-5.5rem)] items-center gap-12 py-14 lg:grid-cols-[minmax(0,1.05fr)_minmax(440px,0.95fr)] lg:gap-14 lg:py-16 xl:gap-20">
           <div className="max-w-[42rem] self-center">
             <Heading
               as="h1"
-              className="hero-headline max-w-[42rem] text-[2.75rem] font-semibold leading-[0.9] tracking-[-0.035em] text-surface sm:text-6xl md:text-7xl xl:text-[5.75rem]"
+              className="hero-headline max-w-[42rem] whitespace-normal text-[2.5rem] font-semibold leading-[0.9] tracking-[-0.035em] text-surface sm:whitespace-nowrap sm:text-5xl md:text-[3.5rem] lg:text-[3.5rem] xl:text-[4rem] 2xl:text-[4.5rem]"
             >
               <span className="block">One prompt.</span>
               <span className="block text-surface/60">Publish everywhere.</span>
@@ -55,7 +55,7 @@ export default function HomeHero(): React.ReactElement {
                 trackingName="hero_cta_click"
               >
                 <a href={signUpHref} rel="noopener noreferrer" target="_blank">
-                  Start free
+                  Create now
                   <LuArrowRight className="size-4" />
                 </a>
               </ButtonTracked>
