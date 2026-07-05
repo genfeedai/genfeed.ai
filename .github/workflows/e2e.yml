@@ -250,16 +250,19 @@ jobs:
   # Real-Better Auth authenticated smoke (Playwright `app-authed` project). Exercises
   # the GENUINE authMiddleware path via a real Better Auth test-instance session — no
   # proxy.ts bypass — so it must be built with a REAL Better Auth client (bypass flag
-  # OFF) and given the real test-instance secrets. Dormant + non-blocking until
-  # the secrets land: gated behind the E2E_AUTHED_ENABLED repo variable and
-  # continue-on-error, so it never affects the gate while it hardens. mac-studio
-  # already runs this path locally; this makes CI ready to trigger on demand.
+  # OFF) and given the real test-instance secrets. Gated behind the E2E_AUTHED_ENABLED
+  # repo variable. It has been green for 7+ consecutive runs (all nightlies), so it is
+  # now GATING on the nightly cron — a real regression turns the nightly red and trips
+  # nightly-failure-report below, instead of rotting unseen behind continue-on-error
+  # (it sat red for 5+ June nightlies that way). On the deploy path it stays
+  # non-gating so a flake can never cancel a production release while this path keeps
+  # hardening: continue-on-error is true for every event EXCEPT the scheduled nightly.
   e2e-frontend-authed:
     name: Frontend Authed E2E (real Better Auth)
     if: ${{ vars.E2E_AUTHED_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    continue-on-error: true
+    continue-on-error: ${{ github.event_name != 'schedule' }}
     steps:
       - uses: actions/checkout@v5
 
@@ -341,3 +344,66 @@ jobs:
           name: playwright-traces-authed
           path: playwright/artifacts/results/
           retention-days: 7
+
+  # Nightly-only failure reporter. The scheduled E2E run is the flake alarm; when
+  # it goes red, open (or update) ONE tracking issue so a broken nightly can't rot
+  # unseen — the whole reason the authed job could sit red for 5+ June nightlies.
+  # Runs ONLY on the standalone cron: a workflow_call from the deploy path inherits
+  # the caller's event, so github.event_name is 'schedule' solely for the nightly.
+  # Deploy gating is untouched. Keys off the aggregated gate AND the authed job
+  # (now nightly-gating above), so any red nightly surfaces exactly one issue.
+  nightly-failure-report:
+    name: Report nightly E2E failure
+    needs: [e2e-gate, e2e-frontend-authed]
+    if: >-
+      always()
+      && github.event_name == 'schedule'
+      && (needs.e2e-gate.result == 'failure'
+        || needs.e2e-frontend-authed.result == 'failure')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - name: Open or update the nightly-failure issue
+        uses: actions/github-script@v8
+        env:
+          GATE_RESULT: ${{ needs.e2e-gate.result }}
+          AUTHED_RESULT: ${{ needs.e2e-frontend-authed.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          script: |
+            const label = 'nightly-e2e-failure';
+            const title = 'Nightly E2E suite is failing';
+            const failed = [];
+            if (process.env.GATE_RESULT === 'failure') {
+              failed.push('core gate (route coverage / frontend shards / API E2E)');
+            }
+            if (process.env.AUTHED_RESULT === 'failure') {
+              failed.push('authed E2E (real Better Auth)');
+            }
+            const body = [
+              'The scheduled (nightly) E2E run failed.',
+              '',
+              `- Failed: ${failed.join(', ')}`,
+              `- Run: ${process.env.RUN_URL}`,
+              '',
+              'This issue auto-updates on each red nightly. Close it once the nightly is green again.',
+            ].join('\n');
+            const { owner, repo } = context.repo;
+            const existing = await github.rest.issues.listForRepo({
+              owner,
+              repo,
+              state: 'open',
+              labels: label,
+            });
+            if (existing.data.length > 0) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: existing.data[0].number,
+                body,
+              });
+            } else {
+              await github.rest.issues.create({ owner, repo, title, body, labels: [label] });
+            }
