@@ -2,8 +2,8 @@ import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-me
 import BrandOSContent from '@public/brand-os/brand-os-content';
 
 export const generateMetadata = createPageMetadataWithCanonical(
-  'Brand OS',
-  'Build a source-backed Brand OS preview with evidence, diagnostics, scale roles, and save-to-Genfeed conversion states.',
+  'Brand OS — Genfeed Design System',
+  "Genfeed's Brand OS: the dark-first design system behind the product — color layers, semantic and platform tokens, the type scale, and the content-is-the-accent principle.",
   '/brand-os',
 );
 
