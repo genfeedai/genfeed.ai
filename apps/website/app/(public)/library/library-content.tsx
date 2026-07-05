@@ -21,9 +21,7 @@ import {
 } from 'react-icons/hi2';
 import { LuFolderInput, LuLibraryBig, LuSave, LuWand } from 'react-icons/lu';
 
-const CALENDLY_URL =
-  process.env.NEXT_PUBLIC_CALENDLY_URL ||
-  'https://calendly.com/vincent-genfeed/30min';
+const CALENDLY_URL = EnvironmentService.calendly;
 
 const ASSET_TYPES = [
   'Images',

@@ -19,9 +19,7 @@ import {
   HiUserGroup,
 } from 'react-icons/hi2';
 
-const CALENDLY_URL =
-  process.env.NEXT_PUBLIC_CALENDLY_URL ||
-  'https://calendly.com/vincent-genfeed/30min';
+const CALENDLY_URL = EnvironmentService.calendly;
 
 const AGENT_ROLES = ['Research', 'Creative', 'Publishing', 'Approval'];
 
