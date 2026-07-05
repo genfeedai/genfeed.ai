@@ -12,12 +12,12 @@ const saasJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'WebPage',
   description:
-    'Genfeed is free to join with pay-per-output credits. Creator ($49/month) includes 8,000 credits at a better rate. Cloud Teams ($499/month) adds seats, a shared credit pool, and multi-organization workflows.',
+    'Genfeed is free to join with pay-per-output credits. Creator ($49/month) includes 8,000 credits at a better rate. Teams ($499/month) adds seats, a shared credit pool, and multi-organization workflows.',
   mainEntity: {
     '@type': 'Product',
     brand: { '@type': 'Organization', name: 'Genfeed' },
     description:
-      'Managed AI content workspace for creating, approving, publishing, and tracking videos, images, voice, and marketing content.',
+      'The AI studio for creating, approving, publishing, and tracking videos, images, voice, and marketing content.',
     name: 'Genfeed',
     offers: [
       {
@@ -45,8 +45,8 @@ const saasJsonLd = {
       {
         '@type': 'Offer',
         description:
-          'B2B cloud with 5 seats, an 80,000-credit shared pool, multi-organization workflows, approvals, and managed billing.',
-        name: 'Cloud Teams',
+          'For teams: 5 seats, an 80,000-credit shared pool, multi-organization workflows, approvals, and managed billing.',
+        name: 'Teams',
         price: '499',
         priceCurrency: 'USD',
         priceSpecification: {

@@ -2,8 +2,8 @@ import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-me
 import CloudContent from '@public/cloud/cloud-content';
 
 export const generateMetadata = createPageMetadataWithCanonical(
-  'Cloud App',
-  'Managed Genfeed app for content creation, publishing, and pay-as-you-go output. Start with cloud access, then book a demo for team rollout.',
+  'Teams',
+  'One studio for your whole team: shared workspaces, a brand library, roles, and approvals. Start free, then book a demo for team rollout.',
   '/cloud',
 );
 

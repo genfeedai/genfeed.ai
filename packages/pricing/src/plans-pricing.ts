@@ -216,11 +216,11 @@ export const websitePlans: PricingPlanProps[] = [
       'For steady publishing: a monthly fee that buys more output per dollar, plus more brands and channels.',
   },
 
-  // Cloud Teams Tier - higher-entry B2B cloud
+  // Teams Tier - higher-entry team studio (internal label kept as "Cloud Teams")
   {
     cta: 'Talk to Sales',
     ctaHref: CALENDLY_URL,
-    description: 'B2B cloud for teams, organizations, and brands',
+    description: 'One studio for teams, organizations, and brands',
     features: [
       '80,000 credits included monthly (≈ $800 of pay-as-you-go output)',
       '5 team seats included, then $49/seat/month',
@@ -243,11 +243,11 @@ export const websitePlans: PricingPlanProps[] = [
       'Seats plus a shared credit pool for teams that have outgrown a single workspace.',
   },
 
-  // Enterprise Tier - custom B2B deployment
+  // Enterprise Tier - custom deployment
   {
     cta: 'Book a Demo',
     ctaHref: CALENDLY_URL,
-    description: 'Custom cloud, governance, and support',
+    description: 'Custom studio, governance, and support',
     features: [
       'Custom output terms',
       'Unlimited team seats',

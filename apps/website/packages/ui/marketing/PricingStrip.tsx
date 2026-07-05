@@ -3,18 +3,17 @@
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { PricingStripProps } from '@props/website/pricing-strip.props';
 import Link from 'next/link';
-import { LuArrowRight } from 'react-icons/lu';
 
 const PILLAR_COLUMNS = [
   {
     href: '/pricing',
-    label: 'Cloud App',
+    label: 'Creator',
     price: '$49/mo + PAYG',
     subtitle: 'Default',
   },
   {
     href: '/pricing',
-    label: 'Cloud Teams',
+    label: 'Teams',
     price: 'From $499/mo',
     subtitle: 'Agencies',
   },
@@ -40,7 +39,7 @@ export default function PricingStrip({
     >
       <div className="grid grid-cols-1 gap-px md:grid-cols-3">
         {PILLAR_COLUMNS.map((column) => {
-          const isFeatured = column.label === 'Cloud App';
+          const isFeatured = column.label === 'Creator';
 
           return (
             <div
@@ -100,13 +99,13 @@ export default function PricingStrip({
         <Link
           href="/pricing"
           className={cn(
-            'inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest transition-all hover:gap-3',
+            'inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest transition-colors',
             inverted
               ? 'text-inv-fg/50 hover:text-inv-fg/70'
               : 'text-surface/40 hover:text-surface/60',
           )}
         >
-          View all plans <LuArrowRight className="size-3" />
+          View all plans
         </Link>
       </div>
     </div>

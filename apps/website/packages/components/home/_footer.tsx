@@ -4,14 +4,24 @@ import { SiteFooter } from '@ui/footers';
 const WEBSITE_SECTIONS: FooterSection[] = [
   {
     links: [
-      { href: '/pricing', label: 'Cloud App' },
-      { href: '/cloud', label: 'Cloud Teams' },
+      { href: '/studio', label: 'Studio' },
+      { href: '/library', label: 'Library' },
+      { href: '/publisher', label: 'Publisher' },
+      { href: '/calendar', label: 'Calendar' },
+      { href: '/workflows', label: 'Workflows' },
+      { href: '/research', label: 'Research' },
+    ],
+    title: 'Product',
+  },
+  {
+    links: [
+      { href: '/analytics', label: 'Analytics' },
+      { href: '/agents', label: 'Agents' },
       { href: '/integrations', label: 'Integrations' },
       { href: '/features', label: 'Features' },
-      { href: '/intelligence', label: 'Analytics' },
       { href: '/mobile', label: 'Mobile App' },
     ],
-    title: 'Products',
+    title: 'Platform',
   },
   {
     links: [
@@ -21,6 +31,7 @@ const WEBSITE_SECTIONS: FooterSection[] = [
       { href: '/use-cases/ecommerce', label: 'For E-Commerce' },
       { href: '/use-cases/marketers', label: 'For Marketers' },
       { href: '/use-cases/founders', label: 'For Founders' },
+      { href: '/cloud', label: 'Teams' },
       { href: '/services', label: 'Services' },
       { href: '/pricing', label: 'Pricing' },
     ],
@@ -85,7 +96,7 @@ export default function HomeFooter(): React.ReactElement {
         variant="default"
         showNewsletter
         showBookCall
-        brandTagline="Managed AI content workspace. Start with the cloud app, then pay as you go for output."
+        brandTagline="The AI studio for content. Start free, pay as you go for what you create."
       />
     </footer>
   );

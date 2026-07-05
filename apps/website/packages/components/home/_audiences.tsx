@@ -127,7 +127,7 @@ export default function HomeAudiences(): React.ReactElement {
               ))}
             </ul>
             <Text className="text-xs leading-5 text-surface/60">
-              Cloud Teams: multi-client workspaces, approvals, managed billing
+              Teams: multi-client workspaces, approvals, managed billing
             </Text>
             <HStack className="mt-auto flex-wrap items-center gap-4 pt-2">
               <ButtonTracked

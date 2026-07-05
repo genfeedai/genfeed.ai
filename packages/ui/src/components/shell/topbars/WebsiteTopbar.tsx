@@ -8,15 +8,17 @@ import TopbarPublic from '@ui/topbars/public/TopbarPublic';
 import {
   HiArrowPath,
   HiBuildingOffice2,
-  HiGlobeAlt,
+  HiChartBar,
+  HiMagnifyingGlass,
   HiMegaphone,
   HiPaperAirplane,
-  HiRectangleGroup,
+  HiRectangleStack,
   HiShoppingCart,
   HiSparkles,
   HiSquares2X2,
   HiStar,
   HiUserCircle,
+  HiUserGroup,
 } from 'react-icons/hi2';
 
 const PRODUCT_LINKS = [
@@ -28,11 +30,18 @@ const PRODUCT_LINKS = [
     label: 'Studio',
   },
   {
-    description: 'Plan, schedule, and publish everywhere',
+    description: 'Every asset your team reuses',
     group: 'Create',
-    href: '/publisher',
-    icon: HiPaperAirplane,
-    label: 'Publisher',
+    href: '/library',
+    icon: HiRectangleStack,
+    label: 'Library',
+  },
+  {
+    description: "Find what's working now",
+    group: 'Create',
+    href: '/research',
+    icon: HiMagnifyingGlass,
+    label: 'Research',
   },
   {
     description: 'Prompt packs and creative recipes',
@@ -42,6 +51,13 @@ const PRODUCT_LINKS = [
     label: 'Skills',
   },
   {
+    description: 'Plan, schedule, and publish everywhere',
+    group: 'Operate',
+    href: '/publisher',
+    icon: HiPaperAirplane,
+    label: 'Publisher',
+  },
+  {
     description: 'Automate your content pipeline',
     group: 'Operate',
     href: '/workflows',
@@ -49,18 +65,18 @@ const PRODUCT_LINKS = [
     label: 'Workflows',
   },
   {
-    description: 'Connect every channel and tool',
+    description: 'Track revenue, not vanity metrics',
     group: 'Operate',
-    href: '/integrations',
-    icon: HiGlobeAlt,
-    label: 'Integrations',
+    href: '/analytics',
+    icon: HiChartBar,
+    label: 'Analytics',
   },
   {
-    description: 'See everything the platform does',
+    description: 'Your autonomous content team',
     group: 'Operate',
-    href: '/features',
-    icon: HiRectangleGroup,
-    label: 'Features',
+    href: '/agents',
+    icon: HiUserGroup,
+    label: 'Agents',
   },
 ];
 
