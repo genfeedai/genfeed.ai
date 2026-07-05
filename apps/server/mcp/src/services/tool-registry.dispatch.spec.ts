@@ -32,11 +32,17 @@ describe('ToolRegistryService.classify', () => {
     ['list_meta_campaigns', 'meta-ads'],
     ['get_google_ads_campaign_metrics', 'google-ads'],
     ['get_account_info', 'account-management'],
-    ['control_comfyui', 'admin-infrastructure'],
-    ['start_training', 'training-pipeline'],
-    ['generate_darkroom_content', 'darkroom-generation'],
     ['post_social_reply', 'social-messages'],
+    // generate_content_batch is an AgentToolName, so it routes through the
+    // agent-executor to /agent-tools/:name/execute (re-surfaced in PR 5/6).
+    ['generate_content_batch', 'agent-executor'],
     ['a_tool_that_does_not_exist', 'unknown'],
+    // The darkroom/training/GPU fleet tools were dropped from the OSS MCP
+    // surface in PR 5/6 (superadmin+IP-gated fleet API — a gf_ key can't reach
+    // it); they no longer classify to an executor.
+    ['control_comfyui', 'unknown'],
+    ['start_training', 'unknown'],
+    ['generate_darkroom_content', 'unknown'],
     // resolve_approval is handled upstream in handleToolCall, so it is not a
     // classify-dispatch target.
     ['resolve_approval', 'unknown'],
@@ -53,14 +59,7 @@ describe('ToolRegistryService.validateDispatchCoverage', () => {
       'create_post',
       'create_article',
       'create_avatar',
-      'start_training',
-      'delete_dataset',
-      'control_comfyui',
-      'run_captioning',
-      'generate_face_test',
-      'generate_bootstrap',
-      'generate_pulid',
-      'generate_darkroom_content',
+      'generate_content_batch',
       'start_brand_interview',
       'submit_brand_interview_answer',
       'skip_brand_interview_question',

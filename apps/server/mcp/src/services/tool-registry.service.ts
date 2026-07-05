@@ -14,16 +14,13 @@ import type {
   McpTool,
 } from '@mcp/shared/interfaces/mcp-server.interface';
 import { handleAccountManagementTool } from '@mcp/tools/account-management.tool';
-import { handleAdminInfrastructureTool } from '@mcp/tools/admin-infrastructure.tool';
 import { handleAgentChatTool } from '@mcp/tools/agent-chat.tool';
-import { handleDarkroomGenerationTool } from '@mcp/tools/darkroom-generation.tool';
 import { handleGoogleAdsTool } from '@mcp/tools/google-ads.tool';
 import { handleMetaAdsTool } from '@mcp/tools/meta-ads.tool';
 import {
   handleSocialMessagesTool,
   SOCIAL_MESSAGES_TOOL_NAMES,
 } from '@mcp/tools/social-messages.tool';
-import { handleTrainingPipelineTool } from '@mcp/tools/training-pipeline.tool';
 import { handleWorkflowControlTool } from '@mcp/tools/workflow-control.tool';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 
@@ -99,21 +96,6 @@ const ACCOUNT_MANAGEMENT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   'get_job_status',
 ]);
 
-const ADMIN_INFRASTRUCTURE_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
-  'get_darkroom_health',
-  'control_comfyui',
-  'list_loras',
-  'list_gpu_personas',
-]);
-
-const TRAINING_PIPELINE_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
-  'start_training',
-  'get_training_status',
-  'get_dataset_info',
-  'delete_dataset',
-  'run_captioning',
-]);
-
 const isMetaAdsTool = (name: string): boolean =>
   name.startsWith('list_meta_') ||
   name.startsWith('get_meta_') ||
@@ -121,13 +103,6 @@ const isMetaAdsTool = (name: string): boolean =>
 
 const isGoogleAdsTool = (name: string): boolean =>
   name.startsWith('list_google_ads_') || name.startsWith('get_google_ads_');
-
-const isDarkroomGenerationTool = (name: string): boolean =>
-  name.startsWith('generate_face_test') ||
-  name.startsWith('generate_bootstrap') ||
-  name.startsWith('generate_pulid') ||
-  name.startsWith('generate_darkroom_') ||
-  name === 'get_darkroom_job_status';
 
 /**
  * Which executor handles a tool name. `'unknown'` means no dispatch path exists
@@ -145,31 +120,25 @@ type ExecutorKind =
   | 'meta-ads'
   | 'google-ads'
   | 'account-management'
-  | 'admin-infrastructure'
-  | 'training-pipeline'
-  | 'darkroom-generation'
   | 'social-messages'
   | 'unknown';
 
 /**
  * Mutating MCP tools that must NOT execute immediately — instead they persist a
  * pending approval (human-in-the-loop) and only run once approved. Names are the
- * canonical tool names from `packages/tools/src/registry/source.ts`. High-risk
- * and expensive mutations (content creation, training, destructive ops, GPU
- * generation). Extend deliberately.
+ * canonical tool names from `packages/tools/src/registry/source`. High-risk and
+ * expensive mutations (content creation, batch generation, external sends).
+ * Extend deliberately.
+ *
+ * Every entry must be MCP-surfaced (`surfaces.mcp`), or the boot-time drift
+ * guard rejects it — see {@link validateDispatchCoverage}.
  */
 const APPROVAL_REQUIRED_TOOLS: ReadonlySet<string> = new Set<string>([
   'create_post',
   'create_article',
   'create_avatar',
-  'start_training',
-  'delete_dataset',
-  'control_comfyui',
-  'run_captioning',
-  'generate_face_test',
-  'generate_bootstrap',
-  'generate_pulid',
-  'generate_darkroom_content',
+  // Batch content generation — expensive multi-item write (agent-executor).
+  'generate_content_batch',
   // Brand context interview — mutating tools require user confirmation
   'start_brand_interview',
   'submit_brand_interview_answer',
@@ -352,11 +321,6 @@ export class ToolRegistryService implements OnModuleInit {
     if (isMetaAdsTool(name)) return 'meta-ads';
     if (isGoogleAdsTool(name)) return 'google-ads';
     if (ACCOUNT_MANAGEMENT_TOOL_NAMES.has(name)) return 'account-management';
-    if (ADMIN_INFRASTRUCTURE_TOOL_NAMES.has(name)) {
-      return 'admin-infrastructure';
-    }
-    if (TRAINING_PIPELINE_TOOL_NAMES.has(name)) return 'training-pipeline';
-    if (isDarkroomGenerationTool(name)) return 'darkroom-generation';
     if (SOCIAL_MESSAGES_TOOL_NAMES.has(name)) return 'social-messages';
     return 'unknown';
   }
@@ -379,12 +343,6 @@ export class ToolRegistryService implements OnModuleInit {
         return handleGoogleAdsTool(this.clientService, name, args);
       case 'account-management':
         return handleAccountManagementTool(this.clientService, name, args);
-      case 'admin-infrastructure':
-        return handleAdminInfrastructureTool(this.clientService, name, args);
-      case 'training-pipeline':
-        return handleTrainingPipelineTool(this.clientService, name, args);
-      case 'darkroom-generation':
-        return handleDarkroomGenerationTool(this.clientService, name, args);
       case 'social-messages':
         return handleSocialMessagesTool(this.clientService, name, args);
       default:

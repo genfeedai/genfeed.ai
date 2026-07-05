@@ -34,7 +34,6 @@ const EXPECTED_TOOL_NAMES = [
   'complete_campaign',
   'complete_onboarding',
   'connect_social_account',
-  'control_comfyui',
   'create_article',
   'create_avatar',
   'create_brand',
@@ -45,23 +44,18 @@ const EXPECTED_TOOL_NAMES = [
   'create_post',
   'create_social_reply_draft',
   'create_workflow',
-  'delete_dataset',
   'discover_engagements',
   'draft_engagement_reply',
   'duplicate_workflow',
   'execute_workflow',
   'generate_as_identity',
-  'generate_bootstrap',
   'generate_content',
   'generate_content_batch',
-  'generate_darkroom_content',
-  'generate_face_test',
   'generate_image',
   'generate_linkedin_content',
   'generate_monthly_content',
   'generate_music',
   'generate_onboarding_content',
-  'generate_pulid',
   'generate_video',
   'generate_voice',
   'get_account_info',
@@ -78,9 +72,6 @@ const EXPECTED_TOOL_NAMES = [
   'get_content_calendar',
   'get_credits_balance',
   'get_current_brand',
-  'get_darkroom_health',
-  'get_darkroom_job_status',
-  'get_dataset_info',
   'get_google_ads_adgroup_insights',
   'get_google_ads_campaign_metrics',
   'get_google_ads_keyword_performance',
@@ -94,7 +85,6 @@ const EXPECTED_TOOL_NAMES = [
   'get_meta_top_performers',
   'get_social_conversation',
   'get_top_ingredients',
-  'get_training_status',
   'get_trends',
   'get_usage_stats',
   'get_video_analytics',
@@ -110,9 +100,7 @@ const EXPECTED_TOOL_NAMES = [
   'list_genfeed_tools',
   'list_google_ads_campaigns',
   'list_google_ads_customers',
-  'list_gpu_personas',
   'list_images',
-  'list_loras',
   'list_meta_ad_accounts',
   'list_meta_ad_creatives',
   'list_meta_campaigns',
@@ -144,7 +132,6 @@ const EXPECTED_TOOL_NAMES = [
   'resolve_approval',
   'resolve_handle',
   'retry_agent_run',
-  'run_captioning',
   'schedule_post',
   'score_seo',
   'search_articles',
@@ -156,7 +143,6 @@ const EXPECTED_TOOL_NAMES = [
   'spawn_content_agent',
   'start_brand_interview',
   'start_campaign',
-  'start_training',
   'submit_brand_interview_answer',
   'suggest_ingredient_alternatives',
   'tag_social_conversation',
@@ -207,9 +193,9 @@ describe('SOURCE_TOOLS registry split (#692)', () => {
   });
 
   it('partitions tools by their declared surface', () => {
-    expect(OVERLAP_TOOLS).toHaveLength(16);
-    expect(AGENT_ONLY_TOOLS).toHaveLength(56);
-    expect(MCP_ONLY_TOOLS).toHaveLength(66);
+    expect(OVERLAP_TOOLS).toHaveLength(17);
+    expect(AGENT_ONLY_TOOLS).toHaveLength(55);
+    expect(MCP_ONLY_TOOLS).toHaveLength(52);
     expect(BRAND_INTERVIEW_TOOLS).toHaveLength(4);
     expect(
       OVERLAP_TOOLS.every((tool) => tool.surfaces.agent && tool.surfaces.mcp),
