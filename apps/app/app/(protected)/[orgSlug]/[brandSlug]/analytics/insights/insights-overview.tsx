@@ -40,7 +40,7 @@ const _TrendAnalysisCard = dynamic(
   () => import('@ui/analytics/insights/trend-analysis-card/TrendAnalysisCard'),
   {
     loading: () => (
-      <div className="min-h-[240px] rounded-2xl border border-border bg-card/60 p-6 animate-pulse" />
+      <div className="min-h-[240px] rounded-2xl shadow-border bg-card/60 p-6 animate-pulse" />
     ),
     ssr: false,
   },

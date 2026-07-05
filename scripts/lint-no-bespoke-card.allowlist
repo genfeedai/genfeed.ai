@@ -3,18 +3,18 @@
 # One repo-relative path per line. A listed file is fully exempt from the
 # bespoke-card guard. `#` comments and blank lines are ignored.
 #
-# Two kinds of entries, split below:
-#   • PERMANENT — a legitimate non-card surface that should never be a Card.
-#   • BASELINE  — a real bespoke card frozen so the guard can ship green on
-#                 master. Migrate these to the shared Card and DELETE the line.
-#                 Tracked in: https://github.com/genfeedai/genfeed.ai/issues/1271
+# All entries below are PERMANENT — legitimate non-card surfaces that should
+# never be the shared content `Card`. The historical BASELINE (grandfathered
+# bespoke cards) was burned down in #1271: every baselined surface now uses the
+# shared `Card` or the canonical surface tokens (bg-card, rounded-card,
+# shadow-border), so the guard enforces them.
 #
 # Whole-file (not file:line) entries are used on purpose: line numbers drift as
 # files change and would make CI red on unrelated edits. This mirrors the
 # existing baseline convention in scripts/check-raw-button-usage.ts. The cost is
 # that a *new* bespoke card added to an already-listed file won't be caught —
-# acceptable, since the migration removes these files from the list and re-arms
-# them, and every other file in the tree is guarded.
+# acceptable for these few permanent non-card surfaces; every other file in the
+# tree is guarded.
 
 # ─── PERMANENT: ReactFlow node primitives ─────────────────────────────────────
 # A graph node is not a content card. Product decision (#1271): keep these as a
@@ -23,24 +23,14 @@ apps/app/src/features/workflows/nodes/UnknownWorkflowNode.tsx
 apps/app/src/features/workflows/nodes/TemplateCompatibilityNode.tsx
 apps/app/src/features/workflows/components/ui/card/NodeCard.tsx
 
-# ─── BASELINE: migrate to the shared Card, then remove the line (#1271) ────────
-apps/app/app/(protected)/admin/overview/analytics/business/business-dashboard.tsx
-apps/app/app/(protected)/[orgSlug]/org-landing-content.tsx
-apps/app/app/(protected)/[orgSlug]/[brandSlug]/analytics/insights/insights-overview.tsx
-# workspace-dashboard lines 129/235 are the #1229 "Running Agents" cards; live on
-# master until that fix merges, at which point drop this line.
-apps/app/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-dashboard.tsx
-apps/app/packages/components/research/ads/AdsResearchAdCards.tsx
-apps/app/packages/components/research/ads/AdsResearchDetailSidebar.tsx
-apps/app/packages/components/research/ads/AdsResearchPageClient.tsx
+# ─── PERMANENT: dashed empty-state affordance ─────────────────────────────────
+# Not a content card — a "no items yet" empty state whose dashed 1px border is
+# the affordance (mirrors the dashed empty-state at WorkflowLibraryPage.tsx:163,
+# which the guard already tolerates via `border-2`). The shared empty-state
+# primitive (CardEmpty) supports a single action, but this surface has two
+# actions (Browse Templates + Create Workflow), so migrating it would be a
+# redesign. Kept as-is per #1271 ("mechanical consolidation, not a redesign").
 apps/app/src/features/workflows/pages/library/EmptyWorkflowState.tsx
-apps/app/src/features/workflows/pages/library/WorkflowCardDropdown.tsx
-apps/app/src/features/workflows/pages/batch/BatchWorkflowPage.tsx
-packages/pages/studio/generate/components/StoryboardPanel.tsx
-packages/pages/brands/components/brand-kit/BrandKitReviewCard.tsx
-packages/pages/twitter-pipeline/components/tweet-card.tsx
-packages/pages/twitter-pipeline/twitter-pipeline-engage.tsx
-packages/pages/twitter-pipeline/components/opportunity-card.tsx
 
 # ─── Verified NON-tripping (documented; no entry needed) ──────────────────────
 # These were audited and do NOT match the signature (single-side borders, no

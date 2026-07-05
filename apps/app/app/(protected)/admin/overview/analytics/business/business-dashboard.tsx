@@ -372,7 +372,7 @@ export default function BusinessDashboard() {
 
       {/* Category Breakdown */}
       {data.ingredients.categoryBreakdown.length > 0 && (
-        <div className="rounded-card border border-border bg-card p-4">
+        <Card bodyClassName="gap-0 p-4" className="border-border">
           <h3 className="mb-3 text-sm font-semibold text-foreground">
             Ingredient Category Breakdown
           </h3>
@@ -392,7 +392,7 @@ export default function BusinessDashboard() {
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Daily Series Charts */}

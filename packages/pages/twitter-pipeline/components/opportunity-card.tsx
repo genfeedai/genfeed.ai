@@ -1,10 +1,11 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant, CardVariant } from '@genfeedai/enums';
 import type {
   ITwitterOpportunity,
   ITwitterPublishResult,
 } from '@genfeedai/interfaces';
+import Card from '@ui/card/Card';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import { useCallback, useState } from 'react';
@@ -100,7 +101,7 @@ export default function OpportunityCard({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <Card variant={CardVariant.DEFAULT} bodyClassName="gap-0 p-4">
       <div className="flex items-center gap-2 mb-3">
         <span
           className={`text-xs font-medium px-2 py-0.5 rounded-full ${TYPE_COLORS[opportunity.type]}`}
@@ -160,6 +161,6 @@ export default function OpportunityCard({
       >
         {isSubmitting ? 'Publishing...' : 'Publish'}
       </Button>
-    </div>
+    </Card>
   );
 }

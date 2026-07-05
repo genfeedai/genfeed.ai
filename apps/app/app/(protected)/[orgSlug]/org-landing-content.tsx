@@ -25,7 +25,7 @@ function BrandCard({ brand, orgSlug }: { brand: Brand; orgSlug: string }) {
   return (
     <Link
       href={cardHref}
-      className="group flex flex-col gap-4 rounded-card border border-border bg-card p-5 transition hover:border-border-strong hover:bg-foreground/[0.04]"
+      className="group flex flex-col gap-4 rounded-card shadow-border bg-card p-5 transition hover:shadow-border-strong hover:bg-foreground/[0.04]"
     >
       <div className="flex items-center gap-3">
         {brand.logoUrl ? (
