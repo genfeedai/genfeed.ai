@@ -112,6 +112,59 @@ export class BrandsController extends BaseCRUDController<
   }
 
   /**
+   * Update a brand. Overrides the base handler to detect an organization change:
+   * when `organizationId` differs from the brand's current org, the update becomes a
+   * relocation — cascading the denormalized org id across all brand-owned records in
+   * one transaction (authorized as superadmin, or owner/admin of both orgs). All
+   * other updates fall through to the default CRUD patch unchanged.
+   */
+  @Patch(':id')
+  async patch(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() updateDto: UpdateBrandDto,
+  ): Promise<JsonApiSingleResponse> {
+    const requestedOrgId = (updateDto as { organizationId?: string })
+      .organizationId;
+
+    // No org change requested → default CRUD patch.
+    if (!requestedOrgId) {
+      return super.patch(request, user, id, updateDto);
+    }
+
+    const existing = (await this.brandsService.findOne({ _id: id })) as
+      | (BrandDocument & { organizationId?: string })
+      | null;
+    if (!existing) {
+      throw new HttpException(
+        { detail: `Brand ${id} not found`, title: 'Not Found' },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    // Same org → not a relocation; apply the remaining fields via the default patch.
+    if (existing.organizationId === requestedOrgId) {
+      const { organizationId: _omit, ...rest } = updateDto as Record<
+        string,
+        unknown
+      >;
+      return super.patch(request, user, id, rest as UpdateBrandDto);
+    }
+
+    const publicMetadata = getPublicMetadata(user);
+    const moved = await this.brandsService.relocateToOrganization(
+      id,
+      updateDto,
+      {
+        isSuperAdmin: getIsSuperAdmin(user, request),
+        userId: publicMetadata.user,
+      },
+    );
+    return serializeSingle(request, BrandSerializer, moved);
+  }
+
+  /**
    * Verify user has access to this brand
    * Throws HttpException if access is denied
    */

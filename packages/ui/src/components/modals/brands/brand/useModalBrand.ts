@@ -1,6 +1,7 @@
 'use client';
 
 import { createBrandAppRoute, MODEL_KEYS } from '@genfeedai/constants';
+import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import {
   useConfirmModal,
   useUploadModal,
@@ -9,6 +10,7 @@ import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   type AssetCategory,
   LinkCategory,
+  MemberRole,
   ModalEnum,
   PromptCategory,
   SystemPromptKey,
@@ -18,13 +20,14 @@ import {
   openModal,
 } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useUserRole } from '@genfeedai/hooks/auth/use-user-role/use-user-role';
 import { useElements } from '@genfeedai/hooks/data/elements/use-elements/use-elements';
 import { useOrganization } from '@genfeedai/hooks/data/organization/use-organization/use-organization';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
 import { useFormSubmitWithState } from '@genfeedai/hooks/utils/use-form-submit/use-form-submit';
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
-import type { IBrand, ILink } from '@genfeedai/interfaces';
+import type { IBrand, ILink, IStructuredError } from '@genfeedai/interfaces';
 import { Prompt } from '@genfeedai/models/content/prompt.model';
 import { Brand } from '@genfeedai/models/organization/brand.model';
 import type { Link } from '@genfeedai/models/social/link.model';
@@ -34,6 +37,7 @@ import { PromptsService } from '@genfeedai/services/content/prompts.service';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { createPromptHandler } from '@genfeedai/services/core/socket-manager.service';
+import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import { BrandsService } from '@genfeedai/services/social/brands.service';
 import { LinksService } from '@genfeedai/services/social/links.service';
 import { hasErrorDetail } from '@genfeedai/utils/error/error-handler.util';
@@ -60,6 +64,14 @@ import {
   buildSocialConnections,
 } from './ModalBrand.types';
 
+function getStructuredErrorStatus(error: unknown): number | undefined {
+  if (!error || typeof error !== 'object') {
+    return undefined;
+  }
+  const status = (error as IStructuredError).status;
+  return typeof status === 'number' ? status : undefined;
+}
+
 const DEFAULT_BRAND_FORM_VALUES: BrandFormValues = {
   backgroundColor: THEME_COLORS.PRIMARY,
   defaultImageModel: '',
@@ -69,10 +81,16 @@ const DEFAULT_BRAND_FORM_VALUES: BrandFormValues = {
   description: '',
   fontFamily: 'montserrat-regular',
   label: '',
+  organizationId: '',
   primaryColor: THEME_COLORS.PRIMARY,
   secondaryColor: THEME_COLORS.SECONDARY,
   slug: '',
   text: '',
+};
+
+export type OrganizationOption = {
+  id: string;
+  label: string;
 };
 
 const DEFAULT_BRAND_LINK_FORM_VALUES: BrandLinkEditorValues = {
@@ -83,7 +101,9 @@ const DEFAULT_BRAND_LINK_FORM_VALUES: BrandLinkEditorValues = {
 
 export type UseModalBrandReturn = {
   activeBrand: BrandOverlayRecord | null;
+  canMoveOrganization: boolean;
   connectedPlatformsCount: number;
+  currentOrganizationId: string | null;
   editorTab: BrandEditorTab;
   error: string | null;
   fontFamilies: ReturnType<typeof useElements>['fontFamilies'];
@@ -106,6 +126,7 @@ export type UseModalBrandReturn = {
     defaultMusicModel: string | null;
     defaultVideoModel: string | null;
   };
+  organizationOptions: OrganizationOption[];
   overlayBrandId: string | null;
   overlayDescription: string;
   overlayTitle: string;
@@ -164,7 +185,11 @@ export function useModalBrand(
     initialView = 'edit',
   } = props;
 
-  const { organizationId } = useBrand();
+  const { organizationId, refreshBrands } = useBrand();
+  const { isSuperAdmin } = useAccessState();
+  const role = useUserRole();
+  const hasElevatedRole =
+    role === MemberRole.OWNER || role === MemberRole.ADMIN;
   const { push } = useRouter();
   const { orgSlug } = useOrgUrl();
   const { settings } = useOrganization();
@@ -194,6 +219,9 @@ export function useModalBrand(
   );
   const getLinksService = useAuthedService((token: string) =>
     LinksService.getInstance(token),
+  );
+  const getOrgsService = useAuthedService((token: string) =>
+    OrganizationsService.getInstance(token),
   );
 
   const { imageModels, musicModels, videoModels, fontFamilies } = useElements();
@@ -262,6 +290,31 @@ export function useModalBrand(
       ? initialBrand
       : null);
 
+  const currentOrganizationId = activeBrand?.organization?.id ?? null;
+
+  const { data: organizationOptionsData } = useQuery({
+    queryKey: ['brand-modal-organization-options', isSuperAdmin],
+    queryFn: async (): Promise<OrganizationOption[]> => {
+      const service = await getOrgsService();
+      if (isSuperAdmin) {
+        const organizations = await service.getAllOrganizations();
+        return organizations.map((organization) => ({
+          id: organization.id,
+          label: organization.label,
+        }));
+      }
+      const organizations = await service.getMyOrganizations();
+      return organizations.map((organization) => ({
+        id: organization.id,
+        label: organization.label,
+      }));
+    },
+  });
+
+  const organizationOptions = organizationOptionsData ?? [];
+  const canMoveOrganization =
+    isSuperAdmin || (hasElevatedRole && organizationOptions.length >= 2);
+
   useEffect(() => {
     setOverlayBrandId(brand?.id ?? null);
     setOverlayView(brand ? initialView : 'edit');
@@ -292,6 +345,7 @@ export function useModalBrand(
       fontFamily:
         activeBrand.fontFamily || DEFAULT_BRAND_FORM_VALUES.fontFamily,
       label: activeBrand.label || '',
+      organizationId: activeBrand.organization?.id || '',
       primaryColor:
         activeBrand.primaryColor || DEFAULT_BRAND_FORM_VALUES.primaryColor,
       secondaryColor:
@@ -634,51 +688,119 @@ export function useModalBrand(
     onConfirm?.(true);
   }, [onConfirm, refreshBrand]);
 
+  const performBrandSubmit = useCallback(
+    async (isOrganizationChange: boolean) => {
+      try {
+        const service = await getBrandsService();
+        const formData = {
+          ...form.getValues(),
+          isDeleted: false,
+          isSelected: false,
+        };
+
+        if (overlayBrandId) {
+          const updatedBrand = await service.patch(overlayBrandId, formData);
+          mutateBrand(overlayBrandId, updatedBrand as BrandOverlayRecord);
+          await refreshBrand();
+          if (isOrganizationChange) {
+            await refreshBrands();
+          }
+          onConfirm?.(true);
+          setOverlayView('overview');
+        } else {
+          const createdBrand = await service.post(
+            new Brand(formData as Partial<IBrand>),
+          );
+          const createdBrandDetail = await service.findOne(createdBrand.id);
+
+          setOverlayBrandId(createdBrand.id);
+          mutateBrand(
+            createdBrand.id,
+            createdBrandDetail as BrandOverlayRecord,
+          );
+          onConfirm?.(true, createdBrand.id);
+          setOverlayView('overview');
+        }
+      } catch (submitError) {
+        logger.error('Failed to save brand', submitError);
+
+        if (hasErrorDetail(submitError, 'brand limit')) {
+          setError(
+            'Credits have been deducted for an additional brand. Please try creating the brand again.',
+          );
+          return;
+        }
+
+        const status = getStructuredErrorStatus(submitError);
+        if (status === 409) {
+          setError(
+            "Couldn't move the brand — the destination organization has a conflicting record.",
+          );
+          return;
+        }
+        if (status === 403) {
+          setError(
+            "You don't have permission to move this brand to that organization.",
+          );
+          return;
+        }
+
+        setError('Failed to save brand');
+      }
+    },
+    [
+      form,
+      getBrandsService,
+      mutateBrand,
+      onConfirm,
+      overlayBrandId,
+      refreshBrand,
+      refreshBrands,
+    ],
+  );
+
   const submitModalBrand = useCallback(async () => {
-    try {
-      const service = await getBrandsService();
-      const formData = {
-        ...form.getValues(),
-        isDeleted: false,
-        isSelected: false,
-      };
+    const nextOrganizationId = form.getValues().organizationId;
+    const isOrganizationChange =
+      !!overlayBrandId &&
+      !!currentOrganizationId &&
+      !!nextOrganizationId &&
+      nextOrganizationId !== currentOrganizationId;
 
-      if (overlayBrandId) {
-        const updatedBrand = await service.patch(overlayBrandId, formData);
-        mutateBrand(overlayBrandId, updatedBrand as BrandOverlayRecord);
-        await refreshBrand();
-        onConfirm?.(true);
-        setOverlayView('overview');
-      } else {
-        const createdBrand = await service.post(
-          new Brand(formData as Partial<IBrand>),
-        );
-        const createdBrandDetail = await service.findOne(createdBrand.id);
-
-        setOverlayBrandId(createdBrand.id);
-        mutateBrand(createdBrand.id, createdBrandDetail as BrandOverlayRecord);
-        onConfirm?.(true, createdBrand.id);
-        setOverlayView('overview');
-      }
-    } catch (submitError) {
-      logger.error('Failed to save brand', submitError);
-
-      if (hasErrorDetail(submitError, 'brand limit')) {
-        setError(
-          'Credits have been deducted for an additional brand. Please try creating the brand again.',
-        );
-        return;
-      }
-
-      setError('Failed to save brand');
+    if (!isOrganizationChange) {
+      await performBrandSubmit(false);
+      return;
     }
+
+    const destinationOrganization = organizationOptions.find(
+      (option) => option.id === nextOrganizationId,
+    );
+    const destinationLabel =
+      destinationOrganization?.label ?? 'that organization';
+    const brandLabel = form.getValues().label || 'This brand';
+
+    openConfirm({
+      cancelLabel: 'Cancel',
+      confirmLabel: 'Move brand',
+      isError: true,
+      label: 'Move brand to another organization?',
+      message: `${brandLabel} and all its content, credentials, and history will move to ${destinationLabel}. This cannot be easily undone.`,
+      onConfirm: async () => {
+        await performBrandSubmit(true);
+      },
+      onClose: () => {
+        form.setValue('organizationId', currentOrganizationId ?? '', {
+          shouldValidate: true,
+        });
+      },
+    });
   }, [
+    currentOrganizationId,
     form,
-    getBrandsService,
-    mutateBrand,
-    onConfirm,
+    openConfirm,
+    organizationOptions,
     overlayBrandId,
-    refreshBrand,
+    performBrandSubmit,
   ]);
 
   const { isSubmitting, onSubmit } = useFormSubmitWithState(() =>
@@ -742,7 +864,9 @@ export function useModalBrand(
 
   return {
     activeBrand,
+    canMoveOrganization,
     connectedPlatformsCount,
+    currentOrganizationId,
     editorTab,
     error,
     fontFamilies,
@@ -760,6 +884,7 @@ export function useModalBrand(
     musicModels,
     navigateToBrandSettings,
     organizationDefaults,
+    organizationOptions,
     overlayBrandId,
     overlayDescription,
     overlayTitle,

@@ -82,6 +82,7 @@ export type BrandFormValues = {
   defaultVideoModel: string;
   description: string;
   fontFamily: string;
+  organizationId: string;
   slug: string;
   label: string;
   primaryColor: string;

@@ -363,6 +363,29 @@ export class OrganizationsService extends BaseService<Organization> {
   }
 
   /**
+   * Returns all organizations on the platform. Backed by the superadmin-gated
+   * `GET /organizations` list endpoint — callers must be a platform superadmin, or
+   * the request 403s. Used to populate the destination picker when a superadmin
+   * relocates a brand to any organization.
+   */
+  public async getAllOrganizations(): Promise<
+    { id: string; label: string; slug: string }[]
+  > {
+    return await this.instance
+      .get<JsonApiResponseDocument>('', { params: { limit: 500 } })
+      .then((res) => {
+        const organizations = this.extractCollection<Partial<Organization>>(
+          res.data,
+        );
+        return organizations.map((organization) => ({
+          id: String(organization.id),
+          label: organization.label ?? '',
+          slug: organization.slug ?? '',
+        }));
+      });
+  }
+
+  /**
    * Switch the active organization. Call window.location.reload() after this to
    * re-sync session-scoped workspace data.
    */

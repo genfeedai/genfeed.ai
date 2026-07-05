@@ -1,4 +1,9 @@
 import { randomUUID } from 'node:crypto';
+import {
+  AUDITOR_IGNORED_TABLES,
+  FIRST_ORDER_TARGETS,
+  SECOND_ORDER_TARGETS,
+} from '@api/collections/brands/constants/brand-org-cascade.constants';
 import type { ApplyBrandKitDto } from '@api/collections/brands/dto/apply-brand-kit.dto';
 import type { CrawlBrandKitDto } from '@api/collections/brands/dto/crawl-brand-kit.dto';
 import { CreateBrandDto } from '@api/collections/brands/dto/create-brand.dto';
@@ -32,7 +37,7 @@ import { FilesClientService } from '@api/services/files-microservice/client/file
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { FileInputType, FontFamily } from '@genfeedai/enums';
+import { FileInputType, FontFamily, MemberRole } from '@genfeedai/enums';
 import {
   type BrandKitSourceBrand,
   buildBrandKitDraftFromBrand,
@@ -57,7 +62,12 @@ import type {
 import { BRAND_KIT_FIELD_OWNERSHIP } from '@genfeedai/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 
 const BRAND_KIT_IMPORT_MAX_BYTES = 50 * 1024 * 1024;
 
@@ -141,6 +151,23 @@ const BRAND_KIT_STRING_LIST_FIELDS = new Set<BrandKitFieldKey>([
 ]);
 
 const SUPPORTED_FONT_FAMILIES = new Set<string>(Object.values(FontFamily));
+
+/**
+ * Minimal structural view of a Prisma model delegate, used to drive the brand→org
+ * relocation cascade generically over the config in `brand-org-cascade.constants`.
+ * The concrete `Prisma.TransactionClient` delegates satisfy this shape.
+ */
+interface CascadeDelegate {
+  updateMany(args: {
+    where: Record<string, unknown>;
+    data: Record<string, unknown>;
+  }): Promise<{ count: number }>;
+  findMany(args: {
+    where: Record<string, unknown>;
+    select: Record<string, boolean>;
+  }): Promise<{ id: string }[]>;
+  count(args: { where: Record<string, unknown> }): Promise<number>;
+}
 
 @Injectable()
 export class BrandsService extends BaseService<
@@ -1509,6 +1536,395 @@ Respond ONLY with the JSON array.`;
     );
 
     return brand;
+  }
+
+  // ───────────────────────── Brand → organization relocation ─────────────────────────
+
+  private static readonly RELOCATION_ELEVATED_ROLES: ReadonlySet<string> =
+    new Set([MemberRole.OWNER, MemberRole.ADMIN]);
+
+  /**
+   * Brand scalar columns that may be co-updated during a relocation PATCH. Relation
+   * fields (voice/music/user/organization) are intentionally excluded — they need
+   * their own handling and would break a raw scalar update.
+   */
+  private static readonly RELOCATION_PASSTHROUGH_FIELDS: readonly string[] = [
+    'label',
+    'description',
+    'slug',
+    'text',
+    'fontFamily',
+    'primaryColor',
+    'secondaryColor',
+    'backgroundColor',
+    'scope',
+    'isActive',
+    'isHighlighted',
+    'isSelected',
+    'isDarkroomEnabled',
+    'isDeleted',
+    'defaultVideoModel',
+    'defaultImageModel',
+    'defaultImageToVideoModel',
+    'defaultMusicModel',
+  ];
+
+  /**
+   * Relocate a brand to another organization, cascading the denormalized
+   * `organizationId` across every brand-owned record in one transaction. A runtime
+   * orphan auditor rolls the whole move back if any dual-keyed table is left stale,
+   * so an unhandled/new table fails loudly instead of splitting tenancy.
+   *
+   * Authorization: platform superadmin, OR an owner/admin of BOTH the source and
+   * destination organizations (guarantees the caller keeps access to the brand).
+   */
+  async relocateToOrganization(
+    brandId: string,
+    updateBrandDto: Partial<UpdateBrandDto> & { organizationId?: string },
+    actingUser: { userId: string; isSuperAdmin: boolean },
+  ): Promise<BrandDocument> {
+    const destOrgId = updateBrandDto.organizationId;
+    if (!destOrgId) {
+      throw new BadRequestException(
+        'organizationId is required to relocate a brand',
+      );
+    }
+
+    const brand = (await this.delegate.findFirst({
+      where: { id: brandId, isDeleted: false },
+    })) as (BrandDocument & { organizationId: string }) | null;
+    if (!brand) {
+      throw new NotFoundException('Brand', brandId);
+    }
+    const sourceOrgId = brand.organizationId;
+
+    // Same org → not a relocation; apply the other fields via the normal patch.
+    if (sourceOrgId === destOrgId) {
+      return this.patch(brandId, this.stripRelocationField(updateBrandDto));
+    }
+
+    const destOrg = await this.prisma.organization.findFirst({
+      select: { id: true },
+      where: { id: destOrgId, isDeleted: false },
+    });
+    if (!destOrg) {
+      throw new NotFoundException('Organization', destOrgId);
+    }
+
+    await this.assertCanRelocate(actingUser, sourceOrgId, destOrgId);
+
+    const passthrough = this.pickRelocationPassthrough(updateBrandDto);
+
+    this.logger.log('Relocating brand between organizations', {
+      brandId,
+      destOrgId,
+      operation: 'relocateToOrganization',
+      service: this.constructorName,
+      sourceOrgId,
+    });
+
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        await this.runBrandOrgCascade(tx, brandId, destOrgId, passthrough);
+        await this.assertNoBrandOrgOrphans(tx, brandId, destOrgId);
+      });
+    } catch (error: unknown) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        const target = Array.isArray(error.meta?.target)
+          ? (error.meta?.target as string[]).join(', ')
+          : 'a unique constraint';
+        throw new ConflictException(
+          `Cannot move brand: a record in the destination organization already conflicts on ${target}.`,
+        );
+      }
+      throw error;
+    }
+
+    await this.invalidateRelocationCaches(brandId, sourceOrgId, destOrgId);
+
+    const moved = (await this.delegate.findFirst({
+      where: { id: brandId },
+    })) as BrandDocument | null;
+    if (!moved) {
+      throw new NotFoundException('Brand', brandId);
+    }
+    return moved;
+  }
+
+  private stripRelocationField<T extends { organizationId?: string }>(
+    dto: T,
+  ): Omit<T, 'organizationId'> {
+    const { organizationId: _omit, ...rest } = dto;
+    return rest;
+  }
+
+  private pickRelocationPassthrough(
+    dto: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const out: Record<string, unknown> = {};
+    for (const key of BrandsService.RELOCATION_PASSTHROUGH_FIELDS) {
+      if (Object.hasOwn(dto, key) && dto[key] !== undefined) {
+        out[key] = dto[key];
+      }
+    }
+    return out;
+  }
+
+  private async assertCanRelocate(
+    actingUser: { userId: string; isSuperAdmin: boolean },
+    sourceOrgId: string,
+    destOrgId: string,
+  ): Promise<void> {
+    if (actingUser.isSuperAdmin) {
+      return;
+    }
+    if (!actingUser.userId) {
+      throw new ForbiddenException(
+        'You are not allowed to move this brand between organizations.',
+      );
+    }
+    const [sourceElevated, destElevated] = await Promise.all([
+      this.hasElevatedMembership(actingUser.userId, sourceOrgId),
+      this.hasElevatedMembership(actingUser.userId, destOrgId),
+    ]);
+    if (!sourceElevated || !destElevated) {
+      throw new ForbiddenException(
+        'Moving a brand between organizations requires an owner or admin role in both the source and destination organizations.',
+      );
+    }
+  }
+
+  private async hasElevatedMembership(
+    userId: string,
+    organizationId: string,
+  ): Promise<boolean> {
+    const member = await this.prisma.member.findFirst({
+      select: { role: { select: { key: true } }, roleKey: true },
+      where: { isActive: true, isDeleted: false, organizationId, userId },
+    });
+    if (!member) {
+      return false;
+    }
+    const roleKey = member.roleKey ?? member.role?.key ?? undefined;
+    return (
+      roleKey !== undefined &&
+      BrandsService.RELOCATION_ELEVATED_ROLES.has(roleKey)
+    );
+  }
+
+  /**
+   * Rewrite the denormalized organization id across the brand and everything it owns.
+   * Runs entirely inside the caller's transaction.
+   */
+  private async runBrandOrgCascade(
+    tx: Prisma.TransactionClient,
+    brandId: string,
+    destOrgId: string,
+    passthrough: Record<string, unknown>,
+  ): Promise<void> {
+    const client = tx as unknown as Record<string, CascadeDelegate>;
+
+    // 1. The brand row itself (+ any co-patched scalar fields).
+    await client.brand.updateMany({
+      data: { ...passthrough, organizationId: destOrgId },
+      where: { id: brandId },
+    });
+
+    // 2. First-order tables: rewrite the denormalized org key.
+    for (const target of FIRST_ORDER_TARGETS) {
+      await client[target.delegate].updateMany({
+        data: { [target.orgField]: destOrgId },
+        where: {
+          [target.brandField]: brandId,
+          [target.orgField]: { not: destOrgId },
+        },
+      });
+    }
+
+    // 3. Second-order children (no brand key): follow a moved parent by scalar FK.
+    for (const child of SECOND_ORDER_TARGETS) {
+      const orClauses: Record<string, unknown>[] = [];
+      for (const parent of child.parents) {
+        const parentRows = await client[parent.parentDelegate].findMany({
+          select: { id: true },
+          where: { [parent.parentBrandField]: brandId },
+        });
+        if (parentRows.length > 0) {
+          orClauses.push({
+            [parent.fkField]: { in: parentRows.map((row) => row.id) },
+          });
+        }
+      }
+      if (orClauses.length === 0) {
+        continue;
+      }
+      await client[child.delegate].updateMany({
+        data: { [child.orgField]: destOrgId },
+        where: { OR: orClauses, [child.orgField]: { not: destOrgId } },
+      });
+    }
+
+    // 4. Sever associations that would become cross-org.
+    await this.severCrossOrgLinks(tx, brandId, destOrgId);
+  }
+
+  /**
+   * Detach source-org associations that would be invalid after the move. The acting
+   * user keeps access to the brand because relocation requires membership in the
+   * destination org; only stale, now-cross-org links are removed.
+   */
+  private async severCrossOrgLinks(
+    tx: Prisma.TransactionClient,
+    brandId: string,
+    destOrgId: string,
+  ): Promise<void> {
+    const client = tx as unknown as Record<string, CascadeDelegate> & {
+      brand: {
+        update(args: {
+          where: Record<string, unknown>;
+          data: Record<string, unknown>;
+        }): Promise<unknown>;
+      };
+    };
+
+    const staleMembers = await client.member.findMany({
+      select: { id: true },
+      where: {
+        brands: { some: { id: brandId } },
+        organizationId: { not: destOrgId },
+      },
+    });
+    const staleWorkflows = await client.workflow.findMany({
+      select: { id: true },
+      where: {
+        brands: { some: { id: brandId } },
+        organizationId: { not: destOrgId },
+      },
+    });
+
+    if (staleMembers.length > 0 || staleWorkflows.length > 0) {
+      await client.brand.update({
+        data: {
+          members: { disconnect: staleMembers.map((m) => ({ id: m.id })) },
+          workflows: {
+            disconnect: staleWorkflows.map((w) => ({ id: w.id })),
+          },
+        },
+        where: { id: brandId },
+      });
+    }
+
+    // Clear per-member "last used brand" pointers left in other orgs.
+    await client.member.updateMany({
+      data: { lastUsedBrandId: null },
+      where: { lastUsedBrandId: brandId, organizationId: { not: destOrgId } },
+    });
+
+    // Clear default-recurring markers on workflows that did not move.
+    await client.workflow.updateMany({
+      data: { defaultRecurringBrandId: null },
+      where: { defaultRecurringBrandId: brandId },
+    });
+  }
+
+  /**
+   * Safety net: after the cascade, assert no brand-owned row still points at a stale
+   * org. Part A verifies every configured table (correct field pairing). Part B
+   * discovers ANY other dual-keyed table via information_schema and blocks the move
+   * if it would orphan rows — so a forgotten/future table rolls back loudly instead
+   * of silently splitting tenancy.
+   */
+  private async assertNoBrandOrgOrphans(
+    tx: Prisma.TransactionClient,
+    brandId: string,
+    destOrgId: string,
+  ): Promise<void> {
+    const client = tx as unknown as Record<string, CascadeDelegate>;
+
+    const stale: string[] = [];
+    for (const target of FIRST_ORDER_TARGETS) {
+      const remaining = await client[target.delegate].count({
+        where: {
+          [target.brandField]: brandId,
+          [target.orgField]: { not: destOrgId },
+        },
+      });
+      if (remaining > 0) {
+        stale.push(`${target.delegate} (${remaining})`);
+      }
+    }
+    if (stale.length > 0) {
+      throw new Error(
+        `Brand relocation aborted: cascade left stale organization id on ${stale.join(', ')}.`,
+      );
+    }
+
+    const knownTables = new Set<string>([
+      ...FIRST_ORDER_TARGETS.map((target) => target.table),
+      ...AUDITOR_IGNORED_TABLES,
+    ]);
+
+    const candidates = await tx.$queryRawUnsafe<
+      { table_name: string; brand_col: string; org_col: string }[]
+    >(
+      `SELECT c1.table_name AS table_name, c1.column_name AS brand_col, c2.column_name AS org_col
+       FROM information_schema.columns c1
+       JOIN information_schema.columns c2
+         ON c1.table_name = c2.table_name AND c1.table_schema = c2.table_schema
+       WHERE c1.table_schema = 'public'
+         AND c1.column_name LIKE '%brand_id'
+         AND (c2.column_name LIKE '%organization_id' OR c2.column_name LIKE '%org_id')`,
+    );
+
+    const IDENTIFIER = /^[a-z_][a-z0-9_]*$/;
+    const unhandled: string[] = [];
+    for (const candidate of candidates) {
+      if (knownTables.has(candidate.table_name)) {
+        continue;
+      }
+      if (
+        !IDENTIFIER.test(candidate.table_name) ||
+        !IDENTIFIER.test(candidate.brand_col) ||
+        !IDENTIFIER.test(candidate.org_col)
+      ) {
+        continue;
+      }
+      const rows = await tx.$queryRawUnsafe<{ n: number }[]>(
+        `SELECT COUNT(*)::int AS n FROM "${candidate.table_name}" WHERE "${candidate.brand_col}" = $1 AND "${candidate.org_col}" IS DISTINCT FROM $2`,
+        brandId,
+        destOrgId,
+      );
+      const count = rows[0]?.n ?? 0;
+      if (count > 0) {
+        unhandled.push(
+          `${candidate.table_name}.${candidate.brand_col}/${candidate.org_col} (${count})`,
+        );
+      }
+    }
+    if (unhandled.length > 0) {
+      throw new Error(
+        `Brand relocation aborted: unhandled dual-keyed table(s) would be orphaned in the source org: ${unhandled.join(', ')}. Add them to FIRST_ORDER_TARGETS in brand-org-cascade.constants.ts.`,
+      );
+    }
+  }
+
+  private async invalidateRelocationCaches(
+    brandId: string,
+    sourceOrgId: string,
+    destOrgId: string,
+  ): Promise<void> {
+    await this.cacheInvalidationService.invalidate(
+      CACHE_PATTERNS.BRANDS_SINGLE(brandId),
+      CACHE_PATTERNS.BRANDS_LIST(sourceOrgId),
+      CACHE_PATTERNS.BRANDS_LIST(destOrgId),
+    );
+    await this.cacheInvalidationService.invalidateByTags([CACHE_TAGS.BRANDS]);
+    await this.cacheInvalidationService.invalidatePattern(
+      `${CACHE_TAGS.BRANDS}:*`,
+    );
   }
 
   /**

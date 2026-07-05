@@ -41,4 +41,16 @@ export class UpdateBrandDto extends PartialType(CreateBrandDto) {
     required: false,
   })
   readonly user?: string;
+
+  @IsOptional()
+  @IsEntityId()
+  @ApiProperty({
+    description:
+      'Destination organization identifier. Providing a different value than the ' +
+      "brand's current organization relocates the brand — cascading organizationId " +
+      'across all brand-owned records in one transaction. Superadmin, or an owner/' +
+      'admin of both the source and destination organizations, only.',
+    required: false,
+  })
+  readonly organizationId?: string;
 }

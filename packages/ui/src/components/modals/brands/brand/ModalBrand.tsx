@@ -25,6 +25,7 @@ export default function BrandOverlay({
 }: BrandOverlayProps) {
   const {
     activeBrand,
+    canMoveOrganization,
     connectedPlatformsCount,
     editorTab,
     error,
@@ -43,6 +44,7 @@ export default function BrandOverlay({
     musicModels,
     navigateToBrandSettings,
     organizationDefaults,
+    organizationOptions,
     overlayDescription,
     overlayTitle,
     overlayView,
@@ -143,6 +145,7 @@ export default function BrandOverlay({
             <div className="mx-auto w-full max-w-5xl">
               <BrandEditorForm
                 activeBrand={activeBrand}
+                canMoveOrganization={canMoveOrganization}
                 editorTab={editorTab}
                 error={error}
                 fontFamilies={fontFamilies}
@@ -151,6 +154,7 @@ export default function BrandOverlay({
                 isGenerating={isGenerating}
                 isSubmitting={isSubmitting}
                 musicModels={musicModels}
+                organizationOptions={organizationOptions}
                 onCancel={() => {
                   if (activeBrand) {
                     setOverlayView('overview');
