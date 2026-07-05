@@ -24,9 +24,11 @@ import type {
   BrandFormValues,
   BrandOverlayRecord,
 } from './ModalBrand.types';
+import type { OrganizationOption } from './useModalBrand';
 
 export type BrandEditorFormProps = {
   activeBrand: BrandOverlayRecord | null;
+  canMoveOrganization: boolean;
   editorTab: BrandEditorTab;
   error: string | null;
   fontFamilies: IFontFamily[];
@@ -50,6 +52,7 @@ export type BrandEditorFormProps = {
     defaultMusicModel?: string | null;
     defaultVideoModel?: string | null;
   };
+  organizationOptions: OrganizationOption[];
   previousPrompt: string | null;
   videoModels: IModel[];
 };
@@ -67,6 +70,7 @@ function getInheritedModelOptionLabel(
 
 export default function BrandEditorForm({
   activeBrand,
+  canMoveOrganization,
   editorTab,
   error,
   fontFamilies,
@@ -83,6 +87,7 @@ export default function BrandEditorForm({
   onUndo,
   onCopyPrompt,
   organizationDefaults,
+  organizationOptions,
   previousPrompt,
   videoModels,
 }: BrandEditorFormProps) {
@@ -154,6 +159,26 @@ export default function BrandEditorForm({
                 isDisabled={isSubmitting || isGenerating}
               />
             </FormControl>
+
+            {canMoveOrganization ? (
+              <FormControl
+                label="Organization"
+                helpText="Move this brand to another organization. Its content moves with it."
+              >
+                <SelectField
+                  name="organizationId"
+                  control={form.control}
+                  onChange={onChange}
+                  isDisabled={isSubmitting || isGenerating}
+                >
+                  {organizationOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </SelectField>
+              </FormControl>
+            ) : null}
           </div>
         ) : null}
 
