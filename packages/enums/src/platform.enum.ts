@@ -24,4 +24,6 @@ export enum Platform {
   SHOPIFY = 'shopify',
   BEEHIIV = 'beehiiv',
   UNIPILE = 'unipile',
+  PRODUCT_HUNT = 'product_hunt',
+  HACKER_NEWS = 'hacker_news',
 }
