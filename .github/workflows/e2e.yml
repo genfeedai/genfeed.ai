@@ -391,6 +391,20 @@ jobs:
               'This issue auto-updates on each red nightly. Close it once the nightly is green again.',
             ].join('\n');
             const { owner, repo } = context.repo;
+            // Ensure the dedup label exists so create attaches it and the
+            // list-by-label lookup below is reliable (issue-create label
+            // auto-provisioning is not guaranteed).
+            try {
+              await github.rest.issues.getLabel({ owner, repo, name: label });
+            } catch {
+              await github.rest.issues.createLabel({
+                owner,
+                repo,
+                name: label,
+                color: 'd73a4a',
+                description: 'Scheduled (nightly) E2E suite is failing',
+              });
+            }
             const existing = await github.rest.issues.listForRepo({
               owner,
               repo,
