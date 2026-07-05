@@ -68,7 +68,7 @@ export default function HomeAudiences(): React.ReactElement {
             <ul className="flex flex-col gap-3">
               {CREATOR_BENEFITS.map((benefit) => (
                 <li key={benefit.label} className="flex items-start gap-3">
-                  <LuCheck className="mt-0.5 size-4 shrink-0 text-success" />
+                  <LuCheck className="mt-0.5 size-4 shrink-0 text-surface/70" />
                   <Text className="text-sm leading-6 text-surface/72">
                     {benefit.label}
                   </Text>
@@ -119,7 +119,7 @@ export default function HomeAudiences(): React.ReactElement {
             <ul className="flex flex-col gap-3">
               {AGENCY_BENEFITS.map((benefit) => (
                 <li key={benefit.label} className="flex items-start gap-3">
-                  <LuCheck className="mt-0.5 size-4 shrink-0 text-success" />
+                  <LuCheck className="mt-0.5 size-4 shrink-0 text-surface/70" />
                   <Text className="text-sm leading-6 text-surface/72">
                     {benefit.label}
                   </Text>

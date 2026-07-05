@@ -50,7 +50,7 @@ export default function HomeHero(): React.ReactElement {
               <ButtonTracked
                 asChild
                 size={ButtonSize.PUBLIC}
-                className="hero-cta shadow-[var(--shadow-glow-md)]"
+                className="hero-cta"
                 trackingData={{ action: 'signup_payg_hero' }}
                 trackingName="hero_cta_click"
               >
