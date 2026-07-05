@@ -511,14 +511,6 @@
   border-color: var(--gen-accent-border-strong);
 }
 
-/* Cards */
-.gen-card-featured {
-  border-radius: var(--radius-card);
-  border: 1px solid color-mix(in srgb, hsl(var(--gen-accent)) 72%, white 28%);
-  background: color-mix(in srgb, hsl(var(--gen-accent)) 82%, black 18%);
-  color: hsl(var(--background));
-}
-
 /* Tab active state */
 .gen-tab-active {
   background: hsl(var(--gen-accent));

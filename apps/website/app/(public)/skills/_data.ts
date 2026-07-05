@@ -138,7 +138,7 @@ export const SKILL_CATEGORIES: SkillCategory[] = [
       },
       {
         description:
-          '6-dimension quality scoring — clarity, voice, hook, CTA, platform fit, accuracy.',
+          '6-dimension quality scoring: clarity, voice, hook, CTA, platform fit, accuracy.',
         icon: LuSparkles,
         name: 'Content Reviewer',
         slug: 'content-reviewer',
@@ -258,7 +258,7 @@ export const SKILL_CATEGORIES: SkillCategory[] = [
     skills: [
       {
         description:
-          'Ad copy with PAS, AIDA, BAB, StoryBrand frameworks — variants for every platform.',
+          'Ad copy with PAS, AIDA, BAB, StoryBrand frameworks: variants for every platform.',
         icon: LuMegaphone,
         name: 'Ad Copy Creator',
         slug: 'ad-copy-creator',
@@ -577,7 +577,7 @@ export const HOW_IT_WORKS: HowItWorksStep[] = [
   },
   {
     description:
-      'Your agent reads each skill — its rules, patterns, and domain knowledge — and internalizes them.',
+      'Your agent reads each skill, its rules, patterns, and domain knowledge, and internalizes them.',
     icon: LuBrainCircuit,
     number: '02',
     title: 'Agent Learns',
@@ -591,7 +591,7 @@ export const HOW_IT_WORKS: HowItWorksStep[] = [
   },
   {
     description:
-      'Inside Genfeed, skills use platform tools — create_post, generate_image, rate_content — for even better output.',
+      'Inside Genfeed, skills use platform tools like create_post, generate_image, and rate_content for even better output.',
     icon: LuPackage,
     number: '04',
     title: 'Better with Genfeed',
