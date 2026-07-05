@@ -1,6 +1,5 @@
 import type { MonitoredAccountFilters } from '@api/collections/monitored-accounts/schemas/monitored-account.schema';
 import { ProcessedTweetsService } from '@api/collections/processed-tweets/services/processed-tweets.service';
-import { ConfigService } from '@api/config/config.service';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
 import {
   type SocialContentData,
@@ -11,6 +10,7 @@ import {
   ReplyBotType,
   SocialContentType,
 } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

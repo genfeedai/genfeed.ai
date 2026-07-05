@@ -1,6 +1,6 @@
-import { ConfigService } from '@api/config/config.service';
 import { IS_SELF_HOSTED } from '@genfeedai/config';
 import { creditPackTotalCredits, PAYG_CREDIT_PACKS } from '@genfeedai/helpers';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

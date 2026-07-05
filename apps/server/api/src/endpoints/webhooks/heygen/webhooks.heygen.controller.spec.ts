@@ -1,7 +1,7 @@
-import { ConfigService } from '@api/config/config.service';
 import { HeygenWebhookController } from '@api/endpoints/webhooks/heygen/webhooks.heygen.controller';
 import { HeygenWebhookService } from '@api/endpoints/webhooks/heygen/webhooks.heygen.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';

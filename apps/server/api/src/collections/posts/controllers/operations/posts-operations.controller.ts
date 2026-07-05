@@ -16,7 +16,6 @@ import { GenerateTweetsDto } from '@api/collections/posts/dto/generate-tweets.dt
 import { type PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { ConfigService } from '@api/config/config.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -50,6 +49,7 @@ import type {
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
 import { PostListSerializer, PostSerializer } from '@genfeedai/serializers';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,

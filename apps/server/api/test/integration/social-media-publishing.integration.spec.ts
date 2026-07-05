@@ -20,7 +20,6 @@ vi.mock('@api/services/integrations/youtube/services/youtube.service', () => ({
 import process from 'node:process';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { ConfigService } from '@api/config/config.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
@@ -28,6 +27,7 @@ import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { IngredientStatus } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';

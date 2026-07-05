@@ -1,9 +1,9 @@
-import { ConfigService } from '@api/config/config.service';
 import {
   ManagedInferenceOperation,
   ManagedInferenceProvider,
 } from '@api/endpoints/v1/managed-inference/dto/managed-inference-request.dto';
 import type { ManagedInferenceResponse } from '@api/endpoints/v1/managed-inference/interfaces/managed-inference.interfaces';
+import { ConfigService } from '@libs/config/config.service';
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';

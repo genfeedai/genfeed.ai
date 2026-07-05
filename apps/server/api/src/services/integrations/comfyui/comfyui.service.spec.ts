@@ -14,7 +14,6 @@ vi.mock('@genfeedai/workflows/comfyui', () => ({
   buildZImageTurboPrompt: vi.fn(() => ({ nodes: 'z-image-turbo' })),
 }));
 
-import type { ConfigService } from '@api/config/config.service';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
@@ -28,6 +27,7 @@ import {
   buildZImageTurboLoraPrompt,
   buildZImageTurboPrompt,
 } from '@genfeedai/workflows/comfyui';
+import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { HttpService } from '@nestjs/axios';
 import { of, throwError } from 'rxjs';

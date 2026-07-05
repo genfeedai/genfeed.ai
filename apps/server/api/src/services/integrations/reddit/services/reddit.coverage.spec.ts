@@ -30,9 +30,9 @@ vi.mock('@api/shared/utils/encryption/encryption.util', () => ({
 
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { ConfigService } from '@api/config/config.service';
 import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { of, throwError } from 'rxjs';

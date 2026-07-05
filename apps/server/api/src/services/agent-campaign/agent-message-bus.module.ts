@@ -1,6 +1,6 @@
-import { ConfigModule } from '@api/config/config.module';
-import { ConfigService } from '@api/config/config.service';
 import { AgentMessageBusService } from '@api/services/agent-campaign/agent-message-bus.service';
+import { ConfigModule } from '@libs/config/config.module';
+import { ConfigService } from '@libs/config/config.service';
 import { RedisModule } from '@libs/redis/redis.module';
 import { Module } from '@nestjs/common';
 

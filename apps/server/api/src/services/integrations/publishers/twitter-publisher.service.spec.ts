@@ -22,7 +22,6 @@ import type { OrganizationDocument } from '@api/collections/organizations/schema
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { ConfigService } from '@api/config/config.service';
 import type {
   MediaInfo,
   PublishContext,
@@ -31,6 +30,7 @@ import { TwitterPublisherService } from '@api/services/integrations/publishers/t
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';

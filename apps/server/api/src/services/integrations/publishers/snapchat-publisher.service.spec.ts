@@ -6,11 +6,11 @@ vi.mock('@libs/utils/caller/caller.util', () => ({
 }));
 
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { ConfigService } from '@api/config/config.service';
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { SnapchatPublisherService } from '@api/services/integrations/publishers/snapchat-publisher.service';
 import { SnapchatService } from '@api/services/integrations/snapchat/services/snapchat.service';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 

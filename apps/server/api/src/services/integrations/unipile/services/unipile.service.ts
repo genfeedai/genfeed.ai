@@ -1,5 +1,4 @@
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
-import { ConfigService } from '@api/config/config.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import {
   type UnipileAccount,
@@ -25,6 +24,7 @@ import {
   IntegrationPlatform as PrismaIntegrationPlatform,
   IntegrationStatus as PrismaIntegrationStatus,
 } from '@genfeedai/prisma';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';

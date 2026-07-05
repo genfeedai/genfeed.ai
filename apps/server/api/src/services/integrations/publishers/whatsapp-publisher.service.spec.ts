@@ -1,11 +1,11 @@
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
-import { ConfigService } from '@api/config/config.service';
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { WhatsappPublisherService } from '@api/services/integrations/publishers/whatsapp-publisher.service';
 import { WhatsappService } from '@api/services/integrations/whatsapp/services/whatsapp.service';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 

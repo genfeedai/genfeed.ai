@@ -1,7 +1,7 @@
-import { ConfigService } from '@api/config/config.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { ByokProvider } from '@genfeedai/enums';
 import type { ByokResolutionResult } from '@genfeedai/interfaces';
+import { ConfigService } from '@libs/config/config.service';
 import { Injectable, Optional } from '@nestjs/common';
 
 @Injectable()

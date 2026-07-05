@@ -8,9 +8,9 @@ vi.mock('axios', () => ({
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
-import { ConfigService } from '@api/config/config.service';
 import { AdminFleetTrainingService } from '@api/endpoints/admin/fleet/services/fleet-training.service';
 import { LoraStatus, TrainingStage, TrainingStatus } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import axios from 'axios';

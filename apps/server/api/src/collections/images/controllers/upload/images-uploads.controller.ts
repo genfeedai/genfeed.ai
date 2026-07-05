@@ -10,7 +10,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { UploadImageDto } from '@api/collections/images/dto/upload-image.dto';
 import { UploadNftDto } from '@api/collections/images/dto/upload-nft.dto';
-import { ValidationConfigService } from '@api/config/services/validation.config';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -35,6 +34,7 @@ import {
   IngredientUploadSerializer,
   PresignedUploadSerializer,
 } from '@genfeedai/serializers';
+import { ValidationConfigService } from '@libs/config/services/validation.config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpService } from '@nestjs/axios';

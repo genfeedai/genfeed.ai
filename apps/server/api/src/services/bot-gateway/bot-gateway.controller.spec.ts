@@ -1,4 +1,3 @@
-import { ConfigService } from '@api/config/config.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { DiscordBotAdapter } from '@api/services/bot-gateway/adapters/discord-bot.adapter';
 import { SlackBotAdapter } from '@api/services/bot-gateway/adapters/slack-bot.adapter';
@@ -7,6 +6,7 @@ import { BotGatewayController } from '@api/services/bot-gateway/bot-gateway.cont
 import { BotGatewayService } from '@api/services/bot-gateway/bot-gateway.service';
 import { BotInteractionType, BotResponseType } from '@genfeedai/enums';
 import type { IBotPlatformAdapter, IBotResponse } from '@genfeedai/interfaces';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';

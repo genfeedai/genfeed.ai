@@ -1,4 +1,3 @@
-import { ConfigService } from '@api/config/config.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { AnthropicService } from '@api/services/integrations/anthropic/services/anthropic.service';
 import { LlmInstanceService } from '@api/services/integrations/llm/llm-instance.service';
@@ -10,6 +9,7 @@ import type {
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { ByokProvider } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

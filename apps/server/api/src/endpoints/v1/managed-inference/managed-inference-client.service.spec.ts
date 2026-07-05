@@ -1,13 +1,13 @@
-vi.mock('@api/config/config.service', () => ({
+vi.mock('@libs/config/config.service', () => ({
   ConfigService: class ConfigService {},
 }));
 
-import { ConfigService } from '@api/config/config.service';
 import {
   ManagedInferenceOperation,
   ManagedInferenceProvider,
 } from '@api/endpoints/v1/managed-inference/dto/managed-inference-request.dto';
 import { ManagedInferenceClientService } from '@api/endpoints/v1/managed-inference/managed-inference-client.service';
+import { ConfigService } from '@libs/config/config.service';
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException } from '@nestjs/common';
 import { of } from 'rxjs';

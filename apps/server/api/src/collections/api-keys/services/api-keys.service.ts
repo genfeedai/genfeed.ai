@@ -7,11 +7,11 @@ import {
   CACHE_TAGS,
 } from '@api/common/constants/cache-patterns.constants';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
-import { ConfigService } from '@api/config/config.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { ApiKeyScope } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { BadRequestException, Injectable } from '@nestjs/common';

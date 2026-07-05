@@ -3,12 +3,12 @@ vi.mock('@api/shared/utils/encryption/encryption.util', () => ({
 }));
 
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { ConfigService } from '@api/config/config.service';
 import { GhostService } from '@api/services/integrations/ghost/services/ghost.service';
 import { GhostPublisherService } from '@api/services/integrations/publishers/ghost-publisher.service';
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 

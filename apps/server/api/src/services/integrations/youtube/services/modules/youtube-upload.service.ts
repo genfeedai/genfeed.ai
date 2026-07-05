@@ -1,12 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
-import { ConfigService } from '@api/config/config.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import { TagResolutionService } from '@api/shared/services/tag-resolution/tag-resolution.service';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import { PostStatus } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { google } from 'googleapis';

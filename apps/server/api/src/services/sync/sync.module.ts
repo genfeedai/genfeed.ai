@@ -1,7 +1,7 @@
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
-import { ConfigModule } from '@api/config/config.module';
 import { SyncController } from '@api/services/sync/sync.controller';
 import { SyncService } from '@api/services/sync/sync.service';
+import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { HttpModule } from '@nestjs/axios';
 import { forwardRef, Module } from '@nestjs/common';

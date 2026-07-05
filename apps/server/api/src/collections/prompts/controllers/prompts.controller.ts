@@ -9,7 +9,6 @@ import { UpdatePromptDto } from '@api/collections/prompts/dto/update-prompt.dto'
 import { type PromptDocument } from '@api/collections/prompts/schemas/prompt.schema';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
-import { ConfigService } from '@api/config/config.service';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -47,6 +46,7 @@ import type {
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
 import { PromptSerializer } from '@genfeedai/serializers';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {

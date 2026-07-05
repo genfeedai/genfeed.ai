@@ -1,6 +1,5 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type { TrendSourceClassification } from '@api/collections/trends/interfaces/trend.interfaces';
-import { ConfigService } from '@api/config/config.service';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform } from '@genfeedai/enums';
@@ -8,6 +7,7 @@ import {
   getIntegrationProviderDefinition,
   IntegrationHttpClient,
 } from '@genfeedai/integrations';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';

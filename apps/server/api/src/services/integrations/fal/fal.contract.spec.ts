@@ -5,9 +5,9 @@ vi.mock('@fal-ai/client', () => ({
   },
 }));
 
-import { ConfigService } from '@api/config/config.service';
 import { FalService } from '@api/services/integrations/fal/fal.service';
 import { fal } from '@fal-ai/client';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';

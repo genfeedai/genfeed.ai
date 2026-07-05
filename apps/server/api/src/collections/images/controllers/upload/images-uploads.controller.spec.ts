@@ -15,7 +15,6 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ImagesUploadsController } from '@api/collections/images/controllers/upload/images-uploads.controller';
-import { ValidationConfigService } from '@api/config/services/validation.config';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
@@ -24,6 +23,7 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { IngredientCategory } from '@genfeedai/enums';
+import { ValidationConfigService } from '@libs/config/services/validation.config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException } from '@nestjs/common';

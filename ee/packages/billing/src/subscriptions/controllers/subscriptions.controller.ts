@@ -1,7 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
-import { ConfigService } from '@api/config/config.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -14,6 +13,7 @@ import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { SubscriptionPlan } from '@genfeedai/enums';
 import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
 import { SubscriptionSerializer } from '@genfeedai/serializers';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,

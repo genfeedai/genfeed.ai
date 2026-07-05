@@ -1,9 +1,9 @@
-import { ConfigService } from '@api/config/config.service';
 import { OpusProWebhookController } from '@api/endpoints/webhooks/opuspro/webhooks.opuspro.controller';
 import { OpusProWebhookService } from '@api/endpoints/webhooks/opuspro/webhooks.opuspro.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { IngredientCategory } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import type { OpusProWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

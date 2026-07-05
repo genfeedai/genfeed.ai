@@ -19,7 +19,6 @@ import { PersonasModule } from '@api/collections/personas/personas.module';
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
 import { TemplatesModule } from '@api/collections/templates/templates.module';
 import { UsersModule } from '@api/collections/users/users.module';
-import { ConfigModule } from '@api/config/config.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ByokModule } from '@api/services/byok/byok.module';
@@ -29,6 +28,7 @@ import { NotificationsModule } from '@api/services/notifications/notifications.m
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
 import { RouterModule } from '@api/services/router/router.module';
 import { SeoModule } from '@api/services/seo/seo.module';
+import { ConfigModule } from '@libs/config/config.module';
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({

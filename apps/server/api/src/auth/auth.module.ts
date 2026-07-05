@@ -18,8 +18,8 @@ import { SubscriptionsModule } from '@api/collections/subscriptions/subscription
 import { UserSetupModule } from '@api/collections/users/user-setup.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { CommonModule } from '@api/common/common.module';
-import { ConfigModule } from '@api/config/config.module';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
+import { ConfigModule } from '@libs/config/config.module';
 import { forwardRef, Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 

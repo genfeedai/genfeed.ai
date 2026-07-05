@@ -3,13 +3,13 @@ vi.mock('node:crypto', () => ({
 }));
 
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { ConfigService } from '@api/config/config.service';
 import type {
   CreateBatchHookRemixDto,
   CreateHookRemixDto,
 } from '@api/endpoints/v1/hook-remix/dto/create-hook-remix.dto';
 import { HookRemixService } from '@api/endpoints/v1/hook-remix/hook-remix.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException } from '@nestjs/common';

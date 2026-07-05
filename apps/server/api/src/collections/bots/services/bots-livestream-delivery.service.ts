@@ -3,9 +3,9 @@ import type {
   BotTarget,
 } from '@api/collections/bots/schemas/bot.schema';
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
-import { ConfigService } from '@api/config/config.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
+import { ConfigService } from '@libs/config/config.service';
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import { google } from 'googleapis';

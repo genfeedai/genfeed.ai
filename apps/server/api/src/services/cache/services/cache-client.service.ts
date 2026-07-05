@@ -1,5 +1,5 @@
 import { WorkloadRedisClientService } from '@api/common/services/workload-redis-client.service';
-import { ConfigService } from '@api/config/config.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisWorkload } from '@libs/redis/redis-connection.utils';
 import { Injectable } from '@nestjs/common';

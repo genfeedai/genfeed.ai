@@ -1,4 +1,4 @@
-import { ConfigService } from '@api/config/config.service';
+import { ConfigService } from '@libs/config/config.service';
 import { UnauthorizedException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { CiTriageWebhookController } from './ci-triage-webhook.controller';

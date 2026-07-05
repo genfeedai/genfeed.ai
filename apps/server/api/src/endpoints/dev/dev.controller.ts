@@ -1,8 +1,8 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { ConfigService } from '@api/config/config.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { IngredientCategory } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {

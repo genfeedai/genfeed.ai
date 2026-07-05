@@ -20,7 +20,6 @@ import { ProcessedTweetsModule } from '@api/collections/processed-tweets/process
 import { ReplyBotConfigsModule } from '@api/collections/reply-bot-configs/reply-bot-configs.module';
 import { TemplatesModule } from '@api/collections/templates/templates.module';
 import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
-import { ConfigModule } from '@api/config/config.module';
 import { ApifyModule } from '@api/services/integrations/apify/apify.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
@@ -31,6 +30,7 @@ import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-o
 import { ReplyCandidatePrefilterService } from '@api/services/reply-bot/reply-candidate-prefilter.service';
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
 import { SocialMonitorService } from '@api/services/reply-bot/social-monitor.service';
+import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { forwardRef, Module } from '@nestjs/common';
 

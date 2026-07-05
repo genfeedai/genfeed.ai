@@ -8,7 +8,6 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { CreateVideoWithCaptionsDto } from '@api/collections/videos/dto/create-video.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { requireVideoOutputPath } from '@api/collections/videos/utils/video-processing-result.util';
-import { ConfigService } from '@api/config/config.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -44,6 +43,7 @@ import {
   CaptionSerializer,
   IngredientSerializer,
 } from '@genfeedai/serializers';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {

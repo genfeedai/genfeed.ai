@@ -1,5 +1,5 @@
-import { ConfigService } from '@api/config/config.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

@@ -1,12 +1,12 @@
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
-import { ConfigService } from '@api/config/config.service';
 import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
 import { TaskOrchestratorService } from '@api/services/task-orchestration/task-orchestrator.service';
 import {
   WORKSPACE_TASK_QUEUE,
   WorkspaceTaskJobData,
 } from '@genfeedai/queue-contracts';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { forwardRef, HttpException, Inject } from '@nestjs/common';

@@ -74,10 +74,10 @@ vi.mock('@api/shared/utils/html-to-text/html-to-text.util', () => ({
 
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { ConfigService } from '@api/config/config.service';
 import { mockModel } from '@api/helpers/mocks/model.mock';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';

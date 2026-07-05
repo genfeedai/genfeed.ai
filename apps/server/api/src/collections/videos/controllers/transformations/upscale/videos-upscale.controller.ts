@@ -7,7 +7,6 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { VideoEditDto } from '@api/collections/videos/dto/video-edit.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
-import { ConfigService } from '@api/config/config.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -45,6 +44,7 @@ import {
 } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';

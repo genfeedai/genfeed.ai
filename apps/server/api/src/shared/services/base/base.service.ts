@@ -1,4 +1,3 @@
-import { ConfigService } from '@api/config/config.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { QueryBuilder } from '@api/helpers/utils/query-builder.util';
@@ -9,6 +8,7 @@ import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-resu
 import type { PopulateOption } from '@genfeedai/interfaces';
 import * as PrismaEnums from '@genfeedai/prisma';
 import { getModelMeta } from '@genfeedai/prisma';
+import { ConfigService } from '@libs/config/config.service';
 import { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';

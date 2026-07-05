@@ -5,7 +5,6 @@ import type {
   Tool,
   ToolResultBlockParam,
 } from '@anthropic-ai/sdk/resources/messages';
-import { ConfigService } from '@api/config/config.service';
 import type {
   OpenRouterChatCompletionParams,
   OpenRouterChatCompletionResponse,
@@ -14,6 +13,7 @@ import type {
   OpenRouterTool,
   OpenRouterToolCallResponse,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

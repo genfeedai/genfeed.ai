@@ -16,8 +16,6 @@ import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { ConfigService } from '@api/config/config.service';
-import { ValidationConfigService } from '@api/config/services/validation.config';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -52,6 +50,8 @@ import {
 } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { AssetSerializer } from '@genfeedai/serializers';
+import { ConfigService } from '@libs/config/config.service';
+import { ValidationConfigService } from '@libs/config/services/validation.config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {

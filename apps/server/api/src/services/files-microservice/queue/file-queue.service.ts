@@ -1,5 +1,4 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { ConfigService } from '@api/config/config.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { YoutubeOAuth2Util } from '@api/shared/utils/youtube-oauth/youtube-oauth.util';
 import { JobState } from '@genfeedai/enums';
@@ -13,6 +12,7 @@ import type {
   IYoutubeCredentialUpdate,
   IYoutubeUploadData,
 } from '@genfeedai/interfaces';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';

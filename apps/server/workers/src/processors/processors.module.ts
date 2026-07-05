@@ -30,7 +30,6 @@ import { PostsModule } from '@api/collections/posts/posts.module';
 import { ReplyBotConfigsModule } from '@api/collections/reply-bot-configs/reply-bot-configs.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
-import { ConfigModule } from '@api/config/config.module';
 import { HeygenPollModule } from '@api/queues/heygen-poll/heygen-poll.module';
 import { AgentCampaignOrchestratorModule } from '@api/services/agent-campaign/agent-campaign-orchestrator.module';
 import { AgentOrchestratorModule } from '@api/services/agent-orchestrator/agent-orchestrator.module';
@@ -56,6 +55,7 @@ import { SkillExecutorModule } from '@api/services/skill-executor/skill-executor
 import { TaskOrchestrationModule } from '@api/services/task-orchestration/task-orchestration.module';
 import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
 import { WhisperModule } from '@api/services/whisper/whisper.module';
+import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { HttpModule } from '@nestjs/axios';
 import { forwardRef, Module } from '@nestjs/common';

@@ -8,7 +8,6 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
-import { ConfigService } from '@api/config/config.service';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
@@ -18,6 +17,7 @@ import { AgentThreadEngineService } from '@api/services/agent-threading/services
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { AgentAutonomyMode, AgentType } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Effect } from 'effect';

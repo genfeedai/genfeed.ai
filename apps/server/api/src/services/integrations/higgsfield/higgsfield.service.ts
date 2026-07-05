@@ -1,8 +1,8 @@
-import { ConfigService } from '@api/config/config.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { ByokProvider } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';

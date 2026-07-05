@@ -14,13 +14,13 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { SpeechController } from '@api/collections/speech/controllers/speech.controller';
-import { ValidationConfigService } from '@api/config/services/validation.config';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
+import { ValidationConfigService } from '@libs/config/services/validation.config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';

@@ -1,5 +1,4 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
-import { ConfigService } from '@api/config/config.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -8,6 +7,7 @@ import {
   buildSystemEmailParagraph,
 } from '@genfeedai/helpers';
 import type { Invitation, Member, Prisma, User } from '@genfeedai/prisma';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,

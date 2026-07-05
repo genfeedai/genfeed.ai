@@ -1,4 +1,4 @@
-import { ConfigModule } from '@api/config/config.module';
+import { ConfigModule } from '@libs/config/config.module';
 
 describe('ConfigModule', () => {
   it('should be defined', () => {

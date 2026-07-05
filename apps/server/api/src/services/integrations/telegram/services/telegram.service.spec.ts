@@ -7,12 +7,12 @@ vi.mock('@api/shared/utils/telegram-auth/telegram-auth.util', () => ({
 }));
 
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { ConfigService } from '@api/config/config.service';
 import {
   TelegramAuthData,
   TelegramService,
 } from '@api/services/integrations/telegram/services/telegram.service';
 import { TelegramAuthUtil } from '@api/shared/utils/telegram-auth/telegram-auth.util';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';

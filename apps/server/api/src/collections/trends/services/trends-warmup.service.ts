@@ -1,6 +1,6 @@
 import { TrendsService } from '@api/collections/trends/services/trends.service';
-import { ConfigService } from '@api/config/config.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';

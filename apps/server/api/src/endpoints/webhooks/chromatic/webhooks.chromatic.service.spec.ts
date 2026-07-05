@@ -1,6 +1,6 @@
-import { ConfigService } from '@api/config/config.service';
 import { ChromaticWebhookService } from '@api/endpoints/webhooks/chromatic/webhooks.chromatic.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

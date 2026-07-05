@@ -1,6 +1,5 @@
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
-import { ConfigService } from '@api/config/config.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -8,6 +7,7 @@ import {
   type ContextEntry,
   type Post,
 } from '@genfeedai/prisma';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

@@ -7,7 +7,6 @@ import type { CredentialDocument } from '@api/collections/credentials/schemas/cr
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { ConfigService } from '@api/config/config.service';
 import type {
   MediaInfo,
   PublishContext,
@@ -15,6 +14,7 @@ import type {
 import { RedditPublisherService } from '@api/services/integrations/publishers/reddit-publisher.service';
 import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

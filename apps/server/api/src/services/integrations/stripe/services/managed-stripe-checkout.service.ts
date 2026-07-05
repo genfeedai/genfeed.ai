@@ -1,8 +1,8 @@
-import { ConfigService } from '@api/config/config.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { CreateManagedCheckoutDto } from '@api/services/integrations/stripe/dto/create-managed-checkout.dto';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { IS_SELF_HOSTED } from '@genfeedai/config';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,

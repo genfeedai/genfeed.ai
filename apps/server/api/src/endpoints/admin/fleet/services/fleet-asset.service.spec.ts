@@ -1,10 +1,10 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { ConfigService } from '@api/config/config.service';
 import { AdminFleetAssetService } from '@api/endpoints/admin/fleet/services/fleet-asset.service';
 import { AdminFleetTrainingService } from '@api/endpoints/admin/fleet/services/fleet-training.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { DarkroomReviewStatus, IngredientCategory } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

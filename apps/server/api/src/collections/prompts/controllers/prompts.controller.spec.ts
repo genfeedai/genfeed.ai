@@ -22,7 +22,6 @@ import { PromptsController } from '@api/collections/prompts/controllers/prompts.
 import { CreatePromptDto } from '@api/collections/prompts/dto/create-prompt.dto';
 import { UpdatePromptDto } from '@api/collections/prompts/dto/update-prompt.dto';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
-import { ConfigService } from '@api/config/config.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
@@ -30,6 +29,7 @@ import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.in
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptCategory } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';

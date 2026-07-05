@@ -1,11 +1,11 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { ConfigService } from '@api/config/config.service';
 import type {
   OpenRouterChatCompletionParams,
   OpenRouterChatCompletionResponse,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 

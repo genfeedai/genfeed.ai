@@ -1,5 +1,5 @@
-import { ConfigService } from '@api/config/config.service';
 import { PromptParser } from '@api/helpers/utils/prompt-parser/prompt-parser.util';
+import { ConfigService } from '@libs/config/config.service';
 
 describe('PromptParser', () => {
   let configService: ConfigService;

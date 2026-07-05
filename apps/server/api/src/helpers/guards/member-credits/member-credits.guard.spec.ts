@@ -2,10 +2,10 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { MembersService } from '@api/collections/members/services/members.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { ConfigService } from '@api/config/config.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { MemberCreditsGuard } from '@api/helpers/guards/member-credits/member-credits.guard';
 import { ByokService } from '@api/services/byok/byok.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import type { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';

@@ -42,7 +42,6 @@ import { TrendNotificationWorkflowService } from '@api/collections/workflows/ser
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import type { TriggerEvent } from '@api/collections/workflows/services/workflow-executor.service';
 import type { TrendNotificationCadence } from '@api/collections/workflows/templates/trend-notification-workflows.template';
-import { ConfigService } from '@api/config/config.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
@@ -122,6 +121,7 @@ import {
   UpscaleExecutor,
   WorkflowEngine,
 } from '@genfeedai/workflow-engine';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Inject, Injectable, Optional } from '@nestjs/common';

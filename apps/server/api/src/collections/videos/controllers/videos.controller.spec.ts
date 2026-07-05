@@ -32,7 +32,6 @@ import { VideoMusicOrchestrationService } from '@api/collections/videos/services
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import type { VoteDocument } from '@api/collections/votes/schemas/vote.schema';
 import { VotesService } from '@api/collections/votes/services/votes.service';
-import { ConfigService } from '@api/config/config.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FalService } from '@api/services/integrations/fal/fal.service';
@@ -51,6 +50,7 @@ import {
   IngredientStatus,
   ModelCategory,
 } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, StreamableFile } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';

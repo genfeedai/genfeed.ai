@@ -2,7 +2,6 @@ import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
-import { ConfigService } from '@api/config/config.service';
 import { ReplicateWebhookService } from '@api/endpoints/webhooks/replicate/webhooks.replicate.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -15,6 +14,7 @@ import {
   ModelCategory,
   TrainingStatus,
 } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { Public } from '@libs/decorators/public.decorator';
 import { ReplicateWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';

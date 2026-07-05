@@ -1,4 +1,3 @@
-import { ConfigService } from '@api/config/config.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { DiscordBotAdapter } from '@api/services/bot-gateway/adapters/discord-bot.adapter';
 import { SlackBotAdapter } from '@api/services/bot-gateway/adapters/slack-bot.adapter';
@@ -9,6 +8,7 @@ import {
   BotResponseType,
   CredentialPlatform,
 } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { Public } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

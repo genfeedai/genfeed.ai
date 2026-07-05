@@ -1,10 +1,10 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import type { ConfigService } from '@api/config/config.service';
 import type {
   PrismaQueryMetric,
   RequestDatabaseMetrics,
 } from '@api/shared/interfaces/performance/performance.interface';
 import type { Prisma } from '@genfeedai/prisma';
+import type { ConfigService } from '@libs/config/config.service';
 
 interface RequestPerformanceStore {
   queryCount: number;

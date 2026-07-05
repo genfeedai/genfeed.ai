@@ -5,7 +5,6 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
-import { ConfigService } from '@api/config/config.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -29,6 +28,7 @@ import {
   WebSocketEventType,
 } from '@genfeedai/enums';
 import { IngredientSerializer } from '@genfeedai/serializers';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';

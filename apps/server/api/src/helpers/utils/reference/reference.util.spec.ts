@@ -1,10 +1,10 @@
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { ConfigService } from '@api/config/config.service';
 import {
   buildReferenceImageUrl,
   buildReferenceImageUrls,
 } from '@api/helpers/utils/reference/reference.util';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 
 const BASE_URL = 'https://cdn.genfeed.ai';

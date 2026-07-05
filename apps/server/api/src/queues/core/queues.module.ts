@@ -7,8 +7,6 @@
  * enqueue jobs without consuming them.
  */
 
-import { ConfigModule } from '@api/config/config.module';
-import { ConfigService } from '@api/config/config.service';
 import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
 import { CampaignQueueService } from '@api/queues/campaign/campaign-queue.service';
 import { QueueService } from '@api/queues/core/queue.service';
@@ -37,6 +35,8 @@ import {
   TELEGRAM_DISTRIBUTE_QUEUE,
   WORKSPACE_TASK_QUEUE,
 } from '@genfeedai/queue-contracts';
+import { ConfigModule } from '@libs/config/config.module';
+import { ConfigService } from '@libs/config/config.service';
 import {
   buildBullMQConnection,
   parseRedisConnectionForWorkload,

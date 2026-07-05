@@ -1,5 +1,5 @@
-import { ConfigService } from '@api/config/config.service';
 import { SkillRegistryService } from '@api/skills-pro/services/skill-registry.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

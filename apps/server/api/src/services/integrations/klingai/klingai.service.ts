@@ -1,6 +1,6 @@
-import { ConfigService } from '@api/config/config.service';
 import { appendWebhookToken } from '@api/endpoints/webhooks/webhook-token.util';
 import { encodeJwtToken } from '@api/helpers/utils/jwt/jwt.util';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';

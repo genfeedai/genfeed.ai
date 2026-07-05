@@ -1,5 +1,4 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { ConfigService } from '@api/config/config.service';
 import type {
   GoogleAdsAd,
   GoogleAdsAdGroup,
@@ -16,6 +15,7 @@ import type {
 } from '@api/services/integrations/google-ads/interfaces/google-ads.interface';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';

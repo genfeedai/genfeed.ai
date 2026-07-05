@@ -2,9 +2,9 @@ import { ContentGeneratorService } from '@api/collections/content-intelligence/s
 import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { PlaybookBuilderService } from '@api/collections/content-intelligence/services/playbook-builder.service';
 import { TopPerformerPromptContextService } from '@api/collections/content-intelligence/services/top-performer-prompt-context.service';
-import { ConfigService } from '@api/config/config.service';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
 import { vi } from 'vitest';

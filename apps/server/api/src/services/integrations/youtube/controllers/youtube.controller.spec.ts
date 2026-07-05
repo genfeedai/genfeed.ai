@@ -22,10 +22,10 @@ vi.mock('@api/shared/utils/youtube-oauth/youtube-oauth.util', () => ({
 
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { ConfigService } from '@api/config/config.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { YoutubeController } from '@api/services/integrations/youtube/controllers/youtube.controller';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';

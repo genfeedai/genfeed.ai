@@ -1,7 +1,7 @@
 import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import type { ConfigService } from '@api/config/config.service';
 import { DevController } from '@api/endpoints/dev/dev.controller';
 import type { NotificationsService } from '@api/services/notifications/notifications.service';
+import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 

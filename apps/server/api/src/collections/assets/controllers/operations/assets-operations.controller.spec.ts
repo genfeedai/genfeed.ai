@@ -8,8 +8,6 @@ import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { ConfigService } from '@api/config/config.service';
-import { ValidationConfigService } from '@api/config/services/validation.config';
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -28,6 +26,8 @@ import {
   IngredientCategory,
   ModelCategory,
 } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
+import { ValidationConfigService } from '@libs/config/services/validation.config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';

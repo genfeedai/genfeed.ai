@@ -1,4 +1,4 @@
-import { ConfigService } from '@api/config/config.service';
+import type { ConfigService } from '@libs/config/config.service';
 import { Injectable } from '@nestjs/common';
 
 export interface ValidationConfig {

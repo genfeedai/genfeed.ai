@@ -1,5 +1,5 @@
-import { ConfigService } from '@api/config/config.service';
 import { ContentHarnessService } from '@api/services/harness/harness.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 
 function createService(contentHarnessPackages?: string) {

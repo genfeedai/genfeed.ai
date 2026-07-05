@@ -11,7 +11,6 @@ import { AvatarVideoAspectRatio } from '@api/collections/videos/dto/create-avata
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { type VoiceDocument } from '@api/collections/voices/schemas/voice.schema';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
-import { ConfigService } from '@api/config/config.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ByokService } from '@api/services/byok/byok.service';
@@ -33,6 +32,7 @@ import {
   WebSocketEventStatus,
   WebSocketEventType,
 } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';

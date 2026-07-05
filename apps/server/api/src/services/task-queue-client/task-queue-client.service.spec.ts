@@ -1,8 +1,8 @@
-import { ConfigService } from '@api/config/config.service';
 import {
   type TaskJobRequest,
   TaskQueueClientService,
 } from '@api/services/task-queue-client/task-queue-client.service';
+import { ConfigService } from '@libs/config/config.service';
 import { HttpService } from '@nestjs/axios';
 import { Logger } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';

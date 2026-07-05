@@ -2,11 +2,11 @@ import type { CredentialDocument } from '@api/collections/credentials/schemas/cr
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
-import { ConfigService } from '@api/config/config.service';
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { WordpressPublisherService } from '@api/services/integrations/publishers/wordpress-publisher.service';
 import { WordpressService } from '@api/services/integrations/wordpress/services/wordpress.service';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

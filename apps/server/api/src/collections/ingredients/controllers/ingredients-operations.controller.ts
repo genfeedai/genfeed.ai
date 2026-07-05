@@ -10,7 +10,6 @@ import type {
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { UpdateMetadataDto } from '@api/collections/metadata/dto/update-metadata.dto';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { ConfigService } from '@api/config/config.service';
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -31,6 +30,7 @@ import {
   IngredientSerializer,
   MetadataSerializer,
 } from '@genfeedai/serializers';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {

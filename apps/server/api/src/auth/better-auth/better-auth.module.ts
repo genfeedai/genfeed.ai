@@ -4,11 +4,11 @@ import { OrganizationsModule } from '@api/collections/organizations/organization
 import { UserSetupModule } from '@api/collections/users/user-setup.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { CommonModule } from '@api/common/common.module';
-import { ConfigService } from '@api/config/config.service';
 import { CacheModule } from '@api/services/cache/cache.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IS_BETTER_AUTH_ENABLED } from '@genfeedai/config';
+import { ConfigService } from '@libs/config/config.service';
 import { forwardRef, Module } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PassportModule } from '@nestjs/passport';

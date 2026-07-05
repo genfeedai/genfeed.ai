@@ -3,7 +3,6 @@ import { ActivityEntity } from '@api/collections/activities/entities/activity.en
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { ConfigService } from '@api/config/config.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import {
@@ -13,6 +12,7 @@ import {
 } from '@genfeedai/enums';
 import { SocialUrlHelper } from '@genfeedai/helpers';
 import type { ITwitterSearchResult } from '@genfeedai/interfaces';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';

@@ -1,7 +1,7 @@
-import { ConfigService } from '@api/config/config.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

@@ -1,4 +1,3 @@
-import { ConfigService } from '@api/config/config.service';
 import { DiscordBotAdapter } from '@api/services/bot-gateway/adapters/discord-bot.adapter';
 import { SlackBotAdapter } from '@api/services/bot-gateway/adapters/slack-bot.adapter';
 import { TelegramBotAdapter } from '@api/services/bot-gateway/adapters/telegram-bot.adapter';
@@ -15,6 +14,7 @@ import type {
   IBotPlatformAdapter,
   IBotResponse,
 } from '@genfeedai/interfaces';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';

@@ -1,5 +1,5 @@
-import { ConfigService } from '@api/config/config.service';
 import { MicroservicesService } from '@api/services/microservices/microservices.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { HttpException } from '@nestjs/common';

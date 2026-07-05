@@ -3,9 +3,9 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { ConfigService } from '@api/config/config.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { BotCommandType, IngredientCategory } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

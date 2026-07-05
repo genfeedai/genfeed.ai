@@ -16,7 +16,6 @@ import { TrendPreferencesService } from '@api/collections/trends/services/trend-
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { TrendsWarmupService } from '@api/collections/trends/services/trends-warmup.service';
-import { ConfigModule } from '@api/config/config.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ByokModule } from '@api/services/byok/byok.module';
@@ -28,6 +27,7 @@ import { ReplicateModule } from '@api/services/integrations/replicate/replicate.
 import { TiktokModule } from '@api/services/integrations/tiktok/tiktok.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { XaiModule } from '@api/services/integrations/xai/xai.module';
+import { ConfigModule } from '@libs/config/config.module';
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({

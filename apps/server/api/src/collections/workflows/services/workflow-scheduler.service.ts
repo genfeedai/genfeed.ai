@@ -4,9 +4,9 @@ import { LegacyWorkflowStepRunner } from '@api/collections/workflows/services/le
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { getSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
-import { ConfigService } from '@api/config/config.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 

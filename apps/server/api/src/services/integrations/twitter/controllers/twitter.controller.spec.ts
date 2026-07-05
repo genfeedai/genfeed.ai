@@ -20,10 +20,10 @@ vi.mock('twitter-api-v2', () => ({
 
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { ConfigService } from '@api/config/config.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TwitterController } from '@api/services/integrations/twitter/controllers/twitter.controller';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';

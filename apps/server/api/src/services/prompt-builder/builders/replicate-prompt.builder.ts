@@ -1,5 +1,5 @@
 // biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
-import { ConfigService } from '@api/config/config.service';
+
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { BasePromptBuilder } from '@api/services/prompt-builder/builders/base-prompt.builder';
 import {
@@ -19,6 +19,7 @@ import {
   calculateAspectRatio,
   getDefaultAspectRatio,
 } from '@genfeedai/helpers';
+import { ConfigService } from '@libs/config/config.service';
 import { Injectable } from '@nestjs/common';
 
 // Derived allowlist of all Replicate models defined in the shared MODEL_KEYS constant.

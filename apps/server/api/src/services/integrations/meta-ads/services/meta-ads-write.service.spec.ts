@@ -1,4 +1,3 @@
-import { ConfigService } from '@api/config/config.service';
 import type {
   CreateAdParams,
   CreateAdSetParams,
@@ -7,6 +6,7 @@ import type {
   MetaVideoUploadResponse,
 } from '@api/services/integrations/meta-ads/interfaces/meta-ads.interface';
 import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';

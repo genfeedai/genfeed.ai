@@ -1,4 +1,3 @@
-import { ConfigService } from '@api/config/config.service';
 import type { AdminFleetEC2InstanceStatus } from '@api/endpoints/admin/fleet/interfaces/fleet-infra.interface';
 import {
   CloudFrontClient,
@@ -10,6 +9,7 @@ import {
   StartInstancesCommand,
   StopInstancesCommand,
 } from '@aws-sdk/client-ec2';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';

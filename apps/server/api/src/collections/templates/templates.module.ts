@@ -11,11 +11,11 @@ import { TemplateMetadataModule } from '@api/collections/template-metadata/templ
 import { TemplateUsageModule } from '@api/collections/template-usage/template-usage.module';
 import { TemplatesController } from '@api/collections/templates/controllers/templates.controller';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
-import { ConfigModule } from '@api/config/config.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
+import { ConfigModule } from '@libs/config/config.module';
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({

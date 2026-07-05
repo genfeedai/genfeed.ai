@@ -1,8 +1,8 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { SchedulesService } from '@api/collections/schedules/services/schedules.service';
-import { ConfigService } from '@api/config/config.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

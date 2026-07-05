@@ -1,10 +1,10 @@
-import type { ConfigService } from '@api/config/config.service';
 import type {
   ApiPerformanceSeverity,
   ApiPerformanceTelemetryInput,
   MetricAttributes,
   PerformanceMetrics,
 } from '@api/shared/interfaces/performance/performance.interface';
+import type { ConfigService } from '@libs/config/config.service';
 import * as Sentry from '@sentry/nestjs';
 
 type PerformanceConfig = Pick<ConfigService, 'get'>;

@@ -1,11 +1,11 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { ConfigService } from '@api/config/config.service';
 import {
   FileProcessingJob,
   FileQueueService,
   JobResponse,
 } from '@api/services/files-microservice/queue/file-queue.service';
 import type { IFrameInput, IJobStatusResponse } from '@genfeedai/interfaces';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';

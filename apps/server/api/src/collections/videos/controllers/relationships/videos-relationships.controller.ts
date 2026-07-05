@@ -21,7 +21,6 @@ import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
 import type { Video } from '@api/collections/videos/schemas/video.schema';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { requireVideoOutputPath } from '@api/collections/videos/utils/video-processing-result.util';
-import { ConfigService } from '@api/config/config.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -62,6 +61,7 @@ import {
   PostSerializer,
   VideoSerializer,
 } from '@genfeedai/serializers';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {

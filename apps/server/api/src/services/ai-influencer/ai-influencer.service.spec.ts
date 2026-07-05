@@ -8,7 +8,6 @@ import type { IngredientDocument } from '@api/collections/ingredients/schemas/in
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import type { PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
-import { ConfigService } from '@api/config/config.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { AiInfluencerService } from '@api/services/ai-influencer/ai-influencer.service';
 import { FalService } from '@api/services/integrations/fal/fal.service';
@@ -17,6 +16,7 @@ import { OpenRouterService } from '@api/services/integrations/openrouter/service
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { PersonaContentService } from '@api/services/persona-content/persona-content.service';
 import { LoraStatus } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

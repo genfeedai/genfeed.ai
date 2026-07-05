@@ -110,8 +110,6 @@ import { LocalIdentityInterceptor } from '@api/common/interceptors/local-identit
 import { OrgPrefixMiddleware } from '@api/common/middleware/org-prefix.middleware';
 import { RequestContextMiddleware } from '@api/common/middleware/request-context.middleware';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
-import { ConfigModule } from '@api/config/config.module';
-import { ConfigService } from '@api/config/config.service';
 import { AdminModule } from '@api/endpoints/admin/admin.module';
 import { AdsResearchModule } from '@api/endpoints/ads-research/ads-research.module';
 import { AiActionsModule } from '@api/endpoints/ai-actions/ai-actions.module';
@@ -192,6 +190,8 @@ import { SharedModule } from '@api/shared/shared.module';
 import { SkillsProModule } from '@api/skills-pro/skills-pro.module';
 import { CiTriageWebhookModule } from '@api/webhooks/ci-triage/ci-triage-webhook.module';
 import { AgentWorkflowsModule } from '@api/workflows/agent-workflows.module';
+import { ConfigModule } from '@libs/config/config.module';
+import { ConfigService } from '@libs/config/config.service';
 import { HealthModule } from '@libs/health/health.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { RedisModule } from '@libs/redis/redis.module';

@@ -2,14 +2,14 @@ import { type AgentMessageDocument } from '@api/collections/agent-messages/schem
 // biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 // biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
-import { ConfigService } from '@api/config/config.service';
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { CacheService } from '@api/services/cache/services/cache.service';
 // biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { ThreadContextState } from '@genfeedai/prisma';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
+import { ConfigService } from '@libs/config/config.service';
 // biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

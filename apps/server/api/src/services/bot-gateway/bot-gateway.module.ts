@@ -4,7 +4,6 @@ import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
-import { ConfigModule } from '@api/config/config.module';
 import { DiscordBotAdapter } from '@api/services/bot-gateway/adapters/discord-bot.adapter';
 import { SlackBotAdapter } from '@api/services/bot-gateway/adapters/slack-bot.adapter';
 import { TelegramBotAdapter } from '@api/services/bot-gateway/adapters/telegram-bot.adapter';
@@ -13,6 +12,7 @@ import { BotGatewayService } from '@api/services/bot-gateway/bot-gateway.service
 import { BotGenerationService } from '@api/services/bot-gateway/services/bot-generation.service';
 import { BotUserResolverService } from '@api/services/bot-gateway/services/bot-user-resolver.service';
 import { SharedModule } from '@api/shared/shared.module';
+import { ConfigModule } from '@libs/config/config.module';
 import { HttpModule } from '@nestjs/axios';
 import { forwardRef, Module } from '@nestjs/common';
 

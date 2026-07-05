@@ -8,11 +8,11 @@ import { CreditsModule } from '@api/collections/credits/credits.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { OptimizersController } from '@api/collections/optimizers/controllers/optimizers.controller';
 import { OptimizersService } from '@api/collections/optimizers/services/optimizers.service';
-import { ConfigModule } from '@api/config/config.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
+import { ConfigModule } from '@libs/config/config.module';
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({

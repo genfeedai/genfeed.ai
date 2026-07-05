@@ -1,7 +1,6 @@
 import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { ConfigService } from '@api/config/config.service';
 import { MastodonService } from '@api/services/integrations/mastodon/services/mastodon.service';
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
 import type {
@@ -11,6 +10,7 @@ import type {
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
