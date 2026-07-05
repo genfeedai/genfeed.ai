@@ -755,6 +755,43 @@ describe('BaseService', () => {
         where: { id: 'abc123' },
       });
     });
+
+    // normalizeWhere drops undefined values, so without the guard a lookup
+    // like findOne({ _id: undefined }) degrades to an unscoped findFirst and
+    // returns the first row in the table — a cross-tenant read.
+    it('returns null (without querying) when _id is undefined', async () => {
+      const result = await service.findOne({
+        _id: undefined,
+        isDeleted: false,
+      });
+
+      expect(result).toBeNull();
+      expect(delegate.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('returns null (without querying) when id is null', async () => {
+      const result = await service.findOne({ id: null, isDeleted: false });
+
+      expect(result).toBeNull();
+      expect(delegate.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('returns null (without querying) when id is an empty string', async () => {
+      const result = await service.findOne({ id: '', isDeleted: false });
+
+      expect(result).toBeNull();
+      expect(delegate.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('still queries when a non-id filter value is undefined', async () => {
+      delegate.findFirst.mockResolvedValue(null);
+
+      await service.findOne({ id: 'id_1', status: undefined });
+
+      expect(delegate.findFirst).toHaveBeenCalledWith({
+        where: { id: 'id_1' },
+      });
+    });
   });
 
   describe('patch', () => {

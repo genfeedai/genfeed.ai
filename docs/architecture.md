@@ -6,6 +6,7 @@ collaboration, and governance layer.
 
 ## Boundary Documents
 
+- [Identity & Request Resolution](./identity-resolution.md)
 - [Core and Cloud Execution Boundaries](./execution-boundaries.md)
 - [PLG Boundary ADR](../.agents/memory/architecture/ADR-PLG-BOUNDARY-OSS-CLOUD.md)
 - [Skills, Routines, and Memory Boundary ADR](../.agents/memory/architecture/ADR-SKILLS-ROUTINES-MEMORY-BOUNDARY.md)

@@ -39,6 +39,7 @@
 - [Production deploys master-only](production_deploy_master_only.md) — Never deploy any non-master ref to production unless Vincent explicitly overrides; production deploys run from GitHub CI on master
 - [Vercel release gate](feedback_vercel_release_gate.md) — SaaS Vercel frontends deploy only through the API-first production release workflow; Vercel Git auto-deploy stays disabled
 - [PRD-pass verify state first](prd_pass_verify_state_first.md) — On any epic PRD pass, verify child issue states via `gh` + audit real code before trusting the epic body; never rewrite closed/shipped cards
+- [Prisma legacy alias fields](rules/prisma_legacy_alias_fields.md) — Mongo-era `*Document` aliases (`organization`/`user`/`_id`) are undefined on Prisma rows; read scalar FKs (`organizationId`/`userId`); `BaseService.findOne` guards empty ids (canonical: docs/identity-resolution.md)
 
 ## References
 

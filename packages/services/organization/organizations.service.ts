@@ -359,7 +359,16 @@ export class OrganizationsService extends BaseService<Organization> {
           brand: { id: string; label: string } | null;
         }[]
       >('/mine')
-      .then((res) => res.data);
+      .then((res) =>
+        // Defensive dedup by org id: a duplicate entry here renders twice in
+        // the org switcher with the active checkmark on both rows (the
+        // checkmark matches by id). The API dedups too; this guards consumers
+        // against any regression in that contract.
+        res.data.filter(
+          (org, index, list) =>
+            list.findIndex((candidate) => candidate.id === org.id) === index,
+        ),
+      );
   }
 
   /**
