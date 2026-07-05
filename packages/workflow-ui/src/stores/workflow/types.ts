@@ -44,6 +44,53 @@ export interface WorkflowData {
   updatedAt?: string;
 }
 
+/** Payload sent to the persistence service on create / update. */
+export interface WorkflowSaveInput {
+  name: string;
+  nodes: WorkflowNode[];
+  edges: WorkflowEdge[];
+  edgeStyle?: string;
+  groups?: NodeGroup[];
+  tags?: string[];
+}
+
+/** Lightweight workflow projection returned by the list endpoint (no graph). */
+export interface WorkflowSummary {
+  _id: string;
+  name: string;
+  description?: string;
+  lifecycle: 'draft' | 'published' | 'archived';
+  thumbnail?: string | null;
+  thumbnailNodeId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Persistence backend the workflow store's CRUD actions delegate to. Injected by
+ * the consuming app (see WorkflowUIConfig.workflowPersistence); when unconfigured
+ * the package throws a clear "not configured" error — its prior standalone
+ * behavior — rather than silently dropping saves.
+ */
+export interface WorkflowPersistenceService {
+  create: (
+    input: WorkflowSaveInput,
+    signal?: AbortSignal,
+  ) => Promise<WorkflowData>;
+  update: (
+    id: string,
+    input: WorkflowSaveInput,
+    signal?: AbortSignal,
+  ) => Promise<WorkflowData>;
+  getById: (id: string, signal?: AbortSignal) => Promise<WorkflowData>;
+  getAll: (
+    params?: { search?: string; tag?: string },
+    signal?: AbortSignal,
+  ) => Promise<WorkflowSummary[]>;
+  delete: (id: string, signal?: AbortSignal) => Promise<void>;
+  duplicate: (id: string, signal?: AbortSignal) => Promise<WorkflowData>;
+}
+
 // =============================================================================
 // STATE TYPES
 // =============================================================================
@@ -137,7 +184,7 @@ export interface LocalWorkflowActions {
 export interface ApiActions {
   saveWorkflow: (signal?: AbortSignal) => Promise<WorkflowData>;
   loadWorkflowById: (id: string, signal?: AbortSignal) => Promise<void>;
-  listWorkflows: (signal?: AbortSignal) => Promise<WorkflowData[]>;
+  listWorkflows: (signal?: AbortSignal) => Promise<WorkflowSummary[]>;
   deleteWorkflow: (id: string, signal?: AbortSignal) => Promise<void>;
   duplicateWorkflowApi: (
     id: string,

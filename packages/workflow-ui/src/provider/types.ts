@@ -6,6 +6,8 @@ import type {
   ProviderModel,
 } from '@genfeedai/types';
 import type { ComponentType } from 'react';
+import type { ApplyEditOperations } from '../stores/workflow/slices/types';
+import type { WorkflowPersistenceService } from '../stores/workflow/types';
 
 // =============================================================================
 // File Upload
@@ -148,4 +150,15 @@ export interface WorkflowUIConfig {
   ModelBrowserModal?: ComponentType<ModelBrowserModalProps> | null;
   /** Injected PromptPicker component (complex, app-specific) */
   PromptPicker?: ComponentType<PromptPickerProps> | null;
+  /**
+   * Persistence backend for workflow CRUD (create/update/getById/getAll/delete/
+   * duplicate). Defaults to a throwing "not configured" stub so saves are never
+   * silently dropped when the consuming app forgets to inject it.
+   */
+  workflowPersistence?: WorkflowPersistenceService;
+  /**
+   * Applies chat/agent-generated edit operations to the workflow graph. Defaults
+   * to a no-op when omitted (matching the package's standalone behavior).
+   */
+  applyEditOperations?: ApplyEditOperations;
 }

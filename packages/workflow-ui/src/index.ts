@@ -68,7 +68,25 @@ export { useSettingsStore } from './stores/settingsStore';
 // Stores
 export { useUIStore } from './stores/uiStore';
 export { useWorkflowStore } from './stores/workflow';
-export type { ImageHistoryItem } from './stores/workflow/types';
+export {
+  configureApplyEditOperations,
+  getApplyEditOperations,
+} from './stores/workflow/applyEditOperations';
+export type {
+  ApplyEditOperations,
+  ApplyEditResult,
+  EditOperation,
+} from './stores/workflow/slices/types';
+export type {
+  ImageHistoryItem,
+  WorkflowPersistenceService,
+  WorkflowSaveInput,
+  WorkflowSummary,
+} from './stores/workflow/types';
+export {
+  configureWorkflowPersistence,
+  getWorkflowPersistence,
+} from './stores/workflow/workflowPersistence';
 export type {
   DropdownItem,
   OverflowMenuProps,

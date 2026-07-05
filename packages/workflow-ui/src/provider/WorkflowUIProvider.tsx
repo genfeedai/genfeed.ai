@@ -7,6 +7,8 @@ import {
 } from '../stores/execution/executionApi';
 import { configureWorkflowLogger } from '../stores/executionLogger';
 import { configurePromptLibrary } from '../stores/promptLibraryStore';
+import { configureApplyEditOperations } from '../stores/workflow/applyEditOperations';
+import { configureWorkflowPersistence } from '../stores/workflow/workflowPersistence';
 import type { WorkflowUIConfig } from './types';
 
 const WorkflowUIContext = createContext<WorkflowUIConfig>({});
@@ -52,6 +54,18 @@ export function WorkflowUIProvider({
   useEffect(() => {
     configureExecutionHeaders(config.executionHeaders);
   }, [config.executionHeaders]);
+
+  // Register the workflow persistence backend. Resets to a throwing
+  // "not configured" stub when unset so saves are never silently dropped.
+  useEffect(() => {
+    configureWorkflowPersistence(config.workflowPersistence);
+  }, [config.workflowPersistence]);
+
+  // Register the chat/agent edit-operations applier. Resets to a no-op when
+  // unset (matching the package's standalone behavior).
+  useEffect(() => {
+    configureApplyEditOperations(config.applyEditOperations);
+  }, [config.applyEditOperations]);
 
   return (
     <WorkflowUIContext.Provider value={config}>

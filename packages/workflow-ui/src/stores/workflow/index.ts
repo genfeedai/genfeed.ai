@@ -5,5 +5,20 @@
  * Internal implementation uses slices for organization.
  */
 
-export type { WorkflowData, WorkflowState, WorkflowStore } from './types';
+export {
+  configureApplyEditOperations,
+  getApplyEditOperations,
+} from './applyEditOperations';
+export type {
+  WorkflowData,
+  WorkflowPersistenceService,
+  WorkflowSaveInput,
+  WorkflowState,
+  WorkflowStore,
+  WorkflowSummary,
+} from './types';
+export {
+  configureWorkflowPersistence,
+  getWorkflowPersistence,
+} from './workflowPersistence';
 export { useWorkflowStore } from './workflowStore';
