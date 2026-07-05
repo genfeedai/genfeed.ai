@@ -91,7 +91,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
       },
       {
         answer:
-          'An image is 50 credits ($0.50), an 8-second reel is 600 credits ($6.00), a voiceover is 17 credits per minute, and an article is 25 credits. Every job shows its price before you run it, and credit packs above $999 include bonus credits.',
+          'An image is 50 credits ($0.50), an 8-second reel is 600 credits ($6.00), a voiceover is 17 credits per minute, and an article is 25 credits. Every job shows its price before you run it, and you can top up any amount from $10.',
         question: 'What does output cost?',
       },
       {

@@ -4,9 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import {
   AVATAR_CREDIT_COSTS,
   BYOK_CREDIT_VALUE_DOLLARS,
-  creditPackEffectiveRate,
   creditPackPrice,
-  creditPackSavingsPercent,
   creditPackTotalCredits,
   formatPrice,
   INTERNAL_CREDIT_COSTS,
@@ -353,41 +351,23 @@ export default function PricingContent() {
           </div>
 
           <p className="mt-8 mb-2 text-sm font-medium text-surface/70">
-            Buy more, pay less — bigger packs lower your effective per-credit
-            rate.
+            Top up any amount from $10 — pay-as-you-go, no subscription. 1
+            credit = $0.01.
           </p>
           <div className="grid gap-px overflow-hidden border border-edge/5 bg-fill/5 sm:grid-cols-3">
-            {WEBSITE_CREDIT_PACKS.map((pack) => {
-              const savings = creditPackSavingsPercent(pack);
-
-              return (
-                <div key={pack.label} className="bg-background px-5 py-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-xs font-bold uppercase tracking-widest text-surface/35">
-                      {pack.label} pack
-                    </div>
-                    {savings > 0 ? (
-                      <span className="shrink-0 border border-success/40 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-success">
-                        Save {savings}%
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="mt-1 text-sm text-surface/65">
-                    ${creditPackPrice(pack).toLocaleString()} →{' '}
-                    {creditPackTotalCredits(pack).toLocaleString()} credits
-                    {pack.bonus ? (
-                      <span className="text-success">
-                        {' '}
-                        (+{pack.bonus.toLocaleString()} bonus)
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="mt-1 text-xs text-surface/40">
-                    ${creditPackEffectiveRate(pack).toFixed(4)}/credit
-                  </div>
-                </div>
-              );
-            })}
+            {WEBSITE_CREDIT_PACKS.map((pack) => (
+              <div
+                key={pack.label}
+                className="flex items-baseline justify-between gap-4 bg-background px-5 py-4"
+              >
+                <span className="text-sm font-semibold text-surface">
+                  ${creditPackPrice(pack).toLocaleString()}
+                </span>
+                <span className="text-sm text-surface/60">
+                  {creditPackTotalCredits(pack).toLocaleString()} credits
+                </span>
+              </div>
+            ))}
           </div>
         </WebSection>
 
