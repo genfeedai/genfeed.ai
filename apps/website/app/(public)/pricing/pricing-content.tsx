@@ -26,7 +26,6 @@ import {
 } from '@web-components/content/NeuralGrid';
 import PageLayout from '@web-components/PageLayout';
 import { HiCheckCircle } from 'react-icons/hi2';
-import { LuArrowRight } from 'react-icons/lu';
 
 const PLAN_ORDER = ['Pay As You Go', 'Hosted', 'Cloud Teams', 'Enterprise'];
 const FEATURED_TIER = 'Hosted';
@@ -186,17 +185,16 @@ export default function PricingContent() {
               return (
                 <NeuralGridItem
                   key={plan.label}
-                  inverted={isFeatured}
                   padding="lg"
                   className={cn(
                     'relative gsap-card',
-                    !isFeatured && 'bg-fill/[0.02]',
+                    isFeatured && 'bg-white/[0.03]',
                   )}
                   tierLabel={`${String(index + 1).padStart(2, '0')} / ${getDisplayName(plan.label)}`}
                 >
                   {isFeatured ? (
                     <div className="absolute right-6 top-6">
-                      <span className="bg-zinc-950 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-surface">
+                      <span className="border border-edge/40 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-surface/70">
                         Popular
                       </span>
                     </div>
@@ -205,40 +203,20 @@ export default function PricingContent() {
                   <div className="mb-2">
                     {plan.launchPrice != null ? (
                       <div className="flex items-baseline gap-2">
-                        <span
-                          className={cn(
-                            'text-2xl font-medium line-through',
-                            isFeatured ? 'text-inv-fg/40' : 'text-surface/40',
-                          )}
-                        >
+                        <span className="text-2xl font-medium text-surface/40 line-through">
                           {formatPrice(plan.price)}
                         </span>
-                        <span
-                          className={cn(
-                            'text-5xl font-semibold tracking-[-0.03em]',
-                            isFeatured && 'text-inv-fg',
-                          )}
-                        >
+                        <span className="text-5xl font-semibold tracking-[-0.03em]">
                           {formatPrice(plan.launchPrice)}
                         </span>
                       </div>
                     ) : (
                       <div className="flex items-baseline gap-1.5">
-                        <span
-                          className={cn(
-                            'text-5xl font-semibold tracking-[-0.03em]',
-                            isFeatured && 'text-inv-fg',
-                          )}
-                        >
+                        <span className="text-5xl font-semibold tracking-[-0.03em]">
                           {isEnterprise ? 'Custom' : formatPrice(plan.price)}
                         </span>
                         {plan.type === 'subscription' ? (
-                          <span
-                            className={cn(
-                              'text-sm font-medium',
-                              isFeatured ? 'text-inv-fg/45' : 'text-surface/40',
-                            )}
-                          >
+                          <span className="text-sm font-medium text-surface/40">
                             /mo
                           </span>
                         ) : null}
@@ -248,50 +226,28 @@ export default function PricingContent() {
 
                   <div
                     className={cn(
-                      'text-sm',
-                      isFeatured ? 'text-inv-fg/50' : 'text-surface/40',
+                      'text-sm text-surface/40',
+                      plan.launchNote ? 'mb-1' : 'mb-8',
                     )}
                   >
                     {getPriceQualifier(plan)}
                   </div>
 
                   {plan.launchNote ? (
-                    <div
-                      className={cn(
-                        'mb-8 mt-1 text-xs font-semibold uppercase tracking-widest',
-                        isFeatured ? 'text-inv-fg/60' : 'text-surface/50',
-                      )}
-                    >
+                    <div className="mb-8 text-xs font-semibold uppercase tracking-widest text-surface/50">
                       {plan.launchNote}
                     </div>
-                  ) : (
-                    <div className="mb-8" />
-                  )}
+                  ) : null}
 
-                  <p
-                    className={cn(
-                      'mb-8 text-sm leading-6',
-                      isFeatured ? 'text-inv-fg/60' : 'text-surface/50',
-                    )}
-                  >
+                  <p className="mb-8 text-sm leading-6 text-surface/50">
                     {getPlanSummary(plan)}
                   </p>
 
                   <ul className="mb-auto space-y-4">
                     {plan.features.slice(0, 5).map((feature) => (
                       <li key={feature} className="flex items-start gap-3">
-                        <HiCheckCircle
-                          className={cn(
-                            'mt-0.5 size-4 shrink-0',
-                            isFeatured ? 'text-inv-fg/35' : 'text-surface/40',
-                          )}
-                        />
-                        <span
-                          className={cn(
-                            'text-sm',
-                            isFeatured ? 'text-inv-fg/60' : 'text-surface/60',
-                          )}
-                        >
+                        <HiCheckCircle className="mt-0.5 size-4 shrink-0 text-surface/40" />
+                        <span className="text-sm text-surface/60">
                           {feature}
                         </span>
                       </li>
@@ -303,7 +259,7 @@ export default function PricingContent() {
                     className="mt-12 w-full justify-center"
                     size={ButtonSize.PUBLIC}
                     variant={
-                      isFeatured ? ButtonVariant.BLACK : ButtonVariant.OUTLINE
+                      isFeatured ? ButtonVariant.WHITE : ButtonVariant.OUTLINE
                     }
                   >
                     <a href={ctaHref} target="_blank" rel="noopener noreferrer">
@@ -374,13 +330,12 @@ export default function PricingContent() {
 
         <CtaSection
           bg="subtle"
-          title="Start free. Pay for what you create."
+          title="Start free. Pay per output."
           description="Book a demo only when the rollout needs team planning or enterprise terms."
         >
           <Button size={ButtonSize.PUBLIC} asChild>
             <a href={paygSignUpHref} target="_blank" rel="noopener noreferrer">
               Create now
-              <LuArrowRight className="size-4" />
             </a>
           </Button>
           <Button

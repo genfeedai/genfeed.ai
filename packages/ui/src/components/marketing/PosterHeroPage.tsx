@@ -30,7 +30,7 @@ export default function PosterHeroPage({
             className={[
               compact
                 ? 'grid items-start gap-10 pt-16 pb-4 lg:gap-14'
-                : 'grid min-h-[calc(100vh-8rem)] items-center gap-10 py-8 lg:gap-14',
+                : 'grid items-start gap-10 pt-16 pb-8 lg:gap-14 lg:pt-20',
               heroVisual
                 ? 'lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]'
                 : 'lg:grid-cols-1',
@@ -41,7 +41,7 @@ export default function PosterHeroPage({
                 className={
                   compact
                     ? 'text-4xl font-semibold leading-[1.05] tracking-[-0.03em] text-foreground sm:text-5xl'
-                    : 'text-5xl font-semibold leading-[0.95] tracking-[-0.03em] text-foreground sm:text-6xl md:text-7xl lg:text-[5.4rem]'
+                    : 'text-4xl font-semibold leading-[1.0] tracking-[-0.03em] text-foreground sm:text-5xl md:text-6xl lg:text-[3.5rem]'
                 }
               >
                 {title}

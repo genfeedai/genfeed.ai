@@ -23,44 +23,38 @@ function formatCreditsPrice(credits: number): string {
 const OUTPUT_FORMATS: OutputFormat[] = [
   {
     credits: INTERNAL_CREDIT_COSTS.image,
-    description:
-      'On-brand stills for feeds, stories, and product drops, sized per platform.',
+    description: 'On-brand stills for every feed and story.',
     image: '/images/home/formats/images.webp',
     title: 'Images & posts',
   },
   {
     credits: VIDEO_CREDIT_COSTS.video8s,
-    description:
-      'Hook-first short video rendered from the same brief, ready for TikTok, Reels, and Shorts.',
+    description: 'Hook-first video for TikTok, Reels, and Shorts.',
     image: '/images/home/formats/reels.webp',
     title: 'Reels & short video',
   },
   {
     credits: INTERNAL_CREDIT_COSTS.image,
-    description:
-      'Ad creatives in every ratio with copy variants you can A/B test the same day.',
+    description: 'Ad creatives in every ratio, with copy variants.',
     image: '/images/home/formats/ads.webp',
     title: 'Ad creatives',
   },
   {
     credits: AVATAR_CREDIT_COSTS.avatar4s,
-    description:
-      'Talking-head avatar clips with lip-synced voice. No camera, no reshoots.',
+    description: 'Lip-synced avatar clips. No camera needed.',
     image: '/images/home/formats/avatars.webp',
     title: 'Avatar clips',
   },
   {
     credits: INTERNAL_CREDIT_COSTS.voicePerMinute,
-    description:
-      'Natural voiceovers and audio reads for clips, podcasts, and dubs.',
+    description: 'Natural voiceovers for clips and podcasts.',
     image: '/images/home/formats/voice.webp',
     priceSuffix: '/min',
     title: 'Voiceovers',
   },
   {
     credits: INTERNAL_CREDIT_COSTS.articlePerPost,
-    description:
-      'Long-form articles and SEO posts drafted from the brief, with captions included.',
+    description: 'Long-form articles and SEO posts, captions included.',
     image: '/images/home/formats/articles.webp',
     title: 'Articles & SEO',
   },
@@ -84,9 +78,7 @@ export default function HomeFormats(): React.ReactElement {
               Every format, priced per output.
             </Heading>
             <Text className="max-w-2xl text-base leading-7 gen-text-muted">
-              You never pick a model. The Genfeed router sends every job to the
-              best model for the format and brief. You just see the output and
-              what it cost.
+              Every format from one brief, each with its price up front.
             </Text>
           </VStack>
 
