@@ -11,6 +11,7 @@
     "@genfeedai/helpers": "workspace:*",
     "@genfeedai/integrations": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
+    "@genfeedai/pricing": "workspace:*",
     "@genfeedai/prisma": "workspace:*",
     "@genfeedai/queue-contracts": "workspace:*",
     "@genfeedai/serializers": "workspace:*",
