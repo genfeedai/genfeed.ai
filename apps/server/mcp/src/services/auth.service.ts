@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
 import { resolveApiBaseUrl } from '@mcp/shared/utils/api-url.util';
@@ -15,19 +16,59 @@ export interface AuthResult {
   error?: string;
 }
 
+/** Short-lived identity cache to avoid a /auth/whoami hop on every MCP call. */
+const WHOAMI_CACHE_TTL_MS = 60_000;
+const WHOAMI_CACHE_MAX = 5_000;
+
 @Injectable()
 export class AuthService {
+  private readonly whoamiCache = new Map<
+    string,
+    { result: AuthResult; expiresAt: number }
+  >();
+
   constructor(
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
     private readonly logger: LoggerService,
   ) {}
 
+  private cacheGet(key: string): AuthResult | null {
+    const entry = this.whoamiCache.get(key);
+    if (!entry) return null;
+    if (entry.expiresAt <= Date.now()) {
+      this.whoamiCache.delete(key);
+      return null;
+    }
+    return entry.result;
+  }
+
+  private cacheSet(key: string, result: AuthResult): void {
+    // Bounded LRU-ish: drop the oldest inserted key when at capacity.
+    if (this.whoamiCache.size >= WHOAMI_CACHE_MAX) {
+      const oldest = this.whoamiCache.keys().next().value;
+      if (oldest !== undefined) this.whoamiCache.delete(oldest);
+    }
+    this.whoamiCache.set(key, {
+      expiresAt: Date.now() + WHOAMI_CACHE_TTL_MS,
+      result,
+    });
+  }
+
   async authenticateRequest(bearerToken: string): Promise<AuthResult> {
     try {
       if (!bearerToken || bearerToken.length < 32) {
         this.logger.warn('Invalid token format');
         return { error: 'Invalid token format', valid: false };
+      }
+
+      // Only successful resolutions are cached (never failures — a fixed token
+      // must take effect immediately), keyed by a hash so raw tokens never sit
+      // in memory as map keys.
+      const cacheKey = createHash('sha256').update(bearerToken).digest('hex');
+      const cached = this.cacheGet(cacheKey);
+      if (cached) {
+        return cached;
       }
 
       const baseUrl = resolveApiBaseUrl(
@@ -59,12 +100,14 @@ export class AuthService {
           };
         }
 
-        return {
+        const result: AuthResult = {
           organizationId,
           role: this.resolveRole(data.role),
           userId,
           valid: true,
         };
+        this.cacheSet(cacheKey, result);
+        return result;
       }
 
       return { error: 'Invalid token', valid: false };

@@ -14,6 +14,10 @@ import { AppModule } from '@mcp/app.module';
 import { ConfigService } from '@mcp/config/config.service';
 import { getPublicMcpUrl, renderSetupPage } from '@mcp/mcp/setup-page';
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
+import {
+  applyRateLimitHeaders,
+  RateLimitService,
+} from '@mcp/services/rate-limit.service';
 import { ServerService } from '@mcp/services/server.service';
 import { StreamableHttpService } from '@mcp/services/streamable-http.service';
 import { Logger } from '@nestjs/common';
@@ -41,6 +45,10 @@ const MCP_CORS_ALLOWED_HEADERS = [
 const MCP_CORS_EXPOSED_HEADERS = [
   'Mcp-Protocol-Version',
   'Mcp-Session-Id',
+  'Retry-After',
+  'X-RateLimit-Limit',
+  'X-RateLimit-Remaining',
+  'X-RateLimit-Reset',
 ].join(', ');
 
 async function main(): Promise<void> {
@@ -54,6 +62,7 @@ async function main(): Promise<void> {
   const logger = app.get(LoggerService);
   const serverService = app.get(ServerService);
   const authService = app.get(AuthService);
+  const rateLimitService = app.get(RateLimitService);
   const streamableHttpService = app.get(StreamableHttpService);
 
   const port = configService.get('PORT');
@@ -78,6 +87,25 @@ async function main(): Promise<void> {
     next: NextFunction,
   ) => {
     const token = authService.extractBearerToken(req.headers.authorization);
+
+    // Per-caller request cap (sliding window), keyed by hashed token when
+    // present, else client IP. Checked before auth so a single client's request
+    // rate is bounded even while its identity is being resolved.
+    const rateLimit = await rateLimitService.consume(
+      rateLimitService.keyFor(token, req.ip),
+    );
+    applyRateLimitHeaders(res, rateLimit);
+    if (!rateLimit.allowed) {
+      res.status(429).json({
+        error: {
+          code: -32029,
+          message: `Rate limit exceeded. Retry after ${rateLimit.retryAfterSeconds}s.`,
+        },
+        id: null,
+        jsonrpc: '2.0',
+      });
+      return;
+    }
 
     if (!token) {
       res.setHeader('WWW-Authenticate', 'Bearer');
