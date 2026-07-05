@@ -47,7 +47,7 @@ const USER_ID = 'user_1';
 
 describe('BrandsService.relocateToOrganization', () => {
   let delegates: Map<string, Delegate>;
-  let queryRawUnsafe: ReturnType<typeof vi.fn>;
+  let queryRaw: ReturnType<typeof vi.fn>;
   let transactionSpy: ReturnType<typeof vi.fn>;
   let cacheInvalidationService: {
     invalidate: ReturnType<typeof vi.fn>;
@@ -70,7 +70,7 @@ describe('BrandsService.relocateToOrganization', () => {
   beforeEach(() => {
     delegates = new Map();
     // information_schema scan → no unknown dual-keyed tables.
-    queryRawUnsafe = vi.fn().mockResolvedValue([]);
+    queryRaw = vi.fn().mockResolvedValue([]);
     transactionSpy = vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
       fn(prismaProxy),
     );
@@ -90,8 +90,8 @@ describe('BrandsService.relocateToOrganization', () => {
           if (prop === '$transaction') {
             return transactionSpy;
           }
-          if (prop === '$queryRawUnsafe') {
-            return queryRawUnsafe;
+          if (prop === '$queryRaw') {
+            return queryRaw;
           }
           return getDelegate(prop);
         },
@@ -141,7 +141,7 @@ describe('BrandsService.relocateToOrganization', () => {
     );
 
     expect(transactionSpy).not.toHaveBeenCalled();
-    expect(queryRawUnsafe).not.toHaveBeenCalled();
+    expect(queryRaw).not.toHaveBeenCalled();
     // Falls through to a normal field patch.
     expect(getDelegate('brand').update).toHaveBeenCalled();
   });
@@ -265,7 +265,7 @@ describe('BrandsService.relocateToOrganization', () => {
       expect(getDelegate(target.delegate).count).toHaveBeenCalled();
     }
     // Auditor part B scanned information_schema.
-    expect(queryRawUnsafe).toHaveBeenCalled();
+    expect(queryRaw).toHaveBeenCalled();
 
     // Both orgs' caches invalidated.
     const invalidatedKeys =
@@ -317,7 +317,8 @@ describe('BrandsService.relocateToOrganization', () => {
 
   it('blocks the move when an unhandled dual-keyed table would be orphaned', async () => {
     primeBrand();
-    queryRawUnsafe.mockImplementation((sql: string) => {
+    queryRaw.mockImplementation((strings: TemplateStringsArray) => {
+      const sql = Array.from(strings).join('');
       if (sql.includes('information_schema')) {
         return Promise.resolve([
           {

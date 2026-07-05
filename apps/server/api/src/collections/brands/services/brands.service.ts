@@ -67,6 +67,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  InternalServerErrorException,
 } from '@nestjs/common';
 
 const BRAND_KIT_IMPORT_MAX_BYTES = 50 * 1024 * 1024;
@@ -1857,7 +1858,7 @@ Respond ONLY with the JSON array.`;
       }
     }
     if (stale.length > 0) {
-      throw new Error(
+      throw new InternalServerErrorException(
         `Brand relocation aborted: cascade left stale organization id on ${stale.join(', ')}.`,
       );
     }
@@ -1867,17 +1868,16 @@ Respond ONLY with the JSON array.`;
       ...AUDITOR_IGNORED_TABLES,
     ]);
 
-    const candidates = await tx.$queryRawUnsafe<
+    // sql-risk-audit: ignore raw-sql-review -- static information_schema introspection, no caller input interpolated.
+    const candidates = await tx.$queryRaw<
       { table_name: string; brand_col: string; org_col: string }[]
-    >(
-      `SELECT c1.table_name AS table_name, c1.column_name AS brand_col, c2.column_name AS org_col
+    >`SELECT c1.table_name AS table_name, c1.column_name AS brand_col, c2.column_name AS org_col
        FROM information_schema.columns c1
        JOIN information_schema.columns c2
          ON c1.table_name = c2.table_name AND c1.table_schema = c2.table_schema
        WHERE c1.table_schema = 'public'
          AND c1.column_name LIKE '%brand_id'
-         AND (c2.column_name LIKE '%organization_id' OR c2.column_name LIKE '%org_id')`,
-    );
+         AND (c2.column_name LIKE '%organization_id' OR c2.column_name LIKE '%org_id')`;
 
     const IDENTIFIER = /^[a-z_][a-z0-9_]*$/;
     const unhandled: string[] = [];
@@ -1892,11 +1892,10 @@ Respond ONLY with the JSON array.`;
       ) {
         continue;
       }
-      const rows = await tx.$queryRawUnsafe<{ n: number }[]>(
-        `SELECT COUNT(*)::int AS n FROM "${candidate.table_name}" WHERE "${candidate.brand_col}" = $1 AND "${candidate.org_col}" IS DISTINCT FROM $2`,
-        brandId,
-        destOrgId,
-      );
+      // sql-risk-audit: ignore raw-sql-review -- table/column identifiers are regex-validated to /^[a-z_][a-z0-9_]*$/ above and injected via Prisma.raw; brandId/destOrgId are bound as parameters.
+      const rows = await tx.$queryRaw<
+        { n: number }[]
+      >`SELECT COUNT(*)::int AS n FROM ${Prisma.raw(`"${candidate.table_name}"`)} WHERE ${Prisma.raw(`"${candidate.brand_col}"`)} = ${brandId} AND ${Prisma.raw(`"${candidate.org_col}"`)} IS DISTINCT FROM ${destOrgId}`;
       const count = rows[0]?.n ?? 0;
       if (count > 0) {
         unhandled.push(
@@ -1905,7 +1904,7 @@ Respond ONLY with the JSON array.`;
       }
     }
     if (unhandled.length > 0) {
-      throw new Error(
+      throw new InternalServerErrorException(
         `Brand relocation aborted: unhandled dual-keyed table(s) would be orphaned in the source org: ${unhandled.join(', ')}. Add them to FIRST_ORDER_TARGETS in brand-org-cascade.constants.ts.`,
       );
     }

@@ -9719,6 +9719,142 @@
         ],
         "type": "object"
       },
+      "UpdateBrandDto": {
+        "properties": {
+          "agentConfig": {
+            "description": "Agent configuration overrides for the brand",
+            "type": "object"
+          },
+          "backgroundColor": {
+            "default": "#000000",
+            "description": "The background color theme for the brand",
+            "type": "string"
+          },
+          "defaultImageModel": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ModelKey"
+              }
+            ],
+            "description": "The default model to use for image generation"
+          },
+          "defaultImageToVideoModel": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ModelKey"
+              }
+            ],
+            "description": "The default model to use for image-to-video conversion"
+          },
+          "defaultMusicModel": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ModelKey"
+              }
+            ],
+            "description": "The default model to use for music generation"
+          },
+          "defaultVideoModel": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ModelKey"
+              }
+            ],
+            "description": "The default model to use for video generation"
+          },
+          "description": {
+            "description": "A description of the brand",
+            "type": "string"
+          },
+          "fontFamily": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FontFamily"
+              }
+            ],
+            "default": "montserrat-black",
+            "description": "The font family to use for text overlays"
+          },
+          "isActive": {
+            "default": true,
+            "description": "Whether this brand is currently active",
+            "type": "boolean"
+          },
+          "isDarkroomEnabled": {
+            "default": false,
+            "description": "Whether this brand can access darkroom fleet features and assets",
+            "type": "boolean"
+          },
+          "isDeleted": {
+            "description": "Whether the brand is marked as deleted",
+            "type": "boolean"
+          },
+          "isHighlighted": {
+            "default": false,
+            "description": "Whether this brand is highlighted on the website",
+            "type": "boolean"
+          },
+          "isSelected": {
+            "description": "Whether this brand is currently selected",
+            "type": "boolean"
+          },
+          "label": {
+            "description": "The display name of the brand",
+            "type": "string"
+          },
+          "music": {
+            "description": "Optional music ID to use for this brand",
+            "type": "string"
+          },
+          "organizationId": {
+            "description": "Destination organization identifier. Providing a different value than the brand's current organization relocates the brand — cascading organizationId across all brand-owned records in one transaction. Superadmin, or an owner/admin of both the source and destination organizations, only.",
+            "type": "string"
+          },
+          "primaryColor": {
+            "default": "#000000",
+            "description": "The primary color theme for the brand",
+            "type": "string"
+          },
+          "referenceImages": {
+            "description": "Reference images used for generation consistency",
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "scope": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AssetScope"
+              }
+            ],
+            "default": "user",
+            "description": "Brand access scope"
+          },
+          "secondaryColor": {
+            "default": "#FFFFFF",
+            "description": "The secondary color theme for the brand",
+            "type": "string"
+          },
+          "slug": {
+            "description": "The unique slug for the brand",
+            "type": "string"
+          },
+          "text": {
+            "description": "Text prompt for content generation",
+            "type": "string"
+          },
+          "user": {
+            "description": "Owning user identifier",
+            "type": "string"
+          },
+          "voice": {
+            "description": "Optional voice ID to use for this brand",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "UpdateBrandNameDto": {
         "properties": {
           "brandName": {
@@ -22492,6 +22628,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBrandDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""

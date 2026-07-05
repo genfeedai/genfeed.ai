@@ -181,6 +181,14 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   }),
 }));
 
+vi.mock(
+  '@genfeedai/contexts/providers/access-state/access-state.provider',
+  () => ({
+    __esModule: true,
+    useAccessState: () => ({ isSuperAdmin: false }),
+  }),
+);
+
 vi.mock('@ui/lazy/modal/LazyModal', () => ({
   __esModule: true,
   LazyModalBrandGenerate: () => <div data-testid="brand-generate-modal" />,
