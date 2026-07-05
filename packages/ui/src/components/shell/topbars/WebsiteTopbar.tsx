@@ -6,33 +6,61 @@ import { EnvironmentService } from '@genfeedai/services/core/environment.service
 import { Button } from '@ui/primitives/button';
 import TopbarPublic from '@ui/topbars/public/TopbarPublic';
 import {
+  HiArrowPath,
   HiBuildingOffice2,
-  HiCloud,
   HiGlobeAlt,
   HiMegaphone,
+  HiPaperAirplane,
+  HiRectangleGroup,
   HiShoppingCart,
+  HiSparkles,
+  HiSquares2X2,
   HiStar,
   HiUserCircle,
 } from 'react-icons/hi2';
 
 const PRODUCT_LINKS = [
   {
-    description: 'Free to start, credits buy your output',
-    href: '/pricing',
-    icon: HiCloud,
-    label: 'Cloud App',
+    description: 'Generate every format in one workspace',
+    group: 'Create',
+    href: '/studio',
+    icon: HiSparkles,
+    label: 'Studio',
   },
   {
-    description: 'Team workspaces, roles, approvals',
-    href: '/cloud',
-    icon: HiBuildingOffice2,
-    label: 'Cloud Teams',
+    description: 'Plan, schedule, and publish everywhere',
+    group: 'Create',
+    href: '/publisher',
+    icon: HiPaperAirplane,
+    label: 'Publisher',
   },
   {
-    description: 'Connect every platform',
+    description: 'Prompt packs and creative recipes',
+    group: 'Create',
+    href: '/skills',
+    icon: HiSquares2X2,
+    label: 'Skills',
+  },
+  {
+    description: 'Automate your content pipeline',
+    group: 'Operate',
+    href: '/workflows',
+    icon: HiArrowPath,
+    label: 'Workflows',
+  },
+  {
+    description: 'Connect every channel and tool',
+    group: 'Operate',
     href: '/integrations',
     icon: HiGlobeAlt,
     label: 'Integrations',
+  },
+  {
+    description: 'See everything the platform does',
+    group: 'Operate',
+    href: '/features',
+    icon: HiRectangleGroup,
+    label: 'Features',
   },
 ];
 

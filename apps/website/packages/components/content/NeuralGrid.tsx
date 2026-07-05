@@ -76,7 +76,7 @@ function NeuralGridItem({
         <div
           className={cn(
             'text-xs font-black uppercase tracking-widest mb-6',
-            inverted ? 'text-inv-fg/30' : 'text-surface/20',
+            inverted ? 'text-inv-fg/50' : 'text-surface/45',
           )}
         >
           {tierLabel}
@@ -86,7 +86,7 @@ function NeuralGridItem({
         <Icon
           className={cn(
             'size-8 mb-4 group-hover:text-surface transition-colors',
-            inverted ? 'text-inv-fg/40' : 'text-surface/40',
+            inverted ? 'text-inv-fg/60' : 'text-surface/60',
           )}
         />
       )}
@@ -99,7 +99,7 @@ function NeuralGridItem({
         <p
           className={cn(
             'text-sm',
-            inverted ? 'text-inv-fg/40' : 'text-surface/40',
+            inverted ? 'text-inv-fg/55' : 'text-surface/55',
           )}
         >
           {description}

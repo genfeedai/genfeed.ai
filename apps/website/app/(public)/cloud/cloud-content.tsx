@@ -14,41 +14,39 @@ import PageLayout from '@web-components/PageLayout';
 import Image from 'next/image';
 import {
   HiLifebuoy,
-  HiServerStack,
-  HiShieldCheck,
-  HiSparkles,
+  HiRectangleGroup,
+  HiRectangleStack,
   HiUserGroup,
 } from 'react-icons/hi2';
-import { LuArrowRight } from 'react-icons/lu';
 
 const BENEFITS = [
   {
     description:
-      'We handle servers, databases, updates, and security for teams that need shared workspaces.',
-    icon: HiServerStack,
-    shortLabel: 'Infra',
-    title: 'Zero DevOps',
+      'One shared library of brand kits, assets, and every generated output your team can reuse.',
+    icon: HiRectangleStack,
+    shortLabel: 'Library',
+    title: 'Shared brand library',
   },
   {
     description:
-      'Teams, roles, organization boundaries, brand workspaces, and approval flows.',
-    icon: HiShieldCheck,
-    shortLabel: 'Teams',
-    title: 'Collaboration Layer',
+      'Roles, approval flows, and organization boundaries so the right people ship the right work.',
+    icon: HiUserGroup,
+    shortLabel: 'Roles',
+    title: 'Roles and approvals',
   },
   {
     description:
-      'Separate brands, clients, and organizations without turning every workspace into a one-off setup.',
-    icon: HiSparkles,
+      'Run separate brands, clients, and organizations from one place, without one-off setups.',
+    icon: HiRectangleGroup,
     shortLabel: 'Brands',
-    title: 'Multi-Brand Ops',
+    title: 'Multi-brand operations',
   },
   {
     description:
-      'Priority support, managed billing, and uptime expectations for production teams.',
+      'A shared credit pool, managed billing, and priority support for teams in production.',
     icon: HiLifebuoy,
     shortLabel: 'Support',
-    title: 'Priority Support',
+    title: 'Managed billing and support',
   },
 ];
 
@@ -77,8 +75,8 @@ export default function CloudContent() {
   return (
     <div ref={containerRef}>
       <PageLayout
-        title={<>Genfeed Cloud App</>}
-        description="The managed path for creating, approving, publishing, and paying as you go for output."
+        title={<>One studio for your whole team</>}
+        description="Shared workspaces, a brand library, roles, and approvals. The studio your whole team creates in."
       >
         {/* Benefits */}
         <WebSection maxWidth="xl">
@@ -153,12 +151,12 @@ export default function CloudContent() {
         <WebSection maxWidth="xl" className="gsap-section">
           <div className="text-center mb-16">
             <div className="flex items-center justify-center gap-3 mb-6">
-              <HiUserGroup className="size-5 text-surface/40" />
-              <span className="text-xs font-black uppercase tracking-widest text-surface/20">
+              <HiUserGroup className="size-5 text-surface/60" />
+              <span className="text-xs font-black uppercase tracking-widest text-surface/45">
                 Built for Growing Teams
               </span>
             </div>
-            <p className="text-surface/50 max-w-xl mx-auto">
+            <p className="text-surface/55 max-w-xl mx-auto">
               Built for agencies, marketing teams, and operators managing
               multiple brands or organizations
             </p>
@@ -178,13 +176,12 @@ export default function CloudContent() {
 
         {/* Pricing CTA */}
         <CtaSection
-          title="Start with the cloud app."
+          title="Bring your team into the studio."
           description="Book a demo when collaboration, multi-brand rollout, or enterprise terms need design first."
         >
           <Button size={ButtonSize.PUBLIC} asChild>
             <a href={signUpHref} target="_blank" rel="noopener noreferrer">
               Create now
-              <LuArrowRight className="size-4" />
             </a>
           </Button>
           <Button
