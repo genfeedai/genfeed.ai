@@ -1,4 +1,5 @@
 import type {
+  EdgeStyle,
   NodeType,
   ValidationResult,
   WorkflowEdge,
@@ -9,9 +10,15 @@ import type {
 } from '@genfeedai/types';
 import { NODE_DEFINITIONS } from '@genfeedai/types';
 import type { StateCreator } from 'zustand';
-import { getConnectedInputsForNode, getUpstreamNodeIds } from '../../../lib';
+import {
+  calculateWorkflowCost,
+  getConnectedInputsForNode,
+  getUpstreamNodeIds,
+} from '../../../lib';
+import { useExecutionStore } from '../../execution/executionStore';
 import { propagateExistingOutputs } from '../helpers/propagation';
-import type { WorkflowData, WorkflowStore } from '../types';
+import type { WorkflowData, WorkflowStore, WorkflowSummary } from '../types';
+import { getWorkflowPersistence } from '../workflowPersistence';
 
 /**
  * Normalize edges loaded from storage to use React Flow edge types.
@@ -50,7 +57,7 @@ export interface PersistenceSlice {
   exportWorkflow: () => WorkflowFile;
   saveWorkflow: (signal?: AbortSignal) => Promise<WorkflowData>;
   loadWorkflowById: (id: string, signal?: AbortSignal) => Promise<void>;
-  listWorkflows: (signal?: AbortSignal) => Promise<WorkflowData[]>;
+  listWorkflows: (signal?: AbortSignal) => Promise<WorkflowSummary[]>;
   deleteWorkflow: (id: string, signal?: AbortSignal) => Promise<void>;
   duplicateWorkflowApi: (
     id: string,
@@ -87,23 +94,50 @@ export const createPersistenceSlice: StateCreator<
     });
   },
 
-  createNewWorkflow: async () => {
-    throw new Error(
-      'createNewWorkflow not implemented - consuming app must provide API integration',
+  createNewWorkflow: async (signal) => {
+    const { edgeStyle } = get();
+
+    const workflow = await getWorkflowPersistence().create(
+      {
+        edgeStyle,
+        edges: [],
+        groups: [],
+        name: 'Untitled Workflow',
+        nodes: [],
+      },
+      signal,
     );
+
+    set({
+      edges: [],
+      groups: [],
+      isDirty: false,
+      nodes: [],
+      selectedNodeIds: [],
+      workflowId: workflow._id,
+      workflowName: workflow.name,
+    });
+
+    return workflow._id;
   },
 
-  deleteWorkflow: async () => {
-    throw new Error(
-      'deleteWorkflow not implemented - consuming app must provide API integration',
-    );
+  deleteWorkflow: async (id, signal) => {
+    await getWorkflowPersistence().delete(id, signal);
+
+    const { workflowId } = get();
+    if (workflowId === id) {
+      set({
+        edges: [],
+        isDirty: false,
+        nodes: [],
+        workflowId: null,
+        workflowName: 'Untitled Workflow',
+      });
+    }
   },
 
-  duplicateWorkflowApi: async () => {
-    throw new Error(
-      'duplicateWorkflowApi not implemented - consuming app must provide API integration',
-    );
-  },
+  duplicateWorkflowApi: (id, signal) =>
+    getWorkflowPersistence().duplicate(id, signal),
 
   exportWorkflow: () => {
     const { nodes, edges, edgeStyle, workflowName, groups } = get();
@@ -157,11 +191,7 @@ export const createPersistenceSlice: StateCreator<
     }).length;
   },
 
-  listWorkflows: async () => {
-    throw new Error(
-      'listWorkflows not implemented - consuming app must provide API integration',
-    );
-  },
+  listWorkflows: (signal) => getWorkflowPersistence().getAll(undefined, signal),
   loadWorkflow: (workflow) => {
     const hydratedNodes = hydrateWorkflowNodes(workflow.nodes);
 
@@ -176,6 +206,9 @@ export const createPersistenceSlice: StateCreator<
       workflowName: workflow.name,
     });
 
+    const estimatedCost = calculateWorkflowCost(hydratedNodes);
+    useExecutionStore.getState().setEstimatedCost(estimatedCost.total);
+
     // Propagate existing outputs to downstream nodes after load
     propagateExistingOutputs(hydratedNodes, get().propagateOutputsDownstream);
 
@@ -183,10 +216,36 @@ export const createPersistenceSlice: StateCreator<
     set({ isDirty: false });
   },
 
-  loadWorkflowById: async () => {
-    throw new Error(
-      'loadWorkflowById not implemented - consuming app must provide API integration',
-    );
+  loadWorkflowById: async (id, signal) => {
+    set({ isLoading: true });
+
+    try {
+      const workflow = await getWorkflowPersistence().getById(id, signal);
+      const nodes = hydrateWorkflowNodes(workflow.nodes);
+
+      set({
+        edgeStyle: workflow.edgeStyle as EdgeStyle,
+        edges: normalizeEdgeTypes(workflow.edges),
+        groups: workflow.groups ?? [],
+        isDirty: false,
+        isLoading: false,
+        nodes,
+        workflowId: workflow._id,
+        workflowName: workflow.name,
+      });
+
+      const estimatedCost = calculateWorkflowCost(nodes);
+      useExecutionStore.getState().setEstimatedCost(estimatedCost.total);
+
+      // Propagate existing outputs to downstream nodes after load
+      propagateExistingOutputs(nodes, get().propagateOutputsDownstream);
+
+      // Propagation after load is idempotent; don't trigger save cycle
+      set({ isDirty: false });
+    } catch (error) {
+      set({ isLoading: false });
+      throw error;
+    }
   },
 
   markCommentViewed: (nodeId: string) => {
@@ -197,12 +256,34 @@ export const createPersistenceSlice: StateCreator<
     });
   },
 
-  // API operations - stubs that throw by default.
-  // Consuming apps override these via the store creator or by extending the slice.
-  saveWorkflow: async () => {
-    throw new Error(
-      'saveWorkflow not implemented - consuming app must provide API integration',
-    );
+  saveWorkflow: async (signal) => {
+    const { nodes, edges, edgeStyle, workflowName, workflowId, groups } = get();
+    set({ isSaving: true });
+
+    try {
+      const input = {
+        edgeStyle,
+        edges,
+        groups,
+        name: workflowName,
+        nodes,
+      };
+
+      const workflow = workflowId
+        ? await getWorkflowPersistence().update(workflowId, input, signal)
+        : await getWorkflowPersistence().create(input, signal);
+
+      set({
+        isDirty: false,
+        isSaving: false,
+        workflowId: workflow._id,
+      });
+
+      return workflow;
+    } catch (error) {
+      set({ isSaving: false });
+      throw error;
+    }
   },
 
   setDirty: (dirty) => {

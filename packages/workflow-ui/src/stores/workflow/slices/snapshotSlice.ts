@@ -1,24 +1,7 @@
-import type { WorkflowEdge, WorkflowNode } from '@genfeedai/types';
 import type { StateCreator } from 'zustand';
+import { getApplyEditOperations } from '../applyEditOperations';
 import type { WorkflowStore } from '../types';
-import type { EditOperation, SnapshotSlice, WorkflowSnapshot } from './types';
-
-/**
- * EditOperation type inlined from @/lib/chat/editOperations.
- * The consuming app provides the actual applyEditOperations implementation.
- */
-// Stub applyEditOperations - consuming app should override via the store creator.
-function defaultApplyEditOperations(
-  _operations: EditOperation[],
-  state: { nodes: WorkflowNode[]; edges: WorkflowEdge[] },
-): {
-  nodes: WorkflowNode[];
-  edges: WorkflowEdge[];
-  applied: number;
-  skipped: string[];
-} {
-  return { applied: 0, edges: state.edges, nodes: state.nodes, skipped: [] };
-}
+import type { SnapshotSlice, WorkflowSnapshot } from './types';
 
 export const createSnapshotSlice: StateCreator<
   WorkflowStore & SnapshotSlice,
@@ -28,7 +11,7 @@ export const createSnapshotSlice: StateCreator<
 > = (set, get) => ({
   applyEditOperations: (operations) => {
     const state = get();
-    const result = defaultApplyEditOperations(operations, {
+    const result = getApplyEditOperations()(operations, {
       edges: state.edges,
       nodes: state.nodes,
     });

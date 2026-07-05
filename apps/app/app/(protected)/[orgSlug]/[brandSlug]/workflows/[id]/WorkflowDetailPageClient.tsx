@@ -43,8 +43,10 @@ import {
   type WorkflowGraphEdgeLike,
   type WorkflowGraphNodeLike,
 } from '@/features/workflows/utils/workflow-graph';
+import { workflowsApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
 import { getExecutionProviderHeaders } from '@/lib/api/execution-headers';
+import { applyEditOperations } from '@/lib/chat/editOperations';
 import WorkflowEditorToolbarNavigation from '../components/WorkflowEditorToolbarNavigation';
 
 interface WorkflowDetailPageClientProps {
@@ -138,6 +140,7 @@ export default function WorkflowDetailPageClient({
 
   const workflowUiConfig = useMemo<WorkflowUIConfig>(
     () => ({
+      applyEditOperations,
       executionHeaders: getExecutionProviderHeaders,
       executionHttpClient: {
         post: <T,>(
@@ -147,6 +150,14 @@ export default function WorkflowDetailPageClient({
         ): Promise<T> => apiClient.post<T>(path, body, options),
       },
       logger,
+      workflowPersistence: {
+        create: workflowsApi.create,
+        delete: workflowsApi.delete,
+        duplicate: workflowsApi.duplicate,
+        getAll: workflowsApi.getAll,
+        getById: workflowsApi.getById,
+        update: workflowsApi.update,
+      },
       workflowsApi: {
         setThumbnail: async (selectedWorkflowId, thumbnailUrl, nodeId) => {
           const service = await getWorkflowService();

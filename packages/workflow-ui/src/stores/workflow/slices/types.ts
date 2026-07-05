@@ -1,14 +1,52 @@
 import type {
   EdgeStyle,
   NodeGroup,
+  NodeType,
   WorkflowEdge,
   WorkflowNode,
 } from '@genfeedai/types';
 
-export interface EditOperation {
-  type: 'add_node' | 'remove_node' | 'update_node' | 'add_edge' | 'remove_edge';
-  [key: string]: unknown;
+/**
+ * A single atomic change to the workflow graph. Canonical shape shared with the
+ * app's chat/agent edit pipeline — the `applyEditOperations` implementation is
+ * injected (see WorkflowUIConfig.applyEditOperations); this package defaults to
+ * a no-op when unconfigured.
+ */
+export type EditOperation =
+  | {
+      type: 'addNode';
+      nodeType: NodeType;
+      position?: { x: number; y: number };
+      data?: Record<string, unknown>;
+    }
+  | { type: 'removeNode'; nodeId: string }
+  | { type: 'updateNode'; nodeId: string; data: Record<string, unknown> }
+  | {
+      type: 'addEdge';
+      source: string;
+      target: string;
+      sourceHandle?: string;
+      targetHandle?: string;
+    }
+  | { type: 'removeEdge'; edgeId: string };
+
+/** Result of applying a batch of {@link EditOperation}s. */
+export interface ApplyEditResult {
+  nodes: WorkflowNode[];
+  edges: WorkflowEdge[];
+  applied: number;
+  skipped: string[];
 }
+
+/**
+ * Applies a batch of edit operations to the current graph and returns the new
+ * nodes/edges plus how many applied / which were skipped. Injected by the app;
+ * defaults to a no-op that leaves the graph untouched.
+ */
+export type ApplyEditOperations = (
+  operations: EditOperation[],
+  state: { nodes: WorkflowNode[]; edges: WorkflowEdge[] },
+) => ApplyEditResult;
 
 export interface ChatMessage {
   id: string;
