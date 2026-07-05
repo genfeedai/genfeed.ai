@@ -17,6 +17,7 @@ import { FalDiscoveryService } from '@workers/services/fal-discovery.service';
 import { HuggingFaceDiscoveryService } from '@workers/services/hugging-face-discovery.service';
 import { ModelDiscoveryService } from '@workers/services/model-discovery.service';
 import { ModelPricingService } from '@workers/services/model-pricing.service';
+import { PlatformMarginService } from '@workers/services/platform-margin.service';
 
 /**
  * Verified model owners on Replicate whose models are considered
@@ -61,6 +62,7 @@ export class CronModelWatcherService {
     private readonly falDiscoveryService: FalDiscoveryService,
     private readonly huggingFaceDiscoveryService: HuggingFaceDiscoveryService,
     private readonly notificationsService: NotificationsService,
+    private readonly platformMarginService: PlatformMarginService,
   ) {}
 
   /**
@@ -92,6 +94,10 @@ export class CronModelWatcherService {
     };
 
     try {
+      // Step 0: Hydrate the operator-configured margin multiplier so every
+      // applyMargin call below bakes the configured margin into model costs.
+      await this.platformMarginService.hydrate();
+
       // Step 1: Fetch all known model keys from database
       const existingModels = await this.modelsService.findAllActive();
       const allModels = await this.modelsService.find({ isDeleted: false });

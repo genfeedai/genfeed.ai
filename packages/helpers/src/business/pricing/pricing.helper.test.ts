@@ -11,12 +11,14 @@ import {
   getHostedPlan,
   getPlanByLabel,
   getProPlan,
+  getRuntimeMarginMultiplier,
   getScalePlan,
   INTERNAL_CREDIT_COSTS,
+  setRuntimeMarginMultiplier,
   VIDEO_CREDIT_COSTS,
   websitePlans,
 } from '@helpers/business/pricing/pricing.helper';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 describe('pricing.helper', () => {
   describe('INTERNAL_CREDIT_COSTS', () => {
@@ -336,6 +338,48 @@ describe('pricing.helper', () => {
 
     it('should return 2 credits for $0 (zero cost still returns minimum)', () => {
       expect(applyMargin(0)).toBe(2);
+    });
+
+    it('scales the sell price by an explicit margin multiplier', () => {
+      // $0.15 base → 50 credits; ×1.2 → $0.60 → 60 credits.
+      expect(applyMargin(0.15, 1.2)).toBe(60);
+    });
+
+    it('falls back to 1.0 for a non-positive or non-finite explicit multiplier', () => {
+      expect(applyMargin(0.15, 0)).toBe(50);
+      expect(applyMargin(0.15, -3)).toBe(50);
+      expect(applyMargin(0.15, Number.NaN)).toBe(50);
+    });
+  });
+
+  describe('runtime margin multiplier', () => {
+    afterEach(() => {
+      setRuntimeMarginMultiplier(1);
+    });
+
+    it('defaults to 1.0 (base margin only)', () => {
+      expect(getRuntimeMarginMultiplier()).toBe(1);
+      expect(applyMargin(0.15)).toBe(50);
+    });
+
+    it('applies the process-scoped multiplier to applyMargin by default', () => {
+      setRuntimeMarginMultiplier(1.2);
+      expect(getRuntimeMarginMultiplier()).toBe(1.2);
+      expect(applyMargin(0.15)).toBe(60);
+    });
+
+    it('sanitizes non-positive or non-finite values to 1.0', () => {
+      setRuntimeMarginMultiplier(0);
+      expect(getRuntimeMarginMultiplier()).toBe(1);
+      setRuntimeMarginMultiplier(-2);
+      expect(getRuntimeMarginMultiplier()).toBe(1);
+      setRuntimeMarginMultiplier(Number.NaN);
+      expect(getRuntimeMarginMultiplier()).toBe(1);
+    });
+
+    it('lets an explicit argument override the runtime default', () => {
+      setRuntimeMarginMultiplier(2);
+      expect(applyMargin(0.15, 1)).toBe(50);
     });
   });
 });

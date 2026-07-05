@@ -10,6 +10,7 @@ export const APP_ROUTES = {
     ROOT: '/admin',
     ADMINISTRATION: {
       ANNOUNCEMENTS: '/admin/administration/announcements',
+      PLATFORM_SETTINGS: '/admin/administration/platform-settings',
       ROLES: '/admin/administration/roles',
       SUBSCRIPTIONS: '/admin/administration/subscriptions',
       USERS: '/admin/administration/users',
