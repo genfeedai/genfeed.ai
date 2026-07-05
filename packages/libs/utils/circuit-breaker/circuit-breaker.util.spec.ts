@@ -2,7 +2,7 @@ import {
   BrokenCircuitError,
   createProcessorCircuitBreaker,
   ProcessorCircuitBreaker,
-} from '@api/shared/utils/circuit-breaker/circuit-breaker.util';
+} from '@libs/utils/circuit-breaker/circuit-breaker.util';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@libs/logger/logger.service', () => ({
