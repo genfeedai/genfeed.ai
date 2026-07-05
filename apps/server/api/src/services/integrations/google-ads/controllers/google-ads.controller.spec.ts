@@ -1,5 +1,6 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -110,7 +111,10 @@ describe('GoogleAdsController', () => {
         { provide: GoogleAdsOAuthService, useValue: googleAdsOAuthService },
         { provide: LoggerService, useValue: loggerService },
       ],
-    }).compile();
+    })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<GoogleAdsController>(GoogleAdsController);
   });

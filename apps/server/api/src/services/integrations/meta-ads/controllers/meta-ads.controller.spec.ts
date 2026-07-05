@@ -13,6 +13,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { MetaAdsController } from '@api/services/integrations/meta-ads/controllers/meta-ads.controller';
 import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
@@ -101,7 +102,10 @@ describe('MetaAdsController', () => {
         { provide: LoggerService, useValue: loggerService },
         { provide: MetaAdsService, useValue: metaAdsService },
       ],
-    }).compile();
+    })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get(MetaAdsController);
   });

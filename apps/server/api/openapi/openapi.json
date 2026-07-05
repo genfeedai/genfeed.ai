@@ -41865,21 +41865,6 @@
         ]
       }
     },
-    "/services/google-ads/oauth/callback": {
-      "post": {
-        "operationId": "GoogleAdsController.handleOAuthCallback",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "handleOAuthCallback",
-        "tags": [
-          "services/google-ads"
-        ]
-      }
-    },
     "/services/google-ads/oauth/url": {
       "get": {
         "operationId": "GoogleAdsController.getOAuthUrl",
