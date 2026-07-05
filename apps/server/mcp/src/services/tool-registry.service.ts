@@ -6,7 +6,7 @@ import {
 } from '@genfeedai/tools';
 import { LoggerService } from '@libs/logger/logger.service';
 import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
-import { type McpRole } from '@mcp/services/auth.service';
+import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
 import type { McpApprovalResource } from '@mcp/shared/interfaces/approval.interface';
 import type {
@@ -100,8 +100,35 @@ export class ToolRegistryService {
     @Optional() private readonly requestRole: McpRole = 'user',
   ) {}
 
-  getTools(): McpTool[] {
+  /**
+   * Every MCP-surfaced tool, unfiltered. Prefer {@link getToolsForRole} for
+   * anything a client sees — an unfiltered list advertises tools the caller
+   * cannot invoke.
+   */
+  getAllTools(): McpTool[] {
     return toMcpTools(getToolsForSurface('mcp')) as McpTool[];
+  }
+
+  /**
+   * Tools the given role is allowed to invoke. This is a UX/least-surprise
+   * filter for `tools/list` (and the REST mirror) — the authoritative gate is
+   * the per-call {@link McpAuthGuard.checkToolRole} in {@link handleToolCall}
+   * and, ultimately, the API's own role guards.
+   */
+  static filterToolsByRole(tools: McpTool[], role: McpRole): McpTool[] {
+    return tools.filter(
+      (tool) =>
+        !tool.requiredRole ||
+        AuthService.hasRequiredRole(role, tool.requiredRole),
+    );
+  }
+
+  getToolsForRole(role: McpRole): McpTool[] {
+    return ToolRegistryService.filterToolsByRole(this.getAllTools(), role);
+  }
+
+  getTools(): McpTool[] {
+    return this.getToolsForRole(this.requestRole);
   }
 
   getResources(): McpResource[] {

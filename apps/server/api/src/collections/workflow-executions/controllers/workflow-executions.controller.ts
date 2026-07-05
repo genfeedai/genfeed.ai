@@ -5,8 +5,10 @@ import {
 } from '@api/collections/workflow-executions/dto/create-workflow-execution.dto';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
+import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -16,8 +18,18 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
+import { MemberRole } from '@genfeedai/enums';
 import { WorkflowExecutionSerializer } from '@genfeedai/serializers';
-import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -31,6 +43,7 @@ import type { Request } from 'express';
 @ApiTags('Workflow Executions')
 @ApiBearerAuth()
 @Controller('workflow-executions')
+@UseGuards(RolesGuard)
 export class WorkflowExecutionsController {
   constructor(
     private readonly workflowExecutionsService: WorkflowExecutionsService,
@@ -169,6 +182,7 @@ export class WorkflowExecutionsController {
   }
 
   @Post()
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @ApiOperation({ summary: 'Create and start a new workflow execution' })
   @ApiResponse({ description: 'Execution created', status: 201 })
   async create(
@@ -194,6 +208,7 @@ export class WorkflowExecutionsController {
   }
 
   @Post(':id/cancel')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @ApiOperation({ summary: 'Cancel a running execution' })
   @ApiParam({ description: 'Execution ID', name: 'id' })
   @ApiResponse({ description: 'Execution cancelled', status: 200 })

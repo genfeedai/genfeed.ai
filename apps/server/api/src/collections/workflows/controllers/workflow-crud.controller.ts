@@ -5,9 +5,11 @@ import type { WorkflowDocument } from '@api/collections/workflows/schemas/workfl
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { SYSTEM_WORKFLOW_METADATA_KEY } from '@api/collections/workflows/system-workflow.contract';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { wrapError } from '@api/helpers/utils/controller/wrap-error.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
@@ -19,6 +21,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import { MemberRole } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -37,6 +40,7 @@ import {
   Post,
   Query,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
 
@@ -53,6 +57,7 @@ type WorkflowStatistics = Awaited<
  */
 @AutoSwagger()
 @Controller('workflows')
+@UseGuards(RolesGuard)
 export class WorkflowCrudController {
   private readonly constructorName: string = String(this.constructor.name);
 
@@ -62,6 +67,7 @@ export class WorkflowCrudController {
   ) {}
 
   @Post()
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async create(
     @Req() request: Request,
@@ -175,6 +181,7 @@ export class WorkflowCrudController {
   }
 
   @Post(':workflowId/clone')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async cloneWorkflow(
     @Req() request: Request,
@@ -196,6 +203,7 @@ export class WorkflowCrudController {
   }
 
   @Patch(':workflowId')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async update(
     @Req() request: Request,
@@ -221,6 +229,7 @@ export class WorkflowCrudController {
   }
 
   @Delete(':workflowId')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async remove(
     @Req() request: Request,

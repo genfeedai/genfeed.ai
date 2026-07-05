@@ -17,13 +17,16 @@ import {
   type SocialInboxScope,
   SocialInboxService,
 } from '@api/collections/social-inbox/services/social-inbox.service';
+import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { MemberRole } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -42,6 +45,7 @@ import {
   Query,
   Req,
   UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
@@ -50,6 +54,7 @@ import type { Request } from 'express';
 @AutoSwagger()
 @ApiBearerAuth()
 @Controller('messages')
+@UseGuards(RolesGuard)
 export class SocialInboxController {
   constructor(private readonly socialInboxService: SocialInboxService) {}
 
@@ -66,6 +71,7 @@ export class SocialInboxController {
   }
 
   @Post('youtube/sync')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @ApiOperation({ summary: 'Sync recent YouTube comments into messages' })
   async syncYoutubeComments(
     @CurrentUser() user: User,
@@ -111,6 +117,7 @@ export class SocialInboxController {
   }
 
   @Post(':conversationId/drafts')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @ApiOperation({ summary: 'Create a local reply draft for review' })
   async createDraft(
     @Req() request: Request,
@@ -128,6 +135,7 @@ export class SocialInboxController {
   }
 
   @Post(':conversationId/drafts/:messageId/approve')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @ApiOperation({ summary: 'Approve and publish a draft reply or DM' })
   async approveDraft(
     @Req() request: Request,
@@ -145,6 +153,7 @@ export class SocialInboxController {
   }
 
   @Post(':conversationId/drafts/:messageId/reject')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @ApiOperation({ summary: 'Reject a draft reply or DM without publishing' })
   async rejectDraft(
     @Req() request: Request,
@@ -164,6 +173,7 @@ export class SocialInboxController {
   }
 
   @Post(':conversationId/replies')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @ApiOperation({ summary: 'Post a reply through the connected account' })
   async postReply(
     @Req() request: Request,
@@ -181,6 +191,7 @@ export class SocialInboxController {
   }
 
   @Post(':conversationId/dms')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @ApiOperation({ summary: 'Send a DM through a supported connected account' })
   async sendDm(
     @Req() request: Request,
@@ -198,6 +209,7 @@ export class SocialInboxController {
   }
 
   @Patch(':conversationId/status')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @ApiOperation({ summary: 'Update social conversation status' })
   async updateStatus(
     @Req() request: Request,
@@ -215,6 +227,7 @@ export class SocialInboxController {
   }
 
   @Patch(':conversationId/tags')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @ApiOperation({ summary: 'Replace social conversation tags' })
   async updateTags(
     @Req() request: Request,
@@ -232,6 +245,7 @@ export class SocialInboxController {
   }
 
   @Patch(':conversationId/assignment')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @ApiOperation({ summary: 'Assign or unassign a social conversation' })
   async assignOwner(
     @Req() request: Request,

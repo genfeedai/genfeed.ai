@@ -5,15 +5,17 @@ import {
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { GoogleAdsMetricsParams } from '@api/services/integrations/google-ads/interfaces/google-ads.interface';
 import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
 import { GoogleAdsOAuthService } from '@api/services/integrations/google-ads/services/google-ads-oauth.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform, MemberRole } from '@genfeedai/enums';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,
@@ -30,11 +32,13 @@ import {
   Post,
   Query,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
 
 @AutoSwagger()
 @Controller('services/google-ads')
+@UseGuards(RolesGuard)
 export class GoogleAdsController {
   private readonly constructorName: string = String(this.constructor.name);
 
@@ -47,6 +51,7 @@ export class GoogleAdsController {
   ) {}
 
   @Post('connect')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -91,8 +96,10 @@ export class GoogleAdsController {
   }
 
   @Post('verify')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async verify(
     @Req() request: Request,
+    @CurrentUser() user: User,
     @Body() body: Partial<CreateCredentialVerifyDto>,
   ) {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
@@ -109,6 +116,21 @@ export class GoogleAdsController {
     }
 
     const { brandId, organizationId } = JSON.parse(body.state);
+
+    // Bind the OAuth state to the caller: the org encoded in the state must
+    // match the authenticated caller's active organization. Prevents a member
+    // of org A from completing a credential exchange scoped to org B.
+    const callerOrganizationId = getPublicMetadata(user).organization;
+    if (organizationId !== callerOrganizationId) {
+      throw new HttpException(
+        {
+          detail: 'OAuth state does not match your organization',
+          title: 'OAuth Error',
+        },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
     const credential = await this.credentialsService.findOne({
       brand: brandId,
       isDeleted: false,
@@ -155,24 +177,13 @@ export class GoogleAdsController {
   }
 
   @Get('oauth/url')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   getOAuthUrl(@Query('state') state: string) {
     return { url: this.googleAdsOAuthService.generateAuthUrl(state) };
   }
 
-  @Post('oauth/callback')
-  async handleOAuthCallback(@Body() body: { code: string; state?: string }) {
-    if (body.state) {
-      const tokens =
-        await this.googleAdsOAuthService.exchangeAuthCodeForAccessToken(
-          body.code,
-        );
-      return tokens;
-    }
-
-    return this.googleAdsOAuthService.exchangeAuthCodeForAccessToken(body.code);
-  }
-
   @Get('customers')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
   async listCustomers(@CurrentUser() user: User) {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${caller} started`);
@@ -182,6 +193,7 @@ export class GoogleAdsController {
   }
 
   @Get('campaigns')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
   async listCampaigns(
     @CurrentUser() user: User,
     @Query('customerId') customerId: string,
@@ -202,6 +214,7 @@ export class GoogleAdsController {
   }
 
   @Get('campaigns/:id/metrics')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
   async getCampaignMetrics(
     @CurrentUser() user: User,
     @Param('id') campaignId: string,
@@ -232,6 +245,7 @@ export class GoogleAdsController {
   }
 
   @Get('ad-groups/:id/insights')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
   async getAdGroupInsights(
     @CurrentUser() user: User,
     @Param('id') adGroupId: string,
@@ -258,6 +272,7 @@ export class GoogleAdsController {
   }
 
   @Get('keywords')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
   async getKeywordPerformance(
     @CurrentUser() user: User,
     @Query('customerId') customerId: string,
@@ -286,6 +301,7 @@ export class GoogleAdsController {
   }
 
   @Get('search-terms/:campaignId')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
   async getSearchTerms(
     @CurrentUser() user: User,
     @Param('campaignId') campaignId: string,

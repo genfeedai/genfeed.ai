@@ -5,19 +5,29 @@ import type {
 } from '@api/collections/ad-bulk-upload-jobs/schemas/ad-bulk-upload-job.schema';
 import { AdBulkUploadJobsService } from '@api/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   extractRequestContext,
   getPublicMetadata,
 } from '@api/helpers/utils/auth/auth.util';
 import { AdBulkUploadService } from '@api/services/integrations/meta-ads/services/ad-bulk-upload.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform, MemberRole } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 
 interface CreateBulkUploadBody {
   credentialId: string;
@@ -35,6 +45,7 @@ interface CreateBulkUploadBody {
 
 @AutoSwagger()
 @Controller('services/meta-ads/bulk')
+@UseGuards(RolesGuard)
 export class MetaAdsBulkController {
   private readonly constructorName: string = String(this.constructor.name);
 
@@ -46,6 +57,7 @@ export class MetaAdsBulkController {
   ) {}
 
   @Post('upload')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async createBulkUpload(
     @CurrentUser() user: User,
     @Body() body: CreateBulkUploadBody,
@@ -74,6 +86,7 @@ export class MetaAdsBulkController {
   }
 
   @Get('jobs')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
   async listJobs(
     @CurrentUser() user: User,
     @Query('status') status?: BulkUploadStatus,
@@ -93,6 +106,7 @@ export class MetaAdsBulkController {
   }
 
   @Get('jobs/:id')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
   async getJobStatus(@CurrentUser() user: User, @Param('id') id: string) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
@@ -111,6 +125,7 @@ export class MetaAdsBulkController {
   }
 
   @Post('jobs/:id/cancel')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async cancelJob(@CurrentUser() user: User, @Param('id') id: string) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
