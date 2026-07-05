@@ -5,6 +5,12 @@ export const PLATFORM_COLORS = {
     name: 'Beehiiv',
     rgb: '252, 211, 77',
   },
+  devto: {
+    base: '#0A0A0A',
+    hover: '#333333',
+    name: 'DEV Community',
+    rgb: '10, 10, 10',
+  },
   discord: {
     base: '#5865F2',
     hover: '#7289da',
@@ -153,6 +159,7 @@ export type ColorVariant = 'base' | 'hover';
 export const DISCORD_EMBED_COLORS: Record<string, number> = {
   BEEHIIV: 0xfcd34d,
   DEFAULT: 0x5865f2,
+  DEVTO: 0x0a0a0a,
   DISCORD: 0x5865f2,
   FACEBOOK: 0x1877f2,
   FANVUE: 0x6c63ff,

@@ -3,6 +3,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IPlatformBadgeConfig } from '@genfeedai/interfaces/ui/platform-badge-config.interface';
 import type { PlatformBadgeProps } from '@genfeedai/props/ui/display/platform-badge.props';
 import {
+  FaDev,
   FaFacebook,
   FaGhost,
   FaInstagram,
@@ -45,6 +46,13 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
     iconColor: 'text-amber-500',
     label: 'Beehiiv',
     textColor: 'text-amber-500',
+  },
+  devto: {
+    bgColor: 'bg-foreground/10',
+    icon: FaDev,
+    iconColor: 'text-foreground',
+    label: 'DEV',
+    textColor: 'text-foreground',
   },
   facebook: {
     bgColor: 'bg-blue-600/10',
