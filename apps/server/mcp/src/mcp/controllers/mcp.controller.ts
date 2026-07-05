@@ -9,7 +9,7 @@ import { ClientService } from '@mcp/services/client.service';
 import { ServerService } from '@mcp/services/server.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import type { McpTool } from '@mcp/shared/interfaces/mcp-server.interface';
-import { Body, Controller, Get, Param, Post, Req, Res } from '@nestjs/common';
+import { Controller, Get, Param, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
 
 interface AuthenticatedRequest extends Request {
@@ -137,118 +137,6 @@ export class McpController {
         },
       ],
     };
-  }
-
-  @Post('tools/:toolName')
-  async callTool(
-    @Param('toolName') toolName: string,
-    @Body() args: Record<string, unknown> | null,
-    @Req() request: AuthenticatedRequest,
-  ) {
-    this.logger.log(`Calling tool: ${toolName}`);
-
-    if (request.authContext?.token) {
-      this.clientService.setBearerToken(request.authContext.token);
-    }
-
-    const result = await this.simulateToolCall(toolName, args);
-
-    return {
-      result,
-      timestamp: new Date().toISOString(),
-      tool: toolName,
-    };
-  }
-
-  private async simulateToolCall(
-    toolName: string,
-    args: Record<string, unknown> | null,
-  ) {
-    const isKnownTool = (
-      toMcpTools(getToolsForSurface('mcp')) as McpTool[]
-    ).some((tool) => tool.name === toolName);
-    if (!isKnownTool) {
-      throw new Error(`Unknown tool: ${toolName}`);
-    }
-    switch (toolName) {
-      case 'generate_video': {
-        if (!args) {
-          throw new Error('Arguments required for generate_video');
-        }
-        const video = await this.clientService.createVideo({
-          description: args.description as string,
-          duration: args.duration as number | undefined,
-          style: args.style as string | undefined,
-          title: args.title as string,
-          voiceOver: args.voiceOver as
-            | { enabled: boolean; voice?: string }
-            | undefined,
-        });
-
-        return {
-          content: [
-            {
-              text: `Video creation initiated successfully!\nVideo ID: ${video.id}\nStatus: ${video.status}\nEstimated completion: ${video.estimatedCompletion}`,
-              type: 'text',
-            },
-          ],
-        };
-      }
-
-      case 'get_video_status': {
-        if (!args || !args.videoId) {
-          throw new Error('videoId required');
-        }
-        const status = await this.clientService.getVideoStatus(
-          args.videoId as string,
-        );
-        return {
-          content: [
-            {
-              text: `Video Status: ${status.status}\nProgress: ${status.progress}%\n${status.message || ''}`,
-              type: 'text',
-            },
-          ],
-        };
-      }
-
-      case 'list_videos': {
-        const limit = (args?.limit as number) || 10;
-        const offset = (args?.offset as number) || 0;
-        const videos = await this.clientService.listVideos(limit, offset);
-        return {
-          content: [
-            {
-              text: JSON.stringify(videos, null, 2),
-              type: 'text',
-            },
-          ],
-        };
-      }
-
-      case 'get_video_analytics': {
-        if (!args || !args.videoId) {
-          throw new Error('videoId required');
-        }
-        const videoId = args.videoId as string;
-        const timeRange = (args.timeRange as string) || '7d';
-        const analytics = await this.clientService.getVideoAnalytics(
-          videoId,
-          timeRange,
-        );
-        return {
-          content: [
-            {
-              text: JSON.stringify(analytics, null, 2),
-              type: 'text',
-            },
-          ],
-        };
-      }
-
-      default:
-        throw new Error(`Unknown tool: ${toolName}`);
-    }
   }
 
   private async simulateResourceRead(resourceUri: string) {

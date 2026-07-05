@@ -25,7 +25,7 @@ import {
 } from '@mcp/tools/social-messages.tool';
 import { handleTrainingPipelineTool } from '@mcp/tools/training-pipeline.tool';
 import { handleWorkflowControlTool } from '@mcp/tools/workflow-control.tool';
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 
 interface ToolCallParams {
   name: string;
@@ -59,6 +59,99 @@ const WORKFLOW_CONTROL_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
 ]);
 
 /**
+ * Names handled by the hand-written `handleLegacyTool` switch. This set is the
+ * classification source of truth for that branch; the switch must handle exactly
+ * these names (asserted by the drift guard + `tool-registry.dispatch.spec`).
+ */
+const LEGACY_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
+  'get_video_status',
+  'list_videos',
+  'get_video_analytics',
+  'create_article',
+  'search_articles',
+  'get_article',
+  'list_images',
+  'create_avatar',
+  'list_avatars',
+  'list_music',
+  'get_workflow_status',
+  'list_workflow_templates',
+  'get_content_analytics',
+  'get_usage_stats',
+  'generate_linkedin_content',
+  'get_linkedin_connection_status',
+  'get_linkedin_analytics',
+]);
+
+/**
+ * Tools `handleToolCall` handles BEFORE `executeTool`, so they never flow
+ * through classify-based dispatch. `resolve_approval` runs the deferred action
+ * via its own path; the coverage guard must not treat it as unroutable.
+ */
+const PRE_DISPATCH_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
+  'resolve_approval',
+]);
+
+const ACCOUNT_MANAGEMENT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
+  'get_account_info',
+  'list_brands',
+  'get_brand',
+  'get_job_status',
+]);
+
+const ADMIN_INFRASTRUCTURE_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
+  'get_darkroom_health',
+  'control_comfyui',
+  'list_loras',
+  'list_gpu_personas',
+]);
+
+const TRAINING_PIPELINE_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
+  'start_training',
+  'get_training_status',
+  'get_dataset_info',
+  'delete_dataset',
+  'run_captioning',
+]);
+
+const isMetaAdsTool = (name: string): boolean =>
+  name.startsWith('list_meta_') ||
+  name.startsWith('get_meta_') ||
+  name.startsWith('compare_meta_');
+
+const isGoogleAdsTool = (name: string): boolean =>
+  name.startsWith('list_google_ads_') || name.startsWith('get_google_ads_');
+
+const isDarkroomGenerationTool = (name: string): boolean =>
+  name.startsWith('generate_face_test') ||
+  name.startsWith('generate_bootstrap') ||
+  name.startsWith('generate_pulid') ||
+  name.startsWith('generate_darkroom_') ||
+  name === 'get_darkroom_job_status';
+
+/**
+ * Which executor handles a tool name. `'unknown'` means no dispatch path exists
+ * — the drift guard rejects any MCP-surfaced tool that classifies as unknown so
+ * a registry/handler mismatch fails the boot health check instead of surfacing
+ * as a runtime "Unknown tool" error. Order mirrors the historical dispatch
+ * precedence exactly (agent-chat → workflow-control → agent-executor → legacy →
+ * external), so classification never changes which handler runs.
+ */
+type ExecutorKind =
+  | 'agent-chat'
+  | 'workflow-control'
+  | 'agent-executor'
+  | 'legacy'
+  | 'meta-ads'
+  | 'google-ads'
+  | 'account-management'
+  | 'admin-infrastructure'
+  | 'training-pipeline'
+  | 'darkroom-generation'
+  | 'social-messages'
+  | 'unknown';
+
+/**
  * Mutating MCP tools that must NOT execute immediately — instead they persist a
  * pending approval (human-in-the-loop) and only run once approved. Names are the
  * canonical tool names from `packages/tools/src/registry/source.ts`. High-risk
@@ -66,7 +159,6 @@ const WORKFLOW_CONTROL_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
  * generation). Extend deliberately.
  */
 const APPROVAL_REQUIRED_TOOLS: ReadonlySet<string> = new Set<string>([
-  'generate_content_batch',
   'create_post',
   'create_article',
   'create_avatar',
@@ -89,7 +181,53 @@ const APPROVAL_REQUIRED_TOOLS: ReadonlySet<string> = new Set<string>([
 ]);
 
 @Injectable()
-export class ToolRegistryService {
+export class ToolRegistryService implements OnModuleInit {
+  /**
+   * Boot-time drift guard. The DI singleton (registered in `McpGenfeedAiModule`)
+   * runs this once at startup; a failure crashes boot so the `/v1/health` check
+   * stays red and the deploy is blocked — far better than shipping a tool the
+   * server advertises but cannot execute. Per-request `new ToolRegistryService`
+   * instances do not trigger this (no Nest lifecycle), so there is no per-call
+   * cost.
+   */
+  onModuleInit(): void {
+    ToolRegistryService.validateDispatchCoverage();
+  }
+
+  /**
+   * Assert the canonical registry and this service cannot silently drift:
+   * (1) every MCP-surfaced tool classifies to a real executor, and
+   * (2) every approval-gated name is actually MCP-surfaced (a stale entry would
+   * make the tool unreachable while still claiming to need approval).
+   */
+  static validateDispatchCoverage(): void {
+    const mcpTools = toMcpTools(getToolsForSurface('mcp')) as McpTool[];
+    const mcpNames = new Set(mcpTools.map((tool) => tool.name));
+
+    const unroutable = mcpTools
+      .map((tool) => tool.name)
+      .filter((name) => !PRE_DISPATCH_TOOL_NAMES.has(name))
+      .filter((name) => ToolRegistryService.classify(name) === 'unknown');
+    if (unroutable.length > 0) {
+      throw new Error(
+        `MCP tool registry drift: no executor dispatch for [${unroutable.join(
+          ', ',
+        )}]. Add a handler + classify() entry, or unset surfaces.mcp.`,
+      );
+    }
+
+    const approvalNotSurfaced = [...APPROVAL_REQUIRED_TOOLS].filter(
+      (name) => !mcpNames.has(name),
+    );
+    if (approvalNotSurfaced.length > 0) {
+      throw new Error(
+        `MCP approval-gate drift: APPROVAL_REQUIRED_TOOLS names are not ` +
+          `MCP-surfaced [${approvalNotSurfaced.join(', ')}]. Remove them or ` +
+          `set surfaces.mcp on the canonical tool.`,
+      );
+    }
+  }
+
   constructor(
     private readonly clientService: ClientService,
     private readonly logger: LoggerService,
@@ -200,21 +338,58 @@ export class ToolRegistryService {
    * legacy/external handlers). Used both for normal calls that passed the gates
    * and for executing an approved deferred action.
    */
+  /**
+   * Classify a tool name to the executor that will run it, WITHOUT executing.
+   * Single source of truth for dispatch — used by {@link executeTool} and by the
+   * boot-time drift guard. Precedence is identical to the historical if/switch
+   * chain, so routing is behaviour-preserving.
+   */
+  static classify(name: string): ExecutorKind {
+    if (AGENT_CHAT_TOOL_NAMES.has(name)) return 'agent-chat';
+    if (WORKFLOW_CONTROL_TOOL_NAMES.has(name)) return 'workflow-control';
+    if (AGENT_EXECUTOR_TOOL_NAMES.has(name)) return 'agent-executor';
+    if (LEGACY_TOOL_NAMES.has(name)) return 'legacy';
+    if (isMetaAdsTool(name)) return 'meta-ads';
+    if (isGoogleAdsTool(name)) return 'google-ads';
+    if (ACCOUNT_MANAGEMENT_TOOL_NAMES.has(name)) return 'account-management';
+    if (ADMIN_INFRASTRUCTURE_TOOL_NAMES.has(name)) {
+      return 'admin-infrastructure';
+    }
+    if (TRAINING_PIPELINE_TOOL_NAMES.has(name)) return 'training-pipeline';
+    if (isDarkroomGenerationTool(name)) return 'darkroom-generation';
+    if (SOCIAL_MESSAGES_TOOL_NAMES.has(name)) return 'social-messages';
+    return 'unknown';
+  }
+
   private async executeTool(name: string, args: Record<string, unknown>) {
-    if (AGENT_CHAT_TOOL_NAMES.has(name)) {
-      return handleAgentChatTool(this.clientService, name, args);
+    switch (ToolRegistryService.classify(name)) {
+      case 'agent-chat':
+        return handleAgentChatTool(this.clientService, name, args);
+      case 'workflow-control':
+        return handleWorkflowControlTool(this.clientService, name, args);
+      case 'agent-executor': {
+        const result = await this.clientService.executeAgentTool(name, args);
+        return this.toMcpResult(result);
+      }
+      case 'legacy':
+        return this.handleLegacyTool(name, args);
+      case 'meta-ads':
+        return handleMetaAdsTool(this.clientService, name, args);
+      case 'google-ads':
+        return handleGoogleAdsTool(this.clientService, name, args);
+      case 'account-management':
+        return handleAccountManagementTool(this.clientService, name, args);
+      case 'admin-infrastructure':
+        return handleAdminInfrastructureTool(this.clientService, name, args);
+      case 'training-pipeline':
+        return handleTrainingPipelineTool(this.clientService, name, args);
+      case 'darkroom-generation':
+        return handleDarkroomGenerationTool(this.clientService, name, args);
+      case 'social-messages':
+        return handleSocialMessagesTool(this.clientService, name, args);
+      default:
+        throw new Error(`Unknown tool: ${name}`);
     }
-
-    if (WORKFLOW_CONTROL_TOOL_NAMES.has(name)) {
-      return handleWorkflowControlTool(this.clientService, name, args);
-    }
-
-    if (AGENT_EXECUTOR_TOOL_NAMES.has(name)) {
-      const result = await this.clientService.executeAgentTool(name, args);
-      return this.toMcpResult(result);
-    }
-
-    return this.handleLegacyTool(name, args);
   }
 
   /**
@@ -717,78 +892,11 @@ export class ToolRegistryService {
       }
 
       default:
-        return this.dispatchExternalTool(name, args);
+        // `executeTool` only routes `LEGACY_TOOL_NAMES` here, so this is
+        // unreachable in practice; throw rather than silently returning
+        // undefined if the two ever drift.
+        throw new Error(`Unknown legacy tool: ${name}`);
     }
-  }
-
-  private async dispatchExternalTool(
-    name: string,
-    args: Record<string, unknown>,
-  ) {
-    if (
-      name.startsWith('list_meta_') ||
-      name.startsWith('get_meta_') ||
-      name.startsWith('compare_meta_')
-    ) {
-      return handleMetaAdsTool(this.clientService, name, args);
-    }
-
-    if (
-      name.startsWith('list_google_ads_') ||
-      name.startsWith('get_google_ads_')
-    ) {
-      return handleGoogleAdsTool(this.clientService, name, args);
-    }
-
-    if (
-      [
-        'get_account_info',
-        'list_brands',
-        'get_brand',
-        'get_job_status',
-      ].includes(name)
-    ) {
-      return handleAccountManagementTool(this.clientService, name, args);
-    }
-
-    if (
-      [
-        'get_darkroom_health',
-        'control_comfyui',
-        'list_loras',
-        'list_gpu_personas',
-      ].includes(name)
-    ) {
-      return handleAdminInfrastructureTool(this.clientService, name, args);
-    }
-
-    if (
-      [
-        'start_training',
-        'get_training_status',
-        'get_dataset_info',
-        'delete_dataset',
-        'run_captioning',
-      ].includes(name)
-    ) {
-      return handleTrainingPipelineTool(this.clientService, name, args);
-    }
-
-    if (
-      name.startsWith('generate_face_test') ||
-      name.startsWith('generate_bootstrap') ||
-      name.startsWith('generate_pulid') ||
-      name.startsWith('generate_darkroom_') ||
-      name === 'get_darkroom_job_status'
-    ) {
-      return handleDarkroomGenerationTool(this.clientService, name, args);
-    }
-
-    if (SOCIAL_MESSAGES_TOOL_NAMES.has(name)) {
-      return handleSocialMessagesTool(this.clientService, name, args);
-    }
-
-    throw new Error(`Unknown tool: ${name}`);
   }
 
   async handleResourceRead(params: ResourceReadParams) {
