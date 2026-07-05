@@ -167,7 +167,7 @@ export default function LoginBetterAuth({
             className="mx-auto size-8 text-muted-foreground"
             aria-hidden="true"
           />
-          <p className="text-3xl font-semibold tracking-normal">
+          <p className="text-2xl font-semibold tracking-normal">
             Check your email
           </p>
           <p className="text-sm text-muted-foreground">
@@ -190,7 +190,7 @@ export default function LoginBetterAuth({
   if (mode === 'magic-link') {
     return (
       <AuthFormLayout logoSize="compact">
-        <div className="w-full max-w-[320px] space-y-8">
+        <div className="w-full max-w-sm space-y-8">
           <AuthHeader
             title="Sign in with a magic link"
             description="Enter your email and we'll send you a secure sign-in link."
@@ -237,7 +237,7 @@ export default function LoginBetterAuth({
   if (mode === 'password') {
     return (
       <AuthFormLayout logoSize="compact">
-        <div className="w-full max-w-[320px] space-y-8">
+        <div className="w-full max-w-sm space-y-8">
           <AuthHeader
             title="Sign in with email and password"
             description="Use the email and password attached to your Genfeed account."
@@ -365,7 +365,7 @@ function AuthHeader({
 }) {
   return (
     <div className="space-y-2 text-center">
-      <h1 className="text-3xl font-semibold tracking-normal text-foreground">
+      <h1 className="text-2xl font-semibold tracking-normal text-foreground">
         {title}
       </h1>
       <p className="text-sm text-muted-foreground">{description}</p>
