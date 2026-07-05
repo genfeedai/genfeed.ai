@@ -9,16 +9,18 @@ import type {
 } from '@api/collections/ad-optimization-recommendations/schemas/ad-optimization-recommendation.schema';
 import { AdOptimizationRecommendationsService } from '@api/collections/ad-optimization-recommendations/services/ad-optimization-recommendations.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   extractRequestContext,
   getPublicMetadata,
 } from '@api/helpers/utils/auth/auth.util';
 import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform, MemberRole } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
@@ -30,10 +32,12 @@ import {
   Post,
   Put,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 
 @AutoSwagger()
 @Controller('services/meta-ads/optimization')
+@UseGuards(RolesGuard)
 export class MetaAdsOptimizationController {
   private readonly constructorName: string = String(this.constructor.name);
 
@@ -49,6 +53,7 @@ export class MetaAdsOptimizationController {
   // ─── Recommendations ──────────────────────────────────────────────────────
 
   @Get('recommendations')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
   async listRecommendations(
     @CurrentUser() user: User,
     @Query('status') status?: RecommendationStatus,
@@ -70,6 +75,7 @@ export class MetaAdsOptimizationController {
   }
 
   @Post('recommendations/:id/approve')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async approveRecommendation(
     @CurrentUser() user: User,
     @Param('id') id: string,
@@ -91,6 +97,7 @@ export class MetaAdsOptimizationController {
   }
 
   @Post('recommendations/:id/reject')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async rejectRecommendation(
     @CurrentUser() user: User,
     @Param('id') id: string,
@@ -113,6 +120,7 @@ export class MetaAdsOptimizationController {
   }
 
   @Post('recommendations/:id/execute')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async executeRecommendation(
     @CurrentUser() user: User,
     @Param('id') id: string,
@@ -198,6 +206,7 @@ export class MetaAdsOptimizationController {
   // ─── Config ───────────────────────────────────────────────────────────────
 
   @Get('config')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
   async getConfig(@CurrentUser() user: User) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
@@ -211,6 +220,7 @@ export class MetaAdsOptimizationController {
   }
 
   @Put('config')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async updateConfig(
     @CurrentUser() user: User,
     @Body() body: Partial<AdOptimizationConfigDocument>,
@@ -226,6 +236,7 @@ export class MetaAdsOptimizationController {
   // ─── Audit Logs ───────────────────────────────────────────────────────────
 
   @Get('audit-logs')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
   async listAuditLogs(
     @CurrentUser() user: User,
     @Query('limit') limit?: string,

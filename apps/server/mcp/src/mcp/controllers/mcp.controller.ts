@@ -4,13 +4,16 @@ import { LoggerService } from '@libs/logger/logger.service';
 import * as appMetadata from '@mcp/config/app-metadata.json';
 import { MCPService } from '@mcp/mcp/services/mcp.service';
 import { getPublicMcpUrl, renderSetupPage } from '@mcp/mcp/setup-page';
+import { type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
 import { ServerService } from '@mcp/services/server.service';
+import { ToolRegistryService } from '@mcp/services/tool-registry.service';
+import type { McpTool } from '@mcp/shared/interfaces/mcp-server.interface';
 import { Body, Controller, Get, Param, Post, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
 
 interface AuthenticatedRequest extends Request {
-  authContext?: { token?: string };
+  authContext?: { token?: string; role?: McpRole };
 }
 
 @Controller()
@@ -108,9 +111,11 @@ export class McpController {
   }
 
   @Get('tools')
-  getTools() {
+  getTools(@Req() request: AuthenticatedRequest) {
+    const role: McpRole = request?.authContext?.role ?? 'user';
+    const tools = toMcpTools(getToolsForSurface('mcp')) as McpTool[];
     return {
-      tools: toMcpTools(getToolsForSurface('mcp')),
+      tools: ToolRegistryService.filterToolsByRole(tools, role),
     };
   }
 
@@ -159,9 +164,9 @@ export class McpController {
     toolName: string,
     args: Record<string, unknown> | null,
   ) {
-    const isKnownTool = this.getTools().tools.some(
-      (tool: { name: string }) => tool.name === toolName,
-    );
+    const isKnownTool = (
+      toMcpTools(getToolsForSurface('mcp')) as McpTool[]
+    ).some((tool) => tool.name === toolName);
     if (!isKnownTool) {
       throw new Error(`Unknown tool: ${toolName}`);
     }

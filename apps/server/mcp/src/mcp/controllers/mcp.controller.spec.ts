@@ -206,8 +206,11 @@ describe('McpController', () => {
   });
 
   describe('getTools', () => {
-    it('should return list of available tools', () => {
-      const result = controller.getTools();
+    it('should return role-filtered list of available tools', () => {
+      const request = {
+        authContext: { role: 'superadmin' },
+      } as unknown as Parameters<typeof controller.getTools>[0];
+      const result = controller.getTools(request);
       expect(result).toHaveProperty('tools');
       expect(Array.isArray(result.tools)).toBe(true);
       expect(result.tools.length).toBeGreaterThan(0);
@@ -218,6 +221,27 @@ describe('McpController', () => {
       );
       expect(createVideoTool).toBeDefined();
       expect(createVideoTool?.inputSchema).toBeDefined();
+    });
+
+    it('applies role filtering so a user never sees more than a superadmin', () => {
+      const userRequest = {
+        authContext: { role: 'user' },
+      } as unknown as Parameters<typeof controller.getTools>[0];
+      const superRequest = {
+        authContext: { role: 'superadmin' },
+      } as unknown as Parameters<typeof controller.getTools>[0];
+
+      const userTools = controller
+        .getTools(userRequest)
+        .tools.map((tool) => tool.name);
+      const superTools = controller
+        .getTools(superRequest)
+        .tools.map((tool) => tool.name);
+
+      // Whatever a user can discover, a superadmin can too (subset invariant).
+      for (const name of userTools) {
+        expect(superTools).toContain(name);
+      }
     });
   });
 

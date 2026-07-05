@@ -1,5 +1,6 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -110,7 +111,10 @@ describe('GoogleAdsController', () => {
         { provide: GoogleAdsOAuthService, useValue: googleAdsOAuthService },
         { provide: LoggerService, useValue: loggerService },
       ],
-    }).compile();
+    })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<GoogleAdsController>(GoogleAdsController);
   });
@@ -130,23 +134,6 @@ describe('GoogleAdsController', () => {
     });
   });
 
-  describe('handleOAuthCallback', () => {
-    it('exchanges code for tokens', async () => {
-      const result = await controller.handleOAuthCallback({
-        code: 'auth-code',
-      });
-      expect(
-        googleAdsOAuthService.exchangeAuthCodeForAccessToken,
-      ).toHaveBeenCalledWith('auth-code');
-      expect(result).toEqual({
-        accessToken: 'tok',
-        expiresIn: 3600,
-        refreshToken: 'ref',
-        tokenType: 'Bearer',
-      });
-    });
-  });
-
   describe('verify', () => {
     it('persists verified credential using access token', async () => {
       googleAdsService.listAccessibleCustomers.mockResolvedValue([
@@ -159,7 +146,7 @@ describe('GoogleAdsController', () => {
         },
       ] as never);
 
-      const result = await controller.verify({} as never, {
+      const result = await controller.verify({} as never, mockUser, {
         code: 'auth-code',
         state: JSON.stringify({
           brandId: 'test-object-id',
@@ -176,8 +163,25 @@ describe('GoogleAdsController', () => {
 
     it('throws when code or state is missing', async () => {
       await expect(
-        controller.verify({} as never, { code: 'auth-code' }),
+        controller.verify({} as never, mockUser, { code: 'auth-code' }),
       ).rejects.toBeInstanceOf(HttpException);
+    });
+
+    it("rejects when the state's organization does not match the caller", async () => {
+      await expect(
+        controller.verify({} as never, mockUser, {
+          code: 'auth-code',
+          state: JSON.stringify({
+            brandId: 'test-object-id',
+            organizationId: 'a-different-org',
+          }),
+        }),
+      ).rejects.toBeInstanceOf(HttpException);
+
+      // The token exchange must never run for a cross-org state.
+      expect(
+        googleAdsOAuthService.exchangeAuthCodeForAccessToken,
+      ).not.toHaveBeenCalled();
     });
   });
 

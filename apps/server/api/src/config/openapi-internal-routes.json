@@ -18,10 +18,6 @@
       "reason": "OAuth provider browser-redirect callback"
     },
     {
-      "pathPrefix": "/services/google-ads/oauth/callback",
-      "reason": "OAuth provider browser-redirect callback"
-    },
-    {
       "pathPrefix": "/internal/",
       "reason": "Service-to-service internal endpoints (API-key guarded, not user-callable)"
     },

@@ -13,14 +13,17 @@ import { WorkflowRunControlService } from '@api/collections/workflows/services/w
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { wrapError } from '@api/helpers/utils/controller/wrap-error.util';
 import {
   returnNotFound,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { MemberRole } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import {
   WorkflowExecutionSerializer,
@@ -38,6 +41,7 @@ import {
   Post,
   Query,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
 
@@ -48,6 +52,7 @@ import type { Request } from 'express';
  */
 @AutoSwagger()
 @Controller('workflows')
+@UseGuards(RolesGuard)
 export class WorkflowExecutionController {
   private readonly constructorName: string = String(this.constructor.name);
 
@@ -60,6 +65,7 @@ export class WorkflowExecutionController {
   ) {}
 
   @Post(':workflowId/schedule')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async setSchedule(
     @Param('workflowId') workflowId: string,
@@ -88,6 +94,7 @@ export class WorkflowExecutionController {
   }
 
   @Delete(':workflowId/schedule')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async removeSchedule(
     @Param('workflowId') workflowId: string,
@@ -115,6 +122,7 @@ export class WorkflowExecutionController {
   }
 
   @Post(':workflowId/execute/partial')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async executePartial(
     @Req() request: Request,
@@ -146,6 +154,7 @@ export class WorkflowExecutionController {
   }
 
   @Post(':workflowId/execute/resume/:runId')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async resumeExecution(
     @Param('workflowId') workflowId: string,
@@ -186,6 +195,7 @@ export class WorkflowExecutionController {
   }
 
   @Post(':workflowId/lifecycle/publish')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async publishWorkflowLifecycle(
     @Req() request: Request,
@@ -204,6 +214,7 @@ export class WorkflowExecutionController {
   }
 
   @Post(':workflowId/lifecycle/archive')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async archiveWorkflow(
     @Req() request: Request,
@@ -241,6 +252,7 @@ export class WorkflowExecutionController {
   }
 
   @Post(':workflowId/executions/:executionId/approve')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async submitApproval(
     @Param('workflowId') workflowId: string,
@@ -275,6 +287,7 @@ export class WorkflowExecutionController {
   }
 
   @Post(':workflowId/nodes/lock')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async lockNodes(
     @Req() request: Request,
@@ -300,6 +313,7 @@ export class WorkflowExecutionController {
   }
 
   @Post(':workflowId/nodes/unlock')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async unlockNodes(
     @Req() request: Request,
@@ -325,6 +339,7 @@ export class WorkflowExecutionController {
   }
 
   @Patch(':workflowId/thumbnail')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async setThumbnail(
     @Req() request: Request,
