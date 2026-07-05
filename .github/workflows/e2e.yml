@@ -107,19 +107,24 @@ jobs:
           flags: api-e2e
           fail_ci_if_error: false
 
-  # Frontend Core E2E — sharded 12-way. Each shard is an independent machine
-  # running ~1/12 of the app-core specs with 2 workers, so a fix only needs the
-  # affected shard re-run ("Re-run failed jobs" carries the green shards forward
-  # unchanged). fail-fast:false keeps every shard's result independent.
+  # Frontend Core E2E — sharded 4-way. The CI "core" scope is only ~7 spec files
+  # (smoke/ + core/ + one shell contract; see scripts/e2e-sharded.mjs), whose
+  # actual test time is ~1 min. 12 shards spun up 12 VMs — 12 installs, 12 app
+  # builds, 12 independent flake dice — for that ~1 min of work, and each job
+  # rolls the ffmpeg/browser/timing dice that, via cancel-doomed-run, can cancel
+  # the whole deploy. 4 shards (~2 files each) is the right balance: ~2 min more
+  # test wall on a gate whose CI stage already takes 20+ min, minus 8 flake
+  # sources from the deploy AND-gate. Each shard is independent (fail-fast:false),
+  # so "Re-run failed jobs" carries the green shards forward unchanged.
   e2e-frontend:
-    name: Frontend E2E (Shard ${{ matrix.shard }}/12)
+    name: Frontend E2E (Shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
       fail-fast: false
-      max-parallel: 12
+      max-parallel: 4
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v5
 
@@ -144,7 +149,7 @@ jobs:
           # api-interceptor mocks; localhost:3010 is NOT intercepted.
           NEXT_PUBLIC_API_ENDPOINT: https://api.genfeed.ai/v1
 
-      - name: Run core E2E shard ${{ matrix.shard }}/12
+      - name: Run core E2E shard ${{ matrix.shard }}/4
         # --reporter=blob (passed inline, overriding the config reporter) so the
         # merge job can stitch all shards into one HTML report. The helper keeps
         # local and CI sharding behavior identical.
@@ -153,15 +158,22 @@ jobs:
           CI: true
           APP_BASE_URL: http://localhost:3000
           E2E_EXPECT_TIMEOUT_MS: "15000"
-          # Retry flaky specs twice in CI (Playwright only retries on failure, so
-          # a green shard pays zero cost). On the deploy path this suite gates the
-          # whole production release via cancel-doomed-run, so one browser/timing
-          # flake across 12 shards would otherwise cancel the entire deploy. A
-          # single flake taking up to 3x on its shard is an acceptable trade to
-          # stop losing green deploys to luck.
-          E2E_RETRIES: "2"
+          # Retry policy is split by trigger, and E2E_RETRIES is now the SINGLE
+          # source of truth (playwright.config.ts reads it directly;
+          # scripts/e2e-sharded.mjs no longer injects a competing --retries=0).
+          #  - deploy/dispatch/full-suite path → 2: this suite gates the whole
+          #    production release via cancel-doomed-run, so one browser/timing
+          #    flake would otherwise cancel the deploy. Playwright only retries on
+          #    failure, so green shards pay zero cost.
+          #  - nightly cron (schedule) → 0: retries there would mask flake and
+          #    silence the alarm the nightly exists to raise. Keep it honest.
+          # Written as `!= 'schedule' && '2' || '0'` on purpose: GitHub Actions
+          # coerces the string '0' to falsy, so a `== 'schedule' && '0' || '2'`
+          # form would wrongly yield 2 for the nightly. Keeping '0' in the `||`
+          # fallback position (never the `&&` result) sidesteps that coercion.
+          E2E_RETRIES: ${{ github.event_name != 'schedule' && '2' || '0' }}
           E2E_SHARD_INDEX: ${{ matrix.shard }}
-          E2E_TOTAL_SHARDS: "12"
+          E2E_TOTAL_SHARDS: "4"
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
           NEXT_PUBLIC_BETTER_AUTH_ENABLED: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
 
@@ -238,16 +250,19 @@ jobs:
   # Real-Better Auth authenticated smoke (Playwright `app-authed` project). Exercises
   # the GENUINE authMiddleware path via a real Better Auth test-instance session — no
   # proxy.ts bypass — so it must be built with a REAL Better Auth client (bypass flag
-  # OFF) and given the real test-instance secrets. Dormant + non-blocking until
-  # the secrets land: gated behind the E2E_AUTHED_ENABLED repo variable and
-  # continue-on-error, so it never affects the gate while it hardens. mac-studio
-  # already runs this path locally; this makes CI ready to trigger on demand.
+  # OFF) and given the real test-instance secrets. Gated behind the E2E_AUTHED_ENABLED
+  # repo variable. It has been green for 7+ consecutive runs (all nightlies), so it is
+  # now GATING on the nightly cron — a real regression turns the nightly red and trips
+  # nightly-failure-report below, instead of rotting unseen behind continue-on-error
+  # (it sat red for 5+ June nightlies that way). On the deploy path it stays
+  # non-gating so a flake can never cancel a production release while this path keeps
+  # hardening: continue-on-error is true for every event EXCEPT the scheduled nightly.
   e2e-frontend-authed:
     name: Frontend Authed E2E (real Better Auth)
     if: ${{ vars.E2E_AUTHED_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    continue-on-error: true
+    continue-on-error: ${{ github.event_name != 'schedule' }}
     steps:
       - uses: actions/checkout@v5
 
@@ -329,3 +344,80 @@ jobs:
           name: playwright-traces-authed
           path: playwright/artifacts/results/
           retention-days: 7
+
+  # Nightly-only failure reporter. The scheduled E2E run is the flake alarm; when
+  # it goes red, open (or update) ONE tracking issue so a broken nightly can't rot
+  # unseen — the whole reason the authed job could sit red for 5+ June nightlies.
+  # Runs ONLY on the standalone cron: a workflow_call from the deploy path inherits
+  # the caller's event, so github.event_name is 'schedule' solely for the nightly.
+  # Deploy gating is untouched. Keys off the aggregated gate AND the authed job
+  # (now nightly-gating above), so any red nightly surfaces exactly one issue.
+  nightly-failure-report:
+    name: Report nightly E2E failure
+    needs: [e2e-gate, e2e-frontend-authed]
+    if: >-
+      always()
+      && github.event_name == 'schedule'
+      && (needs.e2e-gate.result == 'failure'
+        || needs.e2e-frontend-authed.result == 'failure')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - name: Open or update the nightly-failure issue
+        uses: actions/github-script@v8
+        env:
+          GATE_RESULT: ${{ needs.e2e-gate.result }}
+          AUTHED_RESULT: ${{ needs.e2e-frontend-authed.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          script: |
+            const label = 'nightly-e2e-failure';
+            const title = 'Nightly E2E suite is failing';
+            const failed = [];
+            if (process.env.GATE_RESULT === 'failure') {
+              failed.push('core gate (route coverage / frontend shards / API E2E)');
+            }
+            if (process.env.AUTHED_RESULT === 'failure') {
+              failed.push('authed E2E (real Better Auth)');
+            }
+            const body = [
+              'The scheduled (nightly) E2E run failed.',
+              '',
+              `- Failed: ${failed.join(', ')}`,
+              `- Run: ${process.env.RUN_URL}`,
+              '',
+              'This issue auto-updates on each red nightly. Close it once the nightly is green again.',
+            ].join('\n');
+            const { owner, repo } = context.repo;
+            // Ensure the dedup label exists so create attaches it and the
+            // list-by-label lookup below is reliable (issue-create label
+            // auto-provisioning is not guaranteed).
+            try {
+              await github.rest.issues.getLabel({ owner, repo, name: label });
+            } catch {
+              await github.rest.issues.createLabel({
+                owner,
+                repo,
+                name: label,
+                color: 'd73a4a',
+                description: 'Scheduled (nightly) E2E suite is failing',
+              });
+            }
+            const existing = await github.rest.issues.listForRepo({
+              owner,
+              repo,
+              state: 'open',
+              labels: label,
+            });
+            if (existing.data.length > 0) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: existing.data[0].number,
+                body,
+              });
+            } else {
+              await github.rest.issues.create({ owner, repo, title, body, labels: [label] });
+            }

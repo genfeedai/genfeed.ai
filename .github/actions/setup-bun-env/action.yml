@@ -56,14 +56,33 @@ runs:
         restore-keys: |
           ${{ runner.os }}-turbo-
 
-    # Retry with exponential backoff: a postinstall script (notably ffmpeg-static,
-    # which pulls its binary from the GitHub releases CDN) can fail transiently and
-    # take the whole `bun install` down with it. bun install is idempotent, so
-    # re-running re-attempts only the missing download. A cold-cache release/deploy
-    # runs this step across ~15 parallel jobs, so with only 3 attempts a single
-    # persistently-flaky CDN window would fail a job and (via cancel-doomed-run)
-    # cancel the entire production deploy. 5 attempts with 10/20/40/80s backoff
-    # turns a flaky CDN into a self-healing step even under sustained transients.
+    # Neutralize the biggest install-time network side-effect at the source.
+    # ffmpeg-static (a transitive dep) postinstalls by downloading a ~40MB binary
+    # from the GitHub releases CDN on EVERY `bun install`. Fanned across the ~35
+    # cold-cache jobs of a release/deploy run, a single CDN hiccup fails a job and
+    # (via cancel-doomed-run) cancels the entire production deploy. No CI job ever
+    # executes ffmpeg — every consumer spec mocks the `ffmpeg-static` module — so
+    # point it at the runner's own ffmpeg via FFMPEG_BIN: the package's index.js
+    # exports that path verbatim and its install.js skips the download when the
+    # file exists. This removes the CDN call the retry loop below was fighting.
+    - name: Use system ffmpeg (skip ffmpeg-static CDN download)
+      shell: bash
+      run: |
+        # ubuntu-latest ships ffmpeg, so this apt path is a rare fallback. Keep
+        # it non-fatal (|| true): if it can't install, FFMPEG_BIN resolves empty
+        # and ffmpeg-static falls back to its CDN download (guarded by the retry
+        # loop) — i.e. the pre-existing behavior, never a new failure mode.
+        if ! command -v ffmpeg >/dev/null 2>&1; then
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg || true
+        fi
+        echo "FFMPEG_BIN=$(command -v ffmpeg)" >> "$GITHUB_ENV"
+
+    # Retry with exponential backoff as defense against generic registry/CDN
+    # transients (the ffmpeg-static download is neutralized above via FFMPEG_BIN).
+    # bun install is idempotent, so re-running only re-attempts what is missing. A
+    # cold-cache release/deploy runs this across ~35 parallel jobs where a single
+    # job's failure cancels the whole deploy via cancel-doomed-run, so 5 attempts
+    # with 10/20/40/80s backoff keeps a lone transient from taking the run down.
     - name: Install dependencies
       shell: bash
       env:

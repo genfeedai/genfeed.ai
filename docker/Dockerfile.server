@@ -30,6 +30,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 ENV PATH="/usr/local/bin:${PATH}"
 
+# Point ffmpeg-static at the apt ffmpeg installed above. Its index.js exports
+# $FFMPEG_BIN verbatim and install.js skips the ~40MB GitHub-CDN download during
+# `bun install` below when the path exists — removing that per-build CDN call
+# entirely. The runtime code always imports the ffmpeg-static export, so this
+# must also be set in the production stage (see below), which is a fresh base.
+ENV FFMPEG_BIN=/usr/bin/ffmpeg
+
 # Mandatory for production build — give each parallel build enough memory
 ENV NODE_OPTIONS=--max-old-space-size=4096
 
@@ -133,10 +140,11 @@ RUN set -e; \
     bun --filter @genfeedai/interfaces build; \
     bun --filter @genfeedai/pricing build; \
     bun --filter @genfeedai/client build; \
-    bun --filter @genfeedai/types build & pid1=$!; \
-    bun --filter @genfeedai/config build & pid2=$!; \
-    bun --filter @genfeedai/workflow-engine build & pid3=$!; \
-    wait $pid1 $pid2 $pid3; \
+    pids=""; \
+    bun --filter @genfeedai/types build & pids="$pids $!"; \
+    bun --filter @genfeedai/config build & pids="$pids $!"; \
+    bun --filter @genfeedai/workflow-engine build & pids="$pids $!"; \
+    ec=0; for p in $pids; do wait "$p" || ec=1; done; [ "$ec" = 0 ]; \
     bun --filter @genfeedai/helpers build; \
     bun --filter @genfeedai/integrations build; \
     bun --filter @genfeedai/serializers build; \
@@ -158,49 +166,60 @@ RUN --mount=type=secret,id=SENTRY_AUTH_TOKEN \
 # Workers alone: large dependency footprint (imports @api/shared), needs dedicated resources
 RUN bun --filter @genfeedai/workers build:prod
 
-# Batch 1: Other Sentry services (3 builds in parallel)
+# Batch 1: Other Sentry services (3 builds in parallel).
+# The previous `(...) & pidN=$! && ... wait $pid1 $pid2 $pid3` had TWO bugs: the
+# `& pidN=$! &&` chaining captured pids inside backgrounded subshells (not the
+# main shell), so the RUN only ever waited on the last job — a still-writing mcp
+# could be truncated to a 0-byte main.js when notifications finished first (the
+# #1292-era bundle bug); and `wait a b c` returns only c's status, swallowing a
+# non-last failure. The robust form below captures every pid in the MAIN shell
+# (`;`, not `&&`), waits for ALL of them, and fails the layer if ANY failed.
+# Applied to every parallel batch. Verified: succeeds clean, fails on any build.
 RUN --mount=type=secret,id=SENTRY_AUTH_TOKEN \
-    set -e && \
-    (SENTRY_AUTH_TOKEN=$(cat /run/secrets/SENTRY_AUTH_TOKEN 2>/dev/null || echo "") bun --filter @genfeedai/files build:prod) & pid1=$! && \
-    (SENTRY_AUTH_TOKEN=$(cat /run/secrets/SENTRY_AUTH_TOKEN 2>/dev/null || echo "") bun --filter @genfeedai/mcp build:prod) & pid2=$! && \
-    (SENTRY_AUTH_TOKEN=$(cat /run/secrets/SENTRY_AUTH_TOKEN 2>/dev/null || echo "") bun --filter @genfeedai/notifications build:prod) & pid3=$! && \
-    wait $pid1 $pid2 $pid3
+    set -e; \
+    pids=""; \
+    (SENTRY_AUTH_TOKEN=$(cat /run/secrets/SENTRY_AUTH_TOKEN 2>/dev/null || echo "") bun --filter @genfeedai/files build:prod) & pids="$pids $!"; \
+    (SENTRY_AUTH_TOKEN=$(cat /run/secrets/SENTRY_AUTH_TOKEN 2>/dev/null || echo "") bun --filter @genfeedai/mcp build:prod) & pids="$pids $!"; \
+    (SENTRY_AUTH_TOKEN=$(cat /run/secrets/SENTRY_AUTH_TOKEN 2>/dev/null || echo "") bun --filter @genfeedai/notifications build:prod) & pids="$pids $!"; \
+    ec=0; for p in $pids; do wait "$p" || ec=1; done; [ "$ec" = 0 ]
 
-# Batch 2: Non-Sentry services (4 builds)
-RUN set -e && \
-    bun --filter @genfeedai/telegram build:prod & pid1=$! && \
-    bun --filter @genfeedai/discord build & pid2=$! && \
-    bun --filter @genfeedai/slack build:prod & pid3=$! && \
-    wait $pid1 $pid2 $pid3
+# Batch 2: Non-Sentry services (3 builds)
+RUN set -e; \
+    pids=""; \
+    bun --filter @genfeedai/telegram build:prod & pids="$pids $!"; \
+    bun --filter @genfeedai/discord build & pids="$pids $!"; \
+    bun --filter @genfeedai/slack build:prod & pids="$pids $!"; \
+    ec=0; for p in $pids; do wait "$p" || ec=1; done; [ "$ec" = 0 ]
 
 # Batch 3: GPU fleet services (3 builds)
-RUN set -e && \
-    bun --filter @genfeedai/images build:prod & pid1=$! && \
-    bun --filter @genfeedai/voices build:prod & pid2=$! && \
-    bun --filter @genfeedai/videos build:prod & pid3=$! && \
-    wait $pid1 $pid2 $pid3
+RUN set -e; \
+    pids=""; \
+    bun --filter @genfeedai/images build:prod & pids="$pids $!"; \
+    bun --filter @genfeedai/voices build:prod & pids="$pids $!"; \
+    bun --filter @genfeedai/videos build:prod & pids="$pids $!"; \
+    ec=0; for p in $pids; do wait "$p" || ec=1; done; [ "$ec" = 0 ]
 
 # ==================================================
 # Stage 2.5: Validate build outputs exist
 # ==================================================
 # Webpack bundles each service into a single main.js file.
-# Verify the critical bundles exist before proceeding.
+# Verify the critical bundles exist AND are non-trivially sized before proceeding.
+# The size floor (10KB) catches a truncated/empty emit (e.g. an OOM-killed
+# webpack that leaves a 0-byte main.js) INSIDE the image build, so the poisoned
+# layer fails fast and never enters the GHCR buildcache — mirroring the external
+# size gate in build-verify.yml. `test -f` alone passes a 0-byte file.
 RUN echo "Checking build outputs..." && \
     ls -la apps/server/dist/apps/ 2>/dev/null || echo "dist/apps/ directory missing!" && \
-    for svc in api workers files mcp notifications telegram discord slack images voices videos; do \
-      if test -f "apps/server/dist/apps/$svc/main.js"; then \
-        SIZE=$(stat -c%s "apps/server/dist/apps/$svc/main.js"); \
-        echo "✅ $svc bundle ($(( SIZE / 1024 ))KB)"; \
-      else \
+    for svc in api workers files mcp notifications telegram discord slack images voices videos api-workflow-backfill; do \
+      if ! test -f "apps/server/dist/apps/$svc/main.js"; then \
         echo "❌ $svc bundle MISSING" && exit 1; \
       fi; \
-    done && \
-    if test -f "apps/server/dist/apps/api-workflow-backfill/main.js"; then \
-      SIZE=$(stat -c%s "apps/server/dist/apps/api-workflow-backfill/main.js"); \
-      echo "✅ api-workflow-backfill bundle ($(( SIZE / 1024 ))KB)"; \
-    else \
-      echo "❌ api-workflow-backfill bundle MISSING" && exit 1; \
-    fi
+      SIZE=$(stat -c%s "apps/server/dist/apps/$svc/main.js"); \
+      if [ "$SIZE" -lt 10000 ]; then \
+        echo "❌ $svc bundle suspiciously small (${SIZE} bytes)" && exit 1; \
+      fi; \
+      echo "✅ $svc bundle ($(( SIZE / 1024 ))KB)"; \
+    done
 
 # ==================================================
 # Stage 3: Production - Runtime image
@@ -214,6 +233,13 @@ RUN apt-get update && apt-get install -y \
     unzip \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
+
+# This stage is a fresh `FROM node:24-slim` — it does NOT inherit the base
+# stage's ENV. The ffmpeg-static export honors $FFMPEG_BIN at module-eval time,
+# and the download was skipped in the builder, so the bundled binary is absent
+# from the copied node_modules; without this the files/api services would crash
+# on boot with "FFmpeg binary not found". Points at the apt ffmpeg installed above.
+ENV FFMPEG_BIN=/usr/bin/ffmpeg
 
 # Install bun for running production scripts
 RUN curl -fsSL https://bun.sh/install | bash -s "bun-v1.3.14" && \
