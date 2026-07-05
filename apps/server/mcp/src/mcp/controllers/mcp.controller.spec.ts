@@ -5,7 +5,9 @@ import { ClientService } from '@mcp/services/client.service';
 import { ServerService } from '@mcp/services/server.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
-type AuthenticatedControllerRequest = Parameters<McpController['callTool']>[2];
+type AuthenticatedControllerRequest = Parameters<
+  McpController['readResource']
+>[1];
 
 vi.mock('@genfeedai/tools', () => ({
   getToolsForSurface: vi.fn(() => [
@@ -256,99 +258,6 @@ describe('McpController', () => {
         (resource) => resource.uri === 'genfeed://analytics/videos',
       );
       expect(videoAnalytics).toBeDefined();
-    });
-  });
-
-  describe('callTool', () => {
-    const mockRequest = {
-      authContext: {
-        organizationId: 'org-123',
-        token: 'test-token',
-        userId: 'user-456',
-      },
-    } as AuthenticatedControllerRequest;
-
-    it('should call generate_video tool', async () => {
-      const args = {
-        description: 'Test video description',
-        title: 'Test Video',
-      };
-
-      mockClientService.createVideo.mockResolvedValue({
-        estimatedCompletion: '2024-01-01T00:00:00Z',
-        id: 'video-123',
-        status: 'processing',
-      });
-
-      const result = await controller.callTool(
-        'generate_video',
-        args,
-        mockRequest,
-      );
-
-      expect(mockClientService.setBearerToken).toHaveBeenCalledWith(
-        'test-token',
-      );
-      expect(mockClientService.createVideo).toHaveBeenCalledWith(
-        expect.objectContaining({
-          description: 'Test video description',
-          title: 'Test Video',
-        }),
-      );
-      expect(result).toHaveProperty('tool', 'generate_video');
-      expect(result).toHaveProperty('result');
-      expect(result).toHaveProperty('timestamp');
-    });
-
-    it('should call get_video_status tool', async () => {
-      const args = { videoId: 'video-123' };
-
-      mockClientService.getVideoStatus.mockResolvedValue({
-        message: 'Processing',
-        progress: 50,
-        status: 'processing',
-      });
-
-      const result = await controller.callTool(
-        'get_video_status',
-        args,
-        mockRequest,
-      );
-
-      expect(mockClientService.getVideoStatus).toHaveBeenCalledWith(
-        'video-123',
-      );
-      expect(result).toHaveProperty('tool', 'get_video_status');
-    });
-
-    it('should call list_videos tool', async () => {
-      const args = { limit: 5, offset: 0 };
-
-      mockClientService.listVideos.mockResolvedValue([
-        { id: 'video-1', title: 'Video 1' },
-        { id: 'video-2', title: 'Video 2' },
-      ]);
-
-      const result = await controller.callTool(
-        'list_videos',
-        args,
-        mockRequest,
-      );
-
-      expect(mockClientService.listVideos).toHaveBeenCalledWith(5, 0);
-      expect(result).toHaveProperty('tool', 'list_videos');
-    });
-
-    it('should throw error for unknown tool', async () => {
-      await expect(
-        controller.callTool('unknown_tool', {}, mockRequest),
-      ).rejects.toThrow('Unknown tool: unknown_tool');
-    });
-
-    it('should throw error when required args missing', async () => {
-      await expect(
-        controller.callTool('generate_video', null, mockRequest),
-      ).rejects.toThrow('Arguments required for generate_video');
     });
   });
 
