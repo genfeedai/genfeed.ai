@@ -26,19 +26,14 @@ import {
 } from '@web-components/content/NeuralGrid';
 import PageLayout from '@web-components/PageLayout';
 import { HiCheckCircle } from 'react-icons/hi2';
-import { LuArrowRight } from 'react-icons/lu';
 
-const CALENDLY_URL =
-  process.env.NEXT_PUBLIC_CALENDLY_URL ||
-  'https://calendly.com/vincent-genfeed/30min';
-
-const PLAN_ORDER = ['Pay As You Go', 'Hosted', 'Cloud Teams', 'Enterprise'];
+const PLAN_ORDER = ['Pay As You Go', 'Hosted', 'Cloud Teams'];
 const FEATURED_TIER = 'Hosted';
 
 const FAQ_ITEMS = [
   {
     answer:
-      'Signing up is free. Credits buy the output you generate — images, reels, ads, articles, avatar clips, and voice. Subscriptions exist to make credits cheaper and to unlock more brands, channels, and seats.',
+      'Signing up is free. Credits buy the output you generate: images, reels, ads, articles, avatar clips, and voice. Subscriptions exist to make credits cheaper and to unlock more brands, channels, and seats.',
     question: 'How does pricing work?',
   },
   {
@@ -48,17 +43,17 @@ const FAQ_ITEMS = [
   },
   {
     answer:
-      'No. Genfeed routes every job to the best model for the format, brief, and budget — you never pick a model, manage keys, or pay to experiment across providers.',
+      'No. Genfeed routes every job to the best model for the format, brief, and budget, so you never pick a model, manage keys, or pay to experiment across providers.',
     question: 'Do I need to choose AI models?',
   },
   {
     answer:
-      'Creator ($49/month) includes 8,000 credits — about $80 of pay-as-you-go output — plus 5 brand kits and 15 connected channels. Cloud Teams ($499/month) includes 5 seats, 80,000 credits in a shared pool, multi-organization control, and approvals.',
+      'Creator ($49/month) includes 8,000 credits (about $80 of pay-as-you-go output) plus 5 brand kits and 15 connected channels. Teams ($499/month) includes 5 seats, 80,000 credits in a shared pool, multi-organization control, and approvals.',
     question: 'What do subscriptions add?',
   },
   {
     answer:
-      'Pay As You Go includes 1 brand kit and 3 connected channels. Creator raises that to 5 brand kits and 15 channels. Cloud Teams and Enterprise remove the limits and add organizations and seats.',
+      'Pay As You Go includes 1 brand kit and 3 connected channels. Creator raises that to 5 brand kits and 15 channels. Teams and Enterprise remove the limits and add organizations and seats.',
     question: 'How many brands and channels can I connect?',
   },
   {
@@ -121,20 +116,26 @@ function getOrderedPlans() {
 }
 
 function getDisplayName(label: string): string {
-  return label === 'Hosted' ? 'Creator' : label;
+  if (label === 'Hosted') {
+    return 'Creator';
+  }
+  if (label === 'Cloud Teams') {
+    return 'Teams';
+  }
+  return label;
 }
 
 function getPriceQualifier(plan: (typeof websitePlans)[number]): string {
   if (plan.type === 'payg') {
-    return 'No monthly fee — buy credit packs as you go';
+    return 'No monthly fee, buy credit packs as you go';
   }
 
   if (plan.type === 'subscription') {
     const credits = plan.includedCredits?.toLocaleString();
 
     return plan.label === 'Cloud Teams'
-      ? `/month · 5 seats + ${credits} credits`
-      : `/month · ${credits} credits included`;
+      ? `5 seats + ${credits} credits`
+      : `${credits} credits included`;
   }
 
   return 'Custom terms';
@@ -148,6 +149,7 @@ export default function PricingContent() {
   const containerRef = useMarketingEntrance({ hero: false, sections: false });
   const paygSignUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
   const creatorSignUpHref = `${EnvironmentService.apps.app}/sign-up?plan=hosted`;
+  const enterprisePlan = websitePlans.find((p) => p.type === 'enterprise');
 
   return (
     <div ref={containerRef}>
@@ -171,37 +173,35 @@ export default function PricingContent() {
         <WebSection maxWidth="full" py="md">
           <SectionHeader
             title="Start free. Subscribe when volume makes it cheaper."
-            description="Pay As You Go covers bursty campaigns with zero commitment. Creator and Cloud Teams include monthly credits at a ~40% better rate, plus more brands, channels, and seats."
+            description="Pay As You Go covers bursty campaigns with zero commitment. Creator and Teams include monthly credits at a ~40% better rate, plus more brands, channels, and seats."
             className="[&_h2]:text-5xl mb-4"
           />
 
-          <NeuralGrid columns={4} className="gsap-grid">
+          <NeuralGrid columns={3} className="gsap-grid">
             {getOrderedPlans().map((plan, index) => {
               const isFeatured = plan.label === FEATURED_TIER;
-              const isEnterprise = plan.type === 'enterprise';
               const isPayg = plan.type === 'payg';
               const ctaHref = isPayg
                 ? paygSignUpHref
                 : isFeatured
                   ? creatorSignUpHref
-                  : plan.ctaHref || CALENDLY_URL;
+                  : plan.ctaHref || EnvironmentService.calendly;
               const ctaLabel = plan.cta || 'Get Started';
 
               return (
                 <NeuralGridItem
                   key={plan.label}
-                  inverted={isFeatured}
                   padding="lg"
                   className={cn(
                     'relative gsap-card',
-                    !isFeatured && 'bg-fill/[0.02]',
+                    isFeatured && 'bg-white/[0.03]',
                   )}
                   tierLabel={`${String(index + 1).padStart(2, '0')} / ${getDisplayName(plan.label)}`}
                 >
                   {isFeatured ? (
                     <div className="absolute right-6 top-6">
-                      <span className="bg-zinc-950 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-surface">
-                        Best rate
+                      <span className="border border-edge/40 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-surface/70">
+                        Popular
                       </span>
                     </div>
                   ) : null}
@@ -209,81 +209,56 @@ export default function PricingContent() {
                   <div className="mb-2">
                     {plan.launchPrice != null ? (
                       <div className="flex items-baseline gap-2">
-                        <span
-                          className={cn(
-                            'text-2xl font-medium line-through',
-                            isFeatured ? 'text-inv-fg/40' : 'text-surface/40',
-                          )}
-                        >
+                        <span className="text-2xl font-medium text-surface/40 line-through">
                           {formatPrice(plan.price)}
                         </span>
-                        <span
-                          className={cn(
-                            'text-5xl font-semibold tracking-[-0.03em]',
-                            isFeatured && 'text-inv-fg',
-                          )}
-                        >
+                        <span className="text-5xl font-semibold tracking-[-0.03em]">
                           {formatPrice(plan.launchPrice)}
                         </span>
+                        {plan.type === 'subscription' ? (
+                          <span className="text-sm font-medium text-surface/40">
+                            /mo
+                          </span>
+                        ) : null}
                       </div>
                     ) : (
-                      <span
-                        className={cn(
-                          'text-5xl font-semibold tracking-[-0.03em]',
-                          isFeatured && 'text-inv-fg',
-                        )}
-                      >
-                        {isEnterprise ? 'Custom' : formatPrice(plan.price)}
-                      </span>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-5xl font-semibold tracking-[-0.03em]">
+                          {formatPrice(plan.price)}
+                        </span>
+                        {plan.type === 'subscription' ? (
+                          <span className="text-sm font-medium text-surface/40">
+                            /mo
+                          </span>
+                        ) : null}
+                      </div>
                     )}
                   </div>
 
                   <div
                     className={cn(
-                      'text-sm',
-                      isFeatured ? 'text-inv-fg/50' : 'text-surface/40',
+                      'text-sm text-surface/40',
+                      plan.launchNote ? 'mb-1' : 'mb-8',
                     )}
                   >
                     {getPriceQualifier(plan)}
                   </div>
 
                   {plan.launchNote ? (
-                    <div
-                      className={cn(
-                        'mb-8 mt-1 text-xs font-semibold uppercase tracking-widest',
-                        isFeatured ? 'text-inv-fg/60' : 'text-surface/50',
-                      )}
-                    >
+                    <div className="mb-8 text-xs font-semibold uppercase tracking-widest text-surface/50">
                       {plan.launchNote}
                     </div>
-                  ) : (
-                    <div className="mb-8" />
-                  )}
+                  ) : null}
 
-                  <p
-                    className={cn(
-                      'mb-8 text-sm leading-6',
-                      isFeatured ? 'text-inv-fg/60' : 'text-surface/50',
-                    )}
-                  >
+                  <p className="mb-8 text-sm leading-6 text-surface/50">
                     {getPlanSummary(plan)}
                   </p>
 
                   <ul className="mb-auto space-y-4">
                     {plan.features.slice(0, 5).map((feature) => (
                       <li key={feature} className="flex items-start gap-3">
-                        <HiCheckCircle
-                          className={cn(
-                            'mt-0.5 size-4 shrink-0',
-                            isFeatured ? 'text-inv-fg/35' : 'text-surface/40',
-                          )}
-                        />
-                        <span
-                          className={cn(
-                            'text-sm',
-                            isFeatured ? 'text-inv-fg/60' : 'text-surface/60',
-                          )}
-                        >
+                        <HiCheckCircle className="mt-0.5 size-4 shrink-0 text-surface/40" />
+                        <span className="text-sm text-surface/60">
                           {feature}
                         </span>
                       </li>
@@ -295,7 +270,7 @@ export default function PricingContent() {
                     className="mt-12 w-full justify-center"
                     size={ButtonSize.PUBLIC}
                     variant={
-                      isFeatured ? ButtonVariant.BLACK : ButtonVariant.OUTLINE
+                      isFeatured ? ButtonVariant.WHITE : ButtonVariant.OUTLINE
                     }
                   >
                     <a href={ctaHref} target="_blank" rel="noopener noreferrer">
@@ -306,12 +281,43 @@ export default function PricingContent() {
               );
             })}
           </NeuralGrid>
+
+          {enterprisePlan ? (
+            <div className="mt-4 flex flex-col gap-6 border border-edge/5 bg-background p-8 md:flex-row md:items-center md:justify-between">
+              <div className="max-w-2xl">
+                <div className="mb-3 text-[10px] font-black uppercase tracking-widest text-surface/45">
+                  Enterprise
+                </div>
+                <h3 className="mb-2 text-2xl font-semibold tracking-[-0.02em]">
+                  Your own studio, fully managed.
+                </h3>
+                <p className="text-sm leading-6 text-surface/50">
+                  Custom output terms, unlimited seats and organizations, full
+                  API access, white-label, SSO, and a dedicated account manager.
+                </p>
+              </div>
+              <Button
+                asChild
+                className="shrink-0"
+                size={ButtonSize.PUBLIC}
+                variant={ButtonVariant.OUTLINE}
+              >
+                <a
+                  href={enterprisePlan.ctaHref || EnvironmentService.calendly}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Book a Demo
+                </a>
+              </Button>
+            </div>
+          ) : null}
         </WebSection>
 
         <WebSection maxWidth="lg" py="md">
           <SectionHeader
             title="What output costs."
-            description="Every job shows its price before you run it. The router picks the best model for each format — the price below is what you pay, whatever model runs."
+            description="Every job shows its price before you run it. The router picks the best model for each format, and the price below is what you pay, whatever model runs."
             className="[&_h2]:text-5xl mb-4"
           />
 
@@ -366,13 +372,12 @@ export default function PricingContent() {
 
         <CtaSection
           bg="subtle"
-          title="Start free. Pay for what you create."
+          title="Start free. Pay per output."
           description="Book a demo only when the rollout needs team planning or enterprise terms."
         >
           <Button size={ButtonSize.PUBLIC} asChild>
             <a href={paygSignUpHref} target="_blank" rel="noopener noreferrer">
-              Start Creating Free
-              <LuArrowRight className="size-4" />
+              Create now
             </a>
           </Button>
           <Button
@@ -380,7 +385,11 @@ export default function PricingContent() {
             size={ButtonSize.PUBLIC}
             asChild
           >
-            <a href={CALENDLY_URL} target="_blank" rel="noopener noreferrer">
+            <a
+              href={EnvironmentService.calendly}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               Book a Demo
             </a>
           </Button>

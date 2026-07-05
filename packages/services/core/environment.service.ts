@@ -80,7 +80,9 @@ export const EnvironmentService = {
   CREDITS_LABEL: 'GEN',
   CREDITS_TRAINING_COST: 500,
 
-  calendly: 'https://calendly.com/vincent-genfeed/30min',
+  calendly:
+    process.env.NEXT_PUBLIC_CALENDLY_URL ||
+    'https://calendly.com/vincent-genfeed/30min',
 
   get cdnUrl(): string {
     return (

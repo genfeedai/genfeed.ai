@@ -17,7 +17,7 @@ export default function FaqGrid({ className, items }: FaqGridProps) {
       {items.map((item) => (
         <div
           key={item.question}
-          className="p-10 group bg-zinc-900 hover:bg-fill/[0.02] transition-colors"
+          className="p-10 group bg-background hover:bg-fill/[0.02] transition-colors"
         >
           <h3 className="text-lg font-semibold mb-3">{item.question}</h3>
           <p className="text-surface/40 text-sm leading-relaxed">

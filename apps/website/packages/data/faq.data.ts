@@ -17,7 +17,7 @@ export interface FAQCategory {
 export const FAQ_ITEMS_CORE: FAQItem[] = [
   {
     answer:
-      'Genfeed is a content intelligence platform for serious creators. We help you discover trending topics, generate AI content (videos, images, voice, articles), distribute everywhere, track ROI, and optimize with AI insights—all in one platform.',
+      'Genfeed is a content intelligence platform for serious creators. We help you discover trending topics, generate AI content (videos, images, voice, articles), distribute everywhere, track ROI, and optimize with AI insights, all in one platform.',
     question: 'What is Genfeed?',
   },
   {
@@ -27,7 +27,7 @@ export const FAQ_ITEMS_CORE: FAQItem[] = [
   },
   {
     answer:
-      'Sign up free and buy credits for the output you generate. Subscribe to Creator ($49/mo, 8,000 credits included) when you publish weekly, or Cloud Teams when you need seats, shared approvals, and multi-organization workflows.',
+      'Sign up free and buy credits for the output you generate. Subscribe to Creator ($49/mo, 8,000 credits included) when you publish weekly, or Teams when you need seats, shared approvals, and multi-organization workflows.',
     question: 'How do I get started?',
   },
   {
@@ -51,7 +51,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
     questions: [
       {
         answer:
-          'Genfeed is a content intelligence platform for serious creators. We help you discover trending topics, generate AI content (videos, images, voice, articles), distribute everywhere, track ROI, and optimize with AI insights—all in one platform.',
+          'Genfeed is a content intelligence platform for serious creators. We help you discover trending topics, generate AI content (videos, images, voice, articles), distribute everywhere, track ROI, and optimize with AI insights, all in one platform.',
         question: 'What is Genfeed?',
       },
       {
@@ -61,7 +61,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
       },
       {
         answer:
-          'Sign up free and buy credits for the output you generate. Subscribe to Creator ($49/mo, 8,000 credits included) when you publish weekly, or Cloud Teams when you need seats, shared approvals, and multi-organization workflows.',
+          'Sign up free and buy credits for the output you generate. Subscribe to Creator ($49/mo, 8,000 credits included) when you publish weekly, or Teams when you need seats, shared approvals, and multi-organization workflows.',
         question: 'How do I get started?',
       },
     ],
@@ -71,17 +71,17 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
     questions: [
       {
         answer:
-          'Credits buy output: 1 credit is one cent at the pay-as-you-go rate. Signing up is free — you only pay for what you generate. Subscriptions include monthly credits at a ~40% better rate and unlock more brands, channels, and seats.',
+          'Credits buy output: 1 credit is one cent at the pay-as-you-go rate. Signing up is free, so you only pay for what you generate. Subscriptions include monthly credits at a ~40% better rate and unlock more brands, channels, and seats.',
         question: 'How does pricing work?',
       },
       {
         answer:
-          'Pay As You Go is free with credit packs. Creator is $49/month with 8,000 credits included. Cloud Teams is $499/month with 5 seats and an 80,000-credit shared pool, then $49 per extra seat. Enterprise is custom.',
+          'Pay As You Go is free with credit packs. Creator is $49/month with 8,000 credits included. Teams is $499/month with 5 seats and an 80,000-credit shared pool, then $49 per extra seat. Enterprise is custom.',
         question: 'What are the pricing tiers?',
       },
       {
         answer:
-          'Yes. Signing up costs nothing and there is no monthly fee on Pay As You Go — you buy credits and spend them on output. Developers can also self-host the open-source core from GitHub.',
+          'Yes. Signing up costs nothing and there is no monthly fee on Pay As You Go: you buy credits and spend them on output. Developers can also self-host the open-source core from GitHub.',
         question: 'Is there a free option?',
       },
       {
@@ -91,13 +91,13 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
       },
       {
         answer:
-          'Pay As You Go includes 1 brand kit and 3 connected channels. Creator raises that to 5 brand kits and 15 channels. Cloud Teams and Enterprise remove the limits and add organizations, seats, and shared approvals.',
+          'Pay As You Go includes 1 brand kit and 3 connected channels. Creator raises that to 5 brand kits and 15 channels. Teams and Enterprise remove the limits and add organizations, seats, and shared approvals.',
         question: 'How many brands and channels can I connect?',
       },
       {
         answer:
-          'Cloud Teams is for agencies and teams that need shared workspaces, organization boundaries, brand systems, approvals, a shared credit pool, managed billing, and priority support.',
-        question: 'When do I need Cloud Teams?',
+          'Teams is for agencies and teams that need shared workspaces, organization boundaries, brand systems, approvals, a shared credit pool, managed billing, and priority support.',
+        question: 'When do I need Teams?',
       },
     ],
   },
@@ -106,7 +106,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
     questions: [
       {
         answer:
-          'You never pick a model. The Genfeed router sends every job to the best premium model for the format, brief, and budget — and upgrades automatically as better models ship. You see the output and its credit price, not a model menu.',
+          'You never pick a model. The Genfeed router sends every job to the best premium model for the format, brief, and budget, and it upgrades automatically as better models ship. You see the output and its credit price, not a model menu.',
         question: 'Which AI models do you use?',
       },
       {
@@ -131,13 +131,13 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
     questions: [
       {
         answer:
-          'Pay As You Go includes a personal workspace, 1 brand kit, 3 connected channels, auto-routed premium models, and multi-platform publishing — with no monthly fee. Creator adds 8,000 monthly credits at a better rate, 5 brand kits, and 15 channels.',
+          'Pay As You Go includes a personal workspace, 1 brand kit, 3 connected channels, auto-routed premium models, and multi-platform publishing, with no monthly fee. Creator adds 8,000 monthly credits at a better rate, 5 brand kits, and 15 channels.',
         question: "What's included in the free and Creator plans?",
       },
       {
         answer:
-          'Cloud Teams adds 5 seats, an 80,000-credit shared pool, collaboration workspaces, multi-organization accounts, multi-brand operations, roles, shared approvals, managed billing, priority support, and advanced analytics.',
-        question: 'What extra features come with Cloud Teams?',
+          'Teams adds 5 seats, an 80,000-credit shared pool, collaboration workspaces, multi-organization accounts, multi-brand operations, roles, shared approvals, managed billing, priority support, and advanced analytics.',
+        question: 'What extra features come with Teams?',
       },
       {
         answer:
@@ -146,7 +146,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
       },
       {
         answer:
-          'Managed API access depends on Cloud App, Cloud Teams, or Enterprise scope. Contact sales for production API terms.',
+          'Managed API access depends on Creator, Teams, or Enterprise scope. Contact sales for production API terms.',
         question: 'Do you have an API?',
       },
     ],
@@ -171,7 +171,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
       },
       {
         answer:
-          'Yes. Cloud App includes email support. Cloud Teams includes priority support. Enterprise includes a dedicated Slack channel and account manager.',
+          'Yes. Creator includes email support. Teams includes priority support. Enterprise includes a dedicated Slack channel and account manager.',
         question: 'Do you offer customer support?',
       },
     ],

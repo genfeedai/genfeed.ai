@@ -36,7 +36,7 @@ export const useCases: UseCase[] = [
       'No control over messaging or personality',
     ],
     pricing: {
-      recommended: 'Hosted',
+      recommended: 'Creator',
       why: 'Free to start with pay-per-output credits; the Creator subscription ($49/month) makes avatar, voice, and publishing output ~40% cheaper.',
     },
     results: [
@@ -99,7 +99,7 @@ export const useCases: UseCase[] = [
       "Expensive tools that don't talk to each other",
     ],
     pricing: {
-      recommended: 'Hosted',
+      recommended: 'Creator',
       why: 'Start free with pay-per-output credits; the Creator subscription ($49/month, 8,000 credits included) is the better rate for daily publishing.',
     },
     results: [
@@ -167,8 +167,8 @@ export const useCases: UseCase[] = [
       'High tool costs eating into margins',
     ],
     pricing: {
-      recommended: 'Cloud Teams',
-      why: 'Cloud Teams adds collaboration, team roles, and multi-brand workspaces for agencies managing 5-15 clients.',
+      recommended: 'Teams',
+      why: 'Teams adds collaboration, team roles, and multi-brand workspaces for agencies managing 5-15 clients.',
     },
     results: [
       'Manage 3x more clients with same team',
@@ -235,8 +235,8 @@ export const useCases: UseCase[] = [
       'Seasonal content takes weeks to produce',
     ],
     pricing: {
-      recommended: 'Cloud Teams',
-      why: 'Cloud Teams adds managed billing, brand workspaces, bulk generation workflows, and purchase attribution tracking.',
+      recommended: 'Teams',
+      why: 'Teams adds managed billing, brand workspaces, bulk generation workflows, and purchase attribution tracking.',
     },
     results: [
       'Cut product content costs by 80%',
@@ -301,8 +301,8 @@ export const useCases: UseCase[] = [
       'Marketing attribution is a black box',
     ],
     pricing: {
-      recommended: 'Cloud Teams',
-      why: 'Cloud Teams adds shared workspaces, advanced analytics, and production support for marketing teams running multi-channel campaigns.',
+      recommended: 'Teams',
+      why: 'Teams adds shared workspaces, advanced analytics, and production support for marketing teams running multi-channel campaigns.',
     },
     results: [
       'Cut content production costs by 70%',
@@ -367,7 +367,7 @@ export const useCases: UseCase[] = [
       'Overwhelmed by too many tools',
     ],
     pricing: {
-      recommended: 'Hosted',
+      recommended: 'Creator',
       why: 'Start free with pay-per-output credits; upgrade to Creator ($49/month, 8,000 credits included) once you publish weekly.',
     },
     results: [

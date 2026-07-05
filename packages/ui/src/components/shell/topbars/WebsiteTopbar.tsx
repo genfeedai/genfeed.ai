@@ -6,66 +6,123 @@ import { EnvironmentService } from '@genfeedai/services/core/environment.service
 import { Button } from '@ui/primitives/button';
 import TopbarPublic from '@ui/topbars/public/TopbarPublic';
 import {
+  HiArrowPath,
   HiBuildingOffice2,
-  HiCloud,
-  HiGlobeAlt,
+  HiChartBar,
+  HiMagnifyingGlass,
   HiMegaphone,
+  HiPaperAirplane,
+  HiRectangleStack,
+  HiRocketLaunch,
   HiShoppingCart,
+  HiSparkles,
+  HiSquares2X2,
   HiStar,
   HiUserCircle,
+  HiUserGroup,
 } from 'react-icons/hi2';
 
 const PRODUCT_LINKS = [
   {
-    description: 'Free to start — credits buy your output',
-    href: '/pricing',
-    icon: HiCloud,
-    label: 'Cloud App',
+    description: 'Generate every format in one workspace',
+    group: 'Create',
+    href: '/studio',
+    icon: HiSparkles,
+    label: 'Studio',
   },
   {
-    description: 'Team workspaces, roles, approvals',
-    href: '/cloud',
-    icon: HiBuildingOffice2,
-    label: 'Cloud Teams',
+    description: 'Every asset your team reuses',
+    group: 'Create',
+    href: '/library',
+    icon: HiRectangleStack,
+    label: 'Library',
   },
   {
-    description: 'Connect every platform',
-    href: '/integrations',
-    icon: HiGlobeAlt,
-    label: 'Integrations',
+    description: "Find what's working now",
+    group: 'Create',
+    href: '/research',
+    icon: HiMagnifyingGlass,
+    label: 'Research',
+  },
+  {
+    description: 'Prompt packs and creative recipes',
+    group: 'Create',
+    href: '/skills',
+    icon: HiSquares2X2,
+    label: 'Skills',
+  },
+  {
+    description: 'Plan, schedule, and publish everywhere',
+    group: 'Operate',
+    href: '/publisher',
+    icon: HiPaperAirplane,
+    label: 'Publisher',
+  },
+  {
+    description: 'Automate your content pipeline',
+    group: 'Operate',
+    href: '/workflows',
+    icon: HiArrowPath,
+    label: 'Workflows',
+  },
+  {
+    description: 'Track revenue, not vanity metrics',
+    group: 'Operate',
+    href: '/analytics',
+    icon: HiChartBar,
+    label: 'Analytics',
+  },
+  {
+    description: 'Your autonomous content team',
+    group: 'Operate',
+    href: '/agents',
+    icon: HiUserGroup,
+    label: 'Agents',
   },
 ];
 
 const USE_CASES_LINKS = [
   {
-    description: 'Virtual influencers that post 24/7',
-    href: '/use-cases/ai-influencers',
-    icon: HiStar,
-    label: 'AI Influencers',
-  },
-  {
     description: '10x output, track what converts',
+    group: 'Creators',
     href: '/use-cases/creators',
     icon: HiUserCircle,
     label: 'Content Creators',
   },
   {
+    description: 'Virtual influencers that post 24/7',
+    group: 'Creators',
+    href: '/use-cases/ai-influencers',
+    icon: HiStar,
+    label: 'AI Influencers',
+  },
+  {
+    description: 'Launch and grow without a team',
+    group: 'Creators',
+    href: '/use-cases/founders',
+    icon: HiRocketLaunch,
+    label: 'Founders',
+  },
+  {
     description: 'Scale client content, white-label',
+    group: 'Business',
     href: '/use-cases/agencies',
     icon: HiBuildingOffice2,
     label: 'Agencies',
   },
   {
-    description: 'Product content at scale',
-    href: '/use-cases/ecommerce',
-    icon: HiShoppingCart,
-    label: 'E-commerce',
-  },
-  {
     description: 'Campaign content and reporting',
+    group: 'Business',
     href: '/use-cases/marketers',
     icon: HiMegaphone,
     label: 'Marketers',
+  },
+  {
+    description: 'Product content at scale',
+    group: 'Business',
+    href: '/use-cases/ecommerce',
+    icon: HiShoppingCart,
+    label: 'E-commerce',
   },
 ];
 
@@ -73,7 +130,7 @@ const NAV_LINKS = [{ href: '/pricing', label: 'Pricing' }];
 
 export default function WebsiteTopbar() {
   const { isSignedIn } = useAuthIdentity();
-  const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=hosted`;
+  const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
 
   return (
     <TopbarPublic
@@ -112,7 +169,7 @@ export default function WebsiteTopbar() {
                 className="h-9 px-5 text-sm uppercase"
               >
                 <a href={signUpHref} target="_blank" rel="noopener noreferrer">
-                  Start Cloud App
+                  Create now
                 </a>
               </Button>
             </>

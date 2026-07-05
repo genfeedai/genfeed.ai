@@ -7,7 +7,6 @@ import { HStack } from '@ui/layout/stack';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import Image from 'next/image';
-import Link from 'next/link';
 import { LuArrowRight } from 'react-icons/lu';
 
 interface HeroMetric {
@@ -22,32 +21,27 @@ const HERO_METRICS: HeroMetric[] = [
   { label: 'best hook rate', value: '31%' },
 ];
 
-const HERO_OUTCOMES: HeroMetric[] = [
-  { label: 'from one campaign brief', value: 'Every format' },
-  { label: 'usage-based generation', value: 'Lower cost' },
-  { label: 'post-generation KPI readout', value: 'Performance loop' },
-];
-
 export default function HomeHero(): React.ReactElement {
-  const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=hosted`;
+  const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
 
   return (
     <section className="relative overflow-hidden border-b border-edge/5 bg-background">
       <div className="container mx-auto px-6">
-        <div className="grid min-h-[calc(100svh-5.5rem)] items-center gap-12 py-14 lg:grid-cols-[minmax(0,0.74fr)_minmax(560px,1.26fr)] lg:gap-16 lg:py-16 xl:gap-20">
+        <div className="grid min-h-[calc(100svh-5.5rem)] items-center gap-12 py-14 lg:grid-cols-[minmax(0,1.05fr)_minmax(440px,0.95fr)] lg:gap-14 lg:py-16 xl:gap-20">
           <div className="max-w-[42rem] self-center">
             <Heading
               as="h1"
-              className="hero-headline max-w-[42rem] text-5xl font-semibold leading-[0.95] tracking-[-0.03em] text-surface sm:text-6xl md:text-7xl xl:text-[5.3rem]"
+              className="hero-headline max-w-[42rem] whitespace-normal text-[2.5rem] font-semibold leading-[0.9] tracking-[-0.035em] text-surface sm:whitespace-nowrap sm:text-5xl md:text-[3.5rem] lg:text-[3.5rem] xl:text-[4rem] 2xl:text-[4.5rem]"
             >
-              Generate everything you publish.
+              <span className="block">One prompt.</span>
+              <span className="block text-surface/60">Publish everywhere.</span>
             </Heading>
 
             <Text
               as="p"
               className="hero-description mt-6 max-w-xl text-base leading-7 text-surface/62 md:text-lg"
             >
-              One brief becomes the full internet campaign: images, reels, ads,
+              It becomes the full internet campaign: images, reels, ads,
               articles, captions, newsletters, voice, clips, and the readout
               that tells you what worked.
             </Text>
@@ -57,11 +51,11 @@ export default function HomeHero(): React.ReactElement {
                 asChild
                 size={ButtonSize.PUBLIC}
                 className="hero-cta shadow-[var(--shadow-glow-md)]"
-                trackingData={{ action: 'signup_cloud_app_hero' }}
+                trackingData={{ action: 'signup_payg_hero' }}
                 trackingName="hero_cta_click"
               >
                 <a href={signUpHref} rel="noopener noreferrer" target="_blank">
-                  Start Cloud App
+                  Create now
                   <LuArrowRight className="size-4" />
                 </a>
               </ButtonTracked>
@@ -70,29 +64,19 @@ export default function HomeHero(): React.ReactElement {
                 asChild
                 className="hero-cta"
                 size={ButtonSize.PUBLIC}
-                trackingData={{ action: 'view_formats_hero' }}
+                trackingData={{ action: 'book_demo_hero' }}
                 trackingName="hero_cta_click"
                 variant={ButtonVariant.OUTLINE}
               >
-                <Link href="#formats">See Formats</Link>
+                <a
+                  href={EnvironmentService.calendly}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  Book a Demo
+                </a>
               </ButtonTracked>
             </HStack>
-
-            <div className="hero-cta mt-9 grid max-w-xl grid-cols-1 overflow-hidden rounded-md bg-edge/10 shadow-border sm:grid-cols-3">
-              {HERO_OUTCOMES.map((metric) => (
-                <div
-                  key={metric.value}
-                  className="min-h-24 border-b border-edge/5 bg-card px-4 py-4 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0"
-                >
-                  <p className="text-sm font-semibold tracking-[-0.02em] text-surface">
-                    {metric.value}
-                  </p>
-                  <p className="mt-1 text-xs leading-5 text-surface/40">
-                    {metric.label}
-                  </p>
-                </div>
-              ))}
-            </div>
           </div>
 
           <figure
@@ -112,20 +96,25 @@ export default function HomeHero(): React.ReactElement {
               <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_54%,rgba(5,6,7,0.82))]" />
             </div>
 
-            <div className="relative z-10 mx-3 -mt-12 grid overflow-hidden rounded-md bg-edge/10 shadow-border-strong sm:grid-cols-4 lg:mx-8">
-              {HERO_METRICS.map((metric) => (
-                <div
-                  key={metric.value}
-                  className="border-b border-edge/5 bg-background/95 px-4 py-3 backdrop-blur last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0"
-                >
-                  <p className="text-sm font-semibold tracking-[-0.02em] text-surface">
-                    {metric.value}
-                  </p>
-                  <p className="mt-1 text-[11px] leading-4 text-surface/38">
-                    {metric.label}
-                  </p>
-                </div>
-              ))}
+            <div className="relative z-10 mx-3 -mt-12 overflow-hidden rounded-md bg-edge/10 shadow-border-strong lg:mx-8">
+              <p className="border-b border-edge/5 bg-background/95 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-surface/45 backdrop-blur">
+                Sample campaign readout
+              </p>
+              <div className="grid sm:grid-cols-4">
+                {HERO_METRICS.map((metric) => (
+                  <div
+                    key={metric.value}
+                    className="border-b border-edge/5 bg-background/95 px-4 py-3 backdrop-blur last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0"
+                  >
+                    <p className="text-sm font-semibold tracking-[-0.02em] text-surface">
+                      {metric.value}
+                    </p>
+                    <p className="mt-1 text-[11px] leading-4 text-surface/55">
+                      {metric.label}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
           </figure>
         </div>

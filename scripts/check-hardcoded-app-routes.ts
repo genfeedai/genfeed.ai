@@ -52,6 +52,10 @@ const EXCLUDE_GLOBS = [
   // Marketplace surface — its nav (/free, /prompts, /images, /library, ...) are
   // marketplace-app routes, NOT the studio APP_ROUTES tree. Out of scope here.
   '**/topbars/MarketplaceTopbar.tsx',
+  // Public marketing surface — its nav (/studio, /library, /research, ...) are
+  // public website landing pages, NOT the studio APP_ROUTES tree (whose roots
+  // differ, e.g. LIBRARY.ROOT = /library/ingredients). Out of scope here.
+  '**/topbars/WebsiteTopbar.tsx',
 ];
 
 /**

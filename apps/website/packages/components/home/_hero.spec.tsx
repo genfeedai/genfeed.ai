@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import type { AnchorHTMLAttributes, ImgHTMLAttributes } from 'react';
+import type { ImgHTMLAttributes } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import HomeHero from './_hero';
 
@@ -20,23 +20,12 @@ vi.mock('next/image', () => ({
   ),
 }));
 
-vi.mock('next/link', () => ({
-  default: ({
-    children,
-    href,
-    ...props
-  }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => (
-    <a href={href} {...props}>
-      {children}
-    </a>
-  ),
-}));
-
 vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: {
     apps: {
       app: 'https://app.genfeed.ai',
     },
+    calendly: 'https://calendly.com/genfeed/demo',
   },
 }));
 
@@ -46,11 +35,20 @@ describe('HomeHero', () => {
 
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     expect(
-      screen.getByRole('link', { name: /start cloud app/i }),
+      screen.getByRole('link', { name: /create now/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /see formats/i }),
+      screen.getByRole('link', { name: /book a demo/i }),
     ).toBeInTheDocument();
+  });
+
+  it('points the primary CTA at the pay-as-you-go sign-up', () => {
+    render(<HomeHero />);
+
+    expect(screen.getByRole('link', { name: /create now/i })).toHaveAttribute(
+      'href',
+      expect.stringContaining('plan=payg'),
+    );
   });
 
   it('renders the generated output wall instead of the old card deck', () => {

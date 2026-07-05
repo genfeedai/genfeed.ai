@@ -1,55 +1,67 @@
 'use client';
 
 import { FAQ_ITEMS_CORE } from '@data/faq.data';
-import { CardVariant } from '@genfeedai/enums';
-import Card from '@ui/card/Card';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
+import { HStack, VStack } from '@ui/layout/stack';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@ui/primitives/accordion';
-import { SectionHeader } from '@ui/sections/header';
-import { HiQuestionMarkCircle } from 'react-icons/hi2';
+import { Heading } from '@ui/typography/heading';
+import { Text } from '@ui/typography/text';
+import Link from 'next/link';
+import { LuArrowRight } from 'react-icons/lu';
 
-export default function HomeFAQ() {
+const EYEBROW_CLASS =
+  'text-xs font-bold uppercase tracking-widest text-surface/65';
+
+export default function HomeFAQ(): React.ReactElement {
   return (
-    <section id="faq" className="gen-section-spacing">
-      <div className="container mx-auto px-4 md:px-8">
-        <div className="max-w-3xl mx-auto">
-          <SectionHeader
-            icon={HiQuestionMarkCircle}
-            label="FAQ"
-            title={
-              <>
-                Questions<span className="font-light">?</span>
-              </>
-            }
-          />
-
-          <Card
-            variant={CardVariant.DEFAULT}
-            className="p-8"
-            bodyClassName="p-0"
+    <section id="faq" className="gen-section-spacing-lg border-b border-edge/5">
+      <div className="container mx-auto max-w-3xl px-6">
+        <VStack className="mb-8 gap-4">
+          <Text className={EYEBROW_CLASS}>FAQ</Text>
+          <Heading
+            as="h2"
+            className="text-4xl font-semibold leading-tight tracking-[-0.03em] sm:text-5xl"
           >
-            <Accordion type="single" collapsible defaultValue="item-0">
-              {FAQ_ITEMS_CORE.map((item, idx) => (
-                <AccordionItem
-                  key={item.question}
-                  value={`item-${idx}`}
-                  className="border-edge/10"
-                >
-                  <AccordionTrigger className="text-lg font-medium text-left py-4 hover:no-underline">
-                    {item.question}
-                  </AccordionTrigger>
-                  <AccordionContent className="text-foreground/60 pb-4">
-                    {item.answer}
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </Card>
-        </div>
+            Common questions, answered.
+          </Heading>
+        </VStack>
+
+        <Accordion type="single" collapsible className="space-y-3">
+          {FAQ_ITEMS_CORE.map((item) => (
+            <AccordionItem
+              key={item.question}
+              value={item.question}
+              className="border border-edge/5 px-4"
+            >
+              <AccordionTrigger className="py-4 text-left text-base font-medium hover:no-underline">
+                {item.question}
+              </AccordionTrigger>
+              <AccordionContent className="pb-4 leading-relaxed text-surface/72">
+                {item.answer}
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+
+        <HStack className="mt-8">
+          <ButtonTracked
+            asChild
+            size={ButtonSize.PUBLIC}
+            trackingName="faq_view_all_click"
+            variant={ButtonVariant.OUTLINE}
+          >
+            <Link href="/faq">
+              See all FAQs
+              <LuArrowRight className="size-3" />
+            </Link>
+          </ButtonTracked>
+        </HStack>
       </div>
     </section>
   );

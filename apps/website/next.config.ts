@@ -36,6 +36,11 @@ const config = createAppNextConfig({
   ],
   redirects: async () => [
     {
+      destination: '/analytics',
+      permanent: true,
+      source: '/intelligence',
+    },
+    {
       destination: '/pricing',
       permanent: true,
       source: '/core',

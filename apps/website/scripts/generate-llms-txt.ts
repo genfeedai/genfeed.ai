@@ -161,7 +161,7 @@ function buildLlmsIndex(): string {
   lines.push('# Genfeed.ai');
   lines.push('');
   lines.push(
-    '> AI-first content creation platform. Generate videos, images, voice, and articles at scale with 50+ AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. Start with Cloud App from $49/month plus PAYG output.',
+    '> AI-first content creation platform. Generate videos, images, voice, and articles at scale with 50+ AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. Start free, then Creator from $49/month plus PAYG output.',
   );
   lines.push('');
 
@@ -197,7 +197,7 @@ function buildLlmsIndex(): string {
   lines.push('## Resources');
   lines.push('');
   lines.push(
-    `- [Pricing](${BASE_URL}/pricing): Cloud App ($49/mo + PAYG output), Cloud Teams (from $499/mo + PAYG output), Enterprise (custom)`,
+    `- [Pricing](${BASE_URL}/pricing): Creator ($49/mo + PAYG output), Teams (from $499/mo + PAYG output), Enterprise (custom)`,
   );
   lines.push(
     `- [FAQ](${BASE_URL}/faq): Frequently asked questions about the platform`,
@@ -237,7 +237,7 @@ function buildLlmsFull(): string {
   s.push('# Genfeed.ai');
   s.push('');
   s.push(
-    '> AI-first content creation platform. Generate videos, images, voice, and articles at scale with 50+ AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. Start with Cloud App from $49/month plus PAYG output.',
+    '> AI-first content creation platform. Generate videos, images, voice, and articles at scale with 50+ AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. Start free, then Creator from $49/month plus PAYG output.',
   );
   s.push('');
 
@@ -245,7 +245,7 @@ function buildLlmsFull(): string {
   s.push('## Overview');
   s.push('');
   s.push(
-    'Genfeed.ai is a complete content intelligence platform for creators, agencies, marketers, and founders. Generate professional videos, images, music, voice, and articles using 50+ cutting-edge AI models — then publish everywhere and track what converts.',
+    'Genfeed.ai is a complete content intelligence platform for creators, agencies, marketers, and founders. Generate professional videos, images, music, voice, and articles using 50+ cutting-edge AI models, then publish everywhere and track what converts.',
   );
   s.push('');
   s.push('Key capabilities:');
@@ -289,7 +289,7 @@ function buildLlmsFull(): string {
 
     s.push(`Target audience: ${p.targetAudience.join(', ')}`);
     s.push('');
-    s.push(`Recommended plan: ${p.pricing.recommended} — ${p.pricing.why}`);
+    s.push(`Recommended plan: ${p.pricing.recommended}. ${p.pricing.why}`);
     if (p.status) {
       s.push(`Status: ${p.status}`);
     }
@@ -304,7 +304,7 @@ function buildLlmsFull(): string {
   s.push('## Pricing');
   s.push('');
   s.push(
-    'Genfeed is free to join: credits buy the output you generate (1 credit = $0.01 at the pay-as-you-go rate). Subscriptions include monthly credits at a ~40% better rate and unlock more brands, channels, and seats. Creator is $49/month with 8,000 credits included. Cloud Teams is $499/month with 5 seats and an 80,000-credit shared pool. Enterprise is custom.',
+    'Genfeed is free to join: credits buy the output you generate (1 credit = $0.01 at the pay-as-you-go rate). Subscriptions include monthly credits at a ~40% better rate and unlock more brands, channels, and seats. Creator is $49/month with 8,000 credits included. Teams is $499/month with 5 seats and an 80,000-credit shared pool. Enterprise is custom.',
   );
   s.push('');
 
@@ -315,16 +315,21 @@ function buildLlmsFull(): string {
   )) {
     const priceStr =
       plan.price === 0
-        ? 'Free — pay-per-output credits'
+        ? 'Free, pay-per-output credits'
         : plan.price === null
           ? 'Contact Sales'
           : plan.includedCredits
             ? `$${plan.price.toLocaleString()}/month with ${plan.includedCredits.toLocaleString()} credits included`
             : `$${plan.price.toLocaleString()}/month`;
 
-    const displayLabel = plan.label === 'Hosted' ? 'Creator' : plan.label;
+    const displayLabel =
+      plan.label === 'Hosted'
+        ? 'Creator'
+        : plan.label === 'Cloud Teams'
+          ? 'Teams'
+          : plan.label;
 
-    s.push(`### ${displayLabel} — ${priceStr}`);
+    s.push(`### ${displayLabel}: ${priceStr}`);
     s.push('');
     s.push(plan.description);
     s.push('');
@@ -424,7 +429,7 @@ function buildLlmsFull(): string {
     }
     s.push('');
 
-    s.push(`Recommended plan: ${uc.pricing.recommended} — ${uc.pricing.why}`);
+    s.push(`Recommended plan: ${uc.pricing.recommended}. ${uc.pricing.why}`);
     s.push('');
     s.push(`URL: ${BASE_URL}/use-cases/${uc.slug}`);
     s.push('');

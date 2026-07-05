@@ -76,7 +76,7 @@ function NeuralGridItem({
         <div
           className={cn(
             'text-xs font-black uppercase tracking-widest mb-6',
-            inverted ? 'text-inv-fg/30' : 'text-surface/20',
+            inverted ? 'text-inv-fg/50' : 'text-surface/45',
           )}
         >
           {tierLabel}
@@ -86,7 +86,7 @@ function NeuralGridItem({
         <Icon
           className={cn(
             'size-8 mb-4 group-hover:text-surface transition-colors',
-            inverted ? 'text-inv-fg/40' : 'text-surface/40',
+            inverted ? 'text-inv-fg/60' : 'text-surface/60',
           )}
         />
       )}
@@ -99,7 +99,7 @@ function NeuralGridItem({
         <p
           className={cn(
             'text-sm',
-            inverted ? 'text-inv-fg/40' : 'text-surface/40',
+            inverted ? 'text-inv-fg/55' : 'text-surface/55',
           )}
         >
           {description}
@@ -183,7 +183,9 @@ function CtaSection({
     >
       <div className="container mx-auto px-6">
         <div className="text-center max-w-3xl mx-auto">
-          <h2 className="text-6xl font-semibold mb-10">{title}</h2>
+          <h2 className="text-4xl font-semibold tracking-[-0.02em] mb-8 sm:text-5xl">
+            {title}
+          </h2>
           {description && (
             <p className="text-surface/40 text-xl mb-12 font-medium">
               {description}

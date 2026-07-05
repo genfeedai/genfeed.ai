@@ -17,6 +17,7 @@ interface DropdownItem {
   label: string;
   description?: string;
   icon?: ComponentType<SVGProps<SVGSVGElement> & { className?: string }>;
+  group?: string;
 }
 
 interface Dropdown {

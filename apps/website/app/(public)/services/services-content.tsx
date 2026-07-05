@@ -4,6 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { contentServiceOffering } from '@helpers/business/pricing/pricing.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
+import { EnvironmentService } from '@services/core/environment.service';
 import SectionHeader from '@ui/marketing/SectionHeader';
 import { Button } from '@ui/primitives/button';
 import {
@@ -16,14 +17,10 @@ import PageLayout from '@web-components/PageLayout';
 import Link from 'next/link';
 import { LuCheck, LuSparkles } from 'react-icons/lu';
 
-const CALENDLY_URL =
-  process.env.NEXT_PUBLIC_CALENDLY_URL ||
-  'https://calendly.com/vincent-genfeed/30min';
-
 const SERVICE_CARDS = [
   {
     cta: 'Book a Call',
-    ctaHref: CALENDLY_URL,
+    ctaHref: EnvironmentService.calendly,
     description: contentServiceOffering.description,
     features: contentServiceOffering.includes,
     label: 'Done-For-You',
@@ -33,7 +30,7 @@ const SERVICE_CARDS = [
   },
   {
     cta: 'Book a Call',
-    ctaHref: CALENDLY_URL,
+    ctaHref: EnvironmentService.calendly,
     description:
       'Setup packages and custom workshops to get your team productive on the platform fast.',
     features: [
@@ -50,7 +47,7 @@ const SERVICE_CARDS = [
   },
   {
     cta: 'Book a Call',
-    ctaHref: CALENDLY_URL,
+    ctaHref: EnvironmentService.calendly,
     description:
       'Content strategy, brand positioning, and channel optimization for teams that need direction before execution.',
     features: [
@@ -239,7 +236,11 @@ export default function ServicesContent() {
           description="Tell us about your content needs and we will scope the right engagement."
         >
           <Button size={ButtonSize.PUBLIC} asChild>
-            <a href={CALENDLY_URL} target="_blank" rel="noopener noreferrer">
+            <a
+              href={EnvironmentService.calendly}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               Book a Call
             </a>
           </Button>

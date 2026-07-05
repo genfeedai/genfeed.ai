@@ -105,6 +105,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     {
       changeFrequency: 'weekly',
       lastModified: new Date(),
+      priority: 0.9,
+      url: 'https://genfeed.ai/library',
+    },
+    {
+      changeFrequency: 'weekly',
+      lastModified: new Date(),
+      priority: 0.9,
+      url: 'https://genfeed.ai/analytics',
+    },
+    {
+      changeFrequency: 'weekly',
+      lastModified: new Date(),
+      priority: 0.9,
+      url: 'https://genfeed.ai/calendar',
+    },
+    {
+      changeFrequency: 'weekly',
+      lastModified: new Date(),
+      priority: 0.9,
+      url: 'https://genfeed.ai/research',
+    },
+    {
+      changeFrequency: 'weekly',
+      lastModified: new Date(),
       priority: 0.8,
       url: 'https://genfeed.ai/integrations',
     },
@@ -188,12 +212,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  const productRoutes: MetadataRoute.Sitemap = productSlugs.map((slug) => ({
-    changeFrequency: 'weekly',
-    lastModified: new Date(),
-    priority: 0.9,
-    url: `https://genfeed.ai/${slug}`,
-  }));
+  // `intelligence` is superseded by the dedicated /analytics page and 301s there;
+  // exclude it so the sitemap never lists a redirecting URL.
+  const productRoutes: MetadataRoute.Sitemap = productSlugs
+    .filter((slug) => slug !== 'intelligence')
+    .map((slug) => ({
+      changeFrequency: 'weekly',
+      lastModified: new Date(),
+      priority: 0.9,
+      url: `https://genfeed.ai/${slug}`,
+    }));
 
   const competitorRoutes: MetadataRoute.Sitemap = competitorSlugs.map(
     (slug) => ({
