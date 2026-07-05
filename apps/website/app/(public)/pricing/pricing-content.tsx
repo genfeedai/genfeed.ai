@@ -207,24 +207,58 @@ export default function PricingContent() {
                   ) : null}
 
                   <div className="mb-2">
-                    <span
-                      className={cn(
-                        'text-5xl font-semibold tracking-[-0.03em]',
-                        isFeatured && 'text-inv-fg',
-                      )}
-                    >
-                      {isEnterprise ? 'Custom' : formatPrice(plan.price)}
-                    </span>
+                    {plan.launchPrice != null ? (
+                      <div className="flex items-baseline gap-2">
+                        <span
+                          className={cn(
+                            'text-2xl font-medium line-through',
+                            isFeatured ? 'text-inv-fg/40' : 'text-surface/40',
+                          )}
+                        >
+                          {formatPrice(plan.price)}
+                        </span>
+                        <span
+                          className={cn(
+                            'text-5xl font-semibold tracking-[-0.03em]',
+                            isFeatured && 'text-inv-fg',
+                          )}
+                        >
+                          {formatPrice(plan.launchPrice)}
+                        </span>
+                      </div>
+                    ) : (
+                      <span
+                        className={cn(
+                          'text-5xl font-semibold tracking-[-0.03em]',
+                          isFeatured && 'text-inv-fg',
+                        )}
+                      >
+                        {isEnterprise ? 'Custom' : formatPrice(plan.price)}
+                      </span>
+                    )}
                   </div>
 
                   <div
                     className={cn(
-                      'mb-8 text-sm',
+                      'text-sm',
                       isFeatured ? 'text-inv-fg/50' : 'text-surface/40',
                     )}
                   >
                     {getPriceQualifier(plan)}
                   </div>
+
+                  {plan.launchNote ? (
+                    <div
+                      className={cn(
+                        'mb-8 mt-1 text-xs font-semibold uppercase tracking-widest',
+                        isFeatured ? 'text-inv-fg/60' : 'text-surface/50',
+                      )}
+                    >
+                      {plan.launchNote}
+                    </div>
+                  ) : (
+                    <div className="mb-8" />
+                  )}
 
                   <p
                     className={cn(

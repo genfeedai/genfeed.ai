@@ -161,6 +161,32 @@ describe('pricing.helper', () => {
       expect(plan.label).toBe('Hosted');
       expect(plan.price).toBe(49);
     });
+
+    it('should expose launch pricing for the Hosted plan', () => {
+      const plan = getHostedPlan();
+      expect(plan.launchPrice).toBe(39);
+      expect(plan.launchNote).toBe(
+        'Launch pricing — first 12 months, then $49/month',
+      );
+    });
+
+    it('should not mention any redemption cap or limit in the launch note', () => {
+      const plan = getHostedPlan();
+      const note = plan.launchNote?.toLowerCase() ?? '';
+      expect(note).not.toMatch(/cap/);
+      expect(note).not.toMatch(/limited/);
+      expect(note).not.toMatch(/first \d+ (subscribers|customers|users)/);
+    });
+  });
+
+  describe('launchPrice scoping', () => {
+    it('should only set launchPrice on the Hosted plan', () => {
+      const plansWithLaunchPrice = websitePlans.filter(
+        (plan) => plan.launchPrice != null,
+      );
+      expect(plansWithLaunchPrice).toHaveLength(1);
+      expect(plansWithLaunchPrice[0]?.label).toBe('Hosted');
+    });
   });
 
   describe('getCloudTeamsPlan', () => {

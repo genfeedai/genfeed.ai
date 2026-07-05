@@ -428,6 +428,31 @@ export class StripeService {
     };
   }
 
+  /**
+   * Apply the configured launch promotion code to a subscription checkout
+   * session for the Creator/Pro plan, falling back to `allow_promotion_codes`
+   * when no promotion code is configured. Stripe rejects sessions that set
+   * both `discounts` and `allow_promotion_codes`, so exactly one is set.
+   */
+  private applyPromotionCode(
+    sessionConfig: NonNullable<StripeCheckoutSessionCreateParams>,
+    stripePriceId: string,
+  ): void {
+    const isCreatorSubscription =
+      stripePriceId ===
+      this.configService.get('STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY');
+
+    const promotionCodeId = isCreatorSubscription
+      ? this.configService.get('STRIPE_PROMOTION_CODE_LAUNCH')
+      : undefined;
+
+    if (promotionCodeId) {
+      sessionConfig.discounts = [{ promotion_code: promotionCodeId }];
+    } else {
+      sessionConfig.allow_promotion_codes = true;
+    }
+  }
+
   public async createPaymentSession(
     customerId: string,
     stripePriceId: string,
@@ -460,7 +485,6 @@ export class StripeService {
 
         // Monthly subscription
         sessionConfig = {
-          allow_promotion_codes: true,
           automatic_tax: {
             enabled: true,
           },
@@ -488,6 +512,8 @@ export class StripeService {
             enabled: true,
           },
         };
+
+        this.applyPromotionCode(sessionConfig, stripePriceId);
       } else if (isPayg) {
         // Pay as you go credits — bonus delivered via metadata, not coupons
         const pack = PAYG_CREDIT_PACKS.find((p) => p.credits === quantity);
