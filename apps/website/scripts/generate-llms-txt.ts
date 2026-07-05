@@ -304,7 +304,7 @@ function buildLlmsFull(): string {
   s.push('## Pricing');
   s.push('');
   s.push(
-    'Genfeed is free to join: credits buy the output you generate (1 credit = $0.01 at the pay-as-you-go rate). Subscriptions include monthly credits at a ~40% better rate and unlock more brands, channels, and seats. Creator is $49/month with 8,000 credits included. Teams is $499/month with 5 seats and an 80,000-credit shared pool. Enterprise is custom.',
+    'Genfeed is free to join: credits buy the output you generate (1 credit = $0.01 at the pay-as-you-go rate). Subscriptions include monthly credits at a ~40% better rate and unlock unlimited brands, more channels, and shared team seats. Creator is $49/month with 8,000 credits included. Teams is $499/month with unlimited seats and an 80,000-credit shared pool. Enterprise is custom.',
   );
   s.push('');
 

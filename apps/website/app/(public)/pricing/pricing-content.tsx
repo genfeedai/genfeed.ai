@@ -33,7 +33,7 @@ const FEATURED_TIER = 'Hosted';
 const FAQ_ITEMS = [
   {
     answer:
-      'Signing up is free. Credits buy the output you generate: images, reels, ads, articles, avatar clips, and voice. Subscriptions exist to make credits cheaper and to unlock more brands, channels, and seats.',
+      'Signing up is free. Credits buy the output you generate: images, reels, ads, articles, avatar clips, and voice. Subscriptions exist to make credits cheaper and to unlock unlimited brands, more channels, and shared team seats.',
     question: 'How does pricing work?',
   },
   {
@@ -48,12 +48,12 @@ const FAQ_ITEMS = [
   },
   {
     answer:
-      'Creator ($49/month) includes 8,000 credits (about $80 of pay-as-you-go output) plus 5 brand kits and 15 connected channels. Teams ($499/month) includes 5 seats, 80,000 credits in a shared pool, multi-organization control, and approvals.',
+      'Creator ($49/month) includes 8,000 credits (about $80 of pay-as-you-go output) plus unlimited brand kits and 15 connected channels. Teams ($499/month) includes unlimited seats, 80,000 credits in a shared pool, multi-organization control, and approvals.',
     question: 'What do subscriptions add?',
   },
   {
     answer:
-      'Pay As You Go includes 1 brand kit and 3 connected channels. Creator raises that to 5 brand kits and 15 channels. Teams and Enterprise remove the limits and add organizations and seats.',
+      'Pay As You Go includes 1 brand kit and 3 connected channels. Creator raises that to unlimited brands and 15 channels. Teams and Enterprise remove the channel limits and add organizations and seats.',
     question: 'How many brands and channels can I connect?',
   },
   {
@@ -67,7 +67,7 @@ const PRICING_RULES = [
   'Free to sign up',
   'Credits buy every format',
   'Subscriptions make credits cheaper',
-  'Seats and shared pools for teams',
+  'Unlimited seats and shared pools for teams',
 ] as const;
 
 interface OutputCostRow {
@@ -134,7 +134,7 @@ function getPriceQualifier(plan: (typeof websitePlans)[number]): string {
     const credits = plan.includedCredits?.toLocaleString();
 
     return plan.label === 'Cloud Teams'
-      ? `5 seats + ${credits} credits`
+      ? `Unlimited seats + ${credits} credits`
       : `${credits} credits included`;
   }
 
@@ -155,7 +155,7 @@ export default function PricingContent() {
     <div ref={containerRef}>
       <PageLayout
         title={<>Credits for output. Subscriptions for scale.</>}
-        description="Signing up is free. Credits buy the content you generate; a subscription makes those credits cheaper and unlocks more brands, channels, and seats."
+        description="Signing up is free. Credits buy the content you generate; a subscription makes those credits cheaper and unlocks unlimited brands, more channels, and shared team seats."
       >
         <WebSection maxWidth="lg" py="md">
           <div className="grid gap-px overflow-hidden border border-edge/5 bg-fill/5 md:grid-cols-4">
@@ -173,7 +173,7 @@ export default function PricingContent() {
         <WebSection maxWidth="full" py="md">
           <SectionHeader
             title="Start free. Subscribe when volume makes it cheaper."
-            description="Pay As You Go covers bursty campaigns with zero commitment. Creator and Teams include monthly credits at a ~40% better rate, plus more brands, channels, and seats."
+            description="Pay As You Go covers bursty campaigns with zero commitment. Creator and Teams include monthly credits at a ~40% better rate, plus unlimited brands, more channels, and shared team seats."
             className="[&_h2]:text-5xl mb-4"
           />
 
