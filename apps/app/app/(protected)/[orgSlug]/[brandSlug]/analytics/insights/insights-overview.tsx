@@ -161,19 +161,19 @@ const InsightsOverview = memo(function InsightsOverview({
       <div className="space-y-6">
         {/* Summary Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-error/5 border-error/20">
+          <Card className="bg-error/5">
             <div className="text-center py-2">
               <p className="text-3xl font-bold text-error">{criticalAlerts}</p>
               <p className="text-sm text-foreground/70">Critical Alerts</p>
             </div>
           </Card>
-          <Card className="bg-warning/5 border-warning/20">
+          <Card className="bg-warning/5">
             <div className="text-center py-2">
               <p className="text-3xl font-bold text-warning">{warningAlerts}</p>
               <p className="text-sm text-foreground/70">Warnings</p>
             </div>
           </Card>
-          <Card className="bg-success/5 border-success/20">
+          <Card className="bg-success/5">
             <div className="text-center py-2">
               <p className="text-3xl font-bold text-success">
                 {positiveTrends}
@@ -181,7 +181,7 @@ const InsightsOverview = memo(function InsightsOverview({
               <p className="text-sm text-foreground/70">Positive Trends</p>
             </div>
           </Card>
-          <Card className="bg-info/5 border-info/20">
+          <Card className="bg-info/5">
             <div className="text-center py-2">
               <p className="text-3xl font-bold text-info">
                 {activeSuggestions}
@@ -229,7 +229,7 @@ const InsightsOverview = memo(function InsightsOverview({
             label="AI Analysis Summary"
             icon={HiLightBulb}
             iconClassName="text-warning"
-            className="bg-gradient-to-br from-muted to-background"
+            className="bg-secondary"
           >
             <div className="prose prose-sm max-w-none">
               {criticalAlerts === 0 && warningAlerts === 0 ? (

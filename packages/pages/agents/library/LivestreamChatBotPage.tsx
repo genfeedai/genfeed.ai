@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
+import Card from '@ui/card/Card';
 import Textarea from '@ui/inputs/textarea/Textarea';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
@@ -83,7 +84,7 @@ export default function LivestreamChatBotPage({
           twitchLastPostedAt={twitchStatus?.lastPostedAt}
         />
 
-        <div className="gen-glass rounded-xl p-6">
+        <Card className="p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold">Runtime Controls</h2>
@@ -184,7 +185,7 @@ export default function LivestreamChatBotPage({
               />
             </div>
           </div>
-        </div>
+        </Card>
 
         <LivestreamSessionPanels
           recentDeliveries={recentDeliveries}

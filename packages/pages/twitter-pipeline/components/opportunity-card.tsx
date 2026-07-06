@@ -123,7 +123,7 @@ export default function OpportunityCard({
       </div>
 
       {opportunity.targetAuthor && opportunity.targetTweet && (
-        <div className="mb-3 rounded border border-border/50 bg-muted/30 p-3 text-xs text-muted-foreground">
+        <div className="mb-3 text-xs text-muted-foreground">
           <span className="font-medium">@{opportunity.targetAuthor}</span>
           <p className="mt-1 line-clamp-2">{opportunity.targetTweet}</p>
         </div>

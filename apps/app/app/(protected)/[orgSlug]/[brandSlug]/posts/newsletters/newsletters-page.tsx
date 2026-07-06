@@ -192,10 +192,10 @@ function NewslettersPageContent() {
                   key={newsletter.id}
                   variant={ButtonVariant.UNSTYLED}
                   withWrapper={false}
-                  className={`w-full rounded-lg border p-4 text-left transition-colors ${
+                  className={`w-full rounded-lg p-4 text-left transition-colors ${
                     newsletter.id === selectedNewsletterId
-                      ? 'border-primary bg-primary/5'
-                      : 'border-border hover:border-primary/40'
+                      ? 'shadow-border-strong bg-tertiary'
+                      : 'bg-tertiary/50 hover:bg-tertiary'
                   }`}
                   onClick={async () => {
                     setSelectedNewsletterId(newsletter.id);

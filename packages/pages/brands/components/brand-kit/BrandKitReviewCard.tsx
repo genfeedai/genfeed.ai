@@ -398,7 +398,7 @@ export default function BrandKitReviewCard({
         ) : null}
 
         {draft ? (
-          <div className="rounded-md shadow-border bg-background-secondary px-3 py-2 text-sm">
+          <div className="rounded-md bg-background-secondary px-3 py-2 text-sm shadow-border">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="font-medium">
                 {draft.readiness.score}% readiness
@@ -444,7 +444,7 @@ export default function BrandKitReviewCard({
                       return (
                         <div
                           key={key}
-                          className="rounded-md border border-border p-3"
+                          className="rounded-md bg-background-secondary p-3 shadow-border"
                         >
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div>
@@ -553,7 +553,7 @@ export default function BrandKitReviewCard({
             ) : null}
 
             {applyResult ? (
-              <div className="rounded-md shadow-border bg-background-secondary px-3 py-2 text-sm">
+              <div className="rounded-md bg-background-secondary px-3 py-2 text-sm shadow-border">
                 Applied {applyResult.appliedFields.length} fields; preserved{' '}
                 {applyResult.preservedFields.length}. Status:{' '}
                 {applyResult.status}.

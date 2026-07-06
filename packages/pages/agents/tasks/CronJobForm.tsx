@@ -76,12 +76,12 @@ export default function CronJobForm({
   workflowsHref,
 }: CronJobFormProps) {
   return (
-    <div className="mb-4 rounded border border-white/10 bg-white/[0.02] p-4">
+    <div className="mb-4 rounded bg-card p-4 shadow-border">
       <div className="mb-3 text-sm font-semibold">
         {form.id ? 'Edit Cron Job' : 'Create Cron Job'}
       </div>
       {form.jobType === 'workflow_execution' && (
-        <div className="mb-4 rounded border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-muted-foreground">
+        <div className="mb-4 rounded bg-secondary px-3 py-2 text-xs text-muted-foreground">
           Workflow schedules start in{' '}
           <Link
             href={workflowsHref}

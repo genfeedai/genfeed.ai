@@ -90,73 +90,42 @@ export default function ServicesContent() {
                 <NeuralGridItem
                   key={service.label}
                   padding="lg"
-                  inverted={isFeatured}
-                  className="relative gsap-card"
-                  style={
-                    isFeatured ? undefined : { backgroundColor: '#18181b' }
-                  }
+                  className={cn(
+                    'relative gsap-card',
+                    isFeatured && 'bg-white/[0.04]',
+                  )}
                 >
                   {isFeatured && (
                     <div className="absolute top-6 right-6">
-                      <span className="px-3 py-1 bg-zinc-950 text-surface text-[10px] font-black uppercase tracking-widest rounded-full">
+                      <span className="border border-edge/40 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-surface/70">
                         Most Popular
                       </span>
                     </div>
                   )}
 
-                  <div
-                    className={cn(
-                      'text-xs font-black uppercase tracking-widest mb-6',
-                      isFeatured ? 'text-inv-fg/30' : 'text-surface/20',
-                    )}
-                  >
+                  <div className="text-xs font-black uppercase tracking-widest mb-6 text-surface/50">
                     {service.number} / {service.shortLabel}
                   </div>
 
                   <div className="mb-2">
-                    <span
-                      className={cn(
-                        'text-3xl font-semibold',
-                        isFeatured && 'text-inv-fg',
-                      )}
-                    >
+                    <span className="text-3xl font-semibold text-surface">
                       {service.label}
                     </span>
                   </div>
 
-                  <div
-                    className={cn(
-                      'text-sm mb-4',
-                      isFeatured ? 'text-inv-fg/50' : 'text-surface/40',
-                    )}
-                  >
+                  <div className="text-sm mb-4 text-surface/60">
                     {service.price}
                   </div>
 
-                  <div
-                    className={cn(
-                      'text-sm mb-8',
-                      isFeatured ? 'text-inv-fg/60' : 'text-surface/50',
-                    )}
-                  >
+                  <div className="text-sm mb-8 text-surface/65">
                     {service.description}
                   </div>
 
                   <ul className="space-y-4 mb-auto">
                     {service.features.map((feature) => (
                       <li key={feature} className="flex items-start gap-3">
-                        <LuCheck
-                          className={cn(
-                            'size-4 mt-0.5 shrink-0',
-                            isFeatured ? 'text-inv-fg/30' : 'text-surface/40',
-                          )}
-                        />
-                        <span
-                          className={cn(
-                            'text-sm',
-                            isFeatured ? 'text-inv-fg/60' : 'text-surface/60',
-                          )}
-                        >
+                        <LuCheck className="size-4 mt-0.5 shrink-0 text-surface/55" />
+                        <span className="text-sm text-surface/65">
                           {feature}
                         </span>
                       </li>
@@ -166,7 +135,7 @@ export default function ServicesContent() {
                   <Button
                     asChild
                     variant={
-                      isFeatured ? ButtonVariant.BLACK : ButtonVariant.DEFAULT
+                      isFeatured ? ButtonVariant.WHITE : ButtonVariant.OUTLINE
                     }
                     size={ButtonSize.PUBLIC}
                     className="mt-12 w-full text-center"
@@ -220,7 +189,7 @@ export default function ServicesContent() {
                 href={item.href}
                 className="flex items-center justify-between p-4 border border-edge/10 bg-fill/[0.02] hover:border-surface/20 transition-all"
               >
-                <span className="text-xs font-black uppercase tracking-widest text-surface/40">
+                <span className="text-xs font-black uppercase tracking-widest text-surface/60">
                   {item.label}
                 </span>
                 <span className="text-sm font-semibold text-surface">→</span>

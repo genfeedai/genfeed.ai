@@ -408,10 +408,10 @@ function RunActivityChart({ trends }: { trends: AgentRunTrendPoint[] }) {
         />
         <Tooltip
           contentStyle={{
-            background: '#111111',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'hsl(var(--popover))',
+            border: '1px solid hsl(var(--border))',
             borderRadius: '12px',
-            color: '#fff',
+            color: 'hsl(var(--foreground))',
             fontSize: '12px',
           }}
         />
@@ -457,10 +457,10 @@ function RunsByStatusChart({ runs }: { runs: IAgentRun[] }) {
         />
         <Tooltip
           contentStyle={{
-            background: '#111111',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'hsl(var(--popover))',
+            border: '1px solid hsl(var(--border))',
             borderRadius: '12px',
-            color: '#fff',
+            color: 'hsl(var(--foreground))',
             fontSize: '12px',
           }}
         />
@@ -509,10 +509,10 @@ function SuccessRateChart({ trends }: { trends: AgentRunTrendPoint[] }) {
         />
         <Tooltip
           contentStyle={{
-            background: '#111111',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'hsl(var(--popover))',
+            border: '1px solid hsl(var(--border))',
             borderRadius: '12px',
-            color: '#fff',
+            color: 'hsl(var(--foreground))',
             fontSize: '12px',
           }}
           formatter={(value: unknown) => [`${String(value ?? 0)}%`, 'Rate']}
@@ -558,10 +558,10 @@ function CreditsByDayChart({ trends }: { trends: AgentRunTrendPoint[] }) {
         />
         <Tooltip
           contentStyle={{
-            background: '#111111',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'hsl(var(--popover))',
+            border: '1px solid hsl(var(--border))',
             borderRadius: '12px',
-            color: '#fff',
+            color: 'hsl(var(--foreground))',
             fontSize: '12px',
           }}
         />

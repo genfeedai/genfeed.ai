@@ -25,7 +25,7 @@ function BrandCard({ brand, orgSlug }: { brand: Brand; orgSlug: string }) {
   return (
     <Link
       href={cardHref}
-      className="group flex flex-col gap-4 rounded-card shadow-border bg-card p-5 transition hover:shadow-border-strong hover:bg-foreground/[0.04]"
+      className="group flex flex-col gap-4 rounded-card bg-card p-5 shadow-border transition hover:shadow-border-strong hover:bg-foreground/[0.04]"
     >
       <div className="flex items-center gap-3">
         {brand.logoUrl ? (
@@ -116,7 +116,7 @@ export default function OrgLandingContent() {
         </div>
         <Link
           href={orgHref('/settings/brands')}
-          className="inline-flex items-center gap-2 rounded-lg border border-border bg-foreground/[0.03] px-3.5 py-2 text-sm font-medium text-foreground/70 transition hover:border-border-strong hover:bg-foreground/[0.06] hover:text-foreground"
+          className="inline-flex items-center gap-2 rounded-lg bg-foreground/[0.03] px-3.5 py-2 text-sm font-medium text-foreground/70 shadow-border transition hover:shadow-border-strong hover:bg-foreground/[0.06] hover:text-foreground"
         >
           <HiPlus className="size-4" />
           New Brand

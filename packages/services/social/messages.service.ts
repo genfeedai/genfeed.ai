@@ -309,11 +309,7 @@ export class SocialMessagesService extends BaseService<
     conversationId: string,
     messageId: string,
   ): Promise<SocialMessageModel> {
-    return this.postMessageAction(
-      conversationId,
-      `drafts/${messageId}/approve`,
-      {},
-    );
+    return this.patchDraft(conversationId, messageId, { status: 'approved' });
   }
 
   rejectDraft(
@@ -321,11 +317,10 @@ export class SocialMessagesService extends BaseService<
     messageId: string,
     reason?: string,
   ): Promise<SocialMessageModel> {
-    return this.postMessageAction(
-      conversationId,
-      `drafts/${messageId}/reject`,
-      reason ? { reason, text: reason } : {},
-    );
+    return this.patchDraft(conversationId, messageId, {
+      reason,
+      status: 'rejected',
+    });
   }
 
   postReply(
@@ -346,24 +341,26 @@ export class SocialMessagesService extends BaseService<
     conversationId: string,
     status: SocialConversationStatus,
   ): Promise<SocialConversationModel> {
-    return this.patch(`${conversationId}/status`, { status });
+    return this.patch(conversationId, { status });
   }
 
   updateTags(
     conversationId: string,
     tags: string[],
   ): Promise<SocialConversationModel> {
-    return this.patch(`${conversationId}/tags`, { tags });
+    return this.patch(conversationId, { tags });
   }
 
   assignOwner(
     conversationId: string,
     assignedOwnerId: string | null,
   ): Promise<SocialConversationModel> {
+    // Sent via the raw client rather than `patch()` because unassigning
+    // requires an explicit `null`, which `patch()` strips as an empty value.
     return this.executeWithErrorHandling(
-      `PATCH ${this.baseURL}/${conversationId}/assignment`,
+      `PATCH ${this.baseURL}/${conversationId}`,
       this.instance
-        .patch<JsonApiResponseDocument>(`/${conversationId}/assignment`, {
+        .patch<JsonApiResponseDocument>(`/${conversationId}`, {
           assignedOwnerId,
         })
         .then((response) => this.mapOne(response.data)),
@@ -388,6 +385,26 @@ export class SocialMessagesService extends BaseService<
       `POST ${this.baseURL}/${conversationId}/${action}`,
       this.instance
         .post<JsonApiResponseDocument>(`/${conversationId}/${action}`, input)
+        .then((response) => response.data)
+        .then(
+          (document) =>
+            new SocialMessageModel(
+              this.extractResource<Partial<SocialMessage>>(document),
+            ),
+        ),
+    );
+  }
+
+  private patchDraft(
+    conversationId: string,
+    messageId: string,
+    input: { status: 'approved' | 'rejected'; reason?: string },
+  ): Promise<SocialMessageModel> {
+    const path = `/${conversationId}/drafts/${messageId}`;
+    return this.executeWithErrorHandling(
+      `PATCH ${this.baseURL}${path}`,
+      this.instance
+        .patch<JsonApiResponseDocument>(path, input)
         .then((response) => response.data)
         .then(
           (document) =>

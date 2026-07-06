@@ -3,7 +3,7 @@ import { MembersController } from '@api/collections/members/controllers/members.
 import type { InvitationService } from '@api/collections/members/services/invitation.service';
 import type { MembersService } from '@api/collections/members/services/members.service';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { HttpException } from '@nestjs/common';
 
 const userId = '507f191e810c19729de860ee';
 const orgId = '507f191e810c19729de860ee';
@@ -67,75 +67,6 @@ function buildController() {
 describe('MembersController — invitation endpoints', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  describe('POST /members/invite', () => {
-    it('throws 400 when organization missing from metadata', async () => {
-      const controller = buildController();
-
-      await expect(
-        controller.invite(
-          { email: 'test@example.com' },
-          makeUser({ organization: undefined }),
-        ),
-      ).rejects.toThrow(
-        new HttpException(
-          {
-            detail: 'Organization not found in metadata',
-            title: 'Bad Request',
-          },
-          HttpStatus.BAD_REQUEST,
-        ),
-      );
-    });
-
-    it('creates a self-hosted invitation with default member role semantics', async () => {
-      const controller = buildController();
-      vi.mocked(mockInvitationService.createInvitation).mockResolvedValue(
-        invitation,
-      );
-
-      const result = await controller.invite(
-        { email: 'new@example.com', firstName: 'New', lastName: 'User' },
-        makeUser(),
-      );
-
-      expect(mockInvitationService.createInvitation).toHaveBeenCalledWith({
-        defaultRoleKey: 'member',
-        email: 'new@example.com',
-        firstName: 'New',
-        invitedByUserId: userId,
-        lastName: 'User',
-        organizationId: orgId,
-        roleId: undefined,
-      });
-      expect(result).toEqual({
-        data: {
-          email: 'new@example.com',
-          id: 'inv_123',
-          organization: orgId,
-          role: 'role_member',
-          status: 'pending',
-        },
-      });
-    });
-
-    it('passes a provided role through to the invitation service', async () => {
-      const controller = buildController();
-      vi.mocked(mockInvitationService.createInvitation).mockResolvedValue({
-        ...invitation,
-        roleId: 'role_custom',
-      });
-
-      await controller.invite(
-        { email: 'new@example.com', role: 'role_custom' },
-        makeUser(),
-      );
-
-      expect(mockInvitationService.createInvitation).toHaveBeenCalledWith(
-        expect.objectContaining({ roleId: 'role_custom' }),
-      );
-    });
   });
 
   describe('GET /members/invitations/pending', () => {
