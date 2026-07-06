@@ -39,6 +39,7 @@ function createPrisma() {
             { name: 'providerJobId' },
             { name: 'viralityScore' },
             { name: 'status' },
+            { name: 'mode' },
             { name: 'isSelected' },
             { name: 'readiness' },
             { name: 'terminalAt' },
@@ -119,6 +120,39 @@ describe('ClipResultsService', () => {
         viralityScore: 88,
       }),
     });
+  });
+
+  it('routes mode to a durable column, not the data JSON blob', async () => {
+    prisma.clipResult.create.mockResolvedValue({
+      data: {},
+      id: 'clip-1',
+      isSelected: false,
+      mode: 'raw-cut',
+      organizationId: 'org-1',
+      projectId: 'project-1',
+      readiness: {},
+      status: 'pending',
+    });
+
+    await service.create({
+      duration: 30,
+      endTime: 45,
+      index: 0,
+      mode: 'raw-cut',
+      organization: 'org-1',
+      project: 'project-1',
+      startTime: 15,
+      title: 'Raw cut',
+      user: 'user-1',
+    } as unknown as CreateClipResultDto);
+
+    const createArgs = prisma.clipResult.create.mock.calls[0]?.[0] as {
+      data: Record<string, unknown> & { data: Record<string, unknown> };
+    };
+    // Top-level scalar column, so it can be queried + indexed.
+    expect(createArgs.data.mode).toBe('raw-cut');
+    // Never duplicated into the JSON blob.
+    expect(createArgs.data.data.mode).toBeUndefined();
   });
 
   it('merges patch data and adds terminal readiness for completed clips', async () => {

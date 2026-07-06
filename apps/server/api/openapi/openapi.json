@@ -938,6 +938,14 @@
         ],
         "type": "string"
       },
+      "ClipResultMode": {
+        "description": "Clip generation mode (defaults to avatar)",
+        "enum": [
+          "avatar",
+          "raw-cut"
+        ],
+        "type": "string"
+      },
       "ClipResultStatus": {
         "description": "Clip terminal processing status",
         "enum": [
@@ -2025,6 +2033,14 @@
           "isSelected": {
             "description": "Whether the clip is selected",
             "type": "boolean"
+          },
+          "mode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ClipResultMode"
+              }
+            ],
+            "description": "Clip generation mode (defaults to avatar)"
           },
           "organization": {
             "description": "The organization ID that owns this resource",
@@ -10898,6 +10914,14 @@
           "isSelected": {
             "description": "Whether the clip is selected",
             "type": "boolean"
+          },
+          "mode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ClipResultMode"
+              }
+            ],
+            "description": "Clip generation mode (defaults to avatar)"
           },
           "providerJobId": {
             "description": "External provider job ID",
