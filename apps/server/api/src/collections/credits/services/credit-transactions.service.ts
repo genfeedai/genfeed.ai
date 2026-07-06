@@ -11,6 +11,12 @@ import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
+type CreateTransactionEntryOptions = {
+  metadata?: Record<string, unknown>;
+  referenceId?: string;
+  referenceType?: string;
+};
+
 @Injectable()
 export class CreditTransactionsService extends BaseService<
   CreditTransactionsDocument,
@@ -27,10 +33,6 @@ export class CreditTransactionsService extends BaseService<
     private readonly cacheInvalidationService: CacheInvalidationService,
   ) {
     super(prisma, 'creditTransaction', logger);
-  }
-
-  private isCreditObject(value: unknown): value is Record<string, unknown> {
-    return value !== null && typeof value === 'object' && !Array.isArray(value);
   }
 
   private toDate(value: unknown): Date | undefined {
@@ -73,6 +75,7 @@ export class CreditTransactionsService extends BaseService<
     description?: string,
     expiresAt?: Date,
     tx?: PrismaTransactionClient,
+    options?: CreateTransactionEntryOptions,
   ): Promise<CreditTransactionsDocument> {
     if (
       !organizationId ||
@@ -110,11 +113,16 @@ export class CreditTransactionsService extends BaseService<
       description,
       isDeleted: false,
       metadata: {
+        ...(options?.metadata ?? {}),
         balanceBefore,
         category,
         ...(expiresAt ? { expiresAt: expiresAt.toISOString() } : {}),
       },
       organizationId,
+      ...(options?.referenceId ? { referenceId: options.referenceId } : {}),
+      ...(options?.referenceType
+        ? { referenceType: options.referenceType }
+        : {}),
       source,
     } as Record<string, unknown>;
 

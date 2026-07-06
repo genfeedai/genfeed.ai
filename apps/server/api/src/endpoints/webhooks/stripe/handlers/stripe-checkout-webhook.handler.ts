@@ -214,12 +214,28 @@ export class StripeCheckoutWebhookHandler {
         );
 
         // Add credits using new credit system
-        await this.supportService.addPurchasedCredits(
+        const didAddCredits = await this.supportService.addPurchasedCredits(
           String(subscription.organization),
           creditsToAdd,
           'pay-as-you-go',
           `Credit pack purchase (${creditsToAdd} credits)`,
+          this.supportService.buildCheckoutSessionCreditReference(
+            'organization-payment',
+            session.id,
+          ),
         );
+
+        if (!didAddCredits) {
+          this.loggerService.log(
+            `${url} PAYG checkout credit grant already exists`,
+            {
+              customerId: session.customer,
+              organizationId: subscription.organization,
+              sessionId: session.id,
+            },
+          );
+          return true;
+        }
 
         const newBalance =
           await this.creditsUtilsService.getOrganizationCreditsBalance(
@@ -309,28 +325,12 @@ export class StripeCheckoutWebhookHandler {
             url,
           );
 
-          const didCache =
-            await this.managedStripeCheckoutService.cacheCheckoutResult(
-              sessionId,
-              result,
-            );
-
-          if (!didCache) {
-            throw new Error(
-              `Failed to cache managed checkout result for session ${sessionId}`,
-            );
-          }
-
-          const didMarkProvisioned =
-            await this.managedStripeCheckoutService.markSessionProvisioned(
-              sessionId,
-            );
-
-          if (!didMarkProvisioned) {
-            throw new Error(
-              `Failed to mark managed checkout session ${sessionId} as provisioned`,
-            );
-          }
+          await this.cacheManagedCheckoutResultBestEffort(
+            sessionId,
+            result,
+            url,
+          );
+          await this.markManagedCheckoutProvisionedBestEffort(sessionId, url);
 
           return result;
         },
@@ -347,6 +347,66 @@ export class StripeCheckoutWebhookHandler {
       sessionId,
       userId: provisioned.userId,
     });
+  }
+
+  private async cacheManagedCheckoutResultBestEffort(
+    sessionId: string,
+    result: ManagedCheckoutResult,
+    url: string,
+  ): Promise<void> {
+    try {
+      const didCache =
+        await this.managedStripeCheckoutService.cacheCheckoutResult(
+          sessionId,
+          result,
+        );
+
+      if (!didCache) {
+        this.loggerService.warn(
+          `${url} failed to cache managed checkout result`,
+          { sessionId },
+        );
+      }
+    } catch (error: unknown) {
+      this.loggerService.warn(
+        `${url} failed to cache managed checkout result`,
+        {
+          error: this.toErrorMessage(error),
+          sessionId,
+        },
+      );
+    }
+  }
+
+  private async markManagedCheckoutProvisionedBestEffort(
+    sessionId: string,
+    url: string,
+  ): Promise<void> {
+    try {
+      const didMarkProvisioned =
+        await this.managedStripeCheckoutService.markSessionProvisioned(
+          sessionId,
+        );
+
+      if (!didMarkProvisioned) {
+        this.loggerService.warn(
+          `${url} failed to mark managed checkout session as provisioned`,
+          { sessionId },
+        );
+      }
+    } catch (error: unknown) {
+      this.loggerService.warn(
+        `${url} failed to mark managed checkout session as provisioned`,
+        {
+          error: this.toErrorMessage(error),
+          sessionId,
+        },
+      );
+    }
+  }
+
+  private toErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
   }
 
   private async provisionManagedCheckoutAccount(
@@ -369,11 +429,15 @@ export class StripeCheckoutWebhookHandler {
       );
     }
 
-    await this.supportService.addPurchasedCredits(
+    const didAddCredits = await this.supportService.addPurchasedCredits(
       String(organization.id),
       creditsToAdd,
       'managed-inference',
       `Managed credit pack purchase (${creditsToAdd} credits)`,
+      this.supportService.buildCheckoutSessionCreditReference(
+        'managed-inference',
+        session.id,
+      ),
     );
 
     const plainKey = await this.ensureManagedApiKey(
@@ -401,21 +465,36 @@ export class StripeCheckoutWebhookHandler {
     // resolvers route from the DB (epic #735, Phase C — no legacy auth provider write-back).
     await this.accessBootstrapCacheService.invalidateForUser(String(dbUser.id));
 
-    await this.supportService.recordCreditsActivity({
-      brandId: String(brand.id),
-      organizationId: String(organization.id),
-      source: ActivitySource.PAY_AS_YOU_GO,
-      userId: String(dbUser.id),
-      value: String(creditsToAdd),
-    });
+    // The credit grant is the durable replay guard. API-key provisioning is
+    // get-or-create and the user/settings patches above are deterministic, so a
+    // retry after Redis marker failure can safely skip duplicate activity.
+    if (didAddCredits) {
+      await this.supportService.recordCreditsActivity({
+        brandId: String(brand.id),
+        organizationId: String(organization.id),
+        source: ActivitySource.PAY_AS_YOU_GO,
+        userId: String(dbUser.id),
+        value: String(creditsToAdd),
+      });
 
-    this.loggerService.log(`${url} managed checkout credits added`, {
-      creditsAdded: creditsToAdd,
-      ...getEmailLogMetadata(email),
-      organizationId: organization.id,
-      sessionId: session.id,
-      userId: dbUser.id,
-    });
+      this.loggerService.log(`${url} managed checkout credits added`, {
+        creditsAdded: creditsToAdd,
+        ...getEmailLogMetadata(email),
+        organizationId: organization.id,
+        sessionId: session.id,
+        userId: dbUser.id,
+      });
+    } else {
+      this.loggerService.log(
+        `${url} managed checkout credit grant already exists`,
+        {
+          ...getEmailLogMetadata(email),
+          organizationId: organization.id,
+          sessionId: session.id,
+          userId: dbUser.id,
+        },
+      );
+    }
 
     return {
       apiKey: plainKey,
@@ -734,12 +813,30 @@ export class StripeCheckoutWebhookHandler {
         );
 
         // Add credits to organization balance (1 year expiration)
-        await this.supportService.addPurchasedCredits(
+        const didAddCredits = await this.supportService.addPurchasedCredits(
           organizationId,
           creditsToAdd,
           'user-purchase',
           `Credit pack purchase (${creditsToAdd} credits) via Stripe`,
+          this.supportService.buildCheckoutSessionCreditReference(
+            'user-credit',
+            session.id,
+          ),
         );
+
+        if (!didAddCredits) {
+          this.loggerService.log(
+            `${url} user checkout credit grant already exists`,
+            {
+              customerId: session.customer,
+              mode: session.mode,
+              organizationId,
+              sessionId: session.id,
+              userId,
+            },
+          );
+          return true;
+        }
 
         const newBalance =
           await this.creditsUtilsService.getOrganizationCreditsBalance(

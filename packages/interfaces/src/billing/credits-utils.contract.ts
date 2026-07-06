@@ -60,6 +60,12 @@ export interface IDeductCreditsOptions {
   maxOverdraftCredits?: number;
 }
 
+export interface IAddCreditsOptions {
+  metadata?: Record<string, unknown>;
+  referenceId?: string;
+  referenceType?: string;
+}
+
 export interface ICreditsUtilsService {
   /**
    * Returns true if the organization has at least `requiredCredits` available.
@@ -107,6 +113,7 @@ export interface ICreditsUtilsService {
     source: string,
     description: string,
     expiresAt: Date,
+    options?: IAddCreditsOptions,
   ): Promise<void>;
 
   /**
