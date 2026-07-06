@@ -24,6 +24,7 @@ import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
+  SortObject,
 } from '@genfeedai/interfaces';
 import { TaskSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -209,11 +210,17 @@ export class TasksController extends BaseCRUDController<
       ];
     }
 
-    const sort =
+    // Numeric direction convention (1 = asc, -1 = desc); BaseService.normalizeSort
+    // maps these to Prisma 'asc'/'desc'. Array form preserves the two-key order
+    // (reviewState asc, then updatedAt desc) that the legacy /inbox route used.
+    // The explicit SortObject[] annotation stops TS from widening the mixed-key
+    // array literal to a `{ key: dir; other?: undefined }` union that would break
+    // the Record index signature on the base buildFindAllQuery return type.
+    const sort: SortObject | SortObject[] =
       query.view === 'inbox'
-        ? [{ reviewState: 'asc' as const }, { updatedAt: 'desc' as const }]
+        ? [{ reviewState: 1 }, { updatedAt: -1 }]
         : query.view === 'in_progress'
-          ? { updatedAt: -1 as const }
+          ? { updatedAt: -1 }
           : handleQuerySort(query.sort);
 
     return {
