@@ -365,7 +365,9 @@ describe('StripeWebhookSupportService', () => {
 
     it('warns instead of throwing when the patch fails', async () => {
       organizationSettingsService.findOne.mockResolvedValue({ id: 'os_1' });
-      organizationSettingsService.patch.mockRejectedValue(new Error('boom'));
+      organizationSettingsService.patch.mockRejectedValueOnce(
+        new Error('boom'),
+      );
 
       await service.setHasEverHadCredits('org_1', 'test');
 
@@ -407,7 +409,9 @@ describe('StripeWebhookSupportService', () => {
 
     it('logs patch failures with the caller-provided message', async () => {
       organizationSettingsService.findOne.mockResolvedValue({ id: 'os_1' });
-      organizationSettingsService.patch.mockRejectedValue(new Error('boom'));
+      organizationSettingsService.patch.mockRejectedValueOnce(
+        new Error('boom'),
+      );
 
       await service.setByokBillingStatus(
         'org_1',
