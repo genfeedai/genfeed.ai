@@ -410,9 +410,9 @@ export class StripeService {
     type: string;
   } {
     const priceToTier: Record<string, string> = {
-      [this.configService.get('STRIPE_PRICE_SUBSCRIPTION_CREATOR_MONTHLY') ||
-        '']: 'creator',
       [this.configService.get('STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY') || '']:
+        'pro',
+      [this.configService.get('STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY') || '']:
         'pro',
       [this.configService.get('STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY') || '']:
         'scale',
@@ -422,9 +422,13 @@ export class StripeService {
 
     const tier = priceToTier[stripePriceId] || 'custom';
 
+    const isYearly =
+      stripePriceId ===
+      this.configService.get('STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY');
+
     return {
       tier,
-      type: 'monthly',
+      type: isYearly ? 'yearly' : 'monthly',
     };
   }
 
@@ -438,11 +442,13 @@ export class StripeService {
     sessionConfig: NonNullable<StripeCheckoutSessionCreateParams>,
     stripePriceId: string,
   ): void {
-    const isCreatorSubscription =
+    // The launch coupon ($10/mo off for 12 months) is designed for the monthly
+    // Pro plan only — yearly/other tiers keep manual promo entry.
+    const isLaunchEligiblePrice =
       stripePriceId ===
       this.configService.get('STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY');
 
-    const promotionCodeId = isCreatorSubscription
+    const promotionCodeId = isLaunchEligiblePrice
       ? this.configService.get('STRIPE_PROMOTION_CODE_LAUNCH')
       : undefined;
 
@@ -463,13 +469,14 @@ export class StripeService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      // Determine if this is a subscription or one-time payment
-      // New tier-based pricing: Pro ($499), Scale ($1,499), Enterprise ($4,999), Creator ($50 - unlisted)
+      // Determine if this is a subscription or one-time payment.
+      // Tier pricing: Pro ($49/mo, "Creator" card + yearly), Scale ($499/mo,
+      // "Cloud Teams" card), Enterprise (custom).
       const subscriptionPriceIds = [
-        this.configService.get('STRIPE_PRICE_SUBSCRIPTION_CREATOR_MONTHLY'), // $50/mo - unlisted
-        this.configService.get('STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY'), // $499/mo
-        this.configService.get('STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY'), // $1,499/mo
-        this.configService.get('STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY'), // $4,999/mo
+        this.configService.get('STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY'),
+        this.configService.get('STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY'),
+        this.configService.get('STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY'),
+        this.configService.get('STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY'),
       ].filter(Boolean);
 
       const isSubscription = subscriptionPriceIds.includes(stripePriceId);

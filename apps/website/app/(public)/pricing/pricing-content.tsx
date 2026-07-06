@@ -27,8 +27,8 @@ import {
 import PageLayout from '@web-components/PageLayout';
 import { HiCheckCircle } from 'react-icons/hi2';
 
-const PLAN_ORDER = ['Pay As You Go', 'Hosted', 'Cloud Teams'];
-const FEATURED_TIER = 'Hosted';
+const PLAN_ORDER = ['Pay As You Go', 'Pro', 'Scale'];
+const FEATURED_TIER = 'Pro';
 
 const FAQ_ITEMS = [
   {
@@ -48,12 +48,12 @@ const FAQ_ITEMS = [
   },
   {
     answer:
-      'Creator ($49/month) includes 8,000 credits (about $80 of pay-as-you-go output) plus 5 brand kits and 15 connected channels. Teams ($499/month) includes 5 seats, 80,000 credits in a shared pool, multi-organization control, and approvals.',
+      'Pro ($49/month) includes 8,000 credits (about $80 of pay-as-you-go output) plus 5 brand kits and 15 connected channels. Scale ($499/month) includes 5 seats, 80,000 credits in a shared pool, multi-organization control, and approvals.',
     question: 'What do subscriptions add?',
   },
   {
     answer:
-      'Pay As You Go includes 1 brand kit and 3 connected channels. Creator raises that to 5 brand kits and 15 channels. Teams and Enterprise remove the limits and add organizations and seats.',
+      'Pay As You Go includes 1 brand kit and 3 connected channels. Pro raises that to 5 brand kits and 15 channels. Scale and Enterprise remove the limits and add organizations and seats.',
     question: 'How many brands and channels can I connect?',
   },
   {
@@ -116,12 +116,6 @@ function getOrderedPlans() {
 }
 
 function getDisplayName(label: string): string {
-  if (label === 'Hosted') {
-    return 'Creator';
-  }
-  if (label === 'Cloud Teams') {
-    return 'Teams';
-  }
   return label;
 }
 
@@ -133,7 +127,7 @@ function getPriceQualifier(plan: (typeof websitePlans)[number]): string {
   if (plan.type === 'subscription') {
     const credits = plan.includedCredits?.toLocaleString();
 
-    return plan.label === 'Cloud Teams'
+    return plan.label === 'Scale'
       ? `5 seats + ${credits} credits`
       : `${credits} credits included`;
   }
@@ -148,7 +142,7 @@ function getPlanSummary(plan: (typeof websitePlans)[number]): string {
 export default function PricingContent() {
   const containerRef = useMarketingEntrance({ hero: false, sections: false });
   const paygSignUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
-  const creatorSignUpHref = `${EnvironmentService.apps.app}/sign-up?plan=hosted`;
+  const proSignUpHref = `${EnvironmentService.apps.app}/sign-up?plan=pro`;
   const enterprisePlan = websitePlans.find((p) => p.type === 'enterprise');
 
   return (
@@ -173,7 +167,7 @@ export default function PricingContent() {
         <WebSection maxWidth="full" py="md">
           <SectionHeader
             title="Start free. Subscribe when volume makes it cheaper."
-            description="Pay As You Go covers bursty campaigns with zero commitment. Creator and Teams include monthly credits at a ~40% better rate, plus more brands, channels, and seats."
+            description="Pay As You Go covers bursty campaigns with zero commitment. Pro and Scale include monthly credits at a ~40% better rate, plus more brands, channels, and seats."
             className="[&_h2]:text-5xl mb-4"
           />
 
@@ -184,7 +178,7 @@ export default function PricingContent() {
               const ctaHref = isPayg
                 ? paygSignUpHref
                 : isFeatured
-                  ? creatorSignUpHref
+                  ? proSignUpHref
                   : plan.ctaHref || EnvironmentService.calendly;
               const ctaLabel = plan.cta || 'Get Started';
 
