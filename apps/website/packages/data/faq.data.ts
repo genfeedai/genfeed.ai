@@ -86,7 +86,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
       },
       {
         answer:
-          'Yes. Signing up costs nothing and there is no monthly fee on Pay As You Go: you buy credits and spend them on output. Developers can also self-host the open-source core from GitHub.',
+          'Yes. Signing up costs nothing and there is no monthly fee on Pay As You Go: you buy credits and spend them on output.',
         question: 'Is there a free option?',
       },
       {

@@ -162,7 +162,7 @@ describe('pricing.helper', () => {
       const plan = getProPlan();
       expect(plan.launchPrice).toBe(39);
       expect(plan.launchNote).toBe(
-        'Launch pricing — first 12 months, then $49/month',
+        'Launch pricing (code EARLYGENFEED) — first 12 months, then $49/month',
       );
     });
 

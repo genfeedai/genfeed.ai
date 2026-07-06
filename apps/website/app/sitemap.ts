@@ -54,6 +54,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
       url: 'https://genfeed.ai/launch-content',
     },
+    // High-ticket pitch pages: unlinked from nav/footer (direct-send sales
+    // collateral) but kept indexable so a shared link can still rank.
+    {
+      changeFrequency: 'monthly',
+      lastModified: new Date(),
+      priority: 0.6,
+      url: 'https://genfeed.ai/retainer',
+    },
+    {
+      changeFrequency: 'monthly',
+      lastModified: new Date(),
+      priority: 0.6,
+      url: 'https://genfeed.ai/dfy',
+    },
+    {
+      changeFrequency: 'monthly',
+      lastModified: new Date(),
+      priority: 0.6,
+      url: 'https://genfeed.ai/fleet',
+    },
     {
       changeFrequency: 'weekly',
       lastModified: new Date(),
@@ -149,6 +169,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       priority: 0.7,
       url: 'https://genfeed.ai/services',
+    },
+    {
+      changeFrequency: 'weekly',
+      lastModified: new Date(),
+      priority: 0.8,
+      url: 'https://genfeed.ai/self-hosted',
     },
     {
       changeFrequency: 'weekly',
