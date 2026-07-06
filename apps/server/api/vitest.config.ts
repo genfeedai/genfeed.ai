@@ -146,6 +146,13 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, './src'),
       },
       {
+        find: /^@api-types\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/api-types/src/$1',
+        ),
+      },
+      {
         // Mirrors the webpack/tsconfig `@billing-providers` alias for the api's
         // own unit tests: with ee/packages/billing out of the api graph, the
         // billing collection modules resolve to the in-tree OSS fragment. The EE

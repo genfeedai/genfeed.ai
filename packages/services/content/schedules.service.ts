@@ -1,3 +1,9 @@
+import type {
+  ChannelCapability,
+  ChannelCapabilityListOptions,
+  ChannelTargetValidationResult,
+  ValidateChannelTargetSettingsInput,
+} from '@api-types/contracts';
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type { Schedule } from '@genfeedai/props/publisher/schedule.props';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -19,5 +25,37 @@ export class SchedulesService extends HTTPBaseService {
       scheduledAt: new Date(schedule.scheduledAt),
       schedulingMethod: schedule.schedulingMethod || 'manual',
     }));
+  }
+
+  async getChannelCapabilities(
+    options: ChannelCapabilityListOptions = {},
+  ): Promise<ChannelCapability[]> {
+    const response = await this.instance.get<ChannelCapability[]>(
+      '/channel-capabilities',
+      {
+        params: options,
+      },
+    );
+
+    return response.data;
+  }
+
+  async getChannelCapability(platform: string): Promise<ChannelCapability> {
+    const response = await this.instance.get<ChannelCapability>(
+      `/channel-capabilities/${platform}`,
+    );
+
+    return response.data;
+  }
+
+  async validateChannelTargetSettings(
+    input: ValidateChannelTargetSettingsInput,
+  ): Promise<ChannelTargetValidationResult> {
+    const response = await this.instance.post<ChannelTargetValidationResult>(
+      '/channel-capabilities/validate',
+      input,
+    );
+
+    return response.data;
   }
 }
