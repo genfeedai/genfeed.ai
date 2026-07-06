@@ -258,7 +258,12 @@ describe('Tabs', () => {
       />,
     );
 
-    expect(screen.getByRole('link', { name: /settings/i })).toHaveClass(
+    const inactiveTab = screen.getByRole('link', { name: /settings/i });
+
+    expect(inactiveTab).toHaveClass(
+      'data-[variant=default]:text-foreground/70',
+    );
+    expect(inactiveTab).not.toHaveClass(
       'data-[variant=default]:text-secondary',
     );
   });
