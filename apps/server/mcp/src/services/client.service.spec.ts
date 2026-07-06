@@ -327,39 +327,6 @@ describe('ClientService (MCP)', () => {
 
   // ==================== AVATAR TESTS ====================
 
-  describe('createAvatar', () => {
-    it('should create avatar with valid parameters', async () => {
-      const params = {
-        age: 'middle-aged' as const,
-        gender: 'female' as const,
-        name: 'Sarah',
-        style: 'professional' as const,
-      };
-
-      const mockResponse = {
-        data: {
-          data: {
-            attributes: { status: 'processing' },
-            id: 'avatar-123',
-          },
-        },
-      };
-
-      (mockAxiosInstance.post as Mock).mockResolvedValue(mockResponse);
-
-      const result = await service.createAvatar(params);
-
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
-        '/avatars/generate',
-        expect.objectContaining({
-          data: expect.objectContaining({ type: 'avatars' }),
-        }),
-      );
-      expect(result.id).toBe('avatar-123');
-      expect(result.name).toBe('Sarah');
-    });
-  });
-
   describe('listAvatars', () => {
     it('should return list of avatars', async () => {
       const mockResponse = {
@@ -554,14 +521,16 @@ describe('ClientService (MCP)', () => {
   });
 
   describe('getUsageStats', () => {
-    it('should return usage statistics', async () => {
+    it('should return usage statistics from the credit-usage endpoint', async () => {
+      // get_usage_stats now sources from GET /credits/usage (PR 5/6): the
+      // credit-ledger breakdown maps onto contentCreated, `used` onto
+      // creditsUsed. There is no `/usage/stats` route in the OSS API.
       const mockResponse = {
         data: {
           data: {
             attributes: {
-              contentCreated: { articles: 5, images: 10, videos: 2 },
-              creditsUsed: 100,
-              postsPublished: 15,
+              breakdown: { articles: 5, images: 10, videos: 2 },
+              used: 100,
             },
           },
         },
@@ -571,10 +540,11 @@ describe('ClientService (MCP)', () => {
 
       const result = await service.getUsageStats('30d');
 
-      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/usage/stats', {
-        params: { timeRange: '30d' },
-      });
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/credits/usage');
       expect(result.creditsUsed).toBe(100);
+      expect(result.contentCreated.articles).toBe(5);
+      expect(result.contentCreated.videos).toBe(2);
+      expect(result.timeRange).toBe('30d');
     });
   });
 
@@ -707,7 +677,7 @@ describe('ClientService (MCP)', () => {
 
       expect(mockAxiosInstance.get).toHaveBeenCalledWith('/runs/run-1');
       expect(mockAxiosInstance.post).toHaveBeenCalledWith(
-        '/threads/thread-1/messages',
+        '/agent/threads/thread-1/messages',
         { content: 'Retry this run' },
       );
       expect(result).toEqual({ id: 'turn-1' });

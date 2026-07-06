@@ -23,7 +23,6 @@ import {
   type ListClipProjectsParams,
 } from '@mcp/services/client/clips.client';
 import { ContentClient } from '@mcp/services/client/content.client';
-import { DarkroomClient } from '@mcp/services/client/darkroom.client';
 import { LinkedInClient } from '@mcp/services/client/linkedin.client';
 import { MediaClient } from '@mcp/services/client/media.client';
 import {
@@ -51,7 +50,6 @@ import type {
   ArticleSearchResult,
 } from '@mcp/shared/interfaces/article.interface';
 import type {
-  AvatarCreationParams,
   AvatarListParams,
   AvatarResponse,
 } from '@mcp/shared/interfaces/avatar.interface';
@@ -98,7 +96,7 @@ import { Injectable } from '@nestjs/common';
  * Composition root for the MCP → Genfeed API client.
  *
  * The HTTP surface is decomposed into per-domain clients (media, content,
- * workflows, ads, darkroom, analytics, workspace, agent, LinkedIn) that all
+ * workflows, ads, analytics, workspace, agent, LinkedIn) that all
  * share a single {@link BaseApiClient} — and therefore a single axios instance,
  * so {@link setBearerToken} propagates to every sub-client. This class is a thin
  * aggregator: it owns no request logic and only delegates, preserving the exact
@@ -115,7 +113,6 @@ export class ClientService {
   private readonly workflows: WorkflowClient;
   private readonly workspace: WorkspaceClient;
   private readonly ads: AdsClient;
-  private readonly darkroom: DarkroomClient;
   private readonly socialMessages: SocialMessagesClient;
   // False positive below: the 14-char type name "LinkedInClient" next to the
   // `linkedin` identifier matches the default gitleaks linkedin-client-id rule.
@@ -135,7 +132,6 @@ export class ClientService {
     this.workflows = new WorkflowClient(this.base);
     this.workspace = new WorkspaceClient(this.base);
     this.ads = new AdsClient(this.base);
-    this.darkroom = new DarkroomClient(this.base);
     this.socialMessages = new SocialMessagesClient(this.base);
     this.linkedin = new LinkedInClient(this.base);
   }
@@ -223,10 +219,6 @@ export class ClientService {
 
   listImages(params: ImageListParams = {}): Promise<ImageResponse[]> {
     return this.media.listImages(params);
-  }
-
-  createAvatar(params: AvatarCreationParams): Promise<AvatarResponse> {
-    return this.media.createAvatar(params);
   }
 
   listAvatars(params: AvatarListParams = {}): Promise<AvatarResponse[]> {
@@ -677,68 +669,6 @@ export class ClientService {
       limit,
       loginCustomerId,
     );
-  }
-
-  // ── Darkroom / Training ──
-
-  getDarkroomHealth(): Promise<Record<string, unknown>> {
-    return this.darkroom.getDarkroomHealth();
-  }
-
-  controlComfyUi(
-    action: string,
-    confirm?: boolean,
-  ): Promise<Record<string, unknown>> {
-    return this.darkroom.controlComfyUi(action, confirm);
-  }
-
-  listLoras(): Promise<unknown[]> {
-    return this.darkroom.listLoras();
-  }
-
-  listGpuPersonas(): Promise<unknown[]> {
-    return this.darkroom.listGpuPersonas();
-  }
-
-  startTraining(params: {
-    handle: string;
-    steps?: number;
-    rank?: number;
-    learningRate?: number;
-  }): Promise<Record<string, unknown>> {
-    return this.darkroom.startTraining(params);
-  }
-
-  getTrainingStatus(jobId: string): Promise<Record<string, unknown>> {
-    return this.darkroom.getTrainingStatus(jobId);
-  }
-
-  getDatasetInfo(handle: string): Promise<Record<string, unknown>> {
-    return this.darkroom.getDatasetInfo(handle);
-  }
-
-  deleteDataset(
-    handle: string,
-    confirm: boolean,
-  ): Promise<Record<string, unknown>> {
-    return this.darkroom.deleteDataset(handle, confirm);
-  }
-
-  runCaptioning(handle: string): Promise<Record<string, unknown>> {
-    return this.darkroom.runCaptioning(handle);
-  }
-
-  generateDarkroomContent(params: {
-    type: string;
-    prompt?: string;
-    count?: number;
-    personaHandle?: string;
-  }): Promise<Record<string, unknown>> {
-    return this.darkroom.generateDarkroomContent(params);
-  }
-
-  getDarkroomJobStatus(jobId: string): Promise<Record<string, unknown>> {
-    return this.darkroom.getDarkroomJobStatus(jobId);
   }
 
   // ── LinkedIn ──
