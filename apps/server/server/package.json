@@ -6,7 +6,7 @@
     "@genfeedai/prisma": "workspace:*",
     "@genfeedai/queue-contracts": "workspace:*"
   },
-  "description": "Server-tier domain services shared by Genfeed API and workers",
+  "description": "Server-tier services shared by Genfeed API and workers",
   "devDependencies": {
     "@nestjs/testing": "11.1.27",
     "@types/node": "26.1.0",

@@ -459,23 +459,6 @@
         "discord.js": "14.26.4",
       },
     },
-    "apps/server/domain": {
-      "name": "@genfeedai/server",
-      "version": "0.1.0",
-      "dependencies": {
-        "@genfeedai/enums": "workspace:*",
-        "@genfeedai/helpers": "workspace:*",
-        "@genfeedai/interfaces": "workspace:*",
-        "@genfeedai/prisma": "workspace:*",
-        "@genfeedai/queue-contracts": "workspace:*",
-      },
-      "devDependencies": {
-        "@nestjs/testing": "11.1.27",
-        "@types/node": "26.1.0",
-        "typescript": "6.0.2",
-        "vitest": "4.1.10",
-      },
-    },
     "apps/server/files": {
       "name": "@genfeedai/files",
       "version": "1.0.0",
@@ -520,6 +503,23 @@
         "@slack/web-api": "7.18.0",
         "jose": "^6.2.3",
         "node-pty": "1.1.0",
+      },
+    },
+    "apps/server/server": {
+      "name": "@genfeedai/server",
+      "version": "0.1.0",
+      "dependencies": {
+        "@genfeedai/enums": "workspace:*",
+        "@genfeedai/helpers": "workspace:*",
+        "@genfeedai/interfaces": "workspace:*",
+        "@genfeedai/prisma": "workspace:*",
+        "@genfeedai/queue-contracts": "workspace:*",
+      },
+      "devDependencies": {
+        "@nestjs/testing": "11.1.27",
+        "@types/node": "26.1.0",
+        "typescript": "6.0.2",
+        "vitest": "4.1.10",
       },
     },
     "apps/server/slack": {
@@ -2009,7 +2009,7 @@
 
     "@genfeedai/serializers": ["@genfeedai/serializers@workspace:packages/serializers"],
 
-    "@genfeedai/server": ["@genfeedai/server@workspace:apps/server/domain"],
+    "@genfeedai/server": ["@genfeedai/server@workspace:apps/server/server"],
 
     "@genfeedai/services": ["@genfeedai/services@workspace:packages/services"],
 

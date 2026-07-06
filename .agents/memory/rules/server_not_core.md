@@ -3,7 +3,7 @@
 **last_verified: 2026-07-06**
 
 The #1090 extraction target for entangled NestJS domain/integration services is
-**`apps/server/domain`** (package **`@genfeedai/server`**, alias
+**`apps/server/server`** (package **`@genfeedai/server`**, alias
 **`@server/*`** in `apps/server/tsconfig.json`). The earlier alias draft
 `@domain/*` is **rejected** (Vincent, 2026-07-06): too generic — "domain" reads
 as DDD boilerplate at import sites and says nothing about which package it is.

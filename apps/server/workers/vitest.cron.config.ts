@@ -23,19 +23,19 @@ export default defineConfig({
       { find: '@api', replacement: path.resolve(serviceDir, '../api/src') },
       {
         find: '@genfeedai/server',
-        replacement: path.resolve(serviceDir, '../domain/src'),
+        replacement: path.resolve(serviceDir, '../server/src'),
       },
       {
         find: /^@genfeedai\/server\/(.*)$/,
-        replacement: path.resolve(serviceDir, '../domain/src/$1'),
+        replacement: path.resolve(serviceDir, '../server/src/$1'),
       },
       {
         find: '@server',
-        replacement: path.resolve(serviceDir, '../domain/src'),
+        replacement: path.resolve(serviceDir, '../server/src'),
       },
       {
         find: /^@server\/(.*)$/,
-        replacement: path.resolve(serviceDir, '../domain/src/$1'),
+        replacement: path.resolve(serviceDir, '../server/src/$1'),
       },
       {
         find: '@billing-providers',
