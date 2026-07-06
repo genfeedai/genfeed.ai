@@ -38,10 +38,21 @@ type WorkflowExecutionResultRow = {
   result: unknown;
 };
 
+type WorkflowExecutionRuntimeStateRow = WorkflowExecutionResultRow & {
+  isDeleted: boolean;
+  startedAt: Date | null;
+};
+
 type WorkflowExecutionCompletionRow = WorkflowExecutionResultRow & {
   startedAt: Date | null;
   workflowId: string;
 };
+
+export interface WorkflowExecutionRuntimeState {
+  metadata?: Record<string, unknown>;
+  progress?: number;
+  startedAt: Date | null;
+}
 
 @Injectable()
 export class WorkflowExecutionsService extends BaseService<
@@ -63,6 +74,32 @@ export class WorkflowExecutionsService extends BaseService<
     ],
   ): Promise<WorkflowExecutionDocument | null> {
     return await super.findOne(params, populate);
+  }
+
+  @HandleErrors('get execution runtime state', 'workflow-executions')
+  async getRuntimeState(
+    executionId: string,
+  ): Promise<WorkflowExecutionRuntimeState | null> {
+    const execution = (await this.prisma.workflowExecution.findUnique({
+      select: { isDeleted: true, result: true, startedAt: true },
+      where: { id: executionId },
+    })) as WorkflowExecutionRuntimeStateRow | null;
+
+    if (!execution || execution.isDeleted) {
+      return null;
+    }
+
+    const result = parseResult(execution.result);
+    const metadata =
+      result.metadata && typeof result.metadata === 'object'
+        ? (result.metadata as Record<string, unknown>)
+        : undefined;
+
+    return {
+      metadata,
+      progress: typeof result.progress === 'number' ? result.progress : 0,
+      startedAt: execution.startedAt,
+    };
   }
 
   @HandleErrors('create execution', 'workflow-executions')
@@ -253,10 +290,11 @@ export class WorkflowExecutionsService extends BaseService<
       data: {
         result: updatedResult as never,
       } as never,
+      select: { id: true, result: true },
       where: { id: executionId },
     });
 
-    return result as unknown as WorkflowExecutionDocument | null;
+    return this.normalizeDocument(result) as WorkflowExecutionDocument | null;
   }
 
   @HandleErrors('set failed node', 'workflow-executions')
@@ -335,10 +373,11 @@ export class WorkflowExecutionsService extends BaseService<
       data: {
         result: updatedResult as never,
       } as never,
+      select: { id: true, result: true },
       where: { id: executionId },
     });
 
-    return result as unknown as WorkflowExecutionDocument | null;
+    return this.normalizeDocument(result) as WorkflowExecutionDocument | null;
   }
 
   @HandleErrors('get execution stats', 'workflow-executions')

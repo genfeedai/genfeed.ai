@@ -22,10 +22,10 @@ export interface ArticleJsonLdInput {
   dateModified?: Date | string | null;
   datePublished?: Date | string | null;
   description?: string | null;
-  headline: string;
-  imageUrls?: string[];
+  headline?: string | null;
+  imageUrls?: Array<string | null | undefined>;
   inLanguage?: string | null;
-  keywords?: string[];
+  keywords?: Array<string | null | undefined>;
   mainEntityUrl?: string | null;
   publisher?: SchemaOrgOrganizationInput | string | null;
   url?: string | null;
@@ -74,7 +74,7 @@ export function buildArticleJsonLd(
     dateModified: toIsoDate(input.dateModified),
     datePublished: toIsoDate(input.datePublished),
     description: normaliseText(input.description),
-    headline: input.headline.trim(),
+    headline: normaliseText(input.headline),
     image: normaliseStringArray(input.imageUrls),
     inLanguage: normaliseText(input.inLanguage),
     keywords: normaliseStringArray(input.keywords)?.join(', '),
@@ -100,10 +100,10 @@ export function buildFaqJsonLd(
 ): Record<string, JsonLdValue> {
   const mainEntity = input.items
     .map((item) => ({
-      answer: item.answer.trim(),
-      question: item.question.trim(),
+      answer: normaliseText(item.answer),
+      question: normaliseText(item.question),
     }))
-    .filter((item) => item.answer.length > 0 && item.question.length > 0)
+    .filter((item) => item.answer && item.question)
     .map((item) =>
       compactJsonLdRecord({
         '@type': 'Question',
@@ -130,10 +130,10 @@ export function buildHowToJsonLd(
   const steps = input.steps
     .map((step) => ({
       name: normaliseText(step.name),
-      text: step.text.trim(),
+      text: normaliseText(step.text),
       url: normaliseText(step.url),
     }))
-    .filter((step) => step.text.length > 0)
+    .filter((step) => step.text)
     .map((step, index) =>
       compactJsonLdRecord({
         '@type': 'HowToStep',
@@ -149,7 +149,7 @@ export function buildHowToJsonLd(
     '@type': 'HowTo',
     description: normaliseText(input.description),
     estimatedCost: normaliseText(input.estimatedCost),
-    name: input.name.trim(),
+    name: normaliseText(input.name),
     step: steps,
     totalTime: normaliseText(input.totalTime),
     url: normaliseText(input.url),
@@ -176,7 +176,7 @@ function buildAuthorEntity(
   if (typeof input === 'string') {
     return compactJsonLdRecord({
       '@type': 'Person',
-      name: input.trim(),
+      name: normaliseText(input),
     });
   }
 
@@ -189,7 +189,7 @@ function buildAuthorEntity(
             url: input.logoUrl,
           })
         : undefined,
-    name: input.name.trim(),
+    name: normaliseText(input.name),
     url: normaliseText(input.url),
   });
 }
@@ -200,7 +200,7 @@ function buildOrganizationEntity(
   if (typeof input === 'string') {
     return compactJsonLdRecord({
       '@type': 'Organization',
-      name: input.trim(),
+      name: normaliseText(input),
     });
   }
 
@@ -212,7 +212,7 @@ function buildOrganizationEntity(
           url: input.logoUrl,
         })
       : undefined,
-    name: input.name.trim(),
+    name: normaliseText(input.name),
     url: normaliseText(input.url),
   });
 }
@@ -250,12 +250,16 @@ function normaliseText(value?: string | null): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
-function normaliseStringArray(value?: string[]): string[] | undefined {
+function normaliseStringArray(
+  value?: Array<string | null | undefined>,
+): string[] | undefined {
   if (!Array.isArray(value)) {
     return undefined;
   }
 
-  const items = value.map((item) => item.trim()).filter(Boolean);
+  const items = value
+    .map((item) => normaliseText(item))
+    .filter((item): item is string => Boolean(item));
   return items.length > 0 ? items : undefined;
 }
 
