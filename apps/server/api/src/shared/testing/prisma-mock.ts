@@ -109,7 +109,7 @@ export const mockPrismaNamespace = {
  * Stub `PrismaClient` — matches the real class shape closely enough for
  * services that construct/inject it directly (e.g. `PrismaService`).
  * `$transaction` supports both the array form (`Promise.all`) and the
- * callback form (invoked with a fresh client instance).
+ * callback form (invoked with this configured mock instance).
  */
 export class MockPrismaClient {
   $connect = vi.fn().mockResolvedValue(undefined);
@@ -122,9 +122,7 @@ export class MockPrismaClient {
       Array.isArray(arg)
         ? Promise.all(arg)
         : typeof arg === 'function'
-          ? (arg as (client: MockPrismaClient) => unknown)(
-              new MockPrismaClient(),
-            )
+          ? (arg as (client: MockPrismaClient) => unknown)(this)
           : Promise.resolve(arg),
     );
 }
