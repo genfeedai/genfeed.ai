@@ -69,7 +69,7 @@ export default function AgentWizardStepReview({
         Review your agent configuration before launching
       </p>
 
-      <div className="rounded border border-foreground/10 divide-y divide-foreground/10">
+      <div className="rounded bg-tertiary shadow-border divide-y divide-foreground/10">
         {rows.map(({ label, value }) => (
           <div
             key={label}

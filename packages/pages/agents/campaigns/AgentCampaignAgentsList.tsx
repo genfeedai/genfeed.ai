@@ -6,7 +6,7 @@ type Props = {
 
 export default function AgentCampaignAgentsList({ agents }: Props) {
   return (
-    <div className="border border-white/[0.08] bg-background p-4">
+    <div className="bg-card p-4 shadow-border">
       <h3 className="mb-4 text-lg font-semibold">
         Agent Strategies ({agents.length})
       </h3>
@@ -19,7 +19,7 @@ export default function AgentCampaignAgentsList({ agents }: Props) {
           {agents.map((agentId) => (
             <div
               key={agentId}
-              className="flex items-center justify-between border border-white/[0.04] p-3"
+              className="flex items-center justify-between bg-secondary p-3"
             >
               <span className="text-sm font-mono text-foreground/70">
                 {agentId}

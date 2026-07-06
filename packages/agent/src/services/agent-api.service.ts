@@ -228,8 +228,12 @@ export class AgentApiService extends AgentBaseApiService {
     signal?: AbortSignal,
   ): Effect.Effect<{ archivedCount: number }, AgentApiError> {
     return this.fetchJsonEffect<{ archivedCount: number }>(
-      `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}/archive-all`,
-      { method: 'POST', signal },
+      `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}`,
+      {
+        body: JSON.stringify({ status: AgentThreadStatus.ARCHIVED }),
+        method: 'PATCH',
+        signal,
+      },
       'Failed to archive all threads',
     );
   }

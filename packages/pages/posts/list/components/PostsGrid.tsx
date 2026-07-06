@@ -208,7 +208,7 @@ const PostsGrid = memo(
                   handleOpenPost(post);
                 }
               }}
-              className="group rounded-xl border border-white/[0.08] bg-background/80 p-4 text-left transition-all duration-200 hover:border-white/[0.16] hover:bg-background"
+              className="group rounded-xl bg-card p-4 text-left shadow-border transition-all duration-200 hover:bg-background hover:shadow-border-strong"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-start gap-3">

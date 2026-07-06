@@ -233,10 +233,10 @@ function ClipBlock({
 
   const bgColor =
     trackType === EditorTrackType.VIDEO
-      ? 'bg-blue-500/80'
+      ? 'bg-foreground/70'
       : trackType === EditorTrackType.AUDIO
-        ? 'bg-green-500/80'
-        : 'bg-purple-500/80';
+        ? 'bg-foreground/50'
+        : 'bg-foreground/30';
 
   return (
     /* biome-ignore lint/a11y/useSemanticElements: complex drag-and-drop timeline clip with ref */
@@ -398,11 +398,11 @@ function EditorTimeline({
           withWrapper={false}
           tabIndex={-1}
           ariaLabel="Timeline playhead"
-          className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10 cursor-ew-resize"
+          className="absolute top-0 bottom-0 w-0.5 bg-foreground z-10 cursor-ew-resize"
           style={{ left: `${192 + currentFrame * zoom}px` }}
           onMouseDown={handlePlayheadDrag}
         >
-          <div className="absolute -top-1 left-1/2 -translate-x-1/2 size-3 bg-red-500 rounded-full" />
+          <div className="absolute -top-1 left-1/2 -translate-x-1/2 size-3 bg-foreground rounded-full" />
         </Button>
       </div>
 

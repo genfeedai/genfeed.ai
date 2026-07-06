@@ -54,7 +54,19 @@ export class SocialDraftDto extends SocialDmDto {
   messageType?: 'dm' | 'reply';
 }
 
-export class SocialDraftRejectDto {
+const DRAFT_DECISIONS = ['approved', 'rejected'] as const;
+
+/**
+ * Draft review decision. Collapses the former
+ * `POST /drafts/:messageId/{approve,reject}` action routes into a single
+ * `PATCH /drafts/:messageId` status transition — the service still performs
+ * the publish side-effect behind the `approved` verb.
+ */
+export class SocialDraftUpdateDto {
+  @ApiProperty({ enum: DRAFT_DECISIONS })
+  @IsIn(DRAFT_DECISIONS)
+  status!: (typeof DRAFT_DECISIONS)[number];
+
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
@@ -62,21 +74,24 @@ export class SocialDraftRejectDto {
   reason?: string;
 }
 
-export class SocialConversationStatusDto {
-  @ApiProperty({ enum: CONVERSATION_STATUSES })
+/**
+ * Partial conversation update. Collapses the former single-field
+ * `PATCH /:conversationId/{status,tags,assignment}` routes into one
+ * `PATCH /:conversationId` accepting any subset of the mutable fields.
+ */
+export class SocialConversationUpdateDto {
+  @ApiProperty({ enum: CONVERSATION_STATUSES, required: false })
+  @IsOptional()
   @IsIn(CONVERSATION_STATUSES)
-  status!: string;
-}
+  status?: string;
 
-export class SocialConversationTagsDto {
-  @ApiProperty({ type: [String] })
+  @ApiProperty({ required: false, type: [String] })
+  @IsOptional()
   @IsArray()
   @ArrayMaxSize(20)
   @IsString({ each: true })
-  tags!: string[];
-}
+  tags?: string[];
 
-export class SocialConversationAssignDto {
   @ApiProperty({ required: false })
   @IsOptional()
   @IsEntityId()

@@ -7,7 +7,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CronAdSyncMetaService } from '@workers/crons/ad-sync/cron.ad-sync-meta.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@api/shared/utils/encryption/encryption.util', () => ({
+vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: {
     decrypt: vi.fn((value: string) => value),
   },

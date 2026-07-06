@@ -92,44 +92,52 @@ export class EvaluationsService extends BaseService<Evaluation> {
 
   /**
    * Get evaluations for an image
-   * GET /evaluations/images/:id
+   * GET /evaluations?entityType=images&entityId=:id
    */
   public async getImageEvaluations(imageId: string): Promise<Evaluation[]> {
     return await this.instance
-      .get<JsonApiResponseDocument>(`/images/${imageId}`)
+      .get<JsonApiResponseDocument>('', {
+        params: { entityId: imageId, entityType: 'images' },
+      })
       .then((res) => res.data)
       .then((data) => this.mapMany(data));
   }
 
   /**
    * Get evaluations for a video
-   * GET /evaluations/videos/:id
+   * GET /evaluations?entityType=videos&entityId=:id
    */
   public async getVideoEvaluations(videoId: string): Promise<Evaluation[]> {
     return await this.instance
-      .get<JsonApiResponseDocument>(`/videos/${videoId}`)
+      .get<JsonApiResponseDocument>('', {
+        params: { entityId: videoId, entityType: 'videos' },
+      })
       .then((res) => res.data)
       .then((data) => this.mapMany(data));
   }
 
   /**
    * Get evaluations for an article
-   * GET /evaluations/articles/:id
+   * GET /evaluations?entityType=articles&entityId=:id
    */
   public async getArticleEvaluations(articleId: string): Promise<Evaluation[]> {
     return await this.instance
-      .get<JsonApiResponseDocument>(`/articles/${articleId}`)
+      .get<JsonApiResponseDocument>('', {
+        params: { entityId: articleId, entityType: 'articles' },
+      })
       .then((res) => res.data)
       .then((data) => this.mapMany(data));
   }
 
   /**
    * Get evaluations for a post
-   * GET /evaluations/posts/:id
+   * GET /evaluations?entityType=posts&entityId=:id
    */
   public async getPostEvaluations(postId: string): Promise<Evaluation[]> {
     return await this.instance
-      .get<JsonApiResponseDocument>(`/posts/${postId}`)
+      .get<JsonApiResponseDocument>('', {
+        params: { entityId: postId, entityType: 'posts' },
+      })
       .then((res) => res.data)
       .then((data) => this.mapMany(data));
   }

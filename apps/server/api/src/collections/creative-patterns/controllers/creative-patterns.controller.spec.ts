@@ -1,19 +1,9 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreativePatternsController } from '@api/collections/creative-patterns/controllers/creative-patterns.controller';
 import { CreativePatternsService } from '@api/collections/creative-patterns/creative-patterns.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('CreativePatternsController', () => {
   let controller: CreativePatternsController;
-
-  const mockUser = {
-    id: 'user_123',
-    publicMetadata: {
-      brand: '507f1f77bcf86cd799439013',
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439011',
-    },
-  } as unknown as User;
 
   const mockPatterns = [
     { _id: 'pattern1', patternType: 'hook', platform: 'twitter' },
@@ -22,7 +12,6 @@ describe('CreativePatternsController', () => {
 
   const mockCreativePatternsService = {
     findAll: vi.fn(),
-    findTopForBrand: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -56,9 +45,12 @@ describe('CreativePatternsController', () => {
       const result = await controller.findAll();
 
       expect(mockCreativePatternsService.findAll).toHaveBeenCalledWith({
+        brandId: undefined,
+        limit: undefined,
         patternType: undefined,
         platform: undefined,
         scope: undefined,
+        top: false,
       });
       expect(result).toEqual({ count: 2, patterns: mockPatterns });
     });
@@ -69,9 +61,12 @@ describe('CreativePatternsController', () => {
       const result = await controller.findAll('twitter');
 
       expect(mockCreativePatternsService.findAll).toHaveBeenCalledWith({
+        brandId: undefined,
+        limit: undefined,
         patternType: undefined,
         platform: 'twitter',
         scope: undefined,
+        top: false,
       });
       expect(result.count).toBe(1);
     });
@@ -82,62 +77,57 @@ describe('CreativePatternsController', () => {
       await controller.findAll(undefined, 'hook' as any);
 
       expect(mockCreativePatternsService.findAll).toHaveBeenCalledWith({
+        brandId: undefined,
+        limit: undefined,
         patternType: 'hook',
         platform: undefined,
         scope: undefined,
-      });
-    });
-  });
-
-  describe('findTopForBrand', () => {
-    it('should return top patterns for brand', async () => {
-      mockCreativePatternsService.findTopForBrand.mockResolvedValue(
-        mockPatterns,
-      );
-
-      const result = await controller.findTopForBrand(mockUser, 'brand123');
-
-      expect(mockCreativePatternsService.findTopForBrand).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439012',
-        'brand123',
-        {},
-      );
-      expect(result).toEqual({
-        brandId: 'brand123',
-        count: 2,
-        patterns: mockPatterns,
+        top: false,
       });
     });
 
-    it('should pass limit option', async () => {
-      mockCreativePatternsService.findTopForBrand.mockResolvedValue(
-        mockPatterns,
-      );
+    it('should filter by brandId and top', async () => {
+      mockCreativePatternsService.findAll.mockResolvedValue(mockPatterns);
 
-      await controller.findTopForBrand(mockUser, 'brand123', '5');
-
-      expect(mockCreativePatternsService.findTopForBrand).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439012',
-        'brand123',
-        { limit: 5 },
-      );
-    });
-
-    it('should pass patternType option', async () => {
-      mockCreativePatternsService.findTopForBrand.mockResolvedValue([]);
-
-      await controller.findTopForBrand(
-        mockUser,
-        'brand123',
+      const result = await controller.findAll(
         undefined,
-        'hook' as any,
+        undefined,
+        undefined,
+        'brand123',
+        'true',
       );
 
-      expect(mockCreativePatternsService.findTopForBrand).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439012',
+      expect(mockCreativePatternsService.findAll).toHaveBeenCalledWith({
+        brandId: 'brand123',
+        limit: undefined,
+        patternType: undefined,
+        platform: undefined,
+        scope: undefined,
+        top: true,
+      });
+      expect(result).toEqual({ count: 2, patterns: mockPatterns });
+    });
+
+    it('should pass limit when top is set', async () => {
+      mockCreativePatternsService.findAll.mockResolvedValue(mockPatterns);
+
+      await controller.findAll(
+        undefined,
+        undefined,
+        undefined,
         'brand123',
-        { patternTypes: ['hook'] },
+        'true',
+        '5',
       );
+
+      expect(mockCreativePatternsService.findAll).toHaveBeenCalledWith({
+        brandId: 'brand123',
+        limit: 5,
+        patternType: undefined,
+        platform: undefined,
+        scope: undefined,
+        top: true,
+      });
     });
   });
 });

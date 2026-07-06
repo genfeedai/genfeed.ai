@@ -75,7 +75,7 @@ export default function CloudContent() {
   return (
     <div ref={containerRef}>
       <PageLayout
-        title={<>One studio for your whole team</>}
+        title="One studio for your team"
         description="Shared workspaces, a brand library, roles, and approvals. The studio your whole team creates in."
       >
         {/* Benefits */}
@@ -106,7 +106,7 @@ export default function CloudContent() {
                   <div className="size-3 rounded-full bg-fill/20" />
                 </div>
                 <div className="flex-1 mx-4">
-                  <div className="bg-fill/[0.03] border border-edge/5 px-3 py-1.5 text-xs text-surface/30 text-center font-mono uppercase tracking-widest">
+                  <div className="bg-fill/[0.03] border border-edge/5 px-3 py-1.5 text-xs text-surface/45 text-center font-mono uppercase tracking-widest">
                     app.genfeed.ai
                   </div>
                 </div>

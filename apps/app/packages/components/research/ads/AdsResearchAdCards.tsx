@@ -71,7 +71,7 @@ export function AdGridCard({
           </div>
         </div>
 
-        <div className="rounded-lg border border-white/[0.06] bg-card px-3 py-2 text-right">
+        <div className="rounded-lg shadow-border bg-card px-3 py-2 text-right">
           <div className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">
             {getMetricLabel(metric)}
           </div>

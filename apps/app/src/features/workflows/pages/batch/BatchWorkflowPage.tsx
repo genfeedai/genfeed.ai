@@ -57,7 +57,7 @@ function BatchWorkflowPageContent() {
         )}
 
         {(isBootstrapping || isLoadingJob) && (
-          <div className="mb-6 rounded-xl border border-white/10 bg-card/80 px-4 py-3 text-sm text-muted-foreground">
+          <div className="mb-6 rounded-xl shadow-border bg-card/80 px-4 py-3 text-sm text-muted-foreground">
             {isLoadingJob
               ? 'Loading batch job…'
               : 'Loading workflows and recent jobs…'}

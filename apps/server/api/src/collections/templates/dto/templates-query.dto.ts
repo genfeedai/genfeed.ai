@@ -1,6 +1,7 @@
 import { AssetScope, TemplateCategory } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class TemplatesQueryDto {
   @ApiProperty({
@@ -71,4 +72,26 @@ export class TemplatesQueryDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @ApiProperty({
+    description:
+      'Sort order. Use "popular" to rank by usage/rating (replaces GET /templates/popular)',
+    enum: ['popular'],
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(['popular'])
+  sort?: 'popular';
+
+  @ApiProperty({
+    description: 'Maximum number of templates to return',
+    minimum: 1,
+    required: false,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number;
 }

@@ -30,10 +30,14 @@ import { SeoModule } from '@api/services/seo/seo.module';
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
+  // PostsOperationsController must register before PostsController: its static
+  // `PATCH /posts/batch` route has to be matched ahead of the inherited
+  // `PATCH /posts/:id` on the BaseCRUD PostsController, which otherwise
+  // captures `batch` as an :id and 404s the bulk endpoint.
   controllers: [
     PostsAnalyticsController,
-    PostsController,
     PostsOperationsController,
+    PostsController,
   ],
   exports: [AnalyticsAggregationService, PostAnalyticsService, PostsService],
   imports: [

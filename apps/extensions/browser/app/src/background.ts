@@ -505,11 +505,21 @@ async function createVideoFromPrompt(
 }
 
 async function getLatestVideos(sendResponse: SendResponse): Promise<void> {
-  await executeAuthenticatedRequest<{ videos: unknown[] }>(
-    '/videos/latest',
+  await executeAuthenticatedRequest<{
+    data?: Array<{ id: string; attributes: Record<string, unknown> }>;
+  }>(
+    '/videos?latest=true',
     { method: 'GET' },
     sendResponse,
-    (data) => sendResponse({ success: true, videos: data.videos }),
+    // The list route returns a JSON:API collection ({ data: [...] }), so flatten
+    // resources to plain objects the same way the threads/messages handlers do.
+    (data) => {
+      const videos = (data.data ?? []).map((item) => ({
+        id: item.id,
+        ...item.attributes,
+      }));
+      sendResponse({ success: true, videos });
+    },
     'fetch videos',
   );
 }

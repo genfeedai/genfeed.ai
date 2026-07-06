@@ -1,12 +1,6 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
 import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-orchestrator.service';
-import {
-  BrokenCircuitError,
-  createProcessorCircuitBreaker,
-  type ProcessorCircuitBreaker,
-} from '@api/shared/utils/circuit-breaker/circuit-breaker.util';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
 import {
   REPLY_BOT_POLLING_QUEUE,
@@ -14,6 +8,12 @@ import {
   ReplyBotPollingResult,
 } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import {
+  BrokenCircuitError,
+  createProcessorCircuitBreaker,
+  type ProcessorCircuitBreaker,
+} from '@libs/utils/circuit-breaker/circuit-breaker.util';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 

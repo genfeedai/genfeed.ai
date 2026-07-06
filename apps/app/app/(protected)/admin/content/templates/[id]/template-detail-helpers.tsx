@@ -15,7 +15,7 @@ export function DetailCard({
   children: ReactNode;
 }) {
   return (
-    <Card className="border border-white/[0.08]">
+    <Card>
       <VStack gap={4} className="p-6">
         <Heading size="lg">{title}</Heading>
         {children}

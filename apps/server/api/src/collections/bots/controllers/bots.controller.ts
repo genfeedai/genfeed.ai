@@ -224,17 +224,6 @@ export class BotsController extends BaseCRUDController<
     return serializeSingle(request, LivestreamBotSessionSerializer, session);
   }
 
-  @Get(':id/livestream-session/history')
-  async getLivestreamDeliveryHistory(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-  ) {
-    const bot = await this.findBotForMutation(user, id);
-    const session = await this.botsLivestreamService.getOrCreateSession(bot);
-    return serializeSingle(request, LivestreamBotSessionSerializer, session);
-  }
-
   private async findBotForMutation(
     user: User,
     id: string,

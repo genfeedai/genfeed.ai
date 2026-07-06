@@ -2,10 +2,10 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-orchestrator.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { ReplyBotPlatform } from '@genfeedai/enums';
 import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Injectable } from '@nestjs/common';
 
 interface ReplyBotCronTarget {

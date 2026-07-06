@@ -1,11 +1,11 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
 import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-orchestrator.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import {
   BrokenCircuitError,
   ProcessorCircuitBreaker,
-} from '@api/shared/utils/circuit-breaker/circuit-breaker.util';
-import { LoggerService } from '@libs/logger/logger.service';
+} from '@libs/utils/circuit-breaker/circuit-breaker.util';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Job } from 'bullmq';
 
@@ -14,7 +14,7 @@ import {
   ReplyBotPollingProcessor,
 } from './reply-bot-polling.processor';
 
-vi.mock('@api/shared/utils/circuit-breaker/circuit-breaker.util', () => {
+vi.mock('@libs/utils/circuit-breaker/circuit-breaker.util', () => {
   const mockExecute = vi.fn();
   return {
     BrokenCircuitError: class BrokenCircuitError extends Error {
@@ -59,7 +59,7 @@ describe('ReplyBotPollingProcessor', () => {
 
   beforeEach(async () => {
     const { createProcessorCircuitBreaker } = await import(
-      '@api/shared/utils/circuit-breaker/circuit-breaker.util'
+      '@libs/utils/circuit-breaker/circuit-breaker.util'
     );
     circuitExecute = vi.fn();
     vi.mocked(createProcessorCircuitBreaker).mockReturnValue({

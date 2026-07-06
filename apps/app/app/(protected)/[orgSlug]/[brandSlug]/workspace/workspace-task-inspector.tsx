@@ -63,7 +63,7 @@ export function WorkspaceTaskInspector({
     <Sheet open={Boolean(task)} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="w-full overflow-y-auto border-white/10 bg-[#090909] p-0 sm:max-w-2xl"
+        className="w-full overflow-y-auto border-white/10 bg-background p-0 sm:max-w-2xl"
       >
         {task ? (
           <div

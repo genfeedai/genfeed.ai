@@ -4,7 +4,7 @@ Primary architecture references for planning/reporting.
 
 ## Repo Structure
 
-- **Apps (server):** `apps/server/{api,clips,discord,files,images,mcp,notifications,slack,telegram,videos,voices,workers}`
+- **Apps (server):** `apps/server/{api,discord,files,images,mcp,notifications,slack,telegram,videos,voices,workers}` are current service workspaces. `apps/server/clips/` exists in the tree but is not currently a package workspace.
 - **Apps (frontend):** `apps/app`, `apps/docs`, `apps/website`, `apps/desktop/app`, `apps/mobile/app`, `apps/extensions/{browser,ide}/app`
 - **Packages:** `packages/*` (`@genfeedai/*` scope)
 - **Enterprise:** `ee/packages/*` (commercial license)
