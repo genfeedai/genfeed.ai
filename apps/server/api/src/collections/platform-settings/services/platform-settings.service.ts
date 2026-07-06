@@ -5,6 +5,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { PLATFORM_SETTING_KEY } from '@genfeedai/constants';
 import { setRuntimeMarginMultiplier } from '@genfeedai/helpers';
+import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Injectable,
@@ -13,6 +14,10 @@ import {
 } from '@nestjs/common';
 
 export { PLATFORM_SETTING_KEY };
+
+type InternalCreatePlatformSettingPayload = CreatePlatformSettingDto & {
+  key: typeof PLATFORM_SETTING_KEY;
+};
 
 @Injectable()
 export class PlatformSettingsService
@@ -53,15 +58,30 @@ export class PlatformSettingsService
    * re-reads the winner's row instead of surfacing a constraint error.
    */
   async getSingleton(): Promise<PlatformSettingDocument> {
-    const existing = await this.findOne({ key: PLATFORM_SETTING_KEY });
+    const singletonWhere = {
+      isDeleted: false,
+      key: PLATFORM_SETTING_KEY,
+    };
+    const existing = await this.findOne(singletonWhere);
     if (existing) {
       return existing;
     }
 
     try {
-      return await this.create({ key: PLATFORM_SETTING_KEY });
-    } catch {
-      const row = await this.findOne({ key: PLATFORM_SETTING_KEY });
+      return await this.create({
+        key: PLATFORM_SETTING_KEY,
+      } as InternalCreatePlatformSettingPayload);
+    } catch (error) {
+      if (
+        !(
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002'
+        )
+      ) {
+        throw error;
+      }
+
+      const row = await this.findOne(singletonWhere);
       if (row) {
         return row;
       }
@@ -85,6 +105,11 @@ export class PlatformSettingsService
       dto.marginMultiplier === undefined
         ? {}
         : { marginMultiplier: dto.marginMultiplier };
+    if (Object.keys(patchData).length === 0) {
+      setRuntimeMarginMultiplier(current.marginMultiplier);
+      return current;
+    }
+
     const updated = await this.patch(current.id, patchData);
     setRuntimeMarginMultiplier(updated.marginMultiplier);
     return updated;

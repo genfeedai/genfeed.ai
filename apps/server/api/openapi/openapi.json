@@ -11151,6 +11151,8 @@
         "properties": {
           "marginMultiplier": {
             "description": "Margin multiplier applied on top of the base provider-cost markup. 1.0 = base margin only.",
+            "maximum": 10,
+            "minimum": 0.01,
             "type": "number"
           }
         },

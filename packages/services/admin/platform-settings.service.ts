@@ -21,8 +21,10 @@ export class AdminPlatformSettingsService extends HTTPBaseService {
     ) as AdminPlatformSettingsService;
   }
 
-  async getSettings(): Promise<IPlatformSetting> {
-    const response = await this.instance.get<JsonApiResponseDocument>('');
+  async getSettings(signal?: AbortSignal): Promise<IPlatformSetting> {
+    const response = await this.instance.get<JsonApiResponseDocument>('', {
+      signal,
+    });
     return deserializeResource<IPlatformSetting>(response.data);
   }
 

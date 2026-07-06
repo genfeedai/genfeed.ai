@@ -8,6 +8,8 @@ export type {
 export {
   AVATAR_CREDIT_COSTS,
   applyMargin,
+  BASE_MARGIN_PERCENT,
+  BASE_PROVIDER_COST_FRACTION,
   BYOK_CREDIT_VALUE_DOLLARS,
   BYOK_FEE_PER_CREDIT,
   BYOK_FEE_PERCENTAGE,
@@ -27,6 +29,7 @@ export {
   getRuntimeMarginMultiplier,
   getScalePlan,
   INTERNAL_CREDIT_COSTS,
+  MAX_MARGIN_MULTIPLIER,
   PAYG_CREDIT_PACKS,
   setRuntimeMarginMultiplier,
   TIER_INCLUDED_MONTHLY_CREDITS,

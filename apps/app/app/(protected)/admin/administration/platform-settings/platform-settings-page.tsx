@@ -1,5 +1,10 @@
 'use client';
 
+import {
+  BASE_MARGIN_PERCENT,
+  BASE_PROVIDER_COST_FRACTION,
+  MAX_MARGIN_MULTIPLIER,
+} from '@genfeedai/helpers';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { AdminPlatformSettingsService } from '@services/admin/platform-settings.service';
 import { logger } from '@services/core/logger.service';
@@ -17,15 +22,14 @@ import {
   HiOutlineCheckCircle,
 } from 'react-icons/hi2';
 
-/** Provider cost is 30% of the base sell price (i.e. a base 70% margin). */
-const BASE_COST_FRACTION = 0.3;
-
 /** Effective margin percentage the configured multiplier resolves to. */
 function effectiveMarginPercent(multiplier: number): number {
   if (!Number.isFinite(multiplier) || multiplier <= 0) {
-    return 70;
+    return BASE_MARGIN_PERCENT;
   }
-  return Math.round((1 - BASE_COST_FRACTION / multiplier) * 100);
+  return Math.round(
+    Math.max(0, 1 - BASE_PROVIDER_COST_FRACTION / multiplier) * 100,
+  );
 }
 
 export default function PlatformSettingsPage() {
@@ -42,7 +46,7 @@ export default function PlatformSettingsPage() {
     async (signal: AbortSignal) => {
       try {
         const service = await getPlatformSettingsService();
-        const data = await service.getSettings();
+        const data = await service.getSettings(signal);
 
         if (!signal.aborted) {
           setMarginInput(String(data.marginMultiplier));
@@ -77,6 +81,13 @@ export default function PlatformSettingsPage() {
     if (!Number.isFinite(parsed) || parsed <= 0) {
       notificationsService.warning(
         'Margin multiplier must be a positive number',
+      );
+      return;
+    }
+
+    if (parsed > MAX_MARGIN_MULTIPLIER) {
+      notificationsService.warning(
+        `Margin multiplier cannot exceed ${MAX_MARGIN_MULTIPLIER}`,
       );
       return;
     }
@@ -124,7 +135,8 @@ export default function PlatformSettingsPage() {
             <Input
               id="platform-margin-multiplier"
               type="number"
-              min="0"
+              min="0.01"
+              max={MAX_MARGIN_MULTIPLIER}
               step="0.05"
               value={marginInput}
               onChange={(event) => setMarginInput(event.target.value)}

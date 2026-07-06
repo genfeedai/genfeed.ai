@@ -12,6 +12,7 @@ import {
   getRuntimeMarginMultiplier,
   getScalePlan,
   INTERNAL_CREDIT_COSTS,
+  MAX_MARGIN_MULTIPLIER,
   setRuntimeMarginMultiplier,
   VIDEO_CREDIT_COSTS,
   websitePlans,
@@ -331,6 +332,10 @@ describe('pricing.helper', () => {
       expect(applyMargin(0.15, -3)).toBe(50);
       expect(applyMargin(0.15, Number.NaN)).toBe(50);
     });
+
+    it('caps excessive explicit multipliers', () => {
+      expect(applyMargin(0.15, MAX_MARGIN_MULTIPLIER + 1)).toBe(500);
+    });
   });
 
   describe('runtime margin multiplier', () => {
@@ -356,6 +361,11 @@ describe('pricing.helper', () => {
       expect(getRuntimeMarginMultiplier()).toBe(1);
       setRuntimeMarginMultiplier(Number.NaN);
       expect(getRuntimeMarginMultiplier()).toBe(1);
+    });
+
+    it('caps excessive runtime multipliers', () => {
+      setRuntimeMarginMultiplier(MAX_MARGIN_MULTIPLIER + 1);
+      expect(getRuntimeMarginMultiplier()).toBe(MAX_MARGIN_MULTIPLIER);
     });
 
     it('lets an explicit argument override the runtime default', () => {

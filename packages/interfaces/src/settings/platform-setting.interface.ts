@@ -8,9 +8,6 @@ import type { IBaseEntity } from '../core/base.interface';
  * `OrganizationSetting`. Access is restricted to platform superadmins.
  */
 export interface IPlatformSetting extends IBaseEntity {
-  _id?: string;
-  /** Singleton sentinel key — always `platform` for the canonical row. */
-  key: string;
   /**
    * Margin multiplier applied on top of the base provider-cost markup when
    * computing customer-facing model credit costs. 1.0 = base margin only,

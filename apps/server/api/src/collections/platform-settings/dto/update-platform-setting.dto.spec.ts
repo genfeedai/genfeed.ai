@@ -23,6 +23,16 @@ describe('UpdatePlatformSettingDto', () => {
     expect(errors.length).toBeGreaterThan(0);
   });
 
+  it('rejects a zero margin multiplier', async () => {
+    const errors = await validateDto({ marginMultiplier: 0 });
+    expect(errors.length).toBeGreaterThan(0);
+  });
+
+  it('rejects a multiplier above the operator safety cap', async () => {
+    const errors = await validateDto({ marginMultiplier: 11 });
+    expect(errors.length).toBeGreaterThan(0);
+  });
+
   it('rejects a non-numeric margin multiplier', async () => {
     const errors = await validateDto({ marginMultiplier: 'high' });
     expect(errors.length).toBeGreaterThan(0);

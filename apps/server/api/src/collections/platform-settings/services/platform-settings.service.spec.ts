@@ -4,6 +4,7 @@ import {
   getRuntimeMarginMultiplier,
   setRuntimeMarginMultiplier,
 } from '@genfeedai/helpers';
+import { Prisma } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -44,7 +45,10 @@ describe('PlatformSettingsService', () => {
       const create = vi.spyOn(service, 'create');
 
       await expect(service.getSingleton()).resolves.toBe(row);
-      expect(findOne).toHaveBeenCalledWith({ key: PLATFORM_SETTING_KEY });
+      expect(findOne).toHaveBeenCalledWith({
+        isDeleted: false,
+        key: PLATFORM_SETTING_KEY,
+      });
       expect(create).not.toHaveBeenCalled();
     });
 
@@ -74,16 +78,31 @@ describe('PlatformSettingsService', () => {
         .mockResolvedValueOnce(null as never)
         .mockResolvedValueOnce(winner as never);
       vi.spyOn(service, 'create').mockRejectedValue(
-        new Error('unique constraint failed'),
+        new Prisma.PrismaClientKnownRequestError('unique constraint failed', {
+          clientVersion: 'test',
+          code: 'P2002',
+        }),
       );
 
       await expect(service.getSingleton()).resolves.toBe(winner);
       expect(findOne).toHaveBeenCalledTimes(2);
     });
 
-    it('throws when the row is still missing after a failed create', async () => {
+    it('throws when a non-unique create failure occurs', async () => {
       vi.spyOn(service, 'findOne').mockResolvedValue(null as never);
       vi.spyOn(service, 'create').mockRejectedValue(new Error('boom'));
+
+      await expect(service.getSingleton()).rejects.toThrow('boom');
+    });
+
+    it('throws when the row is still missing after a unique-key race', async () => {
+      vi.spyOn(service, 'findOne').mockResolvedValue(null as never);
+      vi.spyOn(service, 'create').mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('unique constraint failed', {
+          clientVersion: 'test',
+          code: 'P2002',
+        }),
+      );
 
       await expect(service.getSingleton()).rejects.toThrow(
         'Failed to initialize platform settings',
@@ -130,20 +149,20 @@ describe('PlatformSettingsService', () => {
       expect(patch).toHaveBeenCalledWith('ps-1', { marginMultiplier: 2 });
     });
 
-    it('issues a no-op patch when no editable fields are provided', async () => {
+    it('short-circuits when no editable fields are provided', async () => {
       const current = {
         id: 'ps-1',
         key: PLATFORM_SETTING_KEY,
         marginMultiplier: 1,
       };
       vi.spyOn(service, 'getSingleton').mockResolvedValue(current as never);
-      const patch = vi
-        .spyOn(service, 'patch')
-        .mockResolvedValue(current as never);
+      const patch = vi.spyOn(service, 'patch');
 
-      await service.updateSingleton({});
+      const result = await service.updateSingleton({});
 
-      expect(patch).toHaveBeenCalledWith('ps-1', {});
+      expect(result).toBe(current);
+      expect(patch).not.toHaveBeenCalled();
+      expect(getRuntimeMarginMultiplier()).toBe(1);
     });
   });
 
