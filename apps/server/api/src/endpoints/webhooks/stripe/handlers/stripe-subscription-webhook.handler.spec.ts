@@ -135,6 +135,9 @@ describe('StripeSubscriptionWebhookHandler', () => {
       subscriptionsService.findOne.mockResolvedValue(dbSubscription);
       subscriptionsService.patch.mockResolvedValue(dbSubscription);
       usersService.findOne.mockResolvedValue({ id: 'user_1' });
+      supportService.resolveTierFromPriceId.mockReturnValue(
+        SubscriptionTier.PRO,
+      );
 
       await handler.handleSubscriptionUpdated(stripeSubscription(), 'test');
 
@@ -142,8 +145,21 @@ describe('StripeSubscriptionWebhookHandler', () => {
         'sub_db_1',
         expect.objectContaining({ status: 'active' }),
       );
+      expect(usersService.findOne).toHaveBeenCalledWith({
+        id: 'user_1',
+        isDeleted: false,
+      });
+      expect(
+        supportService.updateOrganizationTierAndModels,
+      ).toHaveBeenCalledWith('org_1', SubscriptionTier.PRO, 'test');
       expect(supportService.invalidateUserCaches).toHaveBeenCalledWith(
         'user_1',
+      );
+      expect(
+        supportService.updateOrganizationTierAndModels.mock
+          .invocationCallOrder[0],
+      ).toBeLessThan(
+        supportService.invalidateUserCaches.mock.invocationCallOrder[0],
       );
     });
 
@@ -186,6 +202,19 @@ describe('StripeSubscriptionWebhookHandler', () => {
       expect(
         supportService.updateOrganizationTierAndModels,
       ).toHaveBeenCalledWith('org_1', SubscriptionTier.BYOK, 'test');
+      expect(usersService.findOne).toHaveBeenCalledWith({
+        id: 'user_1',
+        isDeleted: false,
+      });
+      expect(supportService.invalidateUserCaches).toHaveBeenCalledWith(
+        'user_1',
+      );
+      expect(
+        supportService.updateOrganizationTierAndModels.mock
+          .invocationCallOrder[0],
+      ).toBeLessThan(
+        supportService.invalidateUserCaches.mock.invocationCallOrder[0],
+      );
     });
 
     it('keeps credits when the subscription cancels at period end', async () => {

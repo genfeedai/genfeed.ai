@@ -57,16 +57,19 @@ describe('StripeCheckoutWebhookHandler', () => {
   const organizationsService = { findOne: vi.fn() };
   const userSubscriptionsService = { updateFromStripeSession: vi.fn() };
   const organizationSettingsService = { findOne: vi.fn(), patch: vi.fn() };
-  const prisma = { skillReceipt: { create: vi.fn() } };
+  const prisma = { skillReceipt: { create: vi.fn(), findMany: vi.fn() } };
   const accessBootstrapCacheService = { invalidateForUser: vi.fn() };
   const userSetupService = { initializeUserResources: vi.fn() };
   const eventEmitter = { emitAsync: vi.fn() };
   const supportService = {
     addPurchasedCredits: vi.fn(),
+    invalidateOrganizationCaches: vi.fn(),
+    invalidateUserCaches: vi.fn(),
     markOnboardingComplete: vi.fn(),
     markOnboardingCompleteFromSession: vi.fn(),
     recordCreditsActivity: vi.fn(),
     resolveCheckoutCredits: vi.fn().mockReturnValue(100),
+    withCheckoutSessionProcessing: vi.fn(),
   };
   const attributionTracker = {
     trackSubscriptionAttributionFromSession: vi.fn(),
@@ -76,6 +79,11 @@ describe('StripeCheckoutWebhookHandler', () => {
     vi.clearAllMocks();
     creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(35_000);
     supportService.resolveCheckoutCredits.mockReturnValue(100);
+    supportService.withCheckoutSessionProcessing.mockImplementation(
+      async (_sessionId: string, _kind: string, fn: () => Promise<unknown>) =>
+        await fn(),
+    );
+    prisma.skillReceipt.findMany.mockResolvedValue([]);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -151,7 +159,78 @@ describe('StripeCheckoutWebhookHandler', () => {
           value: '100',
         }),
       );
+      expect(supportService.withCheckoutSessionProcessing).toHaveBeenCalledWith(
+        'cs_payg_1',
+        'organization-payment',
+        expect.any(Function),
+      );
+      expect(usersService.findOne).toHaveBeenCalledWith({
+        id: 'user_1',
+        isDeleted: false,
+      });
       expect(supportService.markOnboardingComplete).toHaveBeenCalled();
+      expect(supportService.invalidateUserCaches).toHaveBeenCalledWith(
+        'user_1',
+      );
+    });
+
+    it('does not grant duplicate PAYG credits for an already processed session', async () => {
+      subscriptionsService.findByStripeCustomerId.mockResolvedValue({
+        id: 'sub_db_1',
+        organization: 'org_1',
+        user: 'user_1',
+      });
+      supportService.withCheckoutSessionProcessing.mockResolvedValueOnce(null);
+
+      await handler.handleCheckoutCompleted(session, 'test');
+
+      expect(supportService.addPurchasedCredits).not.toHaveBeenCalled();
+      expect(supportService.recordCreditsActivity).not.toHaveBeenCalled();
+      expect(loggerService.log).toHaveBeenCalledWith(
+        expect.stringContaining('PAYG checkout already processed'),
+        expect.objectContaining({ sessionId: 'cs_payg_1' }),
+      );
+    });
+
+    it('omits the activity user when the subscription user is soft-deleted or missing', async () => {
+      subscriptionsService.findByStripeCustomerId.mockResolvedValue({
+        id: 'sub_db_1',
+        organization: 'org_1',
+        user: 'user_deleted_1',
+      });
+      usersService.findOne.mockResolvedValue(null);
+
+      await handler.handleCheckoutCompleted(session, 'test');
+
+      expect(usersService.findOne).toHaveBeenCalledWith({
+        id: 'user_deleted_1',
+        isDeleted: false,
+      });
+      expect(supportService.recordCreditsActivity).toHaveBeenCalledWith(
+        expect.not.objectContaining({ userId: expect.any(String) }),
+      );
+      expect(
+        supportService.markOnboardingCompleteFromSession,
+      ).toHaveBeenCalledWith(session, 'test');
+    });
+
+    it('rethrows PAYG processing failures after logging', async () => {
+      const error = new Error('credit write failed');
+      subscriptionsService.findByStripeCustomerId.mockResolvedValue({
+        id: 'sub_db_1',
+        organization: 'org_1',
+        user: 'user_1',
+      });
+      supportService.addPurchasedCredits.mockRejectedValueOnce(error);
+
+      await expect(
+        handler.handleCheckoutCompleted(session, 'test'),
+      ).rejects.toThrow(error);
+
+      expect(loggerService.error).toHaveBeenCalledWith(
+        expect.stringContaining('failed to handle checkout completed'),
+        error,
+      );
     });
 
     it('warns and adds nothing when no subscription matches the customer', async () => {
@@ -185,22 +264,81 @@ describe('StripeCheckoutWebhookHandler', () => {
     });
   });
 
+  describe('handleCheckoutCompleted — user credits', () => {
+    const session = {
+      customer: 'cus_user',
+      id: 'cs_user_1',
+      metadata: { credits: '100', type: 'user', userId: 'user_1' },
+      mode: 'payment',
+    } as unknown as StripeCheckoutSession;
+
+    beforeEach(() => {
+      usersService.findOne.mockResolvedValue({ id: 'user_1' });
+      organizationsService.findOne.mockResolvedValue({ id: 'org_creator' });
+    });
+
+    it('adds purchased credits to the user creator organization once', async () => {
+      await handler.handleCheckoutCompleted(session, 'test');
+
+      expect(usersService.findOne).toHaveBeenCalledWith({
+        id: 'user_1',
+        isDeleted: false,
+      });
+      expect(supportService.withCheckoutSessionProcessing).toHaveBeenCalledWith(
+        'cs_user_1',
+        'user-credit',
+        expect.any(Function),
+      );
+      expect(supportService.addPurchasedCredits).toHaveBeenCalledWith(
+        'org_creator',
+        100,
+        'user-purchase',
+        expect.stringContaining('100 credits'),
+      );
+      expect(
+        userSubscriptionsService.updateFromStripeSession,
+      ).toHaveBeenCalledWith('user_1', session);
+    });
+
+    it('does not grant duplicate user credits for an already processed session', async () => {
+      supportService.withCheckoutSessionProcessing.mockResolvedValueOnce(null);
+
+      await handler.handleCheckoutCompleted(session, 'test');
+
+      expect(supportService.addPurchasedCredits).not.toHaveBeenCalled();
+      expect(
+        userSubscriptionsService.updateFromStripeSession,
+      ).not.toHaveBeenCalled();
+      expect(loggerService.log).toHaveBeenCalledWith(
+        expect.stringContaining('user checkout already processed'),
+        expect.objectContaining({ sessionId: 'cs_user_1' }),
+      );
+    });
+  });
+
   describe('handleCheckoutCompleted — skills-pro', () => {
+    const session = {
+      amount_total: 4900,
+      currency: 'usd',
+      customer_details: { email: 'buyer@example.com' },
+      id: 'cs_skills_1',
+      metadata: { type: 'skills-pro' },
+      payment_intent: 'pi_1',
+    } as unknown as StripeCheckoutSession;
+
     it('creates a skill receipt from the session', async () => {
       prisma.skillReceipt.create.mockResolvedValue({});
 
-      await handler.handleCheckoutCompleted(
-        {
-          amount_total: 4900,
-          currency: 'usd',
-          customer_details: { email: 'buyer@example.com' },
-          id: 'cs_skills_1',
-          metadata: { type: 'skills-pro' },
-          payment_intent: 'pi_1',
-        } as unknown as StripeCheckoutSession,
-        'test',
-      );
+      await handler.handleCheckoutCompleted(session, 'test');
 
+      expect(supportService.withCheckoutSessionProcessing).toHaveBeenCalledWith(
+        'cs_skills_1',
+        'skills-pro-receipt',
+        expect.any(Function),
+      );
+      expect(prisma.skillReceipt.findMany).toHaveBeenCalledWith({
+        where: { isDeleted: false },
+      });
       expect(prisma.skillReceipt.create).toHaveBeenCalledWith({
         data: {
           data: expect.objectContaining({
@@ -212,6 +350,60 @@ describe('StripeCheckoutWebhookHandler', () => {
           }),
         },
       });
+      expect(loggerService.log).toHaveBeenCalledWith(
+        expect.stringContaining('skills-pro receipt created'),
+        expect.objectContaining({
+          emailDomain: 'example.com',
+          sessionId: 'cs_skills_1',
+        }),
+      );
+      expect(
+        loggerService.log.mock.calls.find(([message]) =>
+          String(message).includes('skills-pro receipt created'),
+        )?.[1],
+      ).not.toHaveProperty('email');
+    });
+
+    it('does not create a duplicate skills-pro receipt when the session is already processed', async () => {
+      supportService.withCheckoutSessionProcessing.mockResolvedValueOnce(null);
+
+      await handler.handleCheckoutCompleted(session, 'test');
+
+      expect(prisma.skillReceipt.create).not.toHaveBeenCalled();
+      expect(loggerService.log).toHaveBeenCalledWith(
+        expect.stringContaining('skills-pro checkout already processed'),
+        expect.objectContaining({ sessionId: 'cs_skills_1' }),
+      );
+    });
+
+    it('does not create a duplicate skills-pro receipt when a persisted receipt already has the session id', async () => {
+      prisma.skillReceipt.findMany.mockResolvedValueOnce([
+        { data: { stripeSessionId: 'cs_skills_1' } },
+      ]);
+
+      await handler.handleCheckoutCompleted(session, 'test');
+
+      expect(prisma.skillReceipt.create).not.toHaveBeenCalled();
+      expect(loggerService.log).toHaveBeenCalledWith(
+        expect.stringContaining('skills-pro receipt already exists'),
+        expect.objectContaining({ sessionId: 'cs_skills_1' }),
+      );
+    });
+
+    it('rethrows skills-pro receipt failures after logging', async () => {
+      const error = new Error('receipt write failed');
+      prisma.skillReceipt.create.mockRejectedValueOnce(error);
+
+      await expect(
+        handler.handleCheckoutCompleted(session, 'test'),
+      ).rejects.toThrow(error);
+
+      expect(loggerService.error).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'failed to handle skills-pro checkout completed',
+        ),
+        error,
+      );
     });
   });
 
@@ -280,22 +472,14 @@ describe('StripeCheckoutWebhookHandler', () => {
       expect(apiKeysService.createWithKey).toHaveBeenCalledTimes(1);
     });
 
-    it('reactivates a soft-deleted user when email creation hits a unique constraint race', async () => {
+    it('reuses an active user when email creation hits a unique constraint race', async () => {
       usersService.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce({
-        id: 'user_deleted_1',
-        isDeleted: true,
+        id: 'user_existing_1',
+        isDeleted: false,
         isOnboardingCompleted: false,
         onboardingStepsCompleted: [],
       });
       usersService.create.mockRejectedValueOnce({ code: 'P2002' });
-      usersService.patch
-        .mockResolvedValueOnce({
-          id: 'user_deleted_1',
-          isDeleted: false,
-          isOnboardingCompleted: false,
-          onboardingStepsCompleted: [],
-        })
-        .mockResolvedValueOnce({});
 
       await provisionAccessor().provisionManagedCheckoutAccount(
         session as never,
@@ -307,12 +491,40 @@ describe('StripeCheckoutWebhookHandler', () => {
         email,
         isDeleted: false,
       });
-      expect(usersService.findOne).toHaveBeenNthCalledWith(2, { email }, []);
-      expect(usersService.patch).toHaveBeenNthCalledWith(1, 'user_deleted_1', {
+      expect(usersService.findOne).toHaveBeenNthCalledWith(2, {
+        email,
         isDeleted: false,
       });
       expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
       expect(supportService.addPurchasedCredits).toHaveBeenCalled();
+    });
+
+    it('does not reactivate a soft-deleted user when email creation hits a unique constraint', async () => {
+      const uniqueConflict = { code: 'P2002' };
+      usersService.findOne.mockResolvedValue(null);
+      usersService.create.mockRejectedValueOnce(uniqueConflict);
+
+      await expect(
+        provisionAccessor().provisionManagedCheckoutAccount(
+          session as never,
+          email,
+          'test',
+        ),
+      ).rejects.toBe(uniqueConflict);
+
+      expect(usersService.findOne).toHaveBeenNthCalledWith(1, {
+        email,
+        isDeleted: false,
+      });
+      expect(usersService.findOne).toHaveBeenNthCalledWith(2, {
+        email,
+        isDeleted: false,
+      });
+      expect(usersService.patch).not.toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ isDeleted: false }),
+      );
+      expect(supportService.addPurchasedCredits).not.toHaveBeenCalled();
     });
 
     it('reuses an existing user by email, skips provisioning, but still tops up credits for a returning buyer', async () => {

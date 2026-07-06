@@ -44,6 +44,9 @@ export class StripeWebhookController {
     if (IS_SELF_HOSTED) throw new NotFoundException('Route');
 
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    let idempotencyKey: string | null = null;
+    let idempotencyKeyAcquired = false;
+    const publisher = this.redisService.getPublisher();
 
     try {
       const rawBody = request.body;
@@ -70,8 +73,7 @@ export class StripeWebhookController {
       }
 
       // Idempotency: skip if this event was already processed
-      const idempotencyKey = `stripe:webhook:${event.id}`;
-      const publisher = this.redisService.getPublisher();
+      idempotencyKey = `stripe:webhook:${event.id}`;
 
       if (publisher) {
         // Atomic SET NX: GET-then-SETEX was a TOCTOU race — two concurrent
@@ -91,10 +93,23 @@ export class StripeWebhookController {
           });
           return { success: true };
         }
+
+        idempotencyKeyAcquired = true;
       }
 
       await this.stripeWebhookService.handleWebhookEvent(event, url);
     } catch (error: unknown) {
+      if (publisher && idempotencyKeyAcquired && idempotencyKey) {
+        try {
+          await publisher.del(idempotencyKey);
+        } catch (cleanupError: unknown) {
+          this.loggerService.error(
+            `${url} failed to release idempotency key after processing failure`,
+            cleanupError,
+          );
+        }
+      }
+
       this.loggerService.error(`${url} processing failed`, error);
 
       throw new HttpException(

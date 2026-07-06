@@ -1,3 +1,4 @@
+import { getEmailLogMetadata } from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
 import type { StripeCustomer } from '@api/services/integrations/stripe/services/stripe.service';
 import {
   type ISubscriptionsService,
@@ -23,7 +24,7 @@ export class StripeCustomerWebhookHandler {
   handleCustomerCreated(customer: StripeCustomer, url: string): void {
     this.loggerService.log(`${url} customer created in Stripe`, {
       customerId: customer.id,
-      email: customer.email,
+      ...getEmailLogMetadata(customer.email),
     });
   }
 

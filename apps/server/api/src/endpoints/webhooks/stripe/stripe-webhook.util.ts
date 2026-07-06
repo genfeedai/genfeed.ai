@@ -31,6 +31,20 @@ export type MetadataParseWarning = (
   reason: string | undefined,
 ) => void;
 
+export function getEmailDomainForLog(
+  email: string | null | undefined,
+): string | undefined {
+  const domain = email?.split('@')[1]?.trim().toLowerCase();
+  return domain || undefined;
+}
+
+export function getEmailLogMetadata(email: string | null | undefined): {
+  emailDomain?: string;
+} {
+  const emailDomain = getEmailDomainForLog(email);
+  return emailDomain ? { emailDomain } : {};
+}
+
 export function normalizeObjectId(
   value: SubscriptionRefId | undefined,
 ): string {
