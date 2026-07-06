@@ -1,4 +1,3 @@
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import type { ModelFieldMeta } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -399,6 +398,68 @@ describe('BaseService', () => {
                 in: ['GENERATED', 'PROCESSING', 'VALIDATED', 'GENERATED'],
               },
               trainingId: null,
+            },
+          ],
+          isDeleted: false,
+        },
+      });
+    });
+
+    it('maps scalar operator filters on legacy relation aliases to scalar FK fields', async () => {
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta(
+          'id',
+          'isDeleted',
+          { name: 'brandId', isRequired: false },
+          { kind: 'enum', name: 'category', type: 'IngredientCategory' },
+          { kind: 'enum', name: 'status', type: 'IngredientStatus' },
+        ),
+      );
+      delegate.findMany.mockResolvedValue([]);
+      delegate.count.mockResolvedValue(0);
+
+      await service.findAll(
+        {
+          where: {
+            AND: [
+              {
+                brand: { not: null },
+                category: 'image',
+                status: {
+                  in: ['generated', 'processing', 'validated'],
+                },
+              },
+            ],
+          },
+        },
+        { page: 1, limit: 48 },
+      );
+
+      expect(delegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            AND: [
+              {
+                brandId: { not: null },
+                category: 'IMAGE',
+                status: {
+                  in: ['GENERATED', 'PROCESSING', 'VALIDATED'],
+                },
+              },
+            ],
+            isDeleted: false,
+          },
+        }),
+      );
+      expect(delegate.count).toHaveBeenCalledWith({
+        where: {
+          AND: [
+            {
+              brandId: { not: null },
+              category: 'IMAGE',
+              status: {
+                in: ['GENERATED', 'PROCESSING', 'VALIDATED'],
+              },
             },
           ],
           isDeleted: false,
@@ -1007,6 +1068,30 @@ describe('BaseService', () => {
 
       expect(result).toEqual({
         user: { is: { id: 'user1' } },
+      });
+    });
+
+    it('remaps scalar operator objects on legacy relation aliases to scalar FK fields', () => {
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta(
+          'id',
+          'isDeleted',
+          'organizationId',
+          'brandId',
+          'folderId',
+        ),
+      );
+
+      const result = service.processSearchParams({
+        brand: { not: null },
+        folder: { equals: 'folder1' },
+        organization: { not: null },
+      });
+
+      expect(result).toEqual({
+        brandId: { not: null },
+        folderId: { equals: 'folder1' },
+        organizationId: { not: null },
       });
     });
   });
