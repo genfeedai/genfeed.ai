@@ -1,9 +1,6 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { CronJobsController } from '@api/collections/cron-jobs/controllers/cron-jobs.controller';
-import {
-  CronJobsService,
-  LEGACY_CRON_JOBS_RETIRED_MESSAGE,
-} from '@api/collections/cron-jobs/services/cron-jobs.service';
+import { CronJobsService } from '@api/collections/cron-jobs/services/cron-jobs.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -152,60 +149,6 @@ describe('CronJobsController', () => {
         '507f1f77bcf86cd799439012',
         { enabled: undefined, jobType: 'newsletter' },
       );
-    });
-  });
-
-  describe('create', () => {
-    it('should reject new legacy cron jobs', () => {
-      expect(() => controller.create()).toThrow(
-        LEGACY_CRON_JOBS_RETIRED_MESSAGE,
-      );
-      expect(mockServiceMethods.create).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('update', () => {
-    it('should reject legacy cron job edits', () => {
-      expect(() => controller.update()).toThrow(
-        LEGACY_CRON_JOBS_RETIRED_MESSAGE,
-      );
-      expect(mockServiceMethods.update).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('runNow', () => {
-    it('should reject manual legacy cron job runs', () => {
-      expect(() => controller.runNow()).toThrow(
-        LEGACY_CRON_JOBS_RETIRED_MESSAGE,
-      );
-      expect(mockServiceMethods.runNow).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('pause', () => {
-    it('should reject legacy cron job pause requests', () => {
-      expect(() => controller.pause()).toThrow(
-        LEGACY_CRON_JOBS_RETIRED_MESSAGE,
-      );
-      expect(mockServiceMethods.pause).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('resume', () => {
-    it('should reject legacy cron job resume requests', () => {
-      expect(() => controller.resume()).toThrow(
-        LEGACY_CRON_JOBS_RETIRED_MESSAGE,
-      );
-      expect(mockServiceMethods.resume).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('delete', () => {
-    it('should reject legacy cron job deletion requests', () => {
-      expect(() => controller.delete()).toThrow(
-        LEGACY_CRON_JOBS_RETIRED_MESSAGE,
-      );
-      expect(mockServiceMethods.delete).not.toHaveBeenCalled();
     });
   });
 

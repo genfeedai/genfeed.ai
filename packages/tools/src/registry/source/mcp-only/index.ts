@@ -4,6 +4,7 @@ import { MCP_ADS_TOOLS } from './ads.tools.js';
 import { MCP_AGENT_CONTROL_TOOLS } from './agent-control.tools.js';
 import { MCP_ANALYTICS_TOOLS } from './analytics.tools.js';
 import { MCP_CAMPAIGN_TOOLS } from './campaign.tools.js';
+import { MCP_CLIP_TOOLS } from './clips.tools.js';
 import { MCP_CONTENT_TOOLS } from './content.tools.js';
 import { MCP_GENERATION_TOOLS } from './generation.tools.js';
 import { MCP_OTHER_TOOLS } from './other.tools.js';
@@ -21,4 +22,5 @@ export const MCP_ONLY_TOOLS: SourceTool[] = [
   ...MCP_AGENT_CONTROL_TOOLS,
   ...MCP_ADS_TOOLS,
   ...MCP_CAMPAIGN_TOOLS,
+  ...MCP_CLIP_TOOLS,
 ];

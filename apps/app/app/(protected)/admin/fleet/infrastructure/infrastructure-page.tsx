@@ -27,13 +27,6 @@ const STATE_BADGE_COLORS = {
   terminated: 'bg-foreground/5 text-foreground/40',
 } as const;
 
-const ROLE_BADGE_COLORS = {
-  images: 'bg-violet-500/10 text-violet-500',
-  training: 'bg-amber-500/10 text-amber-500',
-  videos: 'bg-blue-500/10 text-blue-500',
-  voices: 'bg-emerald-500/10 text-emerald-500',
-} as const;
-
 const POLL_INTERVAL_MS = 30_000;
 
 export default function InfrastructurePage() {
@@ -208,15 +201,7 @@ export default function InfrastructurePage() {
       header: 'Role',
       key: 'role',
       render: (instance: IEC2Instance) => (
-        <Badge
-          className={
-            ROLE_BADGE_COLORS[
-              instance.role as keyof typeof ROLE_BADGE_COLORS
-            ] ?? 'bg-foreground/5 text-foreground/60'
-          }
-        >
-          {instance.role}
-        </Badge>
+        <Badge variant="default">{instance.role}</Badge>
       ),
     },
     {

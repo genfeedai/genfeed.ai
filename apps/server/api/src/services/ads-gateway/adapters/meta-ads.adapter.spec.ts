@@ -184,21 +184,6 @@ describe('MetaAdsAdapter', () => {
     });
   });
 
-  // ── pauseCampaign ─────────────────────────────────────────────────────────
-
-  describe('pauseCampaign', () => {
-    it('delegates pause to service', async () => {
-      metaAdsService.pauseCampaign.mockResolvedValue(undefined as never);
-
-      await adapter.pauseCampaign(mockCtx, 'c1');
-
-      expect(metaAdsService.pauseCampaign).toHaveBeenCalledWith(
-        mockCtx.accessToken,
-        'c1',
-      );
-    });
-  });
-
   // ── listAdSets ────────────────────────────────────────────────────────────
 
   describe('listAdSets', () => {

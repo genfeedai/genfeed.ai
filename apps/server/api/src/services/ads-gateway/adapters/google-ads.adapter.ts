@@ -158,18 +158,6 @@ export class GoogleAdsAdapter implements IAdsAdapter {
     };
   }
 
-  async pauseCampaign(
-    ctx: AdsAdapterContext,
-    campaignId: string,
-  ): Promise<void> {
-    await this.googleAdsService.pauseCampaign(
-      ctx.accessToken,
-      ctx.adAccountId,
-      campaignId,
-      ctx.loginCustomerId,
-    );
-  }
-
   async listAdSets(
     ctx: AdsAdapterContext,
     campaignId: string,

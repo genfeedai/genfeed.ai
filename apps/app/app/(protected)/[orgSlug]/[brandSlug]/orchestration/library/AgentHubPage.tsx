@@ -79,7 +79,7 @@ function AgentCard({
     : 'Never';
 
   return (
-    <div className="rounded border border-foreground/10 bg-background p-4 flex flex-col gap-3">
+    <div className="rounded bg-secondary p-4 shadow-border flex flex-col gap-3">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="flex size-8 items-center justify-center rounded bg-foreground/5 text-foreground/70">

@@ -90,17 +90,17 @@ export default function AgentRunRow({
           >
             <div className="space-y-4 p-4">
               <div className="flex flex-wrap gap-2 text-xs text-foreground/65">
-                <span className="rounded border border-white/10 bg-black/20 px-2 py-1">
+                <span className="rounded bg-tertiary px-2 py-1">
                   Model: {getRunModelLabel(run)}
                 </span>
                 {getRunMetadataString(run.metadata, 'routingPolicy') && (
-                  <span className="rounded border border-white/10 bg-black/20 px-2 py-1">
+                  <span className="rounded bg-tertiary px-2 py-1">
                     Routing:{' '}
                     {getRunMetadataString(run.metadata, 'routingPolicy')}
                   </span>
                 )}
                 {run.metadata?.webSearchEnabled === true && (
-                  <span className="rounded border border-white/10 bg-black/20 px-2 py-1">
+                  <span className="rounded bg-tertiary px-2 py-1">
                     Web enabled
                   </span>
                 )}

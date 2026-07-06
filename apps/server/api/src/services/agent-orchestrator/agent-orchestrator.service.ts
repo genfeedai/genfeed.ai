@@ -139,7 +139,6 @@ interface ThreadResolutionResult {
 }
 
 const PAID_SUBSCRIPTION_TIERS = new Set<string>([
-  SubscriptionTier.CREATOR,
   SubscriptionTier.PRO,
   SubscriptionTier.SCALE,
   SubscriptionTier.ENTERPRISE,
