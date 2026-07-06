@@ -6,7 +6,7 @@ import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import { HStack } from '@ui/layout/stack';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
-import { HOME_ASSETS } from '@web-components/home/_assets';
+import { HOME_OUTPUT_WALL_ASSETS } from '@web-components/home/_assets';
 import Image from 'next/image';
 import { LuArrowRight } from 'react-icons/lu';
 
@@ -21,6 +21,57 @@ const HERO_METRICS: HeroMetric[] = [
   { label: 'estimated output cost', value: '$184' },
   { label: 'best hook rate', value: '31%' },
 ];
+
+const HERO_WALL_ITEMS = [
+  {
+    ...HOME_OUTPUT_WALL_ASSETS[0],
+    className:
+      'col-span-6 row-span-3 sm:col-span-5 sm:row-span-5 sm:col-start-1 sm:row-start-1',
+    imageClassName: 'object-[50%_50%]',
+    priority: true,
+    sizes: '(max-width: 640px) 100vw, (max-width: 1024px) 45vw, 360px',
+  },
+  {
+    ...HOME_OUTPUT_WALL_ASSETS[1],
+    className:
+      'col-span-3 row-span-4 sm:col-span-3 sm:row-span-9 sm:col-start-6 sm:row-start-1',
+    imageClassName: 'object-[50%_50%]',
+    priority: true,
+    sizes: '(max-width: 640px) 50vw, (max-width: 1024px) 28vw, 220px',
+  },
+  {
+    ...HOME_OUTPUT_WALL_ASSETS[2],
+    className:
+      'col-span-3 row-span-4 sm:col-span-4 sm:row-span-4 sm:col-start-9 sm:row-start-1',
+    imageClassName: 'object-[50%_50%]',
+    priority: true,
+    sizes: '(max-width: 640px) 50vw, (max-width: 1024px) 35vw, 300px',
+  },
+  {
+    ...HOME_OUTPUT_WALL_ASSETS[3],
+    className:
+      'col-span-4 row-span-3 sm:col-span-5 sm:row-span-4 sm:col-start-1 sm:row-start-6',
+    imageClassName: 'object-[48%_42%]',
+    priority: false,
+    sizes: '(max-width: 640px) 66vw, (max-width: 1024px) 42vw, 360px',
+  },
+  {
+    ...HOME_OUTPUT_WALL_ASSETS[4],
+    className:
+      'col-span-2 row-span-3 sm:col-span-4 sm:row-span-5 sm:col-start-9 sm:row-start-5',
+    imageClassName: 'object-[50%_50%]',
+    priority: false,
+    sizes: '(max-width: 640px) 34vw, (max-width: 1024px) 35vw, 300px',
+  },
+  {
+    ...HOME_OUTPUT_WALL_ASSETS[5],
+    className:
+      'col-span-6 row-span-2 sm:col-span-12 sm:row-span-3 sm:col-start-1 sm:row-start-10',
+    imageClassName: 'object-[50%_50%]',
+    priority: false,
+    sizes: '(max-width: 640px) 100vw, (max-width: 1024px) 80vw, 860px',
+  },
+] as const;
 
 export default function HomeHero(): React.ReactElement {
   const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
@@ -85,15 +136,27 @@ export default function HomeHero(): React.ReactElement {
             data-testid="home-hero-output-wall"
           >
             <div className="relative overflow-hidden rounded-lg bg-card shadow-border-strong">
-              <Image
-                alt="A premium Genfeed output wall showing generated images, video frames, audio clips, ads, articles, and social carousel assets"
-                className="h-auto w-full object-cover"
-                width={1693}
-                height={929}
-                priority
-                sizes="(max-width: 1024px) 100vw, 860px"
-                src={HOME_ASSETS.outputWall}
-              />
+              <div
+                className="grid aspect-[4/5] grid-cols-6 grid-rows-[repeat(12,minmax(0,1fr))] gap-2 p-2 sm:aspect-[860/620] sm:grid-cols-12 sm:p-3"
+                data-testid="home-hero-content-wall-grid"
+              >
+                {HERO_WALL_ITEMS.map((item) => (
+                  <div
+                    key={item.alt}
+                    className={`group relative min-h-0 overflow-hidden rounded-md bg-background ${item.className}`}
+                    data-testid="home-hero-output-wall-item"
+                  >
+                    <Image
+                      alt={item.alt}
+                      className={`object-cover transition-transform duration-700 group-hover:scale-[1.03] ${item.imageClassName}`}
+                      fill
+                      priority={item.priority}
+                      sizes={item.sizes}
+                      src={item.src}
+                    />
+                  </div>
+                ))}
+              </div>
               <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_54%,rgba(5,6,7,0.82))]" />
             </div>
 

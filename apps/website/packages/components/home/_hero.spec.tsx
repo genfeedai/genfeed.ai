@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import { HOME_OUTPUT_WALL_ASSETS } from '@web-components/home/_assets';
 import type { ImgHTMLAttributes } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import HomeHero from './_hero';
@@ -51,10 +52,27 @@ describe('HomeHero', () => {
     );
   });
 
-  it('renders the generated output wall instead of the old card deck', () => {
+  it('renders a CDN-backed generated output wall instead of static wall art', () => {
     render(<HomeHero />);
 
     expect(screen.getByTestId('home-hero-output-wall')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('home-hero-content-wall-grid'),
+    ).toBeInTheDocument();
+    expect(screen.getAllByTestId('home-hero-output-wall-item')).toHaveLength(
+      HOME_OUTPUT_WALL_ASSETS.length,
+    );
     expect(screen.queryByTestId('home-hero-card-deck')).not.toBeInTheDocument();
+
+    const imageSources = screen
+      .getAllByRole('img')
+      .map((image) => image.getAttribute('data-src'));
+
+    expect(imageSources).toEqual(
+      HOME_OUTPUT_WALL_ASSETS.map((asset) => asset.src),
+    );
+    expect(
+      imageSources.some((src) => src?.includes('generated-output-wall.png')),
+    ).toBe(false);
   });
 });
