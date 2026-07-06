@@ -30,6 +30,11 @@ function buildServerSourceAliases(serverAppsRoot) {
     if (!entry.isDirectory()) continue;
     const appSrc = path.resolve(serverAppsRoot, entry.name, 'src');
     if (!fs.existsSync(appSrc)) continue;
+    if (entry.name === 'domain') {
+      aliases['@genfeedai/server-domain'] = appSrc;
+      aliases['@server-domain'] = appSrc;
+      continue;
+    }
     aliases[`@${entry.name}`] = appSrc;
   }
 
@@ -185,6 +190,7 @@ module.exports = function createWebpackConfig({
           /^@api\//,
           /^@helpers\//,
           /^@libs\//,
+          /^@server-domain(\/|$)/,
           /^@serializers\//,
           /^@files\//,
           /^@workers\//,

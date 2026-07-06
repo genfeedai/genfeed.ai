@@ -1,5 +1,3 @@
-import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
-import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import {
   ANALYTICS_YOUTUBE_QUEUE,
   YouTubeAnalyticsJobData,
@@ -11,6 +9,7 @@ import {
   type ProcessorCircuitBreaker,
 } from '@libs/utils/circuit-breaker/circuit-breaker.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { AnalyticsYouTubeJobService } from '@server-domain/analytics/services/analytics-youtube-job.service';
 import { Job } from 'bullmq';
 
 @Processor(ANALYTICS_YOUTUBE_QUEUE)
@@ -18,8 +17,7 @@ export class AnalyticsYouTubeProcessor extends WorkerHost {
   private readonly circuitBreaker: ProcessorCircuitBreaker;
 
   constructor(
-    private readonly youtubeService: YoutubeService,
-    private readonly postAnalyticsService: PostAnalyticsService,
+    private readonly analyticsYouTubeJobService: AnalyticsYouTubeJobService,
     private readonly logger: LoggerService,
   ) {
     super();
@@ -44,61 +42,6 @@ export class AnalyticsYouTubeProcessor extends WorkerHost {
   private async processInternal(
     job: Job<YouTubeAnalyticsJobData>,
   ): Promise<void> {
-    const { posts, organizationId, brandId } = job.data;
-
-    this.logger.log(
-      `Processing YouTube analytics batch for ${posts.length} posts`,
-    );
-
-    try {
-      await job.updateProgress(10);
-
-      if (posts.length === 0) {
-        this.logger.warn('No posts provided for YouTube analytics batch');
-        return;
-      }
-
-      // Extract video IDs
-      const videoIds = posts.map((post) => post.externalId);
-
-      // Fetch analytics in batch (up to 50 videos per request)
-      const analyticsMap = await this.youtubeService.getMediaAnalyticsBatch(
-        organizationId,
-        brandId,
-        videoIds,
-      );
-
-      await job.updateProgress(50);
-
-      // Update each post with its analytics
-      let processed = 0;
-      for (const post of posts) {
-        const analytics = analyticsMap.get(post.externalId);
-
-        if (analytics) {
-          await this.postAnalyticsService.processYouTubeAnalytics(
-            post.id,
-            analytics,
-          );
-          processed++;
-        } else {
-          this.logger.warn(
-            `No analytics found for video ${post.externalId} (post ${post.id})`,
-          );
-        }
-      }
-
-      await job.updateProgress(100);
-
-      this.logger.log(
-        `YouTube analytics batch completed - processed ${processed}/${posts.length} posts`,
-      );
-    } catch (error: unknown) {
-      this.logger.error(
-        `Failed to process YouTube analytics batch for ${posts.length} posts`,
-        error,
-      );
-      throw error;
-    }
+    await this.analyticsYouTubeJobService.process(job);
   }
 }

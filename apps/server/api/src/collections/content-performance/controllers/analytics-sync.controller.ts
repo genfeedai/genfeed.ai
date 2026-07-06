@@ -1,6 +1,4 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { AnalyticsSyncService } from '@api/collections/content-performance/services/analytics-sync.service';
-import { EmailDigestService } from '@api/collections/content-performance/services/email-digest.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -13,6 +11,8 @@ import {
 } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import { AnalyticsSyncService } from '@server-domain/collections/content-performance/services/analytics-sync.service';
+import { EmailDigestService } from '@server-domain/collections/content-performance/services/email-digest.service';
 import { IsDateString, IsEmail, IsOptional, IsString } from 'class-validator';
 
 export class TriggerSyncDto {

@@ -9,7 +9,6 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { type ContentDraftDocument } from '@api/collections/content-drafts/schemas/content-draft.schema';
 import { ContentDraftsService } from '@api/collections/content-drafts/services/content-drafts.service';
 import { ContentPerformanceService } from '@api/collections/content-performance/services/content-performance.service';
-import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { EvaluationsOperationsService } from '@api/collections/evaluations/services/evaluations-operations.service';
 import { OptimizersService } from '@api/collections/optimizers/services/optimizers.service';
@@ -31,6 +30,7 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { PerformanceSummaryService } from '@server-domain/collections/content-performance/services/performance-summary.service';
 
 export interface BudgetPacingState {
   expectedSpendToDate: number;

@@ -1,7 +1,3 @@
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
-import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
-import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
 import {
   ANALYTICS_TWITTER_QUEUE,
   TwitterAnalyticsJobData,
@@ -12,22 +8,16 @@ import {
   createProcessorCircuitBreaker,
   type ProcessorCircuitBreaker,
 } from '@libs/utils/circuit-breaker/circuit-breaker.util';
-import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { AnalyticsTwitterJobService } from '@server-domain/analytics/services/analytics-twitter-job.service';
 import { Job } from 'bullmq';
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
 
 @Processor(ANALYTICS_TWITTER_QUEUE)
 export class AnalyticsTwitterProcessor extends WorkerHost {
   private readonly circuitBreaker: ProcessorCircuitBreaker;
 
   constructor(
-    private readonly twitterService: TwitterService,
-    private readonly postAnalyticsService: PostAnalyticsService,
-    private readonly credentialsService: CredentialsService,
+    private readonly analyticsTwitterJobService: AnalyticsTwitterJobService,
     private readonly logger: LoggerService,
   ) {
     super();
@@ -35,27 +25,6 @@ export class AnalyticsTwitterProcessor extends WorkerHost {
       'analytics-twitter',
       this.logger,
     );
-  }
-
-  private buildCredentialData(credential: unknown): IReplyBotCredentialData {
-    if (
-      !isPlainObject(credential) ||
-      typeof credential.accessToken !== 'string'
-    ) {
-      throw new Error('Twitter analytics credential missing accessToken');
-    }
-
-    return {
-      accessToken: EncryptionUtil.decrypt(credential.accessToken),
-      accessTokenSecret:
-        typeof credential.accessTokenSecret === 'string'
-          ? EncryptionUtil.decrypt(credential.accessTokenSecret)
-          : undefined,
-    };
-  }
-
-  private isRateLimitError(error: unknown): boolean {
-    return isPlainObject(error) && 'rateLimitReset' in error;
   }
 
   async process(job: Job<TwitterAnalyticsJobData>): Promise<void> {
@@ -73,78 +42,6 @@ export class AnalyticsTwitterProcessor extends WorkerHost {
   private async processInternal(
     job: Job<TwitterAnalyticsJobData>,
   ): Promise<void> {
-    const { posts, credentialId } = job.data;
-
-    this.logger.log(
-      `Processing Twitter analytics batch for ${posts.length} posts`,
-    );
-
-    try {
-      await job.updateProgress(10);
-
-      if (posts.length === 0) {
-        this.logger.warn('No posts provided for Twitter analytics batch');
-        return;
-      }
-
-      // Fetch credential through the service layer so decryption accessors run.
-      const credential: unknown = await this.credentialsService.findOne({
-        _id: credentialId,
-      });
-
-      if (!credential) {
-        this.logger.error(`Credential ${credentialId} not found`);
-        throw new Error(`Credential ${credentialId} not found`);
-      }
-      const credentialData = this.buildCredentialData(credential);
-
-      // Extract tweet IDs
-      const tweetIds = posts.map((post) => post.externalId);
-
-      // Fetch analytics in batch (up to 100 tweets per request)
-      const analyticsMap = await this.twitterService.getMediaAnalyticsBatch(
-        tweetIds,
-        credentialData.accessToken,
-        credentialData.accessTokenSecret,
-      );
-
-      await job.updateProgress(50);
-
-      // Update each post with its analytics
-      let processed = 0;
-      for (const post of posts) {
-        const analytics = analyticsMap.get(post.externalId);
-
-        if (analytics) {
-          await this.postAnalyticsService.processTwitterAnalytics(
-            post.id,
-            analytics,
-          );
-
-          processed++;
-        } else {
-          this.logger.warn(
-            `No analytics found for tweet ${post.externalId} (post ${post.id})`,
-          );
-        }
-      }
-
-      await job.updateProgress(100);
-
-      this.logger.log(
-        `Twitter analytics batch completed - processed ${processed}/${posts.length} posts`,
-      );
-    } catch (error: unknown) {
-      // Don't log rate limit errors - already handled by TwitterService
-      // BullMQ will automatically retry with exponential backoff
-      if (!this.isRateLimitError(error)) {
-        this.logger.error(
-          `Failed to process Twitter analytics batch for ${posts.length} posts`,
-          error,
-        );
-      }
-
-      throw error;
-    }
+    await this.analyticsTwitterJobService.process(job);
   }
 }

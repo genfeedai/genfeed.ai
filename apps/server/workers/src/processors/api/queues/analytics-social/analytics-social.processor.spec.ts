@@ -1,233 +1,83 @@
-import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
-import { PostsService } from '@api/collections/posts/services/posts.service';
-import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
-import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
-import { MastodonService } from '@api/services/integrations/mastodon/services/mastodon.service';
-import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
-import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import type { SocialAnalyticsJobData } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Test } from '@nestjs/testing';
+import { AnalyticsSocialJobService } from '@server-domain/analytics/services/analytics-social-job.service';
 import { AnalyticsSocialProcessor } from '@workers/processors/api/queues/analytics-social/analytics-social.processor';
-import { Job } from 'bullmq';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Job } from 'bullmq';
+
+function makeJob(
+  data: Partial<SocialAnalyticsJobData> = {},
+): Job<SocialAnalyticsJobData> {
+  return {
+    data: {
+      posts: [],
+      ...data,
+    },
+    updateProgress: vi.fn().mockResolvedValue(undefined),
+  } as unknown as Job<SocialAnalyticsJobData>;
+}
 
 describe('AnalyticsSocialProcessor', () => {
   let processor: AnalyticsSocialProcessor;
-  let instagramService: InstagramService;
-  let linkedInService: LinkedInService;
-  let mastodonService: MastodonService;
-  let tiktokService: TiktokService;
-  let pinterestService: PinterestService;
-  let postAnalyticsService: PostAnalyticsService;
-  let postsService: PostsService;
-  let logger: LoggerService;
+  let analyticsSocialJobService: {
+    process: ReturnType<typeof vi.fn>;
+  };
+  let logger: {
+    error: ReturnType<typeof vi.fn>;
+    log: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
+  };
 
-  beforeEach(() => {
-    instagramService = {
-      getMediaAnalytics: vi.fn(),
-    } as any;
-
-    linkedInService = {
-      getMediaAnalytics: vi.fn(),
-    } as any;
-
-    mastodonService = {
-      getMediaAnalytics: vi.fn(),
-    } as any;
-
-    tiktokService = {
-      getMediaAnalytics: vi.fn(),
-    } as any;
-
-    pinterestService = {
-      getMediaAnalytics: vi.fn(),
-    } as any;
-
-    postAnalyticsService = {
-      processInstagramAnalytics: vi.fn(),
-      processPinterestAnalytics: vi.fn(),
-      processTikTokAnalytics: vi.fn(),
-    } as any;
-
-    postsService = {
-      patch: vi.fn(),
-    } as any;
-
+  beforeEach(async () => {
+    analyticsSocialJobService = {
+      process: vi.fn().mockResolvedValue(undefined),
+    };
     logger = {
       error: vi.fn(),
       log: vi.fn(),
       warn: vi.fn(),
-    } as any;
+    };
 
-    processor = new AnalyticsSocialProcessor(
-      instagramService,
-      linkedInService,
-      mastodonService,
-      tiktokService,
-      pinterestService,
-      postAnalyticsService,
-      postsService,
-      logger,
+    const module = await Test.createTestingModule({
+      providers: [
+        AnalyticsSocialProcessor,
+        {
+          provide: AnalyticsSocialJobService,
+          useValue: analyticsSocialJobService,
+        },
+        { provide: LoggerService, useValue: logger },
+      ],
+    }).compile();
+
+    processor = module.get(AnalyticsSocialProcessor);
+  });
+
+  it('delegates processing to the domain job service', async () => {
+    const job = makeJob({
+      posts: [
+        {
+          brand: 'brand-1',
+          externalId: 'ig-123',
+          id: 'post-1',
+          organization: 'org-1',
+          platform: CredentialPlatform.INSTAGRAM,
+        },
+      ],
+    });
+
+    await processor.process(job);
+
+    expect(analyticsSocialJobService.process).toHaveBeenCalledWith(job);
+  });
+
+  it('propagates domain job service errors', async () => {
+    analyticsSocialJobService.process.mockRejectedValue(
+      new Error('Social analytics failed'),
     );
-  });
 
-  describe('instantiation', () => {
-    it('should be defined', () => {
-      expect(processor).toBeDefined();
-    });
-  });
-
-  describe('process', () => {
-    it('should process social analytics for multiple posts', async () => {
-      const jobData: SocialAnalyticsJobData = {
-        posts: [
-          {
-            id: 'post-1',
-            brand: 'brand-1',
-            externalId: 'ig-123',
-            organization: 'org-1',
-            platform: CredentialPlatform.INSTAGRAM,
-          },
-          {
-            id: 'post-2',
-            brand: 'brand-1',
-            externalId: 'tiktok-456',
-            organization: 'org-1',
-            platform: CredentialPlatform.TIKTOK,
-          },
-        ],
-      };
-
-      const job = {
-        data: jobData,
-        id: 'job-1',
-        updateProgress: vi.fn(),
-      } as unknown as Job<SocialAnalyticsJobData>;
-
-      await processor.process(job);
-
-      expect(logger.log).toHaveBeenCalledWith(
-        expect.stringContaining('Processing social media analytics'),
-      );
-      expect(job.updateProgress).toHaveBeenCalled();
-    });
-
-    it('should handle empty posts array', async () => {
-      const jobData: SocialAnalyticsJobData = {
-        posts: [],
-      };
-
-      const job = {
-        data: jobData,
-        id: 'job-2',
-        updateProgress: vi.fn(),
-      } as unknown as Job<SocialAnalyticsJobData>;
-
-      await processor.process(job);
-
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('No posts provided'),
-      );
-    });
-
-    it('should group posts by platform', async () => {
-      const jobData: SocialAnalyticsJobData = {
-        posts: [
-          {
-            id: 'post-1',
-            brand: 'brand-1',
-            externalId: 'ig-1',
-            organization: 'org-1',
-            platform: CredentialPlatform.INSTAGRAM,
-          },
-          {
-            id: 'post-2',
-            brand: 'brand-1',
-            externalId: 'ig-2',
-            organization: 'org-1',
-            platform: CredentialPlatform.INSTAGRAM,
-          },
-          {
-            id: 'post-3',
-            brand: 'brand-1',
-            externalId: 'tt-1',
-            organization: 'org-1',
-            platform: CredentialPlatform.TIKTOK,
-          },
-        ],
-      };
-
-      const job = {
-        data: jobData,
-        id: 'job-3',
-        updateProgress: vi.fn(),
-      } as unknown as Job<SocialAnalyticsJobData>;
-
-      await processor.process(job);
-
-      expect(logger.log).toHaveBeenCalledWith(
-        expect.stringContaining('3 posts'),
-      );
-    });
-
-    it('should handle circuit breaker errors', async () => {
-      const jobData: SocialAnalyticsJobData = {
-        posts: [
-          {
-            id: 'post-1',
-            brand: 'brand-1',
-            externalId: 'ig-123',
-            organization: 'org-1',
-            platform: CredentialPlatform.INSTAGRAM,
-          },
-        ],
-      };
-
-      const job = {
-        data: jobData,
-        id: 'job-4',
-        updateProgress: vi.fn(),
-      } as unknown as Job<SocialAnalyticsJobData>;
-
-      // Mock a service failure — errors are caught per-post, not thrown
-      vi.mocked(instagramService.getMediaAnalytics).mockRejectedValue(
-        new Error('Service unavailable'),
-      );
-
-      await processor.process(job);
-      expect(logger.error).toHaveBeenCalled();
-    });
-
-    it('should handle individual post processing errors gracefully', async () => {
-      const jobData: SocialAnalyticsJobData = {
-        posts: [
-          {
-            id: 'post-good',
-            brand: 'brand-1',
-            externalId: 'ig-good',
-            organization: 'org-1',
-            platform: CredentialPlatform.INSTAGRAM,
-          },
-          {
-            id: 'post-bad',
-            brand: 'brand-1',
-            externalId: 'ig-bad',
-            organization: 'org-1',
-            platform: CredentialPlatform.INSTAGRAM,
-          },
-        ],
-      };
-
-      const job = {
-        data: jobData,
-        id: 'job-5',
-        updateProgress: vi.fn(),
-      } as unknown as Job<SocialAnalyticsJobData>;
-
-      await processor.process(job);
-
-      expect(logger.log).toHaveBeenCalled();
-    });
+    await expect(processor.process(makeJob())).rejects.toThrow(
+      'Social analytics failed',
+    );
   });
 });

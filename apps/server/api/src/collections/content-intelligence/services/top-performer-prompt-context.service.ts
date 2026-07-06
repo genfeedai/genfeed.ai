@@ -1,10 +1,10 @@
 import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
+import { SecurityUtil } from '@api/helpers/utils/security/security.util';
+import { Injectable } from '@nestjs/common';
 import {
   type PerformanceContentItem,
   PerformanceSummaryService,
-} from '@api/collections/content-performance/services/performance-summary.service';
-import { SecurityUtil } from '@api/helpers/utils/security/security.util';
-import { Injectable } from '@nestjs/common';
+} from '@server-domain/collections/content-performance/services/performance-summary.service';
 
 export interface TopPerformerPromptContextParams {
   organizationId: string;

@@ -1,0 +1,41 @@
+{
+  "dependencies": {
+    "@genfeedai/enums": "workspace:*",
+    "@genfeedai/helpers": "workspace:*",
+    "@genfeedai/interfaces": "workspace:*",
+    "@genfeedai/prisma": "workspace:*",
+    "@genfeedai/queue-contracts": "workspace:*"
+  },
+  "description": "Server-tier domain services shared by Genfeed API and workers",
+  "devDependencies": {
+    "@nestjs/testing": "11.1.27",
+    "@types/node": "26.1.0",
+    "typescript": "6.0.2",
+    "vitest": "4.1.10"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "types": "./src/*.ts",
+      "default": "./src/*.ts"
+    }
+  },
+  "files": [
+    "src"
+  ],
+  "main": "./src/index.ts",
+  "name": "@genfeedai/server-domain",
+  "private": true,
+  "scripts": {
+    "build": "echo 'Source-level package — consumed via path aliases, no build needed'",
+    "clean": "echo 'Nothing to clean'",
+    "type-check": "bunx tsc --noEmit -p tsconfig.typecheck.json"
+  },
+  "sideEffects": false,
+  "type": "module",
+  "types": "./src/index.ts",
+  "version": "0.1.0"
+}

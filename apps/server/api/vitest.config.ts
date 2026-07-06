@@ -146,6 +146,22 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, './src'),
       },
       {
+        find: '@genfeedai/server-domain',
+        replacement: path.resolve(serviceDir, '../domain/src'),
+      },
+      {
+        find: /^@genfeedai\/server-domain\/(.*)$/,
+        replacement: path.resolve(serviceDir, '../domain/src/$1'),
+      },
+      {
+        find: '@server-domain',
+        replacement: path.resolve(serviceDir, '../domain/src'),
+      },
+      {
+        find: /^@server-domain\/(.*)$/,
+        replacement: path.resolve(serviceDir, '../domain/src/$1'),
+      },
+      {
         find: /^@api-types\/(.*)$/,
         replacement: path.resolve(
           serviceDir,

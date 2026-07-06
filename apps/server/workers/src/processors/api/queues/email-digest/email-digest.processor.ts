@@ -1,8 +1,4 @@
 import {
-  type EmailDigestResult,
-  EmailDigestService,
-} from '@api/collections/content-performance/services/email-digest.service';
-import {
   EMAIL_DIGEST_QUEUE,
   EmailDigestJobData,
 } from '@genfeedai/queue-contracts';
@@ -13,6 +9,10 @@ import {
   type ProcessorCircuitBreaker,
 } from '@libs/utils/circuit-breaker/circuit-breaker.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
+import {
+  type EmailDigestResult,
+  EmailDigestService,
+} from '@server-domain/collections/content-performance/services/email-digest.service';
 import { Job } from 'bullmq';
 
 @Processor(EMAIL_DIGEST_QUEUE)

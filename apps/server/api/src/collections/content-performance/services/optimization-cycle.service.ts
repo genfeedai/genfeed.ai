@@ -1,8 +1,8 @@
 import type { ContentPerformanceDocument } from '@api/collections/content-performance/schemas/content-performance.schema';
-import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { Prisma } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
+import { PerformanceSummaryService } from '@server-domain/collections/content-performance/services/performance-summary.service';
 
 // ─── Interfaces ──────────────────────────────────────────────────────
 

@@ -47,8 +47,6 @@ export const WORKERS_API_IMPORT_BASELINE: readonly string[] = [
   '@api/collections/clip-projects/schemas/clip-project.schema',
   '@api/collections/clip-projects/services/clip-generation.service',
   '@api/collections/content-performance/content-performance.module',
-  '@api/collections/content-performance/services/analytics-sync.service',
-  '@api/collections/content-performance/services/email-digest.service',
   '@api/collections/creative-patterns/creative-patterns.module',
   '@api/collections/creative-patterns/creative-patterns.service',
   '@api/collections/credentials/credentials.module',
