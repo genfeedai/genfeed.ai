@@ -10,6 +10,7 @@ import { RequestContextCacheService } from '@api/common/services/request-context
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import type { ISubscriptionsService } from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 describe('UsersController', () => {
   let controller: UsersController;
@@ -23,6 +24,7 @@ describe('UsersController', () => {
   let requestContextCacheService: Record<string, ReturnType<typeof vi.fn>>;
   let accessBootstrapCacheService: Record<string, ReturnType<typeof vi.fn>>;
   let betterAuthIdentityCacheService: Record<string, ReturnType<typeof vi.fn>>;
+  let eventEmitter: Record<string, ReturnType<typeof vi.fn>>;
 
   const userId = '507f191e810c19729de860ee'.toString();
   const orgId = '507f191e810c19729de860ee'.toString();
@@ -87,6 +89,9 @@ describe('UsersController', () => {
     betterAuthIdentityCacheService = {
       invalidateForUser: vi.fn().mockResolvedValue(undefined),
     };
+    eventEmitter = {
+      emit: vi.fn(),
+    };
 
     controller = new UsersController(
       brandsService as unknown as BrandsService,
@@ -100,6 +105,7 @@ describe('UsersController', () => {
       requestContextCacheService as unknown as RequestContextCacheService,
       accessBootstrapCacheService as unknown as AccessBootstrapCacheService,
       betterAuthIdentityCacheService as unknown as BetterAuthIdentityCacheService,
+      eventEmitter as unknown as EventEmitter2,
     );
   });
 

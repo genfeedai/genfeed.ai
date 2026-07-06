@@ -12,10 +12,8 @@ import { ManualBrandKitDto } from '@api/collections/brands/dto/manual-brand-kit.
 import { ToggleBrandSkillDto } from '@api/collections/brands/dto/toggle-brand-skill.dto';
 import { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import { UpdateBrandAgentConfigDto } from '@api/collections/brands/dto/update-brand-agent-config.dto';
-import {
-  Brand,
-  type BrandDocument,
-} from '@api/collections/brands/schemas/brand.schema';
+import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
@@ -28,7 +26,6 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { BrandSetupDto } from '@api/endpoints/onboarding/dto/brand-setup.dto';
 import { AddReferenceImagesDto } from '@api/endpoints/onboarding/dto/reference-images.dto';
-import { OnboardingService } from '@api/endpoints/onboarding/onboarding.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -43,7 +40,6 @@ import {
   getIsSuperAdmin,
   getPublicMetadata,
 } from '@api/helpers/utils/auth/auth.util';
-import { BrandFilterUtil } from '@api/helpers/utils/brand-filter/brand-filter.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
@@ -60,7 +56,6 @@ import {
   BadRequestException,
   Body,
   Controller,
-  forwardRef,
   Get,
   HttpCode,
   HttpException,
@@ -102,8 +97,7 @@ export class BrandsController extends BaseCRUDController<
     public readonly postsService: PostsService,
     public readonly analyticsAggregationService: AnalyticsAggregationService,
     public readonly loggerService: LoggerService,
-    @Inject(forwardRef(() => OnboardingService))
-    private readonly onboardingService: OnboardingService,
+    private readonly brandSetupService: BrandSetupService,
   ) {
     super(
       loggerService,
@@ -143,7 +137,7 @@ export class BrandsController extends BaseCRUDController<
     const label = (rest as { label?: string }).label;
     if (syncOrganizationName && typeof label === 'string' && label.trim()) {
       await this.verifyBrandAccess(id, user);
-      await this.onboardingService.updateBrandNameById(id, label, user);
+      await this.brandSetupService.updateBrandNameById(id, label, user);
       const renamed = await this.brandsService.findOne({ _id: id });
       return serializeSingle(request, BrandSerializer, renamed);
     }
@@ -189,7 +183,7 @@ export class BrandsController extends BaseCRUDController<
   /**
    * Scrape a brand's website/socials, analyze with AI, and populate canonical
    * brand guidance. Renamed + rehomed from `POST /onboarding/brand-setup`
-   * (REST audit #1354) — the 9-step orchestration lives behind OnboardingService.
+   * (REST audit #1354) — the 9-step orchestration lives behind BrandSetupService.
    */
   @Post(':id/scrape')
   @HttpCode(200)
@@ -200,7 +194,7 @@ export class BrandsController extends BaseCRUDController<
     @Body() dto: BrandSetupDto,
   ) {
     await this.verifyBrandAccess(id, user);
-    return this.onboardingService.setupBrand(id, dto, user);
+    return this.brandSetupService.setupBrand(id, dto, user);
   }
 
   /**
@@ -216,7 +210,7 @@ export class BrandsController extends BaseCRUDController<
     @Body() dto: AddReferenceImagesDto,
   ) {
     await this.verifyBrandAccess(id, user);
-    return this.onboardingService.addReferenceImages(id, dto.images, user);
+    return this.brandSetupService.addReferenceImages(id, dto.images, user);
   }
 
   /**
