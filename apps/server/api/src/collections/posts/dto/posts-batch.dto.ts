@@ -9,7 +9,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-export class TweetScheduleItemDto {
+export class PostBatchItemDto {
   @IsEntityId()
   @ApiProperty({
     description: 'Post ID to schedule',
@@ -51,17 +51,17 @@ export class TweetScheduleItemDto {
   readonly timezone?: string;
 }
 
-export class BatchScheduleDto {
+export class PostsBatchDto {
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => TweetScheduleItemDto)
+  @Type(() => PostBatchItemDto)
   @ApiProperty({
     description:
-      'Array of posts to schedule (updates existing DRAFT posts to SCHEDULED)',
+      'Per-item batch of posts to update (updates existing DRAFT posts to SCHEDULED)',
     required: true,
-    type: [TweetScheduleItemDto],
+    type: [PostBatchItemDto],
   })
-  readonly tweets!: TweetScheduleItemDto[];
+  readonly items!: PostBatchItemDto[];
 
   @IsEntityId()
   @ApiProperty({
