@@ -95,8 +95,15 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.14'
+
       - name: Validate skills
         run: scripts/setup-skills.sh --check
+
+      - name: Validate root skills README
+        run: bun run check:skills-readme
 
   # Full-repo React health gate. The PR job in ci.yml only scans the diff, so
   # pre-existing errors in untouched files never gate it. This scans every
