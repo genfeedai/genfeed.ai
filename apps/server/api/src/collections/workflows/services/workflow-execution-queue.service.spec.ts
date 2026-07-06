@@ -6,6 +6,8 @@ import type {
   DelayResumeJobData,
   TriggerEvent,
 } from '@api/collections/workflows/services/workflow-executor.service';
+import { buildSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
+import { WorkflowStatus } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMockQueue() {
@@ -205,6 +207,66 @@ describe('WorkflowExecutionQueueService', () => {
 
       expect(mockQueue.removeJobScheduler).toHaveBeenCalledWith(
         'workflow-schedule:wf-1',
+      );
+    });
+  });
+
+  describe('syncWorkflowScheduler', () => {
+    it('should upsert an active enabled workflow schedule', async () => {
+      await service.syncWorkflowScheduler({
+        id: 'wf-1',
+        isDeleted: false,
+        isScheduleEnabled: true,
+        schedule: '0 7 * * *',
+        status: WorkflowStatus.ACTIVE,
+        timezone: 'Europe/Amsterdam',
+      });
+
+      expect(mockQueue.upsertJobScheduler).toHaveBeenCalledWith(
+        'workflow-schedule:wf-1',
+        { pattern: '0 7 * * *', tz: 'Europe/Amsterdam' },
+        expect.objectContaining({
+          data: { type: 'scheduled-fire', workflowId: 'wf-1' },
+          name: 'scheduled-fire',
+        }),
+      );
+      expect(mockQueue.removeJobScheduler).not.toHaveBeenCalled();
+    });
+
+    it('should remove instead of upserting protected system workflow rows', async () => {
+      await service.syncWorkflowScheduler({
+        id: 'wf-system',
+        isDeleted: false,
+        isScheduleEnabled: true,
+        metadata: {
+          systemWorkflow: buildSystemWorkflowMetadata({
+            canonicalId: 'scheduled-post-publishing',
+          }),
+        },
+        schedule: '*/15 * * * *',
+        status: WorkflowStatus.ACTIVE,
+        timezone: 'UTC',
+      });
+
+      expect(mockQueue.upsertJobScheduler).not.toHaveBeenCalled();
+      expect(mockQueue.removeJobScheduler).toHaveBeenCalledWith(
+        'workflow-schedule:wf-system',
+      );
+    });
+
+    it('should remove when a row is no longer schedulable', async () => {
+      await service.syncWorkflowScheduler({
+        id: 'wf-disabled',
+        isDeleted: false,
+        isScheduleEnabled: false,
+        schedule: '0 7 * * *',
+        status: WorkflowStatus.ACTIVE,
+        timezone: 'UTC',
+      });
+
+      expect(mockQueue.upsertJobScheduler).not.toHaveBeenCalled();
+      expect(mockQueue.removeJobScheduler).toHaveBeenCalledWith(
+        'workflow-schedule:wf-disabled',
       );
     });
   });

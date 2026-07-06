@@ -129,6 +129,15 @@ describe.skipIf(!redisAvailable)(
           (scheduler) => scheduler.key === workflowSchedulerId('wf-remove-me'),
         ),
       ).toHaveLength(0);
+
+      const delayedJobs = await producer.queue.getDelayed();
+      expect(
+        delayedJobs.filter(
+          (job) =>
+            job.name === 'scheduled-fire' &&
+            job.data.workflowId === 'wf-remove-me',
+        ),
+      ).toHaveLength(0);
     });
   },
 );
