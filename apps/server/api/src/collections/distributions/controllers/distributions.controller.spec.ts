@@ -40,10 +40,6 @@ function createMocks() {
       _id: '507f191e810c19729de860ee',
       status: PublishStatus.CANCELLED,
     }),
-    createFromRequest: vi.fn().mockResolvedValue({
-      distributionId: '507f191e810c19729de860ee'.toString(),
-      telegramMessageId: '42',
-    }),
     findByOrganization: vi.fn().mockResolvedValue({
       docs: [],
       total: 0,
@@ -54,7 +50,17 @@ function createMocks() {
     }),
   };
 
-  return { distributionsService };
+  const telegramDistributionService = {
+    schedule: vi.fn().mockResolvedValue({
+      distributionId: '507f191e810c19729de860ee'.toString(),
+    }),
+    sendImmediate: vi.fn().mockResolvedValue({
+      distributionId: '507f191e810c19729de860ee'.toString(),
+      telegramMessageId: '42',
+    }),
+  };
+
+  return { distributionsService, telegramDistributionService };
 }
 
 describe('DistributionsController', () => {
@@ -67,6 +73,7 @@ describe('DistributionsController', () => {
     mocks = createMocks();
     controller = new DistributionsController(
       mocks.distributionsService as never,
+      mocks.telegramDistributionService as never,
     );
   });
 
@@ -84,16 +91,18 @@ describe('DistributionsController', () => {
         user as never,
       );
 
-      expect(mocks.distributionsService.createFromRequest).toHaveBeenCalledWith(
-        ORG_ID,
-        USER_ID,
+      expect(
+        mocks.telegramDistributionService.sendImmediate,
+      ).toHaveBeenCalledWith(
         expect.objectContaining({
           chatId: '-1001234567890',
           contentType: DistributionContentType.TEXT,
-          platform: DistributionPlatform.TELEGRAM,
+          organizationId: ORG_ID,
           text: 'Hello',
+          userId: USER_ID,
         }),
       );
+      expect(mocks.telegramDistributionService.schedule).not.toHaveBeenCalled();
     });
 
     it('should dispatch scheduled send when scheduledAt is present', async () => {
@@ -111,15 +120,32 @@ describe('DistributionsController', () => {
         user as never,
       );
 
-      expect(mocks.distributionsService.createFromRequest).toHaveBeenCalledWith(
-        ORG_ID,
-        USER_ID,
+      expect(mocks.telegramDistributionService.schedule).toHaveBeenCalledWith(
         expect.objectContaining({
           chatId: '-1001234567890',
-          platform: DistributionPlatform.TELEGRAM,
-          scheduledAt,
+          organizationId: ORG_ID,
+          scheduledAt: new Date(scheduledAt),
+          userId: USER_ID,
         }),
       );
+      expect(
+        mocks.telegramDistributionService.sendImmediate,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should throw for an unsupported platform', async () => {
+      const user = createMockUser();
+
+      await expect(
+        controller.create(
+          {
+            contentType: DistributionContentType.TEXT,
+            platform: 'unsupported' as DistributionPlatform,
+            text: 'Nope',
+          },
+          user as never,
+        ),
+      ).rejects.toThrow('Unsupported distribution platform');
     });
   });
 

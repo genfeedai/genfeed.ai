@@ -10,8 +10,11 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { TelegramDistributionService } from '@api/services/distribution/telegram/telegram-distribution.service';
+import { DistributionPlatform } from '@genfeedai/enums';
 import { DistributionSerializer } from '@genfeedai/serializers';
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -28,7 +31,10 @@ import type { Request } from 'express';
 @ApiTags('Distributions')
 @Controller('distributions')
 export class DistributionsController {
-  constructor(private readonly distributionsService: DistributionsService) {}
+  constructor(
+    private readonly distributionsService: DistributionsService,
+    private readonly telegramDistributionService: TelegramDistributionService,
+  ) {}
 
   /**
    * Create a distribution. Dispatches to the platform-specific send/schedule
@@ -41,11 +47,32 @@ export class DistributionsController {
   async create(@Body() dto: CreateDistributionDto, @CurrentUser() user: User) {
     const { organization, user: userId } = getPublicMetadata(user);
 
-    return await this.distributionsService.createFromRequest(
-      organization,
-      userId,
-      dto,
-    );
+    switch (dto.platform) {
+      case DistributionPlatform.TELEGRAM: {
+        const options = {
+          brandId: dto.brandId,
+          caption: dto.caption,
+          chatId: dto.chatId,
+          contentType: dto.contentType,
+          mediaUrl: dto.mediaUrl,
+          organizationId: organization,
+          text: dto.text,
+          userId,
+        };
+
+        return dto.scheduledAt
+          ? await this.telegramDistributionService.schedule({
+              ...options,
+              scheduledAt: new Date(dto.scheduledAt),
+            })
+          : await this.telegramDistributionService.sendImmediate(options);
+      }
+
+      default:
+        throw new BadRequestException(
+          `Unsupported distribution platform: ${dto.platform}`,
+        );
+    }
   }
 
   /**
