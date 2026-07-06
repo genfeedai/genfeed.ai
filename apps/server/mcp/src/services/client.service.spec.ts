@@ -892,8 +892,19 @@ describe('ClientService (MCP)', () => {
 
   describe('setWorkflowSchedule', () => {
     it('should enable or update a workflow schedule', async () => {
-      (mockAxiosInstance.post as Mock).mockResolvedValue({
-        data: { data: { id: 'workflow-123', message: 'Schedule updated' } },
+      (mockAxiosInstance.patch as Mock).mockResolvedValue({
+        data: {
+          data: {
+            attributes: {
+              isScheduleEnabled: true,
+              name: 'Scheduled workflow',
+              schedule: '0 9 * * *',
+              status: 'active',
+              timezone: 'UTC',
+            },
+            id: 'workflow-123',
+          },
+        },
       });
 
       const result = await service.setWorkflowSchedule('workflow-123', {
@@ -902,9 +913,13 @@ describe('ClientService (MCP)', () => {
         timezone: 'UTC',
       });
 
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
-        '/workflows/workflow-123/schedule',
-        { enabled: true, schedule: '0 9 * * *', timezone: 'UTC' },
+      expect(mockAxiosInstance.patch).toHaveBeenCalledWith(
+        '/workflows/workflow-123',
+        {
+          isScheduleEnabled: true,
+          schedule: '0 9 * * *',
+          timezone: 'UTC',
+        },
       );
       expect(result).toMatchObject({
         enabled: true,
@@ -913,17 +928,30 @@ describe('ClientService (MCP)', () => {
       });
     });
 
-    it('should disable a workflow schedule through the delete endpoint when no new schedule is provided', async () => {
-      (mockAxiosInstance.delete as Mock).mockResolvedValue({
-        data: { data: { id: 'workflow-123', message: 'Schedule removed' } },
+    it('should disable a workflow schedule through the collapsed patch endpoint when no new schedule is provided', async () => {
+      (mockAxiosInstance.patch as Mock).mockResolvedValue({
+        data: {
+          data: {
+            attributes: {
+              isScheduleEnabled: false,
+              name: 'Scheduled workflow',
+              status: 'active',
+            },
+            id: 'workflow-123',
+          },
+        },
       });
 
       const result = await service.setWorkflowSchedule('workflow-123', {
         enabled: false,
       });
 
-      expect(mockAxiosInstance.delete).toHaveBeenCalledWith(
-        '/workflows/workflow-123/schedule',
+      expect(mockAxiosInstance.patch).toHaveBeenCalledWith(
+        '/workflows/workflow-123',
+        {
+          isScheduleEnabled: false,
+          schedule: null,
+        },
       );
       expect(result).toMatchObject({ enabled: false, id: 'workflow-123' });
     });
