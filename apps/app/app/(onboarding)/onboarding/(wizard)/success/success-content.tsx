@@ -156,8 +156,8 @@ export default function SuccessContent() {
       </div>
 
       {/* Headline */}
-      <h1 className="success-headline opacity-0 text-4xl md:text-5xl font-serif leading-none tracking-tighter text-white mb-4">
-        Welcome to <span className="font-light italic">Genfeed!</span>
+      <h1 className="success-headline opacity-0 mb-4 text-4xl font-semibold leading-none tracking-tight text-white md:text-5xl">
+        Welcome to Genfeed!
       </h1>
 
       <div className="success-credit-reveal opacity-0 mb-8 inline-flex items-center gap-3 rounded-full bg-secondary shadow-border px-5 py-3 text-left">
