@@ -9,11 +9,6 @@
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
 import { CampaignExecutorService } from '@api/services/campaign/campaign-executor.service';
 import { DmCampaignExecutorService } from '@api/services/campaign/dm-campaign-executor.service';
-import {
-  BrokenCircuitError,
-  createProcessorCircuitBreaker,
-  type ProcessorCircuitBreaker,
-} from '@api/shared/utils/circuit-breaker/circuit-breaker.util';
 import { CampaignStatus, CampaignType } from '@genfeedai/enums';
 import {
   CAMPAIGN_PROCESSING_QUEUE,
@@ -21,6 +16,11 @@ import {
   CampaignProcessingResult,
 } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import {
+  BrokenCircuitError,
+  createProcessorCircuitBreaker,
+  type ProcessorCircuitBreaker,
+} from '@libs/utils/circuit-breaker/circuit-breaker.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 

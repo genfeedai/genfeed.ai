@@ -70,7 +70,7 @@ genfeed.ai/
 │   ├── ui/                  # UI component library
 │   ├── utils/               # Utilities
 │   ├── workflow-engine/     # Workflow execution engine
-│   ├── workflow-saas/       # SaaS workflow (compiled)
+│   ├── workflow-saas/       # SaaS workflow node defs + registry (hand-written, not generated)
 │   ├── workflow-ui/         # Workflow UI components
 │   └── workflows/           # Workflow definitions
 ├── ee/                      # Enterprise features (commercial license)

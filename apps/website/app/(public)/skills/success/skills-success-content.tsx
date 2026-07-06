@@ -73,9 +73,9 @@ export default function SkillsSuccessContent() {
             </div>
           </div>
 
-          <div className="mt-8 space-y-4 text-sm text-surface/40">
+          <div className="mt-8 space-y-4 text-sm text-surface/65">
             <div className="flex items-start gap-3">
-              <LuTerminal className="size-4 mt-0.5 shrink-0 text-surface/30" />
+              <LuTerminal className="size-4 mt-0.5 shrink-0 text-surface/65" />
               <span>
                 Replace{' '}
                 <Code className="text-surface/60 bg-fill/5">sk_rcpt_xxx</Code>{' '}
@@ -83,7 +83,7 @@ export default function SkillsSuccessContent() {
               </span>
             </div>
             <div className="flex items-start gap-3">
-              <LuTerminal className="size-4 mt-0.5 shrink-0 text-surface/30" />
+              <LuTerminal className="size-4 mt-0.5 shrink-0 text-surface/65" />
               <span>
                 Skills are installed to{' '}
                 <Code className="text-surface/60 bg-fill/5">skills/</Code> in

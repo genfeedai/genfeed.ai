@@ -6,6 +6,7 @@ import {
   type IngredientStatus,
   ViewType,
 } from '@genfeedai/enums';
+import { useDominantColor } from '@genfeedai/hooks/ui/use-dominant-color/use-dominant-color';
 import type { IImage, IIngredient } from '@genfeedai/interfaces';
 import type { CameraMovementPreset } from '@genfeedai/interfaces/studio/camera-movement.interface';
 import { AssetDisplayGrid } from '@pages/studio/generate/components/AssetDisplayGrid';
@@ -13,7 +14,9 @@ import { GenerateEmptyState } from '@pages/studio/generate/components/GenerateEm
 import { StoryboardPanel } from '@pages/studio/generate/components/StoryboardPanel';
 import StudioSelectionActionsBar from '@pages/studio/selection/StudioSelectionActionsBar';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
+import AmbientColorWash from '@ui/ambient/AmbientColorWash';
 import InfiniteScroll from '@ui/feedback/infinite-scroll/InfiniteScroll';
+import { useMemo } from 'react';
 
 interface GenerateContentAreaProps {
   // Category flags
@@ -123,9 +126,36 @@ export function GenerateContentArea({
   onCreateVariation,
   onTableSelectionChange,
 }: GenerateContentAreaProps) {
+  // Ambient wash derives from the media the user is focused on — the scroll-
+  // focused asset, else the first selection, else the newest result. When the
+  // studio is empty there is no focus, so the wash disables gracefully.
+  const focusedAsset = useMemo<IIngredient | undefined>(() => {
+    if (scrollFocusedAssetId) {
+      const focused = allAssets.find(
+        (asset) => asset.id === scrollFocusedAssetId,
+      );
+      if (focused) {
+        return focused;
+      }
+    }
+    const firstSelectedId = selectedIngredientIds[0];
+    if (firstSelectedId) {
+      const selected = allAssets.find((asset) => asset.id === firstSelectedId);
+      if (selected) {
+        return selected;
+      }
+    }
+    return allAssets[0];
+  }, [allAssets, scrollFocusedAssetId, selectedIngredientIds]);
+
+  const ambientColor = useDominantColor(
+    focusedAsset?.ingredientUrl ?? focusedAsset?.thumbnailUrl,
+  );
+
   return (
     <div className="flex flex-1 overflow-hidden relative w-full">
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <AmbientColorWash color={ambientColor?.rgb ?? null} />
+      <div className="relative z-[1] flex flex-1 flex-col overflow-hidden">
         <div className="flex-1 overflow-auto px-6 pt-6 pb-40 md:pb-40">
           {isVideoCategory && (
             <StoryboardPanel

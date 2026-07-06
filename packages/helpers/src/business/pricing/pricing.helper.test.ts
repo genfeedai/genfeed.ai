@@ -1,12 +1,10 @@
 import {
   AVATAR_CREDIT_COSTS,
   applyMargin,
-  creatorPlan,
   dedicatedServerPlan,
   formatOutputs,
   formatPrice,
   getCloudTeamsPlan,
-  getCreatorPlan,
   getEnterprisePlan,
   getHostedPlan,
   getPlanByLabel,
@@ -74,14 +72,9 @@ describe('pricing.helper', () => {
       expect(websitePlans).toHaveLength(4);
     });
 
-    it('should have Pay As You Go, Hosted, Cloud Teams, Enterprise labels in order', () => {
+    it('should have Pay As You Go, Pro, Scale, Enterprise labels in order', () => {
       const labels = websitePlans.map((p) => p.label);
-      expect(labels).toEqual([
-        'Pay As You Go',
-        'Hosted',
-        'Cloud Teams',
-        'Enterprise',
-      ]);
+      expect(labels).toEqual(['Pay As You Go', 'Pro', 'Scale', 'Enterprise']);
     });
 
     it('should have correct plan types', () => {
@@ -106,19 +99,19 @@ describe('pricing.helper', () => {
       expect(payg.includedCredits).toBeUndefined();
     });
 
-    it('Hosted plan should be a subscription with included credits', () => {
-      const hosted = websitePlans[1];
-      expect(hosted.outputs).toBeNull();
-      expect(hosted.interval).toBe('month');
-      expect(hosted.includedCredits).toBe(8_000);
+    it('Pro plan should be a subscription with included credits', () => {
+      const pro = websitePlans[1];
+      expect(pro.outputs).toBeNull();
+      expect(pro.interval).toBe('month');
+      expect(pro.includedCredits).toBe(8_000);
     });
 
-    it('Cloud Teams plan should be B2B cloud with a shared credit pool', () => {
-      const cloudTeams = websitePlans[2];
-      expect(cloudTeams.outputs).toBeNull();
-      expect(cloudTeams.includedCredits).toBe(80_000);
-      expect(cloudTeams.features).toContain('Multi-organization account model');
-      expect(cloudTeams.features).toContain('Multi-brand operations');
+    it('Scale plan should be B2B cloud with a shared credit pool', () => {
+      const scale = websitePlans[2];
+      expect(scale.outputs).toBeNull();
+      expect(scale.includedCredits).toBe(80_000);
+      expect(scale.features).toContain('Multi-organization account model');
+      expect(scale.features).toContain('Multi-brand operations');
     });
 
     it('Enterprise plan should have null outputs for custom terms', () => {
@@ -128,14 +121,14 @@ describe('pricing.helper', () => {
   });
 
   describe('getPlanByLabel', () => {
-    it('should find Hosted plan case-insensitively', () => {
-      expect(getPlanByLabel('hosted')?.label).toBe('Hosted');
-      expect(getPlanByLabel('HOSTED')?.label).toBe('Hosted');
-      expect(getPlanByLabel('Hosted')?.label).toBe('Hosted');
+    it('should find Pro plan case-insensitively', () => {
+      expect(getPlanByLabel('pro')?.label).toBe('Pro');
+      expect(getPlanByLabel('PRO')?.label).toBe('Pro');
+      expect(getPlanByLabel('Pro')?.label).toBe('Pro');
     });
 
-    it('should find Cloud Teams plan', () => {
-      expect(getPlanByLabel('cloud teams')?.price).toBe(499);
+    it('should find Scale plan', () => {
+      expect(getPlanByLabel('scale')?.price).toBe(499);
     });
 
     it('should find Pay As You Go plan', () => {
@@ -155,15 +148,15 @@ describe('pricing.helper', () => {
     });
   });
 
-  describe('getHostedPlan', () => {
-    it('should return the Hosted plan', () => {
-      const plan = getHostedPlan();
-      expect(plan.label).toBe('Hosted');
+  describe('getProPlan', () => {
+    it('should return the Pro plan', () => {
+      const plan = getProPlan();
+      expect(plan.label).toBe('Pro');
       expect(plan.price).toBe(49);
     });
 
-    it('should expose launch pricing for the Hosted plan', () => {
-      const plan = getHostedPlan();
+    it('should expose launch pricing for the Pro plan', () => {
+      const plan = getProPlan();
       expect(plan.launchPrice).toBe(39);
       expect(plan.launchNote).toBe(
         'Launch pricing — first 12 months, then $49/month',
@@ -171,7 +164,7 @@ describe('pricing.helper', () => {
     });
 
     it('should not mention any redemption cap or limit in the launch note', () => {
-      const plan = getHostedPlan();
+      const plan = getProPlan();
       const note = plan.launchNote?.toLowerCase() ?? '';
       expect(note).not.toMatch(/cap/);
       expect(note).not.toMatch(/limited/);
@@ -180,35 +173,35 @@ describe('pricing.helper', () => {
   });
 
   describe('launchPrice scoping', () => {
-    it('should only set launchPrice on the Hosted plan', () => {
+    it('should only set launchPrice on the Pro plan', () => {
       const plansWithLaunchPrice = websitePlans.filter(
         (plan) => plan.launchPrice != null,
       );
       expect(plansWithLaunchPrice).toHaveLength(1);
-      expect(plansWithLaunchPrice[0]?.label).toBe('Hosted');
-    });
-  });
-
-  describe('getCloudTeamsPlan', () => {
-    it('should return the Cloud Teams plan', () => {
-      const plan = getCloudTeamsPlan();
-      expect(plan.label).toBe('Cloud Teams');
-      expect(plan.price).toBe(499);
-    });
-  });
-
-  describe('getProPlan', () => {
-    it('should return the Hosted plan as a legacy alias', () => {
-      const plan = getProPlan();
-      expect(plan.label).toBe('Hosted');
-      expect(plan.price).toBe(49);
+      expect(plansWithLaunchPrice[0]?.label).toBe('Pro');
     });
   });
 
   describe('getScalePlan', () => {
-    it('should return the Cloud Teams plan as a legacy alias', () => {
+    it('should return the Scale plan', () => {
       const plan = getScalePlan();
-      expect(plan.label).toBe('Cloud Teams');
+      expect(plan.label).toBe('Scale');
+      expect(plan.price).toBe(499);
+    });
+  });
+
+  describe('getHostedPlan', () => {
+    it('should return the Pro plan as a legacy alias', () => {
+      const plan = getHostedPlan();
+      expect(plan.label).toBe('Pro');
+      expect(plan.price).toBe(49);
+    });
+  });
+
+  describe('getCloudTeamsPlan', () => {
+    it('should return the Scale plan as a legacy alias', () => {
+      const plan = getCloudTeamsPlan();
+      expect(plan.label).toBe('Scale');
       expect(plan.price).toBe(499);
     });
   });
@@ -218,18 +211,6 @@ describe('pricing.helper', () => {
       const plan = getEnterprisePlan();
       expect(plan.label).toBe('Enterprise');
       expect(plan.price).toBeNull();
-    });
-  });
-
-  describe('getCreatorPlan', () => {
-    it('should return the creator plan', () => {
-      const plan = getCreatorPlan();
-      expect(plan.label).toBe('Creator');
-      expect(plan.price).toBe(50);
-    });
-
-    it('should return same object as creatorPlan constant', () => {
-      expect(getCreatorPlan()).toBe(creatorPlan);
     });
   });
 

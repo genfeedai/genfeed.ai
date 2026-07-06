@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IEC2Instance } from '@genfeedai/interfaces';
 import type { TableColumn } from '@props/ui/display/table.props';
 import CardEmpty from '@ui/card/empty/CardEmpty';
@@ -35,6 +36,13 @@ export default function EC2InstancesSection({
   onEC2ActionAll,
   onRefresh,
 }: Props) {
+  const hasStartableInstance = (instances ?? []).some(
+    (instance) => instance.state === 'stopped',
+  );
+  const hasStoppableInstance = (instances ?? []).some(
+    (instance) => instance.state === 'running',
+  );
+
   return (
     <WorkspaceSurface
       className="mb-8"
@@ -46,7 +54,12 @@ export default function EC2InstancesSection({
           <Button
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
-            className="flex items-center gap-1 px-3 py-2 text-sm font-medium rounded bg-success/10 text-success hover:bg-success/20 disabled:opacity-40"
+            className={cn(
+              'flex items-center gap-1 px-3 py-2 text-sm font-medium rounded disabled:opacity-40',
+              hasStartableInstance
+                ? 'bg-success/10 text-success hover:bg-success/20'
+                : 'bg-secondary text-muted-foreground',
+            )}
             isDisabled={isActioningAll}
             onClick={() => onEC2ActionAll('start')}
           >
@@ -57,7 +70,12 @@ export default function EC2InstancesSection({
           <Button
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
-            className="flex items-center gap-1 px-3 py-2 text-sm font-medium rounded bg-error/10 text-error hover:bg-error/20 disabled:opacity-40"
+            className={cn(
+              'flex items-center gap-1 px-3 py-2 text-sm font-medium rounded disabled:opacity-40',
+              hasStoppableInstance
+                ? 'bg-destructive/10 text-destructive hover:bg-destructive/20'
+                : 'bg-secondary text-muted-foreground',
+            )}
             isDisabled={isActioningAll}
             onClick={() => onEC2ActionAll('stop')}
           >

@@ -63,7 +63,7 @@ export default function ClipsProgressView({
         </div>
       ) : (
         project.status !== 'completed' && (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-800 py-20">
+          <div className="flex flex-col items-center justify-center rounded-xl bg-secondary py-20 shadow-border">
             <Spinner size={ComponentSize.LG} className="mb-4 text-primary" />
             <p className="text-sm text-zinc-500">
               Generating avatar clips for selected highlights…

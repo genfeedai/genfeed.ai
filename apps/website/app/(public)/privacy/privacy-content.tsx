@@ -82,7 +82,7 @@ export default function PrivacyContent() {
                     key={section.title}
                     className="bg-background p-12 group hover:bg-fill/[0.02] transition-colors"
                   >
-                    <div className="text-surface/20 text-xs font-black uppercase tracking-widest mb-6">
+                    <div className="text-surface/50 text-xs font-black uppercase tracking-widest mb-6">
                       {String(index + 1).padStart(2, '0')} /{' '}
                       {section.shortLabel}
                     </div>
@@ -105,7 +105,7 @@ export default function PrivacyContent() {
                       <ul className="space-y-3">
                         {section.listItems.map((item) => (
                           <li key={item} className="flex items-start gap-3">
-                            <LuCheck className="size-4 text-surface/40 mt-0.5 shrink-0" />
+                            <LuCheck className="size-4 text-surface/65 mt-0.5 shrink-0" />
                             <span className="text-surface/60 text-sm">
                               {item}
                             </span>
@@ -127,7 +127,7 @@ export default function PrivacyContent() {
               <h2 className="text-5xl font-semibold mb-6">
                 Your Privacy Rights
               </h2>
-              <p className="text-surface/50 max-w-xl mx-auto">
+              <p className="text-surface/65 max-w-xl mx-auto">
                 We believe in transparency and your right to control your data.
               </p>
             </div>
@@ -141,15 +141,15 @@ export default function PrivacyContent() {
                       key={right.title}
                       className="bg-background p-10 group hover:bg-fill/[0.02] transition-colors"
                     >
-                      <div className="text-surface/20 text-xs font-black uppercase tracking-widest mb-6">
+                      <div className="text-surface/50 text-xs font-black uppercase tracking-widest mb-6">
                         {String(index + 1).padStart(2, '0')} /{' '}
                         {right.shortLabel}
                       </div>
-                      <Icon className="size-8 text-surface/40 mb-4 group-hover:text-surface transition-colors" />
+                      <Icon className="size-8 text-surface/65 mb-4 group-hover:text-surface transition-colors" />
                       <h3 className="text-lg font-semibold mb-3">
                         {right.title}
                       </h3>
-                      <p className="text-surface/40 text-sm leading-relaxed">
+                      <p className="text-surface/65 text-sm leading-relaxed">
                         {right.description}
                       </p>
                     </div>
@@ -166,7 +166,7 @@ export default function PrivacyContent() {
             <div className="text-center max-w-3xl mx-auto">
               <LuMail className="size-12 mx-auto text-surface/30 mb-8" />
               <h2 className="text-5xl font-semibold mb-10">Questions?</h2>
-              <p className="text-surface/40 text-xl mb-12 font-medium">
+              <p className="text-surface/65 text-xl mb-12 font-medium">
                 If you have any questions about our privacy practices, please
                 contact our privacy team.
               </p>

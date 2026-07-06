@@ -96,49 +96,6 @@ export class VideosController {
     private readonly videoGenerationService: VideoGenerationService,
   ) {}
 
-  @Get('latest')
-  @Cache({
-    keyGenerator: (req) =>
-      `videos:latest:user:${req.user?.id ?? 'anonymous'}:limit:${req.query.limit ?? 10}`,
-    tags: ['videos'],
-    ttl: 300, // 5 minutes
-  })
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findLatest(
-    @Req() request: ExpressRequest,
-    @CurrentUser() user: User,
-    @Query('limit') limit: number = 10,
-  ): Promise<JsonApiCollectionResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
-    const brand = publicMetadata.brand;
-
-    const aggregate = {
-      where: {
-        AND: [
-          {
-            brand,
-            category: CategoryPrismaUtil.toIngredientCategory(
-              IngredientCategory.VIDEO,
-            ),
-            isDeleted,
-            // Exclude training source videos by default
-            training: { not: false },
-            user: publicMetadata.user,
-          },
-        ],
-      },
-      orderBy: { createdAt: -1 },
-    };
-
-    const data = await this.videosService.findAll(aggregate, {
-      limit: Math.min(Number(limit) || 10, 50),
-      pagination: false,
-    });
-
-    return serializeCollection(request, VideoSerializer, data);
-  }
-
   @Get()
   @Cache({
     keyGenerator: (req) =>
@@ -152,12 +109,47 @@ export class VideosController {
     @CurrentUser() user: User,
     @Query() query: VideosQueryDto,
   ): Promise<JsonApiCollectionResponse> {
+    const publicMetadata = getPublicMetadata(user);
+
+    // `latest=true` shorthand — reproduces the exact WHERE clause of the former
+    // GET /videos/latest route: brand-scoped user videos with training sources
+    // excluded, ordered by createdAt desc and capped at 50. Unlike the standard
+    // list route there is no organization OR-branch and no isDefault branch;
+    // it is user-scoped only and bypasses status/scope/folder/parent/search.
+    if (query.latest) {
+      const latestIsDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
+      const latestBrand = publicMetadata.brand;
+
+      const latestAggregate = {
+        where: {
+          AND: [
+            {
+              brand: latestBrand,
+              category: CategoryPrismaUtil.toIngredientCategory(
+                IngredientCategory.VIDEO,
+              ),
+              isDeleted: latestIsDeleted,
+              // Exclude training source videos by default
+              training: { not: false },
+              user: publicMetadata.user,
+            },
+          ],
+        },
+        orderBy: { createdAt: -1 },
+      };
+
+      const latestData = await this.videosService.findAll(latestAggregate, {
+        limit: Math.min(Number(query.limit) || 10, 50),
+        pagination: false,
+      });
+
+      return serializeCollection(request, VideoSerializer, latestData);
+    }
+
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
-
-    const publicMetadata = getPublicMetadata(user);
 
     // Handle multiple status values (comma-separated)
     const status = QueryDefaultsUtil.parseStatusFilter(query.status);

@@ -152,7 +152,7 @@ function PromptConstructorNodeComponent(props: NodeProps) {
       <div className="relative flex flex-col gap-2 flex-1">
         {/* Warning badge for unresolved variables */}
         {unresolvedVars.length > 0 && (
-          <div className="px-2 py-1 bg-amber-900/30 border border-amber-700/50 rounded text-[10px] text-amber-400">
+          <div className="px-2 py-1 bg-warning/10 border border-warning/30 rounded text-[10px] text-warning">
             <span className="font-semibold">Unresolved:</span>{' '}
             {unresolvedVars.map((v) => `@${v}`).join(', ')}
           </div>

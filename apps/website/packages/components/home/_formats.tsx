@@ -13,6 +13,7 @@ import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import { VStack } from '@ui/layout/stack';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import { HOME_ASSETS } from '@web-components/home/_assets';
 import Image from 'next/image';
 import { LuArrowRight } from 'react-icons/lu';
 
@@ -24,38 +25,38 @@ const OUTPUT_FORMATS: OutputFormat[] = [
   {
     credits: INTERNAL_CREDIT_COSTS.image,
     description: 'On-brand stills for every feed and story.',
-    image: '/images/home/formats/images.webp',
+    image: HOME_ASSETS.formats.images,
     title: 'Images & posts',
   },
   {
     credits: VIDEO_CREDIT_COSTS.video8s,
     description: 'Hook-first video for TikTok, Reels, and Shorts.',
-    image: '/images/home/formats/reels.webp',
+    image: HOME_ASSETS.formats.reels,
     title: 'Reels & short video',
   },
   {
     credits: INTERNAL_CREDIT_COSTS.image,
     description: 'Ad creatives in every ratio, with copy variants.',
-    image: '/images/home/formats/ads.webp',
+    image: HOME_ASSETS.formats.ads,
     title: 'Ad creatives',
   },
   {
     credits: AVATAR_CREDIT_COSTS.avatar4s,
     description: 'Lip-synced avatar clips. No camera needed.',
-    image: '/images/home/formats/avatars.webp',
+    image: HOME_ASSETS.formats.avatars,
     title: 'Avatar clips',
   },
   {
     credits: INTERNAL_CREDIT_COSTS.voicePerMinute,
     description: 'Natural voiceovers for clips and podcasts.',
-    image: '/images/home/formats/voice.webp',
+    image: HOME_ASSETS.formats.voice,
     priceSuffix: '/min',
     title: 'Voiceovers',
   },
   {
     credits: INTERNAL_CREDIT_COSTS.articlePerPost,
     description: 'Long-form articles and SEO posts, captions included.',
-    image: '/images/home/formats/articles.webp',
+    image: HOME_ASSETS.formats.articles,
     title: 'Articles & SEO',
   },
 ];

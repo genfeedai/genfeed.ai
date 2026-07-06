@@ -98,7 +98,7 @@ export default function IssueSidebar({
                 <DefinitionDetail variant="inline">
                   <Link
                     href={`/tasks/${issue.parentId}`}
-                    className="text-blue-400 hover:text-blue-300"
+                    className="text-muted-foreground hover:text-foreground"
                   >
                     View parent
                   </Link>

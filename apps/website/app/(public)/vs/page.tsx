@@ -25,7 +25,7 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const previousImages = (await parent).openGraph?.images || [];
   const images = [...previousImages];
-  const title = `Genfeed vs Alternatives (2026) — AI Content Platform Comparisons | ${metadata.name}`;
+  const title = `Genfeed vs Alternatives (2026): AI Content Platform Comparisons | ${metadata.name}`;
 
   return {
     alternates: {

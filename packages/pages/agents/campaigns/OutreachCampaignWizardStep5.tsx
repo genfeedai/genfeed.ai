@@ -28,7 +28,7 @@ export default function OutreachCampaignWizardStep5({
 }: OutreachCampaignWizardStep5Props) {
   return (
     <div className="space-y-6">
-      <div className=" border border-white/[0.08] p-4">
+      <div className="bg-card p-4 shadow-border">
         <h3 className="mb-4 font-semibold">Review Your Campaign</h3>
 
         <div className="grid grid-cols-2 gap-4 text-sm">

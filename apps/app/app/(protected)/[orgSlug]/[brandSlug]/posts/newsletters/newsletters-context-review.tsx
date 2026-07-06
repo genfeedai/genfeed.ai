@@ -29,7 +29,7 @@ export default function NewsletterContextReview({ contextPreview }: Props) {
 
       {contextPreview ? (
         <div className="space-y-4">
-          <div className="rounded-lg border border-border p-3">
+          <div className="rounded-lg bg-tertiary p-3">
             <div className="text-sm font-medium text-foreground">
               Selected continuity issues
             </div>
@@ -63,7 +63,7 @@ export default function NewsletterContextReview({ contextPreview }: Props) {
             </div>
           </div>
 
-          <div className="rounded-lg border border-border p-3">
+          <div className="rounded-lg bg-tertiary p-3">
             <div className="text-sm font-medium text-foreground">
               Context sources
             </div>
