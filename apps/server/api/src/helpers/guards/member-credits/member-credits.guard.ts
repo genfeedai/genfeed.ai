@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import {
@@ -34,15 +35,13 @@ export class MemberCreditsGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<Request>();
-    const user = (
-      request as unknown as { user: { publicMetadata: IAuthPublicMetadata } }
-    ).user;
+    const user = (request as unknown as { user: User }).user;
 
     if (getIsSuperAdmin(user, request)) {
       return true;
     }
 
-    const publicMetadata: IAuthPublicMetadata = user.publicMetadata;
+    const publicMetadata = user.publicMetadata as IAuthPublicMetadata;
     const organizationId =
       request.params.organizationId ||
       request.params.id ||

@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { PlanLimitExceededException } from '@api/helpers/exceptions/business/business-logic.exception';
@@ -33,15 +34,13 @@ export class BrandCreditsGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<Request>();
-    const user = (
-      request as unknown as { user: { publicMetadata: IAuthPublicMetadata } }
-    ).user;
+    const user = (request as unknown as { user: User }).user;
 
     if (getIsSuperAdmin(user, request)) {
       return true;
     }
 
-    const publicMetadata: IAuthPublicMetadata = user.publicMetadata;
+    const publicMetadata = user.publicMetadata as IAuthPublicMetadata;
 
     const settings = await this.organizationSettingsService.findOne({
       organization: publicMetadata.organization,
