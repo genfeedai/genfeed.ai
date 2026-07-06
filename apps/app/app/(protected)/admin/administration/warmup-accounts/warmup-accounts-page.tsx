@@ -418,7 +418,7 @@ function Field({
     <div className="flex flex-col gap-2">
       <label htmlFor={htmlFor} className="text-sm font-medium text-foreground">
         {label}
-        {required ? <span className="text-rose-400"> *</span> : null}
+        {required ? <span className="text-muted-foreground"> *</span> : null}
       </label>
       {children}
     </div>
@@ -463,10 +463,10 @@ function WarmupAccountList({
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
             onClick={() => onSelectAccount(account.id)}
-            className={`w-full border p-4 text-left transition-colors ${
+            className={`w-full p-4 text-left transition-colors ${
               isSelected
-                ? 'border-primary/50 bg-primary/5'
-                : 'border-white/5 bg-card hover:border-white/15'
+                ? 'shadow-border-strong bg-primary/5'
+                : 'shadow-border bg-card hover:shadow-border-strong'
             }`}
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -494,7 +494,7 @@ function WarmupAccountList({
 function WarmupAccountDetail({ account }: { account?: IWarmupAccount }) {
   if (!account) {
     return (
-      <div className="border border-white/5 bg-card p-5">
+      <div className="shadow-border bg-card p-5">
         <CardEmpty label="Select a warm-up account" />
       </div>
     );
@@ -504,7 +504,7 @@ function WarmupAccountDetail({ account }: { account?: IWarmupAccount }) {
   const diagnostics = account.diagnostics?.steps ?? [];
 
   return (
-    <aside className="border border-white/5 bg-card p-5">
+    <aside className="shadow-border bg-card p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-base font-semibold text-foreground">
@@ -525,7 +525,7 @@ function WarmupAccountDetail({ account }: { account?: IWarmupAccount }) {
         <DetailRow label="Operator ID" value={account.operatorUserId} />
       </dl>
 
-      <div className="mt-6 border-t border-white/5 pt-5">
+      <div className="mt-6 border-t border-border pt-5">
         <h3 className="text-sm font-semibold text-foreground">Diagnostics</h3>
         {diagnostics.length === 0 ? (
           <p className="mt-2 text-sm text-foreground/50">
@@ -553,7 +553,7 @@ function WarmupAccountDetail({ account }: { account?: IWarmupAccount }) {
           </ol>
         )}
         {account.diagnostics?.error ? (
-          <p className="mt-4 border border-rose-500/20 bg-rose-500/5 p-3 text-sm text-rose-200">
+          <p className="mt-4 bg-error/10 p-3 text-sm text-error">
             {account.diagnostics.error}
           </p>
         ) : null}

@@ -20,13 +20,6 @@ describe('tier-models.helper', () => {
       ]);
     });
 
-    it('should give CREATOR tier BASIC and STANDARD', () => {
-      expect(TIER_QUALITY_ACCESS[SubscriptionTier.CREATOR]).toEqual([
-        QualityTier.BASIC,
-        QualityTier.STANDARD,
-      ]);
-    });
-
     it('should give PRO tier BASIC, STANDARD, and HIGH', () => {
       expect(TIER_QUALITY_ACCESS[SubscriptionTier.PRO]).toEqual([
         QualityTier.BASIC,
@@ -120,9 +113,6 @@ describe('tier-models.helper', () => {
       expect(hasQualityAccess(SubscriptionTier.PRO, QualityTier.ULTRA)).toBe(
         false,
       );
-      expect(
-        hasQualityAccess(SubscriptionTier.CREATOR, QualityTier.ULTRA),
-      ).toBe(false);
     });
 
     it('should return false for unknown subscription tier', () => {

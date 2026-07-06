@@ -321,18 +321,19 @@ Tweet 3: Tech innovation is changing the world.`,
   });
 
   // ==========================================================================
-  // POST /posts/generate - generateTweets
+  // POST /posts/account-generations - generateAccountContent (post format)
   // ==========================================================================
-  describe('generateTweets', () => {
+  describe('generateAccountContent (post format)', () => {
     const generateTweetsDto = {
       count: 3,
       credential: credentialId,
+      format: 'post' as const,
       tone: TweetTone.PROFESSIONAL,
       topic: 'AI technology',
     };
 
     it('should create posts with PROCESSING status and return them', async () => {
-      const result = await controller.generateTweets(
+      const result = await controller.generateAccountContent(
         mockRequest,
         generateTweetsDto,
         mockUser,
@@ -372,11 +373,15 @@ Tweet 3: Tech innovation is changing the world.`,
         .mockRejectedValueOnce(notFoundError);
 
       await expect(
-        controller.generateTweets(mockRequest, generateTweetsDto, mockUser),
+        controller.generateAccountContent(
+          mockRequest,
+          generateTweetsDto,
+          mockUser,
+        ),
       ).rejects.toThrow(HttpException);
 
       try {
-        await controller.generateTweets(
+        await controller.generateAccountContent(
           mockRequest,
           generateTweetsDto,
           mockUser,
@@ -390,7 +395,11 @@ Tweet 3: Tech innovation is changing the world.`,
       mockPostsService.create.mockRejectedValueOnce(new Error('DB error'));
 
       await expect(
-        controller.generateTweets(mockRequest, generateTweetsDto, mockUser),
+        controller.generateAccountContent(
+          mockRequest,
+          generateTweetsDto,
+          mockUser,
+        ),
       ).rejects.toThrow(HttpException);
     });
 
@@ -401,7 +410,11 @@ Tweet 3: Tech innovation is changing the world.`,
       );
 
       await expect(
-        controller.generateTweets(mockRequest, generateTweetsDto, mockUser),
+        controller.generateAccountContent(
+          mockRequest,
+          generateTweetsDto,
+          mockUser,
+        ),
       ).rejects.toThrow(httpError);
     });
 
@@ -414,7 +427,11 @@ Tweet 3: Tech innovation is changing the world.`,
         },
       });
 
-      await controller.generateTweets(mockRequest, generateTweetsDto, mockUser);
+      await controller.generateAccountContent(
+        mockRequest,
+        generateTweetsDto,
+        mockUser,
+      );
 
       expect(mockPostsService.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -425,12 +442,13 @@ Tweet 3: Tech innovation is changing the world.`,
   });
 
   // ==========================================================================
-  // POST /posts/generate/thread - generateThread
+  // POST /posts/account-generations - generateAccountContent (thread format)
   // ==========================================================================
-  describe('generateThread', () => {
+  describe('generateAccountContent (thread format)', () => {
     const generateThreadDto = {
       count: 5,
       credential: credentialId,
+      format: 'thread' as const,
       tone: TweetTone.CASUAL,
       topic: 'AI technology',
     };
@@ -446,10 +464,10 @@ Tweet 3: Tech innovation is changing the world.`,
         });
       });
 
-      const result = await controller.generateThread(
+      const result = await controller.generateAccountContent(
         mockRequest,
-        mockUser,
         generateThreadDto,
+        mockUser,
       );
 
       expect(mockAccountPublishingContextService.resolve).toHaveBeenCalledWith(
@@ -477,7 +495,11 @@ Tweet 3: Tech innovation is changing the world.`,
       );
 
       await expect(
-        controller.generateThread(mockRequest, mockUser, generateThreadDto),
+        controller.generateAccountContent(
+          mockRequest,
+          generateThreadDto,
+          mockUser,
+        ),
       ).rejects.toThrow(HttpException);
     });
 
@@ -485,10 +507,15 @@ Tweet 3: Tech innovation is changing the world.`,
       const dtoWithoutTone = {
         count: 3,
         credential: credentialId,
+        format: 'thread' as const,
         topic: 'AI',
       };
 
-      await controller.generateThread(mockRequest, mockUser, dtoWithoutTone);
+      await controller.generateAccountContent(
+        mockRequest,
+        dtoWithoutTone,
+        mockUser,
+      );
 
       expect(mockPostsService.create).toHaveBeenCalled();
     });
@@ -1171,10 +1198,11 @@ Tweet 3: Tech innovation is changing the world.`,
         const generateTweetsDto = {
           count: 2,
           credential: credentialId,
+          format: 'post' as const,
           topic: 'Test',
         };
 
-        await controller.generateTweets(
+        await controller.generateAccountContent(
           mockRequest,
           generateTweetsDto,
           mockUser,
@@ -1189,10 +1217,11 @@ Tweet 3: Tech innovation is changing the world.`,
         const generateTweetsDto = {
           count: 1,
           credential: credentialId,
+          format: 'post' as const,
           topic: 'Test',
         };
 
-        await controller.generateTweets(
+        await controller.generateAccountContent(
           mockRequest,
           generateTweetsDto,
           mockUser,
@@ -1231,10 +1260,15 @@ Tweet 3: Tech innovation is changing the world.`,
       const minimalDto = {
         count: 1,
         credential: credentialId,
+        format: 'post' as const,
         topic: 'Test',
       };
 
-      await controller.generateTweets(mockRequest, minimalDto, mockUser);
+      await controller.generateAccountContent(
+        mockRequest,
+        minimalDto,
+        mockUser,
+      );
 
       expect(mockPostsService.create).toHaveBeenCalled();
     });

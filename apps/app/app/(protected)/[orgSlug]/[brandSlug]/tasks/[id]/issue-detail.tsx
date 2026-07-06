@@ -314,7 +314,7 @@ export default function IssueDetail({
             <p className="text-sm text-white/50">Issue not found</p>
             <Link
               href={APP_ROUTES.TASKS.ROOT}
-              className="mt-3 text-xs text-blue-400 hover:text-blue-300"
+              className="mt-3 text-xs text-muted-foreground hover:text-foreground"
             >
               Back to issues
             </Link>

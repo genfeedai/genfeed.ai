@@ -166,17 +166,6 @@ export class TikTokAdsAdapter implements IAdsAdapter {
     };
   }
 
-  async pauseCampaign(
-    ctx: AdsAdapterContext,
-    campaignId: string,
-  ): Promise<void> {
-    await this.tiktokAdsService.pauseCampaign(
-      ctx.accessToken,
-      ctx.adAccountId,
-      campaignId,
-    );
-  }
-
   async listAdSets(
     ctx: AdsAdapterContext,
     campaignId: string,

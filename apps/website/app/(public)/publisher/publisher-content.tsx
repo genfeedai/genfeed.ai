@@ -144,15 +144,7 @@ const HERO_VISUAL = (
       },
     ]}
     subtitle="Publishing without tool switching"
-    title={
-      <>
-        Publish everywhere
-        <br />
-        from one
-        <br />
-        operating surface.
-      </>
-    }
+    title="Publish from one surface."
   />
 );
 
@@ -200,18 +192,18 @@ export default function PublisherContent() {
         {/*  Highlight Card                                           */}
         {/* -------------------------------------------------------- */}
         <section className="gsap-hero max-w-4xl mx-auto pb-16 px-6">
-          <div className="p-8 border border-[var(--gen-accent-border)] bg-gradient-to-r from-[var(--gen-accent-bg)] to-transparent">
+          <div className="p-8 border border-[var(--gen-accent-border)] bg-white/[0.04]">
             <HStack className="flex-col md:flex-row items-center gap-8">
               <div className="flex-shrink-0">
-                <div className="size-20 flex items-center justify-center bg-[hsl(var(--gen-accent))]">
-                  <HiRocketLaunch className="size-10 text-inv-fg" />
+                <div className="size-20 flex items-center justify-center border border-[var(--gen-accent-border)] bg-white/[0.06]">
+                  <HiRocketLaunch className="size-10 text-surface" />
                 </div>
               </div>
               <VStack className="gap-3">
                 <Heading as="h3" className="text-2xl font-bold">
                   Publish Everywhere, From One Place
                 </Heading>
-                <Text as="p" className="text-surface/50">
+                <Text as="p" className="text-surface/65">
                   Stop copy-pasting across ten different apps. Write once, let
                   Genfeed auto-format for each platform, schedule the optimal
                   time, and publish everywhere simultaneously.
@@ -283,13 +275,10 @@ export default function PublisherContent() {
                       <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
                     </div>
                   </div>
-                  <Heading
-                    as="h4"
-                    className="font-semibold mb-2 text-surface/90"
-                  >
+                  <Heading as="h4" className="font-semibold mb-2 text-surface">
                     {feature.title}
                   </Heading>
-                  <Text className="text-sm text-surface/40">
+                  <Text className="text-sm text-surface/65">
                     {feature.description}
                   </Text>
                 </div>
@@ -322,7 +311,7 @@ export default function PublisherContent() {
                   )}
 
                   {/* Step number */}
-                  <Text className="text-[10px] font-black uppercase tracking-widest text-surface/20 mb-3">
+                  <Text className="text-[10px] font-black uppercase tracking-widest text-surface/50 mb-3">
                     Step {index + 1}
                   </Text>
 
@@ -332,15 +321,12 @@ export default function PublisherContent() {
                   </div>
 
                   {/* Label */}
-                  <Heading
-                    as="h4"
-                    className="font-semibold text-surface/90 mb-1"
-                  >
+                  <Heading as="h4" className="font-semibold text-surface mb-1">
                     {step.label}
                   </Heading>
 
                   {/* Sublabel */}
-                  <Text className="text-xs text-surface/40 leading-relaxed">
+                  <Text className="text-xs text-surface/65 leading-relaxed">
                     {step.sublabel}
                   </Text>
                 </div>
@@ -353,23 +339,22 @@ export default function PublisherContent() {
         {/*  Pricing CTA                                              */}
         {/* -------------------------------------------------------- */}
         <section className="max-w-4xl mx-auto pb-16 px-6">
-          <div className="text-center p-12 bg-[hsl(var(--gen-accent))]">
+          <div className="text-center p-12 border border-[var(--gen-accent-border)] bg-white/[0.04]">
             <div className="flex justify-center mb-4">
-              <HiRocketLaunch className="size-8 text-inv-fg" />
+              <HiRocketLaunch className="size-8 text-surface" />
             </div>
-            <Heading as="h3" className="text-2xl font-bold mb-2 text-inv-fg">
+            <Heading as="h3" className="text-2xl font-bold mb-2 text-surface">
               Start Publishing Today
             </Heading>
-            <Text as="p" className="text-inv-fg/60 mb-6 max-w-lg mx-auto">
+            <Text as="p" className="text-surface/70 mb-6 max-w-lg mx-auto">
               Connect your platforms and start publishing AI content everywhere
               in minutes. Free tier available with no credit card required.
             </Text>
-            <PricingStrip inverted className="mb-6" />
+            <PricingStrip className="mb-6" />
             <HStack className="flex-wrap gap-4 justify-center">
               <ButtonTracked
                 asChild
                 size={ButtonSize.PUBLIC}
-                className="bg-inv-fg text-[color:hsl(var(--gen-accent))] hover:bg-inv-fg/80 px-8 py-3 text-xs font-bold uppercase tracking-wider"
                 trackingName="publisher_cta_click"
                 trackingData={{ action: 'view_plans' }}
               >
@@ -382,7 +367,6 @@ export default function PublisherContent() {
                 asChild
                 variant={ButtonVariant.OUTLINE}
                 size={ButtonSize.PUBLIC}
-                className="border-inv-fg/20 text-inv-fg hover:bg-inv-fg/5 px-8 py-3 text-xs font-bold uppercase tracking-wider"
                 trackingName="publisher_cta_click"
                 trackingData={{ action: 'book_demo' }}
               >

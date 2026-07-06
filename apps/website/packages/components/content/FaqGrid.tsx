@@ -20,7 +20,7 @@ export default function FaqGrid({ className, items }: FaqGridProps) {
           className="p-10 group bg-background hover:bg-fill/[0.02] transition-colors"
         >
           <h3 className="text-lg font-semibold mb-3">{item.question}</h3>
-          <p className="text-surface/40 text-sm leading-relaxed">
+          <p className="text-surface/65 text-sm leading-relaxed">
             {item.answer}
           </p>
         </div>

@@ -34,15 +34,6 @@ function createMockUser(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function createMockRequest(overrides: Record<string, unknown> = {}) {
-  return {
-    get: vi.fn().mockReturnValue('localhost'),
-    originalUrl: '/api/musics',
-    protocol: 'https',
-    ...overrides,
-  };
-}
-
 describe('MusicsController', () => {
   let controller: MusicsController;
   let musicsService: ReturnType<typeof createMockMusicsService>;
@@ -167,79 +158,6 @@ describe('MusicsController', () => {
 
       expect(query.where.OR[0]).toMatchObject({ brand: brandId });
       expect(query.where.OR[1]).toMatchObject({ brand: brandId });
-    });
-  });
-
-  describe('findLatest', () => {
-    it('should return serialized latest musics', async () => {
-      const user = createMockUser();
-      const request = createMockRequest();
-      const docs = [
-        {
-          _id: '507f191e810c19729de860ee',
-          category: 'music',
-          status: 'generated',
-        },
-      ];
-      musicsService.findAll.mockResolvedValue({
-        docs,
-        hasNextPage: false,
-        hasPrevPage: false,
-        limit: 10,
-        page: 1,
-        totalDocs: 1,
-        totalPages: 1,
-      });
-
-      const result = await controller.findLatest(
-        request as never,
-        user as never,
-        10,
-      );
-      expect(result).toBeDefined();
-      expect(musicsService.findAll).toHaveBeenCalled();
-    });
-
-    it('should exclude training-associated musics using trainingId: null', async () => {
-      const user = createMockUser();
-      const request = createMockRequest();
-      musicsService.findAll.mockResolvedValue({
-        docs: [],
-        hasNextPage: false,
-        hasPrevPage: false,
-        limit: 10,
-        page: 1,
-        totalDocs: 0,
-        totalPages: 1,
-      });
-
-      await controller.findLatest(request as never, user as never, 10);
-
-      const callArgs = musicsService.findAll.mock.calls[0];
-      const aggregate = callArgs[0];
-      const userBranch = aggregate.where.OR[0];
-      expect(userBranch).toHaveProperty('trainingId', null);
-      expect(userBranch).not.toHaveProperty('training');
-    });
-
-    it('should cap limit at 50', async () => {
-      const user = createMockUser();
-      const request = createMockRequest();
-      musicsService.findAll.mockResolvedValue({
-        docs: [],
-        hasNextPage: false,
-        hasPrevPage: false,
-        limit: 50,
-        page: 1,
-        totalDocs: 0,
-        totalPages: 1,
-      });
-
-      await controller.findLatest(request as never, user as never, 100);
-
-      const callArgs = musicsService.findAll.mock.calls[0];
-      const options = callArgs[1];
-      expect(options.limit).toBeLessThanOrEqual(50);
     });
   });
 });

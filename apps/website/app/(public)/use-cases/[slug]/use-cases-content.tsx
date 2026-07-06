@@ -105,7 +105,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
                 <Text className="text-sm text-surface/55">
                   {step.description}
                 </Text>
-                <Text className="text-sm text-surface/35 mt-1 italic">
+                <Text className="text-sm text-surface/60 mt-1">
                   {step.example}
                 </Text>
               </div>
@@ -138,7 +138,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
           <Heading as="h3" className="text-3xl font-bold mb-2">
             {useCase.pricing.recommended}
           </Heading>
-          <Text className="text-surface/50 mb-6">{useCase.pricing.why}</Text>
+          <Text className="text-surface/65 mb-6">{useCase.pricing.why}</Text>
           <ButtonRequestAccess />
           <Link href="/pricing" className="link mt-4 block">
             View All Pricing

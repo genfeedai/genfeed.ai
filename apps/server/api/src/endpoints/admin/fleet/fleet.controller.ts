@@ -690,31 +690,6 @@ export class AdminFleetController {
 
   // === Infrastructure ===
 
-  @Get('infrastructure/gpu')
-  @ApiOperation({ summary: 'Get GPU instance status' })
-  async getGpuStatus(@Req() request: Request) {
-    try {
-      const data = await this.adminFleetService.getServiceHealth();
-      return serializeCollection(request, FleetServiceStatusSerializer, {
-        docs: data.map((service: (typeof data)[number]) => ({
-          _id: service.name,
-          ...service,
-        })),
-        hasNextPage: false,
-        hasPrevPage: false,
-        limit: data.length,
-        nextPage: null,
-        page: 1,
-        pagingCounter: 1,
-        prevPage: null,
-        totalDocs: data.length,
-        totalPages: 1,
-      });
-    } catch (error) {
-      return ErrorResponse.handle(error, this.loggerService, 'getGpuStatus');
-    }
-  }
-
   @Get('infrastructure/ec2/status')
   @ApiOperation({ summary: 'List EC2 instances with status' })
   async getEC2Status(@Req() request: Request) {

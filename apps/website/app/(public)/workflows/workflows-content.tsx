@@ -169,15 +169,7 @@ const HERO_VISUAL = (
       },
     ]}
     subtitle="Deterministic control for agentic systems"
-    title={
-      <>
-        Workflows for
-        <br />
-        systems that
-        <br />
-        must stay legible.
-      </>
-    }
+    title="Workflows that stay legible."
   />
 );
 
@@ -219,18 +211,18 @@ export default function WorkflowsContent() {
       >
         {/* Highlight Card */}
         <section className="max-w-4xl mx-auto pb-16 px-6">
-          <div className="p-8 border border-[var(--gen-accent-border)] bg-gradient-to-r from-[var(--gen-accent-bg)] to-transparent">
+          <div className="p-8 border border-[var(--gen-accent-border)] bg-white/[0.04]">
             <HStack className="flex-col md:flex-row items-center gap-8">
               <div className="flex-shrink-0">
-                <div className="size-20 flex items-center justify-center bg-[hsl(var(--gen-accent))]">
-                  <HiSquaresPlus className="size-10 text-inv-fg" />
+                <div className="size-20 flex items-center justify-center border border-[var(--gen-accent-border)] bg-white/[0.06]">
+                  <HiSquaresPlus className="size-10 text-surface" />
                 </div>
               </div>
               <VStack className="gap-3">
                 <Heading as="h3" className="text-2xl font-bold">
                   Deterministic Workflows for Agentic Systems
                 </Heading>
-                <Text as="p" className="text-surface/50">
+                <Text as="p" className="text-surface/65">
                   Author the exact execution path yourself. Agents can trigger
                   the workflow, but the triggers, steps, branches, ratings, and
                   publishing logic stay explicit and inspectable.
@@ -265,10 +257,10 @@ export default function WorkflowsContent() {
                 <Text className="text-2xl font-bold text-[color:hsl(var(--gen-accent))] mb-1">
                   {category.count}
                 </Text>
-                <Heading as="h4" className="font-semibold text-surface/90 mb-2">
+                <Heading as="h4" className="font-semibold text-surface mb-2">
                   {category.name}
                 </Heading>
-                <Text className="text-sm text-surface/40">
+                <Text className="text-sm text-surface/65">
                   {category.description}
                 </Text>
               </div>
@@ -284,10 +276,10 @@ export default function WorkflowsContent() {
                 <Text className="text-2xl font-bold text-[color:hsl(var(--gen-accent))] mb-1">
                   {category.count}
                 </Text>
-                <Heading as="h4" className="font-semibold text-surface/90 mb-2">
+                <Heading as="h4" className="font-semibold text-surface mb-2">
                   {category.name}
                 </Heading>
-                <Text className="text-sm text-surface/40">
+                <Text className="text-sm text-surface/65">
                   {category.description}
                 </Text>
               </div>
@@ -313,13 +305,10 @@ export default function WorkflowsContent() {
                       <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
                     </div>
                   </div>
-                  <Heading
-                    as="h4"
-                    className="font-semibold mb-2 text-surface/90"
-                  >
+                  <Heading as="h4" className="font-semibold mb-2 text-surface">
                     {feature.title}
                   </Heading>
-                  <Text className="text-sm text-surface/40">
+                  <Text className="text-sm text-surface/65">
                     {feature.description}
                   </Text>
                 </div>
@@ -346,7 +335,7 @@ export default function WorkflowsContent() {
                       <Heading as="h4" className="text-lg font-bold">
                         {step.label}
                       </Heading>
-                      <Text className="text-sm text-surface/40">
+                      <Text className="text-sm text-surface/65">
                         {step.description}
                       </Text>
                     </VStack>
@@ -362,24 +351,23 @@ export default function WorkflowsContent() {
 
         {/* Pricing CTA */}
         <section className="max-w-4xl mx-auto pb-16 px-6">
-          <div className="text-center p-12 gen-card-featured">
+          <div className="text-center p-12 border border-[var(--gen-accent-border)] bg-white/[0.04]">
             <div className="flex justify-center mb-4">
-              <HiSquaresPlus className="size-8 text-inv-fg" />
+              <HiSquaresPlus className="size-8 text-surface" />
             </div>
-            <Heading as="h3" className="text-2xl font-bold mb-2 text-inv-fg">
+            <Heading as="h3" className="text-2xl font-bold mb-2 text-surface">
               Use Agents for Simplicity. Use Workflows for Control.
             </Heading>
-            <Text as="p" className="text-inv-fg/60 mb-6 max-w-lg mx-auto">
+            <Text as="p" className="text-surface/70 mb-6 max-w-lg mx-auto">
               Let agents trigger autonomous runs, or configure every trigger and
               step yourself when you need deterministic execution from idea to
               published output.
             </Text>
-            <PricingStrip inverted className="mb-6" />
+            <PricingStrip className="mb-6" />
             <HStack className="flex-wrap gap-4 justify-center">
               <ButtonTracked
                 asChild
                 size={ButtonSize.PUBLIC}
-                className="bg-inv-fg text-[color:hsl(var(--gen-accent))] hover:bg-inv-fg/80 px-8 py-3 text-xs font-bold uppercase tracking-wider"
                 trackingName="workflows_cta_click"
                 trackingData={{ action: 'view_plans' }}
               >
@@ -392,7 +380,6 @@ export default function WorkflowsContent() {
                 asChild
                 variant={ButtonVariant.OUTLINE}
                 size={ButtonSize.PUBLIC}
-                className="border-inv-fg/20 text-inv-fg hover:bg-inv-fg/5 px-8 py-3 text-xs font-bold uppercase tracking-wider"
                 trackingName="workflows_cta_click"
                 trackingData={{ action: 'book_demo' }}
               >

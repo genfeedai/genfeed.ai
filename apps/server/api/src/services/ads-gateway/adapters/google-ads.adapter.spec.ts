@@ -108,17 +108,6 @@ describe('GoogleAdsAdapter', () => {
     );
   });
 
-  it('pauses campaign', async () => {
-    await adapter.pauseCampaign(ctx, '111');
-
-    expect(googleAdsService.pauseCampaign).toHaveBeenCalledWith(
-      'token',
-      '1234567890',
-      '111',
-      '1112223334',
-    );
-  });
-
   it('lists ad sets from ad groups', async () => {
     googleAdsService.listAdGroups.mockResolvedValue([
       {

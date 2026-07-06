@@ -17,7 +17,6 @@ const makeAdapter = () => ({
   listAdSets: vi.fn(),
   listAds: vi.fn(),
   listCampaigns: vi.fn(),
-  pauseCampaign: vi.fn(),
   updateCampaign: vi.fn(),
 });
 
