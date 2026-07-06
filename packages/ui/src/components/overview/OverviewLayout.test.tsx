@@ -46,7 +46,12 @@ describe('OverviewLayout', () => {
     );
     const rootElement = container.firstChild as HTMLElement;
     expect(rootElement).toBeInTheDocument();
-    expect(container.querySelector('.gen-shell-panel')).toBeInTheDocument();
-    expect(container.querySelector('.ship-ui')).toBeInTheDocument();
+    // Quick-action cards use the canonical Card surface treatment:
+    // rounded-card + shadow-border (monochrome token idiom), not the
+    // retired gen-shell-panel/ship-ui shell classes.
+    const quickActionCard = container.querySelector('[data-card-index="0"]');
+    expect(quickActionCard).toHaveClass('rounded-card');
+    expect(quickActionCard).toHaveClass('shadow-border');
+    expect(quickActionCard).toHaveClass('bg-card');
   });
 });

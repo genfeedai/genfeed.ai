@@ -114,7 +114,7 @@ describe('pricing.helper', () => {
       expect(scale.outputs).toBeNull();
       expect(scale.includedCredits).toBe(80_000);
       expect(scale.features).toContain('Multi-organization account model');
-      expect(scale.features).toContain('Multi-brand operations');
+      expect(scale.features).toContain('Unlimited brands');
     });
 
     it('Enterprise plan should have null outputs for custom terms', () => {
@@ -162,7 +162,7 @@ describe('pricing.helper', () => {
       const plan = getProPlan();
       expect(plan.launchPrice).toBe(39);
       expect(plan.launchNote).toBe(
-        'Launch pricing — first 12 months, then $49/month',
+        'Launch pricing (code EARLYGENFEED) — first 12 months, then $49/month',
       );
     });
 

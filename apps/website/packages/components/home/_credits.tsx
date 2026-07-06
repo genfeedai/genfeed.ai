@@ -40,8 +40,8 @@ export default function HomeCredits(): React.ReactElement {
             </Heading>
             <Text className="max-w-2xl text-base leading-7 gen-text-muted">
               Signing up is free. Credits buy the content you generate, and a
-              subscription only exists to make those credits cheaper, plus more
-              brands, channels, and seats.
+              subscription only exists to make those credits cheaper, plus
+              unlimited brands, more channels, and shared team seats.
             </Text>
           </VStack>
 
@@ -65,18 +65,11 @@ export default function HomeCredits(): React.ReactElement {
               key={pack.label}
               className="flex items-baseline justify-between gap-4 bg-background px-6 py-4"
             >
-              <Text className="text-xs font-bold uppercase tracking-widest text-surface/35">
-                {pack.label} pack
+              <Text className="text-sm font-semibold text-surface">
+                ${creditPackPrice(pack).toLocaleString()}
               </Text>
               <Text className="text-sm text-surface/60">
-                ${creditPackPrice(pack).toLocaleString()} →{' '}
                 {creditPackTotalCredits(pack).toLocaleString()} credits
-                {pack.bonus ? (
-                  <span className="font-medium text-surface">
-                    {' '}
-                    (+{pack.bonus.toLocaleString()} bonus)
-                  </span>
-                ) : null}
               </Text>
             </div>
           ))}
