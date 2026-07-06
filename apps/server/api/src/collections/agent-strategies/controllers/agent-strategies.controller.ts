@@ -155,16 +155,6 @@ export class AgentStrategiesController extends BaseCRUDController<
     };
   }
 
-  @Post(':id/plan-now')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Force a planning cycle for this strategy' })
-  async planNow(
-    @Param('id') id: string,
-    @CurrentUser() user: User,
-  ): Promise<{ message: string }> {
-    return this.runNow(id, user);
-  }
-
   @Post(':id/report-now')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Generate a strategy report immediately' })
