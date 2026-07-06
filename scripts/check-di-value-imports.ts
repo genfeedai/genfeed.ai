@@ -20,7 +20,7 @@ import ts from 'typescript';
  * apps/server/api/src/collections/tasks/tasks.tokens.ts).
  */
 
-const INCLUDE_GLOBS = ['apps/server/**/*.ts'];
+const INCLUDE_GLOBS = ['apps/server/**/*.ts', 'packages/libs/**/*.ts'];
 
 const IGNORE_GLOBS = [
   '**/*.spec.ts',
