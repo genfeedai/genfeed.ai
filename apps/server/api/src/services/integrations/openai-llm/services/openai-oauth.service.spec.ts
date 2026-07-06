@@ -1,4 +1,4 @@
-vi.mock('@api/shared/utils/encryption/encryption.util', () => ({
+vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: {
     decrypt: vi.fn((val: string) => val.replace(/^enc:/, '')),
     encrypt: vi.fn((val: string) => `enc:${val}`),

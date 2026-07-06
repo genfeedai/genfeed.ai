@@ -6,7 +6,6 @@ import {
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform, WorkflowExecutionTrigger } from '@genfeedai/enums';
 import type {
   IReplyBotCredentialData,
@@ -17,6 +16,7 @@ import type {
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()

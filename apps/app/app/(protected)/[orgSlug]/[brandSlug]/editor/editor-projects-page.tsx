@@ -23,27 +23,27 @@ import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 
 const features = [
   {
-    color: 'bg-blue-500/20 text-blue-400',
+    color: 'bg-muted text-muted-foreground',
     description:
       'Professional timeline-based video editing with multi-track support',
     icon: HiOutlineFilm,
     title: 'Timeline Editor',
   },
   {
-    color: 'bg-green-500/20 text-green-400',
+    color: 'bg-muted text-muted-foreground',
     description: 'Cut, trim, and splice clips with frame-accurate precision',
     icon: HiOutlineScissors,
     title: 'Precise Trimming',
   },
   {
-    color: 'bg-purple-500/20 text-purple-400',
+    color: 'bg-muted text-muted-foreground',
     description:
       'Synchronize audio tracks, add music, and adjust volume levels',
     icon: HiOutlineMusicalNote,
     title: 'Audio Sync',
   },
   {
-    color: 'bg-orange-500/20 text-orange-400',
+    color: 'bg-muted text-muted-foreground',
     description: 'Apply effects, transitions, and color grading to your videos',
     icon: HiOutlineSparkles,
     title: 'Effects & Transitions',
@@ -130,7 +130,9 @@ export default function EditorProjectsPage() {
             >
               <HiOutlineArrowLeft className="size-4" />
             </Link>
-            <h1 className="text-3xl font-semibold">Video Editor</h1>
+            <h1 className="text-3xl font-semibold tracking-tight">
+              Video Editor
+            </h1>
           </div>
           <p className="text-foreground/60">
             Advanced video editing with timeline, transitions, and professional
@@ -245,13 +247,12 @@ export default function EditorProjectsPage() {
               the Studio can be imported directly.
             </p>
 
-            <Link
-              href={href('/editor/new')}
-              className="inline-flex items-center gap-2 bg-primary px-6 py-3 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              <HiOutlinePlus className="size-5" />
-              Start New Project
-            </Link>
+            <Button asChild variant={ButtonVariant.DEFAULT}>
+              <Link href={href('/editor/new')}>
+                <HiOutlinePlus className="size-5" />
+                Start New Project
+              </Link>
+            </Button>
           </div>
         </Card>
       )}

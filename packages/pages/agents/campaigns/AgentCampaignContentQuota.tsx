@@ -12,7 +12,7 @@ type Props = {
 
 export default function AgentCampaignContentQuota({ contentQuota }: Props) {
   return (
-    <div className="border border-white/[0.08] bg-background p-4">
+    <div className="bg-card p-4 shadow-border">
       <h3 className="mb-4 text-lg font-semibold">Content Quota</h3>
       <div className="grid grid-cols-3 gap-4">
         {contentQuota.posts !== undefined && (

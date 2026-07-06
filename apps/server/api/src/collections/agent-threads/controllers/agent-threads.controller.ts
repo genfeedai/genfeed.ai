@@ -16,6 +16,7 @@ import {
 } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -161,10 +162,24 @@ export class AgentThreadsController {
     }
   }
 
-  @Post('archive-all')
-  @ApiOperation({ summary: 'Archive all active threads for the current user' })
-  async archiveAllThreads(@CurrentUser() user: User) {
+  @Patch()
+  @ApiOperation({
+    summary:
+      "Bulk-update the current user's threads by filter (currently archives all active threads)",
+  })
+  async bulkUpdateThreads(
+    @Body() body: { status?: AgentThreadStatus },
+    @CurrentUser() user: User,
+  ) {
     try {
+      // Mass-by-filter: no ids, acts on the caller's own ACTIVE threads.
+      // Only the archive transition is supported today.
+      if (body.status !== AgentThreadStatus.ARCHIVED) {
+        throw new BadRequestException(
+          "Only { status: 'archived' } is supported for bulk thread updates",
+        );
+      }
+
       const organizationId = this.resolveOrganizationId(user);
       const dbUserId = await this.resolveMongoUserId(user);
 
@@ -178,7 +193,7 @@ export class AgentThreadsController {
       return ErrorResponse.handle(
         error,
         this.loggerService,
-        'archiveAllThreads',
+        'bulkUpdateThreads',
       );
     }
   }

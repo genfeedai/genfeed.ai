@@ -120,7 +120,7 @@ export default function ProductPage({ product }: { product: Product }) {
               description={useCase.description}
             >
               <div className="bg-background p-4">
-                <Text as="p" size="sm" className="italic">
+                <Text as="p" size="sm">
                   {useCase.example}
                 </Text>
               </div>

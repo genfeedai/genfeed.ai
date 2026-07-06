@@ -1,4 +1,4 @@
-vi.mock('@api/shared/utils/encryption/encryption.util', () => ({
+vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: { decrypt: vi.fn((v: string) => `dec:${v}`) },
 }));
 
@@ -7,9 +7,9 @@ import { ConfigService } from '@api/config/config.service';
 import { GhostService } from '@api/services/integrations/ghost/services/ghost.service';
 import { GhostPublisherService } from '@api/services/integrations/publishers/ghost-publisher.service';
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('GhostPublisherService', () => {

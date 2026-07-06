@@ -215,6 +215,28 @@ describe('RedisCacheInterceptor', () => {
       expect(cacheService.get).toHaveBeenCalledWith(customKey);
     });
 
+    it('should skip caching when the key generator returns an empty key', async () => {
+      const cacheOptions: CacheOptions = {
+        keyGenerator: vi.fn().mockReturnValue(''),
+        ttl: 300,
+      };
+      reflector.get.mockReturnValue(cacheOptions);
+
+      const result$ = await interceptor.intercept(
+        mockExecutionContext,
+        mockCallHandler,
+      );
+
+      result$.subscribe((value) => {
+        expect(value).toEqual({ data: 'test' });
+      });
+
+      expect(cacheOptions.keyGenerator).toHaveBeenCalledWith(mockRequest);
+      expect(cacheService.get).not.toHaveBeenCalled();
+      expect(cacheService.set).not.toHaveBeenCalled();
+      expect(mockCallHandler.handle).toHaveBeenCalled();
+    });
+
     it('should generate default key for anonymous users', async () => {
       const cacheOptions: CacheOptions = { ttl: 300 };
       reflector.get.mockReturnValue(cacheOptions);

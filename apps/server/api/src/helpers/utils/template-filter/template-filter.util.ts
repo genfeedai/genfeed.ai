@@ -59,6 +59,8 @@ export class TemplateFilterUtil {
       scope?: string;
       isFeatured?: string | boolean;
       search?: string;
+      sort?: 'popular';
+      limit?: number;
     } = {},
   ): Record<string, unknown> {
     const filters: Record<string, unknown> = {};
@@ -120,6 +122,16 @@ export class TemplateFilterUtil {
     // Search filter
     if (query.search) {
       filters.search = query.search;
+    }
+
+    // Sort filter (e.g. 'popular')
+    if (query.sort) {
+      filters.sort = query.sort;
+    }
+
+    // Limit filter
+    if (query.limit !== undefined) {
+      filters.limit = query.limit;
     }
 
     return filters;

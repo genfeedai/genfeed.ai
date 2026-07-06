@@ -87,10 +87,10 @@ export default function ContentTestimonials() {
             </div>
             <div className="ml-4">
               <h3 className="font-semibold">{testimonial.name}</h3>
-              <p className="text-sm text-zinc-400">{testimonial.role}</p>
+              <p className="text-sm text-surface/65">{testimonial.role}</p>
             </div>
           </div>
-          <p className="text-zinc-400">&ldquo;{testimonial.quote}&rdquo;</p>
+          <p className="text-surface/65">&ldquo;{testimonial.quote}&rdquo;</p>
         </Card>
       ))}
     </>

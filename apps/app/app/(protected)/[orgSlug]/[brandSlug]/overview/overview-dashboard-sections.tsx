@@ -133,7 +133,7 @@ export function OverviewTopStatStrip({
         <Card
           key={item.label}
           className={cn(
-            'ship-ui gen-shell-panel min-h-[136px] rounded-[1.25rem] border-white/[0.06] bg-background/88 shadow-[0_24px_64px_-44px_rgba(0,0,0,0.88)]',
+            'ship-ui gen-shell-panel min-h-[136px] rounded-[1.25rem]',
             item.tone,
           )}
           bodyClassName="flex h-full flex-col justify-between gap-6 p-5"

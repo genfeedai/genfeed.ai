@@ -40,7 +40,7 @@ type SummaryMetricCardProps = {
 
 function SummaryMetricCard({ label, value }: SummaryMetricCardProps) {
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-card p-3">
+    <div className="rounded-lg shadow-border bg-card p-3">
       <div className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">
         {label}
       </div>
@@ -71,7 +71,7 @@ function AdPackPanel({ adPack }: AdPackPanelProps) {
           {adPack.headlines.map((headline) => (
             <div
               key={headline}
-              className="rounded-lg border border-white/[0.06] bg-card px-3 py-2 text-sm text-foreground"
+              className="rounded-lg shadow-border bg-card px-3 py-2 text-sm text-foreground"
             >
               {headline}
             </div>
@@ -195,7 +195,7 @@ function LaunchPrepPanel({ prep }: LaunchPrepPanelProps) {
           {prep.notes.map((note) => (
             <li
               key={note}
-              className="rounded-lg border border-white/[0.06] bg-card px-3 py-2"
+              className="rounded-lg shadow-border bg-card px-3 py-2"
             >
               {note}
             </li>
@@ -343,7 +343,7 @@ export function DetailSidebar({
                       {detail.patternSummary.map((pattern) => (
                         <div
                           key={`${pattern.id}-${pattern.label}`}
-                          className="rounded-lg border border-white/[0.06] bg-card p-3"
+                          className="rounded-lg shadow-border bg-card p-3"
                         >
                           <div className="mb-1 flex items-center justify-between gap-2">
                             <span className="text-sm font-medium text-foreground">

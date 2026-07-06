@@ -1,13 +1,13 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { GoogleSearchConsoleService } from '@api/services/integrations/google-search-console/services/google-search-console.service';
 import { GoogleSearchConsoleOAuthService } from '@api/services/integrations/google-search-console/services/google-search-console-oauth.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { of, throwError } from 'rxjs';
 
-vi.mock('@api/shared/utils/encryption/encryption.util', () => ({
+vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: {
     decrypt: vi.fn((value: string) => `decrypted:${value}`),
   },

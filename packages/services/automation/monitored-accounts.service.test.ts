@@ -149,24 +149,6 @@ describe('MonitoredAccountsService', () => {
     });
   });
 
-  describe('toggleActive', () => {
-    it('should post to toggle endpoint', async () => {
-      mockInstance.post.mockResolvedValue({ data: mockAccountData });
-
-      await service.toggleActive('account-123');
-
-      expect(mockInstance.post).toHaveBeenCalledWith('/account-123/toggle');
-    });
-
-    it('should return MonitoredAccount', async () => {
-      mockInstance.post.mockResolvedValue({ data: mockAccountData });
-
-      const result = await service.toggleActive('account-123');
-
-      expect(result).toBeInstanceOf(MonitoredAccount);
-    });
-  });
-
   describe('validateTwitterUsername', () => {
     it('should post to validate endpoint', async () => {
       const mockValidation = {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant, CardVariant } from '@genfeedai/enums';
 import type {
   ITwitterOpportunity,
   ITwitterPublishResult,
@@ -14,6 +14,7 @@ import TweetCard from '@pages/twitter-pipeline/components/tweet-card';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { TwitterPipelineService } from '@services/twitter/twitter-pipeline.service';
+import Card from '@ui/card/Card';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -160,7 +161,7 @@ export default function TwitterPipelineEngage() {
   return (
     <div className="space-y-6 pb-24">
       {/* Search Section */}
-      <div className="rounded-lg border border-border bg-card p-6">
+      <Card variant={CardVariant.DEFAULT} bodyClassName="gap-0 p-6">
         <h3 className="text-sm font-medium text-foreground mb-4">
           Find Engagement Opportunities
         </h3>
@@ -239,7 +240,7 @@ export default function TwitterPipelineEngage() {
             </Button>
           )}
         </div>
-      </div>
+      </Card>
 
       {/* Error display */}
       {error && (

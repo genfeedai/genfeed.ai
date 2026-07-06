@@ -57,7 +57,7 @@ export function CostModal() {
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
     >
       <div
-        className="bg-[var(--background)] border border-[var(--border)] shadow-xl w-full max-w-lg"
+        className="bg-[var(--background)] shadow-dialog w-full max-w-lg"
         role="dialog"
         aria-label="Cost Breakdown"
       >
@@ -133,7 +133,7 @@ export function CostModal() {
                       <span className="text-[var(--muted-foreground)]">
                         Actual Cost
                       </span>
-                      <span className="font-mono font-medium text-green-500">
+                      <span className="font-mono font-medium text-foreground">
                         {formatCost(actualCost)}
                       </span>
                     </div>

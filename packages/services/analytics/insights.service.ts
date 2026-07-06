@@ -65,7 +65,8 @@ class InsightsServiceClass extends HTTPBaseService {
   async markAsRead(insightId: string): Promise<IInsightResponse> {
     try {
       const response = await this.instance.patch<JsonApiResponseDocument>(
-        `${insightId}/read`,
+        `${insightId}`,
+        { isRead: true },
       );
       logger.info('Insight marked as read', { insightId });
       return deserializeResource<IInsightResponse>(response.data);
@@ -81,7 +82,8 @@ class InsightsServiceClass extends HTTPBaseService {
   async markAsDismissed(insightId: string): Promise<IInsightResponse> {
     try {
       const response = await this.instance.patch<JsonApiResponseDocument>(
-        `${insightId}/dismiss`,
+        `${insightId}`,
+        { isDismissed: true },
       );
       logger.info('Insight marked as dismissed', { insightId });
       return deserializeResource<IInsightResponse>(response.data);

@@ -99,15 +99,7 @@ const HERO_VISUAL = (
       value: integration.tagline,
     }))}
     subtitle="Distribution surfaces with AI-native packaging"
-    title={
-      <>
-        Every channel.
-        <br />
-        One operating
-        <br />
-        layer.
-      </>
-    }
+    title="Every channel, one layer."
   />
 );
 
@@ -154,7 +146,7 @@ export default function IntegrationsContent() {
                   </div>
                   <Heading
                     as="h3"
-                    className="mb-2 text-lg font-semibold text-surface/90"
+                    className="mb-2 text-lg font-semibold text-surface"
                   >
                     {integration.name}
                   </Heading>
@@ -173,21 +165,20 @@ export default function IntegrationsContent() {
 
         {/* CTA */}
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
-          <div className="text-center p-12 bg-[hsl(var(--gen-accent))]">
+          <div className="text-center p-12 border border-[var(--gen-accent-border)] bg-white/[0.04]">
             <div className="flex justify-center mb-4">
-              <HiSparkles className="size-8 text-inv-fg" />
+              <HiSparkles className="size-8 text-surface" />
             </div>
-            <Heading as="h3" className="text-2xl font-bold mb-2 text-inv-fg">
+            <Heading as="h3" className="text-2xl font-bold mb-2 text-surface">
               One Platform, Every Channel
             </Heading>
-            <Text as="p" className="text-inv-fg/60 mb-6 max-w-lg mx-auto">
+            <Text as="p" className="text-surface/70 mb-6 max-w-lg mx-auto">
               Generate AI content and publish to all your platforms from a
               single dashboard. Start free with Core.
             </Text>
             <ButtonTracked
               asChild
               size={ButtonSize.PUBLIC}
-              className="bg-inv-fg text-[color:hsl(var(--gen-accent))] hover:bg-inv-fg/80 px-8 py-3 text-xs font-bold uppercase tracking-wider"
               trackingName="integrations_cta_click"
               trackingData={{ action: 'core_cta' }}
             >

@@ -54,21 +54,25 @@ export class WorkspaceClient {
     return this.base.request(
       'getting usage stats',
       async (http) => {
-        const response = await http.get('/usage/stats', {
-          params: { timeRange },
-        });
+        // Credit usage is the canonical OSS tracking surface
+        // (`@Controller('credits')` + `@Get('usage')`). It exposes a
+        // per-content-type credit breakdown plus the total consumed, which we
+        // project onto the `UsageStats` shape. `postsPublished` /
+        // `totalEngagement` have no credit-ledger analog, so they stay 0.
+        const response = await http.get('/credits/usage');
         const data =
           response.data?.data?.attributes || response.data?.data || {};
+        const breakdown = data.breakdown || {};
 
         return {
           contentCreated: {
-            articles: data.contentCreated?.articles || 0,
-            avatars: data.contentCreated?.avatars || 0,
-            images: data.contentCreated?.images || 0,
-            music: data.contentCreated?.music || 0,
-            videos: data.contentCreated?.videos || 0,
+            articles: breakdown.articles || 0,
+            avatars: breakdown.avatars || 0,
+            images: breakdown.images || 0,
+            music: breakdown.music || 0,
+            videos: breakdown.videos || 0,
           },
-          creditsUsed: data.creditsUsed || 0,
+          creditsUsed: data.used || 0,
           postsPublished: data.postsPublished || 0,
           timeRange,
           totalEngagement: data.totalEngagement || 0,
@@ -184,12 +188,13 @@ export class WorkspaceClient {
     return this.base.request(
       'getting account info',
       async (http) => {
-        const response = await http.get('/accounts');
-        const account = response.data?.data?.[0] || response.data?.data;
-        return {
-          id: account?.id,
-          ...(account?.attributes || account || {}),
-        };
+        // Identity introspection is served by `@Controller('auth')` +
+        // `@Get('whoami')`, which returns `{ data: { user, organization, role,
+        // scopes, isApiKey } }` for the bearer token — the account context an
+        // MCP caller has.
+        const response = await http.get('/auth/whoami');
+        const data = response.data?.data ?? response.data ?? {};
+        return data as Record<string, unknown>;
       },
       this.base.failWith('Failed to get account info'),
     );
@@ -199,7 +204,11 @@ export class WorkspaceClient {
     return this.base.request(
       'getting job status',
       async (http) => {
-        const response = await http.get(`/ingredients/${jobId}`);
+        // A "job" is an ingredient generation artifact; its status lives on the
+        // ingredient metadata (`@Controller('ingredients')` +
+        // `@Get(':ingredientId/metadata')`). There is no bare ingredient read,
+        // so metadata is the status surface.
+        const response = await http.get(`/ingredients/${jobId}/metadata`);
         const data = response.data?.data;
         return {
           id: data?.id,
@@ -213,7 +222,7 @@ export class WorkspaceClient {
   createChat(): Promise<Record<string, unknown>> {
     return this.base.request(
       'creating chat',
-      async (http) => this.base.unwrapObject(await http.post('/threads')),
+      async (http) => this.base.unwrapObject(await http.post('/agent/threads')),
       this.base.failWith('Failed to create chat'),
     );
   }
@@ -226,7 +235,7 @@ export class WorkspaceClient {
       'sending chat message',
       async (http) =>
         this.base.unwrapObject(
-          await http.post(`/threads/${threadId}/messages`, {
+          await http.post(`/agent/threads/${threadId}/messages`, {
             content: message,
           }),
         ),

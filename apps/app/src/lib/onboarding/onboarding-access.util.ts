@@ -11,7 +11,6 @@ export const ONBOARDING_ACCESS_SOURCE = 'oss-onboarding';
 const SUBSCRIPTION_TIER_LABELS: Record<string, string> = {
   [SubscriptionTier.FREE]: 'Free',
   [SubscriptionTier.BYOK]: 'BYOK (free)',
-  [SubscriptionTier.CREATOR]: 'Creator',
   [SubscriptionTier.PRO]: 'Pro',
   [SubscriptionTier.SCALE]: 'Scale',
   [SubscriptionTier.ENTERPRISE]: 'Enterprise',
@@ -83,6 +82,59 @@ function parsePositiveInteger(value?: string | null): string | null {
 
   const parsed = Number.parseInt(normalizedValue, 10);
   return parsed > 0 ? String(parsed) : null;
+}
+
+/** Stripe price ids the checkout API accepts (mirrors CreateCheckoutSessionDto). */
+const STRIPE_PRICE_ID_PATTERN = /^price_[a-zA-Z0-9]+$/;
+
+/**
+ * Marketing CTAs hand off a subscription plan as a human-readable slug
+ * (e.g. `/sign-up?plan=hosted` for the website "Creator" card). The checkout
+ * endpoint only accepts Stripe price ids — `CreateCheckoutSessionDto` enforces
+ * `^price_...$` — so a raw slug would be rejected (400) before checkout is ever
+ * created, and the launch coupon (auto-applied in StripeService for the Pro
+ * price) would never fire. Resolve known subscription slugs to their configured
+ * price id at handoff time; anything else (already-price ids, the free `payg`
+ * slug, unknown values) passes through unchanged.
+ */
+export function buildPlanSlugPriceIdMap(): Record<string, string | undefined> {
+  const { monthly, scale } = EnvironmentService.plans;
+
+  return {
+    // Website "Creator" card === internal Hosted/Pro tier (NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY).
+    creator: monthly,
+    hosted: monthly,
+    pro: monthly,
+    // Cloud Teams tier, if it ever exposes a self-serve CTA.
+    scale,
+    teams: scale,
+  };
+}
+
+/**
+ * Resolve a `?plan=` handoff value into a Stripe price id when possible.
+ * Returns `null` for empty input. Already-formed price ids and unknown slugs
+ * are returned untouched so existing behavior (e.g. the free `payg` handoff)
+ * is preserved.
+ */
+export function resolveSelectedPlanParam(
+  rawPlan?: string | null,
+  planSlugPriceIds: Record<
+    string,
+    string | undefined
+  > = buildPlanSlugPriceIdMap(),
+): string | null {
+  const trimmed = rawPlan?.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  if (STRIPE_PRICE_ID_PATTERN.test(trimmed)) {
+    return trimmed;
+  }
+
+  const resolved = planSlugPriceIds[trimmed.toLowerCase()];
+  return resolved ?? trimmed;
 }
 
 export function getSelectedOnboardingAccessMode(
@@ -188,10 +240,17 @@ export function buildGenfeedCloudSignupUrl(input?: {
 export function persistOnboardingHandoffParams(
   search: string | URLSearchParams,
   storage: OnboardingHandoffStorage = localStorage,
+  planSlugPriceIds: Record<
+    string,
+    string | undefined
+  > = buildPlanSlugPriceIdMap(),
 ): void {
   const params =
     typeof search === 'string' ? new URLSearchParams(search) : search;
-  const selectedPlan = readTrimmedParam(params, 'plan');
+  const selectedPlan = resolveSelectedPlanParam(
+    readTrimmedParam(params, 'plan'),
+    planSlugPriceIds,
+  );
   const selectedCredits = parsePositiveInteger(params.get('credits'));
   const brandDomain = extractBrandDomain(params.get('brandDomain'));
   const brandName = readTrimmedParam(params, 'brandName');

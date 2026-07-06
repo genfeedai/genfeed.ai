@@ -32,7 +32,7 @@ export function CostIndicator() {
       <DollarSign className="size-3.5" />
       <span className="font-mono text-xs">{formatCost(displayCost)}</span>
       {isRunning && actualCost > 0 && (
-        <span className="size-1.5 rounded-full bg-green-500 animate-pulse" />
+        <span className="size-1.5 rounded-full bg-success" />
       )}
     </Button>
   );

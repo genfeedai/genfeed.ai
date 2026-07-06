@@ -37,7 +37,6 @@ describe('BotActivitiesController', () => {
           provide: BotActivitiesService,
           useValue: {
             findOne: vi.fn(),
-            findRecentByConfig: vi.fn(),
             findWithFilters: vi.fn(),
             getStats: vi.fn(),
           },
@@ -155,29 +154,6 @@ describe('BotActivitiesController', () => {
         undefined,
         undefined,
       );
-    });
-  });
-
-  describe('getRecentByConfig', () => {
-    it('should return recent activities for a config', async () => {
-      const mockDocs = [{ _id: 'a1' }, { _id: 'a2' }];
-      vi.mocked(botActivitiesService.findRecentByConfig).mockResolvedValue(
-        mockDocs as never,
-      );
-
-      const result = await controller.getRecentByConfig(
-        mockRequest,
-        'config-1',
-        5,
-        mockUser,
-      );
-
-      expect(botActivitiesService.findRecentByConfig).toHaveBeenCalledWith(
-        'config-1',
-        'brand-123',
-        5,
-      );
-      expect(result).toEqual({ docs: mockDocs });
     });
   });
 });

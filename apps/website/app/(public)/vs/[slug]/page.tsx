@@ -22,7 +22,7 @@ export async function generateMetadata(
   const previousImages = (await parent).openGraph?.images || [];
   const { slug } = await params;
   const competitorName = formatCompetitorSlug(slug);
-  const title = `Genfeed vs ${competitorName} (2026) — AI Content Platform Comparison`;
+  const title = `Genfeed vs ${competitorName} (2026): AI Content Platform Comparison`;
   const description = `Compare Genfeed with ${competitorName}. See how AI-powered content generation, pricing, features, and capabilities stack up side by side.`;
   const url = `${EnvironmentService.apps.website}/vs/${slug}`;
 

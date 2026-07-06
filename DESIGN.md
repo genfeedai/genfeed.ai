@@ -87,10 +87,14 @@ typography:
 
 rounded:
   none: 0px
-  sm: 2px
+  xs: 2px
+  sm: 4px
   md: 6px
   lg: 8px
   xl: 10px
+  2xl: 12px
+  3xl: 16px
+  full: 9999px
 
 spacing:
   base: 4px
@@ -128,19 +132,19 @@ components:
   badge-default:
     backgroundColor: "{colors.bg-hover}"
     textColor: "{colors.text-secondary}"
-    rounded: "{rounded.sm}"
+    rounded: "{rounded.full}"
   badge-success:
     backgroundColor: "{colors.bg-secondary}"
     textColor: "{colors.success}"
-    rounded: "{rounded.sm}"
+    rounded: "{rounded.full}"
   badge-warning:
     backgroundColor: "{colors.bg-secondary}"
     textColor: "{colors.warning}"
-    rounded: "{rounded.sm}"
+    rounded: "{rounded.full}"
   badge-danger:
     backgroundColor: "{colors.bg-secondary}"
     textColor: "{colors.danger}"
-    rounded: "{rounded.sm}"
+    rounded: "{rounded.full}"
   tooltip:
     backgroundColor: "{colors.bg-elevated}"
     textColor: "{colors.text-primary}"
@@ -285,11 +289,17 @@ Body text uses `-0.01em` letter-spacing. Headings use `-0.03em`.
 
 ### Border radius
 
-Four-step scale matching ShipCode/Linear:
-- `sm` (2px) -- badges, tags, inline chips
-- `md` (6px) -- cards, buttons, inputs, tooltips, popovers, dropdowns
-- `lg` (8px) -- toasts, overlay panels
-- `xl` (10px) -- dialogs, command palette
+Nine-step scale — the canonical source is `packages/ui/src/core/radius.ts`
+(`radiusTokens`), mirrored 1:1 as `--radius-*` in `packages/ui/web-tokens.css`:
+- `none` (0px) -- cards and flat surfaces (`--radius-card` resolves to 0px)
+- `xs` (2px) -- smallest chip corners and hairline insets
+- `sm` (4px) -- menu and dropdown items
+- `md` (6px) -- buttons, inputs, tooltips, selects, dropdown panels
+- `lg` (8px) -- toasts and overlay panels
+- `xl` (10px) -- dialogs and command palette
+- `2xl` (12px) -- large modals and feature surfaces
+- `3xl` (16px) -- oversized media and promo surfaces
+- `full` (9999px) -- badges, pills, avatars, and circular controls
 
 ### Shadows
 
@@ -331,7 +341,7 @@ trigger button. Grouped into Content and Tools sections with a subtle divider.
 
 ### Dropdown
 
-`bg-secondary` with `shadow-dropdown`. Items use `rounded-sm` (2px) with `hover:bg-hover`.
+`bg-secondary` with `shadow-dropdown`. Items use `rounded-sm` (4px) with `hover:bg-hover`.
 Inline margin `mx-1` insets items from panel edges.
 
 ## Brand OS Surfaces

@@ -31,22 +31,22 @@ Authorization: Bearer {{bearerToken}}
 ########################################
 
 ### Get Hook Patterns
-GET {{apiBaseUrl}}/content-intelligence/patterns/hooks
+GET {{apiBaseUrl}}/content-intelligence/patterns?patternType=hook
 Authorization: Bearer {{bearerToken}}
 
 
 ### Get Hook Patterns by Platform
-GET {{apiBaseUrl}}/content-intelligence/patterns/hooks?platform=tiktok&limit=25
+GET {{apiBaseUrl}}/content-intelligence/patterns?patternType=hook&platform=tiktok&limit=25
 Authorization: Bearer {{bearerToken}}
 
 
 ### Get Template Patterns
-GET {{apiBaseUrl}}/content-intelligence/patterns/templates
+GET {{apiBaseUrl}}/content-intelligence/patterns?patternType=template
 Authorization: Bearer {{bearerToken}}
 
 
 ### Get Template Patterns with Filters
-GET {{apiBaseUrl}}/content-intelligence/patterns/templates?platform=twitter&templateCategory=thread&page=1&limit=20
+GET {{apiBaseUrl}}/content-intelligence/patterns?patternType=template&platform=twitter&templateCategory=thread&page=1&limit=20
 Authorization: Bearer {{bearerToken}}
 
 

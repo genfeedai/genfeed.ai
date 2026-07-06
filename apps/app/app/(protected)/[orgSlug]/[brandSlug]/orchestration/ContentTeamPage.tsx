@@ -111,7 +111,7 @@ export default function ContentTeamPage() {
             bodyClassName="flex flex-col items-start gap-4 p-6"
             description="Use the hire flow to spin up specialist agents for short-form, X, image, script, and avatar work."
             icon={HiOutlineUserGroup}
-            iconWrapperClassName="bg-cyan-500/12 text-cyan-300"
+            iconWrapperClassName="bg-tertiary text-muted-foreground"
             label="No team members yet"
           >
             <PrimitiveButton

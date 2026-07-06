@@ -1,13 +1,13 @@
 import { CredentialPlatform } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@api/shared/utils/encryption/encryption.util', () => ({
+vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: {
     decrypt: vi.fn((val: string) => `decrypted:${val}`),
   },
 }));
 
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 
 import { CredentialHelper } from './credential-helper.util';
 

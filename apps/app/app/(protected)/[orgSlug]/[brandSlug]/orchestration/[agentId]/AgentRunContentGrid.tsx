@@ -115,7 +115,7 @@ function ContentCard({ item }: { item: IAgentRunContentItem }) {
     );
 
   return (
-    <div className="flex flex-col gap-2 rounded border border-foreground/10 bg-background p-3">
+    <div className="flex flex-col gap-2 rounded bg-secondary p-3 shadow-border">
       <div className="flex items-center justify-between">
         <span className="flex items-center gap-1.5 text-xs text-foreground/50">
           {icon}

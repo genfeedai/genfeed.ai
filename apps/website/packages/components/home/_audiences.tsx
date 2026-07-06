@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonSize } from '@genfeedai/enums';
-import { getHostedPlan } from '@helpers/business/pricing/pricing.helper';
+import { getProPlan } from '@helpers/business/pricing/pricing.helper';
 import type { AudienceBenefit } from '@props/website/home.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
@@ -29,12 +29,12 @@ const AGENCY_BENEFITS: AudienceBenefit[] = [
 
 export default function HomeAudiences(): React.ReactElement {
   const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
-  const hostedPlan = getHostedPlan();
-  const creatorPlanPrice = hostedPlan.launchPrice ?? hostedPlan.price;
-  const creatorPlanCopy =
-    creatorPlanPrice != null
-      ? `Free to start, then $${creatorPlanPrice}/mo Creator for cheaper credits and more brands`
-      : 'Free to start, then upgrade to Creator for cheaper credits and more brands';
+  const proPlan = getProPlan();
+  const proPlanPrice = proPlan.launchPrice ?? proPlan.price;
+  const proPlanCopy =
+    proPlanPrice != null
+      ? `Free to start, then $${proPlanPrice}/mo Pro for cheaper credits and more brands`
+      : 'Free to start, then upgrade to Pro for cheaper credits and more brands';
 
   return (
     <section
@@ -68,7 +68,7 @@ export default function HomeAudiences(): React.ReactElement {
             <ul className="flex flex-col gap-3">
               {CREATOR_BENEFITS.map((benefit) => (
                 <li key={benefit.label} className="flex items-start gap-3">
-                  <LuCheck className="mt-0.5 size-4 shrink-0 text-success" />
+                  <LuCheck className="mt-0.5 size-4 shrink-0 text-surface/70" />
                   <Text className="text-sm leading-6 text-surface/72">
                     {benefit.label}
                   </Text>
@@ -76,7 +76,7 @@ export default function HomeAudiences(): React.ReactElement {
               ))}
             </ul>
             <Text className="text-xs leading-5 text-surface/60">
-              {creatorPlanCopy}
+              {proPlanCopy}
             </Text>
             <HStack className="mt-auto flex-wrap items-center gap-4 pt-2">
               <ButtonTracked
@@ -119,7 +119,7 @@ export default function HomeAudiences(): React.ReactElement {
             <ul className="flex flex-col gap-3">
               {AGENCY_BENEFITS.map((benefit) => (
                 <li key={benefit.label} className="flex items-start gap-3">
-                  <LuCheck className="mt-0.5 size-4 shrink-0 text-success" />
+                  <LuCheck className="mt-0.5 size-4 shrink-0 text-surface/70" />
                   <Text className="text-sm leading-6 text-surface/72">
                     {benefit.label}
                   </Text>
@@ -127,7 +127,7 @@ export default function HomeAudiences(): React.ReactElement {
               ))}
             </ul>
             <Text className="text-xs leading-5 text-surface/60">
-              Teams: multi-client workspaces, approvals, managed billing
+              Scale: multi-client workspaces, approvals, managed billing
             </Text>
             <HStack className="mt-auto flex-wrap items-center gap-4 pt-2">
               <ButtonTracked

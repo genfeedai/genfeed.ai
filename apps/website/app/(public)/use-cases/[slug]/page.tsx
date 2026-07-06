@@ -22,7 +22,7 @@ export async function generateMetadata(
   const previousImages = (await parent).openGraph?.images || [];
   const { slug } = await params;
   const audienceName = formatUseCaseSlug(slug);
-  const title = `Genfeed for ${audienceName} — AI Content Creation at Scale`;
+  const title = `Genfeed for ${audienceName}: AI Content Creation at Scale`;
   const description = `Discover how ${audienceName.toLowerCase()} use Genfeed to create professional AI-powered videos, images, and marketing content at scale.`;
   const url = `${EnvironmentService.apps.website}/use-cases/${slug}`;
 

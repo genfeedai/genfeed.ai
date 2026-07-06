@@ -1773,9 +1773,23 @@ Respond ONLY with the JSON array.`;
   }
 
   /**
-   * Detach source-org associations that would be invalid after the move. The acting
-   * user keeps access to the brand because relocation requires membership in the
-   * destination org; only stale, now-cross-org links are removed.
+   * Reconcile source-org associations that become cross-org after the move.
+   *
+   * `Member` and `Workflow` link to a brand through many-to-many join tables, not a
+   * scalar brand key, so the generic cascade cannot touch them. They are handled here:
+   *
+   *   • Members always belong to their own org and never move — their brand link is
+   *     severed (and stale `lastUsedBrandId` pointers cleared).
+   *   • Workflows are split by ownership. A workflow can drive several brands at once,
+   *     so it cannot be blindly re-homed:
+   *       – sole-brand  (this brand is its ONLY brand) → MOVED with the brand, together
+   *         with its org-keyed execution/batch history, so the relocated brand keeps its
+   *         automation intact.
+   *       – multi-brand (also drives other brands)     → SEVERED; it must stay in the
+   *         source org for the brands that remain there.
+   *
+   * The acting user keeps access to the brand because relocation requires membership in
+   * the destination org.
    */
   private async severCrossOrgLinks(
     tx: Prisma.TransactionClient,
@@ -1798,23 +1812,87 @@ Respond ONLY with the JSON array.`;
         organizationId: { not: destOrgId },
       },
     });
-    const staleWorkflows = await client.workflow.findMany({
+
+    // Workflows attached to the moving brand but sitting in a source (non-dest) org.
+    const crossOrgWorkflows = await client.workflow.findMany({
       select: { id: true },
       where: {
         brands: { some: { id: brandId } },
         organizationId: { not: destOrgId },
       },
     });
+    // Of those, the ones ALSO linked to a different brand — anchored to the source org,
+    // so they cannot move (a soft-deleted sibling brand still counts: sever is the safe
+    // direction, we never over-move a workflow that has any other association).
+    const sharedWorkflows = await client.workflow.findMany({
+      select: { id: true },
+      where: {
+        brands: { some: { id: brandId } },
+        AND: [{ brands: { some: { id: { not: brandId } } } }],
+        organizationId: { not: destOrgId },
+      },
+    });
+    const sharedWorkflowIds = new Set(sharedWorkflows.map((w) => w.id));
+    const workflowsToSever = crossOrgWorkflows
+      .filter((w) => sharedWorkflowIds.has(w.id))
+      .map((w) => w.id);
+    const workflowsToMove = crossOrgWorkflows
+      .filter((w) => !sharedWorkflowIds.has(w.id))
+      .map((w) => w.id);
 
-    if (staleMembers.length > 0 || staleWorkflows.length > 0) {
+    // Sever multi-brand workflows + all stale members from the brand.
+    if (staleMembers.length > 0 || workflowsToSever.length > 0) {
       await client.brand.update({
         data: {
           members: { disconnect: staleMembers.map((m) => ({ id: m.id })) },
           workflows: {
-            disconnect: staleWorkflows.map((w) => ({ id: w.id })),
+            disconnect: workflowsToSever.map((id) => ({ id })),
           },
         },
         where: { id: brandId },
+      });
+    }
+
+    // Clear default-recurring markers on workflows that will NOT move — done BEFORE the
+    // move so a marker already parked in the destination org (the partial unique index
+    // keys on organizationId, so such a row is technically permitted) is nulled out
+    // before a mover could collide with it on
+    // (defaultRecurringBrandId, organizationId, contentType). Moved sole-brand workflows
+    // are excluded and keep their marker: the brand moves with them, so the (brand, org)
+    // default-recurring pairing stays valid in the destination org.
+    await client.workflow.updateMany({
+      data: { defaultRecurringBrandId: null },
+      where: {
+        defaultRecurringBrandId: brandId,
+        ...(workflowsToMove.length > 0
+          ? { id: { notIn: workflowsToMove } }
+          : {}),
+      },
+    });
+
+    // Move sole-brand workflows (definition + org-keyed execution/batch history) into
+    // the destination org. The brand M2M link is intentionally kept.
+    if (workflowsToMove.length > 0) {
+      await client.workflow.updateMany({
+        data: { organizationId: destOrgId },
+        where: {
+          id: { in: workflowsToMove },
+          organizationId: { not: destOrgId },
+        },
+      });
+      await client.workflowExecution.updateMany({
+        data: { organizationId: destOrgId },
+        where: {
+          workflowId: { in: workflowsToMove },
+          organizationId: { not: destOrgId },
+        },
+      });
+      await client.batchWorkflowJob.updateMany({
+        data: { organizationId: destOrgId },
+        where: {
+          workflowId: { in: workflowsToMove },
+          organizationId: { not: destOrgId },
+        },
       });
     }
 
@@ -1824,11 +1902,67 @@ Respond ONLY with the JSON array.`;
       where: { lastUsedBrandId: brandId, organizationId: { not: destOrgId } },
     });
 
-    // Clear default-recurring markers on workflows that did not move.
-    await client.workflow.updateMany({
-      data: { defaultRecurringBrandId: null },
-      where: { defaultRecurringBrandId: brandId },
+    // Runtime backstop for the many-to-many links the scalar orphan auditor cannot see
+    // (`workflow_brands` / `member_brands`). Still inside the transaction, recompute the
+    // post-state and roll the whole move back if any cross-org link survived — closing
+    // the window where a concurrent `workflow_brands` edit races the sole-vs-shared
+    // classification above.
+    await this.assertNoCrossOrgBrandLinks(
+      client,
+      brandId,
+      destOrgId,
+      workflowsToMove,
+    );
+  }
+
+  /**
+   * Post-sever invariant for brand-linked M2M resources (workflows, members), which the
+   * scalar-column orphan auditor is structurally blind to. Throws (rolling back the
+   * transaction) if any survived cross-org.
+   */
+  private async assertNoCrossOrgBrandLinks(
+    client: Record<string, CascadeDelegate>,
+    brandId: string,
+    destOrgId: string,
+    movedWorkflowIds: string[],
+  ): Promise<void> {
+    // Nothing should still be attached to the moved brand from a source org: sole-brand
+    // workflows moved into the destination org, every other link was severed.
+    const strandedWorkflows = await client.workflow.count({
+      where: {
+        brands: { some: { id: brandId } },
+        organizationId: { not: destOrgId },
+      },
     });
+    const strandedMembers = await client.member.count({
+      where: {
+        brands: { some: { id: brandId } },
+        organizationId: { not: destOrgId },
+      },
+    });
+    // A workflow we MOVED must not still be linked to a brand left in a source org —
+    // that would make a destination-org workflow drive a foreign-org brand.
+    const crossOrgMovedWorkflows =
+      movedWorkflowIds.length > 0
+        ? await client.workflow.count({
+            where: {
+              id: { in: movedWorkflowIds },
+              brands: { some: { organizationId: { not: destOrgId } } },
+            },
+          })
+        : 0;
+
+    if (
+      strandedWorkflows > 0 ||
+      strandedMembers > 0 ||
+      crossOrgMovedWorkflows > 0
+    ) {
+      throw new InternalServerErrorException(
+        `Brand relocation aborted: cross-org association(s) survived the move ` +
+          `(workflows stranded in source org: ${strandedWorkflows}, members: ${strandedMembers}, ` +
+          `moved workflows still linked to a source-org brand: ${crossOrgMovedWorkflows}).`,
+      );
+    }
   }
 
   /**
