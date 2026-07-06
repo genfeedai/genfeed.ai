@@ -1,6 +1,7 @@
 'use client';
 
 import { IngredientCategory } from '@genfeedai/enums';
+import { useDominantColor } from '@genfeedai/hooks/ui/use-dominant-color/use-dominant-color';
 import type { IIngredient } from '@genfeedai/interfaces';
 import type { MediaLightboxProps } from '@genfeedai/props/layout/media-lightbox.props';
 import dynamic from 'next/dynamic';
@@ -42,6 +43,31 @@ export default function MediaLightbox({
   onClose,
 }: MediaLightboxProps) {
   const [plugins, setPlugins] = useState<Plugin[]>([]);
+  const [activeIndex, setActiveIndex] = useState(startIndex);
+
+  useEffect(() => {
+    setActiveIndex(startIndex);
+  }, [startIndex]);
+
+  // Tint the viewer backdrop with a heavily-darkened version of the focused
+  // slide's dominant colour so the viewer takes on the content's colour while
+  // the lightbox chrome (buttons, captions) stays grayscale.
+  const activeItem = items[activeIndex] ?? items[startIndex];
+  const dominant = useDominantColor(
+    activeItem?.ingredientUrl ?? activeItem?.thumbnailUrl,
+  );
+
+  const backdropStyles = useMemo(() => {
+    if (!dominant) {
+      return undefined;
+    }
+    const darken = (channel: number) => Math.round(channel * 0.16);
+    return {
+      container: {
+        backgroundColor: `rgb(${darken(dominant.r)} ${darken(dominant.g)} ${darken(dominant.b)})`,
+      },
+    };
+  }, [dominant]);
 
   useEffect(() => {
     // Dynamically import ESM plugins on the client side
@@ -157,6 +183,10 @@ export default function MediaLightbox({
       }}
       controller={{
         closeOnBackdropClick: true,
+      }}
+      styles={backdropStyles}
+      on={{
+        view: ({ index }) => setActiveIndex(index),
       }}
       render={{
         buttonNext: slides.length <= 1 ? () => null : undefined,

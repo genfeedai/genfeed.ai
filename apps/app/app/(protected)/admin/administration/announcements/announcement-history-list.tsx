@@ -52,7 +52,7 @@ export default function AnnouncementHistoryList({
         announcements.map((announcement) => (
           <div
             key={announcement.id}
-            className="border border-white/5 bg-card p-4 space-y-3"
+            className="shadow-border bg-card p-4 space-y-3"
           >
             {/* Body preview */}
             <p className="text-sm text-foreground leading-relaxed">
@@ -76,7 +76,7 @@ export default function AnnouncementHistoryList({
 
             {/* Links row */}
             {(announcement.discordMessageUrl || announcement.tweetUrl) && (
-              <div className="flex items-center gap-3 pt-1 border-t border-white/5">
+              <div className="flex items-center gap-3 pt-1 border-t border-border">
                 {announcement.discordMessageUrl && (
                   <Button asChild variant={ButtonVariant.GHOST}>
                     <a

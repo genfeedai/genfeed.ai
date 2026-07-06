@@ -182,20 +182,6 @@ describe('TikTokAdsAdapter', () => {
     });
   });
 
-  describe('pauseCampaign', () => {
-    it('should delegate to tiktokAdsService.pauseCampaign', async () => {
-      tiktokAdsService.pauseCampaign.mockResolvedValue(undefined);
-
-      await adapter.pauseCampaign(mockCtx, 'cmp-pause');
-
-      expect(tiktokAdsService.pauseCampaign).toHaveBeenCalledWith(
-        'tk-token',
-        'acct-123',
-        'cmp-pause',
-      );
-    });
-  });
-
   describe('listAdSets', () => {
     it('should map ad groups to unified ad sets', async () => {
       tiktokAdsService.listAdGroups.mockResolvedValue({

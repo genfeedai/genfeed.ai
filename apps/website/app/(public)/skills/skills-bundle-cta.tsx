@@ -23,19 +23,19 @@ export default function SkillsBundleCta({
   return (
     <WebSection bg="subtle" className="gsap-section">
       <NeuralGrid columns={1}>
-        <NeuralGridItem inverted padding="lg" align="center">
+        <NeuralGridItem padding="lg" align="center" className="bg-white/[0.04]">
           <div className="max-w-2xl mx-auto py-8">
-            <div className="text-inv-fg/30 text-xs font-black uppercase tracking-widest mb-6">
+            <div className="text-surface/50 text-xs font-black uppercase tracking-widest mb-6">
               All Pro Skills Included
             </div>
-            <h2 className="text-5xl font-semibold text-inv-fg mb-4">
+            <h2 className="text-5xl font-semibold text-surface mb-4">
               Get Pro Skills
             </h2>
-            <div className="text-6xl font-semibold text-inv-fg mb-8">
+            <div className="text-6xl font-semibold text-surface mb-8">
               ${bundlePrice}
             </div>
             <Button
-              variant={ButtonVariant.BLACK}
+              variant={ButtonVariant.WHITE}
               size={ButtonSize.PUBLIC}
               className="min-w-skill-col"
               disabled={checkoutLoading}

@@ -81,9 +81,9 @@ function buildConfigGet() {
       GENFEEDAI_APP_URL: 'http://localhost:3000',
       STRIPE_API_VERSION: '2026-01-28.clover',
       STRIPE_PRICE_PAYG: 'payg_id',
-      STRIPE_PRICE_SUBSCRIPTION_CREATOR_MONTHLY: 'creator_id',
       STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY: 'enterprise_id',
       STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY: 'pro_id',
+      STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY: 'pro_yearly_id',
       STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY: 'scale_id',
       STRIPE_SECRET_KEY: 'sk_test',
     };
@@ -674,14 +674,14 @@ describe('StripeService — coverage spec', () => {
       );
     });
 
-    it('uses subscription mode for creator_id price', async () => {
+    it('uses subscription mode for the yearly Pro price', async () => {
       const createSpy = vi
         .spyOn(service.stripe.checkout.sessions, 'create')
         .mockResolvedValue(makeMockSession());
 
       await service.createPaymentSession(
         'cus_1',
-        'creator_id',
+        'pro_yearly_id',
         'http://origin',
       );
 
@@ -689,7 +689,7 @@ describe('StripeService — coverage spec', () => {
         expect.objectContaining({
           mode: 'subscription',
           subscription_data: expect.objectContaining({
-            metadata: expect.objectContaining({ tier: 'creator' }),
+            metadata: expect.objectContaining({ tier: 'pro', type: 'yearly' }),
           }),
         }),
       );

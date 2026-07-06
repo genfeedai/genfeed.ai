@@ -60,7 +60,7 @@ export default function VoiceCatalogCard({
             ) : null}
           </div>
           <div>
-            <h3 className="text-base font-semibold text-foreground">
+            <h3 className="text-sm font-semibold text-foreground">
               {getVoiceName(voice)}
             </h3>
             <p className="truncate text-xs text-foreground/50">

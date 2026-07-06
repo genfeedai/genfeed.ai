@@ -205,19 +205,6 @@ export class ArticlesController extends BaseCRUDController<
     return serializeSingle(request, this.serializer, data);
   }
 
-  @Get('slug/:slug')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  findBySlug(@Param('slug') slug: string, @CurrentUser() user: User) {
-    const publicMetadata = getPublicMetadata(user);
-
-    return this.articlesService.findBySlug(
-      slug,
-      publicMetadata.user,
-      publicMetadata.organization,
-      publicMetadata.brand,
-    );
-  }
-
   @Post('generations')
   @UseGuards(SubscriptionGuard, CreditsGuard)
   @Credits({

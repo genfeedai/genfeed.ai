@@ -1219,33 +1219,6 @@
         ],
         "type": "object"
       },
-      "CreateAvatarDto": {
-        "properties": {
-          "avatarId": {
-            "type": "string"
-          },
-          "category": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/IngredientAvatarCategory"
-              }
-            ]
-          },
-          "text": {
-            "type": "string"
-          },
-          "voiceId": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "category",
-          "avatarId",
-          "voiceId",
-          "text"
-        ],
-        "type": "object"
-      },
       "CreateAvatarVideoDto": {
         "properties": {
           "aspectRatio": {
@@ -6053,112 +6026,6 @@
         "properties": {},
         "type": "object"
       },
-      "GenerateThreadDto": {
-        "properties": {
-          "count": {
-            "description": "Number of tweets in the thread",
-            "example": 5,
-            "maximum": 25,
-            "minimum": 2,
-            "type": "number"
-          },
-          "credential": {
-            "description": "Credential ID (Twitter account) to use",
-            "type": "string"
-          },
-          "sourceReferenceIds": {
-            "description": "Optional trend source reference IDs to preserve remix lineage",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "sourceUrl": {
-            "description": "Optional originating source URL for remix lineage fallback",
-            "type": "string"
-          },
-          "tone": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TweetTone"
-              }
-            ],
-            "default": "professional",
-            "description": "Tone for the generated thread"
-          },
-          "topic": {
-            "description": "Topic or prompt for generating the thread",
-            "example": "Why AI will transform content creation",
-            "type": "string"
-          },
-          "trendId": {
-            "description": "Optional originating trend ID for remix lineage",
-            "type": "string"
-          }
-        },
-        "required": [
-          "topic",
-          "count",
-          "credential"
-        ],
-        "type": "object"
-      },
-      "GenerateTweetsDto": {
-        "properties": {
-          "count": {
-            "description": "Number of tweets to generate",
-            "example": 10,
-            "maximum": 50,
-            "minimum": 1,
-            "type": "number"
-          },
-          "credential": {
-            "description": "Credential ID (Twitter account) to use",
-            "type": "string"
-          },
-          "platform": {
-            "default": "twitter",
-            "description": "Platform for the tweets (default: twitter)",
-            "example": "twitter",
-            "type": "string"
-          },
-          "sourceReferenceIds": {
-            "description": "Optional trend source reference IDs to preserve remix lineage",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "sourceUrl": {
-            "description": "Optional originating source URL for remix lineage fallback",
-            "type": "string"
-          },
-          "tone": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TweetTone"
-              }
-            ],
-            "default": "professional",
-            "description": "Tone for the generated tweets"
-          },
-          "topic": {
-            "description": "Topic or prompt for generating tweets",
-            "example": "AI productivity tips",
-            "type": "string"
-          },
-          "trendId": {
-            "description": "Optional originating trend ID for remix lineage",
-            "type": "string"
-          }
-        },
-        "required": [
-          "topic",
-          "count",
-          "credential"
-        ],
-        "type": "object"
-      },
       "GenerateVariantsDto": {
         "properties": {},
         "type": "object"
@@ -6534,13 +6401,6 @@
           "workflow"
         ],
         "type": "object"
-      },
-      "IngredientAvatarCategory": {
-        "enum": [
-          "avatar",
-          "avatar-video"
-        ],
-        "type": "string"
       },
       "IngredientCategory": {
         "enum": [
@@ -8538,16 +8398,11 @@
         },
         "type": "object"
       },
-      "SocialConversationAssignDto": {
+      "SocialConversationUpdateDto": {
         "properties": {
           "assignedOwnerId": {
             "type": "object"
-          }
-        },
-        "type": "object"
-      },
-      "SocialConversationStatusDto": {
-        "properties": {
+          },
           "status": {
             "enum": [
               "open",
@@ -8556,15 +8411,7 @@
               "archived"
             ],
             "type": "string"
-          }
-        },
-        "required": [
-          "status"
-        ],
-        "type": "object"
-      },
-      "SocialConversationTagsDto": {
-        "properties": {
+          },
           "tags": {
             "items": {
               "type": "string"
@@ -8572,9 +8419,6 @@
             "type": "array"
           }
         },
-        "required": [
-          "tags"
-        ],
         "type": "object"
       },
       "SocialDmDto": {
@@ -8634,12 +8478,22 @@
         ],
         "type": "object"
       },
-      "SocialDraftRejectDto": {
+      "SocialDraftUpdateDto": {
         "properties": {
           "reason": {
             "type": "string"
+          },
+          "status": {
+            "enum": [
+              "approved",
+              "rejected"
+            ],
+            "type": "string"
           }
         },
+        "required": [
+          "status"
+        ],
         "type": "object"
       },
       "SocialInboxYoutubeIngestDto": {
@@ -13575,21 +13429,6 @@
         ]
       }
     },
-    "/admin/darkroom/infrastructure/gpu": {
-      "get": {
-        "operationId": "AdminFleetController.getGpuStatus[1]",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get GPU instance status",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
     "/admin/darkroom/infrastructure/services": {
       "get": {
         "operationId": "AdminFleetController.getServiceHealth[1]",
@@ -14296,21 +14135,6 @@
           }
         },
         "summary": "Get detailed GPU fleet health",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/fleet/infrastructure/gpu": {
-      "get": {
-        "operationId": "AdminFleetController.getGpuStatus[0]",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get GPU instance status",
         "tags": [
           "Admin / Fleet"
         ]
@@ -15226,38 +15050,6 @@
         ]
       }
     },
-    "/ads/{platform}/campaigns/{campaignId}/pause": {
-      "post": {
-        "operationId": "AdsGatewayController.pauseCampaign",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "platform",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "campaignId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "pauseCampaign",
-        "tags": [
-          "ads"
-        ]
-      }
-    },
     "/ads/{platform}/top-performers": {
       "get": {
         "operationId": "AdsGatewayController.getTopPerformers",
@@ -15651,31 +15443,6 @@
           }
         },
         "summary": "Fetch the latest autopilot performance snapshot",
-        "tags": [
-          "agent-strategies",
-          "Agent Strategies"
-        ]
-      }
-    },
-    "/agent-strategies/{id}/plan-now": {
-      "post": {
-        "operationId": "AgentStrategiesController.planNow",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Force a planning cycle for this strategy",
         "tags": [
           "agent-strategies",
           "Agent Strategies"
@@ -17868,30 +17635,6 @@
         ]
       }
     },
-    "/articles/slug/{slug}": {
-      "get": {
-        "operationId": "ArticlesController.findBySlug",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "slug",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findBySlug",
-        "tags": [
-          "articles"
-        ]
-      }
-    },
     "/articles/{articleId}": {
       "patch": {
         "operationId": "ArticlesController.patch",
@@ -18798,31 +18541,6 @@
         ]
       }
     },
-    "/avatars/generate": {
-      "post": {
-        "operationId": "AvatarsController.createGenerateAvatar",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateAvatarDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "createGenerateAvatar",
-        "tags": [
-          "avatars"
-        ]
-      }
-    },
     "/avatars/hedra/avatars": {
       "get": {
         "operationId": "AvatarsController.getHedraAvatars",
@@ -18878,21 +18596,6 @@
           }
         },
         "summary": "getHeygenVoices",
-        "tags": [
-          "avatars"
-        ]
-      }
-    },
-    "/avatars/new": {
-      "post": {
-        "operationId": "AvatarsController.createNewAvatar",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "createNewAvatar",
         "tags": [
           "avatars"
         ]
@@ -19674,30 +19377,6 @@
           }
         },
         "summary": "getLivestreamSession",
-        "tags": [
-          "bots"
-        ]
-      }
-    },
-    "/bots/{id}/livestream-session/history": {
-      "get": {
-        "operationId": "BotsController.getLivestreamDeliveryHistory",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "getLivestreamDeliveryHistory",
         "tags": [
           "bots"
         ]
@@ -21449,6 +21128,16 @@
               "default": false,
               "type": "boolean"
             }
+          },
+          {
+            "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded, plus brand-default images), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
+            "in": "query",
+            "name": "latest",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -22622,6 +22311,16 @@
             "description": "Use lightweight mode (skip expensive lookups for masonry/gallery views)",
             "in": "query",
             "name": "lightweight",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
+            "in": "query",
+            "name": "latest",
             "required": false,
             "schema": {
               "default": false,
@@ -25308,38 +25007,6 @@
         ]
       }
     },
-    "/content-performance/top-performers": {
-      "get": {
-        "operationId": "ContentPerformanceController.getTopPerformers",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "brand",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "getTopPerformers",
-        "tags": [
-          "content-performance"
-        ]
-      }
-    },
     "/content-performance/{id}": {
       "delete": {
         "operationId": "ContentPerformanceController.delete",
@@ -26310,86 +25977,6 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "CronJobs"
-        ]
-      },
-      "post": {
-        "operationId": "CronJobsController.create",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "CronJobs"
-        ]
-      }
-    },
-    "/cron-jobs/{id}": {
-      "delete": {
-        "operationId": "CronJobsController.delete",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "CronJobs"
-        ]
-      },
-      "patch": {
-        "operationId": "CronJobsController.update",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "CronJobs"
-        ]
-      }
-    },
-    "/cron-jobs/{id}/pause": {
-      "post": {
-        "operationId": "CronJobsController.pause",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "CronJobs"
-        ]
-      }
-    },
-    "/cron-jobs/{id}/resume": {
-      "post": {
-        "operationId": "CronJobsController.resume",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "CronJobs"
-        ]
-      }
-    },
-    "/cron-jobs/{id}/run-now": {
-      "post": {
-        "operationId": "CronJobsController.runNow",
-        "parameters": [],
-        "responses": {
-          "201": {
             "description": ""
           }
         },
@@ -29426,30 +29013,6 @@
         ]
       }
     },
-    "/gifs/latest": {
-      "get": {
-        "operationId": "GifsController.findLatest",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "limit",
-            "required": true,
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findLatest",
-        "tags": [
-          "gifs"
-        ]
-      }
-    },
     "/gifs/{gifId}": {
       "delete": {
         "operationId": "GifsController.remove",
@@ -29493,6 +29056,127 @@
         "summary": "findOne",
         "tags": [
           "gifs"
+        ]
+      }
+    },
+    "/goals": {
+      "get": {
+        "operationId": "GoalsController.findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "findAll",
+        "tags": [
+          "goals",
+          "Goals"
+        ]
+      },
+      "post": {
+        "operationId": "GoalsController.create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGoalDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "create",
+        "tags": [
+          "goals",
+          "Goals"
+        ]
+      }
+    },
+    "/goals/{id}": {
+      "delete": {
+        "operationId": "GoalsController.remove",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "remove",
+        "tags": [
+          "goals",
+          "Goals"
+        ]
+      },
+      "get": {
+        "operationId": "GoalsController.findOne",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "findOne",
+        "tags": [
+          "goals",
+          "Goals"
+        ]
+      },
+      "patch": {
+        "operationId": "GoalsController.patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGoalDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "patch",
+        "tags": [
+          "goals",
+          "Goals"
         ]
       }
     },
@@ -30076,6 +29760,16 @@
               "default": false,
               "type": "boolean"
             }
+          },
+          {
+            "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded, plus brand-default images), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
+            "in": "query",
+            "name": "latest",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -30107,30 +29801,6 @@
           }
         },
         "summary": "create",
-        "tags": [
-          "images"
-        ]
-      }
-    },
-    "/images/latest": {
-      "get": {
-        "operationId": "ImagesController.findLatest",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "limit",
-            "required": true,
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findLatest",
         "tags": [
           "images"
         ]
@@ -30499,6 +30169,16 @@
             "description": "Filter by public gallery visibility (for getshareable.app)",
             "in": "query",
             "name": "isPublic",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded, plus brand-default images), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
+            "in": "query",
+            "name": "latest",
             "required": false,
             "schema": {
               "default": false,
@@ -31715,20 +31395,6 @@
         ]
       }
     },
-    "/members/invitations/accept": {
-      "post": {
-        "operationId": "InvitationsController.acceptInvitation",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Invitations"
-        ]
-      }
-    },
     "/members/invitations/pending": {
       "get": {
         "operationId": "MembersController.listInvitations",
@@ -31787,31 +31453,6 @@
           }
         },
         "summary": "resendInvitation",
-        "tags": [
-          "members"
-        ]
-      }
-    },
-    "/members/invite": {
-      "post": {
-        "operationId": "MembersController.invite",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/InviteMemberDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "invite",
         "tags": [
           "members"
         ]
@@ -32109,11 +31750,9 @@
           "messages",
           "Messages"
         ]
-      }
-    },
-    "/messages/{conversationId}/assignment": {
+      },
       "patch": {
-        "operationId": "SocialInboxController.assignOwner",
+        "operationId": "SocialInboxController.updateConversation",
         "parameters": [
           {
             "in": "path",
@@ -32128,7 +31767,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SocialConversationAssignDto"
+                "$ref": "#/components/schemas/SocialConversationUpdateDto"
               }
             }
           },
@@ -32144,7 +31783,7 @@
             "bearer": []
           }
         ],
-        "summary": "Assign or unassign a social conversation",
+        "summary": "Update a social conversation (status, tags, and/or assignment)",
         "tags": [
           "messages",
           "Messages"
@@ -32231,47 +31870,9 @@
         ]
       }
     },
-    "/messages/{conversationId}/drafts/{messageId}/approve": {
-      "post": {
-        "operationId": "SocialInboxController.approveDraft",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "conversationId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "messageId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Approve and publish a draft reply or DM",
-        "tags": [
-          "messages",
-          "Messages"
-        ]
-      }
-    },
-    "/messages/{conversationId}/drafts/{messageId}/reject": {
-      "post": {
-        "operationId": "SocialInboxController.rejectDraft",
+    "/messages/{conversationId}/drafts/{messageId}": {
+      "patch": {
+        "operationId": "SocialInboxController.updateDraft",
         "parameters": [
           {
             "in": "path",
@@ -32294,7 +31895,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SocialDraftRejectDto"
+                "$ref": "#/components/schemas/SocialDraftUpdateDto"
               }
             }
           },
@@ -32310,7 +31911,7 @@
             "bearer": []
           }
         ],
-        "summary": "Reject a draft reply or DM without publishing",
+        "summary": "Approve (and publish) or reject a draft reply/DM",
         "tags": [
           "messages",
           "Messages"
@@ -32469,86 +32070,6 @@
           }
         ],
         "summary": "Post a reply through the connected account",
-        "tags": [
-          "messages",
-          "Messages"
-        ]
-      }
-    },
-    "/messages/{conversationId}/status": {
-      "patch": {
-        "operationId": "SocialInboxController.updateStatus",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "conversationId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SocialConversationStatusDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Update social conversation status",
-        "tags": [
-          "messages",
-          "Messages"
-        ]
-      }
-    },
-    "/messages/{conversationId}/tags": {
-      "patch": {
-        "operationId": "SocialInboxController.updateTags",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "conversationId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SocialConversationTagsDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Replace social conversation tags",
         "tags": [
           "messages",
           "Messages"
@@ -33122,30 +32643,6 @@
           }
         },
         "summary": "create",
-        "tags": [
-          "musics"
-        ]
-      }
-    },
-    "/musics/latest": {
-      "get": {
-        "operationId": "MusicsController.findLatest",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "limit",
-            "required": true,
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findLatest",
         "tags": [
           "musics"
         ]
@@ -36850,6 +36347,16 @@
               "default": false,
               "type": "boolean"
             }
+          },
+          {
+            "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
+            "in": "query",
+            "name": "latest",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -37805,31 +37312,6 @@
         ]
       }
     },
-    "/posts/generations": {
-      "post": {
-        "operationId": "PostsOperationsController.generateTweets",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GenerateTweetsDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "generateTweets",
-        "tags": [
-          "posts"
-        ]
-      }
-    },
     "/posts/hook-generations": {
       "post": {
         "operationId": "PostsOperationsController.generateHookVariations",
@@ -37875,31 +37357,6 @@
           }
         },
         "summary": "batchSchedule",
-        "tags": [
-          "posts"
-        ]
-      }
-    },
-    "/posts/thread-generations": {
-      "post": {
-        "operationId": "PostsOperationsController.generateThread",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GenerateThreadDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "generateThread",
         "tags": [
           "posts"
         ]
@@ -38645,6 +38102,127 @@
         "summary": "applyProfile",
         "tags": [
           "Profiles"
+        ]
+      }
+    },
+    "/projects": {
+      "get": {
+        "operationId": "ProjectsController.findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "findAll",
+        "tags": [
+          "projects",
+          "Projects"
+        ]
+      },
+      "post": {
+        "operationId": "ProjectsController.create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "create",
+        "tags": [
+          "projects",
+          "Projects"
+        ]
+      }
+    },
+    "/projects/{id}": {
+      "delete": {
+        "operationId": "ProjectsController.remove",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "remove",
+        "tags": [
+          "projects",
+          "Projects"
+        ]
+      },
+      "get": {
+        "operationId": "ProjectsController.findOne",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "findOne",
+        "tags": [
+          "projects",
+          "Projects"
+        ]
+      },
+      "patch": {
+        "operationId": "ProjectsController.patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "patch",
+        "tags": [
+          "projects",
+          "Projects"
         ]
       }
     },
@@ -41637,21 +41215,6 @@
         ]
       }
     },
-    "/services/facebook/auth": {
-      "get": {
-        "operationId": "FacebookController.initializeAuth",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "initializeAuth",
-        "tags": [
-          "services/facebook"
-        ]
-      }
-    },
     "/services/facebook/callback": {
       "get": {
         "operationId": "FacebookController.handleCallback",
@@ -42053,30 +41616,6 @@
           }
         },
         "summary": "getKeywordPerformance",
-        "tags": [
-          "services/google-ads"
-        ]
-      }
-    },
-    "/services/google-ads/oauth/url": {
-      "get": {
-        "operationId": "GoogleAdsController.getOAuthUrl",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "state",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "getOAuthUrl",
         "tags": [
           "services/google-ads"
         ]
@@ -46592,6 +46131,16 @@
               "default": false,
               "type": "boolean"
             }
+          },
+          {
+            "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded, plus brand-default images), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
+            "in": "query",
+            "name": "latest",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -48123,248 +47672,6 @@
         ]
       }
     },
-    "/v1/goals": {
-      "get": {
-        "operationId": "GoalsController.findAll",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findAll",
-        "tags": [
-          "v1/goals",
-          "Goals"
-        ]
-      },
-      "post": {
-        "operationId": "GoalsController.create",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateGoalDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "create",
-        "tags": [
-          "v1/goals",
-          "Goals"
-        ]
-      }
-    },
-    "/v1/goals/{id}": {
-      "delete": {
-        "operationId": "GoalsController.remove",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "remove",
-        "tags": [
-          "v1/goals",
-          "Goals"
-        ]
-      },
-      "get": {
-        "operationId": "GoalsController.findOne",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findOne",
-        "tags": [
-          "v1/goals",
-          "Goals"
-        ]
-      },
-      "patch": {
-        "operationId": "GoalsController.patch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateGoalDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "patch",
-        "tags": [
-          "v1/goals",
-          "Goals"
-        ]
-      }
-    },
-    "/v1/projects": {
-      "get": {
-        "operationId": "ProjectsController.findAll",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findAll",
-        "tags": [
-          "v1/projects",
-          "Projects"
-        ]
-      },
-      "post": {
-        "operationId": "ProjectsController.create",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateProjectDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "create",
-        "tags": [
-          "v1/projects",
-          "Projects"
-        ]
-      }
-    },
-    "/v1/projects/{id}": {
-      "delete": {
-        "operationId": "ProjectsController.remove",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "remove",
-        "tags": [
-          "v1/projects",
-          "Projects"
-        ]
-      },
-      "get": {
-        "operationId": "ProjectsController.findOne",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findOne",
-        "tags": [
-          "v1/projects",
-          "Projects"
-        ]
-      },
-      "patch": {
-        "operationId": "ProjectsController.patch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateProjectDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "patch",
-        "tags": [
-          "v1/projects",
-          "Projects"
-        ]
-      }
-    },
     "/videos": {
       "get": {
         "operationId": "VideosController.findAll",
@@ -48546,6 +47853,16 @@
               "default": false,
               "type": "boolean"
             }
+          },
+          {
+            "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
+            "in": "query",
+            "name": "latest",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -48627,30 +47944,6 @@
           }
         },
         "summary": "createBatchInterpolation",
-        "tags": [
-          "videos"
-        ]
-      }
-    },
-    "/videos/latest": {
-      "get": {
-        "operationId": "VideosController.findLatest",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "limit",
-            "required": true,
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findLatest",
         "tags": [
           "videos"
         ]
@@ -49092,6 +48385,16 @@
               "default": false,
               "type": "boolean"
             }
+          },
+          {
+            "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
+            "in": "query",
+            "name": "latest",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -49366,6 +48669,16 @@
               "default": false,
               "type": "boolean"
             }
+          },
+          {
+            "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
+            "in": "query",
+            "name": "latest",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -49422,30 +48735,6 @@
           }
         },
         "summary": "getWatermarkEvaluation",
-        "tags": [
-          "videos"
-        ]
-      }
-    },
-    "/videos/{videoId}/reference": {
-      "post": {
-        "operationId": "VideosGifController.createReference",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "videoId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "createReference",
         "tags": [
           "videos"
         ]

@@ -95,7 +95,7 @@ export default function ContentTeamCampaignsSection({
           bodyClassName="flex flex-col items-start gap-4 p-6"
           description="Create a main orchestrator campaign to coordinate goals, budgets, and active specialists."
           icon={HiOutlineRectangleGroup}
-          iconWrapperClassName="bg-indigo-500/12 text-indigo-300"
+          iconWrapperClassName="bg-tertiary text-muted-foreground"
           label="No orchestrators launched yet"
         >
           <PrimitiveButton
@@ -118,7 +118,7 @@ export default function ContentTeamCampaignsSection({
                 campaign.brief ?? 'Coordinated multi-agent initiative.'
               }
               headerAction={
-                <span className="inline-flex rounded-full bg-blue-500/12 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-300">
+                <span className="inline-flex rounded-full bg-tertiary px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   {campaign.status}
                 </span>
               }

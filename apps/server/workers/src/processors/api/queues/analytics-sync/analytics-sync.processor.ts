@@ -3,15 +3,15 @@ import {
   AnalyticsSyncService,
 } from '@api/collections/content-performance/services/analytics-sync.service';
 import {
-  BrokenCircuitError,
-  createProcessorCircuitBreaker,
-  type ProcessorCircuitBreaker,
-} from '@api/shared/utils/circuit-breaker/circuit-breaker.util';
-import {
   ANALYTICS_SYNC_QUEUE,
   AnalyticsSyncJobData,
 } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import {
+  BrokenCircuitError,
+  createProcessorCircuitBreaker,
+  type ProcessorCircuitBreaker,
+} from '@libs/utils/circuit-breaker/circuit-breaker.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 

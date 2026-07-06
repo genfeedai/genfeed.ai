@@ -38,10 +38,10 @@ const STATUS_BADGE_VARIANTS: Record<
 };
 
 const STATUS_DOT_CLASSES: Record<CampaignStatus, string> = {
-  active: 'bg-emerald-400 animate-pulse',
-  completed: 'bg-emerald-400',
-  draft: 'bg-zinc-400',
-  paused: 'bg-amber-400',
+  active: 'bg-success animate-pulse',
+  completed: 'bg-success',
+  draft: 'bg-muted-foreground',
+  paused: 'bg-warning',
 };
 
 function formatDate(dateStr: string | undefined): string {
@@ -94,19 +94,21 @@ function CampaignStatsStrip({ campaigns }: { campaigns: AgentCampaign[] }) {
     return [
       {
         accent: `${campaigns.length} total`,
-        icon: <HiOutlinePlayCircle className="size-4 text-emerald-400" />,
+        icon: <HiOutlinePlayCircle className="size-4 text-muted-foreground" />,
         label: 'Active Campaigns',
         value: String(activeCampaigns.length),
       },
       {
         accent: `of ${totalCreditsAllocated.toLocaleString()} allocated`,
-        icon: <HiOutlineCurrencyDollar className="size-4 text-purple-400" />,
+        icon: (
+          <HiOutlineCurrencyDollar className="size-4 text-muted-foreground" />
+        ),
         label: 'Total Credits Used',
         value: totalCreditsUsed.toLocaleString(),
       },
       {
         accent: `${Math.round(totalCreditsAllocated > 0 ? (totalCreditsUsed / totalCreditsAllocated) * 100 : 0)}% utilization`,
-        icon: <HiOutlineBolt className="size-4 text-amber-400" />,
+        icon: <HiOutlineBolt className="size-4 text-muted-foreground" />,
         label: 'Credits Allocated',
         value: totalCreditsAllocated.toLocaleString(),
       },
@@ -114,7 +116,7 @@ function CampaignStatsStrip({ campaigns }: { campaigns: AgentCampaign[] }) {
         accent: nextOrchestration
           ? formatRelativeTime(nextOrchestration)
           : 'no scheduled runs',
-        icon: <HiOutlineClock className="size-4 text-cyan-400" />,
+        icon: <HiOutlineClock className="size-4 text-muted-foreground" />,
         label: 'Next Orchestration',
         value: nextOrchestration ? formatDate(nextOrchestration) : '—',
       },
@@ -167,7 +169,7 @@ function CampaignCard({ campaign }: { campaign: AgentCampaign }) {
       : 0;
 
   return (
-    <div className="group relative flex flex-col gap-3 rounded-lg border border-white/[0.08] bg-white/[0.02] p-4 transition-colors hover:border-white/[0.14] hover:bg-white/[0.04]">
+    <div className="group relative flex flex-col gap-3 rounded-lg bg-card p-4 shadow-border transition-colors hover:shadow-border-strong">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2.5">
           <div className="flex size-8 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.06]">
@@ -206,7 +208,7 @@ function CampaignCard({ campaign }: { campaign: AgentCampaign }) {
       </div>
 
       {campaign.brief && (
-        <div className="min-h-[40px] rounded border border-white/[0.06] bg-black/40 px-3 py-2">
+        <div className="min-h-[40px] rounded bg-secondary px-3 py-2">
           <p className="line-clamp-2 text-[11px] text-foreground/40 leading-relaxed">
             {campaign.brief}
           </p>
@@ -226,7 +228,7 @@ function CampaignCard({ campaign }: { campaign: AgentCampaign }) {
 
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
         <div
-          className="h-full rounded-full bg-emerald-500/60 transition-all"
+          className="h-full rounded-full bg-foreground/60 transition-all"
           style={{ width: `${creditsPercent}%` }}
         />
       </div>
@@ -287,7 +289,7 @@ function ProgressBar({ allocated, used }: { allocated: number; used: number }) {
     <div className="flex items-center gap-2">
       <div className="h-1.5 w-16 overflow-hidden rounded-full bg-white/[0.06]">
         <div
-          className="h-full rounded-full bg-emerald-500/60 transition-all"
+          className="h-full rounded-full bg-foreground/60 transition-all"
           style={{ width: `${percent}%` }}
         />
       </div>
@@ -344,8 +346,8 @@ export default function AgentCampaignsPage() {
               className={cn(
                 'inline-block h-1.5 w-1.5 rounded-full',
                 campaign.orchestrationEnabled
-                  ? 'bg-emerald-400'
-                  : 'bg-zinc-500',
+                  ? 'bg-success'
+                  : 'bg-muted-foreground',
               )}
             />
             <span className="text-sm text-foreground/70">
