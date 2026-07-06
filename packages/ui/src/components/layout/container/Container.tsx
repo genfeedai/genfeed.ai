@@ -18,7 +18,7 @@ export default function Container({
   left,
   right,
   children,
-  fullWidth = false,
+  fullWidth = true,
   className = '',
 }: ContainerProps) {
   const [internalActiveTab, setInternalActiveTab] = useState<string>('');
@@ -31,12 +31,15 @@ export default function Container({
   const hasHeaderRight = Boolean(right);
   const hasVisibleTitle = Boolean(label && titleVisibility !== 'sr-only');
   const hasScreenReaderTitle = Boolean(label && titleVisibility === 'sr-only');
+  const insetClassName = fullWidth ? 'px-5 sm:px-6 lg:px-6' : '';
 
   return (
     <div
       className={cn(
-        'w-full px-5 py-4 sm:px-6 lg:px-6',
-        fullWidth ? 'mx-0 max-w-none' : 'mx-auto max-w-[1280px]',
+        'w-full py-4',
+        fullWidth
+          ? 'mx-0 max-w-none'
+          : 'mx-auto max-w-[1280px] px-5 sm:px-6 lg:px-6',
         className,
       )}
     >
@@ -49,6 +52,7 @@ export default function Container({
           className={cn(
             'mb-4 flex items-center gap-4 border-b border-border pb-3',
             hasVisibleTitle ? 'justify-between' : 'justify-end',
+            insetClassName,
           )}
         >
           {hasVisibleTitle && (
@@ -70,13 +74,13 @@ export default function Container({
         </div>
       )}
 
-      {hasLeft && <div className="mb-4">{left}</div>}
+      {hasLeft && <div className={cn('mb-4', insetClassName)}>{left}</div>}
 
       {tabs && tabs.length > 0 && (
         <div className="mb-6 border-b border-border">
           <Tabs
             tabs={tabs}
-            className="mb-0"
+            className={cn('mb-0', insetClassName)}
             activeTab={activeTab}
             onTabChange={onTabChange}
           />
