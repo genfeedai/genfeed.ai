@@ -139,16 +139,25 @@ export const workflowsApi = {
     apiClient.get<WorkflowInterface>(`/workflows/${id}/interface`, { signal }),
 
   /**
-   * Get workflows that can be referenced as subworkflows (have defined interface)
+   * Get workflows that can be referenced as subworkflows (have defined interface).
+   *
+   * The dedicated `/workflows/referencable` RPC route was collapsed into
+   * `GET /workflows?referencable=true` by the REST audit (#1354). The server
+   * no longer supports an `exclude` query param, so `excludeWorkflowId` is
+   * filtered out of the response client-side to preserve this method's
+   * existing contract.
    */
-  getReferencable: (
+  getReferencable: async (
     excludeWorkflowId?: string,
     signal?: AbortSignal,
-  ): Promise<Array<WorkflowData & { interface: WorkflowInterface }>> =>
-    apiClient.get<Array<WorkflowData & { interface: WorkflowInterface }>>(
-      `/workflows/referencable${excludeWorkflowId ? `?exclude=${excludeWorkflowId}` : ''}`,
-      { signal },
-    ),
+  ): Promise<Array<WorkflowData & { interface: WorkflowInterface }>> => {
+    const results = await apiClient.get<
+      Array<WorkflowData & { interface: WorkflowInterface }>
+    >('/workflows?referencable=true', { signal });
+    return excludeWorkflowId
+      ? results.filter((workflow) => workflow._id !== excludeWorkflowId)
+      : results;
+  },
 
   /**
    * Import a workflow from JSON export
@@ -169,7 +178,9 @@ export const workflowsApi = {
   },
 
   /**
-   * Set the thumbnail for a workflow
+   * Set the thumbnail for a workflow. The dedicated `/thumbnail` route was
+   * collapsed into the generic workflow update endpoint by the REST audit
+   * (#1354).
    */
   setThumbnail: (
     id: string,
@@ -178,8 +189,8 @@ export const workflowsApi = {
     signal?: AbortSignal,
   ): Promise<WorkflowData> =>
     apiClient.put<WorkflowData>(
-      `/workflows/${id}/thumbnail`,
-      { nodeId, thumbnailUrl },
+      `/workflows/${id}`,
+      { thumbnail: thumbnailUrl, thumbnailNodeId: nodeId },
       { signal },
     ),
 

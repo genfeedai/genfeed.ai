@@ -1,3 +1,4 @@
+import { WorkflowEntity } from '@api/collections/workflows/entities/workflow.entity';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { buildSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
 import { WorkflowStatus, WorkflowStepStatus } from '@genfeedai/enums';
@@ -218,5 +219,55 @@ describe('WorkflowsService system workflow guardrails', () => {
         upgradeStatus: 'current',
       }),
     );
+  });
+});
+
+describe('WorkflowsService.publishToMarketplace', () => {
+  const logger = {
+    debug: vi.fn(),
+    error: vi.fn(),
+    log: vi.fn(),
+    warn: vi.fn(),
+  };
+
+  let service: WorkflowsService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // No marketplaceApiClient wired (it's @Optional()) — verifies the guard +
+    // patch path runs standalone without requiring the marketplace client.
+    service = new WorkflowsService({} as never, logger as never);
+  });
+
+  it('guards ownership, flips isPublic/isTemplate, and returns the updated entity', async () => {
+    vi.spyOn(service, 'findMutableOwnedOrThrow').mockResolvedValue({
+      edges: [],
+      name: 'My Workflow',
+      nodes: [],
+    } as never);
+    vi.spyOn(service, 'patch').mockResolvedValue({
+      _id: 'workflow-1',
+      id: 'workflow-1',
+      isPublic: true,
+      isTemplate: true,
+      name: 'My Workflow',
+    } as never);
+
+    const result = await service.publishToMarketplace(
+      'workflow-1',
+      'user-1',
+      'org-1',
+    );
+
+    expect(service.findMutableOwnedOrThrow).toHaveBeenCalledWith('workflow-1', {
+      organization: 'org-1',
+      user: 'user-1',
+    });
+    expect(service.patch).toHaveBeenCalledWith('workflow-1', {
+      isPublic: true,
+      isTemplate: true,
+    });
+    expect(result).toBeInstanceOf(WorkflowEntity);
+    expect(result.id).toBe('workflow-1');
   });
 });
