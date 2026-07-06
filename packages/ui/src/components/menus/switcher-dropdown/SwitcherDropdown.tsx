@@ -35,6 +35,8 @@ export default function SwitcherDropdown({
   isDisabled = false,
   footerAction,
   footerActions,
+  isLoading = items.length === 0,
+  emptyMessage = 'No results',
   minWidth = 220,
   className,
   hasSearch = false,
@@ -147,9 +149,7 @@ export default function SwitcherDropdown({
           )}
 
           <CommandList className="max-h-64 py-0.5">
-            <CommandEmpty>
-              {items.length === 0 ? 'Loading…' : 'No results'}
-            </CommandEmpty>
+            <CommandEmpty>{isLoading ? 'Loading…' : emptyMessage}</CommandEmpty>
 
             {filteredItems.map((item) => (
               <SwitcherItem
@@ -180,7 +180,7 @@ export default function SwitcherDropdown({
                     close();
                     action.onAction();
                   }}
-                  className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground/60 hover:text-foreground hover:bg-foreground/[0.06] transition-colors duration-150 cursor-pointer"
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground/60 transition-colors duration-150 hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-0"
                 >
                   {ActionIcon ? (
                     <ActionIcon className="size-3.5 flex-shrink-0" />
@@ -267,7 +267,7 @@ function SwitcherItem({
           onClick={onAction}
           className={cn(
             'mr-1 flex size-7 flex-shrink-0 items-center justify-center rounded text-foreground/38 transition-colors duration-150',
-            'hover:bg-foreground/[0.08] hover:text-foreground',
+            'hover:bg-foreground/[0.08] hover:text-foreground focus-visible:outline-none focus-visible:ring-0',
           )}
         >
           <TrailingIcon className="size-3.5" />

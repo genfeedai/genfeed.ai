@@ -13,6 +13,9 @@ let mockParams: { orgSlug?: string } = { orgSlug: 'acme-org' };
 let capturedFooterActions: SwitcherDropdownFooterAction[] = [];
 let capturedItems: SwitcherDropdownItem[] = [];
 let capturedOnSelect: ((id: string) => void) | undefined;
+let capturedIsLoading: boolean | undefined;
+let capturedEmptyMessage: string | undefined;
+let mockIsSubscriptionActive = true;
 
 vi.mock('next/navigation', () => ({
   useParams: () => mockParams,
@@ -29,6 +32,15 @@ vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   }),
 }));
 
+vi.mock(
+  '@genfeedai/hooks/data/subscription/use-subscription/use-subscription',
+  () => ({
+    useSubscription: () => ({
+      isSubscriptionActive: mockIsSubscriptionActive,
+    }),
+  }),
+);
+
 vi.mock('@genfeedai/services/organization/organizations.service', () => ({
   OrganizationsService: {
     getInstance: vi.fn(),
@@ -38,15 +50,21 @@ vi.mock('@genfeedai/services/organization/organizations.service', () => ({
 vi.mock('@ui/menus/switcher-dropdown/SwitcherDropdown', () => ({
   default: ({
     footerActions = [],
+    isLoading,
     items = [],
+    emptyMessage,
     onSelect,
   }: {
     footerActions?: SwitcherDropdownFooterAction[];
+    isLoading?: boolean;
     items?: SwitcherDropdownItem[];
+    emptyMessage?: string;
     onSelect?: (id: string) => void;
   }) => {
     capturedFooterActions = footerActions;
     capturedItems = items;
+    capturedIsLoading = isLoading;
+    capturedEmptyMessage = emptyMessage;
     capturedOnSelect = onSelect;
     return <div data-testid="switcher-dropdown" />;
   },
@@ -75,7 +93,10 @@ describe('OrganizationSwitcher', () => {
   beforeEach(() => {
     capturedFooterActions = [];
     capturedItems = [];
+    capturedIsLoading = undefined;
+    capturedEmptyMessage = undefined;
     capturedOnSelect = undefined;
+    mockIsSubscriptionActive = true;
     mockParams = { orgSlug: 'acme-org' };
     mockGetMyOrganizations.mockReset();
     mockSwitchOrganization.mockReset();
@@ -126,6 +147,31 @@ describe('OrganizationSwitcher', () => {
     expect(mockPush).toHaveBeenCalledWith('/acme-org/~/settings');
   });
 
+  it('hides organization creation when the subscription is inactive', async () => {
+    mockIsSubscriptionActive = false;
+
+    render(<OrganizationSwitcher />);
+
+    await waitFor(() => {
+      expect(capturedItems).toHaveLength(1);
+    });
+
+    expect(capturedFooterActions).toEqual([]);
+  });
+
+  it('passes a completed error state when organizations fail to load', async () => {
+    mockGetMyOrganizations.mockRejectedValue(new Error('boom'));
+
+    render(<OrganizationSwitcher />);
+
+    await waitFor(() => {
+      expect(capturedIsLoading).toBe(false);
+    });
+
+    expect(capturedItems).toEqual([]);
+    expect(capturedEmptyMessage).toBe('Failed to load organizations');
+  });
+
   it('marks the org matching the current URL slug active, overriding stale server isActive', async () => {
     mockParams = { orgSlug: 'alpha' };
     mockGetMyOrganizations.mockResolvedValue(TWO_ORGS);
@@ -156,6 +202,33 @@ describe('OrganizationSwitcher', () => {
     const bravo = capturedItems.find((item) => item.id === 'org_bravo');
     expect(alpha?.isActive).toBe(false);
     expect(bravo?.isActive).toBe(true);
+  });
+
+  it('marks the only organization active when route and server metadata are unresolved', async () => {
+    mockParams = { orgSlug: 'default' };
+    mockGetMyOrganizations.mockResolvedValue([
+      {
+        brand: null,
+        id: 'org_solo',
+        isActive: false,
+        label: 'Solo Org',
+        slug: 'solo-org',
+      },
+    ]);
+
+    render(<OrganizationSwitcher />);
+
+    await waitFor(() => {
+      expect(capturedItems).toHaveLength(1);
+    });
+
+    expect(capturedItems[0]).toEqual(
+      expect.objectContaining({
+        id: 'org_solo',
+        isActive: true,
+        label: 'Solo Org',
+      }),
+    );
   });
 
   it('persists the switch and navigates to the target org slug', async () => {

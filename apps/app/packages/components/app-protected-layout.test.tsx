@@ -119,6 +119,7 @@ vi.mock('@ui/shell/menus/AppSidebar', () => ({
     collapsedSidebarWidth?: number;
     shellChromeVariant?: 'default' | 'transparent';
     mobileSidebarWidth?: number;
+    orgSwitcherSlot?: ReactNode;
     primaryAction?:
       | { href: string; label: string }
       | { onClick: () => void; label: string };
@@ -126,6 +127,7 @@ vi.mock('@ui/shell/menus/AppSidebar', () => ({
     renderBody?: () => ReactNode;
     renderAfterNavigation?: () => ReactNode;
     renderTopSlot?: () => ReactNode;
+    sectionLabel?: string;
     shellMode?: 'default' | 'workspace';
     showPrimaryItems?: boolean;
     sidebarWidth?: number;
@@ -135,6 +137,11 @@ vi.mock('@ui/shell/menus/AppSidebar', () => ({
     appSidebarSpy(props);
     return (
       <div data-testid="app-sidebar">
+        {props.orgSwitcherSlot ? (
+          <div data-testid="app-sidebar-org-switcher-slot">
+            {props.orgSwitcherSlot}
+          </div>
+        ) : null}
         {props.renderTopSlot ? props.renderTopSlot() : null}
         {props.renderBody ? props.renderBody() : null}
         {props.conversationActions ? (
@@ -181,6 +188,10 @@ vi.mock('@ui/menus/switchers/MenuBrandSwitcher', () => ({
   default: ({ variant }: { variant?: string }) => (
     <div data-testid="sidebar-brand-switcher">{variant}</div>
   ),
+}));
+
+vi.mock('@ui/menus/organization-switcher/OrganizationSwitcher', () => ({
+  default: () => <div data-testid="organization-switcher" />,
 }));
 
 vi.mock('@app-config/menu-items.config', () => ({
@@ -534,6 +545,7 @@ describe('AppProtectedLayout', () => {
     expect(
       screen.queryByTestId('sidebar-brand-switcher'),
     ).not.toBeInTheDocument();
+    expect(screen.getByTestId('organization-switcher')).toBeInTheDocument();
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         bannerComponent: expect.anything(),
@@ -547,6 +559,7 @@ describe('AppProtectedLayout', () => {
         collapsedSidebarWidth: 0,
         currentApp: 'workspace',
         mobileSidebarWidth: 304,
+        orgSwitcherSlot: expect.anything(),
         renderTopSlot: expect.any(Function),
         secondaryItems: [
           { href: '/workspace/activity', label: 'Activity' },
@@ -803,6 +816,24 @@ describe('AppProtectedLayout', () => {
         includeApiStatusCheck: false,
         includeElementsProvider: false,
         includePromptBarProvider: false,
+      }),
+    );
+  });
+
+  it('passes the Workspace section header to the base workspace sidebar', () => {
+    mockPathname.value = '/workspace';
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(appSidebarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentApp: 'workspace',
+        sectionLabel: 'Workspace',
+        shellMode: 'workspace',
       }),
     );
   });

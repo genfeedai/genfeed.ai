@@ -4,6 +4,7 @@ import { createOrganizationAppRoute } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useSubscription } from '@genfeedai/hooks/data/subscription/use-subscription/use-subscription';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import SwitcherDropdown from '@ui/menus/switcher-dropdown/SwitcherDropdown';
 import { Modal } from '@ui/modals/compound/modal.compound';
@@ -25,6 +26,7 @@ interface OrgEntry {
 
 interface SwitcherState {
   error: string | null;
+  isLoading: boolean;
   isSwitching: boolean;
   orgs: OrgEntry[];
 }
@@ -37,6 +39,7 @@ type SwitcherAction =
 
 const INITIAL_SWITCHER_STATE: SwitcherState = {
   error: null,
+  isLoading: true,
   isSwitching: false,
   orgs: [],
 };
@@ -47,9 +50,14 @@ function switcherReducer(
 ): SwitcherState {
   switch (action.type) {
     case 'ORGS_LOADED':
-      return { ...state, orgs: action.orgs };
+      return { ...state, error: null, isLoading: false, orgs: action.orgs };
     case 'LOAD_FAILED':
-      return { ...state, error: 'Failed to load organizations' };
+      return {
+        ...state,
+        error: 'Failed to load organizations',
+        isLoading: false,
+        orgs: [],
+      };
     case 'SWITCH_START':
       return { ...state, isSwitching: true };
     case 'SWITCH_FAILED':
@@ -67,12 +75,13 @@ export default function OrganizationSwitcher() {
   const getOrgsService = useAuthedService((token: string) =>
     OrganizationsService.getInstance(token),
   );
+  const { isSubscriptionActive } = useSubscription();
   const { push } = useRouter();
   const params = useParams<{ orgSlug?: string }>();
   const currentOrgSlug =
     typeof params?.orgSlug === 'string' ? params.orgSlug : undefined;
 
-  const [{ error, isSwitching, orgs }, dispatch] = useReducer(
+  const [{ error, isLoading, isSwitching, orgs }, dispatch] = useReducer(
     switcherReducer,
     INITIAL_SWITCHER_STATE,
   );
@@ -109,6 +118,7 @@ export default function OrganizationSwitcher() {
   const activeOrgId =
     (currentOrgSlug && orgs.find((o) => o.slug === currentOrgSlug)?.id) ||
     orgs.find((o) => o.isActive)?.id ||
+    (orgs.length === 1 ? orgs[0]?.id : null) ||
     null;
   const activeOrg = orgs.find((o) => o.id === activeOrgId);
 
@@ -192,13 +202,19 @@ export default function OrganizationSwitcher() {
         )}
         onSelect={(id) => void handleSwitch(id)}
         isDisabled={isSwitching}
+        isLoading={isLoading}
+        emptyMessage={error ?? 'No organizations'}
         hasSearch={orgs.length >= 5}
-        footerActions={[
-          {
-            label: 'New Organization',
-            onAction: createModal.open,
-          },
-        ]}
+        footerActions={
+          isSubscriptionActive
+            ? [
+                {
+                  label: 'New Organization',
+                  onAction: createModal.open,
+                },
+              ]
+            : []
+        }
       />
 
       {/* Create Organization Modal */}

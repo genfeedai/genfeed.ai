@@ -26,6 +26,8 @@ export interface SwitcherDropdownProps {
   isDisabled?: boolean;
   footerAction?: SwitcherDropdownFooterAction;
   footerActions?: SwitcherDropdownFooterAction[];
+  isLoading?: boolean;
+  emptyMessage?: string;
   minWidth?: number;
   className?: string;
   hasSearch?: boolean;
