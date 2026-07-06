@@ -158,6 +158,7 @@ export class WorkflowRunControlService {
       const result = await this.workflowEngineAdapter.executeWorkflow(
         executableWorkflow,
         {
+          executionId: runId,
           nodeIds,
           onNodeStatusChange: (event: NodeStatusChangeEvent) =>
             this.recordNodeStatusChange(
