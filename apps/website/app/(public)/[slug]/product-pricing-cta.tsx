@@ -23,12 +23,15 @@ export default function ProductPricingCTA({
 }: Props) {
   return (
     <section className="max-w-4xl mx-auto pb-20">
-      <Card className="bg-inv text-inv-fg" bodyClassName="text-center">
+      <Card
+        className="border border-[var(--gen-accent-border)] bg-white/[0.04]"
+        bodyClassName="text-center"
+      >
         <Heading size="2xl" className="mb-2">
           Recommended Plan
         </Heading>
         <div className="text-4xl font-bold mb-4">{pricing.recommended}</div>
-        <Text as="p" size="lg" className="mb-6 text-inv-fg/70">
+        <Text as="p" size="lg" className="mb-6 text-surface/70">
           {pricing.why}
         </Text>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -42,7 +45,7 @@ export default function ProductPricingCTA({
               <Button
                 variant={ButtonVariant.OUTLINE}
                 asChild
-                className="border-inv-fg/20 hover:border-inv-fg/40 hover:bg-inv-fg/5 h-12 px-6 text-lg uppercase"
+                className="border-[var(--gen-accent-border)] hover:border-[var(--gen-accent-hover)] hover:bg-white/[0.04] h-12 px-6 text-lg uppercase"
               >
                 <Link
                   href={githubUrl}
@@ -58,7 +61,7 @@ export default function ProductPricingCTA({
             <Button
               variant={ButtonVariant.OUTLINE}
               asChild
-              className="border-inv-fg/20 hover:border-inv-fg/40 hover:bg-inv-fg/5 h-12 px-6 text-lg uppercase"
+              className="border-[var(--gen-accent-border)] hover:border-[var(--gen-accent-hover)] hover:bg-white/[0.04] h-12 px-6 text-lg uppercase"
             >
               <Link href={githubUrl} target="_blank" rel="noopener noreferrer">
                 <FaGithub className="size-5" />
@@ -75,7 +78,7 @@ export default function ProductPricingCTA({
               <Button
                 variant={ButtonVariant.OUTLINE}
                 asChild
-                className="border-inv-fg/20 hover:border-inv-fg/40 hover:bg-inv-fg/5 h-12 px-6 text-lg"
+                className="border-[var(--gen-accent-border)] hover:border-[var(--gen-accent-hover)] hover:bg-white/[0.04] h-12 px-6 text-lg"
               >
                 <Link href="/pricing">View All Pricing</Link>
               </Button>

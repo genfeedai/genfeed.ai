@@ -89,7 +89,7 @@ export default function TermsPage() {
                     key={term.title}
                     className="bg-background p-12 group hover:bg-fill/[0.02] transition-colors"
                   >
-                    <div className="text-surface/20 text-xs font-black uppercase tracking-widest mb-6">
+                    <div className="text-surface/50 text-xs font-black uppercase tracking-widest mb-6">
                       {String(index + 1).padStart(2, '0')} / {term.shortLabel}
                     </div>
                     <h2 className="text-2xl font-semibold mb-6">
@@ -111,7 +111,7 @@ export default function TermsPage() {
                       <ul className="space-y-3">
                         {term.listItems.map((item) => (
                           <li key={item} className="flex items-start gap-3">
-                            <LuCheck className="size-4 text-surface/40 mt-0.5 shrink-0" />
+                            <LuCheck className="size-4 text-surface/65 mt-0.5 shrink-0" />
                             <span className="text-surface/60 text-sm">
                               {item}
                             </span>
@@ -133,7 +133,7 @@ export default function TermsPage() {
               <h2 className="text-5xl font-semibold mb-6">
                 Additional Legal Info
               </h2>
-              <p className="text-surface/50 max-w-xl mx-auto">
+              <p className="text-surface/65 max-w-xl mx-auto">
                 Important policies governing your use of Genfeed.
               </p>
             </div>
@@ -147,14 +147,14 @@ export default function TermsPage() {
                       key={info.title}
                       className="bg-background p-10 group hover:bg-fill/[0.02] transition-colors"
                     >
-                      <div className="text-surface/20 text-xs font-black uppercase tracking-widest mb-6">
+                      <div className="text-surface/50 text-xs font-black uppercase tracking-widest mb-6">
                         {String(index + 1).padStart(2, '0')} / {info.shortLabel}
                       </div>
-                      <Icon className="size-8 text-surface/40 mb-4 group-hover:text-surface transition-colors" />
+                      <Icon className="size-8 text-surface/65 mb-4 group-hover:text-surface transition-colors" />
                       <h3 className="text-lg font-semibold mb-3">
                         {info.title}
                       </h3>
-                      <p className="text-surface/40 text-sm leading-relaxed">
+                      <p className="text-surface/65 text-sm leading-relaxed">
                         {info.content}
                       </p>
                     </div>
@@ -171,7 +171,7 @@ export default function TermsPage() {
             <div className="text-center max-w-3xl mx-auto">
               <LuMail className="size-12 mx-auto text-surface/30 mb-8" />
               <h2 className="text-5xl font-semibold mb-10">Questions?</h2>
-              <p className="text-surface/40 text-xl mb-12 font-medium">
+              <p className="text-surface/65 text-xl mb-12 font-medium">
                 If you have any questions about these terms, please contact our
                 support team.
               </p>
