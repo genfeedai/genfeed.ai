@@ -8398,16 +8398,11 @@
         },
         "type": "object"
       },
-      "SocialConversationAssignDto": {
+      "SocialConversationUpdateDto": {
         "properties": {
           "assignedOwnerId": {
             "type": "object"
-          }
-        },
-        "type": "object"
-      },
-      "SocialConversationStatusDto": {
-        "properties": {
+          },
           "status": {
             "enum": [
               "open",
@@ -8416,15 +8411,7 @@
               "archived"
             ],
             "type": "string"
-          }
-        },
-        "required": [
-          "status"
-        ],
-        "type": "object"
-      },
-      "SocialConversationTagsDto": {
-        "properties": {
+          },
           "tags": {
             "items": {
               "type": "string"
@@ -8432,9 +8419,6 @@
             "type": "array"
           }
         },
-        "required": [
-          "tags"
-        ],
         "type": "object"
       },
       "SocialDmDto": {
@@ -8494,12 +8478,22 @@
         ],
         "type": "object"
       },
-      "SocialDraftRejectDto": {
+      "SocialDraftUpdateDto": {
         "properties": {
           "reason": {
             "type": "string"
+          },
+          "status": {
+            "enum": [
+              "approved",
+              "rejected"
+            ],
+            "type": "string"
           }
         },
+        "required": [
+          "status"
+        ],
         "type": "object"
       },
       "SocialInboxYoutubeIngestDto": {
@@ -31717,11 +31711,9 @@
           "messages",
           "Messages"
         ]
-      }
-    },
-    "/messages/{conversationId}/assignment": {
+      },
       "patch": {
-        "operationId": "SocialInboxController.assignOwner",
+        "operationId": "SocialInboxController.updateConversation",
         "parameters": [
           {
             "in": "path",
@@ -31736,7 +31728,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SocialConversationAssignDto"
+                "$ref": "#/components/schemas/SocialConversationUpdateDto"
               }
             }
           },
@@ -31752,7 +31744,7 @@
             "bearer": []
           }
         ],
-        "summary": "Assign or unassign a social conversation",
+        "summary": "Update a social conversation (status, tags, and/or assignment)",
         "tags": [
           "messages",
           "Messages"
@@ -31839,47 +31831,9 @@
         ]
       }
     },
-    "/messages/{conversationId}/drafts/{messageId}/approve": {
-      "post": {
-        "operationId": "SocialInboxController.approveDraft",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "conversationId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "messageId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Approve and publish a draft reply or DM",
-        "tags": [
-          "messages",
-          "Messages"
-        ]
-      }
-    },
-    "/messages/{conversationId}/drafts/{messageId}/reject": {
-      "post": {
-        "operationId": "SocialInboxController.rejectDraft",
+    "/messages/{conversationId}/drafts/{messageId}": {
+      "patch": {
+        "operationId": "SocialInboxController.updateDraft",
         "parameters": [
           {
             "in": "path",
@@ -31902,7 +31856,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SocialDraftRejectDto"
+                "$ref": "#/components/schemas/SocialDraftUpdateDto"
               }
             }
           },
@@ -31918,7 +31872,7 @@
             "bearer": []
           }
         ],
-        "summary": "Reject a draft reply or DM without publishing",
+        "summary": "Approve (and publish) or reject a draft reply/DM",
         "tags": [
           "messages",
           "Messages"
@@ -32077,86 +32031,6 @@
           }
         ],
         "summary": "Post a reply through the connected account",
-        "tags": [
-          "messages",
-          "Messages"
-        ]
-      }
-    },
-    "/messages/{conversationId}/status": {
-      "patch": {
-        "operationId": "SocialInboxController.updateStatus",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "conversationId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SocialConversationStatusDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Update social conversation status",
-        "tags": [
-          "messages",
-          "Messages"
-        ]
-      }
-    },
-    "/messages/{conversationId}/tags": {
-      "patch": {
-        "operationId": "SocialInboxController.updateTags",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "conversationId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SocialConversationTagsDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Replace social conversation tags",
         "tags": [
           "messages",
           "Messages"
