@@ -32,7 +32,16 @@ describe('committed OpenAPI artifact', () => {
   ) as IOpenApiInternalRouteAllowlist;
 
   it('covers the full API surface', () => {
-    expect(Object.keys(document.paths).length).toBeGreaterThan(900);
+    // Floor re-baselined 2026-07-06: the REST audit (#1354/#1380 family,
+    // merged today) deliberately deleted/collapsed dozens of RPC-style and
+    // duplicate routes, taking the committed artifact from >900 paths down
+    // to ~897. This assertion exists to catch *accidental* truncation (a
+    // whole controller or module silently dropped from the Swagger scan),
+    // not to pin an exact count — so the floor sits comfortably below the
+    // post-audit count with headroom for further deliberate consolidation,
+    // while still being high enough that losing a real controller's worth
+    // of routes would trip it.
+    expect(Object.keys(document.paths).length).toBeGreaterThan(850);
   });
 
   it('has a unique operationId on every operation and a live allowlist', () => {
