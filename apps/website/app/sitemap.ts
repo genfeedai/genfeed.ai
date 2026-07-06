@@ -1,3 +1,4 @@
+import { getAllCaseStudySlugs } from '@data/case-studies.data';
 import { getAllCompetitorSlugs } from '@data/competitors.data';
 import { getAllIntegrationSlugs } from '@data/integrations.data';
 import { getAllProductSlugs } from '@data/products.data';
@@ -8,6 +9,7 @@ import type { MetadataRoute } from 'next';
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const productSlugs = getAllProductSlugs();
   const competitorSlugs = getAllCompetitorSlugs();
+  const caseStudySlugs = getAllCaseStudySlugs();
   const integrationSlugs = getAllIntegrationSlugs();
   const useCaseSlugs = getAllUseCaseSlugs();
 
@@ -192,6 +194,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly',
       lastModified: new Date(),
       priority: 0.7,
+      url: 'https://genfeed.ai/case-studies',
+    },
+    {
+      changeFrequency: 'monthly',
+      lastModified: new Date(),
+      priority: 0.7,
       url: 'https://genfeed.ai/faq',
     },
     {
@@ -264,6 +272,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }),
   );
 
+  const caseStudyRoutes: MetadataRoute.Sitemap = caseStudySlugs.map((slug) => ({
+    changeFrequency: 'monthly',
+    lastModified: new Date(),
+    priority: 0.7,
+    url: `https://genfeed.ai/case-studies/${slug}`,
+  }));
+
   const integrationRoutes: MetadataRoute.Sitemap = integrationSlugs.map(
     (slug) => ({
       changeFrequency: 'monthly',
@@ -315,6 +330,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...staticRoutes,
     ...productRoutes,
     ...competitorRoutes,
+    ...caseStudyRoutes,
     ...integrationRoutes,
     ...useCaseRoutes,
     ...articleRoutes,

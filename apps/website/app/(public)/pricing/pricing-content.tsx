@@ -25,6 +25,7 @@ import {
   WebSection,
 } from '@web-components/content/NeuralGrid';
 import PageLayout from '@web-components/PageLayout';
+import ProofTestimonials from '@web-components/proof/ProofTestimonials';
 import { HiCheckCircle } from 'react-icons/hi2';
 
 const PLAN_ORDER = ['Pay As You Go', 'Pro', 'Scale'];
@@ -330,6 +331,8 @@ export default function PricingContent() {
             </NeuralGrid>
           ) : null}
         </WebSection>
+
+        <ProofTestimonials context="pricing" />
 
         <WebSection maxWidth="lg" py="md">
           <SectionHeader
