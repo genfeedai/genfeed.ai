@@ -11,8 +11,8 @@ import {
 } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
-import { AnalyticsSyncService } from '@server-domain/collections/content-performance/services/analytics-sync.service';
-import { EmailDigestService } from '@server-domain/collections/content-performance/services/email-digest.service';
+import { AnalyticsSyncService } from '@server/collections/content-performance/services/analytics-sync.service';
+import { EmailDigestService } from '@server/collections/content-performance/services/email-digest.service';
 import { IsDateString, IsEmail, IsOptional, IsString } from 'class-validator';
 
 export class TriggerSyncDto {

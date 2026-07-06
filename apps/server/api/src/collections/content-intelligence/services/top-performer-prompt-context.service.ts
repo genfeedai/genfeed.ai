@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 import {
   type PerformanceContentItem,
   PerformanceSummaryService,
-} from '@server-domain/collections/content-performance/services/performance-summary.service';
+} from '@server/collections/content-performance/services/performance-summary.service';
 
 export interface TopPerformerPromptContextParams {
   organizationId: string;

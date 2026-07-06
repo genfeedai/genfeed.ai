@@ -12,7 +12,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import {
   type EmailDigestResult,
   EmailDigestService,
-} from '@server-domain/collections/content-performance/services/email-digest.service';
+} from '@server/collections/content-performance/services/email-digest.service';
 import { Job } from 'bullmq';
 
 @Processor(EMAIL_DIGEST_QUEUE)

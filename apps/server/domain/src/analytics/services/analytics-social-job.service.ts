@@ -2,12 +2,12 @@ import { CredentialPlatform } from '@genfeedai/enums';
 import type { SocialAnalyticsJobData } from '@genfeedai/queue-contracts';
 import { Inject, Injectable } from '@nestjs/common';
 import {
-  SERVER_DOMAIN_TOKENS,
-  type ServerDomainLogger,
-  type ServerDomainPostAnalytics,
-  type ServerDomainPosts,
-  type ServerDomainSocialAnalytics,
-} from '@server-domain/server-domain.dependencies';
+  SERVER_TOKENS,
+  type ServerLogger,
+  type ServerPostAnalytics,
+  type ServerPosts,
+  type ServerSocialAnalytics,
+} from '@server/server.dependencies';
 import type { AnalyticsQueueJob } from '../analytics-job.types';
 
 @Injectable()
@@ -15,22 +15,22 @@ export class AnalyticsSocialJobService {
   private readonly DEFAULT_DELAY_MS = 2000;
 
   constructor(
-    @Inject(SERVER_DOMAIN_TOKENS.instagram)
-    private readonly instagramService: ServerDomainSocialAnalytics,
-    @Inject(SERVER_DOMAIN_TOKENS.linkedIn)
-    private readonly linkedInService: ServerDomainSocialAnalytics,
-    @Inject(SERVER_DOMAIN_TOKENS.mastodon)
-    private readonly mastodonService: ServerDomainSocialAnalytics,
-    @Inject(SERVER_DOMAIN_TOKENS.tiktok)
-    private readonly tiktokService: ServerDomainSocialAnalytics,
-    @Inject(SERVER_DOMAIN_TOKENS.pinterest)
-    private readonly pinterestService: ServerDomainSocialAnalytics,
-    @Inject(SERVER_DOMAIN_TOKENS.postAnalytics)
-    private readonly postAnalyticsService: ServerDomainPostAnalytics,
-    @Inject(SERVER_DOMAIN_TOKENS.posts)
-    private readonly postsService: ServerDomainPosts,
-    @Inject(SERVER_DOMAIN_TOKENS.logger)
-    private readonly logger: ServerDomainLogger,
+    @Inject(SERVER_TOKENS.instagram)
+    private readonly instagramService: ServerSocialAnalytics,
+    @Inject(SERVER_TOKENS.linkedIn)
+    private readonly linkedInService: ServerSocialAnalytics,
+    @Inject(SERVER_TOKENS.mastodon)
+    private readonly mastodonService: ServerSocialAnalytics,
+    @Inject(SERVER_TOKENS.tiktok)
+    private readonly tiktokService: ServerSocialAnalytics,
+    @Inject(SERVER_TOKENS.pinterest)
+    private readonly pinterestService: ServerSocialAnalytics,
+    @Inject(SERVER_TOKENS.postAnalytics)
+    private readonly postAnalyticsService: ServerPostAnalytics,
+    @Inject(SERVER_TOKENS.posts)
+    private readonly postsService: ServerPosts,
+    @Inject(SERVER_TOKENS.logger)
+    private readonly logger: ServerLogger,
   ) {}
 
   async process(job: AnalyticsQueueJob<SocialAnalyticsJobData>): Promise<void> {

@@ -1,22 +1,22 @@
 import type { YouTubeAnalyticsJobData } from '@genfeedai/queue-contracts';
 import { Inject, Injectable } from '@nestjs/common';
 import {
-  SERVER_DOMAIN_TOKENS,
-  type ServerDomainLogger,
-  type ServerDomainPostAnalytics,
-  type ServerDomainYouTubeAnalytics,
-} from '@server-domain/server-domain.dependencies';
+  SERVER_TOKENS,
+  type ServerLogger,
+  type ServerPostAnalytics,
+  type ServerYouTubeAnalytics,
+} from '@server/server.dependencies';
 import type { AnalyticsQueueJob } from '../analytics-job.types';
 
 @Injectable()
 export class AnalyticsYouTubeJobService {
   constructor(
-    @Inject(SERVER_DOMAIN_TOKENS.youtube)
-    private readonly youtubeService: ServerDomainYouTubeAnalytics,
-    @Inject(SERVER_DOMAIN_TOKENS.postAnalytics)
-    private readonly postAnalyticsService: ServerDomainPostAnalytics,
-    @Inject(SERVER_DOMAIN_TOKENS.logger)
-    private readonly logger: ServerDomainLogger,
+    @Inject(SERVER_TOKENS.youtube)
+    private readonly youtubeService: ServerYouTubeAnalytics,
+    @Inject(SERVER_TOKENS.postAnalytics)
+    private readonly postAnalyticsService: ServerPostAnalytics,
+    @Inject(SERVER_TOKENS.logger)
+    private readonly logger: ServerLogger,
   ) {}
 
   async process(

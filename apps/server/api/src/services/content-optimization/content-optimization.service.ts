@@ -11,7 +11,7 @@ import {
   type PerformanceContentItem,
   PerformanceSummaryService,
   type WeeklySummary,
-} from '@server-domain/collections/content-performance/services/performance-summary.service';
+} from '@server/collections/content-performance/services/performance-summary.service';
 
 // ─── Interfaces ──────────────────────────────────────────────────────
 

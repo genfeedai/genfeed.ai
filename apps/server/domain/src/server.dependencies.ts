@@ -1,33 +1,33 @@
 import type { Prisma } from '@genfeedai/prisma';
 
-export const SERVER_DOMAIN_TOKENS = {
-  credentials: 'SERVER_DOMAIN_CREDENTIALS',
-  instagram: 'SERVER_DOMAIN_INSTAGRAM',
-  linkedIn: 'SERVER_DOMAIN_LINKEDIN',
-  logger: 'SERVER_DOMAIN_LOGGER',
-  mastodon: 'SERVER_DOMAIN_MASTODON',
-  notifications: 'SERVER_DOMAIN_NOTIFICATIONS',
-  pinterest: 'SERVER_DOMAIN_PINTEREST',
-  postAnalytics: 'SERVER_DOMAIN_POST_ANALYTICS',
-  posts: 'SERVER_DOMAIN_POSTS',
-  prisma: 'SERVER_DOMAIN_PRISMA',
-  tiktok: 'SERVER_DOMAIN_TIKTOK',
-  twitter: 'SERVER_DOMAIN_TWITTER',
-  youtube: 'SERVER_DOMAIN_YOUTUBE',
-  brandMemorySync: 'SERVER_DOMAIN_BRAND_MEMORY_SYNC',
+export const SERVER_TOKENS = {
+  credentials: 'SERVER_CREDENTIALS',
+  instagram: 'SERVER_INSTAGRAM',
+  linkedIn: 'SERVER_LINKEDIN',
+  logger: 'SERVER_LOGGER',
+  mastodon: 'SERVER_MASTODON',
+  notifications: 'SERVER_NOTIFICATIONS',
+  pinterest: 'SERVER_PINTEREST',
+  postAnalytics: 'SERVER_POST_ANALYTICS',
+  posts: 'SERVER_POSTS',
+  prisma: 'SERVER_PRISMA',
+  tiktok: 'SERVER_TIKTOK',
+  twitter: 'SERVER_TWITTER',
+  youtube: 'SERVER_YOUTUBE',
+  brandMemorySync: 'SERVER_BRAND_MEMORY_SYNC',
 } as const;
 
-export interface ServerDomainLogger {
+export interface ServerLogger {
   error(message: string, trace?: unknown, context?: unknown): void;
   log(message: string, context?: unknown): void;
   warn(message: string, context?: unknown): void;
 }
 
-export interface ServerDomainCredentialStore {
+export interface ServerCredentialStore {
   findOne(query: unknown): Promise<unknown>;
 }
 
-export interface ServerDomainTwitterAnalytics {
+export interface ServerTwitterAnalytics {
   getMediaAnalyticsBatch(
     tweetIds: string[],
     accessToken: string,
@@ -35,7 +35,7 @@ export interface ServerDomainTwitterAnalytics {
   ): Promise<Map<string, unknown>>;
 }
 
-export interface ServerDomainYouTubeAnalytics {
+export interface ServerYouTubeAnalytics {
   getMediaAnalyticsBatch(
     organizationId: string,
     brandId: string,
@@ -43,7 +43,7 @@ export interface ServerDomainYouTubeAnalytics {
   ): Promise<Map<string, unknown>>;
 }
 
-export interface ServerDomainSocialAnalytics {
+export interface ServerSocialAnalytics {
   getMediaAnalytics(
     organizationId: string,
     brandId: string,
@@ -63,7 +63,7 @@ export interface ServerDomainSocialAnalytics {
   }>;
 }
 
-export interface ServerDomainPostAnalytics {
+export interface ServerPostAnalytics {
   processInstagramAnalytics(postId: string, analytics: unknown): Promise<void>;
   processLinkedInAnalytics(postId: string, analytics: unknown): Promise<void>;
   processMastodonAnalytics(postId: string, analytics: unknown): Promise<void>;
@@ -73,18 +73,18 @@ export interface ServerDomainPostAnalytics {
   processYouTubeAnalytics(postId: string, analytics: unknown): Promise<void>;
 }
 
-export interface ServerDomainPosts {
+export interface ServerPosts {
   patch(
     postId: string,
     data: { isAnalyticsEnabled: boolean },
   ): Promise<unknown>;
 }
 
-export interface ServerDomainNotifications {
+export interface ServerNotifications {
   sendEmail(email: string, subject: string, html: string): Promise<void>;
 }
 
-export interface ServerDomainBrandMemorySync {
+export interface ServerBrandMemorySync {
   detectThresholdAlerts(
     organizationId: string,
     brandId: string,
@@ -104,7 +104,7 @@ export interface ServerDomainBrandMemorySync {
   ): Promise<void>;
 }
 
-export interface ServerDomainPostAnalyticsRecord {
+export interface ServerPostAnalyticsRecord {
   brandId: string | null;
   date: Date | string | number;
   engagementRate: number | null;
@@ -118,7 +118,7 @@ export interface ServerDomainPostAnalyticsRecord {
   userId: string | null;
 }
 
-export interface ServerDomainPostRecord {
+export interface ServerPostRecord {
   category: string | null;
   contentRunId: string | null;
   creativeVersion: string | null;
@@ -135,7 +135,7 @@ export interface ServerDomainPostRecord {
   variantId: string | null;
 }
 
-export interface ServerDomainPrisma {
+export interface ServerPrisma {
   $queryRaw<T = unknown>(query: Prisma.Sql): Promise<T>;
   contentPerformance: {
     create(args: unknown): Promise<unknown>;
@@ -150,7 +150,7 @@ export interface ServerDomainPrisma {
     } | null>;
   };
   post: {
-    findMany(args: unknown): Promise<ServerDomainPostRecord[]>;
+    findMany(args: unknown): Promise<ServerPostRecord[]>;
   };
   postAnalytics: {
     aggregate(args: unknown): Promise<{
@@ -158,7 +158,7 @@ export interface ServerDomainPrisma {
         engagementRate: number | null;
       };
     }>;
-    findMany(args: unknown): Promise<ServerDomainPostAnalyticsRecord[]>;
+    findMany(args: unknown): Promise<ServerPostAnalyticsRecord[]>;
   };
   user: {
     findUnique(args: unknown): Promise<{ email: string | null } | null>;

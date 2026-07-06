@@ -1,10 +1,7 @@
 import { Prisma } from '@genfeedai/prisma';
 import { Inject, Injectable } from '@nestjs/common';
-import { DateRangeUtil } from '@server-domain/helpers/utils/date-range/date-range.util';
-import {
-  SERVER_DOMAIN_TOKENS,
-  type ServerDomainPrisma,
-} from '@server-domain/server-domain.dependencies';
+import { DateRangeUtil } from '@server/helpers/utils/date-range/date-range.util';
+import { SERVER_TOKENS, type ServerPrisma } from '@server/server.dependencies';
 
 export interface WeeklySummaryOptions {
   topN?: number;
@@ -93,8 +90,8 @@ type PostingTimeAnalysisRow = {
 @Injectable()
 export class PerformanceSummaryService {
   constructor(
-    @Inject(SERVER_DOMAIN_TOKENS.prisma)
-    private readonly prisma: ServerDomainPrisma,
+    @Inject(SERVER_TOKENS.prisma)
+    private readonly prisma: ServerPrisma,
   ) {}
 
   private buildMatchFilter(

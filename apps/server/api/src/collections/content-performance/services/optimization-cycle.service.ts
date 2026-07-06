@@ -2,7 +2,7 @@ import type { ContentPerformanceDocument } from '@api/collections/content-perfor
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { Prisma } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
-import { PerformanceSummaryService } from '@server-domain/collections/content-performance/services/performance-summary.service';
+import { PerformanceSummaryService } from '@server/collections/content-performance/services/performance-summary.service';
 
 // ─── Interfaces ──────────────────────────────────────────────────────
 

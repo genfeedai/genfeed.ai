@@ -6,13 +6,13 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   PerformanceSummaryService,
   type WeeklySummary,
-} from '@server-domain/collections/content-performance/services/performance-summary.service';
+} from '@server/collections/content-performance/services/performance-summary.service';
 import {
-  SERVER_DOMAIN_TOKENS,
-  type ServerDomainLogger,
-  type ServerDomainNotifications,
-  type ServerDomainPrisma,
-} from '@server-domain/server-domain.dependencies';
+  SERVER_TOKENS,
+  type ServerLogger,
+  type ServerNotifications,
+  type ServerPrisma,
+} from '@server/server.dependencies';
 
 export interface EmailDigestResult {
   sent: number;
@@ -34,12 +34,12 @@ export interface EmailDigestOptions {
 export class EmailDigestService {
   constructor(
     private readonly performanceSummaryService: PerformanceSummaryService,
-    @Inject(SERVER_DOMAIN_TOKENS.notifications)
-    private readonly notificationsService: ServerDomainNotifications,
-    @Inject(SERVER_DOMAIN_TOKENS.prisma)
-    private readonly prisma: ServerDomainPrisma,
-    @Inject(SERVER_DOMAIN_TOKENS.logger)
-    private readonly logger: ServerDomainLogger,
+    @Inject(SERVER_TOKENS.notifications)
+    private readonly notificationsService: ServerNotifications,
+    @Inject(SERVER_TOKENS.prisma)
+    private readonly prisma: ServerPrisma,
+    @Inject(SERVER_TOKENS.logger)
+    private readonly logger: ServerLogger,
   ) {}
 
   /**

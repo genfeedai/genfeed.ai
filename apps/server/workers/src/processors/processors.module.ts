@@ -70,10 +70,10 @@ import { LoggerModule } from '@libs/logger/logger.module';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpModule } from '@nestjs/axios';
 import { forwardRef, Module } from '@nestjs/common';
-import { AnalyticsSocialJobService } from '@server-domain/analytics/services/analytics-social-job.service';
-import { AnalyticsTwitterJobService } from '@server-domain/analytics/services/analytics-twitter-job.service';
-import { AnalyticsYouTubeJobService } from '@server-domain/analytics/services/analytics-youtube-job.service';
-import { SERVER_DOMAIN_TOKENS } from '@server-domain/server-domain.dependencies';
+import { AnalyticsSocialJobService } from '@server/analytics/services/analytics-social-job.service';
+import { AnalyticsTwitterJobService } from '@server/analytics/services/analytics-twitter-job.service';
+import { AnalyticsYouTubeJobService } from '@server/analytics/services/analytics-youtube-job.service';
+import { SERVER_TOKENS } from '@server/server.dependencies';
 // --- collections/ processors ---
 import { ArticleGenerationProcessor } from '@workers/processors/api/collections/articles/processors/article-generation.processor';
 import { BatchWorkflowProcessor } from '@workers/processors/api/collections/workflows/services/batch-workflow.processor';
@@ -176,47 +176,47 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     AnalyticsTwitterJobService,
     AnalyticsYouTubeJobService,
     {
-      provide: SERVER_DOMAIN_TOKENS.credentials,
+      provide: SERVER_TOKENS.credentials,
       useExisting: CredentialsService,
     },
     {
-      provide: SERVER_DOMAIN_TOKENS.instagram,
+      provide: SERVER_TOKENS.instagram,
       useExisting: InstagramService,
     },
     {
-      provide: SERVER_DOMAIN_TOKENS.linkedIn,
+      provide: SERVER_TOKENS.linkedIn,
       useExisting: LinkedInService,
     },
     {
-      provide: SERVER_DOMAIN_TOKENS.logger,
+      provide: SERVER_TOKENS.logger,
       useExisting: LoggerService,
     },
     {
-      provide: SERVER_DOMAIN_TOKENS.mastodon,
+      provide: SERVER_TOKENS.mastodon,
       useExisting: MastodonService,
     },
     {
-      provide: SERVER_DOMAIN_TOKENS.pinterest,
+      provide: SERVER_TOKENS.pinterest,
       useExisting: PinterestService,
     },
     {
-      provide: SERVER_DOMAIN_TOKENS.postAnalytics,
+      provide: SERVER_TOKENS.postAnalytics,
       useExisting: PostAnalyticsService,
     },
     {
-      provide: SERVER_DOMAIN_TOKENS.posts,
+      provide: SERVER_TOKENS.posts,
       useExisting: PostsService,
     },
     {
-      provide: SERVER_DOMAIN_TOKENS.tiktok,
+      provide: SERVER_TOKENS.tiktok,
       useExisting: TiktokService,
     },
     {
-      provide: SERVER_DOMAIN_TOKENS.twitter,
+      provide: SERVER_TOKENS.twitter,
       useExisting: TwitterService,
     },
     {
-      provide: SERVER_DOMAIN_TOKENS.youtube,
+      provide: SERVER_TOKENS.youtube,
       useExisting: YoutubeService,
     },
 

@@ -1,7 +1,7 @@
 import type { AnalyticsSyncJobData } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
-import { AnalyticsSyncService } from '@server-domain/collections/content-performance/services/analytics-sync.service';
+import { AnalyticsSyncService } from '@server/collections/content-performance/services/analytics-sync.service';
 import { AnalyticsSyncProcessor } from '@workers/processors/api/queues/analytics-sync/analytics-sync.processor';
 import type { Job } from 'bullmq';
 import { vi } from 'vitest';

@@ -1,1 +1,1 @@
-export { mapPostCategoryToContentType } from '@server-domain/collections/content-performance/utils/content-performance-category.util';
+export { mapPostCategoryToContentType } from '@server/collections/content-performance/utils/content-performance-category.util';

@@ -3,12 +3,12 @@ import type { TwitterAnalyticsJobData } from '@genfeedai/queue-contracts';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Inject, Injectable } from '@nestjs/common';
 import {
-  SERVER_DOMAIN_TOKENS,
-  type ServerDomainCredentialStore,
-  type ServerDomainLogger,
-  type ServerDomainPostAnalytics,
-  type ServerDomainTwitterAnalytics,
-} from '@server-domain/server-domain.dependencies';
+  SERVER_TOKENS,
+  type ServerCredentialStore,
+  type ServerLogger,
+  type ServerPostAnalytics,
+  type ServerTwitterAnalytics,
+} from '@server/server.dependencies';
 import type { AnalyticsQueueJob } from '../analytics-job.types';
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -18,14 +18,14 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 @Injectable()
 export class AnalyticsTwitterJobService {
   constructor(
-    @Inject(SERVER_DOMAIN_TOKENS.twitter)
-    private readonly twitterService: ServerDomainTwitterAnalytics,
-    @Inject(SERVER_DOMAIN_TOKENS.postAnalytics)
-    private readonly postAnalyticsService: ServerDomainPostAnalytics,
-    @Inject(SERVER_DOMAIN_TOKENS.credentials)
-    private readonly credentialsService: ServerDomainCredentialStore,
-    @Inject(SERVER_DOMAIN_TOKENS.logger)
-    private readonly logger: ServerDomainLogger,
+    @Inject(SERVER_TOKENS.twitter)
+    private readonly twitterService: ServerTwitterAnalytics,
+    @Inject(SERVER_TOKENS.postAnalytics)
+    private readonly postAnalyticsService: ServerPostAnalytics,
+    @Inject(SERVER_TOKENS.credentials)
+    private readonly credentialsService: ServerCredentialStore,
+    @Inject(SERVER_TOKENS.logger)
+    private readonly logger: ServerLogger,
   ) {}
 
   async process(

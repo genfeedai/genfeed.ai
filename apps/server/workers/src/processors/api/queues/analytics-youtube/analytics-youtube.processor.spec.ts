@@ -2,7 +2,7 @@ import type { YouTubeAnalyticsJobData } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BrokenCircuitError } from '@libs/utils/circuit-breaker/circuit-breaker.util';
 import { Test } from '@nestjs/testing';
-import { AnalyticsYouTubeJobService } from '@server-domain/analytics/services/analytics-youtube-job.service';
+import { AnalyticsYouTubeJobService } from '@server/analytics/services/analytics-youtube-job.service';
 import { AnalyticsYouTubeProcessor } from '@workers/processors/api/queues/analytics-youtube/analytics-youtube.processor';
 import type { Job } from 'bullmq';
 

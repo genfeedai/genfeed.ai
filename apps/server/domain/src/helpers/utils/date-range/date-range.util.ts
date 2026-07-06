@@ -48,7 +48,7 @@ export interface DateRangeOptions {
  *   includePreviousPeriod: false
  * });
  */
-// biome-ignore lint/complexity/noStaticOnlyClass: Preserve the existing service utility API while moving it into server-domain.
+// biome-ignore lint/complexity/noStaticOnlyClass: Preserve the existing service utility API while moving it into server.
 export class DateRangeUtil {
   /**
    * Default number of days for startDate (7 days ago)

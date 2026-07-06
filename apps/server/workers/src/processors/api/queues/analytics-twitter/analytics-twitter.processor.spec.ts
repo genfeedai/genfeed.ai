@@ -2,7 +2,7 @@ import type { TwitterAnalyticsJobData } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BrokenCircuitError } from '@libs/utils/circuit-breaker/circuit-breaker.util';
 import { Test } from '@nestjs/testing';
-import { AnalyticsTwitterJobService } from '@server-domain/analytics/services/analytics-twitter-job.service';
+import { AnalyticsTwitterJobService } from '@server/analytics/services/analytics-twitter-job.service';
 import { AnalyticsTwitterProcessor } from '@workers/processors/api/queues/analytics-twitter/analytics-twitter.processor';
 import type { Job } from 'bullmq';
 

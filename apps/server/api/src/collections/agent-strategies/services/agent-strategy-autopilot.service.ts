@@ -30,7 +30,7 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { PerformanceSummaryService } from '@server-domain/collections/content-performance/services/performance-summary.service';
+import { PerformanceSummaryService } from '@server/collections/content-performance/services/performance-summary.service';
 
 export interface BudgetPacingState {
   expectedSpendToDate: number;

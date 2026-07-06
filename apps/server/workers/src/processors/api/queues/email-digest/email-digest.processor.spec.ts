@@ -1,6 +1,6 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
-import { EmailDigestService } from '@server-domain/collections/content-performance/services/email-digest.service';
+import { EmailDigestService } from '@server/collections/content-performance/services/email-digest.service';
 import { EmailDigestProcessor } from '@workers/processors/api/queues/email-digest/email-digest.processor';
 import { vi } from 'vitest';
 

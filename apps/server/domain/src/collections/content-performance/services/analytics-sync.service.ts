@@ -1,14 +1,14 @@
 import { ContentType } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { Inject, Injectable } from '@nestjs/common';
-import { PerformanceSource } from '@server-domain/collections/content-performance/schemas/content-performance.schema';
-import { mapPostCategoryToContentType } from '@server-domain/collections/content-performance/utils/content-performance-category.util';
+import { PerformanceSource } from '@server/collections/content-performance/schemas/content-performance.schema';
+import { mapPostCategoryToContentType } from '@server/collections/content-performance/utils/content-performance-category.util';
 import {
-  SERVER_DOMAIN_TOKENS,
-  type ServerDomainBrandMemorySync,
-  type ServerDomainLogger,
-  type ServerDomainPrisma,
-} from '@server-domain/server-domain.dependencies';
+  SERVER_TOKENS,
+  type ServerBrandMemorySync,
+  type ServerLogger,
+  type ServerPrisma,
+} from '@server/server.dependencies';
 
 export interface AnalyticsSyncResult {
   synced: number;
@@ -58,12 +58,12 @@ export class AnalyticsSyncService {
   private static readonly DEFAULT_BATCH_SIZE = 100;
 
   constructor(
-    @Inject(SERVER_DOMAIN_TOKENS.prisma)
-    private readonly prisma: ServerDomainPrisma,
-    @Inject(SERVER_DOMAIN_TOKENS.brandMemorySync)
-    private readonly brandMemorySyncService: ServerDomainBrandMemorySync,
-    @Inject(SERVER_DOMAIN_TOKENS.logger)
-    private readonly logger: ServerDomainLogger,
+    @Inject(SERVER_TOKENS.prisma)
+    private readonly prisma: ServerPrisma,
+    @Inject(SERVER_TOKENS.brandMemorySync)
+    private readonly brandMemorySyncService: ServerBrandMemorySync,
+    @Inject(SERVER_TOKENS.logger)
+    private readonly logger: ServerLogger,
   ) {}
 
   /**

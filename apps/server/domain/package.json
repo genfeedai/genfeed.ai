@@ -27,7 +27,7 @@
     "src"
   ],
   "main": "./src/index.ts",
-  "name": "@genfeedai/server-domain",
+  "name": "@genfeedai/server",
   "private": true,
   "scripts": {
     "build": "echo 'Source-level package — consumed via path aliases, no build needed'",

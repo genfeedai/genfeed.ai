@@ -12,7 +12,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import {
   type AnalyticsSyncResult,
   AnalyticsSyncService,
-} from '@server-domain/collections/content-performance/services/analytics-sync.service';
+} from '@server/collections/content-performance/services/analytics-sync.service';
 import { Job } from 'bullmq';
 
 @Processor(ANALYTICS_SYNC_QUEUE)

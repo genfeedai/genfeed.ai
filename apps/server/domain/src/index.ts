@@ -16,13 +16,13 @@ export {
   type WeeklySummary,
 } from './collections/content-performance/services/performance-summary.service';
 export {
-  SERVER_DOMAIN_TOKENS,
-  type ServerDomainBrandMemorySync,
-  type ServerDomainCredentialStore,
-  type ServerDomainLogger,
-  type ServerDomainNotifications,
-  type ServerDomainPostAnalytics,
-  type ServerDomainPosts,
-  type ServerDomainPrisma,
-  type ServerDomainSocialAnalytics,
-} from './server-domain.dependencies';
+  SERVER_TOKENS,
+  type ServerBrandMemorySync,
+  type ServerCredentialStore,
+  type ServerLogger,
+  type ServerNotifications,
+  type ServerPostAnalytics,
+  type ServerPosts,
+  type ServerPrisma,
+  type ServerSocialAnalytics,
+} from './server.dependencies';

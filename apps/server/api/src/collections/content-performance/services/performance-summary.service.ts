@@ -7,4 +7,4 @@ export {
   type PromptPerformanceItem,
   type WeeklySummary,
   type WeeklySummaryOptions,
-} from '@server-domain/collections/content-performance/services/performance-summary.service';
+} from '@server/collections/content-performance/services/performance-summary.service';

@@ -9,7 +9,7 @@ import {
   type ProcessorCircuitBreaker,
 } from '@libs/utils/circuit-breaker/circuit-breaker.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { AnalyticsSocialJobService } from '@server-domain/analytics/services/analytics-social-job.service';
+import { AnalyticsSocialJobService } from '@server/analytics/services/analytics-social-job.service';
 import { Job } from 'bullmq';
 
 @Processor(ANALYTICS_SOCIAL_QUEUE)

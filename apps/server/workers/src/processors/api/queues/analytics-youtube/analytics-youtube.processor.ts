@@ -9,7 +9,7 @@ import {
   type ProcessorCircuitBreaker,
 } from '@libs/utils/circuit-breaker/circuit-breaker.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { AnalyticsYouTubeJobService } from '@server-domain/analytics/services/analytics-youtube-job.service';
+import { AnalyticsYouTubeJobService } from '@server/analytics/services/analytics-youtube-job.service';
 import { Job } from 'bullmq';
 
 @Processor(ANALYTICS_YOUTUBE_QUEUE)

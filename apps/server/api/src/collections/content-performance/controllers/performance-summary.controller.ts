@@ -15,7 +15,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { PerformanceSummaryService } from '@server-domain/collections/content-performance/services/performance-summary.service';
+import { PerformanceSummaryService } from '@server/collections/content-performance/services/performance-summary.service';
 import type { Request } from 'express';
 
 function validateBrandId(brandId: string): void {

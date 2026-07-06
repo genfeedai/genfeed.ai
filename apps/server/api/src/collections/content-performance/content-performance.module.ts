@@ -17,10 +17,10 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { LoggerService } from '@libs/logger/logger.service';
 import { forwardRef, Module } from '@nestjs/common';
-import { AnalyticsSyncService } from '@server-domain/collections/content-performance/services/analytics-sync.service';
-import { EmailDigestService } from '@server-domain/collections/content-performance/services/email-digest.service';
-import { PerformanceSummaryService } from '@server-domain/collections/content-performance/services/performance-summary.service';
-import { SERVER_DOMAIN_TOKENS } from '@server-domain/server-domain.dependencies';
+import { AnalyticsSyncService } from '@server/collections/content-performance/services/analytics-sync.service';
+import { EmailDigestService } from '@server/collections/content-performance/services/email-digest.service';
+import { PerformanceSummaryService } from '@server/collections/content-performance/services/performance-summary.service';
+import { SERVER_TOKENS } from '@server/server.dependencies';
 
 @Module({
   controllers: [
@@ -56,19 +56,19 @@ import { SERVER_DOMAIN_TOKENS } from '@server-domain/server-domain.dependencies'
     EmailDigestService,
     BrandMemorySyncService,
     {
-      provide: SERVER_DOMAIN_TOKENS.brandMemorySync,
+      provide: SERVER_TOKENS.brandMemorySync,
       useExisting: BrandMemorySyncService,
     },
     {
-      provide: SERVER_DOMAIN_TOKENS.logger,
+      provide: SERVER_TOKENS.logger,
       useExisting: LoggerService,
     },
     {
-      provide: SERVER_DOMAIN_TOKENS.notifications,
+      provide: SERVER_TOKENS.notifications,
       useExisting: NotificationsService,
     },
     {
-      provide: SERVER_DOMAIN_TOKENS.prisma,
+      provide: SERVER_TOKENS.prisma,
       useExisting: PrismaService,
     },
   ],

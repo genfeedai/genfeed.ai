@@ -8,7 +8,7 @@
     "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/prisma": "workspace:*",
     "@genfeedai/queue-contracts": "workspace:*",
-    "@genfeedai/server-domain": "workspace:*",
+    "@genfeedai/server": "workspace:*",
     "@genfeedai/workflows": "workspace:*",
     "@nestjs/event-emitter": "3.1.0"
   },

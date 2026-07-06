@@ -67,7 +67,7 @@ import { WorkflowEngine } from '@genfeedai/workflow-engine';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, Optional } from '@nestjs/common';
-import { PerformanceSummaryService } from '@server-domain/collections/content-performance/services/performance-summary.service';
+import { PerformanceSummaryService } from '@server/collections/content-performance/services/performance-summary.service';
 
 /**
  * Bridges NestJS services with the pure workflow-engine package.

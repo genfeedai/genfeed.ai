@@ -2,7 +2,7 @@ import { CredentialPlatform } from '@genfeedai/enums';
 import type { SocialAnalyticsJobData } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
-import { AnalyticsSocialJobService } from '@server-domain/analytics/services/analytics-social-job.service';
+import { AnalyticsSocialJobService } from '@server/analytics/services/analytics-social-job.service';
 import { AnalyticsSocialProcessor } from '@workers/processors/api/queues/analytics-social/analytics-social.processor';
 import type { Job } from 'bullmq';
 
