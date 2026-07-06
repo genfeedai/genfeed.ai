@@ -16,7 +16,7 @@ import {
  * CVA alert variants with semantic color options
  */
 const alertVariants = cva(
-  'relative w-full rounded-lg border px-4 py-3 text-sm flex items-center gap-3 [&>svg]:h-5 [&>svg]:w-5 [&>svg]:shrink-0',
+  'relative w-full rounded-lg border px-4 py-3 flex items-center gap-3 [&>svg]:h-5 [&>svg]:w-5 [&>svg]:shrink-0',
   {
     defaultVariants: {
       variant: 'default',

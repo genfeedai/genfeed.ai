@@ -324,7 +324,7 @@ const PromptBarExpandedView = memo(function PromptBarExpandedView() {
         )}
       >
         <div className="flex h-full items-center justify-center">
-          <div className="rounded-2xl border border-primary/30 bg-black/50 px-4 py-3 text-center shadow-lg backdrop-blur-sm">
+          <div className="rounded-2xl border border-primary/30 bg-black/50 px-4 py-3 text-center backdrop-blur-sm">
             <p className="text-sm font-medium text-white">{dropLabel}</p>
             <p className="mt-1 text-xs text-white/60">
               Files upload to your library and attach to this prompt.

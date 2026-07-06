@@ -254,7 +254,7 @@ export default function IngredientQuickActions(
   const sharedShellClassName = cn(
     BG_BLUR,
     BORDER_WHITE_30,
-    'quick-actions-wrapper rounded-full border-white/10 p-1 shadow-[0_12px_32px_rgba(0,0,0,0.22)] transition-all duration-300 hover:border-white/15',
+    'quick-actions-wrapper rounded-full p-1 transition-all duration-300',
   );
 
   return (

@@ -60,7 +60,7 @@ export default function ModalTrim({
     >
       <div className="flex flex-col h-full gap-6">
         {/* Video Player Section */}
-        <div className="flex-1 min-h-0 flex items-center justify-center bg-neutral-950 overflow-hidden">
+        <div className="flex-1 min-h-0 flex items-center justify-center bg-background overflow-hidden">
           <div className="relative size-full max-h-full">
             <VideoPlayer
               videoRef={videoRef}

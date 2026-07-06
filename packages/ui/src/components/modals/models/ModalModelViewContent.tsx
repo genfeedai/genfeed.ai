@@ -98,12 +98,9 @@ export default function ModalModelViewContent({
             </h4>
             <div className="flex flex-wrap gap-2">
               {model.recommendedFor.map((item) => (
-                <span
-                  key={item}
-                  className="px-3 py-1 bg-background rounded-full text-sm"
-                >
+                <Badge key={item} variant="outline" size={ComponentSize.SM}>
                   {item}
-                </span>
+                </Badge>
               ))}
             </div>
           </div>
@@ -151,7 +148,7 @@ export default function ModalModelViewContent({
             <h4 className="text-sm font-medium text-foreground/70 mb-2">
               Supported Dimensions
             </h4>
-            <div className="text-sm text-foreground bg-background p-3">
+            <div className="text-sm text-foreground bg-secondary shadow-border p-3">
               {model.minDimensions && (
                 <div>
                   Min: {model.minDimensions.width} x{' '}

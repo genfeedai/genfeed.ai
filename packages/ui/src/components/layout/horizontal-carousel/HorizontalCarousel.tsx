@@ -53,10 +53,10 @@ const HorizontalCarousel = memo(function HorizontalCarousel({
             className={cn(
               'absolute left-0 top-1/2 -translate-y-1/2 z-10',
               'size-10 rounded-full',
-              'bg-white/10 backdrop-blur-sm border border-white/20',
+              'bg-elevated backdrop-blur-sm shadow-border',
               'flex items-center justify-center',
               'opacity-0 group-hover:opacity-100 transition-opacity duration-300',
-              'hover:bg-white/20 hover:border-white/30',
+              'hover:bg-hover',
               '-translate-x-1/2',
             )}
             ariaLabel="Scroll left"
@@ -71,10 +71,10 @@ const HorizontalCarousel = memo(function HorizontalCarousel({
             className={cn(
               'absolute right-0 top-1/2 -translate-y-1/2 z-10',
               'size-10 rounded-full',
-              'bg-white/10 backdrop-blur-sm border border-white/20',
+              'bg-elevated backdrop-blur-sm shadow-border',
               'flex items-center justify-center',
               'opacity-0 group-hover:opacity-100 transition-opacity duration-300',
-              'hover:bg-white/20 hover:border-white/30',
+              'hover:bg-hover',
               'translate-x-1/2',
             )}
             ariaLabel="Scroll right"

@@ -48,7 +48,7 @@ function PopoverPanelContent({
       align={align}
       sideOffset={sideOffset}
       className={cn(
-        'ship-ui z-[10001] overflow-hidden rounded-xl text-primary shadow-[0_28px_70px_-48px_rgba(0,0,0,0.92)]',
+        'ship-ui z-[10001] overflow-hidden rounded-xl text-primary shadow-dropdown',
         className,
       )}
       {...props}

@@ -186,7 +186,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
             }
             className={cn(
               'absolute right-1.5 top-1/2 -translate-y-1/2 size-8 p-0 transition-all duration-300',
-              activeGenerationsCount > 0 && 'bg-yellow-500 hover:bg-yellow-600',
+              activeGenerationsCount > 0 && 'bg-warning hover:bg-warning/90',
             )}
             data-testid="generate-button"
           />
@@ -261,8 +261,8 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
             tooltipPosition="top"
             icon={
               <HiMicrophone
-                className="size-4"
-                color={isRecording ? 'red' : undefined}
+                className={cn('size-4', isRecording && 'text-destructive')}
+                color={isRecording ? 'currentColor' : undefined}
               />
             }
           >
