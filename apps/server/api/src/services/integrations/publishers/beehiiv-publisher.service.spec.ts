@@ -1,7 +1,7 @@
-import { ConfigService } from '@api/config/config.service';
 import { BeehiivService } from '@api/services/integrations/beehiiv/services/beehiiv.service';
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { BeehiivPublisherService } from './beehiiv-publisher.service';

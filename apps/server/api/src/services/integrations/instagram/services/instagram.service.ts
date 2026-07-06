@@ -1,6 +1,5 @@
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { ConfigService } from '@api/config/config.service';
 import {
   CredentialPlatform,
   InstagramMediaType,
@@ -12,6 +11,7 @@ import type {
   InstagramPageResponse,
   InstagramTrendingHashtag,
 } from '@genfeedai/interfaces/integrations/instagram.interface';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';

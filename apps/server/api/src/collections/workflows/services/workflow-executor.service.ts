@@ -17,6 +17,7 @@ import {
   WorkflowLifecycle,
   WorkflowStatus,
 } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
 import type {
   ExecutableEdge,
   ExecutableNode,
@@ -154,6 +155,25 @@ const EVENT_TYPE_TO_NODE_TYPE: Record<string, string> = {
   trendTrigger: 'trendTrigger',
 };
 
+export const EXECUTABLE_WORKFLOW_SELECT = {
+  config: true,
+  description: true,
+  edges: true,
+  id: true,
+  inputVariables: true,
+  label: true,
+  metadata: true,
+  mongoId: true,
+  nodes: true,
+  organizationId: true,
+  steps: true,
+  userId: true,
+} satisfies Prisma.WorkflowSelect;
+
+export type ExecutableWorkflowRow = Prisma.WorkflowGetPayload<{
+  select: typeof EXECUTABLE_WORKFLOW_SELECT;
+}>;
+
 // =============================================================================
 // SERVICE
 // =============================================================================
@@ -288,11 +308,32 @@ export class WorkflowExecutorService {
   ): Promise<WorkflowExecutionResult> {
     const workflowDoc = await findOrThrow(
       this.prisma.workflow,
-      { where: { id: workflowId, isDeleted: false, organizationId } },
+      {
+        select: EXECUTABLE_WORKFLOW_SELECT,
+        where: { id: workflowId, isDeleted: false, organizationId },
+      },
       'Workflow',
       workflowId,
     );
 
+    return this.executeManualWorkflowDocument(
+      workflowDoc,
+      userId,
+      organizationId,
+      inputValues,
+      metadata,
+      trigger,
+    );
+  }
+
+  async executeManualWorkflowDocument(
+    workflowDoc: WorkflowDocument | ExecutableWorkflowRow,
+    userId: string,
+    organizationId: string,
+    inputValues: Record<string, unknown> = {},
+    metadata?: Record<string, unknown>,
+    trigger: WorkflowExecutionTrigger = WorkflowExecutionTrigger.MANUAL,
+  ): Promise<WorkflowExecutionResult> {
     return this.executeWorkflowDocument(
       this.normalizeWorkflowDocument(workflowDoc),
       {
@@ -334,7 +375,10 @@ export class WorkflowExecutorService {
 
     const workflowDoc = await findOrThrow(
       this.prisma.workflow,
-      { where: { id: workflowId, isDeleted: false, organizationId } },
+      {
+        select: EXECUTABLE_WORKFLOW_SELECT,
+        where: { id: workflowId, isDeleted: false, organizationId },
+      },
       'Workflow',
       workflowId,
     );
@@ -921,7 +965,12 @@ export class WorkflowExecutorService {
     });
 
     const workflowDoc = await this.prisma.workflow.findFirst({
-      where: { id: workflowId, isDeleted: false },
+      select: EXECUTABLE_WORKFLOW_SELECT,
+      where: {
+        id: workflowId,
+        isDeleted: false,
+        organizationId: jobData.organizationId,
+      },
     });
 
     if (!workflowDoc) {
@@ -964,10 +1013,8 @@ export class WorkflowExecutorService {
       executableWorkflow,
       triggerEvent.data,
     );
-    const existingExecution = await this.executionsService.findOne({
-      id: executionId,
-      isDeleted: false,
-    });
+    const existingExecution =
+      await this.executionsService.getRuntimeState(executionId);
     const baselineEstimatedDurationMs = this.extractEstimatedDurationMs(
       existingExecution?.metadata,
     );
@@ -1787,6 +1834,7 @@ export class WorkflowExecutorService {
 
     // Query for published workflows in this organization
     const workflows = await this.prisma.workflow.findMany({
+      select: EXECUTABLE_WORKFLOW_SELECT,
       where: {
         isDeleted: false,
         lifecycle: WorkflowLifecycle.PUBLISHED,

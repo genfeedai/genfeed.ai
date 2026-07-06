@@ -1,9 +1,5 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
-import type { ReferenceImageCategory } from '@genfeedai/enums';
 import type {
-  IBrandSetupRequest,
-  IBrandSetupResponse,
-  IConfirmBrandDataRequest,
   IGeneratePreviewResponse,
   IPost,
   OnboardingAccessMode,
@@ -19,32 +15,6 @@ import { logger } from '@services/core/logger.service';
 export interface OnboardingStatusResponse {
   isFirstLogin: boolean;
   hasCompletedOnboarding: boolean;
-}
-
-/**
- * Simple response from confirm/skip endpoints
- */
-export interface SimpleResponse {
-  success: boolean;
-  message: string;
-}
-
-/**
- * Reference image payload for onboarding
- */
-export interface ReferenceImagePayload {
-  url: string;
-  category: ReferenceImageCategory;
-  label?: string;
-  isDefault?: boolean;
-}
-
-/**
- * Response from adding reference images
- */
-export interface AddReferenceImagesResponse {
-  success: boolean;
-  count: number;
 }
 
 export interface ProactiveWorkspaceResponse {
@@ -110,11 +80,11 @@ export interface InstallReadinessResponse {
 /**
  * OnboardingService
  *
- * Handles frontend onboarding API interactions:
- * - Get onboarding status
- * - Submit brand URL for scraping
- * - Confirm extracted brand data
- * - Skip onboarding
+ * Genuine onboarding reads/AI actions. The resource-shaped writes it used to
+ * expose (brand setup/rename/confirm/reference-images, skip, account-type,
+ * complete-funnel) were dissolved into `/brands/*`, `/organizations/*`, and
+ * `/users/me` per REST audit #1354 — see BrandsService, OrganizationsService,
+ * and UsersService.patchMe.
  */
 export class OnboardingService extends HTTPBaseService {
   constructor(token: string) {
@@ -154,101 +124,6 @@ export class OnboardingService extends HTTPBaseService {
       return response.data;
     } catch (error) {
       logger.error('GET /install-readiness failed', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Submit brand URL for analysis
-   * Returns extracted brand data
-   */
-  async setupBrand(request: IBrandSetupRequest): Promise<IBrandSetupResponse> {
-    try {
-      const response = await this.instance.post<IBrandSetupResponse>(
-        'brand-setup',
-        request,
-      );
-      logger.info('POST /brand-setup success', {
-        brandId: response.data.brandId,
-        success: response.data.success,
-      });
-      return response.data;
-    } catch (error) {
-      logger.error('POST /brand-setup failed', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Confirm extracted brand data with optional overrides
-   */
-  async confirmBrandData(
-    brandId: string,
-    data: Omit<IConfirmBrandDataRequest, 'brandId'>,
-  ): Promise<SimpleResponse> {
-    try {
-      const response = await this.instance.patch<SimpleResponse>(
-        `brand/${brandId}/confirm`,
-        data,
-      );
-      logger.info(`PATCH /brand/${brandId}/confirm success`);
-      return response.data;
-    } catch (error) {
-      logger.error(`PATCH /brand/${brandId}/confirm failed`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Update brand name without scanning
-   */
-  async updateBrandName(brandName: string): Promise<SimpleResponse> {
-    try {
-      const response = await this.instance.patch<SimpleResponse>('brand-name', {
-        brandName,
-      });
-      logger.info('PATCH /brand-name success');
-      return response.data;
-    } catch (error) {
-      logger.error('PATCH /brand-name failed', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Skip onboarding (user will set up brand later)
-   */
-  async skip(reason?: string): Promise<SimpleResponse> {
-    try {
-      const response = await this.instance.post<SimpleResponse>('skip', {
-        reason,
-      });
-      logger.info('POST /skip success');
-      return response.data;
-    } catch (error) {
-      logger.error('POST /skip failed', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Add reference images to a brand during onboarding
-   */
-  async addReferenceImages(
-    brandId: string,
-    images: ReferenceImagePayload[],
-  ): Promise<AddReferenceImagesResponse> {
-    try {
-      const response = await this.instance.post<AddReferenceImagesResponse>(
-        `brand/${brandId}/reference-images`,
-        { images },
-      );
-      logger.info(`POST /brand/${brandId}/reference-images success`, {
-        count: response.data.count,
-      });
-      return response.data;
-    } catch (error) {
-      logger.error(`POST /brand/${brandId}/reference-images failed`, error);
       throw error;
     }
   }

@@ -13,6 +13,17 @@ import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/t
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import type {
+  ChannelCapability,
+  ChannelCapabilityListOptions,
+  ChannelTargetValidationResult,
+  ValidateChannelTargetSettingsInput,
+} from '@api-types/contracts/channel-capabilities.contract';
+import {
+  listChannelCapabilities as resolveChannelCapabilities,
+  getChannelCapability as resolveChannelCapability,
+  validateChannelTargetSettings as resolveChannelTargetValidation,
+} from '@api-types/contracts/channel-capabilities.contract';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -28,6 +39,28 @@ export class SchedulesService {
     private readonly modelsService: ModelsService,
     private readonly replicateService: ReplicateService,
   ) {}
+
+  listChannelCapabilities(
+    options: ChannelCapabilityListOptions = {},
+  ): ChannelCapability[] {
+    return resolveChannelCapabilities(options);
+  }
+
+  getChannelCapability(platform: string): ChannelCapability {
+    const capability = resolveChannelCapability(platform);
+
+    if (!capability) {
+      throw new NotFoundException('Channel capability', platform);
+    }
+
+    return capability;
+  }
+
+  validateChannelTargetSettings(
+    input: ValidateChannelTargetSettingsInput,
+  ): ChannelTargetValidationResult {
+    return resolveChannelTargetValidation(input);
+  }
 
   /**
    * Get optimal posting time

@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import type { TrendNotificationCadence } from '@api/collections/workflows/templates/trend-notification-workflows.template';
-import { ConfigService } from '@api/config/config.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -12,6 +11,7 @@ import {
   type TrendDigestItem,
 } from '@genfeedai/helpers';
 import type { Setting } from '@genfeedai/prisma';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

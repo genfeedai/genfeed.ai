@@ -10,7 +10,6 @@ import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';
 import { logger } from '@services/core/logger.service';
-import { OnboardingFunnelService } from '@services/onboarding/onboarding-funnel.service';
 import { UsersService } from '@services/organization/users.service';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
@@ -111,11 +110,14 @@ export default function SuccessContent() {
     }
 
     // Mark onboarding complete and refresh the active auth/session cache.
+    // Onboarding completion is a field write on the user resource; the proactive
+    // + cache-invalidation cascade lives behind PATCH /users/me (REST audit #1354).
     try {
       const token = await resolveAuthToken(getToken, { forceRefresh: true });
       if (token) {
-        const funnelService = OnboardingFunnelService.getInstance(token);
-        await funnelService.completeFunnel();
+        await UsersService.getInstance(token).patchMe({
+          isOnboardingCompleted: true,
+        });
       }
       await user?.reload();
     } catch (error) {

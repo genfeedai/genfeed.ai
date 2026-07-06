@@ -9,7 +9,7 @@ describe('InsetSurface', () => {
     const surface = container.firstElementChild;
 
     expect(surface).toHaveClass('rounded-2xl');
-    expect(surface).toHaveClass('border');
+    expect(surface).toHaveClass('shadow-border');
     expect(surface).toHaveClass('bg-white/[0.03]');
     expect(surface).toHaveTextContent('Body');
   });

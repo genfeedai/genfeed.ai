@@ -1,5 +1,5 @@
-import { ConfigService } from '@api/config/config.service';
 import { isBearerTokenValid } from '@libs/auth/internal-api-key.guard';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   CanActivate,

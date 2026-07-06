@@ -14,13 +14,13 @@
 import { randomUUID } from 'node:crypto';
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import type { IHighlight } from '@api/collections/clip-projects/schemas/clip-project.schema';
-import { ConfigService } from '@api/config/config.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import {
   CLIP_ANALYZE_CONCURRENCY,
   CLIP_ANALYZE_QUEUE,
   ClipAnalyzeJobData,
 } from '@genfeedai/queue-contracts';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Processor, WorkerHost } from '@nestjs/bullmq';

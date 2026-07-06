@@ -1,9 +1,9 @@
 import process from 'node:process';
-import { ConfigService } from '@api/config/config.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { CreditTransactionsService } from '@credits/services/credit-transactions.service';
 import { CustomersService } from '@customers/services/customers.service';
 import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/interfaces/billing';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';

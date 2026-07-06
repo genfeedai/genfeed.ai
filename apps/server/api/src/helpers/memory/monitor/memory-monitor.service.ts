@@ -1,6 +1,6 @@
 import process from 'node:process';
 import v8 from 'node:v8';
-import { ConfigService } from '@api/config/config.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleDestroy } from '@nestjs/common';
 

@@ -7,11 +7,13 @@ import {
   CACHE_TAGS,
 } from '@api/common/constants/cache-patterns.constants';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
-import { ConfigService } from '@api/config/config.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { IS_CLOUD_MODE } from '@genfeedai/config';
 import { ApiKeyScope } from '@genfeedai/enums';
+import { getApiRateLimitForTier } from '@genfeedai/pricing';
 import type { Prisma } from '@genfeedai/prisma';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -294,13 +296,70 @@ export class ApiKeysService extends BaseService<
   }
 
   /**
+   * Resolve the effective per-minute request ceiling for an API-key request.
+   *
+   * In managed cloud, the org's subscription tier governs ("Model B"): the tier
+   * limit overrides the per-key value, so a downgraded org is throttled to its
+   * current entitlement. `null` = no platform-enforced ceiling (Enterprise
+   * custom); `0` = the tier has no API access at all.
+   *
+   * In self-hosted / community / desktop deployments there are no tiers, so the
+   * historical per-key limit is honored unchanged (a falsy per-key limit stays
+   * "unlimited", matching the prior behavior).
+   */
+  async resolveEffectiveRateLimit(
+    apiKey: ApiKeyDocument,
+  ): Promise<number | null> {
+    if (!IS_CLOUD_MODE) {
+      return apiKey.rateLimit || null;
+    }
+
+    const tier = await this.resolveOrganizationTier(apiKey.organizationId);
+    return getApiRateLimitForTier(tier);
+  }
+
+  /**
+   * Read the org's subscription tier from OrganizationSetting, scoped by the
+   * (unique) organizationId — the tenant boundary for this lookup. Returns null
+   * when no org/setting is found (default-deny in cloud).
+   */
+  private async resolveOrganizationTier(
+    organizationId: string | null | undefined,
+  ): Promise<string | null> {
+    if (!organizationId) {
+      return null;
+    }
+
+    const setting = await this.prisma.organizationSetting.findUnique({
+      select: { subscriptionTier: true },
+      where: { organizationId },
+    });
+
+    return setting?.subscriptionTier ?? null;
+  }
+
+  /**
    * Check rate limit using Redis sliding window.
    * Tracks requests in a sorted set with timestamps.
-   * Returns true if within limit, false if exceeded.
+   * The effective limit is the org's per-tier ceiling in managed cloud, or the
+   * per-key limit off cloud. Returns true if within limit, false if exceeded
+   * or if the org's tier has no API access.
    */
   async checkRateLimit(apiKey: ApiKeyDocument): Promise<boolean> {
-    if (!apiKey.rateLimit) {
+    const effectiveLimit = await this.resolveEffectiveRateLimit(apiKey);
+
+    // No platform-enforced ceiling (Enterprise custom, or non-cloud unlimited).
+    if (effectiveLimit === null) {
       return true;
+    }
+
+    // A zero/negative ceiling means the tier has no API access → deny.
+    if (effectiveLimit <= 0) {
+      this.logger?.warn('API key request denied — tier lacks API access', {
+        apiKeyId: apiKey.id,
+        organizationId: apiKey.organizationId,
+      });
+      return false;
     }
 
     const client = this.redisService.getPublisher();
@@ -323,10 +382,10 @@ export class ApiKeysService extends BaseService<
       // Count requests in the current window
       const requestCount = await client.zcard(key);
 
-      if (requestCount >= apiKey.rateLimit) {
+      if (requestCount >= effectiveLimit) {
         this.logger?.warn('API key rate limit exceeded', {
           apiKeyId: apiKey.id,
-          limit: apiKey.rateLimit,
+          limit: effectiveLimit,
           requestCount,
         });
         return false;

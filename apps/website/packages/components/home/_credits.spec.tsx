@@ -43,10 +43,10 @@ describe('HomeCredits', () => {
     ).toBeInTheDocument();
   });
 
-  it('surfaces credit packs with their pay-as-you-go price', () => {
+  it('surfaces credit top-up amounts with their credit totals', () => {
     render(<HomeCredits />);
 
-    expect(screen.getAllByText(/pack$/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/^\$\d/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/credits/i).length).toBeGreaterThan(0);
   });
 
@@ -54,7 +54,9 @@ describe('HomeCredits', () => {
     render(<HomeCredits />);
 
     expect(
-      screen.getByText(/launch pricing — first 12 months, then \$49\/month/i),
+      screen.getByText(
+        /launch pricing \(code earlygenfeed\) — first 12 months, then \$49\/month/i,
+      ),
     ).toBeInTheDocument();
   });
 });

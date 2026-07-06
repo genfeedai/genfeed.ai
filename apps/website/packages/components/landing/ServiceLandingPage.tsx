@@ -14,6 +14,7 @@ import {
   WebSection,
 } from '@web-components/content/NeuralGrid';
 import LandingFooter from '@web-components/landing/LandingFooter';
+import { pitchLandingConfigBySlug } from '@web-components/landing/pitch-pages.data';
 import {
   type ServiceLandingConfig,
   serviceLandingConfigBySlug,
@@ -32,7 +33,8 @@ export interface ServiceLandingPageProps {
 export default function ServiceLandingPage({
   slug,
 }: ServiceLandingPageProps): React.ReactElement {
-  const config = serviceLandingConfigBySlug[slug] as ServiceLandingConfig;
+  const config = (serviceLandingConfigBySlug[slug] ??
+    pitchLandingConfigBySlug[slug]) as ServiceLandingConfig;
   const containerRef = useMarketingEntrance({ cards: false });
 
   return (
@@ -56,11 +58,16 @@ export default function ServiceLandingPage({
               </p>
 
               <div className="flex flex-wrap items-center gap-3 text-sm text-surface/65">
-                <span className="border border-edge/10 px-3 py-2">
-                  Starting from $2,500
+                <span className="border border-edge/10 px-3 py-2 text-surface/70">
+                  {config.priceLabel ?? 'Custom — scoped on a call'}
                 </span>
+                {config.priceNote ? (
+                  <span className="border border-edge/10 px-3 py-2">
+                    {config.priceNote}
+                  </span>
+                ) : null}
                 <span className="border border-edge/10 px-3 py-2">
-                  Primary CTA: Book a Call
+                  {config.priceCtaHint ?? 'Book a call to scope it'}
                 </span>
               </div>
             </div>

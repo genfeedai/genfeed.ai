@@ -21,8 +21,6 @@ import { SettingsService } from '@api/collections/settings/services/settings.ser
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
-// Service tokens for dependency injection
-import { ConfigService } from '@api/config/config.service';
 import { InternalIntegrationsController } from '@api/endpoints/integrations/integrations.controller';
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
@@ -46,6 +44,8 @@ import {
   createMockReplicateService,
   createMockStripeService,
 } from '@api-test/mocks/external-services.mocks';
+// Service tokens for dependency injection
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { HttpService } from '@nestjs/axios';

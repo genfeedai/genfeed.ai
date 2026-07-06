@@ -1,8 +1,8 @@
-import { ConfigService } from '@api/config/config.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { FileQueueService } from '@api/services/file-queue/file-queue.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CreditTransactionsService } from '@credits/services/credit-transactions.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { of } from 'rxjs';

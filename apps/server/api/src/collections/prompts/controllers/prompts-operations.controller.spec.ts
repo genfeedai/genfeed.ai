@@ -23,7 +23,6 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { PromptsOperationsController } from '@api/collections/prompts/controllers/prompts-operations.controller';
 import { ParsePromptDto } from '@api/collections/prompts/dto/parse-prompt.dto';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
-import { ConfigService } from '@api/config/config.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
@@ -33,6 +32,7 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { PromptCategory } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';

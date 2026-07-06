@@ -15,7 +15,6 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import type { UserEntity } from '@api/collections/users/entities/user.entity';
 import type { UserDocument } from '@api/collections/users/schemas/user.schema';
 import { UsersService } from '@api/collections/users/services/users.service';
-import { ConfigService } from '@api/config/config.service';
 import { ActivityUpdateService } from '@api/endpoints/webhooks/services/activity-update.service';
 import { AutoMergeService } from '@api/endpoints/webhooks/services/auto-merge.service';
 import { MediaUploadService } from '@api/endpoints/webhooks/services/media-upload.service';
@@ -34,6 +33,7 @@ import {
   MetadataExtension,
 } from '@genfeedai/enums';
 import type { IFileMetadata } from '@genfeedai/interfaces';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

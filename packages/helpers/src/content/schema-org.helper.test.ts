@@ -46,6 +46,33 @@ describe('schema-org helpers', () => {
     });
   });
 
+  it('omits malformed Article text fields instead of throwing', () => {
+    const jsonLd = buildArticleJsonLd({
+      body: undefined,
+      description: undefined,
+      headline: undefined,
+      imageUrls: [undefined, '', 'https://example.com/cover.png'],
+      keywords: ['geo', undefined, ''],
+      publisher: {
+        logoUrl: null,
+        name: undefined as unknown as string,
+      },
+    });
+
+    expect(jsonLd).toMatchObject({
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      image: ['https://example.com/cover.png'],
+      keywords: 'geo',
+      publisher: {
+        '@type': 'Organization',
+      },
+    });
+    expect(jsonLd).not.toHaveProperty('headline');
+    expect(jsonLd).not.toHaveProperty('articleBody');
+    expect(jsonLd).not.toHaveProperty('description');
+  });
+
   it('drops empty FAQ rows and emits Question/Answer entities', () => {
     const jsonLd = buildFaqJsonLd({
       items: [

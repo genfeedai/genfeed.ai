@@ -1,7 +1,7 @@
-import { ConfigService } from '@api/config/config.service';
 import { OpenRouterChatCompletionResponse } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { GrokTrendData } from '@api/services/integrations/xai/dto/grok-trends.dto';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

@@ -7,7 +7,6 @@ import {
   type CreatePatternDto,
   PatternStoreService,
 } from '@api/collections/content-intelligence/services/pattern-store.service';
-import { ConfigService } from '@api/config/config.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import {
   ContentIntelligencePlatform,
@@ -15,6 +14,7 @@ import {
   ContentPatternType,
   CreatorAnalysisStatus,
 } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

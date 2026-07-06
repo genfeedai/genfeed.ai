@@ -9,6 +9,7 @@ import { type IngredientDocument } from '@api/collections/ingredients/schemas/in
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { DEFAULT_FREE_SEATS } from '@api/collections/organization-settings/utils/seat-policy.util';
 import { CreateOrganizationDto } from '@api/collections/organizations/dto/create-organization.dto';
 import { OrganizationQueryDto } from '@api/collections/organizations/dto/organization-query.dto';
 import { UpdateOrganizationDto } from '@api/collections/organizations/dto/update-organization.dto';
@@ -674,7 +675,7 @@ export class OrganizationsController extends BaseCRUDController<
       isWebhookEnabled: false,
       isWhitelabelEnabled: false,
       organizationId: orgId,
-      seatsLimit: 3,
+      seatsLimit: DEFAULT_FREE_SEATS,
       timezone: 'UTC',
     } as unknown as Parameters<
       typeof this.organizationSettingsService.create

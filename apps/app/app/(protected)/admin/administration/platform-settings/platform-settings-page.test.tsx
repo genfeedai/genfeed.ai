@@ -15,11 +15,15 @@ const mocks = vi.hoisted(() => ({
   warning: vi.fn(),
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => ({
+const getPlatformSettingsService = vi.hoisted(() =>
+  vi.fn(async () => ({
     getSettings: mocks.getSettings,
     updateSettings: mocks.updateSettings,
-  }),
+  })),
+);
+
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => getPlatformSettingsService,
 }));
 
 vi.mock('@services/core/logger.service', () => ({
@@ -28,13 +32,15 @@ vi.mock('@services/core/logger.service', () => ({
   },
 }));
 
+const notificationsServiceInstance = vi.hoisted(() => ({
+  error: mocks.error,
+  success: mocks.success,
+  warning: mocks.warning,
+}));
+
 vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: {
-    getInstance: () => ({
-      error: mocks.error,
-      success: mocks.success,
-      warning: mocks.warning,
-    }),
+    getInstance: () => notificationsServiceInstance,
   },
 }));
 
@@ -130,12 +136,12 @@ describe('PlatformSettingsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
 
     await waitFor(() => {
-      expect(mocks.updateSettings).toHaveBeenCalledWith({
-        marginMultiplier: 1.5,
-      });
+      expect(mocks.success).toHaveBeenCalledWith('Platform settings saved');
+    });
+    expect(mocks.updateSettings).toHaveBeenCalledWith({
+      marginMultiplier: 1.5,
     });
     expect(input).toHaveValue(1.5);
-    expect(mocks.success).toHaveBeenCalledWith('Platform settings saved');
   });
 
   it('blocks invalid and excessive multipliers before saving', async () => {

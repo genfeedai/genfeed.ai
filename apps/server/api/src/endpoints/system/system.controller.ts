@@ -1,5 +1,5 @@
-import { ConfigService } from '@api/config/config.service';
 import { LocalhostOnlyGuard } from '@api/endpoints/system/guards/localhost-only.guard';
+import { ConfigService } from '@libs/config/config.service';
 import { Public } from '@libs/decorators/public.decorator';
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';

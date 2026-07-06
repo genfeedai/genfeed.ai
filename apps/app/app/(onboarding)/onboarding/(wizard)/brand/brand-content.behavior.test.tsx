@@ -11,20 +11,20 @@ const {
   findMeBrandsMock,
   findMeOrganizationsMock,
   pushMock,
+  renameWithOrganizationSyncMock,
   resolveAuthTokenMock,
+  scrapeMock,
   searchParamsMock,
-  setAccountTypeMock,
-  setupBrandMock,
-  updateBrandNameMock,
+  updateAccountTypeMock,
 } = vi.hoisted(() => ({
   findMeBrandsMock: vi.fn(),
   findMeOrganizationsMock: vi.fn(),
   pushMock: vi.fn(),
+  renameWithOrganizationSyncMock: vi.fn(),
   resolveAuthTokenMock: vi.fn(),
+  scrapeMock: vi.fn(),
   searchParamsMock: new URLSearchParams(),
-  setAccountTypeMock: vi.fn(),
-  setupBrandMock: vi.fn(),
-  updateBrandNameMock: vi.fn(),
+  updateAccountTypeMock: vi.fn(),
 }));
 
 vi.mock('@genfeedai/auth-client/react', () => ({
@@ -47,19 +47,19 @@ vi.mock('@services/core/logger.service', () => ({
   },
 }));
 
-vi.mock('@services/onboarding/onboarding.service', () => ({
-  OnboardingService: {
+vi.mock('@services/social/brands.service', () => ({
+  BrandsService: {
     getInstance: vi.fn(() => ({
-      setupBrand: setupBrandMock,
-      updateBrandName: updateBrandNameMock,
+      renameWithOrganizationSync: renameWithOrganizationSyncMock,
+      scrape: scrapeMock,
     })),
   },
 }));
 
-vi.mock('@services/onboarding/onboarding-funnel.service', () => ({
-  OnboardingFunnelService: {
+vi.mock('@services/organization/organizations.service', () => ({
+  OrganizationsService: {
     getInstance: vi.fn(() => ({
-      setAccountType: setAccountTypeMock,
+      updateAccountType: updateAccountTypeMock,
     })),
   },
 }));
@@ -141,18 +141,20 @@ describe('BrandContent behavior', () => {
     findMeBrandsMock.mockReset();
     findMeOrganizationsMock.mockReset();
     pushMock.mockReset();
+    renameWithOrganizationSyncMock.mockReset();
     resolveAuthTokenMock.mockReset();
-    setAccountTypeMock.mockReset();
-    setupBrandMock.mockReset();
-    updateBrandNameMock.mockReset();
+    scrapeMock.mockReset();
+    updateAccountTypeMock.mockReset();
     searchParamsMock.delete('auto');
     localStorageMock.clear();
 
     resolveAuthTokenMock.mockResolvedValue('api-token');
-    findMeBrandsMock.mockResolvedValue([]);
-    findMeOrganizationsMock.mockResolvedValue([]);
-    setupBrandMock.mockResolvedValue({});
-    updateBrandNameMock.mockResolvedValue({});
+    // A default brand + org exist by the brand step for a normal signup, so the
+    // resource routes can resolve their target ids (REST audit #1354).
+    findMeBrandsMock.mockResolvedValue([{ id: 'brand_1' }]);
+    findMeOrganizationsMock.mockResolvedValue([{ id: 'org_1' }]);
+    scrapeMock.mockResolvedValue({ brandId: 'brand_1', success: true });
+    renameWithOrganizationSyncMock.mockResolvedValue({ id: 'brand_1' });
 
     Object.defineProperty(globalThis, 'localStorage', {
       configurable: true,
@@ -168,7 +170,7 @@ describe('BrandContent behavior', () => {
     render(<BrandContent />);
 
     await waitFor(() => {
-      expect(setupBrandMock).toHaveBeenCalledWith({
+      expect(scrapeMock).toHaveBeenCalledWith('brand_1', {
         brandName: 'Acme',
         brandUrl: 'https://acme.co',
       });
@@ -181,7 +183,7 @@ describe('BrandContent behavior', () => {
       'Acme',
     );
     expect(pushMock).toHaveBeenCalledWith('/onboarding/providers');
-    expect(updateBrandNameMock).not.toHaveBeenCalled();
+    expect(renameWithOrganizationSyncMock).not.toHaveBeenCalled();
   });
 
   it('infers a brand name from the stored domain when cloud handoff has no brand name', async () => {
@@ -191,7 +193,7 @@ describe('BrandContent behavior', () => {
     render(<BrandContent />);
 
     await waitFor(() => {
-      expect(setupBrandMock).toHaveBeenCalledWith({
+      expect(scrapeMock).toHaveBeenCalledWith('brand_1', {
         brandName: 'Studio Acme',
         brandUrl: 'https://studio.acme.io',
       });

@@ -1,5 +1,5 @@
 import process from 'node:process';
-import { ConfigService } from '@api/config/config.service';
+import { ConfigService } from '@libs/config/config.service';
 
 describe('ConfigService', () => {
   let configService: ConfigService;

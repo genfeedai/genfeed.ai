@@ -12,7 +12,6 @@ import { AppModule } from '@api/app.module';
 import { BetterAuthService } from '@api/auth/better-auth/better-auth.service';
 import { shouldBypassBetterAuthHandler } from '@api/auth/better-auth/better-auth-route-bypass.util';
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
-import { ConfigService } from '@api/config/config.service';
 import { DocsService } from '@api/endpoints/docs/docs.service';
 import { AllExceptionFilter } from '@api/helpers/filters/all-exception/all-exception.filter';
 import { DatabaseExceptionFilter } from '@api/helpers/filters/database-exception/database-exception.filter';
@@ -32,6 +31,7 @@ import { TimeoutInterceptor } from '@api/interceptors/timeout.interceptor';
 import { createBullBoard } from '@bull-board/api';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { ExpressAdapter } from '@bull-board/express';
+import { ConfigService } from '@libs/config/config.service';
 import { getGenfeedCorsOptions } from '@libs/config/cors.config';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

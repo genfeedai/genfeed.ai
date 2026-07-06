@@ -9,7 +9,6 @@ import {
   isTrainerKey,
   isTrainingKey,
 } from '@api/collections/models/utils/model-key.util';
-import { ConfigService } from '@api/config/config.service';
 import {
   CREDITS_DEFER_MODEL_RESOLUTION_KEY,
   CREDITS_KEY,
@@ -25,6 +24,7 @@ import { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-met
 import { type ByokProvider, PricingType } from '@genfeedai/enums';
 import { getDeserializer } from '@genfeedai/helpers';
 import type { CreditsConfig } from '@genfeedai/interfaces';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   CanActivate,

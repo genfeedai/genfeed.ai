@@ -15,7 +15,7 @@ import {
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { ServicesService } from '@services/external/services.service';
-import { OnboardingFunnelService } from '@services/onboarding/onboarding-funnel.service';
+import { UsersService } from '@services/organization/users.service';
 import {
   useParams,
   usePathname,
@@ -89,8 +89,10 @@ function AgentWorkspaceLayoutClientContent({ children }: PropsWithChildren) {
 
     const effectiveToken = await resolveAuthToken(getToken);
     if (effectiveToken) {
-      const funnelService = OnboardingFunnelService.getInstance(effectiveToken);
-      await funnelService.completeFunnel();
+      // Onboarding completion cascade lives behind PATCH /users/me (REST audit #1354).
+      await UsersService.getInstance(effectiveToken).patchMe({
+        isOnboardingCompleted: true,
+      });
     }
     await getToken({ forceRefresh: true }).catch(() => null);
   }, [getToken]);

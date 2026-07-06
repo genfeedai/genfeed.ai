@@ -908,6 +908,11 @@
     },
     {
       "method": "post",
+      "operationId": "BrandsController.addReferenceImages",
+      "path": "/brands/{id}/reference-images"
+    },
+    {
+      "method": "post",
       "operationId": "BrandsController.applyBrandKitDraft",
       "path": "/brands/{id}/brand-kit/apply"
     },
@@ -975,6 +980,11 @@
       "method": "delete",
       "operationId": "BrandsController.remove",
       "path": "/brands/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "BrandsController.scrapeBrand",
+      "path": "/brands/{id}/scrape"
     },
     {
       "method": "patch",
@@ -2857,11 +2867,6 @@
       "path": "/newsletters/topic-proposals"
     },
     {
-      "method": "post",
-      "operationId": "OnboardingController.addReferenceImages",
-      "path": "/onboarding/brand/{brandId}/reference-images"
-    },
-    {
       "method": "get",
       "operationId": "OnboardingController.checkPrefixAvailable",
       "path": "/onboarding/prefix/{prefix}/available"
@@ -2870,16 +2875,6 @@
       "method": "post",
       "operationId": "OnboardingController.claimProactiveWorkspace",
       "path": "/onboarding/proactive-claim"
-    },
-    {
-      "method": "post",
-      "operationId": "OnboardingController.completeFunnel",
-      "path": "/onboarding/complete-funnel"
-    },
-    {
-      "method": "patch",
-      "operationId": "OnboardingController.confirmBrandData",
-      "path": "/onboarding/brand/{brandId}/confirm"
     },
     {
       "method": "post",
@@ -2903,23 +2898,8 @@
     },
     {
       "method": "post",
-      "operationId": "OnboardingController.setAccountType",
-      "path": "/onboarding/account-type"
-    },
-    {
-      "method": "post",
-      "operationId": "OnboardingController.setupBrand",
-      "path": "/onboarding/brand-setup"
-    },
-    {
-      "method": "post",
-      "operationId": "OnboardingController.skipOnboarding",
-      "path": "/onboarding/skip"
-    },
-    {
-      "method": "patch",
-      "operationId": "OnboardingController.updateBrandName",
-      "path": "/onboarding/brand-name"
+      "operationId": "OnboardingController.setPrefix",
+      "path": "/onboarding/prefix"
     },
     {
       "method": "post",
@@ -3907,6 +3887,11 @@
       "path": "/schedules/calendar"
     },
     {
+      "method": "get",
+      "operationId": "SchedulesController.getChannelCapability",
+      "path": "/schedules/channel-capabilities/{platform}"
+    },
+    {
       "method": "post",
       "operationId": "SchedulesController.getOptimalTime",
       "path": "/schedules/optimal"
@@ -3917,9 +3902,19 @@
       "path": "/schedules/repurpose/{id}"
     },
     {
+      "method": "get",
+      "operationId": "SchedulesController.listChannelCapabilities",
+      "path": "/schedules/channel-capabilities"
+    },
+    {
       "method": "post",
       "operationId": "SchedulesController.repurposeContent",
       "path": "/schedules/repurpose"
+    },
+    {
+      "method": "post",
+      "operationId": "SchedulesController.validateChannelTargetSettings",
+      "path": "/schedules/channel-capabilities/validate"
     },
     {
       "method": "post",

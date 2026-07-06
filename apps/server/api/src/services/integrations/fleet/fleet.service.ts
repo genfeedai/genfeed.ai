@@ -1,9 +1,9 @@
 import { CustomerInstancesService } from '@api/collections/customer-instances/services/customer-instances.service';
-import { ConfigService } from '@api/config/config.service';
 import type {
   IFleetHealthResponse,
   IFleetInstance,
 } from '@genfeedai/interfaces';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

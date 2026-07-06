@@ -16,7 +16,6 @@
 
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { RunsService } from '@api/collections/runs/services/runs.service';
-import { ConfigService } from '@api/config/config.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FalService } from '@api/services/integrations/fal/fal.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
@@ -37,6 +36,7 @@ import {
   createWorkflowEngine,
   type WorkflowEngine,
 } from '@genfeedai/workflow-engine';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Injectable,

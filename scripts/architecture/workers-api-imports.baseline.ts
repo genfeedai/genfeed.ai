@@ -99,8 +99,6 @@ export const WORKERS_API_IMPORT_BASELINE: readonly string[] = [
   '@api/collections/workflows/services/workflow-executor.service',
   '@api/collections/workflows/services/workflow-scheduler.service',
   '@api/collections/workflows/workflows.module',
-  '@api/config/config.module',
-  '@api/config/config.service',
   '@api/constants/default-text-model.constant',
   '@api/endpoints/v1/managed-inference/dto/managed-inference-request.dto',
   '@api/endpoints/v1/managed-inference/managed-inference-client.service',

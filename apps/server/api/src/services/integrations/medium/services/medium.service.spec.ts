@@ -1,7 +1,7 @@
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { ConfigService } from '@api/config/config.service';
 import { MediumService } from '@api/services/integrations/medium/services/medium.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';

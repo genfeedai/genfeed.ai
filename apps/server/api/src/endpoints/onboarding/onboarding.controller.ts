@@ -1,13 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { SetAccountTypeDto } from '@api/endpoints/onboarding/dto/account-type.dto';
-import {
-  BrandSetupDto,
-  ConfirmBrandDataDto,
-  SkipOnboardingDto,
-  UpdateBrandNameDto,
-} from '@api/endpoints/onboarding/dto/brand-setup.dto';
 import { GeneratePreviewDto } from '@api/endpoints/onboarding/dto/generate-preview.dto';
-import { AddReferenceImagesDto } from '@api/endpoints/onboarding/dto/reference-images.dto';
+import { SetPrefixDto } from '@api/endpoints/onboarding/dto/set-prefix.dto';
 import { OnboardingService } from '@api/endpoints/onboarding/onboarding.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -19,12 +12,23 @@ import {
   Get,
   HttpCode,
   Param,
-  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
+/**
+ * OnboardingController
+ *
+ * Genuine onboarding actions only. The resource-shaped writes that used to live
+ * here (brand-name, brand confirm, reference-images, skip, account-type,
+ * complete-funnel, brand-setup) were dissolved into their canonical resources
+ * per REST audit #1354:
+ * - brand rename / confirm / scrape / reference-images → `/brands/*`
+ * - account-type → `PATCH /organizations/:id`
+ * - skip → `PATCH /organizations/:id/settings { isFirstLogin: false }`
+ * - complete-funnel → `PATCH /users/me { isOnboardingCompleted: true }`
+ */
 @ApiTags('Onboarding')
 @AutoSwagger()
 @Controller('onboarding')
@@ -64,137 +68,6 @@ export class OnboardingController {
   }
 
   /**
-   * Setup brand from URL
-   * Scrapes website, analyzes with AI, and populates the canonical brand guidance
-   */
-  @Post('brand-setup')
-  @HttpCode(200)
-  @ApiOperation({
-    description:
-      'Scrapes the provided brand URL, extracts brand information, and stores the canonical brand guidance directly on the brand.',
-    summary: 'Setup brand from website URL',
-  })
-  @ApiResponse({
-    description: 'Brand setup completed successfully',
-    schema: {
-      properties: {
-        brandId: { type: 'string' },
-        extractedData: {
-          properties: {
-            brandVoice: {
-              properties: {
-                audience: { type: 'string' },
-                hashtags: { items: { type: 'string' }, type: 'array' },
-                taglines: { items: { type: 'string' }, type: 'array' },
-                tone: { type: 'string' },
-                values: { items: { type: 'string' }, type: 'array' },
-                voice: { type: 'string' },
-              },
-              type: 'object',
-            },
-            companyName: { type: 'string' },
-            description: { type: 'string' },
-            logoUrl: { type: 'string' },
-            primaryColor: { type: 'string' },
-            secondaryColor: { type: 'string' },
-            sourceUrl: { type: 'string' },
-            tagline: { type: 'string' },
-          },
-          type: 'object',
-        },
-        message: { type: 'string' },
-        success: { type: 'boolean' },
-      },
-      type: 'object',
-    },
-    status: 200,
-  })
-  @ApiResponse({
-    description: 'Invalid URL or scraping failed',
-    status: 400,
-  })
-  setupBrand(@Body() dto: BrandSetupDto, @CurrentUser() user: User) {
-    return this.onboardingService.setupBrand(dto, user);
-  }
-
-  /**
-   * Update brand name without scanning a website
-   */
-  @Patch('brand-name')
-  @ApiOperation({
-    description:
-      'Updates the brand and organization name without requiring a website scan.',
-    summary: 'Update brand name only',
-  })
-  @ApiResponse({
-    description: 'Brand name updated successfully',
-    schema: {
-      properties: {
-        message: { type: 'string' },
-        success: { type: 'boolean' },
-      },
-      type: 'object',
-    },
-    status: 200,
-  })
-  updateBrandName(@Body() dto: UpdateBrandNameDto, @CurrentUser() user: User) {
-    return this.onboardingService.updateBrandName(dto, user);
-  }
-
-  /**
-   * Confirm and optionally override extracted brand data
-   */
-  @Patch('brand/:brandId/confirm')
-  @ApiOperation({
-    description:
-      'Allows user to review and override the extracted brand data before finalizing.',
-    summary: 'Confirm extracted brand data with optional overrides',
-  })
-  @ApiResponse({
-    description: 'Brand data confirmed',
-    schema: {
-      properties: {
-        message: { type: 'string' },
-        success: { type: 'boolean' },
-      },
-      type: 'object',
-    },
-    status: 200,
-  })
-  confirmBrandData(
-    @Param('brandId') brandId: string,
-    @Body() dto: ConfirmBrandDataDto,
-    @CurrentUser() user: User,
-  ) {
-    return this.onboardingService.confirmBrandData(brandId, dto, user);
-  }
-
-  /**
-   * Skip onboarding for users who want to set up later
-   */
-  @Post('skip')
-  @HttpCode(200)
-  @ApiOperation({
-    description:
-      'Marks onboarding as skipped. User can set up their brand later from settings.',
-    summary: 'Skip onboarding',
-  })
-  @ApiResponse({
-    description: 'Onboarding skipped',
-    schema: {
-      properties: {
-        message: { type: 'string' },
-        success: { type: 'boolean' },
-      },
-      type: 'object',
-    },
-    status: 200,
-  })
-  skipOnboarding(@Body() _dto: SkipOnboardingDto, @CurrentUser() user: User) {
-    return this.onboardingService.skipOnboarding(user);
-  }
-
-  /**
    * Check if a prefix is available
    */
   @Get('prefix/:prefix/available')
@@ -221,52 +94,34 @@ export class OnboardingController {
   }
 
   /**
-   * Set account type (Creator/Business/Agency) during onboarding funnel
+   * Set organization prefix during onboarding
+   * Prefix is immutable once set — used for issue identifiers (e.g., GEN-42)
    */
-  @Post('account-type')
-  @HttpCode(200)
-  @ApiOperation({
-    description: 'Sets the organization category during the onboarding funnel.',
-    summary: 'Set account type',
-  })
-  @ApiResponse({
-    description: 'Account type set successfully',
-    schema: {
-      properties: {
-        message: { type: 'string' },
-        success: { type: 'boolean' },
-      },
-      type: 'object',
-    },
-    status: 200,
-  })
-  setAccountType(@Body() dto: SetAccountTypeDto, @CurrentUser() user: User) {
-    return this.onboardingService.setAccountType(user, dto.category);
-  }
-
-  /**
-   * Complete the onboarding funnel (called after Stripe payment succeeds)
-   */
-  @Post('complete-funnel')
+  @Post('prefix')
   @HttpCode(200)
   @ApiOperation({
     description:
-      'Marks the onboarding funnel as completed. Called after successful Stripe payment.',
-    summary: 'Complete onboarding funnel',
+      'Sets the unique 3-letter uppercase prefix for the organization. Used for issue identifiers. Immutable once set.',
+    summary: 'Set organization prefix',
   })
   @ApiResponse({
-    description: 'Funnel completed successfully',
+    description: 'Prefix set successfully',
     schema: {
       properties: {
         message: { type: 'string' },
+        prefix: { type: 'string' },
         success: { type: 'boolean' },
       },
       type: 'object',
     },
     status: 200,
   })
-  completeFunnel(@CurrentUser() user: User) {
-    return this.onboardingService.completeFunnel(user);
+  @ApiResponse({
+    description: 'Prefix already set or taken',
+    status: 409,
+  })
+  setPrefix(@Body() dto: SetPrefixDto, @CurrentUser() user: User) {
+    return this.onboardingService.setPrefix(user, dto.prefix);
   }
 
   @Get('proactive-workspace')
@@ -317,34 +172,5 @@ export class OnboardingController {
   })
   generatePreview(@Body() dto: GeneratePreviewDto, @CurrentUser() user: User) {
     return this.onboardingService.generateOnboardingPreview(dto, user);
-  }
-
-  /**
-   * Add reference images to a brand during onboarding
-   */
-  @Post('brand/:brandId/reference-images')
-  @HttpCode(200)
-  @ApiOperation({
-    description:
-      'Adds reference images (face, product, style, logo) to a brand for consistent content generation.',
-    summary: 'Add reference images to brand',
-  })
-  @ApiResponse({
-    description: 'Reference images added successfully',
-    schema: {
-      properties: {
-        count: { type: 'number' },
-        success: { type: 'boolean' },
-      },
-      type: 'object',
-    },
-    status: 200,
-  })
-  addReferenceImages(
-    @Param('brandId') brandId: string,
-    @Body() dto: AddReferenceImagesDto,
-    @CurrentUser() user: User,
-  ) {
-    return this.onboardingService.addReferenceImages(brandId, dto.images, user);
   }
 }

@@ -1,7 +1,6 @@
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { PersonasModule } from '@api/collections/personas/personas.module';
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
-import { ConfigModule } from '@api/config/config.module';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { AiInfluencerController } from '@api/services/ai-influencer/ai-influencer.controller';
 import { AiInfluencerService } from '@api/services/ai-influencer/ai-influencer.service';
@@ -10,6 +9,7 @@ import { InstagramModule } from '@api/services/integrations/instagram/instagram.
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { PersonaContentModule } from '@api/services/persona-content/persona-content.module';
+import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { forwardRef, Module } from '@nestjs/common';
 

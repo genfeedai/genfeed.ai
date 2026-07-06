@@ -1,5 +1,5 @@
-import { ConfigService } from '@api/config/config.service';
 import { SolanaService } from '@api/services/integrations/solana/solana.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';

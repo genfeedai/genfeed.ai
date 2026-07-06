@@ -1,9 +1,14 @@
-import { ConfigService } from '@api/config/config.service';
 import { IS_SELF_HOSTED } from '@genfeedai/config';
-import { creditPackTotalCredits, PAYG_CREDIT_PACKS } from '@genfeedai/helpers';
+import {
+  creditPackTotalCredits,
+  PAYG_CREDIT_PACKS,
+  PAYG_MAX_PURCHASE_USD,
+  PAYG_MIN_PURCHASE_USD,
+} from '@genfeedai/helpers';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import StripeConstructor from 'stripe';
 
 type StripeClient = InstanceType<typeof StripeConstructor>;
@@ -67,6 +72,33 @@ export class StripeService {
           '2026-03-25.dahlia',
       },
     );
+  }
+
+  /**
+   * Guard a PAYG credit top-up quantity against the flat top-up bounds.
+   *
+   * Credits are billed at 1 credit = $0.01, so the dollar bounds
+   * (`PAYG_MIN_PURCHASE_USD` / `PAYG_MAX_PURCHASE_USD`) map to credit bounds by
+   * a factor of 100. Presets and custom amounts both flow through here, so the
+   * server is the single source of truth for min/max — the UI bound is a
+   * convenience, not the enforcement point.
+   *
+   * @throws BadRequestException when `quantity` (in credits) is outside range.
+   */
+  private assertPaygQuantityWithinBounds(quantity: number): void {
+    const minCredits = PAYG_MIN_PURCHASE_USD * 100;
+    const maxCredits = PAYG_MAX_PURCHASE_USD * 100;
+
+    if (
+      !Number.isFinite(quantity) ||
+      quantity < minCredits ||
+      quantity > maxCredits
+    ) {
+      throw new BadRequestException(
+        `Credit top-up must be between $${PAYG_MIN_PURCHASE_USD.toLocaleString()} and $${PAYG_MAX_PURCHASE_USD.toLocaleString()} ` +
+          `(${minCredits.toLocaleString()}–${maxCredits.toLocaleString()} credits).`,
+      );
+    }
   }
 
   public async createOrganizationCustomer(
@@ -236,7 +268,7 @@ export class StripeService {
         firstName,
         lastName,
         stripePriceId,
-        quantity = 1,
+        quantity = 1000,
         successUrl,
         cancelUrl,
       } = params;
@@ -258,6 +290,7 @@ export class StripeService {
       }
 
       if (isPayg) {
+        this.assertPaygQuantityWithinBounds(quantity);
         const pack = PAYG_CREDIT_PACKS.find((p) => p.credits === quantity);
         const totalCredits = pack ? creditPackTotalCredits(pack) : quantity;
         metadata.credits = String(totalCredits);
@@ -522,7 +555,8 @@ export class StripeService {
 
         this.applyPromotionCode(sessionConfig, stripePriceId);
       } else if (isPayg) {
-        // Pay as you go credits — bonus delivered via metadata, not coupons
+        // Pay as you go credits — flat top-up, min/max enforced server-side
+        this.assertPaygQuantityWithinBounds(quantity);
         const pack = PAYG_CREDIT_PACKS.find((p) => p.credits === quantity);
         const totalCredits = pack ? creditPackTotalCredits(pack) : quantity;
 

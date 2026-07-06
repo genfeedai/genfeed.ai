@@ -1,5 +1,4 @@
 import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
-import { ConfigService } from '@api/config/config.service';
 import { FanvueService } from '@api/services/integrations/fanvue/services/fanvue.service';
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
 import type {
@@ -7,6 +6,7 @@ import type {
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

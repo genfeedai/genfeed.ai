@@ -1,8 +1,8 @@
 import { SettingsModule } from '@api/collections/settings/settings.module';
-import { ConfigModule } from '@api/config/config.module';
-import { ConfigService } from '@api/config/config.service';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { ConfigModule } from '@libs/config/config.module';
+import { ConfigService } from '@libs/config/config.service';
 import { RedisModule } from '@libs/redis/redis.module';
 import { forwardRef, Module } from '@nestjs/common';
 

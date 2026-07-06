@@ -1,6 +1,6 @@
-import { ConfigService } from '@api/config/config.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

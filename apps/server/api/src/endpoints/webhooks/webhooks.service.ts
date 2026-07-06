@@ -6,7 +6,6 @@ import {
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { UsersService } from '@api/collections/users/services/users.service';
-import { ConfigService } from '@api/config/config.service';
 import { ActivityUpdateService } from '@api/endpoints/webhooks/services/activity-update.service';
 import { AutoMergeService } from '@api/endpoints/webhooks/services/auto-merge.service';
 import { MediaUploadService } from '@api/endpoints/webhooks/services/media-upload.service';
@@ -30,6 +29,7 @@ import {
   IngredientStatus,
 } from '@genfeedai/enums';
 import type { IIngredientNotificationData } from '@genfeedai/interfaces';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';

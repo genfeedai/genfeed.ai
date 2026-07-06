@@ -1,6 +1,5 @@
 import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import type { LinksService } from '@api/collections/links/services/links.service';
-import type { MembersService } from '@api/collections/members/services/members.service';
 import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { BrandSetupDto } from '@api/endpoints/onboarding/dto/brand-setup.dto';
 import type { ReferenceImageDto } from '@api/endpoints/onboarding/dto/reference-images.dto';
@@ -25,7 +24,6 @@ describe('BrandPersistenceService', () => {
     findOne: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
   };
-  let membersService: { setLastUsedBrand: ReturnType<typeof vi.fn> };
   let organizationsService: {
     generateUniqueSlug: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
@@ -48,9 +46,6 @@ describe('BrandPersistenceService', () => {
       findOne: vi.fn(),
       patch: vi.fn(),
     };
-    membersService = {
-      setLastUsedBrand: vi.fn(),
-    };
     organizationsService = {
       generateUniqueSlug: vi.fn(),
       patch: vi.fn(),
@@ -65,111 +60,9 @@ describe('BrandPersistenceService', () => {
       loggerService as unknown as LoggerService,
       brandsService as unknown as BrandsService,
       linksService as unknown as LinksService,
-      membersService as unknown as MembersService,
       organizationsService as unknown as OrganizationsService,
       new BrandDataMapper(),
     );
-  });
-
-  describe('resolveOnboardingBrand', () => {
-    it('prefers the metadata brand when the id is a valid 24-hex id', async () => {
-      const metadataBrand = { _id: 'a'.repeat(24) };
-      brandsService.findOne.mockResolvedValueOnce(metadataBrand);
-
-      const result = await service.resolveOnboardingBrand(
-        'org_1',
-        'user_1',
-        'a'.repeat(24),
-      );
-
-      expect(result).toBe(metadataBrand);
-      expect(brandsService.findOne).toHaveBeenCalledTimes(1);
-    });
-
-    it('falls back to the selected brand, then any brand for the user', async () => {
-      const anyBrand = { _id: 'brand_any' };
-      brandsService.findOne
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(anyBrand);
-
-      const result = await service.resolveOnboardingBrand(
-        'org_1',
-        'user_1',
-        'not-a-hex-id',
-      );
-
-      expect(result).toBe(anyBrand);
-      expect(brandsService.findOne).toHaveBeenNthCalledWith(
-        1,
-        {
-          isDeleted: false,
-          isSelected: true,
-          organization: 'org_1',
-          user: 'user_1',
-        },
-        'none',
-      );
-    });
-  });
-
-  describe('resolveWritableOnboardingBrand', () => {
-    it('returns the original brand when no label is provided', async () => {
-      const brand = { _id: 'brand_1' };
-
-      const result = await service.resolveWritableOnboardingBrand(
-        brand,
-        'org_1',
-        'user_1',
-        '  ',
-      );
-
-      expect(result).toBe(brand);
-      expect(brandsService.findOne).not.toHaveBeenCalled();
-    });
-
-    it('switches to the label-matching brand and persists the selection', async () => {
-      const brand = { id: 'brand_1' };
-      const matching = { id: 'brand_2' };
-      brandsService.findOne.mockResolvedValueOnce(matching);
-
-      const result = await service.resolveWritableOnboardingBrand(
-        brand,
-        'org_1',
-        'user_1',
-        'Acme',
-      );
-
-      expect(result).toBe(matching);
-      expect(brandsService.selectBrandForUser).toHaveBeenCalledWith(
-        'brand_2',
-        'user_1',
-        'org_1',
-      );
-      expect(membersService.setLastUsedBrand).toHaveBeenCalledWith(
-        {
-          isActive: true,
-          isDeleted: false,
-          organization: 'org_1',
-          user: 'user_1',
-        },
-        'brand_2',
-      );
-    });
-
-    it('keeps the original brand when the match is the same brand', async () => {
-      const brand = { id: 'brand_1' };
-      brandsService.findOne.mockResolvedValueOnce({ id: 'brand_1' });
-
-      const result = await service.resolveWritableOnboardingBrand(
-        brand,
-        'org_1',
-        'user_1',
-        'Acme',
-      );
-
-      expect(result).toBe(brand);
-      expect(brandsService.selectBrandForUser).not.toHaveBeenCalled();
-    });
   });
 
   describe('updateBrandWithScrapedData', () => {
@@ -294,25 +187,6 @@ describe('BrandPersistenceService', () => {
             tone: 'bold',
           }),
         }),
-      });
-    });
-  });
-
-  describe('updateBrandGuidanceOverrides', () => {
-    it('merges only provided overrides into the existing voice', async () => {
-      brandsService.findOne.mockResolvedValue({
-        _id: 'brand_1',
-        agentConfig: { voice: { style: 'plain', tone: 'calm' } },
-      });
-
-      await service.updateBrandGuidanceOverrides('brand_1', {
-        tone: 'bold',
-      });
-
-      expect(brandsService.patch).toHaveBeenCalledWith('brand_1', {
-        agentConfig: {
-          voice: { style: 'plain', tone: 'bold' },
-        },
       });
     });
   });

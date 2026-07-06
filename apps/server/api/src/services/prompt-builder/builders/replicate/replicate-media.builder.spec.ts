@@ -1,7 +1,7 @@
-import type { ConfigService } from '@api/config/config.service';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import type { ConfigService } from '@libs/config/config.service';
 import { ReplicateMediaBuilder } from './replicate-media.builder';
 
 describe('ReplicateMediaBuilder', () => {

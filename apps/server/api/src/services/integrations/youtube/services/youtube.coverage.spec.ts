@@ -22,7 +22,6 @@ vi.mock('@api/shared/utils/youtube-oauth/youtube-oauth.util', () => ({
 }));
 
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
-import { ConfigService } from '@api/config/config.service';
 import { YoutubeAnalyticsService } from '@api/services/integrations/youtube/services/modules/youtube-analytics.service';
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import { YoutubeCommentsService } from '@api/services/integrations/youtube/services/modules/youtube-comments.service';
@@ -30,6 +29,7 @@ import { YoutubeMetadataService } from '@api/services/integrations/youtube/servi
 import { YoutubeUploadService } from '@api/services/integrations/youtube/services/modules/youtube-upload.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { YoutubeOAuth2Util } from '@api/shared/utils/youtube-oauth/youtube-oauth.util';
+import { ConfigService } from '@libs/config/config.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

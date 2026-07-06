@@ -5,7 +5,6 @@ import { CronJobsService } from '@api/collections/cron-jobs/services/cron-jobs.s
 import type { LegacyWorkflowStepRunner } from '@api/collections/workflows/services/legacy-workflow-step-runner.service';
 import { WorkflowTemplateSeederService } from '@api/collections/workflows/services/workflow-template-seeder.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
-import { ConfigModule } from '@api/config/config.module';
 import type { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
 import { WorkflowDeploymentBackfillService } from '@api/seeds/workflow-deployment-backfill.service';
 import type { CacheService } from '@api/services/cache/services/cache.service';
@@ -13,6 +12,7 @@ import type { OpenRouterService } from '@api/services/integrations/openrouter/se
 import type { SubstackService } from '@api/services/integrations/substack/services/substack.service';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Module } from '@nestjs/common';

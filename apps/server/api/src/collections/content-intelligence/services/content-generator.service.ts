@@ -6,7 +6,6 @@ import { PlaybookBuilderService } from '@api/collections/content-intelligence/se
 import { TopPerformerPromptContextService } from '@api/collections/content-intelligence/services/top-performer-prompt-context.service';
 import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
-import { ConfigService } from '@api/config/config.service';
 import { SecurityUtil } from '@api/helpers/utils/security/security.util';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { ContentHarnessService } from '@api/services/harness/harness.service';
@@ -16,6 +15,7 @@ import {
 } from '@api/services/harness/harness-brief.util';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { extractHashtags } from '@genfeedai/utils/data/extract.util';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 

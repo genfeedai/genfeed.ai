@@ -6,11 +6,11 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
   };
 });
 
-import { ConfigService } from '@api/config/config.service';
 import { StripeWebhookController } from '@api/endpoints/webhooks/stripe/webhooks.stripe.controller';
 import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.stripe.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { HttpException } from '@nestjs/common';

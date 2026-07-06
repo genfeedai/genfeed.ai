@@ -26,10 +26,10 @@ function isSqlFragment(value: unknown): value is SqlFragmentMock {
   );
 }
 
-import { ConfigService } from '@api/config/config.service';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AnalyticsMetric, CredentialPlatform } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

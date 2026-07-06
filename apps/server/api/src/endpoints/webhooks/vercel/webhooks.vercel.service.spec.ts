@@ -1,6 +1,6 @@
-import { ConfigService } from '@api/config/config.service';
 import { VercelWebhookService } from '@api/endpoints/webhooks/vercel/webhooks.vercel.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

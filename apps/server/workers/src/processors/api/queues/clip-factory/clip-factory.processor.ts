@@ -11,13 +11,13 @@
  */
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
-import { ConfigService } from '@api/config/config.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import {
   CLIP_FACTORY_CONCURRENCY,
   CLIP_FACTORY_QUEUE,
   ClipFactoryJobData,
 } from '@genfeedai/queue-contracts';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Processor, WorkerHost } from '@nestjs/bullmq';

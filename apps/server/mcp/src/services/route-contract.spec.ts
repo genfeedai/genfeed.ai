@@ -319,15 +319,9 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     tools: ['list_workflow_templates'],
   },
   {
-    method: 'Post',
-    sub: ':workflowId/schedule',
-    controller: 'workflowExecution',
-    tools: ['set_workflow_schedule'],
-  },
-  {
-    method: 'Delete',
-    sub: ':workflowId/schedule',
-    controller: 'workflowExecution',
+    method: 'Patch',
+    sub: ':workflowId',
+    controller: 'workflowCrud',
     tools: ['set_workflow_schedule'],
   },
   {

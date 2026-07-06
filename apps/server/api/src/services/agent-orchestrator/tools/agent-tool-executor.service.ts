@@ -30,7 +30,6 @@ import { VotesService } from '@api/collections/votes/services/votes.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowGenerationService } from '@api/collections/workflows/services/workflow-generation.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
-import { ConfigService } from '@api/config/config.service';
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
 import {
   type AiActionResult,
@@ -107,6 +106,7 @@ import {
   type OnboardingJourneyMissionId,
 } from '@genfeedai/types';
 import { formatRecurringSchedule } from '@helpers/formatting/recurring-schedule/recurring-schedule.helper';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Inject, Injectable, Optional } from '@nestjs/common';

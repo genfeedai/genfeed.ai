@@ -1,5 +1,5 @@
-import { ConfigModule } from '@api/config/config.module';
 import { ContentHarnessService } from '@api/services/harness/harness.service';
+import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
 

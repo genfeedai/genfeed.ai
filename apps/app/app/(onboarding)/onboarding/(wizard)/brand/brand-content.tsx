@@ -6,9 +6,9 @@ import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-aut
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';
 import { logger } from '@services/core/logger.service';
-import { OnboardingService } from '@services/onboarding/onboarding.service';
-import { OnboardingFunnelService } from '@services/onboarding/onboarding-funnel.service';
+import { OrganizationsService } from '@services/organization/organizations.service';
 import { UsersService } from '@services/organization/users.service';
+import { BrandsService } from '@services/social/brands.service';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -80,6 +80,10 @@ function BrandContentContent() {
   );
   const autoScanRef = useRef(false);
   const prefetchedRef = useRef(false);
+  // Resource ids resolved during prefill; the collapsed onboarding routes are
+  // now resource PATCH/POST on /brands and /organizations (REST audit #1354).
+  const brandIdRef = useRef<string | null>(null);
+  const orgIdRef = useRef<string | null>(null);
 
   // Prefill form fields from existing brand/organization data
   useEffect(() => {
@@ -111,6 +115,13 @@ function BrandContentContent() {
         const brand = brands[0];
         const org = organizations[0];
 
+        if (brand?.id) {
+          brandIdRef.current = brand.id;
+        }
+        if (org?.id) {
+          orgIdRef.current = org.id;
+        }
+
         if (brand?.label) {
           setBrandName((prev) => prev || brand.label);
         }
@@ -140,20 +151,54 @@ function BrandContentContent() {
     };
   }, [getToken]);
 
+  const resolveBrandId = useCallback(
+    async (token: string): Promise<string | null> => {
+      if (brandIdRef.current) {
+        return brandIdRef.current;
+      }
+      const brands = await UsersService.getInstance(token).findMeBrands({
+        pagination: false,
+      });
+      brandIdRef.current = brands[0]?.id ?? null;
+      return brandIdRef.current;
+    },
+    [],
+  );
+
+  const resolveOrgId = useCallback(
+    async (token: string): Promise<string | null> => {
+      if (orgIdRef.current) {
+        return orgIdRef.current;
+      }
+      const organizations =
+        await UsersService.getInstance(token).findMeOrganizations();
+      orgIdRef.current = organizations[0]?.id ?? null;
+      return orgIdRef.current;
+    },
+    [],
+  );
+
   const handleAccountTypeSelect = useCallback(
     async (category: OrganizationCategory) => {
       setAccountType(category);
       try {
         const token = await resolveAuthToken(getToken);
-        if (token) {
-          const service = OnboardingFunnelService.getInstance(token);
-          await service.setAccountType(category);
+        if (!token) {
+          return;
         }
+        const orgId = await resolveOrgId(token);
+        if (!orgId) {
+          return;
+        }
+        await OrganizationsService.getInstance(token).updateAccountType(
+          orgId,
+          category,
+        );
       } catch (error) {
         logger.error('Failed to set account type', error);
       }
     },
-    [getToken],
+    [getToken, resolveOrgId],
   );
 
   const handleContinue = useCallback(
@@ -179,7 +224,6 @@ function BrandContentContent() {
           return;
         }
 
-        const service = OnboardingService.getInstance(token);
         const brandUrl = skipWebsite
           ? null
           : normalizeWebsiteUrl(urlOverride ?? websiteUrl);
@@ -199,13 +243,24 @@ function BrandContentContent() {
           localStorage.removeItem(ONBOARDING_STORAGE_KEYS.brandDomain);
         }
 
+        const brandId = await resolveBrandId(token);
+        if (!brandId) {
+          throw new Error('No brand found for the current workspace');
+        }
+
+        const brandsService = BrandsService.getInstance(token);
         if (brandUrl) {
-          await service.setupBrand({
+          // Scrape + AI orchestration on the brand resource (was brand-setup).
+          await brandsService.scrape(brandId, {
             brandName: effectiveBrandName,
             brandUrl,
           });
         } else {
-          await service.updateBrandName(effectiveBrandName);
+          // Rename the brand, cascading to the org name during onboarding.
+          await brandsService.renameWithOrganizationSync(
+            brandId,
+            effectiveBrandName,
+          );
         }
 
         push(APP_ROUTES.ONBOARDING.PROVIDERS);
@@ -214,7 +269,7 @@ function BrandContentContent() {
         setSubmitting(false);
       }
     },
-    [getToken, brandName, websiteUrl, push],
+    [getToken, brandName, websiteUrl, push, resolveBrandId],
   );
 
   const handleSkipOnboarding = useCallback(async () => {
@@ -226,15 +281,21 @@ function BrandContentContent() {
         return;
       }
 
-      await OnboardingService.getInstance(token).skip(
-        'skipped-from-brand-step',
-      );
+      const orgId = await resolveOrgId(token);
+      if (!orgId) {
+        throw new Error('No organization found for the current workspace');
+      }
+
+      // Mark first-login complete on the org settings resource (was /onboarding/skip).
+      await OrganizationsService.getInstance(token).patchSettings(orgId, {
+        isFirstLogin: false,
+      });
       push('/');
     } catch (error) {
       logger.error('Failed to skip onboarding', error);
       setSubmitting(false);
     }
-  }, [getToken, push]);
+  }, [getToken, push, resolveOrgId]);
 
   // Auto-scan from corporate email flow.
   // websiteUrl and brandName are already initialised from localStorage in useState,

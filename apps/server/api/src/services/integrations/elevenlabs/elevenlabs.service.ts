@@ -1,9 +1,9 @@
 import fs from 'node:fs';
-import { ConfigService } from '@api/config/config.service';
 import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 import { ApiKeyCategory, FileInputType } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

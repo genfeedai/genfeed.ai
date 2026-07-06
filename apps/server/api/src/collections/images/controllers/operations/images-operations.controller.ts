@@ -9,7 +9,6 @@ import type { IngredientRefDocument } from '@api/collections/ingredients/schemas
 import { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
-import { ConfigService } from '@api/config/config.service';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
@@ -44,6 +43,7 @@ import {
   TagKey,
 } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,

@@ -1,4 +1,4 @@
-import { ConfigModule } from '@api/config/config.module';
+import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
 import { CiTriageWebhookController } from './ci-triage-webhook.controller';

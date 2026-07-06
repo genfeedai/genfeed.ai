@@ -7,7 +7,8 @@ describe('WorkspaceSurface', () => {
     const { container } = render(<WorkspaceSurface>Body</WorkspaceSurface>);
     expect(container.querySelector('section')).toHaveClass('rounded');
     expect(container.querySelector('section')).toHaveClass('ship-ui');
-    expect(container.querySelector('section')).toHaveClass('gen-shell-panel');
+    expect(container.querySelector('section')).toHaveClass('bg-card');
+    expect(container.querySelector('section')).toHaveClass('shadow-border');
   });
 
   it('renders eyebrow, title, and actions', () => {
@@ -39,7 +40,8 @@ describe('WorkspaceSurface', () => {
 
     const section = container.querySelector('section');
     expect(section).toHaveClass('ship-ui');
-    expect(section).toHaveClass('gen-shell-panel');
+    expect(section).toHaveClass('bg-secondary');
+    expect(section).toHaveClass('shadow-border');
     expect(container.querySelector('.px-4')).toBeInTheDocument();
   });
 
@@ -52,18 +54,19 @@ describe('WorkspaceSurface', () => {
     expect(section).toHaveClass('bg-card');
     expect(section).toHaveClass('shadow-border');
     expect(section).toHaveClass('rounded-card');
-    expect(section).not.toHaveClass('gen-shell-panel');
+    expect(section).not.toHaveClass('rounded-md');
   });
 
-  it('does not change the shell-panel treatment of existing tones', () => {
+  it('does not change the frame treatment of existing tones', () => {
     for (const tone of ['default', 'muted', 'elevated'] as const) {
       const { container, unmount } = render(
         <WorkspaceSurface tone={tone}>Body</WorkspaceSurface>,
       );
 
       const section = container.querySelector('section');
-      expect(section).toHaveClass('gen-shell-panel');
-      expect(section).not.toHaveClass('bg-card');
+      expect(section).toHaveClass('ship-ui');
+      expect(section).toHaveClass('rounded-md');
+      expect(section).not.toHaveClass('rounded-card');
       unmount();
     }
   });

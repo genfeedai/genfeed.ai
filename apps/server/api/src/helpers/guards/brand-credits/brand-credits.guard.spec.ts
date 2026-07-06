@@ -2,10 +2,10 @@ import type { BrandsService } from '@api/collections/brands/services/brands.serv
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { ModelsService } from '@api/collections/models/services/models.service';
 import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import type { ConfigService } from '@api/config/config.service';
 import { BrandCreditsGuard } from '@api/helpers/guards/brand-credits/brand-credits.guard';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import type { ByokService } from '@api/services/byok/byok.service';
+import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';

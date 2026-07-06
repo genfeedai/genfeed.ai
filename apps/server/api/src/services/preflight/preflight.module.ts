@@ -1,6 +1,6 @@
-import { ConfigModule } from '@api/config/config.module';
 import { PreflightController } from '@api/services/preflight/preflight.controller';
 import { PreflightService } from '@api/services/preflight/preflight.service';
+import { ConfigModule } from '@libs/config/config.module';
 import { Module } from '@nestjs/common';
 
 @Module({

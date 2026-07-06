@@ -1,5 +1,4 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { ConfigService } from '@api/config/config.service';
 import type {
   GoogleAdsAd,
   GoogleAdsAdGroup,
@@ -15,6 +14,7 @@ import type {
   GoogleAdsUpdateCampaignInput,
 } from '@api/services/integrations/google-ads/interfaces/google-ads.interface';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';

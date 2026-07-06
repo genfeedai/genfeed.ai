@@ -1,6 +1,6 @@
-import { ConfigService } from '@api/config/config.service';
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import { YoutubeMetadataService } from '@api/services/integrations/youtube/services/modules/youtube-metadata.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

@@ -206,9 +206,54 @@ describe('WorkflowExecutionsService', () => {
             progress: 50,
           }),
         }),
+        select: { id: true, result: true },
         where: { id: 'execution-1' },
       }),
     );
+  });
+
+  it('reads only runtime state needed for delay resume ETA updates', async () => {
+    const { prisma, service } = makeService();
+    const startedAt = new Date('2026-06-29T00:00:00.000Z');
+    prisma.workflowExecution.findUnique.mockResolvedValue({
+      isDeleted: false,
+      result: {
+        metadata: {
+          eta: {
+            currentPhase: 'Waiting',
+            estimatedDurationMs: 12_000,
+          },
+        },
+        progress: 37,
+      },
+      startedAt,
+    });
+
+    await expect(service.getRuntimeState('execution-1')).resolves.toEqual({
+      metadata: {
+        eta: {
+          currentPhase: 'Waiting',
+          estimatedDurationMs: 12_000,
+        },
+      },
+      progress: 37,
+      startedAt,
+    });
+    expect(prisma.workflowExecution.findUnique).toHaveBeenCalledWith({
+      select: { isDeleted: true, result: true, startedAt: true },
+      where: { id: 'execution-1' },
+    });
+  });
+
+  it('treats deleted execution runtime state as missing', async () => {
+    const { prisma, service } = makeService();
+    prisma.workflowExecution.findUnique.mockResolvedValue({
+      isDeleted: true,
+      result: { progress: 50 },
+      startedAt: new Date('2026-06-29T00:00:00.000Z'),
+    });
+
+    await expect(service.getRuntimeState('execution-1')).resolves.toBeNull();
   });
 
   it('narrows result-only void patch updates to the id return field', async () => {
@@ -263,5 +308,28 @@ describe('WorkflowExecutionsService', () => {
       where: { id: 'missing-execution' },
     });
     expect(prisma.workflowExecution.update).not.toHaveBeenCalled();
+  });
+
+  it('updates execution metadata with a narrow return payload', async () => {
+    const { prisma, service } = makeService();
+    prisma.workflowExecution.findUnique.mockResolvedValue({
+      result: { metadata: { retained: true }, progress: 20 },
+    });
+
+    await service.updateExecutionMetadata('execution-1', { phase: 'running' });
+
+    expect(prisma.workflowExecution.update).toHaveBeenCalledWith({
+      data: {
+        result: {
+          metadata: {
+            phase: 'running',
+            retained: true,
+          },
+          progress: 20,
+        },
+      },
+      select: { id: true, result: true },
+      where: { id: 'execution-1' },
+    });
   });
 });

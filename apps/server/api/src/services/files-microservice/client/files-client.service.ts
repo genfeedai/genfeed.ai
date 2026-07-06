@@ -1,6 +1,5 @@
 import path from 'node:path';
 import process from 'node:process';
-import { ConfigService } from '@api/config/config.service';
 import { IS_SELF_HOSTED } from '@genfeedai/config';
 import { FileInputType } from '@genfeedai/enums';
 import type {
@@ -10,6 +9,7 @@ import type {
   IVideoDimensions,
   UploadSource,
 } from '@genfeedai/interfaces';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';

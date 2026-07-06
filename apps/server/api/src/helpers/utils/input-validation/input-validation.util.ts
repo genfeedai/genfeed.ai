@@ -1,6 +1,6 @@
-import { ValidationConfigService } from '@api/config/services/validation.config';
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { ValidationConfigService } from '@libs/config/services/validation.config';
 
 /**
  * Comprehensive input validation utility

@@ -1,4 +1,5 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import type { ReferenceImageCategory } from '@genfeedai/enums';
 import type { DefaultVoiceRef } from '@genfeedai/helpers/voice/default-voice-ref.helper';
 import type {
   FastlaneGenerateIdeasRequest,
@@ -10,6 +11,8 @@ import type {
   IBrandKitApplyResult,
   IBrandKitDraft,
   IBrandKitManualInput,
+  IBrandSetupRequest,
+  IBrandSetupResponse,
   IImage,
   IPost,
   IQueryParams,
@@ -337,6 +340,60 @@ export class BrandsService extends BaseService<Brand> {
     return await this.instance
       .post<JsonApiResponseDocument>(`/${id}/brand-kit/manual`, data)
       .then((res) => deserializeResource<IBrandKitDraft>(res.data));
+  }
+
+  /**
+   * Scrape the brand's website/socials, analyze with AI, and populate canonical
+   * brand guidance. Backs `POST /brands/:id/scrape` (renamed from the dissolved
+   * `POST /onboarding/brand-setup`, REST audit #1354). Returns the plain
+   * orchestration envelope, not a JSON:API resource.
+   */
+  public async scrape(
+    id: string,
+    dto: IBrandSetupRequest,
+  ): Promise<IBrandSetupResponse> {
+    return await this.instance
+      .post<IBrandSetupResponse>(`/${id}/scrape`, dto)
+      .then((res) => res.data);
+  }
+
+  /**
+   * Rename a brand and, during the first-login onboarding window, cascade the
+   * new name to the owning organization's label + slug. Backs the
+   * `syncOrganizationName` path of `PATCH /brands/:id` (dissolves
+   * `PATCH /onboarding/brand-name`, REST audit #1354).
+   */
+  public async renameWithOrganizationSync(
+    id: string,
+    label: string,
+  ): Promise<Brand> {
+    return await this.instance
+      .patch<JsonApiResponseDocument>(`/${id}`, {
+        label,
+        syncOrganizationName: true,
+      })
+      .then((res) => this.mapOne(res.data));
+  }
+
+  /**
+   * Add reference images (face, product, style, logo) to a brand. Backs
+   * `POST /brands/:id/reference-images` (dissolves the onboarding route,
+   * REST audit #1354).
+   */
+  public async addReferenceImages(
+    id: string,
+    images: Array<{
+      url: string;
+      category: ReferenceImageCategory;
+      label?: string;
+      isDefault?: boolean;
+    }>,
+  ): Promise<{ success: boolean; count: number }> {
+    return await this.instance
+      .post<{ success: boolean; count: number }>(`/${id}/reference-images`, {
+        images,
+      })
+      .then((res) => res.data);
   }
 
   /**

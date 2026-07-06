@@ -1,4 +1,5 @@
-import { ConfigService } from '@api/config/config.service';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
+import { ConfigService } from '@libs/config/config.service';
 import { Injectable } from '@nestjs/common';
 
 export interface ValidationConfig {
