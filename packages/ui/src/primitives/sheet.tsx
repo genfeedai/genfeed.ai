@@ -7,13 +7,13 @@ import type { ComponentPropsWithRef, HTMLAttributes } from 'react';
 import { cn } from '../lib/utils';
 import { useModalContentGlobalSideEffectCleanup } from '../utils/modal-global-side-effects';
 
-const Sheet = SheetPrimitive.Root;
+const Sheet: typeof SheetPrimitive.Root = SheetPrimitive.Root;
 
-const SheetTrigger = SheetPrimitive.Trigger;
+const SheetTrigger: typeof SheetPrimitive.Trigger = SheetPrimitive.Trigger;
 
-const SheetClose = SheetPrimitive.Close;
+const SheetClose: typeof SheetPrimitive.Close = SheetPrimitive.Close;
 
-const SheetPortal = SheetPrimitive.Portal;
+const SheetPortal: typeof SheetPrimitive.Portal = SheetPrimitive.Portal;
 
 function SheetOverlay({
   ref,
