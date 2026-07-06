@@ -2,8 +2,9 @@ import type {
   SwitcherDropdownFooterAction,
   SwitcherDropdownItem,
 } from '@genfeedai/props/ui/menus/switcher-dropdown.props';
-import { render, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import OrganizationSwitcher from '@ui/menus/organization-switcher/OrganizationSwitcher';
+import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockPush = vi.fn();
@@ -54,19 +55,28 @@ vi.mock('@ui/menus/switcher-dropdown/SwitcherDropdown', () => ({
     items = [],
     emptyMessage,
     onSelect,
+    renderTrigger,
   }: {
     footerActions?: SwitcherDropdownFooterAction[];
     isLoading?: boolean;
     items?: SwitcherDropdownItem[];
     emptyMessage?: string;
     onSelect?: (id: string) => void;
+    renderTrigger?: (state: {
+      isDisabled: boolean;
+      isOpen: boolean;
+    }) => ReactNode;
   }) => {
     capturedFooterActions = footerActions;
     capturedItems = items;
     capturedIsLoading = isLoading;
     capturedEmptyMessage = emptyMessage;
     capturedOnSelect = onSelect;
-    return <div data-testid="switcher-dropdown" />;
+    return (
+      <div data-testid="switcher-dropdown">
+        {renderTrigger?.({ isDisabled: false, isOpen: false })}
+      </div>
+    );
   },
 }));
 
@@ -157,6 +167,21 @@ describe('OrganizationSwitcher', () => {
     });
 
     expect(capturedFooterActions).toEqual([]);
+  });
+
+  it('renders the sidebar trigger with compact spacing and a square avatar', async () => {
+    render(<OrganizationSwitcher />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Acme Org')).toBeInTheDocument();
+    });
+
+    const trigger = screen.getByText('Acme Org').closest('div');
+    const avatar = trigger?.querySelector('.size-6');
+
+    expect(trigger).toHaveClass('h-8', 'gap-2', 'px-3', 'rounded-md');
+    expect(avatar).toHaveClass('rounded-md');
+    expect(avatar).not.toHaveClass('rounded-full');
   });
 
   it('passes a completed error state when organizations fail to load', async () => {

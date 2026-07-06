@@ -88,6 +88,16 @@ describe('SwitcherDropdown', () => {
     expect(activeOption?.querySelector('svg')).not.toBeNull();
   });
 
+  it('renders item fallback avatars as square marks', () => {
+    renderDropdown();
+    fireEvent.click(screen.getByText('Open'));
+
+    const avatar = screen.getAllByRole('option')[0]?.querySelector('.size-5');
+
+    expect(avatar).toHaveClass('rounded-md');
+    expect(avatar).not.toHaveClass('rounded-full');
+  });
+
   it('selects the highlighted item via arrow-down + Enter (cmdk keyboard nav)', () => {
     const onSelect = vi.fn();
     renderDropdown({ hasSearch: true, onSelect });

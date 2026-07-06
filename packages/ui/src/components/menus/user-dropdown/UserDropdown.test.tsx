@@ -28,9 +28,15 @@ vi.mock('next/link', () => ({
 }));
 
 vi.mock('next/image', () => ({
-  default: ({ src, alt }: { src: string; alt: string }) => (
-    <img src={src} alt={alt} />
-  ),
+  default: ({
+    alt,
+    className,
+    src,
+  }: {
+    alt: string;
+    className?: string;
+    src: string;
+  }) => <img src={src} alt={alt} className={className} />,
 }));
 
 describe('UserDropdown', () => {
@@ -39,6 +45,9 @@ describe('UserDropdown', () => {
 
     const trigger = screen.getByRole('button', { name: 'Open account menu' });
     expect(trigger).toHaveTextContent('T');
+    expect(trigger).toHaveClass('rounded-md');
+    expect(trigger).not.toHaveClass('rounded-full');
+    expect(screen.getByText('T')).toHaveClass('rounded-md');
   });
 
   it('renders the user avatar image when provided', () => {
@@ -53,6 +62,9 @@ describe('UserDropdown', () => {
     expect(screen.getByRole('img', { name: 'Test User' })).toHaveAttribute(
       'src',
       'https://cdn.example.com/avatar.png',
+    );
+    expect(screen.getByRole('img', { name: 'Test User' })).toHaveClass(
+      'rounded-md',
     );
   });
 

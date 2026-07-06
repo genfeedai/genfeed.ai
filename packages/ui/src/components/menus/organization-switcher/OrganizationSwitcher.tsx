@@ -175,18 +175,18 @@ export default function OrganizationSwitcher() {
         renderTrigger={({ isOpen }) => (
           <div
             className={cn(
-              'flex h-9 w-full items-center gap-2 rounded-lg px-3 py-2 transition-all cursor-pointer',
+              'flex h-8 w-full cursor-pointer items-center gap-2 rounded-md px-3 transition-colors duration-150',
               'hover:bg-foreground/[0.06]',
               isSwitching && 'opacity-50 cursor-not-allowed',
               isOpen && 'bg-foreground/[0.06]',
             )}
           >
-            <div className="size-6 rounded bg-foreground/20 flex items-center justify-center text-xs font-semibold text-foreground flex-shrink-0">
+            <div className="flex size-6 flex-shrink-0 items-center justify-center rounded-md bg-foreground/20 text-xs font-semibold text-foreground">
               {displayLabel.charAt(0).toUpperCase()}
             </div>
             <span
               className={cn(
-                'flex-1 text-left truncate text-sm font-medium',
+                'flex-1 truncate text-left text-[13px] font-medium',
                 error ? 'text-destructive' : 'text-foreground/90',
               )}
             >
@@ -194,7 +194,7 @@ export default function OrganizationSwitcher() {
             </span>
             <HiChevronDown
               className={cn(
-                'size-3.5 text-foreground/40 transition-transform duration-200 flex-shrink-0',
+                'size-3.5 flex-shrink-0 text-foreground/40 transition-transform duration-200',
                 isOpen && 'rotate-180',
               )}
             />
