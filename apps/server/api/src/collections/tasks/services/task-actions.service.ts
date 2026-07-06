@@ -81,15 +81,20 @@ export class TaskActionsService {
       failureReason: null,
       requestedChangesReason: null,
     });
-    const actorUserId = userId ?? task.assigneeUserId ?? '';
-    await this.appendEventAndBroadcast(updated, organizationId, actorUserId, {
-      type: 'task_approved',
-    });
+    const actorUserId = this.resolveActorUserId(userId, task.assigneeUserId);
+    await this.appendEventAndBroadcast(
+      updated,
+      organizationId,
+      actorUserId ?? '',
+      {
+        type: 'task_approved',
+      },
+    );
     await this.taskFeedbackMemoryAdapter.captureFromTaskReview({
       decision: 'approved',
       organizationId,
       task: updated,
-      userId: actorUserId,
+      ...this.buildActorUserIdPayload(actorUserId),
     });
     return updated;
   }
@@ -168,17 +173,22 @@ export class TaskActionsService {
       'add',
       outputId,
     );
-    const actorUserId = userId ?? task.assigneeUserId ?? '';
-    await this.appendEventAndBroadcast(updated, organizationId, actorUserId, {
-      payload: { outputId },
-      type: 'output_kept',
-    });
+    const actorUserId = this.resolveActorUserId(userId, task.assigneeUserId);
+    await this.appendEventAndBroadcast(
+      updated,
+      organizationId,
+      actorUserId ?? '',
+      {
+        payload: { outputId },
+        type: 'output_kept',
+      },
+    );
     await this.taskFeedbackMemoryAdapter.captureFromTaskReview({
       decision: 'output_kept',
       organizationId,
       outputId,
       task: updated,
-      userId: actorUserId,
+      ...this.buildActorUserIdPayload(actorUserId),
     });
     return updated;
   }
@@ -233,17 +243,22 @@ export class TaskActionsService {
       'remove',
       outputId,
     );
-    const actorUserId = userId ?? task.assigneeUserId ?? '';
-    await this.appendEventAndBroadcast(updated, organizationId, actorUserId, {
-      payload: { outputId },
-      type: 'output_trashed',
-    });
+    const actorUserId = this.resolveActorUserId(userId, task.assigneeUserId);
+    await this.appendEventAndBroadcast(
+      updated,
+      organizationId,
+      actorUserId ?? '',
+      {
+        payload: { outputId },
+        type: 'output_trashed',
+      },
+    );
     await this.taskFeedbackMemoryAdapter.captureFromTaskReview({
       decision: 'output_trashed',
       organizationId,
       outputId,
       task: updated,
-      userId: actorUserId,
+      ...this.buildActorUserIdPayload(actorUserId),
     });
     return updated;
   }
@@ -363,6 +378,23 @@ export class TaskActionsService {
         'This output is not linked to the requested task.',
       );
     return task;
+  }
+
+  private buildActorUserIdPayload(userId?: string): { userId?: string } {
+    return userId ? { userId } : {};
+  }
+
+  private resolveActorUserId(
+    ...candidates: Array<string | undefined>
+  ): string | undefined {
+    for (const candidate of candidates) {
+      const normalized = candidate?.trim();
+      if (normalized) {
+        return normalized;
+      }
+    }
+
+    return undefined;
   }
 
   private createTaskEventEntry(input: TaskEventInput): {

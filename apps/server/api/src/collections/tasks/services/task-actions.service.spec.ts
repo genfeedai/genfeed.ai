@@ -170,4 +170,22 @@ describe('TaskActionsService', () => {
       }),
     );
   });
+
+  it('omits feedback memory user id when optional actor and assignee are missing', async () => {
+    delete currentTask.assigneeUserId;
+
+    await service.approve(taskId, organizationId);
+    await service.keepOutput(taskId, outputId, organizationId);
+    await service.trashOutput(taskId, outputId, organizationId);
+
+    const captureInputs =
+      taskFeedbackMemoryAdapter.captureFromTaskReview.mock.calls.map(
+        ([input]) => input,
+      );
+
+    expect(captureInputs).toHaveLength(3);
+    for (const input of captureInputs) {
+      expect(input).not.toHaveProperty('userId');
+    }
+  });
 });
