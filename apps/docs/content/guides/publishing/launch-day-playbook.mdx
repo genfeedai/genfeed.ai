@@ -1,0 +1,233 @@
+# Launch Day Playbook
+
+Use this public playbook to prepare the Genfeed.ai open-source launch on Show
+HN and Product Hunt. GitHub issue
+[#1433](https://github.com/genfeedai/genfeed.ai/issues/1433) is the tracker for
+launch readiness; this page is the reusable operating checklist and public copy
+draft.
+
+## Launch Gate
+
+Do not submit to Show HN or Product Hunt until the Sell-Ready walkthrough in
+[#334](https://github.com/genfeedai/genfeed.ai/issues/334) is green.
+
+After that gate closes:
+
+1. Pick Show HN for the first Tuesday, Wednesday, or Thursday morning in the
+   primary US audience window.
+2. Pick Product Hunt 8-14 days after Show HN, starting at 12:01 AM Pacific.
+3. Freeze launch copy and gallery assets 48 hours before each submission.
+4. Keep the maker online for the first two hours after each launch.
+
+## Public Safety Rules
+
+- Keep submissions factual. Avoid private strategy notes, vault links, internal
+  pricing, roadmap commitments, or unannounced customer names.
+- Do not automate Hacker News posting, comments, replies, voting, or engagement.
+- Use the `launch-kit` workflow to draft copy, then human-review every word
+  before posting.
+- Redact secrets, customer data, billing IDs, and private analytics from all
+  screenshots.
+- Treat GitHub issues and Projects as the source of truth. Do not create a
+  parallel local launch backlog.
+
+## Repo Launch Readiness
+
+Every row needs public evidence before the Show HN date is final.
+
+| Area                  | Required outcome                                                                               | Evidence to attach to #1433                                                               |
+| --------------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| README                | README explains the product, quick start, architecture, links, license, and contribution path. | Link to reviewed README diff or latest commit.                                            |
+| Demo GIFs             | README or docs show the core workflow: generate, schedule, publish, and inspect output.        | Public GIF or screenshot paths with redactions complete.                                  |
+| Architecture overview | Public docs show the OSS Core, Cloud, Community, Desktop, and `ee/` boundaries.                | Link to [Architecture](/core/self-hosted-vs-cloud) and [Deployment Options](/deployment). |
+| Docker quick start    | A fresh clone can run the one-command Community path from `docker/.env.example`.               | Clean-clone terminal transcript for `docker compose -f docker-compose.selfhosted.yml up`. |
+| Screenshots           | Product Hunt gallery and README screenshots show current UI, not mockups.                      | Final image paths, dimensions, and captions.                                              |
+| CONTRIBUTING          | Contribution path, branch policy, checks, and PR expectations are public.                      | Link to `CONTRIBUTING.md`.                                                                |
+| Issue templates       | Bug and feature reports guide public contributors without exposing private process.            | Link to `.github/ISSUE_TEMPLATE/` once present.                                           |
+| Analytics             | Launch cohort attribution is wired before traffic arrives.                                     | UTM links, PostHog dashboard, or tracked-link IDs.                                        |
+
+## Attribution
+
+Use a single campaign name so the launch cohort is easy to compare across
+channels:
+
+```text
+utm_campaign=oss_launch
+```
+
+Recommended channel values:
+
+| Channel                    | Source         | Medium    | Content         |
+| -------------------------- | -------------- | --------- | --------------- |
+| Show HN submission         | `hacker_news`  | `show_hn` | `repo`          |
+| Show HN first comment      | `hacker_news`  | `comment` | `docs`          |
+| Product Hunt product link  | `product_hunt` | `launch`  | `product_page`  |
+| Product Hunt maker comment | `product_hunt` | `comment` | `maker_comment` |
+| dev.to launch article      | `devto`        | `article` | `launch_story`  |
+| X / Twitter thread         | `x`            | `social`  | `launch_thread` |
+| LinkedIn post              | `linkedin`     | `social`  | `launch_post`   |
+
+Track at least:
+
+- GitHub stars from baseline to T+24 hours, T+72 hours, and T+7 days.
+- New signups with launch UTMs or channel referrers.
+- Activation from the launch cohort: first brand created, first generation
+  completed, first publish scheduled or sent.
+- Self-hosting interest: docs quick-start views, Docker image pulls, and GitHub
+  issues opened by launch visitors.
+
+## Show HN Plan
+
+### Submission
+
+Submit a link to the public repo or public docs, not a private staging URL.
+
+Draft title:
+
+```text
+Show HN: Genfeed.ai - open-source AI content OS
+```
+
+Timing:
+
+- Submit Tuesday, Wednesday, or Thursday morning after #334 is green.
+- Avoid major US holidays and large conference keynote windows.
+- Keep the first two hours clear for fast, technical replies.
+
+### First Comment Draft
+
+```text
+Hi HN, I am building Genfeed.ai as an open-source AI OS for content creation.
+
+The repo includes a self-hostable Community setup, a visual workflow editor,
+generation pipelines, scheduling, publishing integrations, and a Docker quick
+start. The goal is to let creators and dev-founders run the content loop
+themselves instead of stitching together prompts, files, calendars, and posting
+tools by hand.
+
+The open-source core runs locally with Postgres and the published Docker image.
+Generation can use BYOK provider keys or a local GPU. Cloud and enterprise
+features live behind the documented OSS/Cloud boundary.
+
+I am especially interested in feedback on the self-hosting path, workflow model,
+and whether the architecture is easy to understand from the README and docs.
+```
+
+### First-Comment FAQ
+
+Use these answers only when the thread asks for them. Keep replies short and
+specific.
+
+| Question                                   | Answer                                                                                           |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| Can I self-host it?                        | Yes. Community runs from the Docker quick start with Postgres and the published image.           |
+| Do I need a cloud account?                 | No for Community self-hosting. Cloud is optional for managed execution and hosted collaboration. |
+| Does it post to Hacker News automatically? | No. The launch kit drafts copy and checklists only; HN posting and replies stay human.           |
+| What license is it?                        | Core is AGPL-3.0. Enterprise code under `ee/` uses the commercial license in that folder.        |
+| How do I contribute?                       | Open a PR against `master` and follow `CONTRIBUTING.md`.                                         |
+
+## Product Hunt Plan
+
+Product Hunt should follow Show HN by 1-2 weeks so the team can fold in HN
+feedback, refresh screenshots, and avoid splitting the launch conversation.
+
+### Product Page Draft
+
+Tagline candidates:
+
+- Open-source AI workflows for content teams
+- Self-hostable AI content creation OS
+- Generate, schedule, and publish with AI workflows
+- The open-source content OS for creators
+
+Short description:
+
+```text
+Genfeed.ai is an open-source AI OS for content creation. Build visual workflows
+for images, video, text, voice, and publishing, then run them in a self-hosted
+Community setup or Genfeed Cloud.
+```
+
+### Maker Comment Draft
+
+```text
+I built Genfeed.ai because content creation is becoming a full operating loop:
+research, generate, review, schedule, publish, and learn from performance.
+
+Most AI tools cover one piece of that loop. Genfeed.ai is the open-source system
+for the whole thing: visual workflows, content generation, asset management,
+calendar scheduling, publishing integrations, and a self-hostable Community
+setup.
+
+The repo is public, the Docker quick start is the easiest way to try it, and I
+would love feedback from founders, creators, and teams trying to make their
+content process less manual.
+```
+
+### Gallery Asset Checklist
+
+| Asset                   | Purpose                                     | Notes                                           |
+| ----------------------- | ------------------------------------------- | ----------------------------------------------- |
+| Hero image              | Explain "AI content OS" in one frame.       | Use current product UI, not a synthetic mockup. |
+| Workflow editor         | Show visual generation and publishing flow. | Include readable node labels.                   |
+| Studio generation       | Show fast image/video/text generation.      | Redact provider keys and account details.       |
+| Calendar/schedule       | Show launch-week planning.                  | Use demo content and public-safe dates.         |
+| Publishing integrations | Show connected channels.                    | Do not expose account handles unless public.    |
+| Self-hosting proof      | Show Docker quick start or architecture.    | Keep terminal output free of secrets.           |
+
+### Launch-Day Schedule
+
+| Time        | Action                                                                                 |
+| ----------- | -------------------------------------------------------------------------------------- |
+| T-48h       | Freeze copy, screenshots, and links.                                                   |
+| T-24h       | Confirm Product Hunt product page, maker access, gallery assets, and UTM links.        |
+| 12:01 AM PT | Launch the Product Hunt page.                                                          |
+| First 2h    | Reply to questions, ship clarifications into docs, and capture high-signal objections. |
+| First 24h   | Publish dev.to and owned-channel posts through Genfeed.                                |
+| T+24h       | Record traffic, stars, signups, activation, and self-hosting signals.                  |
+| T+7d        | Write the public launch retrospective and link follow-up issues.                       |
+
+## Launch-Week Content Calendar
+
+Create and schedule these through Genfeed. Capture the workflow run, content ID,
+scheduled timestamp, and final public URL as dogfood evidence.
+
+| Day         | Channel                | Content                                                   | Evidence                                |
+| ----------- | ---------------------- | --------------------------------------------------------- | --------------------------------------- |
+| D-7         | Blog or dev.to draft   | Why Genfeed is open source and self-hostable.             | Draft URL and Genfeed workflow run.     |
+| D-5         | X / Twitter            | Build-in-public thread with Docker quick-start GIF.       | Scheduled post and GIF asset.           |
+| D-3         | LinkedIn               | Founder/use-case post for dev-founders and creator teams. | Scheduled post and preview.             |
+| D-1         | GitHub                 | README, screenshots, and issue templates frozen.          | Commit hash and clean-clone notes.      |
+| D0          | Hacker News            | Show HN submission and first-comment reply.               | HN thread URL and baseline metrics.     |
+| D+1         | dev.to                 | Technical launch article with architecture and setup.     | Published URL and UTM link.             |
+| D+3         | X / Twitter + LinkedIn | What HN feedback changed in the docs or roadmap.          | Published URLs and linked issues.       |
+| D+8 to D+14 | Product Hunt           | Product Hunt launch page and maker comment.               | PH URL and first-day metrics.           |
+| D+15        | Blog or docs           | Public retrospective: results, fixes, next steps.         | Retrospective URL and follow-up issues. |
+
+## Metrics Review
+
+Record a baseline before Show HN and compare each checkpoint to that baseline.
+
+| Metric                 | Baseline            | T+24h             | T+72h             | T+7d              |
+| ---------------------- | ------------------- | ----------------- | ----------------- | ----------------- |
+| GitHub stars           | Fill before Show HN | Fill after launch | Fill after launch | Fill after launch |
+| GitHub forks           | Fill before Show HN | Fill after launch | Fill after launch | Fill after launch |
+| New signups            | Fill before Show HN | Fill after launch | Fill after launch | Fill after launch |
+| Activated launch users | Fill before Show HN | Fill after launch | Fill after launch | Fill after launch |
+| Docker image pulls     | Fill before Show HN | Fill after launch | Fill after launch | Fill after launch |
+| Docs quick-start views | Fill before Show HN | Fill after launch | Fill after launch | Fill after launch |
+
+Activation means a launch-cohort user creates a brand and completes at least one
+generation or scheduled publish.
+
+## Final Pre-Submit Checklist
+
+- [ ] #334 is green and linked from #1433.
+- [ ] README, screenshots, architecture docs, CONTRIBUTING, and issue templates
+      have public review evidence.
+- [ ] Clean-clone Docker quick start has been run and evidence is attached.
+- [ ] Show HN title and first comment are reviewed.
+- [ ] Product Hunt tagline, maker comment, and gallery are reviewed.
+- [ ] UTM links and analytics views are confirmed.
+- [ ] Launch-week posts are generated and scheduled through Genfeed.
+- [ ] Baseline metrics are recorded before the first submission.
