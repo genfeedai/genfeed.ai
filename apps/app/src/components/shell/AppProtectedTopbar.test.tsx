@@ -169,7 +169,9 @@ describe('AppProtectedTopbar', () => {
     const switcher = screen.getByTestId('app-switcher');
     const cloudSyncIndicator = screen.getByTestId('cloud-sync-indicator');
     const credits = screen.getByTestId('topbar-credits-bar');
+    const topbarInner = screen.getByTestId('app-protected-topbar-inner');
 
+    expect(topbarInner).toHaveClass('gap-2', 'pl-4', 'pr-6');
     expect(brandSwitcher).toHaveTextContent('labeled');
     expect(breadcrumbs).toHaveTextContent('Studio');
     expect(switcher).toHaveTextContent('icon');

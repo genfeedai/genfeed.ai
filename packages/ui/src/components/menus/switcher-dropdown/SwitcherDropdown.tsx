@@ -228,21 +228,20 @@ function SwitcherItem({
       >
         {/* Avatar */}
         {item.imageUrl ? (
-          <div className="size-5 rounded-full overflow-hidden bg-background flex items-center justify-center flex-shrink-0">
+          <div className="flex size-5 flex-shrink-0 items-center justify-center overflow-hidden rounded-md bg-background">
             <Image
               src={item.imageUrl}
               alt={item.label}
               width={20}
               height={20}
-              className="object-cover object-center"
+              className="size-full object-cover object-center"
               sizes="20px"
-              style={{ height: 'auto', width: 'auto' }}
             />
           </div>
         ) : (
           <div
             className={cn(
-              'size-5 rounded flex items-center justify-center text-[10px] font-bold flex-shrink-0',
+              'flex size-5 flex-shrink-0 items-center justify-center rounded-md text-[10px] font-bold',
               item.isActive
                 ? 'bg-primary/30 text-primary'
                 : 'bg-foreground/10 text-foreground/60',

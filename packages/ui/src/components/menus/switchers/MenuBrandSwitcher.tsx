@@ -36,7 +36,7 @@ export default function MenuBrandSwitcher({
   const isUpdating = externalIsUpdating ?? isUpdatingBrand;
   const selectedBrand = brands.find((b) => b.id === brandId);
   const selectedBrandLabel = selectedBrand?.label || 'Select Brand';
-  const avatarSizeClassName = variant === 'labeled' ? 'size-5' : 'size-8';
+  const avatarSizeClassName = variant === 'labeled' ? 'size-6' : 'size-8';
 
   const handleSelect = useCallback(
     async (id: string) => {
@@ -99,7 +99,7 @@ export default function MenuBrandSwitcher({
             'transition-all',
             'hover:bg-foreground/10 transition-colors duration-200',
             variant === 'labeled'
-              ? 'flex h-7 min-w-0 w-full items-center gap-1.5 rounded-md px-2 text-left'
+              ? 'flex h-8 w-full min-w-0 items-center gap-2 rounded-md px-2 text-left'
               : 'flex items-center justify-center p-1',
             isUpdating && 'opacity-50 cursor-not-allowed',
             isOpen && 'bg-foreground/10',
@@ -110,25 +110,24 @@ export default function MenuBrandSwitcher({
           {selectedBrand?.logoUrl && selectedBrand.logoUrl !== '' ? (
             <div
               className={cn(
-                'rounded-full overflow-hidden bg-background flex items-center justify-center flex-shrink-0',
+                'flex flex-shrink-0 items-center justify-center overflow-hidden rounded-md bg-background',
                 avatarSizeClassName,
               )}
             >
               <Image
                 src={selectedBrand.logoUrl}
                 alt={selectedBrand.label ?? 'Brand'}
-                width={variant === 'labeled' ? 20 : 32}
-                height={variant === 'labeled' ? 20 : 32}
-                className="object-cover object-center"
-                sizes={variant === 'labeled' ? '20px' : '32px'}
-                style={{ height: 'auto', width: 'auto' }}
+                width={variant === 'labeled' ? 24 : 32}
+                height={variant === 'labeled' ? 24 : 32}
+                className="size-full object-cover object-center"
+                sizes={variant === 'labeled' ? '24px' : '32px'}
               />
             </div>
           ) : (
             <div
               className={cn(
-                'rounded-full bg-foreground/20 flex items-center justify-center font-semibold text-foreground flex-shrink-0',
-                variant === 'labeled' ? 'size-5 text-[10px]' : 'size-8 text-sm',
+                'flex flex-shrink-0 items-center justify-center rounded-md bg-foreground/20 font-semibold text-foreground',
+                variant === 'labeled' ? 'size-6 text-xs' : 'size-8 text-sm',
               )}
             >
               {selectedBrandLabel.charAt(0).toUpperCase()}

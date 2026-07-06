@@ -128,7 +128,11 @@ function AppProtectedTopbarContent({
 
   return (
     <header className="ship-ui h-full w-full bg-transparent">
-      <div className="grid h-full w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2.5 pl-3 pr-2 sm:px-4 lg:px-5">
+      {/* Brand trigger has px-2 internally, so pl-4 aligns its visible mark to the 24px page gutter. */}
+      <div
+        data-testid="app-protected-topbar-inner"
+        className="grid h-full w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 pl-4 pr-6"
+      >
         <div className="flex min-w-0 items-center gap-2 justify-self-start">
           {onMenuToggle ? (
             <Button
@@ -179,7 +183,7 @@ function AppProtectedTopbarContent({
           />
         </div>
 
-        <div className="flex min-w-0 items-center justify-end gap-1.5">
+        <div className="flex min-w-0 items-center justify-end gap-2">
           {taskId ? (
             <div className="hidden items-center gap-2 rounded border border-border bg-background-secondary px-2 py-1 text-[11px] lg:flex">
               <span className="font-semibold uppercase tracking-[0.14em] text-muted-foreground">
@@ -221,7 +225,7 @@ function AppProtectedTopbarContent({
 
           {/* Grouped account controls: section switcher sits directly beside
               the settings/user menu so they read as one cluster. */}
-          <div className="flex items-center gap-0.5">
+          <div className="flex items-center gap-2">
             {effectiveOrgSlug ? (
               <AppSwitcher
                 variant="icon"

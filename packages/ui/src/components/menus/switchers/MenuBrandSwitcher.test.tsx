@@ -140,6 +140,24 @@ describe('MenuBrandSwitcher', () => {
     expect(capturedMinWidth).toBe(224);
   });
 
+  it('uses the shared compact square avatar rhythm in labeled mode', () => {
+    render(
+      <MenuBrandSwitcher
+        variant="labeled"
+        brands={brandsWithSlug}
+        brandId="brand_1"
+        onBrandChange={vi.fn()}
+      />,
+    );
+
+    const trigger = screen.getByTestId('brand-switcher-trigger');
+    const avatar = trigger.querySelector('div');
+
+    expect(trigger).toHaveClass('h-8', 'gap-2', 'px-2', 'rounded-md');
+    expect(avatar).toHaveClass('size-6', 'rounded-md');
+    expect(avatar).not.toHaveClass('rounded-full');
+  });
+
   it('exposes the brand-switcher-trigger testid showing the brand label (E2E contract)', () => {
     // The release/shell E2E specs bind to this testid + the seeded brand label
     // to prove the shell fetched live org/brand data. Guard the contract here so
