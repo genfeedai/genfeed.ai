@@ -6,11 +6,11 @@ Accepted
 
 ## Spec Version
 
-v1.2.0
+v1.2.1
 
 ## Last Updated
 
-2026-06-29
+2026-07-06
 
 ## Canonical Source
 
@@ -60,7 +60,7 @@ The **brand** is the unit of content context (a brand owns one or more social ac
 
 **One self-hostable auth system across all three modes: [Better Auth](https://better-auth.com)** (MIT, free). It runs **in-process** against our existing Postgres — no separate instance, no SaaS vendor, no call-home.
 
-Better Auth ships **magic link, Google/GitHub OAuth, organizations/teams, and admin impersonation** as first-party plugins, with a Prisma/Postgres adapter and NestJS + Electron integrations.
+Better Auth ships **magic link, social OAuth, organizations/teams, and admin impersonation** as first-party plugins, with a Prisma/Postgres adapter and NestJS + Electron integrations. Current surfaced login UI is Google + magic link; GitHub provider config remains in the server factory but the beta GitHub login button was removed in #1253.
 
 | Mode | Auth |
 |---|---|
