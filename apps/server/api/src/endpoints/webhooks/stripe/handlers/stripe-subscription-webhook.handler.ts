@@ -177,18 +177,18 @@ export class StripeSubscriptionWebhookHandler {
         subscription.status,
       );
 
-      // Invalidate request context cache so updated subscription info is reflected immediately
-      const userId = user.id?.toString();
-      if (userId) {
-        await this.supportService.invalidateUserCaches(userId);
-      }
-
       // Update tier if price changed
       await this.updateTierFromPrice(
         subscription.items.data[0]?.price?.id,
         String(existingSubscription.organization),
         url,
       );
+
+      // Invalidate request context cache only after all dependent writes complete.
+      const userId = user.id?.toString();
+      if (userId) {
+        await this.supportService.invalidateUserCaches(userId);
+      }
 
       this.loggerService.log(`${url} subscription updated successfully`, {
         organizationId: existingSubscription.organization,
@@ -253,18 +253,18 @@ export class StripeSubscriptionWebhookHandler {
         'canceled',
       );
 
-      // Invalidate request context cache so canceled subscription is reflected immediately
-      const userId = user.id?.toString();
-      if (userId) {
-        await this.supportService.invalidateUserCaches(userId);
-      }
-
       // Clear organization tier (BYOK = free tier after subscription canceled)
       await this.supportService.updateOrganizationTierAndModels(
         String(existingSubscription.organization),
         SubscriptionTier.BYOK,
         url,
       );
+
+      // Invalidate request context cache only after all dependent writes complete.
+      const userId = user.id?.toString();
+      if (userId) {
+        await this.supportService.invalidateUserCaches(userId);
+      }
 
       this.loggerService.log(`${url} subscription deleted successfully`, {
         organizationId: existingSubscription.organization,
@@ -285,6 +285,7 @@ export class StripeSubscriptionWebhookHandler {
   ) {
     const user = await this.usersService.findOne({
       id: existingSubscription.user,
+      isDeleted: false,
     });
 
     if (!user) {

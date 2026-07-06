@@ -10,6 +10,8 @@ import type {
   StripeMetadata,
   StripeRecurringInterval,
 } from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
+import { getEmailLogMetadata } from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
+import { CacheService } from '@api/services/cache/services/cache.service';
 import type { StripeCheckoutSession } from '@api/services/integrations/stripe/services/stripe.service';
 import {
   ActivityKey,
@@ -26,6 +28,9 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable } from '@nestjs/common';
 
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+const CHECKOUT_SESSION_NAMESPACE = 'stripe-checkout-session';
+const CHECKOUT_SESSION_PROCESSED_TTL_SECONDS = 60 * 60 * 24 * 30;
+const CHECKOUT_SESSION_LOCK_TTL_SECONDS = 60 * 5;
 
 type CreditsActivity = {
   brandId: string;
@@ -52,6 +57,7 @@ export class StripeWebhookSupportService {
 
   constructor(
     private readonly configService: ConfigService,
+    private readonly cacheService: CacheService,
     private readonly loggerService: LoggerService,
 
     private readonly activitiesService: ActivitiesService,
@@ -82,6 +88,67 @@ export class StripeWebhookSupportService {
     }
 
     return Number(metadata?.credits || configured || fallback);
+  }
+
+  async withCheckoutSessionProcessing<T>(
+    sessionId: string,
+    kind: string,
+    fn: () => Promise<T>,
+  ): Promise<T | null> {
+    const processedKey = this.buildCheckoutSessionProcessedKey(kind, sessionId);
+
+    return await this.cacheService.withLock(
+      this.buildCheckoutSessionLockKey(kind, sessionId),
+      async () => {
+        if (await this.cacheService.exists(processedKey)) {
+          return null;
+        }
+
+        const result = await fn();
+        const didMarkProcessed = await this.cacheService.set(
+          processedKey,
+          {
+            kind,
+            processedAt: new Date().toISOString(),
+            sessionId,
+          },
+          {
+            tags: [CHECKOUT_SESSION_NAMESPACE, kind, sessionId],
+            ttl: CHECKOUT_SESSION_PROCESSED_TTL_SECONDS,
+          },
+        );
+
+        if (!didMarkProcessed) {
+          throw new Error(
+            `Failed to mark Stripe checkout session ${sessionId} as processed`,
+          );
+        }
+
+        return result;
+      },
+      CHECKOUT_SESSION_LOCK_TTL_SECONDS,
+    );
+  }
+
+  private buildCheckoutSessionProcessedKey(
+    kind: string,
+    sessionId: string,
+  ): string {
+    return this.cacheService.generateKey(
+      CHECKOUT_SESSION_NAMESPACE,
+      kind,
+      'processed',
+      sessionId,
+    );
+  }
+
+  private buildCheckoutSessionLockKey(kind: string, sessionId: string): string {
+    return this.cacheService.generateKey(
+      CHECKOUT_SESSION_NAMESPACE,
+      kind,
+      'lock',
+      sessionId,
+    );
   }
 
   /** Add purchased credits with the standard 1-year expiration. */
@@ -141,13 +208,17 @@ export class StripeWebhookSupportService {
     );
 
     let dbUser = subscription
-      ? await this.usersService.findOne({ id: subscription.user })
+      ? await this.usersService.findOne({
+          id: subscription.user,
+          isDeleted: false,
+        })
       : null;
 
     // Fallback: find user by checkout session email
     if (!dbUser && session.customer_details?.email) {
       dbUser = await this.usersService.findOne({
         email: session.customer_details.email,
+        isDeleted: false,
       });
     }
 
@@ -156,7 +227,7 @@ export class StripeWebhookSupportService {
         `${url} could not find user for onboarding completion`,
         {
           customerId: session.customer,
-          email: session.customer_details?.email,
+          ...getEmailLogMetadata(session.customer_details?.email),
           sessionId: session.id,
         },
       );
@@ -192,12 +263,13 @@ export class StripeWebhookSupportService {
         );
       }
     }
-    await this.accessBootstrapCacheService.invalidateForUser(String(dbUser.id));
-
     await this.markOnboardingComplete(dbUser);
+    await this.invalidateUserCaches(String(dbUser.id));
 
     this.loggerService.log(`${url} onboarding marked complete`, {
-      email: dbUser.email,
+      ...getEmailLogMetadata(
+        (dbUser as OnboardingUser & { email?: string | null }).email,
+      ),
       sessionId: session.id,
       userId: dbUser.id,
     });
@@ -221,6 +293,7 @@ export class StripeWebhookSupportService {
         await this.organizationSettingsService.patch(orgSetting.id.toString(), {
           hasEverHadCredits: true,
         });
+        await this.invalidateOrganizationCaches(organizationId);
       }
     } catch (error: unknown) {
       this.loggerService.warn(`${url} failed to set hasEverHadCredits flag`, {
@@ -254,6 +327,7 @@ export class StripeWebhookSupportService {
       await this.organizationSettingsService.patch(orgSetting.id.toString(), {
         byokBillingStatus: status,
       });
+      await this.invalidateOrganizationCaches(organizationId);
     } catch (patchError: unknown) {
       this.loggerService.error(`${url} ${failureLogMessage}`, {
         invoiceId,
@@ -268,6 +342,15 @@ export class StripeWebhookSupportService {
     await Promise.all([
       this.requestContextCacheService.invalidateForUser(userId),
       this.accessBootstrapCacheService.invalidateForUser(userId),
+    ]);
+  }
+
+  async invalidateOrganizationCaches(organizationId: string): Promise<void> {
+    await Promise.all([
+      this.requestContextCacheService.invalidateForOrganization(organizationId),
+      this.accessBootstrapCacheService.invalidateForOrganization(
+        organizationId,
+      ),
     ]);
   }
 
@@ -375,6 +458,7 @@ export class StripeWebhookSupportService {
         enabledModels: enabledModelIds,
         subscriptionTier: tier,
       });
+      await this.invalidateOrganizationCaches(organizationId);
 
       this.loggerService.log(`${url} organization tier and models updated`, {
         enabledModelsCount: enabledModelIds.length,

@@ -7,6 +7,7 @@ import { AccessBootstrapCacheService } from '@api/common/services/access-bootstr
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { ConfigService } from '@api/config/config.service';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
+import { CacheService } from '@api/services/cache/services/cache.service';
 import type { StripeCheckoutSession } from '@api/services/integrations/stripe/services/stripe.service';
 import {
   ActivityKey,
@@ -26,6 +27,12 @@ describe('StripeWebhookSupportService', () => {
   const configService = { get: vi.fn().mockReturnValue(undefined) };
   const loggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
   const activitiesService = { create: vi.fn() };
+  const cacheService = {
+    exists: vi.fn(),
+    generateKey: vi.fn(),
+    set: vi.fn(),
+    withLock: vi.fn(),
+  };
   const creditsUtilsService = {
     addOrganizationCreditsWithExpiration: vi.fn(),
   };
@@ -37,8 +44,14 @@ describe('StripeWebhookSupportService', () => {
   const organizationsService = { findOne: vi.fn() };
   const subscriptionsService = { findByStripeCustomerId: vi.fn() };
   const usersService = { findOne: vi.fn(), patch: vi.fn() };
-  const requestContextCacheService = { invalidateForUser: vi.fn() };
-  const accessBootstrapCacheService = { invalidateForUser: vi.fn() };
+  const requestContextCacheService = {
+    invalidateForOrganization: vi.fn(),
+    invalidateForUser: vi.fn(),
+  };
+  const accessBootstrapCacheService = {
+    invalidateForOrganization: vi.fn(),
+    invalidateForUser: vi.fn(),
+  };
 
   const priceConfig: Record<string, string> = {
     STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY: 'price_enterprise',
@@ -50,6 +63,14 @@ describe('StripeWebhookSupportService', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     configService.get.mockReturnValue(undefined);
+    cacheService.exists.mockResolvedValue(false);
+    cacheService.generateKey.mockImplementation((namespace, ...parts) =>
+      [namespace, ...parts].join(':'),
+    );
+    cacheService.set.mockResolvedValue(true);
+    cacheService.withLock.mockImplementation(
+      async (_key: string, fn: () => Promise<unknown>) => await fn(),
+    );
     organizationSettingsService.getLatestMajorVersionModelIds.mockResolvedValue(
       ['model_1'],
     );
@@ -58,6 +79,7 @@ describe('StripeWebhookSupportService', () => {
       providers: [
         StripeWebhookSupportService,
         { provide: ConfigService, useValue: configService },
+        { provide: CacheService, useValue: cacheService },
         { provide: LoggerService, useValue: loggerService },
         { provide: ActivitiesService, useValue: activitiesService },
         { provide: CreditsUtilsService, useValue: creditsUtilsService },
@@ -99,6 +121,49 @@ describe('StripeWebhookSupportService', () => {
 
     it('preserves the historical NaN when no fallback is given', () => {
       expect(service.resolveCheckoutCredits({})).toBeNaN();
+    });
+  });
+
+  describe('withCheckoutSessionProcessing', () => {
+    it('runs the callback under a session lock and marks the session processed', async () => {
+      const callback = vi.fn().mockResolvedValue('done');
+
+      await expect(
+        service.withCheckoutSessionProcessing('cs_1', 'user-credit', callback),
+      ).resolves.toBe('done');
+
+      expect(cacheService.withLock).toHaveBeenCalledWith(
+        'stripe-checkout-session:user-credit:lock:cs_1',
+        expect.any(Function),
+        300,
+      );
+      expect(cacheService.exists).toHaveBeenCalledWith(
+        'stripe-checkout-session:user-credit:processed:cs_1',
+      );
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(cacheService.set).toHaveBeenCalledWith(
+        'stripe-checkout-session:user-credit:processed:cs_1',
+        expect.objectContaining({
+          kind: 'user-credit',
+          sessionId: 'cs_1',
+        }),
+        expect.objectContaining({
+          tags: ['stripe-checkout-session', 'user-credit', 'cs_1'],
+          ttl: 2_592_000,
+        }),
+      );
+    });
+
+    it('returns null without running the callback for an already processed session', async () => {
+      cacheService.exists.mockResolvedValue(true);
+      const callback = vi.fn();
+
+      await expect(
+        service.withCheckoutSessionProcessing('cs_1', 'user-credit', callback),
+      ).resolves.toBeNull();
+
+      expect(callback).not.toHaveBeenCalled();
+      expect(cacheService.set).not.toHaveBeenCalled();
     });
   });
 
@@ -202,8 +267,12 @@ describe('StripeWebhookSupportService', () => {
         expect.stringContaining(
           'could not find user for onboarding completion',
         ),
-        expect.objectContaining({ customerId: 'cus_123' }),
+        expect.objectContaining({
+          customerId: 'cus_123',
+          emailDomain: 'example.com',
+        }),
       );
+      expect(loggerService.warn.mock.calls[0][1]).not.toHaveProperty('email');
       expect(usersService.patch).not.toHaveBeenCalled();
     });
 
@@ -219,7 +288,11 @@ describe('StripeWebhookSupportService', () => {
 
       expect(usersService.findOne).toHaveBeenCalledWith({
         email: 'ada@example.com',
+        isDeleted: false,
       });
+      expect(requestContextCacheService.invalidateForUser).toHaveBeenCalledWith(
+        'user_1',
+      );
       expect(
         accessBootstrapCacheService.invalidateForUser,
       ).toHaveBeenCalledWith('user_1');
@@ -227,6 +300,15 @@ describe('StripeWebhookSupportService', () => {
         'user_1',
         expect.objectContaining({ isOnboardingCompleted: true }),
       );
+      expect(usersService.patch.mock.invocationCallOrder[0]).toBeLessThan(
+        requestContextCacheService.invalidateForUser.mock
+          .invocationCallOrder[0],
+      );
+      expect(loggerService.log).toHaveBeenCalledWith(
+        expect.stringContaining('onboarding marked complete'),
+        expect.objectContaining({ emailDomain: 'example.com' }),
+      );
+      expect(loggerService.log.mock.calls[0][1]).not.toHaveProperty('email');
     });
 
     it('persists the tier through updateOrganizationTierAndModels when given', async () => {
@@ -247,6 +329,10 @@ describe('StripeWebhookSupportService', () => {
         SubscriptionTier.BYOK,
       );
 
+      expect(usersService.findOne).toHaveBeenCalledWith({
+        id: 'user_1',
+        isDeleted: false,
+      });
       expect(organizationSettingsService.patch).toHaveBeenCalledWith('os_1', {
         enabledModels: ['model_1'],
         subscriptionTier: SubscriptionTier.BYOK,
@@ -263,11 +349,25 @@ describe('StripeWebhookSupportService', () => {
       expect(organizationSettingsService.patch).toHaveBeenCalledWith('os_1', {
         hasEverHadCredits: true,
       });
+      expect(
+        requestContextCacheService.invalidateForOrganization,
+      ).toHaveBeenCalledWith('org_1');
+      expect(
+        accessBootstrapCacheService.invalidateForOrganization,
+      ).toHaveBeenCalledWith('org_1');
+      expect(
+        organizationSettingsService.patch.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        requestContextCacheService.invalidateForOrganization.mock
+          .invocationCallOrder[0],
+      );
     });
 
     it('warns instead of throwing when the patch fails', async () => {
       organizationSettingsService.findOne.mockResolvedValue({ id: 'os_1' });
-      organizationSettingsService.patch.mockRejectedValue(new Error('boom'));
+      organizationSettingsService.patch.mockRejectedValueOnce(
+        new Error('boom'),
+      );
 
       await service.setHasEverHadCredits('org_1', 'test');
 
@@ -293,11 +393,25 @@ describe('StripeWebhookSupportService', () => {
       expect(organizationSettingsService.patch).toHaveBeenCalledWith('os_1', {
         byokBillingStatus: ByokBillingStatus.ACTIVE,
       });
+      expect(
+        requestContextCacheService.invalidateForOrganization,
+      ).toHaveBeenCalledWith('org_1');
+      expect(
+        accessBootstrapCacheService.invalidateForOrganization,
+      ).toHaveBeenCalledWith('org_1');
+      expect(
+        organizationSettingsService.patch.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        requestContextCacheService.invalidateForOrganization.mock
+          .invocationCallOrder[0],
+      );
     });
 
     it('logs patch failures with the caller-provided message', async () => {
       organizationSettingsService.findOne.mockResolvedValue({ id: 'os_1' });
-      organizationSettingsService.patch.mockRejectedValue(new Error('boom'));
+      organizationSettingsService.patch.mockRejectedValueOnce(
+        new Error('boom'),
+      );
 
       await service.setByokBillingStatus(
         'org_1',
@@ -326,6 +440,19 @@ describe('StripeWebhookSupportService', () => {
       expect(
         accessBootstrapCacheService.invalidateForUser,
       ).toHaveBeenCalledWith('user_1');
+    });
+  });
+
+  describe('invalidateOrganizationCaches', () => {
+    it('invalidates both per-organization caches', async () => {
+      await service.invalidateOrganizationCaches('org_1');
+
+      expect(
+        requestContextCacheService.invalidateForOrganization,
+      ).toHaveBeenCalledWith('org_1');
+      expect(
+        accessBootstrapCacheService.invalidateForOrganization,
+      ).toHaveBeenCalledWith('org_1');
     });
   });
 
@@ -400,6 +527,18 @@ describe('StripeWebhookSupportService', () => {
         enabledModels: ['model_1'],
         subscriptionTier: SubscriptionTier.PRO,
       });
+      expect(
+        requestContextCacheService.invalidateForOrganization,
+      ).toHaveBeenCalledWith('org_1');
+      expect(
+        accessBootstrapCacheService.invalidateForOrganization,
+      ).toHaveBeenCalledWith('org_1');
+      expect(
+        organizationSettingsService.patch.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        requestContextCacheService.invalidateForOrganization.mock
+          .invocationCallOrder[0],
+      );
     });
 
     it('warns when the org settings are missing', async () => {

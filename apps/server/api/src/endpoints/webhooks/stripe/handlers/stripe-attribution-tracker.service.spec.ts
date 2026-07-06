@@ -86,6 +86,10 @@ describe('StripeAttributionTrackerService', () => {
       }),
       'org_1',
     );
+    expect(usersService.findOne).toHaveBeenCalledWith({
+      id: 'user_1',
+      isDeleted: false,
+    });
   });
 
   it('returns early when the session carries no subscription', async () => {

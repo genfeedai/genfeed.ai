@@ -12,6 +12,7 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { StripeAttributionTrackerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-attribution-tracker.service';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
+import { getEmailLogMetadata } from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
 import {
   type ManagedCheckoutResult,
   ManagedStripeCheckoutService,
@@ -49,6 +50,10 @@ type ManagedCheckoutResources = {
   brand: { id: string };
   organization: { id: string };
   orgSetting: { id: string } | null;
+};
+
+type SkillReceiptDocument = {
+  data?: unknown;
 };
 
 /** Handles checkout.session.completed Stripe webhook events (all sub-types). */
@@ -123,6 +128,7 @@ export class StripeCheckoutWebhookHandler {
         `${url} failed to handle checkout completed`,
         error,
       );
+      throw error;
     }
   }
 
@@ -199,60 +205,70 @@ export class StripeCheckoutWebhookHandler {
       return;
     }
 
-    const creditsToAdd = this.supportService.resolveCheckoutCredits(
-      session.metadata,
+    const processed = await this.supportService.withCheckoutSessionProcessing(
+      session.id,
+      'organization-payment',
+      async () => {
+        const creditsToAdd = this.supportService.resolveCheckoutCredits(
+          session.metadata,
+        );
+
+        // Add credits using new credit system
+        await this.supportService.addPurchasedCredits(
+          String(subscription.organization),
+          creditsToAdd,
+          'pay-as-you-go',
+          `Credit pack purchase (${creditsToAdd} credits)`,
+        );
+
+        const newBalance =
+          await this.creditsUtilsService.getOrganizationCreditsBalance(
+            String(subscription.organization),
+          );
+
+        const dbUser = await this.usersService.findOne({
+          id: subscription.user,
+          isDeleted: false,
+        });
+
+        if (dbUser) {
+          await this.supportService.markOnboardingComplete(dbUser);
+          await this.supportService.invalidateUserCaches(dbUser.id.toString());
+        } else {
+          // Fallback: mark onboarding complete even if subscription lookup fails
+          await this.supportService.markOnboardingCompleteFromSession(
+            session,
+            url,
+          );
+        }
+
+        await this.supportService.recordCreditsActivity({
+          brandId: String(subscription.organization),
+          organizationId: String(subscription.organization),
+          source: ActivitySource.PAY_AS_YOU_GO,
+          ...(dbUser?.id ? { userId: String(dbUser.id) } : {}),
+          value: String(creditsToAdd),
+        });
+
+        this.loggerService.log(`${url} PAYG credits added to organization`, {
+          creditsAdded: creditsToAdd,
+          customerId: session.customer,
+          newBalance,
+          organizationId: subscription.organization,
+          sessionId: session.id,
+        });
+
+        return true;
+      },
     );
 
-    // Add credits using new credit system
-    await this.supportService.addPurchasedCredits(
-      String(subscription.organization),
-      creditsToAdd,
-      'pay-as-you-go',
-      `Credit pack purchase (${creditsToAdd} credits)`,
-    );
-
-    const newBalance =
-      await this.creditsUtilsService.getOrganizationCreditsBalance(
-        String(subscription.organization),
-      );
-
-    const dbUser = await this.usersService.findOne({
-      id: subscription.user,
-    });
-
-    // Balance (credit-balance table) and isOnboardingCompleted (User row)
-    // are persisted to the DB below (epic #735, Phase C — no legacy auth provider
-    // publicMetadata write-back).
-    if (dbUser?.id) {
-      await this.accessBootstrapCacheService.invalidateForUser(
-        dbUser.id.toString(),
-      );
+    if (processed === null) {
+      this.loggerService.log(`${url} PAYG checkout already processed`, {
+        customerId: session.customer,
+        organizationId: subscription.organization,
+        sessionId: session.id,
+      });
     }
-
-    if (dbUser) {
-      await this.supportService.markOnboardingComplete(dbUser);
-    }
-
-    // Fallback: mark onboarding complete even if subscription lookup fails
-    if (!dbUser) {
-      await this.supportService.markOnboardingCompleteFromSession(session, url);
-    }
-
-    await this.supportService.recordCreditsActivity({
-      brandId: String(subscription.organization),
-      organizationId: String(subscription.organization),
-      source: ActivitySource.PAY_AS_YOU_GO,
-      userId: String(subscription.user),
-      value: String(creditsToAdd),
-    });
-
-    this.loggerService.log(`${url} PAYG credits added to organization`, {
-      creditsAdded: creditsToAdd,
-      customerId: session.customer,
-      newBalance,
-      organizationId: subscription.organization,
-      sessionId: session.id,
-    });
   }
 
   private async handleManagedInferenceCheckoutCompleted(
@@ -326,7 +342,7 @@ export class StripeCheckoutWebhookHandler {
     }
 
     this.loggerService.log(`${url} managed checkout provisioned`, {
-      email,
+      ...getEmailLogMetadata(email),
       organizationId: provisioned.organizationId,
       sessionId,
       userId: provisioned.userId,
@@ -375,6 +391,9 @@ export class StripeCheckoutWebhookHandler {
       await this.organizationSettingsService.patch(String(orgSetting.id), {
         hasEverHadCredits: true,
       });
+      await this.supportService.invalidateOrganizationCaches(
+        String(organization.id),
+      );
     }
 
     // User row (onboarding + stripeCustomerId), org settings (hasEverHadCredits),
@@ -392,7 +411,7 @@ export class StripeCheckoutWebhookHandler {
 
     this.loggerService.log(`${url} managed checkout credits added`, {
       creditsAdded: creditsToAdd,
-      email,
+      ...getEmailLogMetadata(email),
       organizationId: organization.id,
       sessionId: session.id,
       userId: dbUser.id,
@@ -469,14 +488,12 @@ export class StripeCheckoutWebhookHandler {
         if ((error as { code?: string })?.code !== 'P2002') {
           throw error;
         }
-        dbUser = await this.usersService.findOne({ email }, []);
+        dbUser = await this.usersService.findOne({
+          email,
+          isDeleted: false,
+        });
         if (!dbUser) {
           throw error;
-        }
-        if (dbUser.isDeleted === true) {
-          dbUser = await this.usersService.patch(String(dbUser.id), {
-            isDeleted: false,
-          });
         }
       }
     }
@@ -638,6 +655,7 @@ export class StripeCheckoutWebhookHandler {
       // Find user
       const dbUser = await this.usersService.findOne({
         id: userId,
+        isDeleted: false,
       });
 
       if (!dbUser) {
@@ -693,6 +711,7 @@ export class StripeCheckoutWebhookHandler {
         `${url} failed to handle user checkout completed`,
         error,
       );
+      throw error;
     }
   }
 
@@ -704,50 +723,88 @@ export class StripeCheckoutWebhookHandler {
   ): Promise<void> {
     const userId = dbUser.id.toString();
 
-    // Calculate credits from payment
-    const creditsToAdd = this.supportService.resolveCheckoutCredits(
-      session.metadata,
-      1,
+    const processed = await this.supportService.withCheckoutSessionProcessing(
+      session.id,
+      'user-credit',
+      async () => {
+        // Calculate credits from payment
+        const creditsToAdd = this.supportService.resolveCheckoutCredits(
+          session.metadata,
+          1,
+        );
+
+        // Add credits to organization balance (1 year expiration)
+        await this.supportService.addPurchasedCredits(
+          organizationId,
+          creditsToAdd,
+          'user-purchase',
+          `Credit pack purchase (${creditsToAdd} credits) via Stripe`,
+        );
+
+        const newBalance =
+          await this.creditsUtilsService.getOrganizationCreditsBalance(
+            organizationId,
+          );
+
+        // Update user subscription record with session info
+        await this.userSubscriptionsService.updateFromStripeSession(
+          userId,
+          session,
+        );
+
+        // Balance is persisted to the credit-balance table above (epic #735,
+        // Phase C — no legacy auth provider publicMetadata write-back).
+        await this.supportService.recordCreditsActivity({
+          brandId: organizationId,
+          organizationId,
+          source: ActivitySource.PAY_AS_YOU_GO,
+          userId,
+          value: String(creditsToAdd),
+        });
+
+        this.loggerService.log(`${url} user credits added to organization`, {
+          creditsAdded: creditsToAdd,
+          customerId: session.customer,
+          mode: session.mode,
+          newBalance,
+          organizationId,
+          sessionId: session.id,
+          userId,
+        });
+
+        return true;
+      },
     );
 
-    // Add credits to organization balance (1 year expiration)
-    await this.supportService.addPurchasedCredits(
-      organizationId,
-      creditsToAdd,
-      'user-purchase',
-      `Credit pack purchase (${creditsToAdd} credits) via Stripe`,
-    );
-
-    const newBalance =
-      await this.creditsUtilsService.getOrganizationCreditsBalance(
+    if (processed === null) {
+      this.loggerService.log(`${url} user checkout already processed`, {
+        customerId: session.customer,
+        mode: session.mode,
         organizationId,
-      );
+        sessionId: session.id,
+        userId,
+      });
+    }
+  }
 
-    // Update user subscription record with session info
-    await this.userSubscriptionsService.updateFromStripeSession(
-      userId,
-      session,
+  private async findSkillsProReceiptBySessionId(
+    sessionId: string,
+  ): Promise<SkillReceiptDocument | null> {
+    const receipts = (await this.prisma.skillReceipt.findMany({
+      where: { isDeleted: false },
+    })) as SkillReceiptDocument[];
+
+    return (
+      receipts.find((receipt) => {
+        const data = receipt.data;
+        return (
+          data !== null &&
+          typeof data === 'object' &&
+          !Array.isArray(data) &&
+          (data as Record<string, unknown>).stripeSessionId === sessionId
+        );
+      }) ?? null
     );
-
-    // Balance is persisted to the credit-balance table above (epic #735,
-    // Phase C — no legacy auth provider publicMetadata write-back).
-    await this.supportService.recordCreditsActivity({
-      brandId: organizationId,
-      organizationId,
-      source: ActivitySource.PAY_AS_YOU_GO,
-      userId,
-      value: String(creditsToAdd),
-    });
-
-    this.loggerService.log(`${url} user credits added to organization`, {
-      creditsAdded: creditsToAdd,
-      customerId: session.customer,
-      mode: session.mode,
-      newBalance,
-      organizationId,
-      sessionId: session.id,
-      userId,
-    });
   }
 
   private async handleSkillsProCheckoutCompleted(
@@ -755,37 +812,65 @@ export class StripeCheckoutWebhookHandler {
     url: string,
   ): Promise<void> {
     try {
-      const receiptId = `sk_rcpt_${nanoid(16)}`;
-      const email = session.customer_details?.email || '';
+      const processed = await this.supportService.withCheckoutSessionProcessing(
+        session.id,
+        'skills-pro-receipt',
+        async () => {
+          const existingReceipt = await this.findSkillsProReceiptBySessionId(
+            session.id,
+          );
 
-      await this.prisma.skillReceipt.create({
-        data: {
-          data: {
-            amountPaid: session.amount_total || 0,
-            currency: session.currency || 'usd',
-            email,
+          if (existingReceipt) {
+            this.loggerService.log(`${url} skills-pro receipt already exists`, {
+              productType: 'bundle',
+              sessionId: session.id,
+            });
+            return true;
+          }
+
+          const receiptId = `sk_rcpt_${nanoid(16)}`;
+          const email = session.customer_details?.email || '';
+
+          await this.prisma.skillReceipt.create({
+            data: {
+              data: {
+                amountPaid: session.amount_total || 0,
+                currency: session.currency || 'usd',
+                email,
+                productType: 'bundle',
+                receiptId,
+                status: 'completed',
+                stripePaymentIntentId: session.payment_intent
+                  ? String(session.payment_intent)
+                  : undefined,
+                stripeSessionId: session.id,
+              },
+            },
+          });
+
+          this.loggerService.log(`${url} skills-pro receipt created`, {
+            ...getEmailLogMetadata(email),
             productType: 'bundle',
             receiptId,
-            status: 'completed',
-            stripePaymentIntentId: session.payment_intent
-              ? String(session.payment_intent)
-              : undefined,
-            stripeSessionId: session.id,
-          },
-        },
-      });
+            sessionId: session.id,
+          });
 
-      this.loggerService.log(`${url} skills-pro receipt created`, {
-        email,
-        productType: 'bundle',
-        receiptId,
-        sessionId: session.id,
-      });
+          return true;
+        },
+      );
+
+      if (processed === null) {
+        this.loggerService.log(`${url} skills-pro checkout already processed`, {
+          productType: 'bundle',
+          sessionId: session.id,
+        });
+      }
     } catch (error: unknown) {
       this.loggerService.error(
         `${url} failed to handle skills-pro checkout completed`,
         error,
       );
+      throw error;
     }
   }
 }

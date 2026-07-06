@@ -22,13 +22,17 @@ describe('StripeWebhookController', () => {
   let stripeWebhookService: vi.Mocked<StripeWebhookService>;
   let stripeService: vi.Mocked<StripeService>;
   let loggerService: vi.Mocked<LoggerService>;
-  let configService: vi.Mocked<ConfigService>;
 
   const mockPublisher = {
+    del: vi.fn().mockResolvedValue(1),
     set: vi.fn().mockResolvedValue('OK'),
   };
 
   beforeEach(async () => {
+    vi.clearAllMocks();
+    mockPublisher.del.mockResolvedValue(1);
+    mockPublisher.set.mockResolvedValue('OK');
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [StripeWebhookController],
       providers: [
@@ -77,7 +81,6 @@ describe('StripeWebhookController', () => {
     stripeWebhookService = module.get(StripeWebhookService);
     stripeService = module.get(StripeService);
     loggerService = module.get(LoggerService);
-    configService = module.get(ConfigService);
   });
 
   it('should be defined', () => {
@@ -212,6 +215,7 @@ describe('StripeWebhookController', () => {
         expect.stringContaining('processing failed'),
         serviceError,
       );
+      expect(mockPublisher.del).toHaveBeenCalledWith('stripe:webhook:evt_456');
     });
 
     it('should handle missing stripe signature', async () => {

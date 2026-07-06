@@ -2,6 +2,8 @@ import {
   buildCombinedMetadata,
   extractAttributionMetadata,
   extractInvoiceSubscriptionId,
+  getEmailDomainForLog,
+  getEmailLogMetadata,
   normalizeObjectId,
 } from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
 import type { StripeInvoice } from '@api/services/integrations/stripe/services/stripe.service';
@@ -18,6 +20,20 @@ describe('normalizeObjectId', () => {
 
   it('stringifies present values', () => {
     expect(normalizeObjectId('org_1' as never)).toBe('org_1');
+  });
+});
+
+describe('getEmailLogMetadata', () => {
+  it('keeps only the normalized email domain for log correlation', () => {
+    expect(getEmailDomainForLog('Ada@Example.COM')).toBe('example.com');
+    expect(getEmailLogMetadata('Ada@Example.COM')).toEqual({
+      emailDomain: 'example.com',
+    });
+  });
+
+  it('omits malformed or missing email addresses', () => {
+    expect(getEmailLogMetadata('ada')).toEqual({});
+    expect(getEmailLogMetadata(undefined)).toEqual({});
   });
 });
 

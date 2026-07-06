@@ -221,6 +221,7 @@ export class StripeInvoiceWebhookHandler {
     try {
       const dbUser = await this.usersService.findOne({
         id: subscription.user,
+        isDeleted: false,
       });
 
       if (dbUser && !dbUser.isOnboardingCompleted) {

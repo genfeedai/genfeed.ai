@@ -38,7 +38,7 @@ describe('StripeCustomerWebhookHandler', () => {
 
     expect(loggerService.log).toHaveBeenCalledWith(
       expect.stringContaining('customer created in Stripe'),
-      { customerId: 'cus_123', email: 'ada@example.com' },
+      { customerId: 'cus_123', emailDomain: 'example.com' },
     );
   });
 
