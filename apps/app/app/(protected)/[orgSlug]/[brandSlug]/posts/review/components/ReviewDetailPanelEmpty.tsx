@@ -6,7 +6,7 @@ import { HiCursorArrowRays } from 'react-icons/hi2';
 export default function ReviewDetailPanelEmpty() {
   return (
     <InsetSurface className="flex min-h-[720px] flex-col items-center justify-center p-8 text-center">
-      <div className="rounded-full border border-white/10 bg-white/[0.03] p-5">
+      <div className="rounded-full border border-white/10 bg-card p-5">
         <HiCursorArrowRays className="size-8 text-foreground/50" />
       </div>
       <h2 className="mt-5 text-xl font-semibold text-foreground">

@@ -45,7 +45,7 @@ export default function WorkflowCardDropdown({
           e.stopPropagation();
           setIsOpen(!isOpen);
         }}
-        className="rounded p-1 text-foreground/40 transition-colors hover:bg-white/[0.06] hover:text-foreground"
+        className="rounded p-1 text-foreground/40 transition-colors hover:bg-muted hover:text-foreground"
       >
         <HiOutlineEllipsisVertical className="size-4" />
       </Button>
@@ -61,7 +61,7 @@ export default function WorkflowCardDropdown({
               onDuplicate();
               setIsOpen(false);
             }}
-            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground transition-colors hover:bg-white/[0.06]"
+            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
           >
             <HiOutlineDocumentDuplicate className="size-4" />
             Duplicate
@@ -75,7 +75,7 @@ export default function WorkflowCardDropdown({
               onDelete();
               setIsOpen(false);
             }}
-            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-400 transition-colors hover:bg-white/[0.06]"
+            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-400 transition-colors hover:bg-muted"
           >
             <HiOutlineTrash className="size-4" />
             Delete

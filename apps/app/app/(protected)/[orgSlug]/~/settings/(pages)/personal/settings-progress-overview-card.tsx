@@ -35,7 +35,7 @@ export default function SettingsProgressOverviewCard({
   orgHref,
 }: Props) {
   return (
-    <Card className="border-white/10 bg-white/[0.03] p-6">
+    <Card className="border-white/10 bg-card p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-3xl">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">

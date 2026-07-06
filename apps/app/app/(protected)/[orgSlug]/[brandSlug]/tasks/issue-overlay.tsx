@@ -56,14 +56,14 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
 };
 
 const STATUS_COLORS: Record<TaskStatus, string> = {
-  backlog: 'bg-white/10 text-white/50',
+  backlog: 'bg-muted text-white/50',
   blocked: 'bg-red-500/20 text-red-400',
-  cancelled: 'bg-white/5 text-white/30',
+  cancelled: 'bg-muted/50 text-white/30',
   done: 'bg-emerald-500/20 text-emerald-400',
   failed: 'bg-red-500/20 text-red-500',
   in_progress: 'bg-blue-500/20 text-blue-400',
   in_review: 'bg-amber-500/20 text-amber-400',
-  todo: 'bg-white/15 text-white/70',
+  todo: 'bg-accent text-white/70',
 };
 
 interface IssueOverlayProps {
@@ -238,7 +238,7 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
                 <Button
                   variant={ButtonVariant.GHOST}
                   withWrapper={false}
-                  className="flex w-full items-center justify-center gap-1.5 border-b border-white/5 py-2 text-[11px] text-white/40 transition-colors hover:bg-white/[0.02] hover:text-white/60"
+                  className="flex w-full items-center justify-center gap-1.5 border-b border-white/5 py-2 text-[11px] text-white/40 transition-colors hover:bg-muted/40 hover:text-white/60"
                   onClick={() =>
                     setCommentVisibility({ issueId, showAll: true })
                   }
@@ -261,7 +261,7 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
                           'flex h-5 w-5 shrink-0 items-center justify-center rounded-full',
                           isAgent
                             ? 'bg-blue-500/15 text-blue-400'
-                            : 'bg-white/10 text-white/50',
+                            : 'bg-muted text-white/50',
                         )}
                       >
                         {isAgent ? (

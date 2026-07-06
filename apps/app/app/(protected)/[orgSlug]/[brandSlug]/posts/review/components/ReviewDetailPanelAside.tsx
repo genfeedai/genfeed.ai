@@ -129,7 +129,7 @@ export default function ReviewDetailPanelAside({
                 {item.gateReasons?.map((reason) => (
                   <li
                     key={`${item.id}-${reason}`}
-                    className="rounded-2xl border border-white/[0.08] bg-white/[0.03] px-3 py-2"
+                    className="rounded-2xl border border-white/[0.08] bg-muted/30 px-3 py-2"
                   >
                     {reason}
                   </li>

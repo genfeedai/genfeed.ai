@@ -18,7 +18,7 @@ export function SubIssueRow({
   return (
     <Link
       href={`/tasks/${issue.identifier}`}
-      className="flex items-center gap-3 border-b border-white/5 px-4 py-2 transition-colors hover:bg-white/[0.02]"
+      className="flex items-center gap-3 border-b border-white/5 px-4 py-2 transition-colors hover:bg-muted/40"
     >
       <span className="text-xs font-mono text-white/40">
         {issue.identifier}

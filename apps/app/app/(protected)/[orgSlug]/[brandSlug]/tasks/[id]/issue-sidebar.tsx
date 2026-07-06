@@ -140,7 +140,7 @@ export default function IssueSidebar({
               {issue.linkedEntities.map((entity) => (
                 <div
                   key={`${entity.entityModel}-${entity.entityId}`}
-                  className="flex items-center gap-2.5 rounded border border-white/5 bg-white/[0.02] px-3 py-2"
+                  className="flex items-center gap-2.5 rounded border border-white/5 bg-card/60 px-3 py-2"
                 >
                   <span
                     className={cn(

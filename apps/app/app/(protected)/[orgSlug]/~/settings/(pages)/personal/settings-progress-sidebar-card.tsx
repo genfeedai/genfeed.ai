@@ -28,7 +28,7 @@ export default function SettingsProgressSidebarCard({
   setVisibility,
 }: Props) {
   return (
-    <Card className="border-white/10 bg-white/[0.03] p-6">
+    <Card className="border-white/10 bg-card p-6">
       <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
         Sidebar module
       </p>

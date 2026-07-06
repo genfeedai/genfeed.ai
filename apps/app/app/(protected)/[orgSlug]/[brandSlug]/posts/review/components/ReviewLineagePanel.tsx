@@ -60,7 +60,7 @@ export default function ReviewLineagePanel({ item }: ReviewLineagePanelProps) {
       <div className="mt-4 flex flex-wrap gap-2 border-t border-white/10 pt-4">
         {item.sourceWorkflowId && (
           <Link
-            className="inline-flex rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-foreground/75 transition-colors hover:border-white/20 hover:bg-white/[0.04]"
+            className="inline-flex rounded-lg border border-white/10 bg-muted/30 px-3 py-2 text-sm text-foreground/75 transition-colors hover:border-white/20 hover:bg-muted/60"
             href={
               item.sourceActionId
                 ? `/orchestration/${item.sourceWorkflowId}?opportunity=${item.sourceActionId}`
@@ -72,7 +72,7 @@ export default function ReviewLineagePanel({ item }: ReviewLineagePanelProps) {
         )}
         {item.postId && (
           <Link
-            className="inline-flex rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-foreground/75 transition-colors hover:border-white/20 hover:bg-white/[0.04]"
+            className="inline-flex rounded-lg border border-white/10 bg-muted/30 px-3 py-2 text-sm text-foreground/75 transition-colors hover:border-white/20 hover:bg-muted/60"
             href={`/posts/${item.postId}`}
           >
             Open draft
@@ -80,7 +80,7 @@ export default function ReviewLineagePanel({ item }: ReviewLineagePanelProps) {
         )}
         {item.postUrl && (
           <a
-            className="inline-flex rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-foreground/75 transition-colors hover:border-white/20 hover:bg-white/[0.04]"
+            className="inline-flex rounded-lg border border-white/10 bg-muted/30 px-3 py-2 text-sm text-foreground/75 transition-colors hover:border-white/20 hover:bg-muted/60"
             href={item.postUrl}
             rel="noreferrer"
             target="_blank"

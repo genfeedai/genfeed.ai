@@ -99,7 +99,7 @@ export default function ReviewDetailPanel({
   );
 
   return (
-    <section className="rounded-2xl border border-white/10 bg-white/[0.03]">
+    <section className="rounded-2xl border border-white/10 bg-card">
       <ReviewDetailPanelHeader item={item} statusLabel={statusLabel} />
 
       <div className="grid gap-6 p-5 xl:grid-cols-[minmax(0,1.5fr),minmax(320px,1fr)]">
@@ -115,7 +115,7 @@ export default function ReviewDetailPanel({
               />
             ) : (
               <div className="flex h-full flex-col items-center justify-center gap-3 text-foreground/45">
-                <div className="rounded-full border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-full border border-white/10 bg-card p-4">
                   <HiPhoto className="size-8" />
                 </div>
                 <p className="text-sm">No media preview generated yet</p>

@@ -69,7 +69,7 @@ export default function IssueCommentsCard({
               type="button"
               variant={ButtonVariant.GHOST}
               size={ButtonSize.XS}
-              className="flex w-full items-center justify-center gap-1.5 border-b border-white/5 py-2 text-[11px] text-white/40 hover:bg-white/[0.02] hover:text-white/60"
+              className="flex w-full items-center justify-center gap-1.5 border-b border-white/5 py-2 text-[11px] text-white/40 hover:bg-muted/40 hover:text-white/60"
               onClick={onShowAllComments}
             >
               <HiChevronDown className="size-3" />
@@ -97,7 +97,7 @@ export default function IssueCommentsCard({
       )}
       <div className="border-t border-white/10 p-4">
         <Textarea
-          className="mb-2 w-full rounded border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/90 outline-none placeholder:text-white/25 focus:border-white/20"
+          className="mb-2 w-full rounded border border-white/10 bg-muted/50 px-3 py-2 text-sm text-white/90 outline-none placeholder:text-white/25 focus:border-white/20"
           onChange={(e) => onCommentBodyChange(e.target.value)}
           placeholder="Write a comment..."
           rows={3}

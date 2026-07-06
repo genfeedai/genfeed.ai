@@ -14,7 +14,7 @@ export default function SettingsProgressHeatmapCard({
   calendar,
 }: Props) {
   return (
-    <Card className="border-white/10 bg-white/[0.03] p-5">
+    <Card className="border-white/10 bg-card p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
@@ -39,7 +39,7 @@ export default function SettingsProgressHeatmapCard({
                 ? 'bg-orange-300/45 border-orange-300/40'
                 : count >= 1
                   ? 'bg-orange-300/25 border-orange-300/25'
-                  : 'bg-white/[0.03] border-white/8';
+                  : 'bg-card border-white/8';
 
           return (
             <div

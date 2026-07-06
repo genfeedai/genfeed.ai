@@ -18,9 +18,7 @@ export function CommentItem({ comment }: CommentItemProps) {
         <div
           className={cn(
             'flex h-6 w-6 shrink-0 items-center justify-center rounded-full',
-            isAgent
-              ? 'bg-blue-500/15 text-blue-400'
-              : 'bg-white/10 text-white/50',
+            isAgent ? 'bg-blue-500/15 text-blue-400' : 'bg-muted text-white/50',
           )}
         >
           {isAgent ? (

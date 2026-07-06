@@ -68,7 +68,7 @@ export default function ReviewGrid({
 }: ReviewGridProps) {
   return (
     <div className="grid gap-6 xl:grid-cols-[360px,minmax(0,1fr)]">
-      <section className="rounded-2xl border border-white/10 bg-white/[0.03]">
+      <section className="rounded-2xl border border-white/10 bg-card">
         <div className="border-b border-white/10 p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -98,7 +98,7 @@ export default function ReviewGrid({
                   'rounded-full border px-3 py-2 text-left transition-colors',
                   activeFilter === filter.filter
                     ? 'border-primary/40 bg-primary/15 text-foreground'
-                    : 'border-white/10 bg-white/[0.02] text-foreground/60 hover:border-white/20 hover:text-foreground/80',
+                    : 'border-white/10 bg-card/60 text-foreground/60 hover:border-white/20 hover:text-foreground/80',
                 )}
               >
                 <div className="flex items-center gap-2 text-sm font-medium">
@@ -154,7 +154,7 @@ export default function ReviewGrid({
 
         {items.length === 0 ? (
           <div className="flex min-h-[440px] flex-col items-center justify-center p-8 text-center">
-            <div className="rounded-full border border-white/10 bg-white/[0.03] p-4">
+            <div className="rounded-full border border-white/10 bg-card p-4">
               <HiOutlineSparkles className="size-6 text-foreground/50" />
             </div>
             <p className="mt-4 text-sm font-medium text-foreground">
