@@ -4,6 +4,7 @@ import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
+import SignUpBetterAuth from './sign-up-better-auth';
 import SignUpForm from './sign-up-form';
 
 const authClientMocks = vi.hoisted(() => ({
@@ -23,8 +24,16 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@ui/layouts/auth/AuthFormLayout', () => ({
-  default: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="auth-form-layout">{children}</div>
+  default: ({
+    children,
+    logoSize,
+  }: {
+    children: React.ReactNode;
+    logoSize?: string;
+  }) => (
+    <div data-logo-size={logoSize} data-testid="auth-form-layout">
+      {children}
+    </div>
   ),
 }));
 
@@ -53,6 +62,7 @@ describe('SignUpForm', () => {
     authClientMocks.magicLink.mockReset();
     authClientMocks.magicLink.mockResolvedValue({});
     authClientMocks.social.mockReset();
+    authClientMocks.social.mockResolvedValue({});
     localStorageMock.clear();
 
     Object.defineProperty(globalThis, 'localStorage', {
@@ -67,38 +77,65 @@ describe('SignUpForm', () => {
     window.history.replaceState({}, '', '/sign-up');
   });
 
-  it('renders the Better Auth sign-up magic-link form', () => {
+  it('renders the Better Auth sign-up chooser like the login chooser', () => {
     render(<SignUpForm />);
 
-    expect(screen.getByTestId('auth-form-layout')).toBeInTheDocument();
-    expect(getEmailInput()).toBeInTheDocument();
+    expect(screen.getByTestId('auth-form-layout')).toHaveAttribute(
+      'data-logo-size',
+      'compact',
+    );
     expect(
-      screen.getByRole('button', { name: 'Continue with email' }),
-    ).toBeDisabled();
-    expect(
-      screen.getByRole('button', { name: 'Continue with Google' }),
+      screen.getByRole('heading', { name: 'Create your account' }),
     ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Google' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Magic Link' })).toHaveAttribute(
+      'href',
+      '/sign-up/magic-link',
+    );
+    expect(screen.queryByRole('textbox', { name: /^Email/ })).toBeNull();
     expect(
       screen.queryByRole('button', { name: 'Continue with GitHub' }),
     ).toBeNull();
   });
 
-  it('sends a sign-up magic link with the callback URL', async () => {
-    window.history.replaceState({}, '', '/sign-up?callbackUrl=%2Fonboarding');
+  it('preserves sign-up handoff params when linking to the magic-link screen', () => {
+    window.history.replaceState(
+      {},
+      '',
+      '/sign-up?plan=pro&callbackUrl=%2Fonboarding',
+    );
 
     render(<SignUpForm />);
 
+    expect(screen.getByRole('link', { name: 'Magic Link' })).toHaveAttribute(
+      'href',
+      '/sign-up/magic-link?plan=pro&callbackUrl=%2Fonboarding',
+    );
+  });
+
+  it('focuses the email input on the magic-link screen', () => {
+    render(<SignUpBetterAuth mode="magic-link" />);
+
+    expect(getEmailInput()).toHaveFocus();
+  });
+
+  it('sends a sign-up magic link with signup metadata and the callback URL', async () => {
+    window.history.replaceState({}, '', '/sign-up?callbackUrl=%2Fonboarding');
+
+    render(<SignUpBetterAuth mode="magic-link" />);
+
     fireEvent.change(getEmailInput(), {
-      target: { value: 'new@example.com' },
+      target: { value: ' New@Example.com ' },
     });
     fireEvent.click(
-      screen.getByRole('button', { name: 'Continue with email' }),
+      screen.getByRole('button', { name: 'Email me a sign-up link' }),
     );
 
     await waitFor(() => {
       expect(authClientMocks.magicLink).toHaveBeenCalledWith({
         callbackURL: absoluteCallback('/onboarding'),
         email: 'new@example.com',
+        metadata: { intent: 'signup' },
       });
     });
     expect(screen.getByText('Check your email')).toBeInTheDocument();
@@ -141,9 +178,7 @@ describe('SignUpForm', () => {
 
     render(<SignUpForm />);
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Continue with Google' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Google' }));
 
     await waitFor(() => {
       expect(authClientMocks.social).toHaveBeenCalledWith({
@@ -163,7 +198,9 @@ describe('SignUpForm', () => {
     render(<SignUpForm />);
 
     await waitFor(() => {
-      expect(getEmailInput()).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: 'Create your account' }),
+      ).toBeInTheDocument();
     });
 
     expect(localStorage.getItem(ONBOARDING_STORAGE_KEYS.selectedCredits)).toBe(

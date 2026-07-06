@@ -1,12 +1,14 @@
 import type { RateLimit } from 'better-auth';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  assertSignupMagicLinkCanCreateUser,
   buildBetterAuthOrganizationOptions,
   buildRateLimitStorage,
   createBetterAuthInstance,
   resolveBetterAuthJwtAccess,
   resolveBetterAuthJwtIsSuperAdmin,
   resolveBetterAuthJwtOrganizationId,
+  SIGN_UP_MAGIC_LINK_EXISTING_USER_MESSAGE,
 } from './better-auth.factory';
 import type {
   IBetterAuthRateLimitStore,
@@ -336,6 +338,61 @@ describe('buildBetterAuthOrganizationOptions', () => {
     ).rejects.toThrow(
       'Genfeed InvitationService owns organization invitations',
     );
+  });
+});
+
+describe('assertSignupMagicLinkCanCreateUser', () => {
+  it('does not query for normal login magic links', async () => {
+    const prisma = createPrismaMock();
+
+    await expect(
+      assertSignupMagicLinkCanCreateUser({
+        email: 'existing@example.com',
+        prisma: prisma as unknown as PrismaForBetterAuth,
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(prisma.user.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('allows signup magic links for emails without an active user', async () => {
+    const prisma = createPrismaMock();
+    prisma.user.findFirst.mockResolvedValue(null);
+
+    await expect(
+      assertSignupMagicLinkCanCreateUser({
+        email: ' New@Example.com ',
+        metadata: { intent: 'signup' },
+        prisma: prisma as unknown as PrismaForBetterAuth,
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(prisma.user.findFirst).toHaveBeenCalledWith({
+      select: { id: true },
+      where: {
+        email: { equals: 'new@example.com', mode: 'insensitive' },
+        isDeleted: false,
+      },
+    });
+  });
+
+  it('rejects signup magic links when the email already belongs to a user', async () => {
+    const prisma = createPrismaMock();
+    prisma.user.findFirst.mockResolvedValue({ id: 'user_existing' });
+
+    await expect(
+      assertSignupMagicLinkCanCreateUser({
+        email: 'existing@example.com',
+        metadata: { intent: 'signup' },
+        prisma: prisma as unknown as PrismaForBetterAuth,
+      }),
+    ).rejects.toMatchObject({
+      body: expect.objectContaining({
+        code: 'USER_ALREADY_EXISTS',
+        message: SIGN_UP_MAGIC_LINK_EXISTING_USER_MESSAGE,
+      }),
+      status: 'BAD_REQUEST',
+    });
   });
 });
 

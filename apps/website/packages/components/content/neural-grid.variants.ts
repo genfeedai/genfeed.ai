@@ -1,7 +1,7 @@
 import { cva } from 'class-variance-authority';
 
 export const neuralGridVariants = cva(
-  'grid gap-px bg-fill/5 border border-edge/5 overflow-hidden',
+  'grid gap-px bg-edge/5 border border-edge/10 overflow-hidden',
   {
     defaultVariants: {
       columns: 3,
@@ -24,7 +24,7 @@ export const neuralGridVariants = cva(
 );
 
 export const neuralGridItemVariants = cva(
-  'bg-background group hover:bg-fill/[0.02] transition-colors',
+  'bg-background shadow-border group hover:bg-fill/[0.02] transition-colors',
   {
     defaultVariants: {
       align: 'left',
