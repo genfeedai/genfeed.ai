@@ -1,19 +1,18 @@
 import { WorkflowMarketplaceController } from '@api/collections/workflows/controllers/workflow-marketplace.controller';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
-import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import type { Request } from 'express';
 
 describe('WorkflowMarketplaceController', () => {
   let controller: WorkflowMarketplaceController;
   let service: WorkflowsService;
 
+  const mockRequest = {} as Request;
+
   const mockWorkflowsService = {
     findAll: vi.fn(),
-    findOwnedOrThrow: vi.fn(),
     getWorkflowTemplates: vi.fn(),
-    patch: vi.fn(),
   };
 
   const mockLoggerService = {
@@ -28,13 +27,9 @@ describe('WorkflowMarketplaceController', () => {
       controllers: [WorkflowMarketplaceController],
       providers: [
         { provide: WorkflowsService, useValue: mockWorkflowsService },
-        { provide: MarketplaceApiClient, useValue: {} },
         { provide: LoggerService, useValue: mockLoggerService },
       ],
-    })
-      .overrideGuard(RolesGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+    }).compile();
 
     controller = module.get<WorkflowMarketplaceController>(
       WorkflowMarketplaceController,
@@ -72,6 +67,28 @@ describe('WorkflowMarketplaceController', () => {
           kind: 'productized-daily-routine',
           trackingTasks: [{ key: 'review-trend-brief' }],
         },
+      });
+    });
+  });
+
+  describe('getMarketplace', () => {
+    it('should return public template workflows', async () => {
+      mockWorkflowsService.findAll.mockResolvedValue({
+        docs: [],
+        totalDocs: 0,
+      });
+
+      await controller.getMarketplace(mockRequest, {});
+
+      expect(mockWorkflowsService.findAll).toHaveBeenCalled();
+      const [aggregateArg] =
+        mockWorkflowsService.findAll.mock.calls[
+          mockWorkflowsService.findAll.mock.calls.length - 1
+        ];
+      expect(aggregateArg.where).toMatchObject({
+        isDeleted: false,
+        isPublic: true,
+        isTemplate: true,
       });
     });
   });

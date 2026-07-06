@@ -967,6 +967,11 @@
       "path": "/brands/{id}"
     },
     {
+      "method": "get",
+      "operationId": "BrandsController.previewRelocation",
+      "path": "/brands/{id}/relocation-preview"
+    },
+    {
       "method": "delete",
       "operationId": "BrandsController.remove",
       "path": "/brands/{id}"
@@ -4097,6 +4102,11 @@
       "path": "/subscriptions/current/credits"
     },
     {
+      "method": "get",
+      "operationId": "SubscriptionsController.getCreditUsage",
+      "path": "/subscriptions/admin/credit-usage"
+    },
+    {
       "method": "post",
       "operationId": "SubscriptionsController.previewChange",
       "path": "/subscriptions/current/preview"
@@ -4973,11 +4983,6 @@
     },
     {
       "method": "post",
-      "operationId": "WorkflowExecutionController.archiveWorkflow",
-      "path": "/workflows/{workflowId}/lifecycle/archive"
-    },
-    {
-      "method": "post",
       "operationId": "WorkflowExecutionController.executePartial",
       "path": "/workflows/{workflowId}/execute/partial"
     },
@@ -4992,19 +4997,9 @@
       "path": "/workflows/{workflowId}/executions/{runId}/logs"
     },
     {
-      "method": "post",
-      "operationId": "WorkflowExecutionController.lockNodes",
-      "path": "/workflows/{workflowId}/nodes/lock"
-    },
-    {
-      "method": "post",
-      "operationId": "WorkflowExecutionController.publishWorkflowLifecycle",
-      "path": "/workflows/{workflowId}/lifecycle/publish"
-    },
-    {
-      "method": "delete",
-      "operationId": "WorkflowExecutionController.removeSchedule",
-      "path": "/workflows/{workflowId}/schedule"
+      "method": "patch",
+      "operationId": "WorkflowExecutionController.patchNodes",
+      "path": "/workflows/{workflowId}/nodes"
     },
     {
       "method": "post",
@@ -5013,28 +5008,8 @@
     },
     {
       "method": "post",
-      "operationId": "WorkflowExecutionController.setSchedule",
-      "path": "/workflows/{workflowId}/schedule"
-    },
-    {
-      "method": "patch",
-      "operationId": "WorkflowExecutionController.setThumbnail",
-      "path": "/workflows/{workflowId}/thumbnail"
-    },
-    {
-      "method": "post",
       "operationId": "WorkflowExecutionController.submitApproval",
       "path": "/workflows/{workflowId}/executions/{executionId}/approve"
-    },
-    {
-      "method": "post",
-      "operationId": "WorkflowExecutionController.unlockNodes",
-      "path": "/workflows/{workflowId}/nodes/unlock"
-    },
-    {
-      "method": "post",
-      "operationId": "WorkflowExecutionsController.cancel",
-      "path": "/workflow-executions/{id}/cancel"
     },
     {
       "method": "post",
@@ -5057,9 +5032,9 @@
       "path": "/workflow-executions/workflow/{workflowId}/stats"
     },
     {
-      "method": "get",
-      "operationId": "WorkflowExecutionsController.getWorkflowExecutions",
-      "path": "/workflow-executions/workflow/{workflowId}"
+      "method": "patch",
+      "operationId": "WorkflowExecutionsController.update",
+      "path": "/workflow-executions/{id}"
     },
     {
       "method": "get",
@@ -5068,23 +5043,8 @@
     },
     {
       "method": "get",
-      "operationId": "WorkflowMarketplaceController.getReferencableWorkflows",
-      "path": "/workflows/referencable"
-    },
-    {
-      "method": "get",
       "operationId": "WorkflowMarketplaceController.getTemplates",
       "path": "/workflows/templates"
-    },
-    {
-      "method": "post",
-      "operationId": "WorkflowMarketplaceController.publishToMarketplace",
-      "path": "/workflows/{workflowId}/publish"
-    },
-    {
-      "method": "delete",
-      "operationId": "WorkflowMarketplaceController.unpublishFromMarketplace",
-      "path": "/workflows/{workflowId}/publish"
     },
     {
       "method": "delete",
@@ -5102,9 +5062,9 @@
       "path": "/workflows/{workflowId}/webhook"
     },
     {
-      "method": "post",
-      "operationId": "WorkflowWebhookManagementController.regenerateWebhookSecret",
-      "path": "/workflows/{workflowId}/webhook/regenerate-secret"
+      "method": "patch",
+      "operationId": "WorkflowWebhookManagementController.patchWebhook",
+      "path": "/workflows/{workflowId}/webhook"
     },
     {
       "method": "post",

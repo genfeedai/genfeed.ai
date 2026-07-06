@@ -8,6 +8,8 @@ import { WorkflowExecutionsService } from '@api/collections/workflow-executions/
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('WorkflowExecutionsController', () => {
@@ -28,7 +30,6 @@ describe('WorkflowExecutionsController', () => {
     findAll: vi.fn(),
     findOne: vi.fn(),
     getExecutionStats: vi.fn(),
-    getWorkflowExecutions: vi.fn(),
   };
   const mockWorkflowExecutorService = {
     executeManualWorkflow: vi.fn(),
@@ -117,29 +118,6 @@ describe('WorkflowExecutionsController', () => {
     });
   });
 
-  describe('getWorkflowExecutions', () => {
-    it('should return executions for a specific workflow', async () => {
-      const mockDocs = [{ _id: 'exec-1' }, { _id: 'exec-2' }];
-      mockService.getWorkflowExecutions.mockResolvedValue(mockDocs);
-
-      const result = await controller.getWorkflowExecutions(
-        mockRequest,
-        mockUser,
-        'wf-1',
-        10,
-        0,
-      );
-
-      expect(mockService.getWorkflowExecutions).toHaveBeenCalledWith(
-        'wf-1',
-        '507f1f77bcf86cd799439011',
-        10,
-        0,
-      );
-      expect(result).toEqual(mockDocs);
-    });
-  });
-
   describe('getExecutionStats', () => {
     it('should return stats for a workflow', async () => {
       const mockStats = { completed: 10, failed: 2, running: 1 };
@@ -207,14 +185,16 @@ describe('WorkflowExecutionsController', () => {
     });
   });
 
-  describe('cancel', () => {
-    it('should cancel an execution when it exists', async () => {
+  describe('update', () => {
+    it('should cancel an execution when status is cancelled', async () => {
       const mockExecution = { _id: 'exec-1', status: 'running' };
       const mockCancelled = { _id: 'exec-1', status: 'cancelled' };
       mockService.findOne.mockResolvedValue(mockExecution);
       mockService.cancelExecution.mockResolvedValue(mockCancelled);
 
-      const result = await controller.cancel(mockRequest, mockUser, 'exec-1');
+      const result = await controller.update(mockRequest, mockUser, 'exec-1', {
+        status: WorkflowExecutionStatus.CANCELLED,
+      });
 
       expect(mockService.findOne).toHaveBeenCalledWith({
         _id: 'exec-1',
@@ -225,11 +205,25 @@ describe('WorkflowExecutionsController', () => {
       expect(result).toEqual(mockCancelled);
     });
 
+    it('should throw BadRequestException for a non-cancel status', async () => {
+      const mockExecution = { _id: 'exec-1', status: 'running' };
+      mockService.findOne.mockResolvedValue(mockExecution);
+
+      await expect(
+        controller.update(mockRequest, mockUser, 'exec-1', {
+          status: WorkflowExecutionStatus.COMPLETED,
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(mockService.cancelExecution).not.toHaveBeenCalled();
+    });
+
     it('should throw NotFoundException when execution not found', async () => {
       mockService.findOne.mockResolvedValue(null);
 
       await expect(
-        controller.cancel(mockRequest, mockUser, 'invalid-id'),
+        controller.update(mockRequest, mockUser, 'invalid-id', {
+          status: WorkflowExecutionStatus.CANCELLED,
+        }),
       ).rejects.toThrow(NotFoundException);
     });
   });

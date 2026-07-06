@@ -231,8 +231,12 @@ export default function ExecutionHistoryPanel({
   const handleCancel = useCallback(
     async (executionId: string) => {
       try {
-        await fetch(`/v1/core/workflow-executions/${executionId}/cancel`, {
-          method: 'POST',
+        // The dedicated `/cancel` RPC route was collapsed into the generic
+        // execution PATCH by the REST audit (#1354).
+        await fetch(`/v1/core/workflow-executions/${executionId}`, {
+          body: JSON.stringify({ status: 'cancelled' }),
+          headers: { 'Content-Type': 'application/json' },
+          method: 'PATCH',
         });
         fetchExecutions();
       } catch (_err) {
