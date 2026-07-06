@@ -4138,6 +4138,147 @@
         },
         "type": "object"
       },
+      "CreateSkillDto": {
+        "properties": {
+          "baseSkill": {
+            "type": "string"
+          },
+          "category": {
+            "enum": [
+              "writing",
+              "image",
+              "video",
+              "audio",
+              "discovery",
+              "distribution",
+              "analytics",
+              "optimization"
+            ],
+            "type": "string"
+          },
+          "channels": {
+            "items": {
+              "enum": [
+                "tiktok",
+                "reels",
+                "youtube",
+                "x",
+                "linkedin",
+                "blog",
+                "ads"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "configSchema": {
+            "type": "object"
+          },
+          "defaultInstructions": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "inputSchema": {
+            "type": "object"
+          },
+          "isBuiltIn": {
+            "type": "boolean"
+          },
+          "modalities": {
+            "items": {
+              "enum": [
+                "text",
+                "image",
+                "video",
+                "audio",
+                "multi"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "outputSchema": {
+            "type": "object"
+          },
+          "requiredProviders": {
+            "items": {
+              "enum": [
+                "anthropic",
+                "openai",
+                "openrouter",
+                "elevenlabs",
+                "replicate",
+                "fal",
+                "heygen",
+                "hedra",
+                "klingai",
+                "leonardoai",
+                "higgsfield",
+                "apify"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "reviewDefaults": {
+            "type": "object"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "built_in",
+              "imported",
+              "custom"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "published",
+              "disabled"
+            ],
+            "type": "string"
+          },
+          "systemPromptTemplate": {
+            "type": "string"
+          },
+          "toolOverrides": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "workflowStage": {
+            "enum": [
+              "research",
+              "planning",
+              "creation",
+              "review",
+              "publishing",
+              "analysis"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "slug",
+          "description",
+          "category",
+          "modalities",
+          "channels",
+          "workflowStage"
+        ],
+        "type": "object"
+      },
       "CreateTagDto": {
         "properties": {
           "backgroundColor": {
@@ -5194,6 +5335,20 @@
           "platform",
           "measuredAt"
         ],
+        "type": "object"
+      },
+      "CustomizeSkillDto": {
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "DarkroomReviewStatus": {
@@ -6414,6 +6569,147 @@
         ],
         "type": "object"
       },
+      "ImportSkillDto": {
+        "properties": {
+          "baseSkill": {
+            "type": "string"
+          },
+          "category": {
+            "enum": [
+              "writing",
+              "image",
+              "video",
+              "audio",
+              "discovery",
+              "distribution",
+              "analytics",
+              "optimization"
+            ],
+            "type": "string"
+          },
+          "channels": {
+            "items": {
+              "enum": [
+                "tiktok",
+                "reels",
+                "youtube",
+                "x",
+                "linkedin",
+                "blog",
+                "ads"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "configSchema": {
+            "type": "object"
+          },
+          "defaultInstructions": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "inputSchema": {
+            "type": "object"
+          },
+          "modalities": {
+            "items": {
+              "enum": [
+                "text",
+                "image",
+                "video",
+                "audio",
+                "multi"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "outputSchema": {
+            "type": "object"
+          },
+          "requiredProviders": {
+            "items": {
+              "enum": [
+                "anthropic",
+                "openai",
+                "openrouter",
+                "elevenlabs",
+                "replicate",
+                "fal",
+                "heygen",
+                "hedra",
+                "klingai",
+                "leonardoai",
+                "higgsfield",
+                "apify"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "reviewDefaults": {
+            "type": "object"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "built_in",
+              "imported",
+              "custom"
+            ],
+            "type": "string"
+          },
+          "sourceUrl": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "published",
+              "disabled"
+            ],
+            "type": "string"
+          },
+          "systemPromptTemplate": {
+            "type": "string"
+          },
+          "toolOverrides": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "workflowStage": {
+            "enum": [
+              "research",
+              "planning",
+              "creation",
+              "review",
+              "publishing",
+              "analysis"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "slug",
+          "description",
+          "category",
+          "modalities",
+          "channels",
+          "workflowStage"
+        ],
+        "type": "object"
+      },
       "ImportVoicesDto": {
         "properties": {
           "providers": {
@@ -6592,25 +6888,6 @@
           "youtube"
         ],
         "type": "string"
-      },
-      "LockNodesDto": {
-        "properties": {
-          "nodeIds": {
-            "description": "Node IDs to lock",
-            "example": [
-              "node-1",
-              "node-2"
-            ],
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "nodeIds"
-        ],
-        "type": "object"
       },
       "LoraStatus": {
         "description": "LoRA training status",
@@ -7121,6 +7398,52 @@
         ],
         "type": "string"
       },
+      "MoodBoardLayoutItemDto": {
+        "properties": {
+          "assetId": {
+            "description": "Asset ID placed on the board",
+            "type": "string"
+          },
+          "position": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MoodBoardLayoutItemPositionDto"
+              }
+            ],
+            "description": "Position of the asset on the canvas"
+          },
+          "width": {
+            "description": "Width of the asset tile",
+            "type": "number"
+          },
+          "z": {
+            "description": "Z-index layer for stacking",
+            "type": "number"
+          }
+        },
+        "required": [
+          "assetId",
+          "position"
+        ],
+        "type": "object"
+      },
+      "MoodBoardLayoutItemPositionDto": {
+        "properties": {
+          "x": {
+            "description": "X coordinate on canvas",
+            "type": "number"
+          },
+          "y": {
+            "description": "Y coordinate on canvas",
+            "type": "number"
+          }
+        },
+        "required": [
+          "x",
+          "y"
+        ],
+        "type": "object"
+      },
       "NewsletterSourceRefDto": {
         "properties": {
           "label": {
@@ -7468,6 +7791,41 @@
               "rejected"
             ],
             "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "PatchWorkflowNodesDto": {
+        "properties": {
+          "lock": {
+            "description": "Node IDs to lock (skip execution, use cached output)",
+            "example": [
+              "node-1",
+              "node-2"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "unlock": {
+            "description": "Node IDs to unlock",
+            "example": [
+              "node-3"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "PatchWorkflowWebhookDto": {
+        "properties": {
+          "rotateSecret": {
+            "description": "Rotate (regenerate) the webhook secret in place",
+            "type": "boolean"
           }
         },
         "type": "object"
@@ -8485,23 +8843,6 @@
         ],
         "type": "object"
       },
-      "SetThumbnailDto": {
-        "properties": {
-          "nodeId": {
-            "description": "Node ID whose output is used as the workflow thumbnail",
-            "type": "string"
-          },
-          "thumbnailUrl": {
-            "description": "Media URL to persist as the workflow thumbnail",
-            "type": "string"
-          }
-        },
-        "required": [
-          "thumbnailUrl",
-          "nodeId"
-        ],
-        "type": "object"
-      },
       "SkipOnboardingDto": {
         "properties": {
           "reason": {
@@ -9001,25 +9342,6 @@
         },
         "required": [
           "identifier"
-        ],
-        "type": "object"
-      },
-      "UnlockNodesDto": {
-        "properties": {
-          "nodeIds": {
-            "description": "Node IDs to unlock",
-            "example": [
-              "node-1",
-              "node-2"
-            ],
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "nodeIds"
         ],
         "type": "object"
       },
@@ -11222,6 +11544,26 @@
         },
         "type": "object"
       },
+      "UpdateMoodBoardDto": {
+        "properties": {
+          "brandId": {
+            "description": "Brand ID this mood board belongs to",
+            "type": "string"
+          },
+          "layout": {
+            "description": "Canvas layout items",
+            "items": {
+              "$ref": "#/components/schemas/MoodBoardLayoutItemDto"
+            },
+            "type": "array"
+          },
+          "metadata": {
+            "description": "Additional metadata",
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
       "UpdateNewsletterDto": {
         "properties": {
           "angle": {
@@ -11958,6 +12300,124 @@
         },
         "type": "object"
       },
+      "UpdateSkillDto": {
+        "properties": {
+          "category": {
+            "enum": [
+              "writing",
+              "image",
+              "video",
+              "audio",
+              "discovery",
+              "distribution",
+              "analytics",
+              "optimization"
+            ],
+            "type": "string"
+          },
+          "channels": {
+            "items": {
+              "enum": [
+                "tiktok",
+                "reels",
+                "youtube",
+                "x",
+                "linkedin",
+                "blog",
+                "ads"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "configSchema": {
+            "type": "object"
+          },
+          "defaultInstructions": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "inputSchema": {
+            "type": "object"
+          },
+          "modalities": {
+            "items": {
+              "enum": [
+                "text",
+                "image",
+                "video",
+                "audio",
+                "multi"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "outputSchema": {
+            "type": "object"
+          },
+          "requiredProviders": {
+            "items": {
+              "enum": [
+                "anthropic",
+                "openai",
+                "openrouter",
+                "elevenlabs",
+                "replicate",
+                "fal",
+                "heygen",
+                "hedra",
+                "klingai",
+                "leonardoai",
+                "higgsfield",
+                "apify"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "reviewDefaults": {
+            "type": "object"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "published",
+              "disabled"
+            ],
+            "type": "string"
+          },
+          "systemPromptTemplate": {
+            "type": "string"
+          },
+          "toolOverrides": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "workflowStage": {
+            "enum": [
+              "research",
+              "planning",
+              "creation",
+              "review",
+              "publishing",
+              "analysis"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "UpdateTaskDto": {
         "properties": {
           "assigneeAgentId": {
@@ -12361,6 +12821,14 @@
             "format": "date-time",
             "type": "string"
           },
+          "lifecycle": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkflowLifecycle"
+              }
+            ],
+            "description": "Lifecycle status (draft / published / archived)"
+          },
           "metadata": {
             "description": "Additional metadata for the workflow",
             "type": "object"
@@ -12455,6 +12923,23 @@
           "user": {
             "description": "The user ID who created this resource",
             "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateWorkflowExecutionDto": {
+        "properties": {
+          "error": {
+            "description": "Error message if failed",
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkflowExecutionStatus"
+              }
+            ],
+            "description": "Execution status"
           }
         },
         "type": "object"
@@ -12783,6 +13268,15 @@
           }
         },
         "type": "object"
+      },
+      "WorkflowLifecycle": {
+        "description": "Lifecycle status (draft / published / archived)",
+        "enum": [
+          "draft",
+          "published",
+          "archived"
+        ],
+        "type": "string"
       },
       "WorkflowNodeDataDto": {
         "properties": {
@@ -30748,11 +31242,9 @@
         "tags": [
           "InternalWorkflowExecutions"
         ]
-      }
-    },
-    "/internal/orgs/{orgId}/workflow-executions/{id}/cancel": {
-      "post": {
-        "operationId": "InternalWorkflowExecutionsController.cancel",
+      },
+      "patch": {
+        "operationId": "InternalWorkflowExecutionsController.update",
         "parameters": [
           {
             "in": "path",
@@ -30771,8 +31263,18 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWorkflowExecutionDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
-          "201": {
+          "200": {
             "description": ""
           }
         },
@@ -32315,6 +32817,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMoodBoardDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
@@ -43459,6 +43971,16 @@
       "post": {
         "operationId": "SkillsController.createSkill",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSkillDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "description": ""
@@ -43563,6 +44085,16 @@
       "post": {
         "operationId": "SkillsController.importSkill",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportSkillDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "description": ""
@@ -43586,6 +44118,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSkillDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
@@ -43609,6 +44151,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomizeSkillDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "description": ""
@@ -49457,52 +50009,6 @@
         ]
       }
     },
-    "/workflow-executions/workflow/{workflowId}": {
-      "get": {
-        "operationId": "WorkflowExecutionsController.getWorkflowExecutions",
-        "parameters": [
-          {
-            "description": "Workflow ID",
-            "in": "path",
-            "name": "workflowId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "type": "number"
-            }
-          },
-          {
-            "in": "query",
-            "name": "offset",
-            "required": false,
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of workflow executions"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Get executions for a specific workflow",
-        "tags": [
-          "Workflow Executions"
-        ]
-      }
-    },
     "/workflow-executions/workflow/{workflowId}/stats": {
       "get": {
         "operationId": "WorkflowExecutionsController.getExecutionStats",
@@ -49564,11 +50070,9 @@
         "tags": [
           "Workflow Executions"
         ]
-      }
-    },
-    "/workflow-executions/{id}/cancel": {
-      "post": {
-        "operationId": "WorkflowExecutionsController.cancel",
+      },
+      "patch": {
+        "operationId": "WorkflowExecutionsController.update",
         "parameters": [
           {
             "description": "Execution ID",
@@ -49580,9 +50084,19 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWorkflowExecutionDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
-            "description": "Execution cancelled"
+            "description": "Execution updated"
           },
           "404": {
             "description": "Execution not found"
@@ -49593,7 +50107,7 @@
             "bearer": []
           }
         ],
-        "summary": "Cancel a running execution",
+        "summary": "Update an execution (cancel a running execution)",
         "tags": [
           "Workflow Executions"
         ]
@@ -49678,6 +50192,15 @@
             "description": "Filter by favorite status",
             "in": "query",
             "name": "isFavorite",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Return every workflow in the organization (for reference pickers) instead of the caller-scoped set",
+            "in": "query",
+            "name": "referencable",
             "required": false,
             "schema": {
               "type": "boolean"
@@ -49954,21 +50477,6 @@
           }
         },
         "summary": "getNodeDefinition",
-        "tags": [
-          "workflows"
-        ]
-      }
-    },
-    "/workflows/referencable": {
-      "get": {
-        "operationId": "WorkflowMarketplaceController.getReferencableWorkflows",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "getReferencableWorkflows",
         "tags": [
           "workflows"
         ]
@@ -50379,217 +50887,9 @@
         ]
       }
     },
-    "/workflows/{workflowId}/lifecycle/archive": {
-      "post": {
-        "operationId": "WorkflowExecutionController.archiveWorkflow",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "workflowId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "archiveWorkflow",
-        "tags": [
-          "workflows"
-        ]
-      }
-    },
-    "/workflows/{workflowId}/lifecycle/publish": {
-      "post": {
-        "operationId": "WorkflowExecutionController.publishWorkflowLifecycle",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "workflowId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "publishWorkflowLifecycle",
-        "tags": [
-          "workflows"
-        ]
-      }
-    },
-    "/workflows/{workflowId}/nodes/lock": {
-      "post": {
-        "operationId": "WorkflowExecutionController.lockNodes",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "workflowId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LockNodesDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "lockNodes",
-        "tags": [
-          "workflows"
-        ]
-      }
-    },
-    "/workflows/{workflowId}/nodes/unlock": {
-      "post": {
-        "operationId": "WorkflowExecutionController.unlockNodes",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "workflowId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UnlockNodesDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "unlockNodes",
-        "tags": [
-          "workflows"
-        ]
-      }
-    },
-    "/workflows/{workflowId}/publish": {
-      "delete": {
-        "operationId": "WorkflowMarketplaceController.unpublishFromMarketplace",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "workflowId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "unpublishFromMarketplace",
-        "tags": [
-          "workflows"
-        ]
-      },
-      "post": {
-        "operationId": "WorkflowMarketplaceController.publishToMarketplace",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "workflowId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "publishToMarketplace",
-        "tags": [
-          "workflows"
-        ]
-      }
-    },
-    "/workflows/{workflowId}/schedule": {
-      "delete": {
-        "operationId": "WorkflowExecutionController.removeSchedule",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "workflowId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "removeSchedule",
-        "tags": [
-          "workflows"
-        ]
-      },
-      "post": {
-        "operationId": "WorkflowExecutionController.setSchedule",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "workflowId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "setSchedule",
-        "tags": [
-          "workflows"
-        ]
-      }
-    },
-    "/workflows/{workflowId}/thumbnail": {
+    "/workflows/{workflowId}/nodes": {
       "patch": {
-        "operationId": "WorkflowExecutionController.setThumbnail",
+        "operationId": "WorkflowExecutionController.patchNodes",
         "parameters": [
           {
             "in": "path",
@@ -50604,7 +50904,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SetThumbnailDto"
+                "$ref": "#/components/schemas/PatchWorkflowNodesDto"
               }
             }
           },
@@ -50615,7 +50915,7 @@
             "description": ""
           }
         },
-        "summary": "setThumbnail",
+        "summary": "patchNodes",
         "tags": [
           "workflows"
         ]
@@ -50714,6 +51014,38 @@
           "workflows"
         ]
       },
+      "patch": {
+        "operationId": "WorkflowWebhookManagementController.patchWebhook",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workflowId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchWorkflowWebhookDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "patchWebhook",
+        "tags": [
+          "workflows"
+        ]
+      },
       "post": {
         "operationId": "WorkflowWebhookManagementController.generateWebhook",
         "parameters": [
@@ -50732,30 +51064,6 @@
           }
         },
         "summary": "generateWebhook",
-        "tags": [
-          "workflows"
-        ]
-      }
-    },
-    "/workflows/{workflowId}/webhook/regenerate-secret": {
-      "post": {
-        "operationId": "WorkflowWebhookManagementController.regenerateWebhookSecret",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "workflowId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "regenerateWebhookSecret",
         "tags": [
           "workflows"
         ]

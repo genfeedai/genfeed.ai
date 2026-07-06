@@ -317,9 +317,9 @@
       "path": "/agent/threads/{threadId}/messages"
     },
     {
-      "method": "post",
-      "operationId": "AgentThreadsController.archiveAllThreads",
-      "path": "/agent/threads/archive-all"
+      "method": "patch",
+      "operationId": "AgentThreadsController.bulkUpdateThreads",
+      "path": "/agent/threads"
     },
     {
       "method": "post",
@@ -500,11 +500,6 @@
       "method": "get",
       "operationId": "ApiKeysController.findAll",
       "path": "/api-keys"
-    },
-    {
-      "method": "get",
-      "operationId": "ApiKeysController.findMCPKeys",
-      "path": "/api-keys/mcp"
     },
     {
       "method": "get",
@@ -820,11 +815,6 @@
       "method": "get",
       "operationId": "BotActivitiesController.findOne",
       "path": "/bot-activities/{id}"
-    },
-    {
-      "method": "get",
-      "operationId": "BotActivitiesController.getRecentByConfig",
-      "path": "/bot-activities/recent/{configId}"
     },
     {
       "method": "get",
@@ -1462,11 +1452,6 @@
       "path": "/creative-patterns"
     },
     {
-      "method": "get",
-      "operationId": "CreativePatternsController.findTopForBrand",
-      "path": "/creative-patterns/brand/{brandId}"
-    },
-    {
       "method": "post",
       "operationId": "CreatorsController.analyze",
       "path": "/content-intelligence/creators/{id}/analyze"
@@ -2038,28 +2023,8 @@
     },
     {
       "method": "get",
-      "operationId": "EvaluationsController.getArticleEvaluations",
-      "path": "/evaluations/articles/{articleId}"
-    },
-    {
-      "method": "get",
-      "operationId": "EvaluationsController.getImageEvaluations",
-      "path": "/evaluations/images/{imageId}"
-    },
-    {
-      "method": "get",
-      "operationId": "EvaluationsController.getPostEvaluations",
-      "path": "/evaluations/posts/{postId}"
-    },
-    {
-      "method": "get",
       "operationId": "EvaluationsController.getTrends",
       "path": "/evaluations/analytics/trends"
-    },
-    {
-      "method": "get",
-      "operationId": "EvaluationsController.getVideoEvaluations",
-      "path": "/evaluations/videos/{videoId}"
     },
     {
       "method": "patch",
@@ -2292,11 +2257,6 @@
       "path": "/harness-profiles"
     },
     {
-      "method": "get",
-      "operationId": "HarnessProfilesController.getActiveForBrand",
-      "path": "/harness-profiles/active"
-    },
-    {
       "method": "delete",
       "operationId": "HarnessProfilesController.remove",
       "path": "/harness-profiles/{profileId}"
@@ -2353,8 +2313,8 @@
     },
     {
       "method": "get",
-      "operationId": "HookRemixController.getJobStatus",
-      "path": "/hook-remix/{jobId}/status"
+      "operationId": "HookRemixController.getJob",
+      "path": "/hook-remix/{jobId}"
     },
     {
       "method": "get",
@@ -2629,7 +2589,7 @@
     {
       "method": "get",
       "operationId": "MembersController.listInvitations",
-      "path": "/members/invitations/pending"
+      "path": "/members/invitations"
     },
     {
       "method": "post",
@@ -3343,18 +3303,8 @@
     },
     {
       "method": "get",
-      "operationId": "PatternsController.findHooks",
-      "path": "/content-intelligence/patterns/hooks"
-    },
-    {
-      "method": "get",
       "operationId": "PatternsController.findOne",
       "path": "/content-intelligence/patterns/{id}"
-    },
-    {
-      "method": "get",
-      "operationId": "PatternsController.findTemplates",
-      "path": "/content-intelligence/patterns/templates"
     },
     {
       "method": "delete",
@@ -3547,9 +3497,9 @@
       "path": "/posts/{postId}/replies"
     },
     {
-      "method": "post",
-      "operationId": "PostsOperationsController.batchSchedule",
-      "path": "/posts/schedules/batch"
+      "method": "patch",
+      "operationId": "PostsOperationsController.batchUpdate",
+      "path": "/posts/batch"
     },
     {
       "method": "post",
@@ -3650,11 +3600,6 @@
       "method": "post",
       "operationId": "ProfilesController.generateFromExamples",
       "path": "/profiles/generate"
-    },
-    {
-      "method": "get",
-      "operationId": "ProfilesController.getDefault",
-      "path": "/profiles/default"
     },
     {
       "method": "delete",
@@ -4327,11 +4272,6 @@
       "path": "/tasks/{id}"
     },
     {
-      "method": "get",
-      "operationId": "TasksController.inbox",
-      "path": "/tasks/inbox"
-    },
-    {
       "method": "post",
       "operationId": "TasksController.openPlanThread",
       "path": "/tasks/{id}/plan-thread"
@@ -4382,11 +4322,6 @@
       "path": "/templates"
     },
     {
-      "method": "post",
-      "operationId": "TemplatesController.createPromptTemplate",
-      "path": "/templates/prompts"
-    },
-    {
       "method": "get",
       "operationId": "TemplatesController.findAll",
       "path": "/templates"
@@ -4397,24 +4332,9 @@
       "path": "/templates/{templateId}"
     },
     {
-      "method": "get",
-      "operationId": "TemplatesController.getPopularTemplates",
-      "path": "/templates/popular"
-    },
-    {
-      "method": "get",
-      "operationId": "TemplatesController.listPromptTemplates",
-      "path": "/templates/prompts"
-    },
-    {
       "method": "delete",
       "operationId": "TemplatesController.remove",
       "path": "/templates/{templateId}"
-    },
-    {
-      "method": "delete",
-      "operationId": "TemplatesController.removePromptTemplate",
-      "path": "/templates/prompts/{templateId}"
     },
     {
       "method": "post",
@@ -4425,11 +4345,6 @@
       "method": "patch",
       "operationId": "TemplatesController.update",
       "path": "/templates/{templateId}"
-    },
-    {
-      "method": "patch",
-      "operationId": "TemplatesController.updatePromptTemplate",
-      "path": "/templates/prompts/{templateId}"
     },
     {
       "method": "post",
@@ -5153,11 +5068,6 @@
     },
     {
       "method": "post",
-      "operationId": "WorkflowExecutionController.archiveWorkflow",
-      "path": "/workflows/{workflowId}/lifecycle/archive"
-    },
-    {
-      "method": "post",
       "operationId": "WorkflowExecutionController.executePartial",
       "path": "/workflows/{workflowId}/execute/partial"
     },
@@ -5172,19 +5082,9 @@
       "path": "/workflows/{workflowId}/executions/{runId}/logs"
     },
     {
-      "method": "post",
-      "operationId": "WorkflowExecutionController.lockNodes",
-      "path": "/workflows/{workflowId}/nodes/lock"
-    },
-    {
-      "method": "post",
-      "operationId": "WorkflowExecutionController.publishWorkflowLifecycle",
-      "path": "/workflows/{workflowId}/lifecycle/publish"
-    },
-    {
-      "method": "delete",
-      "operationId": "WorkflowExecutionController.removeSchedule",
-      "path": "/workflows/{workflowId}/schedule"
+      "method": "patch",
+      "operationId": "WorkflowExecutionController.patchNodes",
+      "path": "/workflows/{workflowId}/nodes"
     },
     {
       "method": "post",
@@ -5193,28 +5093,8 @@
     },
     {
       "method": "post",
-      "operationId": "WorkflowExecutionController.setSchedule",
-      "path": "/workflows/{workflowId}/schedule"
-    },
-    {
-      "method": "patch",
-      "operationId": "WorkflowExecutionController.setThumbnail",
-      "path": "/workflows/{workflowId}/thumbnail"
-    },
-    {
-      "method": "post",
       "operationId": "WorkflowExecutionController.submitApproval",
       "path": "/workflows/{workflowId}/executions/{executionId}/approve"
-    },
-    {
-      "method": "post",
-      "operationId": "WorkflowExecutionController.unlockNodes",
-      "path": "/workflows/{workflowId}/nodes/unlock"
-    },
-    {
-      "method": "post",
-      "operationId": "WorkflowExecutionsController.cancel",
-      "path": "/workflow-executions/{id}/cancel"
     },
     {
       "method": "post",
@@ -5237,9 +5117,9 @@
       "path": "/workflow-executions/workflow/{workflowId}/stats"
     },
     {
-      "method": "get",
-      "operationId": "WorkflowExecutionsController.getWorkflowExecutions",
-      "path": "/workflow-executions/workflow/{workflowId}"
+      "method": "patch",
+      "operationId": "WorkflowExecutionsController.update",
+      "path": "/workflow-executions/{id}"
     },
     {
       "method": "get",
@@ -5248,23 +5128,8 @@
     },
     {
       "method": "get",
-      "operationId": "WorkflowMarketplaceController.getReferencableWorkflows",
-      "path": "/workflows/referencable"
-    },
-    {
-      "method": "get",
       "operationId": "WorkflowMarketplaceController.getTemplates",
       "path": "/workflows/templates"
-    },
-    {
-      "method": "post",
-      "operationId": "WorkflowMarketplaceController.publishToMarketplace",
-      "path": "/workflows/{workflowId}/publish"
-    },
-    {
-      "method": "delete",
-      "operationId": "WorkflowMarketplaceController.unpublishFromMarketplace",
-      "path": "/workflows/{workflowId}/publish"
     },
     {
       "method": "delete",
@@ -5282,9 +5147,9 @@
       "path": "/workflows/{workflowId}/webhook"
     },
     {
-      "method": "post",
-      "operationId": "WorkflowWebhookManagementController.regenerateWebhookSecret",
-      "path": "/workflows/{workflowId}/webhook/regenerate-secret"
+      "method": "patch",
+      "operationId": "WorkflowWebhookManagementController.patchWebhook",
+      "path": "/workflows/{workflowId}/webhook"
     },
     {
       "method": "post",
