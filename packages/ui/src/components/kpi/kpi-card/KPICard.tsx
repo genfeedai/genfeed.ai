@@ -89,8 +89,8 @@ export default function KPICard({
             className={cn(
               'inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium',
               isPositiveTrend
-                ? 'bg-green-500/20 text-green-400'
-                : 'bg-red-500/20 text-red-400',
+                ? 'bg-success/20 text-success'
+                : 'bg-destructive/20 text-destructive',
             )}
           >
             <TrendIcon className="size-3" />

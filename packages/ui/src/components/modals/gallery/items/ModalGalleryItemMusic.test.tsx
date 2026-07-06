@@ -64,9 +64,10 @@ describe('ModalGalleryItemMusic', () => {
     const { container } = render(
       <ModalGalleryItemMusic {...defaultProps} isSelected={true} />,
     );
-    // The root div has the border-primary class when selected
+    // The root div uses the strong shadow-border ring + tinted background when selected
     const rootDiv = container.firstChild as HTMLElement;
-    expect(rootDiv).toHaveClass('border-primary');
+    expect(rootDiv).toHaveClass('shadow-border-strong');
+    expect(rootDiv).toHaveClass('bg-primary/5');
   });
 
   it('calls onSelect when clicked', async () => {

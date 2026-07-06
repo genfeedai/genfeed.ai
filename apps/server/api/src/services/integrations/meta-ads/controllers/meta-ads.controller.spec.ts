@@ -5,7 +5,7 @@ vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   })),
 }));
 
-vi.mock('@api/shared/utils/encryption/encryption.util', () => ({
+vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: { decrypt: vi.fn((val: string) => `decrypted:${val}`) },
 }));
 
@@ -16,9 +16,9 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { MetaAdsController } from '@api/services/integrations/meta-ads/controllers/meta-ads.controller';
 import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('MetaAdsController', () => {
@@ -38,10 +38,8 @@ describe('MetaAdsController', () => {
     getTopPerformers: ReturnType<typeof vi.fn>;
     listCampaigns: ReturnType<typeof vi.fn>;
     pauseAd: ReturnType<typeof vi.fn>;
-    pauseCampaign: ReturnType<typeof vi.fn>;
     updateAdSet: ReturnType<typeof vi.fn>;
     updateCampaign: ReturnType<typeof vi.fn>;
-    updateCampaignBudget: ReturnType<typeof vi.fn>;
     uploadAdImage: ReturnType<typeof vi.fn>;
     uploadAdVideo: ReturnType<typeof vi.fn>;
   };
@@ -84,10 +82,8 @@ describe('MetaAdsController', () => {
       getTopPerformers: vi.fn(),
       listCampaigns: vi.fn(),
       pauseAd: vi.fn(),
-      pauseCampaign: vi.fn(),
       updateAdSet: vi.fn(),
       updateCampaign: vi.fn(),
-      updateCampaignBudget: vi.fn(),
       uploadAdImage: vi.fn(),
       uploadAdVideo: vi.fn(),
     };
@@ -234,17 +230,34 @@ describe('MetaAdsController', () => {
       );
       expect(result).toEqual({ success: true });
     });
-  });
 
-  describe('pauseCampaign', () => {
-    it('pauses campaign and returns success', async () => {
-      metaAdsService.pauseCampaign.mockResolvedValue(undefined);
+    it('pauses campaign via status field', async () => {
+      metaAdsService.updateCampaign.mockResolvedValue(undefined);
 
-      const result = await controller.pauseCampaign(mockUser, 'camp_pause_1');
+      const result = await controller.updateCampaign(mockUser, 'camp_pause_1', {
+        status: 'PAUSED',
+      } as never);
 
-      expect(metaAdsService.pauseCampaign).toHaveBeenCalledWith(
+      expect(metaAdsService.updateCampaign).toHaveBeenCalledWith(
         decryptedToken,
         'camp_pause_1',
+        { status: 'PAUSED' },
+      );
+      expect(result).toEqual({ success: true });
+    });
+
+    it('updates budget fields via generic patch', async () => {
+      metaAdsService.updateCampaign.mockResolvedValue(undefined);
+
+      const result = await controller.updateCampaign(mockUser, 'camp_1', {
+        dailyBudget: 50,
+        lifetimeBudget: 1000,
+      } as never);
+
+      expect(metaAdsService.updateCampaign).toHaveBeenCalledWith(
+        decryptedToken,
+        'camp_1',
+        { dailyBudget: 50, lifetimeBudget: 1000 },
       );
       expect(result).toEqual({ success: true });
     });

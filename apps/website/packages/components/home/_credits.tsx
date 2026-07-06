@@ -4,7 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import {
   creditPackPrice,
   creditPackTotalCredits,
-  getHostedPlan,
+  getProPlan,
   WEBSITE_CREDIT_PACKS,
 } from '@helpers/business/pricing/pricing.helper';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -22,7 +22,7 @@ const CREDIT_EXPLAINERS = [
 ] as const;
 
 export default function HomeCredits(): React.ReactElement {
-  const hostedPlan = getHostedPlan();
+  const proPlan = getProPlan();
 
   return (
     <section
@@ -49,7 +49,7 @@ export default function HomeCredits(): React.ReactElement {
             <VStack className="gap-4">
               {CREDIT_EXPLAINERS.map((item) => (
                 <HStack key={item} className="items-start gap-3">
-                  <LuCheck className="mt-0.5 size-4 shrink-0 text-success" />
+                  <LuCheck className="mt-0.5 size-4 shrink-0 text-surface/70" />
                   <Text className="text-sm leading-6 text-surface/60">
                     {item}
                   </Text>
@@ -75,9 +75,9 @@ export default function HomeCredits(): React.ReactElement {
           ))}
         </div>
 
-        {hostedPlan.launchNote ? (
+        {proPlan.launchNote ? (
           <Text className="mt-8 text-center text-xs font-semibold uppercase tracking-widest text-surface/50">
-            {hostedPlan.launchNote}
+            {proPlan.launchNote}
           </Text>
         ) : null}
 

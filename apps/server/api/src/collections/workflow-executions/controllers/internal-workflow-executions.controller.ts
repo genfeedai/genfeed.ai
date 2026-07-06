@@ -1,17 +1,23 @@
-import { CreateWorkflowExecutionDto } from '@api/collections/workflow-executions/dto/create-workflow-execution.dto';
+import {
+  CreateWorkflowExecutionDto,
+  UpdateWorkflowExecutionDto,
+} from '@api/collections/workflow-executions/dto/create-workflow-execution.dto';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { WorkflowExecutionStatus } from '@genfeedai/enums';
 import { WorkflowExecutionSerializer } from '@genfeedai/serializers';
 import { Public } from '@libs/decorators/public.decorator';
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
   Param,
+  Patch,
   Post,
   Req,
   UseGuards,
@@ -80,11 +86,12 @@ export class InternalWorkflowExecutionsController {
     return serializeSingle(req, WorkflowExecutionSerializer, execution);
   }
 
-  @Post(':id/cancel')
-  async cancel(
+  @Patch(':id')
+  async update(
     @Req() req: Request,
     @Param('orgId') orgId: string,
     @Param('id') id: string,
+    @Body() dto: UpdateWorkflowExecutionDto,
   ) {
     const execution = await this.workflowExecutionsService.findOne({
       _id: id,
@@ -94,6 +101,14 @@ export class InternalWorkflowExecutionsController {
 
     if (!execution) {
       throw new NotFoundException('Execution');
+    }
+
+    // Collapsed from the former `POST /:id/cancel` RPC route (#1354), kept in
+    // lockstep with the public controller. Only cancellation is supported.
+    if (dto.status !== WorkflowExecutionStatus.CANCELLED) {
+      throw new BadRequestException(
+        'Only cancellation (status: cancelled) is supported',
+      );
     }
 
     const cancelled = await this.workflowExecutionsService.cancelExecution(id);

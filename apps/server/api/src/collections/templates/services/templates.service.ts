@@ -135,6 +135,8 @@ export class TemplatesService {
       scope?: string;
       isFeatured?: boolean;
       search?: string;
+      sort?: 'popular';
+      limit?: number;
     },
   ): Promise<Template[]> {
     const where: Record<string, unknown> = { isDeleted: false };
@@ -168,10 +170,31 @@ export class TemplatesService {
     const results = await this.prisma.template.findMany({
       include: { metadata: true },
       orderBy: { createdAt: 'desc' },
+      take:
+        filters?.sort === 'popular' ? (filters.limit ?? 10) : filters?.limit,
       where: where as never,
     });
 
-    return results as unknown as Template[];
+    const templates = results as unknown as Template[];
+
+    if (filters?.sort === 'popular') {
+      return this.sortByPopularityScore(templates);
+    }
+
+    return templates;
+  }
+
+  /**
+   * Private: Sort templates by popularity score (rating + usage weighted)
+   * Shared ranking used by findAll({ sort: 'popular' })
+   */
+  private sortByPopularityScore(templates: Template[]): Template[] {
+    return [...templates].sort((left, right) => {
+      const leftScore = (left.rating ?? 0) * 0.3 + (left.usageCount ?? 0) * 0.7;
+      const rightScore =
+        (right.rating ?? 0) * 0.3 + (right.usageCount ?? 0) * 0.7;
+      return rightScore - leftScore;
+    });
   }
 
   /**
@@ -350,33 +373,6 @@ export class TemplatesService {
       this.logger.error('Failed to suggest templates', { error });
       throw error;
     }
-  }
-
-  /**
-   * Get popular templates
-   */
-  async getPopularTemplates(
-    organization?: string,
-    limit: number = 10,
-  ): Promise<Template[]> {
-    const where: Record<string, unknown> = { isDeleted: false };
-    if (organization) {
-      where.organizationId = organization;
-    }
-
-    const results = await this.prisma.template.findMany({
-      include: { metadata: true },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-      where: where as never,
-    });
-
-    return (results as unknown as Template[]).sort((left, right) => {
-      const leftScore = (left.rating ?? 0) * 0.3 + (left.usageCount ?? 0) * 0.7;
-      const rightScore =
-        (right.rating ?? 0) * 0.3 + (right.usageCount ?? 0) * 0.7;
-      return rightScore - leftScore;
-    });
   }
 
   /**

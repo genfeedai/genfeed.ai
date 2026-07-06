@@ -1,4 +1,3 @@
-import { UsersService } from '@api/collections/users/services/users.service';
 import {
   CreateWorkflowExecutionDto,
   UpdateWorkflowExecutionDto,
@@ -14,7 +13,7 @@ import { WorkflowExecutionStatus as SharedWorkflowExecutionStatus } from '@genfe
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { WorkflowExecutionStatus as PrismaWorkflowExecutionStatus } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 // ---------------------------------------------------------------------------
 // Helpers to safely read/write the `result` JSON column
@@ -35,6 +34,15 @@ function parseResult(raw: unknown): Record<string, unknown> {
   return {};
 }
 
+type WorkflowExecutionResultRow = {
+  result: unknown;
+};
+
+type WorkflowExecutionCompletionRow = WorkflowExecutionResultRow & {
+  startedAt: Date | null;
+  workflowId: string;
+};
+
 @Injectable()
 export class WorkflowExecutionsService extends BaseService<
   WorkflowExecutionDocument,
@@ -44,7 +52,6 @@ export class WorkflowExecutionsService extends BaseService<
   constructor(
     public readonly prisma: PrismaService,
     readonly logger: LoggerService,
-    @Optional() private readonly usersService?: UsersService,
   ) {
     super(prisma, 'workflowExecution', logger);
   }
@@ -104,24 +111,19 @@ export class WorkflowExecutionsService extends BaseService<
     error?: string,
   ): Promise<WorkflowExecutionDocument | null> {
     const completedAt = new Date();
-    const execution = await this.prisma.workflowExecution.findFirst({
+    const execution = (await this.prisma.workflowExecution.findUnique({
+      select: { result: true, startedAt: true, workflowId: true },
       where: { id: executionId },
-    });
+    })) as WorkflowExecutionCompletionRow | null;
 
     if (!execution) {
       return null;
     }
 
-    const existingResult = parseResult(
-      (execution as unknown as Record<string, unknown>).result,
-    );
+    const existingResult = parseResult(execution.result);
 
-    const durationMs = (execution as unknown as Record<string, unknown>)
-      .startedAt
-      ? completedAt.getTime() -
-        (
-          (execution as unknown as Record<string, unknown>).startedAt as Date
-        ).getTime()
+    const durationMs = execution.startedAt
+      ? completedAt.getTime() - execution.startedAt.getTime()
       : 0;
 
     const existingMetadata =
@@ -145,9 +147,7 @@ export class WorkflowExecutionsService extends BaseService<
         estimatedDurationMs,
         executionId,
         observedDurationMs: durationMs,
-        workflowId: (
-          execution as unknown as Record<string, unknown>
-        ).workflowId?.toString(),
+        workflowId: execution.workflowId,
       });
     }
 
@@ -205,17 +205,16 @@ export class WorkflowExecutionsService extends BaseService<
     nodeResult: WorkflowNodeResult,
     totalNodes?: number,
   ): Promise<WorkflowExecutionDocument | null> {
-    const execution = await this.prisma.workflowExecution.findFirst({
+    const execution = (await this.prisma.workflowExecution.findUnique({
+      select: { result: true },
       where: { id: executionId },
-    });
+    })) as WorkflowExecutionResultRow | null;
 
     if (!execution) {
       return null;
     }
 
-    const existingResult = parseResult(
-      (execution as unknown as Record<string, unknown>).result,
-    );
+    const existingResult = parseResult(execution.result);
     const existingNodeResults = Array.isArray(existingResult.nodeResults)
       ? (existingResult.nodeResults as WorkflowNodeResult[])
       : [];
@@ -265,19 +264,19 @@ export class WorkflowExecutionsService extends BaseService<
     executionId: string,
     failedNodeId: string,
   ): Promise<void> {
-    const execution = await this.prisma.workflowExecution.findFirst({
+    const execution = (await this.prisma.workflowExecution.findUnique({
+      select: { result: true },
       where: { id: executionId },
-    });
+    })) as WorkflowExecutionResultRow | null;
     if (!execution) return;
 
-    const existingResult = parseResult(
-      (execution as unknown as Record<string, unknown>).result,
-    );
+    const existingResult = parseResult(execution.result);
 
     await this.prisma.workflowExecution.update({
       data: {
         result: { ...existingResult, failedNodeId } as never,
       } as never,
+      select: { id: true },
       where: { id: executionId },
     });
   }
@@ -287,19 +286,19 @@ export class WorkflowExecutionsService extends BaseService<
     executionId: string,
     creditsUsed: number,
   ): Promise<void> {
-    const execution = await this.prisma.workflowExecution.findFirst({
+    const execution = (await this.prisma.workflowExecution.findUnique({
+      select: { result: true },
       where: { id: executionId },
-    });
+    })) as WorkflowExecutionResultRow | null;
     if (!execution) return;
 
-    const existingResult = parseResult(
-      (execution as unknown as Record<string, unknown>).result,
-    );
+    const existingResult = parseResult(execution.result);
 
     await this.prisma.workflowExecution.update({
       data: {
         result: { ...existingResult, creditsUsed } as never,
       } as never,
+      select: { id: true },
       where: { id: executionId },
     });
   }
@@ -309,17 +308,16 @@ export class WorkflowExecutionsService extends BaseService<
     executionId: string,
     metadataUpdates: Record<string, unknown>,
   ): Promise<WorkflowExecutionDocument | null> {
-    const execution = await this.prisma.workflowExecution.findFirst({
+    const execution = (await this.prisma.workflowExecution.findUnique({
+      select: { result: true },
       where: { id: executionId },
-    });
+    })) as WorkflowExecutionResultRow | null;
 
     if (!execution) {
       return null;
     }
 
-    const existingResult = parseResult(
-      (execution as unknown as Record<string, unknown>).result,
-    );
+    const existingResult = parseResult(execution.result);
     const existingMetadata =
       existingResult.metadata && typeof existingResult.metadata === 'object'
         ? (existingResult.metadata as Record<string, unknown>)
@@ -341,61 +339,6 @@ export class WorkflowExecutionsService extends BaseService<
     });
 
     return result as unknown as WorkflowExecutionDocument | null;
-  }
-
-  @HandleErrors('get workflow executions', 'workflow-executions')
-  async getWorkflowExecutions(
-    workflowId: string,
-    organizationId: string,
-    limit = 20,
-    offset = 0,
-  ): Promise<WorkflowExecutionDocument[]> {
-    const executions = await this.prisma.workflowExecution.findMany({
-      orderBy: { createdAt: 'desc' },
-      skip: offset,
-      take: limit,
-      where: {
-        isDeleted: false,
-        organizationId,
-        workflowId,
-      },
-    });
-
-    // Application-level join for user (lives in auth DB)
-    if (executions.length > 0 && this.usersService) {
-      const userIds = [
-        ...new Set(
-          executions
-            .map(
-              (e) => (e as unknown as Record<string, unknown>).userId as string,
-            )
-            .filter(Boolean),
-        ),
-      ];
-
-      if (userIds.length > 0) {
-        // Fetch users individually because usersService.findAll still uses
-        // aggregation-oriented query building for list endpoints.
-        const usersMap = new Map<string, unknown>();
-        for (const userId of userIds) {
-          const user = await this.usersService.findOne({ _id: userId }, []);
-          if (user) {
-            usersMap.set(userId, user);
-          }
-        }
-
-        for (const execution of executions) {
-          const userId = (execution as unknown as Record<string, unknown>)
-            .userId as string;
-          if (userId && usersMap.has(userId)) {
-            (execution as unknown as Record<string, unknown>).user =
-              usersMap.get(userId);
-          }
-        }
-      }
-    }
-
-    return executions as unknown as WorkflowExecutionDocument[];
   }
 
   @HandleErrors('get execution stats', 'workflow-executions')

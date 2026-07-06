@@ -2,6 +2,7 @@ import type {
   DelayResumeJobData,
   TriggerEvent,
 } from '@api/collections/workflows/services/workflow-executor.service';
+import { isProtectedSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
 import { WorkflowStatus } from '@genfeedai/enums';
 import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -37,6 +38,7 @@ export interface WorkflowSchedulerSyncRow {
   timezone?: string | null;
   isScheduleEnabled?: boolean | null;
   isDeleted?: boolean | null;
+  metadata?: unknown;
   status?: string | null;
 }
 
@@ -195,13 +197,18 @@ export class WorkflowExecutionQueueService {
       return;
     }
 
-    const isSchedulable =
-      !workflow.isDeleted &&
-      Boolean(workflow.schedule) &&
-      workflow.isScheduleEnabled === true &&
-      workflow.status === WorkflowStatus.ACTIVE;
-
     try {
+      if (isProtectedSystemWorkflowMetadata(workflow.metadata)) {
+        await this.removeWorkflowScheduler(workflowId);
+        return;
+      }
+
+      const isSchedulable =
+        !workflow.isDeleted &&
+        Boolean(workflow.schedule) &&
+        workflow.isScheduleEnabled === true &&
+        workflow.status === WorkflowStatus.ACTIVE;
+
       if (isSchedulable) {
         await this.upsertWorkflowScheduler({
           cronExpression: workflow.schedule as string,

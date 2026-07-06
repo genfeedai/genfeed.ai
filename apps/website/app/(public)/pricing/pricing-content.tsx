@@ -27,8 +27,8 @@ import {
 import PageLayout from '@web-components/PageLayout';
 import { HiCheckCircle } from 'react-icons/hi2';
 
-const PLAN_ORDER = ['Pay As You Go', 'Hosted', 'Cloud Teams'];
-const FEATURED_TIER = 'Hosted';
+const PLAN_ORDER = ['Pay As You Go', 'Pro', 'Scale'];
+const FEATURED_TIER = 'Pro';
 
 const FAQ_ITEMS = [
   {
@@ -48,17 +48,17 @@ const FAQ_ITEMS = [
   },
   {
     answer:
-      'Creator ($49/month) includes 8,000 credits (about $80 of pay-as-you-go output) plus unlimited brand kits and 15 connected channels. Teams ($499/month) includes unlimited seats, 80,000 credits in a shared pool, multi-organization control, and approvals.',
+      'Pro ($49/month) includes 8,000 credits (about $80 of pay-as-you-go output) plus unlimited brand kits and 15 connected channels. Scale ($499/month) includes unlimited seats, 80,000 credits in a shared pool, multi-organization control, and approvals.',
     question: 'What do subscriptions add?',
   },
   {
     answer:
-      'Pay As You Go includes 1 brand kit and 3 connected channels. Creator raises that to unlimited brands and 15 channels. Teams and Enterprise remove the channel limits and add organizations and seats.',
+      'Pay As You Go includes 1 brand kit and 3 connected channels. Pro raises that to unlimited brands and 15 channels. Scale and Enterprise remove the channel limits and add organizations and seats.',
     question: 'How many brands and channels can I connect?',
   },
   {
     answer:
-      'Yes. API access is included on every paid plan at the same credit price — generate in the studio or via code, and it draws from the same credit balance. Creator gets standard rate limits, Teams higher limits, and Enterprise custom limits with an SLA.',
+      'Yes. API access is included on every paid plan at the same credit price — generate in the studio or via code, and it draws from the same credit balance. Pro gets standard rate limits, Scale higher limits, and Enterprise custom limits with an SLA.',
     question: 'Is there an API?',
   },
   {
@@ -121,12 +121,6 @@ function getOrderedPlans() {
 }
 
 function getDisplayName(label: string): string {
-  if (label === 'Hosted') {
-    return 'Creator';
-  }
-  if (label === 'Cloud Teams') {
-    return 'Teams';
-  }
   return label;
 }
 
@@ -138,7 +132,7 @@ function getPriceQualifier(plan: (typeof websitePlans)[number]): string {
   if (plan.type === 'subscription') {
     const credits = plan.includedCredits?.toLocaleString();
 
-    return plan.label === 'Cloud Teams'
+    return plan.label === 'Scale'
       ? `Unlimited seats + ${credits} credits`
       : `${credits} credits included`;
   }
@@ -153,7 +147,7 @@ function getPlanSummary(plan: (typeof websitePlans)[number]): string {
 export default function PricingContent() {
   const containerRef = useMarketingEntrance({ hero: false, sections: false });
   const paygSignUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
-  const creatorSignUpHref = `${EnvironmentService.apps.app}/sign-up?plan=hosted`;
+  const proSignUpHref = `${EnvironmentService.apps.app}/sign-up?plan=pro`;
   const enterprisePlan = websitePlans.find((p) => p.type === 'enterprise');
 
   return (
@@ -178,7 +172,7 @@ export default function PricingContent() {
         <WebSection maxWidth="full" py="md">
           <SectionHeader
             title="Start free. Subscribe when volume makes it cheaper."
-            description="Pay As You Go covers bursty campaigns with zero commitment. Creator and Teams include monthly credits at a ~40% better rate, plus unlimited brands, more channels, and shared team seats."
+            description="Pay As You Go covers bursty campaigns with zero commitment. Pro and Scale include monthly credits at a ~40% better rate, plus unlimited brands, more channels, and unlimited team seats."
             className="[&_h2]:text-5xl mb-4"
           />
 
@@ -189,7 +183,7 @@ export default function PricingContent() {
               const ctaHref = isPayg
                 ? paygSignUpHref
                 : isFeatured
-                  ? creatorSignUpHref
+                  ? proSignUpHref
                   : plan.ctaHref || EnvironmentService.calendly;
               const ctaLabel = plan.cta || 'Get Started';
 
@@ -221,7 +215,7 @@ export default function PricingContent() {
                           {formatPrice(plan.launchPrice)}
                         </span>
                         {plan.type === 'subscription' ? (
-                          <span className="text-sm font-medium text-surface/40">
+                          <span className="text-sm font-medium text-surface/55">
                             /mo
                           </span>
                         ) : null}
@@ -232,7 +226,7 @@ export default function PricingContent() {
                           {formatPrice(plan.price)}
                         </span>
                         {plan.type === 'subscription' ? (
-                          <span className="text-sm font-medium text-surface/40">
+                          <span className="text-sm font-medium text-surface/55">
                             /mo
                           </span>
                         ) : null}
@@ -242,7 +236,7 @@ export default function PricingContent() {
 
                   <div
                     className={cn(
-                      'text-sm text-surface/40',
+                      'text-sm text-surface/60',
                       plan.launchNote ? 'mb-1' : 'mb-8',
                     )}
                   >
@@ -250,19 +244,19 @@ export default function PricingContent() {
                   </div>
 
                   {plan.launchNote ? (
-                    <div className="mb-8 text-xs font-semibold uppercase tracking-widest text-surface/50">
+                    <div className="mb-8 text-xs font-semibold uppercase tracking-widest text-surface/60">
                       {plan.launchNote}
                     </div>
                   ) : null}
 
-                  <p className="mb-8 text-sm leading-6 text-surface/50">
+                  <p className="mb-8 text-sm leading-6 text-surface/65">
                     {getPlanSummary(plan)}
                   </p>
 
                   <ul className="mb-auto space-y-4">
                     {plan.features.slice(0, 5).map((feature) => (
                       <li key={feature} className="flex items-start gap-3">
-                        <HiCheckCircle className="mt-0.5 size-4 shrink-0 text-surface/40" />
+                        <HiCheckCircle className="mt-0.5 size-4 shrink-0 text-surface/55" />
                         <span className="text-sm text-surface/60">
                           {feature}
                         </span>
@@ -302,7 +296,7 @@ export default function PricingContent() {
                 <h3 className="mb-2 text-2xl font-semibold tracking-[-0.02em]">
                   Your own studio, fully managed.
                 </h3>
-                <p className="text-sm leading-6 text-surface/50">
+                <p className="text-sm leading-6 text-surface/65">
                   Custom output terms, unlimited seats and organizations, full
                   API access, white-label, SSO, and a dedicated account manager.
                 </p>
@@ -341,7 +335,7 @@ export default function PricingContent() {
                 <span className="text-sm text-surface/65">{row.label}</span>
                 <span className="text-sm font-semibold text-surface">
                   {formatCredits(row.credits)}
-                  <span className="ml-2 font-normal text-surface/40">
+                  <span className="ml-2 font-normal text-surface/55">
                     ≈ {formatCreditsDollars(row.credits)}
                     {row.suffix ?? ''}
                   </span>

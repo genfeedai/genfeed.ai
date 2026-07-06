@@ -14,7 +14,7 @@ type Props = {
 
 export default function ProvidersToolList({ localToolRows }: Props) {
   return (
-    <div className="provider-card opacity-0 border border-white/[0.08] bg-white/[0.02] p-5 md:p-6">
+    <div className="provider-card opacity-0 bg-secondary shadow-border p-5 md:p-6">
       <div className="mb-5">
         <h2 className="text-lg font-semibold text-white">Local agent tools</h2>
         <p className="mt-2 text-sm text-white/45">

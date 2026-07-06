@@ -11,6 +11,11 @@
   },
   "name": "@genfeedai/libs",
   "private": true,
+  "scripts": {
+    "test": "vitest run --config vitest.config.ts",
+    "test:cov": "vitest run --coverage --config vitest.config.ts",
+    "test:watch": "vitest watch --config vitest.config.ts"
+  },
   "sideEffects": false,
   "type": "module",
   "version": "0.1.0"

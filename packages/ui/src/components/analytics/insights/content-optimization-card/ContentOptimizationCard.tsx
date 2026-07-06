@@ -32,22 +32,7 @@ const getTypeIcon = (type: string) => {
   }
 };
 
-const getTypeColor = (type: string) => {
-  switch (type) {
-    case 'timing':
-      return 'text-blue-500 bg-blue-500/10';
-    case 'format':
-      return 'text-purple-500 bg-purple-500/10';
-    case 'topic':
-      return 'text-green-500 bg-green-500/10';
-    case 'hashtag':
-      return 'text-pink-500 bg-pink-500/10';
-    case 'length':
-      return 'text-orange-500 bg-orange-500/10';
-    default:
-      return 'text-primary bg-primary/10';
-  }
-};
+const TYPE_ICON_CLASS = 'text-muted-foreground bg-muted';
 
 const ContentOptimizationCard = memo(function ContentOptimizationCard({
   suggestions,
@@ -114,14 +99,13 @@ const ContentOptimizationCard = memo(function ContentOptimizationCard({
       <div className="space-y-4 max-h-96 overflow-y-auto">
         {suggestions.map((suggestion) => {
           const Icon = getTypeIcon(suggestion.type);
-          const colorClass = getTypeColor(suggestion.type);
 
           return (
             <div
               key={suggestion.id}
               className="flex items-start gap-4 p-4 bg-background hover:bg-background/80 transition-colors"
             >
-              <div className={cn('p-2.5', colorClass)}>
+              <div className={cn('p-2.5', TYPE_ICON_CLASS)}>
                 <Icon className="size-5" />
               </div>
 

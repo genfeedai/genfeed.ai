@@ -93,7 +93,7 @@ export default function UserDropdown({
               sizes="32px"
             />
           ) : (
-            <span className="flex size-8 items-center justify-center rounded-full bg-foreground/15 text-sm font-semibold text-foreground/80">
+            <span className="flex size-8 items-center justify-center rounded-full bg-foreground/15 font-semibold text-foreground/80">
               {initial}
             </span>
           )}
@@ -102,7 +102,7 @@ export default function UserDropdown({
       <DropdownMenuContent side={side} align="end" className="w-56">
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col gap-1">
-            <p className="text-sm font-medium leading-none">{userName}</p>
+            <p className="font-medium leading-none">{userName}</p>
             <p className="text-xs leading-none text-muted-foreground">
               {userEmail}
             </p>

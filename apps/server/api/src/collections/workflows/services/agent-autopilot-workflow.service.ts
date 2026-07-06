@@ -59,12 +59,24 @@ type AgentStrategyWithConfig = AgentStrategy & {
 
 export interface AgentAutopilotWorkflowResult {
   action: AgentAutopilotWorkflowAction;
+  agentRunIds?: string[];
   enqueued: number;
   generated: number;
   organizationId: string;
   reason?: string;
   skipped: number;
   status: 'completed' | 'enqueued' | 'skipped';
+  workflowExecutionId?: string;
+  workflowId?: string;
+  workflowRunId?: string;
+}
+
+export interface AgentWorkflowHandoffContext {
+  workflowExecutionId?: string;
+  workflowId?: string;
+  workflowNodeId?: string;
+  workflowNodeType?: string;
+  workflowRunId?: string;
 }
 
 const MAX_CONSECUTIVE_FAILURES = 5;
@@ -92,6 +104,7 @@ export class AgentAutopilotWorkflowService {
 
   async runProactiveStrategies(
     organizationId: string,
+    workflowHandoff?: AgentWorkflowHandoffContext,
   ): Promise<AgentAutopilotWorkflowResult> {
     const action: AgentAutopilotWorkflowAction = 'proactiveAgentStrategies';
     const lockKey = this.lockKey(action, organizationId);
@@ -105,6 +118,8 @@ export class AgentAutopilotWorkflowService {
         action,
         organizationId,
         'proactive_agent_already_running',
+        0,
+        workflowHandoff,
       );
     }
 
@@ -127,10 +142,15 @@ export class AgentAutopilotWorkflowService {
 
       let enqueued = 0;
       let skipped = 0;
+      const agentRunIds: string[] = [];
 
       for (const strategy of dueStrategies) {
-        const queued = await this.executeStrategy(strategy);
-        if (queued) {
+        const queuedRunId = await this.executeStrategy(
+          strategy,
+          workflowHandoff,
+        );
+        if (queuedRunId) {
+          agentRunIds.push(queuedRunId);
           enqueued++;
         } else {
           skipped++;
@@ -144,6 +164,8 @@ export class AgentAutopilotWorkflowService {
         0,
         skipped,
         dueStrategies.length === 0 ? 'no_due_strategies' : undefined,
+        workflowHandoff,
+        agentRunIds,
       );
     } catch (error) {
       this.logger.error(`${this.logContext} proactive agent cycle failed`, {
@@ -154,6 +176,8 @@ export class AgentAutopilotWorkflowService {
         action,
         organizationId,
         'proactive_agent_cycle_failed',
+        0,
+        workflowHandoff,
       );
     } finally {
       await this.cacheService.releaseLock(lockKey);
@@ -162,6 +186,7 @@ export class AgentAutopilotWorkflowService {
 
   async runAiInfluencerDailyPosts(
     organizationId: string,
+    workflowHandoff?: AgentWorkflowHandoffContext,
   ): Promise<AgentAutopilotWorkflowResult> {
     const action: AgentAutopilotWorkflowAction = 'aiInfluencerDailyPosts';
     const lockKey = this.lockKey(action, organizationId);
@@ -175,6 +200,8 @@ export class AgentAutopilotWorkflowService {
         action,
         organizationId,
         'ai_influencer_already_running',
+        0,
+        workflowHandoff,
       );
     }
 
@@ -190,13 +217,20 @@ export class AgentAutopilotWorkflowService {
         results.length,
         0,
         results.length === 0 ? 'no_ai_influencer_posts_generated' : undefined,
+        workflowHandoff,
       );
     } catch (error) {
       this.logger.error(`${this.logContext} AI influencer cycle failed`, {
         error,
         organizationId,
       });
-      return this.skipped(action, organizationId, 'ai_influencer_cycle_failed');
+      return this.skipped(
+        action,
+        organizationId,
+        'ai_influencer_cycle_failed',
+        0,
+        workflowHandoff,
+      );
     } finally {
       await this.cacheService.releaseLock(lockKey);
     }
@@ -218,7 +252,8 @@ export class AgentAutopilotWorkflowService {
 
   private async executeStrategy(
     strategy: AgentStrategyWithConfig,
-  ): Promise<boolean> {
+    workflowHandoff?: AgentWorkflowHandoffContext,
+  ): Promise<string | null> {
     const organizationId = strategy.organizationId;
     const userId = strategy.userId;
     const strategyId = strategy.id;
@@ -250,13 +285,13 @@ export class AgentAutopilotWorkflowService {
 
     if (dailyCreditsUsed >= effectiveDailyBudget) {
       await this.scheduleNextRun(strategyId, config.runFrequency);
-      return false;
+      return null;
     }
 
     const creditsUsedThisWeek = config.creditsUsedThisWeek ?? 0;
     if (creditsUsedThisWeek >= weeklyCreditBudget) {
       await this.scheduleNextRun(strategyId, config.runFrequency);
-      return false;
+      return null;
     }
 
     if (brandDailyCap && strategy.brandId) {
@@ -267,7 +302,7 @@ export class AgentAutopilotWorkflowService {
 
       if (brandCreditsUsedToday >= brandDailyCap) {
         await this.scheduleNextRun(strategyId, config.runFrequency);
-        return false;
+        return null;
       }
     }
 
@@ -282,7 +317,7 @@ export class AgentAutopilotWorkflowService {
         data: { isActive: false },
         where: { id: strategyId },
       });
-      return false;
+      return null;
     }
 
     const remainingBudget = Math.min(
@@ -297,6 +332,7 @@ export class AgentAutopilotWorkflowService {
         label: `Proactive: ${strategy.label}`,
         objective,
         organization: organizationId,
+        ...this.buildAgentRunMetadata(strategy, workflowHandoff),
         strategy: strategyId,
         trigger: AgentExecutionTrigger.CRON,
         user: userId,
@@ -315,7 +351,7 @@ export class AgentAutopilotWorkflowService {
       });
 
       await this.scheduleNextRun(strategyId, config.runFrequency);
-      return true;
+      return String(run.id);
     } catch (error) {
       const consecutiveFailures = config.consecutiveFailures ?? 0;
       const newFailureCount = consecutiveFailures + 1;
@@ -356,8 +392,44 @@ export class AgentAutopilotWorkflowService {
         organizationId,
         strategyId,
       });
-      return false;
+      return null;
     }
+  }
+
+  private buildAgentRunMetadata(
+    strategy: AgentStrategyWithConfig,
+    workflowHandoff?: AgentWorkflowHandoffContext,
+  ): { metadata?: Record<string, unknown> } {
+    const workflowHandoffMetadata =
+      this.buildWorkflowHandoffMetadata(workflowHandoff);
+
+    if (!workflowHandoffMetadata) {
+      return {};
+    }
+
+    return {
+      metadata: {
+        workflowHandoff: {
+          ...workflowHandoffMetadata,
+          agentStrategyId: strategy.id,
+        },
+      },
+    };
+  }
+
+  private buildWorkflowHandoffMetadata(
+    workflowHandoff?: AgentWorkflowHandoffContext,
+  ): Record<string, string> | null {
+    if (!workflowHandoff) {
+      return null;
+    }
+
+    const entries = Object.entries(workflowHandoff).filter(
+      (entry): entry is [string, string] =>
+        typeof entry[1] === 'string' && entry[1].length > 0,
+    );
+
+    return entries.length > 0 ? Object.fromEntries(entries) : null;
   }
 
   private async buildSyntheticUserMessage(
@@ -501,6 +573,8 @@ export class AgentAutopilotWorkflowService {
     generated: number,
     skipped: number,
     emptyReason?: string,
+    workflowHandoff?: AgentWorkflowHandoffContext,
+    agentRunIds: string[] = [],
   ): AgentAutopilotWorkflowResult {
     if (enqueued === 0 && generated === 0) {
       return this.skipped(
@@ -508,16 +582,19 @@ export class AgentAutopilotWorkflowService {
         organizationId,
         emptyReason ?? 'no_agent_autopilot_work_enqueued',
         skipped,
+        workflowHandoff,
       );
     }
 
     return {
       action,
+      ...(agentRunIds.length > 0 ? { agentRunIds } : {}),
       enqueued,
       generated,
       organizationId,
       skipped,
       status: enqueued > 0 ? 'enqueued' : 'completed',
+      ...this.buildWorkflowResultMetadata(workflowHandoff),
     };
   }
 
@@ -526,6 +603,7 @@ export class AgentAutopilotWorkflowService {
     organizationId: string,
     reason: string,
     skipped: number = 0,
+    workflowHandoff?: AgentWorkflowHandoffContext,
   ): AgentAutopilotWorkflowResult {
     return {
       action,
@@ -535,6 +613,26 @@ export class AgentAutopilotWorkflowService {
       reason,
       skipped,
       status: 'skipped',
+      ...this.buildWorkflowResultMetadata(workflowHandoff),
+    };
+  }
+
+  private buildWorkflowResultMetadata(
+    workflowHandoff?: AgentWorkflowHandoffContext,
+  ): Pick<
+    AgentAutopilotWorkflowResult,
+    'workflowExecutionId' | 'workflowId' | 'workflowRunId'
+  > {
+    return {
+      ...(workflowHandoff?.workflowExecutionId
+        ? { workflowExecutionId: workflowHandoff.workflowExecutionId }
+        : {}),
+      ...(workflowHandoff?.workflowId
+        ? { workflowId: workflowHandoff.workflowId }
+        : {}),
+      ...(workflowHandoff?.workflowRunId
+        ? { workflowRunId: workflowHandoff.workflowRunId }
+        : {}),
     };
   }
 

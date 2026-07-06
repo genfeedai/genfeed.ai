@@ -75,6 +75,7 @@ describe('ArticlesController', () => {
     remove: vi.fn(),
     resolveArticleCycleModelConfig: vi.fn(),
     restoreArticleVersion: vi.fn(),
+    update: vi.fn(),
   };
 
   const mockActivitiesService = {
@@ -191,23 +192,6 @@ describe('ArticlesController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
-  });
-
-  describe('findBySlug', () => {
-    it('should return an article by slug', async () => {
-      const slug = 'test-article';
-      mockArticlesService.findBySlug.mockResolvedValue(mockArticle);
-
-      const result = await controller.findBySlug(slug, mockUser);
-
-      expect(service.findBySlug).toHaveBeenCalledWith(
-        slug,
-        mockUser.publicMetadata.user,
-        mockUser.publicMetadata.organization,
-        mockUser.publicMetadata.brand,
-      );
-      expect(result).toEqual(mockArticle);
-    });
   });
 
   describe('generateArticles', () => {
@@ -414,8 +398,8 @@ describe('ArticlesController', () => {
     });
   });
 
-  describe('restoreVersion', () => {
-    it('should restore article version', async () => {
+  describe('patch (restore from version)', () => {
+    it('should restore article version when restoreFromVersionId is set', async () => {
       const id = '507f1f77bcf86cd799439014';
       const promptId = 'prompt123';
 
@@ -424,12 +408,9 @@ describe('ArticlesController', () => {
         restoredArticle,
       );
 
-      const result = await controller.restoreVersion(
-        mockRequest,
-        id,
-        promptId,
-        mockUser,
-      );
+      const result = await controller.patch(mockRequest, mockUser, id, {
+        restoreFromVersionId: promptId,
+      });
 
       expect(service.restoreArticleVersion).toHaveBeenCalledWith(
         id,
@@ -438,6 +419,7 @@ describe('ArticlesController', () => {
         mockUser.publicMetadata.organization,
         mockUser.publicMetadata.brand,
       );
+      expect(service.update).not.toHaveBeenCalled();
       expect(result).toBeDefined();
     });
   });

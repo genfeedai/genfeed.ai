@@ -49,13 +49,13 @@ export default function StreakCard() {
 
   return (
     <Card
-      className="mx-3 mb-3 overflow-visible shadow-[inset_0_0_0_1px_rgba(249,115,22,0.15)] bg-orange-500/[0.06]"
+      className="mx-3 mb-3 overflow-visible shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] bg-white/[0.04]"
       bodyClassName="gap-0 p-3"
     >
       <StreakCelebrationBurst isVisible={isCelebrating} />
       <div className="mb-2 flex items-center justify-between">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-orange-200/70">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             Daily streak
           </p>
           <p className="text-lg font-semibold text-white">
@@ -64,7 +64,7 @@ export default function StreakCard() {
               : `${currentStreak} day${currentStreak === 1 ? '' : 's'}`}
           </p>
         </div>
-        <div className="rounded-full border border-orange-400/20 px-2 py-1 text-[11px] font-medium text-orange-100/80">
+        <div className="rounded-full border border-white/20 px-2 py-1 text-[11px] font-medium text-white/80">
           {streakFreezes} freeze{streakFreezes === 1 ? '' : 's'}
         </div>
       </div>
@@ -78,7 +78,7 @@ export default function StreakCard() {
               className={cn(
                 'h-7 rounded border text-[10px] flex items-center justify-center',
                 count > 0
-                  ? 'border-orange-300/30 bg-orange-300/25 text-orange-50'
+                  ? 'border-white/30 bg-white/25 text-white'
                   : 'border-white/8 bg-white/[0.03] text-white/25',
               )}
               title={`${dayKey}${count > 0 ? `: ${count} item${count === 1 ? '' : 's'}` : ''}`}

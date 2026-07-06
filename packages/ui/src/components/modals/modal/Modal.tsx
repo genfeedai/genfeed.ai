@@ -66,8 +66,10 @@ export default function Modal({
         size={isFullScreen ? 'full' : 'lg'}
         className={cn(
           'flex flex-col max-h-[calc(100vh-5rem)]',
-          isError && 'border-2 border-destructive/20',
           isFullScreen ? 'overflow-hidden' : 'overflow-auto',
+          // Door-3 status: destructive ring when the modal is in an error state.
+          // A ring composes over the dialog's inset containment without doubling it.
+          isError && 'ring-1 ring-destructive/40',
           modalBoxClassName,
         )}
         showCloseButton={showCloseButton}

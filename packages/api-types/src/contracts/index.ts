@@ -8,6 +8,7 @@
  * - Inferred form data types (e.g., CreatePostFormData)
  */
 
+export * from '@api-types/contracts/channel-capabilities.contract';
 export * from '@api-types/contracts/ingredients.contract';
 export * from '@api-types/contracts/posts.contract';
 export * from '@api-types/contracts/scheduler.contract';

@@ -35,6 +35,7 @@ export interface NodeStatusChangeEvent {
 }
 
 export interface ExecutionOptions {
+  executionId?: string;
   nodeIds?: string[];
   resumeFromNodeId?: string;
   respectLocks?: boolean;

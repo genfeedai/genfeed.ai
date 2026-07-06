@@ -1,10 +1,7 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import { MonitoredAccount } from '@genfeedai/models/automation/monitored-account.model';
 import { MonitoredAccountSerializer } from '@genfeedai/serializers';
-import {
-  BaseService,
-  type JsonApiResponseDocument,
-} from '@services/core/base.service';
+import { BaseService } from '@services/core/base.service';
 
 export class MonitoredAccountsService extends BaseService<MonitoredAccount> {
   constructor(token: string) {
@@ -57,16 +54,6 @@ export class MonitoredAccountsService extends BaseService<MonitoredAccount> {
       organization: organizationId,
       pagination: false,
     });
-  }
-
-  /**
-   * Toggle the active status of a monitored account
-   */
-  async toggleActive(id: string): Promise<MonitoredAccount> {
-    const response = await this.instance.post<JsonApiResponseDocument>(
-      `/${id}/toggle`,
-    );
-    return new MonitoredAccount(this.extractResource(response.data));
   }
 
   /**

@@ -48,7 +48,7 @@ export default function ChildrenPickerDropdown({
       />
 
       {isDropdownOpen && (
-        <div className="absolute top-full mt-2 left-0 z-50 bg-card shadow-lg border border-white/[0.08] p-3 min-w-96 max-w-2xl">
+        <div className="absolute top-full mt-2 left-0 z-50 bg-card shadow-dropdown p-3 min-w-96 max-w-2xl">
           <div className="text-xs text-foreground/70 mb-2 font-medium">
             Select {parentIngredientCategory}s to add as children
           </div>

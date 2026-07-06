@@ -2,7 +2,6 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { WorkflowExecutionController } from '@api/collections/workflows/controllers/workflow-execution.controller';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowRunControlService } from '@api/collections/workflows/services/workflow-run-control.service';
-import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -23,11 +22,9 @@ describe('WorkflowExecutionController', () => {
   } as unknown as User;
 
   const mockWorkflowsService = {
-    archiveWorkflow: vi.fn(),
     findMutableOwnedOrThrow: vi.fn(),
+    findOwnedOrThrow: vi.fn(),
     lockNodes: vi.fn(),
-    publishWorkflowLifecycle: vi.fn(),
-    setThumbnail: vi.fn(),
     unlockNodes: vi.fn(),
   };
 
@@ -40,10 +37,6 @@ describe('WorkflowExecutionController', () => {
 
   const mockWorkflowExecutorService = {
     submitReviewGateApproval: vi.fn(),
-  };
-
-  const mockWorkflowSchedulerService = {
-    updateSchedule: vi.fn(),
   };
 
   const mockLoggerService = {
@@ -66,10 +59,6 @@ describe('WorkflowExecutionController', () => {
           provide: WorkflowExecutorService,
           useValue: mockWorkflowExecutorService,
         },
-        {
-          provide: WorkflowSchedulerService,
-          useValue: mockWorkflowSchedulerService,
-        },
         { provide: LoggerService, useValue: mockLoggerService },
       ],
     })
@@ -86,24 +75,21 @@ describe('WorkflowExecutionController', () => {
     vi.clearAllMocks();
   });
 
-  describe('setThumbnail', () => {
-    it('should persist the workflow thumbnail for the current user org', async () => {
+  describe('patchNodes', () => {
+    beforeEach(() => {
       mockWorkflowsService.findMutableOwnedOrThrow.mockResolvedValue({
         _id: '507f1f77bcf86cd799439014',
       });
-      mockWorkflowsService.setThumbnail.mockResolvedValue({
+      mockWorkflowsService.findOwnedOrThrow.mockResolvedValue({
         _id: '507f1f77bcf86cd799439014',
-        thumbnail: 'https://cdn.example.com/thumb.jpg',
-        thumbnailNodeId: 'node-output-1',
       });
+    });
 
-      const result = await controller.setThumbnail(
+    it('should lock nodes and not unlock when only lock is provided', async () => {
+      const result = await controller.patchNodes(
         mockRequest,
         '507f1f77bcf86cd799439014',
-        {
-          nodeId: 'node-output-1',
-          thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
-        },
+        { lock: ['node-1'] },
         mockUser,
       );
 
@@ -114,13 +100,49 @@ describe('WorkflowExecutionController', () => {
           user: mockUser.publicMetadata.user,
         },
       );
-      expect(mockWorkflowsService.setThumbnail).toHaveBeenCalledWith(
+      expect(mockWorkflowsService.lockNodes).toHaveBeenCalledWith(
         '507f1f77bcf86cd799439014',
-        'https://cdn.example.com/thumb.jpg',
-        'node-output-1',
-        mockUser.publicMetadata.user,
+        ['node-1'],
         mockUser.publicMetadata.organization,
       );
+      expect(mockWorkflowsService.unlockNodes).not.toHaveBeenCalled();
+      expect(result).toBeDefined();
+    });
+
+    it('should unlock nodes and not lock when only unlock is provided', async () => {
+      const result = await controller.patchNodes(
+        mockRequest,
+        '507f1f77bcf86cd799439014',
+        { unlock: ['node-1'] },
+        mockUser,
+      );
+
+      expect(mockWorkflowsService.unlockNodes).toHaveBeenCalledWith(
+        '507f1f77bcf86cd799439014',
+        ['node-1'],
+        mockUser.publicMetadata.organization,
+      );
+      expect(mockWorkflowsService.lockNodes).not.toHaveBeenCalled();
+      expect(result).toBeDefined();
+    });
+
+    it('should fall back to findOwnedOrThrow when neither lock nor unlock is provided', async () => {
+      const result = await controller.patchNodes(
+        mockRequest,
+        '507f1f77bcf86cd799439014',
+        {},
+        mockUser,
+      );
+
+      expect(mockWorkflowsService.findOwnedOrThrow).toHaveBeenCalledWith(
+        '507f1f77bcf86cd799439014',
+        {
+          organization: mockUser.publicMetadata.organization,
+          user: mockUser.publicMetadata.user,
+        },
+      );
+      expect(mockWorkflowsService.lockNodes).not.toHaveBeenCalled();
+      expect(mockWorkflowsService.unlockNodes).not.toHaveBeenCalled();
       expect(result).toBeDefined();
     });
   });

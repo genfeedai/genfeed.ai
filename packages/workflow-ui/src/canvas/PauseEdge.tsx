@@ -38,7 +38,7 @@ function PauseEdgeComponent({
         style={{
           ...style,
           ...(hasPause && {
-            stroke: '#f59e0b',
+            stroke: 'hsl(var(--warning))',
             strokeDasharray: '5 5',
           }),
         }}
@@ -51,7 +51,7 @@ function PauseEdgeComponent({
           y={labelY - 10}
           className="pointer-events-none"
         >
-          <div className="flex items-center justify-center size-5 rounded-full bg-amber-500 text-white">
+          <div className="flex items-center justify-center size-5 rounded-full bg-warning text-warning-foreground">
             <Pause className="size-3" />
           </div>
         </foreignObject>

@@ -125,15 +125,7 @@ const HERO_VISUAL = (
       },
     ]}
     subtitle="Every asset your team creates"
-    title={
-      <>
-        One library
-        <br />
-        your whole
-        <br />
-        team reuses.
-      </>
-    }
+    title="One library, reused everywhere."
   />
 );
 
@@ -179,18 +171,18 @@ export default function LibraryContent() {
       >
         {/* Highlight Card */}
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
-          <div className="p-8 border border-[var(--gen-accent-border)] bg-gradient-to-r from-[var(--gen-accent-bg)] to-transparent">
+          <div className="p-8 border border-[var(--gen-accent-border)] bg-white/[0.04]">
             <HStack className="flex-col md:flex-row items-center gap-8">
               <div className="flex-shrink-0">
-                <div className="size-20 flex items-center justify-center bg-[hsl(var(--gen-accent))]">
-                  <HiRectangleStack className="size-10 text-inv-fg" />
+                <div className="size-20 flex items-center justify-center border border-[var(--gen-accent-border)] bg-white/[0.06]">
+                  <HiRectangleStack className="size-10 text-surface" />
                 </div>
               </div>
               <VStack className="gap-3">
                 <Heading as="h3" className="text-2xl font-bold">
                   Every Asset, One Library
                 </Heading>
-                <Text as="p" className="text-surface/50">
+                <Text as="p" className="text-surface/65">
                   Ingredients, images, videos, voices, music, captions, gifs,
                   moodboards, and avatars all saved in one place. Stop
                   recreating what already works and start reusing it.
@@ -250,13 +242,10 @@ export default function LibraryContent() {
                       <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
                     </div>
                   </div>
-                  <Heading
-                    as="h4"
-                    className="font-semibold mb-2 text-surface/90"
-                  >
+                  <Heading as="h4" className="font-semibold mb-2 text-surface">
                     {feature.title}
                   </Heading>
-                  <Text className="text-sm text-surface/40">
+                  <Text className="text-sm text-surface/65">
                     {feature.description}
                   </Text>
                 </div>
@@ -280,10 +269,10 @@ export default function LibraryContent() {
                       <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
                     </div>
                     <VStack className="gap-1">
-                      <Text className="text-lg font-bold text-surface/90">
+                      <Text className="text-lg font-bold text-surface">
                         {step.label}
                       </Text>
-                      <Text className="text-sm text-surface/40">
+                      <Text className="text-sm text-surface/65">
                         {step.sublabel}
                       </Text>
                     </VStack>
@@ -299,23 +288,22 @@ export default function LibraryContent() {
 
         {/* Pricing CTA */}
         <section className="max-w-4xl mx-auto pb-16 px-6">
-          <div className="text-center p-12 bg-[hsl(var(--gen-accent))]">
+          <div className="text-center p-12 border border-[var(--gen-accent-border)] bg-white/[0.04]">
             <div className="flex justify-center mb-4">
-              <HiSparkles className="size-8 text-inv-fg" />
+              <HiSparkles className="size-8 text-surface" />
             </div>
-            <Heading as="h3" className="text-2xl font-bold mb-2 text-inv-fg">
+            <Heading as="h3" className="text-2xl font-bold mb-2 text-surface">
               Build Your Library Today
             </Heading>
-            <Text as="p" className="text-inv-fg/60 mb-6 max-w-lg mx-auto">
+            <Text as="p" className="text-surface/70 mb-6 max-w-lg mx-auto">
               Save every asset your team creates and reuse it across brands,
               campaigns, and channels. No manual organizing required.
             </Text>
-            <PricingStrip inverted className="mb-6" />
+            <PricingStrip className="mb-6" />
             <HStack className="flex-wrap gap-4 justify-center">
               <ButtonTracked
                 asChild
                 size={ButtonSize.PUBLIC}
-                className="bg-inv-fg text-[color:hsl(var(--gen-accent))] hover:bg-inv-fg/80 px-8 py-3 text-xs font-bold uppercase tracking-wider"
                 trackingName="library_cta_click"
                 trackingData={{ action: 'sign_up' }}
               >
@@ -327,7 +315,6 @@ export default function LibraryContent() {
                 asChild
                 variant={ButtonVariant.OUTLINE}
                 size={ButtonSize.PUBLIC}
-                className="border-inv-fg/20 text-inv-fg hover:bg-inv-fg/5 px-8 py-3 text-xs font-bold uppercase tracking-wider"
                 trackingName="library_cta_click"
                 trackingData={{ action: 'book_demo' }}
               >

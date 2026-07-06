@@ -14,8 +14,8 @@ import {
   Body,
   Controller,
   Delete,
-  Param,
   Post,
+  Query,
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
@@ -57,10 +57,10 @@ export class VotesController {
     }
   }
 
-  @Delete(':entityId')
+  @Delete()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async remove(
-    @Param('entityId') entityId: string,
+    @Query('entity') entityId: string,
     @CurrentUser() user: User,
   ): Promise<void> {
     if (!/^[0-9a-f]{24}$/i.test(entityId)) {

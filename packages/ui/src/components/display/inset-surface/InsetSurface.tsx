@@ -9,10 +9,12 @@ const DENSITY_CLASSES: Record<InsetSurfaceDensity, string> = {
   compact: 'p-3',
 };
 
+// Containment via the canonical inset hairline ring (shadow-border), not a CSS
+// border — CSS border is reserved for structural dividers per DESIGN.md.
 const TONE_CLASSES: Record<InsetSurfaceTone, string> = {
-  contrast: 'border border-white/[0.08] bg-black/20',
-  default: 'border border-white/[0.08] bg-white/[0.03]',
-  muted: 'border border-border/60 bg-background',
+  contrast: 'shadow-border bg-black/20',
+  default: 'shadow-border bg-white/[0.03]',
+  muted: 'shadow-border bg-background',
 };
 
 export interface InsetSurfaceProps extends HTMLAttributes<HTMLDivElement> {

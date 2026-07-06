@@ -5,6 +5,12 @@ export const PLATFORM_COLORS = {
     name: 'Beehiiv',
     rgb: '252, 211, 77',
   },
+  devto: {
+    base: '#0A0A0A',
+    hover: '#333333',
+    name: 'DEV Community',
+    rgb: '10, 10, 10',
+  },
   discord: {
     base: '#5865F2',
     hover: '#7289da',
@@ -28,6 +34,12 @@ export const PLATFORM_COLORS = {
     hover: '#2e3035',
     name: 'Ghost',
     rgb: '21, 23, 26',
+  },
+  hacker_news: {
+    base: '#FF6600',
+    hover: '#ff8433',
+    name: 'Hacker News',
+    rgb: '255, 102, 0',
   },
   instagram: {
     base: '#E1306C',
@@ -64,6 +76,12 @@ export const PLATFORM_COLORS = {
     hover: '#ff1744',
     name: 'Pinterest',
     rgb: '230, 0, 35',
+  },
+  product_hunt: {
+    base: '#DA552F',
+    hover: '#e57a5c',
+    name: 'Product Hunt',
+    rgb: '218, 85, 47',
   },
 
   reddit: {
@@ -153,16 +171,19 @@ export type ColorVariant = 'base' | 'hover';
 export const DISCORD_EMBED_COLORS: Record<string, number> = {
   BEEHIIV: 0xfcd34d,
   DEFAULT: 0x5865f2,
+  DEVTO: 0x0a0a0a,
   DISCORD: 0x5865f2,
   FACEBOOK: 0x1877f2,
   FANVUE: 0x6c63ff,
   GHOST: 0x15171a,
   GOOGLE_ADS: 0x4285f4,
+  HACKER_NEWS: 0xff6600,
   INSTAGRAM: 0xe1306c,
   LINKEDIN: 0x0a66c2,
   MASTODON: 0x6364ff,
   MEDIUM: 0x00ab6c,
   PINTEREST: 0xe60023,
+  PRODUCT_HUNT: 0xda552f,
   REDDIT: 0xff4500,
   SHOPIFY: 0x96bf48,
   SLACK: 0x4a154b,

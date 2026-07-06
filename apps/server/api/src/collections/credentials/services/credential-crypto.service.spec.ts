@@ -4,7 +4,7 @@ import {
   CredentialCryptoService,
 } from '@api/collections/credentials/services/credential-crypto.service';
 import type { ConfigService } from '@api/config/config.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 
 // Use the same key the global test setup gives EncryptionUtil so the
 // interop assertions (cross-decrypt) are meaningful.

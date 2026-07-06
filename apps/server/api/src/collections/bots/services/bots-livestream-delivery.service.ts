@@ -5,7 +5,7 @@ import type {
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { ConfigService } from '@api/config/config.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import { google } from 'googleapis';

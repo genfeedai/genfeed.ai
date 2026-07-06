@@ -153,6 +153,14 @@ export class VideosRelationshipsController {
     return serializeCollection(request, PostSerializer, data);
   }
 
+  // Intentionally uncredited: video merge runs entirely on the internal
+  // files-queue (JOB_TYPES.MERGE_VIDEOS — ffmpeg concat/transitions/captions),
+  // with no external AI/provider call, so there is no per-call cost to bill.
+  // This matches every other local ffmpeg transform (resize/gif/effects/edits),
+  // which are likewise uncharged; only provider-backed transforms (upscale/
+  // reframe/lip-sync/avatar) carry @Credits. Verified free-by-design in the
+  // #1354 REST audit — do not add a CreditsGuard/@Credits here without a
+  // corresponding provider cost. Class-level RolesGuard still applies.
   @Post('merge')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async mergeVideos(

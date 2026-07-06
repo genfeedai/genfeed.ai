@@ -385,6 +385,53 @@ describe('StripeService', () => {
       expect(callArg.allow_promotion_codes).toBe(true);
       expect(callArg).not.toHaveProperty('discounts');
     });
+
+    it('treats the yearly Pro price as a subscription without auto-applying the monthly launch coupon', async () => {
+      const configGetMock = vi.fn((key: string) => {
+        const map: Record<string, string> = {
+          GENFEEDAI_APP_URL: 'http://localhost:3000',
+          STRIPE_API_VERSION: '2026-01-28.clover',
+          STRIPE_PRICE_PAYG: 'payg_id',
+          STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY: 'enterprise_id',
+          STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY: 'pro_id',
+          STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY: 'pro_yearly_id',
+          STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY: 'scale_id',
+          STRIPE_PROMOTION_CODE_LAUNCH: 'promo_launch123',
+          STRIPE_SECRET_KEY: 'sk_test',
+        };
+        return map[key];
+      });
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          StripeService,
+          { provide: ConfigService, useValue: { get: configGetMock } },
+          {
+            provide: LoggerService,
+            useValue: { error: vi.fn(), log: vi.fn() },
+          },
+        ],
+      }).compile();
+
+      const scopedService = module.get<StripeService>(StripeService);
+
+      const createSpy = vi
+        .spyOn(scopedService.stripe.checkout.sessions, 'create')
+        .mockResolvedValue({
+          id: 'sess',
+        } as unknown as Stripe.Checkout.Session);
+
+      await scopedService.createPaymentSession(
+        'cust',
+        'pro_yearly_id',
+        'http://origin',
+      );
+
+      const callArg = createSpy.mock.calls[0][0];
+      expect(callArg.mode).toBe('subscription');
+      expect(callArg.allow_promotion_codes).toBe(true);
+      expect(callArg).not.toHaveProperty('discounts');
+    });
   });
 
   describe('createManagedPaymentSession', () => {

@@ -3,8 +3,8 @@ import { Platform } from '../src/platform.enum';
 
 describe('platform.enum', () => {
   describe('Platform', () => {
-    it('should have 25 members', () => {
-      expect(Object.values(Platform)).toHaveLength(25);
+    it('should have 29 members', () => {
+      expect(Object.values(Platform)).toHaveLength(29);
     });
 
     it('should have correct values', () => {
@@ -33,6 +33,9 @@ describe('platform.enum', () => {
       expect(Platform.SHOPIFY).toBe('shopify');
       expect(Platform.BEEHIIV).toBe('beehiiv');
       expect(Platform.UNIPILE).toBe('unipile');
+      expect(Platform.DEV_TO).toBe('devto');
+      expect(Platform.PRODUCT_HUNT).toBe('product_hunt');
+      expect(Platform.HACKER_NEWS).toBe('hacker_news');
     });
   });
 });

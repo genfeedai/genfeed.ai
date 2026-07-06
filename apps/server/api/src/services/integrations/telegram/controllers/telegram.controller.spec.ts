@@ -10,7 +10,6 @@ import { Test, type TestingModule } from '@nestjs/testing';
 describe('TelegramController', () => {
   let controller: TelegramController;
   let telegramService: {
-    disconnect: ReturnType<typeof vi.fn>;
     verifyAndSaveAuth: ReturnType<typeof vi.fn>;
   };
 
@@ -43,7 +42,6 @@ describe('TelegramController', () => {
 
   beforeEach(async () => {
     telegramService = {
-      disconnect: vi.fn().mockResolvedValue({ success: true }),
       verifyAndSaveAuth: vi.fn().mockResolvedValue(mockCredential),
     };
 
@@ -124,42 +122,6 @@ describe('TelegramController', () => {
       const callArgs = telegramService.verifyAndSaveAuth.mock
         .calls[0] as unknown[];
       expect(callArgs[2]).toBe(userId);
-    });
-  });
-
-  describe('disconnect', () => {
-    it('should call disconnect with org and brand IDs', async () => {
-      await controller.disconnect(mockUser, orgId, brandId);
-      expect(telegramService.disconnect).toHaveBeenCalledWith(orgId, brandId);
-    });
-
-    it('should return success response', async () => {
-      const result = await controller.disconnect(mockUser, orgId, brandId);
-      expect(result).toEqual({ success: true });
-    });
-
-    it('should propagate NOT_FOUND when credential not found', async () => {
-      telegramService.disconnect.mockRejectedValueOnce(
-        new HttpException(
-          { detail: 'Credential not found', title: 'Not Found' },
-          HttpStatus.NOT_FOUND,
-        ),
-      );
-      await expect(
-        controller.disconnect(mockUser, orgId, brandId),
-      ).rejects.toThrow(HttpException);
-    });
-
-    it('should propagate internal errors', async () => {
-      telegramService.disconnect.mockRejectedValueOnce(
-        new HttpException(
-          { detail: 'Failed to disconnect', title: 'Disconnect Failed' },
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        ),
-      );
-      await expect(
-        controller.disconnect(mockUser, orgId, brandId),
-      ).rejects.toThrow(HttpException);
     });
   });
 });

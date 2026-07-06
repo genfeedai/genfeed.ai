@@ -165,9 +165,12 @@ export class CreativePatternsService {
   }
 
   async findAll(filters: {
-    platform?: string;
+    brandId?: string;
+    limit?: number;
     patternType?: PatternType;
+    platform?: string;
     scope?: string;
+    top?: boolean;
   }): Promise<CreativePatternDocument[]> {
     const now = new Date();
     const patterns = await this.prisma.creativePattern.findMany({
@@ -176,11 +179,18 @@ export class CreativePatternsService {
       },
     });
 
-    return patterns
+    const filtered = patterns
       .map((record) => this.normalizeRecord(record))
       .filter((record) => {
         const validUntil = this.readDate(record.validUntil);
         if (validUntil && validUntil < now) {
+          return false;
+        }
+
+        if (
+          filters.brandId &&
+          (this.readString(record.brand) ?? null) !== filters.brandId
+        ) {
           return false;
         }
 
@@ -202,6 +212,13 @@ export class CreativePatternsService {
           return false;
         }
 
+        if (filters.top) {
+          const scope = this.readString(record.scope);
+          if (scope !== 'public' && scope !== 'private') {
+            return false;
+          }
+        }
+
         return true;
       })
       .sort((a, b) => {
@@ -209,5 +226,11 @@ export class CreativePatternsService {
         const bScore = this.readNumber(b.avgPerformanceScore) ?? 0;
         return bScore - aScore;
       });
+
+    if (filters.top) {
+      return filtered.slice(0, filters.limit ?? 10);
+    }
+
+    return filtered;
   }
 }

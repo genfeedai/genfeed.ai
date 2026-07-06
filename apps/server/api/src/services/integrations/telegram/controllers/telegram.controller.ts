@@ -31,18 +31,4 @@ export class TelegramController {
       authData,
     );
   }
-
-  /**
-   * Disconnect Telegram account
-   *
-   * POST /services/telegram/disconnect
-   */
-  @Post('disconnect')
-  disconnect(
-    @CurrentUser() _user: Record<string, unknown>,
-    @Body('organizationId') organizationId: string,
-    @Body('brandId') brandId: string,
-  ) {
-    return this.telegramService.disconnect(organizationId, brandId);
-  }
 }

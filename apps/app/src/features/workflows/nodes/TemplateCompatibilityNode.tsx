@@ -98,7 +98,7 @@ function TemplateCompatibilityNodeComponent(
     typeof props.data?.label === 'string' ? props.data.label : definition.label;
 
   return (
-    <div className="relative min-w-[280px] space-y-3 rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
+    <div className="relative min-w-[280px] space-y-3 rounded-xl shadow-border bg-card p-4 text-card-foreground">
       <NodeHandles handles={definition.inputs} position={Position.Left} />
       <NodeHandles handles={definition.outputs} position={Position.Right} />
 

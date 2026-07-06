@@ -9,10 +9,10 @@ describe('MetaAdsBulkController RBAC', () => {
     expect(metadata).toEqual(['owner', 'admin']);
   });
 
-  it('should require owner or admin role for cancelJob', () => {
+  it('should require owner or admin role for updateJob', () => {
     const metadata = Reflect.getMetadata(
       'roles',
-      MetaAdsBulkController.prototype.cancelJob,
+      MetaAdsBulkController.prototype.updateJob,
     );
     expect(metadata).toEqual(['owner', 'admin']);
   });

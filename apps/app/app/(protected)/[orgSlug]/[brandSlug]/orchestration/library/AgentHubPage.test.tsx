@@ -11,9 +11,9 @@ const mocks = vi.hoisted(() => ({
   loggerError: vi.fn(),
   refresh: vi.fn(),
   runNow: vi.fn(),
+  setActive: vi.fn(),
   strategies: [] as unknown[],
   success: vi.fn(),
-  toggle: vi.fn(),
   isLoading: false,
 }));
 
@@ -101,11 +101,11 @@ describe('AgentHubPage', () => {
     mocks.strategies = [];
     mocks.getService.mockResolvedValue({
       runNow: mocks.runNow,
-      toggle: mocks.toggle,
+      setActive: mocks.setActive,
     });
     mocks.refresh.mockResolvedValue(undefined);
     mocks.runNow.mockResolvedValue(undefined);
-    mocks.toggle.mockResolvedValue(undefined);
+    mocks.setActive.mockResolvedValue(undefined);
   });
 
   it('renders loading and empty agent hub states', () => {
@@ -171,7 +171,7 @@ describe('AgentHubPage', () => {
 
     fireEvent.click(screen.getByText('Pause'));
     await waitFor(() => {
-      expect(mocks.toggle).toHaveBeenCalledWith('agent-1');
+      expect(mocks.setActive).toHaveBeenCalledWith('agent-1', false);
     });
     expect(mocks.refresh).toHaveBeenCalledTimes(1);
     expect(mocks.success).toHaveBeenCalledWith('Agent status updated');
@@ -192,7 +192,7 @@ describe('AgentHubPage', () => {
       },
     ];
     mocks.runNow.mockRejectedValueOnce(new Error('run failed'));
-    mocks.toggle.mockRejectedValueOnce(new Error('toggle failed'));
+    mocks.setActive.mockRejectedValueOnce(new Error('toggle failed'));
 
     render(<AgentHubPage />);
 

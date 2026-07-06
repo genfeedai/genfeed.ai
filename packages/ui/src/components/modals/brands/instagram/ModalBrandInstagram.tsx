@@ -238,8 +238,8 @@ export default function ModalBrandInstagram({
                 tabIndex={0}
                 className={`p-4 cursor-pointer transition-all ${
                   selectedHandle?.id === handle.id
-                    ? 'border-2 border-white bg-primary/10'
-                    : 'border-2 border-transparent hover:bg-white/5'
+                    ? 'shadow-border-strong bg-primary/10'
+                    : 'hover:bg-white/5'
                 }`}
                 onClick={() => setSelectedHandle(handle)}
                 onKeyDown={(e) => {

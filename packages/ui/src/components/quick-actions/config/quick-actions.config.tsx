@@ -170,7 +170,7 @@ export const createFavoriteAction = (
   return {
     icon: (
       <HiStar
-        className={`size-4 ${ingredient.isFavorite ? 'fill-yellow-500' : ''}`}
+        className={`size-4 ${ingredient.isFavorite ? 'fill-foreground' : ''}`}
       />
     ),
     id: 'favorite',
@@ -603,7 +603,7 @@ export const createMarkValidatedAction = (
   return {
     icon: (
       <HiCheckCircle
-        className={`size-4 ${isValidated ? 'text-green-500' : 'text-white'}`}
+        className={`size-4 ${isValidated ? 'text-success' : 'text-white'}`}
       />
     ),
     id: 'mark-validated',
@@ -630,7 +630,7 @@ export const createMarkRejectedAction = (
   return {
     icon: (
       <HiXMark
-        className={`size-4 ${isRejected ? 'text-red-500' : 'text-white'}`}
+        className={`size-4 ${isRejected ? 'text-destructive' : 'text-white'}`}
       />
     ),
     id: 'mark-rejected',

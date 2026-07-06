@@ -85,9 +85,9 @@ export default function ListRowSound({
         role="button"
         tabIndex={0}
         className={cn(
-          'group grid min-h-20 grid-cols-[auto_minmax(0,2.4fr)_minmax(180px,1.4fr)_minmax(120px,0.8fr)_auto] items-center gap-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] px-4 py-3 transition-colors duration-200',
-          'hover:border-white/[0.12] hover:bg-white/[0.04]',
-          (isActive ?? isSelected) && 'border-white/[0.18] bg-white/[0.06]',
+          'group grid min-h-20 grid-cols-[auto_minmax(0,2.4fr)_minmax(180px,1.4fr)_minmax(120px,0.8fr)_auto] items-center gap-4 rounded-2xl shadow-border bg-white/[0.02] px-4 py-3 transition-colors duration-200',
+          'hover:shadow-border-strong hover:bg-white/[0.04]',
+          (isActive ?? isSelected) && 'shadow-border-strong bg-white/[0.06]',
           onRowClick && 'cursor-pointer',
           className,
         )}

@@ -4,7 +4,7 @@ import PricingContent from '@public/pricing/pricing-content';
 
 export const generateMetadata = createPageMetadataWithCanonical(
   'Pricing',
-  'Free to sign up — credits buy the output you generate. Subscriptions from $49/mo include monthly credits at a better rate, plus unlimited brands, more channels, and shared team seats.',
+  'Free to sign up — credits buy the output you generate. Subscriptions from $49/mo include monthly credits at a better rate, plus unlimited brands, more channels, and unlimited team seats.',
   '/pricing',
 );
 
@@ -12,7 +12,7 @@ const saasJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'WebPage',
   description:
-    'Genfeed is free to join with pay-per-output credits. Creator ($49/month) includes 8,000 credits at a better rate. Teams ($499/month) adds seats, a shared credit pool, and multi-organization workflows.',
+    'Genfeed is free to join with pay-per-output credits. Pro ($49/month) includes 8,000 credits at a better rate. Scale ($499/month) adds unlimited seats, a shared credit pool, and multi-organization workflows.',
   mainEntity: {
     '@type': 'Product',
     brand: { '@type': 'Organization', name: 'Genfeed' },
@@ -33,7 +33,7 @@ const saasJsonLd = {
         '@type': 'Offer',
         description:
           'Monthly subscription with 8,000 included credits at a better rate, unlimited brand kits, and 15 connected channels.',
-        name: 'Creator',
+        name: 'Pro',
         price: '49',
         priceCurrency: 'USD',
         priceSpecification: {
@@ -46,7 +46,7 @@ const saasJsonLd = {
         '@type': 'Offer',
         description:
           'For teams: unlimited seats, an 80,000-credit shared pool, multi-organization workflows, approvals, and managed billing.',
-        name: 'Teams',
+        name: 'Scale',
         price: '499',
         priceCurrency: 'USD',
         priceSpecification: {

@@ -4,6 +4,7 @@ import { WorkflowExecutorService } from '@api/collections/workflows/services/wor
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { ConfigService } from '@api/config/config.service';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
+import { WorkflowExecutionStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -127,15 +128,29 @@ describe('InternalWorkflowExecutionsController', () => {
       status: 'cancelled',
     });
 
-    const result = await controller.cancel(
+    const result = await controller.update(
       mockRequest,
       '507f1f77bcf86cd799439012',
       '507f1f77bcf86cd799439015',
+      { status: WorkflowExecutionStatus.CANCELLED },
     );
 
     expect(mockWorkflowExecutionsService.cancelExecution).toHaveBeenCalledWith(
       '507f1f77bcf86cd799439015',
     );
     expect(result).toBeDefined();
+  });
+
+  it('throws NotFoundException when the execution does not exist in the org', async () => {
+    mockWorkflowExecutionsService.findOne.mockResolvedValue(null);
+
+    await expect(
+      controller.update(mockRequest, '507f1f77bcf86cd799439012', 'missing-id', {
+        status: WorkflowExecutionStatus.CANCELLED,
+      }),
+    ).rejects.toThrow('Execution');
+    expect(
+      mockWorkflowExecutionsService.cancelExecution,
+    ).not.toHaveBeenCalled();
   });
 });

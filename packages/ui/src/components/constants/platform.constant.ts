@@ -1,13 +1,16 @@
 import { PLATFORM_COLORS } from '@genfeedai/constants';
 import type { ITrendPlatformConfig } from '@genfeedai/interfaces/analytics/platform-config.interface';
 import {
+  FaDev,
   FaFacebook,
   FaGhost,
+  FaHackerNews,
   FaInstagram,
   FaLinkedin,
   FaMastodon,
   FaMedium,
   FaPinterest,
+  FaProductHunt,
   FaReddit,
   FaShopify,
   FaSnapchat,
@@ -29,6 +32,13 @@ export const PLATFORM_CONFIGS: Record<string, ITrendPlatformConfig> = {
     id: 'beehiiv',
     label: 'Beehiiv',
   },
+  devto: {
+    color: PLATFORM_COLORS.devto.base,
+    description: 'Developer articles',
+    icon: FaDev,
+    id: 'devto',
+    label: 'DEV',
+  },
   facebook: {
     color: PLATFORM_COLORS.facebook.base,
     description: 'Videos & posts',
@@ -49,6 +59,13 @@ export const PLATFORM_CONFIGS: Record<string, ITrendPlatformConfig> = {
     icon: FaGhost,
     id: 'ghost',
     label: 'Ghost',
+  },
+  hacker_news: {
+    color: PLATFORM_COLORS.hacker_news.base,
+    description: 'Show HN launch',
+    icon: FaHackerNews,
+    id: 'hacker_news',
+    label: 'Hacker News',
   },
   instagram: {
     color: PLATFORM_COLORS.instagram.base,
@@ -84,6 +101,13 @@ export const PLATFORM_CONFIGS: Record<string, ITrendPlatformConfig> = {
     icon: FaPinterest,
     id: 'pinterest',
     label: 'Pinterest',
+  },
+  product_hunt: {
+    color: PLATFORM_COLORS.product_hunt.base,
+    description: 'Product launch',
+    icon: FaProductHunt,
+    id: 'product_hunt',
+    label: 'Product Hunt',
   },
   reddit: {
     color: PLATFORM_COLORS.reddit.base,

@@ -69,10 +69,7 @@ export default function TopbarPublicMobileMenu({
       />
 
       {/* Menu Panel */}
-      <div
-        className="relative z-10 w-full max-h-[80vh] overflow-y-auto mt-20 border-b border-white/10"
-        style={{ backgroundColor: '#09090b' }}
-      >
+      <div className="relative z-10 w-full max-h-[80vh] overflow-y-auto mt-20 border-b border-white/10 bg-primary">
         <nav className="container mx-auto p-6">
           <ul className="space-y-6">
             {/* Mobile Dropdowns */}

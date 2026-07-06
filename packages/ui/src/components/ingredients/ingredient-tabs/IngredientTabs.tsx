@@ -129,7 +129,7 @@ export default function IngredientTabs({
 
       <aside
         data-testid="ingredient-drawer"
-        className="fixed inset-y-0 right-0 z-50 w-full sm:w-2xl bg-card shadow-xl border-l border-primary/10 overflow-y-auto p-4"
+        className="fixed inset-y-0 right-0 z-50 w-full sm:w-2xl bg-card shadow-dialog border-l border-primary/10 overflow-y-auto p-4"
       >
         <div className="flex justify-between items-center gap-2">
           <Button

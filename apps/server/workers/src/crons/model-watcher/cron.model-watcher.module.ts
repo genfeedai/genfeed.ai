@@ -7,6 +7,7 @@ import { FalDiscoveryService } from '@workers/services/fal-discovery.service';
 import { HuggingFaceDiscoveryService } from '@workers/services/hugging-face-discovery.service';
 import { ModelDiscoveryService } from '@workers/services/model-discovery.service';
 import { ModelPricingService } from '@workers/services/model-pricing.service';
+import { PlatformMarginService } from '@workers/services/platform-margin.service';
 
 @Module({
   imports: [forwardRef(() => ModelsModule), ConfigModule, NotificationsModule],
@@ -16,6 +17,7 @@ import { ModelPricingService } from '@workers/services/model-pricing.service';
     HuggingFaceDiscoveryService,
     ModelDiscoveryService,
     ModelPricingService,
+    PlatformMarginService,
   ],
 })
 export class CronModelWatcherModule {}

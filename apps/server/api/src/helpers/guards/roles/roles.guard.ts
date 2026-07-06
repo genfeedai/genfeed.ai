@@ -75,7 +75,7 @@ export class RolesGuard implements CanActivate {
         )
       : [];
 
-    // Extract organization ID from request (params, body, or publicMetadata)
+    // Extract organization ID from the authenticated session first.
     const organizationId = this.extractOrganizationId(req, publicMetadata);
 
     if (!organizationId) {
@@ -162,35 +162,85 @@ export class RolesGuard implements CanActivate {
 
   /**
    * Extract organization ID from request context
-   * Priority: explicit organizationId param > request body > publicMetadata
+   * Priority: publicMetadata > consistent explicit organizationId param/body
    *
    * IMPORTANT: Only looks for :organizationId param specifically.
    * Generic :id params (brandId, postId, etc.) should NOT be treated as org IDs.
+   *
+   * Explicit values that conflict with the session's organization are rejected
+   * (403), not silently overridden; multi-org users must switch their active
+   * organization first.
    */
   private extractOrganizationId(
     req: Request,
     publicMetadata: IAuthPublicMetadata,
   ): string | null {
-    // 1. Check explicit org params (e.g., /organizations/:organizationId/...)
-    const params = req.params as unknown as Record<string, string | undefined>;
-    const explicitOrganizationId = params.organizationId ?? params.orgId;
+    const metadataOrganization = this.normalizeOrganizationId(
+      publicMetadata.organization,
+    );
+    const explicitOrganizationValues =
+      this.extractExplicitOrganizationValues(req);
 
-    if (explicitOrganizationId !== undefined) {
-      return isEntityId(explicitOrganizationId) ? explicitOrganizationId : null;
-    }
-
-    // 2. Try to get from request body
-    const bodyOrganization = req.body?.organization;
-    if (bodyOrganization && isEntityId(bodyOrganization)) {
-      return bodyOrganization;
-    }
-
-    // 3. Fallback to publicMetadata (user's current org context)
-    const metadataOrganization = publicMetadata.organization;
-    if (metadataOrganization && isEntityId(metadataOrganization)) {
+    if (metadataOrganization) {
+      this.assertExplicitOrganizationMatchesContext(
+        explicitOrganizationValues,
+        metadataOrganization,
+      );
       return metadataOrganization;
     }
 
-    return null;
+    return this.resolveFirstExplicitOrganizationId(explicitOrganizationValues);
+  }
+
+  private extractExplicitOrganizationValues(req: Request): unknown[] {
+    const params = req.params as unknown as Record<string, unknown>;
+    const body = req.body as Record<string, unknown> | undefined;
+
+    return [
+      params.organizationId,
+      params.orgId,
+      body?.organization,
+      body?.organizationId,
+      body?.orgId,
+    ].filter((value) => value !== undefined && value !== null && value !== '');
+  }
+
+  private resolveFirstExplicitOrganizationId(
+    explicitOrganizationValues: unknown[],
+  ): string | null {
+    if (explicitOrganizationValues.length === 0) {
+      return null;
+    }
+
+    return this.normalizeOrganizationId(explicitOrganizationValues[0]);
+  }
+
+  private assertExplicitOrganizationMatchesContext(
+    explicitOrganizationValues: unknown[],
+    metadataOrganization: string,
+  ): void {
+    for (const explicitOrganizationValue of explicitOrganizationValues) {
+      if (
+        this.normalizeOrganizationId(explicitOrganizationValue) !==
+        metadataOrganization
+      ) {
+        throw new HttpException(
+          {
+            detail: 'Organization context does not match authenticated session',
+            title: 'Roles - Forbidden',
+          },
+          HttpStatus.FORBIDDEN,
+        );
+      }
+    }
+  }
+
+  private normalizeOrganizationId(value: unknown): string | null {
+    if (typeof value !== 'string') {
+      return null;
+    }
+
+    const organizationId = value.trim();
+    return isEntityId(organizationId) ? organizationId : null;
   }
 }

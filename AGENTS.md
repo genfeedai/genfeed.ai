@@ -2,8 +2,8 @@
 
 ## Last Verified
 
-- **Date:** 2026-07-02
-- **Sources:** local monorepo structure (memory/skills symlinks, trunk rules, pre-push commands)
+- **Date:** 2026-07-06
+- **Sources:** fetched `origin/master`, local monorepo structure, package manifests, trunk rules, pre-push commands
 
 ## Project Memory — READ AT SESSION START
 

@@ -20,6 +20,7 @@ import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.in
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
+import type { ValidateChannelTargetSettingsInput } from '@api-types/contracts/channel-capabilities.contract';
 import { ActivitySource } from '@genfeedai/enums';
 import { ScheduleSerializer } from '@genfeedai/serializers';
 import {
@@ -50,6 +51,32 @@ export class SchedulesController {
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly modelsService: ModelsService,
   ) {}
+
+  @Get('channel-capabilities')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  listChannelCapabilities(
+    @Query('includeHidden') includeHidden?: string,
+    @Query('includePlanned') includePlanned?: string,
+  ) {
+    return this.schedulesService.listChannelCapabilities({
+      includeHidden: this.parseBooleanQuery(includeHidden),
+      includePlanned: this.parseBooleanQuery(includePlanned),
+    });
+  }
+
+  @Get('channel-capabilities/:platform')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  getChannelCapability(@Param('platform') platform: string) {
+    return this.schedulesService.getChannelCapability(platform);
+  }
+
+  @Post('channel-capabilities/validate')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  validateChannelTargetSettings(
+    @Body() input: ValidateChannelTargetSettingsInput,
+  ) {
+    return this.schedulesService.validateChannelTargetSettings(input);
+  }
 
   /**
    * Get optimal posting time
@@ -218,5 +245,13 @@ export class SchedulesController {
       deferred: false,
       maxOverdraftCredits: SchedulesController.TEXT_MAX_OVERDRAFT_CREDITS,
     };
+  }
+
+  private parseBooleanQuery(value?: string): boolean | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    return ['1', 'true', 'yes'].includes(value.toLowerCase());
   }
 }

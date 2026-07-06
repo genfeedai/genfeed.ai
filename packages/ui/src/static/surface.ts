@@ -224,7 +224,7 @@ export const staticSurfaceCss = `
   border: 0;
   border-radius: var(--gf-surface-radius);
   background: var(--gf-bg-primary);
-  color: #dbeafe;
+  color: var(--gf-text-secondary);
   box-shadow: var(--gf-shadow-border);
   font-size: 12px;
   line-height: 1.7;
@@ -235,9 +235,9 @@ export const staticSurfaceCss = `
   display: grid;
   grid-template-columns: 20px minmax(0, 1fr);
   gap: 12px;
-  border: 1px solid rgba(245, 158, 11, 0.26);
+  border: 1px solid color-mix(in srgb, var(--gf-warning) 26%, transparent);
   border-radius: var(--gf-surface-radius);
-  background: rgba(245, 158, 11, 0.08);
+  background: color-mix(in srgb, var(--gf-warning) 8%, transparent);
   color: var(--gf-text-secondary);
   padding: 14px;
   font-size: 12px;

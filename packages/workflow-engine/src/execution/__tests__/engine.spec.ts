@@ -107,6 +107,32 @@ describe('WorkflowEngine', () => {
       expect(result.nodeResults.get('n1')?.status).toBe('completed');
     });
 
+    it('should pass persisted execution id into node context', async () => {
+      const contextExecutor: NodeExecutor = vi.fn(
+        async (_node, _inputs, ctx) => ({
+          executionId: ctx.executionId,
+          runId: ctx.runId,
+          workflowId: ctx.workflowId,
+        }),
+      );
+      engine.registerExecutor('generate', contextExecutor);
+
+      const workflow = makeWorkflow([makeNode('n1')]);
+
+      await engine.execute(workflow, { executionId: 'exec-1' });
+
+      expect(contextExecutor).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.any(Map),
+        expect.objectContaining({
+          executionId: 'exec-1',
+          organizationId: 'org-1',
+          userId: 'user-1',
+          workflowId: 'wf-1',
+        }),
+      );
+    });
+
     it('should execute nodes in dependency order', async () => {
       const executionOrder: string[] = [];
       const trackingExecutor: NodeExecutor = vi.fn(async (node) => {

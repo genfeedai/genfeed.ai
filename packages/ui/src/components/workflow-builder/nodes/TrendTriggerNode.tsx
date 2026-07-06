@@ -237,7 +237,7 @@ function TrendTriggerNodeComponent({
                   onClick={() => handleRemoveKeyword(keyword)}
                   type="button"
                   variant={ButtonVariant.UNSTYLED}
-                  className="hover:text-red-500"
+                  className="hover:text-destructive"
                 >
                   <X className="size-3" />
                 </Button>

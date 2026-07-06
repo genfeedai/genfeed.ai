@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { PatchWorkflowWebhookDto } from '@api/collections/workflows/dto/webhook.dto';
 import { WorkflowWebhookService } from '@api/collections/workflows/services/workflow-webhook.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { ConfigService } from '@api/config/config.service';
@@ -15,6 +16,7 @@ import {
   HttpException,
   HttpStatus,
   Param,
+  Patch,
   Post,
 } from '@nestjs/common';
 
@@ -69,10 +71,17 @@ export class WorkflowWebhookManagementController {
     return { data: result };
   }
 
-  @Post(':workflowId/webhook/regenerate-secret')
+  /**
+   * Update the webhook config. `rotateSecret: true` regenerates the secret in
+   * place. Collapsed from the former
+   * `POST /workflows/:id/webhook/regenerate-secret` RPC route (#1354); the
+   * 'webhook not configured' guard is preserved.
+   */
+  @Patch(':workflowId/webhook')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async regenerateWebhookSecret(
+  async patchWebhook(
     @Param('workflowId') workflowId: string,
+    @Body() body: PatchWorkflowWebhookDto,
     @CurrentUser() user: User,
   ): Promise<{ data: { webhookSecret: string } }> {
     const publicMetadata = getPublicMetadata(user);
@@ -83,6 +92,13 @@ export class WorkflowWebhookManagementController {
         user: publicMetadata.user,
       },
     );
+
+    if (!body.rotateSecret) {
+      throw new HttpException(
+        'No supported webhook update was requested',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
 
     if (!workflow.webhookId) {
       throw new HttpException(

@@ -219,6 +219,7 @@ enum CredentialPlatform {
   SHOPIFY
   BEEHIIV
   UNIPILE
+  DEVTO
 }
 
 enum TagCategory {
@@ -1220,6 +1221,24 @@ model OrganizationSetting {
   updatedAt                     DateTime          @updatedAt
 
   @@map("organization_settings")
+}
+
+// Platform-wide operator settings (singleton).
+// Cross-client business/infra knobs configured from the top-level /admin
+// operator area — distinct from per-user Setting and per-org
+// OrganizationSetting. A single canonical row is enforced via the unique
+// `key` sentinel. First knob: marginMultiplier, applied on top of the base
+// provider-cost markup when computing customer-facing model credit costs.
+model PlatformSetting {
+  id               String   @id @default(cuid())
+  mongoId          String?  @unique
+  key              String   @unique @default("platform")
+  marginMultiplier Float    @default(1.0)
+  isDeleted        Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("platform_settings")
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -4105,6 +4124,7 @@ model ClipResult {
   providerJobId  String?
   viralityScore  Float?
   status         String       @default("pending")
+  mode           String       @default("avatar")
   isSelected     Boolean      @default(false)
   readiness      Json         @default("{\"state\":\"pending\",\"terminal\":false,\"readyActions\":[],\"blockingReasons\":[]}")
   terminalAt     DateTime?
@@ -4115,6 +4135,7 @@ model ClipResult {
 
   @@index([organizationId, projectId])
   @@index([organizationId, projectId, status, isDeleted])
+  @@index([organizationId, mode, isDeleted])
   @@index([providerJobId])
   @@map("clip_results")
 }

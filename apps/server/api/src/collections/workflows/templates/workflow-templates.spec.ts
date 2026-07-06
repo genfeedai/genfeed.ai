@@ -11,6 +11,22 @@ describe('WorkflowTemplates', () => {
     expect(WORKFLOW_TEMPLATES).toHaveProperty('floor-plan-interior-preview');
   });
 
+  it('includes the on-demand launch-kit template with a review gate and no schedule', () => {
+    const launchKit = WORKFLOW_TEMPLATES['launch-kit'];
+
+    expect(launchKit?.name).toBe('Launch Kit');
+    expect(launchKit?.category).toBe('launch');
+    // On-demand, not a scheduled daily routine.
+    expect(launchKit?.isScheduleEnabled).toBeFalsy();
+    expect(launchKit?.schedule).toBeUndefined();
+    expect(launchKit?.routine).toBeUndefined();
+
+    const nodeTypes = (launchKit?.nodes ?? []).map((node) => node.type);
+    expect(nodeTypes).toContain('reviewGate');
+    expect(nodeTypes).toContain('ai-prompt-constructor');
+    expect(nodeTypes).toContain('workflow-output');
+  });
+
   it('includes productized daily routine templates with review and tracking metadata', () => {
     const dailyTrendLoop = WORKFLOW_TEMPLATES['daily-trend-loop'];
     const releaseLoop = WORKFLOW_TEMPLATES['release-loop'];

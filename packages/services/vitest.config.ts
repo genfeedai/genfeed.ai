@@ -3,6 +3,7 @@ import { defineConfig } from 'vitest/config';
 
 const CONSTANTS_SRC = path.resolve(__dirname, '../constants/src');
 const ENUMS_SRC = path.resolve(__dirname, '../enums/src');
+const API_TYPES_SRC = path.resolve(__dirname, '../api-types/src');
 
 export default defineConfig({
   resolve: {
@@ -32,6 +33,10 @@ export default defineConfig({
       {
         find: '@genfeedai/enums',
         replacement: ENUMS_SRC,
+      },
+      {
+        find: /^@api-types\/(.*)$/,
+        replacement: path.resolve(API_TYPES_SRC, '$1'),
       },
       {
         find: '@genfeedai/client',

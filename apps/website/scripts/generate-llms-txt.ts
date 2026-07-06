@@ -161,7 +161,7 @@ function buildLlmsIndex(): string {
   lines.push('# Genfeed.ai');
   lines.push('');
   lines.push(
-    '> AI-first content creation platform. Generate videos, images, voice, and articles at scale with 50+ AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. Start free, then Creator from $49/month plus PAYG output.',
+    '> AI-first content creation platform. Generate videos, images, voice, and articles at scale with 50+ AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. Start free, then Pro from $49/month plus PAYG output.',
   );
   lines.push('');
 
@@ -197,7 +197,7 @@ function buildLlmsIndex(): string {
   lines.push('## Resources');
   lines.push('');
   lines.push(
-    `- [Pricing](${BASE_URL}/pricing): Creator ($49/mo + PAYG output), Teams (from $499/mo + PAYG output), Enterprise (custom)`,
+    `- [Pricing](${BASE_URL}/pricing): Pro ($49/mo + PAYG output), Scale (from $499/mo + PAYG output), Enterprise (custom)`,
   );
   lines.push(
     `- [FAQ](${BASE_URL}/faq): Frequently asked questions about the platform`,
@@ -237,7 +237,7 @@ function buildLlmsFull(): string {
   s.push('# Genfeed.ai');
   s.push('');
   s.push(
-    '> AI-first content creation platform. Generate videos, images, voice, and articles at scale with 50+ AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. Start free, then Creator from $49/month plus PAYG output.',
+    '> AI-first content creation platform. Generate videos, images, voice, and articles at scale with 50+ AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. Start free, then Pro from $49/month plus PAYG output.',
   );
   s.push('');
 
@@ -304,14 +304,12 @@ function buildLlmsFull(): string {
   s.push('## Pricing');
   s.push('');
   s.push(
-    'Genfeed is free to join: credits buy the output you generate (1 credit = $0.01 at the pay-as-you-go rate). Subscriptions include monthly credits at a ~40% better rate and unlock unlimited brands, more channels, and shared team seats. Creator is $49/month with 8,000 credits included. Teams is $499/month with unlimited seats and an 80,000-credit shared pool. Enterprise is custom.',
+    'Genfeed is free to join: credits buy the output you generate (1 credit = $0.01 at the pay-as-you-go rate). Subscriptions include monthly credits at a ~40% better rate and unlock unlimited brands, more channels, and unlimited team seats. Pro is $49/month with 8,000 credits included. Scale is $499/month with unlimited seats and an 80,000-credit shared pool. Enterprise is custom.',
   );
   s.push('');
 
   for (const plan of websitePlans.filter((item) =>
-    ['Pay As You Go', 'Hosted', 'Cloud Teams', 'Enterprise'].includes(
-      item.label,
-    ),
+    ['Pay As You Go', 'Pro', 'Scale', 'Enterprise'].includes(item.label),
   )) {
     const priceStr =
       plan.price === 0
@@ -322,14 +320,7 @@ function buildLlmsFull(): string {
             ? `$${plan.price.toLocaleString()}/month with ${plan.includedCredits.toLocaleString()} credits included`
             : `$${plan.price.toLocaleString()}/month`;
 
-    const displayLabel =
-      plan.label === 'Hosted'
-        ? 'Creator'
-        : plan.label === 'Cloud Teams'
-          ? 'Teams'
-          : plan.label;
-
-    s.push(`### ${displayLabel}: ${priceStr}`);
+    s.push(`### ${plan.label}: ${priceStr}`);
     s.push('');
     s.push(plan.description);
     s.push('');

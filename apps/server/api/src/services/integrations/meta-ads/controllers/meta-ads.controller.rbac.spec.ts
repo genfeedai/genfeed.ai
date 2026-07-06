@@ -26,8 +26,6 @@ describe('MetaAdsController RBAC', () => {
     const writeMethods = [
       'createCampaign',
       'updateCampaign',
-      'pauseCampaign',
-      'updateCampaignBudget',
       'createAdSet',
       'updateAdSet',
       'createAd',
