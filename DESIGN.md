@@ -41,6 +41,7 @@ colors:
 
   # Platform brand identifiers
   beehiiv: "#FCD34D"
+  devto: "#0A0A0A"
   discord: "#5865F2"
   facebook: "#1877F2"
   fanvue: "#6C63FF"
@@ -178,6 +179,8 @@ components:
     height: 32px
   platform-beehiiv:
     backgroundColor: "{colors.beehiiv}"
+  platform-devto:
+    backgroundColor: "{colors.devto}"
   platform-discord:
     backgroundColor: "{colors.discord}"
   platform-facebook:

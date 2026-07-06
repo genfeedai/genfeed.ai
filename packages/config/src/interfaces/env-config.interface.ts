@@ -269,6 +269,9 @@ export interface IEnvConfig {
   // === Beehiiv ===
   BEEHIIV_API_URL?: string;
 
+  // === dev.to / Forem ===
+  DEVTO_API_URL?: string;
+
   // === Unipile ===
   UNIPILE_API_BASE_URL?: string;
   UNIPILE_API_KEY?: string;

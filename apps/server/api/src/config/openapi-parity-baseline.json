@@ -1603,6 +1603,16 @@
     },
     {
       "method": "post",
+      "operationId": "DevtoController.connect",
+      "path": "/services/devto/connect"
+    },
+    {
+      "method": "post",
+      "operationId": "DevtoController.publishArticle",
+      "path": "/services/devto/publish/{articleId}"
+    },
+    {
+      "method": "post",
       "operationId": "DiscordController.connect",
       "path": "/services/discord/connect"
     },

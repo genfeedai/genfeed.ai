@@ -1,6 +1,7 @@
 import { PLATFORM_COLORS } from '@genfeedai/constants';
 import type { ITrendPlatformConfig } from '@genfeedai/interfaces/analytics/platform-config.interface';
 import {
+  FaDev,
   FaFacebook,
   FaGhost,
   FaHackerNews,
@@ -30,6 +31,13 @@ export const PLATFORM_CONFIGS: Record<string, ITrendPlatformConfig> = {
     icon: HiNewspaper,
     id: 'beehiiv',
     label: 'Beehiiv',
+  },
+  devto: {
+    color: PLATFORM_COLORS.devto.base,
+    description: 'Developer articles',
+    icon: FaDev,
+    id: 'devto',
+    label: 'DEV',
   },
   facebook: {
     color: PLATFORM_COLORS.facebook.base,

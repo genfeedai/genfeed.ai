@@ -219,6 +219,7 @@ enum CredentialPlatform {
   SHOPIFY
   BEEHIIV
   UNIPILE
+  DEVTO
 }
 
 enum TagCategory {
