@@ -24,6 +24,7 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -41,6 +42,10 @@ interface CreateBulkUploadBody {
   bodyCopies: string[];
   callToAction?: string;
   linkUrl: string;
+}
+
+interface UpdateBulkUploadJobBody {
+  status?: BulkUploadStatus;
 }
 
 @AutoSwagger()
@@ -124,9 +129,13 @@ export class MetaAdsBulkController {
     return job;
   }
 
-  @Post('jobs/:id/cancel')
+  @Patch('jobs/:id')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
-  async cancelJob(@CurrentUser() user: User, @Param('id') id: string) {
+  async updateJob(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() body: UpdateBulkUploadJobBody,
+  ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
 
@@ -140,7 +149,10 @@ export class MetaAdsBulkController {
       throw new NotFoundException('Bulk upload job', id);
     }
 
-    await this.adBulkUploadJobsService.updateStatus(id, 'cancelled');
+    if (body.status !== undefined) {
+      await this.adBulkUploadJobsService.updateStatus(id, body.status);
+    }
+
     return { success: true };
   }
 

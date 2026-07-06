@@ -40,6 +40,10 @@ function createMocks() {
       _id: '507f191e810c19729de860ee',
       status: PublishStatus.CANCELLED,
     }),
+    createFromRequest: vi.fn().mockResolvedValue({
+      distributionId: '507f191e810c19729de860ee'.toString(),
+      telegramMessageId: '42',
+    }),
     findByOrganization: vi.fn().mockResolvedValue({
       docs: [],
       total: 0,
@@ -50,17 +54,7 @@ function createMocks() {
     }),
   };
 
-  const telegramDistributionService = {
-    schedule: vi.fn().mockResolvedValue({
-      distributionId: '507f191e810c19729de860ee'.toString(),
-    }),
-    sendImmediate: vi.fn().mockResolvedValue({
-      distributionId: '507f191e810c19729de860ee'.toString(),
-      telegramMessageId: '42',
-    }),
-  };
-
-  return { distributionsService, telegramDistributionService };
+  return { distributionsService };
 }
 
 describe('DistributionsController', () => {
@@ -73,57 +67,57 @@ describe('DistributionsController', () => {
     mocks = createMocks();
     controller = new DistributionsController(
       mocks.distributionsService as never,
-      mocks.telegramDistributionService as never,
     );
   });
 
-  describe('sendTelegram', () => {
-    it('should call sendImmediate with correct params', async () => {
+  describe('create', () => {
+    it('should dispatch immediate send when scheduledAt is absent', async () => {
       const user = createMockUser();
 
-      await controller.sendTelegram(
+      await controller.create(
         {
           chatId: '-1001234567890',
           contentType: DistributionContentType.TEXT,
+          platform: DistributionPlatform.TELEGRAM,
           text: 'Hello',
         },
         user as never,
       );
 
-      expect(
-        mocks.telegramDistributionService.sendImmediate,
-      ).toHaveBeenCalledWith(
+      expect(mocks.distributionsService.createFromRequest).toHaveBeenCalledWith(
+        ORG_ID,
+        USER_ID,
         expect.objectContaining({
           chatId: '-1001234567890',
           contentType: DistributionContentType.TEXT,
-          organizationId: ORG_ID,
+          platform: DistributionPlatform.TELEGRAM,
           text: 'Hello',
-          userId: USER_ID,
         }),
       );
     });
-  });
 
-  describe('scheduleTelegram', () => {
-    it('should call schedule with correct params', async () => {
+    it('should dispatch scheduled send when scheduledAt is present', async () => {
       const user = createMockUser();
       const scheduledAt = new Date(Date.now() + 3600000).toISOString();
 
-      await controller.scheduleTelegram(
+      await controller.create(
         {
           chatId: '-1001234567890',
           contentType: DistributionContentType.TEXT,
+          platform: DistributionPlatform.TELEGRAM,
           scheduledAt,
           text: 'Scheduled',
         },
         user as never,
       );
 
-      expect(mocks.telegramDistributionService.schedule).toHaveBeenCalledWith(
+      expect(mocks.distributionsService.createFromRequest).toHaveBeenCalledWith(
+        ORG_ID,
+        USER_ID,
         expect.objectContaining({
           chatId: '-1001234567890',
-          organizationId: ORG_ID,
-          scheduledAt: new Date(scheduledAt),
+          platform: DistributionPlatform.TELEGRAM,
+          scheduledAt,
         }),
       );
     });

@@ -227,40 +227,6 @@ export class MetaAdsController {
     return { success: true };
   }
 
-  @Post('campaigns/:id/pause')
-  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
-  async pauseCampaign(
-    @CurrentUser() user: User,
-    @Param('id') campaignId: string,
-  ) {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(`${url} started`);
-
-    const accessToken = await this.getAccessTokenFromCredential(user);
-    await this.metaAdsService.pauseCampaign(accessToken, campaignId);
-    return { success: true };
-  }
-
-  @Patch('campaigns/:id/budget')
-  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
-  async updateCampaignBudget(
-    @CurrentUser() user: User,
-    @Param('id') campaignId: string,
-    @Body() body: { dailyBudget?: number; lifetimeBudget?: number },
-  ) {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(`${url} started`);
-
-    const accessToken = await this.getAccessTokenFromCredential(user);
-    await this.metaAdsService.updateCampaignBudget(
-      accessToken,
-      campaignId,
-      body.dailyBudget,
-      body.lifetimeBudget,
-    );
-    return { success: true };
-  }
-
   @Post('adsets')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async createAdSet(

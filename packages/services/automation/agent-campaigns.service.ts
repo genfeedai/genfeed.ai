@@ -5,10 +5,7 @@ import type {
   IAgentCampaignStatusResponse,
 } from '@genfeedai/interfaces';
 import type { IServiceSerializer } from '@genfeedai/interfaces/utils/error.interface';
-import {
-  BaseService,
-  type JsonApiResponseDocument,
-} from '@services/core/base.service';
+import { BaseService } from '@services/core/base.service';
 
 const agentCampaignSerializer: IServiceSerializer<AgentCampaign> = {
   serialize: (data) => data,
@@ -99,21 +96,11 @@ export class AgentCampaignsService extends BaseService<
   }
 
   async execute(id: string): Promise<AgentCampaign> {
-    const response = await this.instance.post<JsonApiResponseDocument>(
-      `/${id}/execute`,
-    );
-    return new AgentCampaign(
-      this.extractResource<Partial<IAgentCampaign>>(response.data),
-    );
+    return this.patch(id, { status: 'active' });
   }
 
   async pause(id: string): Promise<AgentCampaign> {
-    const response = await this.instance.post<JsonApiResponseDocument>(
-      `/${id}/pause`,
-    );
-    return new AgentCampaign(
-      this.extractResource<Partial<IAgentCampaign>>(response.data),
-    );
+    return this.patch(id, { status: 'paused' });
   }
 
   async getStatus(id: string): Promise<IAgentCampaignStatusResponse> {

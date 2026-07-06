@@ -1,8 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import {
-  CreateDistributionDto,
-  ScheduleDistributionDto,
-} from '@api/collections/distributions/dto/create-distribution.dto';
+import { CreateDistributionDto } from '@api/collections/distributions/dto/create-distribution.dto';
 import { QueryDistributionDto } from '@api/collections/distributions/dto/query-distribution.dto';
 import { DistributionsService } from '@api/collections/distributions/services/distributions.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -13,7 +10,6 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { TelegramDistributionService } from '@api/services/distribution/telegram/telegram-distribution.service';
 import { DistributionSerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -32,60 +28,24 @@ import type { Request } from 'express';
 @ApiTags('Distributions')
 @Controller('distributions')
 export class DistributionsController {
-  constructor(
-    private readonly distributionsService: DistributionsService,
-    private readonly telegramDistributionService: TelegramDistributionService,
-  ) {}
+  constructor(private readonly distributionsService: DistributionsService) {}
 
   /**
-   * Send content to Telegram immediately
+   * Create a distribution. Dispatches to the platform-specific send/schedule
+   * logic based on `platform`; `scheduledAt` present -> schedule, absent -> immediate send.
    *
-   * POST /distributions/telegram
+   * POST /distributions
    */
-  @Post('telegram')
+  @Post()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async sendTelegram(
-    @Body() dto: CreateDistributionDto,
-    @CurrentUser() user: User,
-  ) {
+  async create(@Body() dto: CreateDistributionDto, @CurrentUser() user: User) {
     const { organization, user: userId } = getPublicMetadata(user);
 
-    return await this.telegramDistributionService.sendImmediate({
-      brandId: dto.brandId,
-      caption: dto.caption,
-      chatId: dto.chatId,
-      contentType: dto.contentType,
-      mediaUrl: dto.mediaUrl,
-      organizationId: organization,
-      text: dto.text,
+    return await this.distributionsService.createFromRequest(
+      organization,
       userId,
-    });
-  }
-
-  /**
-   * Schedule content for Telegram
-   *
-   * POST /distributions/telegram/schedule
-   */
-  @Post('telegram/schedule')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async scheduleTelegram(
-    @Body() dto: ScheduleDistributionDto,
-    @CurrentUser() user: User,
-  ) {
-    const { organization, user: userId } = getPublicMetadata(user);
-
-    return await this.telegramDistributionService.schedule({
-      brandId: dto.brandId,
-      caption: dto.caption,
-      chatId: dto.chatId,
-      contentType: dto.contentType,
-      mediaUrl: dto.mediaUrl,
-      organizationId: organization,
-      scheduledAt: new Date(dto.scheduledAt),
-      text: dto.text,
-      userId,
-    });
+      dto,
+    );
   }
 
   /**

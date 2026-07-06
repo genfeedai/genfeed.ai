@@ -140,15 +140,4 @@ export class NewslettersController {
     const data = await this.newslettersService.publishScoped(id, ctx);
     return serializeSingle(request, NewsletterSerializer, data);
   }
-
-  @Post(':id/archive')
-  async archive(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-  ) {
-    const ctx = extractRequestContext(user);
-    const data = await this.newslettersService.archiveScoped(id, ctx);
-    return serializeSingle(request, NewsletterSerializer, data);
-  }
 }

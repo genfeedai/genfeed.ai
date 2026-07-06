@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { PatchStreakDto } from '@api/collections/streaks/dto/patch-streak.dto';
 import { StreakCalendarQueryDto } from '@api/collections/streaks/dto/streak-calendar-query.dto';
 import { StreaksService } from '@api/collections/streaks/services/streaks.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
@@ -8,10 +9,11 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   BadRequestException,
+  Body,
   Controller,
   Get,
   Param,
-  Post,
+  Patch,
   Query,
   Req,
 } from '@nestjs/common';
@@ -61,27 +63,33 @@ export class StreaksController {
     );
   }
 
-  @Post('me/freeze')
+  @Patch('me')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async useFreeze(
+  async patchMyStreak(
     @Param('organizationId') organizationId: string,
     @CurrentUser() user: User,
     @Req() request: RequestWithContext,
+    @Body() dto: PatchStreakDto,
   ) {
     const resolvedOrganizationId = this.assertUserOrgAccess(
       organizationId,
       user,
       request,
     );
-    const streak = await this.streaksService.useFreeze(
-      this.resolveUserId(user, request),
-      resolvedOrganizationId,
-    );
 
-    return {
-      message: 'Freeze applied. Your streak is safe for today.',
-      streakFreezes: streak.streakFreezes,
-    };
+    if (dto.freeze === true) {
+      const streak = await this.streaksService.useFreeze(
+        this.resolveUserId(user, request),
+        resolvedOrganizationId,
+      );
+
+      return {
+        message: 'Freeze applied. Your streak is safe for today.',
+        streakFreezes: streak.streakFreezes,
+      };
+    }
+
+    throw new BadRequestException('No supported patch fields provided.');
   }
 
   private resolveOrganizationId(

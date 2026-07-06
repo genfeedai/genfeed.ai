@@ -10,19 +10,26 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
+import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import type { IAgentCampaignStatusResponse } from '@genfeedai/interfaces';
+import type {
+  IAgentCampaignStatusResponse,
+  JsonApiSingleResponse,
+} from '@genfeedai/interfaces';
 import { AgentCampaignSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
+  Body,
   Controller,
   Get,
   Param,
-  Post,
+  Patch,
+  Req,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import type { Request } from 'express';
 
 @ApiTags('Agent Campaigns')
 @AutoSwagger()
@@ -48,40 +55,43 @@ export class AgentCampaignsController extends BaseCRUDController<
     );
   }
 
-  @Post(':id/execute')
-  @ApiOperation({
-    summary: 'Execute a campaign — activates all agent strategies',
-  })
-  async executeCampaign(
-    @Param('id') id: string,
+  /**
+   * Update a campaign by ID.
+   *
+   * Status transitions to 'active' / 'paused' are routed through
+   * AgentCampaignExecutionService to preserve the execute/pause guards
+   * and cascades (strategy activation, run creation/queueing, timestamp
+   * stamping). All other field updates fall through to the inherited
+   * BaseCRUDController patch behavior.
+   */
+  @Patch(':id')
+  async patch(
+    @Req() request: Request,
     @CurrentUser() user: User,
-  ): Promise<AgentCampaignDocument> {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization?.toString();
+    @Param('id') id: string,
+    @Body() updateDto: UpdateAgentCampaignDto,
+  ): Promise<JsonApiSingleResponse> {
+    if (updateDto.status === 'active' || updateDto.status === 'paused') {
+      const publicMetadata = getPublicMetadata(user);
+      const organizationId = publicMetadata.organization?.toString();
 
-    if (!organizationId) {
-      throw new Error('Organization not found');
+      if (!organizationId) {
+        throw new Error('Organization not found');
+      }
+
+      const data =
+        updateDto.status === 'active'
+          ? await this.executionService.execute(
+              id,
+              organizationId,
+              await this.resolveMongoUserId(user),
+            )
+          : await this.executionService.pause(id, organizationId);
+
+      return serializeSingle(request, AgentCampaignSerializer, data);
     }
 
-    const mongoUserId = await this.resolveMongoUserId(user);
-
-    return this.executionService.execute(id, organizationId, mongoUserId);
-  }
-
-  @Post(':id/pause')
-  @ApiOperation({ summary: 'Pause a running campaign' })
-  async pauseCampaign(
-    @Param('id') id: string,
-    @CurrentUser() user: User,
-  ): Promise<AgentCampaignDocument> {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization?.toString();
-
-    if (!organizationId) {
-      throw new Error('Organization not found');
-    }
-
-    return this.executionService.pause(id, organizationId);
+    return super.patch(request, user, id, updateDto);
   }
 
   @Get(':id/status')

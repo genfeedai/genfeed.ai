@@ -2,12 +2,18 @@ import { CreateDistributionDto } from '@api/collections/distributions/dto/create
 import { DistributionEntity } from '@api/collections/distributions/entities/distribution.entity';
 import type { DistributionDocument } from '@api/collections/distributions/schemas/distribution.schema';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { TelegramDistributionService } from '@api/services/distribution/telegram/telegram-distribution.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { DistributionPlatform, PublishStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  forwardRef,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 
 @Injectable()
 export class DistributionsService extends BaseService<
@@ -20,14 +26,54 @@ export class DistributionsService extends BaseService<
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
+    @Inject(forwardRef(() => TelegramDistributionService))
+    private readonly telegramDistributionService: TelegramDistributionService,
   ) {
     super(prisma, 'distribution', logger);
+  }
+
+  /**
+   * Generic distribution creation entry point. Dispatches to the
+   * platform-specific send/schedule logic based on `dto.platform`;
+   * `dto.scheduledAt` present -> schedule path, absent -> immediate send.
+   */
+  async createFromRequest(
+    organizationId: string,
+    userId: string,
+    dto: CreateDistributionDto,
+  ): Promise<{ distributionId: string; telegramMessageId?: string }> {
+    switch (dto.platform) {
+      case DistributionPlatform.TELEGRAM: {
+        const options = {
+          brandId: dto.brandId,
+          caption: dto.caption,
+          chatId: dto.chatId,
+          contentType: dto.contentType,
+          mediaUrl: dto.mediaUrl,
+          organizationId,
+          text: dto.text,
+          userId,
+        };
+
+        return dto.scheduledAt
+          ? await this.telegramDistributionService.schedule({
+              ...options,
+              scheduledAt: new Date(dto.scheduledAt),
+            })
+          : await this.telegramDistributionService.sendImmediate(options);
+      }
+
+      default:
+        throw new BadRequestException(
+          `Unsupported distribution platform: ${dto.platform}`,
+        );
+    }
   }
 
   async createDistribution(
     organizationId: string,
     userId: string,
-    dto: CreateDistributionDto,
+    dto: Omit<CreateDistributionDto, 'platform'>,
     platform: DistributionPlatform,
     status: PublishStatus = PublishStatus.PUBLISHING,
     scheduledAt?: Date,

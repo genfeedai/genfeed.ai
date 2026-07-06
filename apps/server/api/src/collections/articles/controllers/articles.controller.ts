@@ -194,13 +194,24 @@ export class ArticlesController extends BaseCRUDController<
   ) {
     const publicMetadata = getPublicMetadata(user);
 
-    const data: ArticleDocument = await this.articlesService.update(
-      articleId,
-      updateDto,
-      publicMetadata.user,
-      publicMetadata.organization,
-      publicMetadata.brand,
-    );
+    // A `restoreFromVersionId` in the patch body reverts the article to a prior
+    // version (prompt snapshot). The restore path carries its own
+    // ownership/version-exists guards; other update fields are ignored.
+    const data: ArticleDocument = updateDto.restoreFromVersionId
+      ? await this.articlesService.restoreArticleVersion(
+          articleId,
+          updateDto.restoreFromVersionId,
+          publicMetadata.user,
+          publicMetadata.organization,
+          publicMetadata.brand,
+        )
+      : await this.articlesService.update(
+          articleId,
+          updateDto,
+          publicMetadata.user,
+          publicMetadata.organization,
+          publicMetadata.brand,
+        );
 
     return serializeSingle(request, this.serializer, data);
   }
@@ -682,28 +693,6 @@ export class ArticlesController extends BaseCRUDController<
       publicMetadata.organization,
       publicMetadata.brand,
     );
-  }
-
-  @Post(':articleId/versions/:promptId/restore')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async restoreVersion(
-    @Req() request: Request,
-    @Param('articleId') articleId: string,
-    @Param('promptId') promptId: string,
-    @CurrentUser() user: User,
-  ) {
-    const publicMetadata = getPublicMetadata(user);
-
-    const data: ArticleDocument =
-      await this.articlesService.restoreArticleVersion(
-        articleId,
-        promptId,
-        publicMetadata.user,
-        publicMetadata.organization,
-        publicMetadata.brand,
-      );
-
-    return serializeSingle(request, this.serializer, data);
   }
 
   @Post(':articleId/prompts')
