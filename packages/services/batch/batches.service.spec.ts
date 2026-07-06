@@ -13,12 +13,14 @@ vi.mock('@services/core/interceptor.service', () => {
       protected instance: {
         get: ReturnType<typeof vi.fn>;
         post: ReturnType<typeof vi.fn>;
+        patch: ReturnType<typeof vi.fn>;
         delete: ReturnType<typeof vi.fn>;
       };
       constructor() {
         this.instance = {
           delete: vi.fn(),
           get: vi.fn(),
+          patch: vi.fn(),
           post: vi.fn(),
         };
       }
@@ -67,6 +69,7 @@ describe('BatchesService', () => {
   let mockInstance: {
     get: ReturnType<typeof vi.fn>;
     post: ReturnType<typeof vi.fn>;
+    patch: ReturnType<typeof vi.fn>;
     delete: ReturnType<typeof vi.fn>;
   };
 
@@ -151,12 +154,14 @@ describe('BatchesService', () => {
     );
   });
 
-  it('cancelBatch POSTs to /:id/cancel', async () => {
-    mockInstance.post.mockResolvedValue({ data: { data: makeMockBatch() } });
+  it('cancelBatch PATCHes /:id with status cancelled', async () => {
+    mockInstance.patch.mockResolvedValue({ data: { data: makeMockBatch() } });
 
     await service.cancelBatch('batch-99');
 
-    expect(mockInstance.post).toHaveBeenCalledWith('/batch-99/cancel');
+    expect(mockInstance.patch).toHaveBeenCalledWith('/batch-99', {
+      status: 'cancelled',
+    });
   });
 
   it('getInstance returns the same instance for same token', () => {

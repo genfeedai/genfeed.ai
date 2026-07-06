@@ -1,6 +1,6 @@
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 /** Provider name recorded on deterministic clip-results. */
 export const RAW_CUT_PROVIDER_NAME = 'raw-cut';
@@ -66,8 +66,14 @@ export class RawCutClipService {
     } = input;
 
     if (!sourceVideoS3Key && !sourceVideoUrl) {
-      throw new Error(
+      throw new BadRequestException(
         'Raw-cut clip requires a source video reference (s3Key or url).',
+      );
+    }
+
+    if (endTime <= startTime) {
+      throw new BadRequestException(
+        'Raw-cut clip requires endTime to be greater than startTime.',
       );
     }
 

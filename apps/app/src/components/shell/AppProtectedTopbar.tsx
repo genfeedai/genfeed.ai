@@ -182,7 +182,7 @@ function AppProtectedTopbarContent({
         <div className="flex min-w-0 items-center justify-end gap-1.5">
           {taskId ? (
             <div className="hidden items-center gap-2 rounded border border-border bg-background-secondary px-2 py-1 text-[11px] lg:flex">
-              <span className="font-semibold uppercase tracking-[0.14em] text-emerald-200/80">
+              <span className="font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 Task context
               </span>
               {taskTitle ? (
@@ -193,7 +193,7 @@ function AppProtectedTopbarContent({
               {backToTaskHref ? (
                 <Link
                   href={backToTaskHref}
-                  className="font-semibold text-emerald-100 hover:text-white"
+                  className="font-semibold text-foreground hover:text-foreground/80"
                 >
                   Back to task
                 </Link>

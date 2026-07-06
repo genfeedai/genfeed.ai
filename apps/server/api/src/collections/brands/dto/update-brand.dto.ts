@@ -5,7 +5,13 @@ import type {
 } from '@api/collections/brands/schemas/brand.schema';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
-import { IsArray, IsBoolean, IsObject, IsOptional } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsObject,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class UpdateBrandDto extends PartialType(CreateBrandDto) {
   @IsBoolean()
@@ -53,4 +59,16 @@ export class UpdateBrandDto extends PartialType(CreateBrandDto) {
     required: false,
   })
   readonly organizationId?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiProperty({
+    description:
+      'Server-verified confirmation token from GET /brands/:id/relocation-preview, ' +
+      'required whenever the relocation would clone shared workflows into the ' +
+      'destination organization. A stale or missing token is rejected with 409 so a ' +
+      'client cannot bypass the consent modal or move against an outdated preview.',
+    required: false,
+  })
+  readonly relocationAck?: string;
 }

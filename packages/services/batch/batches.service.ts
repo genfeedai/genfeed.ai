@@ -104,12 +104,13 @@ export class BatchesService extends HTTPBaseService {
 
   async cancelBatch(id: string): Promise<IBatchSummary> {
     try {
-      const response = await this.instance.post<JsonApiResponseDocument>(
-        `/${id}/cancel`,
+      const response = await this.instance.patch<JsonApiResponseDocument>(
+        `/${id}`,
+        { status: 'cancelled' },
       );
       return deserializeResource<IBatchSummary>(response.data);
     } catch (error) {
-      logger.error(`POST /batches/${id}/cancel failed`, error);
+      logger.error(`PATCH /batches/${id} (cancel) failed`, error);
       throw error;
     }
   }

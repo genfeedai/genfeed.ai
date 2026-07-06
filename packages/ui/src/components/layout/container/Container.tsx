@@ -73,7 +73,7 @@ export default function Container({
       {hasLeft && <div className="mb-4">{left}</div>}
 
       {tabs && tabs.length > 0 && (
-        <div className="mb-6 border-b border-white/5">
+        <div className="mb-6 border-b border-border">
           <Tabs
             tabs={tabs}
             className="mb-0"

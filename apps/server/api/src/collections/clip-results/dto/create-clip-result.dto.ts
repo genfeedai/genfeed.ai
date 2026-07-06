@@ -1,6 +1,7 @@
 import { ClipResultStatus } from '@api/collections/clip-results/schemas/clip-result.schema';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { OrganizationalCreateDto } from '@api/shared/dto/base/base.dto';
+import { CLIP_RESULT_MODES } from '@genfeedai/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
@@ -92,6 +93,17 @@ export class CreateClipResultDto extends OrganizationalCreateDto {
     required: false,
   })
   readonly status?: string;
+
+  @IsString()
+  @IsOptional()
+  @IsIn([...CLIP_RESULT_MODES])
+  @ApiProperty({
+    description: 'Clip generation mode (defaults to avatar)',
+    enum: CLIP_RESULT_MODES,
+    enumName: 'ClipResultMode',
+    required: false,
+  })
+  readonly mode?: string;
 
   @IsBoolean()
   @IsOptional()

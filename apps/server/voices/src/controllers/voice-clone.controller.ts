@@ -8,7 +8,7 @@ import { VoiceCloneService } from '@voices/services/voice-clone.service';
 export class VoiceCloneController {
   constructor(private readonly voiceCloneService: VoiceCloneService) {}
 
-  @Post('upload')
+  @Post()
   @ApiOperation({ summary: 'Upload a trained voice clone model to S3' })
   uploadClone(@Body() body: VoiceCloneUploadRequest) {
     return this.voiceCloneService.uploadClone(body);

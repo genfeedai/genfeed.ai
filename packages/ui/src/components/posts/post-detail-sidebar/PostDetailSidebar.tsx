@@ -120,7 +120,7 @@ export default function PostDetailSidebar({
       {isPublished && post.ingredients?.length > 0 && (
         <Card>
           <div className="flex items-center gap-2">
-            <HiBolt className="size-4 text-warning" />
+            <HiBolt className="size-4 text-muted-foreground" />
             <h3 className="font-semibold text-lg">
               Ingredients ({post.ingredients?.length || 0})
             </h3>

@@ -64,7 +64,7 @@ export default function CloudSyncIndicator() {
           <span
             className={cn(
               'absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full border border-background',
-              isConnected ? 'bg-emerald-400' : 'bg-amber-400',
+              isConnected ? 'bg-success' : 'bg-warning',
             )}
           />
         </Button>
@@ -76,7 +76,7 @@ export default function CloudSyncIndicator() {
               aria-hidden="true"
               className={cn(
                 'h-2 w-2 rounded-full',
-                isConnected ? 'bg-emerald-400' : 'bg-amber-400',
+                isConnected ? 'bg-success' : 'bg-warning',
               )}
             />
             <span className="text-xs font-medium text-foreground/88">
@@ -102,7 +102,7 @@ export default function CloudSyncIndicator() {
               withWrapper={false}
               disabled={desktop && isLaunching}
               onClick={() => void handleConnect()}
-              className="w-full rounded px-2 py-1.5 text-xs font-medium text-blue-400 transition-colors hover:bg-blue-500/10 cursor-pointer"
+              className="w-full rounded px-2 py-1.5 text-xs font-medium text-foreground/72 transition-colors hover:bg-hover cursor-pointer"
             >
               {desktop && isLaunching
                 ? 'Opening Browser...'

@@ -23,6 +23,10 @@ describe('formatSrtTimestamp', () => {
   it('formats minutes and hours with zero padding', () => {
     expect(formatSrtTimestamp(3661.5)).toBe('01:01:01,500');
   });
+
+  it('rolls rounded millisecond overflow into the next second', () => {
+    expect(formatSrtTimestamp(59.9995)).toBe('00:01:00,000');
+  });
 });
 
 describe('generateClipSrt', () => {

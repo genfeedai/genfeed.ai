@@ -1,5 +1,8 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
-import type { ISubscriptionPreview } from '@genfeedai/interfaces';
+import type {
+  ISubscriptionPreview,
+  OrganizationCreditUsageResponse,
+} from '@genfeedai/interfaces';
 import { Subscription } from '@genfeedai/models/billing/subscription.model';
 import {
   SubscriptionPreviewSerializer,
@@ -55,5 +58,10 @@ export class SubscriptionsService extends BaseService<Subscription> {
   }> {
     const res = await this.instance.get('current/credits');
     return res.data.data;
+  }
+
+  public async getCreditUsage(): Promise<OrganizationCreditUsageResponse> {
+    const res = await this.instance.get('admin/credit-usage');
+    return res.data;
   }
 }

@@ -1,6 +1,5 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ConfigService } from '@api/config/config.service';
-import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
@@ -156,53 +155,6 @@ export class SlackService {
           title: 'Get User Failed',
         },
         HttpStatus.UNAUTHORIZED,
-      );
-    }
-  }
-
-  async disconnect(organizationId: string, brandId: string) {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    try {
-      const credential = await this.credentialsService.findOne({
-        brand: brandId,
-        isDeleted: false,
-        organization: organizationId,
-        platform: CredentialPlatform.SLACK,
-      });
-
-      if (!credential) {
-        throw new HttpException(
-          {
-            detail: 'Slack credential not found',
-            title: 'Not Found',
-          },
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
-      await this.credentialsService.patch(credential.id, {
-        isConnected: false,
-        isDeleted: true,
-      });
-
-      this.loggerService.log(`${url} disconnected credential`, {
-        credentialId: credential.id,
-      });
-
-      return { success: true };
-    } catch (error: unknown) {
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      this.loggerService.error(`${url} failed`, error);
-      throw new HttpException(
-        {
-          detail: 'Failed to disconnect Slack',
-          title: 'Disconnect Failed',
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }

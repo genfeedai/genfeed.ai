@@ -141,7 +141,7 @@ export default function ModalStyle({
               }}
             />
           </div>
-          <div className="space-y-2 p-3 bg-background max-h-48 overflow-y-auto">
+          <div className="space-y-2 p-3 bg-tertiary max-h-48 overflow-y-auto">
             {Object.values(MODEL_KEYS).map((model: string) => (
               <Checkbox
                 key={model}

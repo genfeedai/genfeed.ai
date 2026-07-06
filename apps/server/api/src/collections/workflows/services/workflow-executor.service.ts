@@ -515,6 +515,7 @@ export class WorkflowExecutorService {
     const result = await this.engineAdapter.executeWorkflow(
       executableWorkflow,
       {
+        executionId,
         nodeIds: remainingNodeIds,
         onNodeStatusChange: async (changeEvent: NodeStatusChangeEvent) => {
           const node =
@@ -984,6 +985,7 @@ export class WorkflowExecutorService {
     const result = await this.engineAdapter.executeWorkflow(
       executableWorkflow,
       {
+        executionId,
         nodeIds: remainingNodeIds,
         onNodeStatusChange: async (changeEvent: NodeStatusChangeEvent) => {
           const node =
@@ -1427,7 +1429,12 @@ export class WorkflowExecutorService {
 
       try {
         // Execute the node via the engine adapter
-        const nodeResult = await this.executeSingleNode(node, inputs, workflow);
+        const nodeResult = await this.executeSingleNode(
+          node,
+          inputs,
+          workflow,
+          executionId,
+        );
 
         nodeResults.set(nodeId, nodeResult);
         totalCreditsUsed += nodeResult.creditsUsed;
@@ -1701,6 +1708,7 @@ export class WorkflowExecutorService {
     node: ExecutableNode,
     inputs: Map<string, unknown>,
     workflow: ExecutableWorkflow,
+    executionId: string,
   ): Promise<NodeExecutionResult> {
     const startedAt = new Date();
 
@@ -1740,7 +1748,7 @@ export class WorkflowExecutorService {
 
     const result = await this.engineAdapter.executeWorkflow(
       singleNodeWorkflow,
-      { maxRetries: 3 },
+      { executionId, maxRetries: 3 },
     );
 
     const nodeResult = result.nodeResults.get(node.id);

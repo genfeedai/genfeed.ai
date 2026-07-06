@@ -43,15 +43,13 @@ function getChangeColor(change: number | undefined): string {
   if (change === undefined || change === 0) {
     return 'text-muted-foreground';
   }
-  return change > 0
-    ? 'text-green-600 dark:text-green-400'
-    : 'text-red-600 dark:text-red-400';
+  return change > 0 ? 'text-success' : 'text-destructive';
 }
 
 const BASE_CARD_CLASSES =
-  'w-full rounded-xl border border-border bg-card p-6 text-left';
+  'w-full rounded-xl bg-card shadow-border p-6 text-left';
 const CLICKABLE_CLASSES =
-  'cursor-pointer hover:shadow-lg hover:border-purple-300 dark:hover:border-purple-700 transition-all';
+  'cursor-pointer hover:shadow-border-strong transition-all';
 
 export function MetricCard({
   title,
@@ -59,7 +57,7 @@ export function MetricCard({
   change,
   trend,
   icon: Icon,
-  iconColor = 'text-purple-600',
+  iconColor = 'text-muted-foreground',
   isLoading = false,
   className = '',
   subtitle,

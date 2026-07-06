@@ -1,4 +1,7 @@
-import { DistributionContentType } from '@genfeedai/enums';
+import {
+  DistributionContentType,
+  DistributionPlatform,
+} from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsDateString,
@@ -11,6 +14,14 @@ import {
 } from 'class-validator';
 
 export class CreateDistributionDto {
+  @IsEnum(DistributionPlatform)
+  @IsNotEmpty()
+  @ApiProperty({
+    enum: DistributionPlatform,
+    enumName: 'DistributionPlatform',
+  })
+  readonly platform!: DistributionPlatform;
+
   @IsString()
   @IsNotEmpty()
   @ApiProperty({ description: 'Telegram chat/channel ID', required: true })
@@ -55,11 +66,13 @@ export class CreateDistributionDto {
   @IsString()
   @ApiProperty({ description: 'Brand ID', required: false })
   readonly brandId?: string;
-}
 
-export class ScheduleDistributionDto extends CreateDistributionDto {
+  @IsOptional()
   @IsDateString()
-  @IsNotEmpty()
-  @ApiProperty({ description: 'ISO 8601 date string for scheduled send' })
-  readonly scheduledAt!: string;
+  @ApiProperty({
+    description:
+      'ISO 8601 date string to schedule the send; omit to send immediately',
+    required: false,
+  })
+  readonly scheduledAt?: string;
 }

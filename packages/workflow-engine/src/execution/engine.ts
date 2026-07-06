@@ -33,6 +33,7 @@ export interface ExecutionContext {
   runId: string;
   organizationId: string;
   userId: string;
+  executionId?: string;
   abortSignal?: AbortSignal;
 }
 
@@ -84,6 +85,7 @@ export class WorkflowEngine {
 
     const context: ExecutionContext = {
       abortSignal: options.abortSignal,
+      executionId: options.executionId,
       organizationId: workflow.organizationId,
       runId,
       userId: workflow.userId,

@@ -11,7 +11,6 @@ describe('DiscordController', () => {
   let credentialsService: CredentialsService;
 
   const mockDiscordService = {
-    disconnect: vi.fn(),
     exchangeCodeForToken: vi.fn(),
     generateAuthUrl: vi.fn(),
     getUserInfo: vi.fn(),
@@ -197,24 +196,6 @@ describe('DiscordController', () => {
         expect.objectContaining({
           externalAvatar: 'https://cdn.discordapp.com/avatars/999/abc123.png',
         }),
-      );
-    });
-  });
-
-  describe('disconnect', () => {
-    it('should delegate to discordService.disconnect', async () => {
-      const user = { _id: 'user-id' };
-      mockDiscordService.disconnect.mockResolvedValue({ success: true });
-
-      const result = controller.disconnect(
-        user as Record<string, unknown>,
-        'org-id',
-        'brand-id',
-      );
-
-      expect(mockDiscordService.disconnect).toHaveBeenCalledWith(
-        'org-id',
-        'brand-id',
       );
     });
   });

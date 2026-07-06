@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { ConfigService } from '@api/config/config.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -45,7 +46,12 @@ describe('SubscriptionsController', () => {
 
   const mockCreditsUtilsService = {
     getCycleRemainingMetrics: vi.fn(),
+    getOrganizationCreditsBalance: vi.fn(),
     getOrganizationCreditsWithExpiration: vi.fn(),
+  };
+
+  const mockOrganizationsService = {
+    find: vi.fn().mockResolvedValue([]),
   };
 
   const mockLoggerService = {
@@ -54,6 +60,8 @@ describe('SubscriptionsController', () => {
     log: vi.fn(),
     warn: vi.fn(),
   };
+
+  const mockConfigGet = vi.fn().mockReturnValue('');
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -68,8 +76,12 @@ describe('SubscriptionsController', () => {
           useValue: mockCreditsUtilsService,
         },
         {
+          provide: OrganizationsService,
+          useValue: mockOrganizationsService,
+        },
+        {
           provide: ConfigService,
-          useValue: { get: vi.fn().mockReturnValue('') },
+          useValue: { get: mockConfigGet },
         },
         {
           provide: LoggerService,
@@ -89,6 +101,8 @@ describe('SubscriptionsController', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    mockConfigGet.mockReturnValue('');
+    mockOrganizationsService.find.mockResolvedValue([]);
   });
 
   it('should be defined', () => {
@@ -271,6 +285,232 @@ describe('SubscriptionsController', () => {
       expect(
         creditsUtilsService.getOrganizationCreditsWithExpiration,
       ).toHaveBeenCalledWith('org_from_context');
+    });
+  });
+
+  describe('getCreditUsage', () => {
+    const buildSubscription = (
+      overrides: Record<string, unknown> = {},
+    ): Record<string, unknown> => ({
+      currentPeriodEnd: new Date('2026-03-31T00:00:00.000Z'),
+      id: 'sub_1',
+      organizationId: 'org_1',
+      status: 'active',
+      stripePriceId: 'price_pro_monthly',
+      ...overrides,
+    });
+
+    beforeEach(() => {
+      mockConfigGet.mockImplementation((key: string) => {
+        const map: Record<string, string> = {
+          STRIPE_MONTHLY_CREDITS: '35000',
+          STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY:
+            'price_enterprise_monthly',
+          STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY: 'price_pro_monthly',
+          STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY: 'price_pro_yearly',
+          STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY: 'price_scale_monthly',
+        };
+        return map[key] ?? '';
+      });
+
+      mockOrganizationsService.find.mockResolvedValue([
+        { id: 'org_1', name: 'Acme Inc' },
+      ]);
+    });
+
+    it('resolves the pro tier plan limit from the Stripe price id', async () => {
+      mockSubscriptionsService.findAll.mockResolvedValue({
+        docs: [buildSubscription({ stripePriceId: 'price_pro_monthly' })],
+        limit: 20,
+        page: 1,
+        totalDocs: 1,
+        totalPages: 1,
+      });
+      mockCreditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(
+        6_000,
+      );
+
+      const result = await controller.getCreditUsage({});
+
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0]).toEqual(
+        expect.objectContaining({
+          balance: 6_000,
+          isMaxedOut: false,
+          isUnderUsing: false,
+          organizationId: 'org_1',
+          organizationName: 'Acme Inc',
+          planLimit: 8_000,
+          tier: 'pro',
+          usedCredits: 2_000,
+        }),
+      );
+      expect(result.data[0]?.usedPercent).toBeCloseTo(25, 5);
+      expect(result.data[0]?.remainingPercent).toBeCloseTo(75, 5);
+    });
+
+    it('resolves the scale tier plan limit from the Stripe price id', async () => {
+      mockSubscriptionsService.findAll.mockResolvedValue({
+        docs: [
+          buildSubscription({
+            organizationId: 'org_2',
+            stripePriceId: 'price_scale_monthly',
+          }),
+        ],
+        limit: 20,
+        page: 1,
+        totalDocs: 1,
+        totalPages: 1,
+      });
+      mockOrganizationsService.find.mockResolvedValue([
+        { id: 'org_2', name: 'Scale Co' },
+      ]);
+      mockCreditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(
+        80_000,
+      );
+
+      const result = await controller.getCreditUsage({});
+
+      expect(result.data[0]).toEqual(
+        expect.objectContaining({
+          balance: 80_000,
+          isUnderUsing: true,
+          planLimit: 80_000,
+          tier: 'scale',
+          usedCredits: 0,
+          usedPercent: 0,
+        }),
+      );
+    });
+
+    it('falls back to the configured monthly credits when the tier cannot be resolved', async () => {
+      mockSubscriptionsService.findAll.mockResolvedValue({
+        docs: [
+          buildSubscription({
+            organizationId: 'org_3',
+            stripePriceId: 'price_unknown',
+          }),
+        ],
+        limit: 20,
+        page: 1,
+        totalDocs: 1,
+        totalPages: 1,
+      });
+      mockOrganizationsService.find.mockResolvedValue([
+        { id: 'org_3', name: 'Unknown Org' },
+      ]);
+      mockCreditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(
+        0,
+      );
+
+      const result = await controller.getCreditUsage({});
+
+      expect(result.data[0]).toEqual(
+        expect.objectContaining({
+          isMaxedOut: true,
+          planLimit: 35_000,
+          tier: null,
+          usedCredits: 35_000,
+          usedPercent: 100,
+        }),
+      );
+    });
+
+    it('flags maxed-out orgs at >= 90% usage and under-using orgs at <= 10% usage', async () => {
+      mockSubscriptionsService.findAll.mockResolvedValue({
+        docs: [
+          buildSubscription({ organizationId: 'org_maxed' }),
+          buildSubscription({ organizationId: 'org_under' }),
+        ],
+        limit: 20,
+        page: 1,
+        totalDocs: 2,
+        totalPages: 1,
+      });
+      mockOrganizationsService.find.mockResolvedValue([
+        { id: 'org_maxed', name: 'Maxed Org' },
+        { id: 'org_under', name: 'Under Org' },
+      ]);
+      mockCreditsUtilsService.getOrganizationCreditsBalance.mockImplementation(
+        (organizationId: string) =>
+          Promise.resolve(organizationId === 'org_maxed' ? 400 : 7_600),
+      );
+
+      const result = await controller.getCreditUsage({});
+
+      const maxedRow = result.data.find(
+        (row) => row.organizationId === 'org_maxed',
+      );
+      const underRow = result.data.find(
+        (row) => row.organizationId === 'org_under',
+      );
+
+      expect(maxedRow?.isMaxedOut).toBe(true);
+      expect(maxedRow?.isUnderUsing).toBe(false);
+      expect(underRow?.isUnderUsing).toBe(true);
+      expect(underRow?.isMaxedOut).toBe(false);
+    });
+
+    it('still returns balance/planLimit/usedPercent when currentPeriodEnd is missing', async () => {
+      mockSubscriptionsService.findAll.mockResolvedValue({
+        docs: [
+          buildSubscription({
+            currentPeriodEnd: null,
+            organizationId: 'org_no_cycle',
+          }),
+        ],
+        limit: 20,
+        page: 1,
+        totalDocs: 1,
+        totalPages: 1,
+      });
+      mockOrganizationsService.find.mockResolvedValue([
+        { id: 'org_no_cycle', name: 'No Cycle Org' },
+      ]);
+      mockCreditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(
+        4_000,
+      );
+
+      const result = await controller.getCreditUsage({});
+
+      expect(result.data[0]).toEqual(
+        expect.objectContaining({
+          balance: 4_000,
+          currentPeriodEnd: null,
+          planLimit: 8_000,
+          usedCredits: 4_000,
+        }),
+      );
+      expect(result.data[0]?.usedPercent).toBeCloseTo(50, 5);
+    });
+
+    it('batches organization lookups via find({ id: { in: [...] } }) instead of per-row calls', async () => {
+      mockSubscriptionsService.findAll.mockResolvedValue({
+        docs: [
+          buildSubscription({ organizationId: 'org_a' }),
+          buildSubscription({ organizationId: 'org_b' }),
+        ],
+        limit: 20,
+        page: 1,
+        totalDocs: 2,
+        totalPages: 1,
+      });
+      mockOrganizationsService.find.mockResolvedValue([
+        { id: 'org_a', name: 'Org A' },
+        { id: 'org_b', name: 'Org B' },
+      ]);
+      mockCreditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(
+        1_000,
+      );
+
+      await controller.getCreditUsage({});
+
+      expect(mockOrganizationsService.find).toHaveBeenCalledTimes(1);
+      expect(mockOrganizationsService.find).toHaveBeenCalledWith({
+        id: { in: ['org_a', 'org_b'] },
+        isDeleted: false,
+      });
     });
   });
 });
