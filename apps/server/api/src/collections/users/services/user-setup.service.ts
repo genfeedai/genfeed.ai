@@ -18,6 +18,7 @@ import type { MemberDocument } from '@api/collections/members/schemas/member.sch
 import { MembersService } from '@api/collections/members/services/members.service';
 import type { OrganizationSettingDocument } from '@api/collections/organization-settings/schemas/organization-setting.schema';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { DEFAULT_FREE_SEATS } from '@api/collections/organization-settings/utils/seat-policy.util';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
@@ -318,7 +319,7 @@ export class UserSetupService {
       isWebhookEnabled: false,
       isWhitelabelEnabled: false,
       organizationId,
-      seatsLimit: 3,
+      seatsLimit: DEFAULT_FREE_SEATS,
       timezone: 'UTC',
     } as unknown as Parameters<
       typeof this.organizationSettingsService.create
