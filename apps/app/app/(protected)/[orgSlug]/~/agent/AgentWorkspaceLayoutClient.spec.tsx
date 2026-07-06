@@ -5,7 +5,7 @@ import { AgentWorkspaceLayoutClient } from './AgentWorkspaceLayoutClient';
 
 const routerReplace = vi.fn();
 const sendMessage = vi.fn();
-const completeFunnel = vi.fn();
+const patchMe = vi.fn();
 const touchSession = vi.fn();
 
 const navigationState = {
@@ -76,10 +76,10 @@ vi.mock('@services/external/services.service', () => ({
   },
 }));
 
-vi.mock('@services/onboarding/onboarding-funnel.service', () => ({
-  OnboardingFunnelService: {
+vi.mock('@services/organization/users.service', () => ({
+  UsersService: {
     getInstance: () => ({
-      completeFunnel,
+      patchMe,
     }),
   },
 }));
@@ -103,7 +103,8 @@ describe('AgentWorkspaceLayoutClient', () => {
     routerReplace.mockReset();
     sendMessage.mockReset();
     sendMessage.mockResolvedValue(undefined);
-    completeFunnel.mockReset();
+    patchMe.mockReset();
+    patchMe.mockResolvedValue(undefined);
     touchSession.mockReset();
   });
 

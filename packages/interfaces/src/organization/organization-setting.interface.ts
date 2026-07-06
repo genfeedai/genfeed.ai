@@ -21,6 +21,7 @@ export interface IAgentPolicy {
 }
 
 export interface IOrganizationSetting extends IBaseEntity {
+  isFirstLogin?: boolean;
   isWhitelabelEnabled: boolean;
   isVoiceControlEnabled: boolean;
 

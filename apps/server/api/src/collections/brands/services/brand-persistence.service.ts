@@ -1,14 +1,10 @@
 import type { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
+import { BrandDataMapper } from '@api/collections/brands/services/brand-data.mapper';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { LinksService } from '@api/collections/links/services/links.service';
-import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import type {
-  BrandSetupDto,
-  ConfirmBrandDataDto,
-} from '@api/endpoints/onboarding/dto/brand-setup.dto';
+import type { BrandSetupDto } from '@api/endpoints/onboarding/dto/brand-setup.dto';
 import type { ReferenceImageDto } from '@api/endpoints/onboarding/dto/reference-images.dto';
-import { BrandDataMapper } from '@api/endpoints/onboarding/services/brand-data.mapper';
 import { LinkCategory } from '@genfeedai/enums';
 import type {
   IExtractedBrandData,
@@ -21,9 +17,13 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 /**
  * BrandPersistenceService
  *
- * Owns every brand/org write performed during onboarding: scraped-data
- * updates, website-link upserts, canonical guidance merges, reference
- * images, and the single label→slug sync used by all onboarding flows.
+ * Owns every brand/org write performed during the brand-setup flow: scraped-data
+ * updates, website-link upserts, canonical guidance merges, reference images,
+ * and the single label→slug sync used by all brand-setup flows.
+ *
+ * Brand-domain: owned by `BrandsModule`. Dissolved out of the onboarding
+ * endpoint per REST audit #1354 so the OnboardingModule ↔ BrandsModule import
+ * cycle disappears.
  */
 @Injectable()
 export class BrandPersistenceService {
@@ -33,100 +33,9 @@ export class BrandPersistenceService {
     private readonly loggerService: LoggerService,
     private readonly brandsService: BrandsService,
     private readonly linksService: LinksService,
-    private readonly membersService: MembersService,
     private readonly organizationsService: OrganizationsService,
     private readonly brandDataMapper: BrandDataMapper,
   ) {}
-
-  async resolveOnboardingBrand(
-    organizationId: string,
-    userId: string,
-    brandId?: string | null,
-  ) {
-    if (brandId && /^[0-9a-f]{24}$/i.test(brandId)) {
-      const metadataBrand = await this.brandsService.findOne(
-        {
-          _id: brandId,
-          isDeleted: false,
-          organization: organizationId,
-          user: userId,
-        },
-        'none',
-      );
-
-      if (metadataBrand) {
-        return metadataBrand;
-      }
-    }
-
-    const selectedBrand = await this.brandsService.findOne(
-      {
-        isDeleted: false,
-        isSelected: true,
-        organization: organizationId,
-        user: userId,
-      },
-      'none',
-    );
-
-    if (selectedBrand) {
-      return selectedBrand;
-    }
-
-    return this.brandsService.findOne(
-      {
-        isDeleted: false,
-        organization: organizationId,
-        user: userId,
-      },
-      'none',
-    );
-  }
-
-  async resolveWritableOnboardingBrand(
-    brand: { id: string; label?: string | null },
-    organizationId: string,
-    userId: string,
-    label?: string,
-  ) {
-    const normalizedLabel = label?.trim();
-
-    if (!normalizedLabel) {
-      return brand;
-    }
-
-    const matchingBrand = await this.brandsService.findOne(
-      {
-        isDeleted: false,
-        label: normalizedLabel,
-        organization: organizationId,
-      },
-      'none',
-    );
-
-    if (!matchingBrand || String(matchingBrand.id) === String(brand.id)) {
-      return brand;
-    }
-
-    await this.brandsService.selectBrandForUser(
-      String(matchingBrand.id),
-      String(userId),
-      String(organizationId),
-    );
-    // Persist the selected brand on the member so the identity resolvers route
-    // to it (epic #735, Phase C — no legacy auth provider write-back).
-    await this.membersService.setLastUsedBrand(
-      {
-        isActive: true,
-        isDeleted: false,
-        organization: String(organizationId),
-        user: String(userId),
-      },
-      String(matchingBrand.id),
-    );
-
-    return matchingBrand;
-  }
 
   /**
    * Update brand entity with scraped data
@@ -250,31 +159,6 @@ export class BrandPersistenceService {
       agentConfig: this.brandDataMapper.mergeExtractedVoice(
         brandAgentConfig,
         extractedData,
-      ),
-    });
-  }
-
-  async updateBrandGuidanceOverrides(
-    brandId: string,
-    dto: ConfirmBrandDataDto,
-  ): Promise<void> {
-    const brand = await this.brandsService.findOne({
-      _id: brandId,
-      isDeleted: false,
-    });
-
-    if (!brand) {
-      return;
-    }
-
-    const brandAgentConfig = this.brandDataMapper.readBrandAgentConfig(
-      brand.agentConfig,
-    );
-
-    await this.brandsService.patch(brandId, {
-      agentConfig: this.brandDataMapper.mergeVoiceOverrides(
-        brandAgentConfig,
-        dto,
       ),
     });
   }

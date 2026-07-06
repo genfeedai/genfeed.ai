@@ -9,6 +9,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { BrandsController } from '@api/collections/brands/controllers/brands.controller';
+import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
@@ -149,6 +150,14 @@ describe('BrandsController', () => {
         {
           provide: AnalyticsAggregationService,
           useValue: { findAll: vi.fn(), findOne: vi.fn() },
+        },
+        {
+          provide: BrandSetupService,
+          useValue: {
+            addReferenceImages: vi.fn(),
+            setupBrand: vi.fn(),
+            updateBrandNameById: vi.fn(),
+          },
         },
       ],
     })

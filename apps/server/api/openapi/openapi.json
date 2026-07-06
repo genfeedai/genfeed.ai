@@ -1062,49 +1062,6 @@
         ],
         "type": "object"
       },
-      "ConfirmBrandDataDto": {
-        "properties": {
-          "audience": {
-            "description": "Override target audience",
-            "type": "string"
-          },
-          "description": {
-            "description": "Override brand description",
-            "type": "string"
-          },
-          "fontFamily": {
-            "description": "Override font family",
-            "type": "string"
-          },
-          "label": {
-            "description": "Override company/brand name",
-            "type": "string"
-          },
-          "logoUrl": {
-            "description": "Override logo URL",
-            "type": "string"
-          },
-          "primaryColor": {
-            "description": "Override primary color (hex)",
-            "example": "#2563EB",
-            "type": "string"
-          },
-          "secondaryColor": {
-            "description": "Override secondary color (hex)",
-            "example": "#1E40AF",
-            "type": "string"
-          },
-          "tone": {
-            "description": "Override brand tone",
-            "type": "string"
-          },
-          "voice": {
-            "description": "Override brand voice",
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
       "ContentDraftRejectDto": {
         "properties": {},
         "type": "object"
@@ -7789,15 +7746,6 @@
         "properties": {},
         "type": "object"
       },
-      "OrganizationCategory": {
-        "description": "The organization category type",
-        "enum": [
-          "creator",
-          "business",
-          "agency"
-        ],
-        "type": "string"
-      },
       "OutreachCampaignAiConfigDto": {
         "properties": {
           "context": {
@@ -9055,30 +9003,20 @@
         ],
         "type": "object"
       },
-      "SetAccountTypeDto": {
+      "SetPrefixDto": {
         "properties": {
-          "category": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/OrganizationCategory"
-              }
-            ],
-            "description": "The organization category type",
-            "example": "creator"
-          }
-        },
-        "required": [
-          "category"
-        ],
-        "type": "object"
-      },
-      "SkipOnboardingDto": {
-        "properties": {
-          "reason": {
-            "description": "Reason for skipping (optional)",
+          "prefix": {
+            "description": "Unique 3-letter uppercase prefix for issue identifiers (e.g., GEN)",
+            "example": "GEN",
+            "maxLength": 3,
+            "minLength": 3,
+            "pattern": "^[A-Z]{3}$",
             "type": "string"
           }
         },
+        "required": [
+          "prefix"
+        ],
         "type": "object"
       },
       "SocialConversationUpdateDto": {
@@ -10657,6 +10595,10 @@
             "description": "The unique slug for the brand",
             "type": "string"
           },
+          "syncOrganizationName": {
+            "description": "Onboarding-only control flag. When true and `label` is present, the brand rename cascades to the owning organization's label + slug (and the brand's own slug), matching the single-brand onboarding workspace. Never persisted on the brand record.",
+            "type": "boolean"
+          },
           "text": {
             "description": "Text prompt for content generation",
             "type": "string"
@@ -10670,19 +10612,6 @@
             "type": "string"
           }
         },
-        "type": "object"
-      },
-      "UpdateBrandNameDto": {
-        "properties": {
-          "brandName": {
-            "description": "Brand name to set",
-            "example": "Acme Corp",
-            "type": "string"
-          }
-        },
-        "required": [
-          "brandName"
-        ],
         "type": "object"
       },
       "UpdateCaptionDto": {
@@ -12065,6 +11994,10 @@
           "isFastlaneEnabled": {
             "default": false,
             "description": "Whether Fastlane (brand-data-driven batch content) is enabled for the organization",
+            "type": "boolean"
+          },
+          "isFirstLogin": {
+            "description": "Whether this is the org owner’s first login. Set to false to mark onboarding complete.",
             "type": "boolean"
           },
           "isGenerateArticlesEnabled": {
@@ -23780,6 +23713,40 @@
         ]
       }
     },
+    "/brands/{id}/reference-images": {
+      "post": {
+        "operationId": "BrandsController.addReferenceImages",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddReferenceImagesDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "addReferenceImages",
+        "tags": [
+          "brands"
+        ]
+      }
+    },
     "/brands/{id}/relocation-preview": {
       "get": {
         "operationId": "BrandsController.previewRelocation",
@@ -23807,6 +23774,40 @@
           }
         },
         "summary": "previewRelocation",
+        "tags": [
+          "brands"
+        ]
+      }
+    },
+    "/brands/{id}/scrape": {
+      "post": {
+        "operationId": "BrandsController.scrapeBrand",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrandSetupDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "scrapeBrand",
         "tags": [
           "brands"
         ]
@@ -33666,330 +33667,6 @@
         ]
       }
     },
-    "/onboarding/account-type": {
-      "post": {
-        "description": "Sets the organization category during the onboarding funnel.",
-        "operationId": "OnboardingController.setAccountType",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SetAccountTypeDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Account type set successfully"
-          }
-        },
-        "summary": "Set account type",
-        "tags": [
-          "onboarding",
-          "Onboarding"
-        ]
-      }
-    },
-    "/onboarding/brand-name": {
-      "patch": {
-        "description": "Updates the brand and organization name without requiring a website scan.",
-        "operationId": "OnboardingController.updateBrandName",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateBrandNameDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Brand name updated successfully"
-          }
-        },
-        "summary": "Update brand name only",
-        "tags": [
-          "onboarding",
-          "Onboarding"
-        ]
-      }
-    },
-    "/onboarding/brand-setup": {
-      "post": {
-        "description": "Scrapes the provided brand URL, extracts brand information, and stores the canonical brand guidance directly on the brand.",
-        "operationId": "OnboardingController.setupBrand",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BrandSetupDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "brandId": {
-                      "type": "string"
-                    },
-                    "extractedData": {
-                      "properties": {
-                        "brandVoice": {
-                          "properties": {
-                            "audience": {
-                              "type": "string"
-                            },
-                            "hashtags": {
-                              "items": {
-                                "type": "string"
-                              },
-                              "type": "array"
-                            },
-                            "taglines": {
-                              "items": {
-                                "type": "string"
-                              },
-                              "type": "array"
-                            },
-                            "tone": {
-                              "type": "string"
-                            },
-                            "values": {
-                              "items": {
-                                "type": "string"
-                              },
-                              "type": "array"
-                            },
-                            "voice": {
-                              "type": "string"
-                            }
-                          },
-                          "type": "object"
-                        },
-                        "companyName": {
-                          "type": "string"
-                        },
-                        "description": {
-                          "type": "string"
-                        },
-                        "logoUrl": {
-                          "type": "string"
-                        },
-                        "primaryColor": {
-                          "type": "string"
-                        },
-                        "secondaryColor": {
-                          "type": "string"
-                        },
-                        "sourceUrl": {
-                          "type": "string"
-                        },
-                        "tagline": {
-                          "type": "string"
-                        }
-                      },
-                      "type": "object"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Brand setup completed successfully"
-          },
-          "400": {
-            "description": "Invalid URL or scraping failed"
-          }
-        },
-        "summary": "Setup brand from website URL",
-        "tags": [
-          "onboarding",
-          "Onboarding"
-        ]
-      }
-    },
-    "/onboarding/brand/{brandId}/confirm": {
-      "patch": {
-        "description": "Allows user to review and override the extracted brand data before finalizing.",
-        "operationId": "OnboardingController.confirmBrandData",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "brandId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ConfirmBrandDataDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Brand data confirmed"
-          }
-        },
-        "summary": "Confirm extracted brand data with optional overrides",
-        "tags": [
-          "onboarding",
-          "Onboarding"
-        ]
-      }
-    },
-    "/onboarding/brand/{brandId}/reference-images": {
-      "post": {
-        "description": "Adds reference images (face, product, style, logo) to a brand for consistent content generation.",
-        "operationId": "OnboardingController.addReferenceImages",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "brandId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AddReferenceImagesDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "count": {
-                      "type": "number"
-                    },
-                    "success": {
-                      "type": "boolean"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Reference images added successfully"
-          }
-        },
-        "summary": "Add reference images to brand",
-        "tags": [
-          "onboarding",
-          "Onboarding"
-        ]
-      }
-    },
-    "/onboarding/complete-funnel": {
-      "post": {
-        "description": "Marks the onboarding funnel as completed. Called after successful Stripe payment.",
-        "operationId": "OnboardingController.completeFunnel",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Funnel completed successfully"
-          }
-        },
-        "summary": "Complete onboarding funnel",
-        "tags": [
-          "onboarding",
-          "Onboarding"
-        ]
-      }
-    },
     "/onboarding/generate-preview": {
       "post": {
         "description": "Generates an AI preview image based on the brand data and selected content type. Deducts onboarding credits.",
@@ -34045,6 +33722,54 @@
           }
         },
         "summary": "Get install readiness for OSS onboarding",
+        "tags": [
+          "onboarding",
+          "Onboarding"
+        ]
+      }
+    },
+    "/onboarding/prefix": {
+      "post": {
+        "description": "Sets the unique 3-letter uppercase prefix for the organization. Used for issue identifiers. Immutable once set.",
+        "operationId": "OnboardingController.setPrefix",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPrefixDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "prefix": {
+                      "type": "string"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Prefix set successfully"
+          },
+          "409": {
+            "description": "Prefix already set or taken"
+          }
+        },
+        "summary": "Set organization prefix",
         "tags": [
           "onboarding",
           "Onboarding"
@@ -34120,48 +33845,6 @@
           }
         },
         "summary": "Get proactive workspace",
-        "tags": [
-          "onboarding",
-          "Onboarding"
-        ]
-      }
-    },
-    "/onboarding/skip": {
-      "post": {
-        "description": "Marks onboarding as skipped. User can set up their brand later from settings.",
-        "operationId": "OnboardingController.skipOnboarding",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SkipOnboardingDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Onboarding skipped"
-          }
-        },
-        "summary": "Skip onboarding",
         "tags": [
           "onboarding",
           "Onboarding"
