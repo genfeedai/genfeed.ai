@@ -3,7 +3,7 @@
 // Source of truth: apps/server/api/openapi/openapi.json (Phase 1 / #1247).
 // Regenerate:      bun run --filter=@genfeedai/tools generate:mcp-tools
 //
-// 1023 MCP tools, one per non-internal OpenAPI operation (#1248).
+// 1019 MCP tools, one per non-internal OpenAPI operation (#1248).
 // Dispatch/execution and approval-gating are intentionally not wired here
 // (that is #1249 / #1250); these definitions only populate the mcp surface.
 
@@ -6825,6 +6825,32 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
+    "description": "addReferenceImages (POST /brands/{id}/reference-images)",
+    "name": "brands__add_reference_images",
+    "parameters": {
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "brands"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
     "description": "applyBrandKitDraft (POST /brands/{id}/brand-kit/apply)",
     "name": "brands__apply_brand_kit_draft",
     "parameters": {
@@ -8458,6 +8484,10 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "description": "The unique slug for the brand",
           "type": "string"
         },
+        "syncOrganizationName": {
+          "description": "Onboarding-only control flag. When true and `label` is present, the brand rename cascades to the owning organization's label + slug (and the brand's own slug), matching the single-brand onboarding workspace. Never persisted on the brand record.",
+          "type": "boolean"
+        },
         "text": {
           "description": "Text prompt for content generation",
           "type": "string"
@@ -8528,6 +8558,67 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
         }
       },
       "required": [
+        "id"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "brands"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "scrapeBrand (POST /brands/{id}/scrape)",
+    "name": "brands__scrape_brand",
+    "parameters": {
+      "properties": {
+        "additionalNotes": {
+          "description": "Additional notes or context about the brand",
+          "type": "string"
+        },
+        "brandName": {
+          "description": "User-provided brand name",
+          "example": "Acme Corp",
+          "type": "string"
+        },
+        "brandUrl": {
+          "description": "The brand website URL to analyze",
+          "example": "https://example.com",
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "industry": {
+          "description": "Industry/niche of the brand",
+          "example": "Technology",
+          "type": "string"
+        },
+        "linkedinUrl": {
+          "description": "LinkedIn company page URL",
+          "example": "https://linkedin.com/company/example",
+          "type": "string"
+        },
+        "targetAudience": {
+          "description": "Target audience description",
+          "example": "B2B SaaS companies",
+          "type": "string"
+        },
+        "xProfileUrl": {
+          "description": "X/Twitter profile URL",
+          "example": "https://x.com/example",
+          "type": "string"
+        }
+      },
+      "required": [
+        "brandUrl",
         "id"
       ],
       "type": "object"
@@ -24956,32 +25047,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "Add reference images to brand (POST /onboarding/brand/{brandId}/reference-images)",
-    "name": "onboarding__add_reference_images",
-    "parameters": {
-      "properties": {
-        "brandId": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "brandId"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "onboarding"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "Check prefix availability (GET /onboarding/prefix/{prefix}/available)",
     "name": "onboarding__check_prefix_available",
     "parameters": {
@@ -25012,89 +25077,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "name": "onboarding__claim_proactive_workspace",
     "parameters": {
       "properties": {},
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "onboarding"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "Complete onboarding funnel (POST /onboarding/complete-funnel)",
-    "name": "onboarding__complete_funnel",
-    "parameters": {
-      "properties": {},
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "onboarding"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "Confirm extracted brand data with optional overrides (PATCH /onboarding/brand/{brandId}/confirm)",
-    "name": "onboarding__confirm_brand_data",
-    "parameters": {
-      "properties": {
-        "audience": {
-          "description": "Override target audience",
-          "type": "string"
-        },
-        "brandId": {
-          "type": "string"
-        },
-        "description": {
-          "description": "Override brand description",
-          "type": "string"
-        },
-        "fontFamily": {
-          "description": "Override font family",
-          "type": "string"
-        },
-        "label": {
-          "description": "Override company/brand name",
-          "type": "string"
-        },
-        "logoUrl": {
-          "description": "Override logo URL",
-          "type": "string"
-        },
-        "primaryColor": {
-          "description": "Override primary color (hex)",
-          "example": "#2563EB",
-          "type": "string"
-        },
-        "secondaryColor": {
-          "description": "Override secondary color (hex)",
-          "example": "#1E40AF",
-          "type": "string"
-        },
-        "tone": {
-          "description": "Override brand tone",
-          "type": "string"
-        },
-        "voice": {
-          "description": "Override brand voice",
-          "type": "string"
-        }
-      },
-      "required": [
-        "brandId"
-      ],
       "type": "object"
     },
     "requiredRole": "user",
@@ -25203,137 +25185,21 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "Set account type (POST /onboarding/account-type)",
-    "name": "onboarding__set_account_type",
+    "description": "Set organization prefix (POST /onboarding/prefix)",
+    "name": "onboarding__set_prefix",
     "parameters": {
       "properties": {
-        "category": {
-          "allOf": [
-            {
-              "description": "The organization category type",
-              "enum": [
-                "creator",
-                "business",
-                "agency"
-              ],
-              "type": "string"
-            }
-          ],
-          "description": "The organization category type",
-          "example": "creator"
-        }
-      },
-      "required": [
-        "category"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "onboarding"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "Setup brand from website URL (POST /onboarding/brand-setup)",
-    "name": "onboarding__setup_brand",
-    "parameters": {
-      "properties": {
-        "additionalNotes": {
-          "description": "Additional notes or context about the brand",
-          "type": "string"
-        },
-        "brandName": {
-          "description": "User-provided brand name",
-          "example": "Acme Corp",
-          "type": "string"
-        },
-        "brandUrl": {
-          "description": "The brand website URL to analyze",
-          "example": "https://example.com",
-          "type": "string"
-        },
-        "industry": {
-          "description": "Industry/niche of the brand",
-          "example": "Technology",
-          "type": "string"
-        },
-        "linkedinUrl": {
-          "description": "LinkedIn company page URL",
-          "example": "https://linkedin.com/company/example",
-          "type": "string"
-        },
-        "targetAudience": {
-          "description": "Target audience description",
-          "example": "B2B SaaS companies",
-          "type": "string"
-        },
-        "xProfileUrl": {
-          "description": "X/Twitter profile URL",
-          "example": "https://x.com/example",
+        "prefix": {
+          "description": "Unique 3-letter uppercase prefix for issue identifiers (e.g., GEN)",
+          "example": "GEN",
+          "maxLength": 3,
+          "minLength": 3,
+          "pattern": "^[A-Z]{3}$",
           "type": "string"
         }
       },
       "required": [
-        "brandUrl"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "onboarding"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "Skip onboarding (POST /onboarding/skip)",
-    "name": "onboarding__skip_onboarding",
-    "parameters": {
-      "properties": {
-        "reason": {
-          "description": "Reason for skipping (optional)",
-          "type": "string"
-        }
-      },
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "onboarding"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "Update brand name only (PATCH /onboarding/brand-name)",
-    "name": "onboarding__update_brand_name",
-    "parameters": {
-      "properties": {
-        "brandName": {
-          "description": "Brand name to set",
-          "example": "Acme Corp",
-          "type": "string"
-        }
-      },
-      "required": [
-        "brandName"
+        "prefix"
       ],
       "type": "object"
     },
@@ -27455,6 +27321,10 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
         "isFastlaneEnabled": {
           "default": false,
           "description": "Whether Fastlane (brand-data-driven batch content) is enabled for the organization",
+          "type": "boolean"
+        },
+        "isFirstLogin": {
+          "description": "Whether this is the org owner’s first login. Set to false to mark onboarding complete.",
           "type": "boolean"
         },
         "isGenerateArticlesEnabled": {
