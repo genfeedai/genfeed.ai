@@ -85,10 +85,10 @@
   stroke: var(--handle-audio);
 }
 
-/* Selected edge - highlight with glow (preserves type color) */
+/* Selected edge - highlight (preserves type color) */
 .react-flow__edge.selected .react-flow__edge-path {
   stroke-width: 3px;
-  filter: drop-shadow(0 0 6px currentColor) brightness(1.3);
+  filter: brightness(1.3);
   transition:
     stroke-width 0.15s ease,
     filter 0.15s ease;
@@ -102,7 +102,7 @@
 
 /* Highlighted edges (connected to selection) - brighten the type color */
 .react-flow__edge.highlighted .react-flow__edge-path {
-  filter: drop-shadow(0 0 4px currentColor) brightness(1.2);
+  filter: brightness(1.2);
   transition:
     opacity 0.2s ease,
     filter 0.2s ease;
@@ -111,15 +111,14 @@
 /* Executing edges (during workflow execution) - pipe flow effect */
 .react-flow__edge.executing .react-flow__edge-path {
   stroke-width: 2.5px;
-  filter: drop-shadow(0 0 8px currentColor) brightness(1.3);
+  filter: brightness(1.3);
   stroke-dasharray: 8 4;
   animation: edge-flow 0.5s linear infinite;
 }
 
-/* Active pipe - all edges glow during execution */
+/* Active pipe - all edges animate during execution */
 .react-flow__edge.active-pipe .react-flow__edge-path {
   stroke-width: 2px;
-  filter: drop-shadow(0 0 4px currentColor);
   stroke-dasharray: 6 3;
   animation: edge-flow 0.8s linear infinite;
   opacity: 0.8;
@@ -196,21 +195,6 @@
 /* ==========================================================================
    Animation Keyframes
    ========================================================================== */
-
-/* Processing node glow animation */
-@keyframes processing-glow {
-  0%,
-  100% {
-    box-shadow: 0 0 8px 2px var(--node-color, var(--primary));
-  }
-  50% {
-    box-shadow: 0 0 20px 6px var(--node-color, var(--primary));
-  }
-}
-
-.node-processing {
-  animation: processing-glow 1.5s ease-in-out infinite;
-}
 
 /* Edge flow animation - simulates data flowing through pipes */
 @keyframes edge-flow {

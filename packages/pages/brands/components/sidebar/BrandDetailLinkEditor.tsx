@@ -51,7 +51,7 @@ export default function BrandDetailLinkEditor({
   onSubmit,
 }: BrandDetailLinkEditorProps) {
   return (
-    <div className="rounded-3xl border border-white/[0.08] bg-card/80 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.24)] backdrop-blur-sm">
+    <div className="rounded-3xl bg-card/80 p-5 shadow-border backdrop-blur-sm">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <p className="text-sm uppercase tracking-[0.22em] text-foreground/45">
