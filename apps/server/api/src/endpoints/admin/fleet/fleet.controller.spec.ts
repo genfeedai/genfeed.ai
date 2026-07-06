@@ -706,22 +706,6 @@ describe('AdminFleetController', () => {
   });
 
   describe('Infrastructure', () => {
-    describe('getGpuStatus', () => {
-      it('should return GPU status from service health', async () => {
-        const mockHealth = [
-          { name: 'images.genfeed.ai', status: 'online', url: 'https://gpu' },
-        ];
-        adminFleetService.getServiceHealth.mockResolvedValue(
-          mockHealth as never,
-        );
-
-        const result = await controller.getGpuStatus(mockRequest);
-
-        expect(adminFleetService.getServiceHealth).toHaveBeenCalled();
-        expect(result).toBeDefined();
-      });
-    });
-
     describe('getEC2Status', () => {
       it('should return EC2 instance status', async () => {
         const mockStatus = [

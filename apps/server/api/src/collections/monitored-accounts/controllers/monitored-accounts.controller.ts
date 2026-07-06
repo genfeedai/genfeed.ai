@@ -118,30 +118,6 @@ export class MonitoredAccountsController extends BaseCRUDController<
     return Boolean(publicMetadata?.isSuperAdmin);
   }
 
-  /**
-   * Toggle the active status of a monitored account
-   */
-  @Post(':id/toggle')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Toggle account active status' })
-  @ApiResponse({
-    description: 'Account status toggled successfully',
-    status: 200,
-  })
-  async toggleActive(
-    @Req() req: Request,
-    @Param('id') id: string,
-    @CurrentUser() user: User,
-  ) {
-    const publicMetadata = getPublicMetadata(user);
-    const account = await this.monitoredAccountsService.toggleActive(
-      id,
-      publicMetadata.organization,
-      publicMetadata.brand,
-    );
-    return serializeSingle(req, MonitoredAccountSerializer, account);
-  }
-
   @Get(':id')
   async findOne(
     @Req() request: Request,

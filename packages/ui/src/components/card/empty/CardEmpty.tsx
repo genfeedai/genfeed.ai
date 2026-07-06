@@ -29,6 +29,7 @@ export function CardEmptyContent({
   label,
   description,
   action,
+  actions,
   className,
   size = CardEmptySize.DEFAULT,
 }: CardEmptyProps) {
@@ -68,16 +69,18 @@ export function CardEmptyContent({
         <p className="text-foreground/60 max-w-md mb-6">{description}</p>
       )}
 
-      {action && (
-        <Button
-          withWrapper={false}
-          variant={action.variant || ButtonVariant.DEFAULT}
-          onClick={action.onClick}
-          ariaLabel={action.ariaLabel || action.label}
-        >
-          {action.label}
-        </Button>
-      )}
+      {actions
+        ? actions
+        : action && (
+            <Button
+              withWrapper={false}
+              variant={action.variant || ButtonVariant.DEFAULT}
+              onClick={action.onClick}
+              ariaLabel={action.ariaLabel || action.label}
+            >
+              {action.label}
+            </Button>
+          )}
     </div>
   );
 }
@@ -91,6 +94,7 @@ export default function CardEmpty({
   label,
   description,
   action,
+  actions,
   className,
   size = CardEmptySize.DEFAULT,
   variant = CardVariant.DEFAULT,
@@ -103,6 +107,7 @@ export default function CardEmpty({
         label={label}
         description={description}
         action={action}
+        actions={actions}
         size={size}
       />
     </Card>

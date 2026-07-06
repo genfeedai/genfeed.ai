@@ -27,7 +27,6 @@ interface ModalUpgradePromptProps {
 const TIER_LABELS: Record<SubscriptionTier, string> = {
   [SubscriptionTier.FREE]: 'Free',
   [SubscriptionTier.BYOK]: 'BYOK',
-  [SubscriptionTier.CREATOR]: 'Creator',
   [SubscriptionTier.PRO]: 'Pro',
   [SubscriptionTier.SCALE]: 'Scale',
   [SubscriptionTier.ENTERPRISE]: 'Enterprise',
@@ -36,16 +35,14 @@ const TIER_LABELS: Record<SubscriptionTier, string> = {
 const TIER_PRICES: Record<SubscriptionTier, string> = {
   [SubscriptionTier.FREE]: '$0',
   [SubscriptionTier.BYOK]: '$0',
-  [SubscriptionTier.CREATOR]: '$50',
-  [SubscriptionTier.PRO]: '$499',
-  [SubscriptionTier.SCALE]: '$1,499',
-  [SubscriptionTier.ENTERPRISE]: '$4,999',
+  [SubscriptionTier.PRO]: '$49',
+  [SubscriptionTier.SCALE]: '$499',
+  [SubscriptionTier.ENTERPRISE]: 'Custom',
 };
 
 const TIER_ORDER = [
   SubscriptionTier.FREE,
   SubscriptionTier.BYOK,
-  SubscriptionTier.CREATOR,
   SubscriptionTier.PRO,
   SubscriptionTier.SCALE,
   SubscriptionTier.ENTERPRISE,

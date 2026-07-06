@@ -1,5 +1,4 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -12,6 +11,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
@@ -43,6 +43,7 @@ import {
   Post,
   Req,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import type { Request } from 'express';
 
@@ -55,7 +56,6 @@ export class VideosLipSyncController {
   constructor(
     private readonly byokService: ByokService,
     private readonly configService: ConfigService,
-    private readonly creditsUtilsService: CreditsUtilsService,
     private readonly failedGenerationService: FailedGenerationService,
     private readonly heygenService: HeyGenService,
     private readonly ingredientsService: IngredientsService,
@@ -67,11 +67,19 @@ export class VideosLipSyncController {
   ) {}
 
   @Post('lip-sync')
+  // Fixed 1-credit charge, matching the sibling HeyGen route POST /videos/avatar.
+  // Charged through the standard CreditsGuard (balance gate) + CreditsInterceptor
+  // (deducts on success) path used across the API — replacing the previous
+  // manual inline deductCreditsFromOrganization call, which double-tracked the
+  // charge outside the interceptor and diverged from every other credited route.
+  // Using a fixed `amount` (not `modelKey`) also avoids the CreditsGuard model
+  // lookup, so the route no longer depends on a `heygen/avatar` models-table row.
   @Credits({
+    amount: 1,
     description: 'Lip-sync photo avatar video generation',
-    modelKey: MODEL_KEYS.HEYGEN_AVATAR,
     source: ActivitySource.VIDEO_GENERATION,
   })
+  @UseInterceptors(CreditsInterceptor)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async createLipSyncVideo(
     @Req() request: Request,
@@ -226,19 +234,9 @@ export class VideosLipSyncController {
         }),
       );
 
-      // 7. Deduct credits
-      const creditsToDeduct = 1; // Adjust based on pricing model
-      if (creditsToDeduct > 0) {
-        await this.creditsUtilsService.deductCreditsFromOrganization(
-          publicMetadata.organization,
-          publicMetadata.user,
-          creditsToDeduct,
-          `Lip-sync video generation - ${MODEL_KEYS.HEYGEN_AVATAR}`,
-          ActivitySource.VIDEO_GENERATION,
-        );
-      }
-
-      // 8. Publish initial WebSocket status
+      // 7. Publish initial WebSocket status
+      // Credits (1) are deducted by CreditsInterceptor on successful response —
+      // see the @Credits decorator above. No manual deduction here.
       const websocketUrl = WebSocketPaths.video(ingredientId);
       // @ts-expect-error TS2554
       await this.websocketService.publishFileProcessing(
@@ -252,7 +250,7 @@ export class VideosLipSyncController {
         getUserRoomName(user.id),
       );
 
-      // 9. Return serialized ingredient for frontend subscription
+      // 8. Return serialized ingredient for frontend subscription
       return serializeSingle(request, IngredientSerializer, ingredientData);
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);

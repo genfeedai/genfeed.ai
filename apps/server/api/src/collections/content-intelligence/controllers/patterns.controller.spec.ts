@@ -40,7 +40,6 @@ describe('PatternsController', () => {
 
   const mockPatternStoreService = {
     findAll: vi.fn(),
-    findHooks: vi.fn(),
     findOne: vi.fn(),
     remove: vi.fn(),
   };
@@ -83,44 +82,37 @@ describe('PatternsController', () => {
 
       expect(mockPatternStoreService.findAll).toHaveBeenCalled();
     });
-  });
 
-  describe('findHooks', () => {
-    it('should return hooks for organization', async () => {
-      mockPatternStoreService.findHooks.mockResolvedValue([mockPattern]);
+    it('should filter by patternType=hook', async () => {
+      mockPatternStoreService.findAll.mockResolvedValue({
+        docs: [mockPattern],
+      });
 
-      await controller.findHooks(mockRequest, mockUser, {} as any);
-
-      expect(mockPatternStoreService.findHooks).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439012',
-        undefined,
-        50,
-      );
-    });
-
-    it('should pass platform and limit', async () => {
-      mockPatternStoreService.findHooks.mockResolvedValue([]);
-
-      await controller.findHooks(mockRequest, mockUser, {
-        limit: 10,
-        platform: 'twitter',
+      await controller.findAll(mockRequest, mockUser, {
+        patternType: 'hook',
       } as any);
 
-      expect(mockPatternStoreService.findHooks).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439012',
-        'twitter',
-        10,
+      expect(mockPatternStoreService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ patternType: 'hook' }),
+        }),
+        expect.anything(),
       );
     });
-  });
 
-  describe('findTemplates', () => {
-    it('should return templates for organization', async () => {
+    it('should filter by patternType=template', async () => {
       mockPatternStoreService.findAll.mockResolvedValue({ docs: [] });
 
-      await controller.findTemplates(mockRequest, mockUser, {} as any);
+      await controller.findAll(mockRequest, mockUser, {
+        patternType: 'template',
+      } as any);
 
-      expect(mockPatternStoreService.findAll).toHaveBeenCalled();
+      expect(mockPatternStoreService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ patternType: 'template' }),
+        }),
+        expect.anything(),
+      );
     });
   });
 

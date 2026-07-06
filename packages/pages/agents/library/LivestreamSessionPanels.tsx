@@ -15,7 +15,7 @@ export default function LivestreamSessionPanels({
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <Card className="p-6">
-        <h2 className="text-lg font-semibold">Current Context</h2>
+        <h2 className="text-sm font-medium tracking-tight">Current Context</h2>
         <div className="mt-4 space-y-2 text-sm">
           <p>
             <span className="font-medium">Source:</span>{' '}
@@ -33,7 +33,9 @@ export default function LivestreamSessionPanels({
       </Card>
 
       <Card className="p-6">
-        <h2 className="text-lg font-semibold">Recent Deliveries</h2>
+        <h2 className="text-sm font-medium tracking-tight">
+          Recent Deliveries
+        </h2>
         <div className="mt-4 space-y-3">
           {recentDeliveries.length === 0 ? (
             <p className="text-sm text-muted-foreground">
@@ -43,7 +45,7 @@ export default function LivestreamSessionPanels({
             recentDeliveries.map((delivery) => (
               <div
                 key={delivery.id}
-                className="rounded-lg border border-white/[0.08] p-3 text-sm"
+                className="rounded-lg bg-secondary p-3 text-sm"
               >
                 <div className="flex items-center justify-between gap-3">
                   <span className="font-medium">

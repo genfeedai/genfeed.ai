@@ -183,7 +183,7 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
       openDetailLabel="Open full page"
       onClose={onClose}
       width="xl"
-      surface="gradient"
+      surface="flat"
     >
       <div className="space-y-4 p-4">
         {issue.description && (

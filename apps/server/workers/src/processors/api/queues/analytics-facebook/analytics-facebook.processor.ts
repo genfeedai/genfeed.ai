@@ -2,18 +2,18 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
-import {
-  BrokenCircuitError,
-  createProcessorCircuitBreaker,
-  type ProcessorCircuitBreaker,
-} from '@api/shared/utils/circuit-breaker/circuit-breaker.util';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform } from '@genfeedai/enums';
 import {
   ANALYTICS_FACEBOOK_QUEUE,
   FacebookAnalyticsJobData,
 } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import {
+  BrokenCircuitError,
+  createProcessorCircuitBreaker,
+  type ProcessorCircuitBreaker,
+} from '@libs/utils/circuit-breaker/circuit-breaker.util';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 

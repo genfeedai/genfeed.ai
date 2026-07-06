@@ -54,7 +54,6 @@ function NeuralGridItem({
   className,
   padding,
   align,
-  inverted,
   tierLabel,
   icon: Icon,
   title,
@@ -65,46 +64,22 @@ function NeuralGridItem({
 }: NeuralGridItemProps & { ref?: Ref<HTMLDivElement> }) {
   return (
     <div
-      className={cn(
-        neuralGridItemVariants({ align, inverted, padding }),
-        className,
-      )}
+      className={cn(neuralGridItemVariants({ align, padding }), className)}
       ref={ref}
       {...props}
     >
       {tierLabel && (
-        <div
-          className={cn(
-            'text-xs font-black uppercase tracking-widest mb-6',
-            inverted ? 'text-inv-fg/50' : 'text-surface/45',
-          )}
-        >
+        <div className="text-xs font-black uppercase tracking-widest mb-6 text-surface/55">
           {tierLabel}
         </div>
       )}
       {Icon && (
-        <Icon
-          className={cn(
-            'size-8 mb-4 group-hover:text-surface transition-colors',
-            inverted ? 'text-inv-fg/60' : 'text-surface/60',
-          )}
-        />
+        <Icon className="size-8 mb-4 text-surface/60 group-hover:text-surface transition-colors" />
       )}
       {title && (
-        <h3 className={cn('text-lg font-bold mb-2', inverted && 'text-inv-fg')}>
-          {title}
-        </h3>
+        <h3 className="text-lg font-bold mb-2 text-surface">{title}</h3>
       )}
-      {description && (
-        <p
-          className={cn(
-            'text-sm',
-            inverted ? 'text-inv-fg/55' : 'text-surface/55',
-          )}
-        >
-          {description}
-        </p>
-      )}
+      {description && <p className="text-sm text-surface/65">{description}</p>}
       {children}
     </div>
   );
@@ -187,7 +162,7 @@ function CtaSection({
             {title}
           </h2>
           {description && (
-            <p className="text-surface/40 text-xl mb-12 font-medium">
+            <p className="text-surface/65 text-xl mb-12 font-medium">
               {description}
             </p>
           )}

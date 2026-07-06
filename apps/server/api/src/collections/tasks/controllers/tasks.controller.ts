@@ -4,6 +4,7 @@ import { TaskCountersService } from '@api/collections/task-counters/services/tas
 import { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
 import { TaskQueryDto } from '@api/collections/tasks/dto/task-query.dto';
 import { UpdateTaskDto } from '@api/collections/tasks/dto/update-task.dto';
+import { UpdateTaskOutputDto } from '@api/collections/tasks/dto/update-task-output.dto';
 import {
   Task,
   type TaskDocument,
@@ -24,6 +25,7 @@ import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
+  SortObject,
 } from '@genfeedai/interfaces';
 import { TaskSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -32,6 +34,7 @@ import {
   Body,
   ConflictException,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -39,7 +42,6 @@ import {
   Param,
   Patch,
   Post,
-  Query,
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -210,10 +212,18 @@ export class TasksController extends BaseCRUDController<
       ];
     }
 
-    const sort =
-      query.view === 'inbox' || query.view === 'in_progress'
-        ? { updatedAt: -1 as const }
-        : handleQuerySort(query.sort);
+    // Numeric direction convention (1 = asc, -1 = desc); BaseService.normalizeSort
+    // maps these to Prisma 'asc'/'desc'. Array form preserves the two-key order
+    // (reviewState asc, then updatedAt desc) that the legacy /inbox route used.
+    // The explicit SortObject[] annotation stops TS from widening the mixed-key
+    // array literal to a `{ key: dir; other?: undefined }` union that would break
+    // the Record index signature on the base buildFindAllQuery return type.
+    const sort: SortObject | SortObject[] =
+      query.view === 'inbox'
+        ? [{ reviewState: 1 }, { updatedAt: -1 }]
+        : query.view === 'in_progress'
+          ? { updatedAt: -1 }
+          : handleQuerySort(query.sort);
 
     return {
       orderBy: sort,
@@ -231,20 +241,6 @@ export class TasksController extends BaseCRUDController<
       entity.organization?.toString();
 
     return entityOrganizationId === publicMetadata.organization;
-  }
-
-  @Get('inbox')
-  async inbox(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Query('limit') limit?: string,
-  ) {
-    const { organization } = getPublicMetadata(user);
-    const docs = await this.tasksService.listInbox(
-      organization,
-      limit ? Number(limit) : undefined,
-    );
-    return serializeCollection(request, TaskSerializer, { docs });
   }
 
   @Get('by-identifier/:identifier')
@@ -308,6 +304,13 @@ export class TasksController extends BaseCRUDController<
     @Param('id') id: string,
     @Body() updateDto: UpdateTaskDto,
   ): Promise<JsonApiSingleResponse> {
+    // Review transitions route through the dedicated action methods, which carry
+    // the load-bearing side effects (event stream, realtime broadcast, feedback
+    // memory) — rather than a plain field write.
+    if (updateDto.reviewState) {
+      return this.applyReviewTransition(request, user, id, updateDto);
+    }
+
     const result = await super.patch(request, user, id, updateDto);
 
     // When a task is marked done/cancelled, check if parent's children are all complete
@@ -336,85 +339,72 @@ export class TasksController extends BaseCRUDController<
     return result;
   }
 
-  @Patch(':id/approve')
-  async approve(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-  ) {
+  /**
+   * Apply a review transition (approve/request-changes/dismiss) driven by the
+   * `reviewState` field on a `PATCH /tasks/:id`. The transition is exclusive —
+   * it cannot be combined with other field updates.
+   */
+  private async applyReviewTransition(
+    request: Request,
+    user: User,
+    id: string,
+    updateDto: UpdateTaskDto,
+  ): Promise<JsonApiSingleResponse> {
+    const { reviewState, reason, ...rest } = updateDto;
+    if (Object.keys(rest).length > 0) {
+      throw new BadRequestException(
+        'A reviewState transition cannot be combined with other field updates.',
+      );
+    }
+
     const { organization, user: userId } = getPublicMetadata(user);
-    const doc = await this.tasksService.approve(id, organization, userId);
+
+    let doc: TaskDocument;
+    switch (reviewState) {
+      case 'approved':
+        doc = await this.tasksService.approve(id, organization, userId);
+        break;
+      case 'changes_requested':
+        doc = await this.tasksService.requestChanges(
+          id,
+          organization,
+          userId,
+          reason ?? '',
+        );
+        break;
+      case 'dismissed':
+        doc = await this.tasksService.dismiss(id, organization, userId, reason);
+        break;
+      default:
+        throw new BadRequestException('Unsupported reviewState transition.');
+    }
+
     return serializeSingle(request, TaskSerializer, doc);
   }
 
-  @Patch(':id/request-changes')
-  async requestChanges(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-    @Body() body: { reason: string },
-  ) {
-    const { organization, user: userId } = getPublicMetadata(user);
-    const doc = await this.tasksService.requestChanges(
-      id,
-      organization,
-      userId,
-      body.reason,
-    );
-    return serializeSingle(request, TaskSerializer, doc);
-  }
-
-  @Patch(':id/dismiss')
-  async dismiss(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-    @Body() body: { reason?: string },
-  ) {
-    const { organization, user: userId } = getPublicMetadata(user);
-    const doc = await this.tasksService.dismiss(
-      id,
-      organization,
-      userId,
-      body.reason,
-    );
-    return serializeSingle(request, TaskSerializer, doc);
-  }
-
-  @Patch(':id/outputs/:outputId/keep')
-  async keepOutput(
+  /**
+   * Keep or un-keep a task output. `isKept: true` marks the output as an
+   * approved keeper; `false` reverts it.
+   */
+  @Patch(':id/outputs/:outputId')
+  async setOutputKept(
     @Req() request: Request,
     @CurrentUser() user: User,
     @Param('id') id: string,
     @Param('outputId') outputId: string,
+    @Body() body: UpdateTaskOutputDto,
   ) {
     const { organization, user: userId } = getPublicMetadata(user);
-    const doc = await this.tasksService.keepOutput(
-      id,
-      outputId,
-      organization,
-      userId,
-    );
+    const doc = body.isKept
+      ? await this.tasksService.keepOutput(id, outputId, organization, userId)
+      : await this.tasksService.unkeepOutput(id, outputId, organization);
     return serializeSingle(request, TaskSerializer, doc);
   }
 
-  @Patch(':id/outputs/:outputId/unkeep')
-  async unkeepOutput(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-    @Param('outputId') outputId: string,
-  ) {
-    const { organization } = getPublicMetadata(user);
-    const doc = await this.tasksService.unkeepOutput(
-      id,
-      outputId,
-      organization,
-    );
-    return serializeSingle(request, TaskSerializer, doc);
-  }
-
-  @Patch(':id/outputs/:outputId/trash')
+  /**
+   * Trash (soft-delete) a task output.
+   */
+  @Delete(':id/outputs/:outputId')
   async trashOutput(
     @Req() request: Request,
     @CurrentUser() user: User,

@@ -51,67 +51,19 @@ export class ImagesController {
     private readonly votesService: VotesService,
   ) {}
 
-  @Get('latest')
+  @Get()
+  // Cache only the `latest=true` shorthand (formerly GET /images/latest): the
+  // general image list is intentionally uncached to keep freshly generated
+  // images visible immediately. The keyGenerator returns '' for non-latest
+  // requests, which the RedisCacheInterceptor treats as "do not cache".
   @Cache({
     keyGenerator: (req) =>
-      `images:latest:user:${req.user?.id ?? 'anonymous'}:limit:${req.query.limit ?? 10}`,
+      req.query.latest === 'true'
+        ? `images:latest:user:${req.user?.id ?? 'anonymous'}:limit:${req.query.limit ?? 10}`
+        : '',
     tags: ['images'],
     ttl: 300, // 5 minutes
   })
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findLatest(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Query('limit') limit: number = 10,
-  ): Promise<JsonApiCollectionResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
-    const brand = publicMetadata.brand;
-
-    const aggregate = {
-      where: {
-        AND: [
-          {
-            OR: [
-              {
-                AND: [
-                  {
-                    brand,
-                    category: IngredientCategory.IMAGE,
-                    isDeleted,
-                    // Exclude training source images by default
-                    training: { not: false },
-                    user: publicMetadata.user,
-                  },
-                ],
-              },
-              {
-                AND: [
-                  {
-                    // Filter default images by brand when brand is specified
-                    brand,
-                    category: IngredientCategory.IMAGE,
-                    isDefault: true,
-                    isDeleted,
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-      orderBy: { createdAt: -1 },
-    };
-
-    const data = await this.imagesService.findAll(aggregate, {
-      limit: Math.min(Number(limit) || 10, 50),
-      pagination: false,
-    });
-
-    return serializeCollection(request, IngredientSerializer, data);
-  }
-
-  @Get()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findAll(
     @Req() request: Request,
@@ -121,12 +73,63 @@ export class ImagesController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, { query });
 
+    const publicMetadata = getPublicMetadata(user);
+
+    // `latest=true` shorthand — reproduces the exact WHERE clause of the former
+    // GET /images/latest route: brand-scoped user images with training sources
+    // excluded, plus the org's brand-default images, ordered by createdAt desc
+    // and capped at 50. Bypasses the standard list filters entirely.
+    if (query.latest) {
+      const latestIsDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
+      const latestBrand = publicMetadata.brand;
+
+      const latestAggregate = {
+        where: {
+          AND: [
+            {
+              OR: [
+                {
+                  AND: [
+                    {
+                      brand: latestBrand,
+                      category: IngredientCategory.IMAGE,
+                      isDeleted: latestIsDeleted,
+                      // Exclude training source images by default
+                      training: { not: false },
+                      user: publicMetadata.user,
+                    },
+                  ],
+                },
+                {
+                  AND: [
+                    {
+                      // Filter default images by brand when brand is specified
+                      brand: latestBrand,
+                      category: IngredientCategory.IMAGE,
+                      isDefault: true,
+                      isDeleted: latestIsDeleted,
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        orderBy: { createdAt: -1 },
+      };
+
+      const latestData = await this.imagesService.findAll(latestAggregate, {
+        limit: Math.min(Number(query.limit) || 10, 50),
+        pagination: false,
+      });
+
+      return serializeCollection(request, IngredientSerializer, latestData);
+    }
+
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
-
-    const publicMetadata = getPublicMetadata(user);
 
     // Handle multiple status values (comma-separated)
     const status = QueryDefaultsUtil.parseStatusFilter(query.status);

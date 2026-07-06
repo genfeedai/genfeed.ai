@@ -276,20 +276,6 @@ describe('ProfilesController', () => {
     });
   });
 
-  describe('getDefault', () => {
-    it('should return default profile', async () => {
-      const defaultProfile = { ...mockProfile, isDefault: true };
-      mockProfilesService.getDefault.mockResolvedValue(defaultProfile);
-
-      const result = await controller.getDefault(mockReq, mockUser);
-
-      expect(service.getDefault).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
-      );
-      expect(result).toEqual(defaultProfile);
-    });
-  });
-
   describe('generateFromExamples', () => {
     it('should generate profile from examples', async () => {
       const dto: GenerateFromExamplesDto = {

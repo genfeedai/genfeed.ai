@@ -263,11 +263,10 @@ export const EnvironmentService = {
   plans: {
     enterprise:
       process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY, // Enterprise custom
-    // New output-based tiers (2026)
-    monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY, // Hosted $8/mo
+    monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY, // Pro tier $49/mo
     // PAYG one-time credits
     payg: process.env.NEXT_PUBLIC_STRIPE_PRICE_PAYG,
-    scale: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY, // Cloud Teams from $499/mo
+    scale: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY, // Scale/Cloud Teams $499/mo
     yearly: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY,
   },
 

@@ -4,7 +4,7 @@ import { AccessBootstrapCacheService } from '@api/common/services/access-bootstr
 import { ConfigService } from '@api/config/config.service';
 import { StripeInvoiceWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-invoice-webhook.handler';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
-import { ByokBillingStatus } from '@genfeedai/enums';
+import { ByokBillingStatus, SubscriptionTier } from '@genfeedai/enums';
 import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -31,6 +31,7 @@ describe('StripeInvoiceWebhookHandler', () => {
   const supportService = {
     markOnboardingComplete: vi.fn(),
     recordCreditsActivity: vi.fn(),
+    resolveTierFromPriceId: vi.fn().mockReturnValue(null),
     setByokBillingStatus: vi.fn(),
     setHasEverHadCredits: vi.fn(),
   };
@@ -59,6 +60,7 @@ describe('StripeInvoiceWebhookHandler', () => {
     creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(35_000);
     subscriptionsService.findOne.mockResolvedValue(monthlySubscription);
     subscriptionsService.patch.mockResolvedValue(monthlySubscription);
+    supportService.resolveTierFromPriceId.mockReturnValue(null);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -130,6 +132,85 @@ describe('StripeInvoiceWebhookHandler', () => {
       expect(creditsUtilsService.resetOrganizationCredits).toHaveBeenCalledWith(
         'org_1',
         500_000,
+        'yearly',
+        expect.stringContaining('yearly'),
+      );
+    });
+
+    it('grants tier-aware Pro credits (8,000) for a monthly Pro subscription', async () => {
+      subscriptionsService.findOne.mockResolvedValue({
+        ...monthlySubscription,
+        stripePriceId: 'price_pro',
+      });
+      supportService.resolveTierFromPriceId.mockReturnValue(
+        SubscriptionTier.PRO,
+      );
+
+      await handler.handleInvoicePaid(
+        invoiceWith({
+          parent: { subscription_details: { subscription: 'sub_stripe_1' } },
+        }),
+        'test',
+      );
+
+      expect(
+        creditsUtilsService.addOrganizationCreditsWithExpiration,
+      ).toHaveBeenCalledWith(
+        'org_1',
+        8_000,
+        'monthly',
+        expect.stringContaining('monthly'),
+        expect.any(Date),
+      );
+    });
+
+    it('grants tier-aware Scale credits (80,000) for a monthly Scale subscription', async () => {
+      subscriptionsService.findOne.mockResolvedValue({
+        ...monthlySubscription,
+        stripePriceId: 'price_scale',
+      });
+      supportService.resolveTierFromPriceId.mockReturnValue(
+        SubscriptionTier.SCALE,
+      );
+
+      await handler.handleInvoicePaid(
+        invoiceWith({
+          parent: { subscription_details: { subscription: 'sub_stripe_1' } },
+        }),
+        'test',
+      );
+
+      expect(
+        creditsUtilsService.addOrganizationCreditsWithExpiration,
+      ).toHaveBeenCalledWith(
+        'org_1',
+        80_000,
+        'monthly',
+        expect.stringContaining('monthly'),
+        expect.any(Date),
+      );
+    });
+
+    it('grants 12x the monthly tier allotment for a yearly Pro subscription (96,000)', async () => {
+      subscriptionsService.findOne.mockResolvedValue({
+        ...monthlySubscription,
+        stripePriceId: 'price_pro_yearly',
+        type: 'yearly',
+      });
+      supportService.resolveTierFromPriceId.mockReturnValue(
+        SubscriptionTier.PRO,
+      );
+
+      await handler.handleInvoicePaid(
+        invoiceWith({
+          parent: { subscription_details: { subscription: 'sub_stripe_1' } },
+        }),
+        'test',
+      );
+
+      expect(creditsUtilsService.resetOrganizationCredits).toHaveBeenCalledWith(
+        'org_1',
+        96_000,
         'yearly',
         expect.stringContaining('yearly'),
       );
