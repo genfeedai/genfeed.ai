@@ -33,7 +33,7 @@ const FEATURED_TIER = 'Pro';
 const FAQ_ITEMS = [
   {
     answer:
-      'Signing up is free. Credits buy the output you generate: images, reels, ads, articles, avatar clips, and voice. Subscriptions exist to make credits cheaper and to unlock more brands, channels, and seats.',
+      'Signing up is free. Credits buy the output you generate: images, reels, ads, articles, avatar clips, and voice. Subscriptions exist to make credits cheaper and to unlock unlimited brands, more channels, and shared team seats.',
     question: 'How does pricing work?',
   },
   {
@@ -48,13 +48,18 @@ const FAQ_ITEMS = [
   },
   {
     answer:
-      'Pro ($49/month) includes 8,000 credits (about $80 of pay-as-you-go output) plus 5 brand kits and 15 connected channels. Scale ($499/month) includes 5 seats, 80,000 credits in a shared pool, multi-organization control, and approvals.',
+      'Pro ($49/month) includes 8,000 credits (about $80 of pay-as-you-go output) plus unlimited brand kits and 15 connected channels. Scale ($499/month) includes unlimited seats, 80,000 credits in a shared pool, multi-organization control, and approvals.',
     question: 'What do subscriptions add?',
   },
   {
     answer:
-      'Pay As You Go includes 1 brand kit and 3 connected channels. Pro raises that to 5 brand kits and 15 channels. Scale and Enterprise remove the limits and add organizations and seats.',
+      'Pay As You Go includes 1 brand kit and 3 connected channels. Pro raises that to unlimited brands and 15 channels. Scale and Enterprise remove the channel limits and add organizations and seats.',
     question: 'How many brands and channels can I connect?',
+  },
+  {
+    answer:
+      'Yes. API access is included on every paid plan at the same credit price — generate in the studio or via code, and it draws from the same credit balance. Pro gets standard rate limits, Scale higher limits, and Enterprise custom limits with an SLA.',
+    question: 'Is there an API?',
   },
   {
     answer:
@@ -67,7 +72,7 @@ const PRICING_RULES = [
   'Free to sign up',
   'Credits buy every format',
   'Subscriptions make credits cheaper',
-  'Seats and shared pools for teams',
+  'Unlimited seats and shared pools for teams',
 ] as const;
 
 interface OutputCostRow {
@@ -128,7 +133,7 @@ function getPriceQualifier(plan: (typeof websitePlans)[number]): string {
     const credits = plan.includedCredits?.toLocaleString();
 
     return plan.label === 'Scale'
-      ? `5 seats + ${credits} credits`
+      ? `Unlimited seats + ${credits} credits`
       : `${credits} credits included`;
   }
 
@@ -149,7 +154,7 @@ export default function PricingContent() {
     <div ref={containerRef}>
       <PageLayout
         title={<>Credits for output. Subscriptions for scale.</>}
-        description="Signing up is free. Credits buy the content you generate; a subscription makes those credits cheaper and unlocks more brands, channels, and seats."
+        description="Signing up is free. Credits buy the content you generate; a subscription makes those credits cheaper and unlocks unlimited brands, more channels, and shared team seats."
       >
         <WebSection maxWidth="lg" py="md">
           <div className="grid gap-px overflow-hidden border border-edge/5 bg-fill/5 md:grid-cols-4">
@@ -167,7 +172,7 @@ export default function PricingContent() {
         <WebSection maxWidth="full" py="md">
           <SectionHeader
             title="Start free. Subscribe when volume makes it cheaper."
-            description="Pay As You Go covers bursty campaigns with zero commitment. Pro and Scale include monthly credits at a ~40% better rate, plus more brands, channels, and seats."
+            description="Pay As You Go covers bursty campaigns with zero commitment. Pro and Scale include monthly credits at a ~40% better rate, plus unlimited brands, more channels, and unlimited team seats."
             className="[&_h2]:text-5xl mb-4"
           />
 
@@ -276,6 +281,12 @@ export default function PricingContent() {
             })}
           </NeuralGrid>
 
+          <p className="mt-6 text-center text-sm text-surface/50">
+            Every paid plan includes API access at the same credit price —
+            create in the studio or via code, and it draws from the same credit
+            balance. Higher plans get higher rate limits.
+          </p>
+
           {enterprisePlan ? (
             <div className="mt-4 flex flex-col gap-6 border border-edge/5 bg-background p-8 md:flex-row md:items-center md:justify-between">
               <div className="max-w-2xl">
@@ -333,22 +344,22 @@ export default function PricingContent() {
             ))}
           </div>
 
-          <div className="mt-px grid gap-px overflow-hidden border border-edge/5 bg-fill/5 sm:grid-cols-3">
+          <p className="mt-8 mb-2 text-sm font-medium text-surface/70">
+            Top up any amount from $10 — pay-as-you-go, no subscription. 1
+            credit = $0.01.
+          </p>
+          <div className="grid gap-px overflow-hidden border border-edge/5 bg-fill/5 sm:grid-cols-3">
             {WEBSITE_CREDIT_PACKS.map((pack) => (
-              <div key={pack.label} className="bg-background px-5 py-4">
-                <div className="text-xs font-bold uppercase tracking-widest text-surface/55">
-                  {pack.label} pack
-                </div>
-                <div className="mt-1 text-sm text-surface/65">
-                  ${creditPackPrice(pack).toLocaleString()} →{' '}
+              <div
+                key={pack.label}
+                className="flex items-baseline justify-between gap-4 bg-background px-5 py-4"
+              >
+                <span className="text-sm font-semibold text-surface">
+                  ${creditPackPrice(pack).toLocaleString()}
+                </span>
+                <span className="text-sm text-surface/60">
                   {creditPackTotalCredits(pack).toLocaleString()} credits
-                  {pack.bonus ? (
-                    <span className="text-success">
-                      {' '}
-                      (+{pack.bonus.toLocaleString()} bonus)
-                    </span>
-                  ) : null}
-                </div>
+                </span>
               </div>
             ))}
           </div>

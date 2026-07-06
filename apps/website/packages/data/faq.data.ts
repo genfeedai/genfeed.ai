@@ -71,13 +71,18 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
     questions: [
       {
         answer:
-          'Credits buy output: 1 credit is one cent at the pay-as-you-go rate. Signing up is free, so you only pay for what you generate. Subscriptions include monthly credits at a ~40% better rate and unlock more brands, channels, and seats.',
+          'Credits buy output: 1 credit is one cent at the pay-as-you-go rate. Signing up is free, so you only pay for what you generate. Subscriptions include monthly credits at a ~40% better rate and unlock unlimited brands, more channels, and shared team seats.',
         question: 'How does pricing work?',
       },
       {
         answer:
-          'Pay As You Go is free with credit packs. Creator is $49/month with 8,000 credits included. Teams is $499/month with 5 seats and an 80,000-credit shared pool, then $49 per extra seat. Enterprise is custom.',
+          'Pay As You Go is free with credit packs. Creator is $49/month with 8,000 credits included. Teams is $499/month with unlimited seats and an 80,000-credit shared pool. Enterprise is custom.',
         question: 'What are the pricing tiers?',
+      },
+      {
+        answer:
+          'Yes. API access is included on every paid plan at the same credit price — generate in the studio or via code, drawing from the same credit balance. Creator gets standard rate limits, Teams higher limits, and Enterprise custom limits with an SLA.',
+        question: 'Is there an API?',
       },
       {
         answer:
@@ -86,12 +91,12 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
       },
       {
         answer:
-          'An image is 50 credits ($0.50), an 8-second reel is 600 credits ($6.00), a voiceover is 17 credits per minute, and an article is 25 credits. Every job shows its price before you run it, and credit packs above $999 include bonus credits.',
+          'An image is 50 credits ($0.50), an 8-second reel is 600 credits ($6.00), a voiceover is 17 credits per minute, and an article is 25 credits. Every job shows its price before you run it, and you can top up any amount from $10.',
         question: 'What does output cost?',
       },
       {
         answer:
-          'Pay As You Go includes 1 brand kit and 3 connected channels. Creator raises that to 5 brand kits and 15 channels. Teams and Enterprise remove the limits and add organizations, seats, and shared approvals.',
+          'Pay As You Go includes 1 brand kit and 3 connected channels. Creator raises that to unlimited brands and 15 channels. Teams and Enterprise remove the channel limits and add organizations, seats, and shared approvals.',
         question: 'How many brands and channels can I connect?',
       },
       {
@@ -131,12 +136,12 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
     questions: [
       {
         answer:
-          'Pay As You Go includes a personal workspace, 1 brand kit, 3 connected channels, auto-routed premium models, and multi-platform publishing, with no monthly fee. Creator adds 8,000 monthly credits at a better rate, 5 brand kits, and 15 channels.',
+          'Pay As You Go includes a personal workspace, 1 brand kit, 3 connected channels, auto-routed premium models, and multi-platform publishing, with no monthly fee. Creator adds 8,000 monthly credits at a better rate, unlimited brand kits, and 15 channels.',
         question: "What's included in the free and Creator plans?",
       },
       {
         answer:
-          'Teams adds 5 seats, an 80,000-credit shared pool, collaboration workspaces, multi-organization accounts, multi-brand operations, roles, shared approvals, managed billing, priority support, and advanced analytics.',
+          'Teams adds unlimited seats, an 80,000-credit shared pool, collaboration workspaces, multi-organization accounts, unlimited brands, roles, shared approvals, managed billing, priority support, and advanced analytics.',
         question: 'What extra features come with Teams?',
       },
       {
