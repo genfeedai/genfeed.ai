@@ -106,7 +106,7 @@ export default function TrainingFileList({
             return (
               <li
                 key={`${f.name}-${f.size}-${f.lastModified}`}
-                className="space-y-1 p-2 bg-background/50"
+                className="space-y-1 p-2 bg-tertiary/50"
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="truncate max-w-56 text-sm" title={f.name}>

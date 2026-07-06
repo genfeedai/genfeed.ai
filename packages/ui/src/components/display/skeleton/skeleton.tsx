@@ -104,7 +104,7 @@ export function SkeletonCard({
   return (
     <div
       className={cn(
-        'animate-pulse overflow-hidden rounded border border-white/[0.08] bg-card shadow-[0_24px_60px_-40px_rgba(0,0,0,0.8)]',
+        'animate-pulse overflow-hidden rounded bg-card shadow-border',
         className,
       )}
     >
@@ -146,7 +146,7 @@ export function SkeletonList({ count = 3 }: SkeletonListProps) {
 
 export function SkeletonTable({ rows = 5, columns = 4 }: SkeletonTableProps) {
   return (
-    <div className="w-full overflow-hidden rounded border border-white/[0.08] bg-card p-4 shadow-[0_24px_60px_-40px_rgba(0,0,0,0.8)]">
+    <div className="w-full overflow-hidden rounded bg-card shadow-border p-4">
       <div className="mb-4 border-b border-white/[0.08] pb-3">
         <div
           className="grid"
@@ -244,7 +244,7 @@ export function SkeletonBrandsList({ count = 5 }: SkeletonListProps) {
         return (
           <div
             key={brandKey}
-            className="overflow-hidden rounded border border-white/[0.08] bg-card shadow-[0_24px_60px_-40px_rgba(0,0,0,0.8)]"
+            className="overflow-hidden rounded bg-card shadow-border"
           >
             <div className="p-4">
               <div className="flex items-center gap-x-4">
@@ -276,10 +276,7 @@ export function SkeletonAnalyticsDashboard() {
           const statKey = `analytics-stat-${index}`;
 
           return (
-            <div
-              key={statKey}
-              className=" border border-white/[0.08] bg-white/[0.03] shadow-xl"
-            >
+            <div key={statKey} className="bg-white/[0.03] shadow-border">
               <div className="p-4">
                 <Skeleton variant="text" height={14} className="w-1/2" />
                 <Skeleton variant="text" height={24} className="w-3/4" />
@@ -291,7 +288,7 @@ export function SkeletonAnalyticsDashboard() {
       </div>
 
       {/* Chart Area */}
-      <div className=" border border-white/[0.08] bg-white/[0.03] shadow-xl">
+      <div className="bg-white/[0.03] shadow-border">
         <div className="p-4">
           <Skeleton variant="text" height={20} className="w-1/4 mb-4" />
           <Skeleton variant="rounded" className="w-full h-64" />

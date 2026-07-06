@@ -169,7 +169,7 @@ export default function ModalPostPlatformsTab({
         </p>
 
         {platformConfigs.filter((config) => config.enabled).length === 0 ? (
-          <div className=" border border-dashed border-white/[0.08] bg-card/40 p-6 text-sm text-foreground/70">
+          <div className="bg-card/40 shadow-border p-6 text-sm text-foreground/70">
             Enable a platform above to configure its publishing content.
           </div>
         ) : (

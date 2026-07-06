@@ -30,7 +30,7 @@ export default function ModalPostPlatformGrid({
           return (
             <div
               key={config.platform}
-              className={`bg-card border border-white/[0.08] p-3 ${
+              className={`bg-card shadow-border p-3 ${
                 isEnabled
                   ? 'ring-2 ring-primary/40'
                   : !hasCredential

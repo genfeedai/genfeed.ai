@@ -1,9 +1,5 @@
 import type { AssetScope } from '@genfeedai/enums';
-import type {
-  ICredential,
-  IIngredient,
-  IMetadata,
-} from '@genfeedai/interfaces';
+import type { ICredential, IIngredient } from '@genfeedai/interfaces';
 import IngredientDetailImage from '@ui/ingredients/detail-image/IngredientDetailImage';
 import IngredientDetailVideo from '@ui/ingredients/detail-video/IngredientDetailVideo';
 import type { RefObject } from 'react';
@@ -83,7 +79,7 @@ export default function IngredientOverlayMediaContent({
   onScopeChange,
 }: Props) {
   return (
-    <div className="rounded-3xl border border-white/8 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.06),transparent_38%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.015))] p-4 shadow-[0_32px_120px_rgba(0,0,0,0.4)] md:p-6">
+    <div className="rounded-3xl bg-secondary shadow-border p-4 md:p-6">
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         {isVideo ? (
           <IngredientDetailVideo

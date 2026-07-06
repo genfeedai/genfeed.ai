@@ -60,7 +60,7 @@ export default function ModalImageToVideo({
                 />
               </div>
 
-              <div className=" border border-white/[0.08] bg-background/70 p-4 text-sm leading-relaxed text-foreground/70">
+              <div className="bg-secondary/70 shadow-border p-4 text-sm leading-relaxed text-foreground/70">
                 <p>
                   The selected image will be locked as a reference for the video
                   prompt. Adjust the prompt or style options, then generate to

@@ -28,7 +28,7 @@ export function LinkCard({
       target="_blank"
       rel="noopener noreferrer"
       className={cn(
-        'flex items-center gap-3 rounded-card border border-border transition hover:border-primary/50 hover:bg-secondary/30',
+        'flex items-center gap-3 rounded-card shadow-border transition hover:shadow-border-strong hover:bg-secondary/30',
         prominent ? 'p-4' : 'p-3',
         className,
       )}

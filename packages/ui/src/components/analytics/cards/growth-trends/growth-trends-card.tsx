@@ -19,7 +19,7 @@ export function GrowthTrendsCard({
   isLoading = false,
   className = '',
 }: GrowthTrendsCardProps) {
-  const cardClassName = `rounded-xl border border-border bg-card p-6 ${className}`;
+  const cardClassName = `rounded-xl bg-card shadow-border p-6 ${className}`;
 
   if (isLoading) {
     return (

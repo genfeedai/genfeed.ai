@@ -36,7 +36,7 @@ export default function IngredientTabsSharing({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+      <div className="rounded-2xl bg-tertiary p-4">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35">
           Access Control
         </p>

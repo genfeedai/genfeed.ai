@@ -264,7 +264,7 @@ function ModalOnboardingContent({
                   <div
                     className={`flex items-center justify-center text-xs font-semibold transition-all ${
                       isActive
-                        ? 'size-10 bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-primary/30 text-primary-foreground'
+                        ? 'size-10 bg-gradient-to-br from-primary to-primary/80 text-primary-foreground'
                         : isCompleted
                           ? 'size-8 bg-gradient-to-br from-primary/40 to-primary/20 border border-primary/30 text-primary-foreground'
                           : 'size-8 bg-white/[0.05] border border-white/[0.08] text-muted-foreground'

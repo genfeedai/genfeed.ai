@@ -33,7 +33,7 @@ function BaseNode({
   return (
     <div
       className={cn(
-        'min-w-node border-2 shadow-lg transition-all',
+        'min-w-node border-2 transition-all',
         bgColor,
         borderColor,
         selected && 'ring-2 ring-primary ring-offset-2',

@@ -125,7 +125,6 @@ export function TrendingHashtags({
               onClick={
                 onHashtagClick ? () => onHashtagClick(hashtag) : undefined
               }
-              className="hover:border-primary/40 hover:shadow-md"
               bodyClassName="p-4"
             >
               <div className="flex items-start justify-between mb-2">

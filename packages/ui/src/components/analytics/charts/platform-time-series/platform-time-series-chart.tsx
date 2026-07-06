@@ -135,7 +135,7 @@ export function PlatformTimeSeriesChart({
         {!isEmpty && (
           <ChartContainer
             config={chartConfig}
-            className="border-white/[0.08] bg-card p-3 shadow-[0_24px_60px_-40px_rgba(0,0,0,0.8)]"
+            className="bg-card shadow-border p-3"
             height="100%"
             style={{ minWidth: 0 }}
           >

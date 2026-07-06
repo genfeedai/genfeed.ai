@@ -52,7 +52,7 @@ const DEFAULT_PLATFORMS = [
 const CONTROL_CLASS =
   'h-9 px-3 gap-2 text-sm flex-shrink-0 !border-white/10 !bg-white/[0.03] text-white/80 hover:!bg-white/[0.06] hover:text-white';
 const COLLAPSE_BUTTON_CLASS =
-  'size-8 border border-white/10 bg-black/20 p-0 text-white/70 backdrop-blur-sm hover:bg-black/30 hover:text-white';
+  'size-8 bg-black/20 p-0 text-white/70 shadow-border backdrop-blur-sm hover:bg-black/30 hover:text-white';
 
 type PlatformOption = {
   icon: ReactNode;

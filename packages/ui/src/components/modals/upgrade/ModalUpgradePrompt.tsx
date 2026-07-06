@@ -109,7 +109,7 @@ export default function ModalUpgradePrompt({
     <Modal id={ModalEnum.UPGRADE_PROMPT} title="Upgrade Your Plan">
       <div className="space-y-6 py-2">
         {/* Lock message */}
-        <div className="flex items-start gap-3 p-4 bg-amber-500/5 border border-amber-500/10">
+        <div className="flex items-start gap-3 p-4 bg-amber-500/5 shadow-border">
           <HiLockClosed className="size-5 text-amber-500 flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-medium text-foreground">
@@ -130,10 +130,10 @@ export default function ModalUpgradePrompt({
           {UPGRADE_TIERS.map(({ tier, qualities, highlight }) => (
             <div
               key={tier}
-              className={`p-4 border ${
+              className={`p-4 ${
                 highlight
-                  ? 'border-primary/30 bg-primary/5'
-                  : 'border-white/[0.08] bg-white/[0.02]'
+                  ? 'shadow-border-strong bg-primary/5'
+                  : 'shadow-border bg-white/[0.02]'
               }`}
             >
               <div className="flex items-center justify-between mb-2">

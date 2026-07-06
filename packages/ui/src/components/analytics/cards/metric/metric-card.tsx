@@ -49,9 +49,9 @@ function getChangeColor(change: number | undefined): string {
 }
 
 const BASE_CARD_CLASSES =
-  'w-full rounded-xl border border-border bg-card p-6 text-left';
+  'w-full rounded-xl bg-card shadow-border p-6 text-left';
 const CLICKABLE_CLASSES =
-  'cursor-pointer hover:shadow-lg hover:border-purple-300 dark:hover:border-purple-700 transition-all';
+  'cursor-pointer hover:shadow-border-strong transition-all';
 
 export function MetricCard({
   title,

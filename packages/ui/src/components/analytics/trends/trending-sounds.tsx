@@ -82,7 +82,6 @@ export function TrendingSounds({
             key={sound.id}
             variant={CardVariant.DEFAULT}
             onClick={onSoundClick ? () => onSoundClick(sound) : undefined}
-            className="hover:border-primary/40 hover:shadow-md"
             bodyClassName="p-4"
           >
             <div className="flex gap-3">

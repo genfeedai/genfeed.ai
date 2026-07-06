@@ -108,7 +108,7 @@ export default function ModalErrorDebug() {
       isError
       error={errorInfo?.message}
       onClose={handleModalClosed}
-      modalBoxClassName="rounded-lg border-destructive/50 bg-[#17080a] text-red-50 shadow-[0_24px_80px_rgba(127,29,29,0.45)]"
+      modalBoxClassName="rounded-lg border-destructive/50 bg-[#17080a] text-red-50"
     >
       {errorInfo && (
         <>

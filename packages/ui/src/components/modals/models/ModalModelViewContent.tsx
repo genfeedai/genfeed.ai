@@ -151,7 +151,7 @@ export default function ModalModelViewContent({
             <h4 className="text-sm font-medium text-foreground/70 mb-2">
               Supported Dimensions
             </h4>
-            <div className="text-sm text-foreground bg-background p-3">
+            <div className="text-sm text-foreground bg-secondary shadow-border p-3">
               {model.minDimensions && (
                 <div>
                   Min: {model.minDimensions.width} x{' '}

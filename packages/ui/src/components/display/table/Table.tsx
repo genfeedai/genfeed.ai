@@ -116,14 +116,14 @@ export default function AppTable<T>({
       return <>{emptyState}</>;
     }
     return (
-      <div className="rounded border border-white/[0.08] bg-card shadow-[0_24px_60px_-40px_rgba(0,0,0,0.8)]">
+      <div className="rounded bg-card shadow-border">
         <CardEmptyContent label={emptyLabel} />
       </div>
     );
   }
 
   return (
-    <div className="relative overflow-hidden rounded border border-white/[0.08] bg-card shadow-[0_24px_60px_-40px_rgba(0,0,0,0.8)]">
+    <div className="relative overflow-hidden rounded bg-card shadow-border">
       <div className="overflow-x-auto rounded">
         <table className="w-full caption-bottom text-sm">
           <thead

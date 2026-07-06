@@ -283,22 +283,22 @@ export default function IngredientTabsTags({
       <Card className="p-4">
         <h3 className="text-lg font-semibold mb-4">Tag Statistics</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="p-4 bg-background">
+          <div className="p-4 bg-tertiary">
             <div className="text-sm text-foreground/60">Total Tags</div>
             <div className="text-2xl font-bold">{tags.length}</div>
           </div>
-          <div className="p-4 bg-background">
+          <div className="p-4 bg-tertiary">
             <div className="text-sm text-foreground/60">Available</div>
             <div className="text-2xl font-bold">{availableTags.length}</div>
           </div>
 
-          <div className="p-4 bg-background">
+          <div className="p-4 bg-tertiary">
             <div className="text-sm text-foreground/60">Categories</div>
             <div className="text-2xl font-bold">
               {new Set(tags.map((t) => t.category)).size}
             </div>
           </div>
-          <div className="p-4 bg-background">
+          <div className="p-4 bg-tertiary">
             <div className="text-sm text-foreground/60">Most Used</div>
             <div className="text-lg font-bold">{tags[0]?.label || 'N/A'}</div>
           </div>

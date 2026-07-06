@@ -21,7 +21,7 @@ export default function ModalCreateThreadPreview({
           return (
             <div
               key={field.id}
-              className="border border-white/[0.08] p-4 space-y-2"
+              className="bg-secondary shadow-border p-4 space-y-2"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">

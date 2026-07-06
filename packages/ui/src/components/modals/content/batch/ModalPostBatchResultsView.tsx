@@ -49,13 +49,13 @@ export default function ModalPostBatchResultsView({
             const getStatusColor = () => {
               switch (status.status) {
                 case 'completed':
-                  return 'bg-success/10 border-success/20';
+                  return 'bg-success/10 border border-success/20';
                 case 'failed':
-                  return 'bg-error/10 border-error/20';
+                  return 'bg-error/10 border border-error/20';
                 case 'submitting':
-                  return 'bg-info/10 border-info/20';
+                  return 'bg-info/10 border border-info/20';
                 default:
-                  return 'bg-background/50 border-white/[0.08]';
+                  return 'bg-secondary/50 shadow-border';
               }
             };
 
@@ -88,7 +88,7 @@ export default function ModalPostBatchResultsView({
             return (
               <div
                 key={status.credentialId}
-                className={`flex items-center gap-3 p-4 border transition-all ${getStatusColor()}`}
+                className={`flex items-center gap-3 p-4 transition-all ${getStatusColor()}`}
               >
                 {PlatformIcon && (
                   <PlatformIcon className={`size-5 ${getIconColor()}`} />
