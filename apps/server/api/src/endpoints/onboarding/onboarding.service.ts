@@ -298,9 +298,10 @@ export class OnboardingService {
           );
         }
 
-        // Set the prefix
+        // Set the prefix. `prefix` is inherited on UpdateOrganizationDto via
+        // PartialType(CreateOrganizationDto) — immutability is enforced above
+        // at runtime, not via DTO-level field exclusion (REST audit #1354).
         await this.organizationsService.patch(organizationId.toString(), {
-          // @ts-expect-error prefix is not in UpdateOrganizationDto (immutable), but we set it directly here during onboarding
           prefix: prefix.toUpperCase(),
         });
 
