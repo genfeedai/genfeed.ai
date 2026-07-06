@@ -506,7 +506,7 @@ async function createVideoFromPrompt(
 
 async function getLatestVideos(sendResponse: SendResponse): Promise<void> {
   await executeAuthenticatedRequest<{ videos: unknown[] }>(
-    '/videos/latest',
+    '/videos?latest=true',
     { method: 'GET' },
     sendResponse,
     (data) => sendResponse({ success: true, videos: data.videos }),

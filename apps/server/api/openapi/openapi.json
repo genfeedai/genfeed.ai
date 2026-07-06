@@ -21081,6 +21081,16 @@
               "default": false,
               "type": "boolean"
             }
+          },
+          {
+            "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded, plus brand-default images), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
+            "in": "query",
+            "name": "latest",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -22254,6 +22264,16 @@
             "description": "Use lightweight mode (skip expensive lookups for masonry/gallery views)",
             "in": "query",
             "name": "lightweight",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
+            "in": "query",
+            "name": "latest",
             "required": false,
             "schema": {
               "default": false,
@@ -28946,30 +28966,6 @@
         ]
       }
     },
-    "/gifs/latest": {
-      "get": {
-        "operationId": "GifsController.findLatest",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "limit",
-            "required": true,
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findLatest",
-        "tags": [
-          "gifs"
-        ]
-      }
-    },
     "/gifs/{gifId}": {
       "delete": {
         "operationId": "GifsController.remove",
@@ -29717,6 +29713,16 @@
               "default": false,
               "type": "boolean"
             }
+          },
+          {
+            "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded, plus brand-default images), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
+            "in": "query",
+            "name": "latest",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -29748,30 +29754,6 @@
           }
         },
         "summary": "create",
-        "tags": [
-          "images"
-        ]
-      }
-    },
-    "/images/latest": {
-      "get": {
-        "operationId": "ImagesController.findLatest",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "limit",
-            "required": true,
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findLatest",
         "tags": [
           "images"
         ]
@@ -30140,6 +30122,16 @@
             "description": "Filter by public gallery visibility (for getshareable.app)",
             "in": "query",
             "name": "isPublic",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded, plus brand-default images), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
+            "in": "query",
+            "name": "latest",
             "required": false,
             "schema": {
               "default": false,
@@ -32604,30 +32596,6 @@
           }
         },
         "summary": "create",
-        "tags": [
-          "musics"
-        ]
-      }
-    },
-    "/musics/latest": {
-      "get": {
-        "operationId": "MusicsController.findLatest",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "limit",
-            "required": true,
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findLatest",
         "tags": [
           "musics"
         ]
@@ -36327,6 +36295,16 @@
             "description": "Use lightweight mode (skip expensive lookups for masonry/gallery views)",
             "in": "query",
             "name": "lightweight",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
+            "in": "query",
+            "name": "latest",
             "required": false,
             "schema": {
               "default": false,
@@ -46106,6 +46084,16 @@
               "default": false,
               "type": "boolean"
             }
+          },
+          {
+            "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded, plus brand-default images), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
+            "in": "query",
+            "name": "latest",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -47818,6 +47806,16 @@
               "default": false,
               "type": "boolean"
             }
+          },
+          {
+            "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
+            "in": "query",
+            "name": "latest",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -47899,30 +47897,6 @@
           }
         },
         "summary": "createBatchInterpolation",
-        "tags": [
-          "videos"
-        ]
-      }
-    },
-    "/videos/latest": {
-      "get": {
-        "operationId": "VideosController.findLatest",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "limit",
-            "required": true,
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findLatest",
         "tags": [
           "videos"
         ]
@@ -48364,6 +48338,16 @@
               "default": false,
               "type": "boolean"
             }
+          },
+          {
+            "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
+            "in": "query",
+            "name": "latest",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -48633,6 +48617,16 @@
             "description": "Use lightweight mode (skip expensive lookups for masonry/gallery views)",
             "in": "query",
             "name": "lightweight",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
+            "in": "query",
+            "name": "latest",
             "required": false,
             "schema": {
               "default": false,
