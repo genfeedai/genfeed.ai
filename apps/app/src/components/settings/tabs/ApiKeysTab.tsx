@@ -60,10 +60,10 @@ const API_KEYS: ApiKeyStatus[] = [
 function StatusDot({ status }: { status: boolean | null }) {
   const color =
     status === true
-      ? 'bg-green-500'
+      ? 'bg-success'
       : status === false
-        ? 'bg-red-500'
-        : 'bg-gray-400';
+        ? 'bg-destructive'
+        : 'bg-muted-foreground';
   const label =
     status === true
       ? 'Configured'
@@ -278,7 +278,7 @@ export function ApiKeysTab() {
                   {key.description}
                 </p>
                 {key.isConfigured === false && (
-                  <p className="text-xs text-red-500 mt-1">
+                  <p className="text-xs text-destructive mt-1">
                     Add to apps/
                     {key.location === 'both'
                       ? 'api/.env & web/.env'

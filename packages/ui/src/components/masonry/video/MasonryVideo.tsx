@@ -97,7 +97,7 @@ export default function MasonryVideo({
       data-masonry-item="true"
       data-state={isHovered ? 'hovered' : 'idle'}
       className={cn(
-        'relative block w-full cursor-pointer rounded-xl border border-white/[0.08] bg-card transition-[border-color,background-color] duration-200 hover:border-white/[0.14]',
+        'relative block w-full cursor-pointer rounded-xl bg-card shadow-border transition-shadow duration-200 hover:shadow-border-strong',
         isScrollFocused && SCROLL_FOCUS_SURFACE_CLASS,
         video.aspectRatio,
         isSelected && 'border-primary',

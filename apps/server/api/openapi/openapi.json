@@ -10,6 +10,34 @@
         ],
         "type": "string"
       },
+      "AddCampaignTargetsDto": {
+        "properties": {
+          "targetType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CampaignTargetType"
+              }
+            ],
+            "default": "tweet",
+            "description": "Discriminator for how targets are added. Defaults to URL-based target detection. Use DM_RECIPIENT to add DM recipients by username."
+          },
+          "urls": {
+            "description": "Content URLs to add as targets (manual URL addition)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "usernames": {
+            "description": "Usernames to add as DM recipients (requires targetType: dm_recipient)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "AddCreatorDto": {
         "properties": {
           "displayName": {
@@ -422,6 +450,14 @@
         },
         "type": "object"
       },
+      "AvatarProvider": {
+        "description": "Avatar provider",
+        "enum": [
+          "heygen",
+          "hedra"
+        ],
+        "type": "string"
+      },
       "BackgroundMusicDto": {
         "properties": {
           "autoGenerate": {
@@ -599,6 +635,31 @@
           "platform"
         ],
         "type": "object"
+      },
+      "BotLivestreamSessionPatchDto": {
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BotLivestreamSessionStatus"
+              }
+            ],
+            "description": "Target livestream session status. \"active\" starts the session when stopped, or resumes it when paused."
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
+      "BotLivestreamSessionStatus": {
+        "description": "Target livestream session status. \"active\" starts the session when stopped, or resumes it when paused.",
+        "enum": [
+          "active",
+          "paused",
+          "stopped"
+        ],
+        "type": "string"
       },
       "BotLivestreamTranscriptDto": {
         "properties": {
@@ -794,6 +855,16 @@
         ],
         "type": "string"
       },
+      "CampaignTargetType": {
+        "description": "Discriminator for how targets are added. Defaults to URL-based target detection. Use DM_RECIPIENT to add DM recipients by username.",
+        "enum": [
+          "tweet",
+          "reddit_post",
+          "reddit_comment",
+          "dm_recipient"
+        ],
+        "type": "string"
+      },
       "CampaignType": {
         "description": "Type of campaign",
         "enum": [
@@ -864,6 +935,14 @@
           "generating",
           "completed",
           "failed"
+        ],
+        "type": "string"
+      },
+      "ClipResultMode": {
+        "description": "Clip generation mode (defaults to avatar)",
+        "enum": [
+          "avatar",
+          "raw-cut"
         ],
         "type": "string"
       },
@@ -1075,6 +1154,23 @@
         ],
         "type": "string"
       },
+      "ContentQuotaConfigDto": {
+        "properties": {
+          "images": {
+            "description": "Number of images quota",
+            "type": "number"
+          },
+          "posts": {
+            "description": "Number of posts quota",
+            "type": "number"
+          },
+          "videos": {
+            "description": "Number of videos quota",
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
       "ContentRating": {
         "enum": [
           "sfw",
@@ -1082,6 +1178,59 @@
           "nsfw"
         ],
         "type": "string"
+      },
+      "ContentRotationConfigDto": {
+        "properties": {
+          "enabled": {
+            "description": "Whether weighted content rotation is enabled",
+            "type": "boolean"
+          },
+          "lookbackDays": {
+            "description": "Recent run lookback window in days",
+            "type": "number"
+          },
+          "targets": {
+            "description": "Campaign/topic/platform target weights",
+            "items": {
+              "$ref": "#/components/schemas/ContentRotationTargetDto"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ContentRotationTargetDto": {
+        "properties": {
+          "key": {
+            "description": "Stable target key",
+            "type": "string"
+          },
+          "label": {
+            "description": "Human-readable target label",
+            "type": "string"
+          },
+          "platform": {
+            "description": "Optional platform scope",
+            "type": "string"
+          },
+          "strategyId": {
+            "description": "Optional strategy scope",
+            "type": "string"
+          },
+          "topic": {
+            "description": "Optional topic bucket scope",
+            "type": "string"
+          },
+          "weight": {
+            "description": "Target share weight",
+            "type": "number"
+          }
+        },
+        "required": [
+          "key",
+          "weight"
+        ],
+        "type": "object"
       },
       "ContentRunStatus": {
         "enum": [
@@ -1091,6 +1240,40 @@
           "failed"
         ],
         "type": "string"
+      },
+      "ContentStrategyDto": {
+        "properties": {
+          "formats": {
+            "description": "Preferred content formats",
+            "items": {
+              "$ref": "#/components/schemas/PersonaContentFormat"
+            },
+            "type": "array"
+          },
+          "frequency": {
+            "description": "Posting cadence (e.g., daily, weekly)",
+            "type": "string"
+          },
+          "platforms": {
+            "description": "Priority platform ordering",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "tone": {
+            "description": "Brand voice tone descriptor",
+            "type": "string"
+          },
+          "topics": {
+            "description": "Content topics/themes",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
       },
       "CrawlBrandKitDto": {
         "properties": {},
@@ -1851,6 +2034,14 @@
             "description": "Whether the clip is selected",
             "type": "boolean"
           },
+          "mode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ClipResultMode"
+              }
+            ],
+            "description": "Clip generation mode (defaults to avatar)"
+          },
           "organization": {
             "description": "The organization ID that owns this resource",
             "type": "string"
@@ -2003,7 +2194,9 @@
               "shopify",
               "beehiiv",
               "unipile",
-              "devto"
+              "devto",
+              "product_hunt",
+              "hacker_news"
             ],
             "type": "string"
           },
@@ -2227,12 +2420,24 @@
             "description": "Media URL for photo/video",
             "type": "string"
           },
+          "platform": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DistributionPlatform"
+              }
+            ]
+          },
+          "scheduledAt": {
+            "description": "ISO 8601 date string to schedule the send; omit to send immediately",
+            "type": "string"
+          },
           "text": {
             "description": "Text content for text messages",
             "type": "string"
           }
         },
         "required": [
+          "platform",
           "chatId",
           "contentType"
         ],
@@ -5262,7 +5467,9 @@
           "shopify",
           "beehiiv",
           "unipile",
-          "devto"
+          "devto",
+          "product_hunt",
+          "hacker_news"
         ],
         "type": "string"
       },
@@ -5312,7 +5519,9 @@
               "shopify",
               "beehiiv",
               "unipile",
-              "devto"
+              "devto",
+              "product_hunt",
+              "hacker_news"
             ],
             "type": "string"
           },
@@ -6094,6 +6303,48 @@
         ],
         "type": "object"
       },
+      "GenerateLaunchCopyDto": {
+        "properties": {
+          "brandId": {
+            "description": "Brand the launch belongs to",
+            "type": "string"
+          },
+          "channel": {
+            "description": "Target launch channel",
+            "enum": [
+              "hacker_news",
+              "product_hunt"
+            ],
+            "example": "hacker_news",
+            "type": "string"
+          },
+          "description": {
+            "description": "What the product does, in plain language",
+            "type": "string"
+          },
+          "productName": {
+            "description": "Product / project name",
+            "type": "string"
+          },
+          "url": {
+            "description": "Landing page or repo URL",
+            "type": "string"
+          },
+          "variationsCount": {
+            "description": "Number of tagline variants to produce (Product Hunt)",
+            "maximum": 5,
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "required": [
+          "channel",
+          "productName",
+          "description",
+          "brandId"
+        ],
+        "type": "object"
+      },
       "GenerateLipSyncDto": {
         "properties": {
           "audioUrl": {
@@ -6543,7 +6794,9 @@
               "shopify",
               "beehiiv",
               "unipile",
-              "devto"
+              "devto",
+              "product_hunt",
+              "hacker_news"
             ],
             "type": "string"
           },
@@ -7083,7 +7336,9 @@
               "shopify",
               "beehiiv",
               "unipile",
-              "devto"
+              "devto",
+              "product_hunt",
+              "hacker_news"
             ],
             "type": "string"
           },
@@ -7819,12 +8074,39 @@
         },
         "type": "object"
       },
+      "PatchStreakDto": {
+        "properties": {},
+        "type": "object"
+      },
       "PerformanceSource": {
         "enum": [
           "api",
           "manual",
           "webhook",
           "csv"
+        ],
+        "type": "string"
+      },
+      "PersonaContentFormat": {
+        "description": "Preferred content formats",
+        "enum": [
+          "photo",
+          "video",
+          "reel",
+          "story",
+          "article",
+          "audio",
+          "text"
+        ],
+        "type": "string"
+      },
+      "PersonaStatus": {
+        "description": "Persona status",
+        "enum": [
+          "draft",
+          "active",
+          "paused",
+          "archived"
         ],
         "type": "string"
       },
@@ -7855,7 +8137,9 @@
           "shopify",
           "beehiiv",
           "unipile",
-          "devto"
+          "devto",
+          "product_hunt",
+          "hacker_news"
         ],
         "type": "string"
       },
@@ -8090,10 +8374,6 @@
           "query",
           "contextBaseId"
         ],
-        "type": "object"
-      },
-      "QuickAddWatchlistsDto": {
-        "properties": {},
         "type": "object"
       },
       "RankingPolicyDto": {
@@ -8632,47 +8912,6 @@
         },
         "type": "object"
       },
-      "ScheduleDistributionDto": {
-        "properties": {
-          "brandId": {
-            "description": "Brand ID",
-            "type": "string"
-          },
-          "caption": {
-            "description": "Caption for photo/video",
-            "type": "string"
-          },
-          "chatId": {
-            "description": "Telegram chat/channel ID",
-            "type": "string"
-          },
-          "contentType": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/DistributionContentType"
-              }
-            ]
-          },
-          "mediaUrl": {
-            "description": "Media URL for photo/video",
-            "type": "string"
-          },
-          "scheduledAt": {
-            "description": "ISO 8601 date string for scheduled send",
-            "type": "string"
-          },
-          "text": {
-            "description": "Text content for text messages",
-            "type": "string"
-          }
-        },
-        "required": [
-          "chatId",
-          "contentType",
-          "scheduledAt"
-        ],
-        "type": "object"
-      },
       "ScoreSeoDto": {
         "properties": {},
         "type": "object"
@@ -8814,22 +9053,6 @@
         },
         "required": [
           "category"
-        ],
-        "type": "object"
-      },
-      "SetPrefixDto": {
-        "properties": {
-          "prefix": {
-            "description": "Unique 3-letter uppercase prefix for issue identifiers (e.g., GEN)",
-            "example": "GEN",
-            "maxLength": 3,
-            "minLength": 3,
-            "pattern": "^[A-Z]{3}$",
-            "type": "string"
-          }
-        },
-        "required": [
-          "prefix"
         ],
         "type": "object"
       },
@@ -9424,6 +9647,82 @@
         },
         "type": "object"
       },
+      "UpdateAgentCampaignDto": {
+        "properties": {
+          "agents": {
+            "description": "Agent strategy IDs included in this campaign",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "brand": {
+            "description": "Brand ID",
+            "type": "string"
+          },
+          "brief": {
+            "description": "Campaign brief / description",
+            "type": "string"
+          },
+          "campaignLeadStrategyId": {
+            "description": "Optional presentation-only lead strategy ID",
+            "type": "string"
+          },
+          "contentQuota": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ContentQuotaConfigDto"
+              }
+            ],
+            "description": "Content production quotas"
+          },
+          "contentRotation": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ContentRotationConfigDto"
+              }
+            ],
+            "description": "Weighted campaign/topic rotation rules"
+          },
+          "creditsAllocated": {
+            "description": "Credits allocated to this campaign",
+            "type": "number"
+          },
+          "endDate": {
+            "description": "Campaign end date",
+            "format": "date-time",
+            "type": "string"
+          },
+          "label": {
+            "description": "Campaign label",
+            "type": "string"
+          },
+          "orchestrationEnabled": {
+            "description": "Whether campaign orchestration is enabled",
+            "type": "boolean"
+          },
+          "orchestrationIntervalHours": {
+            "description": "Campaign orchestration cadence in hours",
+            "type": "number"
+          },
+          "startDate": {
+            "description": "Campaign start date",
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "description": "Campaign status",
+            "enum": [
+              "draft",
+              "active",
+              "paused",
+              "completed"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "UpdateAgentGoalDto": {
         "properties": {
           "description": {
@@ -9837,6 +10136,10 @@
             "example": "2025-10-16T12:00:00Z",
             "type": "string"
           },
+          "restoreFromVersionId": {
+            "description": "Restore the article content from a prior version (prompt) id. When set, the article is reverted to that version and other update fields are ignored.",
+            "type": "string"
+          },
           "scope": {
             "allOf": [
               {
@@ -9905,6 +10208,10 @@
             ]
           }
         },
+        "type": "object"
+      },
+      "UpdateBatchDto": {
+        "properties": {},
         "type": "object"
       },
       "UpdateBookmarkDto": {
@@ -10348,6 +10655,10 @@
             },
             "type": "array"
           },
+          "relocationAck": {
+            "description": "Server-verified confirmation token from GET /brands/:id/relocation-preview, required whenever the relocation would clone shared workflows into the destination organization. A stale or missing token is rejected with 409 so a client cannot bypass the consent modal or move against an outdated preview.",
+            "type": "string"
+          },
           "scope": {
             "allOf": [
               {
@@ -10613,6 +10924,14 @@
           "isSelected": {
             "description": "Whether the clip is selected",
             "type": "boolean"
+          },
+          "mode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ClipResultMode"
+              }
+            ],
+            "description": "Clip generation mode (defaults to avatar)"
           },
           "providerJobId": {
             "description": "External provider job ID",
@@ -11865,6 +12184,108 @@
           "webhookSecret": {
             "description": "Webhook secret for signature verification",
             "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdatePersonaDto": {
+        "properties": {
+          "assignedMembers": {
+            "description": "Assigned team member user IDs",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "avatarExternalId": {
+            "description": "Provider-side avatar ID",
+            "type": "string"
+          },
+          "avatarIngredientId": {
+            "description": "Avatar ingredient ID",
+            "type": "string"
+          },
+          "avatarProvider": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AvatarProvider"
+              }
+            ],
+            "description": "Avatar provider"
+          },
+          "contentStrategy": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ContentStrategyDto"
+              }
+            ],
+            "description": "Content strategy configuration"
+          },
+          "credentials": {
+            "description": "Linked credential IDs for social accounts",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "description": {
+            "description": "Bio/description",
+            "type": "string"
+          },
+          "handle": {
+            "description": "Social handle",
+            "type": "string"
+          },
+          "isDeleted": {
+            "description": "Whether the persona is marked as deleted",
+            "type": "boolean"
+          },
+          "label": {
+            "description": "Display name of the persona",
+            "type": "string"
+          },
+          "memberIds": {
+            "description": "Assigned team member user IDs to set on the persona",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "profileImageUrl": {
+            "description": "CDN URL for profile image",
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonaStatus"
+              }
+            ],
+            "default": "draft",
+            "description": "Persona status"
+          },
+          "tags": {
+            "description": "Tag IDs",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "voiceExternalId": {
+            "description": "Provider-side voice ID",
+            "type": "string"
+          },
+          "voiceIngredientId": {
+            "description": "Voice ID",
+            "type": "string"
+          },
+          "voiceProvider": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VoiceProvider"
+              }
+            ],
+            "description": "Voice provider"
           }
         },
         "type": "object"
@@ -16029,62 +16450,22 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAgentCampaignDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
           }
         },
         "summary": "patch",
-        "tags": [
-          "agent-campaigns",
-          "Agent Campaigns"
-        ]
-      }
-    },
-    "/agent-campaigns/{id}/execute": {
-      "post": {
-        "operationId": "AgentCampaignsController.executeCampaign",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Execute a campaign — activates all agent strategies",
-        "tags": [
-          "agent-campaigns",
-          "Agent Campaigns"
-        ]
-      }
-    },
-    "/agent-campaigns/{id}/pause": {
-      "post": {
-        "operationId": "AgentCampaignsController.pauseCampaign",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Pause a running campaign",
         "tags": [
           "agent-campaigns",
           "Agent Campaigns"
@@ -18691,38 +19072,6 @@
         ]
       }
     },
-    "/articles/{articleId}/versions/{promptId}/restore": {
-      "post": {
-        "operationId": "ArticlesController.restoreVersion",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "articleId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "promptId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "restoreVersion",
-        "tags": [
-          "articles"
-        ]
-      }
-    },
     "/articles/{articleId}/videos": {
       "post": {
         "operationId": "ArticlesController.generateVideoFromArticle",
@@ -19505,11 +19854,9 @@
           "batches",
           "Batches"
         ]
-      }
-    },
-    "/batches/{id}/cancel": {
-      "post": {
-        "operationId": "BatchGenerationController.cancelBatch",
+      },
+      "patch": {
+        "operationId": "BatchGenerationController.patch",
         "parameters": [
           {
             "in": "path",
@@ -19520,12 +19867,22 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBatchDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
           }
         },
-        "summary": "Cancel a batch",
+        "summary": "Update a batch (e.g. cancel via status)",
         "tags": [
           "batches",
           "Batches"
@@ -20137,6 +20494,38 @@
         "tags": [
           "bots"
         ]
+      },
+      "patch": {
+        "operationId": "BotsController.patchLivestreamSession",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BotLivestreamSessionPatchDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "patchLivestreamSession",
+        "tags": [
+          "bots"
+        ]
       }
     },
     "/bots/{id}/livestream-session/override": {
@@ -20173,54 +20562,6 @@
         ]
       }
     },
-    "/bots/{id}/livestream-session/pause": {
-      "post": {
-        "operationId": "BotsController.pauseLivestreamSession",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "pauseLivestreamSession",
-        "tags": [
-          "bots"
-        ]
-      }
-    },
-    "/bots/{id}/livestream-session/resume": {
-      "post": {
-        "operationId": "BotsController.resumeLivestreamSession",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "resumeLivestreamSession",
-        "tags": [
-          "bots"
-        ]
-      }
-    },
     "/bots/{id}/livestream-session/send-now": {
       "post": {
         "operationId": "BotsController.sendLivestreamMessageNow",
@@ -20250,54 +20591,6 @@
           }
         },
         "summary": "sendLivestreamMessageNow",
-        "tags": [
-          "bots"
-        ]
-      }
-    },
-    "/bots/{id}/livestream-session/start": {
-      "post": {
-        "operationId": "BotsController.startLivestreamSession",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "startLivestreamSession",
-        "tags": [
-          "bots"
-        ]
-      }
-    },
-    "/bots/{id}/livestream-session/stop": {
-      "post": {
-        "operationId": "BotsController.stopLivestreamSession",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "stopLivestreamSession",
         "tags": [
           "bots"
         ]
@@ -23424,6 +23717,38 @@
         ]
       }
     },
+    "/brands/{id}/relocation-preview": {
+      "get": {
+        "operationId": "BrandsController.previewRelocation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "previewRelocation",
+        "tags": [
+          "brands"
+        ]
+      }
+    },
     "/captions": {
       "get": {
         "operationId": "CaptionsController.findAll",
@@ -24924,7 +25249,9 @@
                 "shopify",
                 "beehiiv",
                 "unipile",
-                "devto"
+                "devto",
+                "product_hunt",
+                "hacker_news"
               ],
               "type": "string"
             }
@@ -26517,11 +26844,9 @@
         "tags": [
           "Distributions"
         ]
-      }
-    },
-    "/distributions/telegram": {
+      },
       "post": {
-        "operationId": "DistributionsController.sendTelegram",
+        "operationId": "DistributionsController.create",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -26538,32 +26863,7 @@
             "description": ""
           }
         },
-        "summary": "sendTelegram",
-        "tags": [
-          "Distributions"
-        ]
-      }
-    },
-    "/distributions/telegram/schedule": {
-      "post": {
-        "operationId": "DistributionsController.scheduleTelegram",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ScheduleDistributionDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "scheduleTelegram",
+        "summary": "create",
         "tags": [
           "Distributions"
         ]
@@ -31292,6 +31592,31 @@
         ]
       }
     },
+    "/launch-copy/generate": {
+      "post": {
+        "operationId": "LaunchCopyController.generate",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateLaunchCopyDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "generate",
+        "tags": [
+          "launch-copy"
+        ]
+      }
+    },
     "/links": {
       "get": {
         "operationId": "LinksController.findAll",
@@ -33222,30 +33547,6 @@
         ]
       }
     },
-    "/newsletters/{id}/archive": {
-      "post": {
-        "operationId": "NewslettersController.archive",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "archive",
-        "tags": [
-          "newsletters"
-        ]
-      }
-    },
     "/newsletters/{id}/context": {
       "get": {
         "operationId": "NewslettersController.context",
@@ -33673,54 +33974,6 @@
           }
         },
         "summary": "Get install readiness for OSS onboarding",
-        "tags": [
-          "onboarding",
-          "Onboarding"
-        ]
-      }
-    },
-    "/onboarding/prefix": {
-      "post": {
-        "description": "Sets the unique 3-letter uppercase prefix for the organization. Used for issue identifiers. Immutable once set.",
-        "operationId": "OnboardingController.setPrefix",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SetPrefixDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "prefix": {
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Prefix set successfully"
-          },
-          "409": {
-            "description": "Prefix already set or taken"
-          }
-        },
-        "summary": "Set organization prefix",
         "tags": [
           "onboarding",
           "Onboarding"
@@ -34435,35 +34688,6 @@
           }
         ],
         "summary": "patch",
-        "tags": [
-          "organizations"
-        ]
-      }
-    },
-    "/organizations/{id}/slug": {
-      "patch": {
-        "operationId": "OrganizationsController.updateSlug",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "updateSlug",
         "tags": [
           "organizations"
         ]
@@ -36084,6 +36308,38 @@
         "tags": [
           "organizations/:organizationId/streaks"
         ]
+      },
+      "patch": {
+        "operationId": "StreaksController.patchMyStreak",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchStreakDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "patchMyStreak",
+        "tags": [
+          "organizations/:organizationId/streaks"
+        ]
       }
     },
     "/organizations/{organizationId}/streaks/me/calendar": {
@@ -36105,30 +36361,6 @@
           }
         },
         "summary": "getMyCalendar",
-        "tags": [
-          "organizations/:organizationId/streaks"
-        ]
-      }
-    },
-    "/organizations/{organizationId}/streaks/me/freeze": {
-      "post": {
-        "operationId": "StreaksController.useFreeze",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "organizationId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "useFreeze",
         "tags": [
           "organizations/:organizationId/streaks"
         ]
@@ -36765,31 +36997,6 @@
         ]
       }
     },
-    "/outreach-campaigns/{id}/dm-recipients": {
-      "post": {
-        "operationId": "OutreachCampaignsController.addDmRecipients",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Recipients added successfully"
-          }
-        },
-        "summary": "Add DM recipients to a campaign",
-        "tags": [
-          "outreach-campaigns",
-          "OutreachCampaigns"
-        ]
-      }
-    },
     "/outreach-campaigns/{id}/pause": {
       "post": {
         "operationId": "OutreachCampaignsController.pauseCampaign",
@@ -36876,6 +37083,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddCampaignTargetsDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Targets added successfully"
@@ -37031,36 +37248,22 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePersonaDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
           }
         },
         "summary": "patch",
-        "tags": [
-          "personas"
-        ]
-      }
-    },
-    "/personas/{id}/assign": {
-      "post": {
-        "operationId": "PersonasController.assignMembers",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "assignMembers",
         "tags": [
           "personas"
         ]
@@ -41431,20 +41634,6 @@
         ]
       }
     },
-    "/services/discord/disconnect": {
-      "post": {
-        "operationId": "DiscordController.disconnect",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Discord"
-        ]
-      }
-    },
     "/services/discord/verify": {
       "post": {
         "operationId": "DiscordController.verify",
@@ -42551,11 +42740,9 @@
         "tags": [
           "services/meta-ads/bulk"
         ]
-      }
-    },
-    "/services/meta-ads/bulk/jobs/{id}/cancel": {
-      "post": {
-        "operationId": "MetaAdsBulkController.cancelJob",
+      },
+      "patch": {
+        "operationId": "MetaAdsBulkController.updateJob",
         "parameters": [
           {
             "in": "path",
@@ -42571,7 +42758,7 @@
             "description": ""
           }
         },
-        "summary": "cancelJob",
+        "summary": "updateJob",
         "tags": [
           "services/meta-ads/bulk"
         ]
@@ -42693,30 +42880,6 @@
         ]
       }
     },
-    "/services/meta-ads/campaigns/{id}/budget": {
-      "patch": {
-        "operationId": "MetaAdsController.updateCampaignBudget",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "updateCampaignBudget",
-        "tags": [
-          "services/meta-ads"
-        ]
-      }
-    },
     "/services/meta-ads/campaigns/{id}/insights": {
       "get": {
         "operationId": "MetaAdsController.getCampaignInsights",
@@ -42752,30 +42915,6 @@
           }
         },
         "summary": "getCampaignInsights",
-        "tags": [
-          "services/meta-ads"
-        ]
-      }
-    },
-    "/services/meta-ads/campaigns/{id}/pause": {
-      "post": {
-        "operationId": "MetaAdsController.pauseCampaign",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "pauseCampaign",
         "tags": [
           "services/meta-ads"
         ]
@@ -42889,7 +43028,7 @@
           "services/meta-ads/optimization"
         ]
       },
-      "put": {
+      "patch": {
         "operationId": "MetaAdsOptimizationController.updateConfig",
         "parameters": [],
         "responses": {
@@ -42935,9 +43074,9 @@
         ]
       }
     },
-    "/services/meta-ads/optimization/recommendations/{id}/approve": {
-      "post": {
-        "operationId": "MetaAdsOptimizationController.approveRecommendation",
+    "/services/meta-ads/optimization/recommendations/{id}": {
+      "patch": {
+        "operationId": "MetaAdsOptimizationController.updateRecommendation",
         "parameters": [
           {
             "in": "path",
@@ -42953,7 +43092,7 @@
             "description": ""
           }
         },
-        "summary": "approveRecommendation",
+        "summary": "updateRecommendation",
         "tags": [
           "services/meta-ads/optimization"
         ]
@@ -42978,30 +43117,6 @@
           }
         },
         "summary": "executeRecommendation",
-        "tags": [
-          "services/meta-ads/optimization"
-        ]
-      }
-    },
-    "/services/meta-ads/optimization/recommendations/{id}/reject": {
-      "post": {
-        "operationId": "MetaAdsOptimizationController.rejectRecommendation",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "rejectRecommendation",
         "tags": [
           "services/meta-ads/optimization"
         ]
@@ -43427,20 +43542,6 @@
         "summary": "createSetupCheckout",
         "tags": [
           "services/stripe"
-        ]
-      }
-    },
-    "/services/telegram/disconnect": {
-      "post": {
-        "operationId": "TelegramController.disconnect",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Telegram"
         ]
       }
     },
@@ -44310,6 +44411,21 @@
           }
         },
         "summary": "findAll",
+        "tags": [
+          "subscriptions"
+        ]
+      }
+    },
+    "/subscriptions/admin/credit-usage": {
+      "get": {
+        "operationId": "SubscriptionsController.getCreditUsage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "getCreditUsage",
         "tags": [
           "subscriptions"
         ]
@@ -46658,7 +46774,7 @@
           "trends"
         ]
       },
-      "post": {
+      "put": {
         "operationId": "TrendsController.savePreferences",
         "parameters": [],
         "requestBody": {
@@ -47177,21 +47293,6 @@
           }
         },
         "summary": "getAvatarUploadUrl",
-        "tags": [
-          "users"
-        ]
-      }
-    },
-    "/users/me/avatar/confirm": {
-      "post": {
-        "operationId": "UsersController.confirmAvatarUpload",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "confirmAvatarUpload",
         "tags": [
           "users"
         ]
@@ -49442,6 +49543,28 @@
       }
     },
     "/votes": {
+      "delete": {
+        "operationId": "VotesController.remove",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "entity",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "remove",
+        "tags": [
+          "votes"
+        ]
+      },
       "post": {
         "operationId": "VotesController.create",
         "parameters": [],
@@ -49461,30 +49584,6 @@
           }
         },
         "summary": "create",
-        "tags": [
-          "votes"
-        ]
-      }
-    },
-    "/votes/{entityId}": {
-      "delete": {
-        "operationId": "VotesController.remove",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "entityId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "remove",
         "tags": [
           "votes"
         ]
@@ -49523,31 +49622,6 @@
           }
         },
         "summary": "create",
-        "tags": [
-          "watchlists"
-        ]
-      }
-    },
-    "/watchlists/quick-add": {
-      "post": {
-        "operationId": "WatchlistsController.quickAdd",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/QuickAddWatchlistsDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "quickAdd",
         "tags": [
           "watchlists"
         ]

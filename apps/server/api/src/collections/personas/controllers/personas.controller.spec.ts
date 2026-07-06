@@ -60,22 +60,36 @@ describe('PersonasController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('assignMembers', () => {
-    it('should assign members to a persona', async () => {
+  describe('patch (member assignment)', () => {
+    const mockRequest = {
+      get: vi.fn().mockReturnValue('localhost'),
+      headers: {},
+      path: '/personas/507f1f77bcf86cd799439017',
+      protocol: 'https',
+      query: {},
+    } as any;
+
+    it('should assign members to a persona when memberIds is present', async () => {
       const mockPersona = {
         _id: '507f191e810c19729de860ee',
         name: 'Test Persona',
       };
       mockServiceMethods.assignMembers.mockResolvedValue(mockPersona);
+      mockServiceMethods.findOne.mockResolvedValue({
+        _id: '507f1f77bcf86cd799439017',
+        user: '507f1f77bcf86cd799439014',
+      });
+      mockServiceMethods.patch.mockResolvedValue(mockPersona);
 
       const body = {
         memberIds: ['507f1f77bcf86cd799439015', '507f1f77bcf86cd799439016'],
       };
 
-      await controller.assignMembers(
-        '507f1f77bcf86cd799439017',
-        body,
+      await controller.patch(
+        mockRequest,
         mockUser as any,
+        '507f1f77bcf86cd799439017',
+        body as any,
       );
 
       expect(mockServiceMethods.assignMembers).toHaveBeenCalledWith(
@@ -85,17 +99,58 @@ describe('PersonasController', () => {
       );
     });
 
-    it('should handle errors gracefully', async () => {
-      mockServiceMethods.assignMembers.mockRejectedValue(new Error('DB error'));
+    it('should still apply remaining fields via the base patch when provided alongside memberIds', async () => {
+      const mockPersona = {
+        _id: '507f191e810c19729de860ee',
+        name: 'Test Persona',
+      };
+      mockServiceMethods.assignMembers.mockResolvedValue(mockPersona);
+      mockServiceMethods.findOne.mockResolvedValue({
+        _id: '507f1f77bcf86cd799439017',
+        user: '507f1f77bcf86cd799439014',
+      });
+      mockServiceMethods.patch.mockResolvedValue(mockPersona);
 
-      // ErrorResponse.handle re-throws HttpException or wraps in internal error
+      const body = {
+        label: 'Renamed Persona',
+        memberIds: ['507f1f77bcf86cd799439015'],
+      };
+
+      await controller.patch(
+        mockRequest,
+        mockUser as any,
+        '507f1f77bcf86cd799439017',
+        body as any,
+      );
+
+      expect(mockServiceMethods.assignMembers).toHaveBeenCalledWith(
+        '507f1f77bcf86cd799439017',
+        ['507f1f77bcf86cd799439015'],
+        '507f1f77bcf86cd799439012',
+      );
+      const patchArg = mockServiceMethods.patch.mock.calls[0][1] as Record<
+        string,
+        unknown
+      >;
+      expect(patchArg.memberIds).toBeUndefined();
+      expect(patchArg.label).toBe('Renamed Persona');
+    });
+
+    it('should propagate errors from the assignment call', async () => {
+      mockServiceMethods.assignMembers.mockRejectedValue(new Error('DB error'));
+      mockServiceMethods.findOne.mockResolvedValue({
+        _id: '507f1f77bcf86cd799439017',
+        user: '507f1f77bcf86cd799439014',
+      });
+
       await expect(
-        controller.assignMembers(
-          '507f1f77bcf86cd799439017',
-          { memberIds: [] },
+        controller.patch(
+          mockRequest,
           mockUser as any,
+          '507f1f77bcf86cd799439017',
+          { memberIds: [] } as any,
         ),
-      ).rejects.toThrow();
+      ).rejects.toThrow('DB error');
     });
   });
 });

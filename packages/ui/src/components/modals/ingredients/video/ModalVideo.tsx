@@ -115,7 +115,7 @@ export default function ModalVideo({
                   }}
                 >
                   <div
-                    className={`relative ${getAspectClass()} bg-background overflow-hidden shadow-md group-hover:shadow-xl transition-all group-hover:scale-105`}
+                    className={`relative ${getAspectClass()} bg-background overflow-hidden shadow-border group-hover:shadow-border-strong transition-all group-hover:scale-105`}
                   >
                     <VideoPlayer
                       src={

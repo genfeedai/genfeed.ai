@@ -1,10 +1,6 @@
 'use client';
 
-import {
-  ButtonSize,
-  ButtonVariant,
-  CredentialPlatform,
-} from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IPostPlatformConfig } from '@genfeedai/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
@@ -65,7 +61,7 @@ export default function ModalPostPlatformCard({
 
   return (
     <div
-      className={`bg-card border border-white/[0.08] p-4 space-y-3 ${
+      className={`bg-card shadow-border p-4 space-y-3 ${
         isEnabled ? '' : 'bg-muted/20'
       }`}
     >

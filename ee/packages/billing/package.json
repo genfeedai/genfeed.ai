@@ -3,6 +3,7 @@
     "@genfeedai/config": "workspace:*",
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
+    "@genfeedai/pricing": "workspace:*",
     "@genfeedai/prisma": "workspace:*",
     "@genfeedai/serializers": "workspace:*"
   },

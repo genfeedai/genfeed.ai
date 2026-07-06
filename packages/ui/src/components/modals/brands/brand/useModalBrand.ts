@@ -36,8 +36,10 @@ import { AssetsService } from '@genfeedai/services/content/assets.service';
 import { PromptsService } from '@genfeedai/services/content/prompts.service';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { createPromptHandler } from '@genfeedai/services/core/socket-manager.service';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
+import type { IBrandRelocationPreview } from '@genfeedai/services/social/brand-relocation.types';
 import { BrandsService } from '@genfeedai/services/social/brands.service';
 import { LinksService } from '@genfeedai/services/social/links.service';
 import { hasErrorDetail } from '@genfeedai/utils/error/error-handler.util';
@@ -759,6 +761,134 @@ export function useModalBrand(
     ],
   );
 
+  const buildRelocationConfirmMessage = useCallback(
+    (
+      brandLabel: string,
+      destinationLabel: string,
+      preview: IBrandRelocationPreview,
+    ): string => {
+      const { soleBrandWorkflows, sharedWorkflows, staleMembers } =
+        preview.counts;
+      const sentences: string[] = [
+        `${brandLabel} moves to ${destinationLabel}.`,
+      ];
+
+      if (soleBrandWorkflows > 0) {
+        sentences.push(
+          `${soleBrandWorkflows} dedicated workflow${soleBrandWorkflows === 1 ? '' : 's'} move${soleBrandWorkflows === 1 ? 's' : ''} with it.`,
+        );
+      }
+
+      if (sharedWorkflows > 0) {
+        sentences.push(
+          `${sharedWorkflows} shared workflow${sharedWorkflows === 1 ? '' : 's'} will be COPIED into ${destinationLabel} and will run there (any that reference other brands' resources are created paused for review).`,
+        );
+      }
+
+      if (staleMembers > 0) {
+        sentences.push(
+          `${staleMembers} member${staleMembers === 1 ? '' : 's'} will lose access.`,
+        );
+      }
+
+      sentences.push('This cannot be easily undone.');
+
+      return sentences.join(' ');
+    },
+    [],
+  );
+
+  const performBrandRelocation = useCallback(
+    async (
+      destOrganizationId: string,
+      ackToken: string | null,
+      onAckRejected: () => void,
+    ) => {
+      if (!overlayBrandId) {
+        return;
+      }
+
+      try {
+        const service = await getBrandsService();
+        const formData = {
+          ...form.getValues(),
+          isDeleted: false,
+          isSelected: false,
+        };
+
+        const { brand: updatedBrand, summary } = await service.relocateBrand(
+          overlayBrandId,
+          {
+            ...formData,
+            organizationId: destOrganizationId,
+            ...(ackToken ? { relocationAck: ackToken } : {}),
+          },
+        );
+
+        mutateBrand(overlayBrandId, updatedBrand as BrandOverlayRecord);
+        await refreshBrand();
+        await refreshBrands();
+        onConfirm?.(true);
+        setOverlayView('overview');
+
+        const summaryParts: string[] = [];
+        if (summary.workflowsClonedActive > 0) {
+          summaryParts.push(
+            `${summary.workflowsClonedActive} copied & running`,
+          );
+        }
+        if (summary.workflowsClonedPaused > 0) {
+          summaryParts.push(
+            `${summary.workflowsClonedPaused} paused for review`,
+          );
+        }
+        if (summary.workflowsMoved > 0) {
+          summaryParts.push(`${summary.workflowsMoved} moved`);
+        }
+
+        const summaryMessage = summaryParts.length
+          ? ` — ${summaryParts.join(', ')}`
+          : '';
+        const schedulingNote =
+          summary.schedulingPending > 0
+            ? ' Scheduling is still pending for some workflows.'
+            : '';
+
+        NotificationsService.getInstance().success(
+          `Moved to destination organization${summaryMessage}.${schedulingNote}`,
+        );
+      } catch (relocationError) {
+        logger.error('Failed to relocate brand', relocationError);
+
+        const status = getStructuredErrorStatus(relocationError);
+        if (status === 409) {
+          setError(
+            'The move impact changed since you last previewed it — please confirm the move again.',
+          );
+          onAckRejected();
+          return;
+        }
+        if (status === 403) {
+          setError(
+            "You don't have permission to move this brand to that organization.",
+          );
+          return;
+        }
+
+        setError('Failed to save brand');
+      }
+    },
+    [
+      form,
+      getBrandsService,
+      mutateBrand,
+      onConfirm,
+      overlayBrandId,
+      refreshBrand,
+      refreshBrands,
+    ],
+  );
+
   const submitModalBrand = useCallback(async () => {
     const nextOrganizationId = form.getValues().organizationId;
     const isOrganizationChange =
@@ -779,27 +909,54 @@ export function useModalBrand(
       destinationOrganization?.label ?? 'that organization';
     const brandLabel = form.getValues().label || 'This brand';
 
-    openConfirm({
-      cancelLabel: 'Cancel',
-      confirmLabel: 'Move brand',
-      isError: true,
-      label: 'Move brand to another organization?',
-      message: `${brandLabel} and all its content, credentials, and history will move to ${destinationLabel}. This cannot be easily undone.`,
-      onConfirm: async () => {
-        await performBrandSubmit(true);
-      },
-      onClose: () => {
-        form.setValue('organizationId', currentOrganizationId ?? '', {
-          shouldValidate: true,
-        });
-      },
-    });
+    const resetOrganizationSelection = () => {
+      form.setValue('organizationId', currentOrganizationId ?? '', {
+        shouldValidate: true,
+      });
+    };
+
+    try {
+      const service = await getBrandsService();
+      const preview = await service.getRelocationPreview(
+        overlayBrandId as string,
+        nextOrganizationId,
+      );
+
+      openConfirm({
+        cancelLabel: 'Cancel',
+        confirmLabel: 'Move brand',
+        isError: true,
+        label: 'Move brand to another organization?',
+        message: buildRelocationConfirmMessage(
+          brandLabel,
+          destinationLabel,
+          preview,
+        ),
+        onConfirm: async () => {
+          await performBrandRelocation(
+            nextOrganizationId,
+            preview.ackToken,
+            resetOrganizationSelection,
+          );
+        },
+        onClose: resetOrganizationSelection,
+      });
+    } catch (previewError) {
+      logger.error('Failed to load brand relocation preview', previewError);
+      setError(
+        "Couldn't check the move's impact on workflows and members. Please try again.",
+      );
+      resetOrganizationSelection();
+    }
   }, [
+    buildRelocationConfirmMessage,
     currentOrganizationId,
     form,
+    getBrandsService,
     openConfirm,
     organizationOptions,
     overlayBrandId,
+    performBrandRelocation,
     performBrandSubmit,
   ]);
 

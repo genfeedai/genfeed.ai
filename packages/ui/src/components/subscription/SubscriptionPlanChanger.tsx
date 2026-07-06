@@ -93,7 +93,7 @@ export default function SubscriptionPlanChanger({
 
             <div className="flex items-center gap-2">
               {isMonthly && (
-                <span className="px-2 py-1 text-xs bg-green-100 text-green-800">
+                <span className="px-2 py-1 text-xs bg-secondary text-foreground">
                   Current
                 </span>
               )}
@@ -128,7 +128,7 @@ export default function SubscriptionPlanChanger({
 
             <div className="flex items-center gap-2">
               {isYearly && (
-                <span className="px-2 py-1 text-xs bg-green-100 text-green-800">
+                <span className="px-2 py-1 text-xs bg-secondary text-foreground">
                   Current
                 </span>
               )}
@@ -179,7 +179,7 @@ export default function SubscriptionPlanChanger({
                       <span className="text-muted-foreground">
                         Amount due today
                       </span>
-                      <span className="font-medium text-green-600">
+                      <span className="font-medium text-success">
                         {formatAmount(preview.prorationAmount)}
                       </span>
                     </p>
@@ -195,7 +195,7 @@ export default function SubscriptionPlanChanger({
                       <span className="text-muted-foreground">
                         Credit applied
                       </span>
-                      <span className="font-medium text-blue-600">
+                      <span className="font-medium text-info">
                         {formatAmount(Math.abs(preview.prorationAmount))}
                       </span>
                     </p>

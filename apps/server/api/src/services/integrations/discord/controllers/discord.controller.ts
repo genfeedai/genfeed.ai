@@ -129,18 +129,4 @@ export class DiscordController {
 
     return updatedCredential;
   }
-
-  /**
-   * Disconnect Discord account
-   *
-   * POST /services/discord/disconnect
-   */
-  @Post('disconnect')
-  disconnect(
-    @CurrentUser() _user: Record<string, unknown>,
-    @Body('organizationId') organizationId: string,
-    @Body('brandId') brandId: string,
-  ) {
-    return this.discordService.disconnect(organizationId, brandId);
-  }
 }

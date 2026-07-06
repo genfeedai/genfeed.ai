@@ -50,7 +50,7 @@ export default function CreditsBarTrigger({
               key={segment.provider}
               className={cn(
                 'inline-flex h-5 max-w-[5.5rem] items-center gap-1 rounded bg-foreground/[0.04] px-1.5 text-[11px] font-medium text-foreground/62',
-                segment.status === 'unavailable' && 'text-amber-200/70',
+                segment.status === 'unavailable' && 'text-warning',
               )}
               title={`${segment.label}: ${
                 segment.status === 'available' &&

@@ -35,4 +35,13 @@ export class UpdateArticleDto extends PartialType(CreateArticleDto) {
   @IsString()
   @MaxLength(2000)
   generationPrompt?: string;
+
+  @ApiProperty({
+    description:
+      'Restore the article content from a prior version (prompt) id. When set, the article is reverted to that version and other update fields are ignored.',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  restoreFromVersionId?: string;
 }

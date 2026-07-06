@@ -49,6 +49,7 @@ import {
   HttpStatus,
   Param,
   Post,
+  Put,
   Query,
   Req,
   UseGuards,
@@ -582,7 +583,7 @@ export class TrendsController {
     };
   }
 
-  @Post('preferences')
+  @Put('preferences')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async savePreferences(
     @CurrentUser() user: User,

@@ -33,7 +33,7 @@ function BaseNode({
   return (
     <div
       className={cn(
-        'min-w-node border-2 shadow-lg transition-all',
+        'min-w-node border-2 transition-all',
         bgColor,
         borderColor,
         selected && 'ring-2 ring-primary ring-offset-2',
@@ -85,7 +85,7 @@ function BaseNode({
           id={key}
           isConnectable={isConnectable}
           style={{
-            background: '#22c55e',
+            background: '#6b7280',
             height: 10,
             top: `${((index + 1) / (outputKeys.length + 1)) * 100}%`,
             width: 10,

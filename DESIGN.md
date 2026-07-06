@@ -46,12 +46,14 @@ colors:
   facebook: "#1877F2"
   fanvue: "#6C63FF"
   ghost: "#15171A"
+  hacker_news: "#FF6600"
   instagram: "#E1306C"
   linkedin: "#0A66C2"
   mastodon: "#6364FF"
   medium: "#00AB6C"
   notion: "#000000"
   pinterest: "#E60023"
+  product_hunt: "#DA552F"
   reddit: "#FF4500"
   shopify: "#96BF48"
   slack: "#4A154B"
@@ -187,6 +189,8 @@ components:
     backgroundColor: "{colors.fanvue}"
   platform-ghost:
     backgroundColor: "{colors.ghost}"
+  platform-hacker_news:
+    backgroundColor: "{colors.hacker_news}"
   platform-instagram:
     backgroundColor: "{colors.instagram}"
   platform-linkedin:
@@ -199,6 +203,8 @@ components:
     backgroundColor: "{colors.notion}"
   platform-pinterest:
     backgroundColor: "{colors.pinterest}"
+  platform-product_hunt:
+    backgroundColor: "{colors.product_hunt}"
   platform-reddit:
     backgroundColor: "{colors.reddit}"
   platform-shopify:

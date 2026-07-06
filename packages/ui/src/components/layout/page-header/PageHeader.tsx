@@ -68,7 +68,7 @@ export default function PageHeader({
             />
           ) : (
             <div>
-              <h1 className="text-2xl font-semibold">{title}</h1>
+              <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
               {description && (
                 <p className="text-sm text-foreground/70 mt-1">{description}</p>
               )}

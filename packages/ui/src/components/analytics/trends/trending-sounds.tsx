@@ -64,7 +64,7 @@ export function TrendingSounds({
     <div className={`space-y-4 ${className}`}>
       <div className="space-y-1">
         <h3 className="text-lg font-semibold flex items-center gap-2">
-          <HiOutlineMusicalNote className="text-pink-500" />
+          <HiOutlineMusicalNote className="text-muted-foreground" />
           Trending Sounds
           <Badge className="text-xs bg-transparent">
             <FaTiktok className="size-3 mr-1" />
@@ -82,7 +82,6 @@ export function TrendingSounds({
             key={sound.id}
             variant={CardVariant.DEFAULT}
             onClick={onSoundClick ? () => onSoundClick(sound) : undefined}
-            className="hover:border-primary/40 hover:shadow-md"
             bodyClassName="p-4"
           >
             <div className="flex gap-3">
@@ -91,7 +90,7 @@ export function TrendingSounds({
                 <Button
                   withWrapper={false}
                   variant={ButtonVariant.UNSTYLED}
-                  className="size-16 bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center overflow-hidden"
+                  className="size-16 bg-muted flex items-center justify-center overflow-hidden"
                   onClick={(e) => {
                     if (onPlaySound) {
                       e.stopPropagation();
@@ -110,7 +109,7 @@ export function TrendingSounds({
                       unoptimized
                     />
                   ) : (
-                    <HiOutlineMusicalNote className="size-8 text-white" />
+                    <HiOutlineMusicalNote className="size-8 text-muted-foreground" />
                   )}
                   {onPlaySound && (
                     <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">

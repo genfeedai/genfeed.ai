@@ -268,11 +268,7 @@ export default function QuickActionsMenu({
               transform: 'translateY(-100%)',
               zIndex: isInModal ? 10000 : 9999,
             }}
-            className={cn(
-              BG_BLUR,
-              BORDER_WHITE_30,
-              'min-w-52 rounded-2xl border-white/10 shadow-[0_24px_60px_rgba(0,0,0,0.38)]',
-            )}
+            className={cn(BG_BLUR, BORDER_WHITE_30, 'min-w-52 rounded-2xl')}
           >
             <div className="p-1">
               {actions.map((action, index) => (

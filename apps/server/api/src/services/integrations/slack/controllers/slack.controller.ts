@@ -140,30 +140,4 @@ export class SlackController {
 
     return updatedCredential;
   }
-
-  @Post('disconnect')
-  async disconnect(
-    @CurrentUser() user: User,
-    @Body('brandId') brandId: string,
-  ) {
-    const { organization } = getPublicMetadata(user);
-
-    const brand = await this.brandsService.findOne({
-      _id: brandId,
-      isDeleted: false,
-      organization: organization,
-    });
-
-    if (!brand) {
-      throw new HttpException(
-        {
-          detail: 'You do not have access to this brand',
-          title: 'Invalid payload',
-        },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
-    return this.slackService.disconnect(organization, brandId);
-  }
 }

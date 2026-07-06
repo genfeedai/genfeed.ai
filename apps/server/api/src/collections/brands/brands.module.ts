@@ -19,6 +19,7 @@ import { MusicsModule } from '@api/collections/musics/musics.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
+import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { BrandCreditsGuard } from '@api/helpers/guards/brand-credits/brand-credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { BrandScraperModule } from '@api/services/brand-scraper/brand-scraper.module';
@@ -47,6 +48,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => OrganizationSettingsModule),
     forwardRef(() => PostsModule),
     forwardRef(() => VideosModule),
+    forwardRef(() => WorkflowsModule),
   ],
   providers: [
     BrandsService,

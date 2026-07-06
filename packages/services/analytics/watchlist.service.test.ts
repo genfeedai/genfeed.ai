@@ -87,29 +87,27 @@ describe('WatchlistService', () => {
   });
 
   describe('quickAdd', () => {
-    it('posts to quick-add endpoint with platform and handle', async () => {
-      const mockWatchlist = {
+    it('posts to the generic create endpoint with platform and handle', async () => {
+      const postSpy = vi.spyOn(service, 'post').mockResolvedValue({
         handle: 'testuser',
         id: 'w1',
         platform: 'twitter',
-      };
-      mockPost.mockResolvedValue({ data: { data: mockWatchlist } });
+      } as never);
 
       await service.quickAdd('twitter', 'testuser');
 
-      expect(mockPost).toHaveBeenCalledWith('quick-add', {
+      expect(postSpy).toHaveBeenCalledWith({
         handle: 'testuser',
         platform: 'twitter',
       });
     });
 
     it('returns watchlist item', async () => {
-      const mockWatchlist = {
+      vi.spyOn(service, 'post').mockResolvedValue({
         handle: 'company',
         id: 'w1',
         platform: 'linkedin',
-      };
-      mockPost.mockResolvedValue({ data: mockWatchlist });
+      } as never);
 
       const result = await service.quickAdd('linkedin', 'company');
       expect(result).toBeDefined();

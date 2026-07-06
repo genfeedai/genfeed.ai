@@ -25,4 +25,6 @@ export enum Platform {
   BEEHIIV = 'beehiiv',
   UNIPILE = 'unipile',
   DEV_TO = 'devto',
+  PRODUCT_HUNT = 'product_hunt',
+  HACKER_NEWS = 'hacker_news',
 }

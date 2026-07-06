@@ -185,11 +185,11 @@ function TabsContent({
               cn(
                 fullWidth && 'w-full',
                 variant === 'pills'
-                  ? 'rounded-2xl border border-border bg-secondary/60 p-1'
+                  ? 'rounded-2xl shadow-border bg-secondary/60 p-1'
                   : variant === 'underline'
                     ? 'gap-0 border-b border-border'
                     : variant === 'segmented'
-                      ? 'rounded-xl border border-border bg-secondary/50 p-1'
+                      ? 'rounded-xl shadow-border bg-secondary/50 p-1'
                       : 'gap-0.5',
               ),
             ),
@@ -288,11 +288,11 @@ function TabsContent({
         className={cn(
           fullWidth && 'w-full',
           variant === 'pills'
-            ? 'rounded-2xl border border-border bg-secondary/60 p-1'
+            ? 'rounded-2xl shadow-border bg-secondary/60 p-1'
             : variant === 'underline'
               ? 'gap-0 border-b border-border'
               : variant === 'segmented'
-                ? 'rounded-xl border border-border bg-secondary/50 p-1'
+                ? 'rounded-xl shadow-border bg-secondary/50 p-1'
                 : 'gap-0.5',
         )}
       >
