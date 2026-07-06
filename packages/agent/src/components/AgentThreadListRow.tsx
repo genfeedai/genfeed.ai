@@ -123,14 +123,14 @@ export function AgentThreadListRow({
   const statusIndicator = isLoadingStatus ? (
     <Spinner
       size={ComponentSize.XS}
-      className="shrink-0 text-white/45"
+      className="shrink-0 text-foreground/45"
       ariaLabel={statusA11yLabel}
       title={statusMeta?.label ?? `${conv.title || 'Conversation'} status`}
     />
   ) : (
     <span
       className={cn(
-        'size-2.5 shrink-0 rounded-full border border-white/15',
+        'size-2.5 shrink-0 rounded-full border border-foreground/15',
         statusDotClass,
       )}
       role="img"
@@ -146,8 +146,8 @@ export function AgentThreadListRow({
         'group relative flex h-9 w-full items-center rounded-md transition-colors',
         conv.status === AgentThreadStatus.ARCHIVED && 'opacity-55',
         conv.id === activeThreadId
-          ? 'bg-white/[0.08]'
-          : 'hover:bg-white/[0.04]',
+          ? 'bg-foreground/[0.06]'
+          : 'hover:bg-foreground/[0.06]',
       )}
       onContextMenu={(event) => onContextMenu(event, conv.id)}
     >
@@ -200,7 +200,7 @@ export function AgentThreadListRow({
             <div className="flex min-w-0 flex-1 items-center gap-1.5">
               {conv.isPinned ? (
                 <PiPushPinSimple
-                  className="size-3 shrink-0 -rotate-45 text-white/40"
+                  className="size-3 shrink-0 -rotate-45 text-foreground/42"
                   title="Pinned conversation"
                 />
               ) : null}
@@ -209,7 +209,7 @@ export function AgentThreadListRow({
               </span>
             </div>
             {relativeTime ? (
-              <span className="shrink-0 text-[11px] text-white/40">
+              <span className="shrink-0 text-[11px] text-foreground/42">
                 {relativeTime}
               </span>
             ) : null}
@@ -234,7 +234,7 @@ export function AgentThreadListRow({
               withWrapper={false}
               ariaLabel={`Thread actions for ${conv.title || 'thread'}`}
               className={cn(
-                'rounded p-1 text-foreground/30 hover:bg-white/[0.08] hover:text-foreground/70',
+                'rounded p-1 text-foreground/42 hover:bg-foreground/[0.06] hover:text-foreground/78',
                 renamingThreadId === conv.id
                   ? 'opacity-100'
                   : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100',
