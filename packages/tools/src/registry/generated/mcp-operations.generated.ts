@@ -3,7 +3,7 @@
 // Source of truth: apps/server/api/openapi/openapi.json (Phase 1 / #1247).
 // Regenerate:      bun run --filter=@genfeedai/tools generate:mcp-tools
 //
-// 1011 MCP operation bindings for generated-tool dispatch (#1249 / #1250).
+// 1012 MCP operation bindings for generated-tool dispatch (#1249 / #1250).
 
 import type { IGeneratedMcpOperationBinding } from '../openapi/build-generated-mcp-tools.js';
 
@@ -7494,6 +7494,19 @@ export const GENERATED_MCP_OPERATIONS: IGeneratedMcpOperationBinding[] = [
     "pathParams": [],
     "queryParams": [],
     "toolName": "launch_copy__generate"
+  },
+  {
+    "bodyFields": [],
+    "bodyRequired": false,
+    "bodyStyle": "none",
+    "method": "get",
+    "operationId": "LifecycleEmailsController.unsubscribe",
+    "path": "/lifecycle-emails/unsubscribe",
+    "pathParams": [],
+    "queryParams": [
+      "token"
+    ],
+    "toolName": "lifecycle_emails__unsubscribe"
   },
   {
     "bodyFields": [],

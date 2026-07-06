@@ -3,7 +3,7 @@
 // Source of truth: apps/server/api/openapi/openapi.json (Phase 1 / #1247).
 // Regenerate:      bun run --filter=@genfeedai/tools generate:mcp-tools
 //
-// 1011 MCP tools, one per non-internal OpenAPI operation (#1248).
+// 1012 MCP tools, one per non-internal OpenAPI operation (#1248).
 // Execution metadata lives in mcp-operations.generated.ts (#1249 / #1250).
 
 import type { CanonicalToolDefinition } from '../../interfaces/tool-definition.interface.js';
@@ -21871,6 +21871,32 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     },
     "tags": [
       "launch_copy"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "LifecycleEmailsController.unsubscribe (GET /lifecycle-emails/unsubscribe)",
+    "name": "lifecycle_emails__unsubscribe",
+    "parameters": {
+      "properties": {
+        "token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "token"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "lifecycle_emails"
     ]
   },
   {
