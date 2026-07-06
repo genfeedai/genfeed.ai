@@ -259,6 +259,8 @@ jobs:
           cache-turbo: 'false'
       - name: Architecture Guards
         run: bun run check:architecture
+      - name: DI Value Imports
+        run: bun run check:di-value-imports
       - name: Desktop Schema Drift
         run: bun run check:desktop-schema-drift
       - name: SQL Risk Audit

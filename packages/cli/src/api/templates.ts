@@ -41,11 +41,13 @@ export async function listTemplates(params?: {
   category?: string;
   limit?: number;
   purpose?: string;
+  sort?: 'popular';
 }): Promise<Template[]> {
   const query = new URLSearchParams();
   if (params?.purpose) query.set('purpose', params.purpose);
   if (params?.category) query.set('category', params.category);
   if (params?.limit) query.set('limit', String(params.limit));
+  if (params?.sort) query.set('sort', params.sort);
   const qs = query.toString();
   const path = qs ? `/templates?${qs}` : '/templates';
   const response = await get<JsonApiCollectionResponse>(path);
@@ -77,7 +79,7 @@ export async function useTemplate(
 }
 
 export async function getPopularTemplates(limit = 10): Promise<Template[]> {
-  const response = await get<JsonApiCollectionResponse>(`/templates/popular?limit=${limit}`);
+  const response = await get<JsonApiCollectionResponse>(`/templates?sort=popular&limit=${limit}`);
   return flattenCollection<Template>(response);
 }
 

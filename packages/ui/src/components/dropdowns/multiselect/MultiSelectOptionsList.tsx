@@ -87,7 +87,7 @@ export default function MultiSelectOptionsList({
                 onChange={() => {
                   // Row click/keyboard handles selection state.
                 }}
-                className="size-3.5 !border-white/20 data-[state=checked]:!bg-blue-500 data-[state=checked]:!border-blue-500 data-[state=checked]:!text-white"
+                className="size-3.5 !border-white/20 data-[state=checked]:!bg-foreground data-[state=checked]:!border-foreground data-[state=checked]:!text-background"
               />
             </div>
           )}

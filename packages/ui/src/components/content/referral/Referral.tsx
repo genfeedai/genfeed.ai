@@ -36,7 +36,7 @@ export default function Referral({ referralCode }: ReferralProps) {
       </div>
 
       {referralCode && (
-        <div className="mt-4 p-3 bg-background">
+        <div className="mt-4 p-3 bg-tertiary">
           <p className="text-sm text-foreground/60">
             Referral code:
             <span className="font-mono font-semibold">{referralCode}</span>

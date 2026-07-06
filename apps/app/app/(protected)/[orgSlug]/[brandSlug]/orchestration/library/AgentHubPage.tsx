@@ -65,7 +65,7 @@ function AgentCard({
   onRunNow,
 }: {
   strategy: AgentStrategy;
-  onToggle: (id: string) => Promise<void>;
+  onToggle: (id: string, isActive: boolean) => Promise<void>;
   onRunNow: (id: string) => Promise<void>;
 }) {
   const agentType = strategy.agentType as AgentType;
@@ -128,7 +128,7 @@ function AgentCard({
           label={strategy.isActive ? 'Pause' : 'Activate'}
           size={ButtonSize.SM}
           variant={ButtonVariant.SECONDARY}
-          onClick={() => onToggle(strategy.id)}
+          onClick={() => onToggle(strategy.id, !strategy.isActive)}
         />
         <Link
           href={`/orchestration/${strategy.id}`}
@@ -163,10 +163,10 @@ export default function AgentHubPage() {
   }, []);
 
   const handleToggle = useCallback(
-    async (id: string) => {
+    async (id: string, isActive: boolean) => {
       try {
         const service = await getService();
-        await service.toggle(id);
+        await service.setActive(id, isActive);
         await refresh();
         notificationsService.success('Agent status updated');
       } catch (error) {

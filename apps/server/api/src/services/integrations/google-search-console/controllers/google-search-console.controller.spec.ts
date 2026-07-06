@@ -15,7 +15,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   ),
 }));
 
-vi.mock('@api/shared/utils/encryption/encryption.util', () => ({
+vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: {
     decrypt: vi.fn((value: string) => `decrypted:${value}`),
   },
@@ -26,8 +26,8 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { GoogleSearchConsoleController } from '@api/services/integrations/google-search-console/controllers/google-search-console.controller';
 import { GoogleSearchConsoleService } from '@api/services/integrations/google-search-console/services/google-search-console.service';
 import { GoogleSearchConsoleOAuthService } from '@api/services/integrations/google-search-console/services/google-search-console-oauth.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { BadRequestException, HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';

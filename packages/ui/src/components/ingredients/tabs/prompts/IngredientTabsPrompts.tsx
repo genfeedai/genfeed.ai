@@ -40,7 +40,9 @@ export default function IngredientTabsPrompts({
 
       {/* First row: full width */}
       <div className="flex flex-col rounded-2xl border border-white/8 bg-white/[0.025] p-4">
-        <span className="font-semibold opacity-50">{promptRows[0].label}</span>
+        <span className="font-semibold text-muted-foreground">
+          {promptRows[0].label}
+        </span>
         <span className="text-white mt-1 whitespace-pre-wrap">
           {promptRows[0].value}
         </span>
@@ -53,7 +55,9 @@ export default function IngredientTabsPrompts({
             key={row.label}
             className="flex flex-col rounded-2xl border border-white/8 bg-white/[0.025] p-4"
           >
-            <span className="font-semibold opacity-50">{row.label}</span>
+            <span className="font-semibold text-muted-foreground">
+              {row.label}
+            </span>
             <span className="text-white mt-1 whitespace-pre-wrap">
               {row.value}
             </span>

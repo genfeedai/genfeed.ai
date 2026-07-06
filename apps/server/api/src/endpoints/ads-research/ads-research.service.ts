@@ -5,7 +5,6 @@ import type { CreativePatternDocument } from '@api/collections/creative-patterns
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { WorkflowStatus, WorkflowTrigger } from '@genfeedai/enums';
 import type {
   AdsAdapterContext,
@@ -25,6 +24,7 @@ import type {
   AdsResearchWorkflowResult,
   CampaignLaunchPrep,
 } from '@genfeedai/interfaces/integrations/ads-research.interface';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 interface DetailContext {
@@ -338,7 +338,7 @@ export class AdsResearchService {
   private async getPublicAdDetail(
     id: string,
   ): Promise<AdsResearchDetail | null> {
-    const item = await this.adPerformanceService.findById(id);
+    const item = await this.adPerformanceService.findPublicById(id);
     if (!item) {
       return null;
     }
@@ -365,9 +365,11 @@ export class AdsResearchService {
       return [];
     }
 
+    const adAccountId = filters.adAccountId;
+    const credentialId = filters.credentialId;
     const context = await this.buildContext(organizationId, {
-      adAccountId: filters.adAccountId,
-      credentialId: filters.credentialId,
+      adAccountId,
+      credentialId,
       loginCustomerId: filters.loginCustomerId,
       platform: filters.platform,
     });
@@ -385,9 +387,9 @@ export class AdsResearchService {
     return topPerformers.map((performer) =>
       this.mapConnectedItem({
         ad: adMap.get(performer.id),
-        adAccountId: filters.adAccountId!,
+        adAccountId,
         channel: filters.channel,
-        credentialId: filters.credentialId!,
+        credentialId,
         insightMetric: performer.metric,
         loginCustomerId: filters.loginCustomerId,
         metricValue: performer.value,
@@ -730,7 +732,6 @@ export class AdsResearchService {
         return 'last_90d';
       case 'all_time':
         return 'maximum';
-      case 'last_30_days':
       default:
         return 'last_30d';
     }

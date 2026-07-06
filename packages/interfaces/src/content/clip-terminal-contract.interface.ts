@@ -26,6 +26,21 @@ export const CLIP_TERMINAL_STATUSES = ['completed', 'failed'] as const;
 
 export type ClipTerminalStatus = (typeof CLIP_TERMINAL_STATUSES)[number];
 
+/**
+ * Generation mode a clip-result was produced by.
+ * - `avatar`: external avatar/voice provider regeneration (original behavior).
+ * - `raw-cut`: deterministic ffmpeg cut + caption burn of the source footage.
+ *
+ * Canonical for the schema default, the generate DTO, and the clip-generation
+ * service so the discriminator never drifts across surfaces.
+ */
+export const CLIP_RESULT_MODES = ['avatar', 'raw-cut'] as const;
+
+export type ClipResultMode = (typeof CLIP_RESULT_MODES)[number];
+
+/** Default mode for existing/avatar clip-results (matches the DB column default). */
+export const DEFAULT_CLIP_RESULT_MODE: ClipResultMode = 'avatar';
+
 export const CLIP_READINESS_STATES = [
   'pending',
   'ready',

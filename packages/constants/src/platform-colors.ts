@@ -29,6 +29,12 @@ export const PLATFORM_COLORS = {
     name: 'Ghost',
     rgb: '21, 23, 26',
   },
+  hacker_news: {
+    base: '#FF6600',
+    hover: '#ff8433',
+    name: 'Hacker News',
+    rgb: '255, 102, 0',
+  },
   instagram: {
     base: '#E1306C',
     hover: '#ff4081',
@@ -64,6 +70,12 @@ export const PLATFORM_COLORS = {
     hover: '#ff1744',
     name: 'Pinterest',
     rgb: '230, 0, 35',
+  },
+  product_hunt: {
+    base: '#DA552F',
+    hover: '#e57a5c',
+    name: 'Product Hunt',
+    rgb: '218, 85, 47',
   },
 
   reddit: {
@@ -158,11 +170,13 @@ export const DISCORD_EMBED_COLORS: Record<string, number> = {
   FANVUE: 0x6c63ff,
   GHOST: 0x15171a,
   GOOGLE_ADS: 0x4285f4,
+  HACKER_NEWS: 0xff6600,
   INSTAGRAM: 0xe1306c,
   LINKEDIN: 0x0a66c2,
   MASTODON: 0x6364ff,
   MEDIUM: 0x00ab6c,
   PINTEREST: 0xe60023,
+  PRODUCT_HUNT: 0xda552f,
   REDDIT: 0xff4500,
   SHOPIFY: 0x96bf48,
   SLACK: 0x4a154b,

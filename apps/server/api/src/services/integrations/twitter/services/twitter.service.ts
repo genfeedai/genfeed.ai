@@ -4,7 +4,6 @@ import { ActivitiesService } from '@api/collections/activities/services/activiti
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ConfigService } from '@api/config/config.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import {
   ActivityKey,
@@ -15,6 +14,7 @@ import { SocialUrlHelper } from '@genfeedai/helpers';
 import type { ITwitterSearchResult } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';

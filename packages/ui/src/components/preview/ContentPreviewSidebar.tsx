@@ -86,7 +86,7 @@ export default function ContentPreviewSidebar({
                   onClick={() => onItemClick?.(item.index)}
                   className={`w-full border px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-primary/30 ${
                     isActive
-                      ? 'border-primary bg-card shadow-lg shadow-primary/10'
+                      ? 'border-primary bg-card'
                       : 'border-transparent bg-card/80 hover:border-white/[0.08] hover:bg-card'
                   }`}
                 >

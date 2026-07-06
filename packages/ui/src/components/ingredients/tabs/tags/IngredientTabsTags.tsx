@@ -150,8 +150,8 @@ export default function IngredientTabsTags({
                 key={tag.id}
                 size={ComponentSize.LG}
                 className="gap-2 px-3 py-2"
-                backgroundColor={tag.backgroundColor || '#e5e7eb'}
-                textColor={tag.textColor || '#374151'}
+                backgroundColor={tag.backgroundColor || 'hsl(var(--muted))'}
+                textColor={tag.textColor || 'hsl(var(--muted-foreground))'}
               >
                 <HiTag className="text-sm" />
                 <span>{tag.label}</span>
@@ -263,8 +263,8 @@ export default function IngredientTabsTags({
                     isDisabled={isUpdating}
                     className="inline-flex items-center justify-start gap-2 px-3 h-8 text-sm bg-secondary text-secondary-foreground border"
                     style={{
-                      borderColor: tag.backgroundColor || '#e5e7eb',
-                      color: tag.textColor || '#374151',
+                      borderColor: tag.backgroundColor || 'hsl(var(--muted))',
+                      color: tag.textColor || 'hsl(var(--muted-foreground))',
                     }}
                     ariaLabel={`Add tag ${tag.label}`}
                   >
@@ -283,22 +283,22 @@ export default function IngredientTabsTags({
       <Card className="p-4">
         <h3 className="text-lg font-semibold mb-4">Tag Statistics</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="p-4 bg-background">
+          <div className="p-4 bg-tertiary">
             <div className="text-sm text-foreground/60">Total Tags</div>
             <div className="text-2xl font-bold">{tags.length}</div>
           </div>
-          <div className="p-4 bg-background">
+          <div className="p-4 bg-tertiary">
             <div className="text-sm text-foreground/60">Available</div>
             <div className="text-2xl font-bold">{availableTags.length}</div>
           </div>
 
-          <div className="p-4 bg-background">
+          <div className="p-4 bg-tertiary">
             <div className="text-sm text-foreground/60">Categories</div>
             <div className="text-2xl font-bold">
               {new Set(tags.map((t) => t.category)).size}
             </div>
           </div>
-          <div className="p-4 bg-background">
+          <div className="p-4 bg-tertiary">
             <div className="text-sm text-foreground/60">Most Used</div>
             <div className="text-lg font-bold">{tags[0]?.label || 'N/A'}</div>
           </div>

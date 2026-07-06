@@ -19,7 +19,7 @@ export function GrowthTrendsCard({
   isLoading = false,
   className = '',
 }: GrowthTrendsCardProps) {
-  const cardClassName = `rounded-xl border border-border bg-card p-6 ${className}`;
+  const cardClassName = `rounded-xl bg-card shadow-border p-6 ${className}`;
 
   if (isLoading) {
     return (
@@ -186,13 +186,13 @@ export function GrowthTrendsCard({
       </div>
 
       {/* Best Day */}
-      <div className="rounded-lg bg-purple-50 p-4 dark:bg-purple-900/20">
+      <div className="rounded-lg bg-secondary p-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-purple-900 dark:text-purple-100 mb-1">
+            <p className="text-sm font-medium text-foreground mb-1">
               Best Performing Day
             </p>
-            <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
+            <p className="text-lg font-bold text-foreground">
               <ClientDateTime
                 value={growthData.bestDay.date}
                 format={(date) =>
@@ -206,10 +206,8 @@ export function GrowthTrendsCard({
             </p>
           </div>
           <div className="text-right">
-            <p className="text-sm text-purple-700 dark:text-purple-300 mb-1">
-              Views
-            </p>
-            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+            <p className="text-sm text-muted-foreground mb-1">Views</p>
+            <p className="text-2xl font-bold text-foreground">
               {formatCompactNumberIntl(growthData.bestDay.views)}
             </p>
           </div>

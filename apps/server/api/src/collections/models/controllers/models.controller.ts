@@ -1,6 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateModelDto } from '@api/collections/models/dto/create-model.dto';
-import { ModelRegistryReviewDto } from '@api/collections/models/dto/model-registry-review.dto';
 import { ModelsQueryDto } from '@api/collections/models/dto/models-query.dto';
 import { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
 import { type ModelDocument } from '@api/collections/models/schemas/model.schema';
@@ -299,6 +298,13 @@ export class ModelsController extends BaseCRUDController<
     @Param('modelId') modelId: string,
     @Body() updateDto: UpdateModelDto,
   ): Promise<JsonApiSingleResponse> {
+    // Registry review transitions (approve/reject/legacy) route through the
+    // dedicated service methods, preserving the superadmin guard and the
+    // last-default protection — rather than a plain field write.
+    if (updateDto.reviewStatus) {
+      return this.applyRegistryReview(request, user, modelId, updateDto);
+    }
+
     const model = await this.modelsService.findOne({ _id: modelId });
     if (!model) {
       ErrorResponse.notFound(this.entityName, modelId);
@@ -342,80 +348,49 @@ export class ModelsController extends BaseCRUDController<
     return super.patch(request, user, modelId, updateDto);
   }
 
-  @Patch(':modelId/approve')
-  async approveRegistryModel(
-    @Req() request: RequestWithContext,
-    @CurrentUser() user: User,
-    @Param('modelId') modelId: string,
-    @Body() reviewDto: ModelRegistryReviewDto,
+  /**
+   * Apply a registry review transition (approve/reject/legacy) driven by the
+   * `reviewStatus` field on a `PATCH /models/:id`. Superadmin-guarded; reject and
+   * legacy additionally protect the last default model in a category. Approve
+   * carries any remaining update fields through (e.g. `label`).
+   */
+  private async applyRegistryReview(
+    request: RequestWithContext,
+    user: User,
+    modelId: string,
+    updateDto: UpdateModelDto,
   ): Promise<JsonApiSingleResponse> {
     this.assertCanManageRegistry(user, request as unknown as Request);
 
-    reviewDto ??= {};
-    const {
-      reason: _reason,
-      succeededBy: _succeededBy,
-      ...updates
-    } = reviewDto;
-    const data = await this.modelsService.approveRegistryModel(
-      modelId,
-      updates,
-      this.getReviewerId(user),
-    );
+    const { reviewStatus, reason, succeededBy, ...updates } = updateDto;
+    const reviewedBy = this.getReviewerId(user);
 
-    if (!data) {
-      ErrorResponse.notFound(this.entityName, modelId);
+    let data: ModelDocument | null;
+    switch (reviewStatus) {
+      case 'approved':
+        data = await this.modelsService.approveRegistryModel(
+          modelId,
+          updates,
+          reviewedBy,
+        );
+        break;
+      case 'rejected':
+        await this.assertCanDisableModel(modelId);
+        data = await this.modelsService.rejectRegistryModel(modelId, {
+          reason,
+          reviewedBy,
+        });
+        break;
+      case 'legacy':
+        await this.assertCanDisableModel(modelId);
+        data = await this.modelsService.markRegistryModelLegacy(modelId, {
+          reviewedBy,
+          succeededBy,
+        });
+        break;
+      default:
+        data = null;
     }
-
-    return serializeSingle(
-      request as unknown as Request,
-      ModelSerializer,
-      data,
-    );
-  }
-
-  @Patch(':modelId/reject')
-  async rejectRegistryModel(
-    @Req() request: RequestWithContext,
-    @CurrentUser() user: User,
-    @Param('modelId') modelId: string,
-    @Body() reviewDto: ModelRegistryReviewDto,
-  ): Promise<JsonApiSingleResponse> {
-    this.assertCanManageRegistry(user, request as unknown as Request);
-
-    reviewDto ??= {};
-    await this.assertCanDisableModel(modelId);
-    const data = await this.modelsService.rejectRegistryModel(modelId, {
-      reason: reviewDto.reason,
-      reviewedBy: this.getReviewerId(user),
-    });
-
-    if (!data) {
-      ErrorResponse.notFound(this.entityName, modelId);
-    }
-
-    return serializeSingle(
-      request as unknown as Request,
-      ModelSerializer,
-      data,
-    );
-  }
-
-  @Patch(':modelId/legacy')
-  async markRegistryModelLegacy(
-    @Req() request: RequestWithContext,
-    @CurrentUser() user: User,
-    @Param('modelId') modelId: string,
-    @Body() reviewDto: ModelRegistryReviewDto,
-  ): Promise<JsonApiSingleResponse> {
-    this.assertCanManageRegistry(user, request as unknown as Request);
-
-    reviewDto ??= {};
-    await this.assertCanDisableModel(modelId);
-    const data = await this.modelsService.markRegistryModelLegacy(modelId, {
-      reviewedBy: this.getReviewerId(user),
-      succeededBy: reviewDto.succeededBy,
-    });
 
     if (!data) {
       ErrorResponse.notFound(this.entityName, modelId);

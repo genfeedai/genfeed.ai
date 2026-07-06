@@ -6,13 +6,13 @@ import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import {
   CredentialPlatform,
   DarkroomReviewStatus as DarkroomReviewStatusEnum,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
 

@@ -26,7 +26,7 @@ export default function ProactiveOutputsCard({ outputs }: Props) {
           <p className="text-sm uppercase tracking-[0.24em] text-white/30">
             Starter Outputs
           </p>
-          <h2 className="mt-2 text-2xl font-serif text-white">
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
             Drafts ready on first login
           </h2>
         </div>

@@ -147,6 +147,65 @@ describe('AgentAutopilotWorkflowService', () => {
     });
   });
 
+  it('records workflow handoff provenance on queued proactive agent runs', async () => {
+    prisma.agentStrategy.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          brandId: null,
+          config: {
+            creditsUsedThisWeek: 0,
+            creditsUsedToday: 0,
+            dailyCreditBudget: 100,
+            dailyCreditsUsed: 0,
+            dailyResetAt: '2026-06-25T00:00:00.000Z',
+            minCreditThreshold: 10,
+            nextRunAt: '2026-06-24T08:59:00.000Z',
+            postsPerWeek: 3,
+            runFrequency: AgentRunFrequency.DAILY,
+            weeklyCreditBudget: 300,
+            weeklyResetAt: '2026-06-29T00:00:00.000Z',
+          },
+          goalId: null,
+          id: 'strategy-1',
+          label: 'Growth strategy',
+          organizationId: 'org-1',
+          userId: 'user-1',
+        },
+      ]);
+
+    const result = await service.runProactiveStrategies('org-1', {
+      workflowExecutionId: 'exec-1',
+      workflowId: 'workflow-1',
+      workflowNodeId: 'node-1',
+      workflowNodeType: 'proactiveAgentStrategies',
+      workflowRunId: 'engine-run-1',
+    });
+
+    expect(agentRunsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: {
+          workflowHandoff: {
+            agentStrategyId: 'strategy-1',
+            workflowExecutionId: 'exec-1',
+            workflowId: 'workflow-1',
+            workflowNodeId: 'node-1',
+            workflowNodeType: 'proactiveAgentStrategies',
+            workflowRunId: 'engine-run-1',
+          },
+        },
+      }),
+    );
+    expect(result).toMatchObject({
+      agentRunIds: ['run-1'],
+      enqueued: 1,
+      status: 'enqueued',
+      workflowExecutionId: 'exec-1',
+      workflowId: 'workflow-1',
+      workflowRunId: 'engine-run-1',
+    });
+  });
+
   it('returns skipped when no proactive strategies are due', async () => {
     prisma.agentStrategy.findMany
       .mockResolvedValueOnce([])

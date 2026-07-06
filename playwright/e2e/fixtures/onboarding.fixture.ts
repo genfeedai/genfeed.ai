@@ -225,18 +225,6 @@ async function setupOnboardingApiMocks(page: Page): Promise<void> {
     });
   });
 
-  // POST /users/me/avatar/confirm
-  await page.route(
-    '**/api.genfeed.ai/*/users/me/avatar/confirm',
-    async (route) => {
-      await route.fulfill({
-        body: JSON.stringify({ success: true }),
-        contentType: 'application/json',
-        status: 200,
-      });
-    },
-  );
-
   // POST /users/me/explore
   await page.route('**/api.genfeed.ai/*/users/me/explore', async (route) => {
     await route.fulfill({

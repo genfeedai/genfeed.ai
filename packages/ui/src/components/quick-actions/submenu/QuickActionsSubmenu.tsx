@@ -51,7 +51,7 @@ function SubmenuPortal({
         transform: menuPosition.shouldShowBelow ? 'none' : 'translateY(-100%)',
         zIndex: 50,
       }}
-      className={cn(BG_BLUR, BORDER_WHITE_30, ' shadow-2xl', 'min-w-40')}
+      className={cn(BG_BLUR, BORDER_WHITE_30, 'min-w-40')}
     >
       <div className="p-1">
         {actions.map((action, index) => (
@@ -180,7 +180,7 @@ export default function QuickActionsSubmenu({
               'rounded-full transition-all duration-300',
               BG_BLUR,
               BORDER_WHITE_30,
-              'text-white hover:border-white/20',
+              'text-white hover:shadow-border-strong',
               className,
             )}
             ariaLabel={label}

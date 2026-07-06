@@ -216,7 +216,6 @@ export const WORKERS_API_IMPORT_BASELINE: readonly string[] = [
   '@api/shared/modules/prisma/prisma.module',
   '@api/shared/modules/prisma/prisma.service',
   '@api/shared/shared.module',
-  '@api/shared/utils/circuit-breaker/circuit-breaker.util',
   '@api/shared/utils/encryption/encryption.util',
   '@api/types/aggregate-paginate-result',
 ];

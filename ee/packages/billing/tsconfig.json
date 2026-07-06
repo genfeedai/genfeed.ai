@@ -25,6 +25,8 @@
       "@genfeedai/queue-contracts/*": [
         "../../../packages/queue-contracts/src/*"
       ],
+      "@genfeedai/pricing": ["../../../packages/pricing/src/index.ts"],
+      "@genfeedai/pricing/*": ["../../../packages/pricing/src/*"],
       "@genfeedai/prisma": ["../../../packages/prisma/src/index.ts"],
       "@genfeedai/prisma/*": ["../../../packages/prisma/src/*"],
       "@genfeedai/serializers": ["../../../packages/serializers/src/index.ts"],

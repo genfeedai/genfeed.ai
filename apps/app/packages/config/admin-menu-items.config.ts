@@ -216,6 +216,14 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Administration',
+    href: APP_ROUTES.ADMIN.ADMINISTRATION.CREDIT_USAGE,
+    label: 'Credit Usage',
+    matchPaths: [APP_ROUTES.ADMIN.ADMINISTRATION.CREDIT_USAGE],
+    outline: HiOutlineChartBar,
+    solid: HiChartBar,
+  },
+  {
+    group: 'Administration',
     href: APP_ROUTES.ADMIN.ADMINISTRATION.ANNOUNCEMENTS,
     label: 'Announcements',
     matchPaths: [APP_ROUTES.ADMIN.ADMINISTRATION.ANNOUNCEMENTS],

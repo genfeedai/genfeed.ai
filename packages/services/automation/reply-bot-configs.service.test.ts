@@ -136,24 +136,6 @@ describe('ReplyBotConfigsService', () => {
     });
   });
 
-  describe('toggleActive', () => {
-    it('should post to toggle endpoint', async () => {
-      mockInstance.post.mockResolvedValue({ data: mockConfigData });
-
-      await service.toggleActive('config-123');
-
-      expect(mockInstance.post).toHaveBeenCalledWith('/config-123/toggle');
-    });
-
-    it('should return ReplyBotConfig', async () => {
-      mockInstance.post.mockResolvedValue({ data: mockConfigData });
-
-      const result = await service.toggleActive('config-123');
-
-      expect(result).toBeInstanceOf(ReplyBotConfig);
-    });
-  });
-
   describe('testReplyGeneration', () => {
     it('should post test data to test endpoint', async () => {
       const mockResponse = { dmText: 'DM text', replyText: 'Generated reply' };

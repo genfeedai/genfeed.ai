@@ -37,9 +37,14 @@ Content-Type: application/json
 }
 
 
-### Archive All Active Agent Threads
-POST {{apiBaseUrl}}/agent/threads/archive-all
+### Archive All Active Agent Threads (mass-by-filter bulk update)
+PATCH {{apiBaseUrl}}/agent/threads
 Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "status": "archived"
+}
 
 
 ########################################

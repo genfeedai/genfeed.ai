@@ -30,15 +30,16 @@ export default function IllustrationActions({
 }: Props) {
   return (
     <ModalActions>
-      <Link
-        href={`${EnvironmentService.apps.app}/studio/image`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center justify-center gap-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground h-9 px-3"
-      >
-        <HiArrowTopRightOnSquare className="size-4" />
-        Studio
-      </Link>
+      <Button variant={ButtonVariant.SECONDARY} asChild>
+        <Link
+          href={`${EnvironmentService.apps.app}/studio/image`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <HiArrowTopRightOnSquare className="size-4" />
+          Studio
+        </Link>
+      </Button>
 
       <div className="flex-1" />
 

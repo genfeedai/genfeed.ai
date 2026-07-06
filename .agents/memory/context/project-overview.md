@@ -1,13 +1,13 @@
 ---
 created: 2026-04-07T00:00:00Z
-last_updated: 2026-06-29T00:00:00Z
-version: 1.1
+last_updated: 2026-07-06T00:00:00Z
+version: 1.2
 author: Claude Code PM System
 ---
 
 # Project Overview — Genfeed.ai
 
-Genfeed.ai is an open-source AI operating system for content creation — a self-hosted monorepo providing autonomous agent orchestration, multi-platform distribution, workflow automation, and GPU-powered media generation. Enterprise features (multi-tenancy, billing, SSO) live in the `ee/` directory under a commercial license.
+Genfeed.ai is an open-source AI operating system for content creation — a self-hosted monorepo providing autonomous agent orchestration, multi-platform distribution, workflow automation, and GPU-powered media generation. Enterprise packages live in `ee/` under a commercial license; multi-tenant enforcement is currently shared OSS API infrastructure, while multi-tenancy as a product boundary remains SaaS/EE.
 
 ## Key Capabilities
 
@@ -21,10 +21,10 @@ Genfeed.ai is an open-source AI operating system for content creation — a self
 
 ## Architecture Summary
 
-- **12 backend services** (NestJS): api, clips, discord, files, images, mcp, notifications, slack, telegram, videos, voices, workers
-- **6 app surfaces**: app (studio), docs, website, desktop, mobile, extensions
-- **42 shared packages**: serializers, UI components, hooks, services, types, enums, workflow engine, integrations, Prisma, etc.
-- **5 enterprise packages** (`ee/`): analytics, billing, harness, multi-tenancy, teams
+- **11 backend service workspaces** (NestJS): api, discord, files, images, mcp, notifications, slack, telegram, videos, voices, workers. `apps/server/clips/` is not currently a package workspace.
+- **7 frontend/client workspaces**: app (studio), docs, website, desktop, mobile, browser extension, IDE extension
+- **43 shared packages**: serializers, UI components, hooks, services, types, enums, workflow engine, integrations, Prisma, auth client, harness, etc.
+- **2 enterprise packages** (`ee/`): billing and harness
 - **Infrastructure**: Docker self-hosted, PostgreSQL (Prisma ORM), Redis + BullMQ, Better Auth
 
 ## Current State

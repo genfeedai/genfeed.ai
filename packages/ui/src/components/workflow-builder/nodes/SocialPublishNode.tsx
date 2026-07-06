@@ -207,7 +207,7 @@ function SocialPublishNodeComponent({
           href={data.publishedUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-2 p-2 bg-green-500/10 border border-green-500/20 text-green-400 text-sm hover:bg-green-500/20 transition"
+          className="flex items-center gap-2 p-2 bg-success/10 border border-success/20 text-success text-sm hover:bg-success/20 transition"
         >
           <ExternalLink className="size-4" />
           View Published Video

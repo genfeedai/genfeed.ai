@@ -49,19 +49,19 @@ export class BotsService extends BaseService<Bot> {
   }
 
   async startLivestreamSession(botId: string): Promise<LivestreamSession> {
-    return this.postLivestreamSession(`${botId}/livestream-session/start`, {});
+    return this.patchLivestreamSession(botId, 'active');
   }
 
   async stopLivestreamSession(botId: string): Promise<LivestreamSession> {
-    return this.postLivestreamSession(`${botId}/livestream-session/stop`, {});
+    return this.patchLivestreamSession(botId, 'stopped');
   }
 
   async pauseLivestreamSession(botId: string): Promise<LivestreamSession> {
-    return this.postLivestreamSession(`${botId}/livestream-session/pause`, {});
+    return this.patchLivestreamSession(botId, 'paused');
   }
 
   async resumeLivestreamSession(botId: string): Promise<LivestreamSession> {
-    return this.postLivestreamSession(`${botId}/livestream-session/resume`, {});
+    return this.patchLivestreamSession(botId, 'active');
   }
 
   async ingestTranscriptChunk(
@@ -116,6 +116,18 @@ export class BotsService extends BaseService<Bot> {
     const response = await this.instance.post<JsonApiResponseDocument>(
       `/${path}`,
       body,
+    );
+
+    return new LivestreamSession(deserializeResource(response.data));
+  }
+
+  private async patchLivestreamSession(
+    botId: string,
+    status: 'active' | 'paused' | 'stopped',
+  ): Promise<LivestreamSession> {
+    const response = await this.instance.patch<JsonApiResponseDocument>(
+      `/${botId}/livestream-session`,
+      { status },
     );
 
     return new LivestreamSession(deserializeResource(response.data));

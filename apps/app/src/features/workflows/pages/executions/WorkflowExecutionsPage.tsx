@@ -196,7 +196,9 @@ export default function WorkflowExecutionsPage() {
       <header className="border-b border-white/[0.08] bg-card px-6 py-4">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">Execution History</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Execution History
+            </h1>
             <p className="text-sm text-muted-foreground">
               View past workflow executions and their results
             </p>

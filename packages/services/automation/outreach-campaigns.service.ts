@@ -1,9 +1,9 @@
 import type {
   CampaignPlatform,
   CampaignStatus,
-  CampaignTargetType,
   CampaignType,
 } from '@genfeedai/enums';
+import { CampaignTargetType } from '@genfeedai/enums';
 import type { IServiceSerializer } from '@genfeedai/interfaces/utils/error.interface';
 import {
   BaseService,
@@ -264,7 +264,10 @@ export class OutreachCampaignsService extends BaseService<OutreachCampaign> {
     const response = await this.instance.post<{
       added: number;
       skipped: number;
-    }>(`/${id}/dm-recipients`, { usernames });
+    }>(`/${id}/targets`, {
+      targetType: CampaignTargetType.DM_RECIPIENT,
+      usernames,
+    });
     return response.data;
   }
 

@@ -4123,6 +4123,7 @@ model ClipResult {
   providerJobId  String?
   viralityScore  Float?
   status         String       @default("pending")
+  mode           String       @default("avatar")
   isSelected     Boolean      @default(false)
   readiness      Json         @default("{\"state\":\"pending\",\"terminal\":false,\"readyActions\":[],\"blockingReasons\":[]}")
   terminalAt     DateTime?
@@ -4133,6 +4134,7 @@ model ClipResult {
 
   @@index([organizationId, projectId])
   @@index([organizationId, projectId, status, isDeleted])
+  @@index([organizationId, mode, isDeleted])
   @@index([providerJobId])
   @@map("clip_results")
 }
