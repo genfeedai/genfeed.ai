@@ -11,6 +11,7 @@ import { createRemoteJWKSet, jwtVerify } from 'jose';
  * app-layer import (epic #735, Phase 4 — D3).
  */
 export const BETTER_AUTH_JWKS_PATH = '/v1/auth/jwks';
+export const BETTER_AUTH_TOKEN_PATH = '/v1/auth/token';
 
 /** Normalizes the issuer/audience base URL to match the API JWT config. */
 export function normalizeBetterAuthBaseUrl(baseUrl: string): string {
@@ -20,6 +21,10 @@ export function normalizeBetterAuthBaseUrl(baseUrl: string): string {
 /** Builds the JWKS URL from a Better Auth base URL, tolerating trailing slashes. */
 export function resolveBetterAuthJwksUrl(baseUrl: string): string {
   return `${normalizeBetterAuthBaseUrl(baseUrl)}${BETTER_AUTH_JWKS_PATH}`;
+}
+
+export function resolveBetterAuthTokenUrl(baseUrl: string): string {
+  return `${normalizeBetterAuthBaseUrl(baseUrl)}${BETTER_AUTH_TOKEN_PATH}`;
 }
 
 export function createBetterAuthJwksVerifierOptions(

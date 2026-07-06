@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
     "lib": ["ES2022"],
     "outDir": "../../dist/apps/api",
     "paths": {
@@ -49,10 +50,10 @@
       ],
       "@config/*": ["../../../packages/config/src/*"],
       "@files/*": ["../files/src/*"],
-      "@genfeedai/constants": ["../../../packages/constants/dist/index"],
-      "@genfeedai/constants/*": ["../../../packages/constants/dist/*"],
-      "@genfeedai/enums": ["../../../packages/enums/dist/index"],
-      "@genfeedai/enums/*": ["../../../packages/enums/dist/*"],
+      "@genfeedai/constants": ["../../../packages/constants/src/index.ts"],
+      "@genfeedai/constants/*": ["../../../packages/constants/src/*"],
+      "@genfeedai/enums": ["../../../packages/enums/src/index.ts"],
+      "@genfeedai/enums/*": ["../../../packages/enums/src/*"],
       "@helpers/*": ["../../../packages/helpers/src/*"],
       "@libs/*": ["../../../packages/libs/*"],
       "@serializers/*": ["../../../packages/serializers/src/*"],

@@ -9,7 +9,15 @@ import {
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { Button } from '@ui/primitives/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@ui/primitives/dropdown-menu';
 import { Input } from '@ui/primitives/input';
 import type { FitAddon } from '@xterm/addon-fit';
 import type { SearchAddon } from '@xterm/addon-search';
@@ -17,6 +25,7 @@ import type {
   IDisposable as XtermDisposable,
   Terminal as XtermTerminal,
 } from '@xterm/xterm';
+import { ChevronDown, Plus, Search, X } from 'lucide-react';
 import {
   type FormEvent,
   type KeyboardEvent,
@@ -39,14 +48,20 @@ const TERMINAL_ROWS = 32;
 const TERMINAL_CWD_STORAGE_KEY = 'genfeed:terminal:cwd';
 
 const TERMINAL_PRESETS: Array<{
+  description: string;
   kind: TerminalSessionKind;
   label: string;
 }> = [
-  { kind: 'shell', label: 'Shell' },
-  { kind: 'genfeed', label: 'Genfeed' },
-  { kind: 'claude', label: 'Claude' },
-  { kind: 'codex', label: 'Codex' },
+  { description: 'Open your local login shell', kind: 'shell', label: 'Shell' },
+  { description: 'Run the Genfeed CLI', kind: 'genfeed', label: 'Genfeed CLI' },
+  { description: 'Open the Claude CLI', kind: 'claude', label: 'Claude CLI' },
+  { description: 'Open the Codex CLI', kind: 'codex', label: 'Codex CLI' },
 ];
+
+const TERMINAL_CONTROL_CLASS =
+  'inline-flex h-7 shrink-0 items-center rounded-md border border-border/60 bg-background/30 px-2 text-[11px] leading-none text-foreground/58 transition-colors hover:border-foreground/22 hover:bg-foreground/[0.04] hover:text-foreground/84';
+const TERMINAL_ICON_CONTROL_CLASS =
+  'inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-border/60 bg-background/30 text-foreground/50 transition-colors hover:border-foreground/22 hover:bg-foreground/[0.04] hover:text-foreground/84';
 
 // ---------------------------------------------------------------------------
 // Payload types (matching backend TerminalSessionDto + wire events)
@@ -554,7 +569,10 @@ export function useAgentCliTerminal(
 
       terminal.writeln('Connecting to local terminal gateway...');
 
-      const token = await apiService.getToken();
+      const token = await resolveAuthToken(
+        (options) => apiService.getToken(options),
+        { forceRefresh: true },
+      );
       if (!token) {
         terminal.writeln('Authenticated session required.');
         setStatus('authenticated session required');
@@ -563,9 +581,11 @@ export function useAgentCliTerminal(
 
       const socket = io(`${resolveTerminalEndpoint()}/terminal`, {
         auth: { token },
+        extraHeaders: { Authorization: `Bearer ${token}` },
         reconnectionAttempts: 3,
         timeout: 8_000,
-        transports: ['websocket'],
+        transports: ['websocket', 'polling'],
+        withCredentials: true,
       });
       socketRef.current = socket;
 
@@ -857,123 +877,139 @@ export function AgentCliTerminalControls({
     [submitCwd],
   );
 
-  return (
-    <div className="flex min-w-0 flex-1 flex-col gap-1 overflow-hidden">
-      {/* T6: Session tab strip */}
-      {sessions.length > 0 && (
-        <div className="flex shrink-0 items-center gap-0.5 overflow-x-auto">
-          {sessions.map((session) => (
-            <div
-              key={session.id}
-              className="flex shrink-0 items-center gap-0.5"
-            >
-              <Button
-                className={cn(
-                  'h-6 rounded-sm border border-border/60 px-2 text-[10px] text-foreground/50 transition-colors hover:border-emerald-300/40 hover:text-emerald-200',
-                  activeSessionId === session.id &&
-                    'border-emerald-300/50 text-emerald-200',
-                )}
-                label={session.kind}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  switchSession(session.id);
-                }}
-                type="button"
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
-              />
-              <Button
-                aria-label={`Close ${session.kind} session`}
-                className="h-6 rounded-sm border border-border/60 px-1 text-[10px] text-foreground/35 transition-colors hover:border-red-400/50 hover:text-red-300"
-                label="×"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  killSession(session.id);
-                }}
-                type="button"
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
-              />
-            </div>
-          ))}
-          <Button
-            aria-label="Open new terminal session"
-            className="h-6 rounded-sm border border-border/60 px-1.5 text-[10px] text-foreground/35 transition-colors hover:border-emerald-300/40 hover:text-emerald-200"
-            label="+"
-            onClick={(event) => {
-              event.stopPropagation();
-              startSession(activeKind);
-            }}
-            type="button"
-            variant={ButtonVariant.UNSTYLED}
-            withWrapper={false}
-          />
-        </div>
-      )}
+  const activePreset =
+    TERMINAL_PRESETS.find((preset) => preset.kind === activeKind) ??
+    TERMINAL_PRESETS[0];
 
-      {/* Bottom row: status + cwd input + kind presets + search toggle */}
-      <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
-        <span className="min-w-0 flex-1 truncate text-[11px] text-foreground/42">
+  return (
+    <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
+      <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
+        <span className="min-w-[4.5rem] max-w-[10rem] truncate text-[11px] text-foreground/42">
           {status}
         </span>
-        <form
-          className="hidden min-w-[9rem] max-w-[18rem] flex-1 items-center gap-1 md:flex"
-          onSubmit={handleSubmit}
-        >
-          <Input
-            aria-label="Terminal working directory"
-            className="h-6 min-w-0 flex-1 rounded border border-border/50 bg-background/30 px-2 text-[11px] text-foreground/70 outline-none transition-colors placeholder:text-foreground/28 focus:border-emerald-300/50"
-            onChange={(event) => setCwdInput(event.target.value)}
-            onBlur={persistCwdInput}
-            placeholder="$HOME or /path/to/project"
-            spellCheck={false}
-            value={cwdInput}
-          />
+
+        {sessions.length > 0 && (
+          <div className="flex min-w-0 shrink items-center gap-1 overflow-x-auto">
+            {sessions.map((session) => (
+              <div
+                key={session.id}
+                className="flex shrink-0 items-center gap-0.5"
+              >
+                <Button
+                  className={cn(
+                    TERMINAL_CONTROL_CLASS,
+                    'max-w-[7rem] gap-1.5 px-2',
+                    activeSessionId === session.id &&
+                      'border-emerald-300/50 bg-emerald-300/[0.06] text-emerald-200',
+                  )}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    switchSession(session.id);
+                  }}
+                  type="button"
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
+                >
+                  <span className="truncate">{session.kind}</span>
+                </Button>
+                <Button
+                  aria-label={`Close ${session.kind} session`}
+                  className={cn(
+                    TERMINAL_ICON_CONTROL_CLASS,
+                    'size-7 hover:border-red-400/45 hover:text-red-300',
+                  )}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    killSession(session.id);
+                  }}
+                  type="button"
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
+                >
+                  <X className="size-3" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <form
+        className="hidden min-w-[10rem] max-w-[18rem] shrink items-center gap-1 md:flex"
+        onSubmit={handleSubmit}
+      >
+        <Input
+          aria-label="Terminal working directory"
+          className="h-7 min-w-0 flex-1 rounded-md border border-border/50 bg-background/30 px-2 text-[11px] leading-none text-foreground/70 outline-none transition-colors placeholder:text-foreground/28 focus:border-emerald-300/50"
+          onChange={(event) => setCwdInput(event.target.value)}
+          onBlur={persistCwdInput}
+          placeholder="$HOME or /path/to/project"
+          spellCheck={false}
+          value={cwdInput}
+        />
+        <Button
+          className={TERMINAL_CONTROL_CLASS}
+          label="cwd"
+          type="submit"
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
+        />
+      </form>
+
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
           <Button
-            className="h-6 rounded border border-border/60 px-2 text-[11px] text-foreground/55 transition-colors hover:border-emerald-300/50 hover:text-emerald-200"
-            label="cwd"
-            type="submit"
-            variant={ButtonVariant.UNSTYLED}
-            withWrapper={false}
-          />
-        </form>
-        <div className="flex shrink-0 items-center gap-1">
-          {TERMINAL_PRESETS.map((preset) => (
-            <Button
-              key={preset.kind}
-              className={cn(
-                'h-6 rounded border border-border/60 px-2 text-[11px] text-foreground/55 transition-colors hover:border-emerald-300/50 hover:text-emerald-200',
-                activeKind === preset.kind &&
-                  'border-emerald-300/50 text-emerald-200',
-              )}
-              onClick={(event) => {
-                event.stopPropagation();
-                startSession(preset.kind);
-              }}
-              label={preset.label}
-              type="button"
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-            />
-          ))}
-          {/* T7: Search toggle */}
-          <Button
-            aria-label="Search terminal"
-            className={cn(
-              'h-6 rounded border border-border/60 px-2 text-[11px] text-foreground/55 transition-colors hover:border-emerald-300/50 hover:text-emerald-200',
-              isSearchOpen && 'border-emerald-300/50 text-emerald-200',
-            )}
-            label="/"
-            onClick={(event) => {
-              event.stopPropagation();
-              toggleSearch();
-            }}
+            aria-label="Open terminal session menu"
+            className={cn(TERMINAL_CONTROL_CLASS, 'gap-1.5')}
             type="button"
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
-          />
-        </div>
-      </div>
+          >
+            <Plus className="size-3.5" />
+            <span className="hidden sm:inline">New</span>
+            <span className="hidden max-w-[5rem] truncate lg:inline">
+              {activePreset.label}
+            </span>
+            <ChevronDown className="size-3 text-foreground/42" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuLabel>New session</DropdownMenuLabel>
+          {TERMINAL_PRESETS.map((preset) => (
+            <DropdownMenuItem
+              key={preset.kind}
+              onSelect={() => startSession(preset.kind)}
+            >
+              <div className="min-w-0">
+                <p className="truncate text-[12px] font-medium">
+                  {preset.label}
+                </p>
+                <p className="truncate text-[11px] text-muted">
+                  {preset.description}
+                </p>
+              </div>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <Button
+        aria-label="Search terminal"
+        className={cn(
+          TERMINAL_ICON_CONTROL_CLASS,
+          isSearchOpen &&
+            'border-emerald-300/50 bg-emerald-300/[0.06] text-emerald-200',
+        )}
+        onClick={(event) => {
+          event.stopPropagation();
+          toggleSearch();
+        }}
+        type="button"
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
+      >
+        <Search className="size-3.5" />
+      </Button>
     </div>
   );
 }

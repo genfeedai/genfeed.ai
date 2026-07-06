@@ -75,12 +75,12 @@ export default function UserDropdown({
       : allDropdownItems;
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <Button
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
-          className="size-8 flex-shrink-0 cursor-pointer overflow-hidden rounded-full transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
+          className="size-8 flex-shrink-0 cursor-pointer overflow-hidden rounded-md transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
           ariaLabel="Open account menu"
         >
           {imageUrl ? (
@@ -89,11 +89,11 @@ export default function UserDropdown({
               alt={userName}
               width={32}
               height={32}
-              className="size-8 rounded-full object-cover object-center"
+              className="size-8 rounded-md object-cover object-center"
               sizes="32px"
             />
           ) : (
-            <span className="flex size-8 items-center justify-center rounded-full bg-foreground/15 font-semibold text-foreground/80">
+            <span className="flex size-8 items-center justify-center rounded-md bg-foreground/15 font-semibold text-foreground/80">
               {initial}
             </span>
           )}

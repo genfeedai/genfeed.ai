@@ -884,10 +884,6 @@
         ],
         "type": "string"
       },
-      "ChangePlanDto": {
-        "properties": {},
-        "type": "object"
-      },
       "ClipProjectSettingsDto": {
         "properties": {
           "addCaptions": {
@@ -17828,30 +17824,6 @@
         ]
       }
     },
-    "/analytics/content/{contentId}/subscription-stats": {
-      "get": {
-        "operationId": "SubscriptionAttributionsController.getContentSubscriptionStats",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "contentId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "getContentSubscriptionStats",
-        "tags": [
-          "Analytics"
-        ]
-      }
-    },
     "/analytics/engagement": {
       "get": {
         "operationId": "AnalyticsController.getEngagement",
@@ -18293,21 +18265,6 @@
         ]
       }
     },
-    "/analytics/subscription-attribution": {
-      "post": {
-        "operationId": "SubscriptionAttributionsController.trackSubscription",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "trackSubscription",
-        "tags": [
-          "Analytics"
-        ]
-      }
-    },
     "/analytics/timeseries": {
       "get": {
         "operationId": "AnalyticsController.getTimeSeries",
@@ -18418,21 +18375,6 @@
         "summary": "getTopContent",
         "tags": [
           "analytics"
-        ]
-      }
-    },
-    "/analytics/top-content-by-subscriptions": {
-      "get": {
-        "operationId": "SubscriptionAttributionsController.getTopContent",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "getTopContent",
-        "tags": [
-          "Analytics"
         ]
       }
     },
@@ -44223,91 +44165,6 @@
         "summary": "transcribeUrl",
         "tags": [
           "speech"
-        ]
-      }
-    },
-    "/subscriptions": {
-      "get": {
-        "operationId": "SubscriptionsController.findAll",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findAll",
-        "tags": [
-          "subscriptions"
-        ]
-      }
-    },
-    "/subscriptions/admin/credit-usage": {
-      "get": {
-        "operationId": "SubscriptionsController.getCreditUsage",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "getCreditUsage",
-        "tags": [
-          "subscriptions"
-        ]
-      }
-    },
-    "/subscriptions/current": {
-      "patch": {
-        "operationId": "SubscriptionsController.changePlan",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChangePlanDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "changePlan",
-        "tags": [
-          "subscriptions"
-        ]
-      }
-    },
-    "/subscriptions/current/credits": {
-      "get": {
-        "operationId": "SubscriptionsController.getCreditsBreakdown",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "getCreditsBreakdown",
-        "tags": [
-          "subscriptions"
-        ]
-      }
-    },
-    "/subscriptions/current/preview": {
-      "post": {
-        "operationId": "SubscriptionsController.previewChange",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "previewChange",
-        "tags": [
-          "subscriptions"
         ]
       }
     },

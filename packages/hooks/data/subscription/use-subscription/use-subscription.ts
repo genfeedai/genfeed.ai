@@ -63,6 +63,9 @@ export function useSubscription(): UseSubscriptionReturn {
     enabled: !!organizationId,
   });
 
+  const hasActiveSubscription =
+    subscription?.status === SubscriptionStatus.ACTIVE;
+
   const {
     data: creditsBreakdown = null,
     isLoading: isLoadingCredits,
@@ -81,7 +84,7 @@ export function useSubscription(): UseSubscriptionReturn {
       return data as ICreditsBreakdown;
     },
     staleTime: CREDITS_CACHE_TTL_MS,
-    enabled: !!userId,
+    enabled: !!userId && hasActiveSubscription,
   });
 
   const isLoading = isLoadingSubscription || isLoadingCredits;
@@ -151,7 +154,7 @@ export function useSubscription(): UseSubscriptionReturn {
     error,
 
     isLoading,
-    isSubscriptionActive: subscription?.status === SubscriptionStatus.ACTIVE,
+    isSubscriptionActive: hasActiveSubscription,
 
     openBillingPortal,
     refreshCreditsBreakdown,

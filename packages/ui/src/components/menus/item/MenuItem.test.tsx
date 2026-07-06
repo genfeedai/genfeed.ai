@@ -32,4 +32,25 @@ describe('MenuItem', () => {
     expect(screen.getByText('Inbox')).toBeInTheDocument();
     expect(screen.getByText('40')).toBeInTheDocument();
   });
+
+  it('uses the active row fill as the expanded sidebar hover fill', () => {
+    render(
+      <>
+        <MenuItem
+          href="/workspace/overview"
+          isActive
+          label="Dashboard"
+          variant="icon"
+        />
+        <MenuItem href="/workspace/inbox/unread" label="Inbox" variant="icon" />
+      </>,
+    );
+
+    const activeRow = screen.getByRole('link', { name: 'Dashboard' });
+    const hoverRow = screen.getByRole('link', { name: 'Inbox' });
+
+    expect(activeRow).toHaveClass('bg-foreground/[0.06]');
+    expect(hoverRow).toHaveClass('hover:bg-foreground/[0.06]');
+    expect(hoverRow).not.toHaveClass('hover:bg-foreground/[0.035]');
+  });
 });

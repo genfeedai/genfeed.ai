@@ -6,8 +6,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockPush = vi.fn();
 const mockToggleOpen = vi.fn();
 const socketMocks = vi.hoisted(() => ({
+  connected: false,
+  emit: vi.fn(),
+  off: vi.fn(),
   on: vi.fn(),
 }));
+const resolveAuthTokenMock = vi.hoisted(() => vi.fn());
 const xtermMocks = vi.hoisted(() => ({
   dispose: vi.fn(),
   fit: vi.fn(),
@@ -36,34 +40,61 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   }),
 }));
 
+vi.mock('@helpers/auth/auth.helper', () => ({
+  resolveAuthToken: resolveAuthTokenMock,
+}));
+
 vi.mock('socket.io-client', () => ({
   io: vi.fn(() => ({
-    connected: false,
+    get connected() {
+      return socketMocks.connected;
+    },
     disconnect: vi.fn(),
-    emit: vi.fn(),
+    emit: socketMocks.emit,
+    off: socketMocks.off,
     on: socketMocks.on,
   })),
 }));
 
 vi.mock('@xterm/addon-fit', () => ({
-  FitAddon: vi.fn(() => ({
-    fit: xtermMocks.fit,
-  })),
+  FitAddon: vi.fn(function MockFitAddon() {
+    return {
+      fit: xtermMocks.fit,
+    };
+  }),
+}));
+
+vi.mock('@xterm/addon-search', () => ({
+  SearchAddon: vi.fn(function MockSearchAddon() {
+    return {
+      findNext: vi.fn(),
+    };
+  }),
+}));
+
+vi.mock('@xterm/addon-web-links', () => ({
+  WebLinksAddon: vi.fn(function MockWebLinksAddon() {
+    return {};
+  }),
 }));
 
 vi.mock('@xterm/xterm', () => ({
-  Terminal: vi.fn(() => ({
-    cols: 120,
-    dispose: xtermMocks.dispose,
-    focus: xtermMocks.focus,
-    loadAddon: xtermMocks.loadAddon,
-    onData: xtermMocks.onData,
-    open: xtermMocks.open,
-    reset: xtermMocks.reset,
-    rows: 32,
-    write: xtermMocks.write,
-    writeln: xtermMocks.writeln,
-  })),
+  Terminal: vi.fn(function MockTerminal() {
+    return {
+      clear: vi.fn(),
+      cols: 120,
+      dispose: xtermMocks.dispose,
+      focus: xtermMocks.focus,
+      fit: xtermMocks.fit,
+      loadAddon: xtermMocks.loadAddon,
+      onData: xtermMocks.onData,
+      open: xtermMocks.open,
+      reset: xtermMocks.reset,
+      rows: 32,
+      write: xtermMocks.write,
+      writeln: xtermMocks.writeln,
+    };
+  }),
 }));
 
 vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
@@ -142,6 +173,7 @@ function createCreditsInfoApiService() {
     balance: 42,
     modelCosts: {},
   });
+  const getToken = vi.fn().mockResolvedValue('terminal-token');
 
   const getInstallReadiness = vi.fn().mockResolvedValue({
     authMode: 'none',
@@ -185,6 +217,7 @@ function createCreditsInfoApiService() {
       (...args: Parameters<typeof getInstallReadiness>) =>
         Effect.promise(() => getInstallReadiness(...args)),
     ),
+    getToken,
     updateThreadEffect: vi.fn(() =>
       Effect.succeed({
         id: 'thread-123',
@@ -196,6 +229,13 @@ function createCreditsInfoApiService() {
 describe('AgentPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    socketMocks.connected = false;
+    resolveAuthTokenMock.mockImplementation(
+      (
+        getToken: (options?: { forceRefresh?: boolean }) => Promise<string>,
+        options?: { forceRefresh?: boolean },
+      ) => getToken(options),
+    );
     window.localStorage.clear();
   });
 
@@ -259,6 +299,34 @@ describe('AgentPanel', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Outputs' })).toBeInTheDocument();
     expect(screen.getByTestId('agent-outputs-panel')).toBeInTheDocument();
+  });
+
+  it('resolves a fresh auth token before connecting the terminal socket', async () => {
+    const apiService = createCreditsInfoApiService();
+
+    render(<AgentPanel apiService={apiService as never} />);
+
+    await waitFor(() => {
+      expect(resolveAuthTokenMock).toHaveBeenCalledWith(expect.any(Function), {
+        forceRefresh: true,
+      });
+      expect(apiService.getToken).toHaveBeenCalledWith({ forceRefresh: true });
+    });
+  });
+
+  it('opens the Claude CLI from the terminal session menu', async () => {
+    socketMocks.connected = true;
+    render(<AgentPanel apiService={createCreditsInfoApiService() as never} />);
+
+    fireEvent.pointerDown(screen.getByLabelText('Open terminal session menu'));
+    fireEvent.click(await screen.findByText('Claude CLI'));
+
+    await waitFor(() => {
+      expect(socketMocks.emit).toHaveBeenCalledWith(
+        'terminal:create',
+        expect.objectContaining({ kind: 'claude', threadId: 'thread-123' }),
+      );
+    });
   });
 
   it('does not request credits until the panel becomes active on non-agent routes', async () => {

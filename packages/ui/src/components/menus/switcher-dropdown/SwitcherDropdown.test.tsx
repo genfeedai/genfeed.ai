@@ -88,6 +88,16 @@ describe('SwitcherDropdown', () => {
     expect(activeOption?.querySelector('svg')).not.toBeNull();
   });
 
+  it('renders item fallback avatars as square marks', () => {
+    renderDropdown();
+    fireEvent.click(screen.getByText('Open'));
+
+    const avatar = screen.getAllByRole('option')[0]?.querySelector('.size-5');
+
+    expect(avatar).toHaveClass('rounded-md');
+    expect(avatar).not.toHaveClass('rounded-full');
+  });
+
   it('selects the highlighted item via arrow-down + Enter (cmdk keyboard nav)', () => {
     const onSelect = vi.fn();
     renderDropdown({ hasSearch: true, onSelect });
@@ -213,6 +223,26 @@ describe('SwitcherDropdown', () => {
     renderDropdown({ items: [] });
     fireEvent.click(screen.getByText('Open'));
     expect(screen.getByText('Loading…')).toBeInTheDocument();
+  });
+
+  it('shows an explicit empty message after loading completes', () => {
+    renderDropdown({
+      emptyMessage: 'No organizations',
+      isLoading: false,
+      items: [],
+    });
+    fireEvent.click(screen.getByText('Open'));
+    expect(screen.getByText('No organizations')).toBeInTheDocument();
+  });
+
+  it('does not render browser-default focus rings on footer actions', () => {
+    renderDropdown({
+      footerActions: [{ label: 'New Item', onAction: vi.fn() }],
+    });
+    fireEvent.click(screen.getByText('Open'));
+    expect(screen.getByRole('button', { name: /New Item/i })).toHaveClass(
+      'focus-visible:ring-0',
+    );
   });
 
   it('disables interaction when isDisabled', () => {

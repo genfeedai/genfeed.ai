@@ -21,25 +21,27 @@ export default function AgentSidebarContent({
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex min-h-0 flex-1 flex-col px-3 pb-2 pt-2">
-        <div className="flex items-center justify-between px-3 pb-2">
-          <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/35">
+        <div className="group/collapsible flex w-full items-center p-1 text-foreground/30">
+          <span className="text-[10px] font-bold uppercase tracking-[0.15em]">
             Conversations
           </span>
-          {conversationActions}
+          {conversationActions ? (
+            <div className="ml-auto">{conversationActions}</div>
+          ) : null}
         </div>
 
-        <div className="pb-1">
+        <div className="pb-1 pt-1">
           <Link
             href={orgHref(APP_ROUTES.AGENT.NEW)}
-            className="flex h-9 w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-white/80 transition-colors duration-200 group cursor-pointer hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+            className="group flex h-8 w-full cursor-pointer items-center gap-3 rounded px-3 py-1.5 text-left text-foreground/72 transition-colors duration-150 hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
           >
-            <HiPlus className="size-4 text-white/80 group-hover:text-white" />
-            <span className="text-sm font-medium text-white/90">
+            <HiPlus className="size-4 text-foreground/42 group-hover:text-foreground/78" />
+            <span className="text-[13px] font-medium tracking-[-0.01em] text-foreground/88">
               New Thread
             </span>
             <Kbd
               variant="ghost"
-              className="ml-auto text-[11px] opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+              className="ml-auto rounded-md border border-border bg-foreground/[0.03] text-[10px] text-foreground/36 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
             >
               ⌘⇧N
             </Kbd>

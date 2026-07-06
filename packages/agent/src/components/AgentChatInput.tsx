@@ -120,7 +120,7 @@ export function AgentChatInput({
   );
 
   return (
-    <div className="w-full relative" {...dragHandlers}>
+    <div className="relative w-full" {...dragHandlers}>
       <AgentChatInputStyles />
 
       {isDragActive && (
@@ -142,7 +142,7 @@ export function AgentChatInput({
 
       <PromptBarShell
         className={cn(
-          'p-2 shadow-[0_6px_18px_rgba(0,0,0,0.16)] focus-within:shadow-[0_8px_22px_rgba(0,0,0,0.2)]',
+          'rounded-md border border-border bg-card p-2 shadow-border transition-[border-color,box-shadow] focus-within:border-foreground/[0.18] focus-within:shadow-border-strong',
           disabled && 'opacity-50',
           isDragActive && 'ring-1 ring-primary/40',
         )}

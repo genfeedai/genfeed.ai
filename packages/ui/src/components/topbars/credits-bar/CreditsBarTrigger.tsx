@@ -1,14 +1,13 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { ITopbarBalanceSegment } from '@genfeedai/interfaces';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
-import { Button } from '@ui/primitives/button';
+import Link from 'next/link';
 
 type Props = {
-  isOpen: boolean;
+  billingHref: string;
   fullBalance: string;
   compactBalance: string;
   visibleProviderSegments: ITopbarBalanceSegment[];
@@ -17,23 +16,24 @@ type Props = {
 };
 
 export default function CreditsBarTrigger({
-  isOpen,
+  billingHref,
   fullBalance,
   compactBalance,
   visibleProviderSegments,
   planLimit,
   remainingPercent,
 }: Props) {
+  const href = billingHref || '/settings/billing';
+
   return (
-    <Button
-      withWrapper={false}
-      variant={ButtonVariant.UNSTYLED}
+    <Link
+      href={href}
       className={cn(
         'hidden h-8 max-w-[20rem] items-center gap-2 rounded-md bg-transparent px-2.5 text-left transition-colors hover:bg-hover sm:flex',
       )}
-      data-active={isOpen ? 'true' : 'false'}
+      data-testid="topbar-credits-link"
       title={`${fullBalance} ${EnvironmentService.CREDITS_LABEL}`}
-      ariaLabel={`${fullBalance} ${EnvironmentService.CREDITS_LABEL}`}
+      aria-label={`${fullBalance} ${EnvironmentService.CREDITS_LABEL}. Open billing and credits.`}
     >
       <div className="flex min-w-0 items-center gap-1.5">
         <span className="text-[11px] font-medium text-foreground/50">
@@ -78,6 +78,6 @@ export default function CreditsBarTrigger({
           />
         </div>
       )}
-    </Button>
+    </Link>
   );
 }

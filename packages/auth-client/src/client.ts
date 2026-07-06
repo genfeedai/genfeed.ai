@@ -29,6 +29,27 @@ export const authClient = createAuthClient({
 
 export const { getSession, signIn, signOut, signUp, useSession } = authClient;
 
+function extractBetterAuthToken(response: unknown): string | null {
+  if (!response || typeof response !== 'object') {
+    return null;
+  }
+
+  const directToken = (response as { token?: unknown }).token;
+  if (typeof directToken === 'string' && directToken.length > 0) {
+    return directToken;
+  }
+
+  const data = (response as { data?: unknown }).data;
+  if (!data || typeof data !== 'object') {
+    return null;
+  }
+
+  const nestedToken = (data as { token?: unknown }).token;
+  return typeof nestedToken === 'string' && nestedToken.length > 0
+    ? nestedToken
+    : null;
+}
+
 /**
  * Retrieves a Bearer JWT minted by the Better Auth `jwt` plugin via its server
  * `GET /token` endpoint (the jwt *client* plugin only exposes `jwks`, not a
@@ -37,8 +58,8 @@ export const { getSession, signIn, signOut, signUp, useSession } = authClient;
  * non-React contexts. Returns `null` when there is no active session.
  */
 export async function getBetterAuthToken(): Promise<string | null> {
-  const { data } = await authClient.$fetch<{ token: string }>('/token', {
+  const response = await authClient.$fetch<{ token: string }>('/token', {
     method: 'GET',
   });
-  return data?.token ?? null;
+  return extractBetterAuthToken(response);
 }

@@ -17,18 +17,35 @@ describe('Container', () => {
     const { container } = render(<Container>content</Container>);
     const rootElement = container.firstChild as HTMLElement;
     expect(rootElement).toBeInTheDocument();
-    expect(rootElement).toHaveClass('mx-auto');
-    expect(rootElement).toHaveClass('max-w-[1280px]');
-  });
-
-  it('supports full-width pages without the default content cap', () => {
-    const { container } = render(<Container fullWidth>content</Container>);
-    const rootElement = container.firstChild as HTMLElement;
-
     expect(rootElement).toHaveClass('mx-0');
     expect(rootElement).toHaveClass('max-w-none');
     expect(rootElement).not.toHaveClass('mx-auto');
     expect(rootElement).not.toHaveClass('max-w-[1280px]');
+  });
+
+  it('supports constrained pages when a content cap is requested', () => {
+    const { container } = render(
+      <Container fullWidth={false}>content</Container>,
+    );
+    const rootElement = container.firstChild as HTMLElement;
+
+    expect(rootElement).toHaveClass('mx-auto');
+    expect(rootElement).toHaveClass('max-w-[1280px]');
+    expect(rootElement).not.toHaveClass('mx-0');
+    expect(rootElement).not.toHaveClass('max-w-none');
+  });
+
+  it('keeps full-pane header dividers while insetting header content', () => {
+    const { container } = render(
+      <Container label="Dashboard">content</Container>,
+    );
+    const rootElement = container.firstChild as HTMLElement;
+    const header = rootElement.querySelector('.border-b') as HTMLElement;
+
+    expect(rootElement).not.toHaveClass('px-5');
+    expect(header).toHaveClass('px-5');
+    expect(header).toHaveClass('sm:px-6');
+    expect(header).toHaveClass('lg:px-6');
   });
 
   it('can keep the h1 for assistive tech without rendering the visible header row', () => {

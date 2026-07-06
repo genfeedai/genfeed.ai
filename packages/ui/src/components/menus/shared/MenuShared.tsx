@@ -123,7 +123,7 @@ export default function MenuShared({
             onMouseEnter={prefetchBackHref}
             className={cn(
               'group flex h-7 w-full items-center gap-2 rounded px-2.5 py-1 transition-colors duration-150',
-              'text-foreground/72 hover:bg-foreground/[0.035] hover:text-foreground',
+              'text-foreground/72 hover:bg-foreground/[0.06] hover:text-foreground',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
             )}
             aria-label={`Back to ${backLabel ?? 'previous page'}`}

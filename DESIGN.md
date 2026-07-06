@@ -14,6 +14,7 @@ colors:
   bg-tertiary: "#131518"
   bg-elevated: "#1a1c21"
   bg-hover: "#20232a"
+  card: "#080808"
 
   # Borders — hex approximations of translucent white on the dark canvas
   border: "#1e2022"
@@ -123,7 +124,7 @@ components:
     rounded: "{rounded.md}"
     height: 32px
   card:
-    backgroundColor: "{colors.bg-secondary}"
+    backgroundColor: "{colors.card}"
     textColor: "{colors.text-primary}"
     rounded: "{rounded.none}"
     shadow: "inset 0 0 0 1px {colors.border}"
@@ -169,7 +170,7 @@ components:
     textColor: "{colors.text-primary}"
     rounded: "{rounded.md}"
   stat-card:
-    backgroundColor: "{colors.bg-secondary}"
+    backgroundColor: "{colors.card}"
     textColor: "{colors.text-primary}"
     rounded: "{rounded.none}"
   input:

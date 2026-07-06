@@ -239,10 +239,44 @@ describe('OrganizationsController', () => {
       ]);
     });
 
-    it('returns an empty list when the user has no memberships', async () => {
+    it('falls back to the session metadata organization when the user has no membership rows', async () => {
+      mockMembersService.find.mockResolvedValue([]);
+      mockOrganizationsService.findOne.mockResolvedValue({
+        id: 'org_active',
+        label: 'Active Org',
+        slug: 'active-org',
+      });
+      mockBrandsService.findOne.mockResolvedValue(null);
+
+      const result = (await controller.findMine(
+        currentUser,
+      )) as FindMineEntry[];
+
+      expect(result).toEqual([
+        {
+          brand: null,
+          id: 'org_active',
+          isActive: true,
+          label: 'Active Org',
+          slug: 'active-org',
+        },
+      ]);
+      expect(mockOrganizationsService.findOne).toHaveBeenCalledWith({
+        _id: 'org_active',
+        isDeleted: false,
+      });
+    });
+
+    it('returns an empty list when neither memberships nor session metadata resolve an organization', async () => {
       mockMembersService.find.mockResolvedValue([]);
 
-      const result = await controller.findMine(currentUser);
+      const result = await controller.findMine({
+        publicMetadata: {
+          brand: 'brand_active',
+          isSuperAdmin: false,
+          user: 'user_1',
+        },
+      } as unknown as User);
 
       expect(result).toEqual([]);
       expect(mockOrganizationsService.findOne).not.toHaveBeenCalled();

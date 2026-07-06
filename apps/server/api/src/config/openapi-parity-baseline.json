@@ -4078,46 +4078,6 @@
     },
     {
       "method": "get",
-      "operationId": "SubscriptionAttributionsController.getContentSubscriptionStats",
-      "path": "/analytics/content/{contentId}/subscription-stats"
-    },
-    {
-      "method": "get",
-      "operationId": "SubscriptionAttributionsController.getTopContent",
-      "path": "/analytics/top-content-by-subscriptions"
-    },
-    {
-      "method": "post",
-      "operationId": "SubscriptionAttributionsController.trackSubscription",
-      "path": "/analytics/subscription-attribution"
-    },
-    {
-      "method": "patch",
-      "operationId": "SubscriptionsController.changePlan",
-      "path": "/subscriptions/current"
-    },
-    {
-      "method": "get",
-      "operationId": "SubscriptionsController.findAll",
-      "path": "/subscriptions"
-    },
-    {
-      "method": "get",
-      "operationId": "SubscriptionsController.getCreditsBreakdown",
-      "path": "/subscriptions/current/credits"
-    },
-    {
-      "method": "get",
-      "operationId": "SubscriptionsController.getCreditUsage",
-      "path": "/subscriptions/admin/credit-usage"
-    },
-    {
-      "method": "post",
-      "operationId": "SubscriptionsController.previewChange",
-      "path": "/subscriptions/current/preview"
-    },
-    {
-      "method": "get",
       "operationId": "SyncController.getStatus",
       "path": "/sync/status"
     },

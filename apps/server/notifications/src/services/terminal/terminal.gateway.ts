@@ -31,6 +31,13 @@ interface SocketAuthRecord {
   userId: string;
 }
 
+interface BetterAuthTokenResponse {
+  data?: {
+    token?: unknown;
+  };
+  token?: unknown;
+}
+
 @WebSocketGateway({
   namespace: '/terminal',
 })
@@ -244,15 +251,67 @@ export class TerminalGateway
     client: Socket,
   ): Promise<string | null> {
     const token = this.extractToken(client);
-    if (!token) {
+
+    if (token) {
+      const userId = await this.verifyToken(client, token);
+      if (userId) {
+        return userId;
+      }
+    }
+
+    const cookieToken = await this.getTokenFromSessionCookie(client);
+    if (!cookieToken) {
       return null;
     }
 
+    return this.verifyToken(client, cookieToken);
+  }
+
+  private async verifyToken(
+    client: Socket,
+    token: string,
+  ): Promise<string | null> {
     try {
       const { sub } = await this.getBetterAuthVerifier().verify(token);
       return sub;
     } catch (error: unknown) {
       this.logger.warn('Failed to verify local terminal socket token', {
+        error: error instanceof Error ? error.message : String(error),
+        socketId: client.id,
+      });
+      return null;
+    }
+  }
+
+  private async getTokenFromSessionCookie(
+    client: Socket,
+  ): Promise<string | null> {
+    const cookie = this.extractCookieHeader(client);
+    if (!cookie) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(
+        this.terminalService.getBetterAuthTokenUrl(),
+        {
+          cache: 'no-store',
+          headers: { cookie },
+        },
+      );
+
+      if (!response.ok) {
+        this.logger.warn('Failed to mint terminal socket token from cookie', {
+          socketId: client.id,
+          status: response.status,
+        });
+        return null;
+      }
+
+      const data = (await response.json()) as BetterAuthTokenResponse;
+      return this.extractResponseToken(data);
+    } catch (error: unknown) {
+      this.logger.warn('Failed to mint terminal socket token from cookie', {
         error: error instanceof Error ? error.message : String(error),
         socketId: client.id,
       });
@@ -281,6 +340,33 @@ export class TerminalGateway
     }
 
     return undefined;
+  }
+
+  private extractCookieHeader(client: Socket): string | undefined {
+    const cookie = client.handshake.headers.cookie;
+    if (typeof cookie === 'string' && cookie.length > 0) {
+      return cookie;
+    }
+
+    if (Array.isArray(cookie)) {
+      const joinedCookie = cookie.filter(Boolean).join('; ');
+      return joinedCookie || undefined;
+    }
+
+    return undefined;
+  }
+
+  private extractResponseToken(
+    response: BetterAuthTokenResponse,
+  ): string | null {
+    if (typeof response.token === 'string' && response.token.length > 0) {
+      return response.token;
+    }
+
+    const nestedToken = response.data?.token;
+    return typeof nestedToken === 'string' && nestedToken.length > 0
+      ? nestedToken
+      : null;
   }
 
   /**

@@ -1,6 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
-import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
@@ -57,22 +56,17 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
   },
 }));
 
-vi.mock('@ui/primitives/popover', () => ({
-  Popover: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  PopoverTrigger: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
-  ),
-}));
-
 vi.mock('./CreditsBarTrigger', () => ({
-  default: ({ fullBalance }: { fullBalance: string }) => (
-    <button type="button">Credits {fullBalance}</button>
-  ),
-}));
-
-vi.mock('./CreditsBarPanel', () => ({
-  default: ({ isLoading }: { isLoading: boolean }) => (
-    <div data-loading={String(isLoading)} data-testid="credits-panel" />
+  default: ({
+    billingHref,
+    fullBalance,
+  }: {
+    billingHref: string;
+    fullBalance: string;
+  }) => (
+    <a href={billingHref} data-testid="credits-link">
+      Credits {fullBalance}
+    </a>
   ),
 }));
 
@@ -104,6 +98,10 @@ describe('TopbarCreditsBar', () => {
       expect(screen.getByText('Credits 42')).toBeInTheDocument();
     });
 
+    expect(screen.getByTestId('credits-link')).toHaveAttribute(
+      'href',
+      '/genfeed/settings/billing',
+    );
     expect(mockLoggerError).not.toHaveBeenCalled();
     expect(mockLoggerWarn).not.toHaveBeenCalled();
   });
@@ -118,19 +116,15 @@ describe('TopbarCreditsBar', () => {
     render(<TopbarCreditsBar />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('credits-panel')).toHaveAttribute(
-        'data-loading',
-        'false',
+      expect(mockLoggerWarn).toHaveBeenCalledWith(
+        'TopbarCreditsBar: failed to fetch balances',
+        {
+          error: timeoutError,
+          reportToSentry: false,
+        },
       );
     });
 
     expect(mockLoggerError).not.toHaveBeenCalled();
-    expect(mockLoggerWarn).toHaveBeenCalledWith(
-      'TopbarCreditsBar: failed to fetch balances',
-      {
-        error: timeoutError,
-        reportToSentry: false,
-      },
-    );
   });
 });

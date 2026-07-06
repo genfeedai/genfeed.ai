@@ -137,6 +137,26 @@ describe('useSubscription', () => {
       expect(result.current.creditsBreakdown).toBeDefined();
     });
 
+    it('does not fetch subscription credit breakdown without an active subscription', async () => {
+      mockOrganizationsService.findOrganizationSubscription.mockResolvedValueOnce(
+        null,
+      );
+
+      const { result } = renderHook(() => useSubscription(), {
+        wrapper: createQueryWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.subscription).toBeNull();
+      expect(result.current.creditsBreakdown).toBeNull();
+      expect(
+        mockSubscriptionsService.getCreditsBreakdown,
+      ).not.toHaveBeenCalled();
+    });
+
     it('should return error state', async () => {
       const { result } = renderHook(() => useSubscription(), {
         wrapper: createQueryWrapper(),
