@@ -22,7 +22,7 @@ export function AgentTerminalHeader({
   onRuntimeChange,
 }: AgentTerminalHeaderProps): ReactElement {
   return (
-    <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+    <div className="flex min-w-0 shrink-0 items-center gap-2 overflow-hidden">
       <span
         aria-hidden="true"
         className={cn(
@@ -37,7 +37,7 @@ export function AgentTerminalHeader({
         {threadLabel || 'New session'}
       </p>
 
-      <div className="ml-auto shrink-0">
+      <div className="shrink-0">
         <AgentRuntimeSelector
           environmentLabel={catalog.environmentLabel}
           localToolSummary={catalog.localToolSummary}

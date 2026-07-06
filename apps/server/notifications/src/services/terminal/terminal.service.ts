@@ -7,6 +7,7 @@ import type { IBetterAuthJwksVerifierOptions } from '@genfeedai/interfaces';
 import {
   createBetterAuthJwksVerifierOptions,
   resolveBetterAuthJwksUrl,
+  resolveBetterAuthTokenUrl,
 } from '@libs/auth/better-auth-jwks.verifier';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@notifications/config/config.service';
@@ -196,6 +197,10 @@ export class TerminalService {
    */
   getBetterAuthJwksUrl(): string {
     return resolveBetterAuthJwksUrl(this.getBetterAuthBaseUrl());
+  }
+
+  getBetterAuthTokenUrl(): string {
+    return resolveBetterAuthTokenUrl(this.getBetterAuthBaseUrl());
   }
 
   getBetterAuthJwksVerifierOptions(): IBetterAuthJwksVerifierOptions {
