@@ -50,6 +50,7 @@
     "setup:skills": "scripts/setup-skills.sh",
     "setup:skills:sync": "scripts/setup-skills.sh --sync",
     "check:skills": "scripts/setup-skills.sh --check",
+    "check:skills-readme": "bun run scripts/check-skills-readme-drift.ts",
     "build": "bunx turbo run build --filter='./packages/*'",
     "build:app": "bunx turbo run build --filter=@genfeedai/app",
     "build:backend:parallel": "bunx turbo run build --filter='./apps/server/*'",

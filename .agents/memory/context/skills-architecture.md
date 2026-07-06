@@ -1,6 +1,6 @@
 ---
 created: 2026-04-21
-last_verified: 2026-04-21
+last_verified: 2026-07-06
 ---
 
 # Skills Architecture — Genfeed.ai
@@ -16,7 +16,7 @@ genfeed.ai/
 ├── skills/                  # Product/content skills (used by the app)
 │   ├── prompt-generator/
 │   ├── workflow-creator/
-│   └── ...                  # 27 content skills
+│   └── ...                  # 31 content skills
 ├── .agents/skills/          # Dev/build skills (for building the app)
 │   ├── react-patterns/
 │   ├── docker-expert/
