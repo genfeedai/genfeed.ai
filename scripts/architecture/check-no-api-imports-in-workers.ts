@@ -5,7 +5,7 @@
  * `apps/server/api/src`), coupling both runtimes into one modular monolith
  * compiled twice. Extraction is in progress: queue contracts live in
  * `@genfeedai/queue-contracts`, pure infra moves to `packages/libs`, and
- * entangled domain/integration services move to `@genfeedai/server-domain`.
+ * entangled domain/integration services move to `@genfeedai/server`.
  *
  * Until extraction completes, this guard is a ratchet:
  * - any `@api/*` specifier NOT in the baseline fails the build, and
@@ -174,7 +174,7 @@ export function runCheckNoApiImportsInWorkers(
     violations.push({
       kind: 'new-import',
       message:
-        'Workers must not add new @api/* imports. Import from @genfeedai/queue-contracts, @libs/*, or @genfeedai/server-domain instead (#1090).',
+        'Workers must not add new @api/* imports. Import from @genfeedai/queue-contracts, @libs/*, or @genfeedai/server instead (#1090).',
       occurrence,
     });
   }

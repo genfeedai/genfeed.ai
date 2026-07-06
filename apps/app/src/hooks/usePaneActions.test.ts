@@ -29,7 +29,7 @@ const mockNodes = [
 ];
 const mockEdges = [{ id: 'edge-1', source: 'node-1', target: 'node-2' }];
 
-vi.mock('@/store/workflowStore', () => {
+vi.mock('@genfeedai/workflow-ui/stores', () => {
   const store = (selector?: (state: unknown) => unknown) => {
     const state = {
       addNode: mockAddNode,
@@ -38,7 +38,10 @@ vi.mock('@/store/workflowStore', () => {
     };
     return selector ? selector(state) : state;
   };
-  return { useWorkflowStore: store };
+  return {
+    selectAddNode: (state: { addNode: unknown }) => state.addNode,
+    useWorkflowStore: store,
+  };
 });
 
 // Mock settingsStore
@@ -48,8 +51,8 @@ vi.mock('@/store/settingsStore', () => {
   return { useSettingsStore: store };
 });
 
-// Mock autoLayout
-vi.mock('@/lib/autoLayout', () => ({
+// Mock autoLayout (now sourced from the workflow-ui package)
+vi.mock('@genfeedai/workflow-ui/lib', () => ({
   getLayoutedNodes: vi.fn((nodes) =>
     nodes.map(
       (n: { id: string; position: { x: number; y: number } }, i: number) => ({

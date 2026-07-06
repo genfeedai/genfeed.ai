@@ -1,0 +1,381 @@
+import { ContentType } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
+import { Inject, Injectable } from '@nestjs/common';
+import { PerformanceSource } from '@server/collections/content-performance/schemas/content-performance.schema';
+import { mapPostCategoryToContentType } from '@server/collections/content-performance/utils/content-performance-category.util';
+import {
+  SERVER_TOKENS,
+  type ServerBrandMemorySync,
+  type ServerLogger,
+  type ServerPrisma,
+} from '@server/server.dependencies';
+
+export interface AnalyticsSyncResult {
+  synced: number;
+  skipped: number;
+  errors: number;
+  organizationId: string;
+  brandId?: string;
+}
+
+export interface AnalyticsSyncOptions {
+  organizationId: string;
+  brandId?: string;
+  /** Only sync analytics newer than this date */
+  since?: Date;
+  /** Batch size for processing */
+  batchSize?: number;
+}
+
+type ContentPerformanceData = {
+  clicks: number;
+  comments: number;
+  contentRunId?: string;
+  contentType: ContentType;
+  creativeVersion?: string;
+  engagementRate: number;
+  externalPostId?: string;
+  generationId?: string;
+  hookVersion?: string;
+  likes: number;
+  measuredAt: string;
+  performanceScore: number;
+  personaId?: string;
+  platform?: string;
+  publishIntent?: string;
+  revenue: number;
+  saves: number;
+  scheduleSlot?: string;
+  shares: number;
+  source: PerformanceSource;
+  userId?: string;
+  variantId?: string;
+  views: number;
+};
+
+@Injectable()
+export class AnalyticsSyncService {
+  private static readonly DEFAULT_BATCH_SIZE = 100;
+
+  constructor(
+    @Inject(SERVER_TOKENS.prisma)
+    private readonly prisma: ServerPrisma,
+    @Inject(SERVER_TOKENS.brandMemorySync)
+    private readonly brandMemorySyncService: ServerBrandMemorySync,
+    @Inject(SERVER_TOKENS.logger)
+    private readonly logger: ServerLogger,
+  ) {}
+
+  /**
+   * Compute engagement rate from analytics metrics
+   */
+  private computeEngagementRate(metrics: {
+    views: number;
+    likes: number;
+    comments: number;
+    shares: number;
+    saves: number;
+  }): number {
+    if (metrics.views === 0) return 0;
+    return Number(
+      (
+        ((metrics.likes + metrics.comments + metrics.shares + metrics.saves) /
+          metrics.views) *
+        100
+      ).toFixed(2),
+    );
+  }
+
+  /**
+   * Compute performance score (0-100) from metrics
+   */
+  private computePerformanceScore(metrics: {
+    views: number;
+    likes: number;
+    comments: number;
+    shares: number;
+    saves: number;
+    clicks: number;
+  }): number {
+    if (metrics.views === 0) return 0;
+    const engagementRate =
+      ((metrics.likes +
+        metrics.comments +
+        metrics.shares +
+        metrics.saves +
+        metrics.clicks) /
+        metrics.views) *
+      100;
+    return Math.min(100, Math.round(engagementRate * 10));
+  }
+
+  private buildPerformanceData(params: {
+    analytics: {
+      platform: string | null;
+      userId: string | null;
+    };
+    measuredAt: Date;
+    metrics: {
+      clicks: number;
+      comments: number;
+      likes: number;
+      saves: number;
+      shares: number;
+      views: number;
+    };
+    post?: {
+      category: string | null;
+      contentRunId: string | null;
+      creativeVersion: string | null;
+      externalId: string | null;
+      generationId: string | null;
+      hookVersion: string | null;
+      personaId: string | null;
+      publishIntent: string | null;
+      scheduleSlot: string | null;
+      variantId: string | null;
+    } | null;
+  }): ContentPerformanceData {
+    const { analytics, measuredAt, metrics, post } = params;
+
+    return {
+      clicks: metrics.clicks,
+      comments: metrics.comments,
+      contentRunId: post?.contentRunId ?? undefined,
+      contentType: mapPostCategoryToContentType(post?.category),
+      creativeVersion: post?.creativeVersion ?? undefined,
+      engagementRate: this.computeEngagementRate(metrics),
+      externalPostId: post?.externalId ?? undefined,
+      generationId: post?.generationId ?? undefined,
+      hookVersion: post?.hookVersion ?? undefined,
+      likes: metrics.likes,
+      measuredAt: measuredAt.toISOString(),
+      performanceScore: this.computePerformanceScore(metrics),
+      personaId: post?.personaId ?? undefined,
+      platform: analytics.platform ?? undefined,
+      publishIntent: post?.publishIntent ?? undefined,
+      revenue: 0,
+      saves: metrics.saves,
+      scheduleSlot: post?.scheduleSlot ?? undefined,
+      shares: metrics.shares,
+      source: PerformanceSource.API,
+      userId: analytics.userId ?? undefined,
+      variantId: post?.variantId ?? undefined,
+      views: metrics.views,
+    };
+  }
+
+  private readMeasuredAt(
+    performance: {
+      createdAt: Date;
+      data: unknown;
+    } | null,
+  ): Date | null {
+    if (!performance) {
+      return null;
+    }
+
+    const measuredAt = (
+      performance.data as { measuredAt?: Date | string | number } | null
+    )?.measuredAt;
+
+    if (measuredAt instanceof Date) {
+      return measuredAt;
+    }
+
+    if (typeof measuredAt === 'string' || typeof measuredAt === 'number') {
+      const parsed = new Date(measuredAt);
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed;
+      }
+    }
+
+    return performance.createdAt;
+  }
+
+  /**
+   * Sync platform analytics data into the closed-loop ContentPerformance collection.
+   */
+  async syncAnalytics(
+    options: AnalyticsSyncOptions,
+  ): Promise<AnalyticsSyncResult> {
+    const {
+      organizationId,
+      brandId,
+      since,
+      batchSize = AnalyticsSyncService.DEFAULT_BATCH_SIZE,
+    } = options;
+
+    this.logger.log(
+      `Starting analytics sync for org=${organizationId}${brandId ? ` brand=${brandId}` : ''}`,
+    );
+
+    const result: AnalyticsSyncResult = {
+      brandId,
+      errors: 0,
+      organizationId,
+      skipped: 0,
+      synced: 0,
+    };
+    const touchedBrandIds = new Set<string>();
+
+    const postAnalyticsWhere: Record<string, unknown> = {
+      organizationId,
+    };
+
+    if (brandId) {
+      postAnalyticsWhere.brandId = brandId;
+    }
+
+    if (since) {
+      postAnalyticsWhere.date = { gte: since };
+    }
+
+    // Process in batches
+    let skip = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      const analyticsBatch = await this.prisma.postAnalytics.findMany({
+        where: postAnalyticsWhere as Prisma.PostAnalyticsWhereInput,
+        orderBy: { date: 'desc' },
+        skip,
+        take: batchSize,
+      });
+
+      if (analyticsBatch.length === 0) {
+        hasMore = false;
+        break;
+      }
+
+      // Collect post IDs to batch-fetch post data
+      const postIds = [...new Set(analyticsBatch.map((a) => String(a.postId)))];
+      const posts = await this.prisma.post.findMany({
+        where: {
+          id: { in: postIds },
+          isDeleted: false,
+          organizationId,
+        },
+      });
+      const postMap = new Map(posts.map((p) => [p.id, p]));
+
+      for (const analytics of analyticsBatch) {
+        try {
+          const post = postMap.get(String(analytics.postId));
+
+          const metrics = {
+            clicks: 0,
+            comments: analytics.totalComments ?? 0,
+            likes: analytics.totalLikes ?? 0,
+            saves: analytics.totalSaves ?? 0,
+            shares: analytics.totalShares ?? 0,
+            views: analytics.totalViews ?? 0,
+          };
+
+          const measuredAt = new Date(analytics.date);
+
+          await this.prisma.contentPerformance.create({
+            data: {
+              brandId: analytics.brandId ?? undefined,
+              contentRunId: post?.contentRunId ?? undefined,
+              data: this.buildPerformanceData({
+                analytics,
+                measuredAt,
+                metrics,
+                post,
+              }),
+              generationId: post?.generationId ?? undefined,
+              isDeleted: false,
+              organizationId,
+              platform: analytics.platform ?? undefined,
+              postId: String(analytics.postId),
+              userId: analytics.userId ?? undefined,
+              variantId: post?.variantId ?? undefined,
+            },
+          });
+
+          result.synced++;
+
+          const resolvedBrandId = analytics.brandId ?? undefined;
+          if (resolvedBrandId && post?.id) {
+            touchedBrandIds.add(resolvedBrandId);
+            try {
+              await this.brandMemorySyncService.syncPostPerformance(
+                organizationId,
+                resolvedBrandId,
+                post.id,
+              );
+            } catch (syncError) {
+              this.logger.error(
+                `Failed to sync brand memory for post ${post.id}`,
+                syncError,
+              );
+            }
+          }
+        } catch (error) {
+          result.errors++;
+          this.logger.error(
+            `Failed to sync analytics for post ${analytics.postId}`,
+            error,
+          );
+        }
+      }
+
+      skip += batchSize;
+      if (analyticsBatch.length < batchSize) {
+        hasMore = false;
+      }
+    }
+
+    for (const touchedBrandId of touchedBrandIds) {
+      try {
+        const alerts = await this.brandMemorySyncService.detectThresholdAlerts(
+          organizationId,
+          touchedBrandId,
+        );
+        for (const alert of alerts) {
+          this.logger.warn(
+            `Engagement ${alert.type} detected for brand=${touchedBrandId}`,
+            alert,
+          );
+        }
+      } catch (alertError) {
+        this.logger.error(
+          `Failed to detect threshold alerts for brand=${touchedBrandId}`,
+          alertError,
+        );
+      }
+    }
+
+    this.logger.log(
+      `Analytics sync completed for org=${organizationId}: synced=${result.synced}, skipped=${result.skipped}, errors=${result.errors}`,
+    );
+
+    return result;
+  }
+
+  /**
+   * Get the most recent sync date for an organization to enable incremental syncs.
+   */
+  async getLastSyncDate(
+    organizationId: string,
+    brandId?: string,
+  ): Promise<Date | null> {
+    const where: Record<string, unknown> = {
+      isDeleted: false,
+      organizationId,
+      source: PerformanceSource.API,
+    };
+
+    if (brandId) {
+      where.brandId = brandId;
+    }
+
+    const latest = await this.prisma.contentPerformance.findFirst({
+      where: where as Prisma.ContentPerformanceWhereInput,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return this.readMeasuredAt(latest);
+  }
+}

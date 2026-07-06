@@ -22,6 +22,22 @@ export default defineConfig({
       { find: '@', replacement: path.resolve(serviceDir, './src') },
       { find: '@api', replacement: path.resolve(serviceDir, '../api/src') },
       {
+        find: '@genfeedai/server',
+        replacement: path.resolve(serviceDir, '../server/src'),
+      },
+      {
+        find: /^@genfeedai\/server\/(.*)$/,
+        replacement: path.resolve(serviceDir, '../server/src/$1'),
+      },
+      {
+        find: '@server',
+        replacement: path.resolve(serviceDir, '../server/src'),
+      },
+      {
+        find: /^@server\/(.*)$/,
+        replacement: path.resolve(serviceDir, '../server/src/$1'),
+      },
+      {
         find: '@genfeedai/constants',
         replacement: path.resolve(
           serviceDir,

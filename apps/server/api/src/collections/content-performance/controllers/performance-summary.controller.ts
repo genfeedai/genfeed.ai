@@ -1,5 +1,4 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -16,6 +15,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { PerformanceSummaryService } from '@server/collections/content-performance/services/performance-summary.service';
 import type { Request } from 'express';
 
 function validateBrandId(brandId: string): void {
