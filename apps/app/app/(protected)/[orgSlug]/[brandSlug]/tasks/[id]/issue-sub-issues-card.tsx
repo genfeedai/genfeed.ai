@@ -29,7 +29,7 @@ export default function IssueSubIssuesCard({
             Sub-issues ({subIssues.length})
           </h3>
           <div className="flex items-center gap-2">
-            <div className="h-1.5 w-16 overflow-hidden rounded-full bg-white/10">
+            <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
               <div
                 className="h-full rounded-full bg-emerald-500/60 transition-all"
                 style={{ width: `${pct}%` }}

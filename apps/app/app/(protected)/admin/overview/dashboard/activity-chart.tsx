@@ -58,11 +58,11 @@ export default function ActivityChart({ data, isLoading }: ActivityChartProps) {
         <div className="text-sm text-foreground/55">
           Real-time throughput metrics
         </div>
-        <div className="flex bg-white/5 rounded-full p-1">
+        <div className="flex bg-muted/50 rounded-full p-1">
           <Button
             type="button"
             variant={ButtonVariant.UNSTYLED}
-            className="px-4 py-2 text-xs font-medium rounded-full bg-white/10 text-white"
+            className="px-4 py-2 text-xs font-medium rounded-full bg-muted text-white"
           >
             7 Days
           </Button>

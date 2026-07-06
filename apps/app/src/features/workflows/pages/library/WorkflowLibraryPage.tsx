@@ -125,7 +125,7 @@ export default function WorkflowLibraryPage() {
             placeholder="Search workflows..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="h-10 rounded-lg border-white/10 bg-white/[0.03] py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-foreground/40 focus-visible:border-white/20 focus-visible:ring-0"
+            className="h-10 rounded-lg border-white/10 bg-card py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-foreground/40 focus-visible:border-white/20 focus-visible:ring-0"
           />
         </div>
         {isLoading && workflows.length > 0 && (
@@ -134,7 +134,7 @@ export default function WorkflowLibraryPage() {
       </div>
 
       {/* Contextual info */}
-      <div className="mb-4 rounded-lg border border-white/10 bg-white/[0.03] p-4 text-sm text-foreground/70">
+      <div className="mb-4 rounded-lg border border-white/10 bg-muted/30 p-4 text-sm text-foreground/70">
         <span className="font-medium text-foreground">Workflows</span> are
         explicit automation graphs. Schedule a workflow when the steps should be
         predictable and repeatable. For adaptive agent behavior, use{' '}
@@ -190,7 +190,7 @@ export default function WorkflowLibraryPage() {
                         synced
                       </span>
                     ) : isCapable && isConnected && !workflow.cloudSync ? (
-                      <span className="flex items-center gap-1 rounded-full bg-white/[0.06] px-2 py-0.5 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                         <CloudUpload className="size-3" />
                         local
                       </span>

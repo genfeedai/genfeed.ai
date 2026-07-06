@@ -19,7 +19,7 @@ export default function SettingsProgressChecklistCard({
   steps,
 }: Props) {
   return (
-    <Card className="border-white/10 bg-white/[0.03] p-6">
+    <Card className="border-white/10 bg-card p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
@@ -34,7 +34,7 @@ export default function SettingsProgressChecklistCard({
         </Badge>
       </div>
 
-      <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/[0.08]">
+      <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
         <div
           className="h-full rounded-full bg-[linear-gradient(90deg,rgba(251,146,60,0.95),rgba(249,115,22,0.65))]"
           style={{
@@ -68,7 +68,7 @@ export default function SettingsProgressChecklistCard({
               className={cn(
                 'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
                 step.isCompleted
-                  ? 'border border-white/10 text-white/55 hover:bg-white/[0.04]'
+                  ? 'border border-white/10 text-white/55 hover:bg-muted/60'
                   : 'border border-orange-400/25 bg-orange-400/10 text-orange-100 hover:bg-orange-400/15',
               )}
             >

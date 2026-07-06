@@ -48,7 +48,7 @@ function getStatusClasses(status: string): string {
     case 'failed':
       return 'border-red-500/30 bg-red-500/15 text-red-300';
     default:
-      return 'border-white/15 bg-white/5 text-white/70';
+      return 'border-white/15 bg-muted/50 text-white/70';
   }
 }
 
@@ -139,7 +139,7 @@ export default function BatchDetail({
           </div>
         </div>
 
-        <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/8">
+        <div className="mt-5 h-2 overflow-hidden rounded-full bg-muted">
           <div
             className="h-full rounded-full bg-primary transition-all"
             style={{ width: `${getProgressPercent(activeBatchStatus)}%` }}
@@ -270,7 +270,7 @@ export default function BatchDetail({
                 key={item._id}
                 className="overflow-hidden rounded-2xl border border-white/10 bg-background/50"
               >
-                <div className="relative aspect-video bg-white/5">
+                <div className="relative aspect-video bg-muted/50">
                   {ingredient?.thumbnailUrl ? (
                     <Image
                       unoptimized

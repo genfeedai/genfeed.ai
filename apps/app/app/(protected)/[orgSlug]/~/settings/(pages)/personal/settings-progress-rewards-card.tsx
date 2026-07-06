@@ -32,7 +32,7 @@ export default function SettingsProgressRewardsCard({
   milestoneStates,
 }: Props) {
   return (
-    <Card className="border-white/10 bg-white/[0.03] p-5">
+    <Card className="border-white/10 bg-card p-5">
       <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
         Badge progress
       </p>

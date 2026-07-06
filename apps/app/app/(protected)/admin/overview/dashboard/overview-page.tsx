@@ -44,7 +44,7 @@ function formatNumber(num: number): string {
 // Quick action cards with B&W styling
 const quickActionCards: OverviewCard[] = [
   {
-    color: 'bg-white/5 text-foreground',
+    color: 'bg-muted/50 text-foreground',
     cta: 'Manage Users',
     description: 'Accounts, roles, and permissions',
     href: APP_ROUTES.ADMIN.ADMINISTRATION.USERS,
@@ -53,7 +53,7 @@ const quickActionCards: OverviewCard[] = [
     label: 'Users',
   },
   {
-    color: 'bg-white/5 text-foreground',
+    color: 'bg-muted/50 text-foreground',
     cta: 'View Elements',
     description: 'Presets, blacklists, and settings',
     href: APP_ROUTES.ADMIN.CONFIGURATION.ELEMENTS_BLACKLISTS,
@@ -62,7 +62,7 @@ const quickActionCards: OverviewCard[] = [
     label: 'Elements',
   },
   {
-    color: 'bg-white/5 text-foreground',
+    color: 'bg-muted/50 text-foreground',
     cta: 'View Posts',
     description: 'Posts, performance, and metrics',
     href: APP_ROUTES.ADMIN.CONTENT.POSTS,
@@ -128,7 +128,7 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
               key={org.organization.id}
               className={cn(
                 'flex items-center justify-between py-3 px-3',
-                'bg-foreground/[0.02] hover:bg-white/[0.02]',
+                'bg-foreground/[0.02] hover:bg-muted/40',
                 'transition-colors duration-150',
               )}
             >
@@ -138,7 +138,7 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
                   {String(index + 1).padStart(2, '0')}
                 </span>
                 {/* Icon circle */}
-                <div className="size-10 rounded-full bg-white/10 flex items-center justify-center">
+                <div className="size-10 rounded-full bg-muted flex items-center justify-center">
                   <HiOutlineBuildingOffice2 className="size-5 text-white/60" />
                 </div>
                 {/* Name and metadata */}
@@ -162,7 +162,7 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
                       ? 'bg-success/10 text-success'
                       : org.growth < 0
                         ? 'bg-destructive/10 text-destructive'
-                        : 'bg-white/10 text-white/60',
+                        : 'bg-muted text-white/60',
                   )}
                 >
                   {org.growth > 0 ? '+' : ''}
@@ -178,7 +178,7 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
       <Button
         type="button"
         variant={ButtonVariant.UNSTYLED}
-        className="w-full mt-6 py-4 border border-white/10 text-xs font-black uppercase tracking-widest text-white/60 hover:bg-white/5 transition-colors"
+        className="w-full mt-6 py-4 border border-white/10 text-xs font-black uppercase tracking-widest text-white/60 hover:bg-muted/70 transition-colors"
       >
         View All Entities
       </Button>
@@ -252,7 +252,7 @@ function StatsGrid({ stats, isLoading }: StatsGridProps) {
               </div>
               <div className="text-2xl font-bold">
                 {isLoading ? (
-                  <div className="h-7 w-12 bg-white/10 animate-pulse" />
+                  <div className="h-7 w-12 bg-muted animate-pulse" />
                 ) : (
                   stat.value
                 )}

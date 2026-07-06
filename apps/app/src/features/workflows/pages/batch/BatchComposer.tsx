@@ -63,7 +63,7 @@ function getStatusClasses(status: string): string {
     case 'failed':
       return 'border-red-500/30 bg-red-500/15 text-red-300';
     default:
-      return 'border-white/15 bg-white/5 text-white/70';
+      return 'border-white/15 bg-muted/50 text-white/70';
   }
 }
 
@@ -162,7 +162,7 @@ export default function BatchComposer({
               }`}
             >
               <Input type="file" {...getInputProps()} />
-              <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-white/5">
+              <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-muted/50">
                 <svg
                   aria-hidden="true"
                   className="size-8 text-muted-foreground"
@@ -298,7 +298,7 @@ export default function BatchComposer({
                   </Badge>
                 </div>
                 <div className="mt-4">
-                  <div className="h-2 overflow-hidden rounded-full bg-white/8">
+                  <div className="h-2 overflow-hidden rounded-full bg-muted">
                     <div
                       className="h-full rounded-full bg-primary transition-all"
                       style={{ width: `${getProgressPercent(job)}%` }}

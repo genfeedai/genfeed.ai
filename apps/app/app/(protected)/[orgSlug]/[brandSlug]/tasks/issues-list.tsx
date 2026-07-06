@@ -64,14 +64,14 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
 };
 
 const STATUS_COLORS: Record<TaskStatus, string> = {
-  backlog: 'bg-white/10 text-white/50',
+  backlog: 'bg-muted text-white/50',
   blocked: 'bg-red-500/20 text-red-400',
-  cancelled: 'bg-white/5 text-white/30',
+  cancelled: 'bg-muted/50 text-white/30',
   done: 'bg-emerald-500/20 text-emerald-400',
   failed: 'bg-red-500/20 text-red-500',
   in_progress: 'bg-blue-500/20 text-blue-400',
   in_review: 'bg-amber-500/20 text-amber-400',
-  todo: 'bg-white/15 text-white/70',
+  todo: 'bg-accent text-white/70',
 };
 
 const PRIORITY_LABELS: Record<TaskPriority, string> = {
@@ -124,7 +124,7 @@ function IssueRow({
   return (
     <Button
       variant={ButtonVariant.UNSTYLED}
-      className="flex w-full items-center gap-4 border-b border-white/5 px-4 py-3 text-left transition-colors hover:bg-white/[0.02]"
+      className="flex w-full items-center gap-4 border-b border-white/5 px-4 py-3 text-left transition-colors hover:bg-muted/40"
       onClick={() => onSelect(issue)}
     >
       <span className="w-20 shrink-0 text-xs font-mono text-white/40">
@@ -152,7 +152,7 @@ function IssueCard({
   return (
     <Button
       variant={ButtonVariant.UNSTYLED}
-      className="block w-full rounded border border-white/5 bg-white/[0.02] p-3 text-left transition-colors hover:bg-white/[0.04]"
+      className="block w-full rounded border border-white/5 bg-card/60 p-3 text-left transition-colors hover:bg-muted/60"
       onClick={() => onSelect(issue)}
     >
       <div className="mb-2 flex items-center justify-between">
@@ -418,7 +418,7 @@ export default function IssuesList() {
               className={cn(
                 'p-1.5 transition-colors',
                 viewMode === 'list'
-                  ? 'bg-white/10 text-white'
+                  ? 'bg-muted text-white'
                   : 'text-white/40 hover:text-white/60',
               )}
               onClick={() =>
@@ -433,7 +433,7 @@ export default function IssuesList() {
               className={cn(
                 'p-1.5 transition-colors',
                 viewMode === 'kanban'
-                  ? 'bg-white/10 text-white'
+                  ? 'bg-muted text-white'
                   : 'text-white/40 hover:text-white/60',
               )}
               onClick={() =>
@@ -468,7 +468,7 @@ export default function IssuesList() {
               const statusTasks = groupedByStatus[status];
               sections.push(
                 <div key={status}>
-                  <div className="flex items-center gap-2 bg-white/[0.02] px-4 py-2">
+                  <div className="flex items-center gap-2 bg-card/60 px-4 py-2">
                     <TaskStatusBadge status={status} />
                     <span className="text-xs text-white/30">
                       {statusTasks.length}
@@ -533,7 +533,7 @@ export default function IssuesList() {
                 Description
               </span>
               <Textarea
-                className="w-full rounded border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/90 outline-none placeholder:text-white/25 focus:border-white/20"
+                className="w-full rounded border border-white/10 bg-muted/50 px-3 py-2 text-sm text-white/90 outline-none placeholder:text-white/25 focus:border-white/20"
                 placeholder="Optional description"
                 rows={4}
                 value={createDescription}

@@ -72,6 +72,111 @@ function collectFiles(dir: string, extensions: Set<string>): string[] {
   return results;
 }
 
+const APP_CHROME_COLOR_SURFACES: Array<{
+  root: string;
+  fileNamePattern?: RegExp;
+}> = [
+  {
+    root: 'apps/app/app/(protected)/[orgSlug]/[brandSlug]/posts/review',
+  },
+  {
+    root: 'apps/app/app/(protected)/[orgSlug]/[brandSlug]/tasks',
+  },
+  {
+    fileNamePattern: /^settings-progress.*\.tsx$/u,
+    root: 'apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/personal',
+  },
+  {
+    root: 'apps/app/src/features/workflows/pages/batch',
+  },
+  {
+    root: 'apps/app/src/features/workflows/pages/library',
+  },
+  {
+    root: 'apps/app/app/(protected)/admin/overview/dashboard',
+  },
+];
+
+const APP_CHROME_COLOR_ALLOW_MARKER = 'design-system-allow-content-color';
+
+function isExcludedSourceFile(relativePath: string): boolean {
+  return (
+    relativePath.endsWith('.test.ts') ||
+    relativePath.endsWith('.test.tsx') ||
+    relativePath.endsWith('.spec.ts') ||
+    relativePath.endsWith('.spec.tsx') ||
+    relativePath.endsWith('.stories.ts') ||
+    relativePath.endsWith('.stories.tsx')
+  );
+}
+
+function isRawChromeColorToken(token: string): boolean {
+  const normalizedToken = token
+    .replace(/^[,;()]+/u, '')
+    .replace(/[,;()]+$/u, '')
+    .replace(/^!/u, '');
+  const baseToken = normalizedToken.split(':').at(-1) ?? normalizedToken;
+
+  return /^(?:bg-white|text-black)(?:\/(?:\d+|\[[^\]]+\]))?$/u.test(baseToken);
+}
+
+function findRawChromeColorTokens(line: string): string[] {
+  if (line.includes(APP_CHROME_COLOR_ALLOW_MARKER)) {
+    return [];
+  }
+
+  return line.split(/[\s"'`{}]+/u).filter(isRawChromeColorToken);
+}
+
+function checkAppChromeRawColors(failures: string[]): void {
+  const findings: string[] = [];
+  const seenFiles = new Set<string>();
+
+  for (const surface of APP_CHROME_COLOR_SURFACES) {
+    const files = collectFiles(
+      path.join(rootDir, surface.root),
+      new Set(['.ts', '.tsx', '.js', '.jsx']),
+    );
+
+    for (const filePath of files) {
+      const relativePath = path.relative(rootDir, filePath);
+      if (seenFiles.has(relativePath) || isExcludedSourceFile(relativePath)) {
+        continue;
+      }
+
+      if (
+        surface.fileNamePattern &&
+        !surface.fileNamePattern.test(path.basename(relativePath))
+      ) {
+        continue;
+      }
+
+      seenFiles.add(relativePath);
+      const content = readFileSync(filePath, 'utf8');
+      const lines = content.split('\n');
+
+      lines.forEach((line, index) => {
+        const tokens = findRawChromeColorTokens(line);
+        if (tokens.length === 0) {
+          return;
+        }
+
+        findings.push(
+          `${relativePath}:${index + 1}: ${tokens.join(', ')} in ${line.trim()}`,
+        );
+      });
+    }
+  }
+
+  if (findings.length > 0) {
+    failures.push(
+      `Scoped apps/app chrome surfaces must use design-system tokens instead of raw bg-white/text-black Tailwind classes. If a raw class is truly user/content color, document it on the same line with ${APP_CHROME_COLOR_ALLOW_MARKER}.\n${findings.join(
+        '\n',
+      )}`,
+    );
+  }
+}
+
 function checkDesignLint(failures: string[]): void {
   try {
     execFileSync('bunx', ['@google/design.md', 'lint', 'DESIGN.md'], {
@@ -214,6 +319,7 @@ function main(): void {
   checkWebTokenDrift(failures);
   checkPlatformCoverage(failures);
   checkMobileHardcodedColors(failures);
+  checkAppChromeRawColors(failures);
 
   if (failures.length > 0) {
     console.error(failures.join('\n\n'));

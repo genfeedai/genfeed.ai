@@ -68,7 +68,7 @@ export default function ReviewDecisionPanel({
             value={feedback}
             onChange={(event) => setFeedback(event.target.value)}
             placeholder="Add revision guidance or rejection context"
-            className="min-h-28 w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/35 focus:border-white/20"
+            className="min-h-28 w-full rounded-xl border border-white/10 bg-muted/40 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/35 focus:border-white/20"
           />
         </span>
 
@@ -125,7 +125,7 @@ export default function ReviewDecisionPanel({
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
             onClick={() => onToggleSelect(item.id)}
-            className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 text-sm font-medium text-foreground/75 transition-colors hover:border-white/20 hover:bg-white/[0.04]"
+            className="rounded-xl border border-white/10 bg-muted/30 px-4 py-3 text-sm font-medium text-foreground/75 transition-colors hover:border-white/20 hover:bg-muted/60"
           >
             {isSelected
               ? 'Remove from bulk selection'

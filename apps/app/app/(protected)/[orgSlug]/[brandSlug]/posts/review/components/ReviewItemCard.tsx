@@ -132,7 +132,7 @@ export default function ReviewItemCard({
                   'flex size-6 items-center justify-center rounded border transition-all',
                   isSelected
                     ? 'border-primary bg-primary text-white'
-                    : 'border-white/15 bg-white/[0.03] text-foreground/50 hover:border-white/25 hover:text-foreground/75',
+                    : 'border-white/15 bg-card text-foreground/50 hover:border-white/25 hover:text-foreground/75',
                 )}
               >
                 {isSelected && <HiCheck className="size-3" />}

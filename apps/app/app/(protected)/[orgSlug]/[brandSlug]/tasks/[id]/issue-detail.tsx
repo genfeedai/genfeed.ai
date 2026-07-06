@@ -47,14 +47,14 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
 };
 
 const STATUS_COLORS: Record<TaskStatus, string> = {
-  backlog: 'bg-white/10 text-white/50',
+  backlog: 'bg-muted text-white/50',
   blocked: 'bg-red-500/20 text-red-400',
-  cancelled: 'bg-white/5 text-white/30',
+  cancelled: 'bg-muted/50 text-white/30',
   done: 'bg-emerald-500/20 text-emerald-400',
   failed: 'bg-red-500/20 text-red-500',
   in_progress: 'bg-blue-500/20 text-blue-400',
   in_review: 'bg-amber-500/20 text-amber-400',
-  todo: 'bg-white/15 text-white/70',
+  todo: 'bg-accent text-white/70',
 };
 
 const PRIORITY_LABELS: Record<TaskPriority, string> = {
