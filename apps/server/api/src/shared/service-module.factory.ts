@@ -1,5 +1,5 @@
-import { ConfigModule } from '@api/config/config.module';
 import type { ServiceModuleOptions } from '@api/shared/interfaces/shared/shared.interfaces';
+import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import {
@@ -29,7 +29,7 @@ export function createServiceModule(
   // Validate ConfigModule and LoggerModule are defined
   if (ConfigModule == null) {
     throw new Error(
-      `createServiceModule: ConfigModule is undefined. Check if @api/config/config.module is properly exported.`,
+      `createServiceModule: ConfigModule is undefined. Check if @libs/config/config.module is properly exported.`,
     );
   }
 

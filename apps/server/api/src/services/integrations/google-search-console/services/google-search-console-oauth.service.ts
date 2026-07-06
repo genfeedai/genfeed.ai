@@ -1,5 +1,5 @@
-import { ConfigService } from '@api/config/config.service';
 import type { GoogleSearchConsoleOAuthTokens } from '@api/services/integrations/google-search-console/interfaces/google-search-console.interface';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';

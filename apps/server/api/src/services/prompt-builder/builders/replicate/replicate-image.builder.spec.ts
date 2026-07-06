@@ -29,7 +29,6 @@ vi.mock('@api/services/prompt-builder/utils/replicate-schema.util', () => ({
   schemaHasField: vi.fn(() => false),
 }));
 
-import type { ConfigService } from '@api/config/config.service';
 import { ReplicateImageBuilder } from '@api/services/prompt-builder/builders/replicate/replicate-image.builder';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import type { ReplicateModelSchema } from '@api/services/prompt-builder/interfaces/replicate-schema.interface';
@@ -46,6 +45,7 @@ import {
   calculateAspectRatio,
   getDefaultAspectRatio,
 } from '@genfeedai/helpers';
+import type { ConfigService } from '@libs/config/config.service';
 
 const createParams = (
   overrides: Partial<PromptBuilderParams> = {},

@@ -17,9 +17,9 @@ vi.mock('@genfeedai/prisma', async () => {
 import type { CreateArticleDto } from '@api/collections/articles/dto/create-article.dto';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
-import { ConfigService } from '@api/config/config.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 
 /**

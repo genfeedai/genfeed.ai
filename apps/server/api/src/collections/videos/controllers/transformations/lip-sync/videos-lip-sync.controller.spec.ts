@@ -30,7 +30,6 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { VideosLipSyncController } from '@api/collections/videos/controllers/transformations/lip-sync/videos-lip-sync.controller';
 import { CreateLipSyncDto } from '@api/collections/videos/dto/create-lip-sync.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
-import { ConfigService } from '@api/config/config.service';
 import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -42,6 +41,7 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';

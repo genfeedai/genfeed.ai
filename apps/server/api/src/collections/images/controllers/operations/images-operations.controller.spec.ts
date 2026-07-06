@@ -53,7 +53,6 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import type { TagEntity } from '@api/collections/tags/entities/tag.entity';
 import { TagsService } from '@api/collections/tags/services/tags.service';
-import { ConfigService } from '@api/config/config.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -81,6 +80,7 @@ import {
   TagCategory,
   TagKey,
 } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';

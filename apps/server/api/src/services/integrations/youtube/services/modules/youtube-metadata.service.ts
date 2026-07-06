@@ -1,6 +1,6 @@
-import { ConfigService } from '@api/config/config.service';
 import { asYoutubeRequestAuth } from '@api/services/integrations/youtube/services/modules/youtube-api-auth.util';
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

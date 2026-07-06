@@ -1,10 +1,10 @@
-import { ConfigService } from '@api/config/config.service';
 import {
   APIMetricsInterceptor,
   PerformanceInterceptor,
 } from '@api/helpers/interceptors/performance/performance.interceptor';
 import { recordPrismaQuery } from '@api/helpers/performance/request-performance.context';
 import { normalizeApiRoute } from '@api/helpers/performance/sentry-performance-monitor';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';

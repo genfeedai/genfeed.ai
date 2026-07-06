@@ -36,7 +36,6 @@ vi.mock('@genfeedai/helpers', async () => ({
   ),
 }));
 
-import { ConfigService } from '@api/config/config.service';
 import { ReplicatePromptBuilder } from '@api/services/prompt-builder/builders/replicate-prompt.builder';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import { MODEL_KEYS } from '@genfeedai/constants';
@@ -48,6 +47,7 @@ import {
   getDefaultAspectRatio,
   normalizeAspectRatioForModel,
 } from '@genfeedai/helpers';
+import { ConfigService } from '@libs/config/config.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 /**

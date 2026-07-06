@@ -1,6 +1,6 @@
-import { ConfigService } from '@api/config/config.service';
 import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import { HedraService } from '@api/services/integrations/hedra/services/hedra.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';

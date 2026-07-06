@@ -1,4 +1,3 @@
-import { ConfigService } from '@api/config/config.service';
 import { MemoryMonitorService } from '@api/helpers/memory/monitor/memory-monitor.service';
 import {
   createRequestPerformanceStore,
@@ -14,6 +13,7 @@ import type {
   ApiPerformanceSeverity,
   PerformanceMetrics,
 } from '@api/shared/interfaces/performance/performance.interface';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   CallHandler,

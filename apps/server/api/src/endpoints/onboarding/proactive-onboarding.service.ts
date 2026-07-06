@@ -8,7 +8,6 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import { UsersService } from '@api/collections/users/services/users.service';
-import { ConfigService } from '@api/config/config.service';
 import type {
   CrmGenerateContentDto,
   PrepareBrandDto,
@@ -28,6 +27,7 @@ import type {
   IScrapedBrandData,
 } from '@genfeedai/interfaces';
 import type { Lead } from '@genfeedai/prisma';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,

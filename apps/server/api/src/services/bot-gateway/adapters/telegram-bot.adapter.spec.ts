@@ -1,4 +1,3 @@
-import { ConfigService } from '@api/config/config.service';
 import { TelegramBotAdapter } from '@api/services/bot-gateway/adapters/telegram-bot.adapter';
 import {
   BotCommandType,
@@ -6,6 +5,7 @@ import {
   BotResponseType,
   CredentialPlatform,
 } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';

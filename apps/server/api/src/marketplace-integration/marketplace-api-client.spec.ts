@@ -1,5 +1,5 @@
-import { ConfigService } from '@api/config/config.service';
 import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

@@ -4,8 +4,8 @@
  * provide typed configuration access across the application.
  */
 
-import { ConfigService } from '@api/config/config.service';
-import { ValidationConfigService } from '@api/config/services/validation.config';
+import { ConfigService } from '@libs/config/config.service';
+import { ValidationConfigService } from '@libs/config/services/validation.config';
 import { Global, Module } from '@nestjs/common';
 
 @Global()

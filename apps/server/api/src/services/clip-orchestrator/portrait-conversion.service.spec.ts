@@ -1,4 +1,3 @@
-import type { ConfigService } from '@api/config/config.service';
 import {
   type ConversionResult,
   INSTAGRAM_PORTRAIT,
@@ -7,6 +6,7 @@ import {
 import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import type { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import type { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

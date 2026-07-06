@@ -1,5 +1,4 @@
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
-import { ConfigService } from '@api/config/config.service';
 import { YoutubeAnalyticsService } from '@api/services/integrations/youtube/services/modules/youtube-analytics.service';
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import { YoutubeCommentsService } from '@api/services/integrations/youtube/services/modules/youtube-comments.service';
@@ -9,6 +8,7 @@ import {
 } from '@api/services/integrations/youtube/services/modules/youtube-metadata.service';
 import { YoutubeUploadService } from '@api/services/integrations/youtube/services/modules/youtube-upload.service';
 import { YoutubeOAuth2Util } from '@api/shared/utils/youtube-oauth/youtube-oauth.util';
+import { ConfigService } from '@libs/config/config.service';
 import { Injectable } from '@nestjs/common';
 import { OAuth2Client } from 'google-auth-library';
 import { google, youtube_v3 } from 'googleapis';

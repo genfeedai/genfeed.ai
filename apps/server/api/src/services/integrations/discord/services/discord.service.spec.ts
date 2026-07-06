@@ -3,8 +3,8 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
 }));
 
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { ConfigService } from '@api/config/config.service';
 import { DiscordService } from '@api/services/integrations/discord/services/discord.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { HttpException, HttpStatus } from '@nestjs/common';

@@ -1,4 +1,3 @@
-import { ConfigService } from '@api/config/config.service';
 import type {
   CreateAdParams,
   CreateAdSetParams,
@@ -20,6 +19,7 @@ import {
   getIntegrationProviderDefinition,
   IntegrationHttpClient,
 } from '@genfeedai/integrations';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';

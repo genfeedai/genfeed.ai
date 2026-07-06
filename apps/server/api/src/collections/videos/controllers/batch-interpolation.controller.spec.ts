@@ -42,7 +42,6 @@ import { PromptsService } from '@api/collections/prompts/services/prompts.servic
 import { BatchInterpolationController } from '@api/collections/videos/controllers/batch-interpolation.controller';
 import type { BatchInterpolationDto } from '@api/collections/videos/dto/batch-interpolation.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
-import { ConfigService } from '@api/config/config.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
@@ -55,6 +54,7 @@ import { FailedGenerationService } from '@api/shared/services/failed-generation/
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { IngredientFormat } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException } from '@nestjs/common';

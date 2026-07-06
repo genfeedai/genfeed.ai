@@ -1,4 +1,4 @@
-import { ConfigService } from '@api/config/config.service';
+import { ConfigService } from '@libs/config/config.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';

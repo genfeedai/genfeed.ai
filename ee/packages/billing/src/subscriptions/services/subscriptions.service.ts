@@ -1,7 +1,6 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CustomersService } from '@api/collections/customers/services/customers.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
-import { ConfigService } from '@api/config/config.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import {
   type StripeCustomer,
@@ -11,6 +10,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/enums';
 import type { ISubscriptionsService } from '@genfeedai/interfaces/billing';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {

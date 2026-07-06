@@ -15,8 +15,8 @@ export interface RedisModuleOptions {
  * @example
  * // In app.module.ts
  * import { RedisModule } from '@libs/redis/redis.module';
- * import { ConfigModule } from '@api/config/config.module';
- * import { ConfigService } from '@api/config/config.service';
+ * import { ConfigModule } from '@libs/config/config.module';
+ * import { ConfigService } from '@libs/config/config.service';
  *
  * @Module({
  *   imports: [

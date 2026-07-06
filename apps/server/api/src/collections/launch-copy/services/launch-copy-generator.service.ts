@@ -2,11 +2,11 @@ import type {
   GenerateLaunchCopyDto,
   LaunchCopyChannel,
 } from '@api/collections/launch-copy/dto/generate-launch-copy.dto';
-import { ConfigService } from '@api/config/config.service';
 import { SecurityUtil } from '@api/helpers/utils/security/security.util';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import type { OpenRouterChatCompletionParams } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { Platform } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

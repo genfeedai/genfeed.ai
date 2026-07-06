@@ -1,7 +1,7 @@
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
-import { ConfigService } from '@api/config/config.service';
 import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
 import { ArticleScope } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { Injectable } from '@nestjs/common';
 import RSS from 'rss';
 

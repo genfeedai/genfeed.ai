@@ -1,6 +1,5 @@
 import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
-import { ConfigService } from '@api/config/config.service';
 import type {
   IPublisher,
   MediaInfo,
@@ -9,6 +8,7 @@ import type {
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 

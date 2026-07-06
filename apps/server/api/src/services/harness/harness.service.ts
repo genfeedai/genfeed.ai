@@ -3,7 +3,6 @@ import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import process from 'node:process';
 import { pathToFileURL } from 'node:url';
-import { ConfigService } from '@api/config/config.service';
 import { isEEEnabled } from '@genfeedai/config';
 import {
   CORE_CONTENT_HARNESS_PACK,
@@ -14,6 +13,7 @@ import {
   composeContentHarnessBrief,
   isContentHarnessPack,
 } from '@genfeedai/harness';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

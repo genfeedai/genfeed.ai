@@ -15,13 +15,13 @@ vi.mock(
 
 import { CredentialEntity } from '@api/collections/credentials/entities/credential.entity';
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
-import { ConfigService } from '@api/config/config.service';
 import { YoutubeAnalyticsService } from '@api/services/integrations/youtube/services/modules/youtube-analytics.service';
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import { YoutubeCommentsService } from '@api/services/integrations/youtube/services/modules/youtube-comments.service';
 import { YoutubeMetadataService } from '@api/services/integrations/youtube/services/modules/youtube-metadata.service';
 import { YoutubeUploadService } from '@api/services/integrations/youtube/services/modules/youtube-upload.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
+import { ConfigService } from '@libs/config/config.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('YoutubeService', () => {

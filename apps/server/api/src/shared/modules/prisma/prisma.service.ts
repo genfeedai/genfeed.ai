@@ -1,11 +1,11 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { ConfigService } from '@api/config/config.service';
 import {
   isPrismaQueryMetricsEnabled,
   recordPrismaQuery,
 } from '@api/helpers/performance/request-performance.context';
 import type { Prisma } from '@genfeedai/prisma';
 import { PrismaClient } from '@genfeedai/prisma';
+import { ConfigService } from '@libs/config/config.service';
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 

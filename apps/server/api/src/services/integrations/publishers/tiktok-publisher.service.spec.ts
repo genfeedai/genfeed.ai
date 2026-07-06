@@ -6,7 +6,6 @@
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
-import { ConfigService } from '@api/config/config.service';
 import type {
   MediaInfo,
   PublishContext,
@@ -14,6 +13,7 @@ import type {
 import { TikTokPublisherService } from '@api/services/integrations/publishers/tiktok-publisher.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

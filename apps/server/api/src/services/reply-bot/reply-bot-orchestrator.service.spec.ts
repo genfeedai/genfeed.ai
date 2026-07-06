@@ -3,13 +3,13 @@ import { MonitoredAccountsService } from '@api/collections/monitored-accounts/se
 import { ProcessedTweetsService } from '@api/collections/processed-tweets/services/processed-tweets.service';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
 import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
-import { ConfigService } from '@api/config/config.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { RateLimitService } from '@api/services/reply-bot/rate-limit.service';
 import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-orchestrator.service';
 import { ReplyCandidatePrefilterService } from '@api/services/reply-bot/reply-candidate-prefilter.service';
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
 import { SocialMonitorService } from '@api/services/reply-bot/social-monitor.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

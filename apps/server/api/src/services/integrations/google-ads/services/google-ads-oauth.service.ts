@@ -1,5 +1,5 @@
-import { ConfigService } from '@api/config/config.service';
 import { GoogleAdsOAuthTokens } from '@api/services/integrations/google-ads/interfaces/google-ads.interface';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';

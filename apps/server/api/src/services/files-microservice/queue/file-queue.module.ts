@@ -1,6 +1,6 @@
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
-import { ConfigModule } from '@api/config/config.module';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { ConfigModule } from '@libs/config/config.module';
 import { HttpModule } from '@nestjs/axios';
 import { forwardRef, Module } from '@nestjs/common';
 

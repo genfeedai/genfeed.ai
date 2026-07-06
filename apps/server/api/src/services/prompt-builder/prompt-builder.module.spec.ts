@@ -1,8 +1,8 @@
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
-import { ConfigService } from '@api/config/config.service';
 import { ReplicatePromptBuilder } from '@api/services/prompt-builder/builders/replicate-prompt.builder';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { vi } from 'vitest';

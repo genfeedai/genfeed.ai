@@ -1,7 +1,7 @@
-import { ConfigService } from '@api/config/config.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import { ByokProvider } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 
 describe('ByokProviderFactoryService', () => {
   let service: ByokProviderFactoryService;

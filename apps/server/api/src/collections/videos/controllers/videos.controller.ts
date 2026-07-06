@@ -7,7 +7,6 @@ import { VideoGenerationService } from '@api/collections/videos/services/video-g
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { VotesService } from '@api/collections/votes/services/votes.service';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
-import { ConfigService } from '@api/config/config.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import {
   Credits,
@@ -51,6 +50,7 @@ import type {
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
 import { VideoSerializer } from '@genfeedai/serializers';
+import { ConfigService } from '@libs/config/config.service';
 import {
   Body,
   Controller,

@@ -2,7 +2,6 @@
  * @fileoverview Tests for DiscordBotAdapter
  */
 
-import { ConfigService } from '@api/config/config.service';
 import { DiscordBotAdapter } from '@api/services/bot-gateway/adapters/discord-bot.adapter';
 import {
   BotCommandType,
@@ -10,6 +9,7 @@ import {
   BotResponseType,
   CredentialPlatform,
 } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';

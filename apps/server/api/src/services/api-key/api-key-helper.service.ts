@@ -1,5 +1,5 @@
-import { ConfigService } from '@api/config/config.service';
 import { ApiKeyCategory } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { Injectable } from '@nestjs/common';
 
 const API_KEY_ENV_MAP: Record<

@@ -1,5 +1,5 @@
-import { ConfigService } from '@api/config/config.service';
-import { ValidationConfigService } from '@api/config/services/validation.config';
+import type { ConfigService } from '@libs/config/config.service';
+import { ValidationConfigService } from '@libs/config/services/validation.config';
 
 type ValidationConfigKeys =
   | 'VALIDATION_MAX_FILE_SIZE'

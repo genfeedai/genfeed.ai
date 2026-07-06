@@ -20,7 +20,6 @@ import { PromptsService } from '@api/collections/prompts/services/prompts.servic
 import { BackgroundMusicDto } from '@api/collections/videos/dto/create-video.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { requireVideoOutputPath } from '@api/collections/videos/utils/video-processing-result.util';
-import { ConfigService } from '@api/config/config.service';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
@@ -45,6 +44,7 @@ import {
   WebSocketEventStatus,
   WebSocketEventType,
 } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';

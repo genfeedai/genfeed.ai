@@ -1,4 +1,4 @@
-import { ConfigService } from '@api/config/config.service';
+import { ConfigService } from '@libs/config/config.service';
 
 // ComfyUI types (not yet exported from cloud-types)
 interface ComfyUIOutputFile {

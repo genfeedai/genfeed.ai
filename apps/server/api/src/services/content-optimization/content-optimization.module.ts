@@ -1,11 +1,11 @@
 import { BrandMemoryModule } from '@api/collections/brand-memory/brand-memory.module';
 import { ContentPerformanceModule } from '@api/collections/content-performance/content-performance.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
-import { ConfigModule } from '@api/config/config.module';
 import { ContentOptimizationController } from '@api/services/content-optimization/content-optimization.controller';
 import { ContentOptimizationService } from '@api/services/content-optimization/content-optimization.service';
 import { ContentOptimizationQueueService } from '@api/services/content-optimization/content-optimization-queue.service';
 import { OpenAiLlmModule } from '@api/services/integrations/openai-llm/openai-llm.module';
+import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { BullModule } from '@nestjs/bullmq';
 import { forwardRef, Module } from '@nestjs/common';

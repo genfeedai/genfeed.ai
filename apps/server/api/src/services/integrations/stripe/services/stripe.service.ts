@@ -1,4 +1,3 @@
-import { ConfigService } from '@api/config/config.service';
 import { IS_SELF_HOSTED } from '@genfeedai/config';
 import {
   creditPackTotalCredits,
@@ -6,6 +5,7 @@ import {
   PAYG_MAX_PURCHASE_USD,
   PAYG_MIN_PURCHASE_USD,
 } from '@genfeedai/helpers';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { BadRequestException, Injectable } from '@nestjs/common';

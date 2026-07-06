@@ -6,10 +6,10 @@ vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
   PrismaService: class {},
 }));
 
-import type { ConfigService } from '@api/config/config.service';
 import type { CacheService } from '@api/services/cache/services/cache.service';
 import type { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 import { SeoScorerService } from './seo-scorer.service';

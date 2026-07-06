@@ -23,7 +23,6 @@ import { PromptsModule } from '@api/collections/prompts/prompts.module';
 import { TagsModule } from '@api/collections/tags/tags.module';
 import { TrainingsModule } from '@api/collections/trainings/trainings.module';
 import { VotesModule } from '@api/collections/votes/votes.module';
-import { ConfigModule } from '@api/config/config.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
@@ -43,6 +42,7 @@ import { UploadsModule } from '@api/services/uploads/uploads.module';
 import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
 import { FailedGenerationModule } from '@api/shared/services/failed-generation/failed-generation.module';
 import { PollingModule } from '@api/shared/services/polling/polling.module';
+import { ConfigModule } from '@libs/config/config.module';
 import { HttpModule } from '@nestjs/axios';
 import { forwardRef, Module } from '@nestjs/common';
 

@@ -11,7 +11,7 @@ vi.mock('@genfeedai/prisma', async () => {
 import process from 'node:process';
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import type { ConfigService } from '@api/config/config.service';
+import type { ConfigService } from '@libs/config/config.service';
 
 const KEY =
   process.env.TOKEN_ENCRYPTION_KEY ?? 'test-encryption-key-for-testing-only';

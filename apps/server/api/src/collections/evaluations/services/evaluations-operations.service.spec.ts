@@ -1,9 +1,9 @@
 import { EvaluationsOperationsService } from '@api/collections/evaluations/services/evaluations-operations.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
-import { ConfigService } from '@api/config/config.service';
 import { ExternalServiceException } from '@api/helpers/exceptions/external/external-service.exception';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

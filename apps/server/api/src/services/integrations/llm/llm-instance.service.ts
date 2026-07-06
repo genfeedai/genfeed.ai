@@ -1,4 +1,3 @@
-import { ConfigService } from '@api/config/config.service';
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import {
   DescribeInstancesCommand,
@@ -6,6 +5,7 @@ import {
   StartInstancesCommand,
   StopInstancesCommand,
 } from '@aws-sdk/client-ec2';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';

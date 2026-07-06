@@ -1,12 +1,12 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type { TrendSourceClassification } from '@api/collections/trends/interfaces/trend.interfaces';
-import { ConfigService } from '@api/config/config.service';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import {
   getIntegrationProviderDefinition,
   IntegrationHttpClient,
 } from '@genfeedai/integrations';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';

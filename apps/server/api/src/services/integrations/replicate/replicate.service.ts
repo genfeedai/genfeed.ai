@@ -1,6 +1,6 @@
-import { ConfigService } from '@api/config/config.service';
 import { IS_CLOUD } from '@genfeedai/config';
 import { MODEL_KEYS } from '@genfeedai/constants';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

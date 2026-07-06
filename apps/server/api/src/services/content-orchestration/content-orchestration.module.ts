@@ -2,7 +2,6 @@ import { BrandsModule } from '@api/collections/brands/brands.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { PersonasModule } from '@api/collections/personas/personas.module';
-import { ConfigModule } from '@api/config/config.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ContentOrchestrationController } from '@api/services/content-orchestration/content-orchestration.controller';
 import { ContentOrchestrationService } from '@api/services/content-orchestration/content-orchestration.service';
@@ -16,6 +15,7 @@ import { HiggsFieldModule } from '@api/services/integrations/higgsfield/higgsfie
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { PersonaContentModule } from '@api/services/persona-content/persona-content.module';
 import { SharedModule } from '@api/shared/shared.module';
+import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { BullModule } from '@nestjs/bullmq';
 import { forwardRef, Module } from '@nestjs/common';

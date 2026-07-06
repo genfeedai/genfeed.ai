@@ -1,8 +1,8 @@
-import { ConfigService } from '@api/config/config.service';
 import { KlingWebhookController } from '@api/endpoints/webhooks/klingai/webhooks.kling.controller';
 import { KlingWebhookService } from '@api/endpoints/webhooks/klingai/webhooks.kling.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

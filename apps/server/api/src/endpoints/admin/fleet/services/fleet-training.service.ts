@@ -1,8 +1,8 @@
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
-import { ConfigService } from '@api/config/config.service';
 import { LoraStatus, TrainingStage, TrainingStatus } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

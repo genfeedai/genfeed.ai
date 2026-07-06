@@ -1,5 +1,4 @@
 import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
-import { ConfigService } from '@api/config/config.service';
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
 import type {
   PublishContext,
@@ -7,6 +6,7 @@ import type {
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { WhatsappService } from '@api/services/integrations/whatsapp/services/whatsapp.service';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

@@ -1,9 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { ConfigService } from '@api/config/config.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { FileInputType } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';

@@ -1,10 +1,10 @@
 import { EvaluationsService } from '@api/collections/evaluations/services/evaluations.service';
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { ConfigService } from '@api/config/config.service';
 import { UserExtractionUtil } from '@api/helpers/utils/user-extraction/user-extraction.util';
 import { BotGatewayService } from '@api/services/bot-gateway/bot-gateway.service';
 import { EvaluationType, IngredientCategory } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable, Optional } from '@nestjs/common';

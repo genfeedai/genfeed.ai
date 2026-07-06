@@ -1,4 +1,3 @@
-import { ConfigService } from '@api/config/config.service';
 import type {
   OpenRouterChatCompletionParams,
   OpenRouterChatCompletionResponse,
@@ -6,6 +5,7 @@ import type {
   OpenRouterStreamTokenHandler,
   OpenRouterToolCallResponse,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';

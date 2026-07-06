@@ -1,4 +1,3 @@
-import { ConfigService } from '@api/config/config.service';
 import type {
   TikTokAdAccount,
   TikTokAdGroupListResponse,
@@ -15,6 +14,7 @@ import type {
   TikTokReportRow,
   TikTokVideoUploadResponse,
 } from '@api/services/integrations/tiktok-ads/interfaces/tiktok-ads.interface';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';

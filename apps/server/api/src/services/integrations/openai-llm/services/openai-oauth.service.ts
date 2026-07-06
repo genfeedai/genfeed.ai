@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { ConfigService } from '@api/config/config.service';
 import { ByokProvider } from '@genfeedai/enums';
 import type { IByokKeyEntry } from '@genfeedai/interfaces';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';

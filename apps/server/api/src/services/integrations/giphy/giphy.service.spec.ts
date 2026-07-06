@@ -1,5 +1,5 @@
-import type { ConfigService } from '@api/config/config.service';
 import { GiphyService } from '@api/services/integrations/giphy/giphy.service';
+import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { HttpService } from '@nestjs/axios';
 import { of, throwError } from 'rxjs';

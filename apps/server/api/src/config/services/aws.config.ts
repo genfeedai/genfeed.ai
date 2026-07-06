@@ -1,4 +1,4 @@
-import { ConfigService } from '@api/config/config.service';
+import { ConfigService } from '@libs/config/config.service';
 import { Injectable } from '@nestjs/common';
 
 export interface AWSConfig {

@@ -1,7 +1,7 @@
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
-import { ConfigModule } from '@api/config/config.module';
 import { HookRemixController } from '@api/endpoints/v1/hook-remix/hook-remix.controller';
 import { HookRemixService } from '@api/endpoints/v1/hook-remix/hook-remix.service';
+import { ConfigModule } from '@libs/config/config.module';
 import { HttpModule } from '@nestjs/axios';
 import { forwardRef, Module } from '@nestjs/common';
 

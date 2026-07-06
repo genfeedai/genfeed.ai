@@ -4,7 +4,6 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { ConfigService } from '@api/config/config.service';
 import { resolveGenerationDefaultModel } from '@api/helpers/utils/generation-defaults/generation-defaults.util';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
@@ -19,6 +18,7 @@ import type {
   IBotCallbackContext,
   IBotResolvedUser,
 } from '@genfeedai/interfaces';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

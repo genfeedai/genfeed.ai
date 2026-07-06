@@ -6,11 +6,11 @@ import {
   resolveEffectiveSeatsLimit,
   UNLIMITED_SEATS_FAIR_USE_CEILING,
 } from '@api/collections/organization-settings/utils/seat-policy.util';
-import { ConfigService } from '@api/config/config.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ByokService } from '@api/services/byok/byok.service';
 import { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { IS_SELF_HOSTED } from '@genfeedai/config';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   type CanActivate,

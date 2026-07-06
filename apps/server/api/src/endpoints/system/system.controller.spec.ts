@@ -1,5 +1,5 @@
-import type { ConfigService } from '@api/config/config.service';
 import { SystemController } from '@api/endpoints/system/system.controller';
+import type { ConfigService } from '@libs/config/config.service';
 
 describe('SystemController', () => {
   let controller: SystemController;

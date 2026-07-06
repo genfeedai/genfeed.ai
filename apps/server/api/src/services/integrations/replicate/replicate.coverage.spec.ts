@@ -7,8 +7,8 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
   };
 });
 
-import { ConfigService } from '@api/config/config.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

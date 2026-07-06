@@ -12,7 +12,6 @@
  */
 import type { MonitoredAccountFilters } from '@api/collections/monitored-accounts/schemas/monitored-account.schema';
 import { ProcessedTweetsService } from '@api/collections/processed-tweets/services/processed-tweets.service';
-import { ConfigService } from '@api/config/config.service';
 import type {
   ApifyInstagramPost,
   ApifyNormalizedInstagramComment,
@@ -29,6 +28,7 @@ import {
   ReplyBotType,
   SocialContentType,
 } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

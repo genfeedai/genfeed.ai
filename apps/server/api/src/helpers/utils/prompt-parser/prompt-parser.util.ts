@@ -1,4 +1,3 @@
-import { ConfigService } from '@api/config/config.service';
 import type {
   IPromptBrandContext,
   IPromptObject,
@@ -6,6 +5,7 @@ import type {
   IPromptParserResult,
 } from '@api/shared/interfaces/prompt/prompt.interface';
 import { PromptCategory } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 
 export class PromptParser {
   static parsePrompt(

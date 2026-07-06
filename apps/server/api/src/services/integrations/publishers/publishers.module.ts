@@ -1,6 +1,5 @@
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
-import { ConfigModule } from '@api/config/config.module';
 import { BeehiivModule } from '@api/services/integrations/beehiiv/beehiiv.module';
 import { FacebookModule } from '@api/services/integrations/facebook/facebook.module';
 import { FanvueModule } from '@api/services/integrations/fanvue/fanvue.module';
@@ -36,6 +35,7 @@ import { TwitterModule } from '@api/services/integrations/twitter/twitter.module
 import { WhatsappModule } from '@api/services/integrations/whatsapp/whatsapp.module';
 import { WordpressModule } from '@api/services/integrations/wordpress/wordpress.module';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
+import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { HttpModule } from '@nestjs/axios';
 import { forwardRef, Module } from '@nestjs/common';

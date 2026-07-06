@@ -7,7 +7,6 @@ import type { CredentialDocument } from '@api/collections/credentials/schemas/cr
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
-import { ConfigService } from '@api/config/config.service';
 import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
 import type {
   MediaInfo,
@@ -15,6 +14,7 @@ import type {
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { PinterestPublisherService } from '@api/services/integrations/publishers/pinterest-publisher.service';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Test, TestingModule } from '@nestjs/testing';

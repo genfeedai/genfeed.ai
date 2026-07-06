@@ -25,7 +25,6 @@ import { UsersModule } from '@api/collections/users/users.module';
 import { VoicesModule } from '@api/collections/voices/voices.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
-import { ConfigModule } from '@api/config/config.module';
 import { AiActionsModule } from '@api/endpoints/ai-actions/ai-actions.module';
 import { AnalyticsModule } from '@api/endpoints/analytics/analytics.module';
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
@@ -43,6 +42,7 @@ import { ContentQualityModule } from '@api/services/content-quality/content-qual
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { SeoModule } from '@api/services/seo/seo.module';
 import { SkillRuntimeModule } from '@api/services/skill-runtime/skill-runtime.module';
+import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { HttpModule } from '@nestjs/axios';
 import { forwardRef, Module } from '@nestjs/common';
