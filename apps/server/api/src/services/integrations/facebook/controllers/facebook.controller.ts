@@ -162,19 +162,6 @@ export class FacebookController {
     }
   }
 
-  @Get('auth')
-  initializeAuth(@CurrentUser() user: User) {
-    const publicMetadata = getPublicMetadata(user);
-    const state = Buffer.from(
-      JSON.stringify({
-        brandId: publicMetadata.brand,
-        userId: publicMetadata.user,
-      }),
-    ).toString('base64');
-
-    return { authUrl: this.facebookService.generateAuthUrl(state) };
-  }
-
   @Get('callback')
   handleCallback() {
     return {
