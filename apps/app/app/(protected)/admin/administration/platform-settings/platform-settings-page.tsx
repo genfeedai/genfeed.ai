@@ -126,7 +126,7 @@ export default function PlatformSettingsPage() {
       {isLoading ? (
         <SkeletonCard showImage={false} />
       ) : (
-        <form onSubmit={handleSubmit} className="max-w-xl space-y-6">
+        <form onSubmit={handleSubmit} noValidate className="max-w-xl space-y-6">
           <Field
             label="Model-cost margin multiplier"
             htmlFor="platform-margin-multiplier"
