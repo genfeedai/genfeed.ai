@@ -25,15 +25,16 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { VideosLipSyncController } from '@api/collections/videos/controllers/transformations/lip-sync/videos-lip-sync.controller';
 import { CreateLipSyncDto } from '@api/collections/videos/dto/create-lip-sync.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -43,6 +44,7 @@ import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -89,9 +91,6 @@ describe('VideosLipSyncController', () => {
   };
 
   let byokService: { resolveApiKey: ReturnType<typeof vi.fn> };
-  let creditsUtilsService: {
-    deductCreditsFromOrganization: ReturnType<typeof vi.fn>;
-  };
   let failedGenerationService: {
     handleFailedVideoGeneration: ReturnType<typeof vi.fn>;
   };
@@ -105,9 +104,6 @@ describe('VideosLipSyncController', () => {
 
   beforeEach(async () => {
     byokService = { resolveApiKey: vi.fn().mockResolvedValue(null) };
-    creditsUtilsService = {
-      deductCreditsFromOrganization: vi.fn().mockResolvedValue(undefined),
-    };
     failedGenerationService = {
       handleFailedVideoGeneration: vi.fn().mockResolvedValue(undefined),
     };
@@ -137,13 +133,16 @@ describe('VideosLipSyncController', () => {
       controllers: [VideosLipSyncController],
       providers: [
         { provide: ByokService, useValue: byokService },
+        // CreditsInterceptor is now bound to the handler (@UseInterceptors); Nest
+        // instantiates it at module compile, so its queue dependency must resolve.
+        // It never runs here — controller methods are invoked directly.
+        {
+          provide: CreditDeductionQueueService,
+          useValue: { queueByokUsage: vi.fn(), queueDeduction: vi.fn() },
+        },
         {
           provide: ConfigService,
           useValue: { get: vi.fn(), ingredientsEndpoint: 'http://localhost' },
-        },
-        {
-          provide: CreditsUtilsService,
-          useValue: creditsUtilsService,
         },
         {
           provide: FailedGenerationService,
@@ -187,6 +186,21 @@ describe('VideosLipSyncController', () => {
     expect(controller).toBeDefined();
   });
 
+  it('charges a fixed 1-credit @Credits config (no modelKey) so CreditsInterceptor deducts a flat 1', () => {
+    // Locks the #1354 fix: the route must charge a fixed amount via the
+    // standard guard+interceptor path, NOT a modelKey (which would re-introduce
+    // the models-table lookup) and NOT a manual inline deduction.
+    const reflector = new Reflector();
+    const config = reflector.get<{ amount?: number; modelKey?: string }>(
+      CREDITS_KEY,
+      controller.createLipSyncVideo,
+    );
+
+    expect(config).toBeDefined();
+    expect(config.amount).toBe(1);
+    expect(config.modelKey).toBeUndefined();
+  });
+
   describe('createLipSyncVideo', () => {
     describe('happy path', () => {
       it('should return ingredient data on successful generation', async () => {
@@ -218,20 +232,6 @@ describe('VideosLipSyncController', () => {
         expect(metadataService.patch).toHaveBeenCalledWith(
           mockMetadataData.id,
           expect.objectContaining({ externalId: 'heygen-video-id-abc' }),
-        );
-      });
-
-      it('should deduct credits after successful generation', async () => {
-        await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
-
-        expect(
-          creditsUtilsService.deductCreditsFromOrganization,
-        ).toHaveBeenCalledWith(
-          '507f1f77bcf86cd799439013',
-          '507f1f77bcf86cd799439012',
-          1,
-          expect.stringContaining('heygen'),
-          expect.any(String),
         );
       });
 

@@ -89,7 +89,7 @@ function EditableEdgeComponent({
           y={labelY - 10}
           className="pointer-events-none"
         >
-          <div className="flex items-center justify-center size-5 rounded-full bg-amber-500 text-white shadow-sm">
+          <div className="flex items-center justify-center size-5 rounded-full bg-warning text-warning-foreground shadow-sm">
             <Pause className="size-3" />
           </div>
         </foreignObject>

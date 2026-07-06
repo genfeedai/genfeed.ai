@@ -6,11 +6,11 @@ import type {
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { WordpressService } from '@api/services/integrations/wordpress/services/wordpress.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()

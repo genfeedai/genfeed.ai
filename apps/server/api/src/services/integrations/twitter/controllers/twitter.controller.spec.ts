@@ -2,7 +2,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => ({ data })),
 }));
 
-vi.mock('@api/shared/utils/encryption/encryption.util', () => ({
+vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: { decrypt: vi.fn((val: string) => val) },
 }));
 

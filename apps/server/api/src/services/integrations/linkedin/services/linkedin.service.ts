@@ -1,7 +1,6 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type { TrendSourceClassification } from '@api/collections/trends/interfaces/trend.interfaces';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform } from '@genfeedai/enums';
 import {
   getIntegrationProviderDefinition,
@@ -10,6 +9,7 @@ import {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { AuthClient } from 'linkedin-api-client';

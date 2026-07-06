@@ -1,10 +1,10 @@
 import { UpdateCredentialDto } from '@api/collections/credentials/dto/update-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { YoutubeOAuth2Util } from '@api/shared/utils/youtube-oauth/youtube-oauth.util';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { OAuth2Client } from 'google-auth-library';
 

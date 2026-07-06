@@ -361,7 +361,7 @@ export default function BrandDetailSocialMediaCard({
               ))}
             </div>
           ) : (
-            <div className="rounded-lg border border-dashed border-border/70 bg-background/30 px-4 py-5 text-sm text-muted-foreground">
+            <div className="rounded-lg bg-background-secondary px-4 py-5 text-sm text-muted-foreground shadow-border">
               No social accounts connected yet.
             </div>
           )}

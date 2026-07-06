@@ -15,7 +15,6 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { FanvueService } from '@api/services/integrations/fanvue/services/fanvue.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform } from '@genfeedai/enums';
 import {
   CredentialOAuthSerializer,
@@ -24,6 +23,7 @@ import {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Body, Controller, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
 

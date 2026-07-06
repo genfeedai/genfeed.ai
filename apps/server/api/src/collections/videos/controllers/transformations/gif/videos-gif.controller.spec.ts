@@ -187,24 +187,4 @@ describe('VideosGifController', () => {
       }),
     );
   });
-
-  // --- createReference ---
-  it('should return reference endpoint response for existing video', async () => {
-    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    const result = await controller.createReference(
-      mockUser,
-      '507f1f77bcf86cd799439011',
-    );
-    expect(result).toEqual({
-      message: 'Reference image generation endpoint',
-      videoId: '507f1f77bcf86cd799439011',
-    });
-  });
-
-  it('should throw NOT_FOUND when video does not exist for reference', async () => {
-    mockServices.videosService.findOne.mockResolvedValue(null);
-    await expect(
-      controller.createReference(mockUser, 'nonexistent'),
-    ).rejects.toThrow(HttpException);
-  });
 });

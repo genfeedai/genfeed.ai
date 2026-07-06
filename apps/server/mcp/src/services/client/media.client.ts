@@ -5,7 +5,6 @@ import type {
   VideoResource,
 } from '@mcp/shared/interfaces/api-response.interface';
 import type {
-  AvatarCreationParams,
   AvatarListParams,
   AvatarResponse,
 } from '@mcp/shared/interfaces/avatar.interface';
@@ -173,41 +172,6 @@ export class MediaClient {
         );
       },
       this.base.failWith('Failed to list images'),
-    );
-  }
-
-  createAvatar(params: AvatarCreationParams): Promise<AvatarResponse> {
-    this.base.logger.debug('Creating avatar', { params });
-
-    return this.base.request(
-      'creating avatar',
-      async (http) => {
-        const response = await http.post('/avatars/generate', {
-          data: {
-            attributes: {
-              age: params.age || 'middle-aged',
-              gender: params.gender,
-              name: params.name,
-              style: params.style || 'realistic',
-            },
-            type: 'avatars',
-          },
-        });
-
-        const avatar = response.data?.data;
-        return {
-          age: params.age || 'middle-aged',
-          createdAt: avatar?.attributes?.createdAt || new Date().toISOString(),
-          gender: params.gender,
-          id: avatar?.id || avatar?.attributes?.id,
-          name: params.name,
-          status: avatar?.attributes?.status || CONTENT_STATUS.PROCESSING,
-          style: params.style || 'realistic',
-          thumbnailUrl: avatar?.attributes?.thumbnailUrl,
-          videoUrl: avatar?.attributes?.videoUrl,
-        };
-      },
-      this.base.failWithDetail('Failed to create avatar'),
     );
   }
 

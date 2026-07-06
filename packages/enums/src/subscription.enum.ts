@@ -11,16 +11,15 @@ export enum SubscriptionPlan {
 }
 
 /**
- * Premium pricing tiers (output-based, not credit-based)
+ * Subscription tiers (credit-based)
  * See: https://github.com/genfeedai/cloud/issues?q=is%3Aissue+pricing
  */
 export enum SubscriptionTier {
   FREE = 'free',
   BYOK = 'byok', // Bring Your Own Key — free tier
-  CREATOR = 'creator', // $50/month - 5 videos, 50 images, 15 min voice (UNLISTED)
-  PRO = 'pro', // $499/month - 30 videos, 500 images, 60 min voice
-  SCALE = 'scale', // $1,499/month - 100 videos, 2,000 images, 200 min voice
-  ENTERPRISE = 'enterprise', // $4,999/month - Unlimited
+  PRO = 'pro', // $49/month - Pro/"Creator" card, 8,000 credits
+  SCALE = 'scale', // $499/month - Scale/"Cloud Teams" card, 80,000 credits
+  ENTERPRISE = 'enterprise', // custom
 }
 
 export enum ByokBillingStatus {

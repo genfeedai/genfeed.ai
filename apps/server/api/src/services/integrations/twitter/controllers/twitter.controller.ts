@@ -10,7 +10,6 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform } from '@genfeedai/enums';
 import {
   CredentialOAuthSerializer,
@@ -19,6 +18,7 @@ import {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {
   Body,
   Controller,

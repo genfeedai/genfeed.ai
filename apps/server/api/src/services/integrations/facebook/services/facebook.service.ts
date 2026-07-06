@@ -1,5 +1,4 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
 import type {
   FacebookInsight,
@@ -9,6 +8,7 @@ import type {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';

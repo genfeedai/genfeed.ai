@@ -597,7 +597,7 @@ function CliAuthPageContent() {
           </p>
         </div>
 
-        <Card className="border-white/[0.08]">
+        <Card className="shadow-border border-transparent">
           <CardContent className="p-8">
             {(!isLoaded || flowState.step === 'validating') && (
               <StepDisplay
@@ -610,7 +610,9 @@ function CliAuthPageContent() {
             {isLoaded && flowState.step === 'signing-in' && (
               <div className="space-y-4">
                 <StepDisplay
-                  icon={<HiCommandLine className="size-8 text-blue-400" />}
+                  icon={
+                    <HiCommandLine className="size-8 text-muted-foreground" />
+                  }
                   title="Sign in required"
                   description="Sign in to authorize this device."
                 />
@@ -670,7 +672,7 @@ function CliAuthPageContent() {
             {flowState.step === 'success' && (
               <div className="space-y-6">
                 <StepDisplay
-                  icon={<HiCheckCircle className="size-8 text-emerald-500" />}
+                  icon={<HiCheckCircle className="size-8 text-success" />}
                   title="Authentication complete"
                   description={
                     isDesktopMode
@@ -767,7 +769,7 @@ function CopyKeyFallback({
           onClick={onCopy}
         >
           {copied ? (
-            <HiClipboardDocumentCheck className="size-4 text-emerald-500" />
+            <HiClipboardDocumentCheck className="size-4 text-success" />
           ) : (
             <HiClipboard className="size-4" />
           )}

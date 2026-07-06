@@ -1,15 +1,15 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { MastodonService } from '@api/services/integrations/mastodon/services/mastodon.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { OAuthGrantType } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { of, throwError } from 'rxjs';
 
-vi.mock('@api/shared/utils/encryption/encryption.util');
+vi.mock('@libs/utils/encryption/encryption.util');
 
 describe('MastodonService', () => {
   let service: MastodonService;

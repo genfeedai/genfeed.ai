@@ -51,7 +51,6 @@ function LibraryPreviewTile({
           className,
         )}
       >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.14),transparent_45%)]" />
         <div className="relative flex h-full items-end">
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">

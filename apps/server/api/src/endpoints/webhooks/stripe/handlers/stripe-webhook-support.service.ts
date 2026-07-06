@@ -273,8 +273,7 @@ export class StripeWebhookSupportService {
 
   /**
    * Resolve the SubscriptionPlan from a Stripe price ID.
-   * Supports tier-based pricing:
-   * Creator, Pro, Scale, Enterprise.
+   * Supports tier-based pricing: Pro (monthly + yearly), Scale, Enterprise.
    */
   resolveSubscriptionPlan(
     stripePriceId: string,
@@ -287,9 +286,15 @@ export class StripeWebhookSupportService {
       return SubscriptionPlan.ENTERPRISE;
     }
 
-    // All other tier prices (Creator, Pro, Scale) are monthly
+    const proYearlyPriceId = this.configService.get(
+      'STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY',
+    );
+    if (proYearlyPriceId && stripePriceId === proYearlyPriceId) {
+      return SubscriptionPlan.YEARLY;
+    }
+
+    // Monthly subscription tier prices (Pro, Scale)
     const monthlyPriceIds = [
-      this.configService.get('STRIPE_PRICE_SUBSCRIPTION_CREATOR_MONTHLY'),
       this.configService.get('STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY'),
       this.configService.get('STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY'),
     ].filter(Boolean);
@@ -312,11 +317,11 @@ export class StripeWebhookSupportService {
   resolveTierFromPriceId(stripePriceId: string): SubscriptionTier | null {
     const priceToTier: Record<string, SubscriptionTier> = {};
 
-    const creatorPrice = this.configService.get(
-      'STRIPE_PRICE_SUBSCRIPTION_CREATOR_MONTHLY',
-    );
     const proPrice = this.configService.get(
       'STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY',
+    );
+    const proYearlyPrice = this.configService.get(
+      'STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY',
     );
     const scalePrice = this.configService.get(
       'STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY',
@@ -325,11 +330,11 @@ export class StripeWebhookSupportService {
       'STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY',
     );
 
-    if (creatorPrice) {
-      priceToTier[creatorPrice] = SubscriptionTier.CREATOR;
-    }
     if (proPrice) {
       priceToTier[proPrice] = SubscriptionTier.PRO;
+    }
+    if (proYearlyPrice) {
+      priceToTier[proYearlyPrice] = SubscriptionTier.PRO;
     }
     if (scalePrice) {
       priceToTier[scalePrice] = SubscriptionTier.SCALE;

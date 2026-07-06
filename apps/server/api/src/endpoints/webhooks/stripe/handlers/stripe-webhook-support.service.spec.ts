@@ -41,9 +41,9 @@ describe('StripeWebhookSupportService', () => {
   const accessBootstrapCacheService = { invalidateForUser: vi.fn() };
 
   const priceConfig: Record<string, string> = {
-    STRIPE_PRICE_SUBSCRIPTION_CREATOR_MONTHLY: 'price_creator',
     STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY: 'price_enterprise',
     STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY: 'price_pro',
+    STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY: 'price_pro_yearly',
     STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY: 'price_scale',
   };
 
@@ -367,10 +367,10 @@ describe('StripeWebhookSupportService', () => {
     it('maps configured prices to tiers', () => {
       configService.get.mockImplementation((key: string) => priceConfig[key]);
 
-      expect(service.resolveTierFromPriceId('price_creator')).toBe(
-        SubscriptionTier.CREATOR,
-      );
       expect(service.resolveTierFromPriceId('price_pro')).toBe(
+        SubscriptionTier.PRO,
+      );
+      expect(service.resolveTierFromPriceId('price_pro_yearly')).toBe(
         SubscriptionTier.PRO,
       );
       expect(service.resolveTierFromPriceId('price_scale')).toBe(

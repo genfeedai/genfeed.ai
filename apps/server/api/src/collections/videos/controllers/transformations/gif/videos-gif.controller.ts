@@ -98,21 +98,4 @@ export class VideosGifController {
 
     return serializeSingle(request, IngredientSerializer, ingredientData);
   }
-
-  @Post(':videoId/reference')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async createReference(
-    @CurrentUser() _user: User,
-    @Param('videoId') videoId: string,
-  ) {
-    const video = await this.videosService.findOne({ _id: videoId });
-    if (!video) {
-      return returnNotFound(this.constructorName, videoId);
-    }
-
-    return {
-      message: 'Reference image generation endpoint',
-      videoId: videoId,
-    };
-  }
 }

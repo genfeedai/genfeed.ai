@@ -81,9 +81,10 @@ export class AgentCampaignExecutionService {
 
         // Activate strategy if not already active
         if (!strategy.isActive) {
-          await this.agentStrategiesService.toggleActive(
+          await this.agentStrategiesService.setActive(
             strategyId,
             organizationId,
+            true,
           );
         }
 

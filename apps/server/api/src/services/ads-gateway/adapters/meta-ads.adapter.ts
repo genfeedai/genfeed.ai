@@ -149,13 +149,6 @@ export class MetaAdsAdapter implements IAdsAdapter {
     };
   }
 
-  async pauseCampaign(
-    ctx: AdsAdapterContext,
-    campaignId: string,
-  ): Promise<void> {
-    await this.metaAdsService.pauseCampaign(ctx.accessToken, campaignId);
-  }
-
   async listAdSets(
     _ctx: AdsAdapterContext,
     _campaignId: string,

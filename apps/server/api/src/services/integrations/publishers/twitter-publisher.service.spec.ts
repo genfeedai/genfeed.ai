@@ -28,10 +28,10 @@ import type {
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { TwitterPublisherService } from '@api/services/integrations/publishers/twitter-publisher.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
 import { of } from 'rxjs';

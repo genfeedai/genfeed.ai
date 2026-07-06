@@ -66,7 +66,7 @@ function PayloadCard({ payload }: PayloadCardProps) {
             <span className="text-xs font-medium text-[var(--foreground)] truncate">
               {payload.nodeName || payload.nodeId}
             </span>
-            <span className="text-[10px] px-1.5 py-0.5 bg-amber-500/10 text-amber-500 rounded">
+            <span className="text-[10px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded">
               {payload.nodeType}
             </span>
           </div>
@@ -116,10 +116,10 @@ function DebugPanelComponent() {
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-[var(--border)]">
         <div className="flex items-center gap-2">
-          <Bug className="size-4 text-amber-500" />
+          <Bug className="size-4 text-muted-foreground" />
           <span className="font-medium text-sm">Debug Console</span>
           {debugPayloads.length > 0 && (
-            <span className="text-[10px] px-1.5 py-0.5 bg-amber-500/10 text-amber-500 rounded-full">
+            <span className="text-[10px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded-full">
               {debugPayloads.length}
             </span>
           )}
@@ -145,7 +145,7 @@ function DebugPanelComponent() {
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {debugPayloads.length === 0 ? (
           <div className="text-center py-8 text-[var(--muted-foreground)]">
-            <Bug className="size-12 mx-auto mb-3 opacity-50 text-amber-500/50" />
+            <Bug className="size-12 mx-auto mb-3 opacity-50 text-muted-foreground" />
             <p className="text-sm font-medium mb-2">No payloads captured</p>
             <p className="text-xs">
               Run a workflow with debug mode enabled to capture API payloads.

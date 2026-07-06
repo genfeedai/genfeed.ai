@@ -54,7 +54,7 @@ export default function IssueCommentsCard({
             type="button"
             variant={ButtonVariant.GHOST}
             size={ButtonSize.XS}
-            className="flex items-center gap-1 text-[10px] text-blue-400 hover:text-blue-300"
+            className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
             onClick={onScrollToLatest}
           >
             <HiOutlineChevronDoubleDown className="size-3" />

@@ -106,7 +106,7 @@ export default function CronJobsList() {
               {job.paused ? 'Paused' : 'Active'}
             </Badge>
             {job.failures > 0 && (
-              <span className="text-xs text-red-400">
+              <span className="text-xs text-destructive">
                 {job.failures} failures
               </span>
             )}
@@ -149,7 +149,7 @@ export default function CronJobsList() {
         </div>
       }
     >
-      <div className="mb-4 rounded-lg border border-white/10 bg-white/[0.02] px-4 py-3 text-sm text-muted-foreground">
+      <div className="mb-4 rounded-lg bg-secondary px-4 py-3 text-sm text-muted-foreground shadow-border">
         Legacy cron jobs are read-only. Create and manage recurring automation
         in Workflows.
       </div>

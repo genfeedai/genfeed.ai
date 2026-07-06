@@ -49,4 +49,12 @@ describe('HomeCredits', () => {
     expect(screen.getAllByText(/pack$/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/credits/i).length).toBeGreaterThan(0);
   });
+
+  it('surfaces the launch pricing note', () => {
+    render(<HomeCredits />);
+
+    expect(
+      screen.getByText(/launch pricing — first 12 months, then \$49\/month/i),
+    ).toBeInTheDocument();
+  });
 });

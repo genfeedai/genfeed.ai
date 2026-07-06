@@ -3,7 +3,7 @@ import type {
   CardEmptySize,
   CardVariant,
 } from '@genfeedai/enums';
-import type { ComponentType } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 
 export interface CardEmptyAction {
   label: string;
@@ -18,6 +18,13 @@ export interface CardEmptyProps {
   label?: string;
   description?: string;
   action?: CardEmptyAction;
+  /**
+   * Custom action node rendered in place of the built-in single `action`
+   * button — for empty states that need multiple CTAs or navigation `Link`s
+   * (e.g. "Browse Templates" + "Create Workflow"). Takes precedence over
+   * `action` when provided.
+   */
+  actions?: ReactNode;
   className?: string;
   size?: CardEmptySize;
   variant?: CardVariant;

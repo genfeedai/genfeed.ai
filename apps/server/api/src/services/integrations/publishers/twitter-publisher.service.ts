@@ -9,12 +9,12 @@ import type {
   ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';

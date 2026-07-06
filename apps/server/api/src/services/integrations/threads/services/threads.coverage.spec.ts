@@ -10,7 +10,7 @@
  * automatically, so declaration order here is correct.
  */
 
-vi.mock('@api/shared/utils/encryption/encryption.util', () => ({
+vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: { decrypt: vi.fn((val: string) => `decrypted:${val}`) },
 }));
 

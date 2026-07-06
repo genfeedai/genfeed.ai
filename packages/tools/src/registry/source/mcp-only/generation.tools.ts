@@ -64,41 +64,6 @@ export const MCP_GENERATION_TOOLS: SourceTool[] = [
   },
   {
     creditCost: 0,
-    description:
-      'Generate AI avatars for videos, perfect for talking head videos, presentations, and content creation.',
-    name: 'create_avatar',
-    parameters: {
-      properties: {
-        age: {
-          default: 'middle-aged',
-          description: 'Age range',
-          enum: ['young', 'middle-aged', 'senior'],
-          type: 'string',
-        },
-        gender: {
-          description: 'Avatar gender',
-          enum: ['male', 'female', 'neutral'],
-          type: 'string',
-        },
-        name: {
-          description: 'Name for the avatar',
-          type: 'string',
-        },
-        style: {
-          default: 'realistic',
-          description: 'Avatar style',
-          enum: ['realistic', 'cartoon', 'professional', 'casual'],
-          type: 'string',
-        },
-      },
-      required: ['name'],
-      type: 'object',
-    },
-    requiredRole: 'user',
-    surfaces: { agent: false, cliAgentVisible: false, mcp: true },
-  },
-  {
-    creditCost: 0,
     description: 'List all available avatars',
     name: 'list_avatars',
     parameters: {

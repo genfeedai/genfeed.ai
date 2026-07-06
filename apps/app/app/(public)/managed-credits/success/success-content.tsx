@@ -191,7 +191,7 @@ function ManagedCreditsSuccessContentInner() {
           </p>
         </div>
 
-        <Card className="border-white/[0.08]">
+        <Card className="shadow-border border-transparent">
           <CardContent className="p-8">
             {state.isLoading ? (
               <StepDisplay
@@ -203,9 +203,7 @@ function ManagedCreditsSuccessContentInner() {
 
             {!state.isLoading && state.error ? (
               <StepDisplay
-                icon={
-                  <HiExclamationTriangle className="size-8 text-amber-500" />
-                }
+                icon={<HiExclamationTriangle className="size-8 text-warning" />}
                 title="Provisioning result not ready"
                 description={state.error}
               />
@@ -213,7 +211,7 @@ function ManagedCreditsSuccessContentInner() {
 
             {!state.isLoading && hasRecoverableExistingKey ? (
               <StepDisplay
-                icon={<HiCheckCircle className="size-8 text-emerald-500" />}
+                icon={<HiCheckCircle className="size-8 text-success" />}
                 title="Credits added"
                 description="This account already has a managed API key, so the secret cannot be shown again. Use your existing key or create a new one in Genfeed Cloud."
               />
@@ -222,7 +220,7 @@ function ManagedCreditsSuccessContentInner() {
             {!state.isLoading && apiKey ? (
               <div className="space-y-6">
                 <StepDisplay
-                  icon={<HiCheckCircle className="size-8 text-emerald-500" />}
+                  icon={<HiCheckCircle className="size-8 text-success" />}
                   title="Credits added"
                   description={`Provisioned for ${state.result?.email ?? 'your account'}. Copy this key now and store it in your local environment.`}
                 />
@@ -242,7 +240,7 @@ function ManagedCreditsSuccessContentInner() {
                 />
 
                 {state.copyError ? (
-                  <p className="text-sm text-amber-500">{state.copyError}</p>
+                  <p className="text-sm text-warning">{state.copyError}</p>
                 ) : null}
               </div>
             ) : null}
@@ -276,7 +274,7 @@ function KeyBlock({
           onClick={onCopy}
         >
           {copied ? (
-            <HiClipboardDocumentCheck className="size-4 text-emerald-500" />
+            <HiClipboardDocumentCheck className="size-4 text-success" />
           ) : (
             <HiClipboard className="size-4" />
           )}

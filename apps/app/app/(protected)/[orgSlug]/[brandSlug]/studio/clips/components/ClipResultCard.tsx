@@ -29,32 +29,32 @@ interface ClipResultCardProps {
 
 const STATUS_CONFIG: Record<ClipStatus, { label: string; color: string }> = {
   captioning: {
-    color: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+    color: 'bg-info/10 text-info border-transparent',
     label: 'Captioning',
   },
   completed: {
-    color: 'bg-green-500/20 text-green-400 border-green-500/30',
+    color: 'bg-success/10 text-success border-transparent',
     label: 'Ready',
   },
   extracting: {
-    color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+    color: 'bg-warning/10 text-warning border-transparent',
     label: 'Generating',
   },
   failed: {
-    color: 'bg-red-500/20 text-red-400 border-red-500/30',
+    color: 'bg-destructive/10 text-destructive border-transparent',
     label: 'Failed',
   },
   pending: {
-    color: 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30',
+    color: 'bg-secondary text-muted-foreground border-transparent',
     label: 'Queued',
   },
 };
 
 function ViralityBadge({ score }: ViralityBadgeProps) {
-  let color = 'text-zinc-400';
-  if (score >= 80) color = 'text-green-400';
-  else if (score >= 60) color = 'text-yellow-400';
-  else if (score >= 40) color = 'text-orange-400';
+  let color = 'text-muted-foreground';
+  if (score >= 80) color = 'text-success';
+  else if (score >= 60) color = 'text-warning';
+  else if (score >= 40) color = 'text-warning';
 
   return (
     <span className={`font-mono text-xs ${color}`} title="Virality score">
@@ -253,7 +253,7 @@ export default function ClipResultCard({
       {/* Failed state */}
       {clip.status === 'failed' && (
         <div className="mt-auto pt-2">
-          <p className="text-xs text-red-400/70">
+          <p className="text-xs text-destructive/70">
             Generation failed. The clip will be retried automatically.
           </p>
         </div>

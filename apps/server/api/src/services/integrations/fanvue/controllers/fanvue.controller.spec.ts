@@ -3,10 +3,10 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { FanvueController } from '@api/services/integrations/fanvue/controllers/fanvue.controller';
 import { FanvueService } from '@api/services/integrations/fanvue/services/fanvue.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -33,7 +33,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
     .mockImplementation((_req, _serializer, data) => ({ data })),
 }));
 
-vi.mock('@api/shared/utils/encryption/encryption.util', () => ({
+vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: {
     decrypt: vi.fn().mockReturnValue('decrypted-code-verifier'),
   },

@@ -34,10 +34,7 @@ export default function CrossPlatformLeaderboardSection({
   return (
     <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
       {viralLeaderboard.length > 0 && (
-        <Card
-          className="xl:col-span-2 border border-white/[0.08] bg-card/80 backdrop-blur"
-          bodyClassName="space-y-6"
-        >
+        <Card className="xl:col-span-2 backdrop-blur" bodyClassName="space-y-6">
           <VStack gap={2}>
             <Heading size="xl">Cross-Platform Leaderboard</Heading>
             <Text as="p" size="sm" color="subtle-60">
@@ -148,10 +145,7 @@ export default function CrossPlatformLeaderboardSection({
       )}
 
       {creatorLeaderboard.length > 0 && (
-        <Card
-          className="border border-white/[0.08] bg-card/80 backdrop-blur"
-          bodyClassName="space-y-6"
-        >
+        <Card className="backdrop-blur" bodyClassName="space-y-6">
           <VStack gap={2}>
             <Heading size="xl">Creator watchlist</Heading>
             <Text as="p" size="sm" color="subtle-60">
@@ -166,11 +160,11 @@ export default function CrossPlatformLeaderboardSection({
               return (
                 <li
                   key={brand.id}
-                  className="flex items-start justify-between gap-4 border-b border-white/[0.08] pb-4 last:border-b-0 last:pb-0"
+                  className="flex items-start justify-between gap-4 border-b border-border pb-4 last:border-b-0 last:pb-0"
                 >
                   <div className="flex items-start gap-3">
                     {Icon && (
-                      <span className="mt-1 flex size-8 items-center justify-center rounded-full bg-background/60 text-base text-foreground/70">
+                      <span className="mt-1 flex size-8 items-center justify-center rounded-full bg-tertiary text-base text-foreground/70">
                         <Icon />
                       </span>
                     )}
@@ -179,7 +173,10 @@ export default function CrossPlatformLeaderboardSection({
                         <span className="font-semibold text-foreground">
                           {brand.handle}
                         </span>
-                        <Badge className="bg-transparent text-xs border border-white/[0.08] text-[10px] uppercase tracking-wide">
+                        <Badge
+                          variant="outline"
+                          className="text-xs text-[10px] uppercase tracking-wide"
+                        >
                           +{brand.growthRate}% 30d
                         </Badge>
                       </div>

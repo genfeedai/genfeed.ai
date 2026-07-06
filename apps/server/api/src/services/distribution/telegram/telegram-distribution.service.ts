@@ -1,7 +1,6 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { DistributionsService } from '@api/collections/distributions/services/distributions.service';
 import { QueueService } from '@api/queues/core/queue.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import {
   CredentialPlatform,
   DistributionContentType,
@@ -16,6 +15,7 @@ import {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
