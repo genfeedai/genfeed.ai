@@ -10,12 +10,12 @@ import { ConfigService } from '@api/config/config.service';
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { ShopifyPublisherService } from '@api/services/integrations/publishers/shopify-publisher.service';
 import { ShopifyService } from '@api/services/integrations/shopify/services/shopify.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Test, TestingModule } from '@nestjs/testing';
 
-vi.mock('@api/shared/utils/encryption/encryption.util', () => ({
+vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: {
     decrypt: vi.fn(() => 'decrypted-token'),
   },

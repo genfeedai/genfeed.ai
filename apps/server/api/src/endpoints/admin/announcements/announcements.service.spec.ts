@@ -2,15 +2,15 @@ import { AnnouncementsService as AnnouncementsCollectionService } from '@api/col
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AdminAnnouncementsService } from '@api/endpoints/admin/announcements/announcements.service';
 import type { BroadcastAnnouncementDto } from '@api/endpoints/admin/announcements/dto/broadcast-announcement.dto';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { REDIS_EVENTS } from '@genfeedai/integrations';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
-vi.mock('@api/shared/utils/encryption/encryption.util');
+vi.mock('@libs/utils/encryption/encryption.util');
 
 const mockTweetFn = vi.fn().mockResolvedValue({ data: { id: 'tweet-123' } });
 vi.mock('twitter-api-v2', () => ({
