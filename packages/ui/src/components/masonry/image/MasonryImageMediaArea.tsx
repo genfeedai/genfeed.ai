@@ -60,7 +60,7 @@ export default function MasonryImageMediaArea({
         data-asset-media-state={mediaState}
         data-testid={`masonry-ingredient-${image.id}`}
         className={cn(
-          'relative size-full cursor-pointer overflow-hidden border border-white/[0.08] bg-card transition-[border-color,background-color] duration-200 hover:border-white/[0.14]',
+          'relative size-full cursor-pointer overflow-hidden bg-card shadow-border transition-shadow duration-200 hover:shadow-border-strong',
           isDarkroomLocked && 'cursor-not-allowed',
           MASONRY_TILE_RADIUS_CLASS,
         )}
@@ -108,7 +108,7 @@ export default function MasonryImageMediaArea({
         {imageError && (
           <div
             aria-live="polite"
-            className="absolute inset-x-3 bottom-3 rounded-md border border-white/15 bg-black/70 px-3 py-2 text-center text-xs font-medium text-white shadow-lg backdrop-blur-sm"
+            className="absolute inset-x-3 bottom-3 rounded-md bg-black/70 px-3 py-2 text-center text-xs font-medium text-white shadow-dropdown backdrop-blur-sm"
             data-testid={`asset-media-fallback-${image.id}`}
             role="status"
           >

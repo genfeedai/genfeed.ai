@@ -1,0 +1,28 @@
+{
+  "name": "launch-copy-creator",
+  "version": "1.0.0",
+  "description": "Generate channel-conform launch copy for Hacker News (Show HN) and Product Hunt — titles, taglines, and maker/first comments that respect each community's norms",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "write a show hn",
+    "show hn title",
+    "hacker news launch",
+    "product hunt tagline",
+    "product hunt launch copy",
+    "maker comment",
+    "launch copy",
+    "launch kit copy",
+    "write launch copy"
+  ],
+  "references": {},
+  "outputs": ["text"],
+  "tags": [
+    "launch",
+    "copywriting",
+    "hacker-news",
+    "product-hunt",
+    "distribution",
+    "developer-marketing"
+  ]
+}

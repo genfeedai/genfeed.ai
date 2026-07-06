@@ -102,11 +102,6 @@
       "path": "/agent-campaigns"
     },
     {
-      "method": "post",
-      "operationId": "AgentCampaignsController.executeCampaign",
-      "path": "/agent-campaigns/{id}/execute"
-    },
-    {
       "method": "get",
       "operationId": "AgentCampaignsController.findAll",
       "path": "/agent-campaigns"
@@ -125,11 +120,6 @@
       "method": "patch",
       "operationId": "AgentCampaignsController.patch",
       "path": "/agent-campaigns/{id}"
-    },
-    {
-      "method": "post",
-      "operationId": "AgentCampaignsController.pauseCampaign",
-      "path": "/agent-campaigns/{id}/pause"
     },
     {
       "method": "delete",
@@ -317,9 +307,9 @@
       "path": "/agent/threads/{threadId}/messages"
     },
     {
-      "method": "post",
-      "operationId": "AgentThreadsController.archiveAllThreads",
-      "path": "/agent/threads/archive-all"
+      "method": "patch",
+      "operationId": "AgentThreadsController.bulkUpdateThreads",
+      "path": "/agent/threads"
     },
     {
       "method": "post",
@@ -503,11 +493,6 @@
     },
     {
       "method": "get",
-      "operationId": "ApiKeysController.findMCPKeys",
-      "path": "/api-keys/mcp"
-    },
-    {
-      "method": "get",
       "operationId": "ApiKeysController.findOne",
       "path": "/api-keys/{apiKeyId}"
     },
@@ -600,11 +585,6 @@
       "method": "delete",
       "operationId": "ArticlesController.remove",
       "path": "/articles/{id}"
-    },
-    {
-      "method": "post",
-      "operationId": "ArticlesController.restoreVersion",
-      "path": "/articles/{articleId}/versions/{promptId}/restore"
     },
     {
       "method": "post",
@@ -728,11 +708,6 @@
     },
     {
       "method": "post",
-      "operationId": "BatchGenerationController.cancelBatch",
-      "path": "/batches/{id}/cancel"
-    },
-    {
-      "method": "post",
       "operationId": "BatchGenerationController.createBatch",
       "path": "/batches"
     },
@@ -755,6 +730,11 @@
       "method": "post",
       "operationId": "BatchGenerationController.itemAction",
       "path": "/batches/{id}/items/action"
+    },
+    {
+      "method": "patch",
+      "operationId": "BatchGenerationController.patch",
+      "path": "/batches/{id}"
     },
     {
       "method": "post",
@@ -823,11 +803,6 @@
     },
     {
       "method": "get",
-      "operationId": "BotActivitiesController.getRecentByConfig",
-      "path": "/bot-activities/recent/{configId}"
-    },
-    {
-      "method": "get",
       "operationId": "BotActivitiesController.getStats",
       "path": "/bot-activities/stats/summary"
     },
@@ -862,9 +837,9 @@
       "path": "/bots/{id}"
     },
     {
-      "method": "post",
-      "operationId": "BotsController.pauseLivestreamSession",
-      "path": "/bots/{id}/livestream-session/pause"
+      "method": "patch",
+      "operationId": "BotsController.patchLivestreamSession",
+      "path": "/bots/{id}/livestream-session"
     },
     {
       "method": "delete",
@@ -873,23 +848,8 @@
     },
     {
       "method": "post",
-      "operationId": "BotsController.resumeLivestreamSession",
-      "path": "/bots/{id}/livestream-session/resume"
-    },
-    {
-      "method": "post",
       "operationId": "BotsController.sendLivestreamMessageNow",
       "path": "/bots/{id}/livestream-session/send-now"
-    },
-    {
-      "method": "post",
-      "operationId": "BotsController.startLivestreamSession",
-      "path": "/bots/{id}/livestream-session/start"
-    },
-    {
-      "method": "post",
-      "operationId": "BotsController.stopLivestreamSession",
-      "path": "/bots/{id}/livestream-session/stop"
     },
     {
       "method": "post",
@@ -1005,6 +965,11 @@
       "method": "patch",
       "operationId": "BrandsController.patch",
       "path": "/brands/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "BrandsController.previewRelocation",
+      "path": "/brands/{id}/relocation-preview"
     },
     {
       "method": "delete",
@@ -1462,11 +1427,6 @@
       "path": "/creative-patterns"
     },
     {
-      "method": "get",
-      "operationId": "CreativePatternsController.findTopForBrand",
-      "path": "/creative-patterns/brand/{brandId}"
-    },
-    {
       "method": "post",
       "operationId": "CreatorsController.analyze",
       "path": "/content-intelligence/creators/{id}/analyze"
@@ -1643,13 +1603,18 @@
     },
     {
       "method": "post",
-      "operationId": "DiscordController.connect",
-      "path": "/services/discord/connect"
+      "operationId": "DevtoController.connect",
+      "path": "/services/devto/connect"
     },
     {
       "method": "post",
-      "operationId": "DiscordController.disconnect",
-      "path": "/services/discord/disconnect"
+      "operationId": "DevtoController.publishArticle",
+      "path": "/services/devto/publish/{articleId}"
+    },
+    {
+      "method": "post",
+      "operationId": "DiscordController.connect",
+      "path": "/services/discord/connect"
     },
     {
       "method": "post",
@@ -1662,6 +1627,11 @@
       "path": "/distributions/{id}"
     },
     {
+      "method": "post",
+      "operationId": "DistributionsController.create",
+      "path": "/distributions"
+    },
+    {
       "method": "get",
       "operationId": "DistributionsController.findOne",
       "path": "/distributions/{id}"
@@ -1670,16 +1640,6 @@
       "method": "get",
       "operationId": "DistributionsController.list",
       "path": "/distributions"
-    },
-    {
-      "method": "post",
-      "operationId": "DistributionsController.scheduleTelegram",
-      "path": "/distributions/telegram/schedule"
-    },
-    {
-      "method": "post",
-      "operationId": "DistributionsController.sendTelegram",
-      "path": "/distributions/telegram"
     },
     {
       "method": "post",
@@ -2038,28 +1998,8 @@
     },
     {
       "method": "get",
-      "operationId": "EvaluationsController.getArticleEvaluations",
-      "path": "/evaluations/articles/{articleId}"
-    },
-    {
-      "method": "get",
-      "operationId": "EvaluationsController.getImageEvaluations",
-      "path": "/evaluations/images/{imageId}"
-    },
-    {
-      "method": "get",
-      "operationId": "EvaluationsController.getPostEvaluations",
-      "path": "/evaluations/posts/{postId}"
-    },
-    {
-      "method": "get",
       "operationId": "EvaluationsController.getTrends",
       "path": "/evaluations/analytics/trends"
-    },
-    {
-      "method": "get",
-      "operationId": "EvaluationsController.getVideoEvaluations",
-      "path": "/evaluations/videos/{videoId}"
     },
     {
       "method": "patch",
@@ -2292,11 +2232,6 @@
       "path": "/harness-profiles"
     },
     {
-      "method": "get",
-      "operationId": "HarnessProfilesController.getActiveForBrand",
-      "path": "/harness-profiles/active"
-    },
-    {
       "method": "delete",
       "operationId": "HarnessProfilesController.remove",
       "path": "/harness-profiles/{profileId}"
@@ -2353,8 +2288,8 @@
     },
     {
       "method": "get",
-      "operationId": "HookRemixController.getJobStatus",
-      "path": "/hook-remix/{jobId}/status"
+      "operationId": "HookRemixController.getJob",
+      "path": "/hook-remix/{jobId}"
     },
     {
       "method": "get",
@@ -2503,6 +2438,11 @@
     },
     {
       "method": "post",
+      "operationId": "LaunchCopyController.generate",
+      "path": "/launch-copy/generate"
+    },
+    {
+      "method": "post",
       "operationId": "LinkedInController.connect",
       "path": "/services/linkedin/connect"
     },
@@ -2629,7 +2569,7 @@
     {
       "method": "get",
       "operationId": "MembersController.listInvitations",
-      "path": "/members/invitations/pending"
+      "path": "/members/invitations"
     },
     {
       "method": "post",
@@ -2640,11 +2580,6 @@
       "method": "delete",
       "operationId": "MembersController.revokeInvitation",
       "path": "/members/invitations/{invitationId}"
-    },
-    {
-      "method": "post",
-      "operationId": "MetaAdsBulkController.cancelJob",
-      "path": "/services/meta-ads/bulk/jobs/{id}/cancel"
     },
     {
       "method": "post",
@@ -2660,6 +2595,11 @@
       "method": "get",
       "operationId": "MetaAdsBulkController.listJobs",
       "path": "/services/meta-ads/bulk/jobs"
+    },
+    {
+      "method": "patch",
+      "operationId": "MetaAdsBulkController.updateJob",
+      "path": "/services/meta-ads/bulk/jobs/{id}"
     },
     {
       "method": "get",
@@ -2727,11 +2667,6 @@
       "path": "/services/meta-ads/ads/{id}/pause"
     },
     {
-      "method": "post",
-      "operationId": "MetaAdsController.pauseCampaign",
-      "path": "/services/meta-ads/campaigns/{id}/pause"
-    },
-    {
       "method": "patch",
       "operationId": "MetaAdsController.updateAdSet",
       "path": "/services/meta-ads/adsets/{id}"
@@ -2742,11 +2677,6 @@
       "path": "/services/meta-ads/campaigns/{id}"
     },
     {
-      "method": "patch",
-      "operationId": "MetaAdsController.updateCampaignBudget",
-      "path": "/services/meta-ads/campaigns/{id}/budget"
-    },
-    {
       "method": "post",
       "operationId": "MetaAdsController.uploadAdImage",
       "path": "/services/meta-ads/media/image"
@@ -2755,11 +2685,6 @@
       "method": "post",
       "operationId": "MetaAdsController.uploadAdVideo",
       "path": "/services/meta-ads/media/video"
-    },
-    {
-      "method": "post",
-      "operationId": "MetaAdsOptimizationController.approveRecommendation",
-      "path": "/services/meta-ads/optimization/recommendations/{id}/approve"
     },
     {
       "method": "post",
@@ -2782,14 +2707,14 @@
       "path": "/services/meta-ads/optimization/recommendations"
     },
     {
-      "method": "post",
-      "operationId": "MetaAdsOptimizationController.rejectRecommendation",
-      "path": "/services/meta-ads/optimization/recommendations/{id}/reject"
-    },
-    {
-      "method": "put",
+      "method": "patch",
       "operationId": "MetaAdsOptimizationController.updateConfig",
       "path": "/services/meta-ads/optimization/config"
+    },
+    {
+      "method": "patch",
+      "operationId": "MetaAdsOptimizationController.updateRecommendation",
+      "path": "/services/meta-ads/optimization/recommendations/{id}"
     },
     {
       "method": "post",
@@ -2892,11 +2817,6 @@
       "path": "/newsletters/{id}/approve"
     },
     {
-      "method": "post",
-      "operationId": "NewslettersController.archive",
-      "path": "/newsletters/{id}/archive"
-    },
-    {
       "method": "get",
       "operationId": "NewslettersController.context",
       "path": "/newsletters/{id}/context"
@@ -2985,11 +2905,6 @@
       "method": "post",
       "operationId": "OnboardingController.setAccountType",
       "path": "/onboarding/account-type"
-    },
-    {
-      "method": "post",
-      "operationId": "OnboardingController.setPrefix",
-      "path": "/onboarding/prefix"
     },
     {
       "method": "post",
@@ -3115,11 +3030,6 @@
       "method": "post",
       "operationId": "OrganizationsController.switchOrganization",
       "path": "/organizations/switch/{id}"
-    },
-    {
-      "method": "patch",
-      "operationId": "OrganizationsController.updateSlug",
-      "path": "/organizations/{id}/slug"
     },
     {
       "method": "post",
@@ -3263,11 +3173,6 @@
     },
     {
       "method": "post",
-      "operationId": "OutreachCampaignsController.addDmRecipients",
-      "path": "/outreach-campaigns/{id}/dm-recipients"
-    },
-    {
-      "method": "post",
       "operationId": "OutreachCampaignsController.addTargets",
       "path": "/outreach-campaigns/{id}/targets"
     },
@@ -3343,18 +3248,8 @@
     },
     {
       "method": "get",
-      "operationId": "PatternsController.findHooks",
-      "path": "/content-intelligence/patterns/hooks"
-    },
-    {
-      "method": "get",
       "operationId": "PatternsController.findOne",
       "path": "/content-intelligence/patterns/{id}"
-    },
-    {
-      "method": "get",
-      "operationId": "PatternsController.findTemplates",
-      "path": "/content-intelligence/patterns/templates"
     },
     {
       "method": "delete",
@@ -3415,11 +3310,6 @@
       "method": "post",
       "operationId": "PersonasContentController.publish",
       "path": "/personas/{id}/publish"
-    },
-    {
-      "method": "post",
-      "operationId": "PersonasController.assignMembers",
-      "path": "/personas/{id}/assign"
     },
     {
       "method": "post",
@@ -3547,9 +3437,9 @@
       "path": "/posts/{postId}/replies"
     },
     {
-      "method": "post",
-      "operationId": "PostsOperationsController.batchSchedule",
-      "path": "/posts/schedules/batch"
+      "method": "patch",
+      "operationId": "PostsOperationsController.batchUpdate",
+      "path": "/posts/batch"
     },
     {
       "method": "post",
@@ -3650,11 +3540,6 @@
       "method": "post",
       "operationId": "ProfilesController.generateFromExamples",
       "path": "/profiles/generate"
-    },
-    {
-      "method": "get",
-      "operationId": "ProfilesController.getDefault",
-      "path": "/profiles/default"
     },
     {
       "method": "delete",
@@ -4177,9 +4062,9 @@
       "path": "/organizations/{organizationId}/streaks/me"
     },
     {
-      "method": "post",
-      "operationId": "StreaksController.useFreeze",
-      "path": "/organizations/{organizationId}/streaks/me/freeze"
+      "method": "patch",
+      "operationId": "StreaksController.patchMyStreak",
+      "path": "/organizations/{organizationId}/streaks/me"
     },
     {
       "method": "post",
@@ -4225,6 +4110,11 @@
       "method": "get",
       "operationId": "SubscriptionsController.getCreditsBreakdown",
       "path": "/subscriptions/current/credits"
+    },
+    {
+      "method": "get",
+      "operationId": "SubscriptionsController.getCreditUsage",
+      "path": "/subscriptions/admin/credit-usage"
     },
     {
       "method": "post",
@@ -4327,11 +4217,6 @@
       "path": "/tasks/{id}"
     },
     {
-      "method": "get",
-      "operationId": "TasksController.inbox",
-      "path": "/tasks/inbox"
-    },
-    {
       "method": "post",
       "operationId": "TasksController.openPlanThread",
       "path": "/tasks/{id}/plan-thread"
@@ -4352,11 +4237,6 @@
       "path": "/tasks/{id}"
     },
     {
-      "method": "patch",
-      "operationId": "TasksController.setOutputKept",
-      "path": "/tasks/{id}/outputs/{outputId}"
-    },
-    {
       "method": "delete",
       "operationId": "TasksController.trashOutput",
       "path": "/tasks/{id}/outputs/{outputId}"
@@ -4365,11 +4245,6 @@
       "method": "get",
       "operationId": "TelegramBotController.getStatus",
       "path": "/telegram-bot/status"
-    },
-    {
-      "method": "post",
-      "operationId": "TelegramController.disconnect",
-      "path": "/services/telegram/disconnect"
     },
     {
       "method": "post",
@@ -4382,11 +4257,6 @@
       "path": "/templates"
     },
     {
-      "method": "post",
-      "operationId": "TemplatesController.createPromptTemplate",
-      "path": "/templates/prompts"
-    },
-    {
       "method": "get",
       "operationId": "TemplatesController.findAll",
       "path": "/templates"
@@ -4397,24 +4267,9 @@
       "path": "/templates/{templateId}"
     },
     {
-      "method": "get",
-      "operationId": "TemplatesController.getPopularTemplates",
-      "path": "/templates/popular"
-    },
-    {
-      "method": "get",
-      "operationId": "TemplatesController.listPromptTemplates",
-      "path": "/templates/prompts"
-    },
-    {
       "method": "delete",
       "operationId": "TemplatesController.remove",
       "path": "/templates/{templateId}"
-    },
-    {
-      "method": "delete",
-      "operationId": "TemplatesController.removePromptTemplate",
-      "path": "/templates/prompts/{templateId}"
     },
     {
       "method": "post",
@@ -4425,11 +4280,6 @@
       "method": "patch",
       "operationId": "TemplatesController.update",
       "path": "/templates/{templateId}"
-    },
-    {
-      "method": "patch",
-      "operationId": "TemplatesController.updatePromptTemplate",
-      "path": "/templates/prompts/{templateId}"
     },
     {
       "method": "post",
@@ -4667,7 +4517,7 @@
       "path": "/trends/refresh"
     },
     {
-      "method": "post",
+      "method": "put",
       "operationId": "TrendsController.savePreferences",
       "path": "/trends/preferences"
     },
@@ -4740,11 +4590,6 @@
       "method": "delete",
       "operationId": "UsersController.clearBrandSelection",
       "path": "/users/me/brand-selection"
-    },
-    {
-      "method": "post",
-      "operationId": "UsersController.confirmAvatarUpload",
-      "path": "/users/me/avatar/confirm"
     },
     {
       "method": "get",
@@ -4994,7 +4839,7 @@
     {
       "method": "delete",
       "operationId": "VotesController.remove",
-      "path": "/votes/{entityId}"
+      "path": "/votes"
     },
     {
       "method": "post",
@@ -5015,11 +4860,6 @@
       "method": "get",
       "operationId": "WatchlistsController.findOne",
       "path": "/watchlists/{watchlistId}"
-    },
-    {
-      "method": "post",
-      "operationId": "WatchlistsController.quickAdd",
-      "path": "/watchlists/quick-add"
     },
     {
       "method": "patch",
@@ -5153,11 +4993,6 @@
     },
     {
       "method": "post",
-      "operationId": "WorkflowExecutionController.archiveWorkflow",
-      "path": "/workflows/{workflowId}/lifecycle/archive"
-    },
-    {
-      "method": "post",
       "operationId": "WorkflowExecutionController.executePartial",
       "path": "/workflows/{workflowId}/execute/partial"
     },
@@ -5172,19 +5007,9 @@
       "path": "/workflows/{workflowId}/executions/{runId}/logs"
     },
     {
-      "method": "post",
-      "operationId": "WorkflowExecutionController.lockNodes",
-      "path": "/workflows/{workflowId}/nodes/lock"
-    },
-    {
-      "method": "post",
-      "operationId": "WorkflowExecutionController.publishWorkflowLifecycle",
-      "path": "/workflows/{workflowId}/lifecycle/publish"
-    },
-    {
-      "method": "delete",
-      "operationId": "WorkflowExecutionController.removeSchedule",
-      "path": "/workflows/{workflowId}/schedule"
+      "method": "patch",
+      "operationId": "WorkflowExecutionController.patchNodes",
+      "path": "/workflows/{workflowId}/nodes"
     },
     {
       "method": "post",
@@ -5193,28 +5018,8 @@
     },
     {
       "method": "post",
-      "operationId": "WorkflowExecutionController.setSchedule",
-      "path": "/workflows/{workflowId}/schedule"
-    },
-    {
-      "method": "patch",
-      "operationId": "WorkflowExecutionController.setThumbnail",
-      "path": "/workflows/{workflowId}/thumbnail"
-    },
-    {
-      "method": "post",
       "operationId": "WorkflowExecutionController.submitApproval",
       "path": "/workflows/{workflowId}/executions/{executionId}/approve"
-    },
-    {
-      "method": "post",
-      "operationId": "WorkflowExecutionController.unlockNodes",
-      "path": "/workflows/{workflowId}/nodes/unlock"
-    },
-    {
-      "method": "post",
-      "operationId": "WorkflowExecutionsController.cancel",
-      "path": "/workflow-executions/{id}/cancel"
     },
     {
       "method": "post",
@@ -5237,9 +5042,9 @@
       "path": "/workflow-executions/workflow/{workflowId}/stats"
     },
     {
-      "method": "get",
-      "operationId": "WorkflowExecutionsController.getWorkflowExecutions",
-      "path": "/workflow-executions/workflow/{workflowId}"
+      "method": "patch",
+      "operationId": "WorkflowExecutionsController.update",
+      "path": "/workflow-executions/{id}"
     },
     {
       "method": "get",
@@ -5248,23 +5053,8 @@
     },
     {
       "method": "get",
-      "operationId": "WorkflowMarketplaceController.getReferencableWorkflows",
-      "path": "/workflows/referencable"
-    },
-    {
-      "method": "get",
       "operationId": "WorkflowMarketplaceController.getTemplates",
       "path": "/workflows/templates"
-    },
-    {
-      "method": "post",
-      "operationId": "WorkflowMarketplaceController.publishToMarketplace",
-      "path": "/workflows/{workflowId}/publish"
-    },
-    {
-      "method": "delete",
-      "operationId": "WorkflowMarketplaceController.unpublishFromMarketplace",
-      "path": "/workflows/{workflowId}/publish"
     },
     {
       "method": "delete",
@@ -5282,9 +5072,9 @@
       "path": "/workflows/{workflowId}/webhook"
     },
     {
-      "method": "post",
-      "operationId": "WorkflowWebhookManagementController.regenerateWebhookSecret",
-      "path": "/workflows/{workflowId}/webhook/regenerate-secret"
+      "method": "patch",
+      "operationId": "WorkflowWebhookManagementController.patchWebhook",
+      "path": "/workflows/{workflowId}/webhook"
     },
     {
       "method": "post",

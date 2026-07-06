@@ -169,7 +169,7 @@ export default function ModalWorkflow({
 
         <FormControl label="Tasks">
           <div className="space-y-2">
-            <div className="border border-white/[0.08] p-4">
+            <div className="bg-secondary shadow-border p-4">
               <div className="text-sm text-foreground/60 mb-3">
                 Available Tasks
               </div>
@@ -194,7 +194,7 @@ export default function ModalWorkflow({
             </div>
 
             {selectedTasks.length > 0 && (
-              <div className="border border-primary/20 p-4 bg-primary/5">
+              <div className="shadow-border p-4 bg-primary/5">
                 <div className="text-sm text-foreground/60 mb-3">
                   Selected Tasks ({selectedTasks.length})
                 </div>

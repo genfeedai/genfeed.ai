@@ -4,6 +4,8 @@ import type {
 } from '@api/collections/bots/schemas/bot.schema';
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { ConfigService } from '@libs/config/config.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import { google } from 'googleapis';

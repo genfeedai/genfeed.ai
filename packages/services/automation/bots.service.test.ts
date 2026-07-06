@@ -4,12 +4,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const mockFindAll = vi.fn().mockResolvedValue([]);
 const mockGet = vi.fn();
 const mockPost = vi.fn();
+const mockPatch = vi.fn();
 
 vi.mock('@services/core/base.service', () => {
   class MockBaseService {
     public endpoint: string;
     public instance: {
       get: typeof mockGet;
+      patch: typeof mockPatch;
       post: typeof mockPost;
     };
     public token: string;
@@ -18,6 +20,7 @@ vi.mock('@services/core/base.service', () => {
       this.endpoint = endpoint;
       this.instance = {
         get: mockGet,
+        patch: mockPatch,
         post: mockPost,
       };
       this.token = token;
@@ -75,6 +78,7 @@ describe('BotsService', () => {
     vi.clearAllMocks();
     mockGet.mockReset();
     mockPost.mockReset();
+    mockPatch.mockReset();
     service = new BotsService(mockToken);
   });
 
@@ -190,8 +194,8 @@ describe('BotsService', () => {
       );
     });
 
-    it('starts the livestream session with the shared subroute', async () => {
-      mockPost.mockResolvedValueOnce({
+    it('starts the livestream session via PATCH with status active', async () => {
+      mockPatch.mockResolvedValueOnce({
         data: {
           data: {
             attributes: {
@@ -205,10 +209,69 @@ describe('BotsService', () => {
 
       await service.startLivestreamSession('bot-123');
 
-      expect(mockPost).toHaveBeenCalledWith(
-        '/bot-123/livestream-session/start',
-        {},
-      );
+      expect(mockPatch).toHaveBeenCalledWith('/bot-123/livestream-session', {
+        status: 'active',
+      });
+    });
+
+    it('stops the livestream session via PATCH with status stopped', async () => {
+      mockPatch.mockResolvedValueOnce({
+        data: {
+          data: {
+            attributes: {
+              status: 'stopped',
+            },
+            id: 'session-1',
+            type: 'livestream-bot-session',
+          },
+        },
+      });
+
+      await service.stopLivestreamSession('bot-123');
+
+      expect(mockPatch).toHaveBeenCalledWith('/bot-123/livestream-session', {
+        status: 'stopped',
+      });
+    });
+
+    it('pauses the livestream session via PATCH with status paused', async () => {
+      mockPatch.mockResolvedValueOnce({
+        data: {
+          data: {
+            attributes: {
+              status: 'paused',
+            },
+            id: 'session-1',
+            type: 'livestream-bot-session',
+          },
+        },
+      });
+
+      await service.pauseLivestreamSession('bot-123');
+
+      expect(mockPatch).toHaveBeenCalledWith('/bot-123/livestream-session', {
+        status: 'paused',
+      });
+    });
+
+    it('resumes the livestream session via PATCH with status active', async () => {
+      mockPatch.mockResolvedValueOnce({
+        data: {
+          data: {
+            attributes: {
+              status: 'active',
+            },
+            id: 'session-1',
+            type: 'livestream-bot-session',
+          },
+        },
+      });
+
+      await service.resumeLivestreamSession('bot-123');
+
+      expect(mockPatch).toHaveBeenCalledWith('/bot-123/livestream-session', {
+        status: 'active',
+      });
     });
   });
 });

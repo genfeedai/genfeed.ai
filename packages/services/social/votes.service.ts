@@ -11,4 +11,8 @@ export class VotesService extends BaseService<Vote> {
   public static getInstance(token: string): VotesService {
     return BaseService.getDataServiceInstance(VotesService, token);
   }
+
+  public async removeByEntity(entityId: string): Promise<void> {
+    await this.instance.delete('', { params: { entity: entityId } });
+  }
 }

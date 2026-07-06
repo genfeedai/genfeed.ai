@@ -942,6 +942,13 @@ export class WorkflowEngineAdapterService {
         this.agentAutopilotWorkflowService
           ? this.agentAutopilotWorkflowService.runProactiveStrategies(
               context.organizationId,
+              {
+                workflowExecutionId: context.executionId,
+                workflowId: context.workflowId,
+                workflowNodeId: _node.id,
+                workflowNodeType: _node.type,
+                workflowRunId: context.runId,
+              },
             )
           : this.agentAutopilotUnavailable('proactiveAgentStrategies', context),
     );
@@ -952,6 +959,13 @@ export class WorkflowEngineAdapterService {
         this.agentAutopilotWorkflowService
           ? this.agentAutopilotWorkflowService.runAiInfluencerDailyPosts(
               context.organizationId,
+              {
+                workflowExecutionId: context.executionId,
+                workflowId: context.workflowId,
+                workflowNodeId: _node.id,
+                workflowNodeType: _node.type,
+                workflowRunId: context.runId,
+              },
             )
           : this.agentAutopilotUnavailable('aiInfluencerDailyPosts', context),
     );

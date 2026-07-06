@@ -132,7 +132,7 @@ function TrendSoundInspirationNodeComponent({
 
       {/* Sound Result */}
       {data.soundId && (
-        <div className="p-3 bg-green-500/10 border border-green-500/20">
+        <div className="p-3 bg-secondary border border-border">
           <div className="flex items-start gap-3">
             {/* Cover Art */}
             {data.coverUrl && (
@@ -193,7 +193,7 @@ function TrendSoundInspirationNodeComponent({
 
       {/* No sound found */}
       {data.status === WorkflowNodeStatus.COMPLETE && !data.soundId && (
-        <div className="p-2 bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-sm">
+        <div className="p-2 bg-warning/10 border border-warning/20 text-warning text-sm">
           No trending sounds found matching criteria
         </div>
       )}

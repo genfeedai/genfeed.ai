@@ -133,11 +133,12 @@ Authorization: Bearer {{bearerToken}}
 ########################################
 
 ### Add DM Recipients
-POST {{apiBaseUrl}}/outreach-campaigns/{{testCampaignId}}/dm-recipients
+POST {{apiBaseUrl}}/outreach-campaigns/{{testCampaignId}}/targets
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
 {
+  "targetType": "dm_recipient",
   "usernames": ["@tech_creator", "ai_enthusiast", "@startup_founder"]
 }
 

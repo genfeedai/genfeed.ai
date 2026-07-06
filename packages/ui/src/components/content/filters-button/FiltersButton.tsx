@@ -200,7 +200,7 @@ export default function FiltersButton({
         createPortal(
           <div
             ref={dropdownRef}
-            className="fixed bg-[#141414] border border-white/[0.06] shadow-2xl z-[10000] p-6 pointer-events-auto"
+            className="fixed bg-secondary border border-white/[0.06] shadow-2xl z-[10000] p-6 pointer-events-auto"
             style={{
               left: portalCoords.left,
               top: portalCoords.top,

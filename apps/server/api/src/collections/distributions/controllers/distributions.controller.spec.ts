@@ -77,14 +77,15 @@ describe('DistributionsController', () => {
     );
   });
 
-  describe('sendTelegram', () => {
-    it('should call sendImmediate with correct params', async () => {
+  describe('create', () => {
+    it('should dispatch immediate send when scheduledAt is absent', async () => {
       const user = createMockUser();
 
-      await controller.sendTelegram(
+      await controller.create(
         {
           chatId: '-1001234567890',
           contentType: DistributionContentType.TEXT,
+          platform: DistributionPlatform.TELEGRAM,
           text: 'Hello',
         },
         user as never,
@@ -101,18 +102,18 @@ describe('DistributionsController', () => {
           userId: USER_ID,
         }),
       );
+      expect(mocks.telegramDistributionService.schedule).not.toHaveBeenCalled();
     });
-  });
 
-  describe('scheduleTelegram', () => {
-    it('should call schedule with correct params', async () => {
+    it('should dispatch scheduled send when scheduledAt is present', async () => {
       const user = createMockUser();
       const scheduledAt = new Date(Date.now() + 3600000).toISOString();
 
-      await controller.scheduleTelegram(
+      await controller.create(
         {
           chatId: '-1001234567890',
           contentType: DistributionContentType.TEXT,
+          platform: DistributionPlatform.TELEGRAM,
           scheduledAt,
           text: 'Scheduled',
         },
@@ -124,8 +125,27 @@ describe('DistributionsController', () => {
           chatId: '-1001234567890',
           organizationId: ORG_ID,
           scheduledAt: new Date(scheduledAt),
+          userId: USER_ID,
         }),
       );
+      expect(
+        mocks.telegramDistributionService.sendImmediate,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should throw for an unsupported platform', async () => {
+      const user = createMockUser();
+
+      await expect(
+        controller.create(
+          {
+            contentType: DistributionContentType.TEXT,
+            platform: 'unsupported' as DistributionPlatform,
+            text: 'Nope',
+          },
+          user as never,
+        ),
+      ).rejects.toThrow('Unsupported distribution platform');
     });
   });
 

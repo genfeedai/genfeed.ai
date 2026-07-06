@@ -3,6 +3,8 @@ import {
   CREDENTIAL_SECRET_FIELDS,
   CredentialCryptoService,
 } from '@api/collections/credentials/services/credential-crypto.service';
+import { ConfigService } from '@libs/config/config.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 
 // Use the same key the global test setup gives EncryptionUtil so the
 // interop assertions (cross-decrypt) are meaningful.

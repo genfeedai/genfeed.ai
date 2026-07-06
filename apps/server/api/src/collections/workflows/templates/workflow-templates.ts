@@ -107,6 +107,198 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
   ),
   'content-loop': CONTENT_LOOP_TEMPLATE,
   'daily-trends-digest': DAILY_TRENDS_DIGEST_TEMPLATE,
+  'launch-kit': {
+    category: 'launch',
+    description:
+      'Turn a product summary into channel-conform launch copy for Hacker News (Show HN) or Product Hunt, plus a launch-day checklist, held for human review. Generates copy only — it never posts.',
+    icon: 'rocket',
+    id: 'launch-kit',
+    inputVariables: [
+      {
+        defaultValue: '',
+        description: 'Name of the product or project being launched.',
+        key: 'productName',
+        label: 'Product Name',
+        required: true,
+        type: 'text',
+      },
+      {
+        defaultValue: 'hacker_news',
+        description: 'Launch channel: hacker_news or product_hunt.',
+        key: 'channel',
+        label: 'Channel',
+        required: true,
+        type: 'select',
+      },
+      {
+        defaultValue: '',
+        description: 'Plain-language description of what the product does.',
+        key: 'description',
+        label: 'Description',
+        required: true,
+        type: 'text',
+      },
+    ],
+    name: 'Launch Kit',
+    nodes: [
+      {
+        data: {
+          config: {
+            inputName: 'productName',
+            inputType: 'text',
+            required: true,
+          },
+          label: 'Product Name',
+        },
+        id: 'workflow-input-product-name',
+        position: { x: 0, y: 40 },
+        type: 'workflow-input',
+      },
+      {
+        data: {
+          config: {
+            inputName: 'channel',
+            inputType: 'text',
+            required: true,
+          },
+          label: 'Channel',
+        },
+        id: 'workflow-input-channel',
+        position: { x: 0, y: 180 },
+        type: 'workflow-input',
+      },
+      {
+        data: {
+          config: {
+            inputName: 'description',
+            inputType: 'text',
+            required: true,
+          },
+          label: 'Description',
+        },
+        id: 'workflow-input-description',
+        position: { x: 0, y: 320 },
+        type: 'workflow-input',
+      },
+      {
+        data: {
+          config: {
+            template:
+              'Create a launch kit for {{productName}} on the {{channel}} channel (hacker_news or product_hunt). What it does: {{description}}.\n\nProduce channel-conform copy. For hacker_news: a title formatted "Show HN: <name> - <plain factual description>" (max 80 chars, no marketing adjectives, no emoji) and an honest maker first comment. For product_hunt: 3-5 tagline variants (max 60 chars each, benefit-led, no trailing period) and a maker first comment.\n\nAlso produce a launch-day checklist: finalize the copy, schedule the post for the optimal time (Product Hunt 12:01am PT; Show HN a weekday morning ET), reply to every comment within 30 minutes for the first two hours, cross-post to dev.to and owned channels, and thank early supporters.\n\nDo not post anything anywhere. Return the copy and checklist for human review.',
+            variables: {},
+          },
+          label: 'Build Launch Prompt',
+        },
+        id: 'prompt-constructor-launch-kit',
+        position: { x: 360, y: 180 },
+        type: 'ai-prompt-constructor',
+      },
+      {
+        data: {
+          config: {
+            maxTokens: 1400,
+            model: 'openai/gpt-4o-mini',
+            temperature: 0.8,
+          },
+          label: 'Draft Launch Assets',
+        },
+        id: 'llm-launch-assets',
+        position: { x: 720, y: 180 },
+        type: 'llm',
+      },
+      {
+        data: {
+          config: {
+            autoApproveIfNoResponse: false,
+            notifyChannels: ['task-inbox'],
+            requireApproval: true,
+            reviewState: 'pending_approval',
+            timeoutHours: 24,
+          },
+          label: 'Review Launch Assets',
+        },
+        id: 'review-launch-assets',
+        position: { x: 1080, y: 180 },
+        type: 'reviewGate',
+      },
+      {
+        data: {
+          config: {
+            outputName: 'launchKit',
+          },
+          label: 'Launch Kit Output',
+        },
+        id: 'workflow-output-launch-kit',
+        position: { x: 1440, y: 180 },
+        type: 'workflow-output',
+      },
+    ],
+    edges: [
+      {
+        id: 'edge-product-name-to-prompt',
+        source: 'workflow-input-product-name',
+        sourceHandle: 'value',
+        target: 'prompt-constructor-launch-kit',
+        targetHandle: 'productName',
+      },
+      {
+        id: 'edge-channel-to-prompt',
+        source: 'workflow-input-channel',
+        sourceHandle: 'value',
+        target: 'prompt-constructor-launch-kit',
+        targetHandle: 'channel',
+      },
+      {
+        id: 'edge-description-to-prompt',
+        source: 'workflow-input-description',
+        sourceHandle: 'value',
+        target: 'prompt-constructor-launch-kit',
+        targetHandle: 'description',
+      },
+      {
+        id: 'edge-prompt-to-llm',
+        source: 'prompt-constructor-launch-kit',
+        sourceHandle: 'prompt',
+        target: 'llm-launch-assets',
+        targetHandle: 'prompt',
+      },
+      {
+        id: 'edge-llm-to-review',
+        source: 'llm-launch-assets',
+        sourceHandle: 'text',
+        target: 'review-launch-assets',
+        targetHandle: 'caption',
+      },
+      {
+        id: 'edge-review-to-output',
+        source: 'review-launch-assets',
+        sourceHandle: 'caption',
+        target: 'workflow-output-launch-kit',
+        targetHandle: 'value',
+      },
+    ],
+    steps: [
+      {
+        category: WorkflowStepCategory.GENERATE_ARTICLE,
+        config: {
+          model: 'openai/gpt-4o-mini',
+          temperature: 0.8,
+        },
+        id: 'draft-launch-assets',
+        name: 'Draft Launch Assets',
+      },
+      {
+        category: WorkflowStepCategory.WEBHOOK,
+        config: {
+          autoApproveIfNoResponse: false,
+          requireApproval: true,
+        },
+        dependsOn: ['draft-launch-assets'],
+        id: 'review-launch-assets',
+        name: 'Review Launch Assets',
+      },
+    ],
+  },
   'ad-remix-review': {
     category: 'ads',
     description:

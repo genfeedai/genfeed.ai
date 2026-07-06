@@ -32,6 +32,12 @@ import {
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
+import type {
+  IBrandRelocationPatchBody,
+  IBrandRelocationPreview,
+  IBrandRelocationResult,
+  IBrandRelocationSummary,
+} from '@services/social/brand-relocation.types';
 
 export class BrandsService extends BaseService<Brand> {
   constructor(token: string) {
@@ -331,5 +337,59 @@ export class BrandsService extends BaseService<Brand> {
     return await this.instance
       .post<JsonApiResponseDocument>(`/${id}/brand-kit/manual`, data)
       .then((res) => deserializeResource<IBrandKitDraft>(res.data));
+  }
+
+  /**
+   * Previews the clone/severance impact of moving a brand to a destination
+   * organization. Read-only. `ackToken` is `null` when there's no clone
+   * impact (no shared workflows attached to the brand), meaning the
+   * relocation patch does not need to pass `relocationAck`.
+   */
+  public async getRelocationPreview(
+    id: string,
+    destOrganizationId: string,
+  ): Promise<IBrandRelocationPreview> {
+    return await this.instance
+      .get<{ data: IBrandRelocationPreview }>(`/${id}/relocation-preview`, {
+        params: { organizationId: destOrganizationId },
+      })
+      .then((res) => res.data.data);
+  }
+
+  /**
+   * Moves a brand to another organization. Unlike the generic `patch()`
+   * (which maps the JSON:API document to an entity and drops the
+   * top-level `meta`), this reads the raw response so callers get both
+   * the updated brand AND the relocation summary
+   * (`workflowsMoved`, `workflowsClonedActive`, `workflowsClonedPaused`,
+   * `membersSevered`, `schedulingPending`).
+   *
+   * Pass `relocationAck` = the `ackToken` from `getRelocationPreview()`.
+   * It is required whenever the preview's `counts.sharedWorkflows > 0` —
+   * the server returns 409 otherwise (or if the impacted set changed
+   * since the preview was taken).
+   */
+  public async relocateBrand(
+    id: string,
+    body: IBrandRelocationPatchBody,
+  ): Promise<IBrandRelocationResult> {
+    const cleanedBody: Record<string, unknown> = {};
+    for (const key in body) {
+      const value = body[key as keyof IBrandRelocationPatchBody];
+      if (value !== undefined && value !== null && value !== 'undefined') {
+        cleanedBody[key] = value;
+      }
+    }
+
+    return await this.instance
+      .patch<JsonApiResponseDocument>(`/${id}`, cleanedBody)
+      .then(async (res) => {
+        const document = res.data;
+        const brand = await this.mapOne(document);
+        const summary = (document.meta ??
+          {}) as unknown as IBrandRelocationSummary;
+
+        return { brand, summary };
+      });
   }
 }

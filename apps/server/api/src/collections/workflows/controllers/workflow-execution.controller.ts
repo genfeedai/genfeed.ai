@@ -2,15 +2,12 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import {
   CreditEstimateQueryDto,
   ExecutePartialDto,
-  LockNodesDto,
+  PatchWorkflowNodesDto,
   ResumeExecutionDto,
   SubmitApprovalDto,
-  UnlockNodesDto,
 } from '@api/collections/workflows/dto/execute-workflow.dto';
-import { SetThumbnailDto } from '@api/collections/workflows/dto/set-thumbnail.dto';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowRunControlService } from '@api/collections/workflows/services/workflow-run-control.service';
-import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
@@ -19,10 +16,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { wrapError } from '@api/helpers/utils/controller/wrap-error.util';
-import {
-  returnNotFound,
-  serializeSingle,
-} from '@api/helpers/utils/response/response.util';
+import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { MemberRole } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import {
@@ -34,7 +28,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
   Controller,
-  Delete,
   Get,
   Param,
   Patch,
@@ -46,80 +39,23 @@ import {
 import type { Request } from 'express';
 
 /**
- * Workflow execution, scheduling, lifecycle, review-gate approvals, node
- * locking and thumbnail endpoints. Split out of the former monolithic
- * `WorkflowsController`.
+ * Workflow execution, review-gate approvals, and node locking endpoints. Split
+ * out of the former monolithic `WorkflowsController`.
+ *
+ * Schedule, lifecycle, thumbnail, and marketplace-publish routes that used to
+ * live here were collapsed into `PATCH /workflows/:id` by the REST audit
+ * (#1354); node lock/unlock became `PATCH /workflows/:id/nodes`.
  */
 @AutoSwagger()
 @Controller('workflows')
 @UseGuards(RolesGuard)
 export class WorkflowExecutionController {
-  private readonly constructorName: string = String(this.constructor.name);
-
   constructor(
     private readonly workflowsService: WorkflowsService,
     private readonly workflowRunControlService: WorkflowRunControlService,
     private readonly workflowExecutorService: WorkflowExecutorService,
-    private readonly workflowSchedulerService: WorkflowSchedulerService,
     readonly _loggerService: LoggerService,
   ) {}
-
-  @Post(':workflowId/schedule')
-  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async setSchedule(
-    @Param('workflowId') workflowId: string,
-    @Body() body: { schedule: string; timezone?: string; enabled?: boolean },
-    @CurrentUser() user: User,
-  ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    await this.workflowsService.findMutableOwnedOrThrow(workflowId, {
-      organization: publicMetadata.organization,
-      user: publicMetadata.user,
-    });
-
-    // Update schedule and register/unregister cron job immediately
-    const updated = await this.workflowSchedulerService.updateSchedule(
-      workflowId,
-      body.schedule,
-      body.timezone || 'UTC',
-      body.enabled !== false,
-    );
-
-    return updated
-      ? ({
-          data: { id: workflowId, message: 'Schedule updated' },
-        } as unknown as JsonApiSingleResponse)
-      : returnNotFound(this.constructorName, workflowId);
-  }
-
-  @Delete(':workflowId/schedule')
-  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async removeSchedule(
-    @Param('workflowId') workflowId: string,
-    @CurrentUser() user: User,
-  ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    await this.workflowsService.findMutableOwnedOrThrow(workflowId, {
-      organization: publicMetadata.organization,
-      user: publicMetadata.user,
-    });
-
-    // Remove schedule and unregister cron job immediately
-    const updated = await this.workflowSchedulerService.updateSchedule(
-      workflowId,
-      null, // null schedule removes it
-      'UTC',
-      false,
-    );
-
-    return updated
-      ? ({
-          data: { id: workflowId, message: 'Schedule removed' },
-        } as unknown as JsonApiSingleResponse)
-      : returnNotFound(this.constructorName, workflowId);
-  }
 
   @Post(':workflowId/execute/partial')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
@@ -194,44 +130,6 @@ export class WorkflowExecutionController {
     }, 'Failed to estimate credits');
   }
 
-  @Post(':workflowId/lifecycle/publish')
-  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async publishWorkflowLifecycle(
-    @Req() request: Request,
-    @Param('workflowId') workflowId: string,
-    @CurrentUser() user: User,
-  ): Promise<JsonApiSingleResponse> {
-    return wrapError(async () => {
-      const publicMetadata = getPublicMetadata(user);
-      const workflow = await this.workflowsService.publishWorkflowLifecycle(
-        workflowId,
-        publicMetadata.organization,
-      );
-
-      return serializeSingle(request, WorkflowSerializer, workflow);
-    }, 'Failed to publish workflow');
-  }
-
-  @Post(':workflowId/lifecycle/archive')
-  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async archiveWorkflow(
-    @Req() request: Request,
-    @Param('workflowId') workflowId: string,
-    @CurrentUser() user: User,
-  ): Promise<JsonApiSingleResponse> {
-    return wrapError(async () => {
-      const publicMetadata = getPublicMetadata(user);
-      const workflow = await this.workflowsService.archiveWorkflow(
-        workflowId,
-        publicMetadata.organization,
-      );
-
-      return serializeSingle(request, WorkflowSerializer, workflow);
-    }, 'Failed to archive workflow');
-  }
-
   @Get(':workflowId/executions/:runId/logs')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getExecutionLogs(
@@ -286,13 +184,18 @@ export class WorkflowExecutionController {
     }, 'Failed to submit workflow approval');
   }
 
-  @Post(':workflowId/nodes/lock')
+  /**
+   * Lock and/or unlock workflow nodes. Collapsed from the former
+   * `POST /workflows/:id/nodes/lock` and `/nodes/unlock` RPC routes (#1354):
+   * `lock` adds node ids to the locked set, `unlock` removes them.
+   */
+  @Patch(':workflowId/nodes')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async lockNodes(
+  async patchNodes(
     @Req() request: Request,
     @Param('workflowId') workflowId: string,
-    @Body() dto: LockNodesDto,
+    @Body() dto: PatchWorkflowNodesDto,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
     return wrapError(async () => {
@@ -302,67 +205,31 @@ export class WorkflowExecutionController {
         user: publicMetadata.user,
       });
 
-      const workflow = await this.workflowsService.lockNodes(
+      if (dto.lock && dto.lock.length > 0) {
+        await this.workflowsService.lockNodes(
+          workflowId,
+          dto.lock,
+          publicMetadata.organization,
+        );
+      }
+
+      if (dto.unlock && dto.unlock.length > 0) {
+        await this.workflowsService.unlockNodes(
+          workflowId,
+          dto.unlock,
+          publicMetadata.organization,
+        );
+      }
+
+      const workflow = await this.workflowsService.findOwnedOrThrow(
         workflowId,
-        dto.nodeIds,
-        publicMetadata.organization,
+        {
+          organization: publicMetadata.organization,
+          user: publicMetadata.user,
+        },
       );
 
       return serializeSingle(request, WorkflowSerializer, workflow);
-    }, 'Failed to lock nodes');
-  }
-
-  @Post(':workflowId/nodes/unlock')
-  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async unlockNodes(
-    @Req() request: Request,
-    @Param('workflowId') workflowId: string,
-    @Body() dto: UnlockNodesDto,
-    @CurrentUser() user: User,
-  ): Promise<JsonApiSingleResponse> {
-    return wrapError(async () => {
-      const publicMetadata = getPublicMetadata(user);
-      await this.workflowsService.findMutableOwnedOrThrow(workflowId, {
-        organization: publicMetadata.organization,
-        user: publicMetadata.user,
-      });
-
-      const workflow = await this.workflowsService.unlockNodes(
-        workflowId,
-        dto.nodeIds,
-        publicMetadata.organization,
-      );
-
-      return serializeSingle(request, WorkflowSerializer, workflow);
-    }, 'Failed to unlock nodes');
-  }
-
-  @Patch(':workflowId/thumbnail')
-  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async setThumbnail(
-    @Req() request: Request,
-    @Param('workflowId') workflowId: string,
-    @Body() dto: SetThumbnailDto,
-    @CurrentUser() user: User,
-  ): Promise<JsonApiSingleResponse> {
-    return wrapError(async () => {
-      const publicMetadata = getPublicMetadata(user);
-      await this.workflowsService.findMutableOwnedOrThrow(workflowId, {
-        organization: publicMetadata.organization,
-        user: publicMetadata.user,
-      });
-
-      const workflow = await this.workflowsService.setThumbnail(
-        workflowId,
-        dto.thumbnailUrl,
-        dto.nodeId,
-        publicMetadata.user,
-        publicMetadata.organization,
-      );
-
-      return serializeSingle(request, WorkflowSerializer, workflow);
-    }, 'Failed to set workflow thumbnail');
+    }, 'Failed to update workflow node locks');
   }
 }

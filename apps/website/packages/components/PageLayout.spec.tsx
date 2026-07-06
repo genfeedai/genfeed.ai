@@ -47,6 +47,28 @@ describe('PageLayout Component', () => {
     expect(screen.getByTestId('proof-visual')).toBeInTheDocument();
   });
 
+  it('applies compact density to proof hero layouts', () => {
+    renderPageLayout({
+      compact: true,
+      variant: 'proof',
+    });
+
+    const heading = screen.getByRole('heading', {
+      level: 1,
+      name: 'Studio',
+    });
+    const heroGrid = heading.parentElement?.parentElement;
+
+    if (!heroGrid) {
+      throw new Error('Expected proof hero grid to render');
+    }
+
+    expect(heroGrid).toHaveClass('items-start', 'pt-16', 'pb-4');
+    expect(heroGrid).not.toHaveClass('min-h-[calc(100vh-8rem)]');
+    expect(heading).toHaveClass('text-4xl', 'sm:text-5xl');
+    expect(heading).not.toHaveClass('lg:text-[5.2rem]');
+  });
+
   it('omits footer when showFooter is false', () => {
     renderPageLayout({ showFooter: false, variant: 'poster' });
 

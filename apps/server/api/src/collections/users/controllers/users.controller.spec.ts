@@ -366,26 +366,6 @@ describe('UsersController', () => {
     });
   });
 
-  describe('confirmAvatarUpload', () => {
-    it('should update user avatar URL', async () => {
-      usersService.patch.mockResolvedValue({
-        _id: userId,
-        avatar: 'https://cdn.example.com/avatar.jpg',
-      });
-
-      const result = await controller.confirmAvatarUpload(
-        mockRequest,
-        mockUser,
-        { publicUrl: 'https://cdn.example.com/avatar.jpg' },
-      );
-
-      expect(usersService.patch).toHaveBeenCalledWith(userId, {
-        avatar: 'https://cdn.example.com/avatar.jpg',
-      });
-      expect(result).toBeDefined();
-    });
-  });
-
   describe('updateBrandSelection', () => {
     it('should persist last-used brand using the canonical cuid id, not the legacy mongoId _id', async () => {
       // A normalized brand doc carries BOTH a cuid `id` and a legacy `_id`

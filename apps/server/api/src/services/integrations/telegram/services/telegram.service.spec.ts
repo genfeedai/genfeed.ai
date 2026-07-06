@@ -207,47 +207,4 @@ describe('TelegramService', () => {
       }
     });
   });
-
-  describe('disconnect', () => {
-    const orgId = 'test-object-id';
-    const brandId = 'test-object-id';
-
-    it('should disconnect and soft-delete credential', async () => {
-      const credentialId = 'test-object-id';
-      mockCredentialsService.findOne.mockResolvedValue({
-        id: credentialId,
-      });
-      mockCredentialsService.patch.mockResolvedValue({ isDeleted: true });
-
-      const result = await service.disconnect(orgId, brandId);
-
-      expect(result).toEqual({ success: true });
-      expect(mockCredentialsService.patch).toHaveBeenCalledWith(credentialId, {
-        isConnected: false,
-        isDeleted: true,
-      });
-    });
-
-    it('should throw NOT_FOUND when no credential exists', async () => {
-      mockCredentialsService.findOne.mockResolvedValue(null);
-
-      await expect(service.disconnect(orgId, brandId)).rejects.toThrow(
-        HttpException,
-      );
-
-      try {
-        await service.disconnect(orgId, brandId);
-      } catch (e) {
-        expect((e as HttpException).getStatus()).toBe(HttpStatus.NOT_FOUND);
-      }
-    });
-
-    it('should wrap unexpected errors in INTERNAL_SERVER_ERROR', async () => {
-      mockCredentialsService.findOne.mockRejectedValue(new Error('DB failure'));
-
-      await expect(service.disconnect(orgId, brandId)).rejects.toThrow(
-        HttpException,
-      );
-    });
-  });
 });

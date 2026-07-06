@@ -1,4 +1,5 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { WorkflowLifecycle } from '@genfeedai/enums';
 import type { NodeGroup } from '@genfeedai/workflow-ui';
 import {
   deserializeCollection,
@@ -54,7 +55,7 @@ export interface WorkflowSummary {
   isScheduleEnabled?: boolean;
 }
 
-/** Payload for POST /workflows/:id/schedule */
+/** Payload for PATCH /workflows/:id (schedule fields) */
 export interface SetScheduleInput {
   enabled: boolean;
   schedule: string;
@@ -439,10 +440,10 @@ export class WorkflowApiService extends HTTPBaseService {
   ): Promise<CloudWorkflowData> {
     try {
       const response = await this.instance.patch<JsonApiResponseDocument>(
-        `/${id}/thumbnail`,
+        `/${id}`,
         {
-          nodeId,
-          thumbnailUrl,
+          thumbnail: thumbnailUrl,
+          thumbnailNodeId: nodeId,
         },
       );
       const item = deserializeResource<CloudWorkflowData>(response.data);
@@ -467,10 +468,14 @@ export class WorkflowApiService extends HTTPBaseService {
     }
   }
 
-  /** Enable or disable the schedule for a workflow (POST /workflows/:id/schedule) */
+  /** Enable or disable the schedule for a workflow (PATCH /workflows/:id) */
   async setSchedule(id: string, body: SetScheduleInput): Promise<void> {
     try {
-      await this.instance.post(`/${id}/schedule`, body);
+      await this.instance.patch(`/${id}`, {
+        isScheduleEnabled: body.enabled,
+        schedule: body.schedule,
+        ...(body.timezone !== undefined ? { timezone: body.timezone } : {}),
+      });
     } catch (error) {
       logger.error('Failed to set workflow schedule', {
         error,
@@ -487,8 +492,9 @@ export class WorkflowApiService extends HTTPBaseService {
   /** Publish a draft workflow (lifecycle transition, NOT marketplace) */
   async publish(id: string): Promise<CloudWorkflowData> {
     try {
-      const response = await this.instance.post<JsonApiResponseDocument>(
-        `/${id}/lifecycle/publish`,
+      const response = await this.instance.patch<JsonApiResponseDocument>(
+        `/${id}`,
+        { lifecycle: WorkflowLifecycle.PUBLISHED },
       );
       const item = deserializeResource<CloudWorkflowData>(response.data);
       return this.normalizeWorkflowData(item);
@@ -501,8 +507,9 @@ export class WorkflowApiService extends HTTPBaseService {
   /** Archive a workflow */
   async archive(id: string): Promise<CloudWorkflowData> {
     try {
-      const response = await this.instance.post<JsonApiResponseDocument>(
-        `/${id}/lifecycle/archive`,
+      const response = await this.instance.patch<JsonApiResponseDocument>(
+        `/${id}`,
+        { lifecycle: WorkflowLifecycle.ARCHIVED },
       );
       const item = deserializeResource<CloudWorkflowData>(response.data);
       return this.normalizeWorkflowData(item);
@@ -633,9 +640,9 @@ export class WorkflowApiService extends HTTPBaseService {
     workflowId: string,
   ): Promise<WebhookSecretResponse> {
     try {
-      const response = await this.instance.post<{
+      const response = await this.instance.patch<{
         data: WebhookSecretResponse;
-      }>(`/${workflowId}/webhook/regenerate-secret`);
+      }>(`/${workflowId}/webhook`, { rotateSecret: true });
       return response.data.data;
     } catch (error) {
       logger.error('Failed to regenerate webhook secret', {

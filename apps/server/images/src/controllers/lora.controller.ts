@@ -8,7 +8,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 export class LoraController {
   constructor(private readonly loraService: LoraService) {}
 
-  @Post('upload')
+  @Post()
   @ApiOperation({ summary: 'Upload a trained LoRA to S3' })
   uploadLora(@Body() body: LoraUploadRequest) {
     return this.loraService.uploadLora(body);

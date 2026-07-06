@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import {
   AUDITOR_IGNORED_TABLES,
   FIRST_ORDER_TARGETS,
@@ -24,6 +24,12 @@ import type {
   BrandDocument,
 } from '@api/collections/brands/schemas/brand.schema';
 import { buildPromptBrandingFromBrand } from '@api/collections/brands/utils/brand-context.util';
+import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import {
+  getMetadataRecord,
+  getSystemWorkflowMetadata,
+  SYSTEM_WORKFLOW_METADATA_KEY,
+} from '@api/collections/workflows/system-workflow.contract';
 import {
   CACHE_PATTERNS,
   CACHE_TAGS,
@@ -37,7 +43,12 @@ import { FilesClientService } from '@api/services/files-microservice/client/file
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { FileInputType, FontFamily, MemberRole } from '@genfeedai/enums';
+import {
+  FileInputType,
+  FontFamily,
+  MemberRole,
+  WorkflowStatus,
+} from '@genfeedai/enums';
 import {
   type BrandKitSourceBrand,
   buildBrandKitDraftFromBrand,
@@ -170,6 +181,77 @@ interface CascadeDelegate {
   count(args: { where: Record<string, unknown> }): Promise<number>;
 }
 
+// Prisma error codes used by the relocation transaction's retry/conflict handling.
+// P2034 — serialization failure (SQLSTATE 40001) under Serializable isolation: the
+//   transaction was aborted by a read/write conflict with a concurrent transaction.
+//   Retried up to MAX_RELOCATION_SERIALIZATION_RETRIES times (mirrors
+//   default-recurring-content.service.ts's ensureRecurringWorkflowForType).
+// P2002 — unique constraint violation: mapped to a 409 ConflictException.
+const PRISMA_SERIALIZATION_FAILURE = 'P2034';
+const PRISMA_UNIQUE_CONSTRAINT_VIOLATION = 'P2002';
+const MAX_RELOCATION_SERIALIZATION_RETRIES = 3;
+
+/**
+ * Read-only classification of what a brand relocation would touch, shared by the
+ * preview endpoint (ack-token computation) and the transactional move itself.
+ */
+interface RelocationImpact {
+  soleBrandWorkflowIds: string[];
+  multiBrandWorkflowIds: string[];
+  staleMemberIds: string[];
+}
+
+/** Describes one shared workflow cloned into the destination org during a move. */
+interface RelocationWorkflowClone {
+  id: string;
+  activate: boolean;
+  needsReview: boolean;
+  schedule: string | null;
+  timezone: string | null;
+  isScheduleEnabled: boolean;
+  status: string;
+}
+
+/** Outcome of reconciling a brand's cross-org workflow/member links during a move. */
+interface RelocationReconcileResult {
+  workflowsMoved: number;
+  clones: RelocationWorkflowClone[];
+  membersSevered: number;
+}
+
+/** Server-authoritative summary of a completed (or no-op) brand relocation. */
+export interface BrandRelocationSummary {
+  workflowsMoved: number;
+  workflowsClonedActive: number;
+  workflowsClonedPaused: number;
+  membersSevered: number;
+  schedulingPending: number;
+}
+
+/** Result of `relocateToOrganization`: the moved brand plus a summary for the client. */
+export interface BrandRelocationResult {
+  brand: BrandDocument;
+  summary: BrandRelocationSummary;
+}
+
+/** Counts + ack token returned by the read-only relocation preview endpoint. */
+export interface BrandRelocationPreview {
+  counts: {
+    soleBrandWorkflows: number;
+    sharedWorkflows: number;
+    staleMembers: number;
+  };
+  ackToken: string | null;
+}
+
+const EMPTY_RELOCATION_SUMMARY: BrandRelocationSummary = {
+  workflowsMoved: 0,
+  workflowsClonedActive: 0,
+  workflowsClonedPaused: 0,
+  membersSevered: 0,
+  schedulingPending: 0,
+};
+
 @Injectable()
 export class BrandsService extends BaseService<
   BrandDocument,
@@ -195,6 +277,7 @@ export class BrandsService extends BaseService<
     private readonly llmDispatcherService: LlmDispatcherService,
     private readonly cacheInvalidationService: CacheInvalidationService,
     private readonly filesClientService: FilesClientService,
+    private readonly workflowExecutionQueueService: WorkflowExecutionQueueService,
   ) {
     super(prisma, 'brand', logger, undefined, cacheService);
   }
@@ -1581,9 +1664,12 @@ Respond ONLY with the JSON array.`;
    */
   async relocateToOrganization(
     brandId: string,
-    updateBrandDto: Partial<UpdateBrandDto> & { organizationId?: string },
+    updateBrandDto: Partial<UpdateBrandDto> & {
+      organizationId?: string;
+      relocationAck?: string;
+    },
     actingUser: { userId: string; isSuperAdmin: boolean },
-  ): Promise<BrandDocument> {
+  ): Promise<BrandRelocationResult> {
     const destOrgId = updateBrandDto.organizationId;
     if (!destOrgId) {
       throw new BadRequestException(
@@ -1601,7 +1687,11 @@ Respond ONLY with the JSON array.`;
 
     // Same org → not a relocation; apply the other fields via the normal patch.
     if (sourceOrgId === destOrgId) {
-      return this.patch(brandId, this.stripRelocationField(updateBrandDto));
+      const patched = await this.patch(
+        brandId,
+        this.stripRelocationField(updateBrandDto),
+      );
+      return { brand: patched, summary: { ...EMPTY_RELOCATION_SUMMARY } };
     }
 
     const destOrg = await this.prisma.organization.findFirst({
@@ -1615,6 +1705,7 @@ Respond ONLY with the JSON array.`;
     await this.assertCanRelocate(actingUser, sourceOrgId, destOrgId);
 
     const passthrough = this.pickRelocationPassthrough(updateBrandDto);
+    const relocationAck = updateBrandDto.relocationAck;
 
     this.logger.log('Relocating brand between organizations', {
       brandId,
@@ -1624,27 +1715,100 @@ Respond ONLY with the JSON array.`;
       sourceOrgId,
     });
 
-    try {
-      await this.prisma.$transaction(async (tx) => {
-        await this.runBrandOrgCascade(tx, brandId, destOrgId, passthrough);
-        await this.assertNoBrandOrgOrphans(tx, brandId, destOrgId);
-      });
-    } catch (error: unknown) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
-        const target = Array.isArray(error.meta?.target)
-          ? (error.meta?.target as string[]).join(', ')
-          : 'a unique constraint';
-        throw new ConflictException(
-          `Cannot move brand: a record in the destination organization already conflicts on ${target}.`,
+    let reconcileResult: RelocationReconcileResult = {
+      clones: [],
+      membersSevered: 0,
+      workflowsMoved: 0,
+    };
+
+    for (
+      let attempt = 0;
+      attempt < MAX_RELOCATION_SERIALIZATION_RETRIES;
+      attempt += 1
+    ) {
+      try {
+        reconcileResult = await this.prisma.$transaction(
+          async (tx) => {
+            await this.assertRelocationAck(
+              tx,
+              brandId,
+              destOrgId,
+              relocationAck,
+            );
+            const result = await this.runBrandOrgCascade(
+              tx,
+              brandId,
+              destOrgId,
+              passthrough,
+              actingUser,
+            );
+            await this.assertNoBrandOrgOrphans(tx, brandId, destOrgId);
+            return result;
+          },
+          { isolationLevel: 'Serializable' },
         );
+        break;
+      } catch (error: unknown) {
+        const errorCode = (error as { code?: string }).code;
+
+        if (errorCode === PRISMA_UNIQUE_CONSTRAINT_VIOLATION) {
+          const target = Array.isArray(
+            (error as Prisma.PrismaClientKnownRequestError).meta?.target,
+          )
+            ? (
+                (error as Prisma.PrismaClientKnownRequestError).meta
+                  ?.target as string[]
+              ).join(', ')
+            : 'a unique constraint';
+          throw new ConflictException(
+            `Cannot move brand: a record in the destination organization already conflicts on ${target}.`,
+          );
+        }
+
+        if (
+          errorCode === PRISMA_SERIALIZATION_FAILURE &&
+          attempt < MAX_RELOCATION_SERIALIZATION_RETRIES - 1
+        ) {
+          this.logger.debug(
+            `${this.constructorName} serialization failure on brand relocation attempt ${attempt + 1} — retrying`,
+            { brandId, destOrgId, sourceOrgId },
+          );
+          await new Promise<void>((resolve) =>
+            setTimeout(resolve, 50 * (attempt + 1)),
+          );
+          continue;
+        }
+
+        throw error;
       }
-      throw error;
     }
 
     await this.invalidateRelocationCaches(brandId, sourceOrgId, destOrgId);
+
+    // Post-commit, best-effort scheduler registration for clones that were created
+    // active. Failures are captured (not swallowed) into `schedulingPending` — the
+    // boot-time `syncAllWorkflowSchedulers` sweep is the idempotent backstop, so a
+    // failed registration here never leaves the clone permanently unscheduled.
+    let schedulingPending = 0;
+    for (const clone of reconcileResult.clones) {
+      if (!clone.activate || !clone.schedule) {
+        continue;
+      }
+      try {
+        await this.workflowExecutionQueueService.upsertWorkflowScheduler({
+          cronExpression: clone.schedule,
+          timezone: clone.timezone || 'UTC',
+          workflowId: clone.id,
+        });
+      } catch (error: unknown) {
+        schedulingPending += 1;
+        this.logger.error(
+          `${this.constructorName} failed to register scheduler for cloned workflow ${clone.id}`,
+          error,
+          'BrandsService',
+        );
+      }
+    }
 
     const moved = (await this.delegate.findFirst({
       where: { id: brandId },
@@ -1652,13 +1816,191 @@ Respond ONLY with the JSON array.`;
     if (!moved) {
       throw new NotFoundException('Brand', brandId);
     }
-    return moved;
+
+    const workflowsClonedActive = reconcileResult.clones.filter(
+      (clone) => clone.activate,
+    ).length;
+    const workflowsClonedPaused =
+      reconcileResult.clones.length - workflowsClonedActive;
+
+    return {
+      brand: moved,
+      summary: {
+        membersSevered: reconcileResult.membersSevered,
+        schedulingPending,
+        workflowsClonedActive,
+        workflowsClonedPaused,
+        workflowsMoved: reconcileResult.workflowsMoved,
+      },
+    };
   }
 
-  private stripRelocationField<T extends { organizationId?: string }>(
-    dto: T,
-  ): Omit<T, 'organizationId'> {
-    const { organizationId: _omit, ...rest } = dto;
+  /**
+   * Recompute the SHA-256 ack token over the (sorted) set of workflows that will be
+   * cloned into the destination org. Order-independent and stable across preview →
+   * move, so a client-supplied token only matches if the impacted set hasn't changed.
+   */
+  private computeRelocationAckToken(
+    multiBrandWorkflowIds: string[],
+    brandId: string,
+    destOrgId: string,
+  ): string {
+    const sorted = [...multiBrandWorkflowIds].sort();
+    return createHash('sha256')
+      .update(`${sorted.join(',')}|${brandId}|${destOrgId}`)
+      .digest('hex');
+  }
+
+  /**
+   * Read-only preview for the consent modal: what a relocation of `brandId` to
+   * `destOrgId` would affect, plus the ack token the client must echo back on the
+   * PATCH to confirm it saw these counts. Returns `ackToken: null` when there is no
+   * clone impact (nothing to confirm).
+   */
+  async previewRelocation(
+    brandId: string,
+    destOrgId: string,
+    actingUser: { userId: string; isSuperAdmin: boolean },
+  ): Promise<BrandRelocationPreview> {
+    const brand = (await this.delegate.findFirst({
+      where: { id: brandId, isDeleted: false },
+    })) as (BrandDocument & { organizationId: string }) | null;
+    if (!brand) {
+      throw new NotFoundException('Brand', brandId);
+    }
+    const sourceOrgId = brand.organizationId;
+
+    const destOrg = await this.prisma.organization.findFirst({
+      select: { id: true },
+      where: { id: destOrgId, isDeleted: false },
+    });
+    if (!destOrg) {
+      throw new NotFoundException('Organization', destOrgId);
+    }
+
+    await this.assertCanRelocate(actingUser, sourceOrgId, destOrgId);
+
+    const impact = await this.classifyRelocationImpact(
+      this.prisma as unknown as Prisma.TransactionClient,
+      brandId,
+      destOrgId,
+    );
+
+    const ackToken =
+      impact.multiBrandWorkflowIds.length > 0
+        ? this.computeRelocationAckToken(
+            impact.multiBrandWorkflowIds,
+            brandId,
+            destOrgId,
+          )
+        : null;
+
+    return {
+      ackToken,
+      counts: {
+        sharedWorkflows: impact.multiBrandWorkflowIds.length,
+        soleBrandWorkflows: impact.soleBrandWorkflowIds.length,
+        staleMembers: impact.staleMemberIds.length,
+      },
+    };
+  }
+
+  /**
+   * Server-enforced consent gate: recomputes the impacted set + hash inside the
+   * relocation transaction. If cloning would happen and the caller's `relocationAck`
+   * doesn't match, reject with 409 — closes both the stale-client/direct-PATCH bypass
+   * and the preview→move TOCTOU (impacted set changed ⇒ hash mismatch ⇒ re-preview).
+   */
+  private async assertRelocationAck(
+    tx: Prisma.TransactionClient,
+    brandId: string,
+    destOrgId: string,
+    relocationAck: string | undefined,
+  ): Promise<void> {
+    const impact = await this.classifyRelocationImpact(tx, brandId, destOrgId);
+    if (impact.multiBrandWorkflowIds.length === 0) {
+      return;
+    }
+    const expected = this.computeRelocationAckToken(
+      impact.multiBrandWorkflowIds,
+      brandId,
+      destOrgId,
+    );
+    if (relocationAck !== expected) {
+      throw new ConflictException(
+        'This move will copy shared workflow(s) into the destination organization. ' +
+          'Confirmation is required and the previewed impact may be stale — request a ' +
+          'fresh relocation preview and try again.',
+      );
+    }
+  }
+
+  /**
+   * Read-only classification of the sole-vs-multi-brand workflow split (plus stale
+   * members) that a relocation of `brandId` to `destOrgId` would produce. Single
+   * source of truth reused by the preview endpoint and the transactional move.
+   * A soft-deleted sibling brand still counts as "shared" — the safe direction is to
+   * never over-move a workflow that has any other brand association.
+   */
+  private async classifyRelocationImpact(
+    client: Prisma.TransactionClient,
+    brandId: string,
+    destOrgId: string,
+  ): Promise<RelocationImpact> {
+    const delegateClient = client as unknown as Record<string, CascadeDelegate>;
+
+    const staleMembers = await delegateClient.member.findMany({
+      select: { id: true },
+      where: {
+        brands: { some: { id: brandId } },
+        organizationId: { not: destOrgId },
+      },
+    });
+
+    // Workflows attached to the moving brand but sitting in a source (non-dest) org.
+    // Soft-deleted workflows are excluded — moving/cloning one would resurrect it
+    // (the clone is written with `isDeleted: false`), and a dead M2M link is invisible
+    // to tenant reads anyway. The M2M backstop below likewise ignores deleted links.
+    const crossOrgWorkflows = await delegateClient.workflow.findMany({
+      select: { id: true },
+      where: {
+        brands: { some: { id: brandId } },
+        isDeleted: false,
+        organizationId: { not: destOrgId },
+      },
+    });
+    // Of those, the ones ALSO linked to a different (live) brand — anchored to the
+    // source org, so they cannot move in place (a soft-deleted sibling brand still
+    // counts: treating it as shared is the safe direction).
+    const sharedWorkflows = await delegateClient.workflow.findMany({
+      select: { id: true },
+      where: {
+        brands: { some: { id: brandId } },
+        AND: [{ brands: { some: { id: { not: brandId } } } }],
+        isDeleted: false,
+        organizationId: { not: destOrgId },
+      },
+    });
+    const sharedWorkflowIds = new Set(sharedWorkflows.map((w) => w.id));
+
+    return {
+      multiBrandWorkflowIds: crossOrgWorkflows
+        .filter((w) => sharedWorkflowIds.has(w.id))
+        .map((w) => w.id),
+      soleBrandWorkflowIds: crossOrgWorkflows
+        .filter((w) => !sharedWorkflowIds.has(w.id))
+        .map((w) => w.id),
+      staleMemberIds: staleMembers.map((m) => m.id),
+    };
+  }
+
+  private stripRelocationField<
+    T extends { organizationId?: string; relocationAck?: string },
+  >(dto: T): Omit<T, 'organizationId' | 'relocationAck'> {
+    // Strip BOTH the relocation trigger and its consent token: neither is a Brand
+    // column, so leaking them into a normal CRUD patch (e.g. a client retry after the
+    // move already committed) would make Prisma reject the update on an unknown field.
+    const { organizationId: _omitOrg, relocationAck: _omitAck, ...rest } = dto;
     return rest;
   }
 
@@ -1725,7 +2067,8 @@ Respond ONLY with the JSON array.`;
     brandId: string,
     destOrgId: string,
     passthrough: Record<string, unknown>,
-  ): Promise<void> {
+    actingUser: { userId: string; isSuperAdmin: boolean },
+  ): Promise<RelocationReconcileResult> {
     const client = tx as unknown as Record<string, CascadeDelegate>;
 
     // 1. The brand row itself (+ any co-patched scalar fields).
@@ -1768,8 +2111,9 @@ Respond ONLY with the JSON array.`;
       });
     }
 
-    // 4. Sever associations that would become cross-org.
-    await this.severCrossOrgLinks(tx, brandId, destOrgId);
+    // 4. Reconcile associations that would become cross-org (clone shared workflows,
+    //    move sole-brand workflows, sever stale members).
+    return this.reconcileCrossOrgLinks(tx, brandId, destOrgId, actingUser);
   }
 
   /**
@@ -1785,17 +2129,23 @@ Respond ONLY with the JSON array.`;
    *       – sole-brand  (this brand is its ONLY brand) → MOVED with the brand, together
    *         with its org-keyed execution/batch history, so the relocated brand keeps its
    *         automation intact.
-   *       – multi-brand (also drives other brands)     → SEVERED; it must stay in the
-   *         source org for the brands that remain there.
+   *       – multi-brand (also drives other brands)     → the moved brand is DISCONNECTED
+   *         from the original (which stays in the source org for its other brands), and
+   *         a CLONE is created in the destination org, scoped to the moved brand, so the
+   *         brand never silently loses its automation. The clone is created ACTIVE only
+   *         when the source is effectively active+scheduled and the rewritten config is
+   *         "clean" (no lingering cross-org resource references); otherwise it is created
+   *         as a DRAFT for the user to review.
    *
    * The acting user keeps access to the brand because relocation requires membership in
    * the destination org.
    */
-  private async severCrossOrgLinks(
+  private async reconcileCrossOrgLinks(
     tx: Prisma.TransactionClient,
     brandId: string,
     destOrgId: string,
-  ): Promise<void> {
+    actingUser: { userId: string; isSuperAdmin: boolean },
+  ): Promise<RelocationReconcileResult> {
     const client = tx as unknown as Record<string, CascadeDelegate> & {
       brand: {
         update(args: {
@@ -1805,48 +2155,20 @@ Respond ONLY with the JSON array.`;
       };
     };
 
-    const staleMembers = await client.member.findMany({
-      select: { id: true },
-      where: {
-        brands: { some: { id: brandId } },
-        organizationId: { not: destOrgId },
-      },
-    });
+    const impact = await this.classifyRelocationImpact(tx, brandId, destOrgId);
+    const { multiBrandWorkflowIds: workflowsToClone } = impact;
+    const workflowsToMove = impact.soleBrandWorkflowIds;
+    const staleMemberIds = impact.staleMemberIds;
 
-    // Workflows attached to the moving brand but sitting in a source (non-dest) org.
-    const crossOrgWorkflows = await client.workflow.findMany({
-      select: { id: true },
-      where: {
-        brands: { some: { id: brandId } },
-        organizationId: { not: destOrgId },
-      },
-    });
-    // Of those, the ones ALSO linked to a different brand — anchored to the source org,
-    // so they cannot move (a soft-deleted sibling brand still counts: sever is the safe
-    // direction, we never over-move a workflow that has any other association).
-    const sharedWorkflows = await client.workflow.findMany({
-      select: { id: true },
-      where: {
-        brands: { some: { id: brandId } },
-        AND: [{ brands: { some: { id: { not: brandId } } } }],
-        organizationId: { not: destOrgId },
-      },
-    });
-    const sharedWorkflowIds = new Set(sharedWorkflows.map((w) => w.id));
-    const workflowsToSever = crossOrgWorkflows
-      .filter((w) => sharedWorkflowIds.has(w.id))
-      .map((w) => w.id);
-    const workflowsToMove = crossOrgWorkflows
-      .filter((w) => !sharedWorkflowIds.has(w.id))
-      .map((w) => w.id);
-
-    // Sever multi-brand workflows + all stale members from the brand.
-    if (staleMembers.length > 0 || workflowsToSever.length > 0) {
+    // Disconnect the multi-brand workflows + all stale members from the brand. The
+    // original workflow row is untouched otherwise and stays in the source org for its
+    // remaining brands.
+    if (staleMemberIds.length > 0 || workflowsToClone.length > 0) {
       await client.brand.update({
         data: {
-          members: { disconnect: staleMembers.map((m) => ({ id: m.id })) },
+          members: { disconnect: staleMemberIds.map((id) => ({ id })) },
           workflows: {
-            disconnect: workflowsToSever.map((id) => ({ id })),
+            disconnect: workflowsToClone.map((id) => ({ id })),
           },
         },
         where: { id: brandId },
@@ -1896,6 +2218,22 @@ Respond ONLY with the JSON array.`;
       });
     }
 
+    // Clone each multi-brand (shared) workflow into the destination org, scoped to the
+    // moved brand, instead of silently severing it.
+    const clones: RelocationWorkflowClone[] = [];
+    for (const workflowId of workflowsToClone) {
+      const clone = await this.cloneWorkflowForRelocation(
+        tx,
+        workflowId,
+        brandId,
+        destOrgId,
+        actingUser,
+      );
+      if (clone) {
+        clones.push(clone);
+      }
+    }
+
     // Clear per-member "last used brand" pointers left in other orgs.
     await client.member.updateMany({
       data: { lastUsedBrandId: null },
@@ -1913,6 +2251,281 @@ Respond ONLY with the JSON array.`;
       destOrgId,
       workflowsToMove,
     );
+
+    return {
+      clones,
+      membersSevered: staleMemberIds.length,
+      workflowsMoved: workflowsToMove.length,
+    };
+  }
+
+  /**
+   * Clone a shared (multi-brand) workflow into the destination org, scoped only to the
+   * moved brand. Uses a typed `tx.workflow.create({ data })` directly — NEVER
+   * `WorkflowsService.cloneWorkflow`, which is unsafe cross-org (it does not rewrite
+   * brand references or vet the config for cross-org resource leakage).
+   */
+  private async cloneWorkflowForRelocation(
+    tx: Prisma.TransactionClient,
+    sourceWorkflowId: string,
+    brandId: string,
+    destOrgId: string,
+    actingUser: { userId: string; isSuperAdmin: boolean },
+  ): Promise<RelocationWorkflowClone | null> {
+    const source = await tx.workflow.findFirst({
+      where: { id: sourceWorkflowId },
+    });
+    if (!source) {
+      return null;
+    }
+
+    const rewrittenNodes = this.rewriteBrandReferences(source.nodes, brandId);
+    const rewrittenSteps = this.rewriteBrandReferences(source.steps, brandId);
+    const rewrittenConfig = this.rewriteBrandReferences(source.config, brandId);
+    const rewrittenInputVariables = this.rewriteBrandReferences(
+      source.inputVariables,
+      brandId,
+    );
+
+    const isClean = await this.isRelocationCloneClean(
+      tx,
+      destOrgId,
+      rewrittenNodes,
+      rewrittenSteps,
+      rewrittenConfig,
+      rewrittenInputVariables,
+    );
+    // A protected system workflow must never be cloned into an active, user-scheduled
+    // state: its `systemWorkflowAction` nodes have no executor in the user scheduler, so
+    // scheduled runs would only record failures (the normal scheduler skips system
+    // workflows by design). Force such clones to paused/DRAFT for manual review.
+    const isSystemSource = Boolean(getSystemWorkflowMetadata(source.metadata));
+    const sourceEffectivelyActive =
+      source.status === WorkflowStatus.ACTIVE &&
+      Boolean(source.isScheduleEnabled) &&
+      Boolean(source.schedule);
+    const activate = sourceEffectivelyActive && isClean && !isSystemSource;
+
+    const cloneOwnerId = await this.resolveRelocationCloneOwner(
+      tx,
+      source.userId,
+      destOrgId,
+      actingUser.userId,
+    );
+
+    // The clone is a plain user-workflow copy: strip both the system marker and the
+    // default-recurring designation. Default-recurring ownership is managed per
+    // (brand, org, contentType) by DefaultRecurringContentService — a relocated clone
+    // never carries `defaultRecurringBrandId` (the source's marker was already nulled
+    // for shared workflows above; preserving it here would be dead code anyway).
+    const metadataRecord = getMetadataRecord(source.metadata);
+    delete metadataRecord[SYSTEM_WORKFLOW_METADATA_KEY];
+    delete metadataRecord.defaultRecurringContent;
+
+    let created: { id: string } | null = null;
+    try {
+      created = await tx.workflow.create({
+        data: {
+          brands: { connect: [{ id: brandId }] },
+          config: rewrittenConfig as Prisma.InputJsonValue,
+          defaultRecurringBrandId: null,
+          description: source.description,
+          edges: source.edges as Prisma.InputJsonValue,
+          executionCount: 0,
+          inputVariables: rewrittenInputVariables as Prisma.InputJsonValue,
+          isDeleted: false,
+          isScheduleEnabled: activate,
+          label: source.label,
+          lifecycle: source.lifecycle,
+          lockedNodeIds: source.lockedNodeIds as Prisma.InputJsonValue,
+          metadata: metadataRecord as Prisma.InputJsonValue,
+          nodes: rewrittenNodes as Prisma.InputJsonValue,
+          organizationId: destOrgId,
+          progress: 0,
+          recurrence: source.recurrence as Prisma.InputJsonValue,
+          schedule: source.schedule,
+          status: activate ? WorkflowStatus.ACTIVE : WorkflowStatus.DRAFT,
+          steps: rewrittenSteps as Prisma.InputJsonValue,
+          thumbnail: source.thumbnail,
+          thumbnailNodeId: source.thumbnailNodeId,
+          timezone: source.timezone,
+          userId: cloneOwnerId,
+        },
+      });
+    } catch (error: unknown) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === PRISMA_UNIQUE_CONSTRAINT_VIOLATION
+      ) {
+        throw new ConflictException(
+          `Cannot clone workflow "${source.label ?? source.id}" into the destination organization: a conflicting record already exists.`,
+        );
+      }
+      throw error;
+    }
+
+    return {
+      id: created.id,
+      activate,
+      isScheduleEnabled: activate,
+      needsReview: !activate,
+      schedule: source.schedule,
+      status: activate ? WorkflowStatus.ACTIVE : WorkflowStatus.DRAFT,
+      timezone: source.timezone,
+    };
+  }
+
+  /**
+   * Best-effort rewrite of brand-id references inside a workflow's JSON definition,
+   * pointing them at the moved brand. Deliberately conservative: any object with a
+   * recognizable brand-id field (`brandId`, `brandIds`) is rewritten; everything else is
+   * left untouched. Non-object/array input is returned as-is.
+   */
+  private rewriteBrandReferences(value: unknown, brandId: string): unknown {
+    if (Array.isArray(value)) {
+      return value.map((item) => this.rewriteBrandReferences(item, brandId));
+    }
+    if (value && typeof value === 'object') {
+      const record = { ...(value as Record<string, unknown>) };
+      for (const key of Object.keys(record)) {
+        if (key === 'brandId' && typeof record[key] === 'string') {
+          record[key] = brandId;
+          continue;
+        }
+        if (
+          key === 'brandIds' &&
+          Array.isArray(record[key]) &&
+          (record[key] as unknown[]).every((id) => typeof id === 'string')
+        ) {
+          record[key] = [brandId];
+          continue;
+        }
+        record[key] = this.rewriteBrandReferences(record[key], brandId);
+      }
+      return record;
+    }
+    return value;
+  }
+
+  /**
+   * Conservative cleanliness heuristic for a relocation clone (documented limitation:
+   * unknown/custom node shapes fail toward "not clean", never toward an unsafe active
+   * clone). Collects every string value under the rewritten JSON that looks like a
+   * Prisma cuid (id-like token), then checks whether any of those ids resolve to an
+   * org-scoped resource row — `Credential`, `Ingredient`, or `Asset` (whose org column is
+   * `parentOrgId`, not `organizationId`) — that belongs to an org OTHER than the
+   * destination. If so, the clone is not clean and must be created paused (DRAFT) for
+   * manual review. Only owned/known org-scoped tables are checked; anything unresolved is
+   * simply ignored (not treated as dirty) since it is not one of the resource kinds this
+   * heuristic understands.
+   */
+  private async isRelocationCloneClean(
+    tx: Prisma.TransactionClient,
+    destOrgId: string,
+    ...rewrittenJson: unknown[]
+  ): Promise<boolean> {
+    const candidateIds = new Set<string>();
+    const CUID_PATTERN = /^[a-z0-9]{20,}$/i;
+    const collect = (value: unknown): void => {
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          collect(item);
+        }
+        return;
+      }
+      if (value && typeof value === 'object') {
+        for (const nested of Object.values(value as Record<string, unknown>)) {
+          collect(nested);
+        }
+        return;
+      }
+      if (typeof value === 'string' && CUID_PATTERN.test(value)) {
+        candidateIds.add(value);
+      }
+    };
+    for (const json of rewrittenJson) {
+      collect(json);
+    }
+
+    if (candidateIds.size === 0) {
+      return true;
+    }
+    const ids = [...candidateIds];
+
+    // Match BOTH the primary cuid and the legacy Mongo alias (`mongoId`) — workflow
+    // JSON can carry either form, and a missed legacy id would let a clone referencing a
+    // foreign-org resource be marked clean (and scheduled) instead of paused for review.
+    const idOr = [{ id: { in: ids } }, { mongoId: { in: ids } }];
+    const [foreignCredential, foreignIngredient, foreignAsset] =
+      await Promise.all([
+        tx.credential.findFirst({
+          select: { id: true },
+          where: { OR: idOr, organizationId: { not: destOrgId } },
+        }),
+        tx.ingredient.findFirst({
+          select: { id: true },
+          where: { OR: idOr, organizationId: { not: destOrgId } },
+        }),
+        tx.asset.findFirst({
+          select: { id: true },
+          where: { OR: idOr, parentOrgId: { not: destOrgId } },
+        }),
+      ]);
+
+    return !foreignCredential && !foreignIngredient && !foreignAsset;
+  }
+
+  /**
+   * Clone ownership: keep the source workflow's owner if they are still an active
+   * member of the destination org (so an unrelated brand-mover doesn't silently become
+   * the automation owner); otherwise fall back to the acting user, who is guaranteed to
+   * be a member of the destination org (relocation requires it).
+   */
+  private async resolveRelocationCloneOwner(
+    tx: Prisma.TransactionClient,
+    sourceUserId: string,
+    destOrgId: string,
+    actingUserId: string,
+  ): Promise<string> {
+    const isDestMember = async (userId: string): Promise<boolean> =>
+      Boolean(
+        await tx.member.findFirst({
+          select: { id: true },
+          where: {
+            isActive: true,
+            isDeleted: false,
+            organizationId: destOrgId,
+            userId,
+          },
+        }),
+      );
+
+    if (await isDestMember(sourceUserId)) {
+      return sourceUserId;
+    }
+    // A superadmin relocation may run with an acting user who is NOT a member of the
+    // destination org. Never assign the clone to a non-member (workflow listing is
+    // user-scoped, so the org would be unable to see or edit it): prefer the acting
+    // user only when they are a real dest member, else fall back to an active dest
+    // owner/admin, and only as a last resort to the acting user.
+    if (await isDestMember(actingUserId)) {
+      return actingUserId;
+    }
+    const elevated = [...BrandsService.RELOCATION_ELEVATED_ROLES];
+    const destAdmin = await tx.member.findFirst({
+      orderBy: { createdAt: 'asc' },
+      select: { userId: true },
+      where: {
+        isActive: true,
+        isDeleted: false,
+        organizationId: destOrgId,
+        OR: [
+          { roleKey: { in: elevated } },
+          { role: { key: { in: elevated } } },
+        ],
+      },
+    });
+    return destAdmin?.userId ?? actingUserId;
   }
 
   /**
@@ -1928,9 +2541,14 @@ Respond ONLY with the JSON array.`;
   ): Promise<void> {
     // Nothing should still be attached to the moved brand from a source org: sole-brand
     // workflows moved into the destination org, every other link was severed.
+    // Only LIVE links matter: a soft-deleted workflow/member is invisible to
+    // tenant-scoped reads, and deleted rows are deliberately excluded from the
+    // move/clone reconciliation above — so they must be excluded here too or the
+    // backstop would false-positive on a dead link.
     const strandedWorkflows = await client.workflow.count({
       where: {
         brands: { some: { id: brandId } },
+        isDeleted: false,
         organizationId: { not: destOrgId },
       },
     });
@@ -1946,8 +2564,9 @@ Respond ONLY with the JSON array.`;
       movedWorkflowIds.length > 0
         ? await client.workflow.count({
             where: {
-              id: { in: movedWorkflowIds },
               brands: { some: { organizationId: { not: destOrgId } } },
+              id: { in: movedWorkflowIds },
+              isDeleted: false,
             },
           })
         : 0;

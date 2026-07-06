@@ -16,10 +16,12 @@ import {
 import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import { EntityFactory } from '@api/shared/factories/entity/entity.factory';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import {
+  ListingType,
   WorkflowExecutionTrigger,
   WorkflowLifecycle,
   WorkflowStatus,
@@ -53,6 +55,8 @@ export class WorkflowsService extends BaseService<
     private readonly workflowExecutorService?: WorkflowExecutorService,
     @Optional()
     private readonly workflowExecutionQueueService?: WorkflowExecutionQueueService,
+    @Optional()
+    private readonly marketplaceApiClient?: MarketplaceApiClient,
   ) {
     super(prisma, 'workflow', logger);
   }
@@ -428,6 +432,80 @@ export class WorkflowsService extends BaseService<
     const updated = await this.patch(workflowId, {
       lifecycle: WorkflowLifecycle.ARCHIVED,
     });
+
+    return EntityFactory.fromDocument(WorkflowEntity, updated);
+  }
+
+  /**
+   * Publish a workflow to the marketplace: flip it public + template and, when
+   * a seller profile and marketplace API are available, create and auto-submit
+   * a marketplace listing. Cascade moved out of the former
+   * `POST /workflows/:id/publish` controller so it lives behind the generic
+   * `PATCH /workflows/:id { isPublic: true, isTemplate: true }` (#1354).
+   */
+  @HandleErrors('publish workflow to marketplace', 'workflows')
+  async publishToMarketplace(
+    workflowId: string,
+    userId: string,
+    organizationId: string,
+  ): Promise<WorkflowEntity> {
+    const workflow = await this.findMutableOwnedOrThrow(workflowId, {
+      organization: organizationId,
+      user: userId,
+    });
+
+    const updated = await this.patch(workflowId, {
+      isPublic: true,
+      isTemplate: true,
+    });
+
+    if (this.marketplaceApiClient) {
+      const seller = await this.marketplaceApiClient.getSellerByUserId(userId);
+
+      if (seller) {
+        const nodes = workflow.nodes || [];
+        const edges = workflow.edges || [];
+        const nodeTypes = [...new Set(nodes.map((node) => node.type))];
+
+        const listing = await this.marketplaceApiClient.createListing(
+          seller._id.toString(),
+          organizationId,
+          {
+            description:
+              workflow.description ||
+              workflow.name ||
+              'A workflow published from the builder',
+            downloadData: {
+              edges,
+              name: workflow.name,
+              nodes,
+              version: 1,
+            },
+            previewData: {
+              connections: edges.length,
+              nodes: nodes.length,
+              nodeTypes,
+            },
+            price: 0,
+            shortDescription:
+              workflow.description?.slice(0, 300) ||
+              workflow.name ||
+              'Workflow',
+            tags: ['community', 'workflow'],
+            title: workflow.name || 'Untitled Workflow',
+            type: ListingType.WORKFLOW,
+          },
+        );
+
+        if (listing) {
+          // Auto-approve (submit for review)
+          await this.marketplaceApiClient.submitForReview(
+            listing._id.toString(),
+            seller._id.toString(),
+          );
+        }
+      }
+    }
 
     return EntityFactory.fromDocument(WorkflowEntity, updated);
   }

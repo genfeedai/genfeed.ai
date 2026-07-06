@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BotLivestreamOverrideDto } from '@api/collections/bots/dto/bot-livestream-override.dto';
 import { BotLivestreamSendNowDto } from '@api/collections/bots/dto/bot-livestream-send-now.dto';
+import { BotLivestreamSessionPatchDto } from '@api/collections/bots/dto/bot-livestream-session-patch.dto';
 import { BotLivestreamTranscriptDto } from '@api/collections/bots/dto/bot-livestream-transcript.dto';
 import { BotsQueryDto } from '@api/collections/bots/dto/bots-query.dto';
 import { CreateBotDto } from '@api/collections/bots/dto/create-bot.dto';
@@ -19,12 +20,13 @@ import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import { BotLivestreamSessionStatus } from '@genfeedai/enums';
 import {
   BotSerializer,
   LivestreamBotSessionSerializer,
 } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
 
 interface MutableEntityReference {
@@ -168,47 +170,15 @@ export class BotsController extends BaseCRUDController<
     return serializeSingle(request, LivestreamBotSessionSerializer, session);
   }
 
-  @Post(':id/livestream-session/start')
-  async startLivestreamSession(
+  @Patch(':id/livestream-session')
+  async patchLivestreamSession(
     @Req() request: Request,
     @CurrentUser() user: User,
     @Param('id') id: string,
+    @Body() dto: BotLivestreamSessionPatchDto,
   ) {
     const bot = await this.findBotForMutation(user, id);
-    const session = await this.botsLivestreamService.startSession(bot);
-    return serializeSingle(request, LivestreamBotSessionSerializer, session);
-  }
-
-  @Post(':id/livestream-session/stop')
-  async stopLivestreamSession(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-  ) {
-    const bot = await this.findBotForMutation(user, id);
-    const session = await this.botsLivestreamService.stopSession(bot);
-    return serializeSingle(request, LivestreamBotSessionSerializer, session);
-  }
-
-  @Post(':id/livestream-session/pause')
-  async pauseLivestreamSession(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-  ) {
-    const bot = await this.findBotForMutation(user, id);
-    const session = await this.botsLivestreamService.pauseSession(bot);
-    return serializeSingle(request, LivestreamBotSessionSerializer, session);
-  }
-
-  @Post(':id/livestream-session/resume')
-  async resumeLivestreamSession(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-  ) {
-    const bot = await this.findBotForMutation(user, id);
-    const session = await this.botsLivestreamService.resumeSession(bot);
+    const session = await this.dispatchLivestreamSessionStatus(bot, dto);
     return serializeSingle(request, LivestreamBotSessionSerializer, session);
   }
 
@@ -271,5 +241,31 @@ export class BotsController extends BaseCRUDController<
     }
 
     return bot;
+  }
+
+  private async dispatchLivestreamSessionStatus(
+    bot: BotDocument,
+    dto: BotLivestreamSessionPatchDto,
+  ) {
+    if (dto.status === BotLivestreamSessionStatus.STOPPED) {
+      return this.botsLivestreamService.stopSession(bot);
+    }
+
+    if (dto.status === BotLivestreamSessionStatus.PAUSED) {
+      return this.botsLivestreamService.pauseSession(bot);
+    }
+
+    // BotLivestreamSessionStatus.ACTIVE: "start" and "resume" both persist
+    // status "active" but are distinct service methods (start also resets
+    // stoppedAt, resume only clears pausedAt). Disambiguate by the current
+    // session status: resume from paused, start from anything else.
+    const currentSession =
+      await this.botsLivestreamService.getOrCreateSession(bot);
+
+    if (currentSession.status === BotLivestreamSessionStatus.PAUSED) {
+      return this.botsLivestreamService.resumeSession(bot);
+    }
+
+    return this.botsLivestreamService.startSession(bot);
   }
 }

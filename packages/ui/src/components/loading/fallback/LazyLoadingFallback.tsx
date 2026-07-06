@@ -47,7 +47,7 @@ export default function LazyLoadingFallback({
   return (
     <div
       className={cn(
-        'relative bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-800 dark:to-gray-700 overflow-hidden',
+        'relative bg-secondary overflow-hidden',
         aspectClass,
         className,
       )}

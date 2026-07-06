@@ -67,14 +67,14 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
           <div
             key={asset.id}
             className={cn(
-              'inline-flex max-w-full items-center gap-2 border border-white/10 bg-white/[0.04] text-white/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]',
+              'inline-flex max-w-full items-center gap-2 bg-tertiary text-white/85 shadow-border',
               isCompact ? 'h-9 pl-1.5 pr-1' : 'h-10 pl-1.5 pr-1',
               isDisabled && 'opacity-70',
             )}
           >
             <div
               className={cn(
-                'flex shrink-0 items-center justify-center overflow-hidden border border-white/10 bg-black/20',
+                'flex shrink-0 items-center justify-center overflow-hidden bg-black/20 shadow-border',
                 isCompact ? 'size-6.5' : 'size-7',
               )}
             >
@@ -111,7 +111,7 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
             <Button
               type="button"
               variant={undefined}
-              className="size-7 shrink-0 border border-white/10 bg-transparent p-0 text-white/55 hover:bg-white/5 hover:text-white"
+              className="size-7 shrink-0 bg-transparent p-0 text-white/55 shadow-border hover:bg-white/5 hover:text-white"
               icon={<HiXMark className="size-3.5" />}
               onClick={() => onRemoveAttachedAsset(asset.id)}
               isDisabled={isDisabled}
@@ -124,7 +124,7 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
           type="button"
           variant={undefined}
           className={cn(
-            'border border-white/10 bg-transparent font-medium text-white/70 hover:bg-white/5 hover:text-white',
+            'bg-transparent font-medium text-white/70 shadow-border hover:bg-white/5 hover:text-white',
             isCompact ? 'h-9 px-2.5 text-[11px]' : 'h-10 px-3 text-[12px]',
           )}
           icon={<HiOutlineFolderOpen className="size-3.5" />}

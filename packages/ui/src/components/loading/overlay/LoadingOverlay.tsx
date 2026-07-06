@@ -18,7 +18,7 @@ export default function LoadingOverlay({
       )}
     >
       <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" />
-      <span className="relative flex items-center gap-3 rounded-md border border-border/60 bg-background/90 px-3 py-2 text-sm text-foreground shadow-lg">
+      <span className="relative flex items-center gap-3 rounded-md bg-background/90 px-3 py-2 text-sm text-foreground shadow-dropdown">
         <Spinner
           ariaLabel={message}
           className="text-white/80"

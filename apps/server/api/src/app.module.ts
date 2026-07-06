@@ -61,6 +61,7 @@ import { HarnessProfilesModule } from '@api/collections/harness-profiles/harness
 import { ImagesModule } from '@api/collections/images/images.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { InsightsModule } from '@api/collections/insights/insights.module';
+import { LaunchCopyModule } from '@api/collections/launch-copy/launch-copy.module';
 import { LinksModule } from '@api/collections/links/links.module';
 import { McpApprovalsModule } from '@api/collections/mcp-approvals/mcp-approvals.module';
 import { MembersModule } from '@api/collections/members/members.module';
@@ -144,6 +145,7 @@ import { ContentGatewayModule } from '@api/services/content-gateway/content-gate
 import { ContentOptimizationModule } from '@api/services/content-optimization/content-optimization.module';
 import { ContentOrchestrationModule } from '@api/services/content-orchestration/content-orchestration.module';
 import { BeehiivModule } from '@api/services/integrations/beehiiv/beehiiv.module';
+import { DevtoModule } from '@api/services/integrations/devto/devto.module';
 import { DiscordModule } from '@api/services/integrations/discord/discord.module';
 import { GhostModule } from '@api/services/integrations/ghost/ghost.module';
 import { GoogleSearchConsoleModule } from '@api/services/integrations/google-search-console/google-search-console.module';
@@ -264,6 +266,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     ContentPlansModule,
     ContentIntelligenceModule,
     ContentPerformanceModule,
+    LaunchCopyModule,
     ContentRunsModule,
     ContentSchedulesModule,
     SkillsModule,
@@ -350,6 +353,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
 
     // Services (alphabetical)
     BeehiivModule,
+    DevtoModule,
     DiscordModule,
     GhostModule,
     GoogleSearchConsoleModule,

@@ -95,21 +95,69 @@ export const TIER_INCLUDED_MONTHLY_CREDITS: Record<string, number> = {
 export const BYOK_FEE_PERCENTAGE = 5;
 export const BYOK_FREE_THRESHOLD_CREDITS = 500;
 export const BYOK_CREDIT_VALUE_DOLLARS = 0.01;
+export const BASE_PROVIDER_COST_FRACTION = 0.3;
+export const BASE_MARGIN_PERCENT = 70;
+export const MAX_MARGIN_MULTIPLIER = 10;
 export const BYOK_FEE_PER_CREDIT =
   BYOK_CREDIT_VALUE_DOLLARS * (BYOK_FEE_PERCENTAGE / 100);
 
 /**
- * Apply 70% margin to a provider cost in USD.
- * Returns the sell price in credits (1 credit = $0.01).
+ * Process-scoped margin multiplier applied on top of the base provider-cost
+ * markup. Hydrated from the `PlatformSetting.marginMultiplier` operator knob at
+ * runtime (API on boot/update, workers per model-discovery run) so that every
+ * `applyMargin` call site in a process stays consistent without threading the
+ * value through their signatures. Defaults to 1.0 (base margin only).
+ */
+let runtimeMarginMultiplier = 1;
+
+/** Normalize a candidate multiplier, falling back to 1.0 when invalid. */
+function normalizeMarginMultiplier(multiplier: number): number {
+  if (!Number.isFinite(multiplier) || multiplier <= 0) {
+    return 1;
+  }
+
+  return Math.min(multiplier, MAX_MARGIN_MULTIPLIER);
+}
+
+/**
+ * Set the process-scoped margin multiplier. Non-finite or non-positive values
+ * fall back to 1.0 so a misconfigured knob can never zero out pricing.
+ */
+export function setRuntimeMarginMultiplier(multiplier: number): void {
+  runtimeMarginMultiplier = normalizeMarginMultiplier(multiplier);
+}
+
+/** Read the current process-scoped margin multiplier. */
+export function getRuntimeMarginMultiplier(): number {
+  return runtimeMarginMultiplier;
+}
+
+/**
+ * Apply the base 70% margin to a provider cost in USD, optionally scaled by an
+ * operator-configured margin multiplier. Returns the sell price in credits
+ * (1 credit = $0.01).
  *
- * Formula: Sell Price (USD) = providerCostUsd / 0.30
+ * Formula: Sell Price (USD) = (providerCostUsd / 0.30) * marginMultiplier
  * Credits = Sell Price / BYOK_CREDIT_VALUE_DOLLARS
  *
+ * @param providerCostUsd Raw provider cost in USD.
+ * @param marginMultiplier Extra markup on top of the base margin, configured by
+ *   platform operators in /admin (see PlatformSetting.marginMultiplier).
+ *   1.0 = base margin only, 1.2 = +20% markup. Defaults to the process-scoped
+ *   runtime multiplier (see setRuntimeMarginMultiplier). Non-finite or
+ *   non-positive values fall back to 1.0 so a misconfigured knob can never zero
+ *   out pricing.
  * @example applyMargin(0.15) → 50 credits ($0.50 sell price on $0.15 cost)
  * @example applyMargin(0.50) → 167 credits ($1.67 sell price on $0.50 cost)
+ * @example applyMargin(0.15, 1.2) → 60 credits ($0.60 sell price)
  */
-export function applyMargin(providerCostUsd: number): number {
-  const sellPriceUsd = providerCostUsd / 0.3;
+export function applyMargin(
+  providerCostUsd: number,
+  marginMultiplier: number = runtimeMarginMultiplier,
+): number {
+  const safeMultiplier = normalizeMarginMultiplier(marginMultiplier);
+  const sellPriceUsd =
+    (providerCostUsd / BASE_PROVIDER_COST_FRACTION) * safeMultiplier;
   const credits = Math.ceil(sellPriceUsd / BYOK_CREDIT_VALUE_DOLLARS);
   return Math.max(credits, 2); // absolute minimum floor
 }

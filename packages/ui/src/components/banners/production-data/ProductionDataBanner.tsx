@@ -58,7 +58,7 @@ export default function ProductionDataBanner() {
     <div
       role="alert"
       data-testid="production-data-banner"
-      className="flex w-full items-center justify-center gap-2 bg-red-600 px-4 py-2 text-sm font-bold text-white"
+      className="flex w-full items-center justify-center gap-2 bg-destructive px-4 py-2 text-sm font-bold text-destructive-foreground"
     >
       <HiExclamationTriangle className="size-5 shrink-0" />
       <span>PRODUCTION DATA: Read carefully before making changes</span>

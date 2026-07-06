@@ -9,25 +9,19 @@ describe('WorkflowExecutionsController RBAC', () => {
     expect(metadata).toEqual(['owner', 'admin', 'creator']);
   });
 
-  it('should require owner, admin, or creator role for cancel', () => {
+  it('should require owner, admin, or creator role for update', () => {
     const metadata = Reflect.getMetadata(
       'roles',
-      WorkflowExecutionsController.prototype.cancel,
+      WorkflowExecutionsController.prototype.update,
     );
     expect(metadata).toEqual(['owner', 'admin', 'creator']);
   });
 
-  it('should not require a role for findAll, getWorkflowExecutions, getExecutionStats, or findOne', () => {
+  it('should not require a role for findAll, getExecutionStats, or findOne', () => {
     expect(
       Reflect.getMetadata(
         'roles',
         WorkflowExecutionsController.prototype.findAll,
-      ),
-    ).toBeUndefined();
-    expect(
-      Reflect.getMetadata(
-        'roles',
-        WorkflowExecutionsController.prototype.getWorkflowExecutions,
       ),
     ).toBeUndefined();
     expect(

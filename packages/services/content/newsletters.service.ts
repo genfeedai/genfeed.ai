@@ -93,11 +93,7 @@ export class NewslettersService extends BaseService<Newsletter> {
   }
 
   public async archive(id: string): Promise<Newsletter> {
-    const response = await this.instance.post<JsonApiResponseDocument>(
-      `${id}/archive`,
-      {},
-    );
-    return this.mapOne(response.data);
+    return this.patch(id, { status: 'archived' });
   }
 
   public async getContext(id: string): Promise<{

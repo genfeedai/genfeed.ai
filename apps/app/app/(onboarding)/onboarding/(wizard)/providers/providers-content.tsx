@@ -263,8 +263,8 @@ export default function ProvidersContent() {
 
   return (
     <div ref={sectionRef}>
-      <h1 className="step-headline opacity-0 mb-4 text-4xl font-serif leading-none tracking-tighter text-white md:text-5xl">
-        Configure your <span className="font-light italic">access.</span>
+      <h1 className="step-headline opacity-0 mb-4 text-4xl font-semibold leading-none tracking-tight text-white md:text-5xl">
+        Configure your access.
       </h1>
 
       <p className="step-description opacity-0 mb-10 max-w-2xl text-lg text-white/40">

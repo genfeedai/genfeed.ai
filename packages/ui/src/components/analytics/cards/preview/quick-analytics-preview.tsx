@@ -60,7 +60,7 @@ export function QuickAnalyticsPreview({
     return (
       <div className={cardClassName}>
         <div className="flex items-center gap-2 mb-6">
-          <HiChartBarSquare className="size-4 text-purple-600" />
+          <HiChartBarSquare className="size-4 text-muted-foreground" />
           <h3 className="text-lg font-semibold text-foreground">{title}</h3>
         </div>
         <div className="text-center py-8">
@@ -69,7 +69,7 @@ export function QuickAnalyticsPreview({
           </p>
           <Link
             href={moreLink}
-            className="inline-flex items-center gap-2 rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700"
+            className="inline-flex items-center gap-2 rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
           >
             Go to Analytics
             <HiArrowRight className="size-4" />
@@ -102,20 +102,20 @@ export function QuickAnalyticsPreview({
 
   const quickStats = [
     {
-      color: 'text-purple-600',
+      color: 'text-muted-foreground',
       icon: HiChartBarSquare,
       label: 'Total Posts',
       value: data.totalPosts,
     },
     {
-      color: 'text-blue-600',
+      color: 'text-muted-foreground',
       growth: data.viewsGrowth,
       icon: HiEye,
       label: 'Total Views',
       value: data.totalViews,
     },
     {
-      color: 'text-pink-600',
+      color: 'text-muted-foreground',
       growth: data.engagementGrowth,
       icon: HiHeart,
       label: 'Engagement',
@@ -128,7 +128,7 @@ export function QuickAnalyticsPreview({
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <HiChartBarSquare className="size-4 text-purple-600" />
+          <HiChartBarSquare className="size-4 text-muted-foreground" />
           <h3 className="text-lg font-semibold text-foreground">{title}</h3>
         </div>
         <span className="text-sm text-muted-foreground">Last 7 days</span>
@@ -160,14 +160,14 @@ export function QuickAnalyticsPreview({
       </div>
 
       {/* Mini Trend Chart */}
-      <div className="mb-6 rounded-lg border border-purple-100 bg-gradient-to-br from-purple-50 to-blue-50 p-4 dark:border-purple-900/50 dark:from-purple-900/20 dark:to-blue-900/20">
+      <div className="mb-6 rounded-lg border border-border bg-secondary p-4">
         <p className="text-sm font-medium text-foreground/80 mb-3">
           Views Trend
         </p>
         <ChartContainer
           config={{
             value: {
-              color: '#8b5cf6',
+              color: 'hsl(var(--muted-foreground))',
               label: 'Views',
             },
           }}
@@ -177,14 +177,22 @@ export function QuickAnalyticsPreview({
           <AreaChart data={trendData}>
             <defs>
               <linearGradient id="colorPreview" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                <stop
+                  offset="5%"
+                  stopColor="hsl(var(--muted-foreground))"
+                  stopOpacity={0.3}
+                />
+                <stop
+                  offset="95%"
+                  stopColor="hsl(var(--muted-foreground))"
+                  stopOpacity={0}
+                />
               </linearGradient>
             </defs>
             <Area
               type="monotone"
               dataKey="value"
-              stroke="#8b5cf6"
+              stroke="hsl(var(--muted-foreground))"
               strokeWidth={2}
               fillOpacity={1}
               fill="url(#colorPreview)"
@@ -203,7 +211,7 @@ export function QuickAnalyticsPreview({
             {data.activePlatforms.map((platform) => (
               <span
                 key={platform}
-                className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
+                className="px-3 py-1 rounded-full text-xs font-medium bg-secondary text-secondary-foreground"
               >
                 {platform.charAt(0).toUpperCase() + platform.slice(1)}
               </span>
@@ -214,12 +222,12 @@ export function QuickAnalyticsPreview({
 
       {/* Best Performing Platform */}
       {data.bestPerformingPlatform && (
-        <div className="mb-6 rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-900/50 dark:bg-green-900/20">
+        <div className="mb-6 rounded-lg border border-border bg-secondary p-3">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-green-900 dark:text-green-100">
+            <p className="text-sm font-medium text-foreground">
               Best Performing Platform
             </p>
-            <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-200 dark:bg-green-900/50 text-green-800 dark:text-green-200">
+            <span className="px-3 py-1 rounded-full text-xs font-bold bg-primary text-primary-foreground">
               {data.bestPerformingPlatform.charAt(0).toUpperCase() +
                 data.bestPerformingPlatform.slice(1)}
             </span>
@@ -230,7 +238,7 @@ export function QuickAnalyticsPreview({
       {/* View More Button */}
       <Link
         href={moreLink}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-purple-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-purple-700"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-foreground px-4 py-3 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
       >
         View Detailed Analytics
         <HiArrowRight className="size-4" />

@@ -1,6 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateWatchlistDto } from '@api/collections/watchlists/dto/create-watchlist.dto';
-import { QuickAddWatchlistsDto } from '@api/collections/watchlists/dto/quick-add-watchlist.dto';
 import { UpdateWatchlistDto } from '@api/collections/watchlists/dto/update-watchlist.dto';
 import { WatchlistsService } from '@api/collections/watchlists/services/watchlists.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -78,7 +77,12 @@ export class WatchlistsController {
   }
 
   /**
-   * Create a new watchlist item
+   * Create a new watchlist item.
+   *
+   * Applies server-side defaults for `brand`/`organization`/`user`/`label`
+   * (quick-add semantics) and upserts: if a watchlist item already exists
+   * for the same brand/platform/handle, the existing item is returned
+   * instead of throwing a conflict.
    */
   @Post()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -87,41 +91,8 @@ export class WatchlistsController {
     @Req() req: Request,
     @CurrentUser() user: User,
   ) {
-    const { organization, user: dbUserId } = getPublicMetadata(user);
-
-    const existing = await this.service.findByHandle(
-      dto.brand,
-      dto.platform,
-      dto.handle,
-    );
-
-    if (existing) {
-      throw new ConflictException('This creator is already in your watchlist');
-    }
-
-    if (!dto.user) {
-      dto.user = dbUserId;
-    }
-    if (!dto.organization) {
-      dto.organization = organization;
-    }
-
-    const item = await this.service.create(dto);
-    return serializeSingle(req, WatchlistSerializer, item);
-  }
-
-  /**
-   * Quick add from extension - simplified creation with auto-detection
-   */
-  @Post('quick-add')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async quickAdd(
-    @Body() dto: QuickAddWatchlistsDto,
-    @Req() req: Request,
-    @CurrentUser() user: User,
-  ) {
     const { organization, brand, user: dbUserId } = getPublicMetadata(user);
-    const brandId = (req.query.brand as string) || brand;
+    const brandId = dto.brand || (req.query.brand as string) || brand;
 
     if (!brandId) {
       throw new NotFoundException({ message: 'Account ID is required' });
@@ -134,18 +105,16 @@ export class WatchlistsController {
     );
 
     if (existing) {
-      // Return existing item instead of error for better UX
+      // Upsert: return the existing item instead of erroring
       return serializeSingle(req, WatchlistSerializer, existing);
     }
 
-    // Create with minimal data - name defaults to handle
     const createDto: CreateWatchlistDto = {
+      ...dto,
       brand: brandId,
-      handle: dto.handle,
-      label: `@${dto.handle}`, // Default label to handle
-      organization,
-      platform: dto.platform,
-      user: dbUserId,
+      label: dto.label || `@${dto.handle}`, // Default label to handle
+      organization: dto.organization || organization,
+      user: dto.user || dbUserId,
     };
 
     const item = await this.service.create(createDto);
