@@ -56,29 +56,45 @@ runs:
         restore-keys: |
           ${{ runner.os }}-turbo-
 
-    # Neutralize the biggest install-time network side-effect at the source.
-    # ffmpeg-static (a transitive dep) postinstalls by downloading a ~40MB binary
-    # from the GitHub releases CDN on EVERY `bun install`. Fanned across the ~35
-    # cold-cache jobs of a release/deploy run, a single CDN hiccup fails a job and
-    # (via cancel-doomed-run) cancels the entire production deploy. No CI job ever
-    # executes ffmpeg — every consumer spec mocks the `ffmpeg-static` module — so
-    # point it at the runner's own ffmpeg via FFMPEG_BIN: the package's index.js
-    # exports that path verbatim and its install.js skips the download when the
-    # file exists. This removes the CDN call the retry loop below was fighting.
-    - name: Use system ffmpeg (skip ffmpeg-static CDN download)
+    # Neutralize install-time binary downloads where the package supports it.
+    # ffmpeg-static@5.3.0 postinstalls by downloading a ~40MB binary from the
+    # GitHub releases CDN unless FFMPEG_BIN points at an existing file. Fanned
+    # across the ~35 cold-cache jobs of a release/deploy run, a single CDN hiccup
+    # fails a job and (via cancel-doomed-run) cancels the entire production
+    # deploy. Pointing FFMPEG_BIN at the runner's ffmpeg removes that CDN call.
+    #
+    # ffprobe-static@3.1.0 is different: the published package has no install or
+    # postinstall script, has no supported path override, and its index.js exports
+    # its bundled bin/<platform>/<arch>/ffprobe path. Installing ffmpeg also makes
+    # a runner-local ffprobe available, so export the common ffprobe path env vars
+    # when present for direct consumers or future package versions that honor
+    # them. The pinned ffprobe-static package does not add an install-time CDN
+    # download to skip.
+    - name: Use system ffmpeg/ffprobe (skip supported static-binary downloads)
       shell: bash
       run: |
-        # ubuntu-latest ships ffmpeg, so this apt path is a rare fallback. Keep
-        # it non-fatal (|| true): if it can't install, FFMPEG_BIN resolves empty
-        # and ffmpeg-static falls back to its CDN download (guarded by the retry
-        # loop) — i.e. the pre-existing behavior, never a new failure mode.
-        if ! command -v ffmpeg >/dev/null 2>&1; then
+        # ubuntu-latest ships ffmpeg and ffprobe, so this apt path is a rare
+        # fallback. Keep it non-fatal (|| true): if it cannot install, the env
+        # exports below are skipped and the install keeps the pre-existing
+        # behavior instead of adding a new failure mode.
+        if ! command -v ffmpeg >/dev/null 2>&1 || ! command -v ffprobe >/dev/null 2>&1; then
           sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg || true
         fi
-        echo "FFMPEG_BIN=$(command -v ffmpeg)" >> "$GITHUB_ENV"
+
+        ffmpeg_bin="$(command -v ffmpeg || true)"
+        if [ -n "${ffmpeg_bin}" ]; then
+          echo "FFMPEG_BIN=${ffmpeg_bin}" >> "$GITHUB_ENV"
+        fi
+
+        ffprobe_bin="$(command -v ffprobe || true)"
+        if [ -n "${ffprobe_bin}" ]; then
+          echo "FFPROBE_BIN=${ffprobe_bin}" >> "$GITHUB_ENV"
+          echo "FFPROBE_PATH=${ffprobe_bin}" >> "$GITHUB_ENV"
+        fi
 
     # Retry with exponential backoff as defense against generic registry/CDN
-    # transients (the ffmpeg-static download is neutralized above via FFMPEG_BIN).
+    # transients (the supported ffmpeg-static download is neutralized above via
+    # FFMPEG_BIN; ffprobe-static@3.1.0 has no install-time CDN download).
     # bun install is idempotent, so re-running only re-attempts what is missing. A
     # cold-cache release/deploy runs this across ~35 parallel jobs where a single
     # job's failure cancels the whole deploy via cancel-doomed-run, so 5 attempts
