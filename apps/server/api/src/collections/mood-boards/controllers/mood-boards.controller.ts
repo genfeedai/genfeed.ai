@@ -1,5 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import type { UpdateMoodBoardDto } from '@api/collections/mood-boards/dto/update-mood-board.dto';
+import { UpdateMoodBoardDto } from '@api/collections/mood-boards/dto/update-mood-board.dto';
 import { MoodBoardsService } from '@api/collections/mood-boards/services/mood-boards.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
