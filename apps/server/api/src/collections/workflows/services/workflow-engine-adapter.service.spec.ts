@@ -5,6 +5,7 @@ import { GENERATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templa
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowEngineAdapterService', () => {
+  const AGENT_AUTOPILOT_SERVICE_INDEX = 30;
   const SOCIAL_ADAPTER_FACTORY_INDEX = 2;
   const SOCIAL_INBOX_SERVICE_INDEX = 40;
   let service: WorkflowEngineAdapterService;
@@ -39,6 +40,17 @@ describe('WorkflowEngineAdapterService', () => {
     args[0] = { ingredientsEndpoint: 'https://ingredients.example.com' };
     args[1] = loggerService;
     args[SOCIAL_INBOX_SERVICE_INDEX] = socialInboxService;
+    return new WorkflowEngineAdapterService(...args);
+  }
+
+  function createAdapterWithAgentAutopilot(agentAutopilotService: {
+    runAiInfluencerDailyPosts?: ReturnType<typeof vi.fn>;
+    runProactiveStrategies?: ReturnType<typeof vi.fn>;
+  }): WorkflowEngineAdapterService {
+    const args = new Array(41).fill(undefined);
+    args[0] = { ingredientsEndpoint: 'https://ingredients.example.com' };
+    args[1] = loggerService;
+    args[AGENT_AUTOPILOT_SERVICE_INDEX] = agentAutopilotService;
     return new WorkflowEngineAdapterService(...args);
   }
 
@@ -592,6 +604,52 @@ describe('WorkflowEngineAdapterService', () => {
         expect.stringContaining('fallback executor invoked'),
         expect.objectContaining({ nodeType: 'hookGenerator' }),
       );
+    });
+
+    it('passes workflow execution context into agent autopilot nodes', async () => {
+      const agentAutopilotService = {
+        runProactiveStrategies: vi.fn().mockResolvedValue({
+          action: 'proactiveAgentStrategies',
+          agentRunIds: ['run-1'],
+          enqueued: 1,
+          generated: 0,
+          organizationId: 'org-1',
+          skipped: 0,
+          status: 'enqueued',
+          workflowExecutionId: 'exec-1',
+        }),
+      };
+      const adapter = createAdapterWithAgentAutopilot(agentAutopilotService);
+      const workflow = adapter.convertToExecutableWorkflow({
+        id: 'wf-agent',
+        nodes: [
+          {
+            data: { config: {}, label: 'Proactive Agent Strategies' },
+            id: 'agent-node',
+            type: 'proactiveAgentStrategies',
+          },
+        ],
+        organization: { toString: () => 'org-1' },
+        user: { toString: () => 'user-1' },
+      });
+
+      const result = await adapter.executeWorkflow(workflow, {
+        executionId: 'exec-1',
+      });
+
+      expect(agentAutopilotService.runProactiveStrategies).toHaveBeenCalledWith(
+        'org-1',
+        expect.objectContaining({
+          workflowExecutionId: 'exec-1',
+          workflowId: 'wf-agent',
+          workflowNodeId: 'agent-node',
+          workflowNodeType: 'proactiveAgentStrategies',
+        }),
+      );
+      expect(result.nodeResults.get('agent-node')?.output).toMatchObject({
+        agentRunIds: ['run-1'],
+        workflowExecutionId: 'exec-1',
+      });
     });
 
     it('executes trend trigger with analytics keywords when no social trend adapter is available', async () => {
