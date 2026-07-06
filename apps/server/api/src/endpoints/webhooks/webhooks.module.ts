@@ -41,14 +41,7 @@ import { AutoMergeService } from '@api/endpoints/webhooks/services/auto-merge.se
 import { MediaUploadService } from '@api/endpoints/webhooks/services/media-upload.service';
 import { MetadataLookupService } from '@api/endpoints/webhooks/services/metadata-lookup.service';
 import { PostProcessingOrchestratorService } from '@api/endpoints/webhooks/services/post-processing-orchestrator.service';
-import { StripeAttributionTrackerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-attribution-tracker.service';
-import { StripeCheckoutWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-checkout-webhook.handler';
-import { StripeCustomerWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-customer-webhook.handler';
-import { StripeInvoiceWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-invoice-webhook.handler';
-import { StripeSubscriptionWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-webhook.handler';
-import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
-import { StripeWebhookController } from '@api/endpoints/webhooks/stripe/webhooks.stripe.controller';
-import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.stripe.service';
+import { StripeWebhooksModule } from '@api/endpoints/webhooks/stripe/stripe-webhooks.module';
 import { VercelWebhookController } from '@api/endpoints/webhooks/vercel/webhooks.vercel.controller';
 import { VercelWebhookService } from '@api/endpoints/webhooks/vercel/webhooks.vercel.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
@@ -71,7 +64,6 @@ import { forwardRef, Module } from '@nestjs/common';
     LeonardoaiWebhookController,
     OpusProWebhookController,
     ReplicateWebhookController,
-    StripeWebhookController,
     VercelWebhookController,
   ],
   exports: [WebhooksService],
@@ -100,6 +92,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => RolesModule),
     forwardRef(() => SettingsModule),
     forwardRef(() => StripeModule),
+    forwardRef(() => StripeWebhooksModule),
     forwardRef(() => SubscriptionAttributionsModule),
     forwardRef(() => SubscriptionsModule),
     forwardRef(() => TrainingsModule),
@@ -122,13 +115,6 @@ import { forwardRef, Module } from '@nestjs/common';
     OpusProWebhookService,
     PostProcessingOrchestratorService,
     ReplicateWebhookService,
-    StripeAttributionTrackerService,
-    StripeCheckoutWebhookHandler,
-    StripeCustomerWebhookHandler,
-    StripeInvoiceWebhookHandler,
-    StripeSubscriptionWebhookHandler,
-    StripeWebhookService,
-    StripeWebhookSupportService,
     VercelWebhookService,
     WebhooksService,
   ],
