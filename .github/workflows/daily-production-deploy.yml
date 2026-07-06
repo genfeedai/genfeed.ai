@@ -4,6 +4,11 @@ name: Daily Production Deploy
 # Docker publish path; managed genfeed.ai production deploys are master-only via
 # "Deploy ECS (production)". Do not cut tags here until a canonical cloud
 # release-cut workflow exists.
+#
+# Off switch: repository variable DAILY_PRODUCTION_DEPLOY_ENABLED must be the
+# string "true" to activate the cron. Default (unset/anything else) is a
+# clean no-op — pause this workflow from repo Settings > Variables without
+# editing or removing this file.
 
 on:
   # GitHub cron is UTC. Europe/Malta is UTC+2 during CEST and UTC+1 during CET,
@@ -48,8 +53,23 @@ jobs:
       deployed_sha: ${{ steps.preflight.outputs.deployed_sha }}
       latest_release_url: ${{ steps.preflight.outputs.latest_release_url }}
     steps:
+      - name: Guard DAILY_PRODUCTION_DEPLOY_ENABLED
+        id: enabled_guard
+        run: |
+          set -euo pipefail
+
+          if [ "${{ vars.DAILY_PRODUCTION_DEPLOY_ENABLED }}" != "true" ]; then
+            echo "should_continue=false" >> "$GITHUB_OUTPUT"
+            echo "skipped_reason=Daily production deploy is disabled: repository variable DAILY_PRODUCTION_DEPLOY_ENABLED is not 'true'." >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "should_continue=true" >> "$GITHUB_OUTPUT"
+          echo "skipped_reason=" >> "$GITHUB_OUTPUT"
+
       - name: Guard 02:00 Europe/Malta
         id: time_guard
+        if: steps.enabled_guard.outputs.should_continue == 'true'
         run: |
           set -euo pipefail
 
@@ -68,7 +88,7 @@ jobs:
           echo "skipped_reason=" >> "$GITHUB_OUTPUT"
 
       - name: Checkout master
-        if: steps.time_guard.outputs.should_continue == 'true'
+        if: steps.enabled_guard.outputs.should_continue == 'true' && steps.time_guard.outputs.should_continue == 'true'
         uses: actions/checkout@v5
         with:
           ref: master
@@ -76,7 +96,7 @@ jobs:
 
       - name: Resolve origin/master
         id: master
-        if: steps.time_guard.outputs.should_continue == 'true'
+        if: steps.enabled_guard.outputs.should_continue == 'true' && steps.time_guard.outputs.should_continue == 'true'
         run: |
           set -euo pipefail
           git fetch --no-tags origin master
@@ -89,8 +109,8 @@ jobs:
         id: preflight
         uses: actions/github-script@v8
         env:
-          SHOULD_CONTINUE: ${{ steps.time_guard.outputs.should_continue }}
-          TIME_SKIPPED_REASON: ${{ steps.time_guard.outputs.skipped_reason }}
+          SHOULD_CONTINUE: ${{ steps.enabled_guard.outputs.should_continue == 'true' && steps.time_guard.outputs.should_continue || 'false' }}
+          TIME_SKIPPED_REASON: ${{ steps.enabled_guard.outputs.skipped_reason || steps.time_guard.outputs.skipped_reason }}
           MASTER_SHA: ${{ steps.master.outputs.sha }}
           LOCAL_TIME: ${{ steps.time_guard.outputs.local_time }}
         with:
