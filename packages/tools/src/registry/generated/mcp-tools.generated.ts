@@ -3,7 +3,7 @@
 // Source of truth: apps/server/api/openapi/openapi.json (Phase 1 / #1247).
 // Regenerate:      bun run --filter=@genfeedai/tools generate:mcp-tools
 //
-// 1045 MCP tools, one per non-internal OpenAPI operation (#1248).
+// 1023 MCP tools, one per non-internal OpenAPI operation (#1248).
 // Dispatch/execution and approval-gating are intentionally not wired here
 // (that is #1249 / #1250); these definitions only populate the mcp surface.
 
@@ -771,32 +771,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "Execute a campaign — activates all agent strategies (POST /agent-campaigns/{id}/execute)",
-    "name": "agent_campaigns__execute_campaign",
-    "parameters": {
-      "properties": {
-        "id": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "agent_campaigns"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "findAll (GET /agent-campaigns)",
     "name": "agent_campaigns__find_all",
     "parameters": {
@@ -872,33 +846,139 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "name": "agent_campaigns__patch",
     "parameters": {
       "properties": {
+        "agents": {
+          "description": "Agent strategy IDs included in this campaign",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "brand": {
+          "description": "Brand ID",
+          "type": "string"
+        },
+        "brief": {
+          "description": "Campaign brief / description",
+          "type": "string"
+        },
+        "campaignLeadStrategyId": {
+          "description": "Optional presentation-only lead strategy ID",
+          "type": "string"
+        },
+        "contentQuota": {
+          "allOf": [
+            {
+              "properties": {
+                "images": {
+                  "description": "Number of images quota",
+                  "type": "number"
+                },
+                "posts": {
+                  "description": "Number of posts quota",
+                  "type": "number"
+                },
+                "videos": {
+                  "description": "Number of videos quota",
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            }
+          ],
+          "description": "Content production quotas"
+        },
+        "contentRotation": {
+          "allOf": [
+            {
+              "properties": {
+                "enabled": {
+                  "description": "Whether weighted content rotation is enabled",
+                  "type": "boolean"
+                },
+                "lookbackDays": {
+                  "description": "Recent run lookback window in days",
+                  "type": "number"
+                },
+                "targets": {
+                  "description": "Campaign/topic/platform target weights",
+                  "items": {
+                    "properties": {
+                      "key": {
+                        "description": "Stable target key",
+                        "type": "string"
+                      },
+                      "label": {
+                        "description": "Human-readable target label",
+                        "type": "string"
+                      },
+                      "platform": {
+                        "description": "Optional platform scope",
+                        "type": "string"
+                      },
+                      "strategyId": {
+                        "description": "Optional strategy scope",
+                        "type": "string"
+                      },
+                      "topic": {
+                        "description": "Optional topic bucket scope",
+                        "type": "string"
+                      },
+                      "weight": {
+                        "description": "Target share weight",
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "key",
+                      "weight"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              },
+              "type": "object"
+            }
+          ],
+          "description": "Weighted campaign/topic rotation rules"
+        },
+        "creditsAllocated": {
+          "description": "Credits allocated to this campaign",
+          "type": "number"
+        },
+        "endDate": {
+          "description": "Campaign end date",
+          "format": "date-time",
+          "type": "string"
+        },
         "id": {
           "type": "string"
-        }
-      },
-      "required": [
-        "id"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "agent_campaigns"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "Pause a running campaign (POST /agent-campaigns/{id}/pause)",
-    "name": "agent_campaigns__pause_campaign",
-    "parameters": {
-      "properties": {
-        "id": {
+        },
+        "label": {
+          "description": "Campaign label",
+          "type": "string"
+        },
+        "orchestrationEnabled": {
+          "description": "Whether campaign orchestration is enabled",
+          "type": "boolean"
+        },
+        "orchestrationIntervalHours": {
+          "description": "Campaign orchestration cadence in hours",
+          "type": "number"
+        },
+        "startDate": {
+          "description": "Campaign start date",
+          "format": "date-time",
+          "type": "string"
+        },
+        "status": {
+          "description": "Campaign status",
+          "enum": [
+            "draft",
+            "active",
+            "paused",
+            "completed"
+          ],
           "type": "string"
         }
       },
@@ -4171,6 +4251,10 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "example": "2025-10-16T12:00:00Z",
           "type": "string"
         },
+        "restoreFromVersionId": {
+          "description": "Restore the article content from a prior version (prompt) id. When set, the article is reverted to that version and other update fields are ignored.",
+          "type": "string"
+        },
         "scope": {
           "allOf": [
             {
@@ -4251,36 +4335,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
       },
       "required": [
         "id"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "articles"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "restoreVersion (POST /articles/{articleId}/versions/{promptId}/restore)",
-    "name": "articles__restore_version",
-    "parameters": {
-      "properties": {
-        "articleId": {
-          "type": "string"
-        },
-        "promptId": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "articleId",
-        "promptId"
       ],
       "type": "object"
     },
@@ -5119,32 +5173,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "Cancel a batch (POST /batches/{id}/cancel)",
-    "name": "batch_generation__cancel_batch",
-    "parameters": {
-      "properties": {
-        "id": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "batch_generation"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "Create a new batch generation job (POST /batches)",
     "name": "batch_generation__create_batch",
     "parameters": {
@@ -5376,6 +5404,32 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "creditCost": 0,
     "description": "Approve or reject batch items (POST /batches/{id}/items/action)",
     "name": "batch_generation__item_action",
+    "parameters": {
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "batch_generation"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "Update a batch (e.g. cancel via status) (PATCH /batches/{id})",
+    "name": "batch_generation__patch",
     "parameters": {
       "properties": {
         "id": {
@@ -6339,16 +6393,31 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "pauseLivestreamSession (POST /bots/{id}/livestream-session/pause)",
-    "name": "bots__pause_livestream_session",
+    "description": "patchLivestreamSession (PATCH /bots/{id}/livestream-session)",
+    "name": "bots__patch_livestream_session",
     "parameters": {
       "properties": {
         "id": {
           "type": "string"
+        },
+        "status": {
+          "allOf": [
+            {
+              "description": "Target livestream session status. \"active\" starts the session when stopped, or resumes it when paused.",
+              "enum": [
+                "active",
+                "paused",
+                "stopped"
+              ],
+              "type": "string"
+            }
+          ],
+          "description": "Target livestream session status. \"active\" starts the session when stopped, or resumes it when paused."
         }
       },
       "required": [
-        "id"
+        "id",
+        "status"
       ],
       "type": "object"
     },
@@ -6367,32 +6436,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "creditCost": 0,
     "description": "remove (DELETE /bots/{id})",
     "name": "bots__remove",
-    "parameters": {
-      "properties": {
-        "id": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "bots"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "resumeLivestreamSession (POST /bots/{id}/livestream-session/resume)",
-    "name": "bots__resume_livestream_session",
     "parameters": {
       "properties": {
         "id": {
@@ -6450,58 +6493,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
       "required": [
         "id",
         "platform"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "bots"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "startLivestreamSession (POST /bots/{id}/livestream-session/start)",
-    "name": "bots__start_livestream_session",
-    "parameters": {
-      "properties": {
-        "id": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "bots"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "stopLivestreamSession (POST /bots/{id}/livestream-session/stop)",
-    "name": "bots__stop_livestream_session",
-    "parameters": {
-      "properties": {
-        "id": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id"
       ],
       "type": "object"
     },
@@ -8438,6 +8429,10 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           },
           "type": "array"
         },
+        "relocationAck": {
+          "description": "Server-verified confirmation token from GET /brands/:id/relocation-preview, required whenever the relocation would clone shared workflows into the destination organization. A stale or missing token is rejected with 409 so a client cannot bypass the consent modal or move against an outdated preview.",
+          "type": "string"
+        },
         "scope": {
           "allOf": [
             {
@@ -8478,6 +8473,36 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
       },
       "required": [
         "id"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "brands"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "previewRelocation (GET /brands/{id}/relocation-preview)",
+    "name": "brands__preview_relocation",
+    "parameters": {
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "organizationId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "organizationId"
       ],
       "type": "object"
     },
@@ -8995,6 +9020,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
             "shopify",
             "beehiiv",
             "unipile",
+            "devto",
             "product_hunt",
             "hacker_news"
           ],
@@ -10747,6 +10773,19 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "description": "Whether the clip is selected",
           "type": "boolean"
         },
+        "mode": {
+          "allOf": [
+            {
+              "description": "Clip generation mode (defaults to avatar)",
+              "enum": [
+                "avatar",
+                "raw-cut"
+              ],
+              "type": "string"
+            }
+          ],
+          "description": "Clip generation mode (defaults to avatar)"
+        },
         "organization": {
           "description": "The organization ID that owns this resource",
           "type": "string"
@@ -10922,6 +10961,19 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
         "isSelected": {
           "description": "Whether the clip is selected",
           "type": "boolean"
+        },
+        "mode": {
+          "allOf": [
+            {
+              "description": "Clip generation mode (defaults to avatar)",
+              "enum": [
+                "avatar",
+                "raw-cut"
+              ],
+              "type": "string"
+            }
+          ],
+          "description": "Clip generation mode (defaults to avatar)"
         },
         "providerJobId": {
           "description": "External provider job ID",
@@ -11774,6 +11826,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
             "shopify",
             "beehiiv",
             "unipile",
+            "devto",
             "product_hunt",
             "hacker_news"
           ],
@@ -12029,6 +12082,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
                   "shopify",
                   "beehiiv",
                   "unipile",
+                  "devto",
                   "product_hunt",
                   "hacker_news"
                 ],
@@ -12126,6 +12180,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
             "shopify",
             "beehiiv",
             "unipile",
+            "devto",
             "product_hunt",
             "hacker_news"
           ],
@@ -12242,6 +12297,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
                   "shopify",
                   "beehiiv",
                   "unipile",
+                  "devto",
                   "product_hunt",
                   "hacker_news"
                 ],
@@ -12348,6 +12404,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
             "shopify",
             "beehiiv",
             "unipile",
+            "devto",
             "product_hunt",
             "hacker_news"
           ],
@@ -14134,6 +14191,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
                 "shopify",
                 "beehiiv",
                 "unipile",
+                "devto",
                 "product_hunt",
                 "hacker_news"
               ],
@@ -14510,8 +14568,8 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "DiscordController.connect (POST /services/discord/connect)",
-    "name": "discord__connect",
+    "description": "connect (POST /services/devto/connect)",
+    "name": "devto__connect",
     "parameters": {
       "properties": {},
       "type": "object"
@@ -14523,14 +14581,56 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
       "mcp": true
     },
     "tags": [
-      "discord"
+      "devto"
     ]
   },
   {
     "category": "other",
     "creditCost": 0,
-    "description": "DiscordController.disconnect (POST /services/discord/disconnect)",
-    "name": "discord__disconnect",
+    "description": "publishArticle (POST /services/devto/publish/{articleId})",
+    "name": "devto__publish_article",
+    "parameters": {
+      "properties": {
+        "articleId": {
+          "type": "string"
+        },
+        "brandId": {
+          "type": "string"
+        },
+        "canonicalUrl": {
+          "type": "string"
+        },
+        "published": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "articleId",
+        "brandId",
+        "canonicalUrl",
+        "published",
+        "tags"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "devto"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "DiscordController.connect (POST /services/discord/connect)",
+    "name": "discord__connect",
     "parameters": {
       "properties": {},
       "type": "object"
@@ -14577,6 +14677,77 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
       },
       "required": [
         "id"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "distributions"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "create (POST /distributions)",
+    "name": "distributions__create",
+    "parameters": {
+      "properties": {
+        "brandId": {
+          "description": "Brand ID",
+          "type": "string"
+        },
+        "caption": {
+          "description": "Caption for photo/video",
+          "type": "string"
+        },
+        "chatId": {
+          "description": "Telegram chat/channel ID",
+          "type": "string"
+        },
+        "contentType": {
+          "allOf": [
+            {
+              "enum": [
+                "text",
+                "photo",
+                "video"
+              ],
+              "type": "string"
+            }
+          ]
+        },
+        "mediaUrl": {
+          "description": "Media URL for photo/video",
+          "type": "string"
+        },
+        "platform": {
+          "allOf": [
+            {
+              "enum": [
+                "telegram"
+              ],
+              "type": "string"
+            }
+          ]
+        },
+        "scheduledAt": {
+          "description": "ISO 8601 date string to schedule the send; omit to send immediately",
+          "type": "string"
+        },
+        "text": {
+          "description": "Text content for text messages",
+          "type": "string"
+        }
+      },
+      "required": [
+        "chatId",
+        "contentType",
+        "platform"
       ],
       "type": "object"
     },
@@ -14646,123 +14817,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "type": "string"
         }
       },
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "distributions"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "scheduleTelegram (POST /distributions/telegram/schedule)",
-    "name": "distributions__schedule_telegram",
-    "parameters": {
-      "properties": {
-        "brandId": {
-          "description": "Brand ID",
-          "type": "string"
-        },
-        "caption": {
-          "description": "Caption for photo/video",
-          "type": "string"
-        },
-        "chatId": {
-          "description": "Telegram chat/channel ID",
-          "type": "string"
-        },
-        "contentType": {
-          "allOf": [
-            {
-              "enum": [
-                "text",
-                "photo",
-                "video"
-              ],
-              "type": "string"
-            }
-          ]
-        },
-        "mediaUrl": {
-          "description": "Media URL for photo/video",
-          "type": "string"
-        },
-        "scheduledAt": {
-          "description": "ISO 8601 date string for scheduled send",
-          "type": "string"
-        },
-        "text": {
-          "description": "Text content for text messages",
-          "type": "string"
-        }
-      },
-      "required": [
-        "chatId",
-        "contentType",
-        "scheduledAt"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "distributions"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "sendTelegram (POST /distributions/telegram)",
-    "name": "distributions__send_telegram",
-    "parameters": {
-      "properties": {
-        "brandId": {
-          "description": "Brand ID",
-          "type": "string"
-        },
-        "caption": {
-          "description": "Caption for photo/video",
-          "type": "string"
-        },
-        "chatId": {
-          "description": "Telegram chat/channel ID",
-          "type": "string"
-        },
-        "contentType": {
-          "allOf": [
-            {
-              "enum": [
-                "text",
-                "photo",
-                "video"
-              ],
-              "type": "string"
-            }
-          ]
-        },
-        "mediaUrl": {
-          "description": "Media URL for photo/video",
-          "type": "string"
-        },
-        "text": {
-          "description": "Text content for text messages",
-          "type": "string"
-        }
-      },
-      "required": [
-        "chatId",
-        "contentType"
-      ],
       "type": "object"
     },
     "requiredRole": "user",
@@ -22969,32 +23023,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "pauseCampaign (POST /services/meta-ads/campaigns/{id}/pause)",
-    "name": "meta_ads__pause_campaign",
-    "parameters": {
-      "properties": {
-        "id": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "meta_ads"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "updateAdSet (PATCH /services/meta-ads/adsets/{id})",
     "name": "meta_ads__update_ad_set",
     "parameters": {
@@ -23023,32 +23051,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "creditCost": 0,
     "description": "updateCampaign (PATCH /services/meta-ads/campaigns/{id})",
     "name": "meta_ads__update_campaign",
-    "parameters": {
-      "properties": {
-        "id": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "meta_ads"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "updateCampaignBudget (PATCH /services/meta-ads/campaigns/{id}/budget)",
-    "name": "meta_ads__update_campaign_budget",
     "parameters": {
       "properties": {
         "id": {
@@ -23106,32 +23108,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     },
     "tags": [
       "meta_ads"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "cancelJob (POST /services/meta-ads/bulk/jobs/{id}/cancel)",
-    "name": "meta_ads_bulk__cancel_job",
-    "parameters": {
-      "properties": {
-        "id": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "meta_ads_bulk"
     ]
   },
   {
@@ -23212,8 +23188,8 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "approveRecommendation (POST /services/meta-ads/optimization/recommendations/{id}/approve)",
-    "name": "meta_ads_optimization__approve_recommendation",
+    "description": "updateJob (PATCH /services/meta-ads/bulk/jobs/{id})",
+    "name": "meta_ads_bulk__update_job",
     "parameters": {
       "properties": {
         "id": {
@@ -23232,7 +23208,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
       "mcp": true
     },
     "tags": [
-      "meta_ads_optimization"
+      "meta_ads_bulk"
     ]
   },
   {
@@ -23343,17 +23319,10 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "rejectRecommendation (POST /services/meta-ads/optimization/recommendations/{id}/reject)",
-    "name": "meta_ads_optimization__reject_recommendation",
+    "description": "updateConfig (PATCH /services/meta-ads/optimization/config)",
+    "name": "meta_ads_optimization__update_config",
     "parameters": {
-      "properties": {
-        "id": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id"
-      ],
+      "properties": {},
       "type": "object"
     },
     "requiredRole": "user",
@@ -23369,10 +23338,17 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "updateConfig (PUT /services/meta-ads/optimization/config)",
-    "name": "meta_ads_optimization__update_config",
+    "description": "updateRecommendation (PATCH /services/meta-ads/optimization/recommendations/{id})",
+    "name": "meta_ads_optimization__update_recommendation",
     "parameters": {
-      "properties": {},
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
       "type": "object"
     },
     "requiredRole": "user",
@@ -24497,32 +24473,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "archive (POST /newsletters/{id}/archive)",
-    "name": "newsletters__archive",
-    "parameters": {
-      "properties": {
-        "id": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "newsletters"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "context (GET /newsletters/{id}/context)",
     "name": "newsletters__context",
     "parameters": {
@@ -25291,37 +25241,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "Set organization prefix (POST /onboarding/prefix)",
-    "name": "onboarding__set_prefix",
-    "parameters": {
-      "properties": {
-        "prefix": {
-          "description": "Unique 3-letter uppercase prefix for issue identifiers (e.g., GEN)",
-          "example": "GEN",
-          "maxLength": 3,
-          "minLength": 3,
-          "pattern": "^[A-Z]{3}$",
-          "type": "string"
-        }
-      },
-      "required": [
-        "prefix"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "onboarding"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "Setup brand from website URL (POST /onboarding/brand-setup)",
     "name": "onboarding__setup_brand",
     "parameters": {
@@ -25926,32 +25845,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "creditCost": 0,
     "description": "switchOrganization (POST /organizations/switch/{id})",
     "name": "organizations__switch_organization",
-    "parameters": {
-      "properties": {
-        "id": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "organizations"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "updateSlug (PATCH /organizations/{id}/slug)",
-    "name": "organizations__update_slug",
     "parameters": {
       "properties": {
         "id": {
@@ -26635,6 +26528,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
             "shopify",
             "beehiiv",
             "unipile",
+            "devto",
             "product_hunt",
             "hacker_news"
           ],
@@ -27757,38 +27651,42 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "Add DM recipients to a campaign (POST /outreach-campaigns/{id}/dm-recipients)",
-    "name": "outreach_campaigns__add_dm_recipients",
-    "parameters": {
-      "properties": {
-        "id": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "outreach_campaigns"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "Add targets to a campaign (POST /outreach-campaigns/{id}/targets)",
     "name": "outreach_campaigns__add_targets",
     "parameters": {
       "properties": {
         "id": {
           "type": "string"
+        },
+        "targetType": {
+          "allOf": [
+            {
+              "description": "Discriminator for how targets are added. Defaults to URL-based target detection. Use DM_RECIPIENT to add DM recipients by username.",
+              "enum": [
+                "tweet",
+                "reddit_post",
+                "reddit_comment",
+                "dm_recipient"
+              ],
+              "type": "string"
+            }
+          ],
+          "default": "tweet",
+          "description": "Discriminator for how targets are added. Defaults to URL-based target detection. Use DM_RECIPIENT to add DM recipients by username."
+        },
+        "urls": {
+          "description": "Content URLs to add as targets (manual URL addition)",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "usernames": {
+          "description": "Usernames to add as DM recipients (requires targetType: dm_recipient)",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
         }
       },
       "required": [
@@ -28770,32 +28668,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "assignMembers (POST /personas/{id}/assign)",
-    "name": "personas__assign_members",
-    "parameters": {
-      "properties": {
-        "id": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "personas"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "create (POST /personas)",
     "name": "personas__create",
     "parameters": {
@@ -28864,8 +28736,164 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "name": "personas__patch",
     "parameters": {
       "properties": {
+        "assignedMembers": {
+          "description": "Assigned team member user IDs",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "avatarExternalId": {
+          "description": "Provider-side avatar ID",
+          "type": "string"
+        },
+        "avatarIngredientId": {
+          "description": "Avatar ingredient ID",
+          "type": "string"
+        },
+        "avatarProvider": {
+          "allOf": [
+            {
+              "description": "Avatar provider",
+              "enum": [
+                "heygen",
+                "hedra"
+              ],
+              "type": "string"
+            }
+          ],
+          "description": "Avatar provider"
+        },
+        "contentStrategy": {
+          "allOf": [
+            {
+              "properties": {
+                "formats": {
+                  "description": "Preferred content formats",
+                  "items": {
+                    "description": "Preferred content formats",
+                    "enum": [
+                      "photo",
+                      "video",
+                      "reel",
+                      "story",
+                      "article",
+                      "audio",
+                      "text"
+                    ],
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "frequency": {
+                  "description": "Posting cadence (e.g., daily, weekly)",
+                  "type": "string"
+                },
+                "platforms": {
+                  "description": "Priority platform ordering",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "tone": {
+                  "description": "Brand voice tone descriptor",
+                  "type": "string"
+                },
+                "topics": {
+                  "description": "Content topics/themes",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              },
+              "type": "object"
+            }
+          ],
+          "description": "Content strategy configuration"
+        },
+        "credentials": {
+          "description": "Linked credential IDs for social accounts",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "description": {
+          "description": "Bio/description",
+          "type": "string"
+        },
+        "handle": {
+          "description": "Social handle",
+          "type": "string"
+        },
         "id": {
           "type": "string"
+        },
+        "isDeleted": {
+          "description": "Whether the persona is marked as deleted",
+          "type": "boolean"
+        },
+        "label": {
+          "description": "Display name of the persona",
+          "type": "string"
+        },
+        "memberIds": {
+          "description": "Assigned team member user IDs to set on the persona",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "profileImageUrl": {
+          "description": "CDN URL for profile image",
+          "type": "string"
+        },
+        "status": {
+          "allOf": [
+            {
+              "description": "Persona status",
+              "enum": [
+                "draft",
+                "active",
+                "paused",
+                "archived"
+              ],
+              "type": "string"
+            }
+          ],
+          "default": "draft",
+          "description": "Persona status"
+        },
+        "tags": {
+          "description": "Tag IDs",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "voiceExternalId": {
+          "description": "Provider-side voice ID",
+          "type": "string"
+        },
+        "voiceIngredientId": {
+          "description": "Voice ID",
+          "type": "string"
+        },
+        "voiceProvider": {
+          "allOf": [
+            {
+              "enum": [
+                "heygen",
+                "elevenlabs",
+                "hedra",
+                "genfeed-ai"
+              ],
+              "type": "string"
+            }
+          ],
+          "description": "Voice provider"
         }
       },
       "required": [
@@ -29726,6 +29754,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
             "shopify",
             "beehiiv",
             "unipile",
+            "devto",
             "product_hunt",
             "hacker_news"
           ],
@@ -30645,6 +30674,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
                 "shopify",
                 "beehiiv",
                 "unipile",
+                "devto",
                 "product_hunt",
                 "hacker_news"
               ],
@@ -30896,6 +30926,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
                 "shopify",
                 "beehiiv",
                 "unipile",
+                "devto",
                 "product_hunt",
                 "hacker_news"
               ],
@@ -34023,6 +34054,32 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
+    "description": "getChannelCapability (GET /schedules/channel-capabilities/{platform})",
+    "name": "schedules__get_channel_capability",
+    "parameters": {
+      "properties": {
+        "platform": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "platform"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "schedules"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
     "description": "getOptimalTime (POST /schedules/optimal)",
     "name": "schedules__get_optimal_time",
     "parameters": {
@@ -34068,8 +34125,57 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
+    "description": "listChannelCapabilities (GET /schedules/channel-capabilities)",
+    "name": "schedules__list_channel_capabilities",
+    "parameters": {
+      "properties": {
+        "includeHidden": {
+          "type": "string"
+        },
+        "includePlanned": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "includeHidden",
+        "includePlanned"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "schedules"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
     "description": "repurposeContent (POST /schedules/repurpose)",
     "name": "schedules__repurpose_content",
+    "parameters": {
+      "properties": {},
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "schedules"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "validateChannelTargetSettings (POST /schedules/channel-capabilities/validate)",
+    "name": "schedules__validate_channel_target_settings",
     "parameters": {
       "properties": {},
       "type": "object"
@@ -35422,8 +35528,8 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "useFreeze (POST /organizations/{organizationId}/streaks/me/freeze)",
-    "name": "streaks__use_freeze",
+    "description": "patchMyStreak (PATCH /organizations/{organizationId}/streaks/me)",
+    "name": "streaks__patch_my_streak",
     "parameters": {
       "properties": {
         "organizationId": {
@@ -35612,6 +35718,25 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "creditCost": 0,
     "description": "findAll (GET /subscriptions)",
     "name": "subscriptions__find_all",
+    "parameters": {
+      "properties": {},
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "subscriptions"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "getCreditUsage (GET /subscriptions/admin/credit-usage)",
+    "name": "subscriptions__get_credit_usage",
     "parameters": {
       "properties": {},
       "type": "object"
@@ -36549,25 +36674,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     },
     "tags": [
       "tasks"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "TelegramController.disconnect (POST /services/telegram/disconnect)",
-    "name": "telegram__disconnect",
-    "parameters": {
-      "properties": {},
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "telegram"
     ]
   },
   {
@@ -38383,6 +38489,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
             "shopify",
             "beehiiv",
             "unipile",
+            "devto",
             "product_hunt",
             "hacker_news"
           ],
@@ -38608,6 +38715,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
             "shopify",
             "beehiiv",
             "unipile",
+            "devto",
             "product_hunt",
             "hacker_news"
           ],
@@ -38658,7 +38766,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "savePreferences (POST /trends/preferences)",
+    "description": "savePreferences (PUT /trends/preferences)",
     "name": "trends__save_preferences",
     "parameters": {
       "properties": {
@@ -39210,25 +39318,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "creditCost": 0,
     "description": "clearBrandSelection (DELETE /users/me/brand-selection)",
     "name": "users__clear_brand_selection",
-    "parameters": {
-      "properties": {},
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "users"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "confirmAvatarUpload (POST /users/me/avatar/confirm)",
-    "name": "users__confirm_avatar_upload",
     "parameters": {
       "properties": {},
       "type": "object"
@@ -42690,16 +42779,16 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "remove (DELETE /votes/{entityId})",
+    "description": "remove (DELETE /votes)",
     "name": "votes__remove",
     "parameters": {
       "properties": {
-        "entityId": {
+        "entity": {
           "type": "string"
         }
       },
       "required": [
-        "entityId"
+        "entity"
       ],
       "type": "object"
     },
@@ -42791,25 +42880,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
       "required": [
         "watchlistId"
       ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "watchlists"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "quickAdd (POST /watchlists/quick-add)",
-    "name": "watchlists__quick_add",
-    "parameters": {
-      "properties": {},
       "type": "object"
     },
     "requiredRole": "user",
@@ -43819,6 +43889,10 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "description": "Enable or disable pagination",
           "type": "boolean"
         },
+        "referencable": {
+          "description": "Return every workflow in the organization (for reference pickers) instead of the caller-scoped set",
+          "type": "boolean"
+        },
         "sort": {
           "default": "createdAt: -1",
           "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
@@ -44063,6 +44137,20 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "description": "Last execution timestamp",
           "format": "date-time",
           "type": "string"
+        },
+        "lifecycle": {
+          "allOf": [
+            {
+              "description": "Lifecycle status (draft / published / archived)",
+              "enum": [
+                "draft",
+                "published",
+                "archived"
+              ],
+              "type": "string"
+            }
+          ],
+          "description": "Lifecycle status (draft / published / archived)"
         },
         "metadata": {
           "description": "Additional metadata for the workflow",
@@ -44351,32 +44439,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "archiveWorkflow (POST /workflows/{workflowId}/lifecycle/archive)",
-    "name": "workflow_execution__archive_workflow",
-    "parameters": {
-      "properties": {
-        "workflowId": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "workflowId"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "workflow_execution"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "executePartial (POST /workflows/{workflowId}/execute/partial)",
     "name": "workflow_execution__execute_partial",
     "parameters": {
@@ -44488,12 +44550,12 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "lockNodes (POST /workflows/{workflowId}/nodes/lock)",
-    "name": "workflow_execution__lock_nodes",
+    "description": "patchNodes (PATCH /workflows/{workflowId}/nodes)",
+    "name": "workflow_execution__patch_nodes",
     "parameters": {
       "properties": {
-        "nodeIds": {
-          "description": "Node IDs to lock",
+        "lock": {
+          "description": "Node IDs to lock (skip execution, use cached output)",
           "example": [
             "node-1",
             "node-2"
@@ -44503,59 +44565,16 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           },
           "type": "array"
         },
-        "workflowId": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "nodeIds",
-        "workflowId"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "workflow_execution"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "publishWorkflowLifecycle (POST /workflows/{workflowId}/lifecycle/publish)",
-    "name": "workflow_execution__publish_workflow_lifecycle",
-    "parameters": {
-      "properties": {
-        "workflowId": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "workflowId"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "workflow_execution"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "removeSchedule (DELETE /workflows/{workflowId}/schedule)",
-    "name": "workflow_execution__remove_schedule",
-    "parameters": {
-      "properties": {
+        "unlock": {
+          "description": "Node IDs to unlock",
+          "example": [
+            "node-3"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "workflowId": {
           "type": "string"
         }
@@ -44596,68 +44615,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
       },
       "required": [
         "runId",
-        "workflowId"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "workflow_execution"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "setSchedule (POST /workflows/{workflowId}/schedule)",
-    "name": "workflow_execution__set_schedule",
-    "parameters": {
-      "properties": {
-        "workflowId": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "workflowId"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "workflow_execution"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "setThumbnail (PATCH /workflows/{workflowId}/thumbnail)",
-    "name": "workflow_execution__set_thumbnail",
-    "parameters": {
-      "properties": {
-        "nodeId": {
-          "description": "Node ID whose output is used as the workflow thumbnail",
-          "type": "string"
-        },
-        "thumbnailUrl": {
-          "description": "Media URL to persist as the workflow thumbnail",
-          "type": "string"
-        },
-        "workflowId": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "nodeId",
-        "thumbnailUrl",
         "workflowId"
       ],
       "type": "object"
@@ -44717,71 +44674,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     },
     "tags": [
       "workflow_execution"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "unlockNodes (POST /workflows/{workflowId}/nodes/unlock)",
-    "name": "workflow_execution__unlock_nodes",
-    "parameters": {
-      "properties": {
-        "nodeIds": {
-          "description": "Node IDs to unlock",
-          "example": [
-            "node-1",
-            "node-2"
-          ],
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "workflowId": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "nodeIds",
-        "workflowId"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "workflow_execution"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "Cancel a running execution (POST /workflow-executions/{id}/cancel)",
-    "name": "workflow_executions__cancel",
-    "parameters": {
-      "properties": {
-        "id": {
-          "description": "Execution ID",
-          "type": "string"
-        }
-      },
-      "required": [
-        "id"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "workflow_executions"
     ]
   },
   {
@@ -44980,23 +44872,36 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "Get executions for a specific workflow (GET /workflow-executions/workflow/{workflowId})",
-    "name": "workflow_executions__get_workflow_executions",
+    "description": "Update an execution (cancel a running execution) (PATCH /workflow-executions/{id})",
+    "name": "workflow_executions__update",
     "parameters": {
       "properties": {
-        "limit": {
-          "type": "number"
-        },
-        "offset": {
-          "type": "number"
-        },
-        "workflowId": {
-          "description": "Workflow ID",
+        "error": {
+          "description": "Error message if failed",
           "type": "string"
+        },
+        "id": {
+          "description": "Execution ID",
+          "type": "string"
+        },
+        "status": {
+          "allOf": [
+            {
+              "enum": [
+                "pending",
+                "running",
+                "completed",
+                "failed",
+                "cancelled"
+              ],
+              "type": "string"
+            }
+          ],
+          "description": "Execution status"
         }
       },
       "required": [
-        "workflowId"
+        "id"
       ],
       "type": "object"
     },
@@ -45073,81 +44978,10 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "getReferencableWorkflows (GET /workflows/referencable)",
-    "name": "workflow_marketplace__get_referencable_workflows",
-    "parameters": {
-      "properties": {},
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "workflow_marketplace"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "getTemplates (GET /workflows/templates)",
     "name": "workflow_marketplace__get_templates",
     "parameters": {
       "properties": {},
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "workflow_marketplace"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "publishToMarketplace (POST /workflows/{workflowId}/publish)",
-    "name": "workflow_marketplace__publish_to_marketplace",
-    "parameters": {
-      "properties": {
-        "workflowId": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "workflowId"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "workflow_marketplace"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "unpublishFromMarketplace (DELETE /workflows/{workflowId}/publish)",
-    "name": "workflow_marketplace__unpublish_from_marketplace",
-    "parameters": {
-      "properties": {
-        "workflowId": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "workflowId"
-      ],
       "type": "object"
     },
     "requiredRole": "user",
@@ -45241,10 +45075,14 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "regenerateWebhookSecret (POST /workflows/{workflowId}/webhook/regenerate-secret)",
-    "name": "workflow_webhook_management__regenerate_webhook_secret",
+    "description": "patchWebhook (PATCH /workflows/{workflowId}/webhook)",
+    "name": "workflow_webhook_management__patch_webhook",
     "parameters": {
       "properties": {
+        "rotateSecret": {
+          "description": "Rotate (regenerate) the webhook secret in place",
+          "type": "boolean"
+        },
         "workflowId": {
           "type": "string"
         }
