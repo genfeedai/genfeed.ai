@@ -1,3 +1,4 @@
+import { asYoutubeRequestAuth } from '@api/services/integrations/youtube/services/modules/youtube-api-auth.util';
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -97,9 +98,8 @@ export class YoutubeMetadataService {
     try {
       this.loggerService.log(`${url} started`);
 
-      const auth = await this.youtubeAuthService.refreshToken(
-        organizationId,
-        brandId,
+      const auth = asYoutubeRequestAuth(
+        await this.youtubeAuthService.refreshToken(organizationId, brandId),
       );
 
       const response = await this.youtubeAPI.videos.list({

@@ -20,3 +20,4 @@
 export * from './plans-pricing';
 export * from './pricing-config';
 export * from './provider-pricing';
+export * from './tier-entitlements';

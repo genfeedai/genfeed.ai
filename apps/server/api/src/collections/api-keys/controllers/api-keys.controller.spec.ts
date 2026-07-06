@@ -5,6 +5,7 @@ import type { UpdateApiKeyDto } from '@api/collections/api-keys/dto/update-api-k
 import { type ApiKey } from '@api/collections/api-keys/schemas/api-key.schema';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { ApiAccessGuard } from '@api/helpers/guards/api-access/api-access.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ApiKeyCategory } from '@genfeedai/enums';
 import { HttpException } from '@nestjs/common';
@@ -66,6 +67,8 @@ describe('ApiKeysController', () => {
       ],
     })
       .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(ApiAccessGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

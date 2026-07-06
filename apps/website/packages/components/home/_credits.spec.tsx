@@ -43,10 +43,10 @@ describe('HomeCredits', () => {
     ).toBeInTheDocument();
   });
 
-  it('surfaces credit packs with their pay-as-you-go price', () => {
+  it('surfaces credit top-up amounts with their credit totals', () => {
     render(<HomeCredits />);
 
-    expect(screen.getAllByText(/pack$/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/^\$\d/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/credits/i).length).toBeGreaterThan(0);
   });
 

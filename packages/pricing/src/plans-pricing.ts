@@ -11,11 +11,15 @@
  * - Subscriptions sell a better credit rate, not access: included monthly
  *   credits are priced at ~50% margin (Pro $49 → 8,000 credits ≈ $80 of
  *   PAYG output; Scale $499 → 80,000 credits ≈ $800 of PAYG output)
- * - Brand kits, connected channels, and seats are gated by tier
+ * - Seats are never a meter: FREE/BYOK is solo (1 seat); every paid tier
+ *   (Pro, Scale, Enterprise) has unlimited seats. Connected channels are
+ *   gated by tier; brands are unlimited on all paid plans — credits are
+ *   the only meter, not seats or brand count (account-sharing can't dodge
+ *   a usage meter)
  * - Models are never user-selected: the Genfeed router picks the best model
  *   for each format, brief, and budget
  *
- * @updated 2026-07-03
+ * @updated 2026-07-06
  */
 
 import type {
@@ -250,15 +254,17 @@ export const websitePlans: PricingPlanProps[] = [
       '8,000 credits included monthly (≈ $80 of pay-as-you-go output)',
       'Included credits ~40% cheaper than the standard rate',
       'Best model auto-routed for every job',
-      '5 brand kits',
+      'Unlimited brands',
       '15 connected channels',
+      'API access (standard rate limits)',
       'Top up with credit packs anytime',
       'Email support',
     ],
     includedCredits: 8_000,
     interval: 'month',
     label: 'Pro',
-    launchNote: 'Launch pricing — first 12 months, then $49/month',
+    launchNote:
+      'Launch pricing (code EARLYGENFEED) — first 12 months, then $49/month',
     launchPrice: 39,
     outputs: null,
     price: 49,
@@ -276,11 +282,12 @@ export const websitePlans: PricingPlanProps[] = [
     description: 'One studio for teams, organizations, and brands',
     features: [
       '80,000 credits included monthly (≈ $800 of pay-as-you-go output)',
-      '5 team seats included, then $49/seat/month',
+      'Unlimited team seats',
       'Shared credit pool with budgets',
       'Multi-organization account model',
-      'Multi-brand operations',
-      'Roles, shared approvals, and brand kits',
+      'Unlimited brands',
+      'Roles and shared approvals',
+      'API access (higher rate limits)',
       'Priority support (24hr)',
       'Advanced analytics',
     ],
@@ -293,7 +300,7 @@ export const websitePlans: PricingPlanProps[] = [
     target: 'Agencies and teams managing multiple brands or organizations',
     type: 'subscription',
     valueProposition:
-      'Seats plus a shared credit pool for teams that have outgrown a single workspace.',
+      'Unlimited seats and a shared credit pool for teams that have outgrown a single workspace — you pay for output, not headcount.',
   },
 
   // Enterprise Tier - custom deployment
@@ -305,7 +312,7 @@ export const websitePlans: PricingPlanProps[] = [
       'Custom output terms',
       'Unlimited team seats',
       'Unlimited organizations and brand kits',
-      'Full API access',
+      'Full API access (custom rate limits + SLA)',
       'White-label (custom domain + branding)',
       'Dedicated Slack support',
       'SSO & team management',
@@ -440,21 +447,25 @@ export const dedicatedServerPlan: PricingPlanProps = {
 };
 
 /**
- * PAYG Credit Pack tiers
- * Stripe charges base credits × $0.01. Bonus credits delivered via metadata.
- * Exchange rate: 1 credit = $0.01
+ * PAYG credit top-up presets (Replicate-style). Flat rate: 1 credit = $0.01,
+ * no bonus. Checkout also accepts any custom amount between the min and max
+ * below — the presets are just convenient defaults.
  */
 export const PAYG_CREDIT_PACKS: CreditPackTier[] = [
-  { bonus: null, credits: 9_900, label: 'Starter' },
-  { bonus: null, credits: 49_900, label: 'Creator' },
-  { bonus: 10_000, credits: 99_900, label: 'Pro' },
-  { bonus: 37_500, credits: 249_900, label: 'Business' },
-  { bonus: 100_000, credits: 499_900, label: 'Scale' },
+  { bonus: null, credits: 1_000, label: '$10' },
+  { bonus: null, credits: 2_000, label: '$20' },
+  { bonus: null, credits: 5_000, label: '$50' },
+  { bonus: null, credits: 10_000, label: '$100' },
+  { bonus: null, credits: 100_000, label: '$1,000' },
 ];
 
-/** Subset of credit packs shown on public pages (website, home). Settings/checkout use full list. */
+/** Custom PAYG top-up bounds in whole dollars (1 credit = $0.01). */
+export const PAYG_MIN_PURCHASE_USD = 10;
+export const PAYG_MAX_PURCHASE_USD = 10_000;
+
+/** Subset of top-up presets shown on public marketing pages (website, home). */
 export const WEBSITE_CREDIT_PACKS = PAYG_CREDIT_PACKS.filter((p) =>
-  ['Starter', 'Pro', 'Scale'].includes(p.label),
+  ['$10', '$100', '$1,000'].includes(p.label),
 );
 
 /**

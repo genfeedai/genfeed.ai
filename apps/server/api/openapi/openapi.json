@@ -41454,6 +41454,77 @@
         ]
       }
     },
+    "/schedules/channel-capabilities": {
+      "get": {
+        "operationId": "SchedulesController.listChannelCapabilities",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "includeHidden",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "includePlanned",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "listChannelCapabilities",
+        "tags": [
+          "Schedules"
+        ]
+      }
+    },
+    "/schedules/channel-capabilities/validate": {
+      "post": {
+        "operationId": "SchedulesController.validateChannelTargetSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "validateChannelTargetSettings",
+        "tags": [
+          "Schedules"
+        ]
+      }
+    },
+    "/schedules/channel-capabilities/{platform}": {
+      "get": {
+        "operationId": "SchedulesController.getChannelCapability",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "platform",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "getChannelCapability",
+        "tags": [
+          "Schedules"
+        ]
+      }
+    },
     "/schedules/optimal": {
       "post": {
         "operationId": "SchedulesController.getOptimalTime",

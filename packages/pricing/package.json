@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@genfeedai/enums": "workspace:*",
     "@genfeedai/interfaces": "workspace:*"
   },
   "devDependencies": {

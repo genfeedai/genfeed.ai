@@ -21,6 +21,7 @@ import {
   HiExclamationTriangle,
 } from 'react-icons/hi2';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import AddCreditsCard from './add-credits-card';
 
 /** Reusable billing card section */
 function BillingCard({
@@ -252,6 +253,8 @@ export default function SettingsBillingPage() {
           <Text color="muted">No credits information available.</Text>
         )}
       </BillingCard>
+
+      <AddCreditsCard />
 
       <BillingCard title="Manage Billing">
         <Text as="p" size="sm" color="muted">

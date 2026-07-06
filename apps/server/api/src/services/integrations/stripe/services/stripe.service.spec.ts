@@ -10,6 +10,7 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import Stripe from 'stripe';
 
@@ -64,19 +65,19 @@ describe('StripeService', () => {
         'cust',
         'payg_id',
         'http://origin',
-        20,
+        2_000,
       );
 
       expect(createSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          line_items: [expect.objectContaining({ quantity: 20 })],
+          line_items: [expect.objectContaining({ quantity: 2_000 })],
         }),
       );
     });
   });
 
-  describe('PAYG metadata.credits includes bonus', () => {
-    it('sets metadata.credits to base + bonus for Pro pack (99,900)', async () => {
+  describe('PAYG metadata.credits (flat top-up, no bonus)', () => {
+    it('sets metadata.credits to the preset amount for the $1,000 pack (100,000)', async () => {
       const createSpy = vi
         .spyOn(service.stripe.checkout.sessions, 'create')
         .mockResolvedValue({
@@ -87,20 +88,20 @@ describe('StripeService', () => {
         'cust',
         'payg_id',
         'http://origin',
-        99_900,
+        100_000,
       );
 
       expect(createSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           metadata: expect.objectContaining({
-            credits: '109900',
+            credits: '100000',
             plan_type: 'payg',
           }),
         }),
       );
     });
 
-    it('sets metadata.credits to base + bonus for Scale pack (499,900)', async () => {
+    it('sets metadata.credits to the preset amount for the $50 pack (5,000)', async () => {
       const createSpy = vi
         .spyOn(service.stripe.checkout.sessions, 'create')
         .mockResolvedValue({
@@ -111,20 +112,20 @@ describe('StripeService', () => {
         'cust',
         'payg_id',
         'http://origin',
-        499_900,
+        5_000,
       );
 
       expect(createSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           metadata: expect.objectContaining({
-            credits: '599900',
+            credits: '5000',
             plan_type: 'payg',
           }),
         }),
       );
     });
 
-    it('sets metadata.credits equal to quantity when no matching pack', async () => {
+    it('sets metadata.credits equal to quantity for a custom (non-preset) amount', async () => {
       const createSpy = vi
         .spyOn(service.stripe.checkout.sessions, 'create')
         .mockResolvedValue({
@@ -159,12 +160,122 @@ describe('StripeService', () => {
         'cust',
         'payg_id',
         'http://origin',
-        249_900,
+        250_000,
       );
 
       const callArg = createSpy.mock.calls[0][0];
       expect(callArg.allow_promotion_codes).toBe(true);
       expect(callArg).not.toHaveProperty('discounts');
+    });
+  });
+
+  describe('PAYG min/max enforcement', () => {
+    // 1 credit = $0.01 → min $10 = 1,000 credits, max $10,000 = 1,000,000 credits
+    it('rejects a below-minimum quantity (999 credits) without calling Stripe', async () => {
+      const createSpy = vi
+        .spyOn(service.stripe.checkout.sessions, 'create')
+        .mockResolvedValue({
+          id: 'sess',
+        } as unknown as Stripe.Checkout.Session);
+
+      await expect(
+        service.createPaymentSession('cust', 'payg_id', 'http://origin', 999),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(createSpy).not.toHaveBeenCalled();
+    });
+
+    it('accepts the minimum quantity (1,000 credits = $10)', async () => {
+      const createSpy = vi
+        .spyOn(service.stripe.checkout.sessions, 'create')
+        .mockResolvedValue({
+          id: 'sess',
+        } as unknown as Stripe.Checkout.Session);
+
+      await service.createPaymentSession(
+        'cust',
+        'payg_id',
+        'http://origin',
+        1_000,
+      );
+
+      expect(createSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          line_items: [expect.objectContaining({ quantity: 1_000 })],
+        }),
+      );
+    });
+
+    it('accepts the maximum quantity (1,000,000 credits = $10,000)', async () => {
+      const createSpy = vi
+        .spyOn(service.stripe.checkout.sessions, 'create')
+        .mockResolvedValue({
+          id: 'sess',
+        } as unknown as Stripe.Checkout.Session);
+
+      await service.createPaymentSession(
+        'cust',
+        'payg_id',
+        'http://origin',
+        1_000_000,
+      );
+
+      expect(createSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          line_items: [expect.objectContaining({ quantity: 1_000_000 })],
+        }),
+      );
+    });
+
+    it('rejects an above-maximum quantity (1,000,001 credits) without calling Stripe', async () => {
+      const createSpy = vi
+        .spyOn(service.stripe.checkout.sessions, 'create')
+        .mockResolvedValue({
+          id: 'sess',
+        } as unknown as Stripe.Checkout.Session);
+
+      await expect(
+        service.createPaymentSession(
+          'cust',
+          'payg_id',
+          'http://origin',
+          1_000_001,
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(createSpy).not.toHaveBeenCalled();
+    });
+
+    it('enforces the same bounds on the managed PAYG checkout (below min)', async () => {
+      const createSpy = vi
+        .spyOn(service.stripe.checkout.sessions, 'create')
+        .mockResolvedValue({
+          id: 'sess_managed',
+        } as unknown as Stripe.Checkout.Session);
+
+      await expect(
+        service.createManagedPaymentSession({
+          email: 'managed@example.com',
+          quantity: 999,
+          stripePriceId: 'payg_id',
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(createSpy).not.toHaveBeenCalled();
+    });
+
+    it('enforces the same bounds on the managed PAYG checkout (above max)', async () => {
+      const createSpy = vi
+        .spyOn(service.stripe.checkout.sessions, 'create')
+        .mockResolvedValue({
+          id: 'sess_managed',
+        } as unknown as Stripe.Checkout.Session);
+
+      await expect(
+        service.createManagedPaymentSession({
+          email: 'managed@example.com',
+          quantity: 1_000_001,
+          stripePriceId: 'payg_id',
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(createSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -335,7 +446,7 @@ describe('StripeService', () => {
       await service.createManagedPaymentSession({
         email: 'managed@example.com',
         firstName: 'Vincent',
-        quantity: 99_900,
+        quantity: 100_000,
         stripePriceId: 'payg_id',
       });
 
@@ -343,9 +454,9 @@ describe('StripeService', () => {
         expect.objectContaining({
           customer_creation: 'always',
           customer_email: 'managed@example.com',
-          line_items: [expect.objectContaining({ quantity: 99_900 })],
+          line_items: [expect.objectContaining({ quantity: 100_000 })],
           metadata: expect.objectContaining({
-            credits: '109900',
+            credits: '100000',
             email: 'managed@example.com',
             firstName: 'Vincent',
             plan_type: 'payg',
