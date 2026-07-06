@@ -54,7 +54,9 @@ describe('HomeCredits', () => {
     render(<HomeCredits />);
 
     expect(
-      screen.getByText(/launch pricing — first 12 months, then \$49\/month/i),
+      screen.getByText(
+        /launch pricing \(code earlygenfeed\) — first 12 months, then \$49\/month/i,
+      ),
     ).toBeInTheDocument();
   });
 });

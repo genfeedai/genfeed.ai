@@ -61,12 +61,10 @@ describe('HomeAudiences', () => {
     ).toHaveAttribute('href', '/use-cases/agencies');
   });
 
-  it('quotes the Creator launch price, not the standard price', () => {
+  it('quotes the Pro launch price, not the standard price', () => {
     render(<HomeAudiences />);
 
-    expect(screen.getByText(/then \$39\/mo creator/i)).toBeInTheDocument();
-    expect(
-      screen.queryByText(/then \$49\/mo creator/i),
-    ).not.toBeInTheDocument();
+    expect(screen.getByText(/then \$39\/mo pro/i)).toBeInTheDocument();
+    expect(screen.queryByText(/then \$49\/mo pro/i)).not.toBeInTheDocument();
   });
 });
