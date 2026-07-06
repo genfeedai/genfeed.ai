@@ -460,23 +460,29 @@ export class OrganizationsController extends BaseCRUDController<
       user: userId,
     });
 
-    if (!members.length) {
-      return [];
-    }
-
     // Membership rows are Prisma-shaped (`organizationId`); the legacy
     // `organization` alias is optional-typed and undefined at runtime, so
     // mapping it sent `findOne({ _id: undefined })` downstream — which
     // normalized to an unscoped findFirst and returned the first organization
     // in the table once per membership row (#switcher duplicate/wrong-org).
     // Dedup so multiple memberships in one org can't render duplicate entries.
-    const orgIds = [
+    const membershipOrgIds = [
       ...new Set(
         members
           .map((member) => member.organizationId || member.organization || '')
           .filter(Boolean),
       ),
     ];
+    const orgIds =
+      membershipOrgIds.length > 0
+        ? membershipOrgIds
+        : publicMetadata.organization
+          ? [publicMetadata.organization]
+          : [];
+
+    if (!orgIds.length) {
+      return [];
+    }
 
     // Fetch all organizations
     const orgs = await Promise.all(

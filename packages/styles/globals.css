@@ -139,7 +139,7 @@ body.gf-studio-app {
   --background-secondary: 225 14% 5%; /* #0c0d10 bg-secondary (sidebar plane) */
   --background-tertiary: 216 12% 8%; /* #131518 bg-tertiary */
   --foreground: 240 6% 96%; /* #f4f4f5 text-primary */
-  --card: 216 12% 8%; /* #131518 — one elevation step above the sidebar plane */
+  --card: 0 0% 3%; /* #080808 card / pricing-card black surface */
   --card-foreground: 240 6% 96%;
   --popover: 223 12% 12%; /* #1a1c21 bg-elevated */
   --popover-foreground: 240 6% 96%;

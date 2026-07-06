@@ -53,7 +53,7 @@ export default function MenuSharedConversations({
             href={newAgentThreadHref}
             onFocus={prefetchNewAgentThreadHref}
             onMouseEnter={prefetchNewAgentThreadHref}
-            className="group flex h-8 w-full items-center gap-3 rounded px-3 py-1.5 text-left text-foreground/72 transition-colors duration-150 cursor-pointer hover:bg-foreground/[0.035] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+            className="group flex h-8 w-full items-center gap-3 rounded px-3 py-1.5 text-left text-foreground/72 transition-colors duration-150 cursor-pointer hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
           >
             <HiPlus className="size-4 text-foreground/42 group-hover:text-foreground/78" />
             <span className="text-[13px] font-medium tracking-[-0.01em] text-foreground/88">

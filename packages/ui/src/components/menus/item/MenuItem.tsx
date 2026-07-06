@@ -85,11 +85,11 @@ export default function MenuItem({
     ? isHorizontalLayout
       ? isActive
         ? 'bg-foreground/[0.06] text-foreground'
-        : 'hover:bg-foreground/[0.035] hover:text-foreground'
+        : 'hover:bg-foreground/[0.06] hover:text-foreground'
       : '' // No outer wrapper styling for vertical card variant - highlighting is on the icon itself
     : isActive
       ? 'bg-foreground/[0.06] text-foreground font-semibold'
-      : 'text-foreground/72 hover:bg-foreground/[0.035] hover:text-foreground';
+      : 'text-foreground/72 hover:bg-foreground/[0.06] hover:text-foreground';
 
   const listItemClass = cn(
     'list-none overflow-visible',

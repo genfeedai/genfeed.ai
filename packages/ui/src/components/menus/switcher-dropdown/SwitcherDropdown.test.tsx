@@ -215,6 +215,26 @@ describe('SwitcherDropdown', () => {
     expect(screen.getByText('Loading…')).toBeInTheDocument();
   });
 
+  it('shows an explicit empty message after loading completes', () => {
+    renderDropdown({
+      emptyMessage: 'No organizations',
+      isLoading: false,
+      items: [],
+    });
+    fireEvent.click(screen.getByText('Open'));
+    expect(screen.getByText('No organizations')).toBeInTheDocument();
+  });
+
+  it('does not render browser-default focus rings on footer actions', () => {
+    renderDropdown({
+      footerActions: [{ label: 'New Item', onAction: vi.fn() }],
+    });
+    fireEvent.click(screen.getByText('Open'));
+    expect(screen.getByRole('button', { name: /New Item/i })).toHaveClass(
+      'focus-visible:ring-0',
+    );
+  });
+
   it('disables interaction when isDisabled', () => {
     const onSelect = vi.fn();
     renderDropdown({ isDisabled: true, onSelect });

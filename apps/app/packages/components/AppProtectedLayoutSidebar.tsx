@@ -21,7 +21,6 @@ import AdminSidebar from '@ui/shell/menus/AdminSidebar';
 import AppSidebar from '@ui/shell/menus/AppSidebar';
 import type { ReactNode } from 'react';
 import { HiPlus } from 'react-icons/hi2';
-import { isHostedCloudApp } from '@/lib/config/edition';
 import { withTaskContextHref } from '@/lib/navigation/operator-shell';
 import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
 import AgentSidebarContent from './AppProtectedLayoutAgentSidebar';
@@ -94,10 +93,7 @@ export default function AppProtectedLayoutSidebar({
   onOpenCommandPalette,
 }: Props) {
   const { href: buildHref, orgHref } = useOrgUrl();
-  const shouldRenderOrganizationSwitcher = isHostedCloudApp();
-  const orgSwitcherSlot = shouldRenderOrganizationSwitcher ? (
-    <OrganizationSwitcher />
-  ) : undefined;
+  const orgSwitcherSlot = <OrganizationSwitcher />;
 
   if (isFocusedOnboardingRoute) {
     return null;
@@ -264,7 +260,7 @@ export default function AppProtectedLayoutSidebar({
         buildHref(APP_LOGO_HREF),
         taskContextSearchParams,
       )}
-      sectionLabel={undefined}
+      sectionLabel="Workspace"
       collapsedSidebarWidth={0}
       mobileSidebarWidth={isConversationRoute ? undefined : 304}
       orgSwitcherSlot={orgSwitcherSlot}

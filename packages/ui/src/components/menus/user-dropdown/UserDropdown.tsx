@@ -75,7 +75,7 @@ export default function UserDropdown({
       : allDropdownItems;
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <Button
           variant={ButtonVariant.UNSTYLED}
