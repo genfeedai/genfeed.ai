@@ -17,7 +17,7 @@ export default function OrchestratorSpecialistsSection({
       <p className="text-sm font-medium text-foreground">
         Existing Specialists
       </p>
-      <div className="space-y-2 rounded border border-white/[0.08] p-4">
+      <div className="space-y-2 rounded bg-secondary p-4 shadow-border">
         {strategies.length === 0 ? (
           <p className="text-sm text-foreground/50">
             No existing strategies found. The blueprint can still create the
@@ -27,7 +27,7 @@ export default function OrchestratorSpecialistsSection({
           strategies.map((strategy) => (
             <span
               key={strategy.id}
-              className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-white/[0.06] px-3 py-2"
+              className="flex cursor-pointer items-center justify-between gap-3 rounded-lg bg-tertiary px-3 py-2"
             >
               <div>
                 <p className="text-sm font-medium text-foreground">

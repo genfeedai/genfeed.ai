@@ -122,7 +122,7 @@ function EditorPropertiesPanel({
             <span className="text-xs text-muted-foreground block mb-1">
               Start
             </span>
-            <div className="text-sm font-mono bg-background border border-white/[0.08] rounded px-2 py-1">
+            <div className="text-sm font-mono bg-background shadow-border rounded px-2 py-1">
               {formatPreciseFrameTime(selectedClip.startFrame, fps)}
             </div>
           </div>
@@ -130,7 +130,7 @@ function EditorPropertiesPanel({
             <span className="text-xs text-muted-foreground block mb-1">
               Duration
             </span>
-            <div className="text-sm font-mono bg-background border border-white/[0.08] rounded px-2 py-1">
+            <div className="text-sm font-mono bg-background shadow-border rounded px-2 py-1">
               {formatPreciseFrameTime(selectedClip.durationFrames, fps)}
             </div>
           </div>
@@ -150,7 +150,7 @@ function EditorPropertiesPanel({
                   startFrame: Math.max(0, Number(e.target.value)),
                 })
               }
-              className="w-full bg-background border border-white/[0.08] rounded px-2 py-1 text-sm font-mono"
+              className="w-full bg-background shadow-border rounded px-2 py-1 text-sm font-mono"
             />
           </div>
           <div>
@@ -169,7 +169,7 @@ function EditorPropertiesPanel({
                     Math.max(1, Number(e.target.value)),
                 })
               }
-              className="w-full bg-background border border-white/[0.08] rounded px-2 py-1 text-sm font-mono"
+              className="w-full bg-background shadow-border rounded px-2 py-1 text-sm font-mono"
             />
           </div>
         </div>

@@ -65,7 +65,7 @@ export default function RunRoutingInsights({ stats }: RunRoutingInsightsProps) {
                 </div>
                 <div className="h-2 w-full overflow-hidden rounded bg-muted">
                   <div
-                    className="h-full rounded bg-emerald-500/80"
+                    className="h-full rounded bg-muted-foreground"
                     style={{ width: `${Math.max(share, 4)}%` }}
                   />
                 </div>
