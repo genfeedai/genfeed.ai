@@ -10,6 +10,7 @@ import { Injectable } from '@nestjs/common';
 import { LifecycleEmailQueueService } from './lifecycle-email-queue.service';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const CHECKOUT_RECOVERY_DELAY_MS = 2 * 60 * 60 * 1000;
 const WELCOME_TRIGGER_PREFIX = 'signup';
 const CHECKOUT_TRIGGER_PREFIX = 'checkout';
 const SUBSCRIPTION_TRIGGER_PREFIX = 'subscription';
@@ -127,7 +128,7 @@ export class LifecycleEmailService {
           organizationId: input.organizationId,
           source: input.source,
         },
-        scheduledFor: new Date(Date.now() + DAY_MS),
+        scheduledFor: new Date(Date.now() + CHECKOUT_RECOVERY_DELAY_MS),
         sequence: 'abandoned-checkout',
         step: 'checkout-recovery',
         triggerKey: this.checkoutTriggerKey(input.checkoutSessionId),

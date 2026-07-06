@@ -9,9 +9,11 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
 
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LifecycleEmailService } from './lifecycle-email.service';
 import { LifecycleEmailQueueService } from './lifecycle-email-queue.service';
+
+const CHECKOUT_RECOVERY_DELAY_MS = 2 * 60 * 60 * 1000;
 
 describe('LifecycleEmailService', () => {
   let service: LifecycleEmailService;
@@ -53,6 +55,10 @@ describe('LifecycleEmailService', () => {
     );
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('schedules welcome and activation lifecycle steps for a new signup', async () => {
     await service.scheduleSignupLifecycle('user_1');
 
@@ -71,6 +77,10 @@ describe('LifecycleEmailService', () => {
   });
 
   it('schedules abandoned checkout recovery with checkout metadata', async () => {
+    const now = new Date('2026-07-06T12:00:00.000Z');
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
+
     await service.recordCheckoutStarted({
       checkoutSessionId: 'cs_1',
       checkoutUrl: 'https://checkout.stripe.com/session',
@@ -100,7 +110,7 @@ describe('LifecycleEmailService', () => {
         sequence: 'abandoned-checkout',
         step: 'checkout-recovery',
       }),
-      expect.any(Date),
+      new Date(now.getTime() + CHECKOUT_RECOVERY_DELAY_MS),
     );
   });
 
