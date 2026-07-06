@@ -158,7 +158,7 @@ function PromptsPageContent() {
                       </div>
 
                       {prompt.label && (
-                        <h3 className="text-lg font-semibold mb-2">
+                        <h3 className="text-sm font-semibold mb-2">
                           {prompt.label}
                         </h3>
                       )}
@@ -219,9 +219,7 @@ function PromptsPageContent() {
                         )}
                         <li>
                           <Button
-                            variant={ButtonVariant.UNSTYLED}
-                            withWrapper={false}
-                            className="text-error"
+                            variant={ButtonVariant.GHOST}
                             onClick={() => prompt.id && handleDelete(prompt)}
                           >
                             <HiTrash className="size-4" />
