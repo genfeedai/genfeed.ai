@@ -2,10 +2,8 @@ import { InvitationService } from '@api/collections/members/services/invitation.
 import { Public } from '@libs/decorators/public.decorator';
 import {
   BadRequestException,
-  Body,
   Controller,
   Get,
-  Post,
   Query,
   Res,
 } from '@nestjs/common';
@@ -26,16 +24,6 @@ export class InvitationsController {
     );
 
     response.redirect(303, result.redirectUrl);
-  }
-
-  @Public()
-  @Post('members/invitations/accept')
-  async acceptInvitation(@Body('token') token: string | undefined) {
-    const result = await this.invitationService.acceptInvitation(
-      this.requireToken(token),
-    );
-
-    return { data: result };
   }
 
   private requireToken(token: string | undefined): string {

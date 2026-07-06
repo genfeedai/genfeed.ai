@@ -1,0 +1,5375 @@
+{
+  "description": "Parity debt ledger (#1251): non-internal API operations in openapi/openapi.json that are NOT yet reachable via any capability MCP tool. Reachability is declared in openapi-mcp-coverage.json (one tool may cover many operations); until curation (#1252) / the dispatcher (#1249) populate that map, this acknowledges the current gap. This ledger only ratchets down: as operations become reachable they must be removed (regenerate with `bun run --filter=@genfeedai/api mcp:parity:update`). CI (scripts/check-mcp-parity.ts) fails on any uncovered operation absent from this list, and on any stale entry that is now covered/allowlisted/removed.",
+  "operations": [
+    {
+      "method": "patch",
+      "operationId": "ActivitiesController.bulkUpdate",
+      "path": "/activities"
+    },
+    {
+      "method": "get",
+      "operationId": "ActivitiesController.findAll",
+      "path": "/activities"
+    },
+    {
+      "method": "patch",
+      "operationId": "ActivitiesController.update",
+      "path": "/activities/{activityId}"
+    },
+    {
+      "method": "get",
+      "operationId": "AdsGatewayController.comparePlatforms",
+      "path": "/ads/compare"
+    },
+    {
+      "method": "post",
+      "operationId": "AdsGatewayController.createAd",
+      "path": "/ads/{platform}/ads"
+    },
+    {
+      "method": "post",
+      "operationId": "AdsGatewayController.createAdSet",
+      "path": "/ads/{platform}/adsets"
+    },
+    {
+      "method": "post",
+      "operationId": "AdsGatewayController.createCampaign",
+      "path": "/ads/{platform}/campaigns"
+    },
+    {
+      "method": "get",
+      "operationId": "AdsGatewayController.getAdAccounts",
+      "path": "/ads/{platform}/accounts"
+    },
+    {
+      "method": "get",
+      "operationId": "AdsGatewayController.getCampaignInsights",
+      "path": "/ads/{platform}/campaigns/{campaignId}/insights"
+    },
+    {
+      "method": "get",
+      "operationId": "AdsGatewayController.getTopPerformers",
+      "path": "/ads/{platform}/top-performers"
+    },
+    {
+      "method": "get",
+      "operationId": "AdsGatewayController.listAds",
+      "path": "/ads/{platform}/ads"
+    },
+    {
+      "method": "get",
+      "operationId": "AdsGatewayController.listAdSets",
+      "path": "/ads/{platform}/adsets"
+    },
+    {
+      "method": "get",
+      "operationId": "AdsGatewayController.listCampaigns",
+      "path": "/ads/{platform}/campaigns"
+    },
+    {
+      "method": "put",
+      "operationId": "AdsGatewayController.updateCampaign",
+      "path": "/ads/{platform}/campaigns/{campaignId}"
+    },
+    {
+      "method": "post",
+      "operationId": "AdsResearchController.createRemixWorkflow",
+      "path": "/ads/research/remix-workflow"
+    },
+    {
+      "method": "post",
+      "operationId": "AdsResearchController.generateAdPack",
+      "path": "/ads/research/ad-pack"
+    },
+    {
+      "method": "get",
+      "operationId": "AdsResearchController.getAdDetail",
+      "path": "/ads/research/{source}/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "AdsResearchController.listAds",
+      "path": "/ads/research"
+    },
+    {
+      "method": "post",
+      "operationId": "AdsResearchController.prepareCampaignForReview",
+      "path": "/ads/research/launch-prep"
+    },
+    {
+      "method": "post",
+      "operationId": "AgentCampaignsController.create",
+      "path": "/agent-campaigns"
+    },
+    {
+      "method": "post",
+      "operationId": "AgentCampaignsController.executeCampaign",
+      "path": "/agent-campaigns/{id}/execute"
+    },
+    {
+      "method": "get",
+      "operationId": "AgentCampaignsController.findAll",
+      "path": "/agent-campaigns"
+    },
+    {
+      "method": "get",
+      "operationId": "AgentCampaignsController.findOne",
+      "path": "/agent-campaigns/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "AgentCampaignsController.getCampaignStatus",
+      "path": "/agent-campaigns/{id}/status"
+    },
+    {
+      "method": "patch",
+      "operationId": "AgentCampaignsController.patch",
+      "path": "/agent-campaigns/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "AgentCampaignsController.pauseCampaign",
+      "path": "/agent-campaigns/{id}/pause"
+    },
+    {
+      "method": "delete",
+      "operationId": "AgentCampaignsController.remove",
+      "path": "/agent-campaigns/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "AgentMemoriesController.create",
+      "path": "/agent/memories"
+    },
+    {
+      "method": "get",
+      "operationId": "AgentMemoriesController.list",
+      "path": "/agent/memories"
+    },
+    {
+      "method": "delete",
+      "operationId": "AgentMemoriesController.remove",
+      "path": "/agent/memories/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "AgentOrchestratorController.createGoal",
+      "path": "/agent/goals"
+    },
+    {
+      "method": "post",
+      "operationId": "AgentOrchestratorController.createThreadTurn",
+      "path": "/agent/threads/{threadId}/turns"
+    },
+    {
+      "method": "post",
+      "operationId": "AgentOrchestratorController.createThreadTurnStream",
+      "path": "/agent/threads/{threadId}/turns/stream"
+    },
+    {
+      "method": "post",
+      "operationId": "AgentOrchestratorController.createTurn",
+      "path": "/agent/threads/turns"
+    },
+    {
+      "method": "post",
+      "operationId": "AgentOrchestratorController.createTurnStream",
+      "path": "/agent/threads/turns/stream"
+    },
+    {
+      "method": "get",
+      "operationId": "AgentOrchestratorController.getCredits",
+      "path": "/agent/credits"
+    },
+    {
+      "method": "get",
+      "operationId": "AgentOrchestratorController.getGoal",
+      "path": "/agent/goals/{goalId}"
+    },
+    {
+      "method": "get",
+      "operationId": "AgentOrchestratorController.listGoals",
+      "path": "/agent/goals"
+    },
+    {
+      "method": "patch",
+      "operationId": "AgentOrchestratorController.updateGoal",
+      "path": "/agent/goals/{goalId}"
+    },
+    {
+      "method": "post",
+      "operationId": "AgentRunsController.cancelRun",
+      "path": "/runs/{id}/cancellations"
+    },
+    {
+      "method": "get",
+      "operationId": "AgentRunsController.findOne",
+      "path": "/runs/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "AgentRunsController.getActiveRuns",
+      "path": "/runs/active"
+    },
+    {
+      "method": "get",
+      "operationId": "AgentRunsController.getBatch",
+      "path": "/runs/batch"
+    },
+    {
+      "method": "get",
+      "operationId": "AgentRunsController.getRunContent",
+      "path": "/runs/{id}/content"
+    },
+    {
+      "method": "get",
+      "operationId": "AgentRunsController.getStats",
+      "path": "/runs/stats"
+    },
+    {
+      "method": "patch",
+      "operationId": "AgentRunsController.patch",
+      "path": "/runs/{id}"
+    },
+    {
+      "method": "delete",
+      "operationId": "AgentRunsController.remove",
+      "path": "/runs/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "AgentStrategiesController.create",
+      "path": "/agent-strategies"
+    },
+    {
+      "method": "get",
+      "operationId": "AgentStrategiesController.findAll",
+      "path": "/agent-strategies"
+    },
+    {
+      "method": "get",
+      "operationId": "AgentStrategiesController.findOne",
+      "path": "/agent-strategies/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "AgentStrategiesController.listOpportunities",
+      "path": "/agent-strategies/{id}/opportunities"
+    },
+    {
+      "method": "get",
+      "operationId": "AgentStrategiesController.listReports",
+      "path": "/agent-strategies/{id}/reports"
+    },
+    {
+      "method": "patch",
+      "operationId": "AgentStrategiesController.patch",
+      "path": "/agent-strategies/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "AgentStrategiesController.performanceSnapshot",
+      "path": "/agent-strategies/{id}/performance-snapshot"
+    },
+    {
+      "method": "delete",
+      "operationId": "AgentStrategiesController.remove",
+      "path": "/agent-strategies/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "AgentStrategiesController.reportNow",
+      "path": "/agent-strategies/{id}/report-now"
+    },
+    {
+      "method": "post",
+      "operationId": "AgentStrategiesController.runNow",
+      "path": "/agent-strategies/{id}/run-now"
+    },
+    {
+      "method": "post",
+      "operationId": "AgentStrategiesController.toggleActive",
+      "path": "/agent-strategies/{id}/toggle"
+    },
+    {
+      "method": "post",
+      "operationId": "AgentThreadRuntimeController.branchThread",
+      "path": "/agent/threads/{threadId}/branches"
+    },
+    {
+      "method": "get",
+      "operationId": "AgentThreadRuntimeController.getSnapshot",
+      "path": "/agent/threads/{threadId}/snapshot"
+    },
+    {
+      "method": "get",
+      "operationId": "AgentThreadRuntimeController.listEvents",
+      "path": "/agent/threads/{threadId}/events"
+    },
+    {
+      "method": "post",
+      "operationId": "AgentThreadRuntimeController.respondToInputRequest",
+      "path": "/agent/threads/{threadId}/input-requests/{requestId}/responses"
+    },
+    {
+      "method": "post",
+      "operationId": "AgentThreadRuntimeController.respondToUiAction",
+      "path": "/agent/threads/{threadId}/ui-actions"
+    },
+    {
+      "method": "post",
+      "operationId": "AgentThreadsController.addMessage",
+      "path": "/agent/threads/{threadId}/messages"
+    },
+    {
+      "method": "post",
+      "operationId": "AgentThreadsController.archiveAllThreads",
+      "path": "/agent/threads/archive-all"
+    },
+    {
+      "method": "post",
+      "operationId": "AgentThreadsController.createThread",
+      "path": "/agent/threads"
+    },
+    {
+      "method": "get",
+      "operationId": "AgentThreadsController.getMessage",
+      "path": "/agent/threads/{threadId}/messages/{messageId}"
+    },
+    {
+      "method": "get",
+      "operationId": "AgentThreadsController.getMessages",
+      "path": "/agent/threads/{threadId}/messages"
+    },
+    {
+      "method": "get",
+      "operationId": "AgentThreadsController.getThread",
+      "path": "/agent/threads/{threadId}"
+    },
+    {
+      "method": "get",
+      "operationId": "AgentThreadsController.listThreads",
+      "path": "/agent/threads"
+    },
+    {
+      "method": "patch",
+      "operationId": "AgentThreadsController.updateThread",
+      "path": "/agent/threads/{threadId}"
+    },
+    {
+      "method": "post",
+      "operationId": "AgentToolsController.execute",
+      "path": "/agent-tools/{name}/execute"
+    },
+    {
+      "method": "post",
+      "operationId": "AgentWorkflowsController.approve",
+      "path": "/agent-workflows/{workflowId}/approve"
+    },
+    {
+      "method": "post",
+      "operationId": "AgentWorkflowsController.createWorkflow",
+      "path": "/agent-workflows"
+    },
+    {
+      "method": "post",
+      "operationId": "AgentWorkflowsController.forceAdvance",
+      "path": "/agent-workflows/{workflowId}/force-advance"
+    },
+    {
+      "method": "get",
+      "operationId": "AgentWorkflowsController.getWorkflow",
+      "path": "/agent-workflows/{workflowId}"
+    },
+    {
+      "method": "post",
+      "operationId": "AgentWorkflowsController.rollback",
+      "path": "/agent-workflows/{workflowId}/rollback"
+    },
+    {
+      "method": "post",
+      "operationId": "AgentWorkflowsController.transition",
+      "path": "/agent-workflows/{workflowId}/transition"
+    },
+    {
+      "method": "post",
+      "operationId": "AiActionsController.execute",
+      "path": "/organizations/{organizationId}/ai-actions/execute"
+    },
+    {
+      "method": "get",
+      "operationId": "AnalyticsController.exportData",
+      "path": "/analytics/export"
+    },
+    {
+      "method": "get",
+      "operationId": "AnalyticsController.findAll",
+      "path": "/analytics"
+    },
+    {
+      "method": "get",
+      "operationId": "AnalyticsController.getBrandsLeaderboard",
+      "path": "/analytics/brands/leaderboard"
+    },
+    {
+      "method": "get",
+      "operationId": "AnalyticsController.getBrandsWithStats",
+      "path": "/analytics/brands"
+    },
+    {
+      "method": "get",
+      "operationId": "AnalyticsController.getBusinessAnalytics",
+      "path": "/analytics/business"
+    },
+    {
+      "method": "get",
+      "operationId": "AnalyticsController.getEngagement",
+      "path": "/analytics/engagement"
+    },
+    {
+      "method": "get",
+      "operationId": "AnalyticsController.getGrowthTrends",
+      "path": "/analytics/growth"
+    },
+    {
+      "method": "get",
+      "operationId": "AnalyticsController.getOrganizationsLeaderboard",
+      "path": "/analytics/organizations/leaderboard"
+    },
+    {
+      "method": "get",
+      "operationId": "AnalyticsController.getOrganizationsWithStats",
+      "path": "/analytics/organizations"
+    },
+    {
+      "method": "get",
+      "operationId": "AnalyticsController.getOverview",
+      "path": "/analytics/overview"
+    },
+    {
+      "method": "get",
+      "operationId": "AnalyticsController.getPlatformComparison",
+      "path": "/analytics/platforms"
+    },
+    {
+      "method": "get",
+      "operationId": "AnalyticsController.getTimeSeries",
+      "path": "/analytics/timeseries"
+    },
+    {
+      "method": "get",
+      "operationId": "AnalyticsController.getTopContent",
+      "path": "/analytics/top"
+    },
+    {
+      "method": "get",
+      "operationId": "AnalyticsController.getTrends",
+      "path": "/analytics/trends"
+    },
+    {
+      "method": "get",
+      "operationId": "AnalyticsController.getViralHooks",
+      "path": "/analytics/hooks"
+    },
+    {
+      "method": "get",
+      "operationId": "AnalyticsSyncController.getSyncStatus",
+      "path": "/content-performance/analytics-sync/status"
+    },
+    {
+      "method": "post",
+      "operationId": "AnalyticsSyncController.runSync",
+      "path": "/content-performance/analytics-sync/run"
+    },
+    {
+      "method": "post",
+      "operationId": "AnalyticsSyncController.sendDigest",
+      "path": "/content-performance/analytics-sync/digest/send"
+    },
+    {
+      "method": "post",
+      "operationId": "AnalyticsSyncController.triggerDigest",
+      "path": "/content-performance/analytics-sync/digest"
+    },
+    {
+      "method": "post",
+      "operationId": "AnalyticsSyncController.triggerSync",
+      "path": "/content-performance/analytics-sync/trigger"
+    },
+    {
+      "method": "post",
+      "operationId": "ApiKeysController.create",
+      "path": "/api-keys"
+    },
+    {
+      "method": "get",
+      "operationId": "ApiKeysController.findAll",
+      "path": "/api-keys"
+    },
+    {
+      "method": "get",
+      "operationId": "ApiKeysController.findMCPKeys",
+      "path": "/api-keys/mcp"
+    },
+    {
+      "method": "get",
+      "operationId": "ApiKeysController.findOne",
+      "path": "/api-keys/{apiKeyId}"
+    },
+    {
+      "method": "delete",
+      "operationId": "ApiKeysController.revoke",
+      "path": "/api-keys/{apiKeyId}"
+    },
+    {
+      "method": "post",
+      "operationId": "ApiKeysController.rotate",
+      "path": "/api-keys/{apiKeyId}/rotate"
+    },
+    {
+      "method": "patch",
+      "operationId": "ApiKeysController.update",
+      "path": "/api-keys/{apiKeyId}"
+    },
+    {
+      "method": "post",
+      "operationId": "ApiKeysController.validate",
+      "path": "/api-keys/validate"
+    },
+    {
+      "method": "post",
+      "operationId": "ArticlesController.analyzeVirality",
+      "path": "/articles/{articleId}/virality-analyses"
+    },
+    {
+      "method": "post",
+      "operationId": "ArticlesController.convertToThread",
+      "path": "/articles/{articleId}/thread-conversions"
+    },
+    {
+      "method": "post",
+      "operationId": "ArticlesController.create",
+      "path": "/articles"
+    },
+    {
+      "method": "post",
+      "operationId": "ArticlesController.createRemix",
+      "path": "/articles/{articleId}/remixes"
+    },
+    {
+      "method": "post",
+      "operationId": "ArticlesController.editWithAI",
+      "path": "/articles/{articleId}/enhancements"
+    },
+    {
+      "method": "get",
+      "operationId": "ArticlesController.findAll",
+      "path": "/articles"
+    },
+    {
+      "method": "get",
+      "operationId": "ArticlesController.findOne",
+      "path": "/articles/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "ArticlesController.generateArticles",
+      "path": "/articles/generations"
+    },
+    {
+      "method": "post",
+      "operationId": "ArticlesController.generateImageFromArticle",
+      "path": "/articles/{articleId}/images"
+    },
+    {
+      "method": "post",
+      "operationId": "ArticlesController.generatePrompt",
+      "path": "/articles/{articleId}/prompts"
+    },
+    {
+      "method": "post",
+      "operationId": "ArticlesController.generateVideoFromArticle",
+      "path": "/articles/{articleId}/videos"
+    },
+    {
+      "method": "get",
+      "operationId": "ArticlesController.getVersions",
+      "path": "/articles/{articleId}/versions"
+    },
+    {
+      "method": "patch",
+      "operationId": "ArticlesController.patch",
+      "path": "/articles/{articleId}"
+    },
+    {
+      "method": "delete",
+      "operationId": "ArticlesController.remove",
+      "path": "/articles/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "ArticlesController.restoreVersion",
+      "path": "/articles/{articleId}/versions/{promptId}/restore"
+    },
+    {
+      "method": "post",
+      "operationId": "ArticlesController.reviewArticle",
+      "path": "/articles/{articleId}/reviews"
+    },
+    {
+      "method": "post",
+      "operationId": "ArticlesController.scoreSeo",
+      "path": "/articles/{articleId}/seo-scores"
+    },
+    {
+      "method": "get",
+      "operationId": "AssetsController.findAll",
+      "path": "/assets"
+    },
+    {
+      "method": "get",
+      "operationId": "AssetsController.findOne",
+      "path": "/assets/{assetId}"
+    },
+    {
+      "method": "delete",
+      "operationId": "AssetsController.remove",
+      "path": "/assets/{assetId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "AssetsController.update",
+      "path": "/assets/{assetId}"
+    },
+    {
+      "method": "post",
+      "operationId": "AssetsOperationsController.createFromIngredient",
+      "path": "/assets/from-ingredient"
+    },
+    {
+      "method": "post",
+      "operationId": "AssetsOperationsController.createUpload",
+      "path": "/assets/upload"
+    },
+    {
+      "method": "post",
+      "operationId": "AssetsOperationsController.generate",
+      "path": "/assets/generate"
+    },
+    {
+      "method": "get",
+      "operationId": "AuthBootstrapController.bootstrap",
+      "path": "/auth/bootstrap"
+    },
+    {
+      "method": "get",
+      "operationId": "AuthBootstrapController.overviewBootstrap",
+      "path": "/auth/bootstrap/overview"
+    },
+    {
+      "method": "post",
+      "operationId": "AuthCliController.createCliToken",
+      "path": "/auth/cli/token"
+    },
+    {
+      "method": "post",
+      "operationId": "AuthDesktopController.authorize",
+      "path": "/auth/desktop/authorize"
+    },
+    {
+      "method": "post",
+      "operationId": "AuthDesktopController.exchange",
+      "path": "/auth/desktop/exchange"
+    },
+    {
+      "method": "get",
+      "operationId": "AuthWhoamiController.whoami",
+      "path": "/auth/whoami"
+    },
+    {
+      "method": "get",
+      "operationId": "AvatarsController.findAll",
+      "path": "/avatars"
+    },
+    {
+      "method": "get",
+      "operationId": "AvatarsController.getElevenlabsVoices",
+      "path": "/avatars/elevenlabs/voices"
+    },
+    {
+      "method": "get",
+      "operationId": "AvatarsController.getHedraAvatars",
+      "path": "/avatars/hedra/avatars"
+    },
+    {
+      "method": "get",
+      "operationId": "AvatarsController.getHedraVoices",
+      "path": "/avatars/hedra/voices"
+    },
+    {
+      "method": "get",
+      "operationId": "AvatarsController.getHeygenAvatars",
+      "path": "/avatars/heygen/avatars"
+    },
+    {
+      "method": "get",
+      "operationId": "AvatarsController.getHeygenVoices",
+      "path": "/avatars/heygen/voices"
+    },
+    {
+      "method": "post",
+      "operationId": "AvatarVideoController.createAvatarVideo",
+      "path": "/videos/avatar"
+    },
+    {
+      "method": "post",
+      "operationId": "BatchContentController.createBatch",
+      "path": "/brands/{brandId}/content/batch"
+    },
+    {
+      "method": "get",
+      "operationId": "BatchContentController.getBatchStatus",
+      "path": "/brands/{brandId}/content/batch/{batchId}"
+    },
+    {
+      "method": "post",
+      "operationId": "BatchGenerationController.cancelBatch",
+      "path": "/batches/{id}/cancel"
+    },
+    {
+      "method": "post",
+      "operationId": "BatchGenerationController.createBatch",
+      "path": "/batches"
+    },
+    {
+      "method": "post",
+      "operationId": "BatchGenerationController.createManualReviewBatch",
+      "path": "/batches/manual-review"
+    },
+    {
+      "method": "get",
+      "operationId": "BatchGenerationController.getBatch",
+      "path": "/batches/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "BatchGenerationController.getBatches",
+      "path": "/batches"
+    },
+    {
+      "method": "post",
+      "operationId": "BatchGenerationController.itemAction",
+      "path": "/batches/{id}/items/action"
+    },
+    {
+      "method": "post",
+      "operationId": "BatchGenerationController.processBatch",
+      "path": "/batches/{id}/process"
+    },
+    {
+      "method": "post",
+      "operationId": "BatchInterpolationController.createBatchInterpolation",
+      "path": "/videos/interpolation"
+    },
+    {
+      "method": "post",
+      "operationId": "BeehiivController.connect",
+      "path": "/services/beehiiv/connect"
+    },
+    {
+      "method": "post",
+      "operationId": "BeehiivController.createSubscriber",
+      "path": "/services/beehiiv/subscribers"
+    },
+    {
+      "method": "get",
+      "operationId": "BeehiivController.getSubscribers",
+      "path": "/services/beehiiv/subscribers"
+    },
+    {
+      "method": "get",
+      "operationId": "BeehiivController.listPublications",
+      "path": "/services/beehiiv/publications"
+    },
+    {
+      "method": "post",
+      "operationId": "BookmarksController.create",
+      "path": "/bookmarks"
+    },
+    {
+      "method": "get",
+      "operationId": "BookmarksController.findAll",
+      "path": "/bookmarks"
+    },
+    {
+      "method": "get",
+      "operationId": "BookmarksController.findOne",
+      "path": "/bookmarks/{bookmarkId}"
+    },
+    {
+      "method": "delete",
+      "operationId": "BookmarksController.remove",
+      "path": "/bookmarks/{bookmarkId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "BookmarksController.update",
+      "path": "/bookmarks/{bookmarkId}"
+    },
+    {
+      "method": "get",
+      "operationId": "BotActivitiesController.findAll",
+      "path": "/bot-activities"
+    },
+    {
+      "method": "get",
+      "operationId": "BotActivitiesController.findOne",
+      "path": "/bot-activities/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "BotActivitiesController.getRecentByConfig",
+      "path": "/bot-activities/recent/{configId}"
+    },
+    {
+      "method": "get",
+      "operationId": "BotActivitiesController.getStats",
+      "path": "/bot-activities/stats/summary"
+    },
+    {
+      "method": "post",
+      "operationId": "BotsController.create",
+      "path": "/bots"
+    },
+    {
+      "method": "get",
+      "operationId": "BotsController.findAll",
+      "path": "/bots"
+    },
+    {
+      "method": "get",
+      "operationId": "BotsController.findOne",
+      "path": "/bots/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "BotsController.getLivestreamSession",
+      "path": "/bots/{id}/livestream-session"
+    },
+    {
+      "method": "post",
+      "operationId": "BotsController.ingestLivestreamTranscript",
+      "path": "/bots/{id}/livestream-session/transcript"
+    },
+    {
+      "method": "patch",
+      "operationId": "BotsController.patch",
+      "path": "/bots/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "BotsController.pauseLivestreamSession",
+      "path": "/bots/{id}/livestream-session/pause"
+    },
+    {
+      "method": "delete",
+      "operationId": "BotsController.remove",
+      "path": "/bots/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "BotsController.resumeLivestreamSession",
+      "path": "/bots/{id}/livestream-session/resume"
+    },
+    {
+      "method": "post",
+      "operationId": "BotsController.sendLivestreamMessageNow",
+      "path": "/bots/{id}/livestream-session/send-now"
+    },
+    {
+      "method": "post",
+      "operationId": "BotsController.startLivestreamSession",
+      "path": "/bots/{id}/livestream-session/start"
+    },
+    {
+      "method": "post",
+      "operationId": "BotsController.stopLivestreamSession",
+      "path": "/bots/{id}/livestream-session/stop"
+    },
+    {
+      "method": "post",
+      "operationId": "BotsController.updateLivestreamOverride",
+      "path": "/bots/{id}/livestream-session/override"
+    },
+    {
+      "method": "post",
+      "operationId": "BrandInterviewController.abandon",
+      "path": "/brands/interview/{interviewId}/abandon"
+    },
+    {
+      "method": "get",
+      "operationId": "BrandInterviewController.getActiveForBrand",
+      "path": "/brands/{brandId}/interview/active"
+    },
+    {
+      "method": "get",
+      "operationId": "BrandInterviewController.getById",
+      "path": "/brands/interview/{interviewId}"
+    },
+    {
+      "method": "get",
+      "operationId": "BrandInterviewController.getCompleteness",
+      "path": "/brands/{brandId}/completeness"
+    },
+    {
+      "method": "post",
+      "operationId": "BrandInterviewController.skipField",
+      "path": "/brands/interview/{interviewId}/skip"
+    },
+    {
+      "method": "post",
+      "operationId": "BrandInterviewController.start",
+      "path": "/brands/{brandId}/interview"
+    },
+    {
+      "method": "post",
+      "operationId": "BrandInterviewController.submitAnswer",
+      "path": "/brands/interview/{interviewId}/answer"
+    },
+    {
+      "method": "post",
+      "operationId": "BrandMemoryController.distillMemory",
+      "path": "/brands/{brandId}/memory/distill"
+    },
+    {
+      "method": "get",
+      "operationId": "BrandMemoryController.getInsights",
+      "path": "/brands/{brandId}/memory/insights"
+    },
+    {
+      "method": "get",
+      "operationId": "BrandMemoryController.getMemory",
+      "path": "/brands/{brandId}/memory"
+    },
+    {
+      "method": "post",
+      "operationId": "BrandsController.applyBrandKitDraft",
+      "path": "/brands/{id}/brand-kit/apply"
+    },
+    {
+      "method": "post",
+      "operationId": "BrandsController.crawlBrandKitWebsite",
+      "path": "/brands/{id}/brand-kit/crawl"
+    },
+    {
+      "method": "post",
+      "operationId": "BrandsController.create",
+      "path": "/brands"
+    },
+    {
+      "method": "post",
+      "operationId": "BrandsController.createManualBrandKitDraft",
+      "path": "/brands/{id}/brand-kit/manual"
+    },
+    {
+      "method": "get",
+      "operationId": "BrandsController.findAll",
+      "path": "/brands"
+    },
+    {
+      "method": "get",
+      "operationId": "BrandsController.findOne",
+      "path": "/brands/{brandId}"
+    },
+    {
+      "method": "get",
+      "operationId": "BrandsController.findOneBySlug",
+      "path": "/brands/slug"
+    },
+    {
+      "method": "post",
+      "operationId": "BrandsController.generateBrandVoice",
+      "path": "/brands/{id}/agent-config/generate-voice"
+    },
+    {
+      "method": "post",
+      "operationId": "BrandsController.generateFastlaneIdeas",
+      "path": "/brands/{id}/fastlane/ideas"
+    },
+    {
+      "method": "get",
+      "operationId": "BrandsController.getStrategyTemplates",
+      "path": "/brands/agent-config/strategy-templates"
+    },
+    {
+      "method": "post",
+      "operationId": "BrandsController.importBrandKitAssets",
+      "path": "/brands/{id}/brand-kit/assets/import"
+    },
+    {
+      "method": "patch",
+      "operationId": "BrandsController.patch",
+      "path": "/brands/{id}"
+    },
+    {
+      "method": "delete",
+      "operationId": "BrandsController.remove",
+      "path": "/brands/{id}"
+    },
+    {
+      "method": "patch",
+      "operationId": "BrandsController.updateAgentConfig",
+      "path": "/brands/{id}/agent-config"
+    },
+    {
+      "method": "patch",
+      "operationId": "BrandsController.updateEnabledSkills",
+      "path": "/brands/{id}/agent-config/enabled-skills"
+    },
+    {
+      "method": "get",
+      "operationId": "BrandsRelationshipsController.findAllActivities",
+      "path": "/brands/{brandId}/activities"
+    },
+    {
+      "method": "get",
+      "operationId": "BrandsRelationshipsController.findAllPosts",
+      "path": "/brands/{brandId}/posts"
+    },
+    {
+      "method": "get",
+      "operationId": "BrandsRelationshipsController.findBrandAnalytics",
+      "path": "/brands/{brandId}/analytics"
+    },
+    {
+      "method": "get",
+      "operationId": "BrandsRelationshipsController.findBrandAnalyticsTimeSeries",
+      "path": "/brands/{brandId}/analytics/timeseries"
+    },
+    {
+      "method": "get",
+      "operationId": "BrandsRelationshipsController.findBrandArticles",
+      "path": "/brands/{brandId}/articles"
+    },
+    {
+      "method": "get",
+      "operationId": "BrandsRelationshipsController.findBrandCredentials",
+      "path": "/brands/{brandId}/credentials"
+    },
+    {
+      "method": "get",
+      "operationId": "BrandsRelationshipsController.findBrandImages",
+      "path": "/brands/{brandId}/images"
+    },
+    {
+      "method": "get",
+      "operationId": "BrandsRelationshipsController.findBrandLinks",
+      "path": "/brands/{brandId}/links"
+    },
+    {
+      "method": "get",
+      "operationId": "BrandsRelationshipsController.findBrandMusics",
+      "path": "/brands/{brandId}/musics"
+    },
+    {
+      "method": "get",
+      "operationId": "BrandsRelationshipsController.findBrandPlatformAnalytics",
+      "path": "/brands/{brandId}/platforms/{platform}/analytics"
+    },
+    {
+      "method": "get",
+      "operationId": "BrandsRelationshipsController.findBrandVideos",
+      "path": "/brands/{brandId}/videos"
+    },
+    {
+      "method": "post",
+      "operationId": "CaptionsController.create",
+      "path": "/captions"
+    },
+    {
+      "method": "get",
+      "operationId": "CaptionsController.findAll",
+      "path": "/captions"
+    },
+    {
+      "method": "get",
+      "operationId": "CaptionsController.findOne",
+      "path": "/captions/{captionId}"
+    },
+    {
+      "method": "delete",
+      "operationId": "CaptionsController.remove",
+      "path": "/captions/{captionId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "CaptionsController.update",
+      "path": "/captions/{captionId}"
+    },
+    {
+      "method": "post",
+      "operationId": "ClipProjectsController.analyzeYoutube",
+      "path": "/clip-projects/analyze"
+    },
+    {
+      "method": "post",
+      "operationId": "ClipProjectsController.create",
+      "path": "/clip-projects"
+    },
+    {
+      "method": "post",
+      "operationId": "ClipProjectsController.createEditorHandoff",
+      "path": "/clip-projects/{projectId}/results/{clipResultId}/editor-handoff"
+    },
+    {
+      "method": "post",
+      "operationId": "ClipProjectsController.createFromYoutube",
+      "path": "/clip-projects/from-youtube"
+    },
+    {
+      "method": "post",
+      "operationId": "ClipProjectsController.createPublishHandoff",
+      "path": "/clip-projects/{projectId}/results/{clipResultId}/publish-handoff"
+    },
+    {
+      "method": "get",
+      "operationId": "ClipProjectsController.findAll",
+      "path": "/clip-projects"
+    },
+    {
+      "method": "get",
+      "operationId": "ClipProjectsController.findOne",
+      "path": "/clip-projects/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "ClipProjectsController.generateClips",
+      "path": "/clip-projects/{projectId}/generate"
+    },
+    {
+      "method": "get",
+      "operationId": "ClipProjectsController.getHighlights",
+      "path": "/clip-projects/{projectId}/highlights"
+    },
+    {
+      "method": "post",
+      "operationId": "ClipProjectsController.rewriteHighlight",
+      "path": "/clip-projects/{projectId}/highlights/{highlightId}/rewrite"
+    },
+    {
+      "method": "patch",
+      "operationId": "ClipProjectsController.update",
+      "path": "/clip-projects/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "ClipResultsController.create",
+      "path": "/clip-results"
+    },
+    {
+      "method": "get",
+      "operationId": "ClipResultsController.findAll",
+      "path": "/clip-results"
+    },
+    {
+      "method": "get",
+      "operationId": "ClipResultsController.findOne",
+      "path": "/clip-results/{id}"
+    },
+    {
+      "method": "patch",
+      "operationId": "ClipResultsController.update",
+      "path": "/clip-results/{id}"
+    },
+    {
+      "method": "patch",
+      "operationId": "ContentDraftsController.approveDraft",
+      "path": "/content-drafts/{id}/approve"
+    },
+    {
+      "method": "post",
+      "operationId": "ContentDraftsController.bulkApprove",
+      "path": "/content-drafts/bulk-approve"
+    },
+    {
+      "method": "patch",
+      "operationId": "ContentDraftsController.editDraft",
+      "path": "/content-drafts/{id}/edit"
+    },
+    {
+      "method": "get",
+      "operationId": "ContentDraftsController.listDrafts",
+      "path": "/brands/{brandId}/content-drafts"
+    },
+    {
+      "method": "patch",
+      "operationId": "ContentDraftsController.rejectDraft",
+      "path": "/content-drafts/{id}/reject"
+    },
+    {
+      "method": "put",
+      "operationId": "ContentEngineController.approveDraft",
+      "path": "/brands/{brandId}/content/queue/{draftId}/approve"
+    },
+    {
+      "method": "post",
+      "operationId": "ContentEngineController.bulkApproveDrafts",
+      "path": "/brands/{brandId}/content/queue/bulk-approve"
+    },
+    {
+      "method": "delete",
+      "operationId": "ContentEngineController.deletePlan",
+      "path": "/brands/{brandId}/content/plans/{planId}"
+    },
+    {
+      "method": "post",
+      "operationId": "ContentEngineController.executeItem",
+      "path": "/brands/{brandId}/content/plans/{planId}/items/{itemId}/execute"
+    },
+    {
+      "method": "post",
+      "operationId": "ContentEngineController.executePlan",
+      "path": "/brands/{brandId}/content/plans/{planId}/execute"
+    },
+    {
+      "method": "post",
+      "operationId": "ContentEngineController.generatePlan",
+      "path": "/brands/{brandId}/content/plans"
+    },
+    {
+      "method": "get",
+      "operationId": "ContentEngineController.getPlan",
+      "path": "/brands/{brandId}/content/plans/{planId}"
+    },
+    {
+      "method": "get",
+      "operationId": "ContentEngineController.getQueue",
+      "path": "/brands/{brandId}/content/queue"
+    },
+    {
+      "method": "get",
+      "operationId": "ContentEngineController.listPlans",
+      "path": "/brands/{brandId}/content/plans"
+    },
+    {
+      "method": "put",
+      "operationId": "ContentEngineController.rejectDraft",
+      "path": "/brands/{brandId}/content/queue/{draftId}/reject"
+    },
+    {
+      "method": "put",
+      "operationId": "ContentEngineController.updatePlan",
+      "path": "/brands/{brandId}/content/plans/{planId}"
+    },
+    {
+      "method": "post",
+      "operationId": "ContentGatewayController.executeSkill",
+      "path": "/content-gateway/execute"
+    },
+    {
+      "method": "post",
+      "operationId": "ContentGatewayController.routeSignal",
+      "path": "/content-gateway/signal"
+    },
+    {
+      "method": "post",
+      "operationId": "ContentOptimizationController.autoApplySuggestion",
+      "path": "/brands/{brandId}/optimization/suggestions/auto-apply"
+    },
+    {
+      "method": "get",
+      "operationId": "ContentOptimizationController.getAnalysis",
+      "path": "/brands/{brandId}/optimization/analysis"
+    },
+    {
+      "method": "get",
+      "operationId": "ContentOptimizationController.getRecommendations",
+      "path": "/brands/{brandId}/optimization/recommendations"
+    },
+    {
+      "method": "get",
+      "operationId": "ContentOptimizationController.getSuggestions",
+      "path": "/brands/{brandId}/optimization/suggestions"
+    },
+    {
+      "method": "post",
+      "operationId": "ContentOptimizationController.optimizePrompt",
+      "path": "/brands/{brandId}/optimization/optimize-prompt"
+    },
+    {
+      "method": "post",
+      "operationId": "ContentOptimizationController.triggerOptimization",
+      "path": "/brands/{brandId}/optimization/trigger"
+    },
+    {
+      "method": "post",
+      "operationId": "ContentOrchestrationController.batchGenerate",
+      "path": "/personas/{personaId}/pipeline/batch-generate"
+    },
+    {
+      "method": "post",
+      "operationId": "ContentOrchestrationController.generateAndPublish",
+      "path": "/personas/{personaId}/pipeline/generate-and-publish"
+    },
+    {
+      "method": "get",
+      "operationId": "ContentOrchestrationController.getPipelineStatus",
+      "path": "/personas/{personaId}/pipeline/status"
+    },
+    {
+      "method": "post",
+      "operationId": "ContentPerformanceController.create",
+      "path": "/content-performance"
+    },
+    {
+      "method": "delete",
+      "operationId": "ContentPerformanceController.delete",
+      "path": "/content-performance/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "ContentPerformanceController.findOne",
+      "path": "/content-performance/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "ContentPerformanceController.getAggregated",
+      "path": "/content-performance/aggregate/{generationId}"
+    },
+    {
+      "method": "get",
+      "operationId": "ContentPerformanceController.getAttribution",
+      "path": "/content-performance/attribution/{generationId}"
+    },
+    {
+      "method": "get",
+      "operationId": "ContentPerformanceController.getStrategyRanking",
+      "path": "/content-performance/attribution/ranking"
+    },
+    {
+      "method": "post",
+      "operationId": "ContentPerformanceController.importCsv",
+      "path": "/content-performance/import/csv"
+    },
+    {
+      "method": "post",
+      "operationId": "ContentPerformanceController.importManual",
+      "path": "/content-performance/import/manual"
+    },
+    {
+      "method": "post",
+      "operationId": "ContentPerformanceController.manualImport",
+      "path": "/content-performance/manual-import"
+    },
+    {
+      "method": "get",
+      "operationId": "ContentPerformanceController.query",
+      "path": "/content-performance"
+    },
+    {
+      "method": "post",
+      "operationId": "ContentRunsController.analyzeRunRecommendations",
+      "path": "/content-runs/{id}/recommendations"
+    },
+    {
+      "method": "post",
+      "operationId": "ContentRunsController.createBriefRun",
+      "path": "/brands/{brandId}/content-runs/briefs"
+    },
+    {
+      "method": "post",
+      "operationId": "ContentRunsController.createRemixPack",
+      "path": "/content-runs/{id}/remix-pack"
+    },
+    {
+      "method": "get",
+      "operationId": "ContentRunsController.getRun",
+      "path": "/content-runs/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "ContentRunsController.listBrandRuns",
+      "path": "/brands/{brandId}/content-runs"
+    },
+    {
+      "method": "post",
+      "operationId": "ContentSchedulesController.create",
+      "path": "/brands/{brandId}/schedules"
+    },
+    {
+      "method": "get",
+      "operationId": "ContentSchedulesController.getOne",
+      "path": "/brands/{brandId}/schedules/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "ContentSchedulesController.list",
+      "path": "/brands/{brandId}/schedules"
+    },
+    {
+      "method": "delete",
+      "operationId": "ContentSchedulesController.remove",
+      "path": "/brands/{brandId}/schedules/{id}"
+    },
+    {
+      "method": "patch",
+      "operationId": "ContentSchedulesController.update",
+      "path": "/brands/{brandId}/schedules/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "ContextsController.addEntry",
+      "path": "/contexts/{contextId}/entries"
+    },
+    {
+      "method": "post",
+      "operationId": "ContextsController.autoCreateFromAccount",
+      "path": "/contexts/autocreate"
+    },
+    {
+      "method": "post",
+      "operationId": "ContextsController.create",
+      "path": "/contexts"
+    },
+    {
+      "method": "post",
+      "operationId": "ContextsController.enhancePrompt",
+      "path": "/contexts/enhance"
+    },
+    {
+      "method": "get",
+      "operationId": "ContextsController.findAll",
+      "path": "/contexts"
+    },
+    {
+      "method": "get",
+      "operationId": "ContextsController.findOne",
+      "path": "/contexts/{contextId}"
+    },
+    {
+      "method": "get",
+      "operationId": "ContextsController.getStats",
+      "path": "/contexts/{contextId}/stats"
+    },
+    {
+      "method": "post",
+      "operationId": "ContextsController.queryContext",
+      "path": "/contexts/query"
+    },
+    {
+      "method": "delete",
+      "operationId": "ContextsController.remove",
+      "path": "/contexts/{contextId}"
+    },
+    {
+      "method": "delete",
+      "operationId": "ContextsController.removeEntry",
+      "path": "/contexts/{contextId}/entries/{entryId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "ContextsController.update",
+      "path": "/contexts/{contextId}"
+    },
+    {
+      "method": "get",
+      "operationId": "CreativePatternsController.findAll",
+      "path": "/creative-patterns"
+    },
+    {
+      "method": "get",
+      "operationId": "CreativePatternsController.findTopForBrand",
+      "path": "/creative-patterns/brand/{brandId}"
+    },
+    {
+      "method": "post",
+      "operationId": "CreatorsController.analyze",
+      "path": "/content-intelligence/creators/{id}/analyze"
+    },
+    {
+      "method": "post",
+      "operationId": "CreatorsController.create",
+      "path": "/content-intelligence/creators"
+    },
+    {
+      "method": "get",
+      "operationId": "CreatorsController.findAll",
+      "path": "/content-intelligence/creators"
+    },
+    {
+      "method": "get",
+      "operationId": "CreatorsController.findOne",
+      "path": "/content-intelligence/creators/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "CreatorsController.importCreators",
+      "path": "/content-intelligence/creators/import"
+    },
+    {
+      "method": "delete",
+      "operationId": "CreatorsController.remove",
+      "path": "/content-intelligence/creators/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "CreatorsController.rescrape",
+      "path": "/content-intelligence/creators/{id}/rescrape"
+    },
+    {
+      "method": "post",
+      "operationId": "CredentialsController.assessAccountHealth",
+      "path": "/credentials/{credentialId}/account-health/assess"
+    },
+    {
+      "method": "post",
+      "operationId": "CredentialsController.createCredentialTag",
+      "path": "/credentials/{credentialId}/tags"
+    },
+    {
+      "method": "get",
+      "operationId": "CredentialsController.findAll",
+      "path": "/credentials"
+    },
+    {
+      "method": "get",
+      "operationId": "CredentialsController.findAllInstagramPages",
+      "path": "/credentials/{credentialId}/instagram/pages"
+    },
+    {
+      "method": "get",
+      "operationId": "CredentialsController.findOne",
+      "path": "/credentials/{credentialId}"
+    },
+    {
+      "method": "get",
+      "operationId": "CredentialsController.getMentions",
+      "path": "/credentials/mentions"
+    },
+    {
+      "method": "get",
+      "operationId": "CredentialsController.getPublishingContext",
+      "path": "/credentials/{credentialId}/publishing-context"
+    },
+    {
+      "method": "get",
+      "operationId": "CredentialsController.getQuotaStatus",
+      "path": "/credentials/{credentialId}/quota"
+    },
+    {
+      "method": "get",
+      "operationId": "CredentialsController.listBrandAccountHealth",
+      "path": "/credentials/brand/{brandId}/account-health"
+    },
+    {
+      "method": "post",
+      "operationId": "CredentialsController.overrideAccountHealth",
+      "path": "/credentials/{credentialId}/account-health/override"
+    },
+    {
+      "method": "post",
+      "operationId": "CredentialsController.refreshCredentialToken",
+      "path": "/credentials/{credentialId}/refresh"
+    },
+    {
+      "method": "delete",
+      "operationId": "CredentialsController.remove",
+      "path": "/credentials/{credentialId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "CredentialsController.update",
+      "path": "/credentials/{credentialId}"
+    },
+    {
+      "method": "get",
+      "operationId": "CreditsController.getByokUsageSummary",
+      "path": "/credits/byok-usage-summary"
+    },
+    {
+      "method": "get",
+      "operationId": "CreditsController.getLastPurchaseBaseline",
+      "path": "/credits/last-purchase-baseline"
+    },
+    {
+      "method": "get",
+      "operationId": "CreditsController.getTopbarBalances",
+      "path": "/credits/topbar-balances"
+    },
+    {
+      "method": "get",
+      "operationId": "CreditsController.getUsageMetrics",
+      "path": "/credits/usage"
+    },
+    {
+      "method": "get",
+      "operationId": "CronJobsController.findAll",
+      "path": "/cron-jobs"
+    },
+    {
+      "method": "get",
+      "operationId": "CronJobsController.runById",
+      "path": "/cron-jobs/{id}/runs/{runId}"
+    },
+    {
+      "method": "get",
+      "operationId": "CronJobsController.runs",
+      "path": "/cron-jobs/{id}/runs"
+    },
+    {
+      "method": "post",
+      "operationId": "DesktopSyncController.confirmAssetUpload",
+      "path": "/sync/desktop/assets/{id}/uploaded"
+    },
+    {
+      "method": "get",
+      "operationId": "DesktopSyncController.getBrandManifest",
+      "path": "/sync/desktop/brand-manifest"
+    },
+    {
+      "method": "get",
+      "operationId": "DesktopSyncController.pullThreads",
+      "path": "/sync/desktop/threads"
+    },
+    {
+      "method": "post",
+      "operationId": "DesktopSyncController.pushAssets",
+      "path": "/sync/desktop/assets/metadata"
+    },
+    {
+      "method": "post",
+      "operationId": "DesktopSyncController.pushOps",
+      "path": "/sync/desktop/ops"
+    },
+    {
+      "method": "post",
+      "operationId": "DesktopSyncController.pushThreads",
+      "path": "/sync/desktop/threads"
+    },
+    {
+      "method": "post",
+      "operationId": "DesktopSyncController.requestAssetUpload",
+      "path": "/sync/desktop/assets/upload-url"
+    },
+    {
+      "method": "post",
+      "operationId": "DesktopSyncController.uploadAsset",
+      "path": "/sync/desktop/assets/{id}/upload"
+    },
+    {
+      "method": "post",
+      "operationId": "DiscordController.connect",
+      "path": "/services/discord/connect"
+    },
+    {
+      "method": "post",
+      "operationId": "DiscordController.disconnect",
+      "path": "/services/discord/disconnect"
+    },
+    {
+      "method": "post",
+      "operationId": "DiscordController.verify",
+      "path": "/services/discord/verify"
+    },
+    {
+      "method": "delete",
+      "operationId": "DistributionsController.cancel",
+      "path": "/distributions/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "DistributionsController.findOne",
+      "path": "/distributions/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "DistributionsController.list",
+      "path": "/distributions"
+    },
+    {
+      "method": "post",
+      "operationId": "DistributionsController.scheduleTelegram",
+      "path": "/distributions/telegram/schedule"
+    },
+    {
+      "method": "post",
+      "operationId": "DistributionsController.sendTelegram",
+      "path": "/distributions/telegram"
+    },
+    {
+      "method": "post",
+      "operationId": "EditorProjectsController.create",
+      "path": "/editor-projects"
+    },
+    {
+      "method": "get",
+      "operationId": "EditorProjectsController.findAll",
+      "path": "/editor-projects"
+    },
+    {
+      "method": "get",
+      "operationId": "EditorProjectsController.findOne",
+      "path": "/editor-projects/{id}"
+    },
+    {
+      "method": "delete",
+      "operationId": "EditorProjectsController.remove",
+      "path": "/editor-projects/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "EditorProjectsController.render",
+      "path": "/editor-projects/{id}/render"
+    },
+    {
+      "method": "patch",
+      "operationId": "EditorProjectsController.update",
+      "path": "/editor-projects/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "ElementsBlacklistsController.create",
+      "path": "/elements/blacklists"
+    },
+    {
+      "method": "get",
+      "operationId": "ElementsBlacklistsController.findAll",
+      "path": "/elements/blacklists"
+    },
+    {
+      "method": "get",
+      "operationId": "ElementsBlacklistsController.findOne",
+      "path": "/elements/blacklists/{blacklistId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "ElementsBlacklistsController.patch",
+      "path": "/elements/blacklists/{id}"
+    },
+    {
+      "method": "delete",
+      "operationId": "ElementsBlacklistsController.remove",
+      "path": "/elements/blacklists/{blacklistId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "ElementsBlacklistsController.update",
+      "path": "/elements/blacklists/{blacklistId}"
+    },
+    {
+      "method": "post",
+      "operationId": "ElementsCameraMovementsController.create",
+      "path": "/elements/camera-movements"
+    },
+    {
+      "method": "get",
+      "operationId": "ElementsCameraMovementsController.findAll",
+      "path": "/elements/camera-movements"
+    },
+    {
+      "method": "get",
+      "operationId": "ElementsCameraMovementsController.findOne",
+      "path": "/elements/camera-movements/{cameraMovementId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "ElementsCameraMovementsController.patch",
+      "path": "/elements/camera-movements/{id}"
+    },
+    {
+      "method": "delete",
+      "operationId": "ElementsCameraMovementsController.remove",
+      "path": "/elements/camera-movements/{cameraMovementId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "ElementsCameraMovementsController.update",
+      "path": "/elements/camera-movements/{cameraMovementId}"
+    },
+    {
+      "method": "post",
+      "operationId": "ElementsCamerasController.create",
+      "path": "/elements/cameras"
+    },
+    {
+      "method": "get",
+      "operationId": "ElementsCamerasController.findAll",
+      "path": "/elements/cameras"
+    },
+    {
+      "method": "get",
+      "operationId": "ElementsCamerasController.findOne",
+      "path": "/elements/cameras/{cameraId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "ElementsCamerasController.patch",
+      "path": "/elements/cameras/{id}"
+    },
+    {
+      "method": "delete",
+      "operationId": "ElementsCamerasController.remove",
+      "path": "/elements/cameras/{cameraId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "ElementsCamerasController.update",
+      "path": "/elements/cameras/{cameraId}"
+    },
+    {
+      "method": "get",
+      "operationId": "ElementsController.findAllElements",
+      "path": "/elements"
+    },
+    {
+      "method": "post",
+      "operationId": "ElementsLensesController.create",
+      "path": "/elements/lenses"
+    },
+    {
+      "method": "get",
+      "operationId": "ElementsLensesController.findAll",
+      "path": "/elements/lenses"
+    },
+    {
+      "method": "get",
+      "operationId": "ElementsLensesController.findOne",
+      "path": "/elements/lenses/{lensId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "ElementsLensesController.patch",
+      "path": "/elements/lenses/{id}"
+    },
+    {
+      "method": "delete",
+      "operationId": "ElementsLensesController.remove",
+      "path": "/elements/lenses/{lensId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "ElementsLensesController.update",
+      "path": "/elements/lenses/{lensId}"
+    },
+    {
+      "method": "post",
+      "operationId": "ElementsLightingsController.create",
+      "path": "/elements/lightings"
+    },
+    {
+      "method": "get",
+      "operationId": "ElementsLightingsController.findAll",
+      "path": "/elements/lightings"
+    },
+    {
+      "method": "get",
+      "operationId": "ElementsLightingsController.findOne",
+      "path": "/elements/lightings/{lightingId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "ElementsLightingsController.patch",
+      "path": "/elements/lightings/{id}"
+    },
+    {
+      "method": "delete",
+      "operationId": "ElementsLightingsController.remove",
+      "path": "/elements/lightings/{lightingId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "ElementsLightingsController.update",
+      "path": "/elements/lightings/{lightingId}"
+    },
+    {
+      "method": "post",
+      "operationId": "ElementsMoodsController.create",
+      "path": "/elements/moods"
+    },
+    {
+      "method": "get",
+      "operationId": "ElementsMoodsController.findAll",
+      "path": "/elements/moods"
+    },
+    {
+      "method": "get",
+      "operationId": "ElementsMoodsController.findOne",
+      "path": "/elements/moods/{moodId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "ElementsMoodsController.patch",
+      "path": "/elements/moods/{id}"
+    },
+    {
+      "method": "delete",
+      "operationId": "ElementsMoodsController.remove",
+      "path": "/elements/moods/{moodId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "ElementsMoodsController.update",
+      "path": "/elements/moods/{moodId}"
+    },
+    {
+      "method": "post",
+      "operationId": "ElementsScenesController.create",
+      "path": "/elements/scenes"
+    },
+    {
+      "method": "get",
+      "operationId": "ElementsScenesController.findAll",
+      "path": "/elements/scenes"
+    },
+    {
+      "method": "get",
+      "operationId": "ElementsScenesController.findOne",
+      "path": "/elements/scenes/{sceneId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "ElementsScenesController.patch",
+      "path": "/elements/scenes/{id}"
+    },
+    {
+      "method": "delete",
+      "operationId": "ElementsScenesController.remove",
+      "path": "/elements/scenes/{sceneId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "ElementsScenesController.update",
+      "path": "/elements/scenes/{sceneId}"
+    },
+    {
+      "method": "post",
+      "operationId": "ElementsSoundsController.create",
+      "path": "/elements/sounds"
+    },
+    {
+      "method": "get",
+      "operationId": "ElementsSoundsController.findAll",
+      "path": "/elements/sounds"
+    },
+    {
+      "method": "get",
+      "operationId": "ElementsSoundsController.findOne",
+      "path": "/elements/sounds/{soundId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "ElementsSoundsController.patch",
+      "path": "/elements/sounds/{id}"
+    },
+    {
+      "method": "delete",
+      "operationId": "ElementsSoundsController.remove",
+      "path": "/elements/sounds/{soundId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "ElementsSoundsController.update",
+      "path": "/elements/sounds/{soundId}"
+    },
+    {
+      "method": "post",
+      "operationId": "ElementsStylesController.create",
+      "path": "/elements/styles"
+    },
+    {
+      "method": "get",
+      "operationId": "ElementsStylesController.findAll",
+      "path": "/elements/styles"
+    },
+    {
+      "method": "get",
+      "operationId": "ElementsStylesController.findOne",
+      "path": "/elements/styles/{styleId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "ElementsStylesController.patch",
+      "path": "/elements/styles/{id}"
+    },
+    {
+      "method": "delete",
+      "operationId": "ElementsStylesController.remove",
+      "path": "/elements/styles/{styleId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "ElementsStylesController.update",
+      "path": "/elements/styles/{styleId}"
+    },
+    {
+      "method": "post",
+      "operationId": "EvaluationsController.compareEvaluations",
+      "path": "/evaluations/compare"
+    },
+    {
+      "method": "post",
+      "operationId": "EvaluationsController.create",
+      "path": "/evaluations"
+    },
+    {
+      "method": "delete",
+      "operationId": "EvaluationsController.deleteEvaluation",
+      "path": "/evaluations/{evaluationId}"
+    },
+    {
+      "method": "post",
+      "operationId": "EvaluationsController.evaluateArticle",
+      "path": "/evaluations/articles/{articleId}"
+    },
+    {
+      "method": "post",
+      "operationId": "EvaluationsController.evaluateExternal",
+      "path": "/evaluations/external"
+    },
+    {
+      "method": "post",
+      "operationId": "EvaluationsController.evaluateImage",
+      "path": "/evaluations/images/{imageId}"
+    },
+    {
+      "method": "post",
+      "operationId": "EvaluationsController.evaluatePost",
+      "path": "/evaluations/posts/{postId}"
+    },
+    {
+      "method": "post",
+      "operationId": "EvaluationsController.evaluateVideo",
+      "path": "/evaluations/videos/{videoId}"
+    },
+    {
+      "method": "get",
+      "operationId": "EvaluationsController.findAll",
+      "path": "/evaluations"
+    },
+    {
+      "method": "get",
+      "operationId": "EvaluationsController.findOne",
+      "path": "/evaluations/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "EvaluationsController.getArticleEvaluations",
+      "path": "/evaluations/articles/{articleId}"
+    },
+    {
+      "method": "get",
+      "operationId": "EvaluationsController.getImageEvaluations",
+      "path": "/evaluations/images/{imageId}"
+    },
+    {
+      "method": "get",
+      "operationId": "EvaluationsController.getPostEvaluations",
+      "path": "/evaluations/posts/{postId}"
+    },
+    {
+      "method": "get",
+      "operationId": "EvaluationsController.getTrends",
+      "path": "/evaluations/analytics/trends"
+    },
+    {
+      "method": "get",
+      "operationId": "EvaluationsController.getVideoEvaluations",
+      "path": "/evaluations/videos/{videoId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "EvaluationsController.patch",
+      "path": "/evaluations/{id}"
+    },
+    {
+      "method": "patch",
+      "operationId": "EvaluationsController.recordReviewerFeedback",
+      "path": "/evaluations/{evaluationId}/review"
+    },
+    {
+      "method": "delete",
+      "operationId": "EvaluationsController.remove",
+      "path": "/evaluations/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "FacebookController.connect",
+      "path": "/services/facebook/connect"
+    },
+    {
+      "method": "post",
+      "operationId": "FacebookController.createPost",
+      "path": "/services/facebook/post"
+    },
+    {
+      "method": "get",
+      "operationId": "FacebookController.getPostAnalytics",
+      "path": "/services/facebook/{facebookId}/analytics"
+    },
+    {
+      "method": "get",
+      "operationId": "FacebookController.getUserPages",
+      "path": "/services/facebook/pages"
+    },
+    {
+      "method": "post",
+      "operationId": "FacebookController.schedulePost",
+      "path": "/services/facebook/schedule"
+    },
+    {
+      "method": "post",
+      "operationId": "FacebookController.verify",
+      "path": "/services/facebook/verify"
+    },
+    {
+      "method": "post",
+      "operationId": "FoldersController.create",
+      "path": "/folders"
+    },
+    {
+      "method": "get",
+      "operationId": "FoldersController.findAll",
+      "path": "/folders"
+    },
+    {
+      "method": "get",
+      "operationId": "FoldersController.findOne",
+      "path": "/folders/{id}"
+    },
+    {
+      "method": "patch",
+      "operationId": "FoldersController.patch",
+      "path": "/folders/{id}"
+    },
+    {
+      "method": "delete",
+      "operationId": "FoldersController.remove",
+      "path": "/folders/{folderId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "FoldersController.update",
+      "path": "/folders/{folderId}"
+    },
+    {
+      "method": "post",
+      "operationId": "FontFamiliesController.create",
+      "path": "/font-families"
+    },
+    {
+      "method": "get",
+      "operationId": "FontFamiliesController.findAll",
+      "path": "/font-families"
+    },
+    {
+      "method": "get",
+      "operationId": "FontFamiliesController.findOne",
+      "path": "/font-families/{fontFamilyId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "FontFamiliesController.patch",
+      "path": "/font-families/{id}"
+    },
+    {
+      "method": "delete",
+      "operationId": "FontFamiliesController.remove",
+      "path": "/font-families/{fontFamilyId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "FontFamiliesController.update",
+      "path": "/font-families/{fontFamilyId}"
+    },
+    {
+      "method": "post",
+      "operationId": "GenerateController.generate",
+      "path": "/content-intelligence/generate"
+    },
+    {
+      "method": "post",
+      "operationId": "GhostController.connect",
+      "path": "/services/ghost/connect"
+    },
+    {
+      "method": "post",
+      "operationId": "GhostController.createPost",
+      "path": "/services/ghost/posts"
+    },
+    {
+      "method": "get",
+      "operationId": "GifsController.findAll",
+      "path": "/gifs"
+    },
+    {
+      "method": "get",
+      "operationId": "GifsController.findOne",
+      "path": "/gifs/{gifId}"
+    },
+    {
+      "method": "delete",
+      "operationId": "GifsController.remove",
+      "path": "/gifs/{gifId}"
+    },
+    {
+      "method": "post",
+      "operationId": "GoalsController.create",
+      "path": "/goals"
+    },
+    {
+      "method": "get",
+      "operationId": "GoalsController.findAll",
+      "path": "/goals"
+    },
+    {
+      "method": "get",
+      "operationId": "GoalsController.findOne",
+      "path": "/goals/{id}"
+    },
+    {
+      "method": "patch",
+      "operationId": "GoalsController.patch",
+      "path": "/goals/{id}"
+    },
+    {
+      "method": "delete",
+      "operationId": "GoalsController.remove",
+      "path": "/goals/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "GoogleAdsController.connect",
+      "path": "/services/google-ads/connect"
+    },
+    {
+      "method": "get",
+      "operationId": "GoogleAdsController.getAdGroupInsights",
+      "path": "/services/google-ads/ad-groups/{id}/insights"
+    },
+    {
+      "method": "get",
+      "operationId": "GoogleAdsController.getCampaignMetrics",
+      "path": "/services/google-ads/campaigns/{id}/metrics"
+    },
+    {
+      "method": "get",
+      "operationId": "GoogleAdsController.getKeywordPerformance",
+      "path": "/services/google-ads/keywords"
+    },
+    {
+      "method": "get",
+      "operationId": "GoogleAdsController.getSearchTerms",
+      "path": "/services/google-ads/search-terms/{campaignId}"
+    },
+    {
+      "method": "get",
+      "operationId": "GoogleAdsController.listCampaigns",
+      "path": "/services/google-ads/campaigns"
+    },
+    {
+      "method": "get",
+      "operationId": "GoogleAdsController.listCustomers",
+      "path": "/services/google-ads/customers"
+    },
+    {
+      "method": "post",
+      "operationId": "GoogleAdsController.verify",
+      "path": "/services/google-ads/verify"
+    },
+    {
+      "method": "post",
+      "operationId": "GoogleSearchConsoleController.connect",
+      "path": "/services/google-search-console/connect"
+    },
+    {
+      "method": "get",
+      "operationId": "GoogleSearchConsoleController.getSearchAnalytics",
+      "path": "/services/google-search-console/search-analytics"
+    },
+    {
+      "method": "get",
+      "operationId": "GoogleSearchConsoleController.listSites",
+      "path": "/services/google-search-console/sites"
+    },
+    {
+      "method": "post",
+      "operationId": "GoogleSearchConsoleController.verify",
+      "path": "/services/google-search-console/verify"
+    },
+    {
+      "method": "post",
+      "operationId": "HarnessProfilesController.create",
+      "path": "/harness-profiles"
+    },
+    {
+      "method": "get",
+      "operationId": "HarnessProfilesController.findForBrand",
+      "path": "/harness-profiles"
+    },
+    {
+      "method": "get",
+      "operationId": "HarnessProfilesController.getActiveForBrand",
+      "path": "/harness-profiles/active"
+    },
+    {
+      "method": "delete",
+      "operationId": "HarnessProfilesController.remove",
+      "path": "/harness-profiles/{profileId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "HarnessProfilesController.update",
+      "path": "/harness-profiles/{profileId}"
+    },
+    {
+      "method": "get",
+      "operationId": "HedraController.getAvatars",
+      "path": "/hedra/avatars"
+    },
+    {
+      "method": "get",
+      "operationId": "HedraController.getJobStatus",
+      "path": "/hedra/jobs/{jobId}"
+    },
+    {
+      "method": "get",
+      "operationId": "HedraController.getStatus",
+      "path": "/hedra/status"
+    },
+    {
+      "method": "get",
+      "operationId": "HedraController.getVoices",
+      "path": "/hedra/voices"
+    },
+    {
+      "method": "get",
+      "operationId": "HeyGenController.getAvatars",
+      "path": "/heygen/avatars"
+    },
+    {
+      "method": "get",
+      "operationId": "HeyGenController.getStatus",
+      "path": "/heygen/status"
+    },
+    {
+      "method": "get",
+      "operationId": "HeyGenController.getVoices",
+      "path": "/heygen/voices"
+    },
+    {
+      "method": "post",
+      "operationId": "HookRemixController.createBatchHookRemix",
+      "path": "/hook-remix/batch"
+    },
+    {
+      "method": "post",
+      "operationId": "HookRemixController.createHookRemix",
+      "path": "/hook-remix"
+    },
+    {
+      "method": "get",
+      "operationId": "HookRemixController.getJobStatus",
+      "path": "/hook-remix/{jobId}/status"
+    },
+    {
+      "method": "get",
+      "operationId": "ImagesController.findAll",
+      "path": "/images"
+    },
+    {
+      "method": "get",
+      "operationId": "ImagesController.findOne",
+      "path": "/images/{imageId}"
+    },
+    {
+      "method": "delete",
+      "operationId": "ImagesController.remove",
+      "path": "/images/{imageId}"
+    },
+    {
+      "method": "post",
+      "operationId": "ImagesOperationsController.create",
+      "path": "/images"
+    },
+    {
+      "method": "post",
+      "operationId": "ImagesOperationsController.splitContactSheet",
+      "path": "/images/{id}/split"
+    },
+    {
+      "method": "get",
+      "operationId": "ImagesRelationshipsController.findChildren",
+      "path": "/images/{imageId}/children"
+    },
+    {
+      "method": "post",
+      "operationId": "ImagesTransformationsController.reframeImage",
+      "path": "/images/{imageId}/reframe"
+    },
+    {
+      "method": "post",
+      "operationId": "ImagesTransformationsController.resizeImage",
+      "path": "/images/{imageId}/resize"
+    },
+    {
+      "method": "post",
+      "operationId": "ImagesTransformationsController.upscaleImage",
+      "path": "/images/{imageId}/upscale"
+    },
+    {
+      "method": "post",
+      "operationId": "ImagesUploadsController.confirmUpload",
+      "path": "/images/upload/confirm/{imageId}"
+    },
+    {
+      "method": "post",
+      "operationId": "ImagesUploadsController.generatePresignedUrl",
+      "path": "/images/upload/presigned"
+    },
+    {
+      "method": "post",
+      "operationId": "ImagesUploadsController.upload",
+      "path": "/images/upload"
+    },
+    {
+      "method": "post",
+      "operationId": "ImagesUploadsController.uploadNFT",
+      "path": "/images/upload/nft"
+    },
+    {
+      "method": "get",
+      "operationId": "IngredientsController.getBatch",
+      "path": "/ingredients/batch"
+    },
+    {
+      "method": "patch",
+      "operationId": "IngredientsController.update",
+      "path": "/ingredients/{ingredientId}"
+    },
+    {
+      "method": "get",
+      "operationId": "IngredientsRelationshipsController.findChildren",
+      "path": "/ingredients/{ingredientId}/children"
+    },
+    {
+      "method": "get",
+      "operationId": "IngredientsRelationshipsController.findMetadata",
+      "path": "/ingredients/{ingredientId}/metadata"
+    },
+    {
+      "method": "get",
+      "operationId": "IngredientsRelationshipsController.findPosts",
+      "path": "/ingredients/{ingredientId}/posts"
+    },
+    {
+      "method": "get",
+      "operationId": "InsightsController.getBestTimes",
+      "path": "/insights/times"
+    },
+    {
+      "method": "get",
+      "operationId": "InsightsController.getContentGaps",
+      "path": "/insights/gaps"
+    },
+    {
+      "method": "post",
+      "operationId": "InsightsController.getForecast",
+      "path": "/insights/forecast"
+    },
+    {
+      "method": "get",
+      "operationId": "InsightsController.getGrowthPrediction",
+      "path": "/insights/growth"
+    },
+    {
+      "method": "get",
+      "operationId": "InsightsController.getInsights",
+      "path": "/insights"
+    },
+    {
+      "method": "patch",
+      "operationId": "InsightsController.markAsDismissed",
+      "path": "/insights/{insightId}/dismiss"
+    },
+    {
+      "method": "patch",
+      "operationId": "InsightsController.markAsRead",
+      "path": "/insights/{insightId}/read"
+    },
+    {
+      "method": "post",
+      "operationId": "InsightsController.predictViral",
+      "path": "/insights/viral"
+    },
+    {
+      "method": "post",
+      "operationId": "InstagramController.connect",
+      "path": "/services/instagram/connect"
+    },
+    {
+      "method": "get",
+      "operationId": "InstagramController.getTrends",
+      "path": "/services/instagram/trends"
+    },
+    {
+      "method": "post",
+      "operationId": "InstagramController.verify",
+      "path": "/services/instagram/verify"
+    },
+    {
+      "method": "get",
+      "operationId": "InvitationsController.acceptInvitationRedirect",
+      "path": "/accept-invitation"
+    },
+    {
+      "method": "post",
+      "operationId": "LinkedInController.connect",
+      "path": "/services/linkedin/connect"
+    },
+    {
+      "method": "post",
+      "operationId": "LinkedInController.verify",
+      "path": "/services/linkedin/verify"
+    },
+    {
+      "method": "post",
+      "operationId": "LinksController.create",
+      "path": "/links"
+    },
+    {
+      "method": "get",
+      "operationId": "LinksController.findAll",
+      "path": "/links"
+    },
+    {
+      "method": "get",
+      "operationId": "LinksController.findOne",
+      "path": "/links/{id}"
+    },
+    {
+      "method": "patch",
+      "operationId": "LinksController.patch",
+      "path": "/links/{linkId}"
+    },
+    {
+      "method": "delete",
+      "operationId": "LinksController.remove",
+      "path": "/links/{linkId}"
+    },
+    {
+      "method": "post",
+      "operationId": "ManagedInferenceController.execute",
+      "path": "/managed-inference"
+    },
+    {
+      "method": "post",
+      "operationId": "ManagedStripeController.createCheckout",
+      "path": "/services/stripe/managed/checkout"
+    },
+    {
+      "method": "get",
+      "operationId": "ManagedStripeController.getCheckoutResult",
+      "path": "/services/stripe/managed/sessions/{sessionId}"
+    },
+    {
+      "method": "post",
+      "operationId": "MarketplaceInstallController.install",
+      "path": "/marketplace-installs/{listingId}"
+    },
+    {
+      "method": "post",
+      "operationId": "MastodonController.exchangeToken",
+      "path": "/services/mastodon/token"
+    },
+    {
+      "method": "get",
+      "operationId": "MastodonController.getAuthUrl",
+      "path": "/services/mastodon/auth"
+    },
+    {
+      "method": "post",
+      "operationId": "MastodonController.registerApp",
+      "path": "/services/mastodon/register"
+    },
+    {
+      "method": "post",
+      "operationId": "MastodonController.verifyCredentials",
+      "path": "/services/mastodon/verify"
+    },
+    {
+      "method": "post",
+      "operationId": "McpApprovalsController.attachResult",
+      "path": "/mcp-approvals/{id}/result"
+    },
+    {
+      "method": "post",
+      "operationId": "McpApprovalsController.create",
+      "path": "/mcp-approvals"
+    },
+    {
+      "method": "get",
+      "operationId": "McpApprovalsController.findAll",
+      "path": "/mcp-approvals"
+    },
+    {
+      "method": "get",
+      "operationId": "McpApprovalsController.findOne",
+      "path": "/mcp-approvals/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "McpApprovalsController.resolve",
+      "path": "/mcp-approvals/{id}/resolve"
+    },
+    {
+      "method": "post",
+      "operationId": "MediumController.connect",
+      "path": "/services/medium/connect"
+    },
+    {
+      "method": "post",
+      "operationId": "MediumController.publishArticle",
+      "path": "/services/medium/publish/{articleId}"
+    },
+    {
+      "method": "post",
+      "operationId": "MediumController.verify",
+      "path": "/services/medium/verify"
+    },
+    {
+      "method": "get",
+      "operationId": "MembersController.findAll",
+      "path": "/members"
+    },
+    {
+      "method": "get",
+      "operationId": "MembersController.findOne",
+      "path": "/members/{memberId}"
+    },
+    {
+      "method": "get",
+      "operationId": "MembersController.listInvitations",
+      "path": "/members/invitations/pending"
+    },
+    {
+      "method": "post",
+      "operationId": "MembersController.resendInvitation",
+      "path": "/members/invitations/{invitationId}/resend"
+    },
+    {
+      "method": "delete",
+      "operationId": "MembersController.revokeInvitation",
+      "path": "/members/invitations/{invitationId}"
+    },
+    {
+      "method": "post",
+      "operationId": "MetaAdsBulkController.cancelJob",
+      "path": "/services/meta-ads/bulk/jobs/{id}/cancel"
+    },
+    {
+      "method": "post",
+      "operationId": "MetaAdsBulkController.createBulkUpload",
+      "path": "/services/meta-ads/bulk/upload"
+    },
+    {
+      "method": "get",
+      "operationId": "MetaAdsBulkController.getJobStatus",
+      "path": "/services/meta-ads/bulk/jobs/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "MetaAdsBulkController.listJobs",
+      "path": "/services/meta-ads/bulk/jobs"
+    },
+    {
+      "method": "get",
+      "operationId": "MetaAdsController.compareCampaigns",
+      "path": "/services/meta-ads/campaigns/compare"
+    },
+    {
+      "method": "post",
+      "operationId": "MetaAdsController.createAd",
+      "path": "/services/meta-ads/ads"
+    },
+    {
+      "method": "post",
+      "operationId": "MetaAdsController.createAdSet",
+      "path": "/services/meta-ads/adsets"
+    },
+    {
+      "method": "post",
+      "operationId": "MetaAdsController.createCampaign",
+      "path": "/services/meta-ads/campaigns"
+    },
+    {
+      "method": "delete",
+      "operationId": "MetaAdsController.deleteAd",
+      "path": "/services/meta-ads/ads/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "MetaAdsController.getAdAccounts",
+      "path": "/services/meta-ads/accounts"
+    },
+    {
+      "method": "get",
+      "operationId": "MetaAdsController.getAdCreatives",
+      "path": "/services/meta-ads/creatives"
+    },
+    {
+      "method": "get",
+      "operationId": "MetaAdsController.getAdInsights",
+      "path": "/services/meta-ads/ads/{id}/insights"
+    },
+    {
+      "method": "get",
+      "operationId": "MetaAdsController.getAdSetInsights",
+      "path": "/services/meta-ads/adsets/{id}/insights"
+    },
+    {
+      "method": "get",
+      "operationId": "MetaAdsController.getCampaignInsights",
+      "path": "/services/meta-ads/campaigns/{id}/insights"
+    },
+    {
+      "method": "get",
+      "operationId": "MetaAdsController.getTopPerformers",
+      "path": "/services/meta-ads/top-performers"
+    },
+    {
+      "method": "get",
+      "operationId": "MetaAdsController.listCampaigns",
+      "path": "/services/meta-ads/campaigns"
+    },
+    {
+      "method": "post",
+      "operationId": "MetaAdsController.pauseAd",
+      "path": "/services/meta-ads/ads/{id}/pause"
+    },
+    {
+      "method": "post",
+      "operationId": "MetaAdsController.pauseCampaign",
+      "path": "/services/meta-ads/campaigns/{id}/pause"
+    },
+    {
+      "method": "patch",
+      "operationId": "MetaAdsController.updateAdSet",
+      "path": "/services/meta-ads/adsets/{id}"
+    },
+    {
+      "method": "patch",
+      "operationId": "MetaAdsController.updateCampaign",
+      "path": "/services/meta-ads/campaigns/{id}"
+    },
+    {
+      "method": "patch",
+      "operationId": "MetaAdsController.updateCampaignBudget",
+      "path": "/services/meta-ads/campaigns/{id}/budget"
+    },
+    {
+      "method": "post",
+      "operationId": "MetaAdsController.uploadAdImage",
+      "path": "/services/meta-ads/media/image"
+    },
+    {
+      "method": "post",
+      "operationId": "MetaAdsController.uploadAdVideo",
+      "path": "/services/meta-ads/media/video"
+    },
+    {
+      "method": "post",
+      "operationId": "MetaAdsOptimizationController.approveRecommendation",
+      "path": "/services/meta-ads/optimization/recommendations/{id}/approve"
+    },
+    {
+      "method": "post",
+      "operationId": "MetaAdsOptimizationController.executeRecommendation",
+      "path": "/services/meta-ads/optimization/recommendations/{id}/execute"
+    },
+    {
+      "method": "get",
+      "operationId": "MetaAdsOptimizationController.getConfig",
+      "path": "/services/meta-ads/optimization/config"
+    },
+    {
+      "method": "get",
+      "operationId": "MetaAdsOptimizationController.listAuditLogs",
+      "path": "/services/meta-ads/optimization/audit-logs"
+    },
+    {
+      "method": "get",
+      "operationId": "MetaAdsOptimizationController.listRecommendations",
+      "path": "/services/meta-ads/optimization/recommendations"
+    },
+    {
+      "method": "post",
+      "operationId": "MetaAdsOptimizationController.rejectRecommendation",
+      "path": "/services/meta-ads/optimization/recommendations/{id}/reject"
+    },
+    {
+      "method": "put",
+      "operationId": "MetaAdsOptimizationController.updateConfig",
+      "path": "/services/meta-ads/optimization/config"
+    },
+    {
+      "method": "patch",
+      "operationId": "ModelsController.approveRegistryModel",
+      "path": "/models/{modelId}/approve"
+    },
+    {
+      "method": "post",
+      "operationId": "ModelsController.create",
+      "path": "/models"
+    },
+    {
+      "method": "get",
+      "operationId": "ModelsController.findAll",
+      "path": "/models"
+    },
+    {
+      "method": "get",
+      "operationId": "ModelsController.findOne",
+      "path": "/models/{id}"
+    },
+    {
+      "method": "patch",
+      "operationId": "ModelsController.markRegistryModelLegacy",
+      "path": "/models/{modelId}/legacy"
+    },
+    {
+      "method": "patch",
+      "operationId": "ModelsController.patch",
+      "path": "/models/{modelId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "ModelsController.rejectRegistryModel",
+      "path": "/models/{modelId}/reject"
+    },
+    {
+      "method": "delete",
+      "operationId": "ModelsController.remove",
+      "path": "/models/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "MonitoredAccountsController.create",
+      "path": "/monitored-accounts"
+    },
+    {
+      "method": "get",
+      "operationId": "MonitoredAccountsController.findAll",
+      "path": "/monitored-accounts"
+    },
+    {
+      "method": "get",
+      "operationId": "MonitoredAccountsController.findOne",
+      "path": "/monitored-accounts/{id}"
+    },
+    {
+      "method": "patch",
+      "operationId": "MonitoredAccountsController.patch",
+      "path": "/monitored-accounts/{id}"
+    },
+    {
+      "method": "delete",
+      "operationId": "MonitoredAccountsController.remove",
+      "path": "/monitored-accounts/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "MonitoredAccountsController.toggleActive",
+      "path": "/monitored-accounts/{id}/toggle"
+    },
+    {
+      "method": "post",
+      "operationId": "MonitoredAccountsController.validateTwitterUsername",
+      "path": "/monitored-accounts/validate"
+    },
+    {
+      "method": "get",
+      "operationId": "MoodBoardsController.findByBrand",
+      "path": "/mood-boards"
+    },
+    {
+      "method": "patch",
+      "operationId": "MoodBoardsController.update",
+      "path": "/mood-boards/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "MusicsController.findAll",
+      "path": "/musics"
+    },
+    {
+      "method": "get",
+      "operationId": "MusicsController.findOne",
+      "path": "/musics/{id}"
+    },
+    {
+      "method": "patch",
+      "operationId": "MusicsController.patch",
+      "path": "/musics/{id}"
+    },
+    {
+      "method": "delete",
+      "operationId": "MusicsController.remove",
+      "path": "/musics/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "MusicsOperationsController.create",
+      "path": "/musics"
+    },
+    {
+      "method": "post",
+      "operationId": "MusicsUploadController.createUpload",
+      "path": "/musics/upload"
+    },
+    {
+      "method": "post",
+      "operationId": "NewslettersController.approve",
+      "path": "/newsletters/{id}/approve"
+    },
+    {
+      "method": "post",
+      "operationId": "NewslettersController.archive",
+      "path": "/newsletters/{id}/archive"
+    },
+    {
+      "method": "get",
+      "operationId": "NewslettersController.context",
+      "path": "/newsletters/{id}/context"
+    },
+    {
+      "method": "post",
+      "operationId": "NewslettersController.create",
+      "path": "/newsletters"
+    },
+    {
+      "method": "get",
+      "operationId": "NewslettersController.findAll",
+      "path": "/newsletters"
+    },
+    {
+      "method": "get",
+      "operationId": "NewslettersController.findOne",
+      "path": "/newsletters/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "NewslettersController.generateDraft",
+      "path": "/newsletters/generate-draft"
+    },
+    {
+      "method": "patch",
+      "operationId": "NewslettersController.patch",
+      "path": "/newsletters/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "NewslettersController.publish",
+      "path": "/newsletters/{id}/publish"
+    },
+    {
+      "method": "post",
+      "operationId": "NewslettersController.topicProposals",
+      "path": "/newsletters/topic-proposals"
+    },
+    {
+      "method": "post",
+      "operationId": "OnboardingController.addReferenceImages",
+      "path": "/onboarding/brand/{brandId}/reference-images"
+    },
+    {
+      "method": "get",
+      "operationId": "OnboardingController.checkPrefixAvailable",
+      "path": "/onboarding/prefix/{prefix}/available"
+    },
+    {
+      "method": "post",
+      "operationId": "OnboardingController.claimProactiveWorkspace",
+      "path": "/onboarding/proactive-claim"
+    },
+    {
+      "method": "post",
+      "operationId": "OnboardingController.completeFunnel",
+      "path": "/onboarding/complete-funnel"
+    },
+    {
+      "method": "patch",
+      "operationId": "OnboardingController.confirmBrandData",
+      "path": "/onboarding/brand/{brandId}/confirm"
+    },
+    {
+      "method": "post",
+      "operationId": "OnboardingController.generatePreview",
+      "path": "/onboarding/generate-preview"
+    },
+    {
+      "method": "get",
+      "operationId": "OnboardingController.getInstallReadiness",
+      "path": "/onboarding/install-readiness"
+    },
+    {
+      "method": "get",
+      "operationId": "OnboardingController.getProactiveWorkspace",
+      "path": "/onboarding/proactive-workspace"
+    },
+    {
+      "method": "get",
+      "operationId": "OnboardingController.getStatus",
+      "path": "/onboarding/status"
+    },
+    {
+      "method": "post",
+      "operationId": "OnboardingController.setAccountType",
+      "path": "/onboarding/account-type"
+    },
+    {
+      "method": "post",
+      "operationId": "OnboardingController.setPrefix",
+      "path": "/onboarding/prefix"
+    },
+    {
+      "method": "post",
+      "operationId": "OnboardingController.setupBrand",
+      "path": "/onboarding/brand-setup"
+    },
+    {
+      "method": "post",
+      "operationId": "OnboardingController.skipOnboarding",
+      "path": "/onboarding/skip"
+    },
+    {
+      "method": "patch",
+      "operationId": "OnboardingController.updateBrandName",
+      "path": "/onboarding/brand-name"
+    },
+    {
+      "method": "post",
+      "operationId": "OpenAiOAuthController.connect",
+      "path": "/services/openai/connect"
+    },
+    {
+      "method": "post",
+      "operationId": "OpenAiOAuthController.verify",
+      "path": "/services/openai/verify"
+    },
+    {
+      "method": "post",
+      "operationId": "OptimizersController.analyzeContent",
+      "path": "/optimizers/analyze"
+    },
+    {
+      "method": "post",
+      "operationId": "OptimizersController.generatePrompts",
+      "path": "/optimizers/prompts"
+    },
+    {
+      "method": "post",
+      "operationId": "OptimizersController.generateVariants",
+      "path": "/optimizers/variants"
+    },
+    {
+      "method": "get",
+      "operationId": "OptimizersController.getBestPostingTimes",
+      "path": "/optimizers/times"
+    },
+    {
+      "method": "get",
+      "operationId": "OptimizersController.getOptimizationHistory",
+      "path": "/optimizers/history"
+    },
+    {
+      "method": "post",
+      "operationId": "OptimizersController.optimizeContent",
+      "path": "/optimizers/optimize"
+    },
+    {
+      "method": "post",
+      "operationId": "OptimizersController.suggestHashtags",
+      "path": "/optimizers/hashtags"
+    },
+    {
+      "method": "post",
+      "operationId": "OpusProController.generateVideo",
+      "path": "/opuspro/generate"
+    },
+    {
+      "method": "get",
+      "operationId": "OpusProController.getStatus",
+      "path": "/opuspro/status"
+    },
+    {
+      "method": "get",
+      "operationId": "OpusProController.getTemplates",
+      "path": "/opuspro/templates"
+    },
+    {
+      "method": "get",
+      "operationId": "OpusProController.getVideoStatus",
+      "path": "/opuspro/status/{videoId}"
+    },
+    {
+      "method": "post",
+      "operationId": "OrganizationsController.create",
+      "path": "/organizations"
+    },
+    {
+      "method": "post",
+      "operationId": "OrganizationsController.createOrganization",
+      "path": "/organizations/create"
+    },
+    {
+      "method": "get",
+      "operationId": "OrganizationsController.findAll",
+      "path": "/organizations"
+    },
+    {
+      "method": "get",
+      "operationId": "OrganizationsController.findBySlug",
+      "path": "/organizations/by-slug/{slug}"
+    },
+    {
+      "method": "get",
+      "operationId": "OrganizationsController.findMine",
+      "path": "/organizations/mine"
+    },
+    {
+      "method": "get",
+      "operationId": "OrganizationsController.findOne",
+      "path": "/organizations/{id}"
+    },
+    {
+      "method": "patch",
+      "operationId": "OrganizationsController.patch",
+      "path": "/organizations/{id}"
+    },
+    {
+      "method": "delete",
+      "operationId": "OrganizationsController.remove",
+      "path": "/organizations/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "OrganizationsController.switchOrganization",
+      "path": "/organizations/switch/{id}"
+    },
+    {
+      "method": "patch",
+      "operationId": "OrganizationsController.updateSlug",
+      "path": "/organizations/{id}/slug"
+    },
+    {
+      "method": "post",
+      "operationId": "OrganizationsIntegrationsController.create",
+      "path": "/organizations/{organizationId}/integrations"
+    },
+    {
+      "method": "get",
+      "operationId": "OrganizationsIntegrationsController.findAll",
+      "path": "/organizations/{organizationId}/integrations"
+    },
+    {
+      "method": "get",
+      "operationId": "OrganizationsIntegrationsController.findOne",
+      "path": "/organizations/{organizationId}/integrations/{id}"
+    },
+    {
+      "method": "delete",
+      "operationId": "OrganizationsIntegrationsController.remove",
+      "path": "/organizations/{organizationId}/integrations/{id}"
+    },
+    {
+      "method": "patch",
+      "operationId": "OrganizationsIntegrationsController.update",
+      "path": "/organizations/{organizationId}/integrations/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "OrganizationsMembersController.findAllMembers",
+      "path": "/organizations/{organizationId}/members"
+    },
+    {
+      "method": "post",
+      "operationId": "OrganizationsMembersController.inviteMember",
+      "path": "/organizations/{organizationId}/members"
+    },
+    {
+      "method": "patch",
+      "operationId": "OrganizationsMembersController.updateMember",
+      "path": "/organizations/{organizationId}/members/{memberId}"
+    },
+    {
+      "method": "get",
+      "operationId": "OrganizationsRelationshipsController.findAllActivities",
+      "path": "/organizations/{organizationId}/activities"
+    },
+    {
+      "method": "get",
+      "operationId": "OrganizationsRelationshipsController.findAllBrands",
+      "path": "/organizations/{organizationId}/brands"
+    },
+    {
+      "method": "get",
+      "operationId": "OrganizationsRelationshipsController.findAllIngredients",
+      "path": "/organizations/{organizationId}/ingredients"
+    },
+    {
+      "method": "get",
+      "operationId": "OrganizationsRelationshipsController.findAllPosts",
+      "path": "/organizations/{organizationId}/posts"
+    },
+    {
+      "method": "get",
+      "operationId": "OrganizationsRelationshipsController.findAllTags",
+      "path": "/organizations/{organizationId}/tags"
+    },
+    {
+      "method": "get",
+      "operationId": "OrganizationsRelationshipsController.findAllVideos",
+      "path": "/organizations/{organizationId}/videos"
+    },
+    {
+      "method": "get",
+      "operationId": "OrganizationsRelationshipsController.findAnalytics",
+      "path": "/organizations/{organizationId}/analytics"
+    },
+    {
+      "method": "get",
+      "operationId": "OrganizationsRelationshipsController.findAnalyticsPlatforms",
+      "path": "/organizations/{organizationId}/analytics/platforms"
+    },
+    {
+      "method": "get",
+      "operationId": "OrganizationsRelationshipsController.findAnalyticsTimeSeries",
+      "path": "/organizations/{organizationId}/analytics/timeseries"
+    },
+    {
+      "method": "get",
+      "operationId": "OrganizationsRelationshipsController.findAnalyticsTopContent",
+      "path": "/organizations/{organizationId}/analytics/top-content"
+    },
+    {
+      "method": "get",
+      "operationId": "OrganizationsRelationshipsController.findPlatformAnalytics",
+      "path": "/organizations/{organizationId}/platforms/{platform}/analytics"
+    },
+    {
+      "method": "get",
+      "operationId": "OrganizationsSettingsController.findOneSubscription",
+      "path": "/organizations/{organizationId}/subscription"
+    },
+    {
+      "method": "get",
+      "operationId": "OrganizationsSettingsController.getByokAllProviders",
+      "path": "/organizations/{organizationId}/settings/byok"
+    },
+    {
+      "method": "get",
+      "operationId": "OrganizationsSettingsController.getByokProviderStatus",
+      "path": "/organizations/{organizationId}/settings/byok/{provider}"
+    },
+    {
+      "method": "get",
+      "operationId": "OrganizationsSettingsController.getDarkroomCapabilities",
+      "path": "/organizations/{organizationId}/brands/{brandId}/darkroom-capabilities"
+    },
+    {
+      "method": "get",
+      "operationId": "OrganizationsSettingsController.getSettings",
+      "path": "/organizations/{organizationId}/settings"
+    },
+    {
+      "method": "delete",
+      "operationId": "OrganizationsSettingsController.removeByokProviderKey",
+      "path": "/organizations/{organizationId}/settings/byok/{provider}"
+    },
+    {
+      "method": "put",
+      "operationId": "OrganizationsSettingsController.saveByokProviderKey",
+      "path": "/organizations/{organizationId}/settings/byok/{provider}"
+    },
+    {
+      "method": "patch",
+      "operationId": "OrganizationsSettingsController.updateSettings",
+      "path": "/organizations/{organizationId}/settings"
+    },
+    {
+      "method": "post",
+      "operationId": "OrganizationsSettingsController.validateByokProviderKey",
+      "path": "/organizations/{organizationId}/settings/byok/{provider}/validate"
+    },
+    {
+      "method": "post",
+      "operationId": "OutreachCampaignsController.addDmRecipients",
+      "path": "/outreach-campaigns/{id}/dm-recipients"
+    },
+    {
+      "method": "post",
+      "operationId": "OutreachCampaignsController.addTargets",
+      "path": "/outreach-campaigns/{id}/targets"
+    },
+    {
+      "method": "post",
+      "operationId": "OutreachCampaignsController.completeCampaign",
+      "path": "/outreach-campaigns/{id}/complete"
+    },
+    {
+      "method": "post",
+      "operationId": "OutreachCampaignsController.create",
+      "path": "/outreach-campaigns"
+    },
+    {
+      "method": "post",
+      "operationId": "OutreachCampaignsController.discoverTargets",
+      "path": "/outreach-campaigns/{id}/targets/discover"
+    },
+    {
+      "method": "get",
+      "operationId": "OutreachCampaignsController.findAll",
+      "path": "/outreach-campaigns"
+    },
+    {
+      "method": "get",
+      "operationId": "OutreachCampaignsController.findOne",
+      "path": "/outreach-campaigns/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "OutreachCampaignsController.getAnalytics",
+      "path": "/outreach-campaigns/{id}/analytics"
+    },
+    {
+      "method": "get",
+      "operationId": "OutreachCampaignsController.getTargets",
+      "path": "/outreach-campaigns/{id}/targets"
+    },
+    {
+      "method": "post",
+      "operationId": "OutreachCampaignsController.parseUrlEndpoint",
+      "path": "/outreach-campaigns/parse-url"
+    },
+    {
+      "method": "patch",
+      "operationId": "OutreachCampaignsController.patch",
+      "path": "/outreach-campaigns/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "OutreachCampaignsController.pauseCampaign",
+      "path": "/outreach-campaigns/{id}/pause"
+    },
+    {
+      "method": "post",
+      "operationId": "OutreachCampaignsController.previewReply",
+      "path": "/outreach-campaigns/{id}/targets/{targetId}/preview"
+    },
+    {
+      "method": "delete",
+      "operationId": "OutreachCampaignsController.remove",
+      "path": "/outreach-campaigns/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "OutreachCampaignsController.startCampaign",
+      "path": "/outreach-campaigns/{id}/start"
+    },
+    {
+      "method": "get",
+      "operationId": "PatternsController.findAll",
+      "path": "/content-intelligence/patterns"
+    },
+    {
+      "method": "get",
+      "operationId": "PatternsController.findHooks",
+      "path": "/content-intelligence/patterns/hooks"
+    },
+    {
+      "method": "get",
+      "operationId": "PatternsController.findOne",
+      "path": "/content-intelligence/patterns/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "PatternsController.findTemplates",
+      "path": "/content-intelligence/patterns/templates"
+    },
+    {
+      "method": "delete",
+      "operationId": "PatternsController.remove",
+      "path": "/content-intelligence/patterns/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "PerformanceSummaryController.getGenerationContext",
+      "path": "/content-performance/summary/generation-context"
+    },
+    {
+      "method": "get",
+      "operationId": "PerformanceSummaryController.getPromptPerformance",
+      "path": "/content-performance/summary/prompt-performance"
+    },
+    {
+      "method": "get",
+      "operationId": "PerformanceSummaryController.getTopPerformers",
+      "path": "/content-performance/summary/top-performers"
+    },
+    {
+      "method": "get",
+      "operationId": "PerformanceSummaryController.getWeeklySummary",
+      "path": "/content-performance/summary/weekly"
+    },
+    {
+      "method": "post",
+      "operationId": "PersonasContentController.generateCaption",
+      "path": "/personas/{id}/generate/caption"
+    },
+    {
+      "method": "post",
+      "operationId": "PersonasContentController.generateContentPlan",
+      "path": "/personas/{id}/content-plan"
+    },
+    {
+      "method": "post",
+      "operationId": "PersonasContentController.generatePhoto",
+      "path": "/personas/{id}/generate/photo"
+    },
+    {
+      "method": "post",
+      "operationId": "PersonasContentController.generateVideo",
+      "path": "/personas/{id}/generate/video"
+    },
+    {
+      "method": "post",
+      "operationId": "PersonasContentController.generateVoice",
+      "path": "/personas/{id}/generate/voice"
+    },
+    {
+      "method": "get",
+      "operationId": "PersonasContentController.getPersonaPosts",
+      "path": "/personas/{id}/posts"
+    },
+    {
+      "method": "post",
+      "operationId": "PersonasContentController.publish",
+      "path": "/personas/{id}/publish"
+    },
+    {
+      "method": "post",
+      "operationId": "PersonasController.assignMembers",
+      "path": "/personas/{id}/assign"
+    },
+    {
+      "method": "post",
+      "operationId": "PersonasController.create",
+      "path": "/personas"
+    },
+    {
+      "method": "get",
+      "operationId": "PersonasController.findAll",
+      "path": "/personas"
+    },
+    {
+      "method": "get",
+      "operationId": "PersonasController.findOne",
+      "path": "/personas/{id}"
+    },
+    {
+      "method": "patch",
+      "operationId": "PersonasController.patch",
+      "path": "/personas/{id}"
+    },
+    {
+      "method": "delete",
+      "operationId": "PersonasController.remove",
+      "path": "/personas/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "PinterestController.createPin",
+      "path": "/services/pinterest/pins"
+    },
+    {
+      "method": "post",
+      "operationId": "PinterestController.exchangeToken",
+      "path": "/services/pinterest/token"
+    },
+    {
+      "method": "get",
+      "operationId": "PinterestController.getAuthUrl",
+      "path": "/services/pinterest/auth"
+    },
+    {
+      "method": "get",
+      "operationId": "PinterestController.pinAnalytics",
+      "path": "/services/pinterest/pins/{id}/analytics"
+    },
+    {
+      "method": "get",
+      "operationId": "PinterestController.search",
+      "path": "/services/pinterest/search"
+    },
+    {
+      "method": "post",
+      "operationId": "PlaybooksController.buildInsights",
+      "path": "/content-intelligence/playbooks/{id}/build"
+    },
+    {
+      "method": "post",
+      "operationId": "PlaybooksController.create",
+      "path": "/content-intelligence/playbooks"
+    },
+    {
+      "method": "get",
+      "operationId": "PlaybooksController.findAll",
+      "path": "/content-intelligence/playbooks"
+    },
+    {
+      "method": "get",
+      "operationId": "PlaybooksController.findOne",
+      "path": "/content-intelligence/playbooks/{id}"
+    },
+    {
+      "method": "delete",
+      "operationId": "PlaybooksController.remove",
+      "path": "/content-intelligence/playbooks/{id}"
+    },
+    {
+      "method": "patch",
+      "operationId": "PlaybooksController.update",
+      "path": "/content-intelligence/playbooks/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "PostsAnalyticsController.getAnalytics",
+      "path": "/posts/{postId}/analytics"
+    },
+    {
+      "method": "post",
+      "operationId": "PostsAnalyticsController.refreshAllAnalytics",
+      "path": "/posts/analytics"
+    },
+    {
+      "method": "post",
+      "operationId": "PostsAnalyticsController.refreshAnalytics",
+      "path": "/posts/{postId}/refresh-analytics"
+    },
+    {
+      "method": "post",
+      "operationId": "PostsController.create",
+      "path": "/posts"
+    },
+    {
+      "method": "get",
+      "operationId": "PostsController.findAll",
+      "path": "/posts"
+    },
+    {
+      "method": "get",
+      "operationId": "PostsController.findOne",
+      "path": "/posts/{postId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "PostsController.patch",
+      "path": "/posts/{id}"
+    },
+    {
+      "method": "delete",
+      "operationId": "PostsController.remove",
+      "path": "/posts/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "PostsOperationsController.addThreadReply",
+      "path": "/posts/{postId}/replies"
+    },
+    {
+      "method": "post",
+      "operationId": "PostsOperationsController.batchSchedule",
+      "path": "/posts/schedules/batch"
+    },
+    {
+      "method": "post",
+      "operationId": "PostsOperationsController.createRemixPost",
+      "path": "/posts/{postId}/remixes"
+    },
+    {
+      "method": "post",
+      "operationId": "PostsOperationsController.enhancePost",
+      "path": "/posts/{postId}/enhancements"
+    },
+    {
+      "method": "post",
+      "operationId": "PostsOperationsController.expandToThread",
+      "path": "/posts/{postId}/thread-expansions"
+    },
+    {
+      "method": "post",
+      "operationId": "PostsOperationsController.generateAccountContent",
+      "path": "/posts/account-generations"
+    },
+    {
+      "method": "post",
+      "operationId": "PostsOperationsController.generateHookVariations",
+      "path": "/posts/hook-generations"
+    },
+    {
+      "method": "post",
+      "operationId": "PostsOperationsController.scoreSeo",
+      "path": "/posts/{postId}/seo-scores"
+    },
+    {
+      "method": "get",
+      "operationId": "PreflightController.getFeatureStatus",
+      "path": "/preflight/{feature}"
+    },
+    {
+      "method": "get",
+      "operationId": "PreflightController.getStatus",
+      "path": "/preflight/status"
+    },
+    {
+      "method": "post",
+      "operationId": "PresetsController.create",
+      "path": "/presets"
+    },
+    {
+      "method": "get",
+      "operationId": "PresetsController.findAll",
+      "path": "/presets"
+    },
+    {
+      "method": "get",
+      "operationId": "PresetsController.findOne",
+      "path": "/presets/{id}"
+    },
+    {
+      "method": "patch",
+      "operationId": "PresetsController.patch",
+      "path": "/presets/{id}"
+    },
+    {
+      "method": "delete",
+      "operationId": "PresetsController.remove",
+      "path": "/presets/{presetId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "PresetsController.update",
+      "path": "/presets/{presetId}"
+    },
+    {
+      "method": "post",
+      "operationId": "ProfilesController.analyzeTone",
+      "path": "/profiles/{profileId}/analyze"
+    },
+    {
+      "method": "post",
+      "operationId": "ProfilesController.applyProfile",
+      "path": "/profiles/{profileId}/apply"
+    },
+    {
+      "method": "post",
+      "operationId": "ProfilesController.create",
+      "path": "/profiles"
+    },
+    {
+      "method": "get",
+      "operationId": "ProfilesController.findAll",
+      "path": "/profiles"
+    },
+    {
+      "method": "get",
+      "operationId": "ProfilesController.findOne",
+      "path": "/profiles/{profileId}"
+    },
+    {
+      "method": "post",
+      "operationId": "ProfilesController.generateFromExamples",
+      "path": "/profiles/generate"
+    },
+    {
+      "method": "get",
+      "operationId": "ProfilesController.getDefault",
+      "path": "/profiles/default"
+    },
+    {
+      "method": "delete",
+      "operationId": "ProfilesController.remove",
+      "path": "/profiles/{profileId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "ProfilesController.update",
+      "path": "/profiles/{profileId}"
+    },
+    {
+      "method": "post",
+      "operationId": "ProjectsController.create",
+      "path": "/projects"
+    },
+    {
+      "method": "get",
+      "operationId": "ProjectsController.findAll",
+      "path": "/projects"
+    },
+    {
+      "method": "get",
+      "operationId": "ProjectsController.findOne",
+      "path": "/projects/{id}"
+    },
+    {
+      "method": "patch",
+      "operationId": "ProjectsController.patch",
+      "path": "/projects/{id}"
+    },
+    {
+      "method": "delete",
+      "operationId": "ProjectsController.remove",
+      "path": "/projects/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "PromptsController.create",
+      "path": "/prompts"
+    },
+    {
+      "method": "get",
+      "operationId": "PromptsController.findAll",
+      "path": "/prompts"
+    },
+    {
+      "method": "get",
+      "operationId": "PromptsController.findOne",
+      "path": "/prompts/{promptId}"
+    },
+    {
+      "method": "post",
+      "operationId": "PromptsController.publishToMarketplace",
+      "path": "/prompts/{promptId}/publish"
+    },
+    {
+      "method": "patch",
+      "operationId": "PromptsController.update",
+      "path": "/prompts/{promptId}"
+    },
+    {
+      "method": "post",
+      "operationId": "PromptsOperationsController.createRemix",
+      "path": "/prompts/{promptId}/remix"
+    },
+    {
+      "method": "post",
+      "operationId": "PromptsOperationsController.enhanceExisting",
+      "path": "/prompts/{promptId}/enhance"
+    },
+    {
+      "method": "post",
+      "operationId": "PromptsOperationsController.generateTweetReply",
+      "path": "/prompts/tweet"
+    },
+    {
+      "method": "post",
+      "operationId": "PromptsOperationsController.parse",
+      "path": "/prompts/parse"
+    },
+    {
+      "method": "post",
+      "operationId": "PromptsOperationsController.voiceToSpeech",
+      "path": "/prompts/voice-to-speech"
+    },
+    {
+      "method": "get",
+      "operationId": "PublicArticlesController.findPublicArticleById",
+      "path": "/public/articles/{articleId}"
+    },
+    {
+      "method": "get",
+      "operationId": "PublicArticlesController.findPublicArticleBySlug",
+      "path": "/public/articles/slug/{slug}"
+    },
+    {
+      "method": "get",
+      "operationId": "PublicArticlesController.findPublicArticles",
+      "path": "/public/articles"
+    },
+    {
+      "method": "get",
+      "operationId": "PublicBrandsController.findBrandArticles",
+      "path": "/public/brands/{brandId}/articles"
+    },
+    {
+      "method": "get",
+      "operationId": "PublicBrandsController.findBrandImages",
+      "path": "/public/brands/{brandId}/images"
+    },
+    {
+      "method": "get",
+      "operationId": "PublicBrandsController.findBrandLinks",
+      "path": "/public/brands/{brandId}/links"
+    },
+    {
+      "method": "get",
+      "operationId": "PublicBrandsController.findBrandVideos",
+      "path": "/public/brands/{brandId}/videos"
+    },
+    {
+      "method": "get",
+      "operationId": "PublicBrandsController.findOne",
+      "path": "/public/brands/{brandId}"
+    },
+    {
+      "method": "get",
+      "operationId": "PublicBrandsController.findOneBySlug",
+      "path": "/public/brands/slug"
+    },
+    {
+      "method": "get",
+      "operationId": "PublicBrandsController.findPublicBrands",
+      "path": "/public/brands"
+    },
+    {
+      "method": "get",
+      "operationId": "PublicImagesController.findPublicImages",
+      "path": "/public/images"
+    },
+    {
+      "method": "get",
+      "operationId": "PublicImagesController.getImage",
+      "path": "/public/images/{imageId}/image.jpg"
+    },
+    {
+      "method": "get",
+      "operationId": "PublicImagesController.getImageMetadata",
+      "path": "/public/images/{imageId}"
+    },
+    {
+      "method": "get",
+      "operationId": "PublicMediaController.getManifest",
+      "path": "/public/media/{assetId}/manifest.json"
+    },
+    {
+      "method": "get",
+      "operationId": "PublicMediaController.getTranscript",
+      "path": "/public/media/{assetId}/transcript.vtt"
+    },
+    {
+      "method": "get",
+      "operationId": "PublicMediaController.resolveMedia",
+      "path": "/public/media/{assetId}"
+    },
+    {
+      "method": "get",
+      "operationId": "PublicMusicsController.findPublicMusics",
+      "path": "/public/musics"
+    },
+    {
+      "method": "get",
+      "operationId": "PublicMusicsController.getMusic",
+      "path": "/public/musics/{musicId}/audio.mp3"
+    },
+    {
+      "method": "get",
+      "operationId": "PublicMusicsController.getMusicMetadata",
+      "path": "/public/musics/{musicId}"
+    },
+    {
+      "method": "get",
+      "operationId": "PublicPostsController.findPublicIngredients",
+      "path": "/public/posts/ingredients"
+    },
+    {
+      "method": "get",
+      "operationId": "PublicPostsController.findPublicPosts",
+      "path": "/public/posts"
+    },
+    {
+      "method": "get",
+      "operationId": "PublicPostsController.getPostMetadata",
+      "path": "/public/posts/{postId}"
+    },
+    {
+      "method": "get",
+      "operationId": "PublicRSSController.getBrandFeed",
+      "path": "/public/rss/brands/{brandId}"
+    },
+    {
+      "method": "get",
+      "operationId": "PublicRSSController.getGlobalFeed",
+      "path": "/public/rss/articles"
+    },
+    {
+      "method": "get",
+      "operationId": "PublicRSSController.getOrganizationFeed",
+      "path": "/public/rss/organizations/{organizationId}"
+    },
+    {
+      "method": "get",
+      "operationId": "PublicRSSController.getUserFeed",
+      "path": "/public/rss/users/{userId}"
+    },
+    {
+      "method": "get",
+      "operationId": "PublicVideosController.findPublicVideos",
+      "path": "/public/videos"
+    },
+    {
+      "method": "get",
+      "operationId": "PublicVideosController.getVideo",
+      "path": "/public/videos/{videoId}/video.mp4"
+    },
+    {
+      "method": "get",
+      "operationId": "PublicVideosController.getVideoMetadata",
+      "path": "/public/videos/{videoId}"
+    },
+    {
+      "method": "post",
+      "operationId": "RedditController.connect",
+      "path": "/services/reddit/connect"
+    },
+    {
+      "method": "post",
+      "operationId": "RedditController.verify",
+      "path": "/services/reddit/verify"
+    },
+    {
+      "method": "get",
+      "operationId": "RedirectController.redirect",
+      "path": "/l/{shortCode}"
+    },
+    {
+      "method": "post",
+      "operationId": "ReplyBotConfigsController.create",
+      "path": "/reply-bot-configs"
+    },
+    {
+      "method": "get",
+      "operationId": "ReplyBotConfigsController.findAll",
+      "path": "/reply-bot-configs"
+    },
+    {
+      "method": "get",
+      "operationId": "ReplyBotConfigsController.findOne",
+      "path": "/reply-bot-configs/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "ReplyBotConfigsController.getQueueStatus",
+      "path": "/reply-bot-configs/queue-status"
+    },
+    {
+      "method": "patch",
+      "operationId": "ReplyBotConfigsController.patch",
+      "path": "/reply-bot-configs/{id}"
+    },
+    {
+      "method": "delete",
+      "operationId": "ReplyBotConfigsController.remove",
+      "path": "/reply-bot-configs/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "ReplyBotConfigsController.testReplyGeneration",
+      "path": "/reply-bot-configs/{id}/test"
+    },
+    {
+      "method": "post",
+      "operationId": "ReplyBotConfigsController.toggleActive",
+      "path": "/reply-bot-configs/{id}/toggle"
+    },
+    {
+      "method": "post",
+      "operationId": "ReplyBotConfigsController.triggerPolling",
+      "path": "/reply-bot-configs/trigger-polling"
+    },
+    {
+      "method": "post",
+      "operationId": "RolesController.create",
+      "path": "/roles"
+    },
+    {
+      "method": "get",
+      "operationId": "RolesController.findAll",
+      "path": "/roles"
+    },
+    {
+      "method": "get",
+      "operationId": "RolesController.findOne",
+      "path": "/roles/{roleId}"
+    },
+    {
+      "method": "delete",
+      "operationId": "RolesController.remove",
+      "path": "/roles/{roleId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "RolesController.update",
+      "path": "/roles/{roleId}"
+    },
+    {
+      "method": "post",
+      "operationId": "RouterController.selectModel",
+      "path": "/router/select-model"
+    },
+    {
+      "method": "post",
+      "operationId": "RunsController.appendEvent",
+      "path": "/runs/{runId}/events"
+    },
+    {
+      "method": "post",
+      "operationId": "RunsController.cancel",
+      "path": "/runs/{runId}/cancel"
+    },
+    {
+      "method": "post",
+      "operationId": "RunsController.create",
+      "path": "/runs"
+    },
+    {
+      "method": "post",
+      "operationId": "RunsController.execute",
+      "path": "/runs/{runId}/execute"
+    },
+    {
+      "method": "get",
+      "operationId": "RunsController.findAll",
+      "path": "/runs"
+    },
+    {
+      "method": "get",
+      "operationId": "RunsController.findOne",
+      "path": "/runs/{runId}"
+    },
+    {
+      "method": "get",
+      "operationId": "RunsController.getEvents",
+      "path": "/runs/{runId}/events"
+    },
+    {
+      "method": "patch",
+      "operationId": "RunsController.update",
+      "path": "/runs/{runId}"
+    },
+    {
+      "method": "post",
+      "operationId": "SchedulesController.bulkSchedule",
+      "path": "/schedules/bulk"
+    },
+    {
+      "method": "get",
+      "operationId": "SchedulesController.getCalendar",
+      "path": "/schedules/calendar"
+    },
+    {
+      "method": "post",
+      "operationId": "SchedulesController.getOptimalTime",
+      "path": "/schedules/optimal"
+    },
+    {
+      "method": "get",
+      "operationId": "SchedulesController.getRepurposingStatus",
+      "path": "/schedules/repurpose/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "SchedulesController.repurposeContent",
+      "path": "/schedules/repurpose"
+    },
+    {
+      "method": "post",
+      "operationId": "ShopifyController.createProduct",
+      "path": "/services/shopify/products"
+    },
+    {
+      "method": "post",
+      "operationId": "ShopifyController.exchangeToken",
+      "path": "/services/shopify/token"
+    },
+    {
+      "method": "get",
+      "operationId": "ShopifyController.getAuthUrl",
+      "path": "/services/shopify/auth"
+    },
+    {
+      "method": "post",
+      "operationId": "SkillCheckoutController.createCheckout",
+      "path": "/skills-pro/checkout"
+    },
+    {
+      "method": "post",
+      "operationId": "SkillDownloadController.downloadSkill",
+      "path": "/skills-pro/download"
+    },
+    {
+      "method": "post",
+      "operationId": "SkillDownloadController.verifyReceipt",
+      "path": "/skills-pro/verify"
+    },
+    {
+      "method": "get",
+      "operationId": "SkillRegistryController.getRegistry",
+      "path": "/skills-pro/registry"
+    },
+    {
+      "method": "post",
+      "operationId": "SkillsController.createSkill",
+      "path": "/skills"
+    },
+    {
+      "method": "post",
+      "operationId": "SkillsController.customizeSkill",
+      "path": "/skills/{id}/customize"
+    },
+    {
+      "method": "get",
+      "operationId": "SkillsController.getSkill",
+      "path": "/skills/{slug}"
+    },
+    {
+      "method": "post",
+      "operationId": "SkillsController.importSkill",
+      "path": "/skills/import"
+    },
+    {
+      "method": "get",
+      "operationId": "SkillsController.listSkills",
+      "path": "/skills"
+    },
+    {
+      "method": "patch",
+      "operationId": "SkillsController.updateSkill",
+      "path": "/skills/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "SnapchatController.exchangeToken",
+      "path": "/services/snapchat/token"
+    },
+    {
+      "method": "get",
+      "operationId": "SnapchatController.getAuthUrl",
+      "path": "/services/snapchat/auth"
+    },
+    {
+      "method": "post",
+      "operationId": "SocialInboxController.createDraft",
+      "path": "/messages/{conversationId}/drafts"
+    },
+    {
+      "method": "get",
+      "operationId": "SocialInboxController.getConversation",
+      "path": "/messages/{conversationId}"
+    },
+    {
+      "method": "get",
+      "operationId": "SocialInboxController.listConversations",
+      "path": "/messages"
+    },
+    {
+      "method": "get",
+      "operationId": "SocialInboxController.listMessages",
+      "path": "/messages/{conversationId}/messages"
+    },
+    {
+      "method": "post",
+      "operationId": "SocialInboxController.postReply",
+      "path": "/messages/{conversationId}/replies"
+    },
+    {
+      "method": "post",
+      "operationId": "SocialInboxController.sendDm",
+      "path": "/messages/{conversationId}/dms"
+    },
+    {
+      "method": "post",
+      "operationId": "SocialInboxController.syncYoutubeComments",
+      "path": "/messages/youtube/sync"
+    },
+    {
+      "method": "patch",
+      "operationId": "SocialInboxController.updateConversation",
+      "path": "/messages/{conversationId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "SocialInboxController.updateDraft",
+      "path": "/messages/{conversationId}/drafts/{messageId}"
+    },
+    {
+      "method": "post",
+      "operationId": "SpeechController.transcribeAudio",
+      "path": "/speech/transcribe/audio"
+    },
+    {
+      "method": "post",
+      "operationId": "SpeechController.transcribeUrl",
+      "path": "/speech/transcribe/url"
+    },
+    {
+      "method": "get",
+      "operationId": "StreaksController.getMyCalendar",
+      "path": "/organizations/{organizationId}/streaks/me/calendar"
+    },
+    {
+      "method": "get",
+      "operationId": "StreaksController.getMyStreak",
+      "path": "/organizations/{organizationId}/streaks/me"
+    },
+    {
+      "method": "post",
+      "operationId": "StreaksController.useFreeze",
+      "path": "/organizations/{organizationId}/streaks/me/freeze"
+    },
+    {
+      "method": "post",
+      "operationId": "StripeController.createCheckoutSession",
+      "path": "/services/stripe/checkout"
+    },
+    {
+      "method": "post",
+      "operationId": "StripeController.createSetupCheckout",
+      "path": "/services/stripe/setup-intent"
+    },
+    {
+      "method": "get",
+      "operationId": "StripeController.getBillingPortalUrl",
+      "path": "/services/stripe/portal"
+    },
+    {
+      "method": "get",
+      "operationId": "SubscriptionAttributionsController.getContentSubscriptionStats",
+      "path": "/analytics/content/{contentId}/subscription-stats"
+    },
+    {
+      "method": "get",
+      "operationId": "SubscriptionAttributionsController.getTopContent",
+      "path": "/analytics/top-content-by-subscriptions"
+    },
+    {
+      "method": "post",
+      "operationId": "SubscriptionAttributionsController.trackSubscription",
+      "path": "/analytics/subscription-attribution"
+    },
+    {
+      "method": "patch",
+      "operationId": "SubscriptionsController.changePlan",
+      "path": "/subscriptions/current"
+    },
+    {
+      "method": "get",
+      "operationId": "SubscriptionsController.findAll",
+      "path": "/subscriptions"
+    },
+    {
+      "method": "get",
+      "operationId": "SubscriptionsController.getCreditsBreakdown",
+      "path": "/subscriptions/current/credits"
+    },
+    {
+      "method": "post",
+      "operationId": "SubscriptionsController.previewChange",
+      "path": "/subscriptions/current/preview"
+    },
+    {
+      "method": "get",
+      "operationId": "SyncController.getStatus",
+      "path": "/sync/status"
+    },
+    {
+      "method": "post",
+      "operationId": "SyncController.pullWorkflow",
+      "path": "/sync/workflows/pull/{cloudId}"
+    },
+    {
+      "method": "post",
+      "operationId": "SyncController.pushWorkflow",
+      "path": "/sync/workflows/push/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "SystemController.getDbMode",
+      "path": "/system/db-mode"
+    },
+    {
+      "method": "post",
+      "operationId": "TagsController.create",
+      "path": "/tags"
+    },
+    {
+      "method": "get",
+      "operationId": "TagsController.findAll",
+      "path": "/tags"
+    },
+    {
+      "method": "get",
+      "operationId": "TagsController.findOne",
+      "path": "/tags/{id}"
+    },
+    {
+      "method": "patch",
+      "operationId": "TagsController.patch",
+      "path": "/tags/{id}"
+    },
+    {
+      "method": "delete",
+      "operationId": "TagsController.remove",
+      "path": "/tags/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "TaskCommentsController.create",
+      "path": "/tasks/{taskId}/comments"
+    },
+    {
+      "method": "get",
+      "operationId": "TaskCommentsController.findAll",
+      "path": "/tasks/{taskId}/comments"
+    },
+    {
+      "method": "delete",
+      "operationId": "TaskCommentsController.remove",
+      "path": "/tasks/{taskId}/comments/{commentId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "TasksController.approve",
+      "path": "/tasks/{id}/approve"
+    },
+    {
+      "method": "post",
+      "operationId": "TasksController.checkout",
+      "path": "/tasks/{id}/checkout"
+    },
+    {
+      "method": "post",
+      "operationId": "TasksController.create",
+      "path": "/tasks"
+    },
+    {
+      "method": "post",
+      "operationId": "TasksController.createChildren",
+      "path": "/tasks/{id}/children"
+    },
+    {
+      "method": "patch",
+      "operationId": "TasksController.dismiss",
+      "path": "/tasks/{id}/dismiss"
+    },
+    {
+      "method": "get",
+      "operationId": "TasksController.findAll",
+      "path": "/tasks"
+    },
+    {
+      "method": "get",
+      "operationId": "TasksController.findByIdentifier",
+      "path": "/tasks/by-identifier/{identifier}"
+    },
+    {
+      "method": "get",
+      "operationId": "TasksController.findChildren",
+      "path": "/tasks/{id}/children"
+    },
+    {
+      "method": "get",
+      "operationId": "TasksController.findOne",
+      "path": "/tasks/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "TasksController.inbox",
+      "path": "/tasks/inbox"
+    },
+    {
+      "method": "patch",
+      "operationId": "TasksController.keepOutput",
+      "path": "/tasks/{id}/outputs/{outputId}/keep"
+    },
+    {
+      "method": "post",
+      "operationId": "TasksController.openPlanThread",
+      "path": "/tasks/{id}/plan-thread"
+    },
+    {
+      "method": "patch",
+      "operationId": "TasksController.patch",
+      "path": "/tasks/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "TasksController.release",
+      "path": "/tasks/{id}/release"
+    },
+    {
+      "method": "delete",
+      "operationId": "TasksController.remove",
+      "path": "/tasks/{id}"
+    },
+    {
+      "method": "patch",
+      "operationId": "TasksController.requestChanges",
+      "path": "/tasks/{id}/request-changes"
+    },
+    {
+      "method": "patch",
+      "operationId": "TasksController.trashOutput",
+      "path": "/tasks/{id}/outputs/{outputId}/trash"
+    },
+    {
+      "method": "patch",
+      "operationId": "TasksController.unkeepOutput",
+      "path": "/tasks/{id}/outputs/{outputId}/unkeep"
+    },
+    {
+      "method": "get",
+      "operationId": "TelegramBotController.getStatus",
+      "path": "/telegram-bot/status"
+    },
+    {
+      "method": "post",
+      "operationId": "TelegramController.disconnect",
+      "path": "/services/telegram/disconnect"
+    },
+    {
+      "method": "post",
+      "operationId": "TelegramController.verify",
+      "path": "/services/telegram/verify"
+    },
+    {
+      "method": "post",
+      "operationId": "TemplatesController.create",
+      "path": "/templates"
+    },
+    {
+      "method": "post",
+      "operationId": "TemplatesController.createPromptTemplate",
+      "path": "/templates/prompts"
+    },
+    {
+      "method": "get",
+      "operationId": "TemplatesController.findAll",
+      "path": "/templates"
+    },
+    {
+      "method": "get",
+      "operationId": "TemplatesController.findOne",
+      "path": "/templates/{templateId}"
+    },
+    {
+      "method": "get",
+      "operationId": "TemplatesController.getPopularTemplates",
+      "path": "/templates/popular"
+    },
+    {
+      "method": "get",
+      "operationId": "TemplatesController.listPromptTemplates",
+      "path": "/templates/prompts"
+    },
+    {
+      "method": "delete",
+      "operationId": "TemplatesController.remove",
+      "path": "/templates/{templateId}"
+    },
+    {
+      "method": "delete",
+      "operationId": "TemplatesController.removePromptTemplate",
+      "path": "/templates/prompts/{templateId}"
+    },
+    {
+      "method": "post",
+      "operationId": "TemplatesController.suggestTemplates",
+      "path": "/templates/suggest"
+    },
+    {
+      "method": "patch",
+      "operationId": "TemplatesController.update",
+      "path": "/templates/{templateId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "TemplatesController.updatePromptTemplate",
+      "path": "/templates/prompts/{templateId}"
+    },
+    {
+      "method": "post",
+      "operationId": "TemplatesController.useTemplate",
+      "path": "/templates/{templateId}/use"
+    },
+    {
+      "method": "get",
+      "operationId": "ThreadRunsController.getThreadRuns",
+      "path": "/threads/{threadId}/runs"
+    },
+    {
+      "method": "post",
+      "operationId": "ThreadsController.connect",
+      "path": "/services/threads/connect"
+    },
+    {
+      "method": "get",
+      "operationId": "ThreadsController.getTrends",
+      "path": "/services/threads/trends"
+    },
+    {
+      "method": "post",
+      "operationId": "ThreadsController.verify",
+      "path": "/services/threads/verify"
+    },
+    {
+      "method": "post",
+      "operationId": "TiktokController.connect",
+      "path": "/services/tiktok/connect"
+    },
+    {
+      "method": "get",
+      "operationId": "TiktokController.getTrends",
+      "path": "/services/tiktok/trends"
+    },
+    {
+      "method": "post",
+      "operationId": "TiktokController.verify",
+      "path": "/services/tiktok/verify"
+    },
+    {
+      "method": "delete",
+      "operationId": "TrackedLinksController.deleteLink",
+      "path": "/tracking/links/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "TrackedLinksController.generateLink",
+      "path": "/tracking/links"
+    },
+    {
+      "method": "get",
+      "operationId": "TrackedLinksController.getContentCTAStats",
+      "path": "/tracking/content/{contentId}/cta-stats"
+    },
+    {
+      "method": "get",
+      "operationId": "TrackedLinksController.getLink",
+      "path": "/tracking/links/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "TrackedLinksController.getLinkPerformance",
+      "path": "/tracking/links/{id}/performance"
+    },
+    {
+      "method": "get",
+      "operationId": "TrackedLinksController.getLinks",
+      "path": "/tracking/links"
+    },
+    {
+      "method": "post",
+      "operationId": "TrackedLinksController.trackClick",
+      "path": "/tracking/clicks"
+    },
+    {
+      "method": "patch",
+      "operationId": "TrackedLinksController.updateLink",
+      "path": "/tracking/links/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "TrainingsController.create",
+      "path": "/trainings"
+    },
+    {
+      "method": "get",
+      "operationId": "TrainingsController.findAll",
+      "path": "/trainings"
+    },
+    {
+      "method": "get",
+      "operationId": "TrainingsController.findOne",
+      "path": "/trainings/{trainingId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "TrainingsController.patch",
+      "path": "/trainings/{id}"
+    },
+    {
+      "method": "delete",
+      "operationId": "TrainingsController.remove",
+      "path": "/trainings/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "TrainingsOperationsController.getTrainingImages",
+      "path": "/trainings/{trainingId}/images"
+    },
+    {
+      "method": "get",
+      "operationId": "TrainingsOperationsController.getTrainingSources",
+      "path": "/trainings/{trainingId}/sources"
+    },
+    {
+      "method": "post",
+      "operationId": "TrainingsOperationsController.relaunchTraining",
+      "path": "/trainings/{trainingId}/train"
+    },
+    {
+      "method": "post",
+      "operationId": "TranscriptsController.create",
+      "path": "/transcripts"
+    },
+    {
+      "method": "get",
+      "operationId": "TranscriptsController.findAll",
+      "path": "/transcripts"
+    },
+    {
+      "method": "get",
+      "operationId": "TranscriptsController.findOne",
+      "path": "/transcripts/{transcriptId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "TranscriptsController.update",
+      "path": "/transcripts/{transcriptId}"
+    },
+    {
+      "method": "get",
+      "operationId": "TrendsController.analyzeTrends",
+      "path": "/trends/analyze"
+    },
+    {
+      "method": "get",
+      "operationId": "TrendsController.getCorpusFreshnessHealth",
+      "path": "/trends/corpus/health"
+    },
+    {
+      "method": "get",
+      "operationId": "TrendsController.getPreferences",
+      "path": "/trends/preferences"
+    },
+    {
+      "method": "get",
+      "operationId": "TrendsController.getPromptReferencePacks",
+      "path": "/trends/references/packs"
+    },
+    {
+      "method": "get",
+      "operationId": "TrendsController.getReferenceCorpus",
+      "path": "/trends/references"
+    },
+    {
+      "method": "get",
+      "operationId": "TrendsController.getTopReferenceAccounts",
+      "path": "/trends/references/accounts"
+    },
+    {
+      "method": "get",
+      "operationId": "TrendsController.getTrendById",
+      "path": "/trends/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "TrendsController.getTrendContent",
+      "path": "/trends/content"
+    },
+    {
+      "method": "get",
+      "operationId": "TrendsController.getTrendIdeas",
+      "path": "/trends/ideas"
+    },
+    {
+      "method": "get",
+      "operationId": "TrendsController.getTrendingHashtags",
+      "path": "/trends/hashtags"
+    },
+    {
+      "method": "get",
+      "operationId": "TrendsController.getTrendingSounds",
+      "path": "/trends/sounds"
+    },
+    {
+      "method": "get",
+      "operationId": "TrendsController.getTrends",
+      "path": "/trends"
+    },
+    {
+      "method": "get",
+      "operationId": "TrendsController.getTrendsDiscovery",
+      "path": "/trends/discovery"
+    },
+    {
+      "method": "get",
+      "operationId": "TrendsController.getTrendSources",
+      "path": "/trends/{id}/sources"
+    },
+    {
+      "method": "get",
+      "operationId": "TrendsController.getTurnoverStats",
+      "path": "/trends/turnover"
+    },
+    {
+      "method": "get",
+      "operationId": "TrendsController.getTurnoverTimeline",
+      "path": "/trends/turnover/timeline"
+    },
+    {
+      "method": "get",
+      "operationId": "TrendsController.getViralLeaderboard",
+      "path": "/trends/leaderboard"
+    },
+    {
+      "method": "get",
+      "operationId": "TrendsController.getViralVideos",
+      "path": "/trends/videos"
+    },
+    {
+      "method": "post",
+      "operationId": "TrendsController.refreshTrends",
+      "path": "/trends/refresh"
+    },
+    {
+      "method": "post",
+      "operationId": "TrendsController.savePreferences",
+      "path": "/trends/preferences"
+    },
+    {
+      "method": "post",
+      "operationId": "TwitterController.connect",
+      "path": "/services/twitter/connect"
+    },
+    {
+      "method": "get",
+      "operationId": "TwitterController.getTrends",
+      "path": "/services/twitter/trends"
+    },
+    {
+      "method": "post",
+      "operationId": "TwitterController.verify",
+      "path": "/services/twitter/verify"
+    },
+    {
+      "method": "post",
+      "operationId": "TwitterPipelineController.draft",
+      "path": "/organizations/{organizationId}/twitter-pipeline/draft"
+    },
+    {
+      "method": "post",
+      "operationId": "TwitterPipelineController.publish",
+      "path": "/organizations/{organizationId}/twitter-pipeline/publish"
+    },
+    {
+      "method": "post",
+      "operationId": "TwitterPipelineController.search",
+      "path": "/organizations/{organizationId}/twitter-pipeline/search"
+    },
+    {
+      "method": "get",
+      "operationId": "UnipileController.accounts",
+      "path": "/services/unipile/accounts"
+    },
+    {
+      "method": "get",
+      "operationId": "UnipileController.calendarEvents",
+      "path": "/services/unipile/calendar/events"
+    },
+    {
+      "method": "post",
+      "operationId": "UnipileController.configure",
+      "path": "/services/unipile/connect"
+    },
+    {
+      "method": "get",
+      "operationId": "UnipileController.emails",
+      "path": "/services/unipile/emails"
+    },
+    {
+      "method": "get",
+      "operationId": "UnipileController.messages",
+      "path": "/services/unipile/messages"
+    },
+    {
+      "method": "post",
+      "operationId": "UnipileController.sendEmail",
+      "path": "/services/unipile/emails/send"
+    },
+    {
+      "method": "get",
+      "operationId": "UnipileController.status",
+      "path": "/services/unipile/status"
+    },
+    {
+      "method": "delete",
+      "operationId": "UsersController.clearBrandSelection",
+      "path": "/users/me/brand-selection"
+    },
+    {
+      "method": "post",
+      "operationId": "UsersController.confirmAvatarUpload",
+      "path": "/users/me/avatar/confirm"
+    },
+    {
+      "method": "get",
+      "operationId": "UsersController.findAll",
+      "path": "/users"
+    },
+    {
+      "method": "get",
+      "operationId": "UsersController.findMe",
+      "path": "/users/me"
+    },
+    {
+      "method": "get",
+      "operationId": "UsersController.findMeBrands",
+      "path": "/users/me/brands"
+    },
+    {
+      "method": "get",
+      "operationId": "UsersController.findMeOrganizations",
+      "path": "/users/me/organizations"
+    },
+    {
+      "method": "get",
+      "operationId": "UsersController.findMeSettings",
+      "path": "/users/me/settings"
+    },
+    {
+      "method": "get",
+      "operationId": "UsersController.findOne",
+      "path": "/users/{userId}"
+    },
+    {
+      "method": "post",
+      "operationId": "UsersController.getAvatarUploadUrl",
+      "path": "/users/me/avatar"
+    },
+    {
+      "method": "get",
+      "operationId": "UsersController.getOnboardingStatus",
+      "path": "/users/{userId}/onboarding"
+    },
+    {
+      "method": "patch",
+      "operationId": "UsersController.updateBrandSelection",
+      "path": "/users/me/brands/{brandId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "UsersController.updateMe",
+      "path": "/users/me"
+    },
+    {
+      "method": "patch",
+      "operationId": "UsersController.updateMeSettings",
+      "path": "/users/me/settings"
+    },
+    {
+      "method": "patch",
+      "operationId": "UsersController.updateOnboardingStatus",
+      "path": "/users/{userId}/onboarding"
+    },
+    {
+      "method": "patch",
+      "operationId": "UsersController.updateOrganizationSelection",
+      "path": "/users/me/organizations/{organizationId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "UsersController.updateSettings",
+      "path": "/users/{userId}/settings"
+    },
+    {
+      "method": "post",
+      "operationId": "UserStripeController.createCheckoutSession",
+      "path": "/users/stripe/checkout"
+    },
+    {
+      "method": "get",
+      "operationId": "UserStripeController.getBillingPortalUrl",
+      "path": "/users/stripe/portal"
+    },
+    {
+      "method": "get",
+      "operationId": "UserStripeController.getSubscription",
+      "path": "/users/stripe/subscription"
+    },
+    {
+      "method": "post",
+      "operationId": "VideosCaptionsController.createVideoWithCaptions",
+      "path": "/videos/{videoId}/captions"
+    },
+    {
+      "method": "get",
+      "operationId": "VideosCaptionsController.getCaptions",
+      "path": "/videos/{videoId}/captions"
+    },
+    {
+      "method": "post",
+      "operationId": "VideosController.create",
+      "path": "/videos"
+    },
+    {
+      "method": "get",
+      "operationId": "VideosController.findAll",
+      "path": "/videos"
+    },
+    {
+      "method": "get",
+      "operationId": "VideosController.findOne",
+      "path": "/videos/{videoId}"
+    },
+    {
+      "method": "get",
+      "operationId": "VideosController.getThumbnail",
+      "path": "/videos/{videoId}/thumbnail"
+    },
+    {
+      "method": "delete",
+      "operationId": "VideosController.remove",
+      "path": "/videos/{videoId}"
+    },
+    {
+      "method": "post",
+      "operationId": "VideosEditsController.addTextOverlay",
+      "path": "/videos/{videoId}/text-overlay"
+    },
+    {
+      "method": "post",
+      "operationId": "VideosEditsController.trimVideo",
+      "path": "/videos/{videoId}/trim"
+    },
+    {
+      "method": "post",
+      "operationId": "VideosEffectsController.mirrorVideo",
+      "path": "/videos/{videoId}/mirror"
+    },
+    {
+      "method": "post",
+      "operationId": "VideosEffectsController.reverseVideo",
+      "path": "/videos/{videoId}/reverse"
+    },
+    {
+      "method": "post",
+      "operationId": "VideosGifController.createGif",
+      "path": "/videos/{videoId}/gif"
+    },
+    {
+      "method": "post",
+      "operationId": "VideosLipSyncController.createLipSyncVideo",
+      "path": "/videos/lip-sync"
+    },
+    {
+      "method": "get",
+      "operationId": "VideosProvenanceController.getProvenance",
+      "path": "/videos/{videoId}/provenance"
+    },
+    {
+      "method": "get",
+      "operationId": "VideosProvenanceController.getWatermarkEvaluation",
+      "path": "/videos/{videoId}/provenance/watermark-evaluation"
+    },
+    {
+      "method": "post",
+      "operationId": "VideosReframeController.reframeVideo",
+      "path": "/videos/{videoId}/reframe"
+    },
+    {
+      "method": "get",
+      "operationId": "VideosRelationshipsController.findAllPosts",
+      "path": "/videos/{videoId}/posts"
+    },
+    {
+      "method": "get",
+      "operationId": "VideosRelationshipsController.findChildren",
+      "path": "/videos/{videoId}/children"
+    },
+    {
+      "method": "post",
+      "operationId": "VideosRelationshipsController.mergeVideos",
+      "path": "/videos/merge"
+    },
+    {
+      "method": "post",
+      "operationId": "VideosResizeController.resizeToPortrait",
+      "path": "/videos/{videoId}/portrait"
+    },
+    {
+      "method": "post",
+      "operationId": "VideosResizeController.resizeVideo",
+      "path": "/videos/{videoId}/resize"
+    },
+    {
+      "method": "post",
+      "operationId": "VideosUploadController.createUpload",
+      "path": "/videos/upload"
+    },
+    {
+      "method": "post",
+      "operationId": "VideosUpscaleController.upscaleVideo",
+      "path": "/videos/{videoId}/upscale"
+    },
+    {
+      "method": "post",
+      "operationId": "VoicesController.cloneVoice",
+      "path": "/voices/clone"
+    },
+    {
+      "method": "delete",
+      "operationId": "VoicesController.deleteClonedVoice",
+      "path": "/voices/clone/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "VoicesController.findAll",
+      "path": "/voices"
+    },
+    {
+      "method": "get",
+      "operationId": "VoicesController.findCatalog",
+      "path": "/voices/catalog"
+    },
+    {
+      "method": "get",
+      "operationId": "VoicesController.findClonedVoices",
+      "path": "/voices/cloned"
+    },
+    {
+      "method": "post",
+      "operationId": "VoicesController.generate",
+      "path": "/voices/generate"
+    },
+    {
+      "method": "post",
+      "operationId": "VoicesController.importCatalogVoices",
+      "path": "/voices/import"
+    },
+    {
+      "method": "patch",
+      "operationId": "VoicesController.patchCatalogVoice",
+      "path": "/voices/catalog/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "VotesController.create",
+      "path": "/votes"
+    },
+    {
+      "method": "delete",
+      "operationId": "VotesController.remove",
+      "path": "/votes/{entityId}"
+    },
+    {
+      "method": "post",
+      "operationId": "WatchlistsController.create",
+      "path": "/watchlists"
+    },
+    {
+      "method": "delete",
+      "operationId": "WatchlistsController.delete",
+      "path": "/watchlists/{watchlistId}"
+    },
+    {
+      "method": "get",
+      "operationId": "WatchlistsController.findAll",
+      "path": "/watchlists"
+    },
+    {
+      "method": "get",
+      "operationId": "WatchlistsController.findOne",
+      "path": "/watchlists/{watchlistId}"
+    },
+    {
+      "method": "post",
+      "operationId": "WatchlistsController.quickAdd",
+      "path": "/watchlists/quick-add"
+    },
+    {
+      "method": "patch",
+      "operationId": "WatchlistsController.update",
+      "path": "/watchlists/{watchlistId}"
+    },
+    {
+      "method": "get",
+      "operationId": "WhatsappController.getMessageStatus",
+      "path": "/services/whatsapp/status/{messageSid}"
+    },
+    {
+      "method": "post",
+      "operationId": "WhatsappController.sendMessage",
+      "path": "/services/whatsapp/send"
+    },
+    {
+      "method": "post",
+      "operationId": "WhatsappController.sendTemplateMessage",
+      "path": "/services/whatsapp/template"
+    },
+    {
+      "method": "post",
+      "operationId": "WordpressController.createPost",
+      "path": "/services/wordpress/posts"
+    },
+    {
+      "method": "post",
+      "operationId": "WordpressController.exchangeToken",
+      "path": "/services/wordpress/token"
+    },
+    {
+      "method": "get",
+      "operationId": "WordpressController.getAuthUrl",
+      "path": "/services/wordpress/auth"
+    },
+    {
+      "method": "get",
+      "operationId": "WorkflowBatchController.getBatchStatus",
+      "path": "/workflows/batch/{batchJobId}"
+    },
+    {
+      "method": "get",
+      "operationId": "WorkflowBatchController.listBatchJobs",
+      "path": "/workflows/batch"
+    },
+    {
+      "method": "post",
+      "operationId": "WorkflowBatchController.runBatch",
+      "path": "/workflows/{workflowId}/batch"
+    },
+    {
+      "method": "post",
+      "operationId": "WorkflowBuilderController.generateWorkflow",
+      "path": "/workflows/generate"
+    },
+    {
+      "method": "get",
+      "operationId": "WorkflowBuilderController.getNodeDefinition",
+      "path": "/workflows/nodes/{nodeType}"
+    },
+    {
+      "method": "get",
+      "operationId": "WorkflowBuilderController.getNodeRegistry",
+      "path": "/workflows/nodes/registry"
+    },
+    {
+      "method": "get",
+      "operationId": "WorkflowBuilderController.getWorkflowInterface",
+      "path": "/workflows/{workflowId}/interface"
+    },
+    {
+      "method": "post",
+      "operationId": "WorkflowBuilderController.importWorkflow",
+      "path": "/workflows/import"
+    },
+    {
+      "method": "post",
+      "operationId": "WorkflowBuilderController.validateNodeConnection",
+      "path": "/workflows/validate-connection"
+    },
+    {
+      "method": "post",
+      "operationId": "WorkflowBuilderController.validateWorkflow",
+      "path": "/workflows/{workflowId}/validate"
+    },
+    {
+      "method": "post",
+      "operationId": "WorkflowBuilderController.validateWorkflowReference",
+      "path": "/workflows/{workflowId}/validate-reference"
+    },
+    {
+      "method": "post",
+      "operationId": "WorkflowCrudController.cloneWorkflow",
+      "path": "/workflows/{workflowId}/clone"
+    },
+    {
+      "method": "post",
+      "operationId": "WorkflowCrudController.create",
+      "path": "/workflows"
+    },
+    {
+      "method": "get",
+      "operationId": "WorkflowCrudController.exportComfyUI",
+      "path": "/workflows/{workflowId}/export-comfyui"
+    },
+    {
+      "method": "get",
+      "operationId": "WorkflowCrudController.findAll",
+      "path": "/workflows"
+    },
+    {
+      "method": "get",
+      "operationId": "WorkflowCrudController.findOne",
+      "path": "/workflows/{workflowId}"
+    },
+    {
+      "method": "get",
+      "operationId": "WorkflowCrudController.getStatistics",
+      "path": "/workflows/statistics"
+    },
+    {
+      "method": "delete",
+      "operationId": "WorkflowCrudController.remove",
+      "path": "/workflows/{workflowId}"
+    },
+    {
+      "method": "patch",
+      "operationId": "WorkflowCrudController.update",
+      "path": "/workflows/{workflowId}"
+    },
+    {
+      "method": "post",
+      "operationId": "WorkflowExecutionController.archiveWorkflow",
+      "path": "/workflows/{workflowId}/lifecycle/archive"
+    },
+    {
+      "method": "post",
+      "operationId": "WorkflowExecutionController.executePartial",
+      "path": "/workflows/{workflowId}/execute/partial"
+    },
+    {
+      "method": "get",
+      "operationId": "WorkflowExecutionController.getCreditsEstimate",
+      "path": "/workflows/{workflowId}/credits-estimate"
+    },
+    {
+      "method": "get",
+      "operationId": "WorkflowExecutionController.getExecutionLogs",
+      "path": "/workflows/{workflowId}/executions/{runId}/logs"
+    },
+    {
+      "method": "post",
+      "operationId": "WorkflowExecutionController.lockNodes",
+      "path": "/workflows/{workflowId}/nodes/lock"
+    },
+    {
+      "method": "post",
+      "operationId": "WorkflowExecutionController.publishWorkflowLifecycle",
+      "path": "/workflows/{workflowId}/lifecycle/publish"
+    },
+    {
+      "method": "delete",
+      "operationId": "WorkflowExecutionController.removeSchedule",
+      "path": "/workflows/{workflowId}/schedule"
+    },
+    {
+      "method": "post",
+      "operationId": "WorkflowExecutionController.resumeExecution",
+      "path": "/workflows/{workflowId}/execute/resume/{runId}"
+    },
+    {
+      "method": "post",
+      "operationId": "WorkflowExecutionController.setSchedule",
+      "path": "/workflows/{workflowId}/schedule"
+    },
+    {
+      "method": "patch",
+      "operationId": "WorkflowExecutionController.setThumbnail",
+      "path": "/workflows/{workflowId}/thumbnail"
+    },
+    {
+      "method": "post",
+      "operationId": "WorkflowExecutionController.submitApproval",
+      "path": "/workflows/{workflowId}/executions/{executionId}/approve"
+    },
+    {
+      "method": "post",
+      "operationId": "WorkflowExecutionController.unlockNodes",
+      "path": "/workflows/{workflowId}/nodes/unlock"
+    },
+    {
+      "method": "post",
+      "operationId": "WorkflowExecutionsController.cancel",
+      "path": "/workflow-executions/{id}/cancel"
+    },
+    {
+      "method": "post",
+      "operationId": "WorkflowExecutionsController.create",
+      "path": "/workflow-executions"
+    },
+    {
+      "method": "get",
+      "operationId": "WorkflowExecutionsController.findAll",
+      "path": "/workflow-executions"
+    },
+    {
+      "method": "get",
+      "operationId": "WorkflowExecutionsController.findOne",
+      "path": "/workflow-executions/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "WorkflowExecutionsController.getExecutionStats",
+      "path": "/workflow-executions/workflow/{workflowId}/stats"
+    },
+    {
+      "method": "get",
+      "operationId": "WorkflowExecutionsController.getWorkflowExecutions",
+      "path": "/workflow-executions/workflow/{workflowId}"
+    },
+    {
+      "method": "get",
+      "operationId": "WorkflowMarketplaceController.getMarketplace",
+      "path": "/workflows/marketplace"
+    },
+    {
+      "method": "get",
+      "operationId": "WorkflowMarketplaceController.getReferencableWorkflows",
+      "path": "/workflows/referencable"
+    },
+    {
+      "method": "get",
+      "operationId": "WorkflowMarketplaceController.getTemplates",
+      "path": "/workflows/templates"
+    },
+    {
+      "method": "post",
+      "operationId": "WorkflowMarketplaceController.publishToMarketplace",
+      "path": "/workflows/{workflowId}/publish"
+    },
+    {
+      "method": "delete",
+      "operationId": "WorkflowMarketplaceController.unpublishFromMarketplace",
+      "path": "/workflows/{workflowId}/publish"
+    },
+    {
+      "method": "delete",
+      "operationId": "WorkflowWebhookManagementController.deleteWebhook",
+      "path": "/workflows/{workflowId}/webhook"
+    },
+    {
+      "method": "post",
+      "operationId": "WorkflowWebhookManagementController.generateWebhook",
+      "path": "/workflows/{workflowId}/webhook"
+    },
+    {
+      "method": "get",
+      "operationId": "WorkflowWebhookManagementController.getWebhookInfo",
+      "path": "/workflows/{workflowId}/webhook"
+    },
+    {
+      "method": "post",
+      "operationId": "WorkflowWebhookManagementController.regenerateWebhookSecret",
+      "path": "/workflows/{workflowId}/webhook/regenerate-secret"
+    },
+    {
+      "method": "post",
+      "operationId": "YoutubeController.connect",
+      "path": "/services/youtube/connect"
+    },
+    {
+      "method": "get",
+      "operationId": "YoutubeController.getTrends",
+      "path": "/services/youtube/trends"
+    },
+    {
+      "method": "get",
+      "operationId": "YoutubeController.getVideoMetadata",
+      "path": "/services/youtube/metadata/{videoId}"
+    },
+    {
+      "method": "post",
+      "operationId": "YoutubeController.verify",
+      "path": "/services/youtube/verify"
+    }
+  ]
+}

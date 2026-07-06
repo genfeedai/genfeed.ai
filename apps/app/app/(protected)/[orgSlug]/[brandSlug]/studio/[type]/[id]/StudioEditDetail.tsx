@@ -7,7 +7,9 @@ import {
   IngredientFormat,
   IngredientStatus,
 } from '@genfeedai/enums';
+import { useDominantColor } from '@genfeedai/hooks/ui/use-dominant-color/use-dominant-color';
 import type { IStudioEditDetailContentProps } from '@genfeedai/interfaces/content/studio-edit-detail.interface';
+import AmbientColorWash from '@ui/ambient/AmbientColorWash';
 import Card from '@ui/card/Card';
 import Loading from '@ui/loading/default/Loading';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
@@ -98,6 +100,11 @@ export default function StudioEditDetail({
     studioHref,
     videoRef,
   } = useStudioEditDetail({ ingredientId });
+
+  // The detail pane takes on the colour of the single asset being viewed.
+  const ambientColor = useDominantColor(
+    selectedIngredient?.ingredientUrl ?? selectedIngredient?.thumbnailUrl,
+  );
 
   if (loadError && !isLoading) {
     return (
@@ -233,8 +240,12 @@ export default function StudioEditDetail({
               </div>
             </div>
 
-            <div className="flex-1 flex flex-col overflow-hidden">
-              <div className="flex-1 overflow-y-auto p-6">
+            <div className="relative flex-1 flex flex-col overflow-hidden">
+              <AmbientColorWash
+                color={ambientColor?.rgb ?? null}
+                position="center"
+              />
+              <div className="relative z-[1] flex-1 overflow-y-auto p-6">
                 <div className="flex flex-col items-center justify-center h-full">
                   <h3 className="text-lg font-semibold mb-4">Current Asset</h3>
                   <div className="relative max-w-full max-h-sidebar flex items-center justify-center">

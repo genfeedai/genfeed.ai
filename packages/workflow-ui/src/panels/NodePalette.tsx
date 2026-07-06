@@ -153,7 +153,7 @@ function NodeCard({ type, label, description, icon, category }: NodeCardProps) {
       type="button"
       draggable
       onDragStart={handleDragStart}
-      className={`p-3 bg-[var(--card)] border border-[var(--border)] cursor-grab transition-colors group ${colors.hover}`}
+      className={`p-3 bg-[var(--card)] border border-transparent shadow-border cursor-grab transition-colors group ${colors.hover}`}
     >
       <div className="flex items-start gap-3">
         <div className={`p-2 rounded ${colors.icon}`}>

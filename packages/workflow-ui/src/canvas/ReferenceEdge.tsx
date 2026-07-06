@@ -4,7 +4,7 @@ import { BaseEdge, type EdgeProps, getBezierPath } from '@xyflow/react';
 import { useMemo } from 'react';
 import { useWorkflowStore } from '../stores/workflow';
 
-const REFERENCE_COLOR = '#52525b';
+const REFERENCE_COLOR = 'hsl(var(--muted-foreground))';
 
 export function ReferenceEdge({
   id,

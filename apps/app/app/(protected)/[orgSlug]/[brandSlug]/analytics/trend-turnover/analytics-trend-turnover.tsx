@@ -137,7 +137,7 @@ export default function AnalyticsTrendTurnover() {
       />
 
       <Card
-        className="border border-white/[0.08] bg-card/80 backdrop-blur"
+        className="backdrop-blur"
         bodyClassName="space-y-4"
         label="Trend Flow"
       >
@@ -148,7 +148,7 @@ export default function AnalyticsTrendTurnover() {
       </Card>
 
       <Card
-        className="border border-white/[0.08] bg-card/80 backdrop-blur"
+        className="backdrop-blur"
         bodyClassName="space-y-4"
         label="Platform Breakdown"
       >
@@ -226,7 +226,7 @@ export default function AnalyticsTrendTurnover() {
       </Card>
 
       <Card
-        className="border border-white/[0.08] bg-card/80 backdrop-blur"
+        className="backdrop-blur"
         bodyClassName="space-y-4"
         label="Platform Volatility"
       >
@@ -255,7 +255,7 @@ export default function AnalyticsTrendTurnover() {
                     {item.turnoverRate}%
                   </span>
                 </div>
-                <div className="h-1.5 w-full bg-white/[0.06] overflow-hidden">
+                <div className="h-1.5 w-full bg-tertiary overflow-hidden">
                   <div
                     className="h-full bg-primary transition-all duration-500"
                     style={{ width: `${item.turnoverRate}%` }}

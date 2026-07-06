@@ -2,7 +2,6 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { GifsQueryDto } from '@api/collections/gifs/dto/gifs-query.dto';
 import { GifsService } from '@api/collections/gifs/services/gifs.service';
 import { VotesService } from '@api/collections/votes/services/votes.service';
-import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -53,64 +52,6 @@ export class GifsController {
     private readonly loggerService: LoggerService,
     private readonly votesService: VotesService,
   ) {}
-
-  @Get('latest')
-  @Cache({
-    keyGenerator: (req) =>
-      `gifs:latest:user:${req.user?.id ?? 'anonymous'}:limit:${req.query.limit ?? 10}`,
-    tags: ['gifs'],
-    ttl: 300, // 5 minutes
-  })
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findLatest(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Query('limit') limit: number = 10,
-  ): Promise<JsonApiCollectionResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
-    const brand = publicMetadata.brand;
-
-    const aggregate = {
-      where: {
-        AND: [
-          {
-            OR: [
-              {
-                AND: [
-                  {
-                    brand,
-                    category: IngredientCategory.GIF,
-                    isDeleted,
-                    user: publicMetadata.user,
-                  },
-                ],
-              },
-              {
-                AND: [
-                  {
-                    // Filter default GIFs by brand when brand is specified
-                    brand,
-                    category: IngredientCategory.GIF,
-                    isDefault: true,
-                    isDeleted,
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-      orderBy: { createdAt: -1 },
-    };
-
-    const data = await this.gifsService.findAll(aggregate, {
-      limit: Math.min(Number(limit) || 10, 50),
-      pagination: false,
-    });
-
-    return serializeCollection(request, IngredientSerializer, data);
-  }
 
   @Get()
   @LogMethod({ logEnd: false, logError: true, logStart: true })

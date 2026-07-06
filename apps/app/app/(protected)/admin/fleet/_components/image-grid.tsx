@@ -147,9 +147,8 @@ export default function ImageGrid({
 
               {onDelete && (
                 <Button
-                  variant={ButtonVariant.UNSTYLED}
-                  withWrapper={false}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded bg-error/10 text-error hover:bg-error/20 transition-colors"
+                  variant={ButtonVariant.GHOST}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium"
                   onClick={() => onDelete(Array.from(selectedIds))}
                 >
                   <HiOutlineTrash className="size-4" />

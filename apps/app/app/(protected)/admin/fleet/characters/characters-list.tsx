@@ -93,7 +93,7 @@ export default function CharactersList() {
               key={character.id}
               href={`/admin/fleet/characters/${character.slug}`}
             >
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+              <Card className="hover:shadow-border-strong transition-shadow cursor-pointer h-full">
                 <div className="p-6">
                   {/* Header: Emoji + Label */}
                   <div className="flex items-center gap-3 mb-4">

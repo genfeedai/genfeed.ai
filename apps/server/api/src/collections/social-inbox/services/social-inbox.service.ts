@@ -6,7 +6,6 @@ import {
   type SocialMessageDocument,
 } from '@api/collections/social-inbox/schemas/social-inbox.schema';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -73,6 +72,12 @@ export interface SocialActionInput {
   agentRunId?: string;
   recipientId?: string;
   messageType?: 'dm' | 'reply';
+}
+
+export interface SocialConversationPatch {
+  status?: string;
+  tags?: string[];
+  assignedOwnerId?: string | null;
 }
 
 export type SocialInboxPage<T> = {
@@ -534,49 +539,39 @@ export class SocialInboxService {
     return this.toMessageDocument(message);
   }
 
-  async updateStatus(
+  async updateConversation(
     scope: SocialInboxScope,
     conversationId: string,
-    status: string,
+    patch: SocialConversationPatch,
   ): Promise<SocialConversationDocument> {
     await this.getConversation(scope, conversationId);
+
+    const data: Prisma.SocialConversationUpdateInput = {};
+
+    if (patch.status !== undefined) {
+      data.status = patch.status;
+      data.needsReview = patch.status === 'needs_review';
+      if (patch.status === 'resolved') {
+        data.unreadCount = 0;
+      }
+    }
+
+    if (patch.tags !== undefined) {
+      data.tags = [
+        ...new Set(patch.tags.map((tag) => tag.trim()).filter(Boolean)),
+      ].slice(0, 20);
+    }
+
+    if (patch.assignedOwnerId !== undefined) {
+      data.assignedOwnerId = patch.assignedOwnerId ?? null;
+    }
+
+    if (Object.keys(data).length === 0) {
+      throw new BadRequestException('No conversation fields to update');
+    }
+
     const updated = await this.prisma.socialConversation.update({
-      data: {
-        needsReview: status === 'needs_review',
-        status,
-        unreadCount: status === 'resolved' ? 0 : undefined,
-      },
-      where: { id: conversationId },
-    });
-
-    return this.toConversationDocument(updated);
-  }
-
-  async updateTags(
-    scope: SocialInboxScope,
-    conversationId: string,
-    tags: string[],
-  ): Promise<SocialConversationDocument> {
-    await this.getConversation(scope, conversationId);
-    const normalizedTags = [
-      ...new Set(tags.map((tag) => tag.trim()).filter(Boolean)),
-    ].slice(0, 20);
-    const updated = await this.prisma.socialConversation.update({
-      data: { tags: normalizedTags },
-      where: { id: conversationId },
-    });
-
-    return this.toConversationDocument(updated);
-  }
-
-  async assignOwner(
-    scope: SocialInboxScope,
-    conversationId: string,
-    assignedOwnerId?: string | null,
-  ): Promise<SocialConversationDocument> {
-    await this.getConversation(scope, conversationId);
-    const updated = await this.prisma.socialConversation.update({
-      data: { assignedOwnerId: assignedOwnerId ?? null },
+      data,
       where: { id: conversationId },
     });
 

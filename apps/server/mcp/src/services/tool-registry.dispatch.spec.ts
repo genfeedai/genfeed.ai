@@ -36,6 +36,9 @@ describe('ToolRegistryService.classify', () => {
     ['start_training', 'training-pipeline'],
     ['generate_darkroom_content', 'darkroom-generation'],
     ['post_social_reply', 'social-messages'],
+    ['analyze_clip_project', 'clip-projects'],
+    ['generate_clips', 'clip-projects'],
+    ['get_clip_project', 'clip-projects'],
     // OpenAPI-generated tools (#1248): the `__` namespace routes to the
     // generated executor kind so the boot drift guard stays green pre-#1249.
     ['brands__create', 'generated'],
@@ -71,6 +74,9 @@ describe('ToolRegistryService.validateDispatchCoverage', () => {
       'approve_social_draft',
       'post_social_reply',
       'send_social_dm',
+      'analyze_clip_project',
+      'create_clip_project_from_youtube',
+      'generate_clips',
     ];
     mockState.tools = [
       { name: 'generate_image' },

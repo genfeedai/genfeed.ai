@@ -184,8 +184,8 @@ export default function BrandSettingsInterviewPage() {
             </div>
           )}
 
-          <div className="rounded-md border border-amber-500/30 bg-amber-500/5 px-4 py-3">
-            <p className="text-sm text-amber-400/90">
+          <div className="rounded-md bg-secondary px-4 py-3">
+            <p className="text-sm text-muted-foreground">
               Starting a new interview uses{' '}
               <strong>{INTERVIEW_CREDIT_COST} credits</strong>. Resuming an
               existing session is free.

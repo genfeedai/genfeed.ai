@@ -78,19 +78,19 @@ The Chrome extension services have been refactored to follow the same pattern as
 
 ### 5. API Endpoints
 
-#### New `/latest` Endpoints
+#### Latest-media Endpoints (`?latest=true` shorthand)
 
-Added to all content controllers with comments indicating they're used by the extension:
+The former standalone `GET /*/latest` routes were collapsed into the list
+routes via a `latest=true` query param (REST audit #1354). The extension uses:
 
-- `GET /videos/latest?limit=10` - Get latest videos
-- `GET /images/latest?limit=10` - Get latest images
-- `GET /musics/latest?limit=10` - Get latest musics
+- `GET /videos?latest=true&limit=10` - Get latest videos
+- `GET /images?latest=true&limit=10` - Get latest images
 
 **Features**:
 
-- Cached responses (5 minutes TTL)
-- User-specific content filtering
-- Pagination support (limit capped at 50 for performance)
+- Cached responses (5 minutes TTL) on the `latest=true` path
+- User-specific content filtering (training sources excluded)
+- Latest results capped at 50 for performance
 - Excludes training source content by default
 
 ### 6. CORS Configuration

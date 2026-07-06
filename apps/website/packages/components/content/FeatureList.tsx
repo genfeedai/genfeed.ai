@@ -45,7 +45,7 @@ export default function FeatureList({
 function FeatureItem({ feature }: { feature: string }) {
   return (
     <div className="flex items-start gap-3">
-      <LuCheck className="size-4 text-surface/40 mt-0.5 shrink-0" />
+      <LuCheck className="size-4 text-surface/65 mt-0.5 shrink-0" />
       <span className="text-surface/60 text-sm">{feature}</span>
     </div>
   );

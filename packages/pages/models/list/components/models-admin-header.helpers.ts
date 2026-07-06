@@ -49,7 +49,7 @@ export function buildDefaultModelCards(
   const allCards = [
     {
       categoryMatch: 'image',
-      colorClass: 'bg-purple-500/20 text-purple-400',
+      colorClass: 'bg-muted-foreground/20 text-muted-foreground',
       count: 0,
       description: defaultModels.image?.label || 'Not set',
       icon: HiPhoto as IconType,
@@ -57,7 +57,7 @@ export function buildDefaultModelCards(
     },
     {
       categoryMatch: 'video',
-      colorClass: 'bg-blue-500/20 text-blue-400',
+      colorClass: 'bg-muted-foreground/20 text-muted-foreground',
       count: 0,
       description: defaultModels.video?.label || 'Not set',
       icon: HiFilm as IconType,
@@ -65,7 +65,7 @@ export function buildDefaultModelCards(
     },
     {
       categoryMatch: 'music',
-      colorClass: 'bg-amber-500/20 text-amber-400',
+      colorClass: 'bg-muted-foreground/20 text-muted-foreground',
       count: 0,
       description: defaultModels.music?.label || 'Not set',
       icon: HiMusicalNote as IconType,
@@ -73,7 +73,7 @@ export function buildDefaultModelCards(
     },
     {
       categoryMatch: 'text',
-      colorClass: 'bg-green-500/20 text-green-400',
+      colorClass: 'bg-muted-foreground/20 text-muted-foreground',
       count: 0,
       description: defaultModels.text?.label || 'Not set',
       icon: HiDocumentText as IconType,

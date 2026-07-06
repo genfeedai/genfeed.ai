@@ -52,7 +52,7 @@ import { NodeSearch } from './NodeSearch';
 import { ReferenceEdge } from './ReferenceEdge';
 import { ShortcutHelpModal } from './ShortcutHelpModal';
 
-const DEFAULT_NODE_COLOR = '#6b7280';
+const DEFAULT_NODE_COLOR = 'hsl(var(--muted-foreground))';
 
 /**
  * Check if the model's schema supports image input

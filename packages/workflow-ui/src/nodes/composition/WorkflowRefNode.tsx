@@ -447,10 +447,9 @@ function WorkflowRefNodeComponent(props: NodeProps) {
   return (
     <div
       className={clsx(
-        'relative min-w-[220px] border shadow-lg transition-all',
+        'relative min-w-[220px] border shadow-border hover:shadow-border-strong transition-all',
         'border-[var(--category-composition)] bg-card',
         isSelected && 'ring-1',
-        isProcessing && 'node-processing',
       )}
       style={
         {

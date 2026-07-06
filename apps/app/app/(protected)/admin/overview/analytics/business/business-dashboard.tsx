@@ -60,7 +60,7 @@ function LeaderTable({
   valueLabel,
 }: LeaderTableProps) {
   return (
-    <Card bodyClassName="gap-0 p-4" className="border-border">
+    <Card bodyClassName="gap-0 p-4">
       <h3 className="mb-3 text-sm font-semibold text-foreground">{title}</h3>
       {leaders.length === 0 ? (
         <p className="text-sm text-muted-foreground">No data available</p>
@@ -121,7 +121,7 @@ function ComparisonCard({
   difference,
 }: ComparisonCardProps) {
   return (
-    <Card bodyClassName="gap-0 p-4" className="border-border">
+    <Card bodyClassName="gap-0 p-4">
       <h3 className="mb-3 text-sm font-semibold text-foreground">{title}</h3>
       <div className="flex items-end justify-between gap-4">
         <div>
@@ -160,7 +160,7 @@ function DailySeriesChart({
 }: DailySeriesChartProps) {
   if (data.length === 0) {
     return (
-      <Card bodyClassName="gap-0 p-4" className="border-border">
+      <Card bodyClassName="gap-0 p-4">
         <h3 className="mb-3 text-sm font-semibold text-foreground">{title}</h3>
         <p className="text-sm text-muted-foreground">No data available</p>
       </Card>
@@ -171,7 +171,7 @@ function DailySeriesChart({
   const maxValue = Math.max(...values, 1);
 
   return (
-    <Card bodyClassName="gap-0 p-4" className="border-border">
+    <Card bodyClassName="gap-0 p-4">
       <h3 className="mb-3 text-sm font-semibold text-foreground">{title}</h3>
       <div className="flex h-32 items-end gap-px">
         {data.map((point) => {
@@ -206,7 +206,7 @@ interface ProjectionCardProps {
 function ProjectionCard({ projections }: ProjectionCardProps) {
   if (projections.insufficientData) {
     return (
-      <Card bodyClassName="gap-0 p-4" className="border-border">
+      <Card bodyClassName="gap-0 p-4">
         <h3 className="mb-2 text-sm font-semibold text-foreground">
           30-Day Projections
         </h3>
@@ -219,7 +219,7 @@ function ProjectionCard({ projections }: ProjectionCardProps) {
   }
 
   return (
-    <Card bodyClassName="gap-0 p-4" className="border-border">
+    <Card bodyClassName="gap-0 p-4">
       <h3 className="mb-1 text-sm font-semibold text-foreground">
         30-Day Projections
       </h3>
@@ -372,7 +372,7 @@ export default function BusinessDashboard() {
 
       {/* Category Breakdown */}
       {data.ingredients.categoryBreakdown.length > 0 && (
-        <div className="rounded-card border border-border bg-card p-4">
+        <Card bodyClassName="gap-0 p-4">
           <h3 className="mb-3 text-sm font-semibold text-foreground">
             Ingredient Category Breakdown
           </h3>
@@ -392,7 +392,7 @@ export default function BusinessDashboard() {
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Daily Series Charts */}

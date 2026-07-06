@@ -1,15 +1,15 @@
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import {
-  BrokenCircuitError,
-  createProcessorCircuitBreaker,
-  type ProcessorCircuitBreaker,
-} from '@api/shared/utils/circuit-breaker/circuit-breaker.util';
-import {
   ANALYTICS_YOUTUBE_QUEUE,
   YouTubeAnalyticsJobData,
 } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import {
+  BrokenCircuitError,
+  createProcessorCircuitBreaker,
+  type ProcessorCircuitBreaker,
+} from '@libs/utils/circuit-breaker/circuit-breaker.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 

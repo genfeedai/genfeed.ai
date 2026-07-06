@@ -3,7 +3,7 @@
 // Source of truth: apps/server/api/openapi/openapi.json (Phase 1 / #1247).
 // Regenerate:      bun run --filter=@genfeedai/tools generate:mcp-tools
 //
-// 1101 MCP tools, one per non-internal OpenAPI operation (#1248).
+// 1074 MCP tools, one per non-internal OpenAPI operation (#1248).
 // Dispatch/execution and approval-gating are intentionally not wired here
 // (that is #1249 / #1250); these definitions only populate the mcp surface.
 
@@ -560,36 +560,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
         "adAccountId",
         "credentialId",
         "loginCustomerId",
-        "platform"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "ads_gateway"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "pauseCampaign (POST /ads/{platform}/campaigns/{campaignId}/pause)",
-    "name": "ads_gateway__pause_campaign",
-    "parameters": {
-      "properties": {
-        "campaignId": {
-          "type": "string"
-        },
-        "platform": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "campaignId",
         "platform"
       ],
       "type": "object"
@@ -1691,32 +1661,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "creditCost": 0,
     "description": "Fetch the latest autopilot performance snapshot (GET /agent-strategies/{id}/performance-snapshot)",
     "name": "agent_strategies__performance_snapshot",
-    "parameters": {
-      "properties": {
-        "id": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "agent_strategies"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "Force a planning cycle for this strategy (POST /agent-strategies/{id}/plan-now)",
-    "name": "agent_strategies__plan_now",
     "parameters": {
       "properties": {
         "id": {
@@ -3668,32 +3612,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "findBySlug (GET /articles/slug/{slug})",
-    "name": "articles__find_by_slug",
-    "parameters": {
-      "properties": {
-        "slug": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "slug"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "articles"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "findOne (GET /articles/{id})",
     "name": "articles__find_one",
     "parameters": {
@@ -4614,71 +4532,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     },
     "tags": [
       "avatar_video"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "createGenerateAvatar (POST /avatars/generate)",
-    "name": "avatars__create_generate_avatar",
-    "parameters": {
-      "properties": {
-        "avatarId": {
-          "type": "string"
-        },
-        "category": {
-          "allOf": [
-            {
-              "enum": [
-                "avatar",
-                "avatar-video"
-              ],
-              "type": "string"
-            }
-          ]
-        },
-        "text": {
-          "type": "string"
-        },
-        "voiceId": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "avatarId",
-        "category",
-        "text",
-        "voiceId"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "avatars"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "createNewAvatar (POST /avatars/new)",
-    "name": "avatars__create_new_avatar",
-    "parameters": {
-      "properties": {},
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "avatars"
     ]
   },
   {
@@ -6039,32 +5892,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "creditCost": 0,
     "description": "findOne (GET /bots/{id})",
     "name": "bots__find_one",
-    "parameters": {
-      "properties": {
-        "id": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "bots"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "getLivestreamDeliveryHistory (GET /bots/{id}/livestream-session/history)",
-    "name": "bots__get_livestream_delivery_history",
     "parameters": {
       "properties": {
         "id": {
@@ -9202,6 +9029,11 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "description": "Filter by public gallery visibility (for getshareable.app)",
           "type": "boolean"
         },
+        "latest": {
+          "default": false,
+          "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded, plus brand-default images), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
+          "type": "boolean"
+        },
         "lightweight": {
           "default": false,
           "description": "Use lightweight mode (skip expensive lookups for gallery views)",
@@ -9493,6 +9325,11 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
         },
         "isFavorite": {
           "description": "Filter by favorite status",
+          "type": "boolean"
+        },
+        "latest": {
+          "default": false,
+          "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
           "type": "boolean"
         },
         "lightweight": {
@@ -11845,36 +11682,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "getTopPerformers (GET /content-performance/top-performers)",
-    "name": "content_performance__get_top_performers",
-    "parameters": {
-      "properties": {
-        "brand": {
-          "type": "string"
-        },
-        "limit": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "brand",
-        "limit"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "content_performance"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "importCsv (POST /content-performance/import/csv)",
     "name": "content_performance__import_csv",
     "parameters": {
@@ -14164,84 +13971,8 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "CronJobsController.create (POST /cron-jobs)",
-    "name": "cron_jobs__create",
-    "parameters": {
-      "properties": {},
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "cron_jobs"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "CronJobsController.delete (DELETE /cron-jobs/{id})",
-    "name": "cron_jobs__delete",
-    "parameters": {
-      "properties": {},
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "cron_jobs"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "CronJobsController.findAll (GET /cron-jobs)",
     "name": "cron_jobs__find_all",
-    "parameters": {
-      "properties": {},
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "cron_jobs"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "CronJobsController.pause (POST /cron-jobs/{id}/pause)",
-    "name": "cron_jobs__pause",
-    "parameters": {
-      "properties": {},
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "cron_jobs"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "CronJobsController.resume (POST /cron-jobs/{id}/resume)",
-    "name": "cron_jobs__resume",
     "parameters": {
       "properties": {},
       "type": "object"
@@ -14289,25 +14020,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "CronJobsController.runNow (POST /cron-jobs/{id}/run-now)",
-    "name": "cron_jobs__run_now",
-    "parameters": {
-      "properties": {},
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "cron_jobs"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "CronJobsController.runs (GET /cron-jobs/{id}/runs)",
     "name": "cron_jobs__runs",
     "parameters": {
@@ -14319,25 +14031,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
       "required": [
         "id"
       ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "cron_jobs"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "CronJobsController.update (PATCH /cron-jobs/{id})",
-    "name": "cron_jobs__update",
-    "parameters": {
-      "properties": {},
       "type": "object"
     },
     "requiredRole": "user",
@@ -17899,25 +17592,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "initializeAuth (GET /services/facebook/auth)",
-    "name": "facebook__initialize_auth",
-    "parameters": {
-      "properties": {},
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "facebook"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "schedulePost (POST /services/facebook/schedule)",
     "name": "facebook__schedule_post",
     "parameters": {
@@ -18593,32 +18267,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "findLatest (GET /gifs/latest)",
-    "name": "gifs__find_latest",
-    "parameters": {
-      "properties": {
-        "limit": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "limit"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "gifs"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "findOne (GET /gifs/{gifId})",
     "name": "gifs__find_one",
     "parameters": {
@@ -18671,7 +18319,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "create (POST /v1/goals)",
+    "description": "create (POST /goals)",
     "name": "goals__create",
     "parameters": {
       "properties": {
@@ -18726,7 +18374,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "findAll (GET /v1/goals)",
+    "description": "findAll (GET /goals)",
     "name": "goals__find_all",
     "parameters": {
       "properties": {},
@@ -18745,7 +18393,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "findOne (GET /v1/goals/{id})",
+    "description": "findOne (GET /goals/{id})",
     "name": "goals__find_one",
     "parameters": {
       "properties": {
@@ -18771,7 +18419,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "patch (PATCH /v1/goals/{id})",
+    "description": "patch (PATCH /goals/{id})",
     "name": "goals__patch",
     "parameters": {
       "properties": {
@@ -18833,7 +18481,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "remove (DELETE /v1/goals/{id})",
+    "description": "remove (DELETE /goals/{id})",
     "name": "goals__remove",
     "parameters": {
       "properties": {
@@ -18992,32 +18640,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
         "limit",
         "loginCustomerId",
         "startDate"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "google_ads"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "getOAuthUrl (GET /services/google-ads/oauth/url)",
-    "name": "google_ads__get_o_auth_url",
-    "parameters": {
-      "properties": {
-        "state": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "state"
       ],
       "type": "object"
     },
@@ -19684,6 +19306,11 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "description": "Filter by public gallery visibility (for getshareable.app)",
           "type": "boolean"
         },
+        "latest": {
+          "default": false,
+          "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded, plus brand-default images), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
+          "type": "boolean"
+        },
         "lightweight": {
           "default": false,
           "description": "Use lightweight mode (skip expensive lookups for gallery views)",
@@ -19758,32 +19385,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "type": "string"
         }
       },
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "images"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "findLatest (GET /images/latest)",
-    "name": "images__find_latest",
-    "parameters": {
-      "properties": {
-        "limit": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "limit"
-      ],
       "type": "object"
     },
     "requiredRole": "user",
@@ -20385,6 +19986,11 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
         "isPublic": {
           "default": false,
           "description": "Filter by public gallery visibility (for getshareable.app)",
+          "type": "boolean"
+        },
+        "latest": {
+          "default": false,
+          "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded, plus brand-default images), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
           "type": "boolean"
         },
         "lightweight": {
@@ -21902,25 +21508,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "InvitationsController.acceptInvitation (POST /members/invitations/accept)",
-    "name": "invitations__accept_invitation",
-    "parameters": {
-      "properties": {},
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "invitations"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "InvitationsController.acceptInvitationRedirect (GET /accept-invitation)",
     "name": "invitations__accept_invitation_redirect",
     "parameters": {
@@ -22734,41 +22321,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
       },
       "required": [
         "memberId"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "members"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "invite (POST /members/invite)",
-    "name": "members__invite",
-    "parameters": {
-      "properties": {
-        "email": {
-          "type": "string"
-        },
-        "firstName": {
-          "type": "string"
-        },
-        "lastName": {
-          "type": "string"
-        },
-        "role": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "email"
       ],
       "type": "object"
     },
@@ -24573,32 +24125,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "name": "musics__find_all",
     "parameters": {
       "properties": {},
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "musics"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "findLatest (GET /musics/latest)",
-    "name": "musics__find_latest",
-    "parameters": {
-      "properties": {
-        "limit": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "limit"
-      ],
       "type": "object"
     },
     "requiredRole": "user",
@@ -27411,6 +26937,11 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
         },
         "isFavorite": {
           "description": "Filter by favorite status",
+          "type": "boolean"
+        },
+        "latest": {
+          "default": false,
+          "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
           "type": "boolean"
         },
         "lightweight": {
@@ -31345,158 +30876,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "generateThread (POST /posts/thread-generations)",
-    "name": "posts_operations__generate_thread",
-    "parameters": {
-      "properties": {
-        "count": {
-          "description": "Number of tweets in the thread",
-          "example": 5,
-          "maximum": 25,
-          "minimum": 2,
-          "type": "number"
-        },
-        "credential": {
-          "description": "Credential ID (Twitter account) to use",
-          "type": "string"
-        },
-        "sourceReferenceIds": {
-          "description": "Optional trend source reference IDs to preserve remix lineage",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "sourceUrl": {
-          "description": "Optional originating source URL for remix lineage fallback",
-          "type": "string"
-        },
-        "tone": {
-          "allOf": [
-            {
-              "description": "Tone for the generated content",
-              "enum": [
-                "professional",
-                "casual",
-                "viral",
-                "educational",
-                "humorous"
-              ],
-              "type": "string"
-            }
-          ],
-          "default": "professional",
-          "description": "Tone for the generated thread"
-        },
-        "topic": {
-          "description": "Topic or prompt for generating the thread",
-          "example": "Why AI will transform content creation",
-          "type": "string"
-        },
-        "trendId": {
-          "description": "Optional originating trend ID for remix lineage",
-          "type": "string"
-        }
-      },
-      "required": [
-        "count",
-        "credential",
-        "topic"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "posts_operations"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "generateTweets (POST /posts/generations)",
-    "name": "posts_operations__generate_tweets",
-    "parameters": {
-      "properties": {
-        "count": {
-          "description": "Number of tweets to generate",
-          "example": 10,
-          "maximum": 50,
-          "minimum": 1,
-          "type": "number"
-        },
-        "credential": {
-          "description": "Credential ID (Twitter account) to use",
-          "type": "string"
-        },
-        "platform": {
-          "default": "twitter",
-          "description": "Platform for the tweets (default: twitter)",
-          "example": "twitter",
-          "type": "string"
-        },
-        "sourceReferenceIds": {
-          "description": "Optional trend source reference IDs to preserve remix lineage",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "sourceUrl": {
-          "description": "Optional originating source URL for remix lineage fallback",
-          "type": "string"
-        },
-        "tone": {
-          "allOf": [
-            {
-              "description": "Tone for the generated content",
-              "enum": [
-                "professional",
-                "casual",
-                "viral",
-                "educational",
-                "humorous"
-              ],
-              "type": "string"
-            }
-          ],
-          "default": "professional",
-          "description": "Tone for the generated tweets"
-        },
-        "topic": {
-          "description": "Topic or prompt for generating tweets",
-          "example": "AI productivity tips",
-          "type": "string"
-        },
-        "trendId": {
-          "description": "Optional originating trend ID for remix lineage",
-          "type": "string"
-        }
-      },
-      "required": [
-        "count",
-        "credential",
-        "topic"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "posts_operations"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "scoreSeo (POST /posts/{postId}/seo-scores)",
     "name": "posts_operations__score_seo",
     "parameters": {
@@ -32171,7 +31550,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "create (POST /v1/projects)",
+    "description": "create (POST /projects)",
     "name": "projects__create",
     "parameters": {
       "properties": {
@@ -32211,7 +31590,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "findAll (GET /v1/projects)",
+    "description": "findAll (GET /projects)",
     "name": "projects__find_all",
     "parameters": {
       "properties": {},
@@ -32230,7 +31609,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "findOne (GET /v1/projects/{id})",
+    "description": "findOne (GET /projects/{id})",
     "name": "projects__find_one",
     "parameters": {
       "properties": {
@@ -32256,7 +31635,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "patch (PATCH /v1/projects/{id})",
+    "description": "patch (PATCH /projects/{id})",
     "name": "projects__patch",
     "parameters": {
       "properties": {
@@ -32303,7 +31682,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "remove (DELETE /v1/projects/{id})",
+    "description": "remove (DELETE /projects/{id})",
     "name": "projects__remove",
     "parameters": {
       "properties": {
@@ -35519,65 +34898,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "Approve and publish a draft reply or DM (POST /messages/{conversationId}/drafts/{messageId}/approve)",
-    "name": "social_inbox__approve_draft",
-    "parameters": {
-      "properties": {
-        "conversationId": {
-          "type": "string"
-        },
-        "messageId": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "conversationId",
-        "messageId"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "social_inbox"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "Assign or unassign a social conversation (PATCH /messages/{conversationId}/assignment)",
-    "name": "social_inbox__assign_owner",
-    "parameters": {
-      "properties": {
-        "assignedOwnerId": {
-          "type": "object"
-        },
-        "conversationId": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "conversationId"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "social_inbox"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "Create a local reply draft for review (POST /messages/{conversationId}/drafts)",
     "name": "social_inbox__create_draft",
     "parameters": {
@@ -35882,39 +35202,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "Reject a draft reply or DM without publishing (POST /messages/{conversationId}/drafts/{messageId}/reject)",
-    "name": "social_inbox__reject_draft",
-    "parameters": {
-      "properties": {
-        "conversationId": {
-          "type": "string"
-        },
-        "messageId": {
-          "type": "string"
-        },
-        "reason": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "conversationId",
-        "messageId"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "social_inbox"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "Send a DM through a supported connected account (POST /messages/{conversationId}/dms)",
     "name": "social_inbox__send_dm",
     "parameters": {
@@ -35988,10 +35275,13 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "Update social conversation status (PATCH /messages/{conversationId}/status)",
-    "name": "social_inbox__update_status",
+    "description": "Update a social conversation (status, tags, and/or assignment) (PATCH /messages/{conversationId})",
+    "name": "social_inbox__update_conversation",
     "parameters": {
       "properties": {
+        "assignedOwnerId": {
+          "type": "object"
+        },
         "conversationId": {
           "type": "string"
         },
@@ -36003,11 +35293,16 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
             "archived"
           ],
           "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
         }
       },
       "required": [
-        "conversationId",
-        "status"
+        "conversationId"
       ],
       "type": "object"
     },
@@ -36024,23 +35319,31 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "Replace social conversation tags (PATCH /messages/{conversationId}/tags)",
-    "name": "social_inbox__update_tags",
+    "description": "Approve (and publish) or reject a draft reply/DM (PATCH /messages/{conversationId}/drafts/{messageId})",
+    "name": "social_inbox__update_draft",
     "parameters": {
       "properties": {
         "conversationId": {
           "type": "string"
         },
-        "tags": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
+        "messageId": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "approved",
+            "rejected"
+          ],
+          "type": "string"
         }
       },
       "required": [
         "conversationId",
-        "tags"
+        "messageId",
+        "status"
       ],
       "type": "object"
     },
@@ -39031,6 +38334,11 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "description": "Filter by public gallery visibility (for getshareable.app)",
           "type": "boolean"
         },
+        "latest": {
+          "default": false,
+          "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded, plus brand-default images), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
+          "type": "boolean"
+        },
         "lightweight": {
           "default": false,
           "description": "Use lightweight mode (skip expensive lookups for gallery views)",
@@ -41931,6 +41239,11 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "description": "Filter by favorite status",
           "type": "boolean"
         },
+        "latest": {
+          "default": false,
+          "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
+          "type": "boolean"
+        },
         "lightweight": {
           "default": false,
           "description": "Use lightweight mode (skip expensive lookups for masonry/gallery views)",
@@ -42005,32 +41318,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "type": "string"
         }
       },
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "videos"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "findLatest (GET /videos/latest)",
-    "name": "videos__find_latest",
-    "parameters": {
-      "properties": {
-        "limit": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "limit"
-      ],
       "type": "object"
     },
     "requiredRole": "user",
@@ -42337,32 +41624,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "creditCost": 0,
     "description": "createGif (POST /videos/{videoId}/gif)",
     "name": "videos_gif__create_gif",
-    "parameters": {
-      "properties": {
-        "videoId": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "videoId"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "videos_gif"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "createReference (POST /videos/{videoId}/reference)",
-    "name": "videos_gif__create_reference",
     "parameters": {
       "properties": {
         "videoId": {
@@ -43055,6 +42316,11 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "description": "Filter by favorite status",
           "type": "boolean"
         },
+        "latest": {
+          "default": false,
+          "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
+          "type": "boolean"
+        },
         "lightweight": {
           "default": false,
           "description": "Use lightweight mode (skip expensive lookups for masonry/gallery views)",
@@ -43173,6 +42439,11 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
         },
         "isFavorite": {
           "description": "Filter by favorite status",
+          "type": "boolean"
+        },
+        "latest": {
+          "default": false,
+          "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
           "type": "boolean"
         },
         "lightweight": {

@@ -1281,10 +1281,9 @@ describe('ClientService (MCP)', () => {
 
       const result = await service.updateSocialTags('conv-1', ['lead']);
 
-      expect(mockAxiosInstance.patch).toHaveBeenCalledWith(
-        '/messages/conv-1/tags',
-        { tags: ['lead'] },
-      );
+      expect(mockAxiosInstance.patch).toHaveBeenCalledWith('/messages/conv-1', {
+        tags: ['lead'],
+      });
       expect(result).toMatchObject({ id: 'conv-1', tags: ['lead'] });
     });
   });
