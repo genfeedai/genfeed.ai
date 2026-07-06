@@ -39,6 +39,22 @@ export default defineConfig({
         replacement: apiSrc,
       },
       {
+        find: '@genfeedai/server',
+        replacement: path.resolve(repoRoot, 'apps/server/domain/src'),
+      },
+      {
+        find: /^@genfeedai\/server\/(.*)$/,
+        replacement: path.resolve(repoRoot, 'apps/server/domain/src/$1'),
+      },
+      {
+        find: '@server',
+        replacement: path.resolve(repoRoot, 'apps/server/domain/src'),
+      },
+      {
+        find: /^@server\/(.*)$/,
+        replacement: path.resolve(repoRoot, 'apps/server/domain/src/$1'),
+      },
+      {
         find: '@billing-providers',
         replacement: path.resolve(packageDir, 'src/billing.providers.ee.ts'),
       },
