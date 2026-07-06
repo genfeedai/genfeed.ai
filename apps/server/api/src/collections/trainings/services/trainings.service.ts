@@ -16,7 +16,16 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { ZipArchive } from 'archiver';
+import * as archiver from 'archiver';
+
+type ZipArchiveConstructor = new (options: {
+  zlib: { level: number };
+}) => archiver.Archiver;
+
+// archiver@8 exports ZipArchive at runtime; some bundled type surfaces omit it.
+const { ZipArchive } = archiver as typeof archiver & {
+  ZipArchive: ZipArchiveConstructor;
+};
 
 @Injectable()
 export class TrainingsService extends BaseService<
