@@ -1,5 +1,6 @@
 import type { ActivitySource } from '@genfeedai/enums';
 import type {
+  IAddCreditsOptions,
   ICreditsUtilsService,
   ICycleRemainingMetrics,
   IDeductCreditsOptions,
@@ -39,6 +40,7 @@ export class OssCreditsUtilsService implements ICreditsUtilsService {
     _source: string,
     _description: string,
     _expiresAt: Date,
+    _options?: IAddCreditsOptions,
   ): Promise<void> {
     return undefined;
   }

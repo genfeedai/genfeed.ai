@@ -63,6 +63,7 @@ describe('StripeCheckoutWebhookHandler', () => {
   const eventEmitter = { emitAsync: vi.fn() };
   const supportService = {
     addPurchasedCredits: vi.fn(),
+    buildCheckoutSessionCreditReference: vi.fn(),
     invalidateOrganizationCaches: vi.fn(),
     invalidateUserCaches: vi.fn(),
     markOnboardingComplete: vi.fn(),
@@ -78,6 +79,13 @@ describe('StripeCheckoutWebhookHandler', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(35_000);
+    supportService.addPurchasedCredits.mockResolvedValue(true);
+    supportService.buildCheckoutSessionCreditReference.mockImplementation(
+      (kind: string, sessionId: string) => ({
+        referenceId: sessionId,
+        referenceType: `stripe-checkout-session:${kind}`,
+      }),
+    );
     supportService.resolveCheckoutCredits.mockReturnValue(100);
     supportService.withCheckoutSessionProcessing.mockImplementation(
       async (_sessionId: string, _kind: string, fn: () => Promise<unknown>) =>
@@ -151,6 +159,10 @@ describe('StripeCheckoutWebhookHandler', () => {
         100,
         'pay-as-you-go',
         expect.stringContaining('100 credits'),
+        {
+          referenceId: 'cs_payg_1',
+          referenceType: 'stripe-checkout-session:organization-payment',
+        },
       );
       expect(supportService.recordCreditsActivity).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -188,6 +200,36 @@ describe('StripeCheckoutWebhookHandler', () => {
       expect(supportService.recordCreditsActivity).not.toHaveBeenCalled();
       expect(loggerService.log).toHaveBeenCalledWith(
         expect.stringContaining('PAYG checkout already processed'),
+        expect.objectContaining({ sessionId: 'cs_payg_1' }),
+      );
+    });
+
+    it('does not record duplicate PAYG activity when a retry finds an existing credit grant', async () => {
+      subscriptionsService.findByStripeCustomerId.mockResolvedValue({
+        id: 'sub_db_1',
+        organization: 'org_1',
+        user: 'user_1',
+      });
+      supportService.addPurchasedCredits.mockResolvedValueOnce(false);
+
+      await handler.handleCheckoutCompleted(session, 'test');
+
+      expect(supportService.addPurchasedCredits).toHaveBeenCalledWith(
+        'org_1',
+        100,
+        'pay-as-you-go',
+        expect.stringContaining('100 credits'),
+        {
+          referenceId: 'cs_payg_1',
+          referenceType: 'stripe-checkout-session:organization-payment',
+        },
+      );
+      expect(
+        creditsUtilsService.getOrganizationCreditsBalance,
+      ).not.toHaveBeenCalled();
+      expect(supportService.recordCreditsActivity).not.toHaveBeenCalled();
+      expect(loggerService.log).toHaveBeenCalledWith(
+        expect.stringContaining('PAYG checkout credit grant already exists'),
         expect.objectContaining({ sessionId: 'cs_payg_1' }),
       );
     });
@@ -294,6 +336,10 @@ describe('StripeCheckoutWebhookHandler', () => {
         100,
         'user-purchase',
         expect.stringContaining('100 credits'),
+        {
+          referenceId: 'cs_user_1',
+          referenceType: 'stripe-checkout-session:user-credit',
+        },
       );
       expect(
         userSubscriptionsService.updateFromStripeSession,

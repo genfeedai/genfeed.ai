@@ -12,7 +12,10 @@ import {
   ActivitySource,
   CreditTransactionCategory,
 } from '@genfeedai/enums';
-import type { ICreditsUtilsService } from '@genfeedai/interfaces/billing';
+import type {
+  IAddCreditsOptions,
+  ICreditsUtilsService,
+} from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, Optional } from '@nestjs/common';
@@ -214,6 +217,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     source: string,
     description: string,
     expiresAt: Date,
+    options?: IAddCreditsOptions,
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -243,23 +247,50 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         );
 
         const newBalance = currentBalance + creditsToAdd;
+        const transactionOptions =
+          options?.referenceId || options?.referenceType || options?.metadata
+            ? {
+                ...(options.metadata ? { metadata: options.metadata } : {}),
+                ...(options.referenceId
+                  ? { referenceId: options.referenceId }
+                  : {}),
+                ...(options.referenceType
+                  ? { referenceType: options.referenceType }
+                  : {}),
+              }
+            : undefined;
 
         await this.creditBalanceService.updateBalance(
           organizationId,
           newBalance,
           tx,
         );
-        await this.creditTransactionsService.createTransactionEntry(
-          organizationId,
-          CreditTransactionCategory.ADD,
-          creditsToAdd,
-          currentBalance,
-          newBalance,
-          source,
-          description,
-          expiresAt,
-          tx,
-        );
+        if (transactionOptions) {
+          await this.creditTransactionsService.createTransactionEntry(
+            organizationId,
+            CreditTransactionCategory.ADD,
+            creditsToAdd,
+            currentBalance,
+            newBalance,
+            source,
+            description,
+            expiresAt,
+            tx,
+            transactionOptions,
+          );
+        } else {
+          await this.creditTransactionsService.createTransactionEntry(
+            organizationId,
+            CreditTransactionCategory.ADD,
+            creditsToAdd,
+            currentBalance,
+            newBalance,
+            source,
+            description,
+            expiresAt,
+            tx,
+          );
+        }
 
         return { currentBalance, newBalance };
       };

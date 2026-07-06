@@ -9,10 +9,12 @@ import { ConfigService } from '@api/config/config.service';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import type { StripeCheckoutSession } from '@api/services/integrations/stripe/services/stripe.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivityKey,
   ActivitySource,
   ByokBillingStatus,
+  CreditTransactionCategory,
   SubscriptionPlan,
   SubscriptionTier,
 } from '@genfeedai/enums';
@@ -26,6 +28,11 @@ describe('StripeWebhookSupportService', () => {
 
   const configService = { get: vi.fn().mockReturnValue(undefined) };
   const loggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
+  const prisma = {
+    creditTransaction: {
+      findFirst: vi.fn(),
+    },
+  };
   const activitiesService = { create: vi.fn() };
   const cacheService = {
     exists: vi.fn(),
@@ -71,6 +78,7 @@ describe('StripeWebhookSupportService', () => {
     cacheService.withLock.mockImplementation(
       async (_key: string, fn: () => Promise<unknown>) => await fn(),
     );
+    prisma.creditTransaction.findFirst.mockResolvedValue(null);
     organizationSettingsService.getLatestMajorVersionModelIds.mockResolvedValue(
       ['model_1'],
     );
@@ -81,6 +89,7 @@ describe('StripeWebhookSupportService', () => {
         { provide: ConfigService, useValue: configService },
         { provide: CacheService, useValue: cacheService },
         { provide: LoggerService, useValue: loggerService },
+        { provide: PrismaService, useValue: prisma },
         { provide: ActivitiesService, useValue: activitiesService },
         { provide: CreditsUtilsService, useValue: creditsUtilsService },
         {
@@ -165,11 +174,78 @@ describe('StripeWebhookSupportService', () => {
       expect(callback).not.toHaveBeenCalled();
       expect(cacheService.set).not.toHaveBeenCalled();
     });
+
+    it('does not apply an idempotent credit side effect twice when Redis marker writes fail', async () => {
+      const appliedGrants = new Set<string>();
+      const reference = service.buildCheckoutSessionCreditReference(
+        'organization-payment',
+        'cs_retry_1',
+      );
+      const grantKey = [
+        'org_1',
+        'pay-as-you-go',
+        reference.referenceType,
+        reference.referenceId,
+      ].join(':');
+
+      cacheService.exists.mockResolvedValue(false);
+      cacheService.set
+        .mockRejectedValueOnce(new Error('redis unavailable'))
+        .mockResolvedValueOnce(false);
+      prisma.creditTransaction.findFirst.mockImplementation(async () =>
+        appliedGrants.has(grantKey) ? { id: 'txn_1' } : null,
+      );
+      creditsUtilsService.addOrganizationCreditsWithExpiration.mockImplementation(
+        async () => {
+          appliedGrants.add(grantKey);
+        },
+      );
+
+      const runGrant = async () =>
+        await service.withCheckoutSessionProcessing(
+          'cs_retry_1',
+          'organization-payment',
+          async () =>
+            await service.addPurchasedCredits(
+              'org_1',
+              100,
+              'pay-as-you-go',
+              'Credit pack purchase (100 credits)',
+              reference,
+            ),
+        );
+
+      await expect(runGrant()).resolves.toBe(true);
+      await expect(runGrant()).resolves.toBe(false);
+
+      expect(
+        creditsUtilsService.addOrganizationCreditsWithExpiration,
+      ).toHaveBeenCalledTimes(1);
+      expect(prisma.creditTransaction.findFirst).toHaveBeenCalledWith({
+        select: { id: true },
+        where: {
+          category: CreditTransactionCategory.ADD,
+          isDeleted: false,
+          organizationId: 'org_1',
+          referenceId: 'cs_retry_1',
+          referenceType: 'stripe-checkout-session:organization-payment',
+          source: 'pay-as-you-go',
+        },
+      });
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'failed to cache Stripe checkout processed marker',
+        ),
+        expect.objectContaining({ sessionId: 'cs_retry_1' }),
+      );
+    });
   });
 
   describe('addPurchasedCredits', () => {
     it('adds credits with a 1-year expiration', async () => {
-      await service.addPurchasedCredits('org_1', 100, 'pay-as-you-go', 'desc');
+      await expect(
+        service.addPurchasedCredits('org_1', 100, 'pay-as-you-go', 'desc'),
+      ).resolves.toBe(true);
 
       expect(
         creditsUtilsService.addOrganizationCreditsWithExpiration,
