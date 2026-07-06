@@ -1,4 +1,5 @@
 import {
+  appendCheckoutReturnParams,
   buildOnboardingResumeHref,
   deriveBrandNameFromDomain,
   isFreePlanHandoff,
@@ -136,5 +137,18 @@ describe('buildOnboardingResumeHref', () => {
     expect(buildOnboardingResumeHref('providers', 'acme.co')).toBe(
       '/onboarding/providers',
     );
+  });
+
+  it('appends checkout return markers without dropping existing query params', () => {
+    expect(
+      appendCheckoutReturnParams(
+        '/onboarding/brand?auto=true',
+        'plan-checkout',
+      ),
+    ).toBe('/onboarding/brand?auto=true&checkout=completed&checkoutKind=plan');
+
+    expect(
+      appendCheckoutReturnParams('/onboarding/providers', 'credits-checkout'),
+    ).toBe('/onboarding/providers?checkout=completed&checkoutKind=credits');
   });
 });

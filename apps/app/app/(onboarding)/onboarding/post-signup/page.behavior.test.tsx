@@ -8,6 +8,7 @@ import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util
 import PostSignupPage from './page';
 
 const {
+  captureAnalyticsEventMock,
   createCheckoutSessionMock,
   currentUserState,
   getTokenMock,
@@ -18,6 +19,7 @@ const {
   resolveAuthTokenMock,
   searchParamsState,
 } = vi.hoisted(() => ({
+  captureAnalyticsEventMock: vi.fn(),
   createCheckoutSessionMock: vi.fn(),
   currentUserState: {
     currentUser: {
@@ -38,6 +40,14 @@ const {
   searchParamsState: {
     value: new URLSearchParams(),
   },
+}));
+
+vi.mock('@/lib/analytics', () => ({
+  ANALYTICS_EVENTS: {
+    CHECKOUT_STARTED: 'checkout_started',
+    SIGNUP_COMPLETED: 'signup_completed',
+  },
+  captureAnalyticsEvent: captureAnalyticsEventMock,
 }));
 
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
@@ -168,6 +178,7 @@ describe('PostSignupPage behavior', () => {
 
   beforeEach(() => {
     createCheckoutSessionMock.mockReset();
+    captureAnalyticsEventMock.mockReset();
     managedCreateCheckoutSessionMock.mockReset();
     getTokenMock.mockReset();
     getMyOrganizationsMock.mockReset();
@@ -266,7 +277,8 @@ describe('PostSignupPage behavior', () => {
         cancelUrl: 'http://localhost/onboarding/providers',
         quantity: null,
         stripePriceId: 'price_123',
-        successUrl: 'http://localhost/onboarding/brand',
+        successUrl:
+          'http://localhost/onboarding/brand?checkout=completed&checkoutKind=plan',
       });
     });
     expect(locationState.href).toBe('https://checkout.stripe.test/session');
@@ -302,8 +314,19 @@ describe('PostSignupPage behavior', () => {
         cancelUrl: 'http://localhost/onboarding/providers',
         quantity: 1000,
         stripePriceId: 'price_payg',
-        successUrl: 'http://localhost/onboarding/brand',
+        successUrl:
+          'http://localhost/onboarding/brand?checkout=completed&checkoutKind=credits',
       });
+    });
+    expect(captureAnalyticsEventMock).toHaveBeenCalledWith('signup_completed', {
+      handoffSource: 'post_signup',
+      hasCloudHandoff: false,
+      hasCreditsIntent: true,
+      hasPlanIntent: false,
+    });
+    expect(captureAnalyticsEventMock).toHaveBeenCalledWith('checkout_started', {
+      checkoutKind: 'credits',
+      handoffSource: 'post_signup',
     });
     expect(locationState.href).toBe('https://checkout.stripe.test/session');
     expect(
@@ -330,10 +353,14 @@ describe('PostSignupPage behavior', () => {
           lastName: 'User',
           quantity: 1000,
           successUrl:
-            'http://localhost/managed-credits/success?session_id={CHECKOUT_SESSION_ID}',
+            'http://localhost/managed-credits/success?session_id={CHECKOUT_SESSION_ID}&checkout=completed&checkoutKind=managed_credits',
         },
         expect.any(AbortSignal),
       );
+    });
+    expect(captureAnalyticsEventMock).toHaveBeenCalledWith('checkout_started', {
+      checkoutKind: 'managed_credits',
+      handoffSource: 'post_signup',
     });
     expect(createCheckoutSessionMock).not.toHaveBeenCalled();
     expect(locationState.href).toBe(

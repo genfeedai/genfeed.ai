@@ -12,6 +12,16 @@ const resolveAuthTokenMock = vi.fn();
 const patchMeMock = vi.fn();
 const patchSettingsMock = vi.fn();
 const assignMock = vi.fn();
+const analyticsMocks = vi.hoisted(() => ({
+  captureAnalyticsEvent: vi.fn(),
+}));
+
+vi.mock('@/lib/analytics', () => ({
+  ANALYTICS_EVENTS: {
+    ONBOARDING_COMPLETED: 'onboarding_completed',
+  },
+  captureAnalyticsEvent: analyticsMocks.captureAnalyticsEvent,
+}));
 
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => ({
@@ -107,6 +117,7 @@ describe('SuccessContent behavior', () => {
     patchMeMock.mockReset();
     patchSettingsMock.mockReset();
     assignMock.mockReset();
+    analyticsMocks.captureAnalyticsEvent.mockReset();
     localStorageMock.clear();
 
     resolveAuthTokenMock.mockResolvedValue('api-token');
@@ -152,6 +163,10 @@ describe('SuccessContent behavior', () => {
     await waitFor(() => {
       expect(patchMeMock).toHaveBeenCalledWith({ isOnboardingCompleted: true });
     });
+    expect(analyticsMocks.captureAnalyticsEvent).toHaveBeenCalledWith(
+      'onboarding_completed',
+      {},
+    );
 
     expect(localStorage.getItem(ONBOARDING_STORAGE_KEYS.previewUrl)).toBeNull();
     expect(

@@ -16,12 +16,19 @@ import type { GenerationType } from '@genfeedai/enums';
  */
 export const ANALYTICS_EVENTS = {
   AGENT_THREAD_CREATED: 'agent_thread_created',
+  CHECKOUT_COMPLETED: 'checkout_completed',
+  CHECKOUT_STARTED: 'checkout_started',
   CONTENT_WRITE_BLANK_DRAFT_STARTED: 'content_write_blank_draft_started',
   CONTENT_WRITE_OPENED: 'content_write_opened',
   CONTENT_WRITE_PROMPT_GENERATED: 'content_write_prompt_generated',
+  FIRST_CREDIT_PURCHASED: 'first_credit_purchase',
+  FIRST_SUCCESSFUL_PUBLISH: 'first_successful_publish',
   GENERATION_COMPLETED: 'generation_completed',
   GENERATION_STARTED: 'generation_started',
+  ONBOARDING_COMPLETED: 'onboarding_completed',
   POST_PUBLISHED: 'post_published',
+  SIGNUP_COMPLETED: 'signup_completed',
+  SIGNUP_STARTED: 'signup_started',
   STUDIO_EDITOR_OPENED: 'studio_editor_opened',
   WORKFLOW_RUN_COMPLETED: 'workflow_run_completed',
   WORKFLOW_RUN_STARTED: 'workflow_run_started',
@@ -32,6 +39,18 @@ export type AnalyticsEvent =
 
 /** Terminal outcome of a tracked action. */
 export type AnalyticsOutcome = 'failure' | 'success';
+
+/** The public signup method the user selected. */
+export type SignupMethod = 'google' | 'magic_link';
+
+/** The checkout branch created from the onboarding handoff. */
+export type CheckoutKind = 'credits' | 'managed_credits' | 'plan';
+
+/** Bounded source marker for the funnel handoff being tracked. */
+export type FunnelHandoffSource = 'post_signup' | 'stripe_return';
+
+/** Content surface counted as activation after a successful publish. */
+export type ActivationSurface = 'newsletter';
 
 /**
  * Which generation path produced a compose-surface draft. Desktop paths run
@@ -51,6 +70,31 @@ export interface AnalyticsEventProperties {
     /** Optional agent-type slug (e.g. the configured agent kind), never a title. */
     readonly agentType?: string;
   };
+  [ANALYTICS_EVENTS.SIGNUP_STARTED]: {
+    readonly hasCloudHandoff: boolean;
+    readonly hasCreditsIntent: boolean;
+    readonly hasPlanIntent: boolean;
+    readonly method: SignupMethod;
+  };
+  [ANALYTICS_EVENTS.SIGNUP_COMPLETED]: {
+    readonly handoffSource: Extract<FunnelHandoffSource, 'post_signup'>;
+    readonly hasCloudHandoff: boolean;
+    readonly hasCreditsIntent: boolean;
+    readonly hasPlanIntent: boolean;
+  };
+  [ANALYTICS_EVENTS.CHECKOUT_STARTED]: {
+    readonly checkoutKind: CheckoutKind;
+    readonly handoffSource: Extract<FunnelHandoffSource, 'post_signup'>;
+  };
+  [ANALYTICS_EVENTS.CHECKOUT_COMPLETED]: {
+    readonly checkoutKind: CheckoutKind;
+    readonly handoffSource: Extract<FunnelHandoffSource, 'stripe_return'>;
+  };
+  [ANALYTICS_EVENTS.FIRST_CREDIT_PURCHASED]: {
+    readonly checkoutKind: Extract<CheckoutKind, 'credits' | 'managed_credits'>;
+    readonly handoffSource: Extract<FunnelHandoffSource, 'stripe_return'>;
+  };
+  [ANALYTICS_EVENTS.ONBOARDING_COMPLETED]: Record<string, never>;
   [ANALYTICS_EVENTS.CONTENT_WRITE_OPENED]: Record<string, never>;
   [ANALYTICS_EVENTS.CONTENT_WRITE_BLANK_DRAFT_STARTED]: {
     /** Opaque internal credential id — a bounded identifier, never user copy. */
@@ -81,6 +125,11 @@ export interface AnalyticsEventProperties {
   [ANALYTICS_EVENTS.POST_PUBLISHED]: {
     /** Connected-platform slug (e.g. "x", "linkedin"), never post content. */
     readonly platform: string;
+  };
+  [ANALYTICS_EVENTS.FIRST_SUCCESSFUL_PUBLISH]: {
+    /** Connected-platform slug (e.g. "x", "linkedin"), never post content. */
+    readonly platform: string;
+    readonly surface: ActivationSurface;
   };
   [ANALYTICS_EVENTS.WORKFLOW_RUN_STARTED]: {
     /** Workflow-type slug where known, never a workflow name/description. */

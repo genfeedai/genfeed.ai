@@ -6,6 +6,7 @@ import NewslettersPage from './newsletters-page';
 const mocks = vi.hoisted(() => ({
   approve: vi.fn(),
   archive: vi.fn(),
+  captureAnalyticsEvent: vi.fn(),
   error: vi.fn(),
   findAll: vi.fn(),
   generateDraft: vi.fn(),
@@ -23,6 +24,14 @@ const mocks = vi.hoisted(() => ({
   },
   refetch: vi.fn(),
   success: vi.fn(),
+}));
+
+vi.mock('@/lib/analytics', () => ({
+  ANALYTICS_EVENTS: {
+    FIRST_SUCCESSFUL_PUBLISH: 'first_successful_publish',
+    POST_PUBLISHED: 'post_published',
+  },
+  captureAnalyticsEvent: mocks.captureAnalyticsEvent,
 }));
 
 const newsletters = [
@@ -150,6 +159,7 @@ describe('NewslettersPage', () => {
     mocks.approve.mockResolvedValue({});
     mocks.publish.mockResolvedValue({});
     mocks.archive.mockResolvedValue({});
+    mocks.captureAnalyticsEvent.mockClear();
   });
 
   it('renders the brand-scoped newsletter workspace and filters archive items', () => {
@@ -243,6 +253,13 @@ describe('NewslettersPage', () => {
       expect(mocks.publish).toHaveBeenCalledWith('newsletter-1');
       expect(mocks.archive).toHaveBeenCalledWith('newsletter-1');
     });
+    expect(mocks.captureAnalyticsEvent).toHaveBeenCalledWith(
+      'first_successful_publish',
+      {
+        platform: 'newsletter',
+        surface: 'newsletter',
+      },
+    );
   });
 
   it('shows validation errors and routes empty-state actions to workflows', async () => {

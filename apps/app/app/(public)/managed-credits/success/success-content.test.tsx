@@ -12,15 +12,25 @@ import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ManagedCreditsSuccessContent from './success-content';
 
-const { getCheckoutResultMock, searchParamsState } = vi.hoisted(() => ({
-  getCheckoutResultMock: vi.fn(),
-  searchParamsState: {
-    value: new URLSearchParams('session_id=cs_test_123'),
-  },
-}));
+const { captureAnalyticsEventMock, getCheckoutResultMock, searchParamsState } =
+  vi.hoisted(() => ({
+    captureAnalyticsEventMock: vi.fn(),
+    getCheckoutResultMock: vi.fn(),
+    searchParamsState: {
+      value: new URLSearchParams('session_id=cs_test_123'),
+    },
+  }));
 
 vi.mock('next/navigation', () => ({
   useSearchParams: () => searchParamsState.value,
+}));
+
+vi.mock('@/lib/analytics', () => ({
+  ANALYTICS_EVENTS: {
+    CHECKOUT_COMPLETED: 'checkout_completed',
+    FIRST_CREDIT_PURCHASED: 'first_credit_purchase',
+  },
+  captureAnalyticsEvent: captureAnalyticsEventMock,
 }));
 
 vi.mock('@services/billing/managed-credits.service', () => ({
@@ -69,6 +79,7 @@ describe('ManagedCreditsSuccessContent', () => {
   });
 
   beforeEach(() => {
+    captureAnalyticsEventMock.mockReset();
     getCheckoutResultMock.mockReset();
     searchParamsState.value = new URLSearchParams('session_id=cs_test_123');
 
@@ -159,6 +170,39 @@ describe('ManagedCreditsSuccessContent', () => {
     expect(getCheckoutResultMock).toHaveBeenCalledWith(
       'cs_test_123',
       expect.any(AbortSignal),
+    );
+  });
+
+  it('captures onboarding managed credits checkout completion when marked', async () => {
+    searchParamsState.value = new URLSearchParams(
+      'session_id=cs_test_123&checkout=completed&checkoutKind=managed_credits',
+    );
+    getCheckoutResultMock.mockResolvedValue({
+      apiKey: 'gf_managed_secret',
+      apiKeyAlreadyExists: false,
+      brandId: 'brand-1',
+      email: 'buyer@example.com',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
+
+    render(<ManagedCreditsSuccessContent />);
+
+    await waitFor(() => {
+      expect(captureAnalyticsEventMock).toHaveBeenCalledWith(
+        'checkout_completed',
+        {
+          checkoutKind: 'managed_credits',
+          handoffSource: 'stripe_return',
+        },
+      );
+    });
+    expect(captureAnalyticsEventMock).toHaveBeenCalledWith(
+      'first_credit_purchase',
+      {
+        checkoutKind: 'managed_credits',
+        handoffSource: 'stripe_return',
+      },
     );
   });
 

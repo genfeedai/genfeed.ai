@@ -22,6 +22,7 @@ import {
   HiSparkles,
   HiVideoCamera,
 } from 'react-icons/hi2';
+import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
 
 const CONTENT_TYPES = [
@@ -118,6 +119,7 @@ export default function SuccessContent() {
         await UsersService.getInstance(token).patchMe({
           isOnboardingCompleted: true,
         });
+        captureAnalyticsEvent(ANALYTICS_EVENTS.ONBOARDING_COMPLETED, {});
       }
       await user?.reload();
     } catch (error) {
