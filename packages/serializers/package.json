@@ -7,7 +7,7 @@
   },
   "description": "Genfeed.ai canonical JSON:API serializers",
   "devDependencies": {
-    "tsc-alias": "1.8.17",
+    "tsc-alias": "1.9.0",
     "typescript": "6.0.2"
   },
   "exports": {
