@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { dash } from '@better-auth/infra';
 import type { IBetterAuthJwtUserPayloadSource } from '@genfeedai/interfaces';
-import { betterAuth, type RateLimit } from 'better-auth';
+import { APIError, betterAuth, type RateLimit } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import {
   jwt,
@@ -24,6 +24,10 @@ const RATE_LIMIT_KEY_PREFIX = 'ba:ratelimit:';
 const RATE_LIMIT_TTL_SECONDS = 86_400;
 const BETTER_AUTH_CREATOR_ROLE = 'admin';
 const BETTER_AUTH_DEFAULT_ORGANIZATION_CATEGORY = 'BUSINESS';
+const SIGN_UP_MAGIC_LINK_INTENT = 'signup';
+
+export const SIGN_UP_MAGIC_LINK_EXISTING_USER_MESSAGE =
+  'An account already exists for this email. Sign in instead.';
 
 /**
  * Adapt the shared Redis KV into Better Auth's `rateLimit.customStorage` shape
@@ -72,6 +76,44 @@ function getRequiredString(value: unknown, label: string): string {
   return resolved;
 }
 
+function isSignUpMagicLink(metadata?: Record<string, unknown>): boolean {
+  return metadata?.intent === SIGN_UP_MAGIC_LINK_INTENT;
+}
+
+export async function assertSignupMagicLinkCanCreateUser({
+  email,
+  metadata,
+  prisma,
+}: {
+  email: string;
+  metadata?: Record<string, unknown>;
+  prisma: ICreateBetterAuthOptions['prisma'];
+}): Promise<void> {
+  if (!isSignUpMagicLink(metadata)) {
+    return;
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail) {
+    return;
+  }
+
+  const existingUser = await prisma.user.findFirst({
+    select: { id: true },
+    where: {
+      email: { equals: normalizedEmail, mode: 'insensitive' },
+      isDeleted: false,
+    },
+  });
+
+  if (existingUser) {
+    throw APIError.from('BAD_REQUEST', {
+      code: 'USER_ALREADY_EXISTS',
+      message: SIGN_UP_MAGIC_LINK_EXISTING_USER_MESSAGE,
+    });
+  }
+}
+
 /**
  * Maps Better Auth's organization plugin onto Genfeed's existing domain tables.
  *
@@ -84,7 +126,7 @@ function getRequiredString(value: unknown, label: string): string {
  * native endpoint can grant a Genfeed Role without going through RolesGuard.
  */
 export function buildBetterAuthOrganizationOptions(
-  prisma: ICreateBetterAuthOptions['prisma'],
+  _prisma: ICreateBetterAuthOptions['prisma'],
 ): OrganizationOptions {
   return {
     creatorRole: BETTER_AUTH_CREATOR_ROLE,
@@ -539,8 +581,13 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
         // them. Lookup re-hashes the incoming token, so any in-flight plaintext
         // links issued before this change fail until they expire (~min TTL).
         storeToken: 'hashed',
-        sendMagicLink: async ({ email, url, token }) => {
-          await sendMagicLink({ email, url, token });
+        sendMagicLink: async ({ email, metadata, url, token }) => {
+          await assertSignupMagicLinkCanCreateUser({
+            email,
+            metadata,
+            prisma,
+          });
+          await sendMagicLink({ email, metadata, url, token });
         },
       }),
       organization(buildBetterAuthOrganizationOptions(prisma)),

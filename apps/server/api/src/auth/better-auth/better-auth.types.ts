@@ -43,6 +43,7 @@ export interface IBetterAuthResolvedIdentity {
 /** Arguments handed to the magic-link delivery callback. */
 export interface IBetterAuthMagicLinkParams {
   email: string;
+  metadata?: Record<string, unknown>;
   url: string;
   token: string;
 }

@@ -59,6 +59,37 @@ describe('PricingContent launch pricing', () => {
     ).toBeInTheDocument();
   });
 
+  it('uses the tokenized dark card surface for the popular plan', () => {
+    render(<PricingContent />);
+
+    expect(screen.getByText('Popular').closest('.gsap-card')).toHaveClass(
+      'bg-card',
+    );
+  });
+
+  it('renders the enterprise card on the shared grid border surface', () => {
+    render(<PricingContent />);
+
+    const enterpriseCard = screen
+      .getByRole('heading', { name: 'Your own studio, fully managed.' })
+      .closest('.shadow-border');
+
+    expect(enterpriseCard).toHaveClass('bg-background');
+    expect(enterpriseCard).not.toHaveClass('border');
+    expect(enterpriseCard?.parentElement).toHaveClass('border-edge/10');
+    expect(enterpriseCard?.parentElement).toHaveClass('bg-edge/5');
+  });
+
+  it('renders an even number of pricing FAQ blocks', () => {
+    render(<PricingContent />);
+
+    expect(
+      screen.getByRole('heading', {
+        name: 'Can I start free and upgrade later?',
+      }),
+    ).toBeInTheDocument();
+  });
+
   it('does not strike through prices on plans without launch pricing', () => {
     render(<PricingContent />);
 

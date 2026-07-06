@@ -63,6 +63,11 @@ const FAQ_ITEMS = [
   },
   {
     answer:
+      'Yes. Start on Pay As You Go with no monthly fee, then move to Pro when included credits make your monthly output cheaper. Scale is for shared seats, budgets, and higher-volume team workflows.',
+    question: 'Can I start free and upgrade later?',
+  },
+  {
+    answer:
       'Book a demo when you need team rollout planning, migration support, enterprise terms, or a multi-brand workflow designed before signup.',
     question: 'When should I book a demo?',
   },
@@ -157,9 +162,9 @@ export default function PricingContent() {
         description="Signing up is free. Credits buy the content you generate; a subscription makes those credits cheaper and unlocks unlimited brands, more channels, and shared team seats."
       >
         <WebSection maxWidth="lg" py="md">
-          <div className="grid gap-px overflow-hidden border border-edge/5 bg-fill/5 md:grid-cols-4">
+          <div className="grid gap-px overflow-hidden border border-edge/10 bg-edge/5 md:grid-cols-4">
             {PRICING_RULES.map((rule) => (
-              <div key={rule} className="bg-background px-5 py-4">
+              <div key={rule} className="bg-background px-5 py-4 shadow-border">
                 <div className="flex items-center gap-2 text-sm text-surface/65">
                   <HiCheckCircle className="size-4 text-success" />
                   {rule}
@@ -193,7 +198,7 @@ export default function PricingContent() {
                   padding="lg"
                   className={cn(
                     'relative gsap-card',
-                    isFeatured && 'bg-white/[0.03]',
+                    isFeatured && 'bg-card hover:bg-card',
                   )}
                   tierLabel={`${String(index + 1).padStart(2, '0')} / ${getDisplayName(plan.label)}`}
                 >
@@ -288,34 +293,41 @@ export default function PricingContent() {
           </p>
 
           {enterprisePlan ? (
-            <div className="mt-4 flex flex-col gap-6 border border-edge/5 bg-background p-8 md:flex-row md:items-center md:justify-between">
-              <div className="max-w-2xl">
-                <div className="mb-3 text-[10px] font-black uppercase tracking-widest text-surface/45">
-                  Enterprise
-                </div>
-                <h3 className="mb-2 text-2xl font-semibold tracking-[-0.02em]">
-                  Your own studio, fully managed.
-                </h3>
-                <p className="text-sm leading-6 text-surface/65">
-                  Custom output terms, unlimited seats and organizations, full
-                  API access, white-label, SSO, and a dedicated account manager.
-                </p>
-              </div>
-              <Button
-                asChild
-                className="shrink-0"
-                size={ButtonSize.PUBLIC}
-                variant={ButtonVariant.OUTLINE}
+            <NeuralGrid columns={1} className="mt-4">
+              <NeuralGridItem
+                padding="sm"
+                className="flex flex-col gap-6 p-8 md:flex-row md:items-center md:justify-between"
               >
-                <a
-                  href={enterprisePlan.ctaHref || EnvironmentService.calendly}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <div className="max-w-2xl">
+                  <div className="mb-3 text-[10px] font-black uppercase tracking-widest text-surface/45">
+                    Enterprise
+                  </div>
+                  <h3 className="mb-2 text-2xl font-semibold tracking-[-0.02em]">
+                    Your own studio, fully managed.
+                  </h3>
+                  <p className="text-sm leading-6 text-surface/65">
+                    Custom output terms, unlimited seats and organizations, full
+                    API access, white-label, SSO, and a dedicated account
+                    manager.
+                  </p>
+                </div>
+
+                <Button
+                  asChild
+                  className="shrink-0"
+                  size={ButtonSize.PUBLIC}
+                  variant={ButtonVariant.OUTLINE}
                 >
-                  Book a Demo
-                </a>
-              </Button>
-            </div>
+                  <a
+                    href={enterprisePlan.ctaHref || EnvironmentService.calendly}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Book a Demo
+                  </a>
+                </Button>
+              </NeuralGridItem>
+            </NeuralGrid>
           ) : null}
         </WebSection>
 
@@ -326,11 +338,11 @@ export default function PricingContent() {
             className="[&_h2]:text-5xl mb-4"
           />
 
-          <div className="grid gap-px overflow-hidden border border-edge/5 bg-fill/5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-px overflow-hidden border border-edge/10 bg-edge/5 sm:grid-cols-2 lg:grid-cols-3">
             {OUTPUT_COSTS.map((row) => (
               <div
                 key={row.label}
-                className="flex items-baseline justify-between gap-4 bg-background px-5 py-4"
+                className="flex items-baseline justify-between gap-4 bg-background px-5 py-4 shadow-border"
               >
                 <span className="text-sm text-surface/65">{row.label}</span>
                 <span className="text-sm font-semibold text-surface">
@@ -348,11 +360,11 @@ export default function PricingContent() {
             Top up any amount from $10 — pay-as-you-go, no subscription. 1
             credit = $0.01.
           </p>
-          <div className="grid gap-px overflow-hidden border border-edge/5 bg-fill/5 sm:grid-cols-3">
+          <div className="grid gap-px overflow-hidden border border-edge/10 bg-edge/5 sm:grid-cols-3">
             {WEBSITE_CREDIT_PACKS.map((pack) => (
               <div
                 key={pack.label}
-                className="flex items-baseline justify-between gap-4 bg-background px-5 py-4"
+                className="flex items-baseline justify-between gap-4 bg-background px-5 py-4 shadow-border"
               >
                 <span className="text-sm font-semibold text-surface">
                   ${creditPackPrice(pack).toLocaleString()}

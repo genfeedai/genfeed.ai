@@ -143,10 +143,8 @@ export default function TopbarPublic({
     <>
       <header
         className={cn(
-          'fixed inset-x-0 top-0 z-50 w-full transition-all duration-300',
-          isScrolled
-            ? 'border-b border-white/10 bg-primary/60 backdrop-blur-2xl'
-            : 'border-b border-transparent bg-transparent',
+          'fixed inset-x-0 top-0 z-50 w-full border-b bg-background/90 backdrop-blur-2xl transition-[border-color,background-color] duration-300',
+          isScrolled ? 'border-edge/10' : 'border-transparent',
         )}
       >
         <div className="container mx-auto flex items-center justify-between h-20 px-6">
