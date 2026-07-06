@@ -159,6 +159,22 @@ export class LifecycleEmailService {
 
   async recordCheckoutCompleted(checkoutSessionId: string): Promise<void> {
     await this.runSchedulingOperation('recordCheckoutCompleted', async () => {
+      const triggerKey = this.checkoutTriggerKey(checkoutSessionId);
+      const delivery = await this.prisma.lifecycleEmailDelivery.findFirst({
+        select: { userId: true },
+        where: {
+          sequence: 'abandoned-checkout',
+          status: {
+            in: [DELIVERY_STATUS.SCHEDULED, DELIVERY_STATUS.FAILED],
+          },
+          triggerKey,
+        },
+      });
+
+      if (!delivery) {
+        return;
+      }
+
       await this.prisma.lifecycleEmailDelivery.updateMany({
         data: {
           canceledAt: new Date(),
@@ -169,7 +185,8 @@ export class LifecycleEmailService {
           status: {
             in: [DELIVERY_STATUS.SCHEDULED, DELIVERY_STATUS.FAILED],
           },
-          triggerKey: this.checkoutTriggerKey(checkoutSessionId),
+          triggerKey,
+          userId: delivery.userId,
         },
       });
     });

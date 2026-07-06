@@ -18,6 +18,7 @@ describe('LifecycleEmailService', () => {
   let prisma: {
     lifecycleEmailDelivery: {
       create: ReturnType<typeof vi.fn>;
+      findFirst: ReturnType<typeof vi.fn>;
       updateMany: ReturnType<typeof vi.fn>;
     };
     user: { findFirst: ReturnType<typeof vi.fn> };
@@ -35,6 +36,7 @@ describe('LifecycleEmailService', () => {
     prisma = {
       lifecycleEmailDelivery: {
         create: vi.fn().mockResolvedValue({ id: 'delivery_1' }),
+        findFirst: vi.fn().mockResolvedValue({ userId: 'user_1' }),
         updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
       user: { findFirst: vi.fn().mockResolvedValue(user) },
@@ -105,6 +107,14 @@ describe('LifecycleEmailService', () => {
   it('cancels pending abandoned checkout deliveries when checkout completes', async () => {
     await service.recordCheckoutCompleted('cs_1');
 
+    expect(prisma.lifecycleEmailDelivery.findFirst).toHaveBeenCalledWith({
+      select: { userId: true },
+      where: {
+        sequence: 'abandoned-checkout',
+        status: { in: ['scheduled', 'failed'] },
+        triggerKey: 'checkout:cs_1',
+      },
+    });
     expect(prisma.lifecycleEmailDelivery.updateMany).toHaveBeenCalledWith({
       data: {
         canceledAt: expect.any(Date),
@@ -114,7 +124,16 @@ describe('LifecycleEmailService', () => {
         sequence: 'abandoned-checkout',
         status: { in: ['scheduled', 'failed'] },
         triggerKey: 'checkout:cs_1',
+        userId: 'user_1',
       },
     });
+  });
+
+  it('skips checkout completion cancellation when no pending delivery exists', async () => {
+    prisma.lifecycleEmailDelivery.findFirst.mockResolvedValue(null);
+
+    await service.recordCheckoutCompleted('cs_missing');
+
+    expect(prisma.lifecycleEmailDelivery.updateMany).not.toHaveBeenCalled();
   });
 });
