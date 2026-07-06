@@ -3,7 +3,6 @@ import type { CredentialDocument } from '@api/collections/credentials/schemas/cr
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { QueueService } from '@api/queues/core/queue.service';
 import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform } from '@genfeedai/enums';
 import {
   AD_SYNC_META_QUEUE,
@@ -11,6 +10,7 @@ import {
 } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()

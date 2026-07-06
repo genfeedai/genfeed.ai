@@ -56,23 +56,14 @@ describe('InvitationsController', () => {
     );
   });
 
-  it('accepts an invitation and returns a JSON result', async () => {
+  it('rejects blank tokens before redirecting', async () => {
     const controller = buildController();
-    vi.mocked(invitationService.acceptInvitation).mockResolvedValue(
-      acceptResult,
-    );
+    const response = { redirect: vi.fn() } as unknown as Response;
 
-    const result = await controller.acceptInvitation('token-123');
-
-    expect(result).toEqual({ data: acceptResult });
-  });
-
-  it('rejects blank tokens before calling the service', async () => {
-    const controller = buildController();
-
-    await expect(controller.acceptInvitation('   ')).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(
+      controller.acceptInvitationRedirect('   ', response),
+    ).rejects.toBeInstanceOf(BadRequestException);
     expect(invitationService.acceptInvitation).not.toHaveBeenCalled();
+    expect(response.redirect).not.toHaveBeenCalled();
   });
 });

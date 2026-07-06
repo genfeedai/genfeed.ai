@@ -1,5 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import type {
+import {
   CreateSkillDto,
   CustomizeSkillDto,
   ImportSkillDto,

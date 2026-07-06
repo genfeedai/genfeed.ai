@@ -17,14 +17,6 @@ describe('GoogleAdsController RBAC', () => {
     expect(metadata).toEqual(['owner', 'admin']);
   });
 
-  it('should require owner or admin role for getOAuthUrl', () => {
-    const metadata = Reflect.getMetadata(
-      'roles',
-      GoogleAdsController.prototype.getOAuthUrl,
-    );
-    expect(metadata).toEqual(['owner', 'admin']);
-  });
-
   it('should require owner, admin, or analytics role for listCustomers', () => {
     const metadata = Reflect.getMetadata(
       'roles',

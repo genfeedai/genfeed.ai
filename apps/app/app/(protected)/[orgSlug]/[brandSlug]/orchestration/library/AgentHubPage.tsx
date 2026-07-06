@@ -65,7 +65,7 @@ function AgentCard({
   onRunNow,
 }: {
   strategy: AgentStrategy;
-  onToggle: (id: string) => Promise<void>;
+  onToggle: (id: string, isActive: boolean) => Promise<void>;
   onRunNow: (id: string) => Promise<void>;
 }) {
   const agentType = strategy.agentType as AgentType;
@@ -79,7 +79,7 @@ function AgentCard({
     : 'Never';
 
   return (
-    <div className="rounded border border-foreground/10 bg-background p-4 flex flex-col gap-3">
+    <div className="rounded bg-secondary p-4 shadow-border flex flex-col gap-3">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="flex size-8 items-center justify-center rounded bg-foreground/5 text-foreground/70">
@@ -128,7 +128,7 @@ function AgentCard({
           label={strategy.isActive ? 'Pause' : 'Activate'}
           size={ButtonSize.SM}
           variant={ButtonVariant.SECONDARY}
-          onClick={() => onToggle(strategy.id)}
+          onClick={() => onToggle(strategy.id, !strategy.isActive)}
         />
         <Link
           href={`/orchestration/${strategy.id}`}
@@ -163,10 +163,10 @@ export default function AgentHubPage() {
   }, []);
 
   const handleToggle = useCallback(
-    async (id: string) => {
+    async (id: string, isActive: boolean) => {
       try {
         const service = await getService();
-        await service.toggle(id);
+        await service.setActive(id, isActive);
         await refresh();
         notificationsService.success('Agent status updated');
       } catch (error) {

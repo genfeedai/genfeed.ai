@@ -116,7 +116,7 @@ function SectionSummaryCard({
 }: SectionSummaryCardProps) {
   return (
     <Card
-      className="ship-ui gen-shell-panel flex h-full flex-col justify-between gap-5 rounded-[1.25rem] border-white/[0.06] bg-background/88 shadow-[0_24px_64px_-44px_rgba(0,0,0,0.88)]"
+      className="ship-ui gen-shell-panel flex h-full flex-col justify-between gap-5 rounded-[1.25rem]"
       bodyClassName="flex h-full flex-col justify-between gap-5 p-5"
     >
       <div>
@@ -124,7 +124,7 @@ function SectionSummaryCard({
           <CardIcon
             icon={Icon}
             className={cn(
-              'gen-shell-surface flex h-10 w-10 items-center justify-center rounded-2xl border-white/[0.08]',
+              'flex h-10 w-10 items-center justify-center rounded-2xl bg-secondary',
               color,
             )}
             iconClassName="h-5 w-5"
@@ -172,7 +172,7 @@ function buildSectionSummaries(
 ): SectionSummaryCardProps[] {
   return [
     {
-      color: 'bg-blue-500/12 text-blue-300',
+      color: 'text-muted-foreground',
       href: hrefFn(getPublisherPostsHref()),
       icon: HiOutlineDocumentText,
       kicker: 'Create',
@@ -193,7 +193,7 @@ function buildSectionSummaries(
       ],
     },
     {
-      color: 'bg-emerald-500/12 text-emerald-300',
+      color: 'text-muted-foreground',
       href: APP_ROUTES.ANALYTICS.OVERVIEW,
       icon: HiOutlineChartBar,
       kicker: 'Measure',
@@ -214,7 +214,7 @@ function buildSectionSummaries(
       ],
     },
     {
-      color: 'bg-violet-500/12 text-violet-300',
+      color: 'text-muted-foreground',
       href: APP_ROUTES.ORCHESTRATION.OVERVIEW,
       icon: HiOutlineCog6Tooth,
       kicker: 'Automate',
@@ -235,7 +235,7 @@ function buildSectionSummaries(
       ],
     },
     {
-      color: 'bg-amber-500/12 text-amber-300',
+      color: 'text-muted-foreground',
       href: APP_ROUTES.LIBRARY.IMAGES,
       icon: HiOutlinePhoto,
       kicker: 'Reuse',
@@ -301,13 +301,11 @@ export default function OverviewPageContent({
       {
         accent: `${stats?.completedToday ?? 0} completed today`,
         label: 'Live Runs',
-        tone: 'border-sky-400/12 bg-sky-400/[0.04]',
         value: String(stats?.activeRuns ?? activeRuns.length),
       },
       {
         accent: `${reviewInbox.pendingCount} still generating`,
         label: 'Ready To Review',
-        tone: 'border-emerald-400/12 bg-emerald-400/[0.04]',
         value: String(reviewInbox.readyCount),
       },
       {
@@ -315,13 +313,11 @@ export default function OverviewPageContent({
           ? `${analytics.bestPerformingPlatform} leads performance`
           : 'Connect more channels for ranking',
         label: 'Connected Platforms',
-        tone: 'border-violet-400/12 bg-violet-400/[0.04]',
         value: String(analytics.totalCredentialsConnected ?? 0),
       },
       {
         accent: `${stats?.failedToday ?? 0} failed today`,
         label: 'Credits Today',
-        tone: 'border-amber-400/12 bg-amber-400/[0.04]',
         value: formatCompactNumber(stats?.totalCreditsToday ?? 0),
       },
     ],
@@ -356,7 +352,7 @@ export default function OverviewPageContent({
   const cards = useMemo<OverviewCard[]>(
     () => [
       {
-        color: 'bg-sky-500/18 text-sky-200',
+        color: 'bg-secondary text-muted-foreground',
         cta: 'Open Research',
         description: 'Start with the strongest live signals',
         href: APP_ROUTES.RESEARCH.DISCOVERY,
@@ -365,7 +361,7 @@ export default function OverviewPageContent({
         label: 'Research',
       },
       {
-        color: 'bg-emerald-500/18 text-emerald-200',
+        color: 'bg-secondary text-muted-foreground',
         cta: 'Create Posts',
         description: 'Draft new posts, articles, and campaign assets',
         href: COMPOSE_ROUTES.ROOT,
@@ -374,7 +370,7 @@ export default function OverviewPageContent({
         label: 'Posts',
       },
       {
-        color: 'bg-amber-500/18 text-amber-200',
+        color: 'bg-secondary text-muted-foreground',
         cta: 'Open Inbox',
         description:
           reviewInbox.readyCount > 0
@@ -386,7 +382,7 @@ export default function OverviewPageContent({
         label: 'Publishing Inbox',
       },
       {
-        color: 'bg-cyan-500/18 text-cyan-200',
+        color: 'bg-secondary text-muted-foreground',
         cta: 'Open Schedule',
         description: 'Manage drafts, scheduled posts, and publishing windows',
         href: APP_ROUTES.POSTS.SCHEDULED,
@@ -395,7 +391,7 @@ export default function OverviewPageContent({
         label: 'Schedule',
       },
       {
-        color: 'bg-violet-500/18 text-violet-200',
+        color: 'bg-secondary text-muted-foreground',
         cta: 'View Analytics',
         description: 'Track cross-platform performance',
         href: APP_ROUTES.ANALYTICS.OVERVIEW,
@@ -404,7 +400,7 @@ export default function OverviewPageContent({
         label: 'Analytics',
       },
       {
-        color: 'bg-fuchsia-500/18 text-fuchsia-200',
+        color: 'bg-secondary text-muted-foreground',
         cta: 'Open Remix',
         description: 'Turn winners into follow-ups and fresh variants',
         href: APP_ROUTES.POSTS.REMIX,
@@ -413,7 +409,7 @@ export default function OverviewPageContent({
         label: 'Remix',
       },
       {
-        color: 'bg-rose-500/18 text-rose-200',
+        color: 'bg-secondary text-muted-foreground',
         cta: 'Open Agents',
         description: 'Monitor agent runs, workflows, and brand operations',
         href: APP_ROUTES.ORCHESTRATION.RUNS,

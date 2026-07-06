@@ -26,7 +26,7 @@ const FEATURES = [
   },
   {
     description:
-      'Access the best AI models for video, image, voice, and text — automatically selected for each task.',
+      'Access the best AI models for video, image, voice, and text, automatically selected for each task.',
     icon: LuCpu,
     label: 'AI Engine',
     number: '02',
@@ -73,14 +73,14 @@ export default function FeaturesPage(): React.ReactElement {
                     key={feature.number}
                     className="gsap-card bg-background p-12 flex flex-col group hover:bg-fill/[0.02] transition-colors"
                   >
-                    <div className="text-surface/20 text-xs font-black uppercase tracking-widest mb-12">
+                    <div className="text-surface/50 text-xs font-black uppercase tracking-widest mb-12">
                       {feature.number} / {feature.label}
                     </div>
-                    <Icon className="size-10 mb-8 text-surface/40 group-hover:text-surface transition-all" />
+                    <Icon className="size-10 mb-8 text-surface/55 group-hover:text-surface transition-all" />
                     <h3 className="text-xl font-semibold uppercase tracking-tight mb-4">
                       {feature.title}
                     </h3>
-                    <p className="text-surface/40 text-sm leading-relaxed mb-8">
+                    <p className="text-surface/65 text-sm leading-relaxed mb-8">
                       {feature.description}
                     </p>
                     <span className="mt-auto text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:gap-4 transition-all cursor-pointer">
@@ -107,7 +107,7 @@ export default function FeaturesPage(): React.ReactElement {
                     className="object-cover group-hover:scale-110 transition-transform duration-1000"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent p-12 flex flex-col justify-end">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-surface/40 mb-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-surface/60 mb-2">
                       Case Study 01
                     </span>
                     <h4 className="text-3xl font-semibold text-surface">
@@ -121,7 +121,7 @@ export default function FeaturesPage(): React.ReactElement {
                   <h2 className="text-5xl font-semibold mb-8">
                     Built for Speed and Quality.
                   </h2>
-                  <p className="text-lg text-surface/40 leading-relaxed">
+                  <p className="text-lg text-surface/65 leading-relaxed">
                     Genfeed uses 50+ AI models optimized for content creation.
                     Each model is selected automatically based on your prompt,
                     so you get the best quality without choosing between
@@ -133,7 +133,7 @@ export default function FeaturesPage(): React.ReactElement {
                     <span className="text-4xl font-semibold block mb-2">
                       250%
                     </span>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-surface/30">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-surface/55">
                       Efficiency Increase
                     </span>
                   </div>
@@ -141,7 +141,7 @@ export default function FeaturesPage(): React.ReactElement {
                     <span className="text-4xl font-semibold block mb-2">
                       0.4s
                     </span>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-surface/30">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-surface/55">
                       Average Latency
                     </span>
                   </div>
@@ -168,7 +168,7 @@ export default function FeaturesPage(): React.ReactElement {
               <h2 className="text-6xl font-semibold mb-10">
                 Start Creating Today
               </h2>
-              <p className="text-surface/40 text-xl mb-12 font-medium">
+              <p className="text-surface/65 text-xl mb-12 font-medium">
                 Start creating in minutes. Choose the plan that fits your team.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

@@ -12,7 +12,6 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import { ContentPatternType } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -129,71 +128,6 @@ export class PatternsController {
     const pipeline = {
       where: match,
       orderBy: { [sortField]: sortOrder, createdAt: -1 },
-    };
-
-    const data = await this.patternStoreService.findAll(pipeline, options);
-    return serializeCollection(request, ContentPatternSerializer, data);
-  }
-
-  @Get('hooks')
-  async findHooks(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Query() query: PatternsQueryDto,
-  ): Promise<JsonApiCollectionResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization;
-
-    const hooks = await this.patternStoreService.findHooks(
-      organizationId,
-      query.platform,
-      query.limit ?? 50,
-    );
-
-    return serializeCollection(request, ContentPatternSerializer, {
-      docs: hooks,
-      hasNextPage: false,
-      hasPrevPage: false,
-      limit: hooks.length,
-      nextPage: null,
-      page: 1,
-      pagingCounter: 1,
-      prevPage: null,
-      totalDocs: hooks.length,
-      totalPages: 1,
-    });
-  }
-
-  @Get('templates')
-  async findTemplates(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Query() query: PatternsQueryDto,
-  ): Promise<JsonApiCollectionResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization;
-
-    const options = {
-      customLabels,
-      ...QueryDefaultsUtil.getPaginationDefaults(query),
-    };
-
-    const match: Record<string, unknown> = {
-      isDeleted: false,
-      organization: organizationId,
-      patternType: ContentPatternType.TEMPLATE,
-    };
-
-    if (query.platform) {
-      match.platform = query.platform;
-    }
-    if (query.templateCategory) {
-      match.templateCategory = query.templateCategory;
-    }
-
-    const pipeline = {
-      where: match,
-      orderBy: { createdAt: -1, 'sourceMetrics.engagementRate': -1 },
     };
 
     const data = await this.patternStoreService.findAll(pipeline, options);

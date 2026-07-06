@@ -210,7 +210,7 @@ export default function PricingContent() {
                           {formatPrice(plan.launchPrice)}
                         </span>
                         {plan.type === 'subscription' ? (
-                          <span className="text-sm font-medium text-surface/40">
+                          <span className="text-sm font-medium text-surface/55">
                             /mo
                           </span>
                         ) : null}
@@ -221,7 +221,7 @@ export default function PricingContent() {
                           {formatPrice(plan.price)}
                         </span>
                         {plan.type === 'subscription' ? (
-                          <span className="text-sm font-medium text-surface/40">
+                          <span className="text-sm font-medium text-surface/55">
                             /mo
                           </span>
                         ) : null}
@@ -231,7 +231,7 @@ export default function PricingContent() {
 
                   <div
                     className={cn(
-                      'text-sm text-surface/40',
+                      'text-sm text-surface/60',
                       plan.launchNote ? 'mb-1' : 'mb-8',
                     )}
                   >
@@ -239,19 +239,19 @@ export default function PricingContent() {
                   </div>
 
                   {plan.launchNote ? (
-                    <div className="mb-8 text-xs font-semibold uppercase tracking-widest text-surface/50">
+                    <div className="mb-8 text-xs font-semibold uppercase tracking-widest text-surface/60">
                       {plan.launchNote}
                     </div>
                   ) : null}
 
-                  <p className="mb-8 text-sm leading-6 text-surface/50">
+                  <p className="mb-8 text-sm leading-6 text-surface/65">
                     {getPlanSummary(plan)}
                   </p>
 
                   <ul className="mb-auto space-y-4">
                     {plan.features.slice(0, 5).map((feature) => (
                       <li key={feature} className="flex items-start gap-3">
-                        <HiCheckCircle className="mt-0.5 size-4 shrink-0 text-surface/40" />
+                        <HiCheckCircle className="mt-0.5 size-4 shrink-0 text-surface/55" />
                         <span className="text-sm text-surface/60">
                           {feature}
                         </span>
@@ -285,7 +285,7 @@ export default function PricingContent() {
                 <h3 className="mb-2 text-2xl font-semibold tracking-[-0.02em]">
                   Your own studio, fully managed.
                 </h3>
-                <p className="text-sm leading-6 text-surface/50">
+                <p className="text-sm leading-6 text-surface/65">
                   Custom output terms, unlimited seats and organizations, full
                   API access, white-label, SSO, and a dedicated account manager.
                 </p>
@@ -324,7 +324,7 @@ export default function PricingContent() {
                 <span className="text-sm text-surface/65">{row.label}</span>
                 <span className="text-sm font-semibold text-surface">
                   {formatCredits(row.credits)}
-                  <span className="ml-2 font-normal text-surface/40">
+                  <span className="ml-2 font-normal text-surface/55">
                     ≈ {formatCreditsDollars(row.credits)}
                     {row.suffix ?? ''}
                   </span>
@@ -336,7 +336,7 @@ export default function PricingContent() {
           <div className="mt-px grid gap-px overflow-hidden border border-edge/5 bg-fill/5 sm:grid-cols-3">
             {WEBSITE_CREDIT_PACKS.map((pack) => (
               <div key={pack.label} className="bg-background px-5 py-4">
-                <div className="text-xs font-bold uppercase tracking-widest text-surface/35">
+                <div className="text-xs font-bold uppercase tracking-widest text-surface/55">
                   {pack.label} pack
                 </div>
                 <div className="mt-1 text-sm text-surface/65">

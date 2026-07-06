@@ -16,35 +16,25 @@ export class ModelsService extends BaseService<Model> {
     id: string,
     body: Partial<Model> = {},
   ): Promise<Model> {
-    return this.executeWithErrorHandling(
-      `PATCH ${this.baseURL}/${id}/approve`,
-      this.instance
-        .patch(`/${id}/approve`, body)
-        .then((res) => res.data)
-        .then(async (res) => await this.mapOne(res)),
-    );
+    return this.patch(id, { ...body, reviewStatus: 'approved' });
   }
 
   public rejectRegistryModel(id: string, reason?: string): Promise<Model> {
-    return this.executeWithErrorHandling(
-      `PATCH ${this.baseURL}/${id}/reject`,
-      this.instance
-        .patch(`/${id}/reject`, { reason })
-        .then((res) => res.data)
-        .then(async (res) => await this.mapOne(res)),
-    );
+    const body: Partial<Model> & { reason?: string } = {
+      reason,
+      reviewStatus: 'rejected',
+    };
+    return this.patch(id, body);
   }
 
   public markRegistryModelLegacy(
     id: string,
     succeededBy?: string,
   ): Promise<Model> {
-    return this.executeWithErrorHandling(
-      `PATCH ${this.baseURL}/${id}/legacy`,
-      this.instance
-        .patch(`/${id}/legacy`, { succeededBy })
-        .then((res) => res.data)
-        .then(async (res) => await this.mapOne(res)),
-    );
+    const body: Partial<Model> & { succeededBy?: string } = {
+      reviewStatus: 'legacy',
+      succeededBy,
+    };
+    return this.patch(id, body);
   }
 }

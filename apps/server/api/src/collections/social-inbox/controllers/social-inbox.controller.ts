@@ -1,11 +1,9 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
-  SocialConversationAssignDto,
-  SocialConversationStatusDto,
-  SocialConversationTagsDto,
+  SocialConversationUpdateDto,
   SocialDmDto,
   SocialDraftDto,
-  SocialDraftRejectDto,
+  SocialDraftUpdateDto,
   SocialReplyDto,
 } from '@api/collections/social-inbox/dto/social-inbox-action.dto';
 import { SocialInboxYoutubeIngestDto } from '@api/collections/social-inbox/dto/social-inbox-ingest.dto';
@@ -134,41 +132,30 @@ export class SocialInboxController {
     return serializeSingle(request, SocialMessageSerializer, data);
   }
 
-  @Post(':conversationId/drafts/:messageId/approve')
+  @Patch(':conversationId/drafts/:messageId')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
-  @ApiOperation({ summary: 'Approve and publish a draft reply or DM' })
-  async approveDraft(
+  @ApiOperation({ summary: 'Approve (and publish) or reject a draft reply/DM' })
+  async updateDraft(
     @Req() request: Request,
     @CurrentUser() user: User,
     @Param('conversationId') conversationId: string,
     @Param('messageId') messageId: string,
+    @Body() body: SocialDraftUpdateDto,
   ): Promise<JsonApiSingleResponse> {
     const scope = this.buildScope(user);
-    const data = await this.socialInboxService.approveDraft(
-      scope,
-      conversationId,
-      messageId,
-    );
-    return serializeSingle(request, SocialMessageSerializer, data);
-  }
-
-  @Post(':conversationId/drafts/:messageId/reject')
-  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
-  @ApiOperation({ summary: 'Reject a draft reply or DM without publishing' })
-  async rejectDraft(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('conversationId') conversationId: string,
-    @Param('messageId') messageId: string,
-    @Body() body: SocialDraftRejectDto,
-  ): Promise<JsonApiSingleResponse> {
-    const scope = this.buildScope(user);
-    const data = await this.socialInboxService.rejectDraft(
-      scope,
-      conversationId,
-      messageId,
-      body.reason,
-    );
+    const data =
+      body.status === 'approved'
+        ? await this.socialInboxService.approveDraft(
+            scope,
+            conversationId,
+            messageId,
+          )
+        : await this.socialInboxService.rejectDraft(
+            scope,
+            conversationId,
+            messageId,
+            body.reason,
+          );
     return serializeSingle(request, SocialMessageSerializer, data);
   }
 
@@ -208,56 +195,26 @@ export class SocialInboxController {
     return serializeSingle(request, SocialMessageSerializer, data);
   }
 
-  @Patch(':conversationId/status')
+  @Patch(':conversationId')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
-  @ApiOperation({ summary: 'Update social conversation status' })
-  async updateStatus(
+  @ApiOperation({
+    summary: 'Update a social conversation (status, tags, and/or assignment)',
+  })
+  async updateConversation(
     @Req() request: Request,
     @CurrentUser() user: User,
     @Param('conversationId') conversationId: string,
-    @Body() body: SocialConversationStatusDto,
+    @Body() body: SocialConversationUpdateDto,
   ): Promise<JsonApiSingleResponse> {
     const scope = this.buildScope(user);
-    const data = await this.socialInboxService.updateStatus(
+    const data = await this.socialInboxService.updateConversation(
       scope,
       conversationId,
-      body.status,
-    );
-    return serializeSingle(request, SocialConversationSerializer, data);
-  }
-
-  @Patch(':conversationId/tags')
-  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
-  @ApiOperation({ summary: 'Replace social conversation tags' })
-  async updateTags(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('conversationId') conversationId: string,
-    @Body() body: SocialConversationTagsDto,
-  ): Promise<JsonApiSingleResponse> {
-    const scope = this.buildScope(user);
-    const data = await this.socialInboxService.updateTags(
-      scope,
-      conversationId,
-      body.tags,
-    );
-    return serializeSingle(request, SocialConversationSerializer, data);
-  }
-
-  @Patch(':conversationId/assignment')
-  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
-  @ApiOperation({ summary: 'Assign or unassign a social conversation' })
-  async assignOwner(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('conversationId') conversationId: string,
-    @Body() body: SocialConversationAssignDto,
-  ): Promise<JsonApiSingleResponse> {
-    const scope = this.buildScope(user);
-    const data = await this.socialInboxService.assignOwner(
-      scope,
-      conversationId,
-      body.assignedOwnerId,
+      {
+        assignedOwnerId: body.assignedOwnerId,
+        status: body.status,
+        tags: body.tags,
+      },
     );
     return serializeSingle(request, SocialConversationSerializer, data);
   }

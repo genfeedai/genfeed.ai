@@ -88,23 +88,15 @@ class ProfilesServiceClass {
   }
 
   async getDefaultToneProfile(): Promise<IToneProfile | null> {
-    const response = await fetch(`${this.baseURL}/profiles/default`, {
-      headers: { Authorization: `Bearer ${this.token}` },
-      method: 'GET',
-    });
+    const profiles = await this.request<IToneProfile[]>(
+      '/profiles?isDefault=true',
+      'GET',
+      undefined,
+      'Failed to get default tone profile',
+      'collection',
+    );
 
-    if (response.status === 404) {
-      return null;
-    }
-
-    if (!response.ok) {
-      const error = new Error('Failed to get default tone profile');
-      logger.error('Failed to get default tone profile', { error });
-      throw error;
-    }
-
-    const json = await response.json();
-    return deserializeResource<IToneProfile>(json);
+    return profiles[0] ?? null;
   }
 
   async createToneProfile(data: Partial<IToneProfile>): Promise<IToneProfile> {
