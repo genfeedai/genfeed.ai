@@ -17,5 +17,5 @@ export {
   Webhook as WebhookIcon,
   X as XIcon,
 } from 'lucide-react';
-export { SiSlack as SlackIcon } from 'react-icons/si';
+export { FaSlack as SlackIcon } from 'react-icons/fa';
 export { PlatformIcon } from '@/features/workflows/components/ui/icons/platform-icon';

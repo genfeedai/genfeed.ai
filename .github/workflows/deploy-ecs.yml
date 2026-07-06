@@ -57,6 +57,7 @@ jobs:
     permissions:
       actions: write
       contents: read
+      issues: write
       packages: write
       pull-requests: write
       statuses: write

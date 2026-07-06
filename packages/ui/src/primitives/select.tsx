@@ -27,11 +27,11 @@ import { cn } from '../lib/utils';
 import { fieldControlPopoverClassName } from './field-control';
 import { Label } from './label';
 
-const Select = ShipSelect;
+const Select: typeof ShipSelect = ShipSelect;
 
-const SelectGroup = ShipSelectGroup;
+const SelectGroup: typeof ShipSelectGroup = ShipSelectGroup;
 
-const SelectValue = ShipSelectValue;
+const SelectValue: typeof ShipSelectValue = ShipSelectValue;
 
 const selectFieldVariants = cva('', {
   defaultVariants: {

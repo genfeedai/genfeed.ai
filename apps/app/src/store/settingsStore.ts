@@ -402,7 +402,9 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
       // Also update the current workflow's edges
       // Import dynamically to avoid circular dependency
       try {
-        const { useWorkflowStore } = await import('@/store/workflowStore');
+        const { useWorkflowStore } = await import(
+          '@genfeedai/workflow-ui/stores'
+        );
         useWorkflowStore.getState().setEdgeStyle(style);
       } catch (error) {
         logger.error('Failed to sync edge style to workflow store', {

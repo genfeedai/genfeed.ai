@@ -3,15 +3,15 @@ import {
   type OptimizationCycleResult,
   OptimizationCycleService,
 } from '@api/collections/content-performance/services/optimization-cycle.service';
-import {
-  type PerformanceContentItem,
-  PerformanceSummaryService,
-  type WeeklySummary,
-} from '@api/collections/content-performance/services/performance-summary.service';
 import { TrendPreferencesService } from '@api/collections/trends/services/trend-preferences.service';
 import { OpenAiLlmService } from '@api/services/integrations/openai-llm/services/openai-llm.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import {
+  type PerformanceContentItem,
+  PerformanceSummaryService,
+  type WeeklySummary,
+} from '@server/collections/content-performance/services/performance-summary.service';
 
 // ─── Interfaces ──────────────────────────────────────────────────────
 
