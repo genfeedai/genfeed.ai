@@ -29449,6 +29449,127 @@
         ]
       }
     },
+    "/goals": {
+      "get": {
+        "operationId": "GoalsController.findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "findAll",
+        "tags": [
+          "goals",
+          "Goals"
+        ]
+      },
+      "post": {
+        "operationId": "GoalsController.create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGoalDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "create",
+        "tags": [
+          "goals",
+          "Goals"
+        ]
+      }
+    },
+    "/goals/{id}": {
+      "delete": {
+        "operationId": "GoalsController.remove",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "remove",
+        "tags": [
+          "goals",
+          "Goals"
+        ]
+      },
+      "get": {
+        "operationId": "GoalsController.findOne",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "findOne",
+        "tags": [
+          "goals",
+          "Goals"
+        ]
+      },
+      "patch": {
+        "operationId": "GoalsController.patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGoalDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "patch",
+        "tags": [
+          "goals",
+          "Goals"
+        ]
+      }
+    },
     "/gpt-actions.json": {
       "get": {
         "operationId": "DocsController.getGptActionsSpec",
@@ -38598,6 +38719,127 @@
         "summary": "applyProfile",
         "tags": [
           "Profiles"
+        ]
+      }
+    },
+    "/projects": {
+      "get": {
+        "operationId": "ProjectsController.findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "findAll",
+        "tags": [
+          "projects",
+          "Projects"
+        ]
+      },
+      "post": {
+        "operationId": "ProjectsController.create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "create",
+        "tags": [
+          "projects",
+          "Projects"
+        ]
+      }
+    },
+    "/projects/{id}": {
+      "delete": {
+        "operationId": "ProjectsController.remove",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "remove",
+        "tags": [
+          "projects",
+          "Projects"
+        ]
+      },
+      "get": {
+        "operationId": "ProjectsController.findOne",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "findOne",
+        "tags": [
+          "projects",
+          "Projects"
+        ]
+      },
+      "patch": {
+        "operationId": "ProjectsController.patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "patch",
+        "tags": [
+          "projects",
+          "Projects"
         ]
       }
     },
@@ -48073,248 +48315,6 @@
         "summary": "updateSettings",
         "tags": [
           "users"
-        ]
-      }
-    },
-    "/v1/goals": {
-      "get": {
-        "operationId": "GoalsController.findAll",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findAll",
-        "tags": [
-          "v1/goals",
-          "Goals"
-        ]
-      },
-      "post": {
-        "operationId": "GoalsController.create",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateGoalDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "create",
-        "tags": [
-          "v1/goals",
-          "Goals"
-        ]
-      }
-    },
-    "/v1/goals/{id}": {
-      "delete": {
-        "operationId": "GoalsController.remove",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "remove",
-        "tags": [
-          "v1/goals",
-          "Goals"
-        ]
-      },
-      "get": {
-        "operationId": "GoalsController.findOne",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findOne",
-        "tags": [
-          "v1/goals",
-          "Goals"
-        ]
-      },
-      "patch": {
-        "operationId": "GoalsController.patch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateGoalDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "patch",
-        "tags": [
-          "v1/goals",
-          "Goals"
-        ]
-      }
-    },
-    "/v1/projects": {
-      "get": {
-        "operationId": "ProjectsController.findAll",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findAll",
-        "tags": [
-          "v1/projects",
-          "Projects"
-        ]
-      },
-      "post": {
-        "operationId": "ProjectsController.create",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateProjectDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "create",
-        "tags": [
-          "v1/projects",
-          "Projects"
-        ]
-      }
-    },
-    "/v1/projects/{id}": {
-      "delete": {
-        "operationId": "ProjectsController.remove",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "remove",
-        "tags": [
-          "v1/projects",
-          "Projects"
-        ]
-      },
-      "get": {
-        "operationId": "ProjectsController.findOne",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findOne",
-        "tags": [
-          "v1/projects",
-          "Projects"
-        ]
-      },
-      "patch": {
-        "operationId": "ProjectsController.patch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateProjectDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "patch",
-        "tags": [
-          "v1/projects",
-          "Projects"
         ]
       }
     },
