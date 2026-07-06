@@ -331,6 +331,23 @@ describe('proxy', () => {
     );
   });
 
+  it('redirects keyless self-hosted entrypoints to the seeded workspace', async () => {
+    process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'false';
+    delete process.env.BETTER_AUTH_SECRET;
+
+    vi.resetModules();
+    const { default: proxy } = await import('./proxy');
+
+    for (const pathname of ['/', '/settings', '/workspace/overview']) {
+      const response = await proxy(makeSignedOutRequest(pathname), {} as never);
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get('location')).toBe(
+        'http://localhost:3000/default/default/workspace/overview',
+      );
+    }
+  });
+
   it('redirects signed-in flat protected routes to the canonical org and brand path', async () => {
     const { default: proxy } = await import('./proxy');
 
