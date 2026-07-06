@@ -10,7 +10,7 @@ export default function SkillsStatsBar(): React.ReactElement {
         {STATS.map((stat) => (
           <div key={stat.label} className="text-center">
             <div className="text-4xl font-semibold mb-1">{stat.value}</div>
-            <div className="text-xs font-black uppercase tracking-widest text-surface/30">
+            <div className="text-xs font-black uppercase tracking-widest text-surface/50">
               {stat.label}
             </div>
           </div>

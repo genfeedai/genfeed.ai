@@ -18,11 +18,11 @@ type Props = {
   onBack: () => void;
 };
 
-const CURRENT_RING = 'ring-1 ring-emerald-400/40';
+const CURRENT_RING = 'ring-1 ring-border-strong';
 
 function CurrentBadge() {
   return (
-    <span className="absolute -top-2 right-3 z-10 rounded-full border border-emerald-400/30 bg-emerald-400/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-200">
+    <span className="absolute -top-2 right-3 z-10 rounded-full bg-hover px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-foreground">
       Current
     </span>
   );

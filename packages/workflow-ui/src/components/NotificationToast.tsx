@@ -14,10 +14,10 @@ import { useUIStore } from '../stores/uiStore';
 import { Button } from '../ui/button';
 
 const typeStyles = {
-  error: 'bg-red-900 border-red-700 text-red-100',
-  info: 'bg-neutral-800 border-neutral-600 text-neutral-100',
-  success: 'bg-green-900 border-green-700 text-green-100',
-  warning: 'bg-orange-900 border-orange-600 text-orange-100',
+  error: 'bg-destructive/10 border-destructive/30 text-destructive',
+  info: 'bg-secondary border-border text-foreground',
+  success: 'bg-success/10 border-success/30 text-success',
+  warning: 'bg-warning/10 border-warning/30 text-warning',
 } as const;
 
 const typeIcons = {

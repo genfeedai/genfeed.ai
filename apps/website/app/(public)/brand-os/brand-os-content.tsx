@@ -114,7 +114,7 @@ const RADIUS_STEPS: RadiusStep[] = [
 
 const COLOR_DOORS: ColorDoor[] = [
   {
-    body: 'Generated media is the primary color source. Rendered borderless and full-bleed wherever possible — chrome recedes behind it.',
+    body: 'Generated media is the primary color source. Rendered borderless and full-bleed wherever possible, so chrome recedes behind it.',
     index: '01',
     title: 'User content',
   },
@@ -124,7 +124,7 @@ const COLOR_DOORS: ColorDoor[] = [
     title: 'Platform identifiers',
   },
   {
-    body: 'Success, warning, danger, info. Applied to state — never decoration.',
+    body: 'Success, warning, danger, info. Applied to state, never decoration.',
     index: '03',
     title: 'Semantic status',
   },
@@ -137,7 +137,7 @@ const COLOR_DOORS: ColorDoor[] = [
 
 const DOS: string[] = [
   'Use background layering for hierarchy instead of heavy borders.',
-  'Use inset box-shadow borders on elevated surfaces — cards, dialogs, dropdowns.',
+  'Use inset box-shadow borders on elevated surfaces: cards, dialogs, dropdowns.',
   'Reserve the border token for structural dividers: sidebar edges, header bottoms.',
   'Use ghost buttons for toolbar and topbar actions.',
   'Apply semantic status colors consistently across every surface.',
@@ -145,9 +145,9 @@ const DOS: string[] = [
 ];
 
 const DONTS: string[] = [
-  'Use a CSS border for card, dialog, or dropdown containment — use inset shadow.',
+  'Use a CSS border for card, dialog, or dropdown containment; use inset shadow.',
   'Mix hardcoded colors with token references.',
-  'Use the accent for status — it is for primary CTAs only.',
+  'Use the accent for status; it is for primary CTAs only.',
   'Add a new semantic color without updating DESIGN.md.',
   'Use large decorative gradients as core product surfaces.',
   'Nest cards inside cards, or add glow / spotlight shadows to chrome.',
@@ -155,7 +155,7 @@ const DONTS: string[] = [
 
 function SectionLabel({ children }: { children: string }): React.ReactElement {
   return (
-    <Text className="text-[10px] font-black uppercase tracking-[0.2em] text-surface/35">
+    <Text className="text-[10px] font-black uppercase tracking-[0.2em] text-surface/55">
       {children}
     </Text>
   );
@@ -175,11 +175,11 @@ function SwatchTile({ swatch }: { swatch: Swatch }): React.ReactElement {
           <Text className="text-xs font-semibold text-surface">
             {swatch.name}
           </Text>
-          <Text className="font-mono text-[10px] uppercase text-surface/35">
+          <Text className="font-mono text-[10px] uppercase text-surface/55">
             {swatch.hex}
           </Text>
         </HStack>
-        <Text className="text-[11px] leading-4 text-surface/40">
+        <Text className="text-[11px] leading-4 text-surface/60">
           {swatch.role}
         </Text>
       </VStack>
@@ -201,19 +201,19 @@ export default function BrandOSContent(): React.ReactElement {
               <HStack className="w-fit items-center gap-2 border border-edge/10 bg-fill/[0.02] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.15em] text-surface/45">
                 <LuLayers className="size-3.5" />
                 <Text>Brand OS</Text>
-                <span className="text-surface/20">/</span>
-                <Text className="text-surface/35">version alpha</Text>
+                <span className="text-surface/45">/</span>
+                <Text className="text-surface/55">version alpha</Text>
               </HStack>
 
               <Heading
                 as="h1"
-                className="max-w-3xl font-serif text-5xl leading-none text-surface sm:text-6xl lg:text-7xl"
+                className="max-w-3xl font-semibold tracking-[-0.02em] text-5xl leading-none text-surface sm:text-6xl lg:text-7xl"
               >
                 The Genfeed Brand OS.
               </Heading>
 
               <Text className="max-w-2xl text-base leading-7 text-surface/55 sm:text-lg">
-                The living design system behind Genfeed — dark-first,
+                The living design system behind Genfeed: dark-first,
                 information-dense, and aligned with the ShipCode and Linear
                 visual language. Depth comes from layered background tones and
                 inset-shadow containment; color enters only through the
@@ -224,18 +224,21 @@ export default function BrandOSContent(): React.ReactElement {
           </div>
         </section>
 
-        {/* Color — backgrounds + text */}
+        {/* Color: backgrounds + text */}
         <section className="border-b border-edge/5 bg-fill/[0.02] py-16 sm:py-20">
           <div className="container mx-auto grid gap-12 px-6 lg:grid-cols-[0.32fr_1fr] lg:gap-16">
             <VStack className="gap-4">
               <SectionLabel>Foundations</SectionLabel>
-              <Heading as="h2" className="font-serif text-4xl text-surface">
+              <Heading
+                as="h2"
+                className="font-semibold tracking-[-0.02em] text-4xl text-surface"
+              >
                 Depth without borders.
               </Heading>
               <Text className="text-sm leading-6 text-surface/55">
                 Five background tones create elevation from the deepest canvas
-                to the most raised surface — no heavy strokes, just tonal shift.
-                Text resolves in three tiers over the top.
+                to the most raised surface, with no heavy strokes, just tonal
+                shift. Text resolves in three tiers over the top.
               </Text>
             </VStack>
 
@@ -259,7 +262,7 @@ export default function BrandOSContent(): React.ReactElement {
                   </div>
                 </VStack>
                 <VStack className="gap-4">
-                  <SectionLabel>Accent — inverted for dark</SectionLabel>
+                  <SectionLabel>Accent, inverted for dark</SectionLabel>
                   <div className="grid grid-cols-3 gap-4">
                     {ACCENT.map((swatch) => (
                       <SwatchTile key={swatch.name} swatch={swatch} />
@@ -276,11 +279,14 @@ export default function BrandOSContent(): React.ReactElement {
           <div className="container mx-auto grid gap-12 px-6 lg:grid-cols-[0.32fr_1fr] lg:gap-16">
             <VStack className="gap-4">
               <SectionLabel>Signal</SectionLabel>
-              <Heading as="h2" className="font-serif text-4xl text-surface">
+              <Heading
+                as="h2"
+                className="font-semibold tracking-[-0.02em] text-4xl text-surface"
+              >
                 Color that means something.
               </Heading>
               <Text className="text-sm leading-6 text-surface/55">
-                Status and domain colors map directly to state and workflow —
+                Status and domain colors map directly to state and workflow,
                 never decoration. Four semantic tones, two domain tones.
               </Text>
             </VStack>
@@ -311,11 +317,14 @@ export default function BrandOSContent(): React.ReactElement {
           <div className="container mx-auto grid gap-12 px-6 lg:grid-cols-[0.32fr_1fr] lg:gap-16">
             <VStack className="gap-4">
               <SectionLabel>Identifiers</SectionLabel>
-              <Heading as="h2" className="font-serif text-4xl text-surface">
+              <Heading
+                as="h2"
+                className="font-semibold tracking-[-0.02em] text-4xl text-surface"
+              >
                 Platform tokens.
               </Heading>
               <Text className="text-sm leading-6 text-surface/55">
-                Twenty-four brand colors used as identifiers only — on platform
+                Twenty-four brand colors used as identifiers only, on platform
                 icons, connection badges, and analytics breakdowns. Never for
                 layout chrome or primary actions.
               </Text>
@@ -333,7 +342,7 @@ export default function BrandOSContent(): React.ReactElement {
                     <Text className="text-xs font-medium text-surface/80">
                       {platform.name}
                     </Text>
-                    <Text className="font-mono text-[10px] uppercase text-surface/30">
+                    <Text className="font-mono text-[10px] uppercase text-surface/55">
                       {platform.hex}
                     </Text>
                   </VStack>
@@ -349,7 +358,10 @@ export default function BrandOSContent(): React.ReactElement {
             <VStack className="gap-6">
               <VStack className="gap-3">
                 <SectionLabel>Typography</SectionLabel>
-                <Heading as="h2" className="font-serif text-4xl text-surface">
+                <Heading
+                  as="h2"
+                  className="font-semibold tracking-[-0.02em] text-4xl text-surface"
+                >
                   A dense, deliberate scale.
                 </Heading>
                 <Text className="text-sm leading-6 text-surface/55">
@@ -367,7 +379,7 @@ export default function BrandOSContent(): React.ReactElement {
                     <Text className="text-sm text-surface/70">
                       {row.element}
                     </Text>
-                    <Text className="font-mono text-[11px] uppercase text-surface/40">
+                    <Text className="font-mono text-[11px] uppercase text-surface/60">
                       {row.size}
                     </Text>
                   </HStack>
@@ -378,7 +390,10 @@ export default function BrandOSContent(): React.ReactElement {
             <VStack className="gap-6">
               <VStack className="gap-3">
                 <SectionLabel>Form</SectionLabel>
-                <Heading as="h2" className="font-serif text-4xl text-surface">
+                <Heading
+                  as="h2"
+                  className="font-semibold tracking-[-0.02em] text-4xl text-surface"
+                >
                   Four-step radius.
                 </Heading>
                 <Text className="text-sm leading-6 text-surface/55">
@@ -401,11 +416,11 @@ export default function BrandOSContent(): React.ReactElement {
                       <Text className="text-xs font-semibold text-surface">
                         {step.name}
                       </Text>
-                      <Text className="font-mono text-[10px] uppercase text-surface/40">
+                      <Text className="font-mono text-[10px] uppercase text-surface/60">
                         {step.px}px
                       </Text>
                     </HStack>
-                    <Text className="text-[11px] leading-4 text-surface/40">
+                    <Text className="text-[11px] leading-4 text-surface/60">
                       {step.use}
                     </Text>
                   </VStack>
@@ -415,19 +430,19 @@ export default function BrandOSContent(): React.ReactElement {
           </div>
         </section>
 
-        {/* Content is the accent — centerpiece */}
+        {/* Content is the accent: centerpiece */}
         <section className="border-b border-edge/5 bg-fill/[0.02] py-20 sm:py-24">
           <div className="container mx-auto px-6">
             <VStack className="mx-auto max-w-3xl gap-5 text-center">
               <SectionLabel>The principle</SectionLabel>
               <Heading
                 as="h2"
-                className="font-serif text-4xl leading-tight text-surface sm:text-5xl"
+                className="font-semibold tracking-[-0.02em] text-4xl leading-tight text-surface sm:text-5xl"
               >
                 Content is the accent.
               </Heading>
               <Text className="text-base leading-7 text-surface/55">
-                Genfeed chrome is a neutral studio — the gallery wall, not the
+                Genfeed chrome is a neutral studio, the gallery wall, not the
                 art. The product's output is inherently colorful, so the
                 interface never competes with it. Color enters through exactly
                 four doors; everything else is grayscale.
@@ -437,7 +452,7 @@ export default function BrandOSContent(): React.ReactElement {
             <div className="mx-auto mt-12 grid max-w-6xl gap-px bg-edge/5 sm:grid-cols-2 lg:grid-cols-4">
               {COLOR_DOORS.map((door) => (
                 <VStack className="gap-4 bg-background p-6" key={door.index}>
-                  <Text className="font-mono text-xs text-surface/30">
+                  <Text className="font-mono text-xs text-surface/55">
                     {door.index}
                   </Text>
                   <Heading

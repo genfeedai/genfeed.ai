@@ -176,12 +176,6 @@ export class GoogleAdsController {
     return serializeSingle(request, CredentialSerializer, updatedCredential);
   }
 
-  @Get('oauth/url')
-  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
-  getOAuthUrl(@Query('state') state: string) {
-    return { url: this.googleAdsOAuthService.generateAuthUrl(state) };
-  }
-
   @Get('customers')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
   async listCustomers(@CurrentUser() user: User) {

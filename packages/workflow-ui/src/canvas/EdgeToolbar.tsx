@@ -56,7 +56,7 @@ function EdgeToolbarComponent() {
 
   return (
     <div
-      className="fixed z-30 flex items-center gap-1 bg-[var(--background)] border border-[var(--border)] shadow-lg px-1.5 py-1"
+      className="fixed z-30 flex items-center gap-1 bg-[var(--background)] shadow-dropdown px-1.5 py-1"
       style={{
         left: position.x,
         top: position.y - 40,
@@ -81,7 +81,7 @@ function EdgeToolbarComponent() {
         size="icon-sm"
         onClick={handleDelete}
         title="Delete edge"
-        className="hover:bg-red-500/10 hover:text-red-500"
+        className="hover:bg-destructive/10 hover:text-destructive"
       >
         <Trash2 className="size-3.5" />
       </Button>

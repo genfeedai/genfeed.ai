@@ -123,17 +123,6 @@ describe('GoogleAdsController', () => {
     vi.clearAllMocks();
   });
 
-  // ── OAuth ──────────────────────────────────────────────────────────────────
-  describe('getOAuthUrl', () => {
-    it('returns generated auth URL', () => {
-      const result = controller.getOAuthUrl('state-abc');
-      expect(googleAdsOAuthService.generateAuthUrl).toHaveBeenCalledWith(
-        'state-abc',
-      );
-      expect(result).toEqual({ url: 'https://accounts.google.com/oauth' });
-    });
-  });
-
   describe('verify', () => {
     it('persists verified credential using access token', async () => {
       googleAdsService.listAccessibleCustomers.mockResolvedValue([

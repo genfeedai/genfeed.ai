@@ -350,7 +350,7 @@ export function Toolbar({
           size="sm"
           onClick={() => openModal('settings')}
           title="Debug mode active - API calls are mocked"
-          className="border-amber-500/30 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20"
+          className="border-warning/30 bg-warning/10 text-warning hover:bg-warning/20"
         >
           <Bug className="size-4" />
           <span className="font-medium">Debug</span>

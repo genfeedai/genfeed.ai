@@ -24,9 +24,9 @@ export default function BenefitGrid({ benefits, className }: BenefitGridProps) {
             key={benefit.title}
             className="p-10 text-center group bg-zinc-900 hover:bg-fill/[0.02] transition-colors"
           >
-            <Icon className="size-8 mx-auto mb-4 text-surface/40 group-hover:text-surface transition-all" />
+            <Icon className="size-8 mx-auto mb-4 text-surface/65 group-hover:text-surface transition-all" />
             <h3 className="text-lg font-semibold mb-2">{benefit.title}</h3>
-            <p className="text-surface/40 text-sm">{benefit.description}</p>
+            <p className="text-surface/65 text-sm">{benefit.description}</p>
           </div>
         );
       })}
