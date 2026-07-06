@@ -1,11 +1,5 @@
 import type { IconType } from 'react-icons';
-import {
-  SiBytedance,
-  SiGoogle,
-  SiHuggingface,
-  SiMeta,
-  SiOpenai,
-} from 'react-icons/si';
+import { SiBytedance, SiGoogle, SiHuggingface, SiMeta } from 'react-icons/si';
 
 export interface ModelBrandConfig {
   label: string;
@@ -26,7 +20,7 @@ export const MODEL_BRANDS: Record<string, ModelBrandConfig> = {
   kwaivgi: { color: '#FF2D55', label: 'Kling' },
   luma: { color: '#7C3AED', label: 'Luma' },
   meta: { color: '#0668E1', icon: SiMeta, label: 'Meta' },
-  openai: { color: '#10A37F', icon: SiOpenai, label: 'OpenAI' },
+  openai: { color: '#10A37F', label: 'OpenAI' },
   prunaai: { color: '#10B981', label: 'Pruna' },
   qwen: { color: '#6366F1', label: 'Qwen' },
   replicate: { color: '#D97706', label: 'Replicate' },

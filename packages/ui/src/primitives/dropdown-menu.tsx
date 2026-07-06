@@ -15,17 +15,21 @@ import { Check, Minus } from 'lucide-react';
 import type { ComponentPropsWithRef, HTMLAttributes } from 'react';
 import { cn } from '../lib/utils';
 
-const DropdownMenu = ShipDropdownMenu;
+const DropdownMenu: typeof ShipDropdownMenu = ShipDropdownMenu;
 
-const DropdownMenuTrigger = ShipDropdownMenuTrigger;
+const DropdownMenuTrigger: typeof ShipDropdownMenuTrigger =
+  ShipDropdownMenuTrigger;
 
-const DropdownMenuGroup = DropdownMenuPrimitive.Group;
+const DropdownMenuGroup: typeof DropdownMenuPrimitive.Group =
+  DropdownMenuPrimitive.Group;
 
-const DropdownMenuPortal = DropdownMenuPrimitive.Portal;
+const DropdownMenuPortal: typeof DropdownMenuPrimitive.Portal =
+  DropdownMenuPrimitive.Portal;
 
-const DropdownMenuSub = ShipDropdownMenuSub;
+const DropdownMenuSub: typeof ShipDropdownMenuSub = ShipDropdownMenuSub;
 
-const DropdownMenuRadioGroup = DropdownMenuPrimitive.RadioGroup;
+const DropdownMenuRadioGroup: typeof DropdownMenuPrimitive.RadioGroup =
+  DropdownMenuPrimitive.RadioGroup;
 
 function DropdownMenuSubTrigger({
   ref,

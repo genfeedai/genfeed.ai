@@ -5,7 +5,7 @@ import type { ComponentPropsWithRef } from 'react';
 import { cn } from '../lib/utils';
 import { getTabsListClassName, getTabsTriggerClassName } from './tabs.styles';
 
-const Tabs = TabsPrimitive.Root;
+const Tabs: typeof TabsPrimitive.Root = TabsPrimitive.Root;
 
 function TabsList({
   ref,
