@@ -25,7 +25,7 @@ export default function TrendsPageHeader({
     <header>
       <VStack gap={3}>
         <div className="flex flex-wrap items-center gap-3">
-          <Badge className="bg-info text-info-foreground text-xs uppercase tracking-wide">
+          <Badge variant="default" className="text-xs uppercase tracking-wide">
             Live sync
           </Badge>
 

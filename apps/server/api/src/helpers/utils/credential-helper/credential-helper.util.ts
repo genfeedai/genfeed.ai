@@ -1,7 +1,7 @@
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 
 export interface CredentialWithToken {
   credential: CredentialDocument;

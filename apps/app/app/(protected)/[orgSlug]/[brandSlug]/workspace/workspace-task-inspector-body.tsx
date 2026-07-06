@@ -112,7 +112,7 @@ export function WorkspaceTaskInspectorBody({
       {linkedRunSummary.reportThreadId ? (
         <Card
           label="Report location"
-          bodyClassName="space-y-3 border-l border-sky-400/30 p-4 text-sm text-foreground/75"
+          bodyClassName="space-y-3 border-l border-border p-4 text-sm text-foreground/75"
         >
           <p>
             This task&apos;s report lives in the linked agent thread, not in the

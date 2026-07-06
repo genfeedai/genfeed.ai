@@ -5,7 +5,6 @@ import type { CreativePatternDocument } from '@api/collections/creative-patterns
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { WorkflowStatus, WorkflowTrigger } from '@genfeedai/enums';
 import type {
   AdsAdapterContext,
@@ -25,6 +24,7 @@ import type {
   AdsResearchWorkflowResult,
   CampaignLaunchPrep,
 } from '@genfeedai/interfaces/integrations/ads-research.interface';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 interface DetailContext {

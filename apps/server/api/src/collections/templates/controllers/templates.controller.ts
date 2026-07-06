@@ -104,93 +104,6 @@ export class TemplatesController {
     });
   }
 
-  // ============================================================================
-  // Prompt Template Endpoints (must come before :id routes)
-  // ============================================================================
-
-  /**
-   * List prompt templates
-   * Uses TemplateFilterUtil for consistent filter building
-   */
-  @Get('prompts')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async listPromptTemplates(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Query() query: TemplatesQueryDto,
-  ) {
-    const { organization } = getPublicMetadata(user);
-
-    // Use TemplateFilterUtil to build filters with purpose: 'prompt'
-    const filters = TemplateFilterUtil.buildTemplateFilters({
-      ...query,
-      purpose: 'prompt',
-    });
-
-    const templates = await this.templatesService.findAll(
-      organization,
-      filters,
-    );
-    return serializeCollection(request, TemplateSerializer, {
-      docs: templates,
-    });
-  }
-
-  /**
-   * Create prompt template
-   */
-  @Post('prompts')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async createPromptTemplate(
-    @Req() request: Request,
-    @Body() dto: CreateTemplateDto,
-    @CurrentUser() user: User,
-  ) {
-    const { organization } = getPublicMetadata(user);
-    // Ensure purpose is set to 'prompt'
-    const promptDto = { ...dto, purpose: 'prompt' as const };
-    const template = await this.templatesService.create(
-      promptDto,
-      organization,
-      user.id,
-    );
-    return serializeSingle(request, TemplateSerializer, template);
-  }
-
-  /**
-   * Update prompt template
-   */
-  @Patch('prompts/:templateId')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async updatePromptTemplate(
-    @Req() request: Request,
-    @Param('templateId') templateId: string,
-    @Body() dto: UpdateTemplateDto,
-    @CurrentUser() user: User,
-  ) {
-    const { organization } = getPublicMetadata(user);
-    const template = await this.templatesService.update(
-      templateId,
-      dto,
-      organization,
-    );
-    return serializeSingle(request, TemplateSerializer, template);
-  }
-
-  /**
-   * Delete prompt template
-   */
-  @Delete('prompts/:templateId')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async removePromptTemplate(
-    @Param('templateId') templateId: string,
-    @CurrentUser() user: User,
-  ) {
-    const { organization } = getPublicMetadata(user);
-    await this.templatesService.remove(templateId, organization);
-    return { message: 'Prompt template deleted successfully' };
-  }
-
   /**
    * Get one template
    */
@@ -309,26 +222,6 @@ export class TemplatesController {
       },
     );
     this.finalizeDeferredCredits(request, billedCredits);
-    return serializeCollection(request, TemplateSerializer, {
-      docs: templates,
-    });
-  }
-
-  /**
-   * Get popular templates
-   */
-  @Get('popular')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async getPopularTemplates(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Query('limit') limit?: string,
-  ) {
-    const { organization } = getPublicMetadata(user);
-    const templates = await this.templatesService.getPopularTemplates(
-      organization,
-      limit ? parseInt(limit, 10) : 10,
-    );
     return serializeCollection(request, TemplateSerializer, {
       docs: templates,
     });

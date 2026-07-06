@@ -2,7 +2,7 @@ import { AdAutomationWorkflowService } from '@api/collections/workflows/services
 import { CredentialPlatform } from '@genfeedai/enums';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@api/shared/utils/encryption/encryption.util', () => ({
+vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: {
     decrypt: vi.fn((value: string) => `decrypted:${value}`),
   },

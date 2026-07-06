@@ -241,27 +241,33 @@ export class TasksService extends BaseService<
 
   async approve(id: string): Promise<Task> {
     return this.executeWithErrorHandling(
-      `PATCH ${this.baseURL}/${id}/approve`,
+      `PATCH ${this.baseURL}/${id}`,
       this.instance
-        .patch<JsonApiResponseDocument>(`/${id}/approve`)
+        .patch<JsonApiResponseDocument>(`/${id}`, { reviewState: 'approved' })
         .then((response) => this.mapOne(response.data)),
     );
   }
 
   async requestChanges(id: string, reason: string): Promise<Task> {
     return this.executeWithErrorHandling(
-      `PATCH ${this.baseURL}/${id}/request-changes`,
+      `PATCH ${this.baseURL}/${id}`,
       this.instance
-        .patch<JsonApiResponseDocument>(`/${id}/request-changes`, { reason })
+        .patch<JsonApiResponseDocument>(`/${id}`, {
+          reason,
+          reviewState: 'changes_requested',
+        })
         .then((response) => this.mapOne(response.data)),
     );
   }
 
   async dismiss(id: string, reason?: string): Promise<Task> {
     return this.executeWithErrorHandling(
-      `PATCH ${this.baseURL}/${id}/dismiss`,
+      `PATCH ${this.baseURL}/${id}`,
       this.instance
-        .patch<JsonApiResponseDocument>(`/${id}/dismiss`, { reason })
+        .patch<JsonApiResponseDocument>(`/${id}`, {
+          reason,
+          reviewState: 'dismissed',
+        })
         .then((response) => this.mapOne(response.data)),
     );
   }
@@ -286,27 +292,31 @@ export class TasksService extends BaseService<
 
   async keepOutput(id: string, outputId: string): Promise<Task> {
     return this.executeWithErrorHandling(
-      `PATCH ${this.baseURL}/${id}/outputs/${outputId}/keep`,
+      `PATCH ${this.baseURL}/${id}/outputs/${outputId}`,
       this.instance
-        .patch<JsonApiResponseDocument>(`/${id}/outputs/${outputId}/keep`)
+        .patch<JsonApiResponseDocument>(`/${id}/outputs/${outputId}`, {
+          isKept: true,
+        })
         .then((response) => this.mapOne(response.data)),
     );
   }
 
   async unkeepOutput(id: string, outputId: string): Promise<Task> {
     return this.executeWithErrorHandling(
-      `PATCH ${this.baseURL}/${id}/outputs/${outputId}/unkeep`,
+      `PATCH ${this.baseURL}/${id}/outputs/${outputId}`,
       this.instance
-        .patch<JsonApiResponseDocument>(`/${id}/outputs/${outputId}/unkeep`)
+        .patch<JsonApiResponseDocument>(`/${id}/outputs/${outputId}`, {
+          isKept: false,
+        })
         .then((response) => this.mapOne(response.data)),
     );
   }
 
   async trashOutput(id: string, outputId: string): Promise<Task> {
     return this.executeWithErrorHandling(
-      `PATCH ${this.baseURL}/${id}/outputs/${outputId}/trash`,
+      `DELETE ${this.baseURL}/${id}/outputs/${outputId}`,
       this.instance
-        .patch<JsonApiResponseDocument>(`/${id}/outputs/${outputId}/trash`)
+        .delete<JsonApiResponseDocument>(`/${id}/outputs/${outputId}`)
         .then((response) => this.mapOne(response.data)),
     );
   }

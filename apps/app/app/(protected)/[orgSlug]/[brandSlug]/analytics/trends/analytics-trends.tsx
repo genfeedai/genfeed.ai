@@ -62,7 +62,7 @@ export default function AnalyticsTrends() {
       {/* Trending Topics Section */}
       <section>
         <Card
-          className="border border-white/[0.08] bg-card/80 backdrop-blur"
+          className="backdrop-blur"
           bodyClassName="space-y-6"
           label="Trending Topics"
           icon={HiOutlineFire}
@@ -78,10 +78,7 @@ export default function AnalyticsTrends() {
 
       {/* Viral Video Leaderboard Section */}
       <section>
-        <Card
-          className="border border-white/[0.08] bg-card/80 backdrop-blur"
-          bodyClassName="space-y-6"
-        >
+        <Card className="backdrop-blur" bodyClassName="space-y-6">
           <ViralVideoLeaderboard
             videos={viralVideos}
             isLoading={isLoadingVideos}
@@ -95,7 +92,7 @@ export default function AnalyticsTrends() {
       {/* Trending Hashtags Section */}
       <section>
         <Card
-          className="border border-white/[0.08] bg-card/80 backdrop-blur"
+          className="backdrop-blur"
           bodyClassName="space-y-6"
           label="Trending Hashtags"
           icon={HiOutlineHashtag}
@@ -113,7 +110,7 @@ export default function AnalyticsTrends() {
       {/* Trending Sounds Section */}
       <section>
         <Card
-          className="border border-white/[0.08] bg-card/80 backdrop-blur"
+          className="backdrop-blur"
           bodyClassName="space-y-6"
           label="Trending Sounds"
           icon={HiOutlineMusicalNote}

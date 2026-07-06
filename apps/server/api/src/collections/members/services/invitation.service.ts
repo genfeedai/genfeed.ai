@@ -216,21 +216,50 @@ export class InvitationService {
     return toInvitationView(invitation);
   }
 
-  async listPendingInvitations(
+  async listInvitations(
     organizationId: string,
+    status?: InvitationStatus,
   ): Promise<InvitationView[]> {
     const invitations = await this.prisma.invitation.findMany({
       orderBy: { createdAt: 'desc' },
       where: {
-        acceptedAt: null,
-        expiresAt: { gt: new Date() },
         isDeleted: false,
         organizationId,
-        revokedAt: null,
+        ...this.buildStatusWhere(status),
       },
     });
 
     return invitations.map(toInvitationView);
+  }
+
+  private buildStatusWhere(
+    status: InvitationStatus | undefined,
+  ): Pick<
+    Prisma.InvitationWhereInput,
+    'acceptedAt' | 'expiresAt' | 'revokedAt'
+  > {
+    const now = new Date();
+
+    switch (status) {
+      case 'accepted':
+        return { acceptedAt: { not: null } };
+      case 'revoked':
+        return { acceptedAt: null, revokedAt: { not: null } };
+      case 'expired':
+        return {
+          acceptedAt: null,
+          expiresAt: { lte: now },
+          revokedAt: null,
+        };
+      case 'pending':
+        return {
+          acceptedAt: null,
+          expiresAt: { gt: now },
+          revokedAt: null,
+        };
+      default:
+        return {};
+    }
   }
 
   async revokeInvitation(

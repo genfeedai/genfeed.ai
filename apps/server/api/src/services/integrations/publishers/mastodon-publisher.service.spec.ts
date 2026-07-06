@@ -1,4 +1,4 @@
-vi.mock('@api/shared/utils/encryption/encryption.util', () => ({
+vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: { decrypt: vi.fn((val: string) => `decrypted:${val}`) },
 }));
 
@@ -17,9 +17,9 @@ import { ConfigService } from '@api/config/config.service';
 import { MastodonService } from '@api/services/integrations/mastodon/services/mastodon.service';
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { MastodonPublisherService } from '@api/services/integrations/publishers/mastodon-publisher.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform, PostCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('MastodonPublisherService', () => {

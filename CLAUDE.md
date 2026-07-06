@@ -6,7 +6,7 @@
 @.agents/memory/context/project-style-guide.md
 @.agents/memory/context/skills-architecture.md
 
-TypeScript monorepo: 6 app surfaces, 12 backend services, 42 shared packages.
+TypeScript monorepo: 7 app workspaces, 11 backend service workspaces, 43 shared packages.
 Stack: Next.js + NestJS + PostgreSQL (Prisma) + Redis + BullMQ
 
 ## Git Workflow
@@ -107,13 +107,14 @@ bun run test --filter=@genfeedai/[name]  # Run specific package tests
 | `files/` | 3012 | File processing service |
 | `workers/` | 3013 | Background job processors |
 | `mcp/` | 3014 | MCP server for AI tools |
-| `clips/` | 3015 | Clips processing |
 | `discord/` | 3016 | Discord integration |
 | `slack/` | 3018 | Slack integration |
 | `telegram/` | 3019 | Telegram bot |
 | `images/` | 3020 | Image generation pipeline |
 | `videos/` | 3021 | Video generation pipeline |
 | `voices/` | 3022 | Voice generation pipeline |
+
+`apps/server/clips/` is not currently a Bun workspace or Nest service package on `origin/master`; clip generation/runtime code is currently under API/packages/files paths. Re-verify before reintroducing a separate clips service.
 
 ### Frontend
 | App | Purpose |

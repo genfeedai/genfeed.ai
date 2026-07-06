@@ -238,21 +238,6 @@ export class TasksService extends BaseService<
     })) as unknown as TaskDocument;
   }
 
-  async listInbox(organizationId: string, limit = 20): Promise<TaskDocument[]> {
-    return (await this.delegate.findMany({
-      where: {
-        isDeleted: false,
-        organizationId,
-        OR: [
-          { reviewState: { in: ['pending_approval', 'changes_requested'] } },
-          { status: { in: ['done', 'failed'] } },
-        ],
-      },
-      orderBy: [{ reviewState: 'asc' }, { updatedAt: 'desc' }],
-      take: limit,
-    })) as unknown as TaskDocument[];
-  }
-
   // ===========================================================================
   // Review / output actions — thin delegators to TaskActionsService.
   // ===========================================================================

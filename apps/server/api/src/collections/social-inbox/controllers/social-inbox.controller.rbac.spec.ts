@@ -17,18 +17,10 @@ describe('SocialInboxController RBAC', () => {
     expect(metadata).toEqual(['owner', 'admin', 'creator']);
   });
 
-  it('should require owner or admin role for approveDraft', () => {
+  it('should require owner or admin role for updateDraft', () => {
     const metadata = Reflect.getMetadata(
       'roles',
-      SocialInboxController.prototype.approveDraft,
-    );
-    expect(metadata).toEqual(['owner', 'admin']);
-  });
-
-  it('should require owner or admin role for rejectDraft', () => {
-    const metadata = Reflect.getMetadata(
-      'roles',
-      SocialInboxController.prototype.rejectDraft,
+      SocialInboxController.prototype.updateDraft,
     );
     expect(metadata).toEqual(['owner', 'admin']);
   });
@@ -49,26 +41,10 @@ describe('SocialInboxController RBAC', () => {
     expect(metadata).toEqual(['owner', 'admin']);
   });
 
-  it('should require owner or admin role for updateStatus', () => {
+  it('should require owner or admin role for updateConversation', () => {
     const metadata = Reflect.getMetadata(
       'roles',
-      SocialInboxController.prototype.updateStatus,
-    );
-    expect(metadata).toEqual(['owner', 'admin']);
-  });
-
-  it('should require owner or admin role for updateTags', () => {
-    const metadata = Reflect.getMetadata(
-      'roles',
-      SocialInboxController.prototype.updateTags,
-    );
-    expect(metadata).toEqual(['owner', 'admin']);
-  });
-
-  it('should require owner or admin role for assignOwner', () => {
-    const metadata = Reflect.getMetadata(
-      'roles',
-      SocialInboxController.prototype.assignOwner,
+      SocialInboxController.prototype.updateConversation,
     );
     expect(metadata).toEqual(['owner', 'admin']);
   });

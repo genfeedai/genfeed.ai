@@ -26,7 +26,7 @@ export default function PlatformPerformanceSection({
 }: Props) {
   return (
     <section>
-      <h2 className="mb-4 text-xl font-semibold">
+      <h2 className="mb-4 text-xl font-semibold tracking-tight">
         Platform Performance Overview
       </h2>
 
@@ -39,10 +39,7 @@ export default function PlatformPerformanceSection({
           const Icon = config.icon;
 
           return (
-            <Card
-              key={config.id}
-              className="border border-white/[0.08] backdrop-blur"
-            >
+            <Card key={config.id} className="backdrop-blur">
               <div className="p-4 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">

@@ -37,7 +37,6 @@ describe('ReplyBotConfigsController', () => {
     findOneById: vi.fn(),
     patch: vi.fn(),
     remove: vi.fn(),
-    toggleActive: vi.fn(),
   };
 
   const mockLoggerService = {
@@ -114,41 +113,6 @@ describe('ReplyBotConfigsController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
-  });
-
-  describe('toggleActive', () => {
-    it('should toggle active status and return serialized config', async () => {
-      const mockConfig = { _id: 'config-1', isActive: true };
-      const mockToggled = { _id: 'config-1', isActive: false };
-      mockReplyBotConfigsService.findOneById.mockResolvedValue(mockConfig);
-      mockReplyBotConfigsService.toggleActive.mockResolvedValue(mockToggled);
-
-      const result = await controller.toggleActive(
-        mockRequest,
-        'config-1',
-        mockUser,
-      );
-
-      expect(replyBotConfigsService.findOneById).toHaveBeenCalledWith(
-        'config-1',
-        'org-123',
-        'brand-123',
-      );
-      expect(replyBotConfigsService.toggleActive).toHaveBeenCalledWith(
-        'config-1',
-        'org-123',
-        'brand-123',
-      );
-      expect(result).toEqual(mockToggled);
-    });
-
-    it('should throw when config not found', async () => {
-      mockReplyBotConfigsService.findOneById.mockResolvedValue(null);
-
-      await expect(
-        controller.toggleActive(mockRequest, 'invalid-id', mockUser),
-      ).rejects.toThrow('Reply bot config not found');
-    });
   });
 
   describe('testReplyGeneration', () => {

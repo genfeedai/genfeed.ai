@@ -3,6 +3,7 @@ import type {
   ToolCategory,
   ToolRequiredRole,
 } from '../interfaces/tool-definition.interface.js';
+import { GENERATED_MCP_TOOLS } from './generated/mcp-tools.generated.js';
 import { SOURCE_TOOLS } from './source/index.js';
 
 const UI_ACTION_MAP: Partial<
@@ -119,7 +120,7 @@ const roleWeight: Record<ToolRequiredRole, number> = {
   user: 0,
 };
 
-export const ALL_TOOLS: CanonicalToolDefinition[] = SOURCE_TOOLS.map(
+const CANONICAL_SOURCE_TOOLS: CanonicalToolDefinition[] = SOURCE_TOOLS.map(
   (tool) => ({
     category: inferCategory(tool.name),
     creditCost: tool.creditCost,
@@ -134,7 +135,18 @@ export const ALL_TOOLS: CanonicalToolDefinition[] = SOURCE_TOOLS.map(
     },
     uiActionType: UI_ACTION_MAP[tool.name],
   }),
-).sort((a, b) => a.name.localeCompare(b.name));
+);
+
+/**
+ * Hand-authored tools plus the OpenAPI-generated MCP baseline (#1248). Generated
+ * tools are namespaced `<domain>__<action>`, a shape no hand-authored tool uses,
+ * so the two sets never collide (asserted by the registry tests). Both are
+ * sorted together by name for a stable, navigable ordering.
+ */
+export const ALL_TOOLS: CanonicalToolDefinition[] = [
+  ...CANONICAL_SOURCE_TOOLS,
+  ...GENERATED_MCP_TOOLS,
+].sort((a, b) => a.name.localeCompare(b.name));
 
 const toolsByName = new Map<string, CanonicalToolDefinition>(
   ALL_TOOLS.map((tool) => [tool.name, tool]),

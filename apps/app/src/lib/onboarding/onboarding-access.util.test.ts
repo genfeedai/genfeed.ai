@@ -9,7 +9,16 @@ import {
   ONBOARDING_ACCESS_SOURCE,
   ONBOARDING_STORAGE_KEYS,
   persistOnboardingHandoffParams,
+  resolveSelectedPlanParam,
 } from '@/lib/onboarding/onboarding-access.util';
+
+const PLAN_SLUG_PRICE_IDS = {
+  creator: 'price_pro_monthly',
+  hosted: 'price_pro_monthly',
+  pro: 'price_pro_monthly',
+  scale: 'price_scale_monthly',
+  teams: 'price_scale_monthly',
+} as const;
 
 describe('buildOnboardingAccessSettingsPatch', () => {
   it('preserves existing dashboard scopes while setting the onboarding access choice', () => {
@@ -103,7 +112,63 @@ describe('buildGenfeedCloudSignupUrl', () => {
   });
 });
 
+describe('resolveSelectedPlanParam', () => {
+  it('resolves the website Creator/Hosted slug to the configured Pro price id', () => {
+    // Website "Creator" card links to `/sign-up?plan=hosted`; the checkout DTO
+    // only accepts `price_...`, so the slug must resolve before handoff or the
+    // launch coupon never applies (checkout 400s first).
+    expect(resolveSelectedPlanParam('hosted', PLAN_SLUG_PRICE_IDS)).toBe(
+      'price_pro_monthly',
+    );
+    expect(resolveSelectedPlanParam('creator', PLAN_SLUG_PRICE_IDS)).toBe(
+      'price_pro_monthly',
+    );
+    expect(resolveSelectedPlanParam('pro', PLAN_SLUG_PRICE_IDS)).toBe(
+      'price_pro_monthly',
+    );
+  });
+
+  it('resolves slugs case-insensitively and after trimming', () => {
+    expect(resolveSelectedPlanParam('  Hosted  ', PLAN_SLUG_PRICE_IDS)).toBe(
+      'price_pro_monthly',
+    );
+  });
+
+  it('passes through an already-formed Stripe price id unchanged', () => {
+    expect(resolveSelectedPlanParam('price_123', PLAN_SLUG_PRICE_IDS)).toBe(
+      'price_123',
+    );
+  });
+
+  it('passes through unknown slugs (e.g. free payg handoff) unchanged', () => {
+    expect(resolveSelectedPlanParam('payg', PLAN_SLUG_PRICE_IDS)).toBe('payg');
+  });
+
+  it('returns null for empty or missing input', () => {
+    expect(resolveSelectedPlanParam(null, PLAN_SLUG_PRICE_IDS)).toBeNull();
+    expect(resolveSelectedPlanParam('   ', PLAN_SLUG_PRICE_IDS)).toBeNull();
+  });
+});
+
 describe('persistOnboardingHandoffParams', () => {
+  it('resolves a subscription plan slug to its price id before writing storage', () => {
+    const storedValues = new Map<string, string>();
+
+    persistOnboardingHandoffParams(
+      '?plan=hosted',
+      {
+        setItem: (key, value) => {
+          storedValues.set(key, value);
+        },
+      },
+      PLAN_SLUG_PRICE_IDS,
+    );
+
+    expect(storedValues.get(ONBOARDING_STORAGE_KEYS.selectedPlan)).toBe(
+      'price_pro_monthly',
+    );
+  });
+
   it('normalizes valid cloud handoff params before writing storage', () => {
     const storedValues = new Map<string, string>();
 

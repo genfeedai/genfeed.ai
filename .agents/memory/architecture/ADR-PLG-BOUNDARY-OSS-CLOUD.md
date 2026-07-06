@@ -6,11 +6,11 @@ Accepted
 
 ## Boundary Spec Version
 
-v1.3.0
+v1.3.1
 
 ## Last Updated
 
-2026-06-02
+2026-07-06
 
 ## Canonical Source
 
@@ -56,7 +56,7 @@ Genfeed follows a hybrid OSS + SaaS model:
 
 ## Enterprise Multi-Tenancy
 
-Multi-tenant organization controls are available via `ee/packages/` under commercial license. All multi-tenant data access code must live under `ee/` or import from `ee/packages/`.
+Multi-tenant organization controls are a SaaS/EE product boundary. Current implementation after #1093 keeps deployment-mode-agnostic org enforcement in the OSS API (`CombinedAuthGuard`, request context, inline `organizationId` filters); there is no separable `ee/packages/multi-tenancy` package. Commercial-only entitlements, billing, quotas, and advanced org controls remain in `ee/`.
 
 ## Related ADRs
 
@@ -78,3 +78,4 @@ Multi-tenant organization controls are available via `ee/packages/` under commer
 | v1.1.1  | 2026-03-15 | Added CI check script, revision log                                                    |
 | v1.2.0  | 2026-05-03 | Added V1 execution modes, account-sync contract, and managed inference bridge boundary |
 | v1.3.0  | 2026-06-02 | Added skills, routines, feedback memory, and collaborative learning boundary summary   |
+| v1.3.1  | 2026-07-06 | Aligned multi-tenancy text with #1093 OSS API enforcement boundary                     |

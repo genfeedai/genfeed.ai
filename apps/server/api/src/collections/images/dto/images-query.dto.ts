@@ -154,4 +154,35 @@ export class ImagesQueryDto extends BaseQueryDto {
     return Boolean(value);
   })
   isPublic?: boolean;
+
+  @ApiProperty({
+    default: false,
+    description:
+      'Return the most recent items using the legacy /latest filter ' +
+      '(brand-scoped user assets, training sources excluded, plus brand-default ' +
+      'images), ordered by createdAt desc and capped at 50. Bypasses the standard ' +
+      'list filters (status/scope/folder/parent/search/organization).',
+    required: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === undefined || value === null) {
+      return false;
+    }
+    if (value === 'true' || value === true) {
+      return true;
+    }
+    if (value === 'false' || value === false) {
+      return false;
+    }
+    if (value === '0' || value === 0) {
+      return false;
+    }
+    if (value === '') {
+      return false;
+    }
+    return Boolean(value);
+  })
+  latest?: boolean;
 }

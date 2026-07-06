@@ -1,5 +1,5 @@
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 
 type ReplyBotCredentialPlatform = IReplyBotCredentialData['platform'];
 

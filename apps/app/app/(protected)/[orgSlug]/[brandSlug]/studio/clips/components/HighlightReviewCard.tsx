@@ -28,15 +28,8 @@ interface HighlightReviewCardProps {
   clipsService?: ClipsApiService;
 }
 
-const CLIP_TYPE_COLORS: Record<string, string> = {
-  controversial: 'bg-red-500/20 text-red-400 border-red-500/30',
-  educational: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  hook: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-  quote: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-  reaction: 'bg-pink-500/20 text-pink-400 border-pink-500/30',
-  story: 'bg-green-500/20 text-green-400 border-green-500/30',
-  tutorial: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
-};
+const CLIP_TYPE_BADGE_CLASSES =
+  'bg-secondary text-muted-foreground border-transparent';
 
 const PLATFORM_OPTIONS = [
   { label: 'TikTok', value: 'tiktok' },
@@ -62,10 +55,9 @@ function formatDuration(startTime: number, endTime: number): string {
 }
 
 function getViralityColor(score: number): string {
-  if (score >= 80) return 'bg-green-500/20 text-green-400 border-green-500/30';
-  if (score >= 60)
-    return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-  return 'bg-red-500/20 text-red-400 border-red-500/30';
+  if (score >= 80) return 'bg-success/10 text-success border-transparent';
+  if (score >= 60) return 'bg-warning/10 text-warning border-transparent';
+  return 'bg-destructive/10 text-destructive border-transparent';
 }
 
 type RewriteState = {
@@ -123,9 +115,6 @@ export default function HighlightReviewCard({
 }: HighlightReviewCardProps) {
   const duration = formatDuration(highlight.start_time, highlight.end_time);
   const viralityColor = getViralityColor(highlight.virality_score);
-  const clipTypeColor =
-    CLIP_TYPE_COLORS[highlight.clip_type] ||
-    'bg-zinc-500/20 text-zinc-400 border-zinc-500/30';
 
   // Viral rewrite state
   const [
@@ -176,10 +165,8 @@ export default function HighlightReviewCard({
 
   return (
     <div
-      className={`rounded-xl border p-4 transition-all ${
-        selected
-          ? 'border-primary/50 bg-primary/5'
-          : 'border-zinc-800 bg-zinc-900/50 opacity-60'
+      className={`rounded-xl border p-4 shadow-border transition-all ${
+        selected ? 'border-primary/50 bg-primary/5' : 'bg-secondary opacity-60'
       }`}
     >
       {/* Header: checkbox + title + badges */}
@@ -192,7 +179,7 @@ export default function HighlightReviewCard({
           <Input
             value={highlight.title}
             onChange={(e) => onTitleEdit(e.target.value)}
-            className="w-full bg-transparent text-sm font-medium text-zinc-100 outline-none placeholder-zinc-600 focus:border-b focus:border-primary"
+            className="w-full bg-transparent text-sm font-medium text-foreground outline-none placeholder-muted-foreground focus:border-b focus:border-primary"
           />
 
           <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -207,7 +194,7 @@ export default function HighlightReviewCard({
             {/* Clip type */}
             <Badge
               variant="outline"
-              className={`rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ${clipTypeColor}`}
+              className={`rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ${CLIP_TYPE_BADGE_CLASSES}`}
             >
               {highlight.clip_type}
             </Badge>
@@ -215,7 +202,7 @@ export default function HighlightReviewCard({
             {/* Duration */}
             <Badge
               variant="outline"
-              className="rounded-full border-zinc-700 bg-zinc-800/50 px-2 py-0.5 text-[10px] font-medium text-zinc-400"
+              className="rounded-full border-transparent bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
             >
               {duration}
             </Badge>
@@ -273,13 +260,16 @@ export default function HighlightReviewCard({
 
           {/* Make it viral button */}
           <Button
-            variant={ButtonVariant.UNSTYLED}
-            className="flex items-center gap-1 rounded bg-gradient-to-r from-purple-600 to-pink-600 px-3 py-1 text-[11px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            variant={ButtonVariant.DEFAULT}
+            className="flex items-center gap-1 rounded px-3 py-1 text-[11px] font-medium"
             onClick={handleViralRewrite}
             disabled={isRewriting}
           >
             {isRewriting ? (
-              <Spinner size={ComponentSize.XS} className="text-white" />
+              <Spinner
+                size={ComponentSize.XS}
+                className="text-primary-foreground"
+              />
             ) : null}
             <span>{isRewriting ? 'Rewriting...' : 'Make it viral'}</span>
           </Button>
@@ -288,7 +278,7 @@ export default function HighlightReviewCard({
           {hasBeenRewritten && (
             <Button
               variant={ButtonVariant.UNSTYLED}
-              className="text-[11px] text-zinc-500 hover:text-zinc-300"
+              className="text-[11px] text-muted-foreground hover:text-foreground"
               onClick={handleRestoreOriginal}
             >
               Restore original
@@ -299,7 +289,9 @@ export default function HighlightReviewCard({
 
       {/* Rewrite error */}
       {rewriteError && (
-        <div className="mt-1.5 text-[11px] text-red-400">{rewriteError}</div>
+        <div className="mt-1.5 text-[11px] text-destructive">
+          {rewriteError}
+        </div>
       )}
 
       {/* Tags */}
@@ -309,7 +301,7 @@ export default function HighlightReviewCard({
             <Badge
               key={tag}
               variant="secondary"
-              className="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-500"
+              className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground"
             >
               #{tag}
             </Badge>

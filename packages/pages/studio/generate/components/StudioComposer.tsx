@@ -121,7 +121,7 @@ export function StudioComposer({
                 type="button"
                 variant={ButtonVariant.UNSTYLED}
                 withWrapper={false}
-                className="rounded-full border border-white/[0.12] bg-white/[0.04] px-3 py-1.5 text-xs text-foreground/70 transition-colors hover:bg-white/[0.07] hover:text-foreground disabled:opacity-50"
+                className="rounded-full bg-secondary px-3 py-1.5 text-xs text-foreground/70 shadow-border transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
                 isDisabled={isGenerating}
                 onClick={() => onTextChange(suggestion)}
               >

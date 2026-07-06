@@ -96,7 +96,7 @@ export default function ProactiveWorkspaceSidebar({ workspace }: Props) {
               >
                 <div className="flex size-5 items-center justify-center">
                   {isComplete ? (
-                    <HiCheckCircle className="size-5 text-emerald-300" />
+                    <HiCheckCircle className="size-5 text-success" />
                   ) : (
                     <div
                       className={`size-3 rounded-full ${

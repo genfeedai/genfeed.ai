@@ -1,6 +1,8 @@
 'use client';
 
+import { CardVariant } from '@genfeedai/enums';
 import type { ITwitterSearchResult } from '@genfeedai/interfaces';
+import Card from '@ui/card/Card';
 import {
   HiArrowPath,
   HiChatBubbleLeft,
@@ -14,7 +16,7 @@ interface TweetCardProps {
 
 export default function TweetCard({ tweet }: TweetCardProps) {
   return (
-    <div className="rounded-lg border border-border bg-card p-4 transition-colors hover:border-border/80">
+    <Card variant={CardVariant.DEFAULT} bodyClassName="gap-0 p-4">
       <div className="flex items-center gap-2 mb-2">
         <div className="size-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">
           {tweet.authorName.charAt(0).toUpperCase()}
@@ -50,6 +52,6 @@ export default function TweetCard({ tweet }: TweetCardProps) {
           {tweet.replies.toLocaleString()}
         </span>
       </div>
-    </div>
+    </Card>
   );
 }

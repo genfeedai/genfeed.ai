@@ -155,7 +155,7 @@ export default function WorkflowsPage() {
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <h3 className="card-label text-lg">
+                          <h3 className="card-label text-sm font-semibold">
                             {workflow.label}
                           </h3>
                           <Badge
@@ -209,9 +209,7 @@ export default function WorkflowsPage() {
                           </li>
                           <li>
                             <Button
-                              variant={ButtonVariant.UNSTYLED}
-                              withWrapper={false}
-                              className="text-error"
+                              variant={ButtonVariant.GHOST}
                               onClick={() => handleDelete(workflow)}
                             >
                               <HiTrash className="size-4" />

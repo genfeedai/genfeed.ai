@@ -60,18 +60,18 @@ export class HookRemixService extends HTTPBaseService {
   }
 
   /**
-   * Get the status of a hook remix job
-   * @param jobId - The job ID to check
-   * @returns Current job status with progress and result info
+   * Get a hook remix job (includes status, progress, and result info)
+   * @param jobId - The job ID to fetch
+   * @returns Current job with status, progress and result info
    */
   async getJobStatus(jobId: string): Promise<HookRemixJobStatus> {
     try {
       const response = await this.instance
-        .get<HookRemixJobStatus>(`/${jobId}/status`)
+        .get<HookRemixJobStatus>(`/${jobId}`)
         .then((res) => res.data);
       return response;
     } catch (error) {
-      logger.error('Failed to get hook remix job status', { error, jobId });
+      logger.error('Failed to get hook remix job', { error, jobId });
       throw error;
     }
   }

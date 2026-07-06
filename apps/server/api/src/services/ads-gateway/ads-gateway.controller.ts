@@ -4,7 +4,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { extractRequestContext } from '@api/helpers/utils/auth/auth.util';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import type {
   AdsAdapterContext,
   AdsPlatform,
@@ -15,6 +14,7 @@ import type {
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {
   BadRequestException,
   Body,
@@ -353,40 +353,6 @@ export class AdsGatewayController {
     });
 
     return adapter.updateCampaign(ctx, campaignId, input);
-  }
-
-  @Post(':platform/campaigns/:campaignId/pause')
-  async pauseCampaign(
-    @CurrentUser() user: User,
-    @Param('platform') platform: string,
-    @Param('campaignId') campaignId: string,
-    @Body()
-    body: {
-      credentialId: string;
-      adAccountId: string;
-      loginCustomerId?: string;
-    },
-  ) {
-    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.logger.log(`${caller} started for ${platform}`);
-
-    const reqCtx = extractRequestContext(user);
-    const validPlatform = this.validatePlatform(platform);
-    const adapter = this.adsGatewayService.getAdapter(validPlatform);
-    const accessToken = await this.resolveAccessToken(
-      body.credentialId,
-      reqCtx.organizationId,
-    );
-    const ctx = this.buildContext({
-      accessToken,
-      adAccountId: body.adAccountId,
-      credentialId: body.credentialId,
-      loginCustomerId: body.loginCustomerId,
-      organizationId: reqCtx.organizationId,
-    });
-
-    await adapter.pauseCampaign(ctx, campaignId);
-    return { success: true };
   }
 
   @Post(':platform/adsets')

@@ -149,7 +149,7 @@ export default function PostDetailCardBody({
                 </div>
                 {post.totalLikes !== undefined && (
                   <div className="flex items-center gap-1.5 text-xs text-foreground/60">
-                    <HiHeart className="size-3.5 text-rose-500" />
+                    <HiHeart className="size-3.5 text-muted-foreground" />
                     <span>{formatCompactNumber(post.totalLikes)}</span>
                   </div>
                 )}
