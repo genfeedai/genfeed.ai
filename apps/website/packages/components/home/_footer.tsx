@@ -64,6 +64,7 @@ const WEBSITE_SECTIONS: FooterSection[] = [
     links: [
       { href: '/articles', label: 'Blog' },
       { href: '/posts', label: 'Posts' },
+      { href: '/case-studies', label: 'Case Studies' },
       { href: '/faq', label: 'FAQ' },
       {
         external: true,
