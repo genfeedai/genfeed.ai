@@ -16,33 +16,39 @@ describe('getStatusIcon', () => {
 });
 
 describe('getStatusColor', () => {
-  it('completed', () => expect(getStatusColor('completed')).toContain('green'));
-  it('failed', () => expect(getStatusColor('failed')).toContain('red'));
-  it('running', () => expect(getStatusColor('running')).toContain('yellow'));
-  it('cancelled', () => expect(getStatusColor('cancelled')).toContain('gray'));
-  it('skipped', () => expect(getStatusColor('skipped')).toContain('gray'));
+  it('completed', () =>
+    expect(getStatusColor('completed')).toContain('text-success'));
+  it('failed', () =>
+    expect(getStatusColor('failed')).toContain('text-destructive'));
+  it('running', () =>
+    expect(getStatusColor('running')).toContain('text-warning'));
+  it('cancelled', () =>
+    expect(getStatusColor('cancelled')).toContain('text-muted-foreground'));
+  it('skipped', () =>
+    expect(getStatusColor('skipped')).toContain('border-border'));
   it('default', () => expect(getStatusColor('pending')).toContain('muted'));
 });
 
 describe('getStatusBorderColor', () => {
   it('completed', () =>
-    expect(getStatusBorderColor('completed')).toContain('green'));
-  it('failed', () => expect(getStatusBorderColor('failed')).toContain('red'));
+    expect(getStatusBorderColor('completed')).toContain('border-success'));
+  it('failed', () =>
+    expect(getStatusBorderColor('failed')).toContain('border-destructive'));
   it('running', () =>
-    expect(getStatusBorderColor('running')).toContain('yellow'));
+    expect(getStatusBorderColor('running')).toContain('border-warning'));
   it('skipped', () =>
-    expect(getStatusBorderColor('skipped')).toContain('gray'));
+    expect(getStatusBorderColor('skipped')).toContain('border-border'));
   it('default', () =>
     expect(getStatusBorderColor('pending')).toContain('border'));
 });
 
 describe('getLifecycleBadgeClass', () => {
   it('published', () =>
-    expect(getLifecycleBadgeClass('published')).toContain('emerald'));
+    expect(getLifecycleBadgeClass('published')).toContain('success'));
   it('archived', () =>
     expect(getLifecycleBadgeClass('archived')).toContain('white'));
   it('draft/default', () =>
-    expect(getLifecycleBadgeClass('draft')).toContain('amber'));
+    expect(getLifecycleBadgeClass('draft')).toContain('warning'));
   it('undefined', () =>
-    expect(getLifecycleBadgeClass(undefined)).toContain('amber'));
+    expect(getLifecycleBadgeClass(undefined)).toContain('warning'));
 });
