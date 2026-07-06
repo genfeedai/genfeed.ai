@@ -26,7 +26,7 @@ export async function generateMetadata(
     };
   }
 
-  const title = `Genfeed for ${integration.name} — AI ${integration.name} Content Generator`;
+  const title = `Genfeed for ${integration.name}: AI ${integration.name} Content Generator`;
   const description = `Create professional ${integration.name} content with AI. Generate videos, images, and posts optimized for ${integration.name}. Try Genfeed free.`;
   const url = `${EnvironmentService.apps.website}/integrations/${slug}`;
 

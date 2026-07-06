@@ -183,9 +183,9 @@ export default function TrendContentCard({ item }: { item: TrendContentItem }) {
   ]);
 
   return (
-    <article className="overflow-hidden rounded-xl border border-white/[0.08] bg-background/80 transition-colors hover:border-white/[0.16]">
+    <article className="overflow-hidden rounded-xl bg-card shadow-border transition-colors hover:shadow-border-strong">
       {previewMediaUrl ? (
-        <div className="relative aspect-[16/9] overflow-hidden border-b border-white/[0.08] bg-white/[0.04]">
+        <div className="relative aspect-[16/9] overflow-hidden bg-secondary">
           <Image
             alt={previewTitle}
             className="object-cover"

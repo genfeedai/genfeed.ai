@@ -38,36 +38,36 @@ export default function CronJobRunHistory({
   onSetTriggerFilter,
 }: CronJobRunHistoryProps) {
   return (
-    <div className="mt-5 rounded border border-white/10 bg-white/[0.02] p-4">
+    <div className="mt-5 rounded bg-card p-4 shadow-border">
       <div className="mb-2 flex items-center justify-between">
         <div className="text-sm font-semibold">Run History: {jobName}</div>
         <Button label="Close" className="h-7 px-2 text-xs" onClick={onClose} />
       </div>
 
       {isRunsLoading ? (
-        <div className="text-xs text-white/60">Loading runs…</div>
+        <div className="text-xs text-muted-foreground">Loading runs…</div>
       ) : runs.length === 0 ? (
-        <div className="text-xs text-white/60">No runs yet.</div>
+        <div className="text-xs text-muted-foreground">No runs yet.</div>
       ) : (
         <div className="grid gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-white/50">Status:</span>
+            <span className="text-xs text-muted-foreground">Status:</span>
             {(['all', 'success', 'failed', 'running'] as const).map(
               (status) => (
                 <Button
                   key={status}
                   label={status}
-                  className={`h-7 px-2 text-xs ${runStatusFilter === status ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
+                  className={`h-7 px-2 text-xs ${runStatusFilter === status ? 'bg-accent text-foreground' : 'bg-secondary text-muted-foreground hover:bg-accent'}`}
                   onClick={() => onSetStatusFilter(status)}
                 />
               ),
             )}
-            <span className="ml-2 text-xs text-white/50">Trigger:</span>
+            <span className="ml-2 text-xs text-muted-foreground">Trigger:</span>
             {(['all', 'scheduled', 'manual'] as const).map((trigger) => (
               <Button
                 key={trigger}
                 label={trigger}
-                className={`h-7 px-2 text-xs ${runTriggerFilter === trigger ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
+                className={`h-7 px-2 text-xs ${runTriggerFilter === trigger ? 'bg-accent text-foreground' : 'bg-secondary text-muted-foreground hover:bg-accent'}`}
                 onClick={() => onSetTriggerFilter(trigger)}
               />
             ))}
@@ -75,7 +75,7 @@ export default function CronJobRunHistory({
           {filteredRuns.map((run) => (
             <Button
               key={run.id}
-              className="h-auto w-full justify-start rounded border border-white/10 px-3 py-2 text-left"
+              className="h-auto w-full justify-start rounded bg-secondary px-3 py-2 text-left shadow-border"
               onClick={() => onSelectRun(run)}
             >
               <div className="flex w-full items-center justify-between gap-3">
@@ -86,9 +86,11 @@ export default function CronJobRunHistory({
                   >
                     {run.status}
                   </Badge>
-                  <span className="text-xs text-white/70">{run.trigger}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {run.trigger}
+                  </span>
                 </div>
-                <span className="text-xs text-white/50">
+                <span className="text-xs text-muted-foreground">
                   {run.startedAt
                     ? new Date(run.startedAt).toLocaleString()
                     : '—'}
@@ -97,7 +99,7 @@ export default function CronJobRunHistory({
             </Button>
           ))}
           {filteredRuns.length === 0 && (
-            <div className="text-xs text-white/50">
+            <div className="text-xs text-muted-foreground">
               No runs for the selected filters.
             </div>
           )}
@@ -105,12 +107,12 @@ export default function CronJobRunHistory({
       )}
 
       {selectedRun && (
-        <div className="mt-3 rounded border border-white/10 bg-black/20 p-3">
-          <div className="mb-1 text-xs text-white/60">Run Detail</div>
+        <div className="mt-3 rounded bg-secondary p-3">
+          <div className="mb-1 text-xs text-muted-foreground">Run Detail</div>
           <Pre
             variant="ghost"
             size="sm"
-            className="max-h-72 overflow-y-auto text-white/75"
+            className="max-h-72 overflow-y-auto text-muted-foreground"
           >
             {JSON.stringify(selectedRun, null, 2)}
           </Pre>

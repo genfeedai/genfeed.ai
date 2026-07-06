@@ -155,18 +155,42 @@ function getTimelineSteps(run: ContentRunRecord): TimelineStep[] {
 
 function getStepClasses(state: TimelineStep['state']): string {
   if (state === 'complete') {
-    return 'border-emerald-400/35 bg-emerald-400/[0.08] text-emerald-100';
+    return 'bg-success/10 text-success shadow-border';
   }
 
   if (state === 'current') {
-    return 'border-sky-400/35 bg-sky-400/[0.08] text-sky-100';
+    return 'bg-info/10 text-info shadow-border';
   }
 
   if (state === 'error') {
-    return 'border-red-400/35 bg-red-400/[0.08] text-red-100';
+    return 'bg-destructive/10 text-destructive shadow-border';
   }
 
-  return 'border-white/10 bg-white/[0.03] text-foreground/65';
+  return 'bg-secondary text-foreground/65 shadow-border';
+}
+
+function Panel({
+  as: Tag = 'div',
+  children,
+  className,
+}: {
+  as?: 'div' | 'article';
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <Tag className={`rounded-md bg-secondary shadow-border ${className ?? ''}`}>
+      {children}
+    </Tag>
+  );
+}
+
+function Pill({ children }: { children: ReactNode }) {
+  return (
+    <span className="rounded-full bg-secondary px-2 py-1 text-[11px] uppercase text-foreground/60 shadow-border">
+      {children}
+    </span>
+  );
 }
 
 function Section({
@@ -179,9 +203,9 @@ function Section({
   title: string;
 }) {
   return (
-    <section className="rounded-lg border border-white/10 bg-white/[0.03] p-5">
+    <section className="rounded-lg bg-secondary p-5 shadow-border">
       <div className="mb-4 flex items-center gap-2">
-        <span className="flex size-8 items-center justify-center rounded-md border border-white/10 bg-white/[0.05] text-foreground/75">
+        <span className="flex size-8 items-center justify-center rounded-md bg-card text-foreground/75 shadow-border">
           {icon}
         </span>
         <h2 className="text-sm font-semibold">{title}</h2>
@@ -193,7 +217,7 @@ function Section({
 
 function EmptyState({ label }: { label: string }) {
   return (
-    <div className="rounded-md border border-dashed border-white/10 bg-black/10 px-4 py-6 text-sm text-foreground/55">
+    <div className="rounded-md border border-dashed border-border px-4 py-6 text-sm text-foreground/55">
       {label}
     </div>
   );
@@ -201,7 +225,7 @@ function EmptyState({ label }: { label: string }) {
 
 function DetailRow({ label, value }: { label: string; value?: ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-white/8 border-t py-3 first:border-t-0">
+    <div className="flex items-start justify-between gap-4 border-border border-t py-3 first:border-t-0">
       <dt className="text-xs text-foreground/50">{label}</dt>
       <dd className="max-w-[70%] text-right text-sm text-foreground/82">
         {value ?? '-'}
@@ -235,12 +259,9 @@ function BriefSection({ brief }: { brief?: ContentRunBrief }) {
       {brief.evidence?.length ? (
         <div className="grid gap-2">
           {brief.evidence.map((item) => (
-            <div
-              key={item}
-              className="rounded-md border border-white/8 bg-black/10 px-3 py-2 text-sm text-foreground/75"
-            >
+            <Panel key={item} className="px-3 py-2 text-sm text-foreground/75">
               {item}
-            </div>
+            </Panel>
           ))}
         </div>
       ) : null}
@@ -256,22 +277,11 @@ function VariantsSection({ variants }: { variants?: ContentRunVariant[] }) {
   return (
     <div className="grid gap-3 md:grid-cols-2">
       {variants.map((variant) => (
-        <article
-          key={variant.id}
-          className="rounded-md border border-white/8 bg-black/10 p-4"
-        >
+        <Panel as="article" key={variant.id} className="p-4">
           <div className="mb-3 flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] uppercase text-foreground/60">
-              {variant.format ?? variant.type}
-            </span>
-            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] uppercase text-foreground/60">
-              {variant.platform}
-            </span>
-            {variant.status ? (
-              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] uppercase text-foreground/60">
-                {variant.status}
-              </span>
-            ) : null}
+            <Pill>{variant.format ?? variant.type}</Pill>
+            <Pill>{variant.platform}</Pill>
+            {variant.status ? <Pill>{variant.status}</Pill> : null}
           </div>
           <h3 className="text-sm font-medium">{variant.angle ?? variant.id}</h3>
           {variant.hypothesis ? (
@@ -284,7 +294,7 @@ function VariantsSection({ variants }: { variants?: ContentRunVariant[] }) {
               {variant.content}
             </p>
           ) : null}
-        </article>
+        </Panel>
       ))}
     </div>
   );
@@ -304,9 +314,10 @@ function PublishSection({
   return (
     <div className="grid gap-3">
       {contexts.map((context, index) => (
-        <article
+        <Panel
+          as="article"
           key={`${context.variantId ?? context.platform ?? 'publish'}-${index}`}
-          className="rounded-md border border-white/8 bg-black/10 p-4"
+          className="p-4"
         >
           <dl>
             <DetailRow label="Platform" value={context.platform} />
@@ -326,7 +337,7 @@ function PublishSection({
               value={context.postIds?.length ? context.postIds.join(', ') : '-'}
             />
           </dl>
-        </article>
+        </Panel>
       ))}
     </div>
   );
@@ -343,30 +354,30 @@ function AnalyticsSection({
 
   return (
     <div className="grid gap-3 md:grid-cols-4">
-      <div className="rounded-md border border-white/8 bg-black/10 p-4">
+      <Panel className="p-4">
         <div className="text-xs text-foreground/50">Impressions</div>
         <div className="mt-2 text-xl font-semibold">
           {formatMetric(analytics.impressions)}
         </div>
-      </div>
-      <div className="rounded-md border border-white/8 bg-black/10 p-4">
+      </Panel>
+      <Panel className="p-4">
         <div className="text-xs text-foreground/50">Engagements</div>
         <div className="mt-2 text-xl font-semibold">
           {formatMetric(analytics.engagements)}
         </div>
-      </div>
-      <div className="rounded-md border border-white/8 bg-black/10 p-4">
+      </Panel>
+      <Panel className="p-4">
         <div className="text-xs text-foreground/50">Engagement rate</div>
         <div className="mt-2 text-xl font-semibold">
           {formatPercent(analytics.engagementRate)}
         </div>
-      </div>
-      <div className="rounded-md border border-white/8 bg-black/10 p-4">
+      </Panel>
+      <Panel className="p-4">
         <div className="text-xs text-foreground/50">Winning variant</div>
         <div className="mt-2 truncate text-sm font-medium">
           {analytics.winningVariantId ?? '-'}
         </div>
-      </div>
+      </Panel>
       {analytics.summary ? (
         <p className="md:col-span-4 text-sm text-foreground/72">
           {analytics.summary}
@@ -375,12 +386,12 @@ function AnalyticsSection({
       {analytics.topSignals?.length ? (
         <div className="grid gap-2 md:col-span-4">
           {analytics.topSignals.map((signal) => (
-            <div
+            <Panel
               key={signal}
-              className="rounded-md border border-white/8 bg-black/10 px-3 py-2 text-sm text-foreground/75"
+              className="px-3 py-2 text-sm text-foreground/75"
             >
               {signal}
-            </div>
+            </Panel>
           ))}
         </div>
       ) : null}
@@ -402,18 +413,15 @@ function RecommendationsSection({
   return (
     <div className="grid gap-3">
       {recommendations.map((recommendation, index) => (
-        <article
+        <Panel
+          as="article"
           key={`${recommendation.type}-${index}`}
-          className="rounded-md border border-white/8 bg-black/10 p-4"
+          className="p-4"
         >
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] uppercase text-foreground/60">
-              {recommendation.type}
-            </span>
+            <Pill>{recommendation.type}</Pill>
             {typeof recommendation.confidence === 'number' ? (
-              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] uppercase text-foreground/60">
-                {formatPercent(recommendation.confidence * 100)}
-              </span>
+              <Pill>{formatPercent(recommendation.confidence * 100)}</Pill>
             ) : null}
           </div>
           <h3 className="mt-3 text-sm font-medium">
@@ -424,7 +432,7 @@ function RecommendationsSection({
               {recommendation.rationale}
             </p>
           ) : null}
-        </article>
+        </Panel>
       ))}
     </div>
   );
@@ -434,13 +442,13 @@ function TimelinePanel({ run }: { run: ContentRunRecord }) {
   const steps = useMemo(() => getTimelineSteps(run), [run]);
 
   return (
-    <aside className="rounded-lg border border-white/10 bg-white/[0.03] p-5">
+    <aside className="rounded-lg bg-secondary p-5 shadow-border">
       <h2 className="text-sm font-semibold">Lifecycle</h2>
       <div className="mt-4 space-y-3">
         {steps.map((step) => (
           <div
             key={step.key}
-            className={`rounded-md border px-3 py-3 ${getStepClasses(step.state)}`}
+            className={`rounded-md px-3 py-3 ${getStepClasses(step.state)}`}
           >
             <div className="flex items-center justify-between gap-3">
               <span className="text-sm font-medium">{step.label}</span>
@@ -469,7 +477,7 @@ function NavigationPanel() {
   ];
 
   return (
-    <aside className="rounded-lg border border-white/10 bg-white/[0.03] p-5">
+    <aside className="rounded-lg bg-secondary p-5 shadow-border">
       <h2 className="text-sm font-semibold">Open Subviews</h2>
       <div className="mt-4 grid gap-2">
         {links.map((item) => {
@@ -478,7 +486,7 @@ function NavigationPanel() {
             <Link
               key={item.href}
               href={item.href}
-              className="flex min-h-11 items-center justify-between rounded-md border border-white/10 bg-white/[0.04] px-3 text-sm text-foreground/82 transition hover:border-white/18 hover:bg-white/[0.07]"
+              className="flex min-h-11 items-center justify-between rounded-md bg-card px-3 text-sm text-foreground/82 shadow-border transition hover:bg-accent"
             >
               <span className="flex items-center gap-2">
                 <Icon className="size-4" />
@@ -531,7 +539,7 @@ export default function ContentRunDetailPage({
   if (state === 'loading' || state === 'idle') {
     return (
       <Container>
-        <div className="rounded-lg border border-white/10 bg-white/[0.03] p-8 text-sm text-foreground/60">
+        <div className="rounded-lg bg-secondary p-8 text-sm text-foreground/60 shadow-border">
           Loading content run…
         </div>
       </Container>
@@ -541,7 +549,7 @@ export default function ContentRunDetailPage({
   if (state === 'error' || !run) {
     return (
       <Container>
-        <div className="rounded-lg border border-red-400/25 bg-red-400/[0.08] p-8 text-sm text-red-100">
+        <div className="rounded-lg bg-destructive/10 p-8 text-sm text-destructive shadow-border">
           Content run could not be loaded.
         </div>
       </Container>
@@ -551,19 +559,11 @@ export default function ContentRunDetailPage({
   return (
     <Container>
       <div className="flex flex-col gap-6">
-        <header className="rounded-lg border border-white/10 bg-white/[0.03] p-5">
+        <header className="rounded-lg bg-secondary p-5 shadow-border">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] uppercase text-foreground/60">
-              {run.status ?? 'unknown'}
-            </span>
-            <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] uppercase text-foreground/60">
-              {run.skillSlug ?? 'content-run'}
-            </span>
-            {run.source ? (
-              <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] uppercase text-foreground/60">
-                {run.source}
-              </span>
-            ) : null}
+            <Pill>{run.status ?? 'unknown'}</Pill>
+            <Pill>{run.skillSlug ?? 'content-run'}</Pill>
+            {run.source ? <Pill>{run.source}</Pill> : null}
           </div>
           <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>

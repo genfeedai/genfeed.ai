@@ -16,6 +16,7 @@ import {
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
 } from '@genfeedai/interfaces/billing';
+import { TIER_INCLUDED_MONTHLY_CREDITS } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -101,16 +102,37 @@ export class StripeInvoiceWebhookHandler {
     }
   }
 
-  /** Resolve the billing-period credit amount for a subscription plan. */
+  /**
+   * Resolve the billing-period credit amount for a subscription.
+   *
+   * Tier-aware: Pro/Scale grant their configured monthly included credits
+   * (TIER_INCLUDED_MONTHLY_CREDITS — single source of truth in
+   * @genfeedai/pricing, matching the website plan cards); yearly grants 12x
+   * that. Tiers without a configured allotment (e.g. Enterprise) and any
+   * unresolved price fall back to the STRIPE_MONTHLY_CREDITS /
+   * STRIPE_YEARLY_CREDITS config values.
+   */
   private resolvePlanCredits(
-    subscriptionType: string | null | undefined,
+    subscription: Pick<ISubscriptionOssReadModel, 'type' | 'stripePriceId'>,
   ): number {
-    if (subscriptionType === SubscriptionPlan.MONTHLY) {
-      return Number(this.configService.get('STRIPE_MONTHLY_CREDITS')) || 35_000;
+    const tier = subscription.stripePriceId
+      ? this.supportService.resolveTierFromPriceId(subscription.stripePriceId)
+      : null;
+    const tierMonthlyCredits = tier
+      ? TIER_INCLUDED_MONTHLY_CREDITS[tier]
+      : undefined;
+
+    if (subscription.type === SubscriptionPlan.MONTHLY) {
+      return (
+        tierMonthlyCredits ??
+        (Number(this.configService.get('STRIPE_MONTHLY_CREDITS')) || 35_000)
+      );
     }
 
-    if (subscriptionType === SubscriptionPlan.YEARLY) {
-      return Number(this.configService.get('STRIPE_YEARLY_CREDITS')) || 500_000;
+    if (subscription.type === SubscriptionPlan.YEARLY) {
+      return tierMonthlyCredits != null
+        ? tierMonthlyCredits * 12
+        : Number(this.configService.get('STRIPE_YEARLY_CREDITS')) || 500_000;
     }
 
     return 0;
@@ -122,7 +144,7 @@ export class StripeInvoiceWebhookHandler {
     invoice: StripeInvoice,
     url: string,
   ): Promise<void> {
-    const creditsToAdd = this.resolvePlanCredits(subscription.type);
+    const creditsToAdd = this.resolvePlanCredits(subscription);
 
     if (creditsToAdd <= 0) {
       return;

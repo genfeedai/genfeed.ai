@@ -1,4 +1,4 @@
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 
 /**
  * Error thrown when the circuit breaker is open (too many consecutive failures).

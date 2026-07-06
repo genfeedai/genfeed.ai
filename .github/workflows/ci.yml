@@ -389,7 +389,12 @@ jobs:
             echo "app=false" >> "$GITHUB_OUTPUT"
           fi
 
-          if echo "$CHANGED_FILES" | grep -E '^(apps/server/api|packages/|package\.json|bun\.lock|turbo\.json|vitest\.config\.ts|\.github/workflows/ci\.yml)' >/dev/null; then
+          # `ee/` is included because ee/packages/billing controllers are
+          # composed into the API at build (webpack @billing-providers alias),
+          # so an EE-only route change must trigger the API scope — otherwise
+          # the OpenAPI spec-drift + API↔MCP parity gates (openapi-drift job)
+          # would miss it (#1251).
+          if echo "$CHANGED_FILES" | grep -E '^(apps/server/api|ee/|packages/|package\.json|bun\.lock|turbo\.json|vitest\.config\.ts|\.github/workflows/ci\.yml)' >/dev/null; then
             echo "api=true" >> "$GITHUB_OUTPUT"
           else
             echo "api=false" >> "$GITHUB_OUTPUT"
@@ -699,6 +704,12 @@ jobs:
           fi
       - name: Validate spec (operationId coverage/uniqueness + allowlist)
         run: cd apps/server/api && bun run openapi:validate
+      # API↔MCP parity gate (#1251): every non-internal operation must have an
+      # MCP tool, or be allowlisted, or be acknowledged in the parity baseline.
+      # Fails on a new endpoint with no tool. Reuses the api build above (which
+      # builds @genfeedai/tools via ^build) for getToolsForSurface('mcp').
+      - name: Enforce API↔MCP parity
+        run: cd apps/server/api && bun run mcp:parity
 
   build:
     name: Build

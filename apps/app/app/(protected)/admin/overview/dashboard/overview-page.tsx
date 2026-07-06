@@ -159,9 +159,9 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
                   className={cn(
                     'px-2 py-0.5 rounded-full text-xs font-medium',
                     org.growth > 0
-                      ? 'bg-green-500/20 text-green-400'
+                      ? 'bg-success/10 text-success'
                       : org.growth < 0
-                        ? 'bg-red-500/20 text-red-400'
+                        ? 'bg-destructive/10 text-destructive'
                         : 'bg-white/10 text-white/60',
                   )}
                 >
@@ -245,7 +245,7 @@ function StatsGrid({ stats, isLoading }: StatsGridProps) {
           return (
             <div
               key={stat.label}
-              className="rounded border border-white/[0.08] bg-white/[0.02] p-4 transition-colors hover:bg-white/[0.04]"
+              className="rounded bg-secondary shadow-border p-4 transition-colors hover:bg-hover"
             >
               <div className="text-white/30 mb-3">
                 <Icon className="size-5" />
@@ -291,7 +291,7 @@ function QuickActionsGrid() {
               bodyClassName="flex h-full flex-col justify-between p-6"
               icon={card.icon}
               iconWrapperClassName={cn('p-3', card.color)}
-              className="h-full text-left transition-[transform,box-shadow,border-color] duration-200 group-hover:-translate-y-0.5 group-hover:border-white/[0.14] group-hover:shadow-[0_22px_44px_-28px_rgba(0,0,0,0.72)]"
+              className="h-full text-left transition-[transform,box-shadow] duration-200 group-hover:-translate-y-0.5 group-hover:shadow-border-strong"
               data-testid="admin-overview-quick-action"
             >
               <div className="mt-6 flex items-center justify-between border-t border-white/[0.08] pt-4 text-sm text-white/55">
@@ -309,9 +309,7 @@ function QuickActionsGrid() {
 }
 
 function GradientDivider() {
-  return (
-    <div className="h-px bg-gradient-to-r from-transparent via-white/6 to-transparent my-8" />
-  );
+  return <div className="h-px bg-border my-8" />;
 }
 
 export default function OverviewPage() {

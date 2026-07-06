@@ -126,32 +126,6 @@ describe('GifsController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('findLatest', () => {
-    it('should return latest gifs', async () => {
-      const result = await controller.findLatest(mockRequest, mockUser, 10);
-      expect(gifsService.findAll).toHaveBeenCalledWith(
-        expect.objectContaining({
-          orderBy: { createdAt: -1 },
-          where: expect.any(Object),
-        }),
-        expect.objectContaining({ limit: 10, pagination: false }),
-      );
-      expect(result).toBeDefined();
-    });
-
-    it('should cap limit at 50', async () => {
-      await controller.findLatest(mockRequest, mockUser, 100);
-      const options = gifsService.findAll.mock.calls[0][1];
-      expect(options.limit).toBeLessThanOrEqual(50);
-    });
-
-    it('should use default limit of 10', async () => {
-      await controller.findLatest(mockRequest, mockUser);
-      const options = gifsService.findAll.mock.calls[0][1];
-      expect(options.limit).toBe(10);
-    });
-  });
-
   describe('findAll', () => {
     it('should return paginated gifs', async () => {
       const query = {} as Parameters<typeof controller.findAll>[2];

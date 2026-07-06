@@ -14,7 +14,7 @@ export default function AgentStrategiesEmptyState({
   onAddClick,
 }: AgentStrategiesEmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-white/10 p-10 text-center">
+    <div className="flex flex-col items-center justify-center gap-4 rounded-lg bg-secondary p-10 text-center shadow-border">
       <span className="flex size-14 items-center justify-center rounded-full bg-white/5 text-white/40">
         <HiOutlineCpuChip className="size-7" />
       </span>

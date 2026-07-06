@@ -72,10 +72,7 @@ export default function SkillCatalogCard({
   stageFilter,
 }: Props) {
   return (
-    <Card
-      bodyClassName="gap-0 p-5"
-      className="rounded-3xl border-white/10 bg-black/20"
-    >
+    <Card bodyClassName="gap-0 p-5" className="rounded-3xl">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-foreground">Catalog</h2>
@@ -135,10 +132,8 @@ export default function SkillCatalogCard({
 
           return (
             <div
-              className={`relative rounded-2xl border ${
-                isSelected
-                  ? 'border-white/30 bg-white/[0.06]'
-                  : 'border-white/10 bg-white/[0.03] hover:border-white/20'
+              className={`relative rounded-2xl ${
+                isSelected ? 'bg-tertiary' : 'hover:bg-tertiary/60'
               } ${!isEnabled ? 'opacity-50' : ''}`}
               key={skill.id}
             >

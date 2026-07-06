@@ -65,6 +65,7 @@
     "check:cron-boundary": "bun run scripts/architecture/check-platform-cron-boundary.ts",
     "check:di-value-imports": "bun run scripts/check-di-value-imports.ts",
     "check:import-cycles": "bun run scripts/check-import-cycles.ts",
+    "check:mcp-parity": "bun run --filter=@genfeedai/api mcp:parity",
     "check:ui-guards": "bun run scripts/ui/check-ui-guards.ts",
     "publish:package": "./scripts/publish-package.sh",
     "check:multi-tenancy": "bun run scripts/check-multi-tenancy.ts",

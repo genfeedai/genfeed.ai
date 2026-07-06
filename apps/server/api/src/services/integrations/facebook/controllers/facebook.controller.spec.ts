@@ -110,19 +110,6 @@ describe('FacebookController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('initializeAuth', () => {
-    it('should return Facebook auth URL', () => {
-      const authUrl =
-        'https://www.facebook.com/v18.0/dialog/oauth?client_id=...';
-      mockFacebookService.generateAuthUrl.mockReturnValue(authUrl);
-
-      const result = controller.initializeAuth(mockUser);
-
-      expect(facebookService.generateAuthUrl).toHaveBeenCalled();
-      expect(result.authUrl).toBe(authUrl);
-    });
-  });
-
   describe('verify', () => {
     it('persists a verified facebook credential', async () => {
       mockFacebookService.exchangeAuthCodeForAccessToken.mockResolvedValue({

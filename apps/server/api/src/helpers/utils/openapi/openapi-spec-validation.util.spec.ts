@@ -61,6 +61,19 @@ describe('isInternalRoute', () => {
     expect(isInternalRoute('/v1/webhooks/stripe', routes)).toBe(true);
     expect(isInternalRoute('/v1/brands', routes)).toBe(false);
   });
+
+  it('matches a non-slash prefix exactly or at a segment boundary', () => {
+    const routes = [{ pathPrefix: '/health', reason: 'probes' }];
+    expect(isInternalRoute('/health', routes)).toBe(true);
+    expect(isInternalRoute('/health/live', routes)).toBe(true);
+  });
+
+  it('does NOT over-match a longer sibling segment', () => {
+    const routes = [{ pathPrefix: '/health', reason: 'probes' }];
+    // A future public route must not be silently excluded from parity.
+    expect(isInternalRoute('/healthcare', routes)).toBe(false);
+    expect(isInternalRoute('/health-check-public', routes)).toBe(false);
+  });
 });
 
 describe('validateOpenApiSpec', () => {

@@ -570,7 +570,7 @@ function BaseNodeComponent({
     toggleNodeLock(id);
   };
 
-  // Category CSS variables (for processing glow, resizer handles)
+  // Category CSS variables (node identity color: border, resizer handles)
   const categoryCssVars: Record<string, string> = {
     ai: 'var(--category-ai)',
     composition: 'var(--category-composition)',
@@ -597,26 +597,25 @@ function BaseNodeComponent({
       <div
         ref={nodeRef}
         className={clsx(
-          'relative flex flex-col bg-[var(--card)] shadow-lg transition-all duration-200',
+          'relative flex flex-col bg-[var(--card)] shadow-border hover:shadow-border-strong transition-all duration-200',
           // Only apply min/max width if node hasn't been manually resized
           // Output nodes get larger minimums for better preview visibility
           !isResized && type === 'download' && 'min-w-[200px] min-h-[280px]',
           !isResized && type !== 'download' && 'min-w-[220px] max-w-[320px]',
           isSelected && 'ring-1',
           isLocked && 'opacity-60',
-          isProcessing && 'node-processing',
           !isHighlighted && !isSelected && 'opacity-40',
-          // Use custom border color when set, otherwise default border
-          customColor ? 'border-2' : 'border border-[var(--border)]',
+          // Use custom border color when set, otherwise default identity-color border
+          customColor ? 'border-2' : 'border',
         )}
         style={
           {
-            // Category color used for processing glow animation
+            // Category color used for the node's identity (border hue, resizer handles)
             '--node-color': effectiveColor,
             // Selection ring matches effective color
             ...(isSelected && { '--tw-ring-color': effectiveColor }),
-            // Custom border color when set
-            ...(customColor && { borderColor: customColor }),
+            // Node identity color on the border (custom color takes precedence)
+            borderColor: customColor || effectiveColor,
             // When resized, use explicit dimensions
             ...(isResized && {
               height: height ? `${height}px` : undefined,
@@ -721,7 +720,7 @@ function arePropsEqual(prev: BaseNodeProps, next: BaseNodeProps): boolean {
   const prevData = prev.data as Record<string, unknown>;
   const nextData = next.data as Record<string, unknown>;
 
-  // Status affects StatusIndicator and processing glow
+  // Status affects StatusIndicator and header stop/retry controls
   if (prevData.status !== nextData.status) return false;
 
   // Progress affects progress bar

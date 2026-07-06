@@ -149,7 +149,10 @@ function ComparisonSliderComponent({
         style={{ left: `${position}%`, transform: 'translateX(-50%)' }}
       >
         <div className="absolute top-1/2 left-1/2 flex size-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-lg">
-          <ChevronsLeftRight className="size-3 text-neutral-600" aria-hidden />
+          <ChevronsLeftRight
+            className="size-3 text-muted-foreground"
+            aria-hidden
+          />
         </div>
       </div>
 

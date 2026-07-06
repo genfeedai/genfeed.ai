@@ -32,17 +32,17 @@ function BatchCounter({
 }: BatchCounterProps) {
   return (
     <div className="flex items-center gap-0.5">
-      <span className="mr-0.5 text-[11px] text-neutral-400">Batch</span>
+      <span className="mr-0.5 text-[11px] text-muted-foreground">Batch</span>
       <Button
         variant="ghost"
         size="icon-sm"
         onClick={onDecrement}
         disabled={batchCount <= MIN_BATCH || isActive}
-        className="size-5 text-neutral-400 hover:bg-neutral-700 hover:text-white"
+        className="size-5 text-muted-foreground hover:bg-muted hover:text-foreground"
       >
         <Minus className="size-2.5" />
       </Button>
-      <span className="w-4 text-center text-xs font-medium tabular-nums text-white">
+      <span className="w-4 text-center text-xs font-medium tabular-nums text-foreground">
         {batchCount}
       </span>
       <Button
@@ -50,7 +50,7 @@ function BatchCounter({
         size="icon-sm"
         onClick={onIncrement}
         disabled={batchCount >= MAX_BATCH || isActive}
-        className="size-5 text-neutral-400 hover:bg-neutral-700 hover:text-white"
+        className="size-5 text-muted-foreground hover:bg-muted hover:text-foreground"
       >
         <Plus className="size-2.5" />
       </Button>
@@ -98,14 +98,14 @@ function RunOptionsDropdown({
       />
       <div
         ref={dropdownRef}
-        className="absolute bottom-full left-0 z-50 mb-1.5 min-w-[180px] border border-neutral-700 bg-neutral-800 py-0.5 shadow-xl"
+        className="absolute bottom-full left-0 z-50 mb-1.5 min-w-[180px] bg-secondary py-0.5 shadow-dropdown"
       >
         <Button
           variant="ghost"
           size="sm"
           onClick={onRunWorkflow}
           disabled={!canRunWorkflow}
-          className="w-full justify-start gap-1.5 px-2.5 py-1.5 text-xs text-neutral-200 hover:bg-neutral-700"
+          className="w-full justify-start gap-1.5 px-2.5 py-1.5 text-xs text-foreground hover:bg-muted"
         >
           <Play className="size-3" />
           Run Workflow
@@ -115,19 +115,19 @@ function RunOptionsDropdown({
           size="sm"
           onClick={onRunSelected}
           disabled={!hasSelection || isRunning}
-          className="w-full justify-start gap-1.5 px-2.5 py-1.5 text-xs text-neutral-200 hover:bg-neutral-700"
+          className="w-full justify-start gap-1.5 px-2.5 py-1.5 text-xs text-foreground hover:bg-muted"
         >
           <PlayCircle className="size-3" />
           Run Selected ({selectedCount})
         </Button>
         {showResume && (
           <>
-            <div className="mx-2 my-0.5 h-px bg-neutral-700" />
+            <div className="mx-2 my-0.5 h-px bg-border" />
             <Button
               variant="ghost"
               size="sm"
               onClick={onResume}
-              className="w-full justify-start gap-1.5 px-2.5 py-1.5 text-xs text-neutral-200 hover:bg-neutral-700"
+              className="w-full justify-start gap-1.5 px-2.5 py-1.5 text-xs text-foreground hover:bg-muted"
             >
               <RotateCcw className="size-3" />
               Resume from Failed
@@ -193,10 +193,10 @@ function RunControls({
         disabled={!isActive && !canRunWorkflow}
         className={`rounded-l rounded-r-none px-3 text-xs font-medium ${
           isActive
-            ? 'bg-red-500/90 hover:bg-red-500'
+            ? 'bg-destructive/90 hover:bg-destructive'
             : canRunWorkflow
               ? ''
-              : 'bg-neutral-600 text-neutral-400'
+              : 'bg-muted text-muted-foreground'
         }`}
       >
         {isActive ? (
@@ -225,10 +225,10 @@ function RunControls({
         disabled={isActive}
         className={`rounded-l-none rounded-r border-l px-1.5 ${
           isActive
-            ? 'border-red-400/30 bg-red-500/90'
+            ? 'border-destructive/30 bg-destructive/90'
             : canRunWorkflow
-              ? 'border-neutral-300'
-              : 'border-neutral-500 bg-neutral-600 text-neutral-400'
+              ? 'border-border-strong'
+              : 'border-border bg-muted text-muted-foreground'
         }`}
       >
         <ChevronUp className="size-3.5" />
@@ -263,8 +263,8 @@ function BatchProgress({
 }) {
   return (
     <>
-      <div className="mx-1 h-4 w-px bg-neutral-600" />
-      <span className="text-[11px] tabular-nums text-neutral-400">
+      <div className="mx-1 h-4 w-px bg-border" />
+      <span className="text-[11px] tabular-nums text-muted-foreground">
         {currentBatchRun}/{batchCount}
       </span>
     </>
@@ -422,14 +422,14 @@ export function BottomBar() {
 
   return (
     <div className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2">
-      <div className="flex items-center gap-1 border border-neutral-700/80 bg-neutral-800/95 px-2 py-1 shadow-lg backdrop-blur-sm">
+      <div className="flex items-center gap-1 bg-secondary/95 px-2 py-1 shadow-dropdown backdrop-blur-sm">
         <BatchCounter
           batchCount={batchCount}
           isActive={isActive}
           onDecrement={decrementBatch}
           onIncrement={incrementBatch}
         />
-        <div className="mx-1 h-4 w-px bg-neutral-600" />
+        <div className="mx-1 h-4 w-px bg-border" />
         <RunControls
           dropdownRef={dropdownRef}
           onCloseDropdown={closeDropdown}

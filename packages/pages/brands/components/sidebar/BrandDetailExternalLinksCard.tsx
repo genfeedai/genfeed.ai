@@ -19,14 +19,17 @@ export default function BrandDetailExternalLinksCard({
           links.length > 0 &&
           links.map((link) => (
             <div key={link.id} className="flex gap-2">
-              <Link
-                href={link.url}
-                className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all duration-300 border border-dashed border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 flex-1"
-                target="_blank"
+              <Button
+                asChild
+                variant={ButtonVariant.OUTLINE}
+                className="flex-1 gap-2"
+                wrapperClassName="flex-1"
               >
-                <HiLink />
-                {link.label}
-              </Link>
+                <Link href={link.url} target="_blank">
+                  <HiLink />
+                  {link.label}
+                </Link>
+              </Button>
 
               <Button
                 label={<HiPencil />}
