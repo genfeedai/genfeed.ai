@@ -519,7 +519,7 @@ export class StripeCheckoutWebhookHandler {
       onboardingStepsCompleted:
         dbUser.onboardingStepsCompleted?.length > 0
           ? dbUser.onboardingStepsCompleted
-          : ['brand', 'plan'],
+          : ['brand', 'providers', 'summary'],
     };
 
     if (typeof session.customer === 'string') {

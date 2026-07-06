@@ -12,9 +12,13 @@ type BootstrapBrandSummary = {
 type BootstrapResponse = {
   access?: {
     brandId?: string;
+    isOnboardingCompleted?: boolean;
   };
   brands?: BootstrapBrandSummary[];
-  currentUser?: unknown;
+  currentUser?: {
+    isOnboardingCompleted?: boolean;
+    onboardingStepsCompleted?: unknown;
+  } | null;
 };
 
 type OrganizationMineResponseItem = {
@@ -27,6 +31,7 @@ const isBetterAuthEnabled =
   process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED !== 'false';
 const ONBOARDING_PATH = '/onboarding';
 const SEEDED_WORKSPACE_PATH = '/default/default/workspace/overview';
+const ONBOARDING_STEPS = ['brand', 'providers', 'summary'] as const;
 
 const BRAND_SCOPED_PREFIXES = [
   'analytics',
@@ -443,7 +448,24 @@ async function shouldRedirectSignedInUserToOnboarding(
   const bootstrap =
     (await bootstrapResponse.json()) as BootstrapResponse | null;
 
-  return Array.isArray(bootstrap?.brands) && bootstrap.brands.length === 0;
+  if (
+    bootstrap?.access?.isOnboardingCompleted === true ||
+    bootstrap?.currentUser?.isOnboardingCompleted === true
+  ) {
+    return false;
+  }
+
+  if (!bootstrap?.currentUser) {
+    return false;
+  }
+
+  const completedSteps = Array.isArray(
+    bootstrap.currentUser.onboardingStepsCompleted,
+  )
+    ? bootstrap.currentUser.onboardingStepsCompleted
+    : [];
+
+  return !ONBOARDING_STEPS.every((step) => completedSteps.includes(step));
 }
 
 type CanonicalResolution = {
@@ -756,6 +778,10 @@ export default async function proxy(req: NextRequest) {
       return redirectPreservingSearch(req, '/login');
     }
 
+    if (await shouldRedirectSignedInUserToOnboarding(token)) {
+      return redirectPreservingSearch(req, ONBOARDING_PATH);
+    }
+
     if (pathname === '/') {
       const resolved = await resolveCanonicalProtectedPath(
         '/workspace/overview',
@@ -772,9 +798,6 @@ export default async function proxy(req: NextRequest) {
         return response;
       }
 
-      if (await shouldRedirectSignedInUserToOnboarding(token)) {
-        return redirectPreservingSearch(req, ONBOARDING_PATH);
-      }
       return NextResponse.next();
     }
 
@@ -794,17 +817,7 @@ export default async function proxy(req: NextRequest) {
         return response;
       }
 
-      if (await shouldRedirectSignedInUserToOnboarding(token)) {
-        return redirectPreservingSearch(req, ONBOARDING_PATH);
-      }
       return NextResponse.next();
-    }
-
-    if (
-      isScopedWorkspacePath(pathname) &&
-      (await shouldRedirectSignedInUserToOnboarding(token))
-    ) {
-      return redirectPreservingSearch(req, ONBOARDING_PATH);
     }
 
     return NextResponse.next();

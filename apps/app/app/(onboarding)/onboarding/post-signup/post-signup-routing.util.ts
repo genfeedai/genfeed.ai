@@ -22,6 +22,11 @@ function extractDomain(email?: string | null): string | null {
   return domain || null;
 }
 
+export function isFreePlanHandoff(rawPlan?: string | null): boolean {
+  const normalizedPlan = rawPlan?.trim().toLowerCase();
+  return normalizedPlan === 'payg' || normalizedPlan === 'free';
+}
+
 export function parseSelectedCredits(
   rawCredits?: string | null,
 ): number | null {
@@ -54,7 +59,7 @@ export function resolvePostSignupIntent(
   input: ResolvePostSignupIntentInput,
 ): PostSignupIntent {
   const selectedPlan = input.selectedPlan?.trim();
-  if (selectedPlan) {
+  if (selectedPlan && !isFreePlanHandoff(selectedPlan)) {
     return { kind: 'plan-checkout', stripePriceId: selectedPlan };
   }
 

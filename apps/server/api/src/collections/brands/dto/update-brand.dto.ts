@@ -11,6 +11,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  MaxLength,
 } from 'class-validator';
 
 export class UpdateBrandDto extends PartialType(CreateBrandDto) {
@@ -71,6 +72,18 @@ export class UpdateBrandDto extends PartialType(CreateBrandDto) {
     required: false,
   })
   readonly syncOrganizationName?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  @ApiProperty({
+    description:
+      'Onboarding-only organization label override used with syncOrganizationName. ' +
+      'The server regenerates the unique organization slug and never persists this ' +
+      'control field on the brand record.',
+    required: false,
+  })
+  readonly organizationLabel?: string;
 
   @IsOptional()
   @IsString()

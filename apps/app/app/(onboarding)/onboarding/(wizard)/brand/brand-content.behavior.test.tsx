@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
-import { render, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ChangeEvent, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
@@ -10,6 +10,7 @@ import BrandContent from './brand-content';
 const {
   findMeBrandsMock,
   findMeOrganizationsMock,
+  handleStepCompleteMock,
   pushMock,
   renameWithOrganizationSyncMock,
   resolveAuthTokenMock,
@@ -19,6 +20,7 @@ const {
 } = vi.hoisted(() => ({
   findMeBrandsMock: vi.fn(),
   findMeOrganizationsMock: vi.fn(),
+  handleStepCompleteMock: vi.fn(),
   pushMock: vi.fn(),
   renameWithOrganizationSyncMock: vi.fn(),
   resolveAuthTokenMock: vi.fn(),
@@ -27,8 +29,14 @@ const {
   updateAccountTypeMock: vi.fn(),
 }));
 
-vi.mock('@genfeedai/auth-client/react', () => ({
-  useAuth: () => ({
+vi.mock('@contexts/onboarding/onboarding-context', () => ({
+  useOnboarding: () => ({
+    handleStepComplete: handleStepCompleteMock,
+  }),
+}));
+
+vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => ({
     getToken: vi.fn(),
   }),
 }));
@@ -69,6 +77,7 @@ vi.mock('@services/organization/users.service', () => ({
     getInstance: vi.fn(() => ({
       findMeBrands: findMeBrandsMock,
       findMeOrganizations: findMeOrganizationsMock,
+      patchMe: vi.fn(),
     })),
   },
 }));
@@ -140,6 +149,7 @@ describe('BrandContent behavior', () => {
   beforeEach(() => {
     findMeBrandsMock.mockReset();
     findMeOrganizationsMock.mockReset();
+    handleStepCompleteMock.mockReset();
     pushMock.mockReset();
     renameWithOrganizationSyncMock.mockReset();
     resolveAuthTokenMock.mockReset();
@@ -152,7 +162,10 @@ describe('BrandContent behavior', () => {
     // A default brand + org exist by the brand step for a normal signup, so the
     // resource routes can resolve their target ids (REST audit #1354).
     findMeBrandsMock.mockResolvedValue([{ id: 'brand_1' }]);
-    findMeOrganizationsMock.mockResolvedValue([{ id: 'org_1' }]);
+    findMeOrganizationsMock.mockResolvedValue([
+      { id: 'org_1', label: 'Default Organization' },
+    ]);
+    handleStepCompleteMock.mockResolvedValue(undefined);
     scrapeMock.mockResolvedValue({ brandId: 'brand_1', success: true });
     renameWithOrganizationSyncMock.mockResolvedValue({ id: 'brand_1' });
 
@@ -162,28 +175,62 @@ describe('BrandContent behavior', () => {
     });
   });
 
-  it('auto-continues with stored cloud handoff brand context', async () => {
+  it('prefills auto cloud handoff context and continues after confirmation', async () => {
     searchParamsMock.set('auto', 'true');
     localStorage.setItem(ONBOARDING_STORAGE_KEYS.brandDomain, 'acme.co');
     localStorage.setItem(ONBOARDING_STORAGE_KEYS.brandName, 'Acme');
 
     render(<BrandContent />);
 
+    expect(scrapeMock).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Founders' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Bold' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
     await waitFor(() => {
-      expect(scrapeMock).toHaveBeenCalledWith('brand_1', {
-        brandName: 'Acme',
-        brandUrl: 'https://acme.co',
-      });
+      expect(renameWithOrganizationSyncMock).toHaveBeenCalledWith(
+        'brand_1',
+        'Acme',
+        {
+          agentConfig: {
+            voice: {
+              audience: 'Founders',
+              tone: 'Bold',
+            },
+          },
+          description: [
+            'Brand: Acme.',
+            'Organization: Acme.',
+            'Audience: Founders.',
+            'Tone: Bold.',
+          ].join('\n'),
+          organizationLabel: 'Acme',
+          text: [
+            'Brand: Acme.',
+            'Organization: Acme.',
+            'Audience: Founders.',
+            'Tone: Bold.',
+          ].join('\n'),
+        },
+      );
     });
 
+    expect(scrapeMock).toHaveBeenCalledWith('brand_1', {
+      additionalNotes: 'Preferred tone: Bold',
+      brandName: 'Acme',
+      brandUrl: 'https://acme.co',
+      organizationName: 'Acme',
+      targetAudience: 'Founders',
+    });
     expect(localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandDomain)).toBe(
       'acme.co',
     );
     expect(localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandName)).toBe(
       'Acme',
     );
-    expect(pushMock).toHaveBeenCalledWith('/onboarding/providers');
-    expect(renameWithOrganizationSyncMock).not.toHaveBeenCalled();
+    expect(handleStepCompleteMock).toHaveBeenCalledWith('brand');
+    expect(pushMock).not.toHaveBeenCalledWith('/onboarding/providers');
   });
 
   it('infers a brand name from the stored domain when cloud handoff has no brand name', async () => {
@@ -193,15 +240,14 @@ describe('BrandContent behavior', () => {
     render(<BrandContent />);
 
     await waitFor(() => {
-      expect(scrapeMock).toHaveBeenCalledWith('brand_1', {
-        brandName: 'Studio Acme',
-        brandUrl: 'https://studio.acme.io',
-      });
+      expect(screen.getByPlaceholderText('Your name or brand')).toHaveValue(
+        'Studio Acme',
+      );
     });
 
-    expect(localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandName)).toBe(
+    expect(screen.getByPlaceholderText('Your organization')).toHaveValue(
       'Studio Acme',
     );
-    expect(pushMock).toHaveBeenCalledWith('/onboarding/providers');
+    expect(scrapeMock).not.toHaveBeenCalled();
   });
 });

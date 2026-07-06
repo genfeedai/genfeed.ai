@@ -77,6 +77,7 @@ describe('BrandPersistenceService', () => {
         tagline: 'Anvils for all',
       };
       const dto = {
+        additionalNotes: 'Preferred tone: Bold',
         brandUrl: 'https://acme.com',
         industry: 'Manufacturing',
         targetAudience: 'Coyotes',
@@ -99,6 +100,7 @@ describe('BrandPersistenceService', () => {
           'About the brand: About us',
           'Industry: Manufacturing',
           'Target audience: Coyotes',
+          'Additional guidance: Preferred tone: Bold',
         ].join('\n\n'),
       });
     });
@@ -224,6 +226,34 @@ describe('BrandPersistenceService', () => {
       );
       expect(brandsService.patch).toHaveBeenCalledWith('brand_1', {
         slug: 'acme-brand',
+      });
+    });
+
+    it('uses a distinct organization label when provided', async () => {
+      organizationsService.generateUniqueSlug.mockResolvedValue('acme-studio');
+      brandsService.generateUniqueSlug.mockResolvedValue('moonrise');
+
+      await service.syncBrandAndOrgSlug(
+        'Moonrise',
+        'org_1',
+        'brand_1',
+        'Acme Studio',
+      );
+
+      expect(organizationsService.generateUniqueSlug).toHaveBeenCalledWith(
+        'Acme Studio',
+        'org_1',
+      );
+      expect(organizationsService.patch).toHaveBeenCalledWith('org_1', {
+        label: 'Acme Studio',
+        slug: 'acme-studio',
+      });
+      expect(brandsService.generateUniqueSlug).toHaveBeenCalledWith(
+        'Moonrise',
+        'brand_1',
+      );
+      expect(brandsService.patch).toHaveBeenCalledWith('brand_1', {
+        slug: 'moonrise',
       });
     });
   });

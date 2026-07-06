@@ -183,6 +183,89 @@ describe('proxy', () => {
     );
   });
 
+  it('redirects signed-in root to onboarding when a seeded brand exists but onboarding is incomplete', async () => {
+    fetchMock.mockImplementation(async (input: string | URL) => {
+      const url = String(input);
+
+      if (url.endsWith('/auth/token')) {
+        return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
+          status: 200,
+        });
+      }
+
+      if (url.endsWith('/auth/bootstrap')) {
+        return new Response(
+          JSON.stringify({
+            access: { brandId: 'brand_1', isOnboardingCompleted: false },
+            brands: [{ id: 'brand_1', slug: 'default' }],
+            currentUser: {
+              id: 'user_1',
+              isOnboardingCompleted: false,
+              onboardingStepsCompleted: [],
+            },
+          }),
+          { status: 200 },
+        );
+      }
+
+      return new Response('not found', { status: 404 });
+    });
+
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(makeSignedInRequest('/'), {} as never);
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/onboarding',
+    );
+  });
+
+  it('keeps completed users on workspace routing even when their only brand is seeded', async () => {
+    fetchMock.mockImplementation(async (input: string | URL) => {
+      const url = String(input);
+
+      if (url.endsWith('/auth/token')) {
+        return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
+          status: 200,
+        });
+      }
+
+      if (url.endsWith('/auth/bootstrap')) {
+        return new Response(
+          JSON.stringify({
+            access: { brandId: 'brand_1', isOnboardingCompleted: true },
+            brands: [{ id: 'brand_1', slug: 'default' }],
+            currentUser: {
+              id: 'user_1',
+              isOnboardingCompleted: true,
+              onboardingStepsCompleted: [],
+            },
+          }),
+          { status: 200 },
+        );
+      }
+
+      if (url.endsWith('/organizations/mine')) {
+        return new Response(
+          JSON.stringify([{ isActive: true, slug: 'acme' }]),
+          { status: 200 },
+        );
+      }
+
+      return new Response('not found', { status: 404 });
+    });
+
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(makeSignedInRequest('/'), {} as never);
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/default/workspace/overview',
+    );
+  });
+
   it('redirects signed-in root to org overview when no brand is selected', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
@@ -551,13 +634,27 @@ describe('proxy', () => {
     );
   });
 
-  it('does not gate brand-scoped routes through the onboarding bootstrap check', async () => {
+  it('redirects brand-scoped routes to onboarding while onboarding is incomplete', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
 
+      if (url.endsWith('/auth/token')) {
+        return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
+          status: 200,
+        });
+      }
+
       if (url.endsWith('/auth/bootstrap')) {
         return new Response(
-          JSON.stringify({ brands: [], currentUser: { id: 'user_1' } }),
+          JSON.stringify({
+            access: { brandId: 'brand_1', isOnboardingCompleted: false },
+            brands: [{ id: 'brand_1', slug: 'moonrise-studio' }],
+            currentUser: {
+              id: 'user_1',
+              isOnboardingCompleted: false,
+              onboardingStepsCompleted: ['brand'],
+            },
+          }),
           { status: 200 },
         );
       }
@@ -572,16 +669,10 @@ describe('proxy', () => {
       {} as never,
     );
 
-    // Brand-scoped paths must fall through, never the org-root (~) onboarding
-    // gate, and must not trigger a bootstrap fetch on every navigation.
-    expect(response.headers.get('location')).not.toBe(
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
       'http://localhost:3000/onboarding',
     );
-    expect(
-      fetchMock.mock.calls.some(([input]) =>
-        String(input).endsWith('/auth/bootstrap'),
-      ),
-    ).toBe(false);
   });
 
   it('redirects signed-in flat chat to the canonical org-scoped chat path', async () => {
@@ -854,14 +945,14 @@ describe('proxy', () => {
     expect(secondResponse.headers.get('location')).toBe(
       'http://localhost:3000/acme/moonrise-studio/posts',
     );
-    // The slug cookie caches org/brand slugs — the expensive bootstrap and org
-    // resolution fetches must be skipped. The Better Auth token exchange
-    // (/auth/token) is a required per-request step and is expected to be called.
+    // The slug cookie caches org/brand slugs, but bootstrap is still required
+    // so the onboarding gate can inspect completed steps before routing.
+    // The expensive org resolution fetch must stay skipped.
     expect(
       fetchMock.mock.calls.some(([input]) =>
         String(input).endsWith('/auth/bootstrap'),
       ),
-    ).toBe(false);
+    ).toBe(true);
     expect(
       fetchMock.mock.calls.some(([input]) =>
         String(input).endsWith('/organizations/mine'),

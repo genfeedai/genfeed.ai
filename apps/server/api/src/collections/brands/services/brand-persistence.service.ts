@@ -95,6 +95,10 @@ export class BrandPersistenceService {
         systemPromptParts.push(`Target audience: ${dto.targetAudience}`);
       }
 
+      if (dto.additionalNotes) {
+        systemPromptParts.push(`Additional guidance: ${dto.additionalNotes}`);
+      }
+
       updateData.text = systemPromptParts.join('\n\n');
     }
 
@@ -188,8 +192,9 @@ export class BrandPersistenceService {
     label: string,
     organizationId: string,
     brandId: string,
+    organizationLabel = label,
   ): Promise<void> {
-    await this.syncOrgLabelAndSlug(label, organizationId);
+    await this.syncOrgLabelAndSlug(organizationLabel, organizationId);
 
     const brandSlug = await this.brandsService.generateUniqueSlug(
       label,

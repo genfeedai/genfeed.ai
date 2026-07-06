@@ -1,12 +1,85 @@
-export function getAuthCallbackURL(
+import {
+  extractBrandDomain,
+  resolveSelectedPlanParam,
+} from '@/lib/onboarding/onboarding-access.util';
+
+const ROOT_CALLBACK_URL = '/';
+const POST_SIGNUP_CALLBACK_URL = '/onboarding/post-signup';
+
+type AuthCallbackURLOptions = {
+  defaultCallbackURL?: string;
+  includeOnboardingHandoffParams?: boolean;
+};
+
+function getExplicitAuthCallbackURL(
   searchParams: Pick<URLSearchParams, 'get'>,
-): string {
+): string | null {
   return (
     searchParams.get('callbackUrl') ||
     searchParams.get('return_to') ||
     searchParams.get('redirect_url') ||
-    '/'
+    null
   );
+}
+
+function parsePositiveIntegerParam(value?: string | null): string | null {
+  const normalizedValue = value?.trim();
+
+  if (!normalizedValue || !/^\d+$/.test(normalizedValue)) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(normalizedValue, 10);
+  return parsed > 0 ? String(parsed) : null;
+}
+
+function buildPostSignupCallbackURL(
+  searchParams: Pick<URLSearchParams, 'get'>,
+): string {
+  const params = new URLSearchParams();
+  const selectedPlan = resolveSelectedPlanParam(searchParams.get('plan'));
+  const selectedCredits = parsePositiveIntegerParam(
+    searchParams.get('credits'),
+  );
+  const brandDomain = extractBrandDomain(searchParams.get('brandDomain'));
+  const brandName = searchParams.get('brandName')?.trim();
+
+  if (selectedPlan) {
+    params.set('plan', selectedPlan);
+  }
+
+  if (selectedCredits) {
+    params.set('credits', selectedCredits);
+  }
+
+  if (brandDomain) {
+    params.set('brandDomain', brandDomain);
+  }
+
+  if (brandName) {
+    params.set('brandName', brandName);
+  }
+
+  const query = params.toString();
+  return query
+    ? `${POST_SIGNUP_CALLBACK_URL}?${query}`
+    : POST_SIGNUP_CALLBACK_URL;
+}
+
+export function getAuthCallbackURL(
+  searchParams: Pick<URLSearchParams, 'get'>,
+  options: AuthCallbackURLOptions = {},
+): string {
+  const explicitCallbackURL = getExplicitAuthCallbackURL(searchParams);
+  if (explicitCallbackURL) {
+    return explicitCallbackURL;
+  }
+
+  if (options.includeOnboardingHandoffParams) {
+    return buildPostSignupCallbackURL(searchParams);
+  }
+
+  return options.defaultCallbackURL ?? ROOT_CALLBACK_URL;
 }
 
 /**
@@ -51,8 +124,11 @@ export function toAbsoluteAuthCallbackURL(callbackURL: string): string {
       if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
         return fallback;
       }
+      if (parsed.origin === origin) {
+        return callbackURL;
+      }
       if (
-        parsed.origin === origin ||
+        parsed.protocol === 'https:' &&
         ALLOWED_CALLBACK_HOSTS.has(parsed.hostname)
       ) {
         return callbackURL;

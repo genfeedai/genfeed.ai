@@ -49,6 +49,7 @@ vi.mock('@helpers/utils/response/response.util', () => ({
 
 describe('BrandsController', () => {
   let controller: BrandsController;
+  let brandSetupService: vi.Mocked<BrandSetupService>;
   let brandsService: vi.Mocked<BrandsService>;
   let _loggerService: vi.Mocked<LoggerService>;
 
@@ -173,6 +174,7 @@ describe('BrandsController', () => {
       .compile();
 
     controller = module.get<BrandsController>(BrandsController);
+    brandSetupService = module.get(BrandSetupService);
     brandsService = module.get(BrandsService);
     _loggerService = module.get(LoggerService);
 
@@ -187,6 +189,34 @@ describe('BrandsController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  it('passes onboarding profile fields through the sync rename path', async () => {
+    brandsService.findOne
+      .mockResolvedValueOnce(mockBrand as never)
+      .mockResolvedValueOnce({ ...mockBrand, label: 'Moonrise' } as never);
+
+    const result = await controller.patch(mockRequest, mockUser, 'brand_1', {
+      agentConfig: { voice: { audience: 'Founders', tone: 'Bold' } },
+      description: 'Brand: Moonrise.',
+      label: 'Moonrise',
+      organizationLabel: 'Acme Studio',
+      syncOrganizationName: true,
+      text: 'Tone: Bold.',
+    } as never);
+
+    expect(brandSetupService.updateBrandNameById).toHaveBeenCalledWith(
+      'brand_1',
+      'Moonrise',
+      mockUser,
+      {
+        agentConfig: { voice: { audience: 'Founders', tone: 'Bold' } },
+        description: 'Brand: Moonrise.',
+        organizationName: 'Acme Studio',
+        text: 'Tone: Bold.',
+      },
+    );
+    expect(result).toEqual({ data: { ...mockBrand, label: 'Moonrise' } });
   });
 
   describe('findAll', () => {

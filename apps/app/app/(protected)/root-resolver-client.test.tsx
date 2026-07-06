@@ -18,12 +18,24 @@ const mocks = vi.hoisted(() => ({
       slug?: string;
     } | null,
   },
+  currentUserState: {
+    currentUser: {
+      id: 'user_1',
+      isOnboardingCompleted: true,
+      onboardingStepsCompleted: ['brand', 'providers', 'summary'] as string[],
+    },
+    isLoading: false,
+  },
   isAccessStateLoading: false,
   replace: vi.fn(),
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => mocks.brandState,
+}));
+
+vi.mock('@contexts/user/user-context/user-context', () => ({
+  useCurrentUser: () => mocks.currentUserState,
 }));
 
 vi.mock('@providers/access-state/access-state.provider', () => ({
@@ -58,6 +70,12 @@ describe('ProtectedRootResolver', () => {
     mocks.brandState.brands = [];
     mocks.brandState.organizationId = '';
     mocks.brandState.selectedBrand = null;
+    mocks.currentUserState.currentUser = {
+      id: 'user_1',
+      isOnboardingCompleted: true,
+      onboardingStepsCompleted: ['brand', 'providers', 'summary'],
+    };
+    mocks.currentUserState.isLoading = false;
   });
 
   it('opens the selected brand workspace when org and brand are selected', async () => {
@@ -90,6 +108,26 @@ describe('ProtectedRootResolver', () => {
 
     await waitFor(() => {
       expect(mocks.replace).toHaveBeenCalledWith('/acme/~/overview');
+    });
+  });
+
+  it('resumes onboarding before opening a seeded workspace', async () => {
+    mocks.currentUserState.currentUser = {
+      id: 'user_1',
+      isOnboardingCompleted: false,
+      onboardingStepsCompleted: ['brand'],
+    };
+    mocks.brandState.organizationId = 'org_1';
+    mocks.brandState.brandId = 'brand_1';
+    mocks.brandState.selectedBrand = {
+      organization: { slug: 'acme' },
+      slug: 'default',
+    };
+
+    render(<ProtectedRootResolver />);
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/providers');
     });
   });
 

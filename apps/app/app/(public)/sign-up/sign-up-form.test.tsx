@@ -141,6 +141,33 @@ describe('SignUpForm', () => {
     expect(screen.getByText('Check your email')).toBeInTheDocument();
   });
 
+  it('defaults sign-up magic links to post-signup with handoff params', async () => {
+    window.history.replaceState(
+      {},
+      '',
+      '/sign-up?plan=payg&brandDomain=https://www.acme.co&brandName=Acme',
+    );
+
+    render(<SignUpBetterAuth mode="magic-link" />);
+
+    fireEvent.change(getEmailInput(), {
+      target: { value: 'new@example.com' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Email me a sign-up link' }),
+    );
+
+    await waitFor(() => {
+      expect(authClientMocks.magicLink).toHaveBeenCalledWith({
+        callbackURL: absoluteCallback(
+          '/onboarding/post-signup?plan=payg&brandDomain=acme.co&brandName=Acme',
+        ),
+        email: 'new@example.com',
+        metadata: { intent: 'signup' },
+      });
+    });
+  });
+
   it('persists cloud handoff query params into onboarding localStorage keys', async () => {
     window.history.replaceState(
       {},
@@ -174,7 +201,7 @@ describe('SignUpForm', () => {
   });
 
   it('starts Google sign-up with the callback URL', async () => {
-    window.history.replaceState({}, '', '/sign-up?callbackUrl=%2Fonboarding');
+    window.history.replaceState({}, '', '/sign-up?plan=payg');
 
     render(<SignUpForm />);
 
@@ -182,7 +209,7 @@ describe('SignUpForm', () => {
 
     await waitFor(() => {
       expect(authClientMocks.social).toHaveBeenCalledWith({
-        callbackURL: absoluteCallback('/onboarding'),
+        callbackURL: absoluteCallback('/onboarding/post-signup?plan=payg'),
         provider: 'google',
       });
     });

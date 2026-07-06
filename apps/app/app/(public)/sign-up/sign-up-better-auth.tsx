@@ -76,7 +76,10 @@ export default function SignUpBetterAuth({
   const [socialErrorMessage, setSocialErrorMessage] = useState<string | null>(
     null,
   );
-  const callbackURL = getAuthCallbackURL(searchParams);
+  const callbackURL = getAuthCallbackURL(searchParams, {
+    defaultCallbackURL: '/onboarding/post-signup',
+    includeOnboardingHandoffParams: true,
+  });
   const authCallbackURL = toAbsoluteAuthCallbackURL(callbackURL);
   const chooserHref = getSignUpModeHref('/sign-up', searchParams);
   const magicLinkHref = getSignUpModeHref('/sign-up/magic-link', searchParams);

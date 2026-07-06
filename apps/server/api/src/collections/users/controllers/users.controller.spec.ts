@@ -483,7 +483,7 @@ describe('UsersController', () => {
         userId,
         {
           isOnboardingCompleted: true,
-          onboardingStepsCompleted: ['brand', 'plan'],
+          onboardingStepsCompleted: ['brand', 'providers', 'summary'],
         } as never,
       );
 

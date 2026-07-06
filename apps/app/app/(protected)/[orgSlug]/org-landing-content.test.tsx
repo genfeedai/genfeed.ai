@@ -17,11 +17,23 @@ const mocks = vi.hoisted(() => ({
     }>,
     isReady: true,
   },
+  currentUserState: {
+    currentUser: {
+      id: 'user_1',
+      isOnboardingCompleted: true,
+      onboardingStepsCompleted: ['brand', 'providers', 'summary'] as string[],
+    },
+    isLoading: false,
+  },
   replace: vi.fn(),
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => mocks.brandState,
+}));
+
+vi.mock('@contexts/user/user-context/user-context', () => ({
+  useCurrentUser: () => mocks.currentUserState,
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -60,6 +72,12 @@ describe('OrgLandingContent', () => {
     vi.clearAllMocks();
     mocks.brandState.isReady = true;
     mocks.brandState.brands = [];
+    mocks.currentUserState.currentUser = {
+      id: 'user_1',
+      isOnboardingCompleted: true,
+      onboardingStepsCompleted: ['brand', 'providers', 'summary'],
+    };
+    mocks.currentUserState.isLoading = false;
   });
 
   it('redirects to onboarding when the organization has no projects', async () => {
@@ -86,6 +104,28 @@ describe('OrgLandingContent', () => {
       expect(mocks.replace).toHaveBeenCalledWith(
         '/acme/moonrise/workspace/overview',
       );
+    });
+  });
+
+  it('resumes onboarding before redirecting into a seeded project', async () => {
+    mocks.currentUserState.currentUser = {
+      id: 'user_1',
+      isOnboardingCompleted: false,
+      onboardingStepsCompleted: [],
+    };
+    mocks.brandState.brands = [
+      {
+        id: 'brand_1',
+        label: 'Default Organization',
+        slug: 'default',
+        totalCredentials: 0,
+      },
+    ];
+
+    render(<OrgLandingContent />);
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/brand');
     });
   });
 

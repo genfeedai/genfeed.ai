@@ -1,6 +1,7 @@
 import {
   buildOnboardingResumeHref,
   deriveBrandNameFromDomain,
+  isFreePlanHandoff,
   parseSelectedCredits,
   resolvePostSignupIntent,
 } from '@app/(onboarding)/onboarding/post-signup/post-signup-routing.util';
@@ -34,6 +35,20 @@ describe('resolvePostSignupIntent', () => {
     expect(intent).toEqual({
       credits: 1000,
       kind: 'credits-checkout',
+    });
+  });
+
+  it('treats free payg plan handoffs as normal onboarding', () => {
+    const intent = resolvePostSignupIntent({
+      personalEmailDomains: PERSONAL_DOMAINS,
+      primaryEmail: 'team@acme.com',
+      selectedCredits: null,
+      selectedPlan: 'payg',
+    });
+
+    expect(intent).toEqual({
+      domain: 'acme.com',
+      kind: 'auto-brand',
     });
   });
 
@@ -82,6 +97,14 @@ describe('resolvePostSignupIntent', () => {
     });
 
     expect(intent).toEqual({ kind: 'manual-brand' });
+  });
+});
+
+describe('isFreePlanHandoff', () => {
+  it('recognizes free marketing plan slugs', () => {
+    expect(isFreePlanHandoff('payg')).toBe(true);
+    expect(isFreePlanHandoff(' FREE ')).toBe(true);
+    expect(isFreePlanHandoff('price_123')).toBe(false);
   });
 });
 

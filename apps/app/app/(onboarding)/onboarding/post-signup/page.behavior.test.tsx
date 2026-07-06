@@ -230,6 +230,48 @@ describe('PostSignupPage behavior', () => {
     expect(createCheckoutSessionMock).not.toHaveBeenCalled();
   });
 
+  it('uses URL payg handoff to bypass stale stored paid plan checkout', async () => {
+    searchParamsState.value = new URLSearchParams(
+      'plan=payg&brandDomain=https://www.acme.co/path&brandName=Acme',
+    );
+    localStorage.setItem(ONBOARDING_STORAGE_KEYS.selectedPlan, 'price_stale');
+
+    render(<PostSignupPage />);
+
+    await waitFor(() => {
+      expect(locationState.href).toBe('/onboarding/brand?auto=true');
+    });
+
+    expect(
+      localStorage.getItem(ONBOARDING_STORAGE_KEYS.selectedPlan),
+    ).toBeNull();
+    expect(localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandDomain)).toBe(
+      'acme.co',
+    );
+    expect(localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandName)).toBe(
+      'Acme',
+    );
+    expect(createCheckoutSessionMock).not.toHaveBeenCalled();
+  });
+
+  it('starts an EE plan checkout from a post-signup plan query', async () => {
+    isEEEnabledMock.mockReturnValue(true);
+    isSelfHostedMock.mockReturnValue(false);
+    searchParamsState.value = new URLSearchParams('plan=price_123');
+
+    render(<PostSignupPage />);
+
+    await waitFor(() => {
+      expect(createCheckoutSessionMock).toHaveBeenCalledWith({
+        cancelUrl: 'http://localhost/onboarding/providers',
+        quantity: null,
+        stripePriceId: 'price_123',
+        successUrl: 'http://localhost/onboarding/brand',
+      });
+    });
+    expect(locationState.href).toBe('https://checkout.stripe.test/session');
+  });
+
   it('drops malformed credit handoff values and continues normal onboarding routing', async () => {
     localStorage.setItem(ONBOARDING_STORAGE_KEYS.selectedCredits, '500abc');
 
