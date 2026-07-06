@@ -1,4 +1,5 @@
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
+import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
@@ -25,6 +26,7 @@ export class UserProvisioningListener {
 
   constructor(
     private readonly userSetupService: UserSetupService,
+    private readonly lifecycleEmailService: LifecycleEmailService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -36,6 +38,7 @@ export class UserProvisioningListener {
         `Provisioned resources for Better Auth user ${event.userId}`,
         this.context,
       );
+      await this.scheduleLifecycleEmails(event.userId);
     } catch (error: unknown) {
       // Never fail sign-in on a provisioning hiccup — initializeUserResources is
       // idempotent, so a later request can complete it. Log loudly for ops.
@@ -46,6 +49,17 @@ export class UserProvisioningListener {
           stack: (error as Error)?.stack,
         },
       );
+    }
+  }
+
+  private async scheduleLifecycleEmails(userId: string): Promise<void> {
+    try {
+      await this.lifecycleEmailService.scheduleSignupLifecycle(userId);
+    } catch (error: unknown) {
+      this.logger.warn(`${this.context} lifecycle email scheduling skipped`, {
+        error: error instanceof Error ? error.message : error,
+        userId,
+      });
     }
   }
 }

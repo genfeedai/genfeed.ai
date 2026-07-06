@@ -2,6 +2,7 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { UsersService } from '@api/collections/users/services/users.service';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
 import type { StripeSubscription } from '@api/services/integrations/stripe/services/stripe.service';
+import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { type SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
 import {
   type ISubscriptionOssReadModel,
@@ -22,6 +23,7 @@ export class StripeSubscriptionWebhookHandler {
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly usersService: UsersService,
     private readonly supportService: StripeWebhookSupportService,
+    private readonly lifecycleEmailService: LifecycleEmailService,
   ) {}
 
   async handleSubscriptionCreated(
@@ -265,6 +267,12 @@ export class StripeSubscriptionWebhookHandler {
       if (userId) {
         await this.supportService.invalidateUserCaches(userId);
       }
+
+      await this.lifecycleEmailService.recordSubscriptionLapsed({
+        organizationId: String(existingSubscription.organization),
+        subscriptionId: subscription.id,
+        userId: String(existingSubscription.user),
+      });
 
       this.loggerService.log(`${url} subscription deleted successfully`, {
         organizationId: existingSubscription.organization,

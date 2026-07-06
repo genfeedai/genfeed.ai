@@ -17,6 +17,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { OrganizationCategory } from '@genfeedai/enums';
 import {
   type IUserSubscriptionsService,
@@ -57,6 +58,7 @@ export class UserStripeController {
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly organizationsService: OrganizationsService,
     private readonly loggerService: LoggerService,
+    private readonly lifecycleEmailService: LifecycleEmailService,
   ) {}
 
   @Post('checkout')
@@ -141,6 +143,13 @@ export class UserStripeController {
         stripeCustomerId,
         stripePriceId,
         successUrl,
+        userId: dbUser.id.toString(),
+      });
+
+      await this.lifecycleEmailService.recordCheckoutStarted({
+        checkoutSessionId: session.id,
+        checkoutUrl: session.url,
+        source: 'user-checkout',
         userId: dbUser.id.toString(),
       });
 

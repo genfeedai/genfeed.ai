@@ -5,6 +5,7 @@ import { UserSetupModule } from '@api/collections/users/user-setup.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { CommonModule } from '@api/common/common.module';
 import { CacheModule } from '@api/services/cache/cache.module';
+import { LifecycleEmailsModule } from '@api/services/lifecycle-emails/lifecycle-emails.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IS_BETTER_AUTH_ENABLED } from '@genfeedai/config';
@@ -57,6 +58,7 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
     forwardRef(() => UserSetupModule),
     CacheModule,
     CommonModule,
+    LifecycleEmailsModule,
     NotificationsModule,
   ],
   providers: [

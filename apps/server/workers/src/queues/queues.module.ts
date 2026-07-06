@@ -35,6 +35,7 @@ import {
   DEFAULT_QUEUE,
   EMAIL_DIGEST_QUEUE,
   HEYGEN_POLL_QUEUE,
+  LIFECYCLE_EMAIL_QUEUE,
   ORCHESTRATOR_RUN_QUEUE,
   PATTERN_EXTRACTION_QUEUE,
   REPLY_BOT_POLLING_QUEUE,
@@ -152,6 +153,15 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnFail: 50,
         },
         name: EMAIL_DIGEST_QUEUE,
+      },
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 10000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: LIFECYCLE_EMAIL_QUEUE,
       },
       {
         defaultJobOptions: {

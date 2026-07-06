@@ -59,6 +59,7 @@ import { TwitterService } from '@api/services/integrations/twitter/services/twit
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
+import { LifecycleEmailsModule } from '@api/services/lifecycle-emails/lifecycle-emails.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
 import { SkillExecutorModule } from '@api/services/skill-executor/skill-executor.module';
@@ -97,6 +98,7 @@ import { ClipFactoryProcessor } from '@workers/processors/api/queues/clip-factor
 import { CreditDeductionProcessor } from '@workers/processors/api/queues/credit-deduction/credit-deduction.processor';
 import { EmailDigestProcessor } from '@workers/processors/api/queues/email-digest/email-digest.processor';
 import { HeygenPollProcessor } from '@workers/processors/api/queues/heygen-poll/heygen-poll.processor';
+import { LifecycleEmailProcessor } from '@workers/processors/api/queues/lifecycle-email/lifecycle-email.processor';
 import { PatternExtractionProcessor } from '@workers/processors/api/queues/pattern-extraction/pattern-extraction.processor';
 import { ReplyBotPollingProcessor } from '@workers/processors/api/queues/reply-bot/reply-bot-polling.processor';
 import { TelegramDistributeProcessor } from '@workers/processors/api/queues/telegram-distribute/telegram-distribute.processor';
@@ -153,6 +155,7 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     forwardRef(() => ContentOrchestrationModule),
     forwardRef(() => FacebookModule),
     forwardRef(() => InstagramModule),
+    forwardRef(() => LifecycleEmailsModule),
     forwardRef(() => LinkedInModule),
     forwardRef(() => MastodonModule),
     forwardRef(() => MetaAdsModule),
@@ -220,7 +223,7 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
       useExisting: YoutubeService,
     },
 
-    // --- queues/ processors (21) ---
+    // --- queues/ processors (22) ---
     AdBulkUploadProcessor,
     AdOptimizationProcessor,
     AdSyncGoogleProcessor,
@@ -239,6 +242,7 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     CreditDeductionProcessor,
     EmailDigestProcessor,
     HeygenPollProcessor,
+    LifecycleEmailProcessor,
     PatternExtractionProcessor,
     ReplyBotPollingProcessor,
     TelegramDistributeProcessor,

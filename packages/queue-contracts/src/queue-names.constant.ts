@@ -47,6 +47,7 @@ export const BATCH_WORKFLOW_QUEUE = 'batch-workflow';
 export const TELEGRAM_DISTRIBUTE_QUEUE = 'telegram-distribute';
 export const REPLY_BOT_POLLING_QUEUE = 'reply-bot-polling';
 export const EMAIL_DIGEST_QUEUE = 'email-digest';
+export const LIFECYCLE_EMAIL_QUEUE = 'lifecycle-email';
 export const WEBHOOK_CLIENT_QUEUE = 'webhook-client';
 
 // ---------- Platform ----------
@@ -84,6 +85,7 @@ export const ALL_QUEUE_NAMES = [
   TELEGRAM_DISTRIBUTE_QUEUE,
   REPLY_BOT_POLLING_QUEUE,
   EMAIL_DIGEST_QUEUE,
+  LIFECYCLE_EMAIL_QUEUE,
   WEBHOOK_CLIENT_QUEUE,
   WORKSPACE_TASK_QUEUE,
   HEYGEN_POLL_QUEUE,

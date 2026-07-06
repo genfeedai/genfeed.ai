@@ -1,12 +1,14 @@
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { CreateManagedCheckoutDto } from '@api/services/integrations/stripe/dto/create-managed-checkout.dto';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { IS_SELF_HOSTED } from '@genfeedai/config';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
   Injectable,
+  Optional,
   ServiceUnavailableException,
 } from '@nestjs/common';
 
@@ -33,6 +35,8 @@ export class ManagedStripeCheckoutService {
     private readonly stripeService: StripeService,
     private readonly cacheService: CacheService,
     private readonly loggerService: LoggerService,
+    @Optional()
+    private readonly lifecycleEmailService?: LifecycleEmailService,
   ) {}
 
   async createCheckoutSession(
@@ -61,6 +65,12 @@ export class ManagedStripeCheckoutService {
       quantity: dto.quantity,
       stripePriceId,
       successUrl: dto.successUrl,
+    });
+
+    await this.lifecycleEmailService?.recordManagedCheckoutStartedByEmail({
+      checkoutSessionId: session.id,
+      checkoutUrl: session.url,
+      email: dto.email,
     });
 
     return { url: session.url || '' };

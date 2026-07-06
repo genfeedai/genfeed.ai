@@ -37,6 +37,7 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { UserStripeController } from '@api/services/integrations/stripe/controllers/user-stripe.controller';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { USER_SUBSCRIPTIONS_SERVICE } from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -62,6 +63,9 @@ describe('UserStripeController', () => {
     getOrganizationCreditsBalance: ReturnType<typeof vi.fn>;
   };
   let organizationsService: { findOne: ReturnType<typeof vi.fn> };
+  let lifecycleEmailService: {
+    recordCheckoutStarted: ReturnType<typeof vi.fn>;
+  };
 
   const dbUserId = 'test-object-id';
   const mockRequest = {
@@ -87,9 +91,10 @@ describe('UserStripeController', () => {
   beforeEach(async () => {
     stripeService = {
       createUserCustomer: vi.fn().mockResolvedValue({ id: 'cus_new123' }),
-      createUserPaymentSession: vi
-        .fn()
-        .mockResolvedValue({ url: 'https://checkout.stripe.com/pay' }),
+      createUserPaymentSession: vi.fn().mockResolvedValue({
+        id: 'cs_user_1',
+        url: 'https://checkout.stripe.com/pay',
+      }),
       getUserBillingPortalUrl: vi
         .fn()
         .mockResolvedValue({ url: 'https://billing.stripe.com' }),
@@ -117,6 +122,9 @@ describe('UserStripeController', () => {
     organizationsService = {
       findOne: vi.fn().mockResolvedValue({ id: 'test-object-id' }),
     };
+    lifecycleEmailService = {
+      recordCheckoutStarted: vi.fn().mockResolvedValue(undefined),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UserStripeController],
@@ -133,6 +141,7 @@ describe('UserStripeController', () => {
           provide: LoggerService,
           useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
         },
+        { provide: LifecycleEmailService, useValue: lifecycleEmailService },
       ],
     })
       .overrideGuard(RolesGuard)
@@ -155,7 +164,10 @@ describe('UserStripeController', () => {
         dto,
         mockRequest,
       );
-      expect(result).toEqual({ url: 'https://checkout.stripe.com/pay' });
+      expect(result).toEqual({
+        id: 'cs_user_1',
+        url: 'https://checkout.stripe.com/pay',
+      });
       // Regression (#1199): resolve the DB user by Genfeed User.id, never the
       // frozen authProviderId column (NULL for post-cutover Better Auth users).
       expect(usersService.findOne).toHaveBeenCalledWith({
@@ -163,6 +175,12 @@ describe('UserStripeController', () => {
         isDeleted: false,
       });
       expect(stripeService.createUserCustomer).not.toHaveBeenCalled();
+      expect(lifecycleEmailService.recordCheckoutStarted).toHaveBeenCalledWith({
+        checkoutSessionId: 'cs_user_1',
+        checkoutUrl: 'https://checkout.stripe.com/pay',
+        source: 'user-checkout',
+        userId: dbUserId,
+      });
     });
 
     it('should create stripe customer if user has no stripeCustomerId', async () => {
