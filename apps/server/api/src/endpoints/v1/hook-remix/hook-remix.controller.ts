@@ -65,13 +65,13 @@ export class HookRemixController {
     }
   }
 
-  @Get(':jobId/status')
-  @ApiOperation({ summary: 'Get hook remix job status' })
-  async getJobStatus(@Param('jobId') jobId: string) {
+  @Get(':jobId')
+  @ApiOperation({ summary: 'Get a hook remix job' })
+  async getJob(@Param('jobId') jobId: string) {
     try {
-      return await this.hookRemixService.getJobStatus(jobId);
+      return await this.hookRemixService.getJob(jobId);
     } catch (error: unknown) {
-      return ErrorResponse.handle(error, this.loggerService, 'getJobStatus');
+      return ErrorResponse.handle(error, this.loggerService, 'getJob');
     }
   }
 }

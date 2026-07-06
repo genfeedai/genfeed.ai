@@ -17,8 +17,8 @@ const mocks = vi.hoisted(() => ({
   push: vi.fn(),
   refresh: vi.fn(),
   runNow: vi.fn(),
+  setActive: vi.fn(),
   success: vi.fn(),
-  toggle: vi.fn(),
   update: vi.fn(),
   useAgentStrategies: vi.fn(),
 }));
@@ -27,7 +27,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
     create: mocks.create,
     runNow: mocks.runNow,
-    toggle: mocks.toggle,
+    setActive: mocks.setActive,
     update: mocks.update,
   }),
 }));
@@ -367,7 +367,7 @@ describe('AgentStrategiesPage', () => {
     vi.clearAllMocks();
     mocks.create.mockResolvedValue(makeStrategy({ id: 'new-strategy' }));
     mocks.runNow.mockResolvedValue(undefined);
-    mocks.toggle.mockResolvedValue(undefined);
+    mocks.setActive.mockResolvedValue(undefined);
     mocks.update.mockResolvedValue(makeStrategy());
     mocks.refresh.mockResolvedValue(undefined);
     mocks.useAgentStrategies.mockReturnValue({
@@ -414,7 +414,7 @@ describe('AgentStrategiesPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Pause strategy' }));
     await waitFor(() => {
-      expect(mocks.toggle).toHaveBeenCalledWith('strategy-1');
+      expect(mocks.setActive).toHaveBeenCalledWith('strategy-1', false);
       expect(mocks.success).toHaveBeenCalledWith('Strategy paused');
     });
   });

@@ -17,7 +17,7 @@ Project planning/reporting summary.
 
 ```
 apps/
-  server/     api, clips, discord, files, images, mcp, notifications, slack, telegram, videos, voices, workers
+  server/     api, discord, files, images, mcp, notifications, slack, telegram, videos, voices, workers
   app/        Next.js studio UI
   website/    Marketing site
   desktop/app/ Electron desktop shell embedding apps/app with local IPC backend actions
@@ -28,6 +28,8 @@ ee/packages/  Enterprise features (commercial license)
 docker/       Self-hosted deployment
 docs/         Documentation
 ```
+
+`apps/server/clips/` exists in the tree but is not currently a Bun workspace or Nest service package.
 
 ## Current Desktop Boundary
 

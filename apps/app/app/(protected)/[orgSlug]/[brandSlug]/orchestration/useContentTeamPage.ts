@@ -125,10 +125,10 @@ export function useContentTeamPage() {
   );
 
   const handleToggle = useCallback(
-    async (strategyId: string) => {
+    async (strategyId: string, isActive: boolean) => {
       try {
         const service = await getStrategiesService();
-        await service.toggle(strategyId);
+        await service.setActive(strategyId, isActive);
         await refresh();
         notificationsService.success('Team member updated');
       } catch (error) {

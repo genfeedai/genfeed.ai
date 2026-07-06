@@ -18,4 +18,12 @@ export class ApiKeysQueryDto extends BaseQueryDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @ApiProperty({
+    description: 'Combined label/description case-insensitive search',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  search?: string;
 }

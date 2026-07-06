@@ -53,7 +53,6 @@ describe('EvaluationsController', () => {
       evaluateExternalUrl: vi.fn().mockResolvedValue(mockEvaluation),
       findAll: vi.fn(),
       findOne: vi.fn().mockResolvedValue(mockEvaluation),
-      getContentEvaluations: vi.fn().mockResolvedValue([mockEvaluation]),
       getEvaluationTrends: vi.fn().mockResolvedValue({
         averageScore: 85,
         trends: [],
@@ -189,22 +188,33 @@ describe('EvaluationsController', () => {
     });
   });
 
-  describe('getPostEvaluations', () => {
-    it('should return evaluations for a post', async () => {
-      const result = await controller.getPostEvaluations(
-        mockRequest,
-        '507f1f77bcf86cd799439015',
-        mockUser,
-      );
+  describe('buildFindAllQuery', () => {
+    it('should scope by organization and filter by entityType/entityId', () => {
+      const query = {
+        entityId: '507f1f77bcf86cd799439015',
+        entityType: 'posts' as const,
+      };
 
+      const result = controller.buildFindAllQuery(mockUser, query);
+
+      expect(result.where).toMatchObject({
+        contentId: '507f1f77bcf86cd799439015',
+        contentType: 'post',
+        isDeleted: false,
+        organization: '507f1f77bcf86cd799439012',
+      });
+    });
+
+    it('should scope by organization without entityType/entityId', () => {
+      const result = controller.buildFindAllQuery(mockUser, {});
+
+      expect(result.where).toMatchObject({
+        isDeleted: false,
+        organization: '507f1f77bcf86cd799439012',
+      });
       expect(
-        mockServices.evaluationsService.getContentEvaluations,
-      ).toHaveBeenCalledWith(
-        'post',
-        '507f1f77bcf86cd799439015',
-        '507f1f77bcf86cd799439012',
-      );
-      expect(result).toBeDefined();
+        (result.where as Record<string, unknown>).contentType,
+      ).toBeUndefined();
     });
   });
 

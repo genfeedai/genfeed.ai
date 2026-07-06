@@ -40,6 +40,7 @@ export class HarnessProfilesController {
     @Req() request: Request,
     @CurrentUser() user: User,
     @Query('brandId') brandId: string,
+    @Query('isActive') isActive?: string,
   ) {
     const { organization } = getPublicMetadata(user);
     if (!brandId?.trim()) {
@@ -49,29 +50,10 @@ export class HarnessProfilesController {
     const docs = await this.harnessProfilesService.findForBrand(
       organization,
       brandId,
+      { isActive: isActive ? isActive === 'true' : undefined },
     );
 
     return serializeCollection(request, HarnessProfileSerializer, { docs });
-  }
-
-  @Get('active')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async getActiveForBrand(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Query('brandId') brandId: string,
-  ) {
-    const { organization } = getPublicMetadata(user);
-    if (!brandId?.trim()) {
-      throw new BadRequestException('brandId query parameter is required');
-    }
-
-    const profile = await this.harnessProfilesService.getActiveForBrand(
-      organization,
-      brandId,
-    );
-
-    return serializeSingle(request, HarnessProfileSerializer, profile);
   }
 
   @Post()

@@ -3,6 +3,7 @@ import { AgentMessagesService } from '@api/collections/agent-messages/services/a
 import { AgentThreadsController } from '@api/collections/agent-threads/controllers/agent-threads.controller';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { UsersService } from '@api/collections/users/services/users.service';
+import { AgentThreadStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 
 vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
@@ -227,11 +228,16 @@ describe('AgentThreadsController', () => {
     });
   });
 
-  describe('archiveAllThreads', () => {
+  describe('bulkUpdateThreads', () => {
     it('archives all active threads for the current user', async () => {
       service.archiveAllThreads.mockResolvedValue(4);
 
-      await expect(controller.archiveAllThreads(mockUser)).resolves.toEqual({
+      await expect(
+        controller.bulkUpdateThreads(
+          { status: AgentThreadStatus.ARCHIVED },
+          mockUser,
+        ),
+      ).resolves.toEqual({
         archivedCount: 4,
       });
 
@@ -239,6 +245,17 @@ describe('AgentThreadsController', () => {
         expect.any(String),
         expect.any(String),
       );
+    });
+
+    it('rejects a bulk update whose status is not archived', async () => {
+      await expect(
+        controller.bulkUpdateThreads(
+          { status: AgentThreadStatus.ACTIVE },
+          mockUser,
+        ),
+      ).rejects.toThrow();
+
+      expect(service.archiveAllThreads).not.toHaveBeenCalled();
     });
   });
 });

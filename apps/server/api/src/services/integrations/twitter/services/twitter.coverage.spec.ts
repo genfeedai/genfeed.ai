@@ -53,7 +53,7 @@ vi.mock('twitter-api-v2', () => {
   return { TwitterApi: MockTwitterApi };
 });
 
-vi.mock('@api/shared/utils/encryption/encryption.util', () => ({
+vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: { decrypt: vi.fn((val: string) => `decrypted:${val}`) },
 }));
 

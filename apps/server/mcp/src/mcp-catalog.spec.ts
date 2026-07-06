@@ -27,6 +27,9 @@ function surfacedToolNames(): string[] {
   const names: string[] = [];
   names.push(...namesIn(read(path.join(sourceDir, 'overlap.tools.ts'))));
   names.push(
+    ...namesIn(read(path.join(sourceDir, 'overlap-generation.tools.ts'))),
+  );
+  names.push(
     ...namesIn(read(path.join(sourceDir, 'workflow-control.tools.ts'))),
   );
   names.push(

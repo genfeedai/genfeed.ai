@@ -6,7 +6,7 @@
 - [One API Epic](project_one_api_epic.md) — Epic #95: consolidate self-hosted + cloud into one NestJS API, 20 issues, 8 phases
 - [Fallow Health](project_fallow.md) — Fallow codebase health analysis (#83), weekly CI, score 72/100
 - [BullMQ Processor Placement](project_bullmq.md) — API no longer owns BullMQ processors; add new processors to workers or the owning runtime service
-- [Backend type-check pattern](project_backend_typecheck.md) — dedicated `tsconfig.typecheck.json` per `apps/server/*` (never the runtime config); shared base, `useDefineForClassFields:false`, cross-app `$TURBO_ROOT$` inputs. 10/12 green (#1148); notifications+files follow-ups on #1145
+- [Backend type-check pattern](project_backend_typecheck.md) — dedicated `tsconfig.typecheck.json` for all 11 backend service workspaces (never the runtime config); shared base, `useDefineForClassFields:false`, cross-app `$TURBO_ROOT$` inputs. #1145 closed by #1148 + #1221.
 - [Migration Status](project_migration.md) — cloud + core → genfeed.ai migration complete, all pages/tests present
 - [Settings Routing](project_settings_routing.md) — canonical personal/org/brand settings URL shapes
 - [Desktop BYOK Generation](project_desktop_byok_generation.md) — desktop local/BYOK generation is local-first; cloud connect is optional
@@ -39,8 +39,9 @@
 - [Failed deploys never burn a version](release_tag_after_green_deploy.md) — pre-gate release cutting is normal; on deploy failure fix master and re-cut the SAME version (delete unconsumed tag), never bump
 - [Production deploys master-only](production_deploy_master_only.md) — Never deploy any non-master ref to production unless Vincent explicitly overrides; production deploys run from GitHub CI on master
 - [Vercel release gate](feedback_vercel_release_gate.md) — SaaS Vercel frontends deploy only through the API-first production release workflow; Vercel Git auto-deploy stays disabled
-- [PRD-pass verify state first](prd_pass_verify_state_first.md) — On any epic PRD pass, verify child issue states via `gh` + audit real code before trusting the epic body; never rewrite closed/shipped cards
+- [PRD-pass verify state first](rules/prd_pass_verify_state_first.md) — On any epic PRD pass, verify child issue states via `gh` + audit real code before trusting the epic body; never rewrite closed/shipped cards
 - [Prisma legacy alias fields](rules/prisma_legacy_alias_fields.md) — Mongo-era `*Document` aliases (`organization`/`user`/`_id`) are undefined on Prisma rows; read scalar FKs (`organizationId`/`userId`); `BaseService.findOne` guards empty ids (canonical: docs/identity-resolution.md)
+- [NestJS value imports for DI](rules/nestjs_value_imports_for_di.md) — never `import type` classes used in decorator metadata (constructor DI, `@Body`/`@Query`/`@Param` DTOs); emitDecoratorMetadata erases them → DI injects undefined / validation silently skips; guarded by `check:di-value-imports` in CI
 - [server-domain, not core](rules/server_domain_not_core.md) — #1090 server-tier lib = `apps/server/domain` / `@genfeedai/server-domain`; the name "core" is retired (collides with `packages/core`); workflow cluster consolidates 5→2
 
 ## References
@@ -53,7 +54,7 @@
 ## Context (loaded via CLAUDE.md @import)
 
 - [System Patterns](context/system-patterns.md) — architecture patterns, serializers, multi-tenancy
-- [Project Structure](context/project-structure.md) — directory layout, 12 backend services, 6 frontends
+- [Project Structure](context/project-structure.md) — directory layout, 11 backend service workspaces, 7 frontend/client workspaces
 - [Style Guide](context/project-style-guide.md) — TypeScript, git, formatting, naming conventions
 - [Skills Architecture](context/skills-architecture.md) — skills/ vs .agents/skills/ vs .claude/skills/
 - [Progress](context/progress.md) — migration status, active work areas

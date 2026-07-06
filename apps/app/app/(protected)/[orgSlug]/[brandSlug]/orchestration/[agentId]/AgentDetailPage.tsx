@@ -96,7 +96,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
     if (!strategy) return;
     try {
       const service = await getService();
-      await service.toggle(agentId);
+      await service.setActive(agentId, !strategy.isActive);
       await refresh();
       notificationsService.success('Agent status updated');
     } catch (error) {

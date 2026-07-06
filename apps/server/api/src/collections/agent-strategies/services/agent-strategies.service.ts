@@ -63,28 +63,30 @@ export class AgentStrategiesService extends BaseService<
   }
 
   /**
-   * Toggle strategy active state
+   * Set a strategy's active state, applying the scheduler derived-field resets
+   * on transition: activation queues the next run and clears failure state;
+   * deactivation clears the schedule. Returns null when the strategy is missing.
+   * Backs the `isActive` field on `PATCH /agent-strategies/:id`.
    */
-  async toggleActive(
+  async setActive(
     id: string,
     organizationId: string,
+    isActive: boolean,
   ): Promise<AgentStrategyDocument | null> {
     const strategy = await this.findOneById(id, organizationId);
     if (!strategy) {
       return null;
     }
 
-    const now = new Date();
-    const updateData: Record<string, unknown> = {
-      isActive: !strategy.isActive,
-    };
+    const updateData: Record<string, unknown> = { isActive };
 
-    // When activating, calculate nextRunAt
-    if (!strategy.isActive) {
-      updateData.nextRunAt = now;
+    if (isActive && !strategy.isActive) {
+      // Activating: queue the next run and clear failure state.
+      updateData.nextRunAt = new Date();
       updateData.consecutiveFailures = 0;
       updateData.requiresManualReactivation = false;
-    } else {
+    } else if (!isActive && strategy.isActive) {
+      // Deactivating: clear the schedule.
       updateData.nextRunAt = null;
     }
 

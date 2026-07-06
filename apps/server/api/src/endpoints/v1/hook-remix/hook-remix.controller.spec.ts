@@ -35,7 +35,7 @@ describe('HookRemixController', () => {
   let hookRemixService: {
     createBatchHookRemix: ReturnType<typeof vi.fn>;
     createHookRemix: ReturnType<typeof vi.fn>;
-    getJobStatus: ReturnType<typeof vi.fn>;
+    getJob: ReturnType<typeof vi.fn>;
   };
   let logger: {
     error: ReturnType<typeof vi.fn>;
@@ -52,7 +52,7 @@ describe('HookRemixController', () => {
     hookRemixService = {
       createBatchHookRemix: vi.fn(),
       createHookRemix: vi.fn(),
-      getJobStatus: vi.fn(),
+      getJob: vi.fn(),
     };
     logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
 
@@ -180,47 +180,41 @@ describe('HookRemixController', () => {
     });
   });
 
-  describe('getJobStatus', () => {
+  describe('getJob', () => {
     const jobId = 'job_status_test';
 
-    it('should return job status from service', async () => {
-      const status = { jobId, progress: 50, status: 'running' };
-      hookRemixService.getJobStatus.mockResolvedValue(status);
+    it('should return job from service', async () => {
+      const job = { jobId, progress: 50, status: 'running' };
+      hookRemixService.getJob.mockResolvedValue(job);
 
-      const result = await controller.getJobStatus(jobId);
+      const result = await controller.getJob(jobId);
 
-      expect(hookRemixService.getJobStatus).toHaveBeenCalledWith(jobId);
-      expect(result).toEqual(status);
+      expect(hookRemixService.getJob).toHaveBeenCalledWith(jobId);
+      expect(result).toEqual(job);
     });
 
-    it('should rethrow HttpException from getJobStatus', async () => {
-      hookRemixService.getJobStatus.mockRejectedValue(
+    it('should rethrow HttpException from getJob', async () => {
+      hookRemixService.getJob.mockRejectedValue(
         new HttpException('Not found', HttpStatus.NOT_FOUND),
       );
 
-      await expect(controller.getJobStatus(jobId)).rejects.toThrow(
-        HttpException,
-      );
+      await expect(controller.getJob(jobId)).rejects.toThrow(HttpException);
     });
 
     it('should wrap unexpected errors as HttpException via ErrorResponse.handle', async () => {
-      hookRemixService.getJobStatus.mockRejectedValue(
-        new Error('Job exploded'),
-      );
+      hookRemixService.getJob.mockRejectedValue(new Error('Job exploded'));
 
-      await expect(controller.getJobStatus(jobId)).rejects.toThrow(
-        HttpException,
-      );
+      await expect(controller.getJob(jobId)).rejects.toThrow(HttpException);
       expect(logger.error).toHaveBeenCalled();
     });
 
     it('should call service exactly once with the provided jobId', async () => {
-      hookRemixService.getJobStatus.mockResolvedValue({ status: 'done' });
+      hookRemixService.getJob.mockResolvedValue({ status: 'done' });
 
-      await controller.getJobStatus(jobId);
+      await controller.getJob(jobId);
 
-      expect(hookRemixService.getJobStatus).toHaveBeenCalledOnce();
-      expect(hookRemixService.getJobStatus).toHaveBeenCalledWith(jobId);
+      expect(hookRemixService.getJob).toHaveBeenCalledOnce();
+      expect(hookRemixService.getJob).toHaveBeenCalledWith(jobId);
     });
   });
 });
