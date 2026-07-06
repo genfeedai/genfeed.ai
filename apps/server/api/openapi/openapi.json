@@ -1219,33 +1219,6 @@
         ],
         "type": "object"
       },
-      "CreateAvatarDto": {
-        "properties": {
-          "avatarId": {
-            "type": "string"
-          },
-          "category": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/IngredientAvatarCategory"
-              }
-            ]
-          },
-          "text": {
-            "type": "string"
-          },
-          "voiceId": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "category",
-          "avatarId",
-          "voiceId",
-          "text"
-        ],
-        "type": "object"
-      },
       "CreateAvatarVideoDto": {
         "properties": {
           "aspectRatio": {
@@ -6053,112 +6026,6 @@
         "properties": {},
         "type": "object"
       },
-      "GenerateThreadDto": {
-        "properties": {
-          "count": {
-            "description": "Number of tweets in the thread",
-            "example": 5,
-            "maximum": 25,
-            "minimum": 2,
-            "type": "number"
-          },
-          "credential": {
-            "description": "Credential ID (Twitter account) to use",
-            "type": "string"
-          },
-          "sourceReferenceIds": {
-            "description": "Optional trend source reference IDs to preserve remix lineage",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "sourceUrl": {
-            "description": "Optional originating source URL for remix lineage fallback",
-            "type": "string"
-          },
-          "tone": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TweetTone"
-              }
-            ],
-            "default": "professional",
-            "description": "Tone for the generated thread"
-          },
-          "topic": {
-            "description": "Topic or prompt for generating the thread",
-            "example": "Why AI will transform content creation",
-            "type": "string"
-          },
-          "trendId": {
-            "description": "Optional originating trend ID for remix lineage",
-            "type": "string"
-          }
-        },
-        "required": [
-          "topic",
-          "count",
-          "credential"
-        ],
-        "type": "object"
-      },
-      "GenerateTweetsDto": {
-        "properties": {
-          "count": {
-            "description": "Number of tweets to generate",
-            "example": 10,
-            "maximum": 50,
-            "minimum": 1,
-            "type": "number"
-          },
-          "credential": {
-            "description": "Credential ID (Twitter account) to use",
-            "type": "string"
-          },
-          "platform": {
-            "default": "twitter",
-            "description": "Platform for the tweets (default: twitter)",
-            "example": "twitter",
-            "type": "string"
-          },
-          "sourceReferenceIds": {
-            "description": "Optional trend source reference IDs to preserve remix lineage",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "sourceUrl": {
-            "description": "Optional originating source URL for remix lineage fallback",
-            "type": "string"
-          },
-          "tone": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TweetTone"
-              }
-            ],
-            "default": "professional",
-            "description": "Tone for the generated tweets"
-          },
-          "topic": {
-            "description": "Topic or prompt for generating tweets",
-            "example": "AI productivity tips",
-            "type": "string"
-          },
-          "trendId": {
-            "description": "Optional originating trend ID for remix lineage",
-            "type": "string"
-          }
-        },
-        "required": [
-          "topic",
-          "count",
-          "credential"
-        ],
-        "type": "object"
-      },
       "GenerateVariantsDto": {
         "properties": {},
         "type": "object"
@@ -6534,13 +6401,6 @@
           "workflow"
         ],
         "type": "object"
-      },
-      "IngredientAvatarCategory": {
-        "enum": [
-          "avatar",
-          "avatar-video"
-        ],
-        "type": "string"
       },
       "IngredientCategory": {
         "enum": [
@@ -13566,21 +13426,6 @@
         ]
       }
     },
-    "/admin/darkroom/infrastructure/gpu": {
-      "get": {
-        "operationId": "AdminFleetController.getGpuStatus[1]",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get GPU instance status",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
     "/admin/darkroom/infrastructure/services": {
       "get": {
         "operationId": "AdminFleetController.getServiceHealth[1]",
@@ -14287,21 +14132,6 @@
           }
         },
         "summary": "Get detailed GPU fleet health",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/fleet/infrastructure/gpu": {
-      "get": {
-        "operationId": "AdminFleetController.getGpuStatus[0]",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get GPU instance status",
         "tags": [
           "Admin / Fleet"
         ]
@@ -15179,38 +15009,6 @@
         ]
       }
     },
-    "/ads/{platform}/campaigns/{campaignId}/pause": {
-      "post": {
-        "operationId": "AdsGatewayController.pauseCampaign",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "platform",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "campaignId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "pauseCampaign",
-        "tags": [
-          "ads"
-        ]
-      }
-    },
     "/ads/{platform}/top-performers": {
       "get": {
         "operationId": "AdsGatewayController.getTopPerformers",
@@ -15604,31 +15402,6 @@
           }
         },
         "summary": "Fetch the latest autopilot performance snapshot",
-        "tags": [
-          "agent-strategies",
-          "Agent Strategies"
-        ]
-      }
-    },
-    "/agent-strategies/{id}/plan-now": {
-      "post": {
-        "operationId": "AgentStrategiesController.planNow",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Force a planning cycle for this strategy",
         "tags": [
           "agent-strategies",
           "Agent Strategies"
@@ -17821,30 +17594,6 @@
         ]
       }
     },
-    "/articles/slug/{slug}": {
-      "get": {
-        "operationId": "ArticlesController.findBySlug",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "slug",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findBySlug",
-        "tags": [
-          "articles"
-        ]
-      }
-    },
     "/articles/{articleId}": {
       "patch": {
         "operationId": "ArticlesController.patch",
@@ -18751,31 +18500,6 @@
         ]
       }
     },
-    "/avatars/generate": {
-      "post": {
-        "operationId": "AvatarsController.createGenerateAvatar",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateAvatarDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "createGenerateAvatar",
-        "tags": [
-          "avatars"
-        ]
-      }
-    },
     "/avatars/hedra/avatars": {
       "get": {
         "operationId": "AvatarsController.getHedraAvatars",
@@ -18831,21 +18555,6 @@
           }
         },
         "summary": "getHeygenVoices",
-        "tags": [
-          "avatars"
-        ]
-      }
-    },
-    "/avatars/new": {
-      "post": {
-        "operationId": "AvatarsController.createNewAvatar",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "createNewAvatar",
         "tags": [
           "avatars"
         ]
@@ -19627,30 +19336,6 @@
           }
         },
         "summary": "getLivestreamSession",
-        "tags": [
-          "bots"
-        ]
-      }
-    },
-    "/bots/{id}/livestream-session/history": {
-      "get": {
-        "operationId": "BotsController.getLivestreamDeliveryHistory",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "getLivestreamDeliveryHistory",
         "tags": [
           "bots"
         ]
@@ -25261,38 +24946,6 @@
         ]
       }
     },
-    "/content-performance/top-performers": {
-      "get": {
-        "operationId": "ContentPerformanceController.getTopPerformers",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "brand",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "getTopPerformers",
-        "tags": [
-          "content-performance"
-        ]
-      }
-    },
     "/content-performance/{id}": {
       "delete": {
         "operationId": "ContentPerformanceController.delete",
@@ -26263,86 +25916,6 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "CronJobs"
-        ]
-      },
-      "post": {
-        "operationId": "CronJobsController.create",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "CronJobs"
-        ]
-      }
-    },
-    "/cron-jobs/{id}": {
-      "delete": {
-        "operationId": "CronJobsController.delete",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "CronJobs"
-        ]
-      },
-      "patch": {
-        "operationId": "CronJobsController.update",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "CronJobs"
-        ]
-      }
-    },
-    "/cron-jobs/{id}/pause": {
-      "post": {
-        "operationId": "CronJobsController.pause",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "CronJobs"
-        ]
-      }
-    },
-    "/cron-jobs/{id}/resume": {
-      "post": {
-        "operationId": "CronJobsController.resume",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "CronJobs"
-        ]
-      }
-    },
-    "/cron-jobs/{id}/run-now": {
-      "post": {
-        "operationId": "CronJobsController.runNow",
-        "parameters": [],
-        "responses": {
-          "201": {
             "description": ""
           }
         },
@@ -31668,20 +31241,6 @@
         ]
       }
     },
-    "/members/invitations/accept": {
-      "post": {
-        "operationId": "InvitationsController.acceptInvitation",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Invitations"
-        ]
-      }
-    },
     "/members/invitations/pending": {
       "get": {
         "operationId": "MembersController.listInvitations",
@@ -31740,31 +31299,6 @@
           }
         },
         "summary": "resendInvitation",
-        "tags": [
-          "members"
-        ]
-      }
-    },
-    "/members/invite": {
-      "post": {
-        "operationId": "MembersController.invite",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/InviteMemberDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "invite",
         "tags": [
           "members"
         ]
@@ -37758,31 +37292,6 @@
         ]
       }
     },
-    "/posts/generations": {
-      "post": {
-        "operationId": "PostsOperationsController.generateTweets",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GenerateTweetsDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "generateTweets",
-        "tags": [
-          "posts"
-        ]
-      }
-    },
     "/posts/hook-generations": {
       "post": {
         "operationId": "PostsOperationsController.generateHookVariations",
@@ -37828,31 +37337,6 @@
           }
         },
         "summary": "batchSchedule",
-        "tags": [
-          "posts"
-        ]
-      }
-    },
-    "/posts/thread-generations": {
-      "post": {
-        "operationId": "PostsOperationsController.generateThread",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GenerateThreadDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "generateThread",
         "tags": [
           "posts"
         ]
@@ -41590,21 +41074,6 @@
         ]
       }
     },
-    "/services/facebook/auth": {
-      "get": {
-        "operationId": "FacebookController.initializeAuth",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "initializeAuth",
-        "tags": [
-          "services/facebook"
-        ]
-      }
-    },
     "/services/facebook/callback": {
       "get": {
         "operationId": "FacebookController.handleCallback",
@@ -42006,30 +41475,6 @@
           }
         },
         "summary": "getKeywordPerformance",
-        "tags": [
-          "services/google-ads"
-        ]
-      }
-    },
-    "/services/google-ads/oauth/url": {
-      "get": {
-        "operationId": "GoogleAdsController.getOAuthUrl",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "state",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "getOAuthUrl",
         "tags": [
           "services/google-ads"
         ]
@@ -49375,30 +48820,6 @@
           }
         },
         "summary": "getWatermarkEvaluation",
-        "tags": [
-          "videos"
-        ]
-      }
-    },
-    "/videos/{videoId}/reference": {
-      "post": {
-        "operationId": "VideosGifController.createReference",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "videoId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "createReference",
         "tags": [
           "videos"
         ]
