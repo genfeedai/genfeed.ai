@@ -73,10 +73,10 @@ runs:
     - name: Use system ffmpeg/ffprobe (skip supported static-binary downloads)
       shell: bash
       run: |
-        # ubuntu-latest ships ffmpeg and ffprobe, so this apt path is a rare
-        # fallback. Keep it non-fatal (|| true): if it cannot install, the env
-        # exports below are skipped and the install keeps the pre-existing
-        # behavior instead of adding a new failure mode.
+        # Some runner images already have ffmpeg and ffprobe; otherwise this apt
+        # path provides both. Keep it non-fatal (|| true): if it cannot install,
+        # the env exports below are skipped and the install keeps the
+        # pre-existing behavior instead of adding a new failure mode.
         if ! command -v ffmpeg >/dev/null 2>&1 || ! command -v ffprobe >/dev/null 2>&1; then
           sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg || true
         fi
