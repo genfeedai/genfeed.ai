@@ -2,7 +2,10 @@ import { WorkflowExecutionsService } from '@api/collections/workflow-executions/
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { LegacyWorkflowStepRunner } from '@api/collections/workflows/services/legacy-workflow-step-runner.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
-import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
+import {
+  EXECUTABLE_WORKFLOW_SELECT,
+  WorkflowExecutorService,
+} from '@api/collections/workflows/services/workflow-executor.service';
 import { getSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
 import { ConfigService } from '@api/config/config.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -61,6 +64,13 @@ export class WorkflowSchedulerService implements OnModuleInit {
   async syncAllWorkflowSchedulers(): Promise<void> {
     try {
       const workflows = await this.prisma.workflow.findMany({
+        select: {
+          id: true,
+          isScheduleEnabled: true,
+          metadata: true,
+          schedule: true,
+          timezone: true,
+        },
         where: {
           isDeleted: false,
           isScheduleEnabled: true,
@@ -170,6 +180,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
   async executeScheduledWorkflow(workflowId: string): Promise<void> {
     try {
       const workflow = await this.prisma.workflow.findFirst({
+        select: EXECUTABLE_WORKFLOW_SELECT,
         where: {
           id: workflowId,
           isDeleted: false,
@@ -229,8 +240,8 @@ export class WorkflowSchedulerService implements OnModuleInit {
       // Node-based workflows run through the newer workflow engine executor;
       // legacy step-based workflows keep the existing execution path.
       const executePromise = usesNodeExecutor
-        ? this.workflowExecutorService.executeManualWorkflow(
-            workflowId,
+        ? this.workflowExecutorService.executeManualWorkflowDocument(
+            toWorkflowDocument(workflow),
             wUserId,
             wOrgId,
             this.getDefaultInputValues(toWorkflowDocument(workflow)),
@@ -289,6 +300,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
     isEnabled: boolean = true,
   ): Promise<WorkflowDocument | null> {
     const existing = await this.prisma.workflow.findFirst({
+      select: { id: true },
       where: { id: workflowId, isDeleted: false },
     });
 

@@ -1,7 +1,8 @@
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
+import { EXECUTABLE_WORKFLOW_SELECT } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { buildSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
-import { WorkflowExecutionTrigger } from '@genfeedai/enums';
+import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/enums';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 function createMockLogger() {
@@ -36,6 +37,7 @@ function createService(
     queueService?: ReturnType<typeof createMockQueueService>;
     workflowExecutorService?: {
       executeManualWorkflow: ReturnType<typeof vi.fn>;
+      executeManualWorkflowDocument: ReturnType<typeof vi.fn>;
     };
     isDevSchedulersEnabled?: boolean;
   } = {},
@@ -51,6 +53,7 @@ function createService(
   };
   const workflowExecutorService = overrides.workflowExecutorService ?? {
     executeManualWorkflow: vi.fn().mockResolvedValue({}),
+    executeManualWorkflowDocument: vi.fn().mockResolvedValue({}),
   };
   const queueService = overrides.queueService ?? createMockQueueService();
 
@@ -208,6 +211,21 @@ describe('WorkflowSchedulerService — boot sync', () => {
 
     await service.onModuleInit();
 
+    expect(prisma.workflow.findMany).toHaveBeenCalledWith({
+      select: {
+        id: true,
+        isScheduleEnabled: true,
+        metadata: true,
+        schedule: true,
+        timezone: true,
+      },
+      where: {
+        isDeleted: false,
+        isScheduleEnabled: true,
+        schedule: { not: null },
+        status: WorkflowStatus.ACTIVE,
+      },
+    });
     expect(queueService.upsertWorkflowScheduler).toHaveBeenCalledTimes(2);
     expect(queueService.upsertWorkflowScheduler).toHaveBeenCalledWith({
       cronExpression: '0 7 * * *',
@@ -234,14 +252,25 @@ describe('WorkflowSchedulerService — scheduled fire execution', () => {
     });
     const workflowExecutorService = {
       executeManualWorkflow: vi.fn().mockResolvedValue({}),
+      executeManualWorkflowDocument: vi.fn().mockResolvedValue({}),
     };
     const { service } = createService({ prisma, workflowExecutorService });
 
     await service.executeScheduledWorkflow('wf-1');
 
+    expect(prisma.workflow.findFirst).toHaveBeenCalledWith({
+      select: EXECUTABLE_WORKFLOW_SELECT,
+      where: {
+        id: 'wf-1',
+        isDeleted: false,
+        status: WorkflowStatus.ACTIVE,
+      },
+    });
     expect(prisma.workflow.update).toHaveBeenCalledTimes(1);
-    expect(workflowExecutorService.executeManualWorkflow).toHaveBeenCalledWith(
-      'wf-1',
+    expect(
+      workflowExecutorService.executeManualWorkflowDocument,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'wf-1' }),
       'user-1',
       'org-1',
       {},
@@ -280,6 +309,7 @@ describe('WorkflowSchedulerService — scheduled fire execution', () => {
     prisma.workflow.findFirst.mockResolvedValue(null);
     const workflowExecutorService = {
       executeManualWorkflow: vi.fn().mockResolvedValue({}),
+      executeManualWorkflowDocument: vi.fn().mockResolvedValue({}),
     };
     const { logger, queueService, service } = createService({
       prisma,
@@ -292,7 +322,7 @@ describe('WorkflowSchedulerService — scheduled fire execution', () => {
       'wf-gone',
     );
     expect(
-      workflowExecutorService.executeManualWorkflow,
+      workflowExecutorService.executeManualWorkflowDocument,
     ).not.toHaveBeenCalled();
     expect(prisma.workflow.update).not.toHaveBeenCalled();
     expect(logger.warn).toHaveBeenCalled();
@@ -309,6 +339,7 @@ describe('WorkflowSchedulerService — scheduled fire execution', () => {
     });
     const workflowExecutorService = {
       executeManualWorkflow: vi.fn().mockResolvedValue({}),
+      executeManualWorkflowDocument: vi.fn().mockResolvedValue({}),
     };
     const { queueService, service } = createService({
       prisma,
@@ -321,7 +352,7 @@ describe('WorkflowSchedulerService — scheduled fire execution', () => {
       'wf-template',
     );
     expect(
-      workflowExecutorService.executeManualWorkflow,
+      workflowExecutorService.executeManualWorkflowDocument,
     ).not.toHaveBeenCalled();
   });
 });

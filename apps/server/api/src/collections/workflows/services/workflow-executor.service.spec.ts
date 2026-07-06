@@ -1,4 +1,7 @@
-import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
+import {
+  EXECUTABLE_WORKFLOW_SELECT,
+  WorkflowExecutorService,
+} from '@api/collections/workflows/services/workflow-executor.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowExecutorService', () => {
@@ -22,6 +25,7 @@ describe('WorkflowExecutorService', () => {
   const executionsService = {
     completeExecution: vi.fn(),
     findOne: vi.fn(),
+    getRuntimeState: vi.fn(),
     setCreditsUsed: vi.fn(),
     setFailedNodeId: vi.fn(),
     updateExecutionMetadata: vi.fn(),
@@ -73,8 +77,7 @@ describe('WorkflowExecutorService', () => {
       executableWorkflow,
     );
     engineAdapter.applyRuntimeInputValues.mockReturnValue(executableWorkflow);
-    executionsService.findOne.mockResolvedValue({
-      id: 'exec-1',
+    executionsService.getRuntimeState.mockResolvedValue({
       metadata: {
         eta: {
           currentPhase: 'Waiting to resume',
@@ -135,6 +138,16 @@ describe('WorkflowExecutorService', () => {
       workflowId: 'workflow-1',
     });
 
+    expect(prisma.workflow.findFirst).toHaveBeenCalledWith({
+      select: EXECUTABLE_WORKFLOW_SELECT,
+      where: {
+        id: 'workflow-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+    expect(executionsService.getRuntimeState).toHaveBeenCalledWith('exec-1');
+    expect(executionsService.findOne).not.toHaveBeenCalled();
     expect(executionsService.updateExecutionMetadata).toHaveBeenCalledWith(
       'exec-1',
       {
