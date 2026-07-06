@@ -35,9 +35,12 @@ describe('SchedulesController', () => {
   const mockSchedulesService = {
     bulkSchedule: vi.fn(),
     getCalendar: vi.fn(),
+    getChannelCapability: vi.fn(),
+    listChannelCapabilities: vi.fn(),
     getOptimalTime: vi.fn(),
     getRepurposingStatus: vi.fn(),
     repurposeContent: vi.fn(),
+    validateChannelTargetSettings: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -97,6 +100,55 @@ describe('SchedulesController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  describe('channel capabilities', () => {
+    it('should list channel capabilities with discovery flags', async () => {
+      const capabilities = [{ label: 'YouTube', platform: 'youtube' }];
+      mockSchedulesService.listChannelCapabilities.mockReturnValue(
+        capabilities,
+      );
+
+      const result = await controller.listChannelCapabilities('true', 'false');
+
+      expect(service.listChannelCapabilities).toHaveBeenCalledWith({
+        includeHidden: true,
+        includePlanned: false,
+      });
+      expect(result).toEqual(capabilities);
+    });
+
+    it('should return one channel capability', async () => {
+      const capability = { label: 'TikTok', platform: 'tiktok' };
+      mockSchedulesService.getChannelCapability.mockReturnValue(capability);
+
+      const result = await controller.getChannelCapability('tiktok');
+
+      expect(service.getChannelCapability).toHaveBeenCalledWith('tiktok');
+      expect(result).toEqual(capability);
+    });
+
+    it('should validate channel target settings through the shared service', async () => {
+      const input = {
+        platform: 'youtube',
+        settings: { privacyStatus: 'public' },
+      };
+      const validation = {
+        errors: [],
+        platform: 'youtube',
+        valid: true,
+        validationState: 'valid',
+        warnings: [],
+      };
+      mockSchedulesService.validateChannelTargetSettings.mockReturnValue(
+        validation,
+      );
+
+      const result = await controller.validateChannelTargetSettings(input);
+
+      expect(service.validateChannelTargetSettings).toHaveBeenCalledWith(input);
+      expect(result).toEqual(validation);
+    });
   });
 
   describe('getOptimalTime', () => {

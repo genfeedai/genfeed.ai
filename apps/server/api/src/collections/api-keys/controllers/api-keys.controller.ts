@@ -7,6 +7,7 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { ApiAccessGuard } from '@api/helpers/guards/api-access/api-access.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
@@ -27,6 +28,7 @@ import {
   Post,
   Query,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -53,6 +55,7 @@ export class ApiKeysController {
   }
 
   @Post()
+  @UseGuards(ApiAccessGuard)
   @RateLimit({ limit: 5, windowMs: 60000 }) // Limit key creation to 5 per minute
   @ApiOperation({ summary: 'Create a new API key' })
   @ApiResponse({
@@ -212,6 +215,7 @@ export class ApiKeysController {
   }
 
   @Post(':apiKeyId/rotate')
+  @UseGuards(ApiAccessGuard)
   @RateLimit({ limit: 5, windowMs: 60000 })
   @ApiOperation({ summary: 'Rotate an API key' })
   @ApiResponse({

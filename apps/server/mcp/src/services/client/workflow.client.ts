@@ -226,38 +226,31 @@ export class WorkflowClient {
     return this.base.request(
       'updating workflow schedule',
       async (http) => {
-        if (params.enabled === false && !params.schedule) {
-          const response = await http.delete(
-            `/workflows/${encodeURIComponent(workflowId)}/schedule`,
-          );
-          const data =
-            this.base.unwrapObject<Record<string, unknown>>(response);
-          return {
-            enabled: false,
-            id: String(data.id ?? workflowId),
-            message: asString(data.message),
-          };
-        }
-
-        if (!params.schedule) {
+        if (params.enabled !== false && !params.schedule) {
           throw new Error('schedule is required when enabling a workflow');
         }
 
-        const response = await http.post(
-          `/workflows/${encodeURIComponent(workflowId)}/schedule`,
-          {
-            enabled: params.enabled,
-            schedule: params.schedule,
-            timezone: params.timezone ?? 'UTC',
-          },
+        const response = await http.patch(
+          `/workflows/${encodeURIComponent(workflowId)}`,
+          params.enabled === false && !params.schedule
+            ? {
+                isScheduleEnabled: false,
+                schedule: null,
+              }
+            : {
+                isScheduleEnabled: params.enabled,
+                schedule: params.schedule,
+                timezone: params.timezone ?? 'UTC',
+              },
         );
-        const data = this.base.unwrapObject<Record<string, unknown>>(response);
+        const workflow = mapWorkflowResource(
+          this.base.unwrapData<JsonApiResource>(response),
+        );
         return {
-          enabled: params.enabled,
-          id: String(data.id ?? workflowId),
-          message: asString(data.message),
-          schedule: params.schedule,
-          timezone: params.timezone ?? 'UTC',
+          enabled: workflow.isScheduleEnabled ?? params.enabled,
+          id: workflow.id || workflowId,
+          schedule: workflow.schedule,
+          timezone: workflow.timezone,
         };
       },
       this.base.failWithDetail('Failed to update workflow schedule'),

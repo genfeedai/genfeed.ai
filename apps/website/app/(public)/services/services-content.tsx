@@ -25,7 +25,7 @@ const SERVICE_CARDS = [
     features: contentServiceOffering.includes,
     label: 'Done-For-You',
     number: '01',
-    price: 'From $2,500/mo',
+    price: 'Custom',
     shortLabel: 'Content',
   },
   {

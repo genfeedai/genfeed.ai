@@ -3887,6 +3887,11 @@
       "path": "/schedules/calendar"
     },
     {
+      "method": "get",
+      "operationId": "SchedulesController.getChannelCapability",
+      "path": "/schedules/channel-capabilities/{platform}"
+    },
+    {
       "method": "post",
       "operationId": "SchedulesController.getOptimalTime",
       "path": "/schedules/optimal"
@@ -3897,9 +3902,19 @@
       "path": "/schedules/repurpose/{id}"
     },
     {
+      "method": "get",
+      "operationId": "SchedulesController.listChannelCapabilities",
+      "path": "/schedules/channel-capabilities"
+    },
+    {
       "method": "post",
       "operationId": "SchedulesController.repurposeContent",
       "path": "/schedules/repurpose"
+    },
+    {
+      "method": "post",
+      "operationId": "SchedulesController.validateChannelTargetSettings",
+      "path": "/schedules/channel-capabilities/validate"
     },
     {
       "method": "post",

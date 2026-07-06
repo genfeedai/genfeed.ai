@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
 // biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { LoggerService } from '@libs/logger/logger.service';
-import type { RedisService } from '@libs/redis/redis.service';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
+import { RedisService } from '@libs/redis/redis.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import type Redis from 'ioredis';
