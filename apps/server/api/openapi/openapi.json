@@ -31647,7 +31647,7 @@
           {
             "in": "query",
             "name": "token",
-            "required": true,
+            "required": false,
             "schema": {
               "type": "string"
             }

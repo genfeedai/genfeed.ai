@@ -1,5 +1,6 @@
 import { Public } from '@libs/decorators/public.decorator';
 import { Controller, Get, Header, Query } from '@nestjs/common';
+import { ApiQuery } from '@nestjs/swagger';
 import { LifecycleEmailDeliveryService } from '@server/services/lifecycle-emails/lifecycle-email-delivery.service';
 
 @Public()
@@ -10,6 +11,7 @@ export class LifecycleEmailsController {
   ) {}
 
   @Get('unsubscribe')
+  @ApiQuery({ name: 'token', required: false, type: String })
   @Header('content-type', 'text/html; charset=utf-8')
   async unsubscribe(@Query('token') token?: string): Promise<string> {
     const unsubscribed = token
