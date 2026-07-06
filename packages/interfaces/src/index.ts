@@ -200,6 +200,7 @@ export * from './services/stripe.interface';
 export * from './services/twitter-pipeline.interface';
 export * from './services/whatsapp.interface';
 export * from './settings/dashboard-settings.interface';
+export * from './settings/platform-setting.interface';
 export * from './settings/settings.interface';
 export * from './social/link.interface';
 export * from './studio/camera-movement.interface';

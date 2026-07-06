@@ -1,4 +1,5 @@
 export * from '@serializers/attributes/collections/model.attributes';
+export * from '@serializers/attributes/collections/platform-setting.attributes';
 export * from '@serializers/attributes/collections/prompt.attributes';
 export * from '@serializers/attributes/collections/role.attributes';
 export * from '@serializers/attributes/collections/run.attributes';

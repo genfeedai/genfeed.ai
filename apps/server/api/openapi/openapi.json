@@ -12270,6 +12270,17 @@
         },
         "type": "object"
       },
+      "UpdatePlatformSettingDto": {
+        "properties": {
+          "marginMultiplier": {
+            "description": "Margin multiplier applied on top of the base provider-cost markup. 1.0 = base margin only.",
+            "maximum": 10,
+            "minimum": 0.01,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
       "UpdatePlaybookDto": {
         "properties": {
           "description": {
@@ -15639,6 +15650,44 @@
         "summary": "Generate TTS audio",
         "tags": [
           "Admin / Fleet"
+        ]
+      }
+    },
+    "/admin/platform-settings": {
+      "get": {
+        "operationId": "PlatformSettingsController.get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get platform-wide operator settings (singleton)",
+        "tags": [
+          "Admin / Platform Settings"
+        ]
+      },
+      "patch": {
+        "operationId": "PlatformSettingsController.update",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePlatformSettingDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Update platform-wide operator settings (singleton)",
+        "tags": [
+          "Admin / Platform Settings"
         ]
       }
     },

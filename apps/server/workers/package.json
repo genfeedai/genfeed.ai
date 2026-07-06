@@ -2,6 +2,7 @@
   "dependencies": {
     "@aws-sdk/client-ec2": "3.1075.0",
     "@genfeedai/config": "workspace:*",
+    "@genfeedai/constants": "workspace:*",
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
