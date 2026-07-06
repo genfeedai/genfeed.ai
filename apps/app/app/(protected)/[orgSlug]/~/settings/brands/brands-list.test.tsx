@@ -65,6 +65,16 @@ describe('BrandsList', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
+  it('uses full-pane layout so the list chrome reaches the app borders', () => {
+    const { container } = render(<BrandsList />);
+    const rootElement = container.firstChild as HTMLElement;
+
+    expect(rootElement).toHaveClass('mx-0');
+    expect(rootElement).toHaveClass('max-w-none');
+    expect(rootElement).not.toHaveClass('px-5');
+    expect(rootElement).not.toHaveClass('max-w-[1280px]');
+  });
+
   it('should display the page title and description', () => {
     render(<BrandsList />);
     expect(screen.getByText('Brands')).toBeInTheDocument();
