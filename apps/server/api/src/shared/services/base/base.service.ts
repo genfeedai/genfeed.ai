@@ -110,6 +110,26 @@ const PAGINATION_OPTION_KEYS = new Set([
   'useFacet',
 ]);
 
+const SCALAR_FILTER_OPERATOR_KEYS = new Set([
+  'contains',
+  'endsWith',
+  'equals',
+  'gt',
+  'gte',
+  'has',
+  'hasEvery',
+  'hasSome',
+  'in',
+  'isEmpty',
+  'lt',
+  'lte',
+  'mode',
+  'not',
+  'notIn',
+  'search',
+  'startsWith',
+]);
+
 /**
  * Stage 4: argument shape whose `where` clause is compile-time typed to the
  * model's `Prisma.<Model>WhereInput` (via the `TWhere` generic), while the
@@ -638,7 +658,7 @@ export abstract class BaseService<
       // Prisma connect objects. Scoped narrowly to prevent tenancy/ownership side-
       // effects from a broad remap.
       if (key === 'metadata' && typeof value === 'string' && value.length > 0) {
-        result['metadataId'] = value;
+        result.metadataId = value;
         continue;
       }
 
@@ -1122,7 +1142,11 @@ export abstract class BaseService<
       const scalarRelationKey = `${key}Id`;
       const shouldMapRelationObject =
         this.isPlainObject(value) &&
-        Object.keys(value).some((operator) => operator.startsWith('$'));
+        Object.keys(value).some(
+          (operator) =>
+            operator.startsWith('$') ||
+            SCALAR_FILTER_OPERATOR_KEYS.has(operator),
+        );
 
       if (
         (typeof value === 'string' ||
