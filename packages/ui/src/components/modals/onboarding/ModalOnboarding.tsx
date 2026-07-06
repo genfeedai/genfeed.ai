@@ -255,9 +255,7 @@ function ModalOnboardingContent({
                   {num > 1 && (
                     <div
                       className={`w-8 h-0.5 ${
-                        num <= currentStep
-                          ? 'bg-gradient-to-r from-primary/40 to-primary/20'
-                          : 'bg-white/[0.08]'
+                        num <= currentStep ? 'bg-primary/30' : 'bg-white/[0.08]'
                       }`}
                     />
                   )}

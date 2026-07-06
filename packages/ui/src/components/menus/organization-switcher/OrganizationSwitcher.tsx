@@ -177,7 +177,7 @@ export default function OrganizationSwitcher() {
             <span
               className={cn(
                 'flex-1 text-left truncate text-sm font-medium',
-                error ? 'text-red-400' : 'text-foreground/90',
+                error ? 'text-destructive' : 'text-foreground/90',
               )}
             >
               {isSwitching ? 'Switching\u2026' : displayLabel}
@@ -228,7 +228,7 @@ export default function OrganizationSwitcher() {
                   htmlFor="org-switcher-name"
                   className="text-xs font-medium text-foreground/70"
                 >
-                  Name <span className="text-red-400">*</span>
+                  Name <span className="text-destructive">*</span>
                 </label>
                 <Input
                   id="org-switcher-name"
@@ -261,7 +261,7 @@ export default function OrganizationSwitcher() {
                 />
               </div>
               {createModal.createError && (
-                <p className="text-xs text-red-400">
+                <p className="text-xs text-destructive">
                   {createModal.createError}
                 </p>
               )}

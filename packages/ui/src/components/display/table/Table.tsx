@@ -125,7 +125,7 @@ export default function AppTable<T>({
   return (
     <div className="relative overflow-hidden rounded bg-card shadow-border">
       <div className="overflow-x-auto rounded">
-        <table className="w-full caption-bottom text-sm">
+        <table className="w-full caption-bottom">
           <thead
             className={cn(
               'sticky top-0 z-10 bg-card/95 backdrop-blur-lg',

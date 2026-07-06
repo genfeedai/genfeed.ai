@@ -85,7 +85,7 @@ function BaseNode({
           id={key}
           isConnectable={isConnectable}
           style={{
-            background: '#22c55e',
+            background: '#6b7280',
             height: 10,
             top: `${((index + 1) / (outputKeys.length + 1)) * 100}%`,
             width: 10,

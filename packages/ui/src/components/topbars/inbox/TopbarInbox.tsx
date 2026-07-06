@@ -187,12 +187,12 @@ export default function TopbarInbox() {
 
                     <div className="flex items-center gap-2 text-xs text-foreground/45">
                       {item.reviewDecision === 'approved' ? (
-                        <HiCheckCircle className="size-4 text-emerald-300" />
+                        <HiCheckCircle className="size-4 text-success" />
                       ) : item.reviewDecision === 'request_changes' ? (
-                        <HiOutlineClipboardDocumentCheck className="size-4 text-amber-300" />
+                        <HiOutlineClipboardDocumentCheck className="size-4 text-warning" />
                       ) : item.reviewDecision === 'rejected' ||
                         item.status === 'failed' ? (
-                        <HiExclamationTriangle className="size-4 text-rose-300" />
+                        <HiExclamationTriangle className="size-4 text-destructive" />
                       ) : (
                         <HiOutlineInboxStack className="size-4 text-foreground/35" />
                       )}

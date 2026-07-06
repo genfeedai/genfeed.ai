@@ -90,7 +90,7 @@ export default function ModalGalleryHeader({
             {/* Format display - read-only, comes from promptbar */}
             {(activeTab === 'media' || activeTab === 'references') && (
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-sm font-medium">
+                <Badge variant="outline" className="font-medium">
                   Format:{' '}
                   {formatVideos.find((f) => f.id === localFormat)?.label ||
                     localFormat}

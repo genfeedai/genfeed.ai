@@ -144,11 +144,11 @@ export default function TopPostsSection({
                   {formatCompactNumber(featuredPost.totalViews)}
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <HiHeart className="size-4 text-rose-400" />
+                  <HiHeart className="size-4" />
                   {formatCompactNumber(featuredPost.totalLikes)}
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <HiChatBubbleLeftRight className="size-4 text-sky-400" />
+                  <HiChatBubbleLeftRight className="size-4" />
                   {formatCompactNumber(featuredPost.totalComments)}
                 </span>
               </div>

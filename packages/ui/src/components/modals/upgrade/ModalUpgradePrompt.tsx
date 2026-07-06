@@ -109,8 +109,8 @@ export default function ModalUpgradePrompt({
     <Modal id={ModalEnum.UPGRADE_PROMPT} title="Upgrade Your Plan">
       <div className="space-y-6 py-2">
         {/* Lock message */}
-        <div className="flex items-start gap-3 p-4 bg-amber-500/5 shadow-border">
-          <HiLockClosed className="size-5 text-amber-500 flex-shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 p-4 bg-primary/5 shadow-border">
+          <HiLockClosed className="size-5 text-primary flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-medium text-foreground">
               {lockedLabel

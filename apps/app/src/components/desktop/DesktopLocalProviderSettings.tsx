@@ -276,7 +276,7 @@ export default function DesktopLocalProviderSettings({
               onClick={() => applyPreset(key)}
               className={cn(
                 'rounded border border-white/[0.08] px-1.5 py-1 text-[10px] text-foreground/56',
-                provider === key && 'border-blue-400/40 text-blue-400',
+                provider === key && 'border-border bg-hover text-foreground',
                 isCard && 'py-2 text-xs',
               )}
             >

@@ -95,7 +95,7 @@ export default function OnboardingStepProcessing({
               <div
                 className={`size-6 rounded-full flex items-center justify-center transition-colors ${
                   isComplete
-                    ? 'bg-green-500 text-white'
+                    ? 'bg-success text-success-foreground'
                     : isCurrent
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-muted'

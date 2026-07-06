@@ -53,10 +53,10 @@ interface ExecutionHistoryPanelProps {
 
 const STATUS_ICONS: Record<string, React.ReactNode> = {
   cancelled: <HiOutlineXMark className="size-4 text-muted-foreground" />,
-  completed: <HiOutlineCheck className="size-4 text-green-500" />,
-  failed: <HiOutlineXMark className="size-4 text-red-500" />,
+  completed: <HiOutlineCheck className="size-4 text-success" />,
+  failed: <HiOutlineXMark className="size-4 text-destructive" />,
   pending: <HiOutlineClock className="size-4 text-muted-foreground" />,
-  running: <HiOutlineArrowPath className="size-4 text-blue-500 animate-spin" />,
+  running: <HiOutlineArrowPath className="size-4 text-info animate-spin" />,
 };
 
 const STATUS_VARIANTS: Record<string, 'ghost' | 'success' | 'error' | 'info'> =
