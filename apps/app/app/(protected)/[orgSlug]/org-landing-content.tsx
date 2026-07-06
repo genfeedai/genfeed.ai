@@ -1,7 +1,13 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { APP_ROUTES, createBrandAppRoute } from '@genfeedai/constants';
+import { useCurrentUser } from '@contexts/user/user-context/user-context';
+import {
+  APP_ROUTES,
+  createBrandAppRoute,
+  getResumeStep,
+  ONBOARDING_STEPS,
+} from '@genfeedai/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Brand } from '@models/organization/brand.model';
 import Image from 'next/image';
@@ -72,12 +78,23 @@ function BrandCard({ brand, orgSlug }: { brand: Brand; orgSlug: string }) {
 
 export default function OrgLandingContent() {
   const { brands, isReady } = useBrand();
+  const { currentUser, isLoading: isCurrentUserLoading } = useCurrentUser();
   const { orgSlug, orgHref } = useOrgUrl();
   const { replace } = useRouter();
   const primaryBrandSlug = brands[0]?.slug ?? '';
 
   useEffect(() => {
-    if (!isReady) {
+    if (!isReady || isCurrentUserLoading || !currentUser) {
+      return;
+    }
+
+    const completedSteps = currentUser.onboardingStepsCompleted ?? [];
+    const hasCompletedOnboarding =
+      currentUser.isOnboardingCompleted === true ||
+      ONBOARDING_STEPS.every((step) => completedSteps.includes(step));
+
+    if (!hasCompletedOnboarding) {
+      replace(`/onboarding/${getResumeStep(completedSteps)}`);
       return;
     }
 
@@ -91,9 +108,17 @@ export default function OrgLandingContent() {
         createBrandAppRoute(orgSlug, primaryBrandSlug, '/workspace/overview'),
       );
     }
-  }, [brands.length, isReady, orgSlug, primaryBrandSlug, replace]);
+  }, [
+    brands.length,
+    currentUser,
+    isCurrentUserLoading,
+    isReady,
+    orgSlug,
+    primaryBrandSlug,
+    replace,
+  ]);
 
-  if (!isReady || brands.length <= 1) {
+  if (!isReady || isCurrentUserLoading || !currentUser || brands.length <= 1) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <div

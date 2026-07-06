@@ -720,7 +720,7 @@ describe('StripeCheckoutWebhookHandler', () => {
       usersService.findOne.mockResolvedValue({
         id: 'user_existing_1',
         isOnboardingCompleted: true,
-        onboardingStepsCompleted: ['brand', 'plan'],
+        onboardingStepsCompleted: ['brand', 'providers', 'summary'],
       });
 
       await provisionAccessor().provisionManagedCheckoutAccount(
@@ -754,7 +754,7 @@ describe('StripeCheckoutWebhookHandler', () => {
       usersService.findOne.mockResolvedValue({
         id: 'user_existing_1',
         isOnboardingCompleted: true,
-        onboardingStepsCompleted: ['brand', 'plan'],
+        onboardingStepsCompleted: ['brand', 'providers', 'summary'],
       });
       supportService.addPurchasedCredits.mockResolvedValueOnce(false);
 

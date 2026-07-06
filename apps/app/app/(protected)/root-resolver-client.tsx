@@ -1,7 +1,12 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { createBrandAppRoute } from '@genfeedai/constants';
+import { useCurrentUser } from '@contexts/user/user-context/user-context';
+import {
+  createBrandAppRoute,
+  getResumeStep,
+  ONBOARDING_STEPS,
+} from '@genfeedai/constants';
 import { useAccessState } from '@providers/access-state/access-state.provider';
 import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { useRouter } from 'next/navigation';
@@ -26,6 +31,7 @@ function getBrandOrganizationSlug(
 
 export default function ProtectedRootResolver() {
   const { brandId, brands, organizationId, selectedBrand } = useBrand();
+  const { currentUser, isLoading: isCurrentUserLoading } = useCurrentUser();
   const { accessState, isLoading: isAccessStateLoading } = useAccessState();
   const { replace } = useRouter();
   const hasStartedRef = useRef(false);
@@ -34,11 +40,27 @@ export default function ProtectedRootResolver() {
   );
 
   useEffect(() => {
-    if (isAccessStateLoading || hasStartedRef.current) {
+    if (
+      isAccessStateLoading ||
+      isCurrentUserLoading ||
+      !currentUser ||
+      hasStartedRef.current
+    ) {
       return;
     }
 
     hasStartedRef.current = true;
+    const completedSteps = currentUser.onboardingStepsCompleted ?? [];
+    const hasCompletedOnboarding =
+      currentUser.isOnboardingCompleted === true ||
+      ONBOARDING_STEPS.every((step) => completedSteps.includes(step));
+
+    if (!hasCompletedOnboarding) {
+      const resumeStep = getResumeStep(completedSteps);
+      setStatusMessage('Opening onboarding...');
+      replace(`/onboarding/${resumeStep}`);
+      return;
+    }
 
     const hasOrganization =
       (typeof organizationId === 'string' && organizationId.length > 0) ||
@@ -92,6 +114,8 @@ export default function ProtectedRootResolver() {
     accessState,
     brandId,
     brands,
+    currentUser,
+    isCurrentUserLoading,
     isAccessStateLoading,
     organizationId,
     replace,

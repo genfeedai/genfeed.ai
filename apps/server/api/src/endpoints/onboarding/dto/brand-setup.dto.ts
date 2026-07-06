@@ -51,6 +51,15 @@ export class BrandSetupDto {
 
   @IsString()
   @IsOptional()
+  @MaxLength(120)
+  @ApiPropertyOptional({
+    description: 'User-provided organization name',
+    example: 'Acme Studio',
+  })
+  organizationName?: string;
+
+  @IsString()
+  @IsOptional()
   @MaxLength(100)
   @ApiPropertyOptional({
     description: 'Industry/niche of the brand',

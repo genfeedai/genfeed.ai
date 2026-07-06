@@ -2,6 +2,7 @@
 
 import {
   buildOnboardingResumeHref,
+  isFreePlanHandoff,
   parseSelectedCredits,
 } from '@app/(onboarding)/onboarding/post-signup/post-signup-routing.util';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
@@ -17,7 +18,11 @@ import { OrganizationsService } from '@services/organization/organizations.servi
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { isEEEnabled, isSelfHosted } from '@/lib/config/edition';
-import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
+import {
+  extractBrandDomain,
+  ONBOARDING_STORAGE_KEYS,
+  resolveSelectedPlanParam,
+} from '@/lib/onboarding/onboarding-access.util';
 
 export type PostSignupRoutingState = {
   showFallback: boolean;
@@ -30,7 +35,10 @@ export function usePostSignupRouting(): PostSignupRoutingState {
   const { user: authUser } = useAuthUser();
   const { currentUser, isLoading } = useCurrentUser();
   const searchParams = useSearchParams();
+  const requestedPlanParam = searchParams.get('plan');
   const requestedCreditsParam = searchParams.get('credits');
+  const requestedBrandDomainParam = searchParams.get('brandDomain');
+  const requestedBrandNameParam = searchParams.get('brandName');
   const calledRef = useRef(false);
   const [showFallback, setShowFallback] = useState(false);
   const [statusMessage, setStatusMessage] = useState(
@@ -47,12 +55,12 @@ export function usePostSignupRouting(): PostSignupRoutingState {
     }
 
     const completedSteps = currentUser?.onboardingStepsCompleted ?? [];
-    const hasCompletedAllOnboardingSteps = ONBOARDING_STEPS.every((step) =>
-      completedSteps.includes(step),
-    );
+    const hasCompletedAllOnboardingSteps =
+      currentUser?.isOnboardingCompleted === true ||
+      ONBOARDING_STEPS.every((step) => completedSteps.includes(step));
 
     if (hasCompletedAllOnboardingSteps) {
-      return '/onboarding/summary';
+      return '/';
     }
 
     const resumeStep = getResumeStep(completedSteps);
@@ -111,23 +119,63 @@ export function usePostSignupRouting(): PostSignupRoutingState {
         redirectTo(await resolveOnboardingHref());
       };
 
+      const requestedBrandDomain = extractBrandDomain(
+        requestedBrandDomainParam,
+      );
+      const requestedBrandName = requestedBrandNameParam?.trim();
+      if (requestedBrandDomain) {
+        localStorage.setItem(
+          ONBOARDING_STORAGE_KEYS.brandDomain,
+          requestedBrandDomain,
+        );
+      }
+      if (requestedBrandName) {
+        localStorage.setItem(
+          ONBOARDING_STORAGE_KEYS.brandName,
+          requestedBrandName,
+        );
+      }
+
+      const requestedPlan = resolveSelectedPlanParam(requestedPlanParam);
       const requestedCredits = parseSelectedCredits(requestedCreditsParam);
-      if (requestedCredits) {
+      const hasRequestedPlan = requestedPlanParam !== null;
+      const hasRequestedCredits = requestedCreditsParam !== null;
+
+      if (hasRequestedPlan) {
+        localStorage.removeItem(ONBOARDING_STORAGE_KEYS.selectedCredits);
+        if (requestedPlan) {
+          localStorage.setItem(
+            ONBOARDING_STORAGE_KEYS.selectedPlan,
+            requestedPlan,
+          );
+        } else {
+          localStorage.removeItem(ONBOARDING_STORAGE_KEYS.selectedPlan);
+        }
+      } else if (requestedCredits) {
         localStorage.removeItem(ONBOARDING_STORAGE_KEYS.selectedPlan);
         localStorage.setItem(
           ONBOARDING_STORAGE_KEYS.selectedCredits,
           requestedCredits.toString(),
         );
+      } else if (hasRequestedCredits) {
+        localStorage.removeItem(ONBOARDING_STORAGE_KEYS.selectedPlan);
+        localStorage.removeItem(ONBOARDING_STORAGE_KEYS.selectedCredits);
       }
 
-      const selectedPlan = localStorage.getItem(
-        ONBOARDING_STORAGE_KEYS.selectedPlan,
-      );
-      const selectedCredits = localStorage.getItem(
-        ONBOARDING_STORAGE_KEYS.selectedCredits,
-      );
+      const selectedPlan = hasRequestedPlan
+        ? requestedPlan
+        : localStorage.getItem(ONBOARDING_STORAGE_KEYS.selectedPlan);
+      const selectedCredits =
+        hasRequestedPlan || hasRequestedCredits
+          ? (requestedCredits?.toString() ?? null)
+          : localStorage.getItem(ONBOARDING_STORAGE_KEYS.selectedCredits);
       if (selectedPlan?.trim()) {
         localStorage.removeItem(ONBOARDING_STORAGE_KEYS.selectedPlan);
+
+        if (isFreePlanHandoff(selectedPlan)) {
+          await redirectToOnboarding();
+          return;
+        }
 
         if (!isEEEnabled()) {
           await redirectToOnboarding();
@@ -299,7 +347,10 @@ export function usePostSignupRouting(): PostSignupRoutingState {
     getToken,
     hasAuthUser,
     isLoading,
+    requestedBrandDomainParam,
+    requestedBrandNameParam,
     requestedCreditsParam,
+    requestedPlanParam,
     resolveOnboardingHref,
   ]);
 

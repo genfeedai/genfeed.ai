@@ -1,6 +1,6 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
+import { useOnboarding } from '@contexts/onboarding/onboarding-context';
 import { LinkCategory, type OrganizationCategory } from '@genfeedai/enums';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
@@ -19,6 +19,8 @@ import {
 import BrandAccountTypeSelector from './brand-account-type-selector';
 import BrandFormFields from './brand-form-fields';
 import BrandStepHeader from './brand-step-header';
+
+const DEFAULT_ORGANIZATION_LABEL = 'Default Organization';
 
 const TIMELINE_STEPS = [
   {
@@ -61,19 +63,51 @@ function normalizeWebsiteUrl(url: string): string | null {
   return trimmedUrl.includes('://') ? trimmedUrl : `https://${trimmedUrl}`;
 }
 
+function isPlaceholderName(value?: string | null): boolean {
+  return !value?.trim() || value.trim() === DEFAULT_ORGANIZATION_LABEL;
+}
+
+function buildBrandGuidance(input: {
+  brandName: string;
+  organizationName: string;
+  targetAudience?: string;
+  tone?: string;
+}): string {
+  const parts = [
+    `Brand: ${input.brandName}.`,
+    `Organization: ${input.organizationName}.`,
+  ];
+
+  if (input.targetAudience) {
+    parts.push(`Audience: ${input.targetAudience}.`);
+  }
+
+  if (input.tone) {
+    parts.push(`Tone: ${input.tone}.`);
+  }
+
+  return parts.join('\n');
+}
+
 function BrandContentContent() {
   const sectionRef = useGsapTimeline<HTMLDivElement>({ steps: TIMELINE_STEPS });
   const { getToken } = useAuthIdentity();
   const { push } = useRouter();
+  const { handleStepComplete } = useOnboarding();
   const searchParams = useSearchParams();
   const isAutoRequested = searchParams.get('auto') === 'true';
+  const initialBrandName =
+    localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandName) ?? '';
+  const initialWebsiteUrl =
+    localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandDomain) ?? '';
 
-  const [brandName, setBrandName] = useState(
-    () => localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandName) ?? '',
+  const [brandName, setBrandName] = useState(() => initialBrandName);
+  const [organizationName, setOrganizationName] = useState(
+    () => initialBrandName,
   );
-  const [websiteUrl, setWebsiteUrl] = useState(
-    () => localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandDomain) ?? '',
-  );
+  const [websiteUrl, setWebsiteUrl] = useState(() => initialWebsiteUrl);
+  const [targetAudience, setTargetAudience] = useState('');
+  const [tone, setTone] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [accountType, setAccountType] = useState<OrganizationCategory | null>(
     null,
@@ -122,8 +156,14 @@ function BrandContentContent() {
           orgIdRef.current = org.id;
         }
 
-        if (brand?.label) {
+        if (!isPlaceholderName(brand?.label)) {
           setBrandName((prev) => prev || brand.label);
+        }
+
+        if (!isPlaceholderName(org?.label)) {
+          setOrganizationName((prev) => prev || org.label);
+        } else if (!isPlaceholderName(brand?.label)) {
+          setOrganizationName((prev) => prev || brand.label);
         }
 
         const websiteLink = brand?.links?.find(
@@ -204,15 +244,20 @@ function BrandContentContent() {
   const handleContinue = useCallback(
     async ({
       brandNameOverride,
+      organizationNameOverride,
       skipWebsite = false,
       urlOverride,
     }: {
       brandNameOverride?: string;
+      organizationNameOverride?: string;
       skipWebsite?: boolean;
       urlOverride?: string;
     } = {}) => {
       const effectiveBrandName = (brandNameOverride ?? brandName).trim();
-      if (!effectiveBrandName) {
+      const effectiveOrganizationName = (
+        organizationNameOverride ?? organizationName
+      ).trim();
+      if (!effectiveBrandName || !effectiveOrganizationName) {
         return;
       }
 
@@ -249,27 +294,74 @@ function BrandContentContent() {
         }
 
         const brandsService = BrandsService.getInstance(token);
+        const trimmedTargetAudience = targetAudience.trim();
+        const trimmedTone = tone.trim();
+        const guidancePrompt = buildBrandGuidance({
+          brandName: effectiveBrandName,
+          organizationName: effectiveOrganizationName,
+          ...(trimmedTargetAudience
+            ? { targetAudience: trimmedTargetAudience }
+            : {}),
+          ...(trimmedTone ? { tone: trimmedTone } : {}),
+        });
+        const voiceConfig =
+          trimmedTargetAudience || trimmedTone
+            ? {
+                voice: {
+                  ...(trimmedTargetAudience
+                    ? { audience: trimmedTargetAudience }
+                    : {}),
+                  ...(trimmedTone ? { tone: trimmedTone } : {}),
+                },
+              }
+            : undefined;
+
+        await brandsService.renameWithOrganizationSync(
+          brandId,
+          effectiveBrandName,
+          {
+            description: guidancePrompt,
+            organizationLabel: effectiveOrganizationName,
+            text: guidancePrompt,
+            ...(voiceConfig ? { agentConfig: voiceConfig } : {}),
+          },
+        );
+
         if (brandUrl) {
-          // Scrape + AI orchestration on the brand resource (was brand-setup).
-          await brandsService.scrape(brandId, {
-            brandName: effectiveBrandName,
-            brandUrl,
-          });
-        } else {
-          // Rename the brand, cascading to the org name during onboarding.
-          await brandsService.renameWithOrganizationSync(
-            brandId,
-            effectiveBrandName,
-          );
+          // Enrichment should not block the user from continuing.
+          void brandsService
+            .scrape(brandId, {
+              brandName: effectiveBrandName,
+              brandUrl,
+              organizationName: effectiveOrganizationName,
+              ...(trimmedTone
+                ? { additionalNotes: `Preferred tone: ${trimmedTone}` }
+                : {}),
+              ...(trimmedTargetAudience
+                ? { targetAudience: trimmedTargetAudience }
+                : {}),
+            })
+            .catch((error) => {
+              logger.error('Failed to scrape brand during onboarding', error);
+            });
         }
 
-        push(APP_ROUTES.ONBOARDING.PROVIDERS);
+        await handleStepComplete('brand');
       } catch (error) {
         logger.error('Failed to continue onboarding', error);
         setSubmitting(false);
       }
     },
-    [getToken, brandName, websiteUrl, push, resolveBrandId],
+    [
+      getToken,
+      brandName,
+      organizationName,
+      websiteUrl,
+      resolveBrandId,
+      targetAudience,
+      tone,
+      handleStepComplete,
+    ],
   );
 
   const handleSkipOnboarding = useCallback(async () => {
@@ -290,6 +382,9 @@ function BrandContentContent() {
       await OrganizationsService.getInstance(token).patchSettings(orgId, {
         isFirstLogin: false,
       });
+      await UsersService.getInstance(token).patchMe({
+        isOnboardingCompleted: true,
+      });
       push('/');
     } catch (error) {
       logger.error('Failed to skip onboarding', error);
@@ -297,9 +392,20 @@ function BrandContentContent() {
     }
   }, [getToken, push, resolveOrgId]);
 
-  // Auto-scan from corporate email flow.
-  // websiteUrl and brandName are already initialised from localStorage in useState,
-  // so we read them directly instead of re-reading localStorage and setting state.
+  const handleWebsiteUrlChange = useCallback((value: string) => {
+    setWebsiteUrl(value);
+
+    const domain = extractBrandDomain(value);
+    if (!domain) {
+      return;
+    }
+
+    const inferredBrandName = deriveBrandNameFromDomain(domain);
+    setBrandName((prev) => prev || inferredBrandName);
+    setOrganizationName((prev) => prev || inferredBrandName);
+  }, []);
+
+  // Auto mode pre-fills from the corporate email domain; the user confirms.
   useEffect(() => {
     if (autoScanRef.current) {
       return;
@@ -309,14 +415,10 @@ function BrandContentContent() {
       const inferredBrandName =
         brandName.trim() || deriveBrandNameFromDomain(websiteUrl);
       autoScanRef.current = true;
-      handleContinue({
-        brandNameOverride: inferredBrandName,
-        urlOverride: websiteUrl,
-      }).catch((error) => {
-        logger.error('Failed to continue auto onboarding flow', error);
-      });
+      setBrandName((prev) => prev || inferredBrandName);
+      setOrganizationName((prev) => prev || inferredBrandName);
     }
-  }, [handleContinue, isAutoRequested, websiteUrl, brandName]);
+  }, [isAutoRequested, websiteUrl, brandName]);
 
   return (
     <div ref={sectionRef}>
@@ -329,10 +431,16 @@ function BrandContentContent() {
 
       <BrandFormFields
         brandName={brandName}
+        organizationName={organizationName}
         websiteUrl={websiteUrl}
+        targetAudience={targetAudience}
+        tone={tone}
         submitting={submitting}
         onBrandNameChange={setBrandName}
-        onWebsiteUrlChange={setWebsiteUrl}
+        onOrganizationNameChange={setOrganizationName}
+        onWebsiteUrlChange={handleWebsiteUrlChange}
+        onTargetAudienceChange={setTargetAudience}
+        onToneChange={setTone}
         onContinue={() => handleContinue()}
         onSkip={handleSkipOnboarding}
       />

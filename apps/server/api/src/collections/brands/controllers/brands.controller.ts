@@ -129,9 +129,11 @@ export class BrandsController extends BaseCRUDController<
   ): Promise<JsonApiSingleResponse> {
     // `syncOrganizationName` is an onboarding-only control flag, never persisted
     // on the brand row — strip it before any CRUD patch (REST audit #1354).
-    const { syncOrganizationName, ...rest } = updateDto as UpdateBrandDto & {
-      syncOrganizationName?: boolean;
-    };
+    const { organizationLabel, syncOrganizationName, ...rest } =
+      updateDto as UpdateBrandDto & {
+        organizationLabel?: string;
+        syncOrganizationName?: boolean;
+      };
 
     // Brand rename that cascades to the owning organization's name/slug. The
     // cascade itself is gated server-side to the first-login window inside the
@@ -139,7 +141,24 @@ export class BrandsController extends BaseCRUDController<
     const label = (rest as { label?: string }).label;
     if (syncOrganizationName && typeof label === 'string' && label.trim()) {
       await this.verifyBrandAccess(id, user);
-      await this.brandSetupService.updateBrandNameById(id, label, user);
+      const onboardingProfileOptions = {
+        ...(typeof rest.agentConfig === 'object' && rest.agentConfig !== null
+          ? { agentConfig: rest.agentConfig }
+          : {}),
+        ...(typeof rest.description === 'string'
+          ? { description: rest.description }
+          : {}),
+        ...(typeof organizationLabel === 'string'
+          ? { organizationName: organizationLabel }
+          : {}),
+        ...(typeof rest.text === 'string' ? { text: rest.text } : {}),
+      };
+      await this.brandSetupService.updateBrandNameById(
+        id,
+        label,
+        user,
+        onboardingProfileOptions,
+      );
       const renamed = await this.brandsService.findOne({ _id: id });
       return serializeSingle(request, BrandSerializer, renamed);
     }

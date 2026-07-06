@@ -116,6 +116,7 @@ export interface IBrandSetupRequest {
   linkedinUrl?: string;
   xProfileUrl?: string;
   brandName?: string;
+  organizationName?: string;
   industry?: string;
   targetAudience?: string;
   additionalNotes?: string;

@@ -11,6 +11,7 @@ const {
   assignMock,
   getInstallReadinessMock,
   getUsersServiceMock,
+  handleStepCompleteMock,
   patchSettingsMock,
   pushMock,
   resolveAuthTokenMock,
@@ -18,6 +19,7 @@ const {
   assignMock: vi.fn(),
   getInstallReadinessMock: vi.fn(),
   getUsersServiceMock: vi.fn(),
+  handleStepCompleteMock: vi.fn(),
   patchSettingsMock: vi.fn(),
   pushMock: vi.fn(),
   resolveAuthTokenMock: vi.fn(),
@@ -26,6 +28,12 @@ const {
 vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
     getToken: vi.fn(),
+  }),
+}));
+
+vi.mock('@contexts/onboarding/onboarding-context', () => ({
+  useOnboarding: () => ({
+    handleStepComplete: handleStepCompleteMock,
   }),
 }));
 
@@ -143,6 +151,7 @@ describe('ProvidersContent behavior', () => {
     assignMock.mockReset();
     getInstallReadinessMock.mockReset();
     getUsersServiceMock.mockReset();
+    handleStepCompleteMock.mockReset();
     patchSettingsMock.mockReset();
     pushMock.mockReset();
     resolveAuthTokenMock.mockReset();
@@ -192,6 +201,7 @@ describe('ProvidersContent behavior', () => {
       patchSettings: patchSettingsMock,
     });
     patchSettingsMock.mockResolvedValue({});
+    handleStepCompleteMock.mockResolvedValue(undefined);
 
     Object.defineProperty(globalThis, 'localStorage', {
       configurable: true,
@@ -236,7 +246,8 @@ describe('ProvidersContent behavior', () => {
       );
     });
 
-    expect(pushMock).toHaveBeenCalledWith('/onboarding/summary');
+    expect(handleStepCompleteMock).toHaveBeenCalledWith('providers');
+    expect(pushMock).not.toHaveBeenCalledWith('/onboarding/summary');
     expect(assignMock).not.toHaveBeenCalled();
   });
 
@@ -269,6 +280,7 @@ describe('ProvidersContent behavior', () => {
     });
 
     expect(pushMock).toHaveBeenCalledWith('/settings/api-keys');
+    expect(handleStepCompleteMock).toHaveBeenCalledWith('providers');
   });
 
   it('marks the saved access choice as the current selection', async () => {
@@ -401,6 +413,7 @@ describe('ProvidersContent behavior', () => {
     });
 
     expect(assignMock).toHaveBeenCalledTimes(1);
+    expect(handleStepCompleteMock).toHaveBeenCalledWith('providers');
 
     const redirectUrl = new URL(assignMock.mock.calls[0][0] as string);
 

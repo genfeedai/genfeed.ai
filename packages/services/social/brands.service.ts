@@ -366,9 +366,21 @@ export class BrandsService extends BaseService<Brand> {
   public async renameWithOrganizationSync(
     id: string,
     label: string,
+    options: {
+      agentConfig?: {
+        voice?: {
+          audience?: string[] | string;
+          tone?: string;
+        };
+      };
+      description?: string;
+      organizationLabel?: string;
+      text?: string;
+    } = {},
   ): Promise<Brand> {
     return await this.instance
       .patch<JsonApiResponseDocument>(`/${id}`, {
+        ...options,
         label,
         syncOrganizationName: true,
       })

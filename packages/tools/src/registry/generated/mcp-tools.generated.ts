@@ -8442,6 +8442,10 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "description": "Destination organization identifier. Providing a different value than the brand's current organization relocates the brand — cascading organizationId across all brand-owned records in one transaction. Superadmin, or an owner/admin of both the source and destination organizations, only.",
           "type": "string"
         },
+        "organizationLabel": {
+          "description": "Onboarding-only organization label override used with syncOrganizationName. The server regenerates the unique organization slug and never persists this control field on the brand record.",
+          "type": "string"
+        },
         "primaryColor": {
           "default": "#000000",
           "description": "The primary color theme for the brand",
@@ -8603,6 +8607,11 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
         "linkedinUrl": {
           "description": "LinkedIn company page URL",
           "example": "https://linkedin.com/company/example",
+          "type": "string"
+        },
+        "organizationName": {
+          "description": "User-provided organization name",
+          "example": "Acme Studio",
           "type": "string"
         },
         "targetAudience": {

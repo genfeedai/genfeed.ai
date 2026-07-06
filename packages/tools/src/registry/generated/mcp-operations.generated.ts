@@ -2862,6 +2862,7 @@ export const GENERATED_MCP_OPERATIONS: IGeneratedMcpOperationBinding[] = [
       "label",
       "music",
       "organizationId",
+      "organizationLabel",
       "primaryColor",
       "referenceImages",
       "relocationAck",
@@ -2919,6 +2920,7 @@ export const GENERATED_MCP_OPERATIONS: IGeneratedMcpOperationBinding[] = [
       "brandUrl",
       "industry",
       "linkedinUrl",
+      "organizationName",
       "targetAudience",
       "xProfileUrl"
     ],

@@ -2,7 +2,6 @@
 
 import { getResumeStep, ONBOARDING_STEPS } from '@genfeedai/constants';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
-import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
 import { getPlaywrightAuthState } from '@genfeedai/helpers/auth/auth.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
@@ -22,7 +21,6 @@ function OnboardingGuardInner({ children }: OnboardingGuardProps) {
   const effectiveIsAuthLoaded =
     isAuthLoaded || playwrightAuth?.isLoaded === true;
   const effectiveIsSignedIn = isSignedIn || playwrightAuth?.isSignedIn === true;
-  const { brandId, organizationId } = useBrand();
   const { currentUser, isLoading: isUserLoading } = useCurrentUser();
   const {
     accessState,
@@ -52,17 +50,7 @@ function OnboardingGuardInner({ children }: OnboardingGuardProps) {
     }
 
     if (needsOnboarding) {
-      const hasExistingWorkspace =
-        (typeof organizationId === 'string' &&
-          organizationId.length > 0 &&
-          typeof brandId === 'string' &&
-          brandId.length > 0) ||
-        (typeof accessState.organizationId === 'string' &&
-          accessState.organizationId.length > 0 &&
-          typeof accessState.brandId === 'string' &&
-          accessState.brandId.length > 0);
-
-      if (!isOnboardingRoute && hasExistingWorkspace) {
+      if (currentUser.isOnboardingCompleted === true) {
         return null;
       }
 
@@ -100,7 +88,6 @@ function OnboardingGuardInner({ children }: OnboardingGuardProps) {
     return null;
   }, [
     accessState,
-    brandId,
     currentUser,
     effectiveIsAuthLoaded,
     effectiveIsSignedIn,
@@ -113,7 +100,6 @@ function OnboardingGuardInner({ children }: OnboardingGuardProps) {
     isSuperAdmin,
     isUserLoading,
     needsOnboarding,
-    organizationId,
   ]);
 
   useEffect(() => {

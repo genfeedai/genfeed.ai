@@ -1,5 +1,6 @@
 'use client';
 
+import { useOnboarding } from '@contexts/onboarding/onboarding-context';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
@@ -123,6 +124,7 @@ export default function ProvidersContent() {
   const sectionRef = useGsapTimeline<HTMLDivElement>({ steps: TIMELINE_STEPS });
   const { getToken } = useAuthIdentity();
   const { currentUser } = useCurrentUser();
+  const { handleStepComplete } = useOnboarding();
   const getUsersService = useAuthedService((token: string) =>
     UsersService.getInstance(token),
   );
@@ -231,7 +233,7 @@ export default function ProvidersContent() {
   const handleServerContinue = async () => {
     setPendingMode('server');
     await persistAccessMode('server');
-    push(APP_ROUTES.ONBOARDING.SUMMARY);
+    await handleStepComplete('providers');
   };
 
   const handleByokClick = async (
@@ -245,12 +247,14 @@ export default function ProvidersContent() {
 
     setPendingMode('byok');
     await persistAccessMode('byok');
+    await handleStepComplete('providers');
     push(APP_ROUTES.SETTINGS.API_KEYS);
   };
 
   const handleCloudContinue = async () => {
     setPendingMode('cloud');
     await persistAccessMode('cloud');
+    await handleStepComplete('providers');
 
     const cloudSignupUrl = buildGenfeedCloudSignupUrl({
       accessMode: 'cloud',

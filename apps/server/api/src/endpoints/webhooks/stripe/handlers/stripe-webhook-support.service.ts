@@ -300,7 +300,7 @@ export class StripeWebhookSupportService {
     await this.usersService.patch(dbUser.id, {
       isOnboardingCompleted: true,
       onboardingCompletedAt: new Date(),
-      onboardingStepsCompleted: ['brand', 'plan'],
+      onboardingStepsCompleted: ['brand', 'providers', 'summary'],
     });
   }
 

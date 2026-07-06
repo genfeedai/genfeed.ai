@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import { BrandDataMapper } from '@api/collections/brands/services/brand-data.mapper';
 import { BrandPersistenceService } from '@api/collections/brands/services/brand-persistence.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
@@ -293,6 +294,7 @@ export class BrandSetupService {
             resolvedLabel,
             organizationId,
             targetBrandId,
+            dto.organizationName?.trim() || resolvedLabel,
           );
         }
 
@@ -328,6 +330,12 @@ export class BrandSetupService {
     brandId: string,
     name: string,
     _user: User,
+    options: {
+      agentConfig?: UpdateBrandDto['agentConfig'];
+      description?: string;
+      organizationName?: string;
+      text?: string;
+    } = {},
   ): Promise<{ success: boolean; message: string }> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${caller} starting`, { brandId, name });
@@ -346,7 +354,10 @@ export class BrandSetupService {
           await this.resolveBrandScope(brandId);
 
         await this.brandsService.patch(targetBrandId, {
+          ...(options.agentConfig ? { agentConfig: options.agentConfig } : {}),
+          ...(options.description ? { description: options.description } : {}),
           label: name,
+          ...(options.text ? { text: options.text } : {}),
         });
 
         // Only cascade the rename to the organization during the first-login
@@ -362,6 +373,7 @@ export class BrandSetupService {
             name,
             organizationId,
             targetBrandId,
+            options.organizationName?.trim() || name,
           );
         }
 

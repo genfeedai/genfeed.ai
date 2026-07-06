@@ -324,7 +324,7 @@ describe('StripeWebhookSupportService', () => {
       expect(usersService.patch).toHaveBeenCalledWith('user_1', {
         isOnboardingCompleted: true,
         onboardingCompletedAt: expect.any(Date),
-        onboardingStepsCompleted: ['brand', 'plan'],
+        onboardingStepsCompleted: ['brand', 'providers', 'summary'],
       });
     });
 

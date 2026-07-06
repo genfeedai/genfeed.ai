@@ -234,7 +234,7 @@ export class UsersController {
       if (!hasField || hasAccessByEntitlement) {
         data = await this.usersService.patch(data.id.toString(), {
           isOnboardingCompleted: true,
-          onboardingStepsCompleted: ['brand', 'plan'],
+          onboardingStepsCompleted: ['brand', 'providers', 'summary'],
         });
 
         const userIdString = data.id?.toString();
@@ -560,7 +560,7 @@ export class UsersController {
       await this.usersService.patch(dbUser.id, {
         isOnboardingCompleted: true,
         onboardingCompletedAt: new Date(),
-        onboardingStepsCompleted: ['brand', 'providers'],
+        onboardingStepsCompleted: ['brand', 'providers', 'summary'],
       } as Partial<UpdateUserDto>);
     }
 
