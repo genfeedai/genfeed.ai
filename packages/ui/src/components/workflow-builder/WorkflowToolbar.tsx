@@ -101,7 +101,6 @@ export default function WorkflowToolbar({
           type="button"
           variant={ButtonVariant.DEFAULT}
           size={ButtonSize.SM}
-          className="bg-success hover:bg-success/90"
           onClick={onRun}
           ariaLabel="Run workflow"
           icon={<HiOutlinePlay className="size-4" />}

@@ -500,7 +500,7 @@ export default function BrandDetailManualKitCard({
           />
         </div>
 
-        <div className="rounded-md border border-border p-3 text-sm">
+        <div className="rounded-md bg-background-secondary p-3 text-sm shadow-border">
           <div className="flex items-center justify-between gap-3">
             <span className="font-medium">Attached assets</span>
             <span className="text-muted-foreground">{attachedAssetCount}</span>
@@ -535,7 +535,7 @@ export default function BrandDetailManualKitCard({
 
         {draft ? (
           <div
-            className="space-y-3 rounded-md border border-border p-3"
+            className="space-y-3 rounded-md bg-background-secondary p-3 shadow-border"
             data-testid="manual-kit-draft-review"
           >
             <div className="flex items-center justify-between gap-3">
@@ -560,7 +560,7 @@ export default function BrandDetailManualKitCard({
                 return (
                   <label
                     key={key}
-                    className="flex items-start gap-2 rounded-md border border-border p-2 text-sm"
+                    className="flex items-start gap-2 rounded-md bg-background-secondary p-2 text-sm shadow-border"
                   >
                     <Checkbox
                       aria-label={`Select ${label}`}

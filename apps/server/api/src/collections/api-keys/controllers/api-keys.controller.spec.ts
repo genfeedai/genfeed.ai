@@ -184,10 +184,8 @@ describe('ApiKeysController', () => {
       expect(service.findAll).toHaveBeenCalled();
       expect(result.data).toBeDefined();
     });
-  });
 
-  describe('findMCPKeys', () => {
-    it('should return MCP API keys', async () => {
+    it('should filter by search across label and description', async () => {
       const mcpKey = { ...mockApiKey, label: 'MCP Key' };
       mockApiKeysService.findAll.mockResolvedValue({
         docs: [mcpKey],
@@ -197,7 +195,16 @@ describe('ApiKeysController', () => {
         totalPages: 1,
       });
 
-      const result = await controller.findMCPKeys(mockRequest, mockUser);
+      const query = {
+        isDeleted: false,
+        limit: 100,
+        page: 1,
+        pagination: true,
+        search: 'mcp',
+        sort: 'createdAt: -1',
+      } as unknown as BaseQueryDto;
+
+      const result = await controller.findAll(mockRequest, mockUser, query);
 
       expect(service.findAll).toHaveBeenCalled();
       expect(result.data).toBeDefined();

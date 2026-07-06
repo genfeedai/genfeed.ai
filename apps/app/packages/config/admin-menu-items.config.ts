@@ -1,6 +1,7 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import {
+  HiBanknotes,
   HiChartBar,
   HiChatBubbleLeftRight,
   HiClipboardDocumentList,
@@ -10,6 +11,7 @@ import {
   HiDocumentText,
   HiMegaphone,
   HiNewspaper,
+  HiOutlineBanknotes,
   HiOutlineChartBar,
   HiOutlineChatBubbleLeftRight,
   HiOutlineClipboardDocumentList,
@@ -214,11 +216,27 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Administration',
+    href: APP_ROUTES.ADMIN.ADMINISTRATION.CREDIT_USAGE,
+    label: 'Credit Usage',
+    matchPaths: [APP_ROUTES.ADMIN.ADMINISTRATION.CREDIT_USAGE],
+    outline: HiOutlineChartBar,
+    solid: HiChartBar,
+  },
+  {
+    group: 'Administration',
     href: APP_ROUTES.ADMIN.ADMINISTRATION.ANNOUNCEMENTS,
     label: 'Announcements',
     matchPaths: [APP_ROUTES.ADMIN.ADMINISTRATION.ANNOUNCEMENTS],
     outline: HiOutlineMegaphone,
     solid: HiMegaphone,
+  },
+  {
+    group: 'Administration',
+    href: APP_ROUTES.ADMIN.ADMINISTRATION.PLATFORM_SETTINGS,
+    label: 'Platform Settings',
+    matchPaths: [APP_ROUTES.ADMIN.ADMINISTRATION.PLATFORM_SETTINGS],
+    outline: HiOutlineBanknotes,
+    solid: HiBanknotes,
   },
   {
     group: 'Fleet',

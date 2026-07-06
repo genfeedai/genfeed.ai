@@ -28,7 +28,7 @@ export default function ModalPostBatchIngredientPreview({
       <div className="sticky top-0 space-y-3">
         <div
           className={cn(
-            'relative overflow-hidden shadow-lg flex items-center justify-center mx-auto w-fit',
+            'relative overflow-hidden shadow-border flex items-center justify-center mx-auto w-fit',
             // Smart width constraints based on aspect ratio
             aspectRatioInfo.isPortrait ? 'max-w-2xl' : 'max-w-4xl',
           )}

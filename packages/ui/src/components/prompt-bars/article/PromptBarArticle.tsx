@@ -99,7 +99,7 @@ export default function PromptBarArticle({
       className={cn(
         BG_BLUR,
         BORDER_WHITE_30,
-        ' shadow-lg flex flex-col transition-all duration-300',
+        'flex flex-col transition-all duration-300',
         isCollapsed ? 'p-2 overflow-hidden' : 'p-4 space-y-2 overflow-visible',
       )}
     >

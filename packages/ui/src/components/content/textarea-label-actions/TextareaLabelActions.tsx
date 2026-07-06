@@ -63,7 +63,7 @@ export default function TextareaLabelActions({
             icon={<HiArrowUturnLeft className="size-3.5" />}
             variant={ButtonVariant.GHOST}
             size={ButtonSize.XS}
-            className="h-6 min-h-6 px-1.5 text-warning"
+            className="h-6 min-h-6 px-1.5 text-muted-foreground"
             tooltip={undoTooltip}
             tooltipPosition="top"
             onClick={onUndo}

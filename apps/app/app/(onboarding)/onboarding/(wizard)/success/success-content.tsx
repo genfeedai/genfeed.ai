@@ -150,20 +150,20 @@ export default function SuccessContent() {
     <div ref={sectionRef} className="max-w-lg mx-auto text-center pt-24">
       {/* Success icon */}
       <div className="success-icon opacity-0 flex justify-center mb-8">
-        <div className="size-20 bg-white/5 border border-white/10 rounded-full flex items-center justify-center">
-          <HiCheckCircle className="size-10 text-green-400" />
+        <div className="size-20 bg-secondary shadow-border rounded-full flex items-center justify-center">
+          <HiCheckCircle className="size-10 text-success" />
         </div>
       </div>
 
       {/* Headline */}
-      <h1 className="success-headline opacity-0 text-4xl md:text-5xl font-serif leading-none tracking-tighter text-white mb-4">
-        Welcome to <span className="font-light italic">Genfeed!</span>
+      <h1 className="success-headline opacity-0 mb-4 text-4xl font-semibold leading-none tracking-tight text-white md:text-5xl">
+        Welcome to Genfeed!
       </h1>
 
-      <div className="success-credit-reveal opacity-0 mb-8 inline-flex items-center gap-3 rounded-full border border-emerald-400/20 bg-emerald-500/10 px-5 py-3 text-left">
-        <HiSparkles className="size-5 text-emerald-300" />
+      <div className="success-credit-reveal opacity-0 mb-8 inline-flex items-center gap-3 rounded-full bg-secondary shadow-border px-5 py-3 text-left">
+        <HiSparkles className="size-5 text-foreground" />
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-200/80">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             Starter Credits Ready
           </p>
           <p className="text-sm text-white">
@@ -203,7 +203,7 @@ export default function SuccessContent() {
                 onClick={() => toggleType(id)}
                 className={`inline-flex items-center gap-2 px-4 py-2 border text-sm transition-all ${
                   isSelected
-                    ? 'border-white/30 bg-white/[0.08] text-white'
+                    ? 'ring-1 ring-border-strong bg-hover text-white border-transparent'
                     : 'border-white/[0.08] bg-white/[0.02] text-white/50 hover:border-white/20'
                 }`}
               >

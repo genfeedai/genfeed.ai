@@ -1,3 +1,7 @@
+import {
+  asYoutubeRequestAuth,
+  type YoutubeRequestAuth,
+} from '@api/services/integrations/youtube/services/modules/youtube-api-auth.util';
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import type { IYouTubeVideoStats } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -44,22 +48,25 @@ export class YoutubeAnalyticsService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      let auth: youtube_v3.Params$Resource$Channels$List['auth'];
+      let auth: YoutubeRequestAuth;
       if (typeof authOrSkipRefresh === 'boolean') {
         this.loggerService.log(
           `${url} started (skipRefresh ignored for safety)`,
           { organizationId },
         );
-        auth = await this.authService.refreshToken(organizationId, brandId);
+        auth = asYoutubeRequestAuth(
+          await this.authService.refreshToken(organizationId, brandId),
+        );
       } else if (authOrSkipRefresh) {
         this.loggerService.log(`${url} started with per-request auth`, {
           organizationId,
         });
-        auth =
-          authOrSkipRefresh as youtube_v3.Params$Resource$Channels$List['auth'];
+        auth = authOrSkipRefresh as YoutubeRequestAuth;
       } else {
         this.loggerService.log(`${url} started`, { organizationId });
-        auth = await this.authService.refreshToken(organizationId, brandId);
+        auth = asYoutubeRequestAuth(
+          await this.authService.refreshToken(organizationId, brandId),
+        );
       }
 
       const response = await this.youtubeAPI.channels.list({
@@ -144,7 +151,9 @@ export class YoutubeAnalyticsService {
     }
 
     try {
-      const auth = await this.authService.refreshToken(organizationId, brandId);
+      const auth = asYoutubeRequestAuth(
+        await this.authService.refreshToken(organizationId, brandId),
+      );
 
       const videoData = await this.youtubeAPI.videos.list({
         auth,

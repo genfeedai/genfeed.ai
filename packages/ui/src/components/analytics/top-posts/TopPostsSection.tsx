@@ -122,7 +122,7 @@ export default function TopPostsSection({
             )}
 
             {/* Rank badge */}
-            <div className="absolute top-3 left-3 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-bold shadow-lg">
+            <div className="absolute top-3 left-3 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-bold shadow-border">
               #1
             </div>
 
@@ -144,11 +144,11 @@ export default function TopPostsSection({
                   {formatCompactNumber(featuredPost.totalViews)}
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <HiHeart className="size-4 text-rose-400" />
+                  <HiHeart className="size-4" />
                   {formatCompactNumber(featuredPost.totalLikes)}
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <HiChatBubbleLeftRight className="size-4 text-sky-400" />
+                  <HiChatBubbleLeftRight className="size-4" />
                   {formatCompactNumber(featuredPost.totalComments)}
                 </span>
               </div>

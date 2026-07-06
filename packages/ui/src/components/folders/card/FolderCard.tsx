@@ -10,7 +10,7 @@ export default function FolderCard({ folder, onClick }: FolderCardProps) {
   return (
     <Card
       onClick={activateFolder}
-      className="group cursor-pointer border border-white/[0.08] transition-all hover:scale-105"
+      className="group cursor-pointer transition-all hover:scale-105 hover:shadow-border-strong"
       bodyClassName="gap-0 p-4"
     >
       <div className="flex flex-col items-center gap-3">

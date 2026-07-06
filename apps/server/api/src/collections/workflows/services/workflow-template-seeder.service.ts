@@ -28,6 +28,16 @@ import { Injectable, Optional } from '@nestjs/common';
 /** Template id for the predetermined per-org Daily Trends Digest workflow. */
 const DAILY_TRENDS_DIGEST_TEMPLATE_ID = 'daily-trends-digest';
 
+const WORKFLOW_SCHEDULER_SYNC_SELECT = {
+  id: true,
+  isDeleted: true,
+  isScheduleEnabled: true,
+  metadata: true,
+  schedule: true,
+  status: true,
+  timezone: true,
+} as const;
+
 type SeedableWorkflowTemplate = WorkflowTemplate & { schedule?: string };
 
 /**
@@ -567,10 +577,12 @@ export class WorkflowTemplateSeederService {
     const data = this.buildContentScheduleWorkflowData(schedule);
 
     if (existing) {
-      await this.prisma.workflow.update({
+      const synced = await this.prisma.workflow.update({
         data,
+        select: WORKFLOW_SCHEDULER_SYNC_SELECT,
         where: { id: existing.id },
       });
+      await this.workflowExecutionQueueService?.syncWorkflowScheduler(synced);
       return;
     }
 
@@ -602,14 +614,7 @@ export class WorkflowTemplateSeederService {
     }
 
     const workflows = await this.prisma.workflow.findMany({
-      select: {
-        id: true,
-        isDeleted: true,
-        isScheduleEnabled: true,
-        schedule: true,
-        status: true,
-        timezone: true,
-      },
+      select: WORKFLOW_SCHEDULER_SYNC_SELECT,
       where: {
         isDeleted: false,
         isScheduleEnabled: true,
@@ -666,27 +671,20 @@ export class WorkflowTemplateSeederService {
       );
     } catch (error) {
       const errorCode = (error as { code?: string }).code;
-      if (errorCode === 'P2034') {
-        this.logger?.debug(
-          'ensureContentScheduleWorkflow: serialization conflict - workflow already synced by concurrent request',
-          { contentScheduleId, organizationId },
-        );
-        return;
+      if (errorCode !== 'P2034') {
+        throw error;
       }
-      throw error;
+
+      this.logger?.debug(
+        'ensureContentScheduleWorkflow: serialization conflict - workflow already synced by concurrent request',
+        { contentScheduleId, organizationId },
+      );
     }
 
     // Sync the BullMQ job scheduler from the row's post-write state (covers
     // both the update and create paths, including a concurrent writer's row).
     const synced = await this.prisma.workflow.findFirst({
-      select: {
-        id: true,
-        isDeleted: true,
-        isScheduleEnabled: true,
-        schedule: true,
-        status: true,
-        timezone: true,
-      },
+      select: WORKFLOW_SCHEDULER_SYNC_SELECT,
       where: where as never,
     });
 

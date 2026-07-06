@@ -1,5 +1,6 @@
 import type {
   AdOptimizationRecommendationDocument,
+  RecommendationReviewStatus,
   RecommendationStatus,
   RecommendationType,
 } from '@api/collections/ad-optimization-recommendations/schemas/ad-optimization-recommendation.schema';
@@ -92,8 +93,11 @@ export class AdOptimizationRecommendationsService {
   async reject(
     id: string,
     organizationId: string,
+    reason?: string,
   ): Promise<AdOptimizationRecommendationDocument | null> {
-    return this.updateStatus(id, organizationId, 'rejected', 'pending');
+    return this.updateStatus(id, organizationId, 'rejected', 'pending', {
+      reason,
+    });
   }
 
   async markExecuted(
@@ -101,6 +105,25 @@ export class AdOptimizationRecommendationsService {
     organizationId: string,
   ): Promise<AdOptimizationRecommendationDocument | null> {
     return this.updateStatus(id, organizationId, 'executed', 'approved');
+  }
+
+  /**
+   * Generic patch entrypoint for the recommendation review flow.
+   * Keyed on `status`: 'approved' | 'rejected'. Server-side guard still
+   * enforces the recommendation must currently be 'pending' — mirrors the
+   * approve()/reject() expectedCurrentStatus check.
+   */
+  async patchReviewStatus(
+    id: string,
+    organizationId: string,
+    status: RecommendationReviewStatus,
+    reason?: string,
+  ): Promise<AdOptimizationRecommendationDocument | null> {
+    if (status === 'approved') {
+      return this.approve(id, organizationId);
+    }
+
+    return this.reject(id, organizationId, reason);
   }
 
   async expireStale(): Promise<number> {
@@ -170,6 +193,7 @@ export class AdOptimizationRecommendationsService {
     organizationId: string,
     status: RecommendationStatus,
     expectedCurrentStatus: RecommendationStatus,
+    options?: { reason?: string },
   ): Promise<AdOptimizationRecommendationDocument | null> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -196,6 +220,7 @@ export class AdOptimizationRecommendationsService {
           data: this.toRecommendationData({
             ...existingDoc,
             status,
+            ...(options?.reason ? { reason: options.reason } : {}),
           }) as never,
         },
         where: { id },

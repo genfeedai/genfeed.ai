@@ -6,12 +6,17 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Frosted floating-panel surface + border for elevated popovers/menus.
+ * Frosted floating-panel surface for elevated popovers/menus.
  * Token-backed so they adapt to dark and parchment-light themes (no longer
  * hardcoded white/black). Names kept for back-compat across ~8 call sites.
  */
 export const BG_BLUR =
   'bg-popover/80 backdrop-blur-xl supports-[backdrop-filter]:bg-popover/70';
 
-export const BORDER_WHITE_30 =
-  'rounded-2xl border border-border shadow-[0_-8px_32px_rgba(0,0,0,0.45)]';
+/**
+ * Containment for elevated floating panels (dropdowns, menus, switchers).
+ * Uses the canonical `shadow-dropdown` token (inset hairline ring + drop
+ * shadow) instead of a CSS border + arbitrary glow shadow, and an on-scale
+ * overlay-panel radius. Name kept for back-compat across ~8 call sites.
+ */
+export const BORDER_WHITE_30 = 'rounded-lg shadow-dropdown';

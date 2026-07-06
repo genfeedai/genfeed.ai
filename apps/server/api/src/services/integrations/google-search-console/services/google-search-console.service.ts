@@ -5,7 +5,6 @@ import type {
   GoogleSearchConsoleSitesResponse,
 } from '@api/services/integrations/google-search-console/interfaces/google-search-console.interface';
 import { GoogleSearchConsoleOAuthService } from '@api/services/integrations/google-search-console/services/google-search-console-oauth.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform } from '@genfeedai/enums';
 import type {
   GoogleSearchConsoleDimension,
@@ -16,6 +15,7 @@ import type {
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';

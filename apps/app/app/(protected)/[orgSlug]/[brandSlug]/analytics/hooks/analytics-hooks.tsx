@@ -180,9 +180,11 @@ export default function AnalyticsHooks({
         />
 
         <section>
-          <Card className="border border-white/[0.08] bg-card/80">
+          <Card>
             <div className="p-6 space-y-4">
-              <h2 className="text-xl font-semibold">Video Hook Breakdown</h2>
+              <h2 className="text-xl font-semibold tracking-tight">
+                Video Hook Breakdown
+              </h2>
               <Table<IViralHookVideo>
                 items={videos ?? []}
                 columns={[
@@ -228,9 +230,7 @@ export default function AnalyticsHooks({
 
                       return (
                         <div className="flex items-center gap-2">
-                          <Badge className="bg-info text-info-foreground text-xs">
-                            {hookCount} hooks
-                          </Badge>
+                          <Badge className="text-xs">{hookCount} hooks</Badge>
                           <span className="text-xs text-foreground/60">
                             Avg: {averageEffectiveness}% effective
                           </span>

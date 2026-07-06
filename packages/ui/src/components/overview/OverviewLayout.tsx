@@ -45,7 +45,7 @@ export default function OverviewLayout({
               {cards.map((card) => (
                 <Card
                   key={card.id}
-                  className="ship-ui gen-shell-panel h-full rounded-md border-white/[0.06] bg-background/88 shadow-[0_28px_72px_-48px_rgba(0,0,0,0.92)]"
+                  className="h-full"
                   bodyClassName="flex h-full min-h-[220px] flex-col justify-between gap-6 p-5"
                 >
                   <div className="space-y-4">

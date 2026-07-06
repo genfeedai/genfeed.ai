@@ -65,9 +65,8 @@ export default function CreditsBarPanel({
             </div>
             <div className="flex h-2 w-full overflow-hidden rounded-full bg-foreground/[0.06]">
               <div
-                className="relative transition-all duration-300"
+                className="relative bg-foreground/[0.12] transition-all duration-300"
                 style={{
-                  background: 'rgba(255,255,255,0.12)',
                   width:
                     extraBalance > 0
                       ? `${(planLimit / (planLimit + extraBalance)) * 100}%`
@@ -75,9 +74,8 @@ export default function CreditsBarPanel({
                 }}
               >
                 <div
-                  className="absolute inset-y-0 left-0 rounded-full transition-all duration-500"
+                  className="absolute inset-y-0 left-0 rounded-full bg-foreground/[0.55] transition-all duration-500"
                   style={{
-                    background: 'rgba(255,255,255,0.55)',
                     width: `${planUsagePercent}%`,
                   }}
                 />
@@ -144,7 +142,7 @@ export default function CreditsBarPanel({
                     <div
                       className={cn(
                         'text-sm font-semibold text-foreground',
-                        segment.status === 'unavailable' && 'text-amber-200/80',
+                        segment.status === 'unavailable' && 'text-warning',
                       )}
                     >
                       {segment.status === 'available' &&

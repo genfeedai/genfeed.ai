@@ -49,8 +49,9 @@ export class StreaksService extends HTTPBaseService {
 
   async useFreeze(): Promise<{ message: string; streakFreezes: number }> {
     return (
-      await this.instance.post<{ message: string; streakFreezes: number }>(
-        'me/freeze',
+      await this.instance.patch<{ message: string; streakFreezes: number }>(
+        'me',
+        { freeze: true },
       )
     ).data;
   }

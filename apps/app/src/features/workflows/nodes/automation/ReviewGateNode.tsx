@@ -252,7 +252,7 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
 
       {/* Caption preview */}
       {data.inputCaption && (
-        <div className="p-2 border border-white/[0.08] bg-muted/30 text-xs max-h-16 overflow-y-auto">
+        <div className="p-2 bg-tertiary text-xs max-h-16 overflow-y-auto">
           {data.inputCaption}
         </div>
       )}

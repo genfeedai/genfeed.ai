@@ -196,7 +196,7 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
                 </MetadataRow>
               )}
               {template.content.structure && (
-                <Collapsible className="rounded-lg border border-white/[0.08] bg-background/50">
+                <Collapsible className="rounded-lg bg-tertiary">
                   <CollapsibleTrigger className="w-full cursor-pointer list-none px-4 py-3 text-left text-sm font-medium">
                     Structure
                   </CollapsibleTrigger>

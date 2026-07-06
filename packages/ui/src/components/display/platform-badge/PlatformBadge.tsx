@@ -3,13 +3,16 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IPlatformBadgeConfig } from '@genfeedai/interfaces/ui/platform-badge-config.interface';
 import type { PlatformBadgeProps } from '@genfeedai/props/ui/display/platform-badge.props';
 import {
+  FaDev,
   FaFacebook,
   FaGhost,
+  FaHackerNews,
   FaInstagram,
   FaLinkedin,
   FaMastodon,
   FaMedium,
   FaPinterest,
+  FaProductHunt,
   FaReddit,
   FaShopify,
   FaSnapchat,
@@ -46,6 +49,13 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
     label: 'Beehiiv',
     textColor: 'text-amber-500',
   },
+  devto: {
+    bgColor: 'bg-foreground/10',
+    icon: FaDev,
+    iconColor: 'text-foreground',
+    label: 'DEV',
+    textColor: 'text-foreground',
+  },
   facebook: {
     bgColor: 'bg-blue-600/10',
     icon: FaFacebook,
@@ -66,6 +76,13 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
     iconColor: 'text-foreground',
     label: 'Ghost',
     textColor: 'text-foreground',
+  },
+  hacker_news: {
+    bgColor: 'bg-orange-500/10',
+    icon: FaHackerNews,
+    iconColor: 'text-orange-500',
+    label: 'Hacker News',
+    textColor: 'text-orange-500',
   },
   instagram: {
     bgColor: 'bg-pink-500/10',
@@ -101,6 +118,13 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
     iconColor: 'text-red-600',
     label: 'Pinterest',
     textColor: 'text-red-600',
+  },
+  product_hunt: {
+    bgColor: 'bg-orange-600/10',
+    icon: FaProductHunt,
+    iconColor: 'text-orange-600',
+    label: 'Product Hunt',
+    textColor: 'text-orange-600',
   },
   reddit: {
     bgColor: 'bg-orange-500/10',

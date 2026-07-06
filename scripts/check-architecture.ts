@@ -10,6 +10,14 @@ const checks = [
     name: 'API BullMQ processor boundary',
   },
   {
+    command: [
+      'bun',
+      'run',
+      'scripts/architecture/check-no-api-imports-in-workers.ts',
+    ],
+    name: 'Workers @api import boundary',
+  },
+  {
     command: ['bun', 'run', 'scripts/check-decorator-boundaries.ts'],
     name: 'Nest decorator boundaries',
   },

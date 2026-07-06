@@ -127,11 +127,13 @@ describe('WatchlistsController', () => {
       expect(result).toBeDefined();
     });
 
-    it('should throw ConflictException when creator already exists', async () => {
-      watchlistsService.findByHandle.mockResolvedValue({
+    it('should return the existing item instead of erroring (upsert)', async () => {
+      const existing = {
         _id: '507f191e810c19729de860ee',
         handle: 'existing',
-      });
+        platform: 'tiktok',
+      };
+      watchlistsService.findByHandle.mockResolvedValue(existing);
 
       const dto = {
         brand: brandId,
@@ -140,9 +142,14 @@ describe('WatchlistsController', () => {
         platform: 'tiktok',
       };
 
-      await expect(
-        controller.create(dto as never, mockRequest, mockUser),
-      ).rejects.toThrow(ConflictException);
+      const result = await controller.create(
+        dto as never,
+        mockRequest,
+        mockUser,
+      );
+
+      expect(watchlistsService.create).not.toHaveBeenCalled();
+      expect(result).toBeDefined();
     });
 
     it('should set user and organization from metadata when not provided', async () => {
@@ -166,10 +173,8 @@ describe('WatchlistsController', () => {
       expect(createArg.user).toBe(userId);
       expect(createArg.organization).toBe(orgId);
     });
-  });
 
-  describe('quickAdd', () => {
-    it('should create a watchlist item with minimal data', async () => {
+    it('should create a watchlist item with minimal data (quick-add semantics)', async () => {
       const dto = { handle: 'fastcreator', platform: 'instagram' };
       watchlistsService.create.mockResolvedValue({
         _id: '507f191e810c19729de860ee',
@@ -177,17 +182,23 @@ describe('WatchlistsController', () => {
         label: '@fastcreator',
       });
 
-      const result = await controller.quickAdd(
+      const result = await controller.create(
         dto as never,
         mockRequest,
         mockUser,
       );
 
       expect(watchlistsService.create).toHaveBeenCalled();
+      const createArg = watchlistsService.create.mock.calls[0][0] as Record<
+        string,
+        unknown
+      >;
+      expect(createArg.label).toBe('@fastcreator');
+      expect(createArg.brand).toBe(brandId);
       expect(result).toBeDefined();
     });
 
-    it('should return existing item instead of error for duplicates', async () => {
+    it('should return existing item instead of error for duplicates (minimal payload)', async () => {
       const existing = {
         _id: '507f191e810c19729de860ee',
         handle: 'dupcreator',
@@ -196,7 +207,7 @@ describe('WatchlistsController', () => {
       watchlistsService.findByHandle.mockResolvedValue(existing);
 
       const dto = { handle: 'dupcreator', platform: 'tiktok' };
-      const result = await controller.quickAdd(
+      const result = await controller.create(
         dto as never,
         mockRequest,
         mockUser,

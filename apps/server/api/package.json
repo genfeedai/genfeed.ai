@@ -75,6 +75,8 @@
     "openapi:emit": "bun run scripts/emit-openapi.ts",
     "openapi:emit:prebuilt": "bun run scripts/emit-openapi.ts --skip-build",
     "openapi:validate": "bun run scripts/validate-openapi-spec.ts",
+    "mcp:parity": "bun run scripts/check-mcp-parity.ts",
+    "mcp:parity:update": "bun run scripts/check-mcp-parity.ts --update-baseline",
     "seed:workflows": "bun run scripts/seeds/workflows.seed.ts",
     "seed:workflows:dry": "bun run scripts/seeds/workflows.seed.ts --dry-run",
     "seed:prelaunch-corpus": "bun run scripts/seeds/prelaunch-reference-corpus.seed.ts --live",

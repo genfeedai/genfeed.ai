@@ -264,7 +264,7 @@ describe('EvaluationsService', () => {
   });
 
   describe('getImageEvaluations', () => {
-    it('should get from /images/:id endpoint', async () => {
+    it('should get from collapsed endpoint with entityType=images', async () => {
       const imageId = 'image-123';
       (service as any).instance.get.mockResolvedValue({
         data: mockEvaluationsListData,
@@ -272,9 +272,9 @@ describe('EvaluationsService', () => {
 
       await service.getImageEvaluations(imageId);
 
-      expect((service as any).instance.get).toHaveBeenCalledWith(
-        `/images/${imageId}`,
-      );
+      expect((service as any).instance.get).toHaveBeenCalledWith('', {
+        params: { entityId: imageId, entityType: 'images' },
+      });
     });
 
     it('should return array of Evaluations', async () => {
@@ -291,7 +291,7 @@ describe('EvaluationsService', () => {
   });
 
   describe('getVideoEvaluations', () => {
-    it('should get from /videos/:id endpoint', async () => {
+    it('should get from collapsed endpoint with entityType=videos', async () => {
       const videoId = 'video-123';
       (service as any).instance.get.mockResolvedValue({
         data: mockEvaluationsListData,
@@ -299,14 +299,14 @@ describe('EvaluationsService', () => {
 
       await service.getVideoEvaluations(videoId);
 
-      expect((service as any).instance.get).toHaveBeenCalledWith(
-        `/videos/${videoId}`,
-      );
+      expect((service as any).instance.get).toHaveBeenCalledWith('', {
+        params: { entityId: videoId, entityType: 'videos' },
+      });
     });
   });
 
   describe('getArticleEvaluations', () => {
-    it('should get from /articles/:id endpoint', async () => {
+    it('should get from collapsed endpoint with entityType=articles', async () => {
       const articleId = 'article-123';
       (service as any).instance.get.mockResolvedValue({
         data: mockEvaluationsListData,
@@ -314,14 +314,14 @@ describe('EvaluationsService', () => {
 
       await service.getArticleEvaluations(articleId);
 
-      expect((service as any).instance.get).toHaveBeenCalledWith(
-        `/articles/${articleId}`,
-      );
+      expect((service as any).instance.get).toHaveBeenCalledWith('', {
+        params: { entityId: articleId, entityType: 'articles' },
+      });
     });
   });
 
   describe('getPostEvaluations', () => {
-    it('should get from /posts/:id endpoint', async () => {
+    it('should get from collapsed endpoint with entityType=posts', async () => {
       const postId = 'post-123';
       (service as any).instance.get.mockResolvedValue({
         data: mockEvaluationsListData,
@@ -329,9 +329,9 @@ describe('EvaluationsService', () => {
 
       await service.getPostEvaluations(postId);
 
-      expect((service as any).instance.get).toHaveBeenCalledWith(
-        `/posts/${postId}`,
-      );
+      expect((service as any).instance.get).toHaveBeenCalledWith('', {
+        params: { entityId: postId, entityType: 'posts' },
+      });
     });
   });
 

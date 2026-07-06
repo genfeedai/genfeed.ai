@@ -318,31 +318,6 @@ export class BotActivitiesService extends BaseService<
   }
 
   /**
-   * Find recent activities for a specific reply bot config
-   */
-  findRecentByConfig(
-    configId: string,
-    brandId: string | undefined,
-    limit: number = 10,
-  ): Promise<BotActivityDocument[]> {
-    return this.delegate
-      .findMany({
-        where: {
-          ...(brandId ? { brandId } : {}),
-          isDeleted: false,
-          replyBotConfigId: configId,
-        },
-        orderBy: { createdAt: 'desc' },
-        take: limit,
-      })
-      .then((activities) =>
-        (activities as BotActivityDocument[]).map((activity) =>
-          this.normalizeActivity(activity),
-        ),
-      );
-  }
-
-  /**
    * Update activity status with optional additional data
    */
   async updateStatus(

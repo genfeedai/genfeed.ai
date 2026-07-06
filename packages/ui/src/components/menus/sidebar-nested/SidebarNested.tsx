@@ -191,7 +191,7 @@ export default function SidebarNested({
           ariaLabel={`Back to ${backLabel ?? groupLabel}`}
         >
           <HiArrowLeft className="size-4 text-foreground/60 group-hover:text-foreground transition-colors duration-200" />
-          <span className="text-sm font-medium text-foreground/90">
+          <span className="font-medium text-foreground/90">
             {backLabel ?? groupLabel}
           </span>
         </Button>

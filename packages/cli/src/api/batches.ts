@@ -1,4 +1,4 @@
-import { get, post } from './client';
+import { get, patch, post } from './client';
 import {
   flattenCollection,
   flattenSingle,
@@ -82,5 +82,7 @@ export async function batchItemAction(batchId: string, request: BatchActionReque
 }
 
 export async function cancelBatch(batchId: string): Promise<void> {
-  await post<JsonApiSingleResponse>(`/batches/${batchId}/cancel`, {});
+  await patch<JsonApiSingleResponse>(`/batches/${batchId}`, {
+    status: 'cancelled',
+  });
 }

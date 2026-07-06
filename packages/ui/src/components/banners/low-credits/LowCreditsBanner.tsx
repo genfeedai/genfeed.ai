@@ -134,7 +134,7 @@ export default function LowCreditsBanner({
           'mx-auto flex w-full flex-col gap-3 border text-sm backdrop-blur',
           isInline
             ? 'rounded-[1.4rem] px-4 py-3 shadow-none'
-            : 'max-w-6xl rounded-2xl px-4 py-3 shadow-[0_12px_32px_rgba(0,0,0,0.18)]',
+            : 'max-w-6xl rounded-2xl px-4 py-3 shadow-border',
           isCritical
             ? 'border-red-500/25 bg-red-500/[0.08] text-red-100'
             : 'border-amber-500/25 bg-amber-500/[0.08] text-amber-50',

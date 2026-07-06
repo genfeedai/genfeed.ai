@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CampaignTargetsService } from '@api/collections/campaign-targets/services/campaign-targets.service';
+import { AddCampaignTargetsDto } from '@api/collections/outreach-campaigns/dto/add-campaign-targets.dto';
 import { CreateOutreachCampaignDto } from '@api/collections/outreach-campaigns/dto/create-outreach-campaign.dto';
 import { OutreachCampaignsQueryDto } from '@api/collections/outreach-campaigns/dto/outreach-campaigns-query.dto';
 import { UpdateOutreachCampaignDto } from '@api/collections/outreach-campaigns/dto/update-outreach-campaign.dto';
@@ -229,7 +230,8 @@ export class OutreachCampaignsController extends BaseCRUDController<
   }
 
   /**
-   * Add targets to a campaign (manual URL addition)
+   * Add targets to a campaign. Defaults to manual URL addition; pass
+   * targetType: dm_recipient with usernames to add DM recipients instead.
    */
   @Post(':id/targets')
   @HttpCode(HttpStatus.OK)
@@ -238,7 +240,7 @@ export class OutreachCampaignsController extends BaseCRUDController<
   async addTargets(
     @Param('id') id: string,
     @CurrentUser() user: User,
-    @Body() body: { urls: string[] },
+    @Body() body: AddCampaignTargetsDto,
   ): Promise<{ added: number; skipped: number }> {
     const publicMetadata = getPublicMetadata(user);
     const campaign = await this.outreachCampaignsService.findOneById(
@@ -251,10 +253,25 @@ export class OutreachCampaignsController extends BaseCRUDController<
       throw new BadRequestException('Campaign not found');
     }
 
+    if (body.targetType === CampaignTargetType.DM_RECIPIENT) {
+      return this.addDmRecipients(campaign, id, body.usernames ?? []);
+    }
+
+    return this.addUrlTargets(campaign, id, body.urls ?? []);
+  }
+
+  /**
+   * Add targets to a campaign via manual URL addition
+   */
+  private async addUrlTargets(
+    campaign: OutreachCampaignDocument,
+    id: string,
+    urls: string[],
+  ): Promise<{ added: number; skipped: number }> {
     let added = 0;
     let skipped = 0;
 
-    for (const url of body.urls) {
+    for (const url of urls) {
       const parsed = this.parseUrl(url);
 
       if (!parsed) {
@@ -295,26 +312,11 @@ export class OutreachCampaignsController extends BaseCRUDController<
   /**
    * Add DM recipients to a campaign (by username)
    */
-  @Post(':id/dm-recipients')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Add DM recipients to a campaign' })
-  @ApiResponse({ description: 'Recipients added successfully', status: 200 })
-  async addDmRecipients(
-    @Param('id') id: string,
-    @CurrentUser() user: User,
-    @Body() body: { usernames: string[] },
+  private async addDmRecipients(
+    campaign: OutreachCampaignDocument,
+    id: string,
+    usernames: string[],
   ): Promise<{ added: number; skipped: number }> {
-    const publicMetadata = getPublicMetadata(user);
-    const campaign = await this.outreachCampaignsService.findOneById(
-      id,
-      publicMetadata.organization,
-      publicMetadata.brand,
-    );
-
-    if (!campaign) {
-      throw new BadRequestException('Campaign not found');
-    }
-
     if (campaign.campaignType !== CampaignType.DM_OUTREACH) {
       throw new BadRequestException('Campaign is not a DM outreach campaign');
     }
@@ -329,7 +331,7 @@ export class OutreachCampaignsController extends BaseCRUDController<
     // Normalize usernames: strip @, lowercase, dedup
     const normalizedUsernames = [
       ...new Set(
-        body.usernames
+        usernames
           .map((u) => u.trim().replace(/^@/, '').toLowerCase())
           .filter(Boolean),
       ),

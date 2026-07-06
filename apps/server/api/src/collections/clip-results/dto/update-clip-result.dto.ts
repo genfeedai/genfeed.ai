@@ -1,4 +1,5 @@
 import { ClipResultStatus } from '@api/collections/clip-results/schemas/clip-result.schema';
+import { CLIP_RESULT_MODES } from '@genfeedai/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsBoolean,
@@ -21,6 +22,17 @@ export class UpdateClipResultDto {
     required: false,
   })
   readonly status?: string;
+
+  @IsString()
+  @IsOptional()
+  @IsIn([...CLIP_RESULT_MODES])
+  @ApiProperty({
+    description: 'Clip generation mode (defaults to avatar)',
+    enum: CLIP_RESULT_MODES,
+    enumName: 'ClipResultMode',
+    required: false,
+  })
+  readonly mode?: string;
 
   @IsString()
   @IsOptional()

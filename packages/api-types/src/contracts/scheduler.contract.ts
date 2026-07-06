@@ -62,8 +62,8 @@ const idempotencyKeySchema = z.string().min(1).max(255);
 
 /**
  * Provider-specific channel settings. Kept as an open, string-keyed map so the
- * shared contract stays platform-agnostic; the per-platform capability schema
- * (a later #1123 issue) narrows and validates these. `unknown`, never `any`.
+ * shared contract stays platform-agnostic; channel-capabilities.contract narrows
+ * and validates these per platform. `unknown`, never `any`.
  */
 export const channelTargetSettingsSchema = z.record(z.string(), z.unknown());
 

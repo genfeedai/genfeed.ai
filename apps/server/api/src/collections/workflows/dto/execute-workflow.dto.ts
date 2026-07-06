@@ -99,31 +99,35 @@ export class CreditEstimateQueryDto {
 }
 
 /**
- * DTO for locking/unlocking nodes
+ * DTO for the collapsed node lock/unlock PATCH.
+ *
+ * Replaces the former `POST /workflows/:id/nodes/lock` and `/nodes/unlock`
+ * RPC routes (#1354). `lock` adds node ids to the workflow's locked set,
+ * `unlock` removes them; both are optional so a single PATCH can do either or
+ * both.
  */
-export class LockNodesDto {
+export class PatchWorkflowNodesDto {
   @IsArray()
   @IsString({ each: true })
+  @IsOptional()
   @ApiProperty({
-    description: 'Node IDs to lock',
+    description: 'Node IDs to lock (skip execution, use cached output)',
     example: ['node-1', 'node-2'],
+    required: false,
     type: [String],
   })
-  readonly nodeIds!: string[];
-}
+  readonly lock?: string[];
 
-/**
- * DTO for unlocking nodes
- */
-export class UnlockNodesDto {
   @IsArray()
   @IsString({ each: true })
+  @IsOptional()
   @ApiProperty({
     description: 'Node IDs to unlock',
-    example: ['node-1', 'node-2'],
+    example: ['node-3'],
+    required: false,
     type: [String],
   })
-  readonly nodeIds!: string[];
+  readonly unlock?: string[];
 }
 
 /**

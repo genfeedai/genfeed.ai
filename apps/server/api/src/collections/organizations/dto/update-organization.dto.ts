@@ -1,12 +1,14 @@
 import { CreateOrganizationDto } from '@api/collections/organizations/dto/create-organization.dto';
 import { OrganizationCategory } from '@genfeedai/enums';
-import { ApiProperty, OmitType, PartialType } from '@nestjs/swagger';
+import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { IsBoolean, IsEnum, IsOptional } from 'class-validator';
 
-// Prefix is immutable once set — exclude from update DTO
-export class UpdateOrganizationDto extends PartialType(
-  OmitType(CreateOrganizationDto, ['prefix'] as const),
-) {
+// `prefix` is inherited from CreateOrganizationDto. It is immutable once set —
+// that guard (plus uniqueness) is enforced at runtime in
+// OrganizationsService.patch(), not via DTO-level field exclusion, since the
+// generic PATCH /organizations/:id route is also how a prefix gets set
+// (REST audit #1354 — folded from the removed POST /onboarding/prefix route).
+export class UpdateOrganizationDto extends PartialType(CreateOrganizationDto) {
   @IsBoolean()
   @IsOptional()
   @ApiProperty({

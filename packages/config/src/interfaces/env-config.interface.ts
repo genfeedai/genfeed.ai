@@ -85,8 +85,6 @@ export interface IEnvConfig {
   STRIPE_PAYG_CREDITS?: number;
   STRIPE_MONTHLY_CREDITS?: number;
   STRIPE_YEARLY_CREDITS?: number;
-  STRIPE_COUPON_CREDITS_PACKS_V2_PRO?: string;
-  STRIPE_COUPON_CREDITS_PACKS_V2_ENTERPRISE?: string;
 
   // === General AI ===
   AGENT_CONTEXT_COMPRESSION_ENABLED?: string;
@@ -271,6 +269,9 @@ export interface IEnvConfig {
   // === Beehiiv ===
   BEEHIIV_API_URL?: string;
 
+  // === dev.to / Forem ===
+  DEVTO_API_URL?: string;
+
   // === Unipile ===
   UNIPILE_API_BASE_URL?: string;
   UNIPILE_API_KEY?: string;
@@ -345,8 +346,8 @@ export interface IEnvConfig {
   VALIDATION_AUDIO_FORMATS?: string;
 
   // Stripe subscription plans
-  STRIPE_PRICE_SUBSCRIPTION_CREATOR_MONTHLY?: string;
   STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY?: string;
+  STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY?: string;
   STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY?: string;
   STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY?: string;
   STRIPE_BYOK_FEE_PERCENTAGE?: string;

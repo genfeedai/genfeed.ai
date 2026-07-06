@@ -15,9 +15,9 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AdsGatewayController } from '@api/services/ads-gateway/ads-gateway.controller';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import type { AdsAdapterContext } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -39,7 +39,6 @@ describe('AdsGatewayController', () => {
     listAdSets: ReturnType<typeof vi.fn>;
     listAds: ReturnType<typeof vi.fn>;
     listCampaigns: ReturnType<typeof vi.fn>;
-    pauseCampaign: ReturnType<typeof vi.fn>;
     updateCampaign: ReturnType<typeof vi.fn>;
   };
 
@@ -65,7 +64,6 @@ describe('AdsGatewayController', () => {
       listAdSets: vi.fn(),
       listAds: vi.fn(),
       listCampaigns: vi.fn(),
-      pauseCampaign: vi.fn(),
       updateCampaign: vi.fn(),
     };
 
@@ -262,30 +260,6 @@ describe('AdsGatewayController', () => {
         expect.objectContaining({
           timeRange: { since: '2026-03-01', until: '2026-03-14' },
         }),
-      );
-    });
-  });
-
-  // ─── pauseCampaign ────────────────────────────────────────────────────────
-
-  describe('pauseCampaign', () => {
-    it('should call adapter.pauseCampaign and return { success: true }', async () => {
-      mockAdapter.pauseCampaign.mockResolvedValue(undefined);
-
-      const result = await controller.pauseCampaign(
-        mockUser,
-        'meta',
-        'camp_2',
-        {
-          adAccountId: validAdAccountId,
-          credentialId: validCredentialId,
-        },
-      );
-
-      expect(result).toEqual({ success: true });
-      expect(mockAdapter.pauseCampaign).toHaveBeenCalledWith(
-        expect.objectContaining({ adAccountId: validAdAccountId }),
-        'camp_2',
       );
     });
   });

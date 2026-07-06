@@ -1495,102 +1495,67 @@ export async function mockWorkspaceTasks(
       return;
     }
 
-    const approveMatch = pathname.match(/\/tasks\/([^/]+)\/approve$/);
-    if (method === 'PATCH' && approveMatch) {
-      const [, taskId] = approveMatch;
-      tasks = tasks.map((task) =>
-        task.id === taskId
-          ? {
-              ...task,
-              completedAt: new Date().toISOString(),
-              reviewState: 'approved',
-              status: 'completed',
-              updatedAt: new Date().toISOString(),
-            }
-          : task,
-      );
-      const task = tasks.find((item) => item.id === taskId);
-      if (!task) {
-        await route.fulfill({
-          body: JSON.stringify({ message: `Task ${taskId} not found.` }),
-          contentType: 'application/json',
-          status: 404,
-        });
-        return;
-      }
-
-      await route.fulfill({
-        body: JSON.stringify(
-          buildJsonApiDocument('workspace-task', task.id, task),
-        ),
-        contentType: 'application/json',
-        status: 200,
-      });
-      return;
-    }
-
-    const requestChangesMatch = pathname.match(
-      /\/tasks\/([^/]+)\/request-changes$/,
-    );
-    if (method === 'PATCH' && requestChangesMatch) {
-      const [, taskId] = requestChangesMatch;
+    // Review transitions are now field updates on the task resource:
+    // PATCH /tasks/:id { reviewState: 'approved' | 'changes_requested' | 'dismissed' }
+    const reviewMatch = pathname.match(/\/tasks\/([^/]+)$/);
+    if (method === 'PATCH' && reviewMatch) {
+      const [, taskId] = reviewMatch;
       const payload = extractRequestPayload(route);
-      const reason = String(
-        payload.reason ?? 'Please revise this task from the workspace inbox.',
-      );
-
-      tasks = tasks.map((task) =>
-        task.id === taskId
-          ? {
-              ...task,
-              requestedChangesReason: reason,
-              reviewState: 'changes_requested',
-              status: 'needs_review',
-              updatedAt: new Date().toISOString(),
-            }
-          : task,
-      );
-      const task = tasks.find((item) => item.id === taskId);
-      if (!task) {
-        await route.fulfill({
-          body: JSON.stringify({ message: `Task ${taskId} not found.` }),
-          contentType: 'application/json',
-          status: 404,
-        });
-        return;
-      }
-
-      await route.fulfill({
-        body: JSON.stringify(
-          buildJsonApiDocument('workspace-task', task.id, task),
-        ),
-        contentType: 'application/json',
-        status: 200,
-      });
-      return;
-    }
-
-    const dismissMatch = pathname.match(/\/tasks\/([^/]+)\/dismiss$/);
-    if (method === 'PATCH' && dismissMatch) {
-      const [, taskId] = dismissMatch;
-      const payload = extractRequestPayload(route);
-      const reason =
-        typeof payload.reason === 'string' && payload.reason.length > 0
-          ? payload.reason
+      const reviewState =
+        typeof payload.reviewState === 'string'
+          ? payload.reviewState
           : undefined;
 
-      tasks = tasks.map((task) =>
-        task.id === taskId
-          ? {
-              ...task,
-              dismissedAt: new Date().toISOString(),
-              failureReason: reason,
-              reviewState: 'dismissed',
-              status: 'dismissed',
-              updatedAt: new Date().toISOString(),
-            }
-          : task,
-      );
+      if (reviewState === 'approved') {
+        tasks = tasks.map((task) =>
+          task.id === taskId
+            ? {
+                ...task,
+                completedAt: new Date().toISOString(),
+                reviewState: 'approved',
+                status: 'completed',
+                updatedAt: new Date().toISOString(),
+              }
+            : task,
+        );
+      } else if (reviewState === 'changes_requested') {
+        const reason = String(
+          payload.reason ?? 'Please revise this task from the workspace inbox.',
+        );
+        tasks = tasks.map((task) =>
+          task.id === taskId
+            ? {
+                ...task,
+                requestedChangesReason: reason,
+                reviewState: 'changes_requested',
+                status: 'needs_review',
+                updatedAt: new Date().toISOString(),
+              }
+            : task,
+        );
+      } else if (reviewState === 'dismissed') {
+        const reason =
+          typeof payload.reason === 'string' && payload.reason.length > 0
+            ? payload.reason
+            : undefined;
+        tasks = tasks.map((task) =>
+          task.id === taskId
+            ? {
+                ...task,
+                dismissedAt: new Date().toISOString(),
+                failureReason: reason,
+                reviewState: 'dismissed',
+                status: 'dismissed',
+                updatedAt: new Date().toISOString(),
+              }
+            : task,
+        );
+      } else {
+        // Non-review PATCH — defer to the default handler.
+        await route.continue();
+        return;
+      }
+
       const task = tasks.find((item) => item.id === taskId);
       if (!task) {
         await route.fulfill({

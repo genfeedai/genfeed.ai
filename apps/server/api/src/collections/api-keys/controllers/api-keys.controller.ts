@@ -134,6 +134,12 @@ export class ApiKeysController {
         ...(query.description && {
           description: { mode: 'insensitive', contains: query.description },
         }),
+        ...(query.search && {
+          OR: [
+            { label: { mode: 'insensitive', contains: query.search } },
+            { description: { mode: 'insensitive', contains: query.search } },
+          ],
+        }),
       },
     };
 
@@ -141,38 +147,6 @@ export class ApiKeysController {
       limit: query.limit || 10,
       page: query.page || 1,
     });
-
-    return serializeCollection(request, ApiKeySerializer, result);
-  }
-
-  @Get('mcp')
-  @ApiOperation({ summary: 'Get MCP-specific API keys' })
-  @ApiResponse({
-    description: 'List of MCP API keys',
-    status: HttpStatus.OK,
-  })
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findMCPKeys(@Req() request: Request, @CurrentUser() user: User) {
-    const publicMetadata = getPublicMetadata(user);
-
-    const options = {
-      limit: 100,
-      page: 1,
-    };
-
-    // Find keys with MCP in label or description
-    const findAllQuery = {
-      where: {
-        OR: [
-          { label: { mode: 'insensitive', contains: 'mcp' } },
-          { description: { mode: 'insensitive', contains: 'mcp' } },
-        ],
-        isRevoked: false,
-        userId: publicMetadata.user,
-      },
-    };
-
-    const result = await this.apiKeysService.findAll(findAllQuery, options);
 
     return serializeCollection(request, ApiKeySerializer, result);
   }

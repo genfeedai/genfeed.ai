@@ -20,7 +20,7 @@ export default function MultiSelectSearchBar({
   onClear,
 }: MultiSelectSearchBarProps) {
   return (
-    <div className="sticky top-0 bg-[#141414] z-10 px-2 py-1.5 border-b border-white/10">
+    <div className="sticky top-0 bg-popover z-10 px-2 py-1.5 border-b border-white/10">
       <FormSearchbar
         value={searchTerm}
         onChange={onSearchChange}

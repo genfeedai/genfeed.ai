@@ -1,7 +1,6 @@
 import { CreateMonitoredAccountDto } from '@api/collections/monitored-accounts/dto/create-monitored-account.dto';
 import { UpdateMonitoredAccountDto } from '@api/collections/monitored-accounts/dto/update-monitored-account.dto';
 import type { MonitoredAccountDocument } from '@api/collections/monitored-accounts/schemas/monitored-account.schema';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { PopulateOption } from '@genfeedai/interfaces';
@@ -9,7 +8,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 type AccountConfig = {
-  isActive?: boolean;
   twitterUserId?: string;
   lastCheckedAt?: string;
   lastCheckedTweetId?: string;
@@ -56,51 +54,16 @@ export class MonitoredAccountsService extends BaseService<
   }
 
   /**
-   * Toggle the active status of a monitored account
-   */
-  async toggleActive(
-    id: string,
-    organizationId: string,
-    brandId?: string,
-  ): Promise<MonitoredAccountDocument> {
-    const account = await this.prisma.monitoredAccount.findFirst({
-      where: {
-        id,
-        isDeleted: false,
-        organizationId,
-        ...(brandId ? { brandId } : {}),
-      },
-    });
-
-    if (!account) {
-      throw new NotFoundException('Monitored account', id);
-    }
-
-    const config = (account.config as AccountConfig) ?? {};
-    const updated = await this.prisma.monitoredAccount.update({
-      where: { id },
-      data: { config: { ...config, isActive: !config.isActive } },
-    });
-
-    return updated as unknown as MonitoredAccountDocument;
-  }
-
-  /**
    * Find all active monitored accounts for an organization
    */
   async findActiveByOrganization(
     organizationId: string,
   ): Promise<MonitoredAccountDocument[]> {
     const accounts = await this.prisma.monitoredAccount.findMany({
-      where: { isDeleted: false, organizationId },
+      where: { isActive: true, isDeleted: false, organizationId },
     });
 
-    // isActive is stored in config JSON
-    const active = accounts.filter(
-      (a) => ((a.config as AccountConfig)?.isActive ?? true) !== false,
-    );
-
-    return active as unknown as MonitoredAccountDocument[];
+    return accounts as unknown as MonitoredAccountDocument[];
   }
 
   /**
@@ -195,15 +158,10 @@ export class MonitoredAccountsService extends BaseService<
     organizationId: string,
   ): Promise<MonitoredAccountDocument[]> {
     const accounts = await this.prisma.monitoredAccount.findMany({
-      where: { botConfigId, isDeleted: false, organizationId },
+      where: { botConfigId, isActive: true, isDeleted: false, organizationId },
     });
 
-    // filter by isActive from config
-    const active = accounts.filter(
-      (a) => ((a.config as AccountConfig)?.isActive ?? true) !== false,
-    );
-
-    return active as unknown as MonitoredAccountDocument[];
+    return accounts as unknown as MonitoredAccountDocument[];
   }
 
   /**

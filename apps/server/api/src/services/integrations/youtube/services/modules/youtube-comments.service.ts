@@ -1,7 +1,11 @@
+import {
+  asYoutubeRequestAuth,
+  type YoutubeRequestAuth,
+} from '@api/services/integrations/youtube/services/modules/youtube-api-auth.util';
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { google, youtube_v3 } from 'googleapis';
+import { google, type youtube_v3 } from 'googleapis';
 
 @Injectable()
 export class YoutubeCommentsService {
@@ -19,10 +23,12 @@ export class YoutubeCommentsService {
     organizationId: string,
     brandId: string,
   ): Promise<{
-    auth: Awaited<ReturnType<YoutubeAuthService['refreshToken']>>;
+    auth: YoutubeRequestAuth;
     channelId: string;
   }> {
-    const auth = await this.authService.refreshToken(organizationId, brandId);
+    const auth = asYoutubeRequestAuth(
+      await this.authService.refreshToken(organizationId, brandId),
+    );
 
     const channelResponse = await this.youtubeAPI.channels.list({
       auth,
@@ -190,7 +196,9 @@ export class YoutubeCommentsService {
         textLength: text.length,
       });
 
-      const auth = await this.authService.refreshToken(organizationId, brandId);
+      const auth = asYoutubeRequestAuth(
+        await this.authService.refreshToken(organizationId, brandId),
+      );
 
       const response = await this.youtubeAPI.comments.insert({
         auth,
@@ -241,7 +249,9 @@ export class YoutubeCommentsService {
     const url = `${this.constructorName} listVideoComments`;
 
     try {
-      const auth = await this.authService.refreshToken(organizationId, brandId);
+      const auth = asYoutubeRequestAuth(
+        await this.authService.refreshToken(organizationId, brandId),
+      );
       const response = await this.youtubeAPI.commentThreads.list({
         auth,
         maxResults: Math.min(Math.max(maxResults, 1), 100),
@@ -312,7 +322,9 @@ export class YoutubeCommentsService {
         textLength: text.length,
       });
 
-      const auth = await this.authService.refreshToken(organizationId, brandId);
+      const auth = asYoutubeRequestAuth(
+        await this.authService.refreshToken(organizationId, brandId),
+      );
       const response = await this.youtubeAPI.comments.insert({
         auth,
         part: ['snippet'],

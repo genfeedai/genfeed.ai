@@ -72,7 +72,7 @@ export function TrendingHashtags({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="space-y-1">
           <h3 className="text-lg font-semibold flex items-center gap-2">
-            <HiOutlineHashtag className="text-blue-500" />
+            <HiOutlineHashtag className="text-muted-foreground" />
             Trending Hashtags
           </h3>
           <p className="text-sm text-foreground/60">
@@ -125,7 +125,6 @@ export function TrendingHashtags({
               onClick={
                 onHashtagClick ? () => onHashtagClick(hashtag) : undefined
               }
-              className="hover:border-primary/40 hover:shadow-md"
               bodyClassName="p-4"
             >
               <div className="flex items-start justify-between mb-2">

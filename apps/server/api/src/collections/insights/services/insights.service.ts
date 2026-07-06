@@ -268,16 +268,19 @@ export class InsightsService {
     return active.length < limit;
   }
 
-  @HandleErrors('mark insight as read', 'insights')
-  async markAsRead(
+  /**
+   * Consolidated update behind `PATCH /insights/:id`. Merges the `isRead` /
+   * `isDismissed` flags into the insight's `data` JSON blob, preserving other
+   * keys. Replaces the former read/dismiss action routes.
+   */
+  @HandleErrors('update insight', 'insights')
+  async update(
     insightId: string,
     organizationId: string,
+    dto: { isDismissed?: boolean; isRead?: boolean },
   ): Promise<Insight> {
     try {
-      this.logger.debug('Marking insight as read', {
-        insightId,
-        organizationId,
-      });
+      this.logger.debug('Updating insight', { insightId, organizationId });
 
       const existing = await this.prisma.insight.findFirst({
         where: { id: insightId, isDeleted: false, organizationId },
@@ -288,45 +291,20 @@ export class InsightsService {
       const data = (existing.data as InsightData) ?? {};
       const insight = await this.prisma.insight.update({
         where: { id: insightId },
-        data: { data: { ...data, isRead: true } },
+        data: {
+          data: {
+            ...data,
+            ...(dto.isRead !== undefined ? { isRead: dto.isRead } : {}),
+            ...(dto.isDismissed !== undefined
+              ? { isDismissed: dto.isDismissed }
+              : {}),
+          },
+        },
       });
 
       return insight as unknown as Insight;
     } catch (error: unknown) {
-      this.logger.error('Failed to mark insight as read', { error, insightId });
-      throw error;
-    }
-  }
-
-  @HandleErrors('mark insight as dismissed', 'insights')
-  async markAsDismissed(
-    insightId: string,
-    organizationId: string,
-  ): Promise<Insight> {
-    try {
-      this.logger.debug('Marking insight as dismissed', {
-        insightId,
-        organizationId,
-      });
-
-      const existing = await this.prisma.insight.findFirst({
-        where: { id: insightId, isDeleted: false, organizationId },
-      });
-
-      if (!existing) throw new Error('Insight not found');
-
-      const data = (existing.data as InsightData) ?? {};
-      const insight = await this.prisma.insight.update({
-        where: { id: insightId },
-        data: { data: { ...data, isDismissed: true } },
-      });
-
-      return insight as unknown as Insight;
-    } catch (error: unknown) {
-      this.logger.error('Failed to mark insight as dismissed', {
-        error,
-        insightId,
-      });
+      this.logger.error('Failed to update insight', { error, insightId });
       throw error;
     }
   }

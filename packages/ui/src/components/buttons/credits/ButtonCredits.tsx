@@ -277,7 +277,7 @@ export default function ButtonCredits({
               isDisabled={isLoading}
               className={cn(
                 'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 transition-all text-white',
-                'hover:bg-white/10 border border-white/[0.08]',
+                'hover:bg-white/10 shadow-border',
                 isLoading && 'opacity-50 cursor-not-allowed',
               )}
               title="Refresh Balance"
@@ -299,7 +299,7 @@ export default function ButtonCredits({
               rel="noopener noreferrer"
               className={cn(
                 'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 transition-all text-white',
-                'bg-primary/10 hover:bg-primary/20 border border-primary/30',
+                'bg-primary/10 hover:bg-primary/20 shadow-border',
               )}
               onClick={() => setIsOpen(false)}
               title="Top Up Credits"

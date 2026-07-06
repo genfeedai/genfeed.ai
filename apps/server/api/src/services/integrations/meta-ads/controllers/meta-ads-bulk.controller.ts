@@ -15,15 +15,16 @@ import {
   getPublicMetadata,
 } from '@api/helpers/utils/auth/auth.util';
 import { AdBulkUploadService } from '@api/services/integrations/meta-ads/services/ad-bulk-upload.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform, MemberRole } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {
   Body,
   Controller,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -41,6 +42,10 @@ interface CreateBulkUploadBody {
   bodyCopies: string[];
   callToAction?: string;
   linkUrl: string;
+}
+
+interface UpdateBulkUploadJobBody {
+  status?: BulkUploadStatus;
 }
 
 @AutoSwagger()
@@ -124,9 +129,13 @@ export class MetaAdsBulkController {
     return job;
   }
 
-  @Post('jobs/:id/cancel')
+  @Patch('jobs/:id')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
-  async cancelJob(@CurrentUser() user: User, @Param('id') id: string) {
+  async updateJob(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() body: UpdateBulkUploadJobBody,
+  ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
 
@@ -140,7 +149,10 @@ export class MetaAdsBulkController {
       throw new NotFoundException('Bulk upload job', id);
     }
 
-    await this.adBulkUploadJobsService.updateStatus(id, 'cancelled');
+    if (body.status !== undefined) {
+      await this.adBulkUploadJobsService.updateStatus(id, body.status);
+    }
+
     return { success: true };
   }
 

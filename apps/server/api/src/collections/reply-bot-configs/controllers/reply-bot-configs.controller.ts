@@ -126,37 +126,6 @@ export class ReplyBotConfigsController extends BaseCRUDController<
     return Boolean(publicMetadata?.isSuperAdmin);
   }
 
-  /**
-   * Toggle the active status of a reply bot config
-   */
-  @Post(':id/toggle')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Toggle bot active status' })
-  @ApiResponse({ description: 'Bot status toggled successfully', status: 200 })
-  async toggleActive(
-    @Req() request: Request,
-    @Param('id') id: string,
-    @CurrentUser() user: User,
-  ) {
-    const publicMetadata = getPublicMetadata(user);
-    const config = await this.replyBotConfigsService.findOneById(
-      id,
-      publicMetadata.organization,
-      publicMetadata.brand,
-    );
-
-    if (!config) {
-      throw new Error('Reply bot config not found');
-    }
-
-    const data = await this.replyBotConfigsService.toggleActive(
-      id,
-      publicMetadata.organization,
-      publicMetadata.brand,
-    );
-    return serializeSingle(request, ReplyBotConfigSerializer, data);
-  }
-
   @Get(':id')
   async findOne(
     @Req() request: Request,

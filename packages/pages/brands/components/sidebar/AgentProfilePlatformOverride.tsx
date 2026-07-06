@@ -43,7 +43,7 @@ export default function AgentProfilePlatformOverride({
   onChange,
 }: AgentProfilePlatformOverrideProps) {
   return (
-    <div className="space-y-4 rounded-lg border border-border p-4">
+    <div className="space-y-4 rounded-lg bg-background-secondary p-4 shadow-border">
       <div className="flex items-center justify-between gap-3">
         <h4 className="text-sm font-medium">{label}</h4>
         <span className="text-xs text-muted-foreground">Optional override</span>

@@ -28,7 +28,7 @@ export function PresetOrganizationCell({ preset }: { preset: Preset }) {
   return (
     <Badge
       className={`text-xs border border-white/[0.08] bg-transparent uppercase ${
-        isOrgPreset ? 'text-primary' : 'text-warning'
+        isOrgPreset ? 'text-primary' : 'text-muted-foreground'
       }`}
     >
       {orgLabel}
