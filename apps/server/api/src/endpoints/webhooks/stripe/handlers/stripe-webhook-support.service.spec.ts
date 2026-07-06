@@ -134,6 +134,18 @@ describe('StripeWebhookSupportService', () => {
   });
 
   describe('withCheckoutSessionProcessing', () => {
+    it('builds a managed-inference credit reference from the checkout session id', () => {
+      expect(
+        service.buildCheckoutSessionCreditReference(
+          'managed-inference',
+          'cs_managed_1',
+        ),
+      ).toEqual({
+        referenceId: 'cs_managed_1',
+        referenceType: 'stripe-checkout-session:managed-inference',
+      });
+    });
+
     it('runs the callback under a session lock and marks the session processed', async () => {
       const callback = vi.fn().mockResolvedValue('done');
 

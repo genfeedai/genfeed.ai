@@ -306,6 +306,149 @@ describe('StripeCheckoutWebhookHandler', () => {
     });
   });
 
+  describe('handleCheckoutCompleted — managed inference', () => {
+    const email = 'ada@example.com';
+    const session = {
+      customer: 'cus_managed_1',
+      customer_details: { email },
+      id: 'cs_managed_1',
+      metadata: {
+        credits: '100',
+        firstName: 'Ada',
+        lastName: 'Lovelace',
+        type: 'managed_inference',
+      },
+    } as unknown as StripeCheckoutSession;
+
+    beforeEach(() => {
+      managedStripeCheckoutService.withProvisioningLock.mockImplementation(
+        async (_sessionId: string, fn: () => Promise<unknown>) => await fn(),
+      );
+      managedStripeCheckoutService.isSessionProvisioned.mockResolvedValue(
+        false,
+      );
+      managedStripeCheckoutService.getCheckoutResult.mockResolvedValue(null);
+      managedStripeCheckoutService.cacheCheckoutResult.mockResolvedValue(true);
+      managedStripeCheckoutService.markSessionProvisioned.mockResolvedValue(
+        true,
+      );
+      usersService.findOne.mockResolvedValue({
+        id: 'user_managed_1',
+        isOnboardingCompleted: false,
+        onboardingStepsCompleted: [],
+      });
+      organizationsService.findOne.mockResolvedValue({ id: 'org_managed_1' });
+      brandsService.findOne.mockResolvedValue({ id: 'brand_managed_1' });
+      organizationSettingsService.findOne.mockResolvedValue({
+        id: 'settings_managed_1',
+      });
+      organizationSettingsService.patch.mockResolvedValue({});
+      apiKeysService.findOne.mockResolvedValue({
+        id: 'key_managed_1',
+        scopes: [],
+      });
+      apiKeysService.patch.mockResolvedValue({});
+      usersService.patch.mockResolvedValue({});
+      supportService.recordCreditsActivity.mockResolvedValue(undefined);
+      accessBootstrapCacheService.invalidateForUser.mockResolvedValue(
+        undefined,
+      );
+    });
+
+    it('passes a managed-inference checkout reference into the credit grant', async () => {
+      await handler.handleCheckoutCompleted(session, 'test');
+
+      expect(supportService.addPurchasedCredits).toHaveBeenCalledWith(
+        'org_managed_1',
+        100,
+        'managed-inference',
+        expect.stringContaining('100 credits'),
+        {
+          referenceId: 'cs_managed_1',
+          referenceType: 'stripe-checkout-session:managed-inference',
+        },
+      );
+      expect(
+        managedStripeCheckoutService.cacheCheckoutResult,
+      ).toHaveBeenCalledWith(
+        'cs_managed_1',
+        expect.objectContaining({
+          organizationId: 'org_managed_1',
+          userId: 'user_managed_1',
+        }),
+      );
+      expect(
+        managedStripeCheckoutService.markSessionProvisioned,
+      ).toHaveBeenCalledWith('cs_managed_1');
+    });
+
+    it('does not throw when managed post-grant Redis writes fail', async () => {
+      managedStripeCheckoutService.cacheCheckoutResult.mockRejectedValueOnce(
+        new Error('redis unavailable'),
+      );
+      managedStripeCheckoutService.markSessionProvisioned.mockResolvedValueOnce(
+        false,
+      );
+
+      await expect(
+        handler.handleCheckoutCompleted(session, 'test'),
+      ).resolves.toBeUndefined();
+
+      expect(supportService.addPurchasedCredits).toHaveBeenCalledTimes(1);
+      expect(supportService.recordCreditsActivity).toHaveBeenCalledTimes(1);
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining('failed to cache managed checkout result'),
+        expect.objectContaining({
+          error: 'redis unavailable',
+          sessionId: 'cs_managed_1',
+        }),
+      );
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'failed to mark managed checkout session as provisioned',
+        ),
+        expect.objectContaining({ sessionId: 'cs_managed_1' }),
+      );
+    });
+
+    it('does not record duplicate managed credit activity on a retry after Redis marker failures', async () => {
+      managedStripeCheckoutService.cacheCheckoutResult.mockRejectedValue(
+        new Error('redis unavailable'),
+      );
+      managedStripeCheckoutService.markSessionProvisioned.mockResolvedValue(
+        false,
+      );
+      supportService.addPurchasedCredits
+        .mockResolvedValueOnce(true)
+        .mockResolvedValueOnce(false);
+
+      await handler.handleCheckoutCompleted(session, 'test');
+      await handler.handleCheckoutCompleted(session, 'test');
+
+      expect(supportService.addPurchasedCredits).toHaveBeenCalledTimes(2);
+      expect(supportService.addPurchasedCredits).toHaveBeenNthCalledWith(
+        2,
+        'org_managed_1',
+        100,
+        'managed-inference',
+        expect.stringContaining('100 credits'),
+        {
+          referenceId: 'cs_managed_1',
+          referenceType: 'stripe-checkout-session:managed-inference',
+        },
+      );
+      expect(supportService.recordCreditsActivity).toHaveBeenCalledTimes(1);
+      expect(loggerService.log).toHaveBeenCalledWith(
+        expect.stringContaining('managed checkout credit grant already exists'),
+        expect.objectContaining({
+          organizationId: 'org_managed_1',
+          sessionId: 'cs_managed_1',
+          userId: 'user_managed_1',
+        }),
+      );
+    });
+  });
+
   describe('handleCheckoutCompleted — user credits', () => {
     const session = {
       customer: 'cus_user',
@@ -470,7 +613,7 @@ describe('StripeCheckoutWebhookHandler', () => {
       brandsService.findOne.mockResolvedValue({ id: 'brand_1' });
       organizationSettingsService.findOne.mockResolvedValue({ id: 'os_1' });
       organizationSettingsService.patch.mockResolvedValue({});
-      supportService.addPurchasedCredits.mockResolvedValue(undefined);
+      supportService.addPurchasedCredits.mockResolvedValue(true);
       apiKeysService.findOne.mockResolvedValue({ id: 'key_1', scopes: [] });
       apiKeysService.patch.mockResolvedValue({});
       usersService.patch.mockResolvedValue({});
@@ -595,7 +738,41 @@ describe('StripeCheckoutWebhookHandler', () => {
       // Resources already exist, so the defensive setup fallback never fires …
       expect(userSetupService.initializeUserResources).not.toHaveBeenCalled();
       // … but the purchased credits are still granted.
-      expect(supportService.addPurchasedCredits).toHaveBeenCalled();
+      expect(supportService.addPurchasedCredits).toHaveBeenCalledWith(
+        'org_1',
+        100,
+        'managed-inference',
+        expect.stringContaining('100 credits'),
+        {
+          referenceId: 'cs_test_1',
+          referenceType: 'stripe-checkout-session:managed-inference',
+        },
+      );
+    });
+
+    it('skips duplicate managed credit activity when the grant already exists', async () => {
+      usersService.findOne.mockResolvedValue({
+        id: 'user_existing_1',
+        isOnboardingCompleted: true,
+        onboardingStepsCompleted: ['brand', 'plan'],
+      });
+      supportService.addPurchasedCredits.mockResolvedValueOnce(false);
+
+      await provisionAccessor().provisionManagedCheckoutAccount(
+        session as never,
+        email,
+        'test',
+      );
+
+      expect(supportService.recordCreditsActivity).not.toHaveBeenCalled();
+      expect(loggerService.log).toHaveBeenCalledWith(
+        expect.stringContaining('managed checkout credit grant already exists'),
+        expect.objectContaining({
+          organizationId: 'org_1',
+          sessionId: 'cs_test_1',
+          userId: 'user_existing_1',
+        }),
+      );
     });
   });
 });

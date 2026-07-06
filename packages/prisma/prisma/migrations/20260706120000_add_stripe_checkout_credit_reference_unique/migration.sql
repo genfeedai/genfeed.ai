@@ -11,5 +11,6 @@ CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "credit_transactions_stripe_check
     AND "referenceId" IS NOT NULL
     AND "referenceType" IN (
       'stripe-checkout-session:organization-payment',
+      'stripe-checkout-session:managed-inference',
       'stripe-checkout-session:user-credit'
     );
