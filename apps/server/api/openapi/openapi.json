@@ -17689,6 +17689,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "Combined label/description case-insensitive search",
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -17730,26 +17739,6 @@
           }
         ],
         "summary": "Create a new API key",
-        "tags": [
-          "API Keys"
-        ]
-      }
-    },
-    "/api-keys/mcp": {
-      "get": {
-        "operationId": "ApiKeysController.findMCPKeys",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "List of MCP API keys"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Get MCP-specific API keys",
         "tags": [
           "API Keys"
         ]
@@ -19472,39 +19461,6 @@
           }
         },
         "summary": "Get bot activities with pagination and filters",
-        "tags": [
-          "bot-activities",
-          "Bot Activities"
-        ]
-      }
-    },
-    "/bot-activities/recent/{configId}": {
-      "get": {
-        "operationId": "BotActivitiesController.getRecentByConfig",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "configId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "required": true,
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Returns recent activities"
-          }
-        },
-        "summary": "Get recent activities for a bot config",
         "tags": [
           "bot-activities",
           "Bot Activities"
@@ -24251,268 +24207,6 @@
         ]
       }
     },
-    "/content-intelligence/patterns/hooks": {
-      "get": {
-        "operationId": "PatternsController.findHooks",
-        "parameters": [
-          {
-            "description": "Filter by platform",
-            "in": "query",
-            "name": "platform",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/ContentIntelligencePlatform"
-            }
-          },
-          {
-            "description": "Filter by pattern type",
-            "in": "query",
-            "name": "patternType",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/ContentPatternType"
-            }
-          },
-          {
-            "description": "Filter by template category",
-            "in": "query",
-            "name": "templateCategory",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/TemplateCategory"
-            }
-          },
-          {
-            "description": "Filter by source creator",
-            "in": "query",
-            "name": "sourceCreator",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by tags",
-            "in": "query",
-            "name": "tags",
-            "required": false,
-            "schema": {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
-          },
-          {
-            "description": "Minimum relevance weight",
-            "in": "query",
-            "name": "minRelevanceWeight",
-            "required": false,
-            "schema": {
-              "maximum": 1,
-              "minimum": 0,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Minimum engagement rate from source",
-            "in": "query",
-            "name": "minEngagementRate",
-            "required": false,
-            "schema": {
-              "minimum": 0,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of results per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 20,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Page number",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Sort field",
-            "in": "query",
-            "name": "sortBy",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Sort order",
-            "in": "query",
-            "name": "sortOrder",
-            "required": false,
-            "schema": {
-              "default": "desc",
-              "enum": [
-                "asc",
-                "desc"
-              ],
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findHooks",
-        "tags": [
-          "content-intelligence/patterns"
-        ]
-      }
-    },
-    "/content-intelligence/patterns/templates": {
-      "get": {
-        "operationId": "PatternsController.findTemplates",
-        "parameters": [
-          {
-            "description": "Filter by platform",
-            "in": "query",
-            "name": "platform",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/ContentIntelligencePlatform"
-            }
-          },
-          {
-            "description": "Filter by pattern type",
-            "in": "query",
-            "name": "patternType",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/ContentPatternType"
-            }
-          },
-          {
-            "description": "Filter by template category",
-            "in": "query",
-            "name": "templateCategory",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/TemplateCategory"
-            }
-          },
-          {
-            "description": "Filter by source creator",
-            "in": "query",
-            "name": "sourceCreator",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by tags",
-            "in": "query",
-            "name": "tags",
-            "required": false,
-            "schema": {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
-          },
-          {
-            "description": "Minimum relevance weight",
-            "in": "query",
-            "name": "minRelevanceWeight",
-            "required": false,
-            "schema": {
-              "maximum": 1,
-              "minimum": 0,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Minimum engagement rate from source",
-            "in": "query",
-            "name": "minEngagementRate",
-            "required": false,
-            "schema": {
-              "minimum": 0,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of results per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 20,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Page number",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Sort field",
-            "in": "query",
-            "name": "sortBy",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Sort order",
-            "in": "query",
-            "name": "sortOrder",
-            "required": false,
-            "schema": {
-              "default": "desc",
-              "enum": [
-                "asc",
-                "desc"
-              ],
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findTemplates",
-        "tags": [
-          "content-intelligence/patterns"
-        ]
-      }
-    },
     "/content-intelligence/patterns/{id}": {
       "delete": {
         "operationId": "PatternsController.remove",
@@ -25706,26 +25400,18 @@
             "schema": {
               "type": "string"
             }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findAll",
-        "tags": [
-          "creative-patterns"
-        ]
-      }
-    },
-    "/creative-patterns/brand/{brandId}": {
-      "get": {
-        "operationId": "CreativePatternsController.findTopForBrand",
-        "parameters": [
+          },
           {
-            "in": "path",
+            "in": "query",
             "name": "brandId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "top",
             "required": true,
             "schema": {
               "type": "string"
@@ -25745,7 +25431,7 @@
             "description": ""
           }
         },
-        "summary": "findTopForBrand",
+        "summary": "findAll",
         "tags": [
           "creative-patterns"
         ]
@@ -28367,28 +28053,6 @@
       }
     },
     "/evaluations/articles/{articleId}": {
-      "get": {
-        "operationId": "EvaluationsController.getArticleEvaluations",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "articleId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "getArticleEvaluations",
-        "tags": [
-          "evaluations"
-        ]
-      },
       "post": {
         "operationId": "EvaluationsController.evaluateArticle",
         "parameters": [
@@ -28473,28 +28137,6 @@
       }
     },
     "/evaluations/images/{imageId}": {
-      "get": {
-        "operationId": "EvaluationsController.getImageEvaluations",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "imageId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "getImageEvaluations",
-        "tags": [
-          "evaluations"
-        ]
-      },
       "post": {
         "operationId": "EvaluationsController.evaluateImage",
         "parameters": [
@@ -28529,28 +28171,6 @@
       }
     },
     "/evaluations/posts/{postId}": {
-      "get": {
-        "operationId": "EvaluationsController.getPostEvaluations",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "postId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "getPostEvaluations",
-        "tags": [
-          "evaluations"
-        ]
-      },
       "post": {
         "operationId": "EvaluationsController.evaluatePost",
         "parameters": [
@@ -28585,28 +28205,6 @@
       }
     },
     "/evaluations/videos/{videoId}": {
-      "get": {
-        "operationId": "EvaluationsController.getVideoEvaluations",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "videoId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "getVideoEvaluations",
-        "tags": [
-          "evaluations"
-        ]
-      },
       "post": {
         "operationId": "EvaluationsController.evaluateVideo",
         "parameters": [
@@ -29465,6 +29063,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "isActive",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -29496,30 +29102,6 @@
           }
         },
         "summary": "create",
-        "tags": [
-          "Harness Profiles"
-        ]
-      }
-    },
-    "/harness-profiles/active": {
-      "get": {
-        "operationId": "HarnessProfilesController.getActiveForBrand",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "brandId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "getActiveForBrand",
         "tags": [
           "Harness Profiles"
         ]
@@ -29803,9 +29385,9 @@
         ]
       }
     },
-    "/hook-remix/{jobId}/status": {
+    "/hook-remix/{jobId}": {
       "get": {
-        "operationId": "HookRemixController.getJobStatus",
+        "operationId": "HookRemixController.getJob",
         "parameters": [
           {
             "in": "path",
@@ -29821,7 +29403,7 @@
             "description": ""
           }
         },
-        "summary": "Get hook remix job status",
+        "summary": "Get a hook remix job",
         "tags": [
           "hook-remix",
           "Hook Remix"
@@ -31640,10 +31222,26 @@
         ]
       }
     },
-    "/members/invitations/pending": {
+    "/members/invitations": {
       "get": {
         "operationId": "MembersController.listInvitations",
-        "parameters": [],
+        "parameters": [
+          {
+            "description": "Filter invitations by status",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "enum": [
+                "accepted",
+                "expired",
+                "pending",
+                "revoked"
+              ],
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -38050,21 +37648,6 @@
           }
         },
         "summary": "create",
-        "tags": [
-          "Profiles"
-        ]
-      }
-    },
-    "/profiles/default": {
-      "get": {
-        "operationId": "ProfilesController.getDefault",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "getDefault",
         "tags": [
           "Profiles"
         ]
@@ -44618,31 +44201,6 @@
         ]
       }
     },
-    "/tasks/inbox": {
-      "get": {
-        "operationId": "TasksController.inbox",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "limit",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "inbox",
-        "tags": [
-          "tasks",
-          "Tasks"
-        ]
-      }
-    },
     "/tasks/{id}": {
       "delete": {
         "operationId": "TasksController.remove",
@@ -45111,6 +44669,28 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "Sort order. Use \"popular\" to rank by usage/rating (replaces GET /templates/popular)",
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "enum": [
+                "popular"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Maximum number of templates to return",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "minimum": 1,
+              "type": "number"
+            }
           }
         ],
         "responses": {
@@ -45142,201 +44722,6 @@
           }
         },
         "summary": "create",
-        "tags": [
-          "Templates"
-        ]
-      }
-    },
-    "/templates/popular": {
-      "get": {
-        "operationId": "TemplatesController.getPopularTemplates",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "limit",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "getPopularTemplates",
-        "tags": [
-          "Templates"
-        ]
-      }
-    },
-    "/templates/prompts": {
-      "get": {
-        "operationId": "TemplatesController.listPromptTemplates",
-        "parameters": [
-          {
-            "description": "Filter by template purpose",
-            "in": "query",
-            "name": "purpose",
-            "required": false,
-            "schema": {
-              "enum": [
-                "content",
-                "prompt"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by prompt template key",
-            "in": "query",
-            "name": "key",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by unified category",
-            "in": "query",
-            "name": "category",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/TemplateCategory"
-            }
-          },
-          {
-            "description": "Filter by industry",
-            "in": "query",
-            "name": "industry",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by platform",
-            "in": "query",
-            "name": "platform",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by scope",
-            "in": "query",
-            "name": "scope",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/AssetScope"
-            }
-          },
-          {
-            "description": "Filter by featured status",
-            "in": "query",
-            "name": "isFeatured",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Search query",
-            "in": "query",
-            "name": "search",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "listPromptTemplates",
-        "tags": [
-          "Templates"
-        ]
-      },
-      "post": {
-        "operationId": "TemplatesController.createPromptTemplate",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateTemplateDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "createPromptTemplate",
-        "tags": [
-          "Templates"
-        ]
-      }
-    },
-    "/templates/prompts/{templateId}": {
-      "delete": {
-        "operationId": "TemplatesController.removePromptTemplate",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "templateId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "removePromptTemplate",
-        "tags": [
-          "Templates"
-        ]
-      },
-      "patch": {
-        "operationId": "TemplatesController.updatePromptTemplate",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "templateId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateTemplateDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "updatePromptTemplate",
         "tags": [
           "Templates"
         ]

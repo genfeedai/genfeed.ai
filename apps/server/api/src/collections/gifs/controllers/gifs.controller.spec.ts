@@ -14,7 +14,9 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 vi.mock('@api/helpers/utils/sort/sort.util', () => ({
-  handleQuerySort: vi.fn(() => ({ createdAt: -1 })),
+  handleQuerySort: vi.fn((sort?: string) =>
+    sort ? { createdAt: -1 } : { createdAt: -1 },
+  ),
 }));
 
 vi.mock('@api/helpers/utils/pagination/pagination.util', () => ({
@@ -24,7 +26,13 @@ vi.mock('@api/helpers/utils/pagination/pagination.util', () => ({
 vi.mock('@api/helpers/utils/query-defaults/query-defaults.util', () => ({
   QueryDefaultsUtil: {
     getIsDeletedDefault: vi.fn((val: boolean) => val ?? false),
-    getPaginationDefaults: vi.fn(() => ({ limit: 10, page: 1 })),
+    getPaginationDefaults: vi.fn(
+      (query: { limit?: number; page?: number; pagination?: boolean }) => ({
+        limit: query?.limit ?? 10,
+        page: query?.page ?? 1,
+        pagination: query?.pagination ?? true,
+      }),
+    ),
     parseStatusFilter: vi.fn(
       (val: unknown) => val ?? { in: ['draft', 'uploaded', 'completed'] },
     ),
@@ -132,6 +140,22 @@ describe('GifsController', () => {
       const result = await controller.findAll(mockRequest, mockUser, query);
       expect(gifsService.findAll).toHaveBeenCalled();
       expect(result).toBeDefined();
+    });
+
+    it('should support collapsed "latest" queries via sort/limit/pagination params', async () => {
+      const query = {
+        limit: 10,
+        pagination: false,
+        sort: 'createdAt: -1',
+      } as unknown as Parameters<typeof controller.findAll>[2];
+      await controller.findAll(mockRequest, mockUser, query);
+      expect(gifsService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { createdAt: -1 },
+          where: expect.any(Object),
+        }),
+        expect.objectContaining({ limit: 10, pagination: false }),
+      );
     });
 
     it('should apply search filter when search query provided', async () => {

@@ -243,7 +243,7 @@ export class TemplateService extends BaseService<IContentTemplate> {
   async getPopularTemplates(limit = 10): Promise<IContentTemplate[]> {
     try {
       return await this.instance
-        .get<JsonApiResponseDocument>(`popular?limit=${limit}`)
+        .get<JsonApiResponseDocument>(`?sort=popular&limit=${limit}`)
         .then((res) => res.data)
         .then((data) => this.mapMany(data));
     } catch (error) {

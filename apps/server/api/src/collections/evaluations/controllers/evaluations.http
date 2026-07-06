@@ -48,26 +48,26 @@ Content-Type: application/json
 
 
 ########################################
-# Get Evaluations (GET)
+# Get Evaluations (GET, collapsed list endpoint)
 ########################################
 
 ### Get Post Evaluations
-GET {{apiBaseUrl}}/evaluations/posts/{{testPostId}}
+GET {{apiBaseUrl}}/evaluations?entityType=posts&entityId={{testPostId}}
 Authorization: Bearer {{bearerToken}}
 
 
 ### Get Article Evaluations
-GET {{apiBaseUrl}}/evaluations/articles/{{testArticleId}}
+GET {{apiBaseUrl}}/evaluations?entityType=articles&entityId={{testArticleId}}
 Authorization: Bearer {{bearerToken}}
 
 
 ### Get Image Evaluations
-GET {{apiBaseUrl}}/evaluations/images/{{testImageId}}
+GET {{apiBaseUrl}}/evaluations?entityType=images&entityId={{testImageId}}
 Authorization: Bearer {{bearerToken}}
 
 
 ### Get Video Evaluations
-GET {{apiBaseUrl}}/evaluations/videos/{{testVideoId}}
+GET {{apiBaseUrl}}/evaluations?entityType=videos&entityId={{testVideoId}}
 Authorization: Bearer {{bearerToken}}
 
 
@@ -129,4 +129,4 @@ Authorization: Bearer {{bearerToken}}
 
 
 ### Test: Unauthorized Access
-GET {{apiBaseUrl}}/evaluations/posts/{{testPostId}}
+GET {{apiBaseUrl}}/evaluations?entityType=posts&entityId={{testPostId}}

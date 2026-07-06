@@ -307,12 +307,12 @@ describe('InvitationService', () => {
     });
   });
 
-  describe('listPendingInvitations', () => {
-    it('returns only pending invitation views from Prisma results', async () => {
+  describe('listInvitations', () => {
+    it('filters by pending status when requested', async () => {
       const { prisma, service } = buildService();
       prisma.invitation.findMany.mockResolvedValue([makeInvitation()]);
 
-      const result = await service.listPendingInvitations(orgId);
+      const result = await service.listInvitations(orgId, 'pending');
 
       expect(prisma.invitation.findMany).toHaveBeenCalledWith({
         orderBy: { createdAt: 'desc' },
@@ -330,6 +330,21 @@ describe('InvitationService', () => {
           status: 'pending',
         }),
       ]);
+    });
+
+    it('returns all invitations when no status filter is provided', async () => {
+      const { prisma, service } = buildService();
+      prisma.invitation.findMany.mockResolvedValue([makeInvitation()]);
+
+      await service.listInvitations(orgId);
+
+      expect(prisma.invitation.findMany).toHaveBeenCalledWith({
+        orderBy: { createdAt: 'desc' },
+        where: {
+          isDeleted: false,
+          organizationId: orgId,
+        },
+      });
     });
   });
 

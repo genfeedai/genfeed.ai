@@ -44,7 +44,7 @@ const mockMembersService = {
 
 const mockInvitationService = {
   createInvitation: vi.fn(),
-  listPendingInvitations: vi.fn(),
+  listInvitations: vi.fn(),
   resendInvitation: vi.fn(),
   revokeInvitation: vi.fn(),
 } as unknown as InvitationService;
@@ -69,25 +69,29 @@ describe('MembersController — invitation endpoints', () => {
     vi.clearAllMocks();
   });
 
-  describe('GET /members/invitations/pending', () => {
+  describe('GET /members/invitations', () => {
     it('throws 400 when organization missing', async () => {
       const controller = buildController();
 
       await expect(
-        controller.listInvitations(makeUser({ organization: undefined })),
+        controller.listInvitations({}, makeUser({ organization: undefined })),
       ).rejects.toThrow(HttpException);
     });
 
-    it('returns pending invitations for current org', async () => {
+    it('returns invitations for current org filtered by status', async () => {
       const controller = buildController();
-      vi.mocked(mockInvitationService.listPendingInvitations).mockResolvedValue(
-        [invitation],
+      vi.mocked(mockInvitationService.listInvitations).mockResolvedValue([
+        invitation,
+      ]);
+
+      const result = await controller.listInvitations(
+        { status: 'pending' },
+        makeUser(),
       );
 
-      const result = await controller.listInvitations(makeUser());
-
-      expect(mockInvitationService.listPendingInvitations).toHaveBeenCalledWith(
+      expect(mockInvitationService.listInvitations).toHaveBeenCalledWith(
         orgId,
+        'pending',
       );
       expect(result).toEqual({
         data: [
@@ -99,6 +103,20 @@ describe('MembersController — invitation endpoints', () => {
           },
         ],
       });
+    });
+
+    it('returns all invitations when no status filter is provided', async () => {
+      const controller = buildController();
+      vi.mocked(mockInvitationService.listInvitations).mockResolvedValue([
+        invitation,
+      ]);
+
+      await controller.listInvitations({}, makeUser());
+
+      expect(mockInvitationService.listInvitations).toHaveBeenCalledWith(
+        orgId,
+        undefined,
+      );
     });
   });
 
