@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import ModelsLayoutContent from './models-layout-content';
@@ -28,6 +28,11 @@ describe('ModelsLayoutContent', () => {
   });
 
   it('should apply correct styles and classes', () => {
-    // TODO: Add style tests
+    render(<ModelsLayoutContent />);
+
+    const imagesTab = screen.getByRole('link', { name: 'Images' });
+
+    expect(imagesTab).toHaveClass('data-[variant=default]:text-foreground/70');
+    expect(imagesTab).not.toHaveClass('data-[variant=default]:text-secondary');
   });
 });
