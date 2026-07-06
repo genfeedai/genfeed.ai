@@ -14,9 +14,9 @@ This file provides context for AI agents working on deployment-related tasks. It
 
 ## Architecture Notes
 
-- **Single-tenant default:** One organization per deployment. No tenant isolation logic needed outside `ee/`.
-- **Enterprise multi-tenancy:** Available via `ee/packages/`. All multi-tenant data access code must live under `ee/` or import from `ee/packages/`.
-- **Server apps:** `apps/server/{api,clips,discord,files,images,mcp,notifications,slack,telegram,videos,voices,workers}`
+- **Single-tenant default:** One organization per deployment. Auth/request context still flows through the OSS API guard stack; self-hosted product behavior should not expose org switching as a multi-tenant product surface.
+- **Enterprise multi-tenancy:** SaaS/EE product controls belong in `ee/`; deployment-mode-agnostic org guards and query filters live in the OSS API. There is no `ee/packages/multi-tenancy` package on `origin/master`.
+- **Server apps:** `apps/server/{api,discord,files,images,mcp,notifications,slack,telegram,videos,voices,workers}`. `apps/server/clips/` is not currently a package workspace.
 - **Frontend apps:** `apps/app`, `apps/docs`, `apps/website`, `apps/desktop/app`, `apps/mobile/app`, and `apps/extensions/{browser,ide}/app`
 - **Database:** PostgreSQL via Prisma
 - **Queue:** BullMQ via Redis

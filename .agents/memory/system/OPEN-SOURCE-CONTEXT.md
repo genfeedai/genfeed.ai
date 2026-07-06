@@ -11,13 +11,13 @@ Genfeed.ai is a self-hosted single-tenant application by default. One organizati
 
 ## Enterprise Multi-Tenancy
 
-Multi-tenant organization controls are available under commercial license in `ee/packages/`.
+Multi-tenant organization controls are a SaaS/EE product boundary. Current source truth after #1093: request auth, request context, and org-scoped query enforcement live in the OSS API because they are deployment-mode-agnostic infrastructure. There is no `ee/packages/multi-tenancy` package on `origin/master`.
 
-**Repo invariant:** All multi-tenant data access code must live under `ee/` or import from `ee/packages/`.
+**Repo invariant:** do not add a new separable `ee/packages/multi-tenancy` scaffold. Put deployment-mode-agnostic auth/query enforcement in the OSS API and keep product entitlements, billing, quotas, and commercial-only controls in `ee/`.
 
 This means:
 
-- Organization-scoped query enforcement for data isolation belongs in `ee/`
+- Organization-scoped query enforcement belongs with the OSS API request/auth path unless a concrete commercial-only feature needs an `ee/` adapter
 - Billing, quotas, and team management belong in `ee/`
 - The core OSS code should work with a single implicit organization
 
@@ -47,7 +47,7 @@ Key points:
 | Routine engine + workflow-backed scheduling | Yes | --                 |
 | Personal feedback memory                    | Yes | --                 |
 | Single-tenant deployment                    | Yes | --                 |
-| Multi-tenant org isolation                  | --  | Yes                |
+| Multi-tenant product surface                | --  | Yes                |
 | Team/role management                        | --  | Yes                |
 | Shared review queue                         | --  | Yes                |
 | Org-shared memory + governance              | --  | Yes                |
