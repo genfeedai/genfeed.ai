@@ -184,11 +184,54 @@ describe('TrendsList', () => {
   it('renders summary stats bar', () => {
     render(<TrendsList />);
 
-    expect(screen.getByText('Total Posts')).toBeInTheDocument();
-    expect(screen.getByText('Trend Topics')).toBeInTheDocument();
+    expect(screen.getByText(/Total posts/i)).toBeInTheDocument();
+    expect(screen.getByText(/Trend topics/i)).toBeInTheDocument();
     expect(screen.getByText('Connected')).toBeInTheDocument();
     expect(screen.getAllByText('3')).toHaveLength(2);
     expect(screen.getByText('2')).toBeInTheDocument();
+  });
+
+  it('renders structured cards, table headers, and panel empty states when discovery has no data', () => {
+    mockUseTrendContent.mockReturnValue({
+      error: null,
+      isLoading: false,
+      isRefreshing: false,
+      items: [],
+      refreshTrendContent: vi.fn(),
+      summary: {
+        connectedPlatforms: [],
+        lockedPlatforms: ['instagram', 'tiktok'],
+        totalItems: 0,
+        totalTrends: 0,
+      },
+    });
+    mockUseQuery.mockReturnValue({
+      data: [],
+      error: null,
+      isLoading: false,
+      refetch: vi.fn(),
+    });
+
+    render(<TrendsList />);
+
+    expect(screen.getByText('Source coverage')).toBeInTheDocument();
+    expect(screen.getByText('Locked sources')).toBeInTheDocument();
+    expect(screen.getByText('Feed state')).toBeInTheDocument();
+    expect(
+      screen.getByText('No remixable trend content yet'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: 'Source' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: 'Content' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Refresh feed' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Hook pattern')).toBeInTheDocument();
+    expect(screen.getByText('Creator format')).toBeInTheDocument();
+    expect(screen.getByText('Remix angle')).toBeInTheDocument();
   });
 
   it('renders the search bar', () => {
