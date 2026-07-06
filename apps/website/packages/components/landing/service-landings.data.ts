@@ -60,6 +60,16 @@ export interface ServiceLandingConfig {
   faqs: ServiceLandingFaq[];
   closingTitle: string;
   closingDescription: string;
+  /**
+   * Price shown in the hero pill. Omit for public/funnel service pages — the
+   * vault keeps retainer pricing off the public site, so they fall back to a
+   * soft "scoped on a call" label. Set it only on direct-send pitch pages.
+   */
+  priceLabel?: string;
+  /** Secondary price line under {@link priceLabel} (e.g. "then $2,000 / month"). */
+  priceNote?: string;
+  /** Hero pill CTA hint. Defaults to "Book a call to scope it". */
+  priceCtaHint?: string;
 }
 
 const COMMON_SERVICE_PROCESS = contentServiceOffering.process;
@@ -126,7 +136,7 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
       },
       {
         answer:
-          'Engagements start at $2,500 per month and scale with content volume, channel complexity, and review requirements.',
+          'Pricing is scoped on the call around content volume, channel mix, and review load, so the engagement is sized to what you actually need.',
         question: 'What does pricing look like?',
       },
       {

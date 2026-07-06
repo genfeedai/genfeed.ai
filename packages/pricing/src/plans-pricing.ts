@@ -263,7 +263,8 @@ export const websitePlans: PricingPlanProps[] = [
     includedCredits: 8_000,
     interval: 'month',
     label: 'Pro',
-    launchNote: 'Launch pricing — first 12 months, then $49/month',
+    launchNote:
+      'Launch pricing (code EARLYGENFEED) — first 12 months, then $49/month',
     launchPrice: 39,
     outputs: null,
     price: 49,
