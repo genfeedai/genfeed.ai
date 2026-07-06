@@ -79,7 +79,7 @@ describe('MetricCard', () => {
 
     it('uses default icon color when not specified', () => {
       render(<MetricCard title="Test" value={100} icon={HiChartBar} />);
-      const iconContainer = document.querySelector('.text-purple-600');
+      const iconContainer = document.querySelector('.text-muted-foreground');
       expect(iconContainer).toBeInTheDocument();
     });
   });
@@ -104,7 +104,7 @@ describe('MetricCard', () => {
       const { container } = render(
         <MetricCard title="Test" value={100} change={5} />,
       );
-      const changeElement = container.querySelector('.text-green-600');
+      const changeElement = container.querySelector('.text-success');
       expect(changeElement).toBeInTheDocument();
     });
 
@@ -112,7 +112,7 @@ describe('MetricCard', () => {
       const { container } = render(
         <MetricCard title="Test" value={100} change={-5} />,
       );
-      const changeElement = container.querySelector('.text-red-600');
+      const changeElement = container.querySelector('.text-destructive');
       expect(changeElement).toBeInTheDocument();
     });
 
@@ -135,7 +135,7 @@ describe('MetricCard', () => {
           change={5}
         />,
       );
-      const trendContainer = container.querySelector('.text-green-600');
+      const trendContainer = container.querySelector('.text-success');
       expect(trendContainer).toBeInTheDocument();
       expect(trendContainer?.querySelector('svg')).toBeInTheDocument();
     });
@@ -149,7 +149,7 @@ describe('MetricCard', () => {
           change={-5}
         />,
       );
-      const trendContainer = container.querySelector('.text-red-600');
+      const trendContainer = container.querySelector('.text-destructive');
       expect(trendContainer).toBeInTheDocument();
       expect(trendContainer?.querySelector('svg')).toBeInTheDocument();
     });
@@ -201,7 +201,7 @@ describe('MetricCard', () => {
         <MetricCard title="Test" value={100} onClick={() => {}} />,
       );
       expect(container.firstChild).toHaveClass('cursor-pointer');
-      expect(container.firstChild).toHaveClass('hover:shadow-lg');
+      expect(container.firstChild).toHaveClass('hover:shadow-border-strong');
     });
 
     it('does not apply hover styles when onClick is not provided', () => {
