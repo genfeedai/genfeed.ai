@@ -63,6 +63,7 @@
     "build:website": "bunx turbo run build --filter=@genfeedai/website",
     "check:architecture": "bun run scripts/check-architecture.ts",
     "check:cron-boundary": "bun run scripts/architecture/check-platform-cron-boundary.ts",
+    "check:di-value-imports": "bun run scripts/check-di-value-imports.ts",
     "check:import-cycles": "bun run scripts/check-import-cycles.ts",
     "check:mcp-parity": "bun run --filter=@genfeedai/api mcp:parity",
     "check:ui-guards": "bun run scripts/ui/check-ui-guards.ts",
