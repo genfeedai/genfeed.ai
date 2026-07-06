@@ -17,6 +17,7 @@ const mockBrands = [
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
     organizationId: 'org-123',
+    settings: { subscriptionTier: 'pro' },
   })),
 }));
 

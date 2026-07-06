@@ -56,7 +56,6 @@ describe('BrandsController agent-config endpoint', () => {
     };
 
     controller = new BrandsController(
-      mockRequest,
       mockBrandsService as unknown as BrandsService,
       {} as never,
       {} as never,
@@ -70,6 +69,7 @@ describe('BrandsController agent-config endpoint', () => {
       {} as never,
       {} as never,
       loggerService as unknown as LoggerService,
+      {} as never,
     );
 
     vi.clearAllMocks();

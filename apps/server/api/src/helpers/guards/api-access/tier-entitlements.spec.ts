@@ -1,11 +1,22 @@
 import { SubscriptionTier } from '@genfeedai/enums';
 import {
+  FREE_BRAND_LIMIT,
+  FREE_CHANNEL_LIMIT,
+  FREE_SEAT_LIMIT,
   getApiEntitlementForTier,
   getApiRateLimitForTier,
+  getBrandLimitForTier,
+  getChannelLimitForTier,
+  getPlanEntitlementForTier,
+  getSeatLimitForTier,
+  getUpgradeTierForLimit,
   HIGHER_API_RATE_LIMIT,
   hasApiAccess,
+  PLAN_LIMIT_UNLIMITED,
+  PRO_CHANNEL_LIMIT,
   SCALE_API_RATE_LIMIT,
   TIER_API_ENTITLEMENTS,
+  TIER_PLAN_ENTITLEMENTS,
 } from '@genfeedai/pricing';
 
 /**
@@ -16,6 +27,7 @@ import {
 describe('tier API entitlements', () => {
   it('covers every SubscriptionTier (exhaustive map)', () => {
     for (const tier of Object.values(SubscriptionTier)) {
+      expect(TIER_PLAN_ENTITLEMENTS[tier]).toBeDefined();
       expect(TIER_API_ENTITLEMENTS[tier]).toBeDefined();
     }
   });
@@ -69,6 +81,54 @@ describe('tier API entitlements', () => {
         apiRateLimit: 0,
       });
     }
+  });
+
+  it('resolves PAYG/BYOK finite product limits from the pricing package', () => {
+    for (const tier of [SubscriptionTier.FREE, SubscriptionTier.BYOK]) {
+      expect(getBrandLimitForTier(tier)).toBe(FREE_BRAND_LIMIT);
+      expect(getChannelLimitForTier(tier)).toBe(FREE_CHANNEL_LIMIT);
+      expect(getSeatLimitForTier(tier)).toBe(FREE_SEAT_LIMIT);
+    }
+  });
+
+  it('resolves paid tier product limits: unlimited seats/brands, Pro channel cap, Scale+ unlimited channels', () => {
+    expect(getPlanEntitlementForTier(SubscriptionTier.PRO)).toMatchObject({
+      brandLimit: PLAN_LIMIT_UNLIMITED,
+      channelLimit: PRO_CHANNEL_LIMIT,
+      seatLimit: PLAN_LIMIT_UNLIMITED,
+    });
+
+    for (const tier of [SubscriptionTier.SCALE, SubscriptionTier.ENTERPRISE]) {
+      expect(getBrandLimitForTier(tier)).toBeNull();
+      expect(getChannelLimitForTier(tier)).toBeNull();
+      expect(getSeatLimitForTier(tier)).toBeNull();
+    }
+  });
+
+  it('uses PAYG/free limits for empty or unknown tiers', () => {
+    for (const tier of ['', 'bogus', null, undefined]) {
+      expect(getBrandLimitForTier(tier)).toBe(FREE_BRAND_LIMIT);
+      expect(getChannelLimitForTier(tier)).toBe(FREE_CHANNEL_LIMIT);
+      expect(getSeatLimitForTier(tier)).toBe(FREE_SEAT_LIMIT);
+    }
+  });
+
+  it('names the next tier that lifts each finite product limit', () => {
+    expect(getUpgradeTierForLimit('brands', SubscriptionTier.FREE)).toBe(
+      SubscriptionTier.PRO,
+    );
+    expect(getUpgradeTierForLimit('seats', SubscriptionTier.BYOK)).toBe(
+      SubscriptionTier.PRO,
+    );
+    expect(getUpgradeTierForLimit('channels', SubscriptionTier.FREE)).toBe(
+      SubscriptionTier.PRO,
+    );
+    expect(getUpgradeTierForLimit('channels', SubscriptionTier.PRO)).toBe(
+      SubscriptionTier.SCALE,
+    );
+    expect(getUpgradeTierForLimit('channels', SubscriptionTier.SCALE)).toBe(
+      null,
+    );
   });
 
   it('exposes per-tier rate limits via getApiRateLimitForTier', () => {

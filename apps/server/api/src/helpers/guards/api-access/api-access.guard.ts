@@ -4,6 +4,7 @@ import {
   getSubscriptionTier,
 } from '@api/helpers/utils/auth/auth.util';
 import { IS_CLOUD_MODE } from '@genfeedai/config';
+import { SubscriptionTier } from '@genfeedai/enums';
 import { hasApiAccess } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -79,9 +80,16 @@ export class ApiAccessGuard implements CanActivate {
         userId: user.id,
       });
 
-      throw new ForbiddenException(
-        'API access is available on paid plans. Upgrade to Pro, Scale, or Enterprise to create and use API keys.',
-      );
+      throw new ForbiddenException({
+        code: 'PLAN_LIMIT_EXCEEDED',
+        detail:
+          'API access is available on paid plans. Upgrade to Pro to create and use API keys.',
+        meta: {
+          resource: 'api',
+          upgradeTier: SubscriptionTier.PRO,
+        },
+        title: 'API access requires a paid plan',
+      });
     }
 
     return true;

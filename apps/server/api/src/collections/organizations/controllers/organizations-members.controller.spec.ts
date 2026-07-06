@@ -26,7 +26,6 @@ import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { MemberCreditsGuard } from '@api/helpers/guards/member-credits/member-credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -178,11 +177,6 @@ describe('OrganizationsMembersController', () => {
       .useValue({ canActivate: () => true })
       .overrideGuard(MemberCreditsGuard)
       .useValue({ canActivate: () => true })
-      .overrideInterceptor(CreditsInterceptor)
-      .useValue({
-        intercept: (_ctx: unknown, next: { handle: () => unknown }) =>
-          next.handle(),
-      })
       .compile();
 
     controller = module.get<OrganizationsMembersController>(

@@ -1,61 +1,47 @@
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { MembersService } from '@api/collections/members/services/members.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import {
   resolveEffectiveSeatsLimit,
   UNLIMITED_SEATS_FAIR_USE_CEILING,
 } from '@api/collections/organization-settings/utils/seat-policy.util';
-import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
-import { ByokService } from '@api/services/byok/byok.service';
+import { PlanLimitExceededException } from '@api/helpers/exceptions/business/business-logic.exception';
+import {
+  getIsSuperAdmin,
+  getSubscriptionTier,
+} from '@api/helpers/utils/auth/auth.util';
 import { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
-import { IS_SELF_HOSTED } from '@genfeedai/config';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
+import { IS_CLOUD_MODE } from '@genfeedai/config';
+import { getUpgradeTierForLimit } from '@genfeedai/pricing';
 import {
   type CanActivate,
   type ExecutionContext,
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 
 @Injectable()
-export class MemberCreditsGuard extends CreditsGuard implements CanActivate {
+export class MemberCreditsGuard implements CanActivate {
   constructor(
-    reflector: Reflector,
-    creditsUtilsService: CreditsUtilsService,
-    modelsService: ModelsService,
-    byokService: ByokService,
-    loggerService: LoggerService,
-    configService: ConfigService,
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly membersService: MembersService,
-  ) {
-    super(
-      reflector,
-      creditsUtilsService,
-      modelsService,
-      byokService,
-      loggerService,
-      configService,
-    );
-  }
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // Self-hosted/community deployments have no billing or seat concept —
-    // seats and credits are cloud-only constructs. Never gate member invites
-    // there, regardless of what's stored on OrganizationSetting.
-    if (IS_SELF_HOSTED) {
+    // Self-hosted/community deployments have no billing or seat concept.
+    if (!IS_CLOUD_MODE) {
       return true;
     }
 
     const request = context.switchToHttp().getRequest<Request>();
-    const user = (
-      request as unknown as { user: { publicMetadata: IAuthPublicMetadata } }
-    ).user;
-    const publicMetadata: IAuthPublicMetadata = user.publicMetadata;
+    const user = (request as unknown as { user: User }).user;
+
+    if (getIsSuperAdmin(user, request)) {
+      return true;
+    }
+
+    const publicMetadata = user.publicMetadata as IAuthPublicMetadata;
     const organizationId =
       request.params.organizationId ||
       request.params.id ||
@@ -64,10 +50,6 @@ export class MemberCreditsGuard extends CreditsGuard implements CanActivate {
     const settings = await this.organizationSettingsService.findOne({
       organization: organizationId,
     });
-
-    if (!settings) {
-      return true;
-    }
 
     const activeMembers = await this.membersService.findAll(
       {
@@ -82,9 +64,11 @@ export class MemberCreditsGuard extends CreditsGuard implements CanActivate {
 
     const activeMembersCount = activeMembers.docs.length;
 
+    const tier =
+      settings?.subscriptionTier ?? getSubscriptionTier(user, request);
     const effectiveSeatsLimit = resolveEffectiveSeatsLimit(
-      settings.subscriptionTier,
-      settings.seatsLimit,
+      tier,
+      settings?.seatsLimit,
     );
 
     // Unlimited-seat tiers (Pro/Scale/Enterprise) are never gated by seat
@@ -104,11 +88,11 @@ export class MemberCreditsGuard extends CreditsGuard implements CanActivate {
       return true;
     }
 
-    (request as unknown as Record<string, unknown>).seatsLimit = {
-      current: activeMembersCount, // Pass the actual current count, not the limit
-      id: settings.id.toString(),
-    };
-
-    return super.canActivate(context);
+    throw new PlanLimitExceededException({
+      currentCount: activeMembersCount,
+      limit: effectiveSeatsLimit,
+      resource: 'seats',
+      upgradeTier: getUpgradeTierForLimit('seats', tier),
+    });
   }
 }

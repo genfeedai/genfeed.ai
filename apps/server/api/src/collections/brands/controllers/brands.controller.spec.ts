@@ -1,7 +1,6 @@
 import type { BrandEntity } from '@api/collections/brands/entities/brand.entity';
 import { BrandCreditsGuard } from '@api/helpers/guards/brand-credits/brand-credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import 'reflect-metadata';
 
@@ -166,11 +165,6 @@ describe('BrandsController', () => {
       .useValue({ canActivate: () => true })
       .overrideGuard(BrandCreditsGuard)
       .useValue({ canActivate: () => true })
-      .overrideInterceptor(CreditsInterceptor)
-      .useValue({
-        intercept: (_ctx: unknown, next: { handle: () => unknown }) =>
-          next.handle(),
-      })
       .compile();
 
     controller = module.get<BrandsController>(BrandsController);

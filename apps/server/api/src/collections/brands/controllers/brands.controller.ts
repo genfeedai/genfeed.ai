@@ -28,7 +28,6 @@ import { VideosService } from '@api/collections/videos/services/videos.service';
 import { BrandSetupDto } from '@api/endpoints/onboarding/dto/brand-setup.dto';
 import { AddReferenceImagesDto } from '@api/endpoints/onboarding/dto/reference-images.dto';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
-import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -36,7 +35,6 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { BrandCreditsGuard } from '@api/helpers/guards/brand-credits/brand-credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import {
   getIsSuperAdmin,
   getPublicMetadata,
@@ -62,16 +60,13 @@ import {
   HttpCode,
   HttpException,
   HttpStatus,
-  Inject,
   Param,
   Patch,
   Post,
   Query,
   Req,
   UseGuards,
-  UseInterceptors,
 } from '@nestjs/common';
-import { REQUEST } from '@nestjs/core';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -84,8 +79,6 @@ export class BrandsController extends BaseCRUDController<
   BaseQueryDto
 > {
   constructor(
-    @Inject(REQUEST) private readonly request: Request,
-
     public readonly brandsService: BrandsService,
     public readonly activitiesService: ActivitiesService,
     public readonly videosService: VideosService,
@@ -334,8 +327,6 @@ export class BrandsController extends BaseCRUDController<
 
   @Post()
   @UseGuards(BrandCreditsGuard)
-  @UseInterceptors(CreditsInterceptor)
-  @Credits({ amount: 1_000, description: 'Create brand' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async create(
     @Req() request: Request,
@@ -343,38 +334,9 @@ export class BrandsController extends BaseCRUDController<
     @Body() createDto: CreateBrandDto,
   ): Promise<JsonApiSingleResponse> {
     const enrichedDto = this.enrichCreateDto(createDto, user);
+    const data: BrandDocument = await this.brandsService.create(enrichedDto);
 
-    const limit = (
-      this.request as unknown as {
-        brandsLimit?: { id: string; current: number };
-      }
-    ).brandsLimit;
-    let limitUpdated = false;
-
-    try {
-      // Atomically update the brand limit to the new count before creating the brand
-      if (limit) {
-        await this.organizationSettingsService.updateBrandsLimit(
-          limit.id,
-          limit.current + 1,
-        );
-
-        limitUpdated = true;
-      }
-
-      const data: BrandDocument = await this.brandsService.create(enrichedDto);
-
-      return serializeSingle(request, BrandSerializer, data);
-    } catch (error: unknown) {
-      // Rollback the limit to the original count if brand creation fails
-      if (limitUpdated && limit) {
-        await this.organizationSettingsService.updateBrandsLimit(
-          limit.id,
-          limit.current,
-        );
-      }
-      throw error;
-    }
+    return serializeSingle(request, BrandSerializer, data);
   }
 
   /**

@@ -4,6 +4,10 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { EMPTY_STATES, ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { ModalEnum } from '@genfeedai/enums';
 import type { IQueryParams } from '@genfeedai/interfaces';
+import {
+  getSeatLimitForTier,
+  getUpgradeTierForLimit,
+} from '@genfeedai/pricing';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -21,9 +25,21 @@ import { useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { HiOutlineUsers, HiUserPlus } from 'react-icons/hi2';
 
+function formatTierLabel(tier: string | null): string {
+  if (!tier) {
+    return 'a paid plan';
+  }
+
+  return tier.charAt(0).toUpperCase() + tier.slice(1);
+}
+
+function formatSeatLabel(limit: number): string {
+  return limit === 1 ? 'team seat' : 'team seats';
+}
+
 function MembersListContent() {
   const notificationsService = NotificationsService.getInstance();
-  const { organizationId } = useBrand();
+  const { organizationId, settings } = useBrand();
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
 
@@ -86,15 +102,26 @@ function MembersListContent() {
     findAllMembers();
   }, [findAllMembers]);
 
+  const seatLimit = getSeatLimitForTier(settings?.subscriptionTier);
+  const isAtSeatLimit =
+    seatLimit !== null && members !== null && members.length >= seatLimit;
+  const memberLimitDescription = isAtSeatLimit
+    ? `Current plan includes ${seatLimit} ${formatSeatLabel(seatLimit)}. Upgrade to ${formatTierLabel(
+        getUpgradeTierForLimit('seats', settings?.subscriptionTier),
+      )} to invite more people.`
+    : undefined;
+
   return (
     <Container
       label="Team Members"
+      description={memberLimitDescription}
       icon={HiOutlineUsers}
       right={
         <Button
           onClick={() => openModal(ModalEnum.MEMBER)}
           icon={<HiUserPlus className="size-4" />}
           label="Invite Member"
+          isDisabled={isAtSeatLimit}
         />
       }
     >

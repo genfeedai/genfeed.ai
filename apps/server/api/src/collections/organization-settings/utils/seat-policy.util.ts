@@ -1,4 +1,5 @@
 import { SubscriptionTier } from '@genfeedai/enums';
+import { FREE_SEAT_LIMIT } from '@genfeedai/pricing';
 
 /**
  * Seat policy resolution.
@@ -17,7 +18,7 @@ import { SubscriptionTier } from '@genfeedai/enums';
  * solo workspace). Mirrors the Prisma `OrganizationSetting.seatsLimit`
  * default applied at org-creation call sites.
  */
-export const DEFAULT_FREE_SEATS = 1;
+export const DEFAULT_FREE_SEATS = FREE_SEAT_LIMIT;
 
 /**
  * Sentinel returned by {@link resolveEffectiveSeatsLimit} for tiers that include

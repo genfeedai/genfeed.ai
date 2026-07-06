@@ -1,55 +1,56 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
-import { ByokService } from '@api/services/byok/byok.service';
+import { PlanLimitExceededException } from '@api/helpers/exceptions/business/business-logic.exception';
+import {
+  getIsSuperAdmin,
+  getSubscriptionTier,
+} from '@api/helpers/utils/auth/auth.util';
 import { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
+import { IS_CLOUD_MODE } from '@genfeedai/config';
+import {
+  getBrandLimitForTier,
+  getUpgradeTierForLimit,
+} from '@genfeedai/pricing';
 import {
   type CanActivate,
   type ExecutionContext,
   Injectable,
 } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 
 @Injectable()
-export class BrandCreditsGuard extends CreditsGuard implements CanActivate {
+export class BrandCreditsGuard implements CanActivate {
   constructor(
-    reflector: Reflector,
-    creditsUtilsService: CreditsUtilsService,
-    modelsService: ModelsService,
-    byokService: ByokService,
-    loggerService: LoggerService,
-    configService: ConfigService,
-
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly brandsService: BrandsService,
-  ) {
-    super(
-      reflector,
-      creditsUtilsService,
-      modelsService,
-      byokService,
-      loggerService,
-      configService,
-    );
-  }
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    // Plan limits are a managed-cloud product boundary. Self-hosted/community
+    // deployments must not lose core brand creation.
+    if (!IS_CLOUD_MODE) {
+      return true;
+    }
+
     const request = context.switchToHttp().getRequest<Request>();
-    const user = (
-      request as unknown as { user: { publicMetadata: IAuthPublicMetadata } }
-    ).user;
-    const publicMetadata: IAuthPublicMetadata = user.publicMetadata;
+    const user = (request as unknown as { user: User }).user;
+
+    if (getIsSuperAdmin(user, request)) {
+      return true;
+    }
+
+    const publicMetadata = user.publicMetadata as IAuthPublicMetadata;
 
     const settings = await this.organizationSettingsService.findOne({
       organization: publicMetadata.organization,
     });
 
-    if (!settings) {
+    const tier =
+      settings?.subscriptionTier ?? getSubscriptionTier(user, request);
+    const brandLimit = getBrandLimitForTier(tier);
+
+    if (brandLimit === null) {
       return true;
     }
 
@@ -66,15 +67,15 @@ export class BrandCreditsGuard extends CreditsGuard implements CanActivate {
 
     const brandCount = existingBrands.docs.length;
 
-    if (brandCount < settings.brandsLimit) {
+    if (brandCount < brandLimit) {
       return true;
     }
 
-    (request as unknown as Record<string, unknown>).brandsLimit = {
-      current: brandCount, // Pass the actual current count, not the limit
-      id: settings.id.toString(),
-    };
-
-    return super.canActivate(context);
+    throw new PlanLimitExceededException({
+      currentCount: brandCount,
+      limit: brandLimit,
+      resource: 'brands',
+      upgradeTier: getUpgradeTierForLimit('brands', tier),
+    });
   }
 }

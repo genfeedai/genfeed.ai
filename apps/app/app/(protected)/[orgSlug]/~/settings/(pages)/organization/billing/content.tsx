@@ -2,6 +2,7 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant, ByokBillingStatus } from '@genfeedai/enums';
+import { getPlanEntitlementForTier } from '@genfeedai/pricing';
 import {
   BYOK_FEE_PERCENTAGE,
   BYOK_FREE_THRESHOLD_CREDITS,
@@ -39,6 +40,20 @@ function BillingCard({
       </VStack>
     </Card>
   );
+}
+
+function formatPlanLimit(limit: number | null): string {
+  return limit === null ? 'Unlimited' : limit.toLocaleString();
+}
+
+function getApiAccessLabel(
+  entitlement: ReturnType<typeof getPlanEntitlementForTier>,
+): string {
+  if (!entitlement.apiAccess) {
+    return 'Paid plans';
+  }
+
+  return entitlement.apiRateLimit === null ? 'Custom' : 'Included';
 }
 
 function ByokUsageSection({
@@ -138,7 +153,7 @@ function ByokUsageSection({
 }
 
 export default function SettingsBillingPage() {
-  const { isReady } = useBrand();
+  const { isReady, settings } = useBrand();
   const {
     subscription,
     creditsBreakdown,
@@ -164,6 +179,7 @@ export default function SettingsBillingPage() {
       )
     : null;
   const isLowCredits = (creditsBreakdown?.total ?? 0) < 1000;
+  const planEntitlement = getPlanEntitlementForTier(settings?.subscriptionTier);
 
   if (!isReady || isLoading) {
     return (
@@ -221,6 +237,43 @@ export default function SettingsBillingPage() {
             No active subscription. Subscribe to unlock all features.
           </Text>
         )}
+      </BillingCard>
+
+      <BillingCard title="Plan Limits">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <div className="p-4 bg-muted/50 rounded">
+            <Text size="sm" color="muted">
+              Brands
+            </Text>
+            <Text as="p" size="lg" weight="bold">
+              {formatPlanLimit(planEntitlement.brandLimit)}
+            </Text>
+          </div>
+          <div className="p-4 bg-muted/50 rounded">
+            <Text size="sm" color="muted">
+              Channels
+            </Text>
+            <Text as="p" size="lg" weight="bold">
+              {formatPlanLimit(planEntitlement.channelLimit)}
+            </Text>
+          </div>
+          <div className="p-4 bg-muted/50 rounded">
+            <Text size="sm" color="muted">
+              Seats
+            </Text>
+            <Text as="p" size="lg" weight="bold">
+              {formatPlanLimit(planEntitlement.seatLimit)}
+            </Text>
+          </div>
+          <div className="p-4 bg-muted/50 rounded">
+            <Text size="sm" color="muted">
+              API
+            </Text>
+            <Text as="p" size="lg" weight="bold">
+              {getApiAccessLabel(planEntitlement)}
+            </Text>
+          </div>
+        </div>
       </BillingCard>
 
       {isByokTier && <ByokUsageSection openBillingPortal={openBillingPortal} />}
