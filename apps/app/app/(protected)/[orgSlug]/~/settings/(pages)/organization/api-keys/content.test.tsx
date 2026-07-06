@@ -25,6 +25,7 @@ const mocks = vi.hoisted(() => ({
   revokeApiKey: vi.fn(),
   rotateApiKey: vi.fn(),
   saveByokProviderKey: vi.fn(),
+  settingsSubscriptionTier: 'pro',
   validateByokProviderKey: vi.fn(),
 }));
 
@@ -32,6 +33,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     isReady: mocks.isReady,
     organizationId: mocks.organizationId,
+    settings: { subscriptionTier: mocks.settingsSubscriptionTier },
   }),
 }));
 
@@ -232,6 +234,7 @@ describe('SettingsApiKeysPage', () => {
     mocks.isReady = true;
     mocks.isSelfHosted = false;
     mocks.organizationId = 'org-1';
+    mocks.settingsSubscriptionTier = 'pro';
     mocks.getByokAllProviders.mockResolvedValue(providerStatuses());
     mocks.findAllApiKeys.mockResolvedValue(productApiKeys());
     mocks.createApiKey.mockResolvedValue({
@@ -312,6 +315,24 @@ describe('SettingsApiKeysPage', () => {
     });
 
     expect(screen.getByText('gf_test_created')).toBeInTheDocument();
+  });
+
+  it('disables Genfeed API key creation for free-tier organizations', async () => {
+    mocks.settingsSubscriptionTier = 'free';
+    render(<SettingsApiKeysPage />);
+
+    await screen.findByText('MCP Key');
+    expect(
+      screen.getByText(/API access is included on paid plans/),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create Key' })).toBeDisabled();
+
+    fireEvent.change(screen.getByPlaceholderText('MCP Server'), {
+      target: { value: 'Automation MCP' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Create Key' }));
+
+    expect(mocks.createApiKey).not.toHaveBeenCalled();
   });
 
   it('rotates and revokes Genfeed API keys', async () => {

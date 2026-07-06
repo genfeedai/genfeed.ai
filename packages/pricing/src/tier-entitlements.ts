@@ -1,17 +1,19 @@
 /**
- * Per-tier API entitlements — the canonical source of truth for the
- * "Model B" API-access promise: every PAID plan advertises API access at the
- * same credit price, differentiated by rate limits.
+ * Per-tier entitlements — the canonical source of truth for the cloud plan
+ * limits promised in plans-pricing.ts.
  *
- *   Marketing plan (plans-pricing.ts)      → SubscriptionTier   → API access
+ *   Marketing plan (plans-pricing.ts)      → SubscriptionTier   → finite gates
  *   ─────────────────────────────────────────────────────────────────────────
- *   Pay As You Go (free)                   → FREE               → none
- *   BYOK (free, bring-your-own-key)        → BYOK               → none
- *   Pro                        ($49/mo)    → PRO                → higher limit
- *   Scale                      ($499/mo)   → SCALE              → highest fixed
- *   Enterprise                 (custom)    → ENTERPRISE         → custom / SLA
+ *   Pay As You Go (free)                   → FREE               → 1 brand, 3 channels, no API, solo
+ *   BYOK (free, bring-your-own-key)        → BYOK               → 1 brand, 3 channels, no API, solo
+ *   Pro                                    → PRO                → 15 channels, API, unlimited seats/brands
+ *   Scale                                  → SCALE              → API, unlimited seats/brands/channels
+ *   Enterprise                             → ENTERPRISE         → custom API, unlimited seats/brands/channels
  *
  * Enforcement lives in the API:
+ *   - brand gate:   apps/server/api/src/helpers/guards/brand-credits/brand-credits.guard.ts
+ *   - channel gate: apps/server/api/src/collections/credentials/services/credentials.service.ts
+ *   - seat gate:    apps/server/api/src/helpers/guards/member-credits/member-credits.guard.ts
  *   - issuance gate:  apps/server/api/src/helpers/guards/api-access/api-access.guard.ts
  *   - rate limiting:  apps/server/api/src/collections/api-keys/services/api-keys.service.ts
  *
@@ -21,6 +23,8 @@
  * (the `Record<SubscriptionTier, …>` is exhaustive and TS-enforced).
  */
 import { SubscriptionTier } from '@genfeedai/enums';
+
+export type TierLimit = number | null;
 
 export type ApiTierEntitlement = {
   /** Whether the tier may mint API keys and authenticate requests with them. */
@@ -34,54 +38,130 @@ export type ApiTierEntitlement = {
   apiRateLimit: number | null;
 };
 
+export type TierPlanEntitlement = ApiTierEntitlement & {
+  /** Connected brand kits. `null` means no platform-enforced product cap. */
+  brandLimit: TierLimit;
+  /** Connected publishing/integration channels. `null` means unlimited. */
+  channelLimit: TierLimit;
+  /** Organization seats. `null` means unlimited team seats. */
+  seatLimit: TierLimit;
+};
+
+export type LimitedPlanResource = 'brands' | 'channels' | 'seats';
+
+/** Sentinel for product limits that are unlimited for a tier. */
+export const PLAN_LIMIT_UNLIMITED = null;
+
+/** PAYG/BYOK brand-kit cap from plans-pricing.ts. */
+export const FREE_BRAND_LIMIT = 1;
+/** PAYG/BYOK connected-channel cap from plans-pricing.ts. */
+export const FREE_CHANNEL_LIMIT = 3;
+/** PAYG/BYOK solo workspace seat cap. */
+export const FREE_SEAT_LIMIT = 1;
+/** Pro connected-channel cap from plans-pricing.ts. */
+export const PRO_CHANNEL_LIMIT = 15;
+
 /** Higher ceiling for the Pro tier. */
 export const HIGHER_API_RATE_LIMIT = 300;
 /** Highest fixed ceiling for the Scale tier. */
 export const SCALE_API_RATE_LIMIT = 600;
 
 /**
- * Exhaustive tier → entitlement map. Free tiers (FREE, BYOK) get no API access;
- * every paid tier does, with an escalating rate limit; Enterprise is uncapped
- * (custom / negotiated).
+ * Exhaustive tier → cloud entitlement map. Free tiers (FREE, BYOK) are solo
+ * workspaces with limited brands/channels and no managed API access; every paid
+ * tier has unlimited seats and brands; Scale+ removes the connected-channel cap.
  */
-export const TIER_API_ENTITLEMENTS: Record<
+export const TIER_PLAN_ENTITLEMENTS: Record<
   SubscriptionTier,
-  ApiTierEntitlement
+  TierPlanEntitlement
 > = {
-  [SubscriptionTier.FREE]: { apiAccess: false, apiRateLimit: 0 },
-  [SubscriptionTier.BYOK]: { apiAccess: false, apiRateLimit: 0 },
+  [SubscriptionTier.FREE]: {
+    apiAccess: false,
+    apiRateLimit: 0,
+    brandLimit: FREE_BRAND_LIMIT,
+    channelLimit: FREE_CHANNEL_LIMIT,
+    seatLimit: FREE_SEAT_LIMIT,
+  },
+  [SubscriptionTier.BYOK]: {
+    apiAccess: false,
+    apiRateLimit: 0,
+    brandLimit: FREE_BRAND_LIMIT,
+    channelLimit: FREE_CHANNEL_LIMIT,
+    seatLimit: FREE_SEAT_LIMIT,
+  },
   [SubscriptionTier.PRO]: {
     apiAccess: true,
     apiRateLimit: HIGHER_API_RATE_LIMIT,
+    brandLimit: PLAN_LIMIT_UNLIMITED,
+    channelLimit: PRO_CHANNEL_LIMIT,
+    seatLimit: PLAN_LIMIT_UNLIMITED,
   },
   [SubscriptionTier.SCALE]: {
     apiAccess: true,
     apiRateLimit: SCALE_API_RATE_LIMIT,
+    brandLimit: PLAN_LIMIT_UNLIMITED,
+    channelLimit: PLAN_LIMIT_UNLIMITED,
+    seatLimit: PLAN_LIMIT_UNLIMITED,
   },
-  [SubscriptionTier.ENTERPRISE]: { apiAccess: true, apiRateLimit: null },
+  [SubscriptionTier.ENTERPRISE]: {
+    apiAccess: true,
+    apiRateLimit: null,
+    brandLimit: PLAN_LIMIT_UNLIMITED,
+    channelLimit: PLAN_LIMIT_UNLIMITED,
+    seatLimit: PLAN_LIMIT_UNLIMITED,
+  },
 };
 
 /**
- * Default-deny entitlement for an unknown/empty tier. In a managed-cloud
- * deployment an org with no resolvable paid tier has no API access.
+ * API-only projection kept for existing call sites and tests.
  */
-const NO_API_ENTITLEMENT: ApiTierEntitlement = {
-  apiAccess: false,
-  apiRateLimit: 0,
-};
+export const TIER_API_ENTITLEMENTS: Record<
+  SubscriptionTier,
+  ApiTierEntitlement
+> = Object.fromEntries(
+  Object.entries(TIER_PLAN_ENTITLEMENTS).map(([tier, entitlement]) => [
+    tier,
+    {
+      apiAccess: entitlement.apiAccess,
+      apiRateLimit: entitlement.apiRateLimit,
+    },
+  ]),
+) as Record<SubscriptionTier, ApiTierEntitlement>;
 
 /**
- * Resolve the API entitlement for a subscription tier. Accepts the raw string
- * stored on `OrganizationSetting.subscriptionTier`; unknown/empty tiers
- * default-deny.
+ * Default entitlement for unknown/empty tiers. In managed cloud, an org with
+ * no resolvable tier behaves like PAYG/free for product limits and API access.
+ */
+const DEFAULT_PLAN_ENTITLEMENT = TIER_PLAN_ENTITLEMENTS[SubscriptionTier.FREE];
+
+/**
+ * Resolve all cloud entitlements for a subscription tier. Accepts the raw
+ * string stored on `OrganizationSetting.subscriptionTier`; unknown/empty tiers
+ * fall back to PAYG/free behavior.
+ */
+export function getPlanEntitlementForTier(
+  tier: string | null | undefined,
+): TierPlanEntitlement {
+  if (!tier) {
+    return DEFAULT_PLAN_ENTITLEMENT;
+  }
+  return (
+    TIER_PLAN_ENTITLEMENTS[tier as SubscriptionTier] ?? DEFAULT_PLAN_ENTITLEMENT
+  );
+}
+
+/**
+ * Resolve the API entitlement for a subscription tier. Unknown/empty tiers have
+ * no API access.
  */
 export function getApiEntitlementForTier(
   tier: string | null | undefined,
 ): ApiTierEntitlement {
-  if (!tier) {
-    return NO_API_ENTITLEMENT;
-  }
-  return TIER_API_ENTITLEMENTS[tier as SubscriptionTier] ?? NO_API_ENTITLEMENT;
+  const entitlement = getPlanEntitlementForTier(tier);
+  return {
+    apiAccess: entitlement.apiAccess,
+    apiRateLimit: entitlement.apiRateLimit,
+  };
 }
 
 /** Whether a tier may create and use API keys. */
@@ -97,4 +177,61 @@ export function getApiRateLimitForTier(
   tier: string | null | undefined,
 ): number | null {
   return getApiEntitlementForTier(tier).apiRateLimit;
+}
+
+/** Connected brand-kit limit for a tier. `null` means unlimited. */
+export function getBrandLimitForTier(
+  tier: string | null | undefined,
+): TierLimit {
+  return getPlanEntitlementForTier(tier).brandLimit;
+}
+
+/** Connected-channel limit for a tier. `null` means unlimited. */
+export function getChannelLimitForTier(
+  tier: string | null | undefined,
+): TierLimit {
+  return getPlanEntitlementForTier(tier).channelLimit;
+}
+
+/** Seat limit for a tier. `null` means unlimited seats. */
+export function getSeatLimitForTier(
+  tier: string | null | undefined,
+): TierLimit {
+  return getPlanEntitlementForTier(tier).seatLimit;
+}
+
+/**
+ * Next tier that lifts the given finite resource cap. Used for upgrade prompts.
+ */
+export function getUpgradeTierForLimit(
+  resource: LimitedPlanResource,
+  tier: string | null | undefined,
+): SubscriptionTier | null {
+  const currentTier =
+    tier && tier in TIER_PLAN_ENTITLEMENTS
+      ? (tier as SubscriptionTier)
+      : SubscriptionTier.FREE;
+
+  if (
+    (resource === 'brands' || resource === 'seats') &&
+    ![
+      SubscriptionTier.PRO,
+      SubscriptionTier.SCALE,
+      SubscriptionTier.ENTERPRISE,
+    ].includes(currentTier as SubscriptionTier)
+  ) {
+    return SubscriptionTier.PRO;
+  }
+
+  if (
+    resource === 'channels' &&
+    ![SubscriptionTier.SCALE, SubscriptionTier.ENTERPRISE].includes(currentTier)
+  ) {
+    return currentTier === SubscriptionTier.FREE ||
+      currentTier === SubscriptionTier.BYOK
+      ? SubscriptionTier.PRO
+      : SubscriptionTier.SCALE;
+  }
+
+  return null;
 }

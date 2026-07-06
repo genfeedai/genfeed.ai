@@ -14,7 +14,6 @@ import { InviteMemberDto } from '@api/collections/members/dto/invite-member.dto'
 import { UpdateMemberDto } from '@api/collections/members/dto/update-member.dto';
 import { InvitationService } from '@api/collections/members/services/invitation.service';
 import { MembersService } from '@api/collections/members/services/members.service';
-import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
@@ -22,14 +21,12 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
-import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { MemberCreditsGuard } from '@api/helpers/guards/member-credits/member-credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -57,7 +54,6 @@ import {
   Query,
   Req,
   UseGuards,
-  UseInterceptors,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
@@ -74,7 +70,6 @@ export class OrganizationsMembersController {
     private readonly loggerService: LoggerService,
     private readonly membersService: MembersService,
     private readonly organizationsService: OrganizationsService,
-    private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly rolesService: RolesService,
     private readonly settingsService: SettingsService,
     private readonly usersService: UsersService,
@@ -119,8 +114,6 @@ export class OrganizationsMembersController {
 
   @Post(':organizationId/members')
   @UseGuards(MemberCreditsGuard)
-  @UseInterceptors(CreditsInterceptor)
-  @Credits({ amount: 1000, description: 'Invite member' })
   async inviteMember(
     @Req() request: Request,
     @Param('organizationId') organizationId: string,
@@ -177,59 +170,33 @@ export class OrganizationsMembersController {
 
     if (existingUser) {
       // Existing first-party users can be added immediately.
-      const limit = (
-        request as unknown as { seatsLimit?: { id: string; current: number } }
-      ).seatsLimit;
-      let limitUpdated = false;
+      const member = await this.membersService.create({
+        isActive: true,
+        organizationId,
+        roleId: String(roleToAssign),
+        userId: String(existingUser.id),
+      } as unknown as Parameters<typeof this.membersService.create>[0]);
 
-      try {
-        // Atomically update the seats limit
-        if (limit) {
-          await this.organizationSettingsService.updateSeatsLimit(
-            limit.id,
-            limit.current + 1,
-          );
-          limitUpdated = true;
-        }
+      // Switch the invited user's active org to the org they were just added
+      // to, preserving the pre-Phase-C behavior now that routing is
+      // DB-authoritative (epic #735 — User.lastUsedOrganizationId replaces the
+      // legacy auth provider publicMetadata.organization write-back).
+      await this.usersService.patch(String(existingUser.id), {
+        lastUsedOrganizationId: organizationId,
+      });
+      await Promise.all([
+        this.requestContextCacheService.invalidateForUser(
+          String(existingUser._id),
+        ),
+        this.accessBootstrapCacheService.invalidateForUser(
+          String(existingUser._id),
+        ),
+        this.betterAuthIdentityCacheService.invalidateForUser(
+          String(existingUser._id),
+        ),
+      ]);
 
-        // Create the member record for existing user
-        const member = await this.membersService.create({
-          isActive: true,
-          organizationId,
-          roleId: String(roleToAssign),
-          userId: String(existingUser.id),
-        } as unknown as Parameters<typeof this.membersService.create>[0]);
-
-        // Switch the invited user's active org to the org they were just added
-        // to, preserving the pre-Phase-C behavior now that routing is
-        // DB-authoritative (epic #735 — User.lastUsedOrganizationId replaces the
-        // legacy auth provider publicMetadata.organization write-back).
-        await this.usersService.patch(String(existingUser.id), {
-          lastUsedOrganizationId: organizationId,
-        });
-        await Promise.all([
-          this.requestContextCacheService.invalidateForUser(
-            String(existingUser._id),
-          ),
-          this.accessBootstrapCacheService.invalidateForUser(
-            String(existingUser._id),
-          ),
-          this.betterAuthIdentityCacheService.invalidateForUser(
-            String(existingUser._id),
-          ),
-        ]);
-
-        return serializeSingle(request, MemberSerializer, member);
-      } catch (error: unknown) {
-        // Rollback the limit if something fails
-        if (limitUpdated && limit) {
-          await this.organizationSettingsService.updateSeatsLimit(
-            limit.id,
-            limit.current,
-          );
-        }
-        throw error;
-      }
+      return serializeSingle(request, MemberSerializer, member);
     } else {
       // New user - first check if a pending invited user with this email already exists
       let newUser = await this.usersService.findOne({
@@ -285,50 +252,25 @@ export class OrganizationsMembersController {
       }
 
       // Create the member record (inactive until they sign up)
-      const limit = (
-        request as unknown as { seatsLimit?: { id: string; current: number } }
-      ).seatsLimit;
-      let limitUpdated = false;
+      const member = await this.membersService.create({
+        isActive: false, // Inactive until they sign up
+        organizationId,
+        roleId: String(roleToAssign),
+        userId: String(newUser.id),
+      } as unknown as Parameters<typeof this.membersService.create>[0]);
 
-      try {
-        // Atomically update the seats limit
-        if (limit) {
-          await this.organizationSettingsService.updateSeatsLimit(
-            limit.id,
-            limit.current + 1,
-          );
-          limitUpdated = true;
-        }
+      await this.invitationService.createInvitation({
+        defaultRoleKey: 'user',
+        email: inviteDto.email,
+        firstName: inviteDto.firstName,
+        invitedByUserId,
+        lastName: inviteDto.lastName,
+        organizationId,
+        redirectUrl: this.getInvitationRedirectUrl(organizationId),
+        roleId: String(roleToAssign),
+      });
 
-        const member = await this.membersService.create({
-          isActive: false, // Inactive until they sign up
-          organizationId,
-          roleId: String(roleToAssign),
-          userId: String(newUser.id),
-        } as unknown as Parameters<typeof this.membersService.create>[0]);
-
-        await this.invitationService.createInvitation({
-          defaultRoleKey: 'user',
-          email: inviteDto.email,
-          firstName: inviteDto.firstName,
-          invitedByUserId,
-          lastName: inviteDto.lastName,
-          organizationId,
-          redirectUrl: this.getInvitationRedirectUrl(organizationId),
-          roleId: String(roleToAssign),
-        });
-
-        return serializeSingle(request, MemberSerializer, member);
-      } catch (error: unknown) {
-        // Rollback the limit if something fails
-        if (limitUpdated && limit) {
-          await this.organizationSettingsService.updateSeatsLimit(
-            limit.id,
-            limit.current,
-          );
-        }
-        throw error;
-      }
+      return serializeSingle(request, MemberSerializer, member);
     }
   }
 

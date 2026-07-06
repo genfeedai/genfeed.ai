@@ -102,7 +102,19 @@ describe('ApiAccessGuard', () => {
       );
       const ctx = buildContext(buildUser());
       expect(() => guard.canActivate(ctx)).toThrow(ForbiddenException);
-      expect(() => guard.canActivate(ctx)).toThrow(/upgrade/i);
+      try {
+        guard.canActivate(ctx);
+      } catch (error) {
+        expect(error).toMatchObject({
+          response: {
+            code: 'PLAN_LIMIT_EXCEEDED',
+            meta: {
+              resource: 'api',
+              upgradeTier: SubscriptionTier.PRO,
+            },
+          },
+        });
+      }
     });
 
     it('blocks BYOK (free) tier', () => {

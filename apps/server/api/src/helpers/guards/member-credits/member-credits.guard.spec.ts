@@ -1,32 +1,42 @@
+let mockCloudMode = true;
 vi.mock('@genfeedai/config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@genfeedai/config')>();
-
   return {
     ...actual,
-    IS_SELF_HOSTED: false,
+    get IS_CLOUD_MODE() {
+      return mockCloudMode;
+    },
   };
 });
 
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { MembersService } from '@api/collections/members/services/members.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { UNLIMITED_SEATS_FAIR_USE_CEILING } from '@api/collections/organization-settings/utils/seat-policy.util';
-import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { MemberCreditsGuard } from '@api/helpers/guards/member-credits/member-credits.guard';
-import { ByokService } from '@api/services/byok/byok.service';
+import * as authUtil from '@api/helpers/utils/auth/auth.util';
 import { SubscriptionTier } from '@genfeedai/enums';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
+import { FREE_SEAT_LIMIT } from '@genfeedai/pricing';
 import type { ExecutionContext } from '@nestjs/common';
 import { ForbiddenException } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
 
-const createContext = (): ExecutionContext => {
+vi.mock('@api/helpers/utils/auth/auth.util', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@api/helpers/utils/auth/auth.util')>();
+  return {
+    ...actual,
+    getIsSuperAdmin: vi.fn(),
+    getSubscriptionTier: vi.fn(),
+  };
+});
+
+const orgId = '507f191e810c19729de860ee'.toString();
+
+function createContext(): ExecutionContext {
   const req: Record<string, unknown> = {
-    params: { id: '507f191e810c19729de860ee'.toString() },
+    params: { id: orgId },
     user: {
-      publicMetadata: { organization: '507f191e810c19729de860ee'.toString() },
+      id: 'user_123',
+      publicMetadata: { organization: orgId, subscriptionTier: '' },
     },
   };
   return {
@@ -34,7 +44,7 @@ const createContext = (): ExecutionContext => {
     getHandler: vi.fn(),
     switchToHttp: () => ({ getRequest: () => req }),
   } as ExecutionContext;
-};
+}
 
 describe('MemberCreditsGuard', () => {
   let guard: MemberCreditsGuard;
@@ -42,81 +52,79 @@ describe('MemberCreditsGuard', () => {
   let membersService: { findAll: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
+    mockCloudMode = true;
     organizationSettingsService = { findOne: vi.fn() };
     membersService = { findAll: vi.fn() };
 
     guard = new MemberCreditsGuard(
-      new Reflector(),
-      {} as CreditsUtilsService,
-      {} as ModelsService,
-      {} as ByokService,
-      {
-        error: vi.fn(),
-        log: vi.fn(),
-        warn: vi.fn(),
-      } as LoggerService,
-      { get: vi.fn() } as ConfigService,
-      organizationSettingsService as OrganizationSettingsService,
-      membersService as MembersService,
+      organizationSettingsService as unknown as OrganizationSettingsService,
+      membersService as unknown as MembersService,
     );
+
+    vi.mocked(authUtil.getIsSuperAdmin).mockReturnValue(false);
+    vi.mocked(authUtil.getSubscriptionTier).mockReturnValue('');
   });
 
-  it('returns true when under seat limit', async () => {
-    organizationSettingsService.findOne.mockResolvedValue({ seatsLimit: 2 });
-    membersService.findAll.mockResolvedValue({ docs: [1] });
-
-    const result = await guard.canActivate(createContext());
-    expect(result).toBe(true);
+  afterEach(() => {
+    vi.clearAllMocks();
   });
 
-  it('checks credits when seat limit reached', async () => {
-    const spy = vi
-      .spyOn(CreditsGuard.prototype, 'canActivate')
-      .mockResolvedValue(true);
-
+  it('returns true when under the free solo seat limit', async () => {
     organizationSettingsService.findOne.mockResolvedValue({
-      id: '507f191e810c19729de860ee',
-      seatsLimit: 1,
+      seatsLimit: FREE_SEAT_LIMIT,
+      subscriptionTier: SubscriptionTier.FREE,
     });
-    membersService.findAll.mockResolvedValue({ docs: [1] });
+    membersService.findAll.mockResolvedValue({ docs: [] });
 
-    const context = createContext();
-    const result = await guard.canActivate(context);
+    await expect(guard.canActivate(createContext())).resolves.toBe(true);
+  });
 
-    expect(result).toBe(true);
-    expect(spy).toHaveBeenCalled();
-    expect(context.switchToHttp().getRequest().seatsLimit).toBeDefined();
+  it('throws a structured plan-limit error when a free org already has its solo member', async () => {
+    organizationSettingsService.findOne.mockResolvedValue({
+      seatsLimit: FREE_SEAT_LIMIT,
+      subscriptionTier: SubscriptionTier.FREE,
+    });
+    membersService.findAll.mockResolvedValue({
+      docs: new Array(FREE_SEAT_LIMIT).fill({}),
+    });
 
-    spy.mockRestore();
+    await expect(guard.canActivate(createContext())).rejects.toMatchObject({
+      response: {
+        code: 'PLAN_LIMIT_EXCEEDED',
+        meta: {
+          currentCount: FREE_SEAT_LIMIT,
+          limit: FREE_SEAT_LIMIT,
+          resource: 'seats',
+          upgradeTier: SubscriptionTier.PRO,
+        },
+      },
+      status: 403,
+    });
   });
 
   it.each([
-    [SubscriptionTier.PRO],
-    [SubscriptionTier.SCALE],
-    [SubscriptionTier.ENTERPRISE],
-  ])('allows adding members past the stored seatsLimit on the unlimited-seat %s tier', async (subscriptionTier) => {
+    SubscriptionTier.PRO,
+    SubscriptionTier.SCALE,
+    SubscriptionTier.ENTERPRISE,
+  ])('allows adding members past stored seatsLimit on unlimited-seat %s', async (subscriptionTier) => {
     organizationSettingsService.findOne.mockResolvedValue({
-      id: '507f191e810c19729de860ee',
       seatsLimit: 1,
       subscriptionTier,
     });
-    // Far past any finite seatsLimit, but still well under the fair-use ceiling.
     membersService.findAll.mockResolvedValue({
-      docs: new Array(50).fill(1),
+      docs: new Array(50).fill({}),
     });
 
-    const result = await guard.canActivate(createContext());
-    expect(result).toBe(true);
+    await expect(guard.canActivate(createContext())).resolves.toBe(true);
   });
 
   it('blocks with ForbiddenException once an unlimited-seat org hits the fair-use ceiling', async () => {
     organizationSettingsService.findOne.mockResolvedValue({
-      id: '507f191e810c19729de860ee',
       seatsLimit: 1,
       subscriptionTier: SubscriptionTier.SCALE,
     });
     membersService.findAll.mockResolvedValue({
-      docs: new Array(UNLIMITED_SEATS_FAIR_USE_CEILING).fill(1),
+      docs: new Array(UNLIMITED_SEATS_FAIR_USE_CEILING).fill({}),
     });
 
     await expect(guard.canActivate(createContext())).rejects.toBeInstanceOf(
@@ -124,47 +132,52 @@ describe('MemberCreditsGuard', () => {
     );
   });
 
-  it('never seat-gates self-hosted/community deployments (no billing context)', async () => {
-    vi.resetModules();
-    vi.doMock('@genfeedai/config', async (importOriginal) => {
-      const actual = await importOriginal<typeof import('@genfeedai/config')>();
-      return { ...actual, IS_SELF_HOSTED: true };
+  it('uses PAYG/free limits when settings are missing', async () => {
+    organizationSettingsService.findOne.mockResolvedValue(null);
+    membersService.findAll.mockResolvedValue({
+      docs: new Array(FREE_SEAT_LIMIT).fill({}),
     });
 
-    const { MemberCreditsGuard: SelfHostedMemberCreditsGuard } = await import(
-      '@api/helpers/guards/member-credits/member-credits.guard'
-    );
+    await expect(guard.canActivate(createContext())).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: 'PLAN_LIMIT_EXCEEDED',
+      }),
+    });
+  });
 
-    const selfHostedOrganizationSettingsService = { findOne: vi.fn() };
-    const selfHostedMembersService = { findAll: vi.fn() };
+  it('allows super admins regardless of tier', async () => {
+    vi.mocked(authUtil.getIsSuperAdmin).mockReturnValue(true);
 
-    const selfHostedGuard = new SelfHostedMemberCreditsGuard(
-      new Reflector(),
-      {} as CreditsUtilsService,
-      {} as ModelsService,
-      {} as ByokService,
+    await expect(guard.canActivate(createContext())).resolves.toBe(true);
+    expect(organizationSettingsService.findOne).not.toHaveBeenCalled();
+  });
+
+  it('never seat-gates outside managed cloud', async () => {
+    mockCloudMode = false;
+
+    await expect(guard.canActivate(createContext())).resolves.toBe(true);
+    expect(organizationSettingsService.findOne).not.toHaveBeenCalled();
+    expect(membersService.findAll).not.toHaveBeenCalled();
+  });
+
+  it('counts non-deleted organization members before allowing an invite', async () => {
+    organizationSettingsService.findOne.mockResolvedValue({
+      seatsLimit: FREE_SEAT_LIMIT,
+      subscriptionTier: SubscriptionTier.FREE,
+    });
+    membersService.findAll.mockResolvedValue({ docs: [] });
+
+    await guard.canActivate(createContext());
+
+    expect(membersService.findAll).toHaveBeenCalledWith(
       {
-        error: vi.fn(),
-        log: vi.fn(),
-        warn: vi.fn(),
-      } as LoggerService,
-      { get: vi.fn() } as ConfigService,
-      selfHostedOrganizationSettingsService as OrganizationSettingsService,
-      selfHostedMembersService as MembersService,
+        where: {
+          isDeleted: false,
+          organization: orgId,
+        },
+      },
+      { pagination: false },
+      false,
     );
-
-    const result = await selfHostedGuard.canActivate(createContext());
-
-    expect(result).toBe(true);
-    // The self-hosted short-circuit must return before ever touching
-    // OrganizationSetting/member lookups — there is no seat or billing
-    // concept to enforce in self-hosted mode.
-    expect(
-      selfHostedOrganizationSettingsService.findOne,
-    ).not.toHaveBeenCalled();
-    expect(selfHostedMembersService.findAll).not.toHaveBeenCalled();
-
-    vi.doUnmock('@genfeedai/config');
-    vi.resetModules();
   });
 });

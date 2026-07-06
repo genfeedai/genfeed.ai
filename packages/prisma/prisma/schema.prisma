@@ -1181,8 +1181,8 @@ model OrganizationSetting {
   isGenerateMusicEnabled        Boolean           @default(true)
   isAutoEvaluateEnabled         Boolean           @default(false)
   isFastlaneEnabled             Boolean           @default(false)
-  seatsLimit                    Int               @default(3)
-  brandsLimit                   Int               @default(5)
+  seatsLimit                    Int               @default(1)
+  brandsLimit                   Int               @default(1)
   timezone                      String            @default("UTC")
   isWebhookEnabled              Boolean           @default(false)
   webhookEndpoint               String?

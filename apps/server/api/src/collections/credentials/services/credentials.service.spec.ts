@@ -8,9 +8,22 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
+let mockCloudMode = true;
+vi.mock('@genfeedai/config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/config')>();
+  return {
+    ...actual,
+    get IS_CLOUD_MODE() {
+      return mockCloudMode;
+    },
+  };
+});
+
 import process from 'node:process';
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { SubscriptionTier } from '@genfeedai/enums';
+import { FREE_CHANNEL_LIMIT, PRO_CHANNEL_LIMIT } from '@genfeedai/pricing';
 import type { ConfigService } from '@libs/config/config.service';
 
 const KEY =
@@ -27,6 +40,7 @@ describe('CredentialsService', () => {
   const brandId = 'test-brand-id';
 
   beforeEach(() => {
+    mockCloudMode = true;
     prisma = {
       credential: {
         count: vi.fn().mockResolvedValue(0),
@@ -38,6 +52,11 @@ describe('CredentialsService', () => {
           Promise.resolve({ id: 'existing-id', ...args.data }),
         ),
         updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      organizationSetting: {
+        findUnique: vi.fn().mockResolvedValue({
+          subscriptionTier: SubscriptionTier.FREE,
+        }),
       },
     };
     logger = { debug: vi.fn(), error: vi.fn(), log: vi.fn(), warn: vi.fn() };
@@ -208,6 +227,125 @@ describe('CredentialsService', () => {
       >;
       expect(data.accessToken).toMatch(CIPHERTEXT_PATTERN);
       expect(crypto.decrypt(data.accessToken)).toBe('save-raw');
+    });
+  });
+
+  describe('connected-channel plan limits', () => {
+    const connectedCredentialDto = {
+      brand: brandId,
+      isConnected: true,
+      organization: orgId,
+      platform: 'twitter',
+      user: 'u1',
+    };
+
+    it('blocks a new connected credential when PAYG has reached its channel limit', async () => {
+      prisma.credential.count.mockResolvedValue(FREE_CHANNEL_LIMIT);
+
+      await expect(
+        service.create(connectedCredentialDto as never),
+      ).rejects.toMatchObject({
+        response: {
+          code: 'PLAN_LIMIT_EXCEEDED',
+          meta: {
+            currentCount: FREE_CHANNEL_LIMIT,
+            limit: FREE_CHANNEL_LIMIT,
+            resource: 'channels',
+            upgradeTier: SubscriptionTier.PRO,
+          },
+        },
+        status: 403,
+      });
+      expect(prisma.credential.create).not.toHaveBeenCalled();
+    });
+
+    it('allows Pro while under its channel limit', async () => {
+      prisma.organizationSetting.findUnique.mockResolvedValue({
+        subscriptionTier: SubscriptionTier.PRO,
+      });
+      prisma.credential.count.mockResolvedValue(PRO_CHANNEL_LIMIT - 1);
+
+      await expect(
+        service.create(connectedCredentialDto as never),
+      ).resolves.toMatchObject({ id: 'new-id' });
+      expect(prisma.credential.create).toHaveBeenCalled();
+    });
+
+    it('blocks Pro at its channel limit and points to Scale', async () => {
+      prisma.organizationSetting.findUnique.mockResolvedValue({
+        subscriptionTier: SubscriptionTier.PRO,
+      });
+      prisma.credential.count.mockResolvedValue(PRO_CHANNEL_LIMIT);
+
+      await expect(
+        service.create(connectedCredentialDto as never),
+      ).rejects.toMatchObject({
+        response: {
+          meta: {
+            limit: PRO_CHANNEL_LIMIT,
+            resource: 'channels',
+            upgradeTier: SubscriptionTier.SCALE,
+          },
+        },
+      });
+    });
+
+    it('does not count channels for Scale because the tier is unlimited', async () => {
+      prisma.organizationSetting.findUnique.mockResolvedValue({
+        subscriptionTier: SubscriptionTier.SCALE,
+      });
+
+      await expect(
+        service.create(connectedCredentialDto as never),
+      ).resolves.toMatchObject({ id: 'new-id' });
+      expect(prisma.credential.count).not.toHaveBeenCalled();
+    });
+
+    it('allows patching an already connected credential without consuming another channel', async () => {
+      prisma.credential.findFirst.mockResolvedValue({
+        id: 'existing-id',
+        isConnected: true,
+        isDeleted: false,
+        organizationId: orgId,
+      });
+
+      await expect(
+        service.patch('existing-id', { isConnected: true }),
+      ).resolves.toMatchObject({ id: 'existing-id' });
+      expect(prisma.credential.count).not.toHaveBeenCalled();
+    });
+
+    it('blocks patching a pending credential connected when the tier is already at its channel limit', async () => {
+      prisma.credential.findFirst.mockResolvedValue({
+        id: 'existing-id',
+        isConnected: false,
+        isDeleted: false,
+        organizationId: orgId,
+      });
+      prisma.credential.count.mockResolvedValue(FREE_CHANNEL_LIMIT);
+
+      await expect(
+        service.patch('existing-id', { isConnected: true }),
+      ).rejects.toMatchObject({
+        response: {
+          code: 'PLAN_LIMIT_EXCEEDED',
+          meta: {
+            resource: 'channels',
+            upgradeTier: SubscriptionTier.PRO,
+          },
+        },
+      });
+      expect(prisma.credential.update).not.toHaveBeenCalled();
+    });
+
+    it('skips cloud plan limits outside managed cloud', async () => {
+      mockCloudMode = false;
+
+      await expect(
+        service.create(connectedCredentialDto as never),
+      ).resolves.toMatchObject({ id: 'new-id' });
+      expect(prisma.organizationSetting.findUnique).not.toHaveBeenCalled();
+      expect(prisma.credential.count).not.toHaveBeenCalled();
     });
   });
 });

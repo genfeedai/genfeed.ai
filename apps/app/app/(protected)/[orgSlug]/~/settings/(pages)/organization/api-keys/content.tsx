@@ -5,6 +5,7 @@ import { API_KEY_SCOPE_PRESETS } from '@genfeedai/constants/api-key-presets.cons
 import type { ButtonVariant } from '@genfeedai/enums';
 import type { IByokProviderStatus } from '@genfeedai/interfaces';
 import type { ApiKey } from '@genfeedai/models/auth/api-key.model';
+import { hasApiAccess } from '@genfeedai/pricing';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -213,8 +214,11 @@ function getVisibleKey(apiKey: ApiKey): string | undefined {
 }
 
 export default function SettingsApiKeysPage() {
-  const { organizationId, isReady } = useBrand();
+  const { organizationId, isReady, settings } = useBrand();
   const desktop = isDesktopShell();
+  const isSelfHostedDeployment = isSelfHosted();
+  const hasProductApiAccess =
+    isSelfHostedDeployment || hasApiAccess(settings?.subscriptionTier);
 
   const [state, dispatch] = useReducer(apiKeysReducer, initialApiKeysState);
   const [productApiKeys, setProductApiKeys] = useState<ApiKey[]>([]);
@@ -347,6 +351,13 @@ export default function SettingsApiKeysPage() {
   };
 
   const handleCreateProductKey = async () => {
+    if (!hasProductApiAccess) {
+      NotificationsService.getInstance().error(
+        'API access is available on paid plans.',
+      );
+      return;
+    }
+
     const label = productForm.label.trim();
     if (!label || productForm.selectedScopes.length === 0) {
       return;
@@ -524,7 +535,7 @@ export default function SettingsApiKeysPage() {
   return (
     <div className="space-y-6">
       {desktop ? <DesktopLocalProviderSettings variant="card" /> : null}
-      {isSelfHosted() ? <ManagedCreditsCheckoutCard /> : null}
+      {isSelfHostedDeployment ? <ManagedCreditsCheckoutCard /> : null}
 
       <ApiKeysHeader />
 
@@ -537,6 +548,12 @@ export default function SettingsApiKeysPage() {
                 Use these keys for CLI profiles, MCP servers, and unattended
                 workflows.
               </p>
+              {!hasProductApiAccess ? (
+                <p className="mt-2 text-xs text-amber-600">
+                  API access is included on paid plans. Upgrade to Pro to create
+                  Genfeed API keys.
+                </p>
+              ) : null}
             </div>
             <Button
               variant={SECONDARY_BUTTON_VARIANT}
@@ -675,6 +692,7 @@ export default function SettingsApiKeysPage() {
               onClick={handleCreateProductKey}
               isDisabled={
                 isCreatingProductKey ||
+                !hasProductApiAccess ||
                 !productForm.label.trim() ||
                 productForm.selectedScopes.length === 0
               }

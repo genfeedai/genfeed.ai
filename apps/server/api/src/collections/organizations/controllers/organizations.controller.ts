@@ -54,6 +54,7 @@ import type {
   JsonApiCollectionResponse,
   SortObject,
 } from '@genfeedai/interfaces';
+import { FREE_BRAND_LIMIT } from '@genfeedai/pricing';
 import {
   ActivitySerializer,
   BrandSerializer,
@@ -658,7 +659,7 @@ export class OrganizationsController extends BaseCRUDController<
     const enabledModelIds =
       await this.organizationSettingsService.getLatestMajorVersionModelIds();
     await this.organizationSettingsService.create({
-      brandsLimit: 5,
+      brandsLimit: FREE_BRAND_LIMIT,
       enabledModels: enabledModelIds,
       isAutoEvaluateEnabled: false,
       isGenerateArticlesEnabled: false,
