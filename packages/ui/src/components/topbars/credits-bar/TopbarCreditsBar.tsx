@@ -17,10 +17,7 @@ import type {
 } from '@genfeedai/interfaces';
 import { CreditsService } from '@genfeedai/services/billing/credits.service';
 import { logger } from '@genfeedai/services/core/logger.service';
-import { Popover, PopoverTrigger } from '@ui/primitives/popover';
-import type { MouseEvent as ReactMouseEvent } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import CreditsBarPanel from './CreditsBarPanel';
 import CreditsBarTrigger from './CreditsBarTrigger';
 
 interface OptionalBalanceRequestError {
@@ -40,8 +37,6 @@ export default function TopbarCreditsBar() {
 
   const [balance, setBalance] = useState<number>(0);
   const [segments, setSegments] = useState<ITopbarBalanceSegment[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isOpen, setIsOpen] = useState(false);
   const refreshBreakdownRef = useRef(refreshCreditsBreakdown);
   const balanceRefreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -59,11 +54,10 @@ export default function TopbarCreditsBar() {
 
   const findTopbarBalances = useCallback(async () => {
     if (!organizationId) {
-      return setIsLoading(false);
+      return;
     }
 
     try {
-      setIsLoading(true);
       const service = await getCreditsService();
       const data = await service.getTopbarBalances();
       const nextSegments = data.segments ?? [];
@@ -76,7 +70,6 @@ export default function TopbarCreditsBar() {
           ? genfeedSegment.balance
           : 0,
       );
-      setIsLoading(false);
     } catch (error: unknown) {
       const requestError = error as OptionalBalanceRequestError;
       if (!requestError.isCancelled && !requestError.silent) {
@@ -85,7 +78,6 @@ export default function TopbarCreditsBar() {
           reportToSentry: false,
         });
       }
-      setIsLoading(false);
     }
   }, [organizationId, getCreditsService]);
 
@@ -159,39 +151,21 @@ export default function TopbarCreditsBar() {
     };
   }, [findTopbarBalances]);
 
-  const handleRefreshBalance = async (e?: ReactMouseEvent) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    await findTopbarBalances();
-    await refreshCreditsBreakdown();
-  };
+  const { planLimit, planBalance } = useMemo(() => {
+    const limit = creditsBreakdown?.planLimit ?? 0;
 
-  const { planLimit, planBalance, extraBalance, planUsagePercent } =
-    useMemo(() => {
-      const limit = creditsBreakdown?.planLimit ?? 0;
-
-      if (limit === 0) {
-        return {
-          extraBalance: balance,
-          planBalance: 0,
-          planLimit: 0,
-          planUsagePercent: 0,
-        };
-      }
-
-      const planBal = Math.min(balance, limit);
-      const extraBal = Math.max(0, balance - limit);
-      const usagePercent = ((limit - planBal) / limit) * 100;
-
+    if (limit === 0) {
       return {
-        extraBalance: extraBal,
-        planBalance: planBal,
-        planLimit: limit,
-        planUsagePercent: Math.min(usagePercent, 100),
+        planBalance: 0,
+        planLimit: 0,
       };
-    }, [creditsBreakdown, balance]);
+    }
+
+    return {
+      planBalance: Math.min(balance, limit),
+      planLimit: limit,
+    };
+  }, [creditsBreakdown, balance]);
 
   const compactBalance = formatCompactNumber(balance);
   const fullBalance = formatNumberWithCommas(balance);
@@ -202,33 +176,16 @@ export default function TopbarCreditsBar() {
 
   // Remaining percentage for the fill bar (how much is left)
   const remainingPercent = planLimit > 0 ? (planBalance / planLimit) * 100 : 0;
+  const billingHref = orgHref(APP_ROUTES.SETTINGS.BILLING);
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>
-        <CreditsBarTrigger
-          isOpen={isOpen}
-          fullBalance={fullBalance}
-          compactBalance={compactBalance}
-          visibleProviderSegments={visibleProviderSegments}
-          planLimit={planLimit}
-          remainingPercent={remainingPercent}
-        />
-      </PopoverTrigger>
-
-      <CreditsBarPanel
-        fullBalance={fullBalance}
-        planLimit={planLimit}
-        planBalance={planBalance}
-        extraBalance={extraBalance}
-        planUsagePercent={planUsagePercent}
-        remainingPercent={remainingPercent}
-        providerSegments={providerSegments}
-        isLoading={isLoading}
-        settingsHref={orgHref(APP_ROUTES.SETTINGS.ROOT)}
-        onRefreshBalance={handleRefreshBalance}
-        onClose={() => setIsOpen(false)}
-      />
-    </Popover>
+    <CreditsBarTrigger
+      billingHref={billingHref}
+      fullBalance={fullBalance}
+      compactBalance={compactBalance}
+      visibleProviderSegments={visibleProviderSegments}
+      planLimit={planLimit}
+      remainingPercent={remainingPercent}
+    />
   );
 }
