@@ -1,12 +1,12 @@
 {
   "dependencies": {
-    "better-auth": "^1.6.21",
+    "better-auth": "^1.6.23",
     "zod": "4.4.3"
   },
   "description": "Genfeed.ai first-party Better Auth client, epic #735",
   "devDependencies": {
-    "@types/node": "26.0.1",
-    "@types/react": "19.2.16",
+    "@types/node": "26.1.0",
+    "@types/react": "19.2.17",
     "react": "19.2.7",
     "typescript": "6.0.2"
   },
