@@ -50,16 +50,6 @@ export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
   }
 
   /**
-   * Toggle the active status of a bot config
-   */
-  async toggleActive(id: string): Promise<ReplyBotConfig> {
-    const response = await this.instance.post<JsonApiResponseDocument>(
-      `/${id}/toggle`,
-    );
-    return new ReplyBotConfig(this.extractResource(response.data));
-  }
-
-  /**
    * Test reply generation (dry run)
    */
   async testReplyGeneration(

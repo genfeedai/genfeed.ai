@@ -13,14 +13,17 @@ import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { AgentStrategySerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
+  Body,
   Controller,
   Get,
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Req,
 } from '@nestjs/common';
@@ -105,23 +108,38 @@ export class AgentStrategiesController extends BaseCRUDController<
     return Boolean(publicMetadata?.isSuperAdmin);
   }
 
-  @Post(':id/toggle')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Toggle strategy active state' })
-  @ApiResponse({ description: 'Strategy toggled', status: 200 })
-  async toggleActive(
+  /**
+   * Update a strategy. Overrides the base handler so a change to `isActive`
+   * runs through the service's scheduler resets (next-run queueing, failure
+   * clearing) — rather than a plain field write. Any remaining fields fall
+   * through to the default CRUD patch.
+   */
+  @Patch(':id')
+  override async patch(
     @Req() request: Request,
-    @Param('id') id: string,
     @CurrentUser() user: User,
-  ) {
+    @Param('id') id: string,
+    @Body() updateDto: UpdateAgentStrategyDto,
+  ): Promise<JsonApiSingleResponse> {
+    if (typeof updateDto.isActive !== 'boolean') {
+      return super.patch(request, user, id, updateDto);
+    }
+
     const publicMetadata = getPublicMetadata(user);
-    const strategy = await this.agentStrategiesService.toggleActive(
+    const { isActive, ...rest } = updateDto;
+    const strategy = await this.agentStrategiesService.setActive(
       id,
       publicMetadata.organization,
+      isActive,
     );
 
     if (!strategy) {
       throw new NotFoundException('Strategy');
+    }
+
+    // Apply any remaining fields via the default patch path.
+    if (Object.keys(rest).length > 0) {
+      return super.patch(request, user, id, rest as UpdateAgentStrategyDto);
     }
 
     return serializeSingle(request, AgentStrategySerializer, strategy);

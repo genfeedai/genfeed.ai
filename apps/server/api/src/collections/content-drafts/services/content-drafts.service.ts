@@ -206,6 +206,46 @@ export class ContentDraftsService extends BaseService<
     return { modifiedCount: result.count };
   }
 
+  /**
+   * Consolidated update behind `PATCH /content-drafts/:id`. Applies a content
+   * edit and/or a review transition (approve/reject) in a single request,
+   * reusing the transition methods that other services also call.
+   */
+  async update(
+    id: string,
+    organizationId: string,
+    dto: {
+      content?: string;
+      reason?: string;
+      status?: ContentDraftStatus.APPROVED | ContentDraftStatus.REJECTED;
+    },
+    userId?: string,
+  ): Promise<ContentDraftDocument> {
+    let doc: ContentDraftDocument | undefined;
+
+    if (dto.content !== undefined) {
+      doc = await this.editDraft(id, organizationId, dto.content);
+    }
+
+    if (dto.status === ContentDraftStatus.APPROVED) {
+      doc = await this.approve(id, organizationId, userId ?? '');
+    } else if (dto.status === ContentDraftStatus.REJECTED) {
+      doc = await this.reject(id, organizationId, dto.reason);
+    }
+
+    if (!doc) {
+      const existing = await this.delegate.findFirst({
+        where: { id, isDeleted: false, organizationId },
+      });
+      if (!existing) {
+        throw new NotFoundException('ContentDraft', id);
+      }
+      doc = existing as ContentDraftDocument;
+    }
+
+    return doc;
+  }
+
   async editDraft(
     id: string,
     organizationId: string,

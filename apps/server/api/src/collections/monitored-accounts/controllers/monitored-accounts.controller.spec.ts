@@ -32,7 +32,6 @@ describe('MonitoredAccountsController', () => {
     findOne: vi.fn(),
     patch: vi.fn(),
     remove: vi.fn(),
-    toggleActive: vi.fn(),
   };
 
   const mockLoggerService = {
@@ -84,26 +83,6 @@ describe('MonitoredAccountsController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
-  });
-
-  describe('toggleActive', () => {
-    it('should toggle account active status and return serialized result', async () => {
-      const mockAccount = { _id: 'acc-1', isActive: false };
-      mockMonitoredAccountsService.toggleActive.mockResolvedValue(mockAccount);
-
-      const result = await controller.toggleActive(
-        mockRequest,
-        'acc-1',
-        mockUser,
-      );
-
-      expect(monitoredAccountsService.toggleActive).toHaveBeenCalledWith(
-        'acc-1',
-        'org-123',
-        'brand-123',
-      );
-      expect(result).toEqual(mockAccount);
-    });
   });
 
   describe('validateTwitterUsername', () => {

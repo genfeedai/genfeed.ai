@@ -67,11 +67,6 @@
       "path": "/ads/{platform}/campaigns"
     },
     {
-      "method": "post",
-      "operationId": "AdsGatewayController.pauseCampaign",
-      "path": "/ads/{platform}/campaigns/{campaignId}/pause"
-    },
-    {
       "method": "put",
       "operationId": "AdsGatewayController.updateCampaign",
       "path": "/ads/{platform}/campaigns/{campaignId}"
@@ -277,11 +272,6 @@
       "path": "/agent-strategies/{id}/performance-snapshot"
     },
     {
-      "method": "post",
-      "operationId": "AgentStrategiesController.planNow",
-      "path": "/agent-strategies/{id}/plan-now"
-    },
-    {
       "method": "delete",
       "operationId": "AgentStrategiesController.remove",
       "path": "/agent-strategies/{id}"
@@ -295,11 +285,6 @@
       "method": "post",
       "operationId": "AgentStrategiesController.runNow",
       "path": "/agent-strategies/{id}/run-now"
-    },
-    {
-      "method": "post",
-      "operationId": "AgentStrategiesController.toggleActive",
-      "path": "/agent-strategies/{id}/toggle"
     },
     {
       "method": "post",
@@ -578,11 +563,6 @@
     },
     {
       "method": "get",
-      "operationId": "ArticlesController.findBySlug",
-      "path": "/articles/slug/{slug}"
-    },
-    {
-      "method": "get",
       "operationId": "ArticlesController.findOne",
       "path": "/articles/{id}"
     },
@@ -700,16 +680,6 @@
       "method": "get",
       "operationId": "AuthWhoamiController.whoami",
       "path": "/auth/whoami"
-    },
-    {
-      "method": "post",
-      "operationId": "AvatarsController.createGenerateAvatar",
-      "path": "/avatars/generate"
-    },
-    {
-      "method": "post",
-      "operationId": "AvatarsController.createNewAvatar",
-      "path": "/avatars/new"
     },
     {
       "method": "get",
@@ -875,11 +845,6 @@
       "method": "get",
       "operationId": "BotsController.findOne",
       "path": "/bots/{id}"
-    },
-    {
-      "method": "get",
-      "operationId": "BotsController.getLivestreamDeliveryHistory",
-      "path": "/bots/{id}/livestream-session/history"
     },
     {
       "method": "get",
@@ -1212,19 +1177,9 @@
       "path": "/clip-results/{id}"
     },
     {
-      "method": "patch",
-      "operationId": "ContentDraftsController.approveDraft",
-      "path": "/content-drafts/{id}/approve"
-    },
-    {
       "method": "post",
       "operationId": "ContentDraftsController.bulkApprove",
       "path": "/content-drafts/bulk-approve"
-    },
-    {
-      "method": "patch",
-      "operationId": "ContentDraftsController.editDraft",
-      "path": "/content-drafts/{id}/edit"
     },
     {
       "method": "get",
@@ -1233,8 +1188,8 @@
     },
     {
       "method": "patch",
-      "operationId": "ContentDraftsController.rejectDraft",
-      "path": "/content-drafts/{id}/reject"
+      "operationId": "ContentDraftsController.updateDraft",
+      "path": "/content-drafts/{id}"
     },
     {
       "method": "put",
@@ -1375,11 +1330,6 @@
       "method": "get",
       "operationId": "ContentPerformanceController.getStrategyRanking",
       "path": "/content-performance/attribution/ranking"
-    },
-    {
-      "method": "get",
-      "operationId": "ContentPerformanceController.getTopPerformers",
-      "path": "/content-performance/top-performers"
     },
     {
       "method": "post",
@@ -1637,29 +1587,9 @@
       "path": "/credits/usage"
     },
     {
-      "method": "post",
-      "operationId": "CronJobsController.create",
-      "path": "/cron-jobs"
-    },
-    {
-      "method": "delete",
-      "operationId": "CronJobsController.delete",
-      "path": "/cron-jobs/{id}"
-    },
-    {
       "method": "get",
       "operationId": "CronJobsController.findAll",
       "path": "/cron-jobs"
-    },
-    {
-      "method": "post",
-      "operationId": "CronJobsController.pause",
-      "path": "/cron-jobs/{id}/pause"
-    },
-    {
-      "method": "post",
-      "operationId": "CronJobsController.resume",
-      "path": "/cron-jobs/{id}/resume"
     },
     {
       "method": "get",
@@ -1667,19 +1597,9 @@
       "path": "/cron-jobs/{id}/runs/{runId}"
     },
     {
-      "method": "post",
-      "operationId": "CronJobsController.runNow",
-      "path": "/cron-jobs/{id}/run-now"
-    },
-    {
       "method": "get",
       "operationId": "CronJobsController.runs",
       "path": "/cron-jobs/{id}/runs"
-    },
-    {
-      "method": "patch",
-      "operationId": "CronJobsController.update",
-      "path": "/cron-jobs/{id}"
     },
     {
       "method": "post",
@@ -2177,11 +2097,6 @@
       "path": "/services/facebook/pages"
     },
     {
-      "method": "get",
-      "operationId": "FacebookController.initializeAuth",
-      "path": "/services/facebook/auth"
-    },
-    {
       "method": "post",
       "operationId": "FacebookController.schedulePost",
       "path": "/services/facebook/schedule"
@@ -2273,11 +2188,6 @@
     },
     {
       "method": "get",
-      "operationId": "GifsController.findLatest",
-      "path": "/gifs/latest"
-    },
-    {
-      "method": "get",
       "operationId": "GifsController.findOne",
       "path": "/gifs/{gifId}"
     },
@@ -2289,27 +2199,27 @@
     {
       "method": "post",
       "operationId": "GoalsController.create",
-      "path": "/v1/goals"
+      "path": "/goals"
     },
     {
       "method": "get",
       "operationId": "GoalsController.findAll",
-      "path": "/v1/goals"
+      "path": "/goals"
     },
     {
       "method": "get",
       "operationId": "GoalsController.findOne",
-      "path": "/v1/goals/{id}"
+      "path": "/goals/{id}"
     },
     {
       "method": "patch",
       "operationId": "GoalsController.patch",
-      "path": "/v1/goals/{id}"
+      "path": "/goals/{id}"
     },
     {
       "method": "delete",
       "operationId": "GoalsController.remove",
-      "path": "/v1/goals/{id}"
+      "path": "/goals/{id}"
     },
     {
       "method": "post",
@@ -2330,11 +2240,6 @@
       "method": "get",
       "operationId": "GoogleAdsController.getKeywordPerformance",
       "path": "/services/google-ads/keywords"
-    },
-    {
-      "method": "get",
-      "operationId": "GoogleAdsController.getOAuthUrl",
-      "path": "/services/google-ads/oauth/url"
     },
     {
       "method": "get",
@@ -2458,11 +2363,6 @@
     },
     {
       "method": "get",
-      "operationId": "ImagesController.findLatest",
-      "path": "/images/latest"
-    },
-    {
-      "method": "get",
       "operationId": "ImagesController.findOne",
       "path": "/images/{imageId}"
     },
@@ -2572,19 +2472,14 @@
       "path": "/insights"
     },
     {
-      "method": "patch",
-      "operationId": "InsightsController.markAsDismissed",
-      "path": "/insights/{insightId}/dismiss"
-    },
-    {
-      "method": "patch",
-      "operationId": "InsightsController.markAsRead",
-      "path": "/insights/{insightId}/read"
-    },
-    {
       "method": "post",
       "operationId": "InsightsController.predictViral",
       "path": "/insights/viral"
+    },
+    {
+      "method": "patch",
+      "operationId": "InsightsController.updateInsight",
+      "path": "/insights/{insightId}"
     },
     {
       "method": "post",
@@ -2600,11 +2495,6 @@
       "method": "post",
       "operationId": "InstagramController.verify",
       "path": "/services/instagram/verify"
-    },
-    {
-      "method": "post",
-      "operationId": "InvitationsController.acceptInvitation",
-      "path": "/members/invitations/accept"
     },
     {
       "method": "get",
@@ -2735,11 +2625,6 @@
       "method": "get",
       "operationId": "MembersController.findOne",
       "path": "/members/{memberId}"
-    },
-    {
-      "method": "post",
-      "operationId": "MembersController.invite",
-      "path": "/members/invite"
     },
     {
       "method": "get",
@@ -2907,11 +2792,6 @@
       "path": "/services/meta-ads/optimization/config"
     },
     {
-      "method": "patch",
-      "operationId": "ModelsController.approveRegistryModel",
-      "path": "/models/{modelId}/approve"
-    },
-    {
       "method": "post",
       "operationId": "ModelsController.create",
       "path": "/models"
@@ -2928,18 +2808,8 @@
     },
     {
       "method": "patch",
-      "operationId": "ModelsController.markRegistryModelLegacy",
-      "path": "/models/{modelId}/legacy"
-    },
-    {
-      "method": "patch",
       "operationId": "ModelsController.patch",
       "path": "/models/{modelId}"
-    },
-    {
-      "method": "patch",
-      "operationId": "ModelsController.rejectRegistryModel",
-      "path": "/models/{modelId}/reject"
     },
     {
       "method": "delete",
@@ -2973,11 +2843,6 @@
     },
     {
       "method": "post",
-      "operationId": "MonitoredAccountsController.toggleActive",
-      "path": "/monitored-accounts/{id}/toggle"
-    },
-    {
-      "method": "post",
       "operationId": "MonitoredAccountsController.validateTwitterUsername",
       "path": "/monitored-accounts/validate"
     },
@@ -2995,11 +2860,6 @@
       "method": "get",
       "operationId": "MusicsController.findAll",
       "path": "/musics"
-    },
-    {
-      "method": "get",
-      "operationId": "MusicsController.findLatest",
-      "path": "/musics/latest"
     },
     {
       "method": "get",
@@ -3718,16 +3578,6 @@
     },
     {
       "method": "post",
-      "operationId": "PostsOperationsController.generateThread",
-      "path": "/posts/thread-generations"
-    },
-    {
-      "method": "post",
-      "operationId": "PostsOperationsController.generateTweets",
-      "path": "/posts/generations"
-    },
-    {
-      "method": "post",
       "operationId": "PostsOperationsController.scoreSeo",
       "path": "/posts/{postId}/seo-scores"
     },
@@ -3819,27 +3669,27 @@
     {
       "method": "post",
       "operationId": "ProjectsController.create",
-      "path": "/v1/projects"
+      "path": "/projects"
     },
     {
       "method": "get",
       "operationId": "ProjectsController.findAll",
-      "path": "/v1/projects"
+      "path": "/projects"
     },
     {
       "method": "get",
       "operationId": "ProjectsController.findOne",
-      "path": "/v1/projects/{id}"
+      "path": "/projects/{id}"
     },
     {
       "method": "patch",
       "operationId": "ProjectsController.patch",
-      "path": "/v1/projects/{id}"
+      "path": "/projects/{id}"
     },
     {
       "method": "delete",
       "operationId": "ProjectsController.remove",
-      "path": "/v1/projects/{id}"
+      "path": "/projects/{id}"
     },
     {
       "method": "post",
@@ -4088,11 +3938,6 @@
     },
     {
       "method": "post",
-      "operationId": "ReplyBotConfigsController.toggleActive",
-      "path": "/reply-bot-configs/{id}/toggle"
-    },
-    {
-      "method": "post",
       "operationId": "ReplyBotConfigsController.triggerPolling",
       "path": "/reply-bot-configs/trigger-polling"
     },
@@ -4268,16 +4113,6 @@
     },
     {
       "method": "post",
-      "operationId": "SocialInboxController.approveDraft",
-      "path": "/messages/{conversationId}/drafts/{messageId}/approve"
-    },
-    {
-      "method": "patch",
-      "operationId": "SocialInboxController.assignOwner",
-      "path": "/messages/{conversationId}/assignment"
-    },
-    {
-      "method": "post",
       "operationId": "SocialInboxController.createDraft",
       "path": "/messages/{conversationId}/drafts"
     },
@@ -4303,11 +4138,6 @@
     },
     {
       "method": "post",
-      "operationId": "SocialInboxController.rejectDraft",
-      "path": "/messages/{conversationId}/drafts/{messageId}/reject"
-    },
-    {
-      "method": "post",
       "operationId": "SocialInboxController.sendDm",
       "path": "/messages/{conversationId}/dms"
     },
@@ -4318,13 +4148,13 @@
     },
     {
       "method": "patch",
-      "operationId": "SocialInboxController.updateStatus",
-      "path": "/messages/{conversationId}/status"
+      "operationId": "SocialInboxController.updateConversation",
+      "path": "/messages/{conversationId}"
     },
     {
       "method": "patch",
-      "operationId": "SocialInboxController.updateTags",
-      "path": "/messages/{conversationId}/tags"
+      "operationId": "SocialInboxController.updateDraft",
+      "path": "/messages/{conversationId}/drafts/{messageId}"
     },
     {
       "method": "post",
@@ -4462,11 +4292,6 @@
       "path": "/tasks/{taskId}/comments/{commentId}"
     },
     {
-      "method": "patch",
-      "operationId": "TasksController.approve",
-      "path": "/tasks/{id}/approve"
-    },
-    {
       "method": "post",
       "operationId": "TasksController.checkout",
       "path": "/tasks/{id}/checkout"
@@ -4480,11 +4305,6 @@
       "method": "post",
       "operationId": "TasksController.createChildren",
       "path": "/tasks/{id}/children"
-    },
-    {
-      "method": "patch",
-      "operationId": "TasksController.dismiss",
-      "path": "/tasks/{id}/dismiss"
     },
     {
       "method": "get",
@@ -4512,11 +4332,6 @@
       "path": "/tasks/inbox"
     },
     {
-      "method": "patch",
-      "operationId": "TasksController.keepOutput",
-      "path": "/tasks/{id}/outputs/{outputId}/keep"
-    },
-    {
       "method": "post",
       "operationId": "TasksController.openPlanThread",
       "path": "/tasks/{id}/plan-thread"
@@ -4538,18 +4353,13 @@
     },
     {
       "method": "patch",
-      "operationId": "TasksController.requestChanges",
-      "path": "/tasks/{id}/request-changes"
+      "operationId": "TasksController.setOutputKept",
+      "path": "/tasks/{id}/outputs/{outputId}"
     },
     {
-      "method": "patch",
+      "method": "delete",
       "operationId": "TasksController.trashOutput",
-      "path": "/tasks/{id}/outputs/{outputId}/trash"
-    },
-    {
-      "method": "patch",
-      "operationId": "TasksController.unkeepOutput",
-      "path": "/tasks/{id}/outputs/{outputId}/unkeep"
+      "path": "/tasks/{id}/outputs/{outputId}"
     },
     {
       "method": "get",
@@ -5043,11 +4853,6 @@
     },
     {
       "method": "get",
-      "operationId": "VideosController.findLatest",
-      "path": "/videos/latest"
-    },
-    {
-      "method": "get",
       "operationId": "VideosController.findOne",
       "path": "/videos/{videoId}"
     },
@@ -5085,11 +4890,6 @@
       "method": "post",
       "operationId": "VideosGifController.createGif",
       "path": "/videos/{videoId}/gif"
-    },
-    {
-      "method": "post",
-      "operationId": "VideosGifController.createReference",
-      "path": "/videos/{videoId}/reference"
     },
     {
       "method": "post",

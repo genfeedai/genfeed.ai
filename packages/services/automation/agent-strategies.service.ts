@@ -1,9 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type { IServiceSerializer } from '@genfeedai/interfaces/utils/error.interface';
-import {
-  BaseService,
-  type JsonApiResponseDocument,
-} from '@services/core/base.service';
+import { BaseService } from '@services/core/base.service';
 
 const agentStrategySerializer: IServiceSerializer<AgentStrategy> = {
   serialize: (data) => data,
@@ -236,13 +233,8 @@ export class AgentStrategiesService extends BaseService<
     return this.patch(id, data);
   }
 
-  async toggle(id: string): Promise<AgentStrategy> {
-    const response = await this.instance.post<JsonApiResponseDocument>(
-      `/${id}/toggle`,
-    );
-    return new AgentStrategy(
-      this.extractResource<Partial<AgentStrategy>>(response.data),
-    );
+  async setActive(id: string, isActive: boolean): Promise<AgentStrategy> {
+    return this.update(id, { isActive });
   }
 
   async runNow(id: string): Promise<{ message: string }> {
