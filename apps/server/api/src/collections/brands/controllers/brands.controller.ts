@@ -179,7 +179,7 @@ export class BrandsController extends BaseCRUDController<
 
     return {
       ...serializeSingle(request, BrandSerializer, moved),
-      meta: summary,
+      meta: { ...summary },
     };
   }
 
