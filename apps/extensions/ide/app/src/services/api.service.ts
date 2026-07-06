@@ -94,7 +94,7 @@ export class ApiService {
   async getGeneratedImages(limit = 20): Promise<GeneratedImage[]> {
     const result = await this.request<ApiResponse<GeneratedImage[]>>(
       'GET',
-      `/images/latest?limit=${limit}`,
+      `/images?limit=${limit}`,
     );
     return result.data;
   }
@@ -111,7 +111,7 @@ export class ApiService {
   async getGeneratedVideos(limit = 20): Promise<GeneratedVideo[]> {
     const result = await this.request<ApiResponse<GeneratedVideo[]>>(
       'GET',
-      `/videos/latest?limit=${limit}`,
+      `/videos?limit=${limit}`,
     );
     return result.data;
   }

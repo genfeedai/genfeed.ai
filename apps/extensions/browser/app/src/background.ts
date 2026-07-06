@@ -505,11 +505,14 @@ async function createVideoFromPrompt(
 }
 
 async function getLatestVideos(sendResponse: SendResponse): Promise<void> {
-  await executeAuthenticatedRequest<{ videos: unknown[] }>(
-    '/videos/latest',
+  await executeAuthenticatedRequest<{ data: unknown[] }>(
+    '/videos?limit=10',
     { method: 'GET' },
     sendResponse,
-    (data) => sendResponse({ success: true, videos: data.videos }),
+    // GET /videos returns a JSON:API collection envelope — newest-first by
+    // default — so the array lives under `data` (the `/videos/latest` shortcut
+    // was collapsed into this endpoint in the REST audit).
+    (data) => sendResponse({ success: true, videos: data.data }),
     'fetch videos',
   );
 }

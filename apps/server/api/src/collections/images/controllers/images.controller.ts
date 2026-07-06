@@ -2,7 +2,6 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { ImagesQueryDto } from '@api/collections/images/dto/images-query.dto';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { VotesService } from '@api/collections/votes/services/votes.service';
-import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -50,66 +49,6 @@ export class ImagesController {
     private readonly loggerService: LoggerService,
     private readonly votesService: VotesService,
   ) {}
-
-  @Get('latest')
-  @Cache({
-    keyGenerator: (req) =>
-      `images:latest:user:${req.user?.id ?? 'anonymous'}:limit:${req.query.limit ?? 10}`,
-    tags: ['images'],
-    ttl: 300, // 5 minutes
-  })
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findLatest(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Query('limit') limit: number = 10,
-  ): Promise<JsonApiCollectionResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
-    const brand = publicMetadata.brand;
-
-    const aggregate = {
-      where: {
-        AND: [
-          {
-            OR: [
-              {
-                AND: [
-                  {
-                    brand,
-                    category: IngredientCategory.IMAGE,
-                    isDeleted,
-                    // Exclude training source images by default
-                    training: { not: false },
-                    user: publicMetadata.user,
-                  },
-                ],
-              },
-              {
-                AND: [
-                  {
-                    // Filter default images by brand when brand is specified
-                    brand,
-                    category: IngredientCategory.IMAGE,
-                    isDefault: true,
-                    isDeleted,
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-      orderBy: { createdAt: -1 },
-    };
-
-    const data = await this.imagesService.findAll(aggregate, {
-      limit: Math.min(Number(limit) || 10, 50),
-      pagination: false,
-    });
-
-    return serializeCollection(request, IngredientSerializer, data);
-  }
 
   @Get()
   @LogMethod({ logEnd: false, logError: true, logStart: true })

@@ -2,30 +2,20 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { CreateMusicDto } from '@api/collections/musics/dto/create-music.dto';
 import { MusicQueryDto } from '@api/collections/musics/dto/music-query.dto';
 import { UpdateMusicDto } from '@api/collections/musics/dto/update-music.dto';
-import {
-  Music,
-  type MusicDocument,
-} from '@api/collections/musics/schemas/music.schema';
+import type { MusicDocument } from '@api/collections/musics/schemas/music.schema';
 import { MusicsService } from '@api/collections/musics/services/musics.service';
-import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
-import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
-import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
-import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { IngredientCategory } from '@genfeedai/enums';
-import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
 import { MusicSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
+import { Controller, UseGuards } from '@nestjs/common';
 
 @AutoSwagger()
 @Controller('musics')
@@ -47,7 +37,11 @@ export class MusicsController extends BaseCRUDController<
   }
 
   /**
-   * Override buildFindAllQuery to add music-specific filtering
+   * Override buildFindAllQuery to add music-specific filtering.
+   *
+   * Newest-first by default (`orderBy: { createdAt: -1 }`), so `GET /musics`
+   * is the canonical "latest musics" list (the former `/musics/latest` shortcut
+   * was collapsed into this endpoint in the REST audit).
    */
   public buildFindAllQuery(user: User, query: MusicQueryDto) {
     const publicMetadata = getPublicMetadata(user);
@@ -95,54 +89,5 @@ export class MusicsController extends BaseCRUDController<
       },
       orderBy: query.sort ? handleQuerySort(query.sort) : { createdAt: -1 },
     };
-  }
-
-  @Get('latest')
-  @Cache({
-    keyGenerator: (req) =>
-      `musics:latest:user:${req.user?.id ?? 'anonymous'}:limit:${req.query.limit ?? 10}`,
-    tags: ['musics'],
-    ttl: 300, // 5 minutes
-  })
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findLatest(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Query('limit') limit: number = 10,
-  ): Promise<JsonApiCollectionResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
-    const brand = publicMetadata.brand;
-
-    const aggregate = {
-      where: {
-        OR: [
-          {
-            brand,
-            category: IngredientCategory.MUSIC,
-            isDeleted,
-            // Exclude training source musics by default
-            trainingId: null,
-            user: publicMetadata.user,
-          },
-          {
-            // Filter default musics by brand when brand is specified
-            brand,
-            category: IngredientCategory.MUSIC,
-            isDefault: true,
-            isDeleted,
-          },
-        ],
-      },
-      orderBy: { createdAt: -1 },
-    };
-
-    const data: AggregatePaginateResult<MusicDocument> =
-      await this.musicsService.findAll(aggregate, {
-        limit: Math.min(Number(limit) || 10, 50),
-        pagination: false,
-      });
-
-    return serializeCollection(request, this.serializer, data);
   }
 }

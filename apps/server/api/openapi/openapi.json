@@ -29379,30 +29379,6 @@
         ]
       }
     },
-    "/gifs/latest": {
-      "get": {
-        "operationId": "GifsController.findLatest",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "limit",
-            "required": true,
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findLatest",
-        "tags": [
-          "gifs"
-        ]
-      }
-    },
     "/gifs/{gifId}": {
       "delete": {
         "operationId": "GifsController.remove",
@@ -30060,30 +30036,6 @@
           }
         },
         "summary": "create",
-        "tags": [
-          "images"
-        ]
-      }
-    },
-    "/images/latest": {
-      "get": {
-        "operationId": "ImagesController.findLatest",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "limit",
-            "required": true,
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findLatest",
         "tags": [
           "images"
         ]
@@ -33075,30 +33027,6 @@
           }
         },
         "summary": "create",
-        "tags": [
-          "musics"
-        ]
-      }
-    },
-    "/musics/latest": {
-      "get": {
-        "operationId": "MusicsController.findLatest",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "limit",
-            "required": true,
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findLatest",
         "tags": [
           "musics"
         ]
@@ -48580,30 +48508,6 @@
           }
         },
         "summary": "createBatchInterpolation",
-        "tags": [
-          "videos"
-        ]
-      }
-    },
-    "/videos/latest": {
-      "get": {
-        "operationId": "VideosController.findLatest",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "limit",
-            "required": true,
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findLatest",
         "tags": [
           "videos"
         ]

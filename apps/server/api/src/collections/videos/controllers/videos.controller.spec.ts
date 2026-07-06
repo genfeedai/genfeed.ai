@@ -434,64 +434,6 @@ describe('VideosController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('findLatest', () => {
-    it('should return latest videos', async () => {
-      const mockData = {
-        docs: [mockVideo],
-        limit: 10,
-        page: 1,
-        totalDocs: 1,
-      };
-
-      videosService.findAll.mockResolvedValue(
-        mockData as unknown as AggregatePaginateResult<IngredientDocument>,
-      );
-
-      const result = await controller.findLatest(mockRequest, mockUser, 10);
-
-      expect(videosService.findAll).toHaveBeenCalled();
-      expect(result).toBeDefined();
-      expect(result.data).toBeDefined();
-    });
-
-    it('should limit results to maximum of 50', async () => {
-      const mockData = {
-        docs: [],
-        totalDocs: 0,
-      };
-
-      videosService.findAll.mockResolvedValue(
-        mockData as unknown as AggregatePaginateResult<IngredientDocument>,
-      );
-
-      await controller.findLatest(mockRequest, mockUser, 100);
-
-      const callArgs = videosService.findAll.mock.calls[0];
-      const options = callArgs[1];
-
-      expect(options.limit).toBe(50);
-    });
-
-    it('should use default limit of 10 if not provided', async () => {
-      const mockData = {
-        docs: [],
-        totalDocs: 0,
-      };
-
-      videosService.findAll.mockResolvedValue(
-        mockData as unknown as AggregatePaginateResult<IngredientDocument>,
-      );
-
-      await controller.findLatest(
-        mockRequest,
-        mockUser,
-        undefined as unknown as number,
-      );
-
-      expect(videosService.findAll).toHaveBeenCalled();
-    });
-  });
-
   describe('findAll', () => {
     const baseQuery: VideosQueryDto = {
       isDeleted: false,

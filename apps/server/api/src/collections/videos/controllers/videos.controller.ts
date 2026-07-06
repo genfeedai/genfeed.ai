@@ -96,49 +96,6 @@ export class VideosController {
     private readonly videoGenerationService: VideoGenerationService,
   ) {}
 
-  @Get('latest')
-  @Cache({
-    keyGenerator: (req) =>
-      `videos:latest:user:${req.user?.id ?? 'anonymous'}:limit:${req.query.limit ?? 10}`,
-    tags: ['videos'],
-    ttl: 300, // 5 minutes
-  })
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findLatest(
-    @Req() request: ExpressRequest,
-    @CurrentUser() user: User,
-    @Query('limit') limit: number = 10,
-  ): Promise<JsonApiCollectionResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
-    const brand = publicMetadata.brand;
-
-    const aggregate = {
-      where: {
-        AND: [
-          {
-            brand,
-            category: CategoryPrismaUtil.toIngredientCategory(
-              IngredientCategory.VIDEO,
-            ),
-            isDeleted,
-            // Exclude training source videos by default
-            training: { not: false },
-            user: publicMetadata.user,
-          },
-        ],
-      },
-      orderBy: { createdAt: -1 },
-    };
-
-    const data = await this.videosService.findAll(aggregate, {
-      limit: Math.min(Number(limit) || 10, 50),
-      pagination: false,
-    });
-
-    return serializeCollection(request, VideoSerializer, data);
-  }
-
   @Get()
   @Cache({
     keyGenerator: (req) =>
