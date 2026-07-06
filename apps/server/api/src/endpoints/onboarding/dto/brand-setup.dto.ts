@@ -139,27 +139,3 @@ export class ConfirmBrandDataDto {
   @ApiPropertyOptional({ description: 'Override target audience' })
   audience?: string;
 }
-
-/**
- * DTO for updating brand name without scanning
- */
-export class UpdateBrandNameDto {
-  @IsString()
-  @MaxLength(120)
-  @ApiProperty({
-    description: 'Brand name to set',
-    example: 'Acme Corp',
-  })
-  brandName!: string;
-}
-
-/**
- * DTO for skipping onboarding
- */
-export class SkipOnboardingDto {
-  @IsString()
-  @IsOptional()
-  @MaxLength(500)
-  @ApiPropertyOptional({ description: 'Reason for skipping (optional)' })
-  reason?: string;
-}

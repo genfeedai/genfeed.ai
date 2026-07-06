@@ -12,7 +12,9 @@ import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-a
 import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
 import type { IExtractedBrandData } from '@genfeedai/interfaces';
 import { logger } from '@genfeedai/services/core/logger.service';
-import { OnboardingService } from '@genfeedai/services/onboarding/onboarding.service';
+import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
+import { UsersService } from '@genfeedai/services/organization/users.service';
+import { BrandsService } from '@genfeedai/services/social/brands.service';
 import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
@@ -92,8 +94,14 @@ function ModalOnboardingContent({
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const getOnboardingService = useAuthedService((token: string) =>
-    OnboardingService.getInstance(token),
+  const getBrandsService = useAuthedService((token: string) =>
+    BrandsService.getInstance(token),
+  );
+  const getOrganizationsService = useAuthedService((token: string) =>
+    OrganizationsService.getInstance(token),
+  );
+  const getUsersService = useAuthedService((token: string) =>
+    UsersService.getInstance(token),
   );
 
   const isSkippingRef = useRef(false);
@@ -105,8 +113,18 @@ function ModalOnboardingContent({
     isSkippingRef.current = true;
 
     try {
-      const service = await getOnboardingService();
-      await service.skip();
+      // Mark first-login complete on the org settings resource (REST audit #1354).
+      const [usersService, organizationsService] = await Promise.all([
+        getUsersService(),
+        getOrganizationsService(),
+      ]);
+      const organizations = await usersService.findMeOrganizations();
+      const orgId = organizations[0]?.id;
+      if (orgId) {
+        await organizationsService.patchSettings(orgId, {
+          isFirstLogin: false,
+        });
+      }
       closeModal(ModalEnum.ONBOARDING);
       onSkip?.();
     } catch (error) {
@@ -115,7 +133,7 @@ function ModalOnboardingContent({
     } finally {
       isSkippingRef.current = false;
     }
-  }, [getOnboardingService, onSkip]);
+  }, [getUsersService, getOrganizationsService, onSkip]);
 
   const handleStartAnalysis = useCallback(async () => {
     if (!brandUrl.trim()) {
@@ -128,8 +146,19 @@ function ModalOnboardingContent({
     setIsProcessing(true);
 
     try {
-      const service = await getOnboardingService();
-      const result = await service.setupBrand({
+      // Scrape into the workspace's brand resource (was POST /onboarding/brand-setup;
+      // now POST /brands/:id/scrape — REST audit #1354).
+      const [usersService, brandsService] = await Promise.all([
+        getUsersService(),
+        getBrandsService(),
+      ]);
+      const brands = await usersService.findMeBrands({ pagination: false });
+      const targetBrandId = brands[0]?.id;
+      if (!targetBrandId) {
+        throw new Error('No brand found for the current workspace');
+      }
+
+      const result = await brandsService.scrape(targetBrandId, {
         brandUrl: brandUrl.trim(),
       });
 
@@ -150,23 +179,19 @@ function ModalOnboardingContent({
     } finally {
       setIsProcessing(false);
     }
-  }, [brandUrl, getOnboardingService]);
+  }, [brandUrl, getUsersService, getBrandsService]);
 
-  const handleConfirm = useCallback(async () => {
+  const handleConfirm = useCallback(() => {
+    // The scrape step already persisted all extracted brand data; confirmation
+    // is now a client-side acknowledgement (the empty-override confirm RPC was
+    // dissolved in REST audit #1354).
     if (!brandId) {
       return;
     }
 
-    try {
-      const service = await getOnboardingService();
-      await service.confirmBrandData(brandId, {});
-      closeModal(ModalEnum.ONBOARDING);
-      onComplete?.();
-    } catch (error) {
-      logger.error('Failed to confirm brand data', error);
-      setError('Failed to save brand data. Please try again.');
-    }
-  }, [brandId, getOnboardingService, onComplete]);
+    closeModal(ModalEnum.ONBOARDING);
+    onComplete?.();
+  }, [brandId, onComplete]);
 
   const handleBack = useCallback(() => {
     setError(null);

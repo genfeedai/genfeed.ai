@@ -9,7 +9,7 @@ import SuccessContent from './success-content';
 const getTokenMock = vi.fn();
 const userReloadMock = vi.fn();
 const resolveAuthTokenMock = vi.fn();
-const completeFunnelMock = vi.fn();
+const patchMeMock = vi.fn();
 const patchSettingsMock = vi.fn();
 const assignMock = vi.fn();
 
@@ -61,17 +61,10 @@ vi.mock('@hooks/ui/use-gsap-entrance', () => ({
   useGsapTimeline: () => vi.fn(),
 }));
 
-vi.mock('@services/onboarding/onboarding-funnel.service', () => ({
-  OnboardingFunnelService: {
-    getInstance: vi.fn(() => ({
-      completeFunnel: completeFunnelMock,
-    })),
-  },
-}));
-
 vi.mock('@services/organization/users.service', () => ({
   UsersService: {
     getInstance: vi.fn(() => ({
+      patchMe: patchMeMock,
       patchSettings: patchSettingsMock,
     })),
   },
@@ -111,13 +104,13 @@ describe('SuccessContent behavior', () => {
     getTokenMock.mockReset();
     userReloadMock.mockReset();
     resolveAuthTokenMock.mockReset();
-    completeFunnelMock.mockReset();
+    patchMeMock.mockReset();
     patchSettingsMock.mockReset();
     assignMock.mockReset();
     localStorageMock.clear();
 
     resolveAuthTokenMock.mockResolvedValue('api-token');
-    completeFunnelMock.mockResolvedValue(undefined);
+    patchMeMock.mockResolvedValue(undefined);
     userReloadMock.mockResolvedValue(undefined);
 
     Object.defineProperty(globalThis, 'localStorage', {
@@ -157,7 +150,7 @@ describe('SuccessContent behavior', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Enter Workspace' }));
 
     await waitFor(() => {
-      expect(completeFunnelMock).toHaveBeenCalledTimes(1);
+      expect(patchMeMock).toHaveBeenCalledWith({ isOnboardingCompleted: true });
     });
 
     expect(localStorage.getItem(ONBOARDING_STORAGE_KEYS.previewUrl)).toBeNull();
@@ -195,7 +188,7 @@ describe('SuccessContent behavior', () => {
       });
     });
 
-    expect(completeFunnelMock).toHaveBeenCalledTimes(1);
+    expect(patchMeMock).toHaveBeenCalledWith({ isOnboardingCompleted: true });
     expect(assignMock).toHaveBeenCalledWith(
       '/acme-org/primary-brand/workspace/overview',
     );

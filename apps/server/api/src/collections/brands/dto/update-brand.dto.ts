@@ -53,4 +53,16 @@ export class UpdateBrandDto extends PartialType(CreateBrandDto) {
     required: false,
   })
   readonly organizationId?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  @ApiProperty({
+    description:
+      'Onboarding-only control flag. When true and `label` is present, the brand ' +
+      "rename cascades to the owning organization's label + slug (and the brand's " +
+      'own slug), matching the single-brand onboarding workspace. Never persisted ' +
+      'on the brand record.',
+    required: false,
+  })
+  readonly syncOrganizationName?: boolean;
 }

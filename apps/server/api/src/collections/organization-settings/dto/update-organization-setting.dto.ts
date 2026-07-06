@@ -12,4 +12,13 @@ export class UpdateOrganizationSettingDto extends PartialType(
     required: false,
   })
   readonly isDeleted?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'Whether this is the org owner’s first login. Set to false to mark onboarding complete.',
+    required: false,
+  })
+  readonly isFirstLogin?: boolean;
 }

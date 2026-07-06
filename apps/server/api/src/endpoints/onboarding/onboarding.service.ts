@@ -8,11 +8,7 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
-import type {
-  BrandSetupDto,
-  ConfirmBrandDataDto,
-  UpdateBrandNameDto,
-} from '@api/endpoints/onboarding/dto/brand-setup.dto';
+import type { BrandSetupDto } from '@api/endpoints/onboarding/dto/brand-setup.dto';
 import { GeneratePreviewDto } from '@api/endpoints/onboarding/dto/generate-preview.dto';
 import { ReferenceImageDto } from '@api/endpoints/onboarding/dto/reference-images.dto';
 import type {
@@ -280,14 +276,23 @@ export class OnboardingService {
   }
 
   /**
-   * Main onboarding flow: scrape, analyze, and setup brand
+   * Main onboarding flow: scrape, analyze, and set up an explicit brand.
+   *
+   * Backs `POST /brands/:id/scrape` (REST audit #1354): the brand to write into
+   * is now addressed by id in the path rather than resolved from user context.
+   * The 9-step scrape + AI orchestration, slug sync, reward unlock, and
+   * first-login completion are unchanged.
    */
   async setupBrand(
+    brandId: string,
     dto: BrandSetupDto,
     user: User,
   ): Promise<BrandSetupResponse> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(`${caller} starting`, { brandUrl: dto.brandUrl });
+    this.loggerService.log(`${caller} starting`, {
+      brandId,
+      brandUrl: dto.brandUrl,
+    });
 
     return withOnboardingErrorHandling(
       this.loggerService,
@@ -309,21 +314,25 @@ export class OnboardingService {
           );
         }
 
+        // Resolve/provision the workspace (safety net for the rare case where
+        // signup-time provisioning failed) and use it as the org/user scope.
         const workspace = await this.ensureOnboardingWorkspace(user);
         const organizationId = workspace.organizationId;
         const userId = workspace.userId;
 
-        // 2. Find existing brand for user (created during signup)
-        const existingBrand =
-          await this.brandPersistenceService.resolveOnboardingBrand(
-            organizationId,
-            userId,
-            workspace.brandId,
-          );
+        // 2. Resolve the explicit target brand, scoped to the workspace org.
+        const targetBrand = await this.brandsService.findOne(
+          {
+            _id: brandId,
+            isDeleted: false,
+            organization: organizationId,
+          },
+          'none',
+        );
 
-        if (!existingBrand) {
+        if (!targetBrand) {
           throw new HttpException(
-            { detail: 'No brand found for user', title: 'Brand Not Found' },
+            { detail: 'Brand not found', title: 'Brand Not Found' },
             HttpStatus.NOT_FOUND,
           );
         }
@@ -331,7 +340,7 @@ export class OnboardingService {
         // 3. Scrape brand sources (auto-detected from the URL)
         const scrapedData = await this.scrapeBrandData(
           dto,
-          existingBrand,
+          targetBrand,
           caller,
         );
 
@@ -352,13 +361,6 @@ export class OnboardingService {
         // 6. Update brand with extracted data
         const labelOverride = dto.brandName?.trim() || undefined;
         const resolvedLabel = labelOverride || scrapedData.companyName;
-        const targetBrand =
-          await this.brandPersistenceService.resolveWritableOnboardingBrand(
-            existingBrand,
-            organizationId,
-            userId,
-            resolvedLabel,
-          );
 
         await this.brandPersistenceService.updateBrandWithScrapedData(
           targetBrand.id,
@@ -456,125 +458,6 @@ export class OnboardingService {
   }
 
   /**
-   * Confirm and optionally override extracted brand data
-   */
-  async confirmBrandData(
-    brandId: string,
-    dto: ConfirmBrandDataDto,
-    user: User,
-  ): Promise<{ success: boolean; message: string }> {
-    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(`${caller} starting`, { brandId });
-
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization;
-
-    return withOnboardingErrorHandling(
-      this.loggerService,
-      caller,
-      {
-        detail: 'Failed to confirm brand data',
-        hasHttpExceptionPassthrough: true,
-        hasPrismaPassthrough: true,
-        title: 'Error',
-      },
-      async () => {
-        // Verify brand belongs to user's organization
-        const brand = await this.brandsService.findOne(
-          {
-            _id: brandId,
-            isDeleted: false,
-            organization: organizationId,
-          },
-          'none',
-        );
-
-        if (!brand) {
-          throw new HttpException(
-            { detail: 'Brand not found', title: 'Not Found' },
-            HttpStatus.NOT_FOUND,
-          );
-        }
-
-        // Update brand with overrides
-        const updateData: Record<string, unknown> = {};
-
-        if (dto.label) {
-          updateData.label = dto.label;
-        }
-        if (dto.description) {
-          updateData.description = dto.description;
-        }
-        if (dto.primaryColor) {
-          updateData.primaryColor = dto.primaryColor;
-        }
-        if (dto.secondaryColor) {
-          updateData.secondaryColor = dto.secondaryColor;
-        }
-        if (dto.fontFamily) {
-          updateData.fontFamily = dto.fontFamily;
-        }
-
-        if (Object.keys(updateData).length > 0) {
-          await this.brandsService.patch(brand.id, updateData);
-        }
-
-        // Sync organization and brand label and slug when brand label is updated
-        if (dto.label) {
-          await this.brandPersistenceService.syncBrandAndOrgSlug(
-            dto.label,
-            organizationId.toString(),
-            brand.id,
-          );
-        }
-
-        // Update canonical brand guidance if voice overrides provided
-        if (dto.tone || dto.voice || dto.audience) {
-          await this.brandPersistenceService.updateBrandGuidanceOverrides(
-            brand.id,
-            dto,
-          );
-        }
-
-        this.loggerService.log(`${caller} completed`);
-
-        return {
-          message: 'Brand data confirmed successfully',
-          success: true,
-        };
-      },
-    );
-  }
-
-  /**
-   * Skip onboarding for users who want to set up later
-   */
-  async skipOnboarding(
-    user: User,
-  ): Promise<{ success: boolean; message: string }> {
-    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(`${caller} starting`);
-
-    return withOnboardingErrorHandling(
-      this.loggerService,
-      caller,
-      { detail: 'Failed to skip onboarding', title: 'Error' },
-      async () => {
-        const { organizationId } = await this.ensureOnboardingWorkspace(user);
-        // Mark onboarding as skipped
-        await this.completeOnboarding(organizationId);
-
-        this.loggerService.log(`${caller} completed`);
-
-        return {
-          message: 'Onboarding skipped. You can set up your brand later.',
-          success: true,
-        };
-      },
-    );
-  }
-
-  /**
    * Get onboarding status for user
    */
   async getOnboardingStatus(
@@ -592,45 +475,12 @@ export class OnboardingService {
   }
 
   /**
-   * Set the organization's account type.
-   */
-  async setAccountType(
-    user: User,
-    category: OrganizationCategory,
-  ): Promise<{ success: boolean; message: string }> {
-    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(`${caller} starting`, { category });
-
-    return withOnboardingErrorHandling(
-      this.loggerService,
-      caller,
-      {
-        detail: 'Failed to set account type',
-        hasHttpExceptionPassthrough: true,
-        title: 'Error',
-      },
-      async () => {
-        const { organizationId } = await this.ensureOnboardingWorkspace(
-          user,
-          category,
-        );
-        await this.organizationsService.patch(organizationId.toString(), {
-          accountType: category,
-          category,
-        });
-
-        this.loggerService.log(`${caller} completed`, { category });
-
-        return {
-          message: `Account type set to ${category}`,
-          success: true,
-        };
-      },
-    );
-  }
-
-  /**
    * Mark the onboarding funnel as completed.
+   *
+   * Idempotent completion cascade backing `PATCH /users/me { isOnboardingCompleted: true }`
+   * (REST audit #1354): resolves/repairs the workspace, best-effort marks the proactive
+   * lead paid, patches the User row only when not already completed, and invalidates the
+   * access caches so `OnboardingGuard` sees the new state on the next request.
    */
   async completeFunnel(
     user: User,
@@ -648,11 +498,21 @@ export class OnboardingService {
         const proactiveLeadId = publicMetadata.proactiveLeadId?.toString();
         const organizationId = workspace.organizationId;
 
+        // Best-effort: a lead-status mismatch must not block onboarding completion
+        // (the user has already paid via Stripe before this fires).
         if (proactiveLeadId && organizationId) {
-          await this.proactiveOnboardingService.markPaymentMade(
-            proactiveLeadId,
-            organizationId,
-          );
+          try {
+            await this.proactiveOnboardingService.markPaymentMade(
+              proactiveLeadId,
+              organizationId,
+            );
+          } catch (error: unknown) {
+            this.loggerService.warn(`${caller} markPaymentMade skipped`, {
+              error: error instanceof Error ? error.message : error,
+              organizationId,
+              proactiveLeadId,
+            });
+          }
         }
 
         // Update the DB so OnboardingGuard is satisfied; onboarding completion is
@@ -778,16 +638,21 @@ export class OnboardingService {
   }
 
   /**
-   * Update brand and organization name without scanning
+   * Rename an explicit brand during onboarding, optionally cascading the new
+   * name to the owning organization's label + slug.
+   *
+   * Backs the `syncOrganizationName` path of `PATCH /brands/:id` (REST audit #1354).
+   * The org-rename cascade is gated to the first-login onboarding window
+   * (`OrganizationSettings.isFirstLogin === true`) so a generic client-set flag
+   * can never rename an established organization once onboarding has finished.
    */
-  async updateBrandName(
-    dto: UpdateBrandNameDto,
+  async updateBrandNameById(
+    brandId: string,
+    name: string,
     user: User,
   ): Promise<{ success: boolean; message: string }> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(`${caller} starting`, {
-      brandName: dto.brandName,
-    });
+    this.loggerService.log(`${caller} starting`, { brandId, name });
 
     return withOnboardingErrorHandling(
       this.loggerService,
@@ -801,36 +666,42 @@ export class OnboardingService {
       async () => {
         const workspace = await this.ensureOnboardingWorkspace(user);
         const organizationId = workspace.organizationId;
-        const userId = workspace.userId;
 
         const brand = await this.brandsService.findOne(
           {
+            _id: brandId,
             isDeleted: false,
             organization: organizationId,
-            user: userId,
           },
           'none',
         );
 
         if (!brand) {
           throw new HttpException(
-            { detail: 'No brand found for user', title: 'Brand Not Found' },
+            { detail: 'Brand not found', title: 'Brand Not Found' },
             HttpStatus.NOT_FOUND,
           );
         }
 
         await this.brandsService.patch(brand.id, {
-          label: dto.brandName,
+          label: name,
         });
 
-        // Keep brand.slug in sync with the label (matching the scan-based and
-        // brand-update paths); the brand id excludes the brand's own current
-        // slug from uniqueness collision.
-        await this.brandPersistenceService.syncBrandAndOrgSlug(
-          dto.brandName,
-          organizationId.toString(),
-          String(brand.id),
-        );
+        // Only cascade the rename to the organization during the first-login
+        // onboarding window. Outside it, this is a plain brand label update — an
+        // arbitrary brand PATCH must never rename an established organization.
+        const settings = await this.organizationSettingsService.findOne({
+          isDeleted: false,
+          organization: organizationId.toString(),
+        });
+
+        if (settings?.isFirstLogin) {
+          await this.brandPersistenceService.syncBrandAndOrgSlug(
+            name,
+            organizationId.toString(),
+            String(brand.id),
+          );
+        }
 
         this.loggerService.log(`${caller} completed`);
 

@@ -1,6 +1,7 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const organizationSettingsAttributes = createEntityAttributes([
+  'isFirstLogin',
   'isWhitelabelEnabled',
   'isVoiceControlEnabled',
   'isWatermarkEnabled',

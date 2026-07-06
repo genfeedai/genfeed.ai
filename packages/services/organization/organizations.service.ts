@@ -1,5 +1,9 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
-import { type AnalyticsMetric, IngredientCategory } from '@genfeedai/enums';
+import {
+  type AnalyticsMetric,
+  IngredientCategory,
+  type OrganizationCategory,
+} from '@genfeedai/enums';
 import type {
   IActivity,
   IAnalytics,
@@ -8,6 +12,7 @@ import type {
   IIngredient,
   IMember,
   IMemberInvitation,
+  IOrganization,
   IOrganizationSetting,
   IPost,
   IQueryParams,
@@ -181,6 +186,28 @@ export class OrganizationsService extends BaseService<Organization> {
         (res) =>
           new OrganizationSetting(
             this.extractResource<IOrganizationSetting>(res.data),
+          ),
+      );
+  }
+
+  /**
+   * Set the organization's onboarding account type. Backs the dissolved
+   * `POST /onboarding/account-type` via `PATCH /organizations/:id` (REST audit
+   * #1354). Writes both `accountType` and the legacy `category` alias for parity.
+   */
+  public async updateAccountType(
+    id: string,
+    category: OrganizationCategory,
+  ): Promise<Organization> {
+    return await this.instance
+      .patch<JsonApiResponseDocument>(`/${id}`, {
+        accountType: category,
+        category,
+      })
+      .then(
+        (res) =>
+          new Organization(
+            this.extractResource<Partial<IOrganization>>(res.data),
           ),
       );
   }

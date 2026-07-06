@@ -26,6 +26,9 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { BrandSetupDto } from '@api/endpoints/onboarding/dto/brand-setup.dto';
+import { AddReferenceImagesDto } from '@api/endpoints/onboarding/dto/reference-images.dto';
+import { OnboardingService } from '@api/endpoints/onboarding/onboarding.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -57,6 +60,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  forwardRef,
   Get,
   HttpCode,
   HttpException,
@@ -98,6 +102,8 @@ export class BrandsController extends BaseCRUDController<
     public readonly postsService: PostsService,
     public readonly analyticsAggregationService: AnalyticsAggregationService,
     public readonly loggerService: LoggerService,
+    @Inject(forwardRef(() => OnboardingService))
+    private readonly onboardingService: OnboardingService,
   ) {
     super(
       loggerService,
@@ -125,12 +131,28 @@ export class BrandsController extends BaseCRUDController<
     @Param('id') id: string,
     @Body() updateDto: UpdateBrandDto,
   ): Promise<JsonApiSingleResponse> {
-    const requestedOrgId = (updateDto as { organizationId?: string })
-      .organizationId;
+    // `syncOrganizationName` is an onboarding-only control flag, never persisted
+    // on the brand row — strip it before any CRUD patch (REST audit #1354).
+    const { syncOrganizationName, ...rest } = updateDto as UpdateBrandDto & {
+      syncOrganizationName?: boolean;
+    };
+
+    // Brand rename that cascades to the owning organization's name/slug. The
+    // cascade itself is gated server-side to the first-login window inside the
+    // service, so this flag cannot rename an established organization.
+    const label = (rest as { label?: string }).label;
+    if (syncOrganizationName && typeof label === 'string' && label.trim()) {
+      await this.verifyBrandAccess(id, user);
+      await this.onboardingService.updateBrandNameById(id, label, user);
+      const renamed = await this.brandsService.findOne({ _id: id });
+      return serializeSingle(request, BrandSerializer, renamed);
+    }
+
+    const requestedOrgId = (rest as { organizationId?: string }).organizationId;
 
     // No org change requested → default CRUD patch.
     if (!requestedOrgId) {
-      return super.patch(request, user, id, updateDto);
+      return super.patch(request, user, id, rest as UpdateBrandDto);
     }
 
     const existing = (await this.brandsService.findOne({ _id: id })) as
@@ -145,23 +167,56 @@ export class BrandsController extends BaseCRUDController<
 
     // Same org → not a relocation; apply the remaining fields via the default patch.
     if (existing.organizationId === requestedOrgId) {
-      const { organizationId: _omit, ...rest } = updateDto as Record<
+      const { organizationId: _omit, ...fields } = rest as Record<
         string,
         unknown
       >;
-      return super.patch(request, user, id, rest as UpdateBrandDto);
+      return super.patch(request, user, id, fields as UpdateBrandDto);
     }
 
     const publicMetadata = getPublicMetadata(user);
     const moved = await this.brandsService.relocateToOrganization(
       id,
-      updateDto,
+      rest as UpdateBrandDto,
       {
         isSuperAdmin: getIsSuperAdmin(user, request),
         userId: publicMetadata.user,
       },
     );
     return serializeSingle(request, BrandSerializer, moved);
+  }
+
+  /**
+   * Scrape a brand's website/socials, analyze with AI, and populate canonical
+   * brand guidance. Renamed + rehomed from `POST /onboarding/brand-setup`
+   * (REST audit #1354) — the 9-step orchestration lives behind OnboardingService.
+   */
+  @Post(':id/scrape')
+  @HttpCode(200)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async scrapeBrand(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() dto: BrandSetupDto,
+  ) {
+    await this.verifyBrandAccess(id, user);
+    return this.onboardingService.setupBrand(id, dto, user);
+  }
+
+  /**
+   * Add reference images (face, product, style, logo) to a brand. Rehomed from
+   * `POST /onboarding/brand/:brandId/reference-images` (REST audit #1354).
+   */
+  @Post(':id/reference-images')
+  @HttpCode(200)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async addReferenceImages(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() dto: AddReferenceImagesDto,
+  ) {
+    await this.verifyBrandAccess(id, user);
+    return this.onboardingService.addReferenceImages(id, dto.images, user);
   }
 
   /**

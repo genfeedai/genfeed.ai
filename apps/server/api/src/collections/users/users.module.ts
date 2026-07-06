@@ -11,6 +11,7 @@ import { SubscriptionsModule } from '@api/collections/subscriptions/subscription
 import { UsersController } from '@api/collections/users/controllers/users.controller';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { CommonModule } from '@api/common/common.module';
+import { OnboardingModule } from '@api/endpoints/onboarding/onboarding.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { forwardRef, Module } from '@nestjs/common';
 
@@ -22,6 +23,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => CommonModule),
     forwardRef(() => FilesClientModule),
     forwardRef(() => MembersModule),
+    forwardRef(() => OnboardingModule),
     forwardRef(() => OrganizationsModule),
     forwardRef(() => SettingsModule),
     forwardRef(() => SubscriptionsModule),

@@ -12,6 +12,7 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
+import { OnboardingService } from '@api/endpoints/onboarding/onboarding.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -49,6 +50,7 @@ import {
   Body,
   Controller,
   Delete,
+  forwardRef,
   Get,
   HttpCode,
   HttpStatus,
@@ -82,6 +84,8 @@ export class UsersController {
     private readonly requestContextCacheService: RequestContextCacheService,
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
     private readonly betterAuthIdentityCacheService: BetterAuthIdentityCacheService,
+    @Inject(forwardRef(() => OnboardingService))
+    private readonly onboardingService: OnboardingService,
   ) {}
 
   private readObjectRecord(value: unknown): Record<string, unknown> {
@@ -533,6 +537,24 @@ export class UsersController {
     @Body() updateUserDto: UpdateUserDto,
   ) {
     const publicMetadata = getPublicMetadata(user);
+
+    // Completing onboarding is a cascade, not a plain field write: it marks any
+    // proactive lead paid and invalidates the access caches so OnboardingGuard
+    // sees the new state on the next request. Delegated to the idempotent
+    // OnboardingService.completeFunnel (REST audit #1354 — dissolves
+    // POST /onboarding/complete-funnel).
+    if (updateUserDto.isOnboardingCompleted === true) {
+      await this.onboardingService.completeFunnel(user);
+
+      const completed = await this.usersService.findOne({
+        _id: publicMetadata.user,
+        isDeleted: false,
+      });
+
+      return completed
+        ? serializeSingle(request, UserSerializer, completed)
+        : returnNotFound(this.constructorName, publicMetadata.user);
+    }
 
     const data = await this.usersService.patch(
       publicMetadata.user,
