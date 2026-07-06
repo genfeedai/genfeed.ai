@@ -1,18 +1,19 @@
 import { Public } from '@libs/decorators/public.decorator';
 import { Controller, Get, Header, Query } from '@nestjs/common';
-
-import { LifecycleEmailService } from './lifecycle-email.service';
+import { LifecycleEmailDeliveryService } from '@server/services/lifecycle-emails/lifecycle-email-delivery.service';
 
 @Public()
 @Controller('lifecycle-emails')
 export class LifecycleEmailsController {
-  constructor(private readonly lifecycleEmailService: LifecycleEmailService) {}
+  constructor(
+    private readonly lifecycleEmailDeliveryService: LifecycleEmailDeliveryService,
+  ) {}
 
   @Get('unsubscribe')
   @Header('content-type', 'text/html; charset=utf-8')
   async unsubscribe(@Query('token') token?: string): Promise<string> {
     const unsubscribed = token
-      ? await this.lifecycleEmailService.unsubscribe(token)
+      ? await this.lifecycleEmailDeliveryService.unsubscribe(token)
       : false;
 
     const title = unsubscribed ? 'Unsubscribed' : 'Unsubscribe link expired';

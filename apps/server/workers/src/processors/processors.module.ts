@@ -59,7 +59,6 @@ import { TwitterService } from '@api/services/integrations/twitter/services/twit
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
-import { LifecycleEmailsModule } from '@api/services/lifecycle-emails/lifecycle-emails.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
 import { SkillExecutorModule } from '@api/services/skill-executor/skill-executor.module';
@@ -155,7 +154,6 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     forwardRef(() => ContentOrchestrationModule),
     forwardRef(() => FacebookModule),
     forwardRef(() => InstagramModule),
-    forwardRef(() => LifecycleEmailsModule),
     forwardRef(() => LinkedInModule),
     forwardRef(() => MastodonModule),
     forwardRef(() => MetaAdsModule),

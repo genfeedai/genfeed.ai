@@ -18,6 +18,7 @@ export {
 export {
   SERVER_TOKENS,
   type ServerBrandMemorySync,
+  type ServerConfig,
   type ServerCredentialStore,
   type ServerLogger,
   type ServerNotifications,
@@ -26,3 +27,4 @@ export {
   type ServerPrisma,
   type ServerSocialAnalytics,
 } from './server.dependencies';
+export { LifecycleEmailDeliveryService } from './services/lifecycle-emails/lifecycle-email-delivery.service';
