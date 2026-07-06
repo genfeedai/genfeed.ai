@@ -120,7 +120,6 @@ describe('ApiAccessGuard', () => {
     });
 
     it.each([
-      SubscriptionTier.CREATOR,
       SubscriptionTier.PRO,
       SubscriptionTier.SCALE,
       SubscriptionTier.ENTERPRISE,

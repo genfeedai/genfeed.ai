@@ -81,12 +81,12 @@ describe('ApiKeysService per-tier rate limiting', () => {
     it('cloud: resolves the tier limit from OrganizationSetting', async () => {
       const service = createHarness();
       service.__findUnique.mockResolvedValue({
-        subscriptionTier: SubscriptionTier.CREATOR,
+        subscriptionTier: SubscriptionTier.PRO,
       });
 
       await expect(
         service.resolveEffectiveRateLimit(buildApiKey()),
-      ).resolves.toBe(60);
+      ).resolves.toBe(300);
       expect(service.__findUnique).toHaveBeenCalledWith({
         select: { subscriptionTier: true },
         where: { organizationId: 'org-1' },
@@ -169,7 +169,7 @@ describe('ApiKeysService per-tier rate limiting', () => {
       const client = buildRedisClient(10);
       const service = createHarness(client);
       service.__findUnique.mockResolvedValue({
-        subscriptionTier: SubscriptionTier.CREATOR,
+        subscriptionTier: SubscriptionTier.PRO,
       });
 
       await expect(service.checkRateLimit(buildApiKey())).resolves.toBe(true);
@@ -177,10 +177,10 @@ describe('ApiKeysService per-tier rate limiting', () => {
     });
 
     it('denies a paid tier once its per-minute ceiling is reached', async () => {
-      const client = buildRedisClient(60);
+      const client = buildRedisClient(300);
       const service = createHarness(client);
       service.__findUnique.mockResolvedValue({
-        subscriptionTier: SubscriptionTier.CREATOR,
+        subscriptionTier: SubscriptionTier.PRO,
       });
 
       await expect(service.checkRateLimit(buildApiKey())).resolves.toBe(false);

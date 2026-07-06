@@ -7,10 +7,9 @@
  *   ─────────────────────────────────────────────────────────────────────────
  *   Pay As You Go (free)                   → FREE               → none
  *   BYOK (free, bring-your-own-key)        → BYOK               → none
- *   Hosted / "Creator"        ($49/mo)     → CREATOR            → standard limit
- *   Cloud Teams / "Teams"     ($499/mo)    → PRO                → higher limit
- *   Scale                     ($1,499/mo)  → SCALE              → highest fixed
- *   Enterprise                (custom)     → ENTERPRISE         → custom / SLA
+ *   Pro                        ($49/mo)    → PRO                → higher limit
+ *   Scale                      ($499/mo)   → SCALE              → highest fixed
+ *   Enterprise                 (custom)    → ENTERPRISE         → custom / SLA
  *
  * Enforcement lives in the API:
  *   - issuance gate:  apps/server/api/src/helpers/guards/api-access/api-access.guard.ts
@@ -35,9 +34,7 @@ export type ApiTierEntitlement = {
   apiRateLimit: number | null;
 };
 
-/** Standard tier ceiling (req/min) — mirrors the historical per-key default of 60. */
-export const STANDARD_API_RATE_LIMIT = 60;
-/** Higher ceiling for the Teams / Cloud Teams (PRO) tier. */
+/** Higher ceiling for the Pro tier. */
 export const HIGHER_API_RATE_LIMIT = 300;
 /** Highest fixed ceiling for the Scale tier. */
 export const SCALE_API_RATE_LIMIT = 600;
@@ -53,10 +50,6 @@ export const TIER_API_ENTITLEMENTS: Record<
 > = {
   [SubscriptionTier.FREE]: { apiAccess: false, apiRateLimit: 0 },
   [SubscriptionTier.BYOK]: { apiAccess: false, apiRateLimit: 0 },
-  [SubscriptionTier.CREATOR]: {
-    apiAccess: true,
-    apiRateLimit: STANDARD_API_RATE_LIMIT,
-  },
   [SubscriptionTier.PRO]: {
     apiAccess: true,
     apiRateLimit: HIGHER_API_RATE_LIMIT,

@@ -5,7 +5,6 @@ import {
   HIGHER_API_RATE_LIMIT,
   hasApiAccess,
   SCALE_API_RATE_LIMIT,
-  STANDARD_API_RATE_LIMIT,
   TIER_API_ENTITLEMENTS,
 } from '@genfeedai/pricing';
 
@@ -35,10 +34,6 @@ describe('tier API entitlements', () => {
   });
 
   it('grants API access with escalating limits to paid tiers', () => {
-    expect(TIER_API_ENTITLEMENTS[SubscriptionTier.CREATOR]).toEqual({
-      apiAccess: true,
-      apiRateLimit: STANDARD_API_RATE_LIMIT,
-    });
     expect(TIER_API_ENTITLEMENTS[SubscriptionTier.PRO]).toEqual({
       apiAccess: true,
       apiRateLimit: HIGHER_API_RATE_LIMIT,
@@ -48,17 +43,12 @@ describe('tier API entitlements', () => {
       apiRateLimit: SCALE_API_RATE_LIMIT,
     });
 
-    for (const tier of [
-      SubscriptionTier.CREATOR,
-      SubscriptionTier.PRO,
-      SubscriptionTier.SCALE,
-    ]) {
+    for (const tier of [SubscriptionTier.PRO, SubscriptionTier.SCALE]) {
       expect(hasApiAccess(tier)).toBe(true);
     }
   });
 
   it('escalates the rate limit across paid tiers', () => {
-    expect(STANDARD_API_RATE_LIMIT).toBeLessThan(HIGHER_API_RATE_LIMIT);
     expect(HIGHER_API_RATE_LIMIT).toBeLessThan(SCALE_API_RATE_LIMIT);
   });
 
@@ -83,14 +73,9 @@ describe('tier API entitlements', () => {
 
   it('exposes per-tier rate limits via getApiRateLimitForTier', () => {
     expect(getApiRateLimitForTier(SubscriptionTier.FREE)).toBe(0);
-    expect(getApiRateLimitForTier(SubscriptionTier.CREATOR)).toBe(
-      STANDARD_API_RATE_LIMIT,
-    );
-    expect(getApiRateLimitForTier(SubscriptionTier.PRO)).toBe(
-      HIGHER_API_RATE_LIMIT,
-    );
-    expect(getApiRateLimitForTier(SubscriptionTier.SCALE)).toBe(
-      SCALE_API_RATE_LIMIT,
-    );
+    expect(getApiRateLimitForTier(SubscriptionTier.BYOK)).toBe(0);
+    expect(getApiRateLimitForTier(SubscriptionTier.PRO)).toBe(300);
+    expect(getApiRateLimitForTier(SubscriptionTier.SCALE)).toBe(600);
+    expect(getApiRateLimitForTier(SubscriptionTier.ENTERPRISE)).toBeNull();
   });
 });
