@@ -51,6 +51,10 @@ vi.mock('@ui/error', () => ({
   ),
 }));
 
+vi.mock('./onboarding-funnel-analytics', () => ({
+  default: () => <div data-testid="onboarding-funnel-analytics" />,
+}));
+
 describe('app/(onboarding)/layout.tsx', () => {
   beforeAll(async () => {
     OnboardingSetupLayout = (await import('./layout')).default;
@@ -88,6 +92,9 @@ describe('app/(onboarding)/layout.tsx', () => {
     expect(screen.getByTestId('user-provider')).toBeInTheDocument();
     expect(screen.getByTestId('brand-provider')).toBeInTheDocument();
     expect(screen.getByTestId('error-boundary')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('onboarding-funnel-analytics'),
+    ).toBeInTheDocument();
     expect(screen.getByTestId('child')).toHaveTextContent('hello');
   });
 

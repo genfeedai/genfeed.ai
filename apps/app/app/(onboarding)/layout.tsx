@@ -6,6 +6,8 @@ import type { LayoutProps } from '@props/layout/layout.props';
 import ApiStatusProvider from '@providers/api-status/api-status.provider';
 import { ProtectedAuthGate } from '@providers/protected-providers/protected-providers';
 import { ErrorBoundary } from '@ui/error';
+import { Suspense } from 'react';
+import OnboardingFunnelAnalytics from './onboarding-funnel-analytics';
 
 export default function OnboardingSetupLayout({ children }: LayoutProps) {
   const content = (
@@ -16,6 +18,9 @@ export default function OnboardingSetupLayout({ children }: LayoutProps) {
             title="Onboarding Error"
             description="Something went wrong during setup. Please try again."
           >
+            <Suspense fallback={null}>
+              <OnboardingFunnelAnalytics />
+            </Suspense>
             {children}
           </ErrorBoundary>
         </BrandProvider>

@@ -12,7 +12,7 @@ import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
 import { useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import {
   HiCheckCircle,
   HiClipboard,
@@ -21,6 +21,7 @@ import {
   HiKey,
 } from 'react-icons/hi2';
 import { Card, CardContent } from '@/components/ui/card';
+import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 
 type CopyTarget = 'api-key' | 'env';
 
@@ -69,6 +70,10 @@ function waitForPollDelay(delayMs: number, signal: AbortSignal): Promise<void> {
 function ManagedCreditsSuccessContentInner() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
+  const shouldTrackOnboardingCheckout =
+    searchParams.get('checkout') === 'completed' &&
+    searchParams.get('checkoutKind') === 'managed_credits';
+  const hasTrackedCheckoutCompletionRef = useRef(false);
   const [state, setState] = useState<SuccessState>({
     copyError: null,
     error: null,
@@ -115,6 +120,21 @@ function ManagedCreditsSuccessContentInner() {
               isLoading: false,
               result,
             });
+
+            if (
+              shouldTrackOnboardingCheckout &&
+              !hasTrackedCheckoutCompletionRef.current
+            ) {
+              hasTrackedCheckoutCompletionRef.current = true;
+              captureAnalyticsEvent(ANALYTICS_EVENTS.CHECKOUT_COMPLETED, {
+                checkoutKind: 'managed_credits',
+                handoffSource: 'stripe_return',
+              });
+              captureAnalyticsEvent(ANALYTICS_EVENTS.FIRST_CREDIT_PURCHASED, {
+                checkoutKind: 'managed_credits',
+                handoffSource: 'stripe_return',
+              });
+            }
           }
 
           return;
@@ -153,7 +173,7 @@ function ManagedCreditsSuccessContentInner() {
     return () => {
       abortController.abort();
     };
-  }, [sessionId]);
+  }, [sessionId, shouldTrackOnboardingCheckout]);
 
   const copyValue = useCallback(async (target: CopyTarget, value: string) => {
     try {

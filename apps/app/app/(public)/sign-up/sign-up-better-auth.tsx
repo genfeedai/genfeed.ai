@@ -17,6 +17,7 @@ import {
   useSyncExternalStore,
 } from 'react';
 import { FcGoogle } from 'react-icons/fc';
+import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import { persistOnboardingHandoffParams } from '@/lib/onboarding/onboarding-access.util';
 import {
   getAuthCallbackURL,
@@ -56,6 +57,16 @@ function getLoginHref(callbackURL: string) {
 
   const params = new URLSearchParams({ callbackUrl: callbackURL });
   return `/login?${params.toString()}`;
+}
+
+function getSignupFunnelIntentProperties(
+  searchParams: Pick<URLSearchParams, 'get'>,
+) {
+  return {
+    hasCloudHandoff: searchParams.get('accessMode') === 'cloud',
+    hasCreditsIntent: Boolean(searchParams.get('credits')?.trim()),
+    hasPlanIntent: Boolean(searchParams.get('plan')?.trim()),
+  };
 }
 
 export default function SignUpBetterAuth({
@@ -99,6 +110,10 @@ export default function SignUpBetterAuth({
     setEmail(normalizedEmail);
 
     try {
+      captureAnalyticsEvent(ANALYTICS_EVENTS.SIGNUP_STARTED, {
+        ...getSignupFunnelIntentProperties(searchParams),
+        method: 'magic_link',
+      });
       const result = await signIn.magicLink({
         callbackURL: authCallbackURL,
         email: normalizedEmail,
@@ -124,6 +139,10 @@ export default function SignUpBetterAuth({
     setErrorMessage(null);
     setIsSocialSubmitting(true);
     try {
+      captureAnalyticsEvent(ANALYTICS_EVENTS.SIGNUP_STARTED, {
+        ...getSignupFunnelIntentProperties(searchParams),
+        method: provider,
+      });
       const result = await signIn.social({
         callbackURL: authCallbackURL,
         provider,

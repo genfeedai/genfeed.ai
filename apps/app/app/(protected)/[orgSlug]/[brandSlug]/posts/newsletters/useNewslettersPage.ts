@@ -366,6 +366,10 @@ export function useNewslettersPage() {
       captureAnalyticsEvent(ANALYTICS_EVENTS.POST_PUBLISHED, {
         platform: NEWSLETTER_PUBLISH_PLATFORM,
       });
+      captureAnalyticsEvent(ANALYTICS_EVENTS.FIRST_SUCCESSFUL_PUBLISH, {
+        platform: NEWSLETTER_PUBLISH_PLATFORM,
+        surface: 'newsletter',
+      });
       await refresh();
       await loadContext(id);
       notificationsService.success('Newsletter published');

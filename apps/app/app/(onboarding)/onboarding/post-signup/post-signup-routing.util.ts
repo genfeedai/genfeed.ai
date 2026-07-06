@@ -55,6 +55,23 @@ export function buildOnboardingResumeHref(
   return `/onboarding/${resumeStep}`;
 }
 
+export function appendCheckoutReturnParams(
+  href: string,
+  checkoutKind: Extract<
+    PostSignupIntent['kind'],
+    'credits-checkout' | 'plan-checkout'
+  >,
+): string {
+  const url = new URL(href, 'https://app.genfeed.ai');
+  url.searchParams.set('checkout', 'completed');
+  url.searchParams.set(
+    'checkoutKind',
+    checkoutKind === 'plan-checkout' ? 'plan' : 'credits',
+  );
+
+  return `${url.pathname}${url.search}${url.hash}`;
+}
+
 export function resolvePostSignupIntent(
   input: ResolvePostSignupIntentInput,
 ): PostSignupIntent {

@@ -8,6 +8,7 @@ import SignUpBetterAuth from './sign-up-better-auth';
 import SignUpForm from './sign-up-form';
 
 const authClientMocks = vi.hoisted(() => ({
+  captureAnalyticsEvent: vi.fn(),
   magicLink: vi.fn(),
   social: vi.fn(),
 }));
@@ -17,6 +18,13 @@ vi.mock('@genfeedai/auth-client', () => ({
     magicLink: authClientMocks.magicLink,
     social: authClientMocks.social,
   },
+}));
+
+vi.mock('@/lib/analytics', () => ({
+  ANALYTICS_EVENTS: {
+    SIGNUP_STARTED: 'signup_started',
+  },
+  captureAnalyticsEvent: authClientMocks.captureAnalyticsEvent,
 }));
 
 vi.mock('next/navigation', () => ({
@@ -63,6 +71,7 @@ describe('SignUpForm', () => {
     authClientMocks.magicLink.mockResolvedValue({});
     authClientMocks.social.mockReset();
     authClientMocks.social.mockResolvedValue({});
+    authClientMocks.captureAnalyticsEvent.mockReset();
     localStorageMock.clear();
 
     Object.defineProperty(globalThis, 'localStorage', {
@@ -138,6 +147,15 @@ describe('SignUpForm', () => {
         metadata: { intent: 'signup' },
       });
     });
+    expect(authClientMocks.captureAnalyticsEvent).toHaveBeenCalledWith(
+      'signup_started',
+      {
+        hasCloudHandoff: false,
+        hasCreditsIntent: false,
+        hasPlanIntent: false,
+        method: 'magic_link',
+      },
+    );
     expect(screen.getByText('Check your email')).toBeInTheDocument();
   });
 
@@ -213,6 +231,15 @@ describe('SignUpForm', () => {
         provider: 'google',
       });
     });
+    expect(authClientMocks.captureAnalyticsEvent).toHaveBeenCalledWith(
+      'signup_started',
+      {
+        hasCloudHandoff: false,
+        hasCreditsIntent: false,
+        hasPlanIntent: false,
+        method: 'google',
+      },
+    );
   });
 
   it('does not persist invalid access mode or malformed credit handoff params', async () => {

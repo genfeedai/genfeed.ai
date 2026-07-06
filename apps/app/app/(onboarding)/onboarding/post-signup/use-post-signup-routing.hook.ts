@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  appendCheckoutReturnParams,
   buildOnboardingResumeHref,
   isFreePlanHandoff,
   parseSelectedCredits,
@@ -17,6 +18,7 @@ import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import { isEEEnabled, isSelfHosted } from '@/lib/config/edition';
 import {
   extractBrandDomain,
@@ -169,6 +171,17 @@ export function usePostSignupRouting(): PostSignupRoutingState {
         hasRequestedPlan || hasRequestedCredits
           ? (requestedCredits?.toString() ?? null)
           : localStorage.getItem(ONBOARDING_STORAGE_KEYS.selectedCredits);
+
+      captureAnalyticsEvent(ANALYTICS_EVENTS.SIGNUP_COMPLETED, {
+        handoffSource: 'post_signup',
+        hasCloudHandoff:
+          localStorage.getItem(ONBOARDING_STORAGE_KEYS.accessMode) === 'cloud',
+        hasCreditsIntent: Boolean(
+          requestedCreditsParam?.trim() || selectedCredits?.trim(),
+        ),
+        hasPlanIntent: Boolean(selectedPlan?.trim()),
+      });
+
       if (selectedPlan?.trim()) {
         localStorage.removeItem(ONBOARDING_STORAGE_KEYS.selectedPlan);
 
@@ -188,6 +201,10 @@ export function usePostSignupRouting(): PostSignupRoutingState {
 
         try {
           const onboardingHref = await resolveOnboardingHref();
+          const successPath = appendCheckoutReturnParams(
+            onboardingHref,
+            'plan-checkout',
+          );
           const token = await resolveAuthToken(getToken);
           if (!token) {
             redirectTo('/onboarding/providers');
@@ -199,10 +216,14 @@ export function usePostSignupRouting(): PostSignupRoutingState {
             cancelUrl: `${window.location.origin}/onboarding/providers`,
             quantity: null,
             stripePriceId: selectedPlan,
-            successUrl: `${window.location.origin}${onboardingHref}`,
+            successUrl: `${window.location.origin}${successPath}`,
           });
 
           if (result?.url) {
+            captureAnalyticsEvent(ANALYTICS_EVENTS.CHECKOUT_STARTED, {
+              checkoutKind: 'plan',
+              handoffSource: 'post_signup',
+            });
             redirectTo(result.url);
             return;
           }
@@ -248,12 +269,16 @@ export function usePostSignupRouting(): PostSignupRoutingState {
                 firstName: currentUser?.firstName || undefined,
                 lastName: currentUser?.lastName || undefined,
                 quantity: credits,
-                successUrl: `${window.location.origin}/managed-credits/success?session_id={CHECKOUT_SESSION_ID}`,
+                successUrl: `${window.location.origin}/managed-credits/success?session_id={CHECKOUT_SESSION_ID}&checkout=completed&checkoutKind=managed_credits`,
               },
               signal,
             );
 
             if (result?.url) {
+              captureAnalyticsEvent(ANALYTICS_EVENTS.CHECKOUT_STARTED, {
+                checkoutKind: 'managed_credits',
+                handoffSource: 'post_signup',
+              });
               redirectTo(result.url);
               return;
             }
@@ -283,6 +308,10 @@ export function usePostSignupRouting(): PostSignupRoutingState {
 
         try {
           const onboardingHref = await resolveOnboardingHref();
+          const successPath = appendCheckoutReturnParams(
+            onboardingHref,
+            'credits-checkout',
+          );
           const token = await resolveAuthToken(getToken);
           if (!token) {
             redirectTo('/onboarding/providers');
@@ -300,10 +329,14 @@ export function usePostSignupRouting(): PostSignupRoutingState {
             cancelUrl: `${window.location.origin}/onboarding/providers`,
             quantity: credits,
             stripePriceId: paygPriceId,
-            successUrl: `${window.location.origin}${onboardingHref}`,
+            successUrl: `${window.location.origin}${successPath}`,
           });
 
           if (result?.url) {
+            captureAnalyticsEvent(ANALYTICS_EVENTS.CHECKOUT_STARTED, {
+              checkoutKind: 'credits',
+              handoffSource: 'post_signup',
+            });
             redirectTo(result.url);
             return;
           }
