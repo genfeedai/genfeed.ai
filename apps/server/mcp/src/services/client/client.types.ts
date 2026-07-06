@@ -6,12 +6,28 @@
  * client classes; these types are the small shared vocabulary between them.
  */
 
+export interface ApiErrorResponseData {
+  errors?: Array<{ detail?: string; title?: string; status?: string }>;
+  message?: string;
+  error?: string;
+  [key: string]: unknown;
+}
+
 /** Shape of an axios error carrying a JSON:API error envelope. */
 export interface ApiError {
   response?: {
-    data?: { errors?: Array<{ detail?: string }> };
+    status?: number;
+    data?: ApiErrorResponseData;
   };
   message?: string;
+}
+
+export interface GeneratedApiRequest {
+  method: string;
+  path: string;
+  query: Record<string, unknown>;
+  body?: unknown;
+  operationLabel: string;
 }
 
 export interface BrandResponse {

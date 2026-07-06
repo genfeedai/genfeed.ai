@@ -4,7 +4,7 @@ import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 /**
  * Integration guard against the boot-time drift the platform-hardening series
  * added (`ToolRegistryService.validateDispatchCoverage`): every tool on the real
- * `@genfeedai/tools` mcp surface — including the ~1101 OpenAPI-generated tools
+ * `@genfeedai/tools` mcp surface — including the OpenAPI-generated tools
  * (#1248) — must classify to a concrete executor, never `unknown`. If this
  * fails, the MCP server would crash on boot. Deliberately does NOT mock
  * `@genfeedai/tools`, so it exercises the actual registry.

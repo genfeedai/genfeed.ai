@@ -41,6 +41,7 @@ const SUPERADMIN_TOOL = {
 const ALL_TOOLS = [USER_TOOL, ADMIN_TOOL, SUPERADMIN_TOOL];
 
 vi.mock('@genfeedai/tools', () => ({
+  GENERATED_MCP_OPERATIONS: [],
   getToolByName: vi.fn(),
   getToolsForSurface: vi.fn(() => ALL_TOOLS),
   toMcpTools: vi.fn((tools) => tools),

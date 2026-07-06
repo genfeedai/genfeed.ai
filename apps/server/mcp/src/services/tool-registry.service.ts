@@ -8,6 +8,11 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
+import {
+  bindGeneratedOperationRequest,
+  getGeneratedOperationBinding,
+  isGeneratedWriteOperation,
+} from '@mcp/services/generated-tool-dispatcher';
 import type { McpApprovalResource } from '@mcp/shared/interfaces/approval.interface';
 import type {
   McpResource,
@@ -111,10 +116,8 @@ const isGoogleAdsTool = (name: string): boolean =>
  * OpenAPI-generated MCP tools (#1248) are namespaced `<domain>__<action>`; the
  * `__` separator is never used by a hand-authored tool (asserted in the
  * `@genfeedai/tools` registry tests), so it uniquely identifies the generated
- * baseline. These tools are surfaced for discovery but their generic API
- * dispatcher is the next sub-issue (#1249) — until then they classify to their
- * own executor kind (keeping the boot drift guard green) and calling one returns
- * a clear "not wired yet" error rather than a boot crash.
+ * baseline. Generated execution metadata lives in `@genfeedai/tools` as a
+ * sidecar emitted from the same OpenAPI source as the tool definitions.
  */
 const isGeneratedTool = (name: string): boolean => name.includes('__');
 
@@ -281,7 +284,7 @@ export class ToolRegistryService implements OnModuleInit {
 
     try {
       const canonicalTool = getToolByName(name);
-      if (!canonicalTool || !canonicalTool.surfaces.mcp) {
+      if (!canonicalTool?.surfaces.mcp) {
         throw new Error(`Unknown tool: ${name}`);
       }
 
@@ -298,7 +301,10 @@ export class ToolRegistryService implements OnModuleInit {
       }
 
       // Mutating tools persist a pending approval instead of executing.
-      if (APPROVAL_REQUIRED_TOOLS.has(name)) {
+      if (ToolRegistryService.requiresApproval(name)) {
+        if (ToolRegistryService.classify(name) === 'generated') {
+          this.buildGeneratedApiRequest(name, args ?? {});
+        }
         const approval = await this.clientService.createApproval(
           name,
           args ?? {},
@@ -349,6 +355,16 @@ export class ToolRegistryService implements OnModuleInit {
     return 'unknown';
   }
 
+  private static requiresApproval(name: string): boolean {
+    if (APPROVAL_REQUIRED_TOOLS.has(name)) {
+      return true;
+    }
+    const generatedOperation = getGeneratedOperationBinding(name);
+    return generatedOperation
+      ? isGeneratedWriteOperation(generatedOperation)
+      : false;
+  }
+
   private async executeTool(name: string, args: Record<string, unknown>) {
     switch (ToolRegistryService.classify(name)) {
       case 'agent-chat':
@@ -372,17 +388,51 @@ export class ToolRegistryService implements OnModuleInit {
       case 'clip-projects':
         return handleClipProjectsTool(this.clientService, name, args);
       case 'generated':
-        // Generated tools are surfaced for discovery (#1248) but their generic
-        // authenticated API dispatcher lands in #1249. Fail with a clear,
-        // actionable message instead of a misleading "Unknown tool".
-        throw new Error(
-          `Generated MCP tool "${name}" is not executable yet — its API ` +
-            'dispatcher arrives in a follow-up (#1249). It is currently ' +
-            'exposed for discovery only.',
-        );
+        return this.executeGeneratedTool(name, args);
       default:
         throw new Error(`Unknown tool: ${name}`);
     }
+  }
+
+  private async executeGeneratedTool(
+    name: string,
+    args: Record<string, unknown>,
+  ) {
+    const request = this.buildGeneratedApiRequest(name, args);
+    const payload = await this.clientService.requestGeneratedOperation(request);
+
+    return {
+      content: [
+        {
+          text: JSON.stringify(payload ?? {}, null, 2),
+          type: 'text',
+        },
+      ],
+    };
+  }
+
+  private buildGeneratedApiRequest(
+    name: string,
+    args: Record<string, unknown>,
+  ) {
+    const canonicalTool = getToolByName(name);
+    if (!canonicalTool?.surfaces.mcp) {
+      throw new Error(`Unknown generated tool: ${name}`);
+    }
+
+    const generatedOperation = getGeneratedOperationBinding(name);
+    if (!generatedOperation) {
+      throw new Error(
+        `Generated MCP tool "${name}" has no OpenAPI operation binding. ` +
+          'Regenerate @genfeedai/tools with generate:mcp-tools.',
+      );
+    }
+
+    return bindGeneratedOperationRequest(
+      generatedOperation,
+      canonicalTool,
+      args,
+    );
   }
 
   /**
@@ -428,7 +478,7 @@ export class ToolRegistryService implements OnModuleInit {
     // Defense-in-depth: only execute tools that are actually approval-gated, so
     // a stray approval row created for a non-write tool cannot be run via the
     // admin resolve path.
-    if (!APPROVAL_REQUIRED_TOOLS.has(approval.toolName)) {
+    if (!ToolRegistryService.requiresApproval(approval.toolName)) {
       const message = `Approval ${approvalId} references non-approval-gated tool "${approval.toolName}"; not executed.`;
       await this.attachApprovalResultSafe(approvalId, { error: message });
       throw new Error(message);

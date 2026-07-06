@@ -9,9 +9,16 @@ export type {
   ToolRequiredRole,
   ToolSurfaceConfig,
 } from './interfaces/tool-definition.interface.js';
+export { GENERATED_MCP_OPERATIONS } from './registry/generated/mcp-operations.generated.js';
 export { GENERATED_MCP_TOOLS } from './registry/generated/mcp-tools.generated.js';
-export type { IGeneratedOperation } from './registry/openapi/build-generated-mcp-tools.js';
+export type {
+  GeneratedMcpBodyStyle,
+  GeneratedMcpHttpMethod,
+  IGeneratedMcpOperationBinding,
+  IGeneratedOperation,
+} from './registry/openapi/build-generated-mcp-tools.js';
 export {
+  buildGeneratedMcpOperationBindings,
   buildGeneratedMcpTools,
   collectGeneratedOperations,
   deriveToolName,

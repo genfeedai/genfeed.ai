@@ -41,6 +41,10 @@ const HTTP_METHODS = [
 
 const REF_PREFIX = '#/components/schemas/';
 
+export type GeneratedMcpHttpMethod = (typeof HTTP_METHODS)[number];
+
+export type GeneratedMcpBodyStyle = 'none' | 'properties' | 'body';
+
 /**
  * A single exposed operation paired with the metadata the generator (and, in a
  * later phase, the dispatcher) needs. Exported so #1249 can rebuild the
@@ -49,10 +53,28 @@ const REF_PREFIX = '#/components/schemas/';
 export interface IGeneratedOperation {
   toolName: string;
   domain: string;
-  method: string;
+  method: GeneratedMcpHttpMethod;
   path: string;
   operationId: string;
   operation: IOpenApiOperation;
+}
+
+/**
+ * Runtime dispatch metadata emitted alongside the generated MCP tool catalog.
+ * The canonical tool definition intentionally stays surface-oriented; this
+ * sidecar preserves the OpenAPI execution binding without requiring the MCP
+ * service to import the API app's OpenAPI document at runtime.
+ */
+export interface IGeneratedMcpOperationBinding {
+  toolName: string;
+  method: GeneratedMcpHttpMethod;
+  path: string;
+  operationId: string;
+  pathParams: string[];
+  queryParams: string[];
+  bodyRequired: boolean;
+  bodyFields: string[];
+  bodyStyle: GeneratedMcpBodyStyle;
 }
 
 /**
@@ -351,6 +373,73 @@ export function operationToToolDefinition(
   };
 }
 
+function buildBodyBinding(
+  generated: IGeneratedOperation,
+  components: Record<string, IOpenApiSchema>,
+  paramNames: ReadonlySet<string>,
+): Pick<
+  IGeneratedMcpOperationBinding,
+  'bodyFields' | 'bodyRequired' | 'bodyStyle'
+> {
+  const requestBody = generated.operation.requestBody;
+  const bodyRequired = requestBody?.required === true;
+  const bodySchemaRaw = requestBody?.content?.['application/json']?.schema;
+  if (!bodySchemaRaw) {
+    return { bodyFields: [], bodyRequired: false, bodyStyle: 'none' };
+  }
+
+  const body = dereferenceSchema(bodySchemaRaw, components);
+  if (isRecord(body) && isRecord(body.properties)) {
+    const bodyFields = Object.keys(body.properties).sort();
+    const collision = bodyFields.find((field) => paramNames.has(field));
+    if (collision) {
+      throw new Error(
+        `Generated operation binding for "${generated.operationId}" has a body property "${collision}" that collides with a path/query parameter.`,
+      );
+    }
+    return { bodyFields, bodyRequired, bodyStyle: 'properties' };
+  }
+
+  if (paramNames.has('body')) {
+    throw new Error(
+      `Generated operation binding for "${generated.operationId}" needs a "body" property but a parameter already claims that name.`,
+    );
+  }
+  return { bodyFields: ['body'], bodyRequired, bodyStyle: 'body' };
+}
+
+export function operationToGeneratedMcpOperationBinding(
+  generated: IGeneratedOperation,
+  components: Record<string, IOpenApiSchema>,
+): IGeneratedMcpOperationBinding {
+  const pathParams = new Set<string>();
+  const queryParams = new Set<string>();
+
+  for (const parameter of generated.operation.parameters ?? []) {
+    if (parameter.in === 'path') {
+      pathParams.add(parameter.name);
+    }
+    if (parameter.in === 'query') {
+      queryParams.add(parameter.name);
+    }
+  }
+
+  const paramNames = new Set<string>([...pathParams, ...queryParams]);
+  const bodyBinding = buildBodyBinding(generated, components, paramNames);
+
+  return {
+    bodyFields: bodyBinding.bodyFields,
+    bodyRequired: bodyBinding.bodyRequired,
+    bodyStyle: bodyBinding.bodyStyle,
+    method: generated.method,
+    operationId: generated.operationId,
+    path: generated.path,
+    pathParams: [...pathParams].sort(),
+    queryParams: [...queryParams].sort(),
+    toolName: generated.toolName,
+  };
+}
+
 /**
  * Builds the full, name-sorted list of generated MCP tool definitions from a
  * parsed OpenAPI document and the internal-route allowlist prefixes. Throws on a
@@ -379,4 +468,32 @@ export function buildGeneratedMcpTools(
   return operations
     .map((generated) => operationToToolDefinition(generated, components))
     .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+}
+
+export function buildGeneratedMcpOperationBindings(
+  document: IOpenApiDocument,
+  internalPrefixes: string[],
+): IGeneratedMcpOperationBinding[] {
+  const components = document.components?.schemas ?? {};
+  const operations = collectGeneratedOperations(document, internalPrefixes);
+
+  const byName = new Map<string, IGeneratedOperation>();
+  for (const generated of operations) {
+    const existing = byName.get(generated.toolName);
+    if (existing) {
+      throw new Error(
+        `Generated MCP operation binding collision "${generated.toolName}": ` +
+          `${existing.operationId} and ${generated.operationId}.`,
+      );
+    }
+    byName.set(generated.toolName, generated);
+  }
+
+  return operations
+    .map((generated) =>
+      operationToGeneratedMcpOperationBinding(generated, components),
+    )
+    .sort((a, b) =>
+      a.toolName < b.toolName ? -1 : a.toolName > b.toolName ? 1 : 0,
+    );
 }

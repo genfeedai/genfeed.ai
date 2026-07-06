@@ -4,8 +4,7 @@
 // Regenerate:      bun run --filter=@genfeedai/tools generate:mcp-tools
 //
 // 1019 MCP tools, one per non-internal OpenAPI operation (#1248).
-// Dispatch/execution and approval-gating are intentionally not wired here
-// (that is #1249 / #1250); these definitions only populate the mcp surface.
+// Execution metadata lives in mcp-operations.generated.ts (#1249 / #1250).
 
 import type { CanonicalToolDefinition } from '../../interfaces/tool-definition.interface.js';
 
