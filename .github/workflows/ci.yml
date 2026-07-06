@@ -704,6 +704,8 @@ jobs:
           fi
       - name: Validate spec (operationId coverage/uniqueness + allowlist)
         run: cd apps/server/api && bun run openapi:validate
+      - name: Generated MCP tools artifact must be fresh
+        run: bun run --filter=@genfeedai/tools generate:mcp-tools:check
       # API↔MCP parity gate (#1251): every non-internal operation must have an
       # MCP tool, or be allowlisted, or be acknowledged in the parity baseline.
       # Fails on a new endpoint with no tool. Reuses the api build above (which
