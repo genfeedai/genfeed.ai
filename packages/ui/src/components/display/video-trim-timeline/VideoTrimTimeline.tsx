@@ -91,8 +91,8 @@ export default function VideoTrimTimeline({
           className="custom-range-slider"
           styles={{
             handle: {
-              backgroundColor: 'hsl(var(--p))',
-              borderColor: 'hsl(var(--p))',
+              backgroundColor: 'hsl(var(--foreground))',
+              borderColor: 'hsl(var(--foreground))',
               height: 16,
               marginTop: -4,
               opacity: 1,

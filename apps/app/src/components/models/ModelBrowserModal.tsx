@@ -138,7 +138,7 @@ function ModelBrowserModalComponent({
                 onClick={() => setUseCaseFilter('all')}
                 className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${
                   useCaseFilter === 'all'
-                    ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+                    ? 'bg-primary text-primary-foreground border border-transparent'
                     : 'bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-transparent'
                 }`}
                 icon={<Sparkles className="size-3" />}
@@ -156,7 +156,7 @@ function ModelBrowserModalComponent({
                     onClick={() => setUseCaseFilter(uc)}
                     className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${
                       useCaseFilter === uc
-                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+                        ? 'bg-primary text-primary-foreground border border-transparent'
                         : 'bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-transparent'
                     }`}
                     icon={<Icon className="size-3" />}
@@ -173,13 +173,13 @@ function ModelBrowserModalComponent({
         <div className="flex-1 overflow-auto p-6">
           {/* Warning when no providers configured */}
           {!isLoading && hasFetched && configuredProviders.length === 0 && (
-            <div className="mb-6 flex items-start gap-3 rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-4">
-              <AlertTriangle className="mt-0.5 size-5 shrink-0 text-yellow-600" />
+            <div className="mb-6 flex items-start gap-3 rounded-lg border border-warning/20 bg-warning/10 p-4">
+              <AlertTriangle className="mt-0.5 size-5 shrink-0 text-warning" />
               <div>
-                <p className="text-sm font-medium text-yellow-600">
+                <p className="text-sm font-medium text-warning">
                   No AI providers configured
                 </p>
-                <p className="mt-1 text-xs text-yellow-600/80">
+                <p className="mt-1 text-xs text-warning/80">
                   Add API keys to your .env file to enable model selection.
                   Supported providers: REPLICATE_API_TOKEN, FAL_API_KEY,
                   HF_API_TOKEN

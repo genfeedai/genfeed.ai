@@ -52,7 +52,7 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
           name={`model-${model.key}`}
           isChecked={isSelected}
           onChange={() => {}}
-          className="size-3.5 !border-white/20 data-[state=checked]:!bg-blue-500 data-[state=checked]:!border-blue-500 data-[state=checked]:!text-white"
+          className="size-3.5 !border-white/20 data-[state=checked]:!bg-foreground data-[state=checked]:!border-foreground data-[state=checked]:!text-background"
         />
       </div>
 
@@ -98,7 +98,7 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
         className={cn(
           'mt-0.5 p-0.5 rounded hover:bg-white/10 transition-colors shrink-0',
           isFavorite
-            ? 'text-yellow-400'
+            ? 'text-foreground'
             : 'text-foreground/20 hover:text-foreground/40',
         )}
       >

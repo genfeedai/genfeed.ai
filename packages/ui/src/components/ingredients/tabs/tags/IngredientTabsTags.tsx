@@ -150,8 +150,8 @@ export default function IngredientTabsTags({
                 key={tag.id}
                 size={ComponentSize.LG}
                 className="gap-2 px-3 py-2"
-                backgroundColor={tag.backgroundColor || '#e5e7eb'}
-                textColor={tag.textColor || '#374151'}
+                backgroundColor={tag.backgroundColor || 'hsl(var(--muted))'}
+                textColor={tag.textColor || 'hsl(var(--muted-foreground))'}
               >
                 <HiTag className="text-sm" />
                 <span>{tag.label}</span>
@@ -263,8 +263,8 @@ export default function IngredientTabsTags({
                     isDisabled={isUpdating}
                     className="inline-flex items-center justify-start gap-2 px-3 h-8 text-sm bg-secondary text-secondary-foreground border"
                     style={{
-                      borderColor: tag.backgroundColor || '#e5e7eb',
-                      color: tag.textColor || '#374151',
+                      borderColor: tag.backgroundColor || 'hsl(var(--muted))',
+                      color: tag.textColor || 'hsl(var(--muted-foreground))',
                     }}
                     ariaLabel={`Add tag ${tag.label}`}
                   >

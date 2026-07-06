@@ -49,7 +49,7 @@ export default function AnalyticsOverview({
       ? [
           {
             icon: FiVideo,
-            iconClassName: 'bg-blue-100 text-blue-600',
+            iconClassName: 'bg-muted text-muted-foreground',
             label: 'Posts',
             value: totals.totalPosts,
           },
@@ -57,31 +57,31 @@ export default function AnalyticsOverview({
       : []),
     {
       icon: FiEye,
-      iconClassName: 'bg-green-100 text-green-600',
+      iconClassName: 'bg-muted text-muted-foreground',
       label: 'Total Views',
       value: formatCompactNumber(totals.totalViews),
     },
     {
       icon: FiHeart,
-      iconClassName: 'bg-red-100 text-red-600',
+      iconClassName: 'bg-muted text-muted-foreground',
       label: 'Total Likes',
       value: formatCompactNumber(totals.totalLikes),
     },
     {
       icon: FiMessageCircle,
-      iconClassName: 'bg-purple-100 text-purple-600',
+      iconClassName: 'bg-muted text-muted-foreground',
       label: 'Comments',
       value: formatCompactNumber(totals.totalComments),
     },
     {
       icon: FiShare2,
-      iconClassName: 'bg-orange-100 text-orange-600',
+      iconClassName: 'bg-muted text-muted-foreground',
       label: 'Shares',
       value: formatCompactNumber(totals.totalShares),
     },
     {
       icon: FiTrendingUp,
-      iconClassName: 'bg-teal-100 text-teal-600',
+      iconClassName: 'bg-muted text-muted-foreground',
       label: 'Avg Engagement',
       value: `${totals.avgEngagementRate.toFixed(2)}%`,
     },

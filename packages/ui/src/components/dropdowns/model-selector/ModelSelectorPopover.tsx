@@ -407,7 +407,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
         align="start"
         sideOffset={8}
         className={cn(
-          'p-0 bg-[#141414] border border-white/10 rounded-lg overflow-hidden',
+          'p-0 bg-popover border border-white/10 rounded-lg overflow-hidden',
           shouldShowManualCatalog ? 'w-[440px]' : 'w-[320px]',
         )}
       >
@@ -485,7 +485,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                             className={cn(
                               'flex size-4 items-center justify-center rounded-sm border transition-colors',
                               isAutoSelected
-                                ? 'border-blue-500 bg-blue-500 text-white'
+                                ? 'border-foreground bg-foreground text-background'
                                 : 'border-white/20 bg-transparent text-transparent',
                             )}
                           >

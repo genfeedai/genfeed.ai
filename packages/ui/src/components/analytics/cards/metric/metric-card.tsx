@@ -43,9 +43,7 @@ function getChangeColor(change: number | undefined): string {
   if (change === undefined || change === 0) {
     return 'text-muted-foreground';
   }
-  return change > 0
-    ? 'text-green-600 dark:text-green-400'
-    : 'text-red-600 dark:text-red-400';
+  return change > 0 ? 'text-success' : 'text-destructive';
 }
 
 const BASE_CARD_CLASSES =
@@ -59,7 +57,7 @@ export function MetricCard({
   change,
   trend,
   icon: Icon,
-  iconColor = 'text-purple-600',
+  iconColor = 'text-muted-foreground',
   isLoading = false,
   className = '',
   subtitle,

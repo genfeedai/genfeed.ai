@@ -98,12 +98,9 @@ export default function ModalModelViewContent({
             </h4>
             <div className="flex flex-wrap gap-2">
               {model.recommendedFor.map((item) => (
-                <span
-                  key={item}
-                  className="px-3 py-1 bg-background rounded-full text-sm"
-                >
+                <Badge key={item} variant="outline" size={ComponentSize.SM}>
                   {item}
-                </span>
+                </Badge>
               ))}
             </div>
           </div>
