@@ -1,10 +1,9 @@
 import type { NodeType } from '@genfeedai/types';
+import { getLayoutedNodes } from '@genfeedai/workflow-ui/lib';
+import { selectAddNode, useWorkflowStore } from '@genfeedai/workflow-ui/stores';
 import { useReactFlow } from '@xyflow/react';
 import { useCallback } from 'react';
-import { getLayoutedNodes } from '@/lib/autoLayout';
 import { useSettingsStore } from '@/store/settingsStore';
-import { selectAddNode } from '@/store/workflow/selectors';
-import { useWorkflowStore } from '@/store/workflowStore';
 
 export function usePaneActions() {
   const addNode = useWorkflowStore(selectAddNode);

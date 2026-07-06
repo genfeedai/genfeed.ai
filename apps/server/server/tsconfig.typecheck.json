@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "types": ["node", "vitest/globals"]
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/*.e2e-spec.ts"
+  ],
+  "extends": "../tsconfig.typecheck.base.json",
+  "include": ["src/**/*"]
+}

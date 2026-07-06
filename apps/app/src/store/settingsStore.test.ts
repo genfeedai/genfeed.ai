@@ -5,7 +5,7 @@ const { mockWorkflowSetEdgeStyle } = vi.hoisted(() => ({
   mockWorkflowSetEdgeStyle: vi.fn(),
 }));
 
-vi.mock('@/store/workflowStore', () => ({
+vi.mock('@genfeedai/workflow-ui/stores', () => ({
   useWorkflowStore: {
     getState: () => ({
       setEdgeStyle: mockWorkflowSetEdgeStyle,

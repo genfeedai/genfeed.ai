@@ -1,5 +1,7 @@
 // Schema utilities
 
+// Auto-layout (Dagre-based node arrangement)
+export { getLayoutedNodes } from './autoLayout';
 // Bezier editor
 export { CubicBezierEditor } from './CubicBezierEditor';
 export type { CostBreakdown, NodeCostEstimate } from './costCalculator';

@@ -10,11 +10,11 @@ import {
 import type { ComponentPropsWithRef } from 'react';
 import { cn } from '../lib/utils';
 
-const Popover = ShipPopover;
+const Popover: typeof ShipPopover = ShipPopover;
 
-const PopoverTrigger = ShipPopoverTrigger;
+const PopoverTrigger: typeof ShipPopoverTrigger = ShipPopoverTrigger;
 
-const PopoverAnchor = ShipPopoverAnchor;
+const PopoverAnchor: typeof ShipPopoverAnchor = ShipPopoverAnchor;
 
 function PopoverContent({
   ref,
