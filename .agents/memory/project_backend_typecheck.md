@@ -45,7 +45,7 @@ that is **never** the runtime config.
 PR #1342 added `scripts/architecture/check-no-api-imports-in-workers.ts` and the root
 `check:architecture` gate. Existing worker `@api/*` imports are frozen in
 `scripts/architecture/workers-api-imports.baseline.ts`; new worker code should import from
-`@genfeedai/queue-contracts`, `@genfeedai/libs`, or the planned `@genfeedai/server-domain`
+`@genfeedai/queue-contracts`, `@genfeedai/libs`, or the planned `@genfeedai/server`
 surface instead of adding more API deep imports.
 
 ## Status (2026-07-06)

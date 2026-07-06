@@ -25,6 +25,8 @@
       "@genfeedai/interfaces/*": ["../../../packages/interfaces/src/*"],
       "@genfeedai/serializers": ["../../../packages/serializers/src/index.ts"],
       "@genfeedai/serializers/*": ["../../../packages/serializers/src/*"],
+      "@genfeedai/server": ["../server/src/index.ts"],
+      "@genfeedai/server/*": ["../server/src/*"],
       "@genfeedai/types": ["../../../packages/types/src/index.ts"],
       "@genfeedai/types/*": ["../../../packages/types/src/*"],
       "@genfeedai/utils": ["../../../packages/utils/index.ts"],
@@ -54,6 +56,7 @@
       "@helpers/*": ["../../../packages/helpers/src/*"],
       "@libs/*": ["../../../packages/libs/*"],
       "@serializers/*": ["../../../packages/serializers/src/*"],
+      "@server/*": ["../server/src/*"],
       "@workflow-engine/*": ["../../../packages/workflow-engine/src/*"],
       "@workflow-saas/*": ["../../../packages/workflow-saas/src/*"]
     },

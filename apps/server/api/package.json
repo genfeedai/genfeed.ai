@@ -15,6 +15,7 @@
     "@genfeedai/prisma": "workspace:*",
     "@genfeedai/queue-contracts": "workspace:*",
     "@genfeedai/serializers": "workspace:*",
+    "@genfeedai/server": "workspace:*",
     "@genfeedai/tools": "workspace:*",
     "@genfeedai/types": "workspace:*",
     "@genfeedai/utils": "workspace:*",

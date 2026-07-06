@@ -1,6 +1,5 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
-import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import {
@@ -68,6 +67,7 @@ import { WorkflowEngine } from '@genfeedai/workflow-engine';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, Optional } from '@nestjs/common';
+import { PerformanceSummaryService } from '@server/collections/content-performance/services/performance-summary.service';
 
 /**
  * Bridges NestJS services with the pure workflow-engine package.

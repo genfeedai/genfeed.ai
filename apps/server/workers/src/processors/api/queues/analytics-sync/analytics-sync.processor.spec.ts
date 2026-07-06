@@ -1,7 +1,9 @@
-import { AnalyticsSyncService } from '@api/collections/content-performance/services/analytics-sync.service';
+import type { AnalyticsSyncJobData } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
+import { AnalyticsSyncService } from '@server/collections/content-performance/services/analytics-sync.service';
 import { AnalyticsSyncProcessor } from '@workers/processors/api/queues/analytics-sync/analytics-sync.processor';
+import type { Job } from 'bullmq';
 import { vi } from 'vitest';
 
 describe('AnalyticsSyncProcessor', () => {
@@ -59,7 +61,9 @@ describe('AnalyticsSyncProcessor', () => {
       updateProgress: vi.fn(),
     };
 
-    const result = await processor.process(mockJob as any);
+    const result = await processor.process(
+      mockJob as unknown as Job<AnalyticsSyncJobData>,
+    );
 
     expect(result.synced).toBe(10);
     expect(mockAnalyticsSyncService.syncAnalytics).toHaveBeenCalledWith(
@@ -82,7 +86,9 @@ describe('AnalyticsSyncProcessor', () => {
       updateProgress: vi.fn(),
     };
 
-    const result = await processor.process(mockJob as any);
+    const result = await processor.process(
+      mockJob as unknown as Job<AnalyticsSyncJobData>,
+    );
 
     expect(mockAnalyticsSyncService.getLastSyncDate).toHaveBeenCalledWith(
       'org-1',

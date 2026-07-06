@@ -409,6 +409,7 @@
         "@genfeedai/prisma": "workspace:*",
         "@genfeedai/queue-contracts": "workspace:*",
         "@genfeedai/serializers": "workspace:*",
+        "@genfeedai/server": "workspace:*",
         "@genfeedai/tools": "workspace:*",
         "@genfeedai/types": "workspace:*",
         "@genfeedai/utils": "workspace:*",
@@ -504,6 +505,23 @@
         "node-pty": "1.1.0",
       },
     },
+    "apps/server/server": {
+      "name": "@genfeedai/server",
+      "version": "0.1.0",
+      "dependencies": {
+        "@genfeedai/enums": "workspace:*",
+        "@genfeedai/helpers": "workspace:*",
+        "@genfeedai/interfaces": "workspace:*",
+        "@genfeedai/prisma": "workspace:*",
+        "@genfeedai/queue-contracts": "workspace:*",
+      },
+      "devDependencies": {
+        "@nestjs/testing": "11.1.27",
+        "@types/node": "26.1.0",
+        "typescript": "6.0.2",
+        "vitest": "4.1.10",
+      },
+    },
     "apps/server/slack": {
       "name": "@genfeedai/slack",
       "version": "1.0.0",
@@ -555,6 +573,7 @@
         "@genfeedai/interfaces": "workspace:*",
         "@genfeedai/prisma": "workspace:*",
         "@genfeedai/queue-contracts": "workspace:*",
+        "@genfeedai/server": "workspace:*",
         "@genfeedai/workflows": "workspace:*",
         "@nestjs/event-emitter": "3.1.0",
       },
@@ -1989,6 +2008,8 @@
     "@genfeedai/queue-contracts": ["@genfeedai/queue-contracts@workspace:packages/queue-contracts"],
 
     "@genfeedai/serializers": ["@genfeedai/serializers@workspace:packages/serializers"],
+
+    "@genfeedai/server": ["@genfeedai/server@workspace:apps/server/server"],
 
     "@genfeedai/services": ["@genfeedai/services@workspace:packages/services"],
 
