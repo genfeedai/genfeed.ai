@@ -14,7 +14,7 @@ const SESSION_COOKIE_NAME = 'better-auth.session_token';
  *  1. `req.cookies.get('better-auth.session_token')` → `{ value: SESSION_TOKEN }`
  *     (used by `getBetterAuthSessionCookie` to set `hasSession=true`)
  *  2. `req.headers.get('cookie')` → the raw cookie header string
- *     (used by `getBetterAuthBearerToken` to call `/auth/token`)
+ *     (used by `getBetterAuthBearerToken` to call `/v1/auth/token`)
  *
  * Extra cookie overrides (e.g. `gf_ws`) can be provided via `extraCookies`.
  */
@@ -77,15 +77,16 @@ describe('proxy', () => {
     vi.clearAllMocks();
     vi.stubEnv('NEXT_PUBLIC_BETTER_AUTH_ENABLED', 'true');
     vi.stubEnv('BETTER_AUTH_SECRET', 'test-better-auth-secret');
+    vi.stubEnv('API_URL', undefined);
     vi.stubEnv('NEXT_PUBLIC_API_ENDPOINT', 'http://localhost:3010/v1');
     vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', undefined);
     vi.resetModules();
     globalThis.fetch = fetchMock as typeof fetch;
 
     // Default fetch mock handles all three Better Auth endpoints proxy.ts calls:
-    //   1. POST /auth/token  – exchanges the session cookie for a bearer token
-    //   2. GET  /auth/bootstrap – returns brands + access info
-    //   3. GET  /organizations/mine – fallback org slug resolution
+    //   1. GET /v1/auth/token  – exchanges the session cookie for a bearer token
+    //   2. GET /v1/auth/bootstrap – returns brands + access info
+    //   3. GET /v1/organizations/mine – fallback org slug resolution
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
 
@@ -148,6 +149,26 @@ describe('proxy', () => {
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
       'http://localhost:3000/login',
+    );
+  });
+
+  it('normalizes a bare API_URL origin before calling versioned auth endpoints', async () => {
+    vi.stubEnv('API_URL', 'http://localhost:3010');
+    vi.resetModules();
+
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedInRequest('/workspace/overview'),
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(fetchMock.mock.calls.map(([input]) => String(input))).toContain(
+      'http://localhost:3010/v1/auth/token',
+    );
+    expect(fetchMock.mock.calls.map(([input]) => String(input))).toContain(
+      'http://localhost:3010/v1/auth/bootstrap',
     );
   });
 

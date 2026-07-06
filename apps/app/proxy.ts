@@ -56,11 +56,23 @@ const FLAT_PATH_REDIRECTS = new Map<string, string>([
 ]);
 
 function getApiBaseUrl(): string {
-  return (
+  const rawBaseUrl = (
     process.env.API_URL ||
     process.env.NEXT_PUBLIC_API_ENDPOINT ||
     'http://localhost:3010/v1'
   ).replace(/\/$/, '');
+
+  try {
+    const url = new URL(rawBaseUrl);
+    if (url.pathname === '' || url.pathname === '/') {
+      url.pathname = '/v1';
+      return url.toString().replace(/\/$/, '');
+    }
+  } catch {
+    // Relative paths such as /v1 are already valid API bases for fetch.
+  }
+
+  return rawBaseUrl;
 }
 
 function canonicalizeFlatProtectedPath(pathname: string): string {
