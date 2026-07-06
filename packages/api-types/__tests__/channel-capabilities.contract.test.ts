@@ -176,4 +176,40 @@ describe('validateChannelTargetSettings', () => {
       ]),
     );
   });
+
+  test('flags a valid enum platform with no registered capability', () => {
+    const result = validateChannelTargetSettings({
+      caption: 'Discord announcement',
+      platform: CredentialPlatform.DISCORD,
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.validationState).toBe(TargetValidationState.INVALID);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'channel_target.missing_capability',
+          field: 'platform',
+        }),
+      ]),
+    );
+  });
+
+  test('rejects an unsupported platform string', () => {
+    const result = validateChannelTargetSettings({
+      caption: 'Unknown network post',
+      platform: 'myspace',
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.validationState).toBe(TargetValidationState.INVALID);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'channel_target.unsupported_platform',
+          field: 'platform',
+        }),
+      ]),
+    );
+  });
 });
