@@ -5,7 +5,7 @@ import { ChevronDown } from 'lucide-react';
 import type { ComponentPropsWithRef } from 'react';
 import { cn } from '../lib/utils';
 
-const Collapsible = CollapsiblePrimitive.Root;
+const Collapsible: typeof CollapsiblePrimitive.Root = CollapsiblePrimitive.Root;
 
 function CollapsibleTrigger({
   ref,

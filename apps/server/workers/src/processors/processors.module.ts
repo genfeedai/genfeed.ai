@@ -23,10 +23,13 @@ import { ClipProjectsCoreModule } from '@api/collections/clip-projects/clip-proj
 import { ContentPerformanceModule } from '@api/collections/content-performance/content-performance.module';
 import { CreativePatternsModule } from '@api/collections/creative-patterns/creative-patterns.module';
 import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { OutreachCampaignsModule } from '@api/collections/outreach-campaigns/outreach-campaigns.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
+import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
 import { ReplyBotConfigsModule } from '@api/collections/reply-bot-configs/reply-bot-configs.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
@@ -41,13 +44,20 @@ import { ContentOrchestrationModule } from '@api/services/content-orchestration/
 import { TelegramDistributionModule } from '@api/services/distribution/telegram/telegram-distribution.module';
 import { FacebookModule } from '@api/services/integrations/facebook/facebook.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
+import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { LinkedInModule } from '@api/services/integrations/linkedin/linkedin.module';
+import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { MastodonModule } from '@api/services/integrations/mastodon/mastodon.module';
+import { MastodonService } from '@api/services/integrations/mastodon/services/mastodon.service';
 import { MetaAdsModule } from '@api/services/integrations/meta-ads/meta-ads.module';
 import { PinterestModule } from '@api/services/integrations/pinterest/pinterest.module';
+import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
 import { ThreadsModule } from '@api/services/integrations/threads/threads.module';
+import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TiktokModule } from '@api/services/integrations/tiktok/tiktok.module';
+import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
+import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
@@ -57,8 +67,13 @@ import { WebhookClientModule } from '@api/services/webhook-client/webhook-client
 import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
+import { LoggerService } from '@libs/logger/logger.service';
 import { HttpModule } from '@nestjs/axios';
 import { forwardRef, Module } from '@nestjs/common';
+import { AnalyticsSocialJobService } from '@server/analytics/services/analytics-social-job.service';
+import { AnalyticsTwitterJobService } from '@server/analytics/services/analytics-twitter-job.service';
+import { AnalyticsYouTubeJobService } from '@server/analytics/services/analytics-youtube-job.service';
+import { SERVER_TOKENS } from '@server/server.dependencies';
 // --- collections/ processors ---
 import { ArticleGenerationProcessor } from '@workers/processors/api/collections/articles/processors/article-generation.processor';
 import { BatchWorkflowProcessor } from '@workers/processors/api/collections/workflows/services/batch-workflow.processor';
@@ -156,6 +171,55 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     forwardRef(() => YoutubeModule),
   ],
   providers: [
+    // --- domain services used by extracted analytics-family processors ---
+    AnalyticsSocialJobService,
+    AnalyticsTwitterJobService,
+    AnalyticsYouTubeJobService,
+    {
+      provide: SERVER_TOKENS.credentials,
+      useExisting: CredentialsService,
+    },
+    {
+      provide: SERVER_TOKENS.instagram,
+      useExisting: InstagramService,
+    },
+    {
+      provide: SERVER_TOKENS.linkedIn,
+      useExisting: LinkedInService,
+    },
+    {
+      provide: SERVER_TOKENS.logger,
+      useExisting: LoggerService,
+    },
+    {
+      provide: SERVER_TOKENS.mastodon,
+      useExisting: MastodonService,
+    },
+    {
+      provide: SERVER_TOKENS.pinterest,
+      useExisting: PinterestService,
+    },
+    {
+      provide: SERVER_TOKENS.postAnalytics,
+      useExisting: PostAnalyticsService,
+    },
+    {
+      provide: SERVER_TOKENS.posts,
+      useExisting: PostsService,
+    },
+    {
+      provide: SERVER_TOKENS.tiktok,
+      useExisting: TiktokService,
+    },
+    {
+      provide: SERVER_TOKENS.twitter,
+      useExisting: TwitterService,
+    },
+    {
+      provide: SERVER_TOKENS.youtube,
+      useExisting: YoutubeService,
+    },
+
     // --- queues/ processors (21) ---
     AdBulkUploadProcessor,
     AdOptimizationProcessor,

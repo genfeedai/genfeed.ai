@@ -1,8 +1,4 @@
 import {
-  type AnalyticsSyncResult,
-  AnalyticsSyncService,
-} from '@api/collections/content-performance/services/analytics-sync.service';
-import {
   ANALYTICS_SYNC_QUEUE,
   AnalyticsSyncJobData,
 } from '@genfeedai/queue-contracts';
@@ -13,6 +9,10 @@ import {
   type ProcessorCircuitBreaker,
 } from '@libs/utils/circuit-breaker/circuit-breaker.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
+import {
+  type AnalyticsSyncResult,
+  AnalyticsSyncService,
+} from '@server/collections/content-performance/services/analytics-sync.service';
 import { Job } from 'bullmq';
 
 @Processor(ANALYTICS_SYNC_QUEUE)

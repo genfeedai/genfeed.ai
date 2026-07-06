@@ -4,7 +4,7 @@
  * Every `@api/*` specifier the workers app still imports, captured
  * 2026-07-05. Entries may ONLY be removed — never added. Each extraction
  * slice (queue contracts #1113, infra to packages/libs, domain/integration
- * services to @genfeedai/server-domain) must prune the specifiers it
+ * services to @genfeedai/server) must prune the specifiers it
  * eliminates, or the guard fails on the stale entries.
  *
  * When this list is empty, delete it and flip the guard to a plain ban.
@@ -47,8 +47,6 @@ export const WORKERS_API_IMPORT_BASELINE: readonly string[] = [
   '@api/collections/clip-projects/schemas/clip-project.schema',
   '@api/collections/clip-projects/services/clip-generation.service',
   '@api/collections/content-performance/content-performance.module',
-  '@api/collections/content-performance/services/analytics-sync.service',
-  '@api/collections/content-performance/services/email-digest.service',
   '@api/collections/creative-patterns/creative-patterns.module',
   '@api/collections/creative-patterns/creative-patterns.service',
   '@api/collections/credentials/credentials.module',

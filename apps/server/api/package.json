@@ -15,6 +15,7 @@
     "@genfeedai/prisma": "workspace:*",
     "@genfeedai/queue-contracts": "workspace:*",
     "@genfeedai/serializers": "workspace:*",
+    "@genfeedai/server": "workspace:*",
     "@genfeedai/tools": "workspace:*",
     "@genfeedai/types": "workspace:*",
     "@genfeedai/utils": "workspace:*",
@@ -41,7 +42,7 @@
   "description": "Genfeed API Service",
   "devDependencies": {
     "@nestjs/testing": "11.1.27",
-    "@types/archiver": "8.0.0",
+    "@types/archiver": "7.0.0",
     "@types/bcrypt": "6.0.0",
     "@types/compression": "1.8.1",
     "@types/cookie-parser": "1.4.10",
