@@ -74,10 +74,13 @@ export function AgentFullPage({
 
   return (
     <div
-      className={cn('flex min-h-0 flex-1', onboardingMode && 'max-md:pb-14')}
+      className={cn(
+        'flex min-h-0 flex-1 overflow-hidden bg-card text-card-foreground',
+        onboardingMode && 'max-md:pb-14',
+      )}
     >
       {showThreadSidebar ? (
-        <div className="hidden xl:flex xl:w-[15rem] xl:shrink-0 xl:border-r xl:border-white/[0.08] xl:bg-black/10">
+        <div className="hidden xl:flex xl:w-[15rem] xl:shrink-0 xl:border-r xl:border-border xl:bg-background-secondary">
           <AgentSidebarContent apiService={apiService} />
         </div>
       ) : null}
@@ -127,7 +130,7 @@ export function AgentFullPage({
           </div>
 
           {hasThreadOutputs ? (
-            <div className="hidden xl:flex xl:w-[24rem] xl:shrink-0 xl:border-l xl:border-white/[0.08] xl:bg-black/10">
+            <div className="hidden xl:flex xl:w-[24rem] xl:shrink-0 xl:border-l xl:border-border xl:bg-background-secondary">
               <AgentOutputsPanel className="h-full w-full" />
             </div>
           ) : null}

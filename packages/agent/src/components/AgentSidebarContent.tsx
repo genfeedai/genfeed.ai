@@ -54,11 +54,13 @@ export function AgentSidebarContent({
       <div className="px-3 pt-2 pb-1">
         <Link
           href={href('/overview')}
-          className="flex h-9 w-full items-center gap-3 px-3 py-2 transition-colors duration-200 group cursor-pointer text-white/80 hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+          className="group flex h-8 w-full cursor-pointer items-center gap-2.5 rounded px-2.5 py-1.5 text-foreground/72 transition-colors duration-150 hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
           aria-label="Back to overview"
         >
-          <HiArrowLeft className="size-4 text-white/60 group-hover:text-white transition-colors duration-200" />
-          <span className="text-sm font-medium text-white/90">Agent</span>
+          <HiArrowLeft className="size-4 text-foreground/42 transition-colors duration-200 group-hover:text-foreground/78" />
+          <span className="text-[13px] font-medium tracking-[-0.01em] text-foreground/88">
+            Agent
+          </span>
         </Link>
       </div>
       <div className="px-3 py-2">
@@ -69,15 +71,15 @@ export function AgentSidebarContent({
           <li className="list-none">
             <Link
               href={orgHref(APP_ROUTES.AGENT.NEW)}
-              className="flex h-9 w-full items-center gap-3 px-3 py-2 text-left text-white/80 transition-colors duration-200 group cursor-pointer hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="group flex h-8 w-full cursor-pointer items-center gap-3 rounded px-3 py-1.5 text-left text-foreground/72 transition-colors duration-150 hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
-              <HiPlus className="size-4 text-white/80 group-hover:text-white" />
-              <span className="text-sm font-medium text-white/90">
+              <HiPlus className="size-4 text-foreground/42 group-hover:text-foreground/78" />
+              <span className="text-[13px] font-medium tracking-[-0.01em] text-foreground/88">
                 New Thread
               </span>
               <Kbd
                 variant="ghost"
-                className="ml-auto text-[11px] opacity-0 transition-opacity duration-200 group-hover:text-white/50 group-hover:opacity-100"
+                className="ml-auto rounded-md border border-border bg-foreground/[0.03] text-[10px] text-foreground/36 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
               >
                 ⌘⇧N
               </Kbd>
@@ -88,15 +90,17 @@ export function AgentSidebarContent({
               variant={ButtonVariant.UNSTYLED}
               withWrapper={false}
               onClick={handleRefreshThreads}
-              className="flex h-9 w-full items-center gap-3 px-3 py-2 text-left text-white/80 transition-colors duration-200 group cursor-pointer hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="group flex h-8 w-full cursor-pointer items-center gap-3 rounded px-3 py-1.5 text-left text-foreground/72 transition-colors duration-150 hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
-              <HiArrowPath className="size-4 text-white/80 group-hover:text-white" />
-              <span className="text-sm font-medium text-white/90">Refresh</span>
+              <HiArrowPath className="size-4 text-foreground/42 group-hover:text-foreground/78" />
+              <span className="text-[13px] font-medium tracking-[-0.01em] text-foreground/88">
+                Refresh
+              </span>
             </Button>
           </li>
         </ul>
       </div>
-      <div className="border-t border-white/[0.08] py-2" />
+      <div className="border-t border-border py-2" />
       <AgentThreadList apiService={apiService} onNavigate={onNavigate} />
     </div>
   );

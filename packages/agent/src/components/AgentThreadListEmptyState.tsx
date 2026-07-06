@@ -56,7 +56,7 @@ export function AgentThreadListEmptyState({
   if (shouldShowEmptyState) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
-        <div className="flex size-10 items-center justify-center rounded-xl bg-white/[0.04] ring-1 ring-inset ring-white/10">
+        <div className="flex size-10 items-center justify-center rounded-md bg-foreground/[0.05] ring-1 ring-inset ring-border">
           <HiOutlineChatBubbleLeftRight className="size-5 text-foreground/30" />
         </div>
         <div>
