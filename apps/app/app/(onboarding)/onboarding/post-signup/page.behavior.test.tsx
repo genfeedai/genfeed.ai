@@ -277,7 +277,8 @@ describe('PostSignupPage behavior', () => {
         cancelUrl: 'http://localhost/onboarding/providers',
         quantity: null,
         stripePriceId: 'price_123',
-        successUrl: 'http://localhost/onboarding/brand',
+        successUrl:
+          'http://localhost/onboarding/brand?checkout=completed&checkoutKind=plan',
       });
     });
     expect(locationState.href).toBe('https://checkout.stripe.test/session');

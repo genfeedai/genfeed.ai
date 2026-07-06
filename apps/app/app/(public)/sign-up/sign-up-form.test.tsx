@@ -236,7 +236,7 @@ describe('SignUpForm', () => {
       {
         hasCloudHandoff: false,
         hasCreditsIntent: false,
-        hasPlanIntent: false,
+        hasPlanIntent: true,
         method: 'google',
       },
     );
