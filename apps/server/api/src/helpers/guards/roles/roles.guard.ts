@@ -166,6 +166,10 @@ export class RolesGuard implements CanActivate {
    *
    * IMPORTANT: Only looks for :organizationId param specifically.
    * Generic :id params (brandId, postId, etc.) should NOT be treated as org IDs.
+   *
+   * Explicit values that conflict with the session's organization are rejected
+   * (403), not silently overridden; multi-org users must switch their active
+   * organization first.
    */
   private extractOrganizationId(
     req: Request,

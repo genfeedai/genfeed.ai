@@ -105,6 +105,39 @@ describe('RolesGuard', () => {
     expect(mockMembersService.findOne).not.toHaveBeenCalled();
   });
 
+  it('rejects a mismatched explicit organization even when the user is a member of it (switch-first semantics)', async () => {
+    vi.spyOn(reflector, 'get').mockReturnValue(undefined);
+
+    // Genuine, active member of BOTH orgs — membership lookup would succeed
+    // for either org if the guard ever reached it. Token/session org is A;
+    // the request explicitly targets org B. Switch-first semantics require
+    // a 403 here without ever consulting membership for org B.
+    mockMembersService.findOne.mockImplementation(
+      async (filter: { organization?: string }) => {
+        if (
+          filter.organization === TOKEN_ORGANIZATION_ID ||
+          filter.organization === REQUEST_ORGANIZATION_ID
+        ) {
+          return { id: 'member-1' };
+        }
+        return null;
+      },
+    );
+
+    const context = createContext(
+      {
+        publicMetadata: {
+          organization: TOKEN_ORGANIZATION_ID,
+          user: USER_ID,
+        },
+      },
+      { params: { organizationId: REQUEST_ORGANIZATION_ID } },
+    );
+
+    await expectForbidden(guard.canActivate(context));
+    expect(mockMembersService.findOne).not.toHaveBeenCalled();
+  });
+
   it('rejects mismatched body organization when token organization exists', async () => {
     vi.spyOn(reflector, 'get').mockReturnValue(undefined);
 
