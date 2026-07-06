@@ -24,7 +24,7 @@ export default function OutreachCampaignAddTargets({
 }: Props) {
   if (campaignType === CampaignType.DM_OUTREACH) {
     return (
-      <div className="border border-white/[0.08] bg-background p-4">
+      <div className="bg-card p-4 shadow-border">
         <h3 className="mb-4 text-lg font-semibold">Add DM Recipients</h3>
         <Textarea
           placeholder="Paste usernames (one per line)&#10;@johndoe&#10;janedoe&#10;@creator123"
@@ -51,7 +51,7 @@ export default function OutreachCampaignAddTargets({
   }
 
   return (
-    <div className="border border-white/[0.08] bg-background p-4">
+    <div className="bg-card p-4 shadow-border">
       <h3 className="mb-4 text-lg font-semibold">Add Target URLs</h3>
       <Textarea
         placeholder="Paste tweet or Reddit URLs (one per line)&#10;https://twitter.com/user/status/123456789&#10;https://reddit.com/r/subreddit/comments/abc123/title"

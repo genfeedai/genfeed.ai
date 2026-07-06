@@ -146,7 +146,7 @@ function ImageGenNodeComponent(props: NodeProps) {
 
         {/* Hint when model doesn't support image input */}
         {!modelSupportsImageInput && nodeData.inputImages.length > 0 && (
-          <div className="text-xs text-amber-500 flex items-center gap-1">
+          <div className="text-xs text-warning flex items-center gap-1">
             <AlertCircle className="size-3" />
             This model doesn&apos;t use image inputs
           </div>
