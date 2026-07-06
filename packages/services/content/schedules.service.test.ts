@@ -1,7 +1,10 @@
+import type { ValidateChannelTargetSettingsInput } from '@api-types/contracts';
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { CredentialPlatform } from '@genfeedai/enums';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockGet = vi.fn();
+const mockPost = vi.fn();
 
 vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: {
@@ -13,7 +16,7 @@ vi.mock('@services/core/interceptor.service', () => ({
   HTTPBaseService: class MockHTTPBaseService {
     public baseURL: string;
     public token: string;
-    public instance = { get: mockGet };
+    public instance = { get: mockGet, post: mockPost };
 
     constructor(baseURL: string, token: string) {
       this.baseURL = baseURL;
@@ -93,5 +96,63 @@ describe('SchedulesService', () => {
     expect(result[1].createdAt.getTime()).toBe(now.getTime());
     expect(result[1].scheduledAt).toBeInstanceOf(Date);
     expect(result[1].schedulingMethod).toBe('manual');
+  });
+
+  it('fetches channel capabilities with discovery flags', async () => {
+    const capabilities = [{ label: 'YouTube', platform: 'youtube' }];
+    mockGet.mockResolvedValue({ data: capabilities });
+
+    const service = new SchedulesService(token);
+    const result = await service.getChannelCapabilities({
+      includeHidden: true,
+    });
+
+    expect(mockGet).toHaveBeenCalledWith('/channel-capabilities', {
+      params: { includeHidden: true },
+    });
+    expect(result).toEqual(capabilities);
+  });
+
+  it('fetches one channel capability', async () => {
+    const capability = { label: 'TikTok', platform: 'tiktok' };
+    mockGet.mockResolvedValue({ data: capability });
+
+    const service = new SchedulesService(token);
+    const result = await service.getChannelCapability('tiktok');
+
+    expect(mockGet).toHaveBeenCalledWith('/channel-capabilities/tiktok');
+    expect(result).toEqual(capability);
+  });
+
+  it('validates channel target settings through the API', async () => {
+    const input: ValidateChannelTargetSettingsInput = {
+      media: [{ id: 'asset_1', kind: 'video' }],
+      platform: CredentialPlatform.YOUTUBE,
+      settings: {},
+    };
+    const validation = {
+      errors: [
+        {
+          code: 'channel_target.required_setting',
+          field: 'settings.privacyStatus',
+          message: 'YouTube requires Privacy.',
+          severity: 'error',
+        },
+      ],
+      platform: CredentialPlatform.YOUTUBE,
+      valid: false,
+      validationState: 'invalid',
+      warnings: [],
+    };
+    mockPost.mockResolvedValue({ data: validation });
+
+    const service = new SchedulesService(token);
+    const result = await service.validateChannelTargetSettings(input);
+
+    expect(mockPost).toHaveBeenCalledWith(
+      '/channel-capabilities/validate',
+      input,
+    );
+    expect(result).toEqual(validation);
   });
 });
