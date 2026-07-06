@@ -31,6 +31,7 @@ export default function PageLayout({
       <ProofHeroPage
         badge={badge}
         badgeIcon={BadgeIcon}
+        compact={compact}
         description={description}
         heroActions={heroActions}
         heroProof={heroProof}

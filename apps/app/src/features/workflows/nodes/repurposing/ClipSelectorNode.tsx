@@ -218,7 +218,7 @@ function ClipSelectorNodeComponent(props: NodeProps): React.JSX.Element {
                     title={`Score: ${(clip.score * 100).toFixed(0)}%`}
                   >
                     <div
-                      className="h-full rounded-full bg-green-500"
+                      className="h-full rounded-full bg-primary"
                       style={{ width: `${clip.score * 100}%` }}
                     />
                   </div>

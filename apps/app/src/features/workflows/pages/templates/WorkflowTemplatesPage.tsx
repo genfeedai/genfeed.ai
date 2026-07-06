@@ -296,7 +296,7 @@ function WorkflowTemplatesPageContent() {
             {filteredTemplates.map((template) => (
               <div
                 key={template.id}
-                className="group relative overflow-hidden border border-white/[0.08] bg-card"
+                className="group relative overflow-hidden shadow-border bg-card"
               >
                 {/* Preview Image Placeholder */}
                 <div className="aspect-video bg-gradient-to-br from-primary/10 to-primary/5">

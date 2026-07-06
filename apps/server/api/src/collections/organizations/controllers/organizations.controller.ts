@@ -64,14 +64,12 @@ import {
 } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
-  BadRequestException,
   Body,
   Controller,
   Get,
   HttpException,
   HttpStatus,
   Param,
-  Patch,
   Post,
   Query,
   Req,
@@ -166,27 +164,6 @@ export class OrganizationsController extends BaseCRUDController<
         message: `Organization with slug "${slug}" not found`,
       });
     }
-    return serializeSingle(request, OrganizationSerializer, org);
-  }
-
-  /**
-   * PATCH /organizations/:id/slug
-   * Update the slug for an organization.
-   */
-  @Patch(':id/slug')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async updateSlug(
-    @Req() request: Request,
-    @Param('id') id: string,
-    @Body() body: { slug: string },
-  ): Promise<unknown> {
-    const existing = await this.organizationsService.findBySlug(body.slug);
-    if (existing && existing.id.toString() !== id) {
-      throw new BadRequestException(`Slug "${body.slug}" is already taken`);
-    }
-    const org = await this.organizationsService.patch(id, {
-      slug: body.slug,
-    });
     return serializeSingle(request, OrganizationSerializer, org);
   }
 

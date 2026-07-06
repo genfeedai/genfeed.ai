@@ -24,7 +24,6 @@ describe('SlackController', () => {
   };
 
   const mockSlackService = {
-    disconnect: vi.fn(),
     exchangeCodeForToken: vi.fn(),
     generateAuthUrl: vi.fn().mockReturnValue('https://slack.com/oauth'),
     getUserInfo: vi.fn(),
@@ -82,30 +81,6 @@ describe('SlackController', () => {
       ).rejects.toBeInstanceOf(HttpException);
 
       expect(mockSlackService.exchangeCodeForToken).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('disconnect', () => {
-    it('rejects when brand does not belong to user organization', async () => {
-      mockBrandsService.findOne.mockResolvedValue(null);
-
-      await expect(
-        controller.disconnect(mockUser as any, mockBrandId),
-      ).rejects.toBeInstanceOf(HttpException);
-
-      expect(mockSlackService.disconnect).not.toHaveBeenCalled();
-    });
-
-    it('uses organization from metadata, not from request body', async () => {
-      mockBrandsService.findOne.mockResolvedValue({ _id: mockBrandId });
-      mockSlackService.disconnect.mockResolvedValue({});
-
-      await controller.disconnect(mockUser as any, mockBrandId);
-
-      expect(mockSlackService.disconnect).toHaveBeenCalledWith(
-        mockOrganization,
-        mockBrandId,
-      );
     });
   });
 });

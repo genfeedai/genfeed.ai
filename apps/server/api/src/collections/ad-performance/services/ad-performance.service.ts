@@ -7,17 +7,36 @@ import {
   buildAdPerformanceBenchmarkFields,
 } from '@api/collections/ad-performance/utils/ad-performance-benchmark.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { Prisma } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
+
+const DEFAULT_TOP_PERFORMER_LIMIT = 10;
+const JSON_METRIC_CANDIDATE_LIMIT = 500;
+
+const SCALAR_TOP_PERFORMER_METRICS = [
+  'performanceScore',
+  'ctr',
+  'roas',
+  'cpc',
+  'cpa',
+  'conversionRate',
+  'spend',
+  'dataConfidence',
+] as const;
+
+type ScalarTopPerformerMetric = (typeof SCALAR_TOP_PERFORMER_METRICS)[number];
+
+type TopPerformerParams = {
+  adPlatform?: string;
+  industry?: string;
+  scope?: string;
+  metric?: string;
+  limit?: number;
+};
 
 @Injectable()
 export class AdPerformanceService {
-  private readonly constructorName = this.constructor.name;
-
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly logger: LoggerService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   private readObjectRecord(value: unknown): Record<string, unknown> {
     return typeof value === 'object' && value !== null
@@ -46,6 +65,66 @@ export class AdPerformanceService {
     }
 
     return undefined;
+  }
+
+  private isScalarTopPerformerMetric(
+    metric: string,
+  ): metric is ScalarTopPerformerMetric {
+    return SCALAR_TOP_PERFORMER_METRICS.includes(
+      metric as ScalarTopPerformerMetric,
+    );
+  }
+
+  private resolveTopPerformerLimit(limit: number | undefined): number {
+    if (limit === undefined || !Number.isFinite(limit)) {
+      return DEFAULT_TOP_PERFORMER_LIMIT;
+    }
+
+    return Math.max(0, Math.trunc(limit));
+  }
+
+  private buildTopPerformerWhere(
+    params: TopPerformerParams,
+  ): Prisma.AdPerformanceWhereInput {
+    const where: Prisma.AdPerformanceWhereInput = {
+      isDeleted: false,
+    };
+    const adPlatform = this.readString(params.adPlatform);
+    const industry = this.readString(params.industry);
+    const scope = this.readString(params.scope);
+
+    if (adPlatform) {
+      where.adPlatform = adPlatform;
+    }
+
+    if (industry) {
+      where.industry = industry;
+    }
+
+    if (scope) {
+      where.scope = scope;
+    }
+
+    return where;
+  }
+
+  private buildScalarMetricWhere(
+    where: Prisma.AdPerformanceWhereInput,
+    metric: ScalarTopPerformerMetric,
+  ): Prisma.AdPerformanceWhereInput {
+    return {
+      ...where,
+      [metric]: { not: null },
+    } as Prisma.AdPerformanceWhereInput;
+  }
+
+  private buildMetricOrderBy(
+    metric: ScalarTopPerformerMetric,
+  ): Prisma.AdPerformanceOrderByWithRelationInput[] {
+    return [
+      { [metric]: 'desc' },
+      { updatedAt: 'desc' },
+    ] as Prisma.AdPerformanceOrderByWithRelationInput[];
   }
 
   private normalizeRecord(record: AdPerformance): AdPerformanceDocument {
@@ -119,6 +198,7 @@ export class AdPerformanceService {
   async upsert(data: Record<string, unknown>): Promise<AdPerformanceDocument> {
     const key = this.buildUpsertKey(data);
     const payload = this.toPersistencePayload(data);
+    // sql-risk-audit: documented unbounded-read -- Upsert key fields are still JSON-backed; organizationId/isDeleted bounds this sync-path lookup until scalar key columns exist.
     const existing = (
       await this.prisma.adPerformance.findMany({
         where: {
@@ -178,6 +258,7 @@ export class AdPerformanceService {
       offset?: number;
     },
   ): Promise<AdPerformanceDocument[]> {
+    // sql-risk-audit: documented unbounded-read -- This org-scoped optimization path still filters JSON-only date/granularity fields until those fields are scalarized.
     const records = await this.prisma.adPerformance.findMany({
       where: {
         isDeleted: false,
@@ -221,49 +302,47 @@ export class AdPerformanceService {
       .slice(params.offset ?? 0, (params.offset ?? 0) + (params.limit ?? 50));
   }
 
-  async findTopPerformers(params: {
-    adPlatform?: string;
-    industry?: string;
-    scope?: string;
-    metric?: string;
-    limit?: number;
-  }): Promise<AdPerformanceDocument[]> {
+  async findTopPerformers(
+    params: TopPerformerParams,
+  ): Promise<AdPerformanceDocument[]> {
     const metric = params.metric ?? 'performanceScore';
+    const limit = this.resolveTopPerformerLimit(params.limit);
+    if (limit === 0) {
+      return [];
+    }
+
+    const where = this.buildTopPerformerWhere(params);
+
+    if (this.isScalarTopPerformerMetric(metric)) {
+      const records = await this.prisma.adPerformance.findMany({
+        orderBy: this.buildMetricOrderBy(metric),
+        take: limit,
+        where: this.buildScalarMetricWhere(where, metric),
+      });
+
+      return records.map((record) => this.normalizeRecord(record));
+    }
+
+    // JSON-backed metrics, such as conversions, cannot be ordered by Prisma
+    // without a new scalar column. Keep this fallback bounded so it never reads
+    // the whole benchmark corpus for a normal top-performer request.
     const records = await this.prisma.adPerformance.findMany({
+      orderBy: this.buildMetricOrderBy('performanceScore'),
+      take: Math.max(limit, JSON_METRIC_CANDIDATE_LIMIT),
       where: {
-        isDeleted: false,
+        ...where,
+        performanceScore: { not: null },
       },
     });
 
     return records
       .map((record) => this.normalizeRecord(record))
-      .filter((record) => {
-        if (
-          params.adPlatform &&
-          this.readString(record.adPlatform) !== params.adPlatform
-        ) {
-          return false;
-        }
-
-        if (
-          params.industry &&
-          this.readString(record.industry) !== params.industry
-        ) {
-          return false;
-        }
-
-        if (params.scope && this.readString(record.scope) !== params.scope) {
-          return false;
-        }
-
-        return true;
-      })
       .sort((a, b) => {
         const aMetric = this.readNumber(a[metric]) ?? 0;
         const bMetric = this.readNumber(b[metric]) ?? 0;
         return bMetric - aMetric;
       })
-      .slice(0, params.limit ?? 10);
+      .slice(0, limit);
   }
 
   async findById(id: string): Promise<AdPerformanceDocument | null> {
@@ -274,9 +353,18 @@ export class AdPerformanceService {
     return record ? this.normalizeRecord(record) : null;
   }
 
+  async findPublicById(id: string): Promise<AdPerformanceDocument | null> {
+    const record = await this.prisma.adPerformance.findFirst({
+      where: { id, isDeleted: false, scope: 'public' },
+    });
+
+    return record ? this.normalizeRecord(record) : null;
+  }
+
   async findLatestSyncDateForCredential(
     credentialId: string,
   ): Promise<Date | null> {
+    // sql-risk-audit: documented unbounded-read -- Latest sync date is JSON-backed, so the scheduler needs the credential slice until date becomes scalar/indexed.
     const records = await this.prisma.adPerformance.findMany({
       where: { credentialId, isDeleted: false },
     });
@@ -290,6 +378,7 @@ export class AdPerformanceService {
   }
 
   async removeOrgFromAggregation(organizationId: string): Promise<number> {
+    // sql-risk-audit: documented unbounded-read -- Privacy revocation intentionally rewrites every ad performance row for one organization.
     const records = await this.prisma.adPerformance.findMany({
       where: { organizationId },
     });

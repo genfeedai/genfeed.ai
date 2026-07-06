@@ -240,8 +240,8 @@ function TrendVideoInspirationNodeComponent({
 
       {/* Generated Prompt */}
       {data.prompt && (
-        <div className="p-2 bg-green-500/10 border border-green-500/20">
-          <div className="text-xs text-green-400 font-medium mb-1">
+        <div className="p-2 bg-secondary border border-border">
+          <div className="text-xs text-muted-foreground font-medium mb-1">
             Generated Prompt
           </div>
           <div className="text-sm text-foreground">{data.prompt}</div>

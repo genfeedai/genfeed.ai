@@ -103,10 +103,7 @@ export default function BatchComposer({
   const { hasPendingUploads, isDragActive } = dropzoneState;
   return (
     <div className="space-y-8">
-      <Card
-        bodyClassName="gap-0 p-6"
-        className="border-white/10 bg-card/95 shadow-sm"
-      >
+      <Card bodyClassName="gap-0 p-6">
         <div className="grid gap-6 xl:grid-cols-[minmax(0,320px)_1fr]">
           <div className="space-y-6">
             <div>
@@ -253,10 +250,7 @@ export default function BatchComposer({
         </div>
       </Card>
 
-      <Card
-        bodyClassName="gap-0 p-6"
-        className="border-white/10 bg-card/95 shadow-sm"
-      >
+      <Card bodyClassName="gap-0 p-6">
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-foreground">

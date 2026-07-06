@@ -44,6 +44,7 @@ describe('BatchGenerationController', () => {
             processBatch: vi.fn(),
             rejectItems: vi.fn(),
             requestChanges: vi.fn(),
+            updateBatch: vi.fn(),
           },
         },
         {
@@ -154,17 +155,27 @@ describe('BatchGenerationController', () => {
     });
   });
 
-  describe('cancelBatch', () => {
-    it('should delegate to service to cancel batch', async () => {
+  describe('patch', () => {
+    it('should delegate to service.updateBatch to cancel a batch', async () => {
       const user = {
         id: 'user-123',
         publicMetadata: { organization: 'org', user: 'usr' },
       } as never;
-      (service as Record<string, ReturnType<typeof vi.fn>>).cancelBatch = vi
+      (service as Record<string, ReturnType<typeof vi.fn>>).updateBatch = vi
         .fn()
         .mockResolvedValue({ status: 'cancelled' });
 
-      const result = await controller.cancelBatch(mockReq, 'batch-1', user);
+      const result = await controller.patch(
+        mockReq,
+        'batch-1',
+        { status: 'cancelled' } as never,
+        user,
+      );
+      expect(service.updateBatch).toHaveBeenCalledWith(
+        'batch-1',
+        { status: 'cancelled' },
+        expect.any(String),
+      );
       expect(result).toBeDefined();
     });
   });

@@ -51,7 +51,7 @@ export function CommandPaletteItem({
           )}
         </div>
         {command.description && (
-          <p className="truncate text-sm opacity-60">{command.description}</p>
+          <p className="truncate opacity-60">{command.description}</p>
         )}
       </div>
     </Button>

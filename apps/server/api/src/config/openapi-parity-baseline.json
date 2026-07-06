@@ -102,11 +102,6 @@
       "path": "/agent-campaigns"
     },
     {
-      "method": "post",
-      "operationId": "AgentCampaignsController.executeCampaign",
-      "path": "/agent-campaigns/{id}/execute"
-    },
-    {
       "method": "get",
       "operationId": "AgentCampaignsController.findAll",
       "path": "/agent-campaigns"
@@ -125,11 +120,6 @@
       "method": "patch",
       "operationId": "AgentCampaignsController.patch",
       "path": "/agent-campaigns/{id}"
-    },
-    {
-      "method": "post",
-      "operationId": "AgentCampaignsController.pauseCampaign",
-      "path": "/agent-campaigns/{id}/pause"
     },
     {
       "method": "delete",
@@ -598,11 +588,6 @@
     },
     {
       "method": "post",
-      "operationId": "ArticlesController.restoreVersion",
-      "path": "/articles/{articleId}/versions/{promptId}/restore"
-    },
-    {
-      "method": "post",
       "operationId": "ArticlesController.reviewArticle",
       "path": "/articles/{articleId}/reviews"
     },
@@ -723,11 +708,6 @@
     },
     {
       "method": "post",
-      "operationId": "BatchGenerationController.cancelBatch",
-      "path": "/batches/{id}/cancel"
-    },
-    {
-      "method": "post",
       "operationId": "BatchGenerationController.createBatch",
       "path": "/batches"
     },
@@ -750,6 +730,11 @@
       "method": "post",
       "operationId": "BatchGenerationController.itemAction",
       "path": "/batches/{id}/items/action"
+    },
+    {
+      "method": "patch",
+      "operationId": "BatchGenerationController.patch",
+      "path": "/batches/{id}"
     },
     {
       "method": "post",
@@ -852,9 +837,9 @@
       "path": "/bots/{id}"
     },
     {
-      "method": "post",
-      "operationId": "BotsController.pauseLivestreamSession",
-      "path": "/bots/{id}/livestream-session/pause"
+      "method": "patch",
+      "operationId": "BotsController.patchLivestreamSession",
+      "path": "/bots/{id}/livestream-session"
     },
     {
       "method": "delete",
@@ -863,23 +848,8 @@
     },
     {
       "method": "post",
-      "operationId": "BotsController.resumeLivestreamSession",
-      "path": "/bots/{id}/livestream-session/resume"
-    },
-    {
-      "method": "post",
       "operationId": "BotsController.sendLivestreamMessageNow",
       "path": "/bots/{id}/livestream-session/send-now"
-    },
-    {
-      "method": "post",
-      "operationId": "BotsController.startLivestreamSession",
-      "path": "/bots/{id}/livestream-session/start"
-    },
-    {
-      "method": "post",
-      "operationId": "BotsController.stopLivestreamSession",
-      "path": "/bots/{id}/livestream-session/stop"
     },
     {
       "method": "post",
@@ -995,6 +965,11 @@
       "method": "patch",
       "operationId": "BrandsController.patch",
       "path": "/brands/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "BrandsController.previewRelocation",
+      "path": "/brands/{id}/relocation-preview"
     },
     {
       "method": "delete",
@@ -1633,11 +1608,6 @@
     },
     {
       "method": "post",
-      "operationId": "DiscordController.disconnect",
-      "path": "/services/discord/disconnect"
-    },
-    {
-      "method": "post",
       "operationId": "DiscordController.verify",
       "path": "/services/discord/verify"
     },
@@ -1645,6 +1615,11 @@
       "method": "delete",
       "operationId": "DistributionsController.cancel",
       "path": "/distributions/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "DistributionsController.create",
+      "path": "/distributions"
     },
     {
       "method": "get",
@@ -1655,16 +1630,6 @@
       "method": "get",
       "operationId": "DistributionsController.list",
       "path": "/distributions"
-    },
-    {
-      "method": "post",
-      "operationId": "DistributionsController.scheduleTelegram",
-      "path": "/distributions/telegram/schedule"
-    },
-    {
-      "method": "post",
-      "operationId": "DistributionsController.sendTelegram",
-      "path": "/distributions/telegram"
     },
     {
       "method": "post",
@@ -2463,6 +2428,11 @@
     },
     {
       "method": "post",
+      "operationId": "LaunchCopyController.generate",
+      "path": "/launch-copy/generate"
+    },
+    {
+      "method": "post",
       "operationId": "LinkedInController.connect",
       "path": "/services/linkedin/connect"
     },
@@ -2603,11 +2573,6 @@
     },
     {
       "method": "post",
-      "operationId": "MetaAdsBulkController.cancelJob",
-      "path": "/services/meta-ads/bulk/jobs/{id}/cancel"
-    },
-    {
-      "method": "post",
       "operationId": "MetaAdsBulkController.createBulkUpload",
       "path": "/services/meta-ads/bulk/upload"
     },
@@ -2620,6 +2585,11 @@
       "method": "get",
       "operationId": "MetaAdsBulkController.listJobs",
       "path": "/services/meta-ads/bulk/jobs"
+    },
+    {
+      "method": "patch",
+      "operationId": "MetaAdsBulkController.updateJob",
+      "path": "/services/meta-ads/bulk/jobs/{id}"
     },
     {
       "method": "get",
@@ -2687,11 +2657,6 @@
       "path": "/services/meta-ads/ads/{id}/pause"
     },
     {
-      "method": "post",
-      "operationId": "MetaAdsController.pauseCampaign",
-      "path": "/services/meta-ads/campaigns/{id}/pause"
-    },
-    {
       "method": "patch",
       "operationId": "MetaAdsController.updateAdSet",
       "path": "/services/meta-ads/adsets/{id}"
@@ -2702,11 +2667,6 @@
       "path": "/services/meta-ads/campaigns/{id}"
     },
     {
-      "method": "patch",
-      "operationId": "MetaAdsController.updateCampaignBudget",
-      "path": "/services/meta-ads/campaigns/{id}/budget"
-    },
-    {
       "method": "post",
       "operationId": "MetaAdsController.uploadAdImage",
       "path": "/services/meta-ads/media/image"
@@ -2715,11 +2675,6 @@
       "method": "post",
       "operationId": "MetaAdsController.uploadAdVideo",
       "path": "/services/meta-ads/media/video"
-    },
-    {
-      "method": "post",
-      "operationId": "MetaAdsOptimizationController.approveRecommendation",
-      "path": "/services/meta-ads/optimization/recommendations/{id}/approve"
     },
     {
       "method": "post",
@@ -2742,14 +2697,14 @@
       "path": "/services/meta-ads/optimization/recommendations"
     },
     {
-      "method": "post",
-      "operationId": "MetaAdsOptimizationController.rejectRecommendation",
-      "path": "/services/meta-ads/optimization/recommendations/{id}/reject"
-    },
-    {
-      "method": "put",
+      "method": "patch",
       "operationId": "MetaAdsOptimizationController.updateConfig",
       "path": "/services/meta-ads/optimization/config"
+    },
+    {
+      "method": "patch",
+      "operationId": "MetaAdsOptimizationController.updateRecommendation",
+      "path": "/services/meta-ads/optimization/recommendations/{id}"
     },
     {
       "method": "post",
@@ -2852,11 +2807,6 @@
       "path": "/newsletters/{id}/approve"
     },
     {
-      "method": "post",
-      "operationId": "NewslettersController.archive",
-      "path": "/newsletters/{id}/archive"
-    },
-    {
       "method": "get",
       "operationId": "NewslettersController.context",
       "path": "/newsletters/{id}/context"
@@ -2945,11 +2895,6 @@
       "method": "post",
       "operationId": "OnboardingController.setAccountType",
       "path": "/onboarding/account-type"
-    },
-    {
-      "method": "post",
-      "operationId": "OnboardingController.setPrefix",
-      "path": "/onboarding/prefix"
     },
     {
       "method": "post",
@@ -3075,11 +3020,6 @@
       "method": "post",
       "operationId": "OrganizationsController.switchOrganization",
       "path": "/organizations/switch/{id}"
-    },
-    {
-      "method": "patch",
-      "operationId": "OrganizationsController.updateSlug",
-      "path": "/organizations/{id}/slug"
     },
     {
       "method": "post",
@@ -3223,11 +3163,6 @@
     },
     {
       "method": "post",
-      "operationId": "OutreachCampaignsController.addDmRecipients",
-      "path": "/outreach-campaigns/{id}/dm-recipients"
-    },
-    {
-      "method": "post",
       "operationId": "OutreachCampaignsController.addTargets",
       "path": "/outreach-campaigns/{id}/targets"
     },
@@ -3365,11 +3300,6 @@
       "method": "post",
       "operationId": "PersonasContentController.publish",
       "path": "/personas/{id}/publish"
-    },
-    {
-      "method": "post",
-      "operationId": "PersonasController.assignMembers",
-      "path": "/personas/{id}/assign"
     },
     {
       "method": "post",
@@ -4122,9 +4052,9 @@
       "path": "/organizations/{organizationId}/streaks/me"
     },
     {
-      "method": "post",
-      "operationId": "StreaksController.useFreeze",
-      "path": "/organizations/{organizationId}/streaks/me/freeze"
+      "method": "patch",
+      "operationId": "StreaksController.patchMyStreak",
+      "path": "/organizations/{organizationId}/streaks/me"
     },
     {
       "method": "post",
@@ -4170,6 +4100,11 @@
       "method": "get",
       "operationId": "SubscriptionsController.getCreditsBreakdown",
       "path": "/subscriptions/current/credits"
+    },
+    {
+      "method": "get",
+      "operationId": "SubscriptionsController.getCreditUsage",
+      "path": "/subscriptions/admin/credit-usage"
     },
     {
       "method": "post",
@@ -4305,11 +4240,6 @@
       "method": "get",
       "operationId": "TelegramBotController.getStatus",
       "path": "/telegram-bot/status"
-    },
-    {
-      "method": "post",
-      "operationId": "TelegramController.disconnect",
-      "path": "/services/telegram/disconnect"
     },
     {
       "method": "post",
@@ -4582,7 +4512,7 @@
       "path": "/trends/refresh"
     },
     {
-      "method": "post",
+      "method": "put",
       "operationId": "TrendsController.savePreferences",
       "path": "/trends/preferences"
     },
@@ -4655,11 +4585,6 @@
       "method": "delete",
       "operationId": "UsersController.clearBrandSelection",
       "path": "/users/me/brand-selection"
-    },
-    {
-      "method": "post",
-      "operationId": "UsersController.confirmAvatarUpload",
-      "path": "/users/me/avatar/confirm"
     },
     {
       "method": "get",
@@ -4909,7 +4834,7 @@
     {
       "method": "delete",
       "operationId": "VotesController.remove",
-      "path": "/votes/{entityId}"
+      "path": "/votes"
     },
     {
       "method": "post",
@@ -4930,11 +4855,6 @@
       "method": "get",
       "operationId": "WatchlistsController.findOne",
       "path": "/watchlists/{watchlistId}"
-    },
-    {
-      "method": "post",
-      "operationId": "WatchlistsController.quickAdd",
-      "path": "/watchlists/quick-add"
     },
     {
       "method": "patch",

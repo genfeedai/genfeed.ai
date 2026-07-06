@@ -7,6 +7,7 @@ import { runIdempotent } from '@api/helpers/utils/idempotency/idempotency.util';
 import { ReviewBatchItemFormat } from '@api/services/batch-generation/constants/review-batch-item-format.constant';
 import { CreateBatchDto } from '@api/services/batch-generation/dto/create-batch.dto';
 import { CreateManualReviewBatchDto } from '@api/services/batch-generation/dto/create-manual-review-batch.dto';
+import { UpdateBatchDto } from '@api/services/batch-generation/dto/update-batch.dto';
 import type { ContentMixConfig } from '@api/services/batch-generation/schemas/batch.schema';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -1001,6 +1002,38 @@ export class BatchGenerationService {
     })) as BatchWithConfig;
 
     this.logger.log(`Batch cancelled: ${batchId}`, { batchId });
+
+    return this.toBatchSummary(updatedBatch);
+  }
+
+  /**
+   * Update a batch by ID. Status transitions to CANCELLED are routed
+   * through cancelBatch() to preserve its guard (tenant-scoped existence
+   * check via findOrThrow) and cascade (marking pending items as skipped).
+   */
+  @HandleErrors('update batch', 'batch-generation')
+  async updateBatch(
+    batchId: string,
+    dto: UpdateBatchDto,
+    orgId: string,
+  ): Promise<IBatchSummary> {
+    if (dto.status === BatchStatus.CANCELLED) {
+      return this.cancelBatch(batchId, orgId);
+    }
+
+    const batchRecord = await findOrThrow(
+      this.prisma.batch,
+      { where: { id: batchId, isDeleted: false, organizationId: orgId } },
+      'Batch',
+      batchId,
+    );
+
+    const updatedBatch = (await this.prisma.batch.update({
+      data: {
+        status: dto.status as never,
+      },
+      where: { id: batchRecord.id },
+    })) as BatchWithConfig;
 
     return this.toBatchSummary(updatedBatch);
   }

@@ -34,6 +34,15 @@ function parseResult(raw: unknown): Record<string, unknown> {
   return {};
 }
 
+type WorkflowExecutionResultRow = {
+  result: unknown;
+};
+
+type WorkflowExecutionCompletionRow = WorkflowExecutionResultRow & {
+  startedAt: Date | null;
+  workflowId: string;
+};
+
 @Injectable()
 export class WorkflowExecutionsService extends BaseService<
   WorkflowExecutionDocument,
@@ -102,24 +111,19 @@ export class WorkflowExecutionsService extends BaseService<
     error?: string,
   ): Promise<WorkflowExecutionDocument | null> {
     const completedAt = new Date();
-    const execution = await this.prisma.workflowExecution.findFirst({
+    const execution = (await this.prisma.workflowExecution.findUnique({
+      select: { result: true, startedAt: true, workflowId: true },
       where: { id: executionId },
-    });
+    })) as WorkflowExecutionCompletionRow | null;
 
     if (!execution) {
       return null;
     }
 
-    const existingResult = parseResult(
-      (execution as unknown as Record<string, unknown>).result,
-    );
+    const existingResult = parseResult(execution.result);
 
-    const durationMs = (execution as unknown as Record<string, unknown>)
-      .startedAt
-      ? completedAt.getTime() -
-        (
-          (execution as unknown as Record<string, unknown>).startedAt as Date
-        ).getTime()
+    const durationMs = execution.startedAt
+      ? completedAt.getTime() - execution.startedAt.getTime()
       : 0;
 
     const existingMetadata =
@@ -143,9 +147,7 @@ export class WorkflowExecutionsService extends BaseService<
         estimatedDurationMs,
         executionId,
         observedDurationMs: durationMs,
-        workflowId: (
-          execution as unknown as Record<string, unknown>
-        ).workflowId?.toString(),
+        workflowId: execution.workflowId,
       });
     }
 
@@ -203,17 +205,16 @@ export class WorkflowExecutionsService extends BaseService<
     nodeResult: WorkflowNodeResult,
     totalNodes?: number,
   ): Promise<WorkflowExecutionDocument | null> {
-    const execution = await this.prisma.workflowExecution.findFirst({
+    const execution = (await this.prisma.workflowExecution.findUnique({
+      select: { result: true },
       where: { id: executionId },
-    });
+    })) as WorkflowExecutionResultRow | null;
 
     if (!execution) {
       return null;
     }
 
-    const existingResult = parseResult(
-      (execution as unknown as Record<string, unknown>).result,
-    );
+    const existingResult = parseResult(execution.result);
     const existingNodeResults = Array.isArray(existingResult.nodeResults)
       ? (existingResult.nodeResults as WorkflowNodeResult[])
       : [];
@@ -263,19 +264,19 @@ export class WorkflowExecutionsService extends BaseService<
     executionId: string,
     failedNodeId: string,
   ): Promise<void> {
-    const execution = await this.prisma.workflowExecution.findFirst({
+    const execution = (await this.prisma.workflowExecution.findUnique({
+      select: { result: true },
       where: { id: executionId },
-    });
+    })) as WorkflowExecutionResultRow | null;
     if (!execution) return;
 
-    const existingResult = parseResult(
-      (execution as unknown as Record<string, unknown>).result,
-    );
+    const existingResult = parseResult(execution.result);
 
     await this.prisma.workflowExecution.update({
       data: {
         result: { ...existingResult, failedNodeId } as never,
       } as never,
+      select: { id: true },
       where: { id: executionId },
     });
   }
@@ -285,19 +286,19 @@ export class WorkflowExecutionsService extends BaseService<
     executionId: string,
     creditsUsed: number,
   ): Promise<void> {
-    const execution = await this.prisma.workflowExecution.findFirst({
+    const execution = (await this.prisma.workflowExecution.findUnique({
+      select: { result: true },
       where: { id: executionId },
-    });
+    })) as WorkflowExecutionResultRow | null;
     if (!execution) return;
 
-    const existingResult = parseResult(
-      (execution as unknown as Record<string, unknown>).result,
-    );
+    const existingResult = parseResult(execution.result);
 
     await this.prisma.workflowExecution.update({
       data: {
         result: { ...existingResult, creditsUsed } as never,
       } as never,
+      select: { id: true },
       where: { id: executionId },
     });
   }
@@ -307,17 +308,16 @@ export class WorkflowExecutionsService extends BaseService<
     executionId: string,
     metadataUpdates: Record<string, unknown>,
   ): Promise<WorkflowExecutionDocument | null> {
-    const execution = await this.prisma.workflowExecution.findFirst({
+    const execution = (await this.prisma.workflowExecution.findUnique({
+      select: { result: true },
       where: { id: executionId },
-    });
+    })) as WorkflowExecutionResultRow | null;
 
     if (!execution) {
       return null;
     }
 
-    const existingResult = parseResult(
-      (execution as unknown as Record<string, unknown>).result,
-    );
+    const existingResult = parseResult(execution.result);
     const existingMetadata =
       existingResult.metadata && typeof existingResult.metadata === 'object'
         ? (existingResult.metadata as Record<string, unknown>)

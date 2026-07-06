@@ -166,15 +166,20 @@ describe('StreaksController', () => {
     });
   });
 
-  // ── useFreeze ─────────────────────────────────────────────────────────────
+  // ── patchMyStreak (freeze) ───────────────────────────────────────────────
 
-  describe('useFreeze', () => {
+  describe('patchMyStreak', () => {
     it('applies freeze and returns message + remaining freezes', async () => {
       streaksService.useFreeze.mockResolvedValue({
         streakFreezes: 2,
       } as never);
 
-      const result = await controller.useFreeze(ORG_ID, mockUser, mockRequest);
+      const result = await controller.patchMyStreak(
+        ORG_ID,
+        mockUser,
+        mockRequest,
+        { freeze: true },
+      );
 
       expect(streaksService.useFreeze).toHaveBeenCalledWith(USER_ID, ORG_ID);
       expect(result).toEqual({
@@ -190,7 +195,9 @@ describe('StreaksController', () => {
       } as ReturnType<typeof getPublicMetadata>);
 
       await expect(
-        controller.useFreeze(ORG_ID, mockUser, mockRequest),
+        controller.patchMyStreak(ORG_ID, mockUser, mockRequest, {
+          freeze: true,
+        }),
       ).rejects.toThrow(BadRequestException);
       expect(streaksService.useFreeze).not.toHaveBeenCalled();
     });
@@ -198,8 +205,17 @@ describe('StreaksController', () => {
     it('propagates service errors', async () => {
       streaksService.useFreeze.mockRejectedValue(new Error('No freezes left'));
       await expect(
-        controller.useFreeze(ORG_ID, mockUser, mockRequest),
+        controller.patchMyStreak(ORG_ID, mockUser, mockRequest, {
+          freeze: true,
+        }),
       ).rejects.toThrow('No freezes left');
+    });
+
+    it('throws BadRequestException when no supported patch field is provided', async () => {
+      await expect(
+        controller.patchMyStreak(ORG_ID, mockUser, mockRequest, {}),
+      ).rejects.toThrow(BadRequestException);
+      expect(streaksService.useFreeze).not.toHaveBeenCalled();
     });
   });
 });

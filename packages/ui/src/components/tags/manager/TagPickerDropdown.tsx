@@ -33,7 +33,7 @@ export default function TagPickerDropdown({
   onClose,
 }: TagPickerDropdownProps) {
   return (
-    <div className="absolute z-10 mt-1 w-64 bg-card shadow-lg border border-white/[0.08] p-2">
+    <div className="absolute z-10 mt-1 w-64 bg-card shadow-dropdown p-2">
       <div className="text-sm font-semibold mb-2 px-2">Available Tags</div>
 
       {!showNewTagInput ? (

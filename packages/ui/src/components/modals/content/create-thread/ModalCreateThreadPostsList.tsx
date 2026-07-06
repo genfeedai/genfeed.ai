@@ -37,7 +37,7 @@ export default function ModalCreateThreadPostsList({
         return (
           <div
             key={field.id}
-            className="border border-white/[0.08] p-4 space-y-3"
+            className="bg-secondary shadow-border p-4 space-y-3"
           >
             <div className="flex items-center justify-between">
               <span className="font-medium text-sm">Post {index + 1}</span>

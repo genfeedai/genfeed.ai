@@ -2,6 +2,7 @@ import { ClipResultsService } from '@api/collections/clip-results/clip-results.s
 import type { CreateClipResultDto } from '@api/collections/clip-results/dto/create-clip-result.dto';
 import { type ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
 import { AvatarVideoService } from '@api/services/avatar-video/avatar-video.service';
+import type { ClipResultMode } from '@genfeedai/interfaces';
 import { AvatarVideoProviderName } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -26,11 +27,13 @@ export interface ClipHighlight {
 }
 
 /**
- * Generation mode for a clip project batch.
+ * Generation mode for a clip project batch. Aliased to the canonical
+ * {@link ClipResultMode} so the batch discriminator and the persisted
+ * clip-result `mode` column never diverge.
  * - `avatar`: fires an external avatar provider per highlight (existing behavior).
  * - `raw-cut`: deterministically cuts + captions the source footage per highlight.
  */
-export type ClipGenerationMode = 'avatar' | 'raw-cut';
+export type ClipGenerationMode = ClipResultMode;
 
 export interface ClipGenerationInput {
   highlights: ClipHighlight[];
