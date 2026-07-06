@@ -1,22 +1,6 @@
 import { WorkflowExecutionController } from '@api/collections/workflows/controllers/workflow-execution.controller';
 
 describe('WorkflowExecutionController RBAC', () => {
-  it('should require owner, admin, or creator role for setSchedule', () => {
-    const metadata = Reflect.getMetadata(
-      'roles',
-      WorkflowExecutionController.prototype.setSchedule,
-    );
-    expect(metadata).toEqual(['owner', 'admin', 'creator']);
-  });
-
-  it('should require owner, admin, or creator role for removeSchedule', () => {
-    const metadata = Reflect.getMetadata(
-      'roles',
-      WorkflowExecutionController.prototype.removeSchedule,
-    );
-    expect(metadata).toEqual(['owner', 'admin', 'creator']);
-  });
-
   it('should require owner, admin, or creator role for executePartial', () => {
     const metadata = Reflect.getMetadata(
       'roles',
@@ -33,22 +17,6 @@ describe('WorkflowExecutionController RBAC', () => {
     expect(metadata).toEqual(['owner', 'admin', 'creator']);
   });
 
-  it('should require owner, admin, or creator role for publishWorkflowLifecycle', () => {
-    const metadata = Reflect.getMetadata(
-      'roles',
-      WorkflowExecutionController.prototype.publishWorkflowLifecycle,
-    );
-    expect(metadata).toEqual(['owner', 'admin', 'creator']);
-  });
-
-  it('should require owner, admin, or creator role for archiveWorkflow', () => {
-    const metadata = Reflect.getMetadata(
-      'roles',
-      WorkflowExecutionController.prototype.archiveWorkflow,
-    );
-    expect(metadata).toEqual(['owner', 'admin', 'creator']);
-  });
-
   it('should require owner, admin, or creator role for submitApproval', () => {
     const metadata = Reflect.getMetadata(
       'roles',
@@ -57,26 +25,10 @@ describe('WorkflowExecutionController RBAC', () => {
     expect(metadata).toEqual(['owner', 'admin', 'creator']);
   });
 
-  it('should require owner, admin, or creator role for lockNodes', () => {
+  it('should require owner, admin, or creator role for patchNodes', () => {
     const metadata = Reflect.getMetadata(
       'roles',
-      WorkflowExecutionController.prototype.lockNodes,
-    );
-    expect(metadata).toEqual(['owner', 'admin', 'creator']);
-  });
-
-  it('should require owner, admin, or creator role for unlockNodes', () => {
-    const metadata = Reflect.getMetadata(
-      'roles',
-      WorkflowExecutionController.prototype.unlockNodes,
-    );
-    expect(metadata).toEqual(['owner', 'admin', 'creator']);
-  });
-
-  it('should require owner, admin, or creator role for setThumbnail', () => {
-    const metadata = Reflect.getMetadata(
-      'roles',
-      WorkflowExecutionController.prototype.setThumbnail,
+      WorkflowExecutionController.prototype.patchNodes,
     );
     expect(metadata).toEqual(['owner', 'admin', 'creator']);
   });

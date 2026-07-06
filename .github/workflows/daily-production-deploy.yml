@@ -1,0 +1,607 @@
+name: Daily Production Deploy
+
+# Deploy-only by design. GitHub Releases in this repo drive the self-hosted
+# Docker publish path; managed genfeed.ai production deploys are master-only via
+# "Deploy ECS (production)". Do not cut tags here until a canonical cloud
+# release-cut workflow exists.
+#
+# Off switch: repository variable DAILY_PRODUCTION_DEPLOY_ENABLED must be the
+# string "true" to activate the cron. Default (unset/anything else) is a
+# clean no-op — pause this workflow from repo Settings > Variables without
+# editing or removing this file.
+
+on:
+  # GitHub cron is UTC. Europe/Malta is UTC+2 during CEST and UTC+1 during CET,
+  # so both UTC hours are scheduled and the first step keeps only 02:00 local.
+  schedule:
+    - cron: "0 0 * * *"
+    - cron: "0 1 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: daily-production-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  CI_WORKFLOW: ci.yml
+  DEPLOY_WORKFLOW: deploy-ecs.yml
+  FASTLANE_WORKFLOW: deploy-ecs-fastlane.yml
+  FULL_SUITE_WORKFLOW: full-suite.yml
+  RELEASE_WORKFLOW: docker-publish.yml
+
+jobs:
+  preflight:
+    name: Preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+      deployments: read
+    outputs:
+      should_deploy: ${{ steps.preflight.outputs.should_deploy }}
+      issue_needed: ${{ steps.preflight.outputs.issue_needed }}
+      skipped_reason: ${{ steps.preflight.outputs.skipped_reason }}
+      failure_reason: ${{ steps.preflight.outputs.failure_reason }}
+      master_sha: ${{ steps.preflight.outputs.master_sha }}
+      ci_run_url: ${{ steps.preflight.outputs.ci_run_url }}
+      gate_run_url: ${{ steps.preflight.outputs.gate_run_url }}
+      deploy_marker_url: ${{ steps.preflight.outputs.deploy_marker_url }}
+      deployed_sha: ${{ steps.preflight.outputs.deployed_sha }}
+      latest_release_url: ${{ steps.preflight.outputs.latest_release_url }}
+    steps:
+      - name: Guard DAILY_PRODUCTION_DEPLOY_ENABLED
+        id: enabled_guard
+        run: |
+          set -euo pipefail
+
+          if [ "${{ vars.DAILY_PRODUCTION_DEPLOY_ENABLED }}" != "true" ]; then
+            echo "should_continue=false" >> "$GITHUB_OUTPUT"
+            echo "skipped_reason=Daily production deploy is disabled: repository variable DAILY_PRODUCTION_DEPLOY_ENABLED is not 'true'." >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "should_continue=true" >> "$GITHUB_OUTPUT"
+          echo "skipped_reason=" >> "$GITHUB_OUTPUT"
+
+      - name: Guard 02:00 Europe/Malta
+        id: time_guard
+        if: steps.enabled_guard.outputs.should_continue == 'true'
+        run: |
+          set -euo pipefail
+
+          local_hour="$(TZ=Europe/Malta date +%H)"
+          local_time="$(TZ=Europe/Malta date '+%Y-%m-%d %H:%M:%S %Z')"
+          echo "local_hour=${local_hour}" >> "$GITHUB_OUTPUT"
+          echo "local_time=${local_time}" >> "$GITHUB_OUTPUT"
+
+          if [ "${GITHUB_EVENT_NAME}" = "schedule" ] && [ "${local_hour}" != "02" ]; then
+            echo "should_continue=false" >> "$GITHUB_OUTPUT"
+            echo "skipped_reason=Scheduled UTC twin no-op: Europe/Malta local hour is ${local_hour}, not 02." >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "should_continue=true" >> "$GITHUB_OUTPUT"
+          echo "skipped_reason=" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout master
+        if: steps.enabled_guard.outputs.should_continue == 'true' && steps.time_guard.outputs.should_continue == 'true'
+        uses: actions/checkout@v5
+        with:
+          ref: master
+          fetch-depth: 1
+
+      - name: Resolve origin/master
+        id: master
+        if: steps.enabled_guard.outputs.should_continue == 'true' && steps.time_guard.outputs.should_continue == 'true'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin master
+          master_sha="$(git rev-parse origin/master)"
+          echo "sha=${master_sha}" >> "$GITHUB_OUTPUT"
+          echo "origin/master: ${master_sha}"
+          echo "workflow sha: ${GITHUB_SHA}"
+
+      - name: Evaluate deploy preflight
+        id: preflight
+        uses: actions/github-script@v8
+        env:
+          SHOULD_CONTINUE: ${{ steps.enabled_guard.outputs.should_continue == 'true' && steps.time_guard.outputs.should_continue || 'false' }}
+          TIME_SKIPPED_REASON: ${{ steps.enabled_guard.outputs.skipped_reason || steps.time_guard.outputs.skipped_reason }}
+          MASTER_SHA: ${{ steps.master.outputs.sha }}
+          LOCAL_TIME: ${{ steps.time_guard.outputs.local_time }}
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const masterSha = process.env.MASTER_SHA || '';
+
+            const result = {
+              should_deploy: 'false',
+              issue_needed: 'false',
+              skipped_reason: '',
+              failure_reason: '',
+              master_sha: masterSha,
+              ci_run_url: '',
+              gate_run_url: '',
+              deploy_marker_url: '',
+              deployed_sha: '',
+              latest_release_url: '',
+            };
+
+            function setOutputs() {
+              for (const [key, value] of Object.entries(result)) {
+                core.setOutput(key, value || '');
+              }
+            }
+
+            function skip(reason) {
+              result.skipped_reason = reason;
+              setOutputs();
+            }
+
+            function block(reason) {
+              result.issue_needed = 'true';
+              result.failure_reason = reason;
+              setOutputs();
+            }
+
+            async function listRuns(workflowId, options = {}) {
+              const response = await github.rest.actions.listWorkflowRuns({
+                owner,
+                repo,
+                workflow_id: workflowId,
+                per_page: 50,
+                ...options,
+              });
+              return response.data.workflow_runs;
+            }
+
+            async function latestRunForSha(workflowId, sha) {
+              const runs = await listRuns(workflowId, { branch: 'master' });
+              return runs
+                .filter((run) => run.head_sha === sha)
+                .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+            }
+
+            async function latestSuccessfulRunForSha(workflowId, sha) {
+              const runs = await listRuns(workflowId, {
+                branch: 'master',
+                status: 'completed',
+              });
+              return runs
+                .filter((run) => run.head_sha === sha && run.conclusion === 'success')
+                .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+            }
+
+            async function resolveTagSha(tagName) {
+              const ref = await github.rest.git.getRef({
+                owner,
+                repo,
+                ref: `tags/${tagName}`,
+              });
+
+              if (ref.data.object.type === 'commit') {
+                return ref.data.object.sha;
+              }
+
+              if (ref.data.object.type === 'tag') {
+                const tag = await github.rest.git.getTag({
+                  owner,
+                  repo,
+                  tag_sha: ref.data.object.sha,
+                });
+                return tag.data.object.sha;
+              }
+
+              return '';
+            }
+
+            async function latestSuccessfulProductionDeployment() {
+              const deployments = await github.rest.repos.listDeployments({
+                owner,
+                repo,
+                environment: 'production',
+                per_page: 30,
+              });
+
+              for (const deployment of deployments.data) {
+                const statuses = await github.rest.repos.listDeploymentStatuses({
+                  owner,
+                  repo,
+                  deployment_id: deployment.id,
+                  per_page: 1,
+                });
+                const latestStatus = statuses.data[0];
+                if (latestStatus?.state === 'success') {
+                  return deployment;
+                }
+              }
+
+              return null;
+            }
+
+            try {
+              if (process.env.SHOULD_CONTINUE !== 'true') {
+                skip(process.env.TIME_SKIPPED_REASON || 'Scheduled UTC twin no-op.');
+                return;
+              }
+
+              if (!masterSha) {
+                block('Could not resolve origin/master.');
+                return;
+              }
+
+              if (context.ref !== 'refs/heads/master') {
+                skip(`Workflow ref is ${context.ref}; production deploy attempts only run from refs/heads/master.`);
+                return;
+              }
+
+              if (context.sha !== masterSha) {
+                skip(`Workflow SHA ${context.sha} does not match origin/master ${masterSha}; refusing to deploy a non-master SHA.`);
+                return;
+              }
+
+              const activeStatuses = ['queued', 'in_progress', 'waiting', 'pending', 'requested'];
+              const activeWorkflows = [
+                [process.env.DEPLOY_WORKFLOW, 'Deploy ECS (production)'],
+                [process.env.FASTLANE_WORKFLOW, 'Deploy ECS fastlane'],
+                [process.env.RELEASE_WORKFLOW, 'Docker Publish (Self-Hosted)'],
+              ];
+
+              for (const [workflowId, label] of activeWorkflows) {
+                for (const status of activeStatuses) {
+                  const runs = await listRuns(workflowId, { status });
+                  const active = runs.find((run) => run.id !== context.runId);
+                  if (active) {
+                    skip(`${label} is already ${active.status}: ${active.html_url}`);
+                    return;
+                  }
+                }
+              }
+
+              const successfulDeployRun = await latestSuccessfulRunForSha(process.env.DEPLOY_WORKFLOW, masterSha);
+              if (successfulDeployRun) {
+                result.deploy_marker_url = successfulDeployRun.html_url;
+                result.deployed_sha = masterSha;
+                skip(`Current master SHA is already deployed by Deploy ECS (production): ${successfulDeployRun.html_url}`);
+                return;
+              }
+
+              try {
+                const release = await github.rest.repos.getLatestRelease({ owner, repo });
+                result.latest_release_url = release.data.html_url;
+                const releaseSha = await resolveTagSha(release.data.tag_name);
+                if (releaseSha === masterSha) {
+                  result.deployed_sha = masterSha;
+                  skip(`Current master SHA is already represented by latest GitHub release ${release.data.tag_name}: ${release.data.html_url}`);
+                  return;
+                }
+              } catch (error) {
+                if (error.status !== 404) {
+                  throw error;
+                }
+              }
+
+              const deployment = await latestSuccessfulProductionDeployment();
+              if (deployment) {
+                result.deploy_marker_url = result.deploy_marker_url || `GitHub deployment ${deployment.id}`;
+                if (deployment.sha === masterSha) {
+                  result.deployed_sha = masterSha;
+                  skip(`Current master SHA is already represented by successful production deployment ${deployment.id}.`);
+                  return;
+                }
+              }
+
+              const ciRun = await latestRunForSha(process.env.CI_WORKFLOW, masterSha);
+              if (!ciRun) {
+                block(`No CI run found for exact master SHA ${masterSha}.`);
+                return;
+              }
+              result.ci_run_url = ciRun.html_url;
+              if (ciRun.status !== 'completed') {
+                skip(`CI for ${masterSha} is ${ciRun.status}: ${ciRun.html_url}`);
+                return;
+              }
+              if (ciRun.conclusion !== 'success') {
+                block(`CI for ${masterSha} concluded ${ciRun.conclusion}: ${ciRun.html_url}`);
+                return;
+              }
+
+              const fullSuiteRun = await latestRunForSha(process.env.FULL_SUITE_WORKFLOW, masterSha);
+              if (fullSuiteRun) {
+                result.gate_run_url = fullSuiteRun.html_url;
+                if (fullSuiteRun.status !== 'completed') {
+                  skip(`Full Suite for ${masterSha} is ${fullSuiteRun.status}: ${fullSuiteRun.html_url}`);
+                  return;
+                }
+                if (fullSuiteRun.conclusion !== 'success') {
+                  block(`Full Suite for ${masterSha} concluded ${fullSuiteRun.conclusion}: ${fullSuiteRun.html_url}`);
+                  return;
+                }
+              } else {
+                result.gate_run_url = 'Will run inside Deploy ECS (production) via qa-before-deploy.';
+              }
+
+              result.should_deploy = 'true';
+              setOutputs();
+            } catch (error) {
+              block(`Daily deploy preflight failed unexpectedly: ${error.message}`);
+              core.setFailed(error);
+            }
+
+  dispatch-deploy:
+    name: Dispatch normal production deploy
+    needs: preflight
+    if: needs.preflight.outputs.should_deploy == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    permissions:
+      actions: write
+      contents: read
+    outputs:
+      issue_needed: ${{ steps.deploy.outputs.issue_needed }}
+      failure_reason: ${{ steps.deploy.outputs.failure_reason }}
+      deploy_run_url: ${{ steps.deploy.outputs.deploy_run_url }}
+      deployed_sha: ${{ steps.deploy.outputs.deployed_sha }}
+    steps:
+      - name: Dispatch and watch Deploy ECS (production)
+        id: deploy
+        uses: actions/github-script@v8
+        env:
+          MASTER_SHA: ${{ needs.preflight.outputs.master_sha }}
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const masterSha = process.env.MASTER_SHA;
+            const workflowId = process.env.DEPLOY_WORKFLOW;
+            const startedAt = new Date(Date.now() - 15000);
+            const deadline = Date.now() + 170 * 60 * 1000;
+            const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+            const result = {
+              issue_needed: 'false',
+              failure_reason: '',
+              deploy_run_url: '',
+              deployed_sha: '',
+            };
+
+            function setOutputs() {
+              for (const [key, value] of Object.entries(result)) {
+                core.setOutput(key, value || '');
+              }
+            }
+
+            function fail(reason) {
+              result.issue_needed = 'true';
+              result.failure_reason = reason;
+              setOutputs();
+              core.setFailed(reason);
+            }
+
+            async function findDispatchedRun() {
+              for (let attempt = 1; attempt <= 36; attempt += 1) {
+                const runs = await github.rest.actions.listWorkflowRuns({
+                  owner,
+                  repo,
+                  workflow_id: workflowId,
+                  branch: 'master',
+                  event: 'workflow_dispatch',
+                  per_page: 20,
+                });
+                const match = runs.data.workflow_runs
+                  .filter((run) => run.head_sha === masterSha)
+                  .filter((run) => new Date(run.created_at) >= startedAt)
+                  .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+                if (match) {
+                  return match;
+                }
+                core.info(`Waiting for dispatched deploy run to appear (${attempt}/36)...`);
+                await sleep(5000);
+              }
+              return null;
+            }
+
+            await github.rest.actions.createWorkflowDispatch({
+              owner,
+              repo,
+              workflow_id: workflowId,
+              ref: 'master',
+            });
+
+            const run = await findDispatchedRun();
+            if (!run) {
+              fail(`Deploy ECS (production) dispatch did not produce a discoverable run for ${masterSha}.`);
+              return;
+            }
+
+            result.deploy_run_url = run.html_url;
+            setOutputs();
+            core.info(`Watching deploy run: ${run.html_url}`);
+
+            let current = run;
+            while (current.status !== 'completed') {
+              if (Date.now() > deadline) {
+                fail(`Deploy ECS (production) did not complete before the 170 minute watcher deadline: ${run.html_url}`);
+                return;
+              }
+              await sleep(30000);
+              const response = await github.rest.actions.getWorkflowRun({
+                owner,
+                repo,
+                run_id: run.id,
+              });
+              current = response.data;
+              core.info(`Deploy run status: ${current.status}${current.conclusion ? ` / ${current.conclusion}` : ''}`);
+            }
+
+            if (current.conclusion === 'success') {
+              result.deployed_sha = masterSha;
+              setOutputs();
+              return;
+            }
+
+            fail(`Deploy ECS (production) concluded ${current.conclusion}: ${current.html_url}`);
+
+  report-failure:
+    name: Report blocking failure
+    needs: [preflight, dispatch-deploy]
+    if: ${{ always() && (needs.preflight.outputs.issue_needed == 'true' || needs.dispatch-deploy.outputs.issue_needed == 'true' || needs.preflight.result == 'failure' || needs.dispatch-deploy.result == 'failure') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    outputs:
+      issue_url: ${{ steps.issue.outputs.issue_url }}
+    steps:
+      - name: Open or update tracking issue
+        id: issue
+        uses: actions/github-script@v8
+        env:
+          MASTER_SHA: ${{ needs.preflight.outputs.master_sha || needs.dispatch-deploy.outputs.deployed_sha || 'unknown' }}
+          FAILURE_REASON: ${{ needs.dispatch-deploy.outputs.failure_reason || needs.preflight.outputs.failure_reason || 'Daily deploy workflow failed before it could record a reason.' }}
+          CI_RUN_URL: ${{ needs.preflight.outputs.ci_run_url }}
+          GATE_RUN_URL: ${{ needs.preflight.outputs.gate_run_url }}
+          DEPLOY_RUN_URL: ${{ needs.dispatch-deploy.outputs.deploy_run_url }}
+        with:
+          script: |
+            const label = 'daily-deploy';
+            const date = new Date().toISOString().slice(0, 10);
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const masterSha = process.env.MASTER_SHA || 'unknown';
+            const deployRunUrl = process.env.DEPLOY_RUN_URL || 'not dispatched';
+            const gateRunUrl = process.env.GATE_RUN_URL || 'not available';
+            const ciRunUrl = process.env.CI_RUN_URL || 'not available';
+            const failureReason = process.env.FAILURE_REASON || 'Unknown failure.';
+            const title = 'Daily production deploy blocked';
+            const body = [
+              `**Daily production deploy attempt blocked or failed** on \`${date}\`.`,
+              ``,
+              `- Attempt run: ${runUrl}`,
+              `- Master SHA: \`${masterSha}\``,
+              `- Reason: ${failureReason}`,
+              `- CI run: ${ciRunUrl}`,
+              `- Full-suite gate: ${gateRunUrl}`,
+              `- Deploy run: ${deployRunUrl}`,
+              ``,
+              `The scheduler did not use fastlane. Any live migrations, if reached, ran only inside the normal \`Deploy ECS (production)\` workflow.`,
+            ].join('\n');
+
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: label,
+              });
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+
+              await github.rest.issues.createLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: label,
+                color: 'b60205',
+                description: 'Daily production deploy automation blockers',
+              });
+            }
+
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: label,
+              per_page: 1,
+            });
+
+            if (existing.data.length > 0) {
+              const number = existing.data[0].number;
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: number,
+                body,
+              });
+              const issueUrl = existing.data[0].html_url;
+              core.setOutput('issue_url', issueUrl);
+              core.info(`Commented on existing daily deploy issue #${number}`);
+              return;
+            }
+
+            const created = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels: [label],
+            });
+            core.setOutput('issue_url', created.data.html_url);
+            core.info(`Created daily deploy issue #${created.data.number}`);
+
+  summary:
+    name: Summary
+    needs: [preflight, dispatch-deploy, report-failure]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Write deployment attempt summary
+        env:
+          PREFLIGHT_RESULT: ${{ needs.preflight.result }}
+          DISPATCH_RESULT: ${{ needs.dispatch-deploy.result }}
+          REPORT_RESULT: ${{ needs.report-failure.result }}
+          PREFLIGHT_ISSUE_NEEDED: ${{ needs.preflight.outputs.issue_needed }}
+          DEPLOY_ISSUE_NEEDED: ${{ needs.dispatch-deploy.outputs.issue_needed }}
+          SHOULD_DEPLOY: ${{ needs.preflight.outputs.should_deploy }}
+          MASTER_SHA: ${{ needs.preflight.outputs.master_sha }}
+          DEPLOYED_SHA: ${{ needs.dispatch-deploy.outputs.deployed_sha || needs.preflight.outputs.deployed_sha }}
+          SKIPPED_REASON: ${{ needs.preflight.outputs.skipped_reason }}
+          FAILURE_REASON: ${{ needs.dispatch-deploy.outputs.failure_reason || needs.preflight.outputs.failure_reason }}
+          CI_RUN_URL: ${{ needs.preflight.outputs.ci_run_url }}
+          GATE_RUN_URL: ${{ needs.preflight.outputs.gate_run_url }}
+          DEPLOY_MARKER_URL: ${{ needs.preflight.outputs.deploy_marker_url }}
+          LATEST_RELEASE_URL: ${{ needs.preflight.outputs.latest_release_url }}
+          DEPLOY_RUN_URL: ${{ needs.dispatch-deploy.outputs.deploy_run_url }}
+          ISSUE_URL: ${{ needs.report-failure.outputs.issue_url }}
+        run: |
+          set -euo pipefail
+
+          deployed_sha="${DEPLOYED_SHA:-not deployed}"
+          skipped_reason="${SKIPPED_REASON:-none}"
+          failure_reason="${FAILURE_REASON:-none}"
+          gate_run_url="${GATE_RUN_URL:-not available}"
+          deploy_run_url="${DEPLOY_RUN_URL:-not dispatched}"
+          issue_url="${ISSUE_URL:-none}"
+
+          if [ "${gate_run_url}" = "Will run inside Deploy ECS (production) via qa-before-deploy." ] && [ "${deploy_run_url}" != "not dispatched" ]; then
+            gate_run_url="${deploy_run_url} (qa-before-deploy in normal deploy run)"
+          fi
+
+          {
+            echo "## Daily production deploy"
+            echo ""
+            echo "- Master SHA: \`${MASTER_SHA:-unknown}\`"
+            echo "- Deployed SHA: \`${deployed_sha}\`"
+            echo "- Skipped reason: ${skipped_reason}"
+            echo "- Failure reason: ${failure_reason}"
+            echo "- CI run URL: ${CI_RUN_URL:-not available}"
+            echo "- Gate run URL: ${gate_run_url}"
+            echo "- Deploy run URL: ${deploy_run_url}"
+            echo "- Latest deploy marker: ${DEPLOY_MARKER_URL:-not available}"
+            echo "- Latest release URL: ${LATEST_RELEASE_URL:-not available}"
+            echo "- Tracking issue: ${issue_url}"
+            echo ""
+            echo "Results: preflight=\`${PREFLIGHT_RESULT}\`, dispatch=\`${DISPATCH_RESULT}\`, report=\`${REPORT_RESULT}\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "${PREFLIGHT_ISSUE_NEEDED:-false}" = "true" ] || [ "${DEPLOY_ISSUE_NEEDED:-false}" = "true" ]; then
+            exit 1
+          fi

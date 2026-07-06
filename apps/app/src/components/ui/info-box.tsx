@@ -21,10 +21,10 @@ export function InfoBox({
   return (
     <div
       className={cn(
-        'rounded-xl border p-4',
+        'rounded-xl p-4',
         isWarning
-          ? 'border-amber-500/30 bg-amber-500/10'
-          : 'border-border bg-secondary/30',
+          ? 'border border-amber-500/30 bg-amber-500/10'
+          : 'shadow-border bg-secondary/30',
         className,
       )}
     >

@@ -147,7 +147,7 @@ export default function ModalExport({
             </div>
           </div>
 
-          <div className="max-h-64 overflow-y-auto border border-white/[0.08] p-2">
+          <div className="max-h-64 overflow-y-auto shadow-border p-2">
             <div className="grid grid-cols-2 gap-2">
               {availableFields.map((field) => (
                 <div key={field.value} className="hover:bg-background p-1">

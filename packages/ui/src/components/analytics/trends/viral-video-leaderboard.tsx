@@ -61,7 +61,7 @@ export function ViralVideoLeaderboard({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="space-y-1">
           <h3 className="text-lg font-semibold flex items-center gap-2">
-            <HiOutlineFire className="text-orange-500" />
+            <HiOutlineFire className="text-muted-foreground" />
             Viral Video Leaderboard
           </h3>
           <p className="text-sm text-foreground/60">

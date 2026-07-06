@@ -124,10 +124,7 @@ export default function TopbarPublicDesktopDropdown({
       onMouseLeave={onMouseLeaveDropdown}
     >
       {hasGroups ? (
-        <div
-          className="grid w-[600px] grid-cols-2 gap-2 p-3 shadow-2xl border border-white/10"
-          style={{ backgroundColor: '#09090b' }}
-        >
+        <div className="grid w-[600px] grid-cols-2 gap-2 bg-popover p-3 shadow-dropdown">
           {groupItems(currentDropdown.items).map(([groupLabel, items]) => (
             <div key={groupLabel}>
               {groupLabel && (
@@ -140,10 +137,7 @@ export default function TopbarPublicDesktopDropdown({
           ))}
         </div>
       ) : (
-        <ul
-          className="w-72 p-3 shadow-2xl border border-white/10"
-          style={{ backgroundColor: '#09090b' }}
-        >
+        <ul className="w-72 bg-popover p-3 shadow-dropdown">
           {currentDropdown.items.map(renderItem)}
         </ul>
       )}

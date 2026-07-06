@@ -3,7 +3,7 @@
 // Source of truth: apps/server/api/openapi/openapi.json (Phase 1 / #1247).
 // Regenerate:      bun run --filter=@genfeedai/tools generate:mcp-tools
 //
-// 1074 MCP tools, one per non-internal OpenAPI operation (#1248).
+// 1045 MCP tools, one per non-internal OpenAPI operation (#1248).
 // Dispatch/execution and approval-gating are intentionally not wired here
 // (that is #1249 / #1250); these definitions only populate the mcp surface.
 
@@ -1637,8 +1637,402 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "name": "agent_strategies__patch",
     "parameters": {
       "properties": {
+        "agentType": {
+          "description": "Agent type (drives tool subset and prompt template)",
+          "enum": [
+            "general",
+            "x_content",
+            "image_creator",
+            "video_creator",
+            "ai_avatar",
+            "article_writer",
+            "linkedin_content",
+            "ads_script_writer",
+            "short_form_writer",
+            "cta_content",
+            "youtube_script",
+            "brand_interview",
+            "orchestrator"
+          ],
+          "type": "string"
+        },
+        "autoPublishConfidenceThreshold": {
+          "description": "Auto-publish confidence threshold",
+          "type": "number"
+        },
+        "autonomyMode": {
+          "description": "Autonomy mode — supervised requires manual review",
+          "enum": [
+            "supervised",
+            "auto_publish"
+          ],
+          "type": "string"
+        },
+        "brand": {
+          "description": "Brand ID",
+          "type": "string"
+        },
+        "budgetPolicy": {
+          "allOf": [
+            {
+              "properties": {
+                "maxRetriesPerOpportunity": {
+                  "description": "Maximum retries per opportunity",
+                  "type": "number"
+                },
+                "monthlyCreditBudget": {
+                  "description": "Monthly Genfeed credit budget",
+                  "type": "number"
+                },
+                "perFormatCaps": {
+                  "description": "Per-format credit caps",
+                  "items": {
+                    "properties": {
+                      "creditBudget": {
+                        "description": "Credit cap for the key",
+                        "type": "number"
+                      },
+                      "key": {
+                        "description": "Platform or format key",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "key"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "perPlatformCaps": {
+                  "description": "Per-platform credit caps",
+                  "items": {
+                    "properties": {
+                      "creditBudget": {
+                        "description": "Credit cap for the key",
+                        "type": "number"
+                      },
+                      "key": {
+                        "description": "Platform or format key",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "key"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "reserveTrendBudget": {
+                  "description": "Reserved budget for trends",
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            }
+          ],
+          "description": "Monthly pacing and retry policy"
+        },
+        "contentMix": {
+          "allOf": [
+            {
+              "properties": {
+                "carouselPercent": {
+                  "description": "Carousel percentage",
+                  "type": "number"
+                },
+                "imagePercent": {
+                  "description": "Image percentage",
+                  "type": "number"
+                },
+                "reelPercent": {
+                  "description": "Reel percentage",
+                  "type": "number"
+                },
+                "storyPercent": {
+                  "description": "Story percentage",
+                  "type": "number"
+                },
+                "videoPercent": {
+                  "description": "Video percentage",
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            }
+          ],
+          "description": "Content mix configuration"
+        },
+        "dailyCreditBudget": {
+          "description": "Daily credit budget",
+          "type": "number"
+        },
+        "dailyCreditResetAt": {
+          "description": "Daily credit reset timestamp",
+          "format": "date-time",
+          "type": "string"
+        },
+        "dailyResetAt": {
+          "description": "Daily reset timestamp",
+          "format": "date-time",
+          "type": "string"
+        },
+        "displayRole": {
+          "description": "Optional user-facing role label",
+          "type": "string"
+        },
+        "engagementEnabled": {
+          "description": "Enable engagement discovery",
+          "type": "boolean"
+        },
+        "engagementKeywords": {
+          "description": "Engagement search keywords",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "engagementTone": {
+          "description": "Engagement reply tone",
+          "type": "string"
+        },
+        "goalId": {
+          "description": "Optional linked goal ID",
+          "type": "string"
+        },
+        "goalProfile": {
+          "description": "Primary optimization goal profile",
+          "enum": [
+            "reach_traffic"
+          ],
+          "type": "string"
+        },
         "id": {
           "type": "string"
+        },
+        "isActive": {
+          "description": "Whether strategy is active",
+          "type": "boolean"
+        },
+        "isEnabled": {
+          "description": "Whether strategy is enabled (user toggle)",
+          "type": "boolean"
+        },
+        "label": {
+          "description": "Strategy label",
+          "type": "string"
+        },
+        "maxEngagementsPerDay": {
+          "description": "Max engagements per day",
+          "type": "number"
+        },
+        "minCreditThreshold": {
+          "description": "Minimum organization credits required to keep strategy active",
+          "type": "number"
+        },
+        "model": {
+          "description": "Preferred model for this strategy",
+          "type": "string"
+        },
+        "monthlyResetAt": {
+          "description": "Monthly reset timestamp",
+          "format": "date-time",
+          "type": "string"
+        },
+        "nextRunAt": {
+          "description": "Next scheduled run time",
+          "format": "date-time",
+          "type": "string"
+        },
+        "opportunitySources": {
+          "allOf": [
+            {
+              "properties": {
+                "eventTriggersEnabled": {
+                  "description": "Enable event-based triggers",
+                  "type": "boolean"
+                },
+                "evergreenCadenceEnabled": {
+                  "description": "Enable evergreen cadence opportunities",
+                  "type": "boolean"
+                },
+                "trendWatchersEnabled": {
+                  "description": "Enable trend watcher inputs",
+                  "type": "boolean"
+                }
+              },
+              "type": "object"
+            }
+          ],
+          "description": "Opportunity source controls"
+        },
+        "organization": {
+          "description": "Organization ID",
+          "type": "string"
+        },
+        "platforms": {
+          "description": "Target platforms",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "postsPerWeek": {
+          "description": "Posts per week target",
+          "type": "number"
+        },
+        "preferredPostingTimes": {
+          "description": "Preferred posting times (HH:MM format)",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "publishPolicy": {
+          "allOf": [
+            {
+              "properties": {
+                "autoPublishEnabled": {
+                  "description": "Allow auto-publish gating",
+                  "type": "boolean"
+                },
+                "brandSafetyMode": {
+                  "description": "Brand safety mode",
+                  "enum": [
+                    "standard",
+                    "strict"
+                  ],
+                  "type": "string"
+                },
+                "minImageScore": {
+                  "description": "Minimum image score",
+                  "type": "number"
+                },
+                "minPostScore": {
+                  "description": "Minimum post score",
+                  "type": "number"
+                },
+                "videoAutopublishEnabled": {
+                  "description": "Allow video auto-publishing",
+                  "type": "boolean"
+                }
+              },
+              "type": "object"
+            }
+          ],
+          "description": "Publish gating policy"
+        },
+        "qualityTier": {
+          "description": "Quality tier override for this strategy",
+          "enum": [
+            "budget",
+            "balanced",
+            "high_quality"
+          ],
+          "type": "string"
+        },
+        "rankingPolicy": {
+          "allOf": [
+            {
+              "properties": {
+                "costEfficiencyWeight": {
+                  "description": "Cost efficiency score weight",
+                  "type": "number"
+                },
+                "expectedTrafficWeight": {
+                  "description": "Expected traffic score weight",
+                  "type": "number"
+                },
+                "freshnessWeight": {
+                  "description": "Freshness score weight",
+                  "type": "number"
+                },
+                "historicalConfidenceWeight": {
+                  "description": "Historical confidence score weight",
+                  "type": "number"
+                },
+                "relevanceWeight": {
+                  "description": "Relevance score weight",
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            }
+          ],
+          "description": "Opportunity ranking weights"
+        },
+        "reportingPolicy": {
+          "allOf": [
+            {
+              "properties": {
+                "dailyDigestEnabled": {
+                  "description": "Enable daily digest reporting",
+                  "type": "boolean"
+                },
+                "reportRecipientUserIds": {
+                  "description": "Optional report recipient user IDs",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "weeklySummaryEnabled": {
+                  "description": "Enable weekly summary reporting",
+                  "type": "boolean"
+                }
+              },
+              "type": "object"
+            }
+          ],
+          "description": "Reporting configuration"
+        },
+        "reportsToLabel": {
+          "description": "Optional presentation-only reporting label",
+          "type": "string"
+        },
+        "runFrequency": {
+          "description": "Run frequency",
+          "enum": [
+            "every_6_hours",
+            "twice_daily",
+            "daily"
+          ],
+          "type": "string"
+        },
+        "skillSlugs": {
+          "description": "Skill slugs assigned to this strategy",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "teamGroup": {
+          "description": "Optional presentation-only team grouping label",
+          "type": "string"
+        },
+        "timezone": {
+          "description": "Timezone",
+          "type": "string"
+        },
+        "topics": {
+          "description": "Content topics",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "user": {
+          "description": "User ID",
+          "type": "string"
+        },
+        "voice": {
+          "description": "Brand voice description",
+          "type": "string"
+        },
+        "weeklyCreditBudget": {
+          "description": "Weekly credit budget",
+          "type": "number"
         }
       },
       "required": [
@@ -1739,32 +2133,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "creditCost": 0,
     "description": "Manually trigger a proactive run (POST /agent-strategies/{id}/run-now)",
     "name": "agent_strategies__run_now",
-    "parameters": {
-      "properties": {
-        "id": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "agent_strategies"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "Toggle strategy active state (POST /agent-strategies/{id}/toggle)",
-    "name": "agent_strategies__toggle_active",
     "parameters": {
       "properties": {
         "id": {
@@ -1953,8 +2321,8 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "Archive all active threads for the current user (POST /agent/threads/archive-all)",
-    "name": "agent_threads__archive_all_threads",
+    "description": "Bulk-update the current user's threads by filter (currently archives all active threads) (PATCH /agent/threads)",
+    "name": "agent_threads__bulk_update_threads",
     "parameters": {
       "properties": {},
       "type": "object"
@@ -3205,31 +3573,16 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "description": "Enable or disable pagination",
           "type": "boolean"
         },
+        "search": {
+          "description": "Combined label/description case-insensitive search",
+          "type": "string"
+        },
         "sort": {
           "default": "createdAt: -1",
           "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
           "type": "string"
         }
       },
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "api_keys"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "Get MCP-specific API keys (GET /api-keys/mcp)",
-    "name": "api_keys__find_mcp_keys",
-    "parameters": {
-      "properties": {},
       "type": "object"
     },
     "requiredRole": "user",
@@ -5772,36 +6125,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
       },
       "required": [
         "id"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "bot_activities"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "Get recent activities for a bot config (GET /bot-activities/recent/{configId})",
-    "name": "bot_activities__get_recent_by_config",
-    "parameters": {
-      "properties": {
-        "configId": {
-          "type": "string"
-        },
-        "limit": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "configId",
-        "limit"
       ],
       "type": "object"
     },
@@ -8671,7 +8994,9 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
             "ghost",
             "shopify",
             "beehiiv",
-            "unipile"
+            "unipile",
+            "product_hunt",
+            "hacker_news"
           ],
           "type": "string"
         },
@@ -10669,62 +10994,10 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "ContentDraftsController.approveDraft (PATCH /content-drafts/{id}/approve)",
-    "name": "content_drafts__approve_draft",
-    "parameters": {
-      "properties": {
-        "id": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "content_drafts"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "ContentDraftsController.bulkApprove (POST /content-drafts/bulk-approve)",
     "name": "content_drafts__bulk_approve",
     "parameters": {
       "properties": {},
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "content_drafts"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "ContentDraftsController.editDraft (PATCH /content-drafts/{id}/edit)",
-    "name": "content_drafts__edit_draft",
-    "parameters": {
-      "properties": {
-        "id": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id"
-      ],
       "type": "object"
     },
     "requiredRole": "user",
@@ -10806,11 +11079,27 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "ContentDraftsController.rejectDraft (PATCH /content-drafts/{id}/reject)",
-    "name": "content_drafts__reject_draft",
+    "description": "ContentDraftsController.updateDraft (PATCH /content-drafts/{id})",
+    "name": "content_drafts__update_draft",
     "parameters": {
       "properties": {
+        "content": {
+          "description": "Replacement draft content.",
+          "type": "string"
+        },
         "id": {
+          "type": "string"
+        },
+        "reason": {
+          "description": "Reason recorded when rejecting the draft.",
+          "type": "string"
+        },
+        "status": {
+          "description": "Review transition: approve or reject the draft.",
+          "enum": [
+            "approved",
+            "rejected"
+          ],
           "type": "string"
         }
       },
@@ -11484,7 +11773,9 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
             "ghost",
             "shopify",
             "beehiiv",
-            "unipile"
+            "unipile",
+            "product_hunt",
+            "hacker_news"
           ],
           "type": "string"
         },
@@ -11737,7 +12028,9 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
                   "ghost",
                   "shopify",
                   "beehiiv",
-                  "unipile"
+                  "unipile",
+                  "product_hunt",
+                  "hacker_news"
                 ],
                 "type": "string"
               },
@@ -11832,7 +12125,9 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
             "ghost",
             "shopify",
             "beehiiv",
-            "unipile"
+            "unipile",
+            "product_hunt",
+            "hacker_news"
           ],
           "type": "string"
         },
@@ -11946,7 +12241,9 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
                   "ghost",
                   "shopify",
                   "beehiiv",
-                  "unipile"
+                  "unipile",
+                  "product_hunt",
+                  "hacker_news"
                 ],
                 "type": "string"
               },
@@ -12050,7 +12347,9 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
             "ghost",
             "shopify",
             "beehiiv",
-            "unipile"
+            "unipile",
+            "product_hunt",
+            "hacker_news"
           ],
           "type": "string"
         },
@@ -12939,46 +13238,28 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "name": "creative_patterns__find_all",
     "parameters": {
       "properties": {
-        "platform": {
-          "type": "string"
-        },
-        "scope": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "platform",
-        "scope"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "creative_patterns"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "findTopForBrand (GET /creative-patterns/brand/{brandId})",
-    "name": "creative_patterns__find_top_for_brand",
-    "parameters": {
-      "properties": {
         "brandId": {
           "type": "string"
         },
         "limit": {
           "type": "string"
+        },
+        "platform": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "top": {
+          "type": "string"
         }
       },
       "required": [
         "brandId",
-        "limit"
+        "limit",
+        "platform",
+        "scope",
+        "top"
       ],
       "type": "object"
     },
@@ -13852,7 +14133,9 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
                 "ghost",
                 "shopify",
                 "beehiiv",
-                "unipile"
+                "unipile",
+                "product_hunt",
+                "hacker_news"
               ],
               "type": "string"
             }
@@ -17226,84 +17509,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "getArticleEvaluations (GET /evaluations/articles/{articleId})",
-    "name": "evaluations__get_article_evaluations",
-    "parameters": {
-      "properties": {
-        "articleId": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "articleId"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "evaluations"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "getImageEvaluations (GET /evaluations/images/{imageId})",
-    "name": "evaluations__get_image_evaluations",
-    "parameters": {
-      "properties": {
-        "imageId": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "imageId"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "evaluations"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "getPostEvaluations (GET /evaluations/posts/{postId})",
-    "name": "evaluations__get_post_evaluations",
-    "parameters": {
-      "properties": {
-        "postId": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "postId"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "evaluations"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "getTrends (GET /evaluations/analytics/trends)",
     "name": "evaluations__get_trends",
     "parameters": {
@@ -17357,32 +17562,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "type": "string"
         }
       },
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "evaluations"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "getVideoEvaluations (GET /evaluations/videos/{videoId})",
-    "name": "evaluations__get_video_evaluations",
-    "parameters": {
-      "properties": {
-        "videoId": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "videoId"
-      ],
       "type": "object"
     },
     "requiredRole": "user",
@@ -18913,36 +19092,14 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
       "properties": {
         "brandId": {
           "type": "string"
-        }
-      },
-      "required": [
-        "brandId"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "harness_profiles"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "getActiveForBrand (GET /harness-profiles/active)",
-    "name": "harness_profiles__get_active_for_brand",
-    "parameters": {
-      "properties": {
-        "brandId": {
+        },
+        "isActive": {
           "type": "string"
         }
       },
       "required": [
-        "brandId"
+        "brandId",
+        "isActive"
       ],
       "type": "object"
     },
@@ -19250,8 +19407,8 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "Get hook remix job status (GET /hook-remix/{jobId}/status)",
-    "name": "hook_remix__get_job_status",
+    "description": "Get a hook remix job (GET /hook-remix/{jobId})",
+    "name": "hook_remix__get_job",
     "parameters": {
       "properties": {
         "jobId": {
@@ -21380,62 +21537,44 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "markAsDismissed (PATCH /insights/{insightId}/dismiss)",
-    "name": "insights__mark_as_dismissed",
-    "parameters": {
-      "properties": {
-        "insightId": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "insightId"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "insights"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "markAsRead (PATCH /insights/{insightId}/read)",
-    "name": "insights__mark_as_read",
-    "parameters": {
-      "properties": {
-        "insightId": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "insightId"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "insights"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "predictViral (POST /insights/viral)",
     "name": "insights__predict_viral",
     "parameters": {
       "properties": {},
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "insights"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "updateInsight (PATCH /insights/{insightId})",
+    "name": "insights__update_insight",
+    "parameters": {
+      "properties": {
+        "insightId": {
+          "type": "string"
+        },
+        "isDismissed": {
+          "description": "Whether the insight has been dismissed.",
+          "type": "boolean"
+        },
+        "isRead": {
+          "description": "Whether the insight has been read.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "insightId"
+      ],
       "type": "object"
     },
     "requiredRole": "user",
@@ -21522,6 +21661,63 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     },
     "tags": [
       "invitations"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "generate (POST /launch-copy/generate)",
+    "name": "launch_copy__generate",
+    "parameters": {
+      "properties": {
+        "brandId": {
+          "description": "Brand the launch belongs to",
+          "type": "string"
+        },
+        "channel": {
+          "description": "Target launch channel",
+          "enum": [
+            "hacker_news",
+            "product_hunt"
+          ],
+          "example": "hacker_news",
+          "type": "string"
+        },
+        "description": {
+          "description": "What the product does, in plain language",
+          "type": "string"
+        },
+        "productName": {
+          "description": "Product / project name",
+          "type": "string"
+        },
+        "url": {
+          "description": "Landing page or repo URL",
+          "type": "string"
+        },
+        "variationsCount": {
+          "description": "Number of tagline variants to produce (Product Hunt)",
+          "maximum": 5,
+          "minimum": 1,
+          "type": "number"
+        }
+      },
+      "required": [
+        "brandId",
+        "channel",
+        "description",
+        "productName"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "launch_copy"
     ]
   },
   {
@@ -22337,10 +22533,21 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "listInvitations (GET /members/invitations/pending)",
+    "description": "listInvitations (GET /members/invitations)",
     "name": "members__list_invitations",
     "parameters": {
-      "properties": {},
+      "properties": {
+        "status": {
+          "description": "Filter invitations by status",
+          "enum": [
+            "accepted",
+            "expired",
+            "pending",
+            "revoked"
+          ],
+          "type": "string"
+        }
+      },
       "type": "object"
     },
     "requiredRole": "user",
@@ -23181,146 +23388,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "approveRegistryModel (PATCH /models/{modelId}/approve)",
-    "name": "models__approve_registry_model",
-    "parameters": {
-      "properties": {
-        "category": {
-          "allOf": [
-            {
-              "enum": [
-                "text",
-                "embedding",
-                "image",
-                "image-edit",
-                "image-upscale",
-                "video",
-                "video-edit",
-                "video-upscale",
-                "music",
-                "voice"
-              ],
-              "type": "string"
-            }
-          ],
-          "description": "The type/category of the model"
-        },
-        "cost": {
-          "default": 0,
-          "description": "The cost per usage of this model",
-          "type": "number"
-        },
-        "description": {
-          "description": "Description of when and where to use this model",
-          "type": "string"
-        },
-        "isActive": {
-          "default": true,
-          "description": "Whether this model is active/visible in dropdowns",
-          "type": "boolean"
-        },
-        "isDefault": {
-          "default": false,
-          "description": "Whether this is the default model for its category (used by auto-router)",
-          "type": "boolean"
-        },
-        "isDeleted": {
-          "description": "Whether the model is marked as deleted",
-          "type": "boolean"
-        },
-        "isDiscovered": {
-          "default": false,
-          "description": "Whether this record was discovered from a provider API",
-          "type": "boolean"
-        },
-        "isHighlighted": {
-          "default": false,
-          "description": "Whether this model is highlighted/featured",
-          "type": "boolean"
-        },
-        "isLegacy": {
-          "default": false,
-          "description": "Whether this record represents a legacy seeded model",
-          "type": "boolean"
-        },
-        "isPublic": {
-          "default": true,
-          "description": "Whether the model is globally available",
-          "type": "boolean"
-        },
-        "key": {
-          "description": "The unique identifier key for the model",
-          "type": "string"
-        },
-        "label": {
-          "description": "The display name of the model",
-          "type": "string"
-        },
-        "margin": {
-          "description": "Commercial margin applied above provider cost",
-          "type": "number"
-        },
-        "modelId": {
-          "type": "string"
-        },
-        "organization": {
-          "description": "Owning organization for private/custom models",
-          "type": "string"
-        },
-        "parentModel": {
-          "description": "Parent/base model id for trained or derivative models",
-          "type": "string"
-        },
-        "provider": {
-          "allOf": [
-            {
-              "description": "The provider/service that hosts this model",
-              "enum": [
-                "replicate",
-                "fal",
-                "huggingface",
-                "genfeed-ai"
-              ],
-              "type": "string"
-            }
-          ],
-          "description": "The provider/service that hosts this model"
-        },
-        "providerConfig": {
-          "description": "Provider-specific metadata used by sync/discovery jobs",
-          "type": "object"
-        },
-        "reason": {
-          "description": "Reason recorded when rejecting a discovered model",
-          "type": "string"
-        },
-        "succeededBy": {
-          "description": "Replacement model key or id when marking a model legacy",
-          "type": "string"
-        },
-        "training": {
-          "description": "Training id that produced this model",
-          "type": "string"
-        }
-      },
-      "required": [
-        "modelId"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "models"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "create (POST /models)",
     "name": "models__create",
     "parameters": {
@@ -23461,146 +23528,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "markRegistryModelLegacy (PATCH /models/{modelId}/legacy)",
-    "name": "models__mark_registry_model_legacy",
-    "parameters": {
-      "properties": {
-        "category": {
-          "allOf": [
-            {
-              "enum": [
-                "text",
-                "embedding",
-                "image",
-                "image-edit",
-                "image-upscale",
-                "video",
-                "video-edit",
-                "video-upscale",
-                "music",
-                "voice"
-              ],
-              "type": "string"
-            }
-          ],
-          "description": "The type/category of the model"
-        },
-        "cost": {
-          "default": 0,
-          "description": "The cost per usage of this model",
-          "type": "number"
-        },
-        "description": {
-          "description": "Description of when and where to use this model",
-          "type": "string"
-        },
-        "isActive": {
-          "default": true,
-          "description": "Whether this model is active/visible in dropdowns",
-          "type": "boolean"
-        },
-        "isDefault": {
-          "default": false,
-          "description": "Whether this is the default model for its category (used by auto-router)",
-          "type": "boolean"
-        },
-        "isDeleted": {
-          "description": "Whether the model is marked as deleted",
-          "type": "boolean"
-        },
-        "isDiscovered": {
-          "default": false,
-          "description": "Whether this record was discovered from a provider API",
-          "type": "boolean"
-        },
-        "isHighlighted": {
-          "default": false,
-          "description": "Whether this model is highlighted/featured",
-          "type": "boolean"
-        },
-        "isLegacy": {
-          "default": false,
-          "description": "Whether this record represents a legacy seeded model",
-          "type": "boolean"
-        },
-        "isPublic": {
-          "default": true,
-          "description": "Whether the model is globally available",
-          "type": "boolean"
-        },
-        "key": {
-          "description": "The unique identifier key for the model",
-          "type": "string"
-        },
-        "label": {
-          "description": "The display name of the model",
-          "type": "string"
-        },
-        "margin": {
-          "description": "Commercial margin applied above provider cost",
-          "type": "number"
-        },
-        "modelId": {
-          "type": "string"
-        },
-        "organization": {
-          "description": "Owning organization for private/custom models",
-          "type": "string"
-        },
-        "parentModel": {
-          "description": "Parent/base model id for trained or derivative models",
-          "type": "string"
-        },
-        "provider": {
-          "allOf": [
-            {
-              "description": "The provider/service that hosts this model",
-              "enum": [
-                "replicate",
-                "fal",
-                "huggingface",
-                "genfeed-ai"
-              ],
-              "type": "string"
-            }
-          ],
-          "description": "The provider/service that hosts this model"
-        },
-        "providerConfig": {
-          "description": "Provider-specific metadata used by sync/discovery jobs",
-          "type": "object"
-        },
-        "reason": {
-          "description": "Reason recorded when rejecting a discovered model",
-          "type": "string"
-        },
-        "succeededBy": {
-          "description": "Replacement model key or id when marking a model legacy",
-          "type": "string"
-        },
-        "training": {
-          "description": "Training id that produced this model",
-          "type": "string"
-        }
-      },
-      "required": [
-        "modelId"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "models"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "patch (PATCH /models/{modelId})",
     "name": "models__patch",
     "parameters": {
@@ -23710,140 +23637,17 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "description": "Provider-specific metadata used by sync/discovery jobs",
           "type": "object"
         },
-        "training": {
-          "description": "Training id that produced this model",
-          "type": "string"
-        }
-      },
-      "required": [
-        "modelId"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "models"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "rejectRegistryModel (PATCH /models/{modelId}/reject)",
-    "name": "models__reject_registry_model",
-    "parameters": {
-      "properties": {
-        "category": {
-          "allOf": [
-            {
-              "enum": [
-                "text",
-                "embedding",
-                "image",
-                "image-edit",
-                "image-upscale",
-                "video",
-                "video-edit",
-                "video-upscale",
-                "music",
-                "voice"
-              ],
-              "type": "string"
-            }
-          ],
-          "description": "The type/category of the model"
-        },
-        "cost": {
-          "default": 0,
-          "description": "The cost per usage of this model",
-          "type": "number"
-        },
-        "description": {
-          "description": "Description of when and where to use this model",
-          "type": "string"
-        },
-        "isActive": {
-          "default": true,
-          "description": "Whether this model is active/visible in dropdowns",
-          "type": "boolean"
-        },
-        "isDefault": {
-          "default": false,
-          "description": "Whether this is the default model for its category (used by auto-router)",
-          "type": "boolean"
-        },
-        "isDeleted": {
-          "description": "Whether the model is marked as deleted",
-          "type": "boolean"
-        },
-        "isDiscovered": {
-          "default": false,
-          "description": "Whether this record was discovered from a provider API",
-          "type": "boolean"
-        },
-        "isHighlighted": {
-          "default": false,
-          "description": "Whether this model is highlighted/featured",
-          "type": "boolean"
-        },
-        "isLegacy": {
-          "default": false,
-          "description": "Whether this record represents a legacy seeded model",
-          "type": "boolean"
-        },
-        "isPublic": {
-          "default": true,
-          "description": "Whether the model is globally available",
-          "type": "boolean"
-        },
-        "key": {
-          "description": "The unique identifier key for the model",
-          "type": "string"
-        },
-        "label": {
-          "description": "The display name of the model",
-          "type": "string"
-        },
-        "margin": {
-          "description": "Commercial margin applied above provider cost",
-          "type": "number"
-        },
-        "modelId": {
-          "type": "string"
-        },
-        "organization": {
-          "description": "Owning organization for private/custom models",
-          "type": "string"
-        },
-        "parentModel": {
-          "description": "Parent/base model id for trained or derivative models",
-          "type": "string"
-        },
-        "provider": {
-          "allOf": [
-            {
-              "description": "The provider/service that hosts this model",
-              "enum": [
-                "replicate",
-                "fal",
-                "huggingface",
-                "genfeed-ai"
-              ],
-              "type": "string"
-            }
-          ],
-          "description": "The provider/service that hosts this model"
-        },
-        "providerConfig": {
-          "description": "Provider-specific metadata used by sync/discovery jobs",
-          "type": "object"
-        },
         "reason": {
           "description": "Reason recorded when rejecting a discovered model",
+          "type": "string"
+        },
+        "reviewStatus": {
+          "description": "Registry review transition. Routes the update to approve/reject/legacy.",
+          "enum": [
+            "approved",
+            "legacy",
+            "rejected"
+          ],
           "type": "string"
         },
         "succeededBy": {
@@ -24015,32 +23819,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "Toggle account active status (POST /monitored-accounts/{id}/toggle)",
-    "name": "monitored_accounts__toggle_active",
-    "parameters": {
-      "properties": {
-        "id": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "monitored_accounts"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "Validate Twitter username and fetch details (POST /monitored-accounts/validate)",
     "name": "monitored_accounts__validate_twitter_username",
     "parameters": {
@@ -24099,8 +23877,63 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "name": "mood_boards__update",
     "parameters": {
       "properties": {
+        "brandId": {
+          "description": "Brand ID this mood board belongs to",
+          "type": "string"
+        },
         "id": {
           "type": "string"
+        },
+        "layout": {
+          "description": "Canvas layout items",
+          "items": {
+            "properties": {
+              "assetId": {
+                "description": "Asset ID placed on the board",
+                "type": "string"
+              },
+              "position": {
+                "allOf": [
+                  {
+                    "properties": {
+                      "x": {
+                        "description": "X coordinate on canvas",
+                        "type": "number"
+                      },
+                      "y": {
+                        "description": "Y coordinate on canvas",
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "x",
+                      "y"
+                    ],
+                    "type": "object"
+                  }
+                ],
+                "description": "Position of the asset on the canvas"
+              },
+              "width": {
+                "description": "Width of the asset tile",
+                "type": "number"
+              },
+              "z": {
+                "description": "Z-index layer for stacking",
+                "type": "number"
+              }
+            },
+            "required": [
+              "assetId",
+              "position"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "metadata": {
+          "description": "Additional metadata",
+          "type": "object"
         }
       },
       "required": [
@@ -26801,7 +26634,9 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
             "ghost",
             "shopify",
             "beehiiv",
-            "unipile"
+            "unipile",
+            "product_hunt",
+            "hacker_news"
           ],
           "type": "string"
         },
@@ -28743,131 +28578,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "findHooks (GET /content-intelligence/patterns/hooks)",
-    "name": "patterns__find_hooks",
-    "parameters": {
-      "properties": {
-        "limit": {
-          "default": 20,
-          "description": "Number of results per page",
-          "maximum": 100,
-          "minimum": 1,
-          "type": "number"
-        },
-        "minEngagementRate": {
-          "description": "Minimum engagement rate from source",
-          "minimum": 0,
-          "type": "number"
-        },
-        "minRelevanceWeight": {
-          "description": "Minimum relevance weight",
-          "maximum": 1,
-          "minimum": 0,
-          "type": "number"
-        },
-        "page": {
-          "default": 1,
-          "description": "Page number",
-          "minimum": 1,
-          "type": "number"
-        },
-        "patternType": {
-          "description": "Type of pattern to use for generation",
-          "enum": [
-            "hook",
-            "template",
-            "cta",
-            "structure",
-            "headline"
-          ],
-          "type": "string"
-        },
-        "platform": {
-          "description": "Filter by platform",
-          "enum": [
-            "linkedin",
-            "twitter",
-            "instagram",
-            "tiktok"
-          ],
-          "type": "string"
-        },
-        "sortBy": {
-          "description": "Sort field",
-          "type": "string"
-        },
-        "sortOrder": {
-          "default": "desc",
-          "description": "Sort order",
-          "enum": [
-            "asc",
-            "desc"
-          ],
-          "type": "string"
-        },
-        "sourceCreator": {
-          "description": "Filter by source creator",
-          "type": "string"
-        },
-        "tags": {
-          "description": "Filter by tags",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "templateCategory": {
-          "description": "Unified category for both content and prompt templates",
-          "enum": [
-            "caption",
-            "video",
-            "image",
-            "article",
-            "script",
-            "email",
-            "social-media",
-            "marketing",
-            "ecommerce",
-            "education",
-            "entertainment",
-            "news",
-            "personal-brand",
-            "corporate",
-            "nonprofit",
-            "article-generation",
-            "article-edit",
-            "article-virality-analysis",
-            "video-generation",
-            "video-cinematic",
-            "video-social-media",
-            "video-product-ad",
-            "video-podcast",
-            "video-influencer",
-            "image-generation",
-            "image-product-ad",
-            "image-banner",
-            "image-super-model",
-            "music-generation",
-            "caption-generation"
-          ],
-          "type": "string"
-        }
-      },
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "patterns"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "findOne (GET /content-intelligence/patterns/{id})",
     "name": "patterns__find_one",
     "parameters": {
@@ -28879,131 +28589,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
       "required": [
         "id"
       ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "patterns"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "findTemplates (GET /content-intelligence/patterns/templates)",
-    "name": "patterns__find_templates",
-    "parameters": {
-      "properties": {
-        "limit": {
-          "default": 20,
-          "description": "Number of results per page",
-          "maximum": 100,
-          "minimum": 1,
-          "type": "number"
-        },
-        "minEngagementRate": {
-          "description": "Minimum engagement rate from source",
-          "minimum": 0,
-          "type": "number"
-        },
-        "minRelevanceWeight": {
-          "description": "Minimum relevance weight",
-          "maximum": 1,
-          "minimum": 0,
-          "type": "number"
-        },
-        "page": {
-          "default": 1,
-          "description": "Page number",
-          "minimum": 1,
-          "type": "number"
-        },
-        "patternType": {
-          "description": "Type of pattern to use for generation",
-          "enum": [
-            "hook",
-            "template",
-            "cta",
-            "structure",
-            "headline"
-          ],
-          "type": "string"
-        },
-        "platform": {
-          "description": "Filter by platform",
-          "enum": [
-            "linkedin",
-            "twitter",
-            "instagram",
-            "tiktok"
-          ],
-          "type": "string"
-        },
-        "sortBy": {
-          "description": "Sort field",
-          "type": "string"
-        },
-        "sortOrder": {
-          "default": "desc",
-          "description": "Sort order",
-          "enum": [
-            "asc",
-            "desc"
-          ],
-          "type": "string"
-        },
-        "sourceCreator": {
-          "description": "Filter by source creator",
-          "type": "string"
-        },
-        "tags": {
-          "description": "Filter by tags",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "templateCategory": {
-          "description": "Unified category for both content and prompt templates",
-          "enum": [
-            "caption",
-            "video",
-            "image",
-            "article",
-            "script",
-            "email",
-            "social-media",
-            "marketing",
-            "ecommerce",
-            "education",
-            "entertainment",
-            "news",
-            "personal-brand",
-            "corporate",
-            "nonprofit",
-            "article-generation",
-            "article-edit",
-            "article-virality-analysis",
-            "video-generation",
-            "video-cinematic",
-            "video-social-media",
-            "video-product-ad",
-            "video-podcast",
-            "video-influencer",
-            "image-generation",
-            "image-product-ad",
-            "image-banner",
-            "image-super-model",
-            "music-generation",
-            "caption-generation"
-          ],
-          "type": "string"
-        }
-      },
       "type": "object"
     },
     "requiredRole": "user",
@@ -30140,7 +29725,9 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
             "ghost",
             "shopify",
             "beehiiv",
-            "unipile"
+            "unipile",
+            "product_hunt",
+            "hacker_news"
           ],
           "type": "string"
         },
@@ -30572,16 +30159,16 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "batchSchedule (POST /posts/schedules/batch)",
-    "name": "posts_operations__batch_schedule",
+    "description": "batchUpdate (PATCH /posts/batch)",
+    "name": "posts_operations__batch_update",
     "parameters": {
       "properties": {
         "credential": {
           "description": "Credential ID (Twitter account) to use for publishing",
           "type": "string"
         },
-        "tweets": {
-          "description": "Array of posts to schedule (updates existing DRAFT posts to SCHEDULED)",
+        "items": {
+          "description": "Per-item batch of posts to update (updates existing DRAFT posts to SCHEDULED)",
           "items": {
             "properties": {
               "ingredientId": {
@@ -30620,7 +30207,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
       },
       "required": [
         "credential",
-        "tweets"
+        "items"
       ],
       "type": "object"
     },
@@ -31057,7 +30644,9 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
                 "ghost",
                 "shopify",
                 "beehiiv",
-                "unipile"
+                "unipile",
+                "product_hunt",
+                "hacker_news"
               ],
               "type": "string"
             }
@@ -31306,7 +30895,9 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
                 "ghost",
                 "shopify",
                 "beehiiv",
-                "unipile"
+                "unipile",
+                "product_hunt",
+                "hacker_news"
               ],
               "type": "string"
             }
@@ -31462,25 +31053,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "creditCost": 0,
     "description": "generateFromExamples (POST /profiles/generate)",
     "name": "profiles__generate_from_examples",
-    "parameters": {
-      "properties": {},
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "profiles"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "getDefault (GET /profiles/default)",
-    "name": "profiles__get_default",
     "parameters": {
       "properties": {},
       "type": "object"
@@ -33714,32 +33286,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "Toggle bot active status (POST /reply-bot-configs/{id}/toggle)",
-    "name": "reply_bot_configs__toggle_active",
-    "parameters": {
-      "properties": {
-        "id": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "reply_bot_configs"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "Manually trigger bot polling (POST /reply-bot-configs/trigger-polling)",
     "name": "reply_bot_configs__trigger_polling",
     "parameters": {
@@ -34721,7 +34267,144 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "description": "SkillsController.createSkill (POST /skills)",
     "name": "skills__create_skill",
     "parameters": {
-      "properties": {},
+      "properties": {
+        "baseSkill": {
+          "type": "string"
+        },
+        "category": {
+          "enum": [
+            "writing",
+            "image",
+            "video",
+            "audio",
+            "discovery",
+            "distribution",
+            "analytics",
+            "optimization"
+          ],
+          "type": "string"
+        },
+        "channels": {
+          "items": {
+            "enum": [
+              "tiktok",
+              "reels",
+              "youtube",
+              "x",
+              "linkedin",
+              "blog",
+              "ads"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "configSchema": {
+          "type": "object"
+        },
+        "defaultInstructions": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "inputSchema": {
+          "type": "object"
+        },
+        "isBuiltIn": {
+          "type": "boolean"
+        },
+        "modalities": {
+          "items": {
+            "enum": [
+              "text",
+              "image",
+              "video",
+              "audio",
+              "multi"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "name": {
+          "type": "string"
+        },
+        "outputSchema": {
+          "type": "object"
+        },
+        "requiredProviders": {
+          "items": {
+            "enum": [
+              "anthropic",
+              "openai",
+              "openrouter",
+              "elevenlabs",
+              "replicate",
+              "fal",
+              "heygen",
+              "hedra",
+              "klingai",
+              "leonardoai",
+              "higgsfield",
+              "apify"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "reviewDefaults": {
+          "type": "object"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "built_in",
+            "imported",
+            "custom"
+          ],
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "draft",
+            "published",
+            "disabled"
+          ],
+          "type": "string"
+        },
+        "systemPromptTemplate": {
+          "type": "string"
+        },
+        "toolOverrides": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "workflowStage": {
+          "enum": [
+            "research",
+            "planning",
+            "creation",
+            "review",
+            "publishing",
+            "analysis"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "category",
+        "channels",
+        "description",
+        "modalities",
+        "name",
+        "slug",
+        "workflowStage"
+      ],
       "type": "object"
     },
     "requiredRole": "user",
@@ -34741,7 +34424,16 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "name": "skills__customize_skill",
     "parameters": {
       "properties": {
+        "description": {
+          "type": "string"
+        },
         "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "slug": {
           "type": "string"
         }
       },
@@ -34792,7 +34484,144 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "description": "SkillsController.importSkill (POST /skills/import)",
     "name": "skills__import_skill",
     "parameters": {
-      "properties": {},
+      "properties": {
+        "baseSkill": {
+          "type": "string"
+        },
+        "category": {
+          "enum": [
+            "writing",
+            "image",
+            "video",
+            "audio",
+            "discovery",
+            "distribution",
+            "analytics",
+            "optimization"
+          ],
+          "type": "string"
+        },
+        "channels": {
+          "items": {
+            "enum": [
+              "tiktok",
+              "reels",
+              "youtube",
+              "x",
+              "linkedin",
+              "blog",
+              "ads"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "configSchema": {
+          "type": "object"
+        },
+        "defaultInstructions": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "inputSchema": {
+          "type": "object"
+        },
+        "modalities": {
+          "items": {
+            "enum": [
+              "text",
+              "image",
+              "video",
+              "audio",
+              "multi"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "name": {
+          "type": "string"
+        },
+        "outputSchema": {
+          "type": "object"
+        },
+        "requiredProviders": {
+          "items": {
+            "enum": [
+              "anthropic",
+              "openai",
+              "openrouter",
+              "elevenlabs",
+              "replicate",
+              "fal",
+              "heygen",
+              "hedra",
+              "klingai",
+              "leonardoai",
+              "higgsfield",
+              "apify"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "reviewDefaults": {
+          "type": "object"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "built_in",
+            "imported",
+            "custom"
+          ],
+          "type": "string"
+        },
+        "sourceUrl": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "draft",
+            "published",
+            "disabled"
+          ],
+          "type": "string"
+        },
+        "systemPromptTemplate": {
+          "type": "string"
+        },
+        "toolOverrides": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "workflowStage": {
+          "enum": [
+            "research",
+            "planning",
+            "creation",
+            "review",
+            "publishing",
+            "analysis"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "category",
+        "channels",
+        "description",
+        "modalities",
+        "name",
+        "slug",
+        "workflowStage"
+      ],
       "type": "object"
     },
     "requiredRole": "user",
@@ -34831,7 +34660,120 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "name": "skills__update_skill",
     "parameters": {
       "properties": {
+        "category": {
+          "enum": [
+            "writing",
+            "image",
+            "video",
+            "audio",
+            "discovery",
+            "distribution",
+            "analytics",
+            "optimization"
+          ],
+          "type": "string"
+        },
+        "channels": {
+          "items": {
+            "enum": [
+              "tiktok",
+              "reels",
+              "youtube",
+              "x",
+              "linkedin",
+              "blog",
+              "ads"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "configSchema": {
+          "type": "object"
+        },
+        "defaultInstructions": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
         "id": {
+          "type": "string"
+        },
+        "inputSchema": {
+          "type": "object"
+        },
+        "modalities": {
+          "items": {
+            "enum": [
+              "text",
+              "image",
+              "video",
+              "audio",
+              "multi"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "name": {
+          "type": "string"
+        },
+        "outputSchema": {
+          "type": "object"
+        },
+        "requiredProviders": {
+          "items": {
+            "enum": [
+              "anthropic",
+              "openai",
+              "openrouter",
+              "elevenlabs",
+              "replicate",
+              "fal",
+              "heygen",
+              "hedra",
+              "klingai",
+              "leonardoai",
+              "higgsfield",
+              "apify"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "reviewDefaults": {
+          "type": "object"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "draft",
+            "published",
+            "disabled"
+          ],
+          "type": "string"
+        },
+        "systemPromptTemplate": {
+          "type": "string"
+        },
+        "toolOverrides": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "workflowStage": {
+          "enum": [
+            "research",
+            "planning",
+            "creation",
+            "review",
+            "publishing",
+            "analysis"
+          ],
           "type": "string"
         }
       },
@@ -36014,32 +35956,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "approve (PATCH /tasks/{id}/approve)",
-    "name": "tasks__approve",
-    "parameters": {
-      "properties": {
-        "id": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "tasks"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "checkout (POST /tasks/{id}/checkout)",
     "name": "tasks__checkout",
     "parameters": {
@@ -36235,32 +36151,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "dismiss (PATCH /tasks/{id}/dismiss)",
-    "name": "tasks__dismiss",
-    "parameters": {
-      "properties": {
-        "id": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "tasks"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "findAll (GET /tasks)",
     "name": "tasks__find_all",
     "parameters": {
@@ -36342,62 +36232,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
       },
       "required": [
         "id"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "tasks"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "inbox (GET /tasks/inbox)",
-    "name": "tasks__inbox",
-    "parameters": {
-      "properties": {
-        "limit": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "limit"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "tasks"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "keepOutput (PATCH /tasks/{id}/outputs/{outputId}/keep)",
-    "name": "tasks__keep_output",
-    "parameters": {
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "outputId": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id",
-        "outputId"
       ],
       "type": "object"
     },
@@ -36541,8 +36375,21 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "description": "Project reference ID",
           "type": "string"
         },
+        "reason": {
+          "description": "Reason recorded when requesting changes or dismissing a task",
+          "type": "string"
+        },
         "request": {
           "description": "AI generation request text",
+          "type": "string"
+        },
+        "reviewState": {
+          "description": "Review transition. Routes the update to approve/request-changes/dismiss.",
+          "enum": [
+            "approved",
+            "changes_requested",
+            "dismissed"
+          ],
           "type": "string"
         },
         "status": {
@@ -36642,38 +36489,16 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "requestChanges (PATCH /tasks/{id}/request-changes)",
-    "name": "tasks__request_changes",
+    "description": "setOutputKept (PATCH /tasks/{id}/outputs/{outputId})",
+    "name": "tasks__set_output_kept",
     "parameters": {
       "properties": {
         "id": {
           "type": "string"
-        }
-      },
-      "required": [
-        "id"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "tasks"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "trashOutput (PATCH /tasks/{id}/outputs/{outputId}/trash)",
-    "name": "tasks__trash_output",
-    "parameters": {
-      "properties": {
-        "id": {
-          "type": "string"
+        },
+        "isKept": {
+          "description": "Whether the output is kept (approved) or reverted.",
+          "type": "boolean"
         },
         "outputId": {
           "type": "string"
@@ -36681,6 +36506,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
       },
       "required": [
         "id",
+        "isKept",
         "outputId"
       ],
       "type": "object"
@@ -36698,8 +36524,8 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "unkeepOutput (PATCH /tasks/{id}/outputs/{outputId}/unkeep)",
-    "name": "tasks__unkeep_output",
+    "description": "trashOutput (DELETE /tasks/{id}/outputs/{outputId})",
+    "name": "tasks__trash_output",
     "parameters": {
       "properties": {
         "id": {
@@ -36938,159 +36764,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "createPromptTemplate (POST /templates/prompts)",
-    "name": "templates__create_prompt_template",
-    "parameters": {
-      "properties": {
-        "categories": {
-          "description": "Template categories",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "category": {
-          "allOf": [
-            {
-              "description": "Unified category for both content and prompt templates",
-              "enum": [
-                "caption",
-                "video",
-                "image",
-                "article",
-                "script",
-                "email",
-                "social-media",
-                "marketing",
-                "ecommerce",
-                "education",
-                "entertainment",
-                "news",
-                "personal-brand",
-                "corporate",
-                "nonprofit",
-                "article-generation",
-                "article-edit",
-                "article-virality-analysis",
-                "video-generation",
-                "video-cinematic",
-                "video-social-media",
-                "video-product-ad",
-                "video-podcast",
-                "video-influencer",
-                "image-generation",
-                "image-product-ad",
-                "image-banner",
-                "image-super-model",
-                "music-generation",
-                "caption-generation"
-              ],
-              "type": "string"
-            }
-          ],
-          "description": "Unified category for both content and prompt templates"
-        },
-        "content": {
-          "description": "Template content with {{variables}}",
-          "type": "string"
-        },
-        "description": {
-          "description": "Description of the template",
-          "type": "string"
-        },
-        "industries": {
-          "description": "Industries",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "isActive": {
-          "description": "Whether template is active (for prompt templates)",
-          "type": "boolean"
-        },
-        "key": {
-          "description": "Unique key for prompt templates (e.g., \"article.generate.default\")",
-          "type": "string"
-        },
-        "label": {
-          "description": "Label of the template",
-          "type": "string"
-        },
-        "metadata": {
-          "description": "Template metadata properties",
-          "type": "object"
-        },
-        "platforms": {
-          "description": "Platforms",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "purpose": {
-          "description": "Template purpose: content (user-facing) or prompt (system-level)",
-          "enum": [
-            "content",
-            "prompt"
-          ],
-          "type": "string"
-        },
-        "scope": {
-          "allOf": [
-            {
-              "description": "Brand access scope",
-              "enum": [
-                "user",
-                "brand",
-                "organization",
-                "public"
-              ],
-              "type": "string"
-            }
-          ],
-          "description": "Asset scope"
-        },
-        "tags": {
-          "description": "Tags",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "variables": {
-          "description": "Template variables",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "version": {
-          "description": "Template version (for prompt templates)",
-          "type": "number"
-        }
-      },
-      "required": [
-        "content",
-        "description",
-        "label",
-        "purpose"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "templates"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "findAll (GET /templates)",
     "name": "templates__find_all",
     "parameters": {
@@ -37143,6 +36816,11 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "description": "Filter by prompt template key",
           "type": "string"
         },
+        "limit": {
+          "description": "Maximum number of templates to return",
+          "minimum": 1,
+          "type": "number"
+        },
         "platform": {
           "description": "Filter by platform",
           "type": "string"
@@ -37167,6 +36845,13 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
         },
         "search": {
           "description": "Search query",
+          "type": "string"
+        },
+        "sort": {
+          "description": "Sort order. Use \"popular\" to rank by usage/rating (replaces GET /templates/popular)",
+          "enum": [
+            "popular"
+          ],
           "type": "string"
         }
       },
@@ -37211,154 +36896,8 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "getPopularTemplates (GET /templates/popular)",
-    "name": "templates__get_popular_templates",
-    "parameters": {
-      "properties": {
-        "limit": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "limit"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "templates"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "listPromptTemplates (GET /templates/prompts)",
-    "name": "templates__list_prompt_templates",
-    "parameters": {
-      "properties": {
-        "category": {
-          "description": "Unified category for both content and prompt templates",
-          "enum": [
-            "caption",
-            "video",
-            "image",
-            "article",
-            "script",
-            "email",
-            "social-media",
-            "marketing",
-            "ecommerce",
-            "education",
-            "entertainment",
-            "news",
-            "personal-brand",
-            "corporate",
-            "nonprofit",
-            "article-generation",
-            "article-edit",
-            "article-virality-analysis",
-            "video-generation",
-            "video-cinematic",
-            "video-social-media",
-            "video-product-ad",
-            "video-podcast",
-            "video-influencer",
-            "image-generation",
-            "image-product-ad",
-            "image-banner",
-            "image-super-model",
-            "music-generation",
-            "caption-generation"
-          ],
-          "type": "string"
-        },
-        "industry": {
-          "description": "Filter by industry",
-          "type": "string"
-        },
-        "isFeatured": {
-          "description": "Filter by featured status",
-          "type": "string"
-        },
-        "key": {
-          "description": "Filter by prompt template key",
-          "type": "string"
-        },
-        "platform": {
-          "description": "Filter by platform",
-          "type": "string"
-        },
-        "purpose": {
-          "description": "Filter by template purpose",
-          "enum": [
-            "content",
-            "prompt"
-          ],
-          "type": "string"
-        },
-        "scope": {
-          "description": "Brand access scope",
-          "enum": [
-            "user",
-            "brand",
-            "organization",
-            "public"
-          ],
-          "type": "string"
-        },
-        "search": {
-          "description": "Search query",
-          "type": "string"
-        }
-      },
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "templates"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "remove (DELETE /templates/{templateId})",
     "name": "templates__remove",
-    "parameters": {
-      "properties": {
-        "templateId": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "templateId"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "templates"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "removePromptTemplate (DELETE /templates/prompts/{templateId})",
-    "name": "templates__remove_prompt_template",
     "parameters": {
       "properties": {
         "templateId": {
@@ -37404,159 +36943,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "creditCost": 0,
     "description": "update (PATCH /templates/{templateId})",
     "name": "templates__update",
-    "parameters": {
-      "properties": {
-        "categories": {
-          "description": "Template categories",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "category": {
-          "allOf": [
-            {
-              "description": "Unified category for both content and prompt templates",
-              "enum": [
-                "caption",
-                "video",
-                "image",
-                "article",
-                "script",
-                "email",
-                "social-media",
-                "marketing",
-                "ecommerce",
-                "education",
-                "entertainment",
-                "news",
-                "personal-brand",
-                "corporate",
-                "nonprofit",
-                "article-generation",
-                "article-edit",
-                "article-virality-analysis",
-                "video-generation",
-                "video-cinematic",
-                "video-social-media",
-                "video-product-ad",
-                "video-podcast",
-                "video-influencer",
-                "image-generation",
-                "image-product-ad",
-                "image-banner",
-                "image-super-model",
-                "music-generation",
-                "caption-generation"
-              ],
-              "type": "string"
-            }
-          ],
-          "description": "Unified category for both content and prompt templates"
-        },
-        "content": {
-          "description": "Template content with {{variables}}",
-          "type": "string"
-        },
-        "description": {
-          "description": "Description of the template",
-          "type": "string"
-        },
-        "industries": {
-          "description": "Industries",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "isActive": {
-          "description": "Whether template is active (for prompt templates)",
-          "type": "boolean"
-        },
-        "key": {
-          "description": "Unique key for prompt templates (e.g., \"article.generate.default\")",
-          "type": "string"
-        },
-        "label": {
-          "description": "Label of the template",
-          "type": "string"
-        },
-        "metadata": {
-          "description": "Template metadata properties",
-          "type": "object"
-        },
-        "platforms": {
-          "description": "Platforms",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "purpose": {
-          "description": "Template purpose: content (user-facing) or prompt (system-level)",
-          "enum": [
-            "content",
-            "prompt"
-          ],
-          "type": "string"
-        },
-        "scope": {
-          "allOf": [
-            {
-              "description": "Brand access scope",
-              "enum": [
-                "user",
-                "brand",
-                "organization",
-                "public"
-              ],
-              "type": "string"
-            }
-          ],
-          "description": "Asset scope"
-        },
-        "tags": {
-          "description": "Tags",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "templateId": {
-          "type": "string"
-        },
-        "variables": {
-          "description": "Template variables",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "version": {
-          "description": "Template version (for prompt templates)",
-          "type": "number"
-        }
-      },
-      "required": [
-        "templateId"
-      ],
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "templates"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
-    "description": "updatePromptTemplate (PATCH /templates/prompts/{templateId})",
-    "name": "templates__update_prompt_template",
     "parameters": {
       "properties": {
         "categories": {
@@ -38996,7 +38382,9 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
             "ghost",
             "shopify",
             "beehiiv",
-            "unipile"
+            "unipile",
+            "product_hunt",
+            "hacker_news"
           ],
           "type": "string"
         }
@@ -39219,7 +38607,9 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
             "ghost",
             "shopify",
             "beehiiv",
-            "unipile"
+            "unipile",
+            "product_hunt",
+            "hacker_news"
           ],
           "type": "string"
         },

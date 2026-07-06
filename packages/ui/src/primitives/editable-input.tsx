@@ -161,7 +161,7 @@ export default function EditableInput({
               label={<HiCheck />}
               onClick={() => void handleSave()}
               variant={ButtonVariant.DEFAULT}
-              className=" first: last: border-l-0 first:border-l bg-green-500 hover:bg-green-600 text-white"
+              className=" first: last: border-l-0 first:border-l"
               isLoading={isSaving}
               isDisabled={isSaving}
             />

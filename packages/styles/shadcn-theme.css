@@ -10,6 +10,7 @@
 /* Invariant tokens — identical in all themes, hoisted above @layer base */
 :root {
   --platform-beehiiv: #fcd34d;
+  --platform-devto: #0a0a0a;
   --platform-instagram: #e1306c;
   --platform-facebook: #1877f2;
   --platform-fanvue: #6c63ff;

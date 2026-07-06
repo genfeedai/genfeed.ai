@@ -98,7 +98,7 @@ export default function PricingCard({
 
                 return (
                   <li key={feature} className="flex items-start">
-                    <FaCheck className="size-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                    <FaCheck className="size-4 text-muted-foreground mr-2 mt-0.5 flex-shrink-0" />
                     <span>{feature}</span>
                   </li>
                 );

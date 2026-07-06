@@ -29,7 +29,7 @@ const ModelSelectorProviderSidebar = memo(
             isActive={activeBrand === 'favorites'}
             onClick={() => handleBrandClick('favorites')}
             tooltip="Favorites"
-            color="#EAB308"
+            color="hsl(var(--foreground))"
           >
             <HiStar className="size-4" />
           </SidebarButton>

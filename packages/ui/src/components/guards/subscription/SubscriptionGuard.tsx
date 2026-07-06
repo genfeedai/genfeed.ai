@@ -50,7 +50,7 @@ export default function SubscriptionGuard({
   if (isLoading || !checked) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="size-6 border-2 border-neutral-300 border-t-neutral-700 rounded-full animate-spin dark:border-neutral-600 dark:border-t-neutral-300" />
+        <div className="size-6 border-2 border-border border-t-foreground rounded-full animate-spin" />
       </div>
     );
   }

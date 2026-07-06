@@ -38,15 +38,15 @@ export function getStatusIcon(status: ExecutionStatus | string): string {
 export function getStatusColor(status: ExecutionStatus | string): string {
   switch (status) {
     case 'completed':
-      return 'text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900';
+      return 'text-success bg-success/10';
     case 'failed':
-      return 'text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900';
+      return 'text-destructive bg-destructive/10';
     case 'running':
-      return 'text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900';
+      return 'text-warning bg-warning/10';
     case 'cancelled':
-      return 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800';
+      return 'text-muted-foreground bg-secondary';
     case 'skipped':
-      return 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900';
+      return 'border-border bg-secondary';
     default:
       return 'text-muted-foreground bg-muted';
   }
@@ -58,13 +58,13 @@ export function getStatusColor(status: ExecutionStatus | string): string {
 export function getStatusBorderColor(status: ExecutionStatus | string): string {
   switch (status) {
     case 'completed':
-      return 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950';
+      return 'border-success/30 bg-success/10';
     case 'failed':
-      return 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950';
+      return 'border-destructive/30 bg-destructive/10';
     case 'running':
-      return 'border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950';
+      return 'border-warning/30 bg-warning/10';
     case 'skipped':
-      return 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900';
+      return 'border-border bg-secondary';
     default:
       return 'border-white/[0.08] bg-card';
   }
@@ -78,10 +78,10 @@ export function getLifecycleBadgeClass(
 ): string {
   switch (lifecycle) {
     case 'published':
-      return 'border border-emerald-500/20 bg-emerald-500/10 text-emerald-300';
+      return 'border border-success/20 bg-success/10 text-success';
     case 'archived':
       return 'border border-white/10 bg-white/[0.04] text-white/55';
     default:
-      return 'border border-amber-500/20 bg-amber-500/10 text-amber-300';
+      return 'border border-warning/20 bg-warning/10 text-warning';
   }
 }

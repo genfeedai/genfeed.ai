@@ -42,10 +42,11 @@ export function generateClipSrt(
  * Formats a duration in seconds as an `HH:MM:SS,mmm` SRT timestamp.
  */
 export function formatSrtTimestamp(seconds: number): string {
-  const hours = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  const secs = Math.floor(seconds % 60);
-  const ms = Math.round((seconds % 1) * 1000);
+  const totalMilliseconds = Math.round(seconds * 1000);
+  const hours = Math.floor(totalMilliseconds / 3_600_000);
+  const mins = Math.floor((totalMilliseconds % 3_600_000) / 60_000);
+  const secs = Math.floor((totalMilliseconds % 60_000) / 1000);
+  const ms = totalMilliseconds % 1000;
 
   return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')},${ms.toString().padStart(3, '0')}`;
 }

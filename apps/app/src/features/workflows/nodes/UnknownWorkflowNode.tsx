@@ -20,7 +20,7 @@ function UnknownWorkflowNodeComponent({
       : 'Unsupported workflow node';
 
   return (
-    <div className="min-w-[220px] rounded-lg border border-white/[0.08] bg-card p-4 shadow-lg">
+    <div className="min-w-[220px] rounded-lg shadow-border bg-card p-4">
       <div className="mb-2 flex items-center justify-between gap-3">
         <h3 className="truncate text-sm font-semibold text-foreground">
           {label}

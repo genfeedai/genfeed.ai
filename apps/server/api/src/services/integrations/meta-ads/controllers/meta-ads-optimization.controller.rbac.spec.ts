@@ -1,18 +1,10 @@
 import { MetaAdsOptimizationController } from '@api/services/integrations/meta-ads/controllers/meta-ads-optimization.controller';
 
 describe('MetaAdsOptimizationController RBAC', () => {
-  it('should require owner or admin role for approveRecommendation', () => {
+  it('should require owner or admin role for updateRecommendation', () => {
     const metadata = Reflect.getMetadata(
       'roles',
-      MetaAdsOptimizationController.prototype.approveRecommendation,
-    );
-    expect(metadata).toEqual(['owner', 'admin']);
-  });
-
-  it('should require owner or admin role for rejectRecommendation', () => {
-    const metadata = Reflect.getMetadata(
-      'roles',
-      MetaAdsOptimizationController.prototype.rejectRecommendation,
+      MetaAdsOptimizationController.prototype.updateRecommendation,
     );
     expect(metadata).toEqual(['owner', 'admin']);
   });

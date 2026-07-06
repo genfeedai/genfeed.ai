@@ -260,7 +260,7 @@ export function CommandPalette() {
       />
 
       {/* Palette */}
-      <div className="relative w-full max-w-lg overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
+      <div className="relative w-full max-w-lg overflow-hidden rounded-xl bg-card shadow-dialog">
         {/* Search input */}
         <div
           data-command-palette

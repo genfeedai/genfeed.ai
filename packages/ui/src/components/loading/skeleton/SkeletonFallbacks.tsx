@@ -59,10 +59,7 @@ export function SkeletonLoadingFallback({
         <div className="space-y-6">
           <div className="h-8 bg-background w-1/4 animate-pulse mb-8"></div>
           {Array.from({ length: count }).map((_, sectionIndex) => (
-            <div
-              key={sectionIndex}
-              className=" border border-white/[0.08] bg-card shadow-xl"
-            >
+            <div key={sectionIndex} className="bg-card shadow-border">
               <div className="p-4">
                 <div className="h-6 bg-background w-1/3 animate-pulse mb-4"></div>
                 <div className="space-y-4">

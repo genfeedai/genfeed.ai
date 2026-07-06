@@ -16,13 +16,13 @@ GET {{apiBaseUrl}}/workflow-executions?status=running&limit=20&offset=0
 Authorization: Bearer {{bearerToken}}
 
 
-### Get Executions for Specific Workflow
-GET {{apiBaseUrl}}/workflow-executions/workflow/{{testWorkflowId}}
+### Get Executions for Specific Workflow (filter on the base list)
+GET {{apiBaseUrl}}/workflow-executions?workflow={{testWorkflowId}}
 Authorization: Bearer {{bearerToken}}
 
 
 ### Get Executions for Workflow with Pagination
-GET {{apiBaseUrl}}/workflow-executions/workflow/{{testWorkflowId}}?limit=10&offset=0
+GET {{apiBaseUrl}}/workflow-executions?workflow={{testWorkflowId}}&limit=10&offset=0
 Authorization: Bearer {{bearerToken}}
 
 
@@ -60,8 +60,13 @@ Content-Type: application/json
 
 
 ### Cancel Running Execution
-POST {{apiBaseUrl}}/workflow-executions/{{testExecutionId}}/cancel
+PATCH {{apiBaseUrl}}/workflow-executions/{{testExecutionId}}
 Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "status": "cancelled"
+}
 
 
 ########################################
@@ -74,8 +79,13 @@ Authorization: Bearer {{bearerToken}}
 
 
 ### Test: Cancel Non-Existent Execution
-POST {{apiBaseUrl}}/workflow-executions/507f1f77bcf86cd799439011/cancel
+PATCH {{apiBaseUrl}}/workflow-executions/507f1f77bcf86cd799439011
 Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "status": "cancelled"
+}
 
 
 ### Test: Create Without Workflow ID

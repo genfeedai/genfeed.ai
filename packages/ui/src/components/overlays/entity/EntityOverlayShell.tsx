@@ -65,9 +65,9 @@ const WIDTH_CLASS_NAMES: Record<EntityOverlayWidth, string> = {
 };
 
 const SURFACE_CLASS_NAMES: Record<EntityOverlaySurface, string> = {
-  flat: 'bg-background/95 shadow-2xl backdrop-blur-xl supports-[backdrop-filter]:bg-background/88',
+  flat: 'bg-background/95 shadow-dialog backdrop-blur-xl supports-[backdrop-filter]:bg-background/88',
   gradient:
-    'bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.05),transparent_30%),linear-gradient(180deg,rgba(15,15,18,0.98),rgba(7,7,9,0.98))] shadow-[0_30px_120px_rgba(0,0,0,0.55)]',
+    'bg-background/95 shadow-dialog backdrop-blur-xl supports-[backdrop-filter]:bg-background/88',
 };
 
 export default function EntityOverlayShell({

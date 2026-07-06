@@ -20,11 +20,7 @@ export function DeveloperTab() {
           icon={Bug}
           description="Skip API calls and inspect payloads without paying for generations"
           action={
-            <ToggleSwitch
-              checked={debugMode}
-              onCheckedChange={setDebugMode}
-              activeColor="bg-amber-500"
-            />
+            <ToggleSwitch checked={debugMode} onCheckedChange={setDebugMode} />
           }
         />
 

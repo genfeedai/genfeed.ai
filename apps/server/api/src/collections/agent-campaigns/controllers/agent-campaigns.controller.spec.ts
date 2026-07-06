@@ -78,8 +78,10 @@ describe('AgentCampaignsController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('executeCampaign', () => {
-    it('uses the Mongo user id from public metadata when executing', async () => {
+  describe('patch', () => {
+    const mockReq = { headers: {}, url: '/agent-campaigns/campaign-1' } as any;
+
+    it('routes status=active through executionService.execute using the Mongo user id from public metadata', async () => {
       mockUsersService.findOne.mockResolvedValue({
         id: '507f1f77bcf86cd799439014',
       });
@@ -87,7 +89,9 @@ describe('AgentCampaignsController', () => {
         id: 'campaign-1',
       });
 
-      await controller.executeCampaign('campaign-1', mockUser as any);
+      await controller.patch(mockReq, mockUser as any, 'campaign-1', {
+        status: 'active',
+      } as any);
 
       expect(mockExecutionService.execute).toHaveBeenCalledWith(
         'campaign-1',
@@ -119,9 +123,11 @@ describe('AgentCampaignsController', () => {
         id: 'campaign-2',
       });
 
-      await controller.executeCampaign(
-        'campaign-2',
+      await controller.patch(
+        mockReq,
         userWithoutMongoMetadata as any,
+        'campaign-2',
+        { status: 'active' } as any,
       );
 
       expect(mockExecutionService.execute).toHaveBeenCalledWith(
@@ -132,6 +138,21 @@ describe('AgentCampaignsController', () => {
       expect(mockUsersService.findOne).toHaveBeenCalledWith(
         { authProviderId: 'user_123' },
         [],
+      );
+    });
+
+    it('routes status=paused through executionService.pause', async () => {
+      mockExecutionService.pause.mockResolvedValue({
+        id: 'campaign-1',
+      });
+
+      await controller.patch(mockReq, mockUser as any, 'campaign-1', {
+        status: 'paused',
+      } as any);
+
+      expect(mockExecutionService.pause).toHaveBeenCalledWith(
+        'campaign-1',
+        '507f1f77bcf86cd799439012',
       );
     });
   });

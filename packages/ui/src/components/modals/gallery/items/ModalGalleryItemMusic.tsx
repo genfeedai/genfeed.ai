@@ -32,10 +32,10 @@ export default function ModalGalleryItemMusic({
           onSelect(music);
         }
       }}
-      className={`relative p-4 border-2 transition-all cursor-pointer group ${
+      className={`relative p-4 transition-all cursor-pointer group ${
         isSelected
-          ? 'border-primary bg-primary/5'
-          : 'border-white/[0.08] hover:border-primary/50 bg-background'
+          ? 'shadow-border-strong bg-primary/5'
+          : 'shadow-border hover:shadow-border-strong bg-background'
       }`}
     >
       <div className="flex items-center gap-3">

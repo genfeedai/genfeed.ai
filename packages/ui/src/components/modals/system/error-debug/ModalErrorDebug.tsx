@@ -39,7 +39,7 @@ function ErrorSection({
   return (
     <Card
       variant={CardVariant.DEFAULT}
-      className="rounded-lg border-destructive/30 bg-destructive/10 text-red-50 hover:border-destructive/30"
+      className="rounded-lg border-destructive/30 bg-destructive/10 text-destructive-foreground hover:border-destructive/30"
       bodyClassName="gap-0 p-4"
     >
       {onToggle ? (
@@ -47,7 +47,7 @@ function ErrorSection({
           withWrapper={false}
           variant={ButtonVariant.UNSTYLED}
           onClick={onToggle}
-          className="flex w-full items-center gap-2 text-left text-red-50"
+          className="flex w-full items-center gap-2 text-left text-destructive-foreground"
         >
           {isExpanded ? (
             <HiChevronDown className="size-4 shrink-0" />
@@ -68,7 +68,7 @@ function ErrorSection({
 export default function ModalErrorDebug() {
   const clipboardService = ClipboardService.getInstance();
   const preClassName =
-    'mt-2 max-h-48 overflow-y-auto border-destructive/20 bg-black/30 text-red-50';
+    'mt-2 max-h-48 overflow-y-auto border-destructive/20 bg-black/30 text-destructive-foreground';
 
   const [errorInfo, setErrorInfo] = useState<IErrorDebugInfo | null>(null);
   const [isResponseExpanded, setIsResponseExpanded] = useState(false);
@@ -108,11 +108,11 @@ export default function ModalErrorDebug() {
       isError
       error={errorInfo?.message}
       onClose={handleModalClosed}
-      modalBoxClassName="rounded-lg border-destructive/50 bg-[#17080a] text-red-50 shadow-[0_24px_80px_rgba(127,29,29,0.45)]"
+      modalBoxClassName="rounded-lg border-destructive/50 bg-[#17080a] text-destructive-foreground"
     >
       {errorInfo && (
         <>
-          <div className="space-y-4 text-red-50">
+          <div className="space-y-4 text-destructive-foreground">
             <ErrorSection title="Request Details">
               <div className="grid grid-cols-2 gap-2 text-sm">
                 {errorInfo.url && (
@@ -215,7 +215,7 @@ export default function ModalErrorDebug() {
               label="Copy"
               variant={ButtonVariant.SECONDARY}
               size={ButtonSize.LG}
-              className="border-destructive/30 bg-destructive/10 text-red-50 hover:bg-destructive/20 md:h-9 md:px-4 md:py-2"
+              className="border-destructive/30 bg-destructive/10 text-destructive-foreground hover:bg-destructive/20 md:h-9 md:px-4 md:py-2"
               onClick={handleCopy}
             />
 
@@ -223,7 +223,7 @@ export default function ModalErrorDebug() {
               label="Reload"
               variant={ButtonVariant.SECONDARY}
               size={ButtonSize.LG}
-              className="border-destructive/30 bg-destructive/10 text-red-50 hover:bg-destructive/20 md:h-9 md:px-4 md:py-2"
+              className="border-destructive/30 bg-destructive/10 text-destructive-foreground hover:bg-destructive/20 md:h-9 md:px-4 md:py-2"
               onClick={() => {
                 handleCancel();
                 refresh();

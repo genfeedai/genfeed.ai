@@ -153,8 +153,8 @@ describe('NewslettersService (Prisma schema reconciliation)', () => {
     expect(data.publishedByUser).toBeUndefined();
   });
 
-  it('archiveScoped writes the archived status', async () => {
-    await service.archiveScoped('newsletter-1', ctx);
+  it('updateScoped writes the archived status', async () => {
+    await service.updateScoped('newsletter-1', { status: 'archived' }, ctx);
 
     const { data } = delegate.update.mock.calls[0][0];
     expectPrismaValidKeys(data);
