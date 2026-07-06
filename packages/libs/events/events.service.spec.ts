@@ -48,7 +48,7 @@ describe('EventsService', () => {
       service.onModuleInit();
 
       expect(loggerService.log).toHaveBeenCalledWith(
-        'EventsService initialized - ready for event publishing',
+        'EventsService initialized',
         { service: 'EventsService' },
       );
     });

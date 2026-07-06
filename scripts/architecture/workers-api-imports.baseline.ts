@@ -99,8 +99,6 @@ export const WORKERS_API_IMPORT_BASELINE: readonly string[] = [
   '@api/collections/workflows/services/workflow-executor.service',
   '@api/collections/workflows/services/workflow-scheduler.service',
   '@api/collections/workflows/workflows.module',
-  '@api/config/config.module',
-  '@api/config/config.service',
   '@api/constants/default-text-model.constant',
   '@api/endpoints/v1/managed-inference/dto/managed-inference-request.dto',
   '@api/endpoints/v1/managed-inference/managed-inference-client.service',
@@ -216,6 +214,5 @@ export const WORKERS_API_IMPORT_BASELINE: readonly string[] = [
   '@api/shared/modules/prisma/prisma.module',
   '@api/shared/modules/prisma/prisma.service',
   '@api/shared/shared.module',
-  '@api/shared/utils/encryption/encryption.util',
   '@api/types/aggregate-paginate-result',
 ];
