@@ -500,11 +500,11 @@ describe('ModelsController', () => {
       };
       modelsService.approveRegistryModel.mockResolvedValue(approvedModel);
 
-      const result = await controller.approveRegistryModel(
+      const result = await controller.patch(
         mockSuperAdminRequest,
         mockSuperAdminUser,
         id,
-        { label: 'Imagen 4' },
+        { label: 'Imagen 4', reviewStatus: 'approved' },
       );
 
       expect(modelsService.approveRegistryModel).toHaveBeenCalledWith(
@@ -529,14 +529,10 @@ describe('ModelsController', () => {
         isDefault: false,
       });
 
-      await controller.rejectRegistryModel(
-        mockSuperAdminRequest,
-        mockSuperAdminUser,
-        id,
-        {
-          reason: 'Not content-generation relevant',
-        },
-      );
+      await controller.patch(mockSuperAdminRequest, mockSuperAdminUser, id, {
+        reason: 'Not content-generation relevant',
+        reviewStatus: 'rejected',
+      });
 
       expect(modelsService.rejectRegistryModel).toHaveBeenCalledWith(id, {
         reason: 'Not content-generation relevant',
@@ -558,12 +554,10 @@ describe('ModelsController', () => {
         isDefault: false,
       });
 
-      await controller.markRegistryModelLegacy(
-        mockSuperAdminRequest,
-        mockSuperAdminUser,
-        id,
-        { succeededBy: 'google/imagen-4' },
-      );
+      await controller.patch(mockSuperAdminRequest, mockSuperAdminUser, id, {
+        reviewStatus: 'legacy',
+        succeededBy: 'google/imagen-4',
+      });
 
       expect(modelsService.markRegistryModelLegacy).toHaveBeenCalledWith(id, {
         reviewedBy: mockSuperAdminUser.id,
@@ -581,12 +575,9 @@ describe('ModelsController', () => {
       modelsService.count.mockResolvedValue(0);
 
       await expect(
-        controller.markRegistryModelLegacy(
-          mockSuperAdminRequest,
-          mockSuperAdminUser,
-          id,
-          {},
-        ),
+        controller.patch(mockSuperAdminRequest, mockSuperAdminUser, id, {
+          reviewStatus: 'legacy',
+        }),
       ).rejects.toThrow(HttpException);
 
       expect(modelsService.markRegistryModelLegacy).not.toHaveBeenCalled();
@@ -594,7 +585,9 @@ describe('ModelsController', () => {
 
     it('should forbid registry review actions for non-superadmins', async () => {
       await expect(
-        controller.approveRegistryModel(mockRequest, mockRegularUser, 'id', {}),
+        controller.patch(mockRequest, mockRegularUser, 'id', {
+          reviewStatus: 'approved',
+        }),
       ).rejects.toThrow(HttpException);
 
       expect(modelsService.approveRegistryModel).not.toHaveBeenCalled();

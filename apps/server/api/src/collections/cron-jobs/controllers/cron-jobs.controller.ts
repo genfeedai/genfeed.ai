@@ -1,9 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CronJobQueryDto } from '@api/collections/cron-jobs/dto/cron-job-query.dto';
-import {
-  CronJobsService,
-  LEGACY_CRON_JOBS_RETIRED_MESSAGE,
-} from '@api/collections/cron-jobs/services/cron-jobs.service';
+import { CronJobsService } from '@api/collections/cron-jobs/services/cron-jobs.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
@@ -13,17 +10,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { CronJobSerializer, CronRunSerializer } from '@genfeedai/serializers';
-import {
-  Controller,
-  Delete,
-  Get,
-  GoneException,
-  Param,
-  Patch,
-  Post,
-  Query,
-  Req,
-} from '@nestjs/common';
+import { Controller, Get, Param, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 
 @Controller('cron-jobs')
@@ -31,10 +18,6 @@ export class CronJobsController {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(private readonly cronJobsService: CronJobsService) {}
-
-  private throwRetiredMutation(): never {
-    throw new GoneException(LEGACY_CRON_JOBS_RETIRED_MESSAGE);
-  }
 
   @Get()
   async findAll(
@@ -50,36 +33,6 @@ export class CronJobsController {
     });
 
     return serializeCollection(request, CronJobSerializer, { docs });
-  }
-
-  @Post()
-  create(): never {
-    this.throwRetiredMutation();
-  }
-
-  @Patch(':id')
-  update(): never {
-    this.throwRetiredMutation();
-  }
-
-  @Post(':id/run-now')
-  runNow(): never {
-    this.throwRetiredMutation();
-  }
-
-  @Post(':id/pause')
-  pause(): never {
-    this.throwRetiredMutation();
-  }
-
-  @Post(':id/resume')
-  resume(): never {
-    this.throwRetiredMutation();
-  }
-
-  @Delete(':id')
-  delete(): never {
-    this.throwRetiredMutation();
   }
 
   @Get(':id/runs')

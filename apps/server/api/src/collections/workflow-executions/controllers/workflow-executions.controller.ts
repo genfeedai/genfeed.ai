@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   CreateWorkflowExecutionDto,
+  UpdateWorkflowExecutionDto,
   WorkflowExecutionQueryDto,
 } from '@api/collections/workflow-executions/dto/create-workflow-execution.dto';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
@@ -18,13 +19,15 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
-import { MemberRole } from '@genfeedai/enums';
+import { MemberRole, WorkflowExecutionStatus } from '@genfeedai/enums';
 import { WorkflowExecutionSerializer } from '@genfeedai/serializers';
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -124,29 +127,6 @@ export class WorkflowExecutionsController {
     return serializeCollection(req, WorkflowExecutionSerializer, result);
   }
 
-  @Get('workflow/:workflowId')
-  @ApiOperation({ summary: 'Get executions for a specific workflow' })
-  @ApiParam({ description: 'Workflow ID', name: 'workflowId' })
-  @ApiQuery({ name: 'limit', required: false })
-  @ApiQuery({ name: 'offset', required: false })
-  @ApiResponse({ description: 'List of workflow executions', status: 200 })
-  async getWorkflowExecutions(
-    @Req() req: Request,
-    @CurrentUser() user: User,
-    @Param('workflowId') workflowId: string,
-    @Query('limit') limit?: number,
-    @Query('offset') offset?: number,
-  ) {
-    const publicMetadata = getPublicMetadata(user);
-    const docs = await this.workflowExecutionsService.getWorkflowExecutions(
-      workflowId,
-      publicMetadata.organization,
-      limit || 20,
-      offset || 0,
-    );
-    return serializeCollection(req, WorkflowExecutionSerializer, { docs });
-  }
-
   @Get('workflow/:workflowId/stats')
   @ApiOperation({ summary: 'Get execution statistics for a workflow' })
   @ApiParam({ description: 'Workflow ID', name: 'workflowId' })
@@ -207,16 +187,17 @@ export class WorkflowExecutionsController {
     return serializeSingle(req, WorkflowExecutionSerializer, execution);
   }
 
-  @Post(':id/cancel')
+  @Patch(':id')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
-  @ApiOperation({ summary: 'Cancel a running execution' })
+  @ApiOperation({ summary: 'Update an execution (cancel a running execution)' })
   @ApiParam({ description: 'Execution ID', name: 'id' })
-  @ApiResponse({ description: 'Execution cancelled', status: 200 })
+  @ApiResponse({ description: 'Execution updated', status: 200 })
   @ApiResponse({ description: 'Execution not found', status: 404 })
-  async cancel(
+  async update(
     @Req() req: Request,
     @CurrentUser() user: User,
     @Param('id') id: string,
+    @Body() dto: UpdateWorkflowExecutionDto,
   ) {
     const publicMetadata = getPublicMetadata(user);
     // Verify ownership first
@@ -228,6 +209,14 @@ export class WorkflowExecutionsController {
 
     if (!execution) {
       throw new NotFoundException('Execution');
+    }
+
+    // Collapsed from the former `POST /:id/cancel` RPC route (#1354). The only
+    // supported transition on this surface is cancellation.
+    if (dto.status !== WorkflowExecutionStatus.CANCELLED) {
+      throw new BadRequestException(
+        'Only cancellation (status: cancelled) is supported',
+      );
     }
 
     const cancelled = await this.workflowExecutionsService.cancelExecution(id);

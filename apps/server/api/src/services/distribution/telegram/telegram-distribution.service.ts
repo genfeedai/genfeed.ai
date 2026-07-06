@@ -2,7 +2,6 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { DistributionsService } from '@api/collections/distributions/services/distributions.service';
 import { ConfigService } from '@api/config/config.service';
 import { QueueService } from '@api/queues/core/queue.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import {
   CredentialPlatform,
   DistributionContentType,
@@ -16,6 +15,7 @@ import {
 } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';

@@ -1,14 +1,15 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
+import { WorkflowQueryDto } from '@api/collections/workflows/dto/query-workflow.dto';
 import { UpdateWorkflowDto } from '@api/collections/workflows/dto/update-workflow.dto';
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
+import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { SYSTEM_WORKFLOW_METADATA_KEY } from '@api/collections/workflows/system-workflow.contract';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { wrapError } from '@api/helpers/utils/controller/wrap-error.util';
@@ -63,6 +64,7 @@ export class WorkflowCrudController {
 
   constructor(
     private readonly workflowsService: WorkflowsService,
+    private readonly workflowSchedulerService: WorkflowSchedulerService,
     readonly _loggerService: LoggerService,
   ) {}
 
@@ -92,7 +94,7 @@ export class WorkflowCrudController {
   async findAll(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Query() query: BaseQueryDto,
+    @Query() query: WorkflowQueryDto,
   ): Promise<JsonApiCollectionResponse> {
     const options = {
       customLabels,
@@ -102,20 +104,30 @@ export class WorkflowCrudController {
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
 
-    const aggregate = {
-      where: {
-        isDeleted,
-        organization: publicMetadata.organization,
-        OR: [
-          { user: publicMetadata.user },
-          {
-            metadata: {
-              equals: 'organization',
-              path: [SYSTEM_WORKFLOW_METADATA_KEY, 'visibility'],
+    // `referencable=true` widens the list to every workflow in the org (used to
+    // seed workflow-reference pickers). Collapsed from the former
+    // `GET /workflows/referencable` route (#1354).
+    const where = query.referencable
+      ? {
+          isDeleted,
+          organization: publicMetadata.organization,
+        }
+      : {
+          isDeleted,
+          organization: publicMetadata.organization,
+          OR: [
+            { user: publicMetadata.user },
+            {
+              metadata: {
+                equals: 'organization',
+                path: [SYSTEM_WORKFLOW_METADATA_KEY, 'visibility'],
+              },
             },
-          },
-        ],
-      },
+          ],
+        };
+
+    const aggregate = {
+      where,
       orderBy: handleQuerySort(query.sort),
     };
 
@@ -202,6 +214,16 @@ export class WorkflowCrudController {
     }, 'Failed to clone workflow');
   }
 
+  /**
+   * Single mutation entry point for the workflow resource. After the REST
+   * audit collapse (#1354) this route absorbs the former dedicated RPC routes:
+   * lifecycle publish/archive (`{ lifecycle }`), thumbnail
+   * (`{ thumbnail, thumbnailNodeId }`), schedule set/remove
+   * (`{ schedule, timezone, isScheduleEnabled }` — re-registers the BullMQ cron
+   * via the scheduler), and marketplace publish
+   * (`{ isPublic: true, isTemplate: true }` — seller-lookup/listing cascade
+   * behind the service). Plain field writes fall through to `patch`.
+   */
   @Patch(':workflowId')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -213,10 +235,80 @@ export class WorkflowCrudController {
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
 
-    await this.workflowsService.findMutableOwnedOrThrow(workflowId, {
-      organization: publicMetadata.organization,
-      user: publicMetadata.user,
-    });
+    // Marketplace publish: flip public + template and run the seller-lookup +
+    // listing-creation cascade behind the service. Self-guards via
+    // findMutableOwnedOrThrow inside the service.
+    if (
+      updateWorkflowDto.isPublic === true &&
+      updateWorkflowDto.isTemplate === true
+    ) {
+      return wrapError(async () => {
+        const workflow = await this.workflowsService.publishToMarketplace(
+          workflowId,
+          publicMetadata.user,
+          publicMetadata.organization,
+        );
+
+        return serializeSingle(request, WorkflowSerializer, workflow);
+      }, 'Failed to publish workflow to marketplace');
+    }
+
+    const workflow = await this.workflowsService.findMutableOwnedOrThrow(
+      workflowId,
+      {
+        organization: publicMetadata.organization,
+        user: publicMetadata.user,
+      },
+    );
+
+    // Schedule change: register/unregister the BullMQ cron via the scheduler,
+    // not just a plain column write. Any non-schedule fields in the same body
+    // are still patched.
+    const touchesSchedule =
+      Object.hasOwn(updateWorkflowDto, 'schedule') ||
+      Object.hasOwn(updateWorkflowDto, 'timezone') ||
+      Object.hasOwn(updateWorkflowDto, 'isScheduleEnabled');
+
+    if (touchesSchedule) {
+      return wrapError(async () => {
+        const { schedule, timezone, isScheduleEnabled, ...rest } =
+          updateWorkflowDto;
+
+        if (Object.keys(rest).length > 0) {
+          await this.workflowsService.patch(workflowId, rest);
+        }
+
+        const nextSchedule = Object.hasOwn(updateWorkflowDto, 'schedule')
+          ? (schedule ?? null)
+          : (workflow.schedule ?? null);
+        const nextTimezone = Object.hasOwn(updateWorkflowDto, 'timezone')
+          ? (timezone ?? 'UTC')
+          : (workflow.timezone ?? 'UTC');
+        const nextEnabled = Object.hasOwn(
+          updateWorkflowDto,
+          'isScheduleEnabled',
+        )
+          ? (isScheduleEnabled ?? false)
+          : (workflow.isScheduleEnabled ?? false);
+
+        await this.workflowSchedulerService.updateSchedule(
+          workflowId,
+          nextSchedule,
+          nextTimezone,
+          nextEnabled,
+        );
+
+        const updated = await this.workflowsService.findOwnedOrThrow(
+          workflowId,
+          {
+            organization: publicMetadata.organization,
+            user: publicMetadata.user,
+          },
+        );
+
+        return serializeSingle(request, WorkflowSerializer, updated);
+      }, 'Failed to update workflow schedule');
+    }
 
     const data = await this.workflowsService.patch(
       workflowId,

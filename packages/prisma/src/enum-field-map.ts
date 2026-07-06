@@ -844,6 +844,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'id',
       'isDeleted',
       'isSelected',
+      'mode',
       'mongoId',
       'organization',
       'organizationId',
@@ -2182,6 +2183,18 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     enumFields: {
       status: { enumType: 'PersonaStatus', isRequired: true },
     },
+  },
+  PlatformSetting: {
+    allFields: [
+      'createdAt',
+      'id',
+      'isDeleted',
+      'key',
+      'marginMultiplier',
+      'mongoId',
+      'updatedAt',
+    ],
+    enumFields: {},
   },
   Post: {
     allFields: [

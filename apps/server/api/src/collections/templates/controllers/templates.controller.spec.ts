@@ -49,7 +49,6 @@ describe('TemplatesController', () => {
     create: vi.fn(),
     findAll: vi.fn(),
     findOne: vi.fn(),
-    getPopularTemplates: vi.fn(),
     remove: vi.fn(),
     suggestTemplates: vi.fn(),
     update: vi.fn(),
@@ -241,29 +240,21 @@ describe('TemplatesController', () => {
     });
   });
 
-  describe('getPopularTemplates', () => {
-    it('should return popular templates', async () => {
+  describe('findAll with sort=popular', () => {
+    it('should pass sort and limit filters through to the service', async () => {
       const popular = [mockTemplate];
-      mockTemplatesService.getPopularTemplates.mockResolvedValue(popular);
+      mockTemplatesService.findAll.mockResolvedValue(popular);
 
-      const result = await controller.getPopularTemplates(mockReq, mockUser);
+      const result = await controller.findAll(mockReq, mockUser, {
+        limit: 20,
+        sort: 'popular',
+      });
 
-      expect(service.getPopularTemplates).toHaveBeenCalledWith(
+      expect(service.findAll).toHaveBeenCalledWith(
         mockUser.publicMetadata.organization,
-        10,
+        expect.objectContaining({ limit: 20, sort: 'popular' }),
       );
       expect(result).toEqual(popular);
-    });
-
-    it('should accept custom limit', async () => {
-      mockTemplatesService.getPopularTemplates.mockResolvedValue([]);
-
-      await controller.getPopularTemplates(mockReq, mockUser, '20');
-
-      expect(service.getPopularTemplates).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
-        20,
-      );
     });
   });
 });

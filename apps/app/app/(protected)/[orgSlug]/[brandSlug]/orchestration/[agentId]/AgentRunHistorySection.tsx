@@ -51,19 +51,19 @@ export default function AgentRunHistorySection({
             <TableHeader>
               <TableRow className="border-b border-white/5">
                 <TableHead className="h-12 w-10 px-2 text-left" />
-                <TableHead className="h-12 px-4 text-left text-[10px] font-black uppercase tracking-widest text-white/20">
+                <TableHead className="h-12 px-4 text-left text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
                   Status
                 </TableHead>
-                <TableHead className="h-12 px-4 text-left text-[10px] font-black uppercase tracking-widest text-white/20">
+                <TableHead className="h-12 px-4 text-left text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
                   Credits
                 </TableHead>
-                <TableHead className="h-12 px-4 text-left text-[10px] font-black uppercase tracking-widest text-white/20">
+                <TableHead className="h-12 px-4 text-left text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
                   Model
                 </TableHead>
-                <TableHead className="h-12 px-4 text-left text-[10px] font-black uppercase tracking-widest text-white/20">
+                <TableHead className="h-12 px-4 text-left text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
                   Duration
                 </TableHead>
-                <TableHead className="h-12 px-4 text-left text-[10px] font-black uppercase tracking-widest text-white/20">
+                <TableHead className="h-12 px-4 text-left text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
                   Started
                 </TableHead>
               </TableRow>

@@ -15,7 +15,7 @@ export default function IllustrationPreview({
 }: Props) {
   return (
     <div className="space-y-3">
-      <div className=" border border-white/[0.08] bg-card p-4">
+      <div className="bg-card shadow-border p-4">
         <label className="mb-2 block text-sm font-medium">
           {generatedImageUrl ? 'Generated Image Preview' : 'Processing…'}
         </label>

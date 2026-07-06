@@ -93,32 +93,6 @@ export const MCP_CONTENT_TOOLS: SourceTool[] = [
   },
   {
     creditCost: 0,
-    description: 'Generate content images from a trained LoRA model',
-    name: 'generate_darkroom_content',
-    parameters: {
-      properties: {
-        count: {
-          default: 1,
-          description: 'Number of images',
-          type: 'number',
-        },
-        personaHandle: {
-          description: 'Persona handle',
-          type: 'string',
-        },
-        prompt: {
-          description: 'Content generation prompt',
-          type: 'string',
-        },
-      },
-      required: ['personaHandle', 'prompt'],
-      type: 'object',
-    },
-    requiredRole: 'admin',
-    surfaces: { agent: false, cliAgentVisible: false, mcp: true },
-  },
-  {
-    creditCost: 0,
     description:
       'Generate LinkedIn-optimized post text for a given topic or brief. Returns ready-to-publish text content with hook, body, CTA, and hashtags.',
     name: 'generate_linkedin_content',

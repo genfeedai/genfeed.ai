@@ -2,10 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { CreateProjectDto } from '@api/collections/projects/dto/create-project.dto';
 import { ProjectQueryDto } from '@api/collections/projects/dto/project-query.dto';
 import { UpdateProjectDto } from '@api/collections/projects/dto/update-project.dto';
-import {
-  Project,
-  type ProjectDocument,
-} from '@api/collections/projects/schemas/project.schema';
+import type { ProjectDocument } from '@api/collections/projects/schemas/project.schema';
 import { ProjectsService } from '@api/collections/projects/services/projects.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -22,7 +19,7 @@ import type { Request } from 'express';
 
 @ApiTags('Projects')
 @AutoSwagger()
-@Controller('v1/projects')
+@Controller('projects')
 export class ProjectsController extends BaseCRUDController<
   ProjectDocument,
   CreateProjectDto,

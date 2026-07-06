@@ -175,13 +175,14 @@ describe('WorkflowApiService', () => {
       description: 'Updated description',
       label: 'Updated',
     });
-    expect(mocks.patch).toHaveBeenNthCalledWith(2, '/workflow-1/thumbnail', {
-      nodeId: 'node-1',
-      thumbnailUrl: 'x.png',
+    expect(mocks.patch).toHaveBeenNthCalledWith(2, '/workflow-1', {
+      thumbnail: 'x.png',
+      thumbnailNodeId: 'node-1',
     });
   });
 
   it('calls lifecycle, duplicate, and delete endpoints', async () => {
+    mocks.patch.mockResolvedValue({ data: { data: workflow() } });
     mocks.post.mockResolvedValue({ data: { data: workflow() } });
     mocks.delete.mockResolvedValueOnce({ data: undefined });
 
@@ -190,15 +191,13 @@ describe('WorkflowApiService', () => {
     await service().duplicate('workflow-1');
     await service().remove('workflow-1');
 
-    expect(mocks.post).toHaveBeenNthCalledWith(
-      1,
-      '/workflow-1/lifecycle/publish',
-    );
-    expect(mocks.post).toHaveBeenNthCalledWith(
-      2,
-      '/workflow-1/lifecycle/archive',
-    );
-    expect(mocks.post).toHaveBeenNthCalledWith(3, '/workflow-1/clone');
+    expect(mocks.patch).toHaveBeenNthCalledWith(1, '/workflow-1', {
+      lifecycle: 'published',
+    });
+    expect(mocks.patch).toHaveBeenNthCalledWith(2, '/workflow-1', {
+      lifecycle: 'archived',
+    });
+    expect(mocks.post).toHaveBeenCalledWith('/workflow-1/clone');
     expect(mocks.delete).toHaveBeenCalledWith('/workflow-1');
   });
 
@@ -291,7 +290,6 @@ describe('WorkflowApiService', () => {
           },
         },
       })
-      .mockResolvedValueOnce({ data: { data: { webhookSecret: 'secret-2' } } })
       .mockResolvedValueOnce({
         data: {
           data: {
@@ -305,6 +303,9 @@ describe('WorkflowApiService', () => {
       .mockResolvedValueOnce({
         data: { data: { batchJobId: 'batch-1', totalCount: 2 } },
       });
+    mocks.patch.mockResolvedValueOnce({
+      data: { data: { webhookSecret: 'secret-2' } },
+    });
     mocks.get
       .mockResolvedValueOnce({
         data: {
@@ -347,6 +348,9 @@ describe('WorkflowApiService', () => {
     await expect(
       service().regenerateWebhookSecret('workflow-1'),
     ).resolves.toEqual({ webhookSecret: 'secret-2' });
+    expect(mocks.patch).toHaveBeenCalledWith('/workflow-1/webhook', {
+      rotateSecret: true,
+    });
     await service().deleteWebhook('workflow-1');
     await expect(
       service().submitApproval('workflow-1', 'execution-1', 'review-1', true),
@@ -432,11 +436,11 @@ describe('WorkflowApiService', () => {
       },
       {
         call: () => service().publish('workflow-1'),
-        rejectWith: mocks.post,
+        rejectWith: mocks.patch,
       },
       {
         call: () => service().archive('workflow-1'),
-        rejectWith: mocks.post,
+        rejectWith: mocks.patch,
       },
       {
         call: () => service().duplicate('workflow-1'),
@@ -464,7 +468,7 @@ describe('WorkflowApiService', () => {
       },
       {
         call: () => service().regenerateWebhookSecret('workflow-1'),
-        rejectWith: mocks.post,
+        rejectWith: mocks.patch,
       },
       {
         call: () => service().deleteWebhook('workflow-1'),

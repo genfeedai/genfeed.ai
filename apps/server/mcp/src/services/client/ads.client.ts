@@ -1,6 +1,13 @@
 import type { BaseApiClient } from './base-api-client';
 
-/** Meta Ads and Google Ads read methods. */
+/**
+ * Meta Ads and Google Ads read methods.
+ *
+ * Paths target the API's `services/*-ads/*` controllers (not `integrations/*`).
+ * The controllers live at `apps/server/api/src/services/integrations/{meta,google}-ads`
+ * but are mounted under `@Controller('services/meta-ads')` /
+ * `@Controller('services/google-ads')`, so the proxy path segment is `services`.
+ */
 export class AdsClient {
   constructor(private readonly base: BaseApiClient) {}
 
@@ -10,7 +17,7 @@ export class AdsClient {
     return this.base.request(
       'listing Meta ad accounts',
       async (http) =>
-        this.base.unwrapList(await http.get('/integrations/meta-ads/accounts')),
+        this.base.unwrapList(await http.get('/services/meta-ads/accounts')),
       this.base.failWith('Failed to list Meta ad accounts'),
     );
   }
@@ -24,7 +31,7 @@ export class AdsClient {
       'listing Meta campaigns',
       async (http) =>
         this.base.unwrapList(
-          await http.get('/integrations/meta-ads/campaigns', {
+          await http.get('/services/meta-ads/campaigns', {
             params: { adAccountId, limit, status },
           }),
         ),
@@ -43,7 +50,7 @@ export class AdsClient {
       async (http) =>
         this.base.unwrapData(
           await http.get(
-            `/integrations/meta-ads/campaigns/${campaignId}/insights`,
+            `/services/meta-ads/campaigns/${campaignId}/insights`,
             { params: { datePreset, since, until } },
           ),
         ),
@@ -56,7 +63,7 @@ export class AdsClient {
       'getting Meta ad set insights',
       async (http) =>
         this.base.unwrapData(
-          await http.get(`/integrations/meta-ads/adsets/${adSetId}/insights`, {
+          await http.get(`/services/meta-ads/adsets/${adSetId}/insights`, {
             params: { datePreset },
           }),
         ),
@@ -69,7 +76,7 @@ export class AdsClient {
       'getting Meta ad insights',
       async (http) =>
         this.base.unwrapData(
-          await http.get(`/integrations/meta-ads/ads/${adId}/insights`, {
+          await http.get(`/services/meta-ads/ads/${adId}/insights`, {
             params: { datePreset },
           }),
         ),
@@ -82,7 +89,7 @@ export class AdsClient {
       'listing Meta ad creatives',
       async (http) =>
         this.base.unwrapList(
-          await http.get('/integrations/meta-ads/creatives', {
+          await http.get('/services/meta-ads/creatives', {
             params: { adAccountId, limit },
           }),
         ),
@@ -98,7 +105,7 @@ export class AdsClient {
       'comparing Meta campaigns',
       async (http) =>
         this.base.unwrapData(
-          await http.get('/integrations/meta-ads/campaigns/compare', {
+          await http.get('/services/meta-ads/campaigns/compare', {
             params: { campaignIds: campaignIds.join(','), datePreset },
           }),
         ),
@@ -115,7 +122,7 @@ export class AdsClient {
       'getting Meta top performers',
       async (http) =>
         this.base.unwrapList(
-          await http.get('/integrations/meta-ads/top-performers', {
+          await http.get('/services/meta-ads/top-performers', {
             params: { adAccountId, limit, metric },
           }),
         ),
@@ -129,9 +136,7 @@ export class AdsClient {
     return this.base.request(
       'listing Google Ads customers',
       async (http) =>
-        this.base.unwrapList(
-          await http.get('/integrations/google-ads/customers'),
-        ),
+        this.base.unwrapList(await http.get('/services/google-ads/customers')),
       this.base.failWith('Failed to list Google Ads customers'),
     );
   }
@@ -146,7 +151,7 @@ export class AdsClient {
       'listing Google Ads campaigns',
       async (http) =>
         this.base.unwrapList(
-          await http.get('/integrations/google-ads/campaigns', {
+          await http.get('/services/google-ads/campaigns', {
             params: { customerId, limit, loginCustomerId, status },
           }),
         ),
@@ -167,7 +172,7 @@ export class AdsClient {
       async (http) =>
         this.base.unwrapData(
           await http.get(
-            `/integrations/google-ads/campaigns/${campaignId}/metrics`,
+            `/services/google-ads/campaigns/${campaignId}/metrics`,
             {
               params: {
                 customerId,
@@ -195,7 +200,7 @@ export class AdsClient {
       async (http) =>
         this.base.unwrapData(
           await http.get(
-            `/integrations/google-ads/ad-groups/${adGroupId}/insights`,
+            `/services/google-ads/ad-groups/${adGroupId}/insights`,
             {
               params: { customerId, endDate, loginCustomerId, startDate },
             },
@@ -216,7 +221,7 @@ export class AdsClient {
       'getting Google Ads keyword performance',
       async (http) =>
         this.base.unwrapList(
-          await http.get('/integrations/google-ads/keywords', {
+          await http.get('/services/google-ads/keywords', {
             params: { customerId, endDate, limit, loginCustomerId, startDate },
           }),
         ),
@@ -236,18 +241,15 @@ export class AdsClient {
       'getting Google Ads search terms',
       async (http) =>
         this.base.unwrapList(
-          await http.get(
-            `/integrations/google-ads/search-terms/${campaignId}`,
-            {
-              params: {
-                customerId,
-                endDate,
-                limit,
-                loginCustomerId,
-                startDate,
-              },
+          await http.get(`/services/google-ads/search-terms/${campaignId}`, {
+            params: {
+              customerId,
+              endDate,
+              limit,
+              loginCustomerId,
+              startDate,
             },
-          ),
+          }),
         ),
       this.base.failWith('Failed to get Google Ads search terms'),
     );

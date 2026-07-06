@@ -1,4 +1,4 @@
-vi.mock('@api/shared/utils/encryption/encryption.util', () => ({
+vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: { decrypt: vi.fn((val: string) => val) },
 }));
 
@@ -251,35 +251,6 @@ describe('DiscordService', () => {
       expect(mockCredentialsService.patch).toHaveBeenCalledWith(credentialId, {
         isConnected: false,
       });
-    });
-  });
-
-  describe('disconnect', () => {
-    const orgId = 'test-object-id';
-    const brandId = 'test-object-id';
-
-    it('should disconnect and soft-delete credential', async () => {
-      const credentialId = 'test-object-id';
-      mockCredentialsService.findOne.mockResolvedValue({
-        id: credentialId,
-      });
-      mockCredentialsService.patch.mockResolvedValue({ isDeleted: true });
-
-      const result = await service.disconnect(orgId, brandId);
-
-      expect(result).toEqual({ success: true });
-      expect(mockCredentialsService.patch).toHaveBeenCalledWith(credentialId, {
-        isConnected: false,
-        isDeleted: true,
-      });
-    });
-
-    it('should throw NOT_FOUND when credential does not exist', async () => {
-      mockCredentialsService.findOne.mockResolvedValue(null);
-
-      await expect(service.disconnect(orgId, brandId)).rejects.toThrow(
-        HttpException,
-      );
     });
   });
 });

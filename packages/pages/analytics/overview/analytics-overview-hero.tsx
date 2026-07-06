@@ -45,19 +45,19 @@ export default function AnalyticsOverviewHero({
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1.7fr)_minmax(280px,0.9fr)]">
       <div className="space-y-5">
-        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-foreground/60">
+        <div className="inline-flex items-center gap-2 rounded-full bg-secondary px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-foreground/60 shadow-border">
           {dashboardState === 'active' ? (
-            <HiOutlineCheckCircle className="size-4 text-emerald-400" />
+            <HiOutlineCheckCircle className="size-4 text-success" />
           ) : dashboardState === 'warming_up' ? (
-            <HiMiniArrowTrendingUp className="size-4 text-amber-300" />
+            <HiMiniArrowTrendingUp className="size-4 text-warning" />
           ) : (
-            <HiOutlineInformationCircle className="size-4 text-sky-300" />
+            <HiOutlineInformationCircle className="size-4 text-info" />
           )}
           {heroContent.badge}
         </div>
 
         <div className="space-y-3">
-          <h1 className="text-3xl font-serif leading-tight text-foreground lg:text-4xl">
+          <h1 className="text-3xl font-serif leading-tight tracking-tight text-foreground lg:text-4xl">
             {heroContent.title}
           </h1>
           <p className="max-w-3xl text-sm leading-7 text-foreground/72 lg:text-base">

@@ -16,10 +16,10 @@ import type {
   UpdateCampaignParams,
 } from '@api/services/integrations/meta-ads/interfaces/meta-ads.interface';
 import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform, MemberRole } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {
   Body,
   Controller,
@@ -224,40 +224,6 @@ export class MetaAdsController {
 
     const accessToken = await this.getAccessTokenFromCredential(user);
     await this.metaAdsService.updateCampaign(accessToken, campaignId, body);
-    return { success: true };
-  }
-
-  @Post('campaigns/:id/pause')
-  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
-  async pauseCampaign(
-    @CurrentUser() user: User,
-    @Param('id') campaignId: string,
-  ) {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(`${url} started`);
-
-    const accessToken = await this.getAccessTokenFromCredential(user);
-    await this.metaAdsService.pauseCampaign(accessToken, campaignId);
-    return { success: true };
-  }
-
-  @Patch('campaigns/:id/budget')
-  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
-  async updateCampaignBudget(
-    @CurrentUser() user: User,
-    @Param('id') campaignId: string,
-    @Body() body: { dailyBudget?: number; lifetimeBudget?: number },
-  ) {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(`${url} started`);
-
-    const accessToken = await this.getAccessTokenFromCredential(user);
-    await this.metaAdsService.updateCampaignBudget(
-      accessToken,
-      campaignId,
-      body.dailyBudget,
-      body.lifetimeBudget,
-    );
     return { success: true };
   }
 

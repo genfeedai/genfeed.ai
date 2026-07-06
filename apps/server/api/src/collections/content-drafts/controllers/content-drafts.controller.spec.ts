@@ -3,6 +3,7 @@ import { ContentDraftsController } from '@api/collections/content-drafts/control
 import { ContentDraftsService } from '@api/collections/content-drafts/services/content-drafts.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { ContentDraftStatus } from '@genfeedai/enums';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { describe, expect, it, vi } from 'vitest';
@@ -21,11 +22,9 @@ vi.mock('@api/helpers/utils/auth/auth.util', () => ({
 describe('ContentDraftsController', () => {
   let controller: ContentDraftsController;
   let service: {
-    approve: ReturnType<typeof vi.fn>;
     bulkApprove: ReturnType<typeof vi.fn>;
-    editDraft: ReturnType<typeof vi.fn>;
     listByBrand: ReturnType<typeof vi.fn>;
-    reject: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
   };
 
   const mockUser = {
@@ -45,17 +44,11 @@ describe('ContentDraftsController', () => {
         {
           provide: ContentDraftsService,
           useValue: {
-            approve: vi
+            bulkApprove: vi.fn().mockResolvedValue({ modifiedCount: 2 }),
+            listByBrand: vi.fn().mockResolvedValue([]),
+            update: vi
               .fn()
               .mockResolvedValue({ _id: 'draft-1', status: 'approved' }),
-            bulkApprove: vi.fn().mockResolvedValue({ modifiedCount: 2 }),
-            editDraft: vi
-              .fn()
-              .mockResolvedValue({ _id: 'draft-1', content: 'edited' }),
-            listByBrand: vi.fn().mockResolvedValue([]),
-            reject: vi
-              .fn()
-              .mockResolvedValue({ _id: 'draft-1', status: 'rejected' }),
           },
         },
       ],
@@ -98,65 +91,57 @@ describe('ContentDraftsController', () => {
     });
   });
 
-  describe('approveDraft', () => {
+  describe('updateDraft', () => {
     it('approves a draft with user context', async () => {
-      await controller.approveDraft(mockReq, mockUser, 'draft-1');
+      await controller.updateDraft(mockReq, mockUser, 'draft-1', {
+        status: ContentDraftStatus.APPROVED,
+      });
 
-      expect(service.approve).toHaveBeenCalledWith(
+      expect(service.update).toHaveBeenCalledWith(
         'draft-1',
         '507f1f77bcf86cd799439012',
+        { status: ContentDraftStatus.APPROVED },
+        '507f1f77bcf86cd799439011',
+      );
+    });
+
+    it('rejects a draft with reason', async () => {
+      await controller.updateDraft(mockReq, mockUser, 'draft-1', {
+        reason: 'Off-brand',
+        status: ContentDraftStatus.REJECTED,
+      });
+
+      expect(service.update).toHaveBeenCalledWith(
+        'draft-1',
+        '507f1f77bcf86cd799439012',
+        { reason: 'Off-brand', status: ContentDraftStatus.REJECTED },
+        '507f1f77bcf86cd799439011',
+      );
+    });
+
+    it('edits draft content', async () => {
+      await controller.updateDraft(mockReq, mockUser, 'draft-1', {
+        content: 'Updated caption',
+      });
+
+      expect(service.update).toHaveBeenCalledWith(
+        'draft-1',
+        '507f1f77bcf86cd799439012',
+        { content: 'Updated caption' },
         '507f1f77bcf86cd799439011',
       );
     });
 
     it('propagates NotFoundException when draft not found', async () => {
-      service.approve.mockRejectedValue(
+      service.update.mockRejectedValue(
         new NotFoundException('ContentDraft', 'bad-id'),
       );
 
       await expect(
-        controller.approveDraft(mockReq, mockUser, 'bad-id'),
-      ).rejects.toThrow(NotFoundException);
-    });
-  });
-
-  describe('rejectDraft', () => {
-    it('rejects a draft with reason', async () => {
-      await controller.rejectDraft(mockReq, mockUser, 'draft-1', {
-        reason: 'Off-brand',
-      });
-
-      expect(service.reject).toHaveBeenCalledWith(
-        'draft-1',
-        '507f1f77bcf86cd799439012',
-        'Off-brand',
-      );
-    });
-
-    it('propagates NotFoundException when draft not found', async () => {
-      service.reject.mockRejectedValue(
-        new NotFoundException('ContentDraft', 'bad-id'),
-      );
-
-      await expect(
-        controller.rejectDraft(mockReq, mockUser, 'bad-id', {
-          reason: 'test',
+        controller.updateDraft(mockReq, mockUser, 'bad-id', {
+          status: ContentDraftStatus.APPROVED,
         }),
       ).rejects.toThrow(NotFoundException);
-    });
-  });
-
-  describe('editDraft', () => {
-    it('edits draft content', async () => {
-      await controller.editDraft(mockReq, mockUser, 'draft-1', {
-        content: 'Updated caption',
-      });
-
-      expect(service.editDraft).toHaveBeenCalledWith(
-        'draft-1',
-        '507f1f77bcf86cd799439012',
-        'Updated caption',
-      );
     });
   });
 

@@ -512,24 +512,6 @@ export class UsersController {
     return { publicUrl, s3Key, uploadUrl };
   }
 
-  @Post('me/avatar/confirm')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async confirmAvatarUpload(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Body() body: { publicUrl: string },
-  ) {
-    const publicMetadata = getPublicMetadata(user);
-
-    const data = await this.usersService.patch(publicMetadata.user, {
-      avatar: body.publicUrl,
-    });
-
-    return data
-      ? serializeSingle(request, UserSerializer, data)
-      : returnNotFound(this.constructorName, publicMetadata.user);
-  }
-
   @Patch('me')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async updateMe(

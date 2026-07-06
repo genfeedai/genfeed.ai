@@ -164,10 +164,10 @@ export class PostsService extends BaseService<Post> {
   }
 
   /**
-   * Batch schedule tweets (updates existing DRAFT posts to SCHEDULED)
+   * Batch update posts (updates existing DRAFT posts to SCHEDULED)
    */
   public async batchScheduleTweets(data: {
-    tweets: Array<{
+    items: Array<{
       postId: string;
       text: string;
       scheduledDate: string;
@@ -176,8 +176,8 @@ export class PostsService extends BaseService<Post> {
     }>;
     credential: string;
   }): Promise<Post[]> {
-    const response = await this.instance.post<JsonApiResponseDocument>(
-      `${EnvironmentService.apiEndpoint}/posts/schedules/batch`,
+    const response = await this.instance.patch<JsonApiResponseDocument>(
+      `${EnvironmentService.apiEndpoint}/posts/batch`,
       data,
     );
     return this.mapMany(response.data);

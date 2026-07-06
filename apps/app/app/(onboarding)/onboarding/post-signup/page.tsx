@@ -11,7 +11,7 @@ function PostSignupPageContent() {
 
   return (
     <PageLoadingState
-      className="bg-neutral-950"
+      className="bg-primary"
       fullScreen={true}
       message={statusMessage}
     >

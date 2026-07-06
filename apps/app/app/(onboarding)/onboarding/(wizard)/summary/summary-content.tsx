@@ -123,11 +123,11 @@ function formatSelectedAccessLabel(
     : 'No server defaults detected yet';
 }
 
-const CURRENT_RING = 'ring-1 ring-emerald-400/40';
+const CURRENT_RING = 'ring-1 ring-border-strong';
 
 function CurrentBadge() {
   return (
-    <span className="absolute -top-2 right-3 z-10 rounded-full border border-emerald-400/30 bg-emerald-400/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-200">
+    <span className="absolute -top-2 right-3 z-10 rounded-full bg-hover px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-foreground">
       Current
     </span>
   );
@@ -299,9 +299,8 @@ export default function SummaryContent() {
 
   return (
     <div ref={sectionRef}>
-      <h1 className="step-headline opacity-0 mb-4 text-4xl font-serif leading-none tracking-tighter text-white md:text-5xl">
-        Finish with the setup{' '}
-        <span className="font-light italic">that fits.</span>
+      <h1 className="step-headline opacity-0 mb-4 text-4xl font-semibold leading-none tracking-tight text-white md:text-5xl">
+        Finish with the setup that fits.
       </h1>
 
       <p className="step-description opacity-0 mb-10 max-w-2xl text-lg text-white/40">

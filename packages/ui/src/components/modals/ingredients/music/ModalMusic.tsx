@@ -158,10 +158,10 @@ export default function ModalMusic({
                     key={music.id}
                     role="button"
                     tabIndex={0}
-                    className={`relative p-4 border-2 transition-all cursor-pointer group ${
+                    className={`relative p-4 transition-all cursor-pointer group ${
                       selectedMusic === music.id
-                        ? 'border-primary bg-primary/5'
-                        : 'border-white/[0.08] hover:border-primary/50 bg-background'
+                        ? 'shadow-border-strong bg-primary/5'
+                        : 'shadow-border hover:shadow-border-strong bg-background'
                     }`}
                     onClick={() => setSelectedMusic(music.id)}
                     onKeyDown={(e) => {
@@ -236,10 +236,10 @@ export default function ModalMusic({
               <div
                 role="button"
                 tabIndex={0}
-                className={`p-3 border-2 transition-all cursor-pointer ${
+                className={`p-3 transition-all cursor-pointer ${
                   !selectedMusic
-                    ? 'border-primary bg-primary/5'
-                    : 'border-white/[0.08] hover:border-primary/50'
+                    ? 'shadow-border-strong bg-primary/5'
+                    : 'shadow-border hover:shadow-border-strong'
                 }`}
                 onClick={handleClearSelection}
                 onKeyDown={(e) => {

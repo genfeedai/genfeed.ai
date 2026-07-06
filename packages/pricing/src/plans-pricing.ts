@@ -9,8 +9,8 @@
  *   pay-as-you-go rate (~70% margin on provider cost, see applyMargin)
  * - Pay As You Go is free to join: buy credit packs, spend on any output
  * - Subscriptions sell a better credit rate, not access: included monthly
- *   credits are priced at ~50% margin (Creator $49 → 8,000 credits ≈ $80 of
- *   PAYG output; Cloud Teams $499 → 80,000 credits ≈ $800 of PAYG output)
+ *   credits are priced at ~50% margin (Pro $49 → 8,000 credits ≈ $80 of
+ *   PAYG output; Scale $499 → 80,000 credits ≈ $800 of PAYG output)
  * - Brand kits, connected channels, and seats are gated by tier
  * - Models are never user-selected: the Genfeed router picks the best model
  *   for each format, brief, and budget
@@ -36,7 +36,7 @@ interface PricingOutputsProps {
 }
 
 interface PricingPlanProps {
-  /** Display label (e.g., "Hosted", "Cloud Teams", "Enterprise") */
+  /** Display label (e.g., "Pro", "Scale", "Enterprise") */
   label: string;
   /** Stripe price ID for checkout */
   stripePriceId?: string;
@@ -73,7 +73,6 @@ const CALENDLY_URL =
   'https://calendly.com/vincent-genfeed/30min';
 
 const STRIPE_PRICE_IDS = {
-  creator: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_CREATOR_MONTHLY,
   enterprise:
     process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY,
   // Convenience aliases
@@ -81,6 +80,12 @@ const STRIPE_PRICE_IDS = {
   pro: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY,
   scale: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY,
 } as const;
+
+/** Monthly included credits per paid subscription tier (source of truth for credit grants). */
+export const TIER_INCLUDED_MONTHLY_CREDITS: Record<string, number> = {
+  pro: 8_000,
+  scale: 80_000,
+};
 
 /**
  * BYOK Platform Fee Configuration
@@ -90,21 +95,69 @@ const STRIPE_PRICE_IDS = {
 export const BYOK_FEE_PERCENTAGE = 5;
 export const BYOK_FREE_THRESHOLD_CREDITS = 500;
 export const BYOK_CREDIT_VALUE_DOLLARS = 0.01;
+export const BASE_PROVIDER_COST_FRACTION = 0.3;
+export const BASE_MARGIN_PERCENT = 70;
+export const MAX_MARGIN_MULTIPLIER = 10;
 export const BYOK_FEE_PER_CREDIT =
   BYOK_CREDIT_VALUE_DOLLARS * (BYOK_FEE_PERCENTAGE / 100);
 
 /**
- * Apply 70% margin to a provider cost in USD.
- * Returns the sell price in credits (1 credit = $0.01).
+ * Process-scoped margin multiplier applied on top of the base provider-cost
+ * markup. Hydrated from the `PlatformSetting.marginMultiplier` operator knob at
+ * runtime (API on boot/update, workers per model-discovery run) so that every
+ * `applyMargin` call site in a process stays consistent without threading the
+ * value through their signatures. Defaults to 1.0 (base margin only).
+ */
+let runtimeMarginMultiplier = 1;
+
+/** Normalize a candidate multiplier, falling back to 1.0 when invalid. */
+function normalizeMarginMultiplier(multiplier: number): number {
+  if (!Number.isFinite(multiplier) || multiplier <= 0) {
+    return 1;
+  }
+
+  return Math.min(multiplier, MAX_MARGIN_MULTIPLIER);
+}
+
+/**
+ * Set the process-scoped margin multiplier. Non-finite or non-positive values
+ * fall back to 1.0 so a misconfigured knob can never zero out pricing.
+ */
+export function setRuntimeMarginMultiplier(multiplier: number): void {
+  runtimeMarginMultiplier = normalizeMarginMultiplier(multiplier);
+}
+
+/** Read the current process-scoped margin multiplier. */
+export function getRuntimeMarginMultiplier(): number {
+  return runtimeMarginMultiplier;
+}
+
+/**
+ * Apply the base 70% margin to a provider cost in USD, optionally scaled by an
+ * operator-configured margin multiplier. Returns the sell price in credits
+ * (1 credit = $0.01).
  *
- * Formula: Sell Price (USD) = providerCostUsd / 0.30
+ * Formula: Sell Price (USD) = (providerCostUsd / 0.30) * marginMultiplier
  * Credits = Sell Price / BYOK_CREDIT_VALUE_DOLLARS
  *
+ * @param providerCostUsd Raw provider cost in USD.
+ * @param marginMultiplier Extra markup on top of the base margin, configured by
+ *   platform operators in /admin (see PlatformSetting.marginMultiplier).
+ *   1.0 = base margin only, 1.2 = +20% markup. Defaults to the process-scoped
+ *   runtime multiplier (see setRuntimeMarginMultiplier). Non-finite or
+ *   non-positive values fall back to 1.0 so a misconfigured knob can never zero
+ *   out pricing.
  * @example applyMargin(0.15) → 50 credits ($0.50 sell price on $0.15 cost)
  * @example applyMargin(0.50) → 167 credits ($1.67 sell price on $0.50 cost)
+ * @example applyMargin(0.15, 1.2) → 60 credits ($0.60 sell price)
  */
-export function applyMargin(providerCostUsd: number): number {
-  const sellPriceUsd = providerCostUsd / 0.3;
+export function applyMargin(
+  providerCostUsd: number,
+  marginMultiplier: number = runtimeMarginMultiplier,
+): number {
+  const safeMultiplier = normalizeMarginMultiplier(marginMultiplier);
+  const sellPriceUsd =
+    (providerCostUsd / BASE_PROVIDER_COST_FRACTION) * safeMultiplier;
   const credits = Math.ceil(sellPriceUsd / BYOK_CREDIT_VALUE_DOLLARS);
   return Math.max(credits, 2); // absolute minimum floor
 }
@@ -188,10 +241,10 @@ export const websitePlans: PricingPlanProps[] = [
       'Sign up free. Buy credits. Pay only for the output you actually generate.',
   },
 
-  // Hosted / Creator Tier - $49/month subscription with included credits
+  // Pro Tier - $49/month subscription with included credits
   {
-    cta: 'Start Creator',
-    ctaHref: `${process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'https://app.genfeed.ai'}/sign-up?plan=hosted`,
+    cta: 'Start Pro',
+    ctaHref: `${process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'https://app.genfeed.ai'}/sign-up?plan=pro`,
     description: 'Monthly subscription with included credits at a better rate',
     features: [
       '8,000 credits included monthly (≈ $80 of pay-as-you-go output)',
@@ -204,7 +257,7 @@ export const websitePlans: PricingPlanProps[] = [
     ],
     includedCredits: 8_000,
     interval: 'month',
-    label: 'Hosted',
+    label: 'Pro',
     launchNote: 'Launch pricing — first 12 months, then $49/month',
     launchPrice: 39,
     outputs: null,
@@ -216,7 +269,7 @@ export const websitePlans: PricingPlanProps[] = [
       'For steady publishing: a monthly fee that buys more output per dollar, plus more brands and channels.',
   },
 
-  // Teams Tier - higher-entry team studio (internal label kept as "Cloud Teams")
+  // Scale Tier - higher-entry team studio
   {
     cta: 'Talk to Sales',
     ctaHref: CALENDLY_URL,
@@ -233,7 +286,7 @@ export const websitePlans: PricingPlanProps[] = [
     ],
     includedCredits: 80_000,
     interval: 'month',
-    label: 'Cloud Teams',
+    label: 'Scale',
     outputs: null,
     price: 499,
     stripePriceId: STRIPE_PRICE_IDS.scale,
@@ -290,31 +343,31 @@ function getRequiredPlan(label: string): PricingPlanProps {
 }
 
 /**
- * Get Hosted tier plan
- */
-export function getHostedPlan(): PricingPlanProps {
-  return getRequiredPlan('Hosted');
-}
-
-/**
- * Get Cloud Teams tier plan
- */
-export function getCloudTeamsPlan(): PricingPlanProps {
-  return getRequiredPlan('Cloud Teams');
-}
-
-/**
- * @deprecated Use getHostedPlan.
+ * Get Pro tier plan
  */
 export function getProPlan(): PricingPlanProps {
-  return getHostedPlan();
+  return getRequiredPlan('Pro');
 }
 
 /**
- * @deprecated Use getCloudTeamsPlan.
+ * Get Scale tier plan
  */
 export function getScalePlan(): PricingPlanProps {
-  return getCloudTeamsPlan();
+  return getRequiredPlan('Scale');
+}
+
+/**
+ * @deprecated Use getProPlan.
+ */
+export function getHostedPlan(): PricingPlanProps {
+  return getProPlan();
+}
+
+/**
+ * @deprecated Use getScalePlan.
+ */
+export function getCloudTeamsPlan(): PricingPlanProps {
+  return getScalePlan();
 }
 
 /**
@@ -359,48 +412,6 @@ export function formatOutputs(
   }
 
   return parts.join(' · ');
-}
-
-/**
- * Creator Tier - $50/month (UNLISTED - invite only)
- *
- * This is a secret offering for individual content creators.
- * NOT displayed on the website or pricing page.
- * Only accessible via direct link or invite.
- */
-export const creatorPlan: PricingPlanProps = {
-  cta: 'Subscribe',
-  ctaHref: '/checkout/creator',
-  description: 'For individual content creators',
-  features: [
-    '1 min video/month',
-    '50 images/month',
-    '15 min voice/month',
-    '1 team seat',
-    '1 brand kit',
-    'Premium AI models (auto-selected)',
-    'Email support',
-  ],
-  interval: 'month',
-  label: 'Creator',
-  outputs: {
-    images: 50,
-    videoMinutes: 1,
-    voiceMinutes: 15,
-  },
-  price: 50,
-  stripePriceId: STRIPE_PRICE_IDS.creator,
-  target: 'Individual content creators',
-  type: 'subscription',
-  valueProposition:
-    '5 studio-quality AI videos per month for less than a coffee a day.',
-};
-
-/**
- * Get Creator tier plan (unlisted)
- */
-export function getCreatorPlan(): PricingPlanProps {
-  return creatorPlan;
 }
 
 /**

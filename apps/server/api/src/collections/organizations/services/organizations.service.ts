@@ -1,11 +1,16 @@
 import { CreateOrganizationDto } from '@api/collections/organizations/dto/create-organization.dto';
 import { UpdateOrganizationDto } from '@api/collections/organizations/dto/update-organization.dto';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 
 const PRISMA_ORGANIZATION_CATEGORIES = new Set([
   'CREATOR',
@@ -111,10 +116,42 @@ export class OrganizationsService extends BaseService<
     return super.findOne(params, this.populate);
   }
 
-  patch(
+  async patch(
     id: string,
     updateDto: Partial<UpdateOrganizationDto>,
   ): Promise<OrganizationDocument> {
+    if (updateDto.slug) {
+      const existing = await this.findBySlug(updateDto.slug);
+      if (existing && existing.id.toString() !== id) {
+        throw new BadRequestException(
+          `Slug "${updateDto.slug}" is already taken`,
+        );
+      }
+    }
+
+    if (updateDto.prefix) {
+      const prefix = updateDto.prefix.toUpperCase();
+
+      // Prefix is immutable once set — reject if the org already has one.
+      const org = await this.findOne({ _id: id, isDeleted: false });
+      if (!org) {
+        throw new NotFoundException('Organization');
+      }
+
+      if (org.prefix) {
+        throw new ConflictException(
+          `Organization already has prefix "${org.prefix}". Prefix is immutable once set.`,
+        );
+      }
+
+      const isAvailable = await this.isPrefixAvailable(prefix);
+      if (!isAvailable) {
+        throw new ConflictException(`Prefix "${prefix}" is already taken`);
+      }
+
+      updateDto = { ...updateDto, prefix };
+    }
+
     const normalizedDto = normalizeOrganizationCategoryFields(
       updateDto as Record<string, unknown>,
     ) as Partial<UpdateOrganizationDto>;

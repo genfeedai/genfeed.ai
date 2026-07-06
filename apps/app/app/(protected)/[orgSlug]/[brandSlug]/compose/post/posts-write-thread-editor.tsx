@@ -42,7 +42,7 @@ export default function PostsWriteThreadEditor({
           return (
             <div
               key={`thread-segment-${index.toString()}`}
-              className="rounded-xl border border-white/10 bg-black/20 p-3"
+              className="rounded-xl bg-tertiary p-3"
             >
               <div className="mb-2 flex items-center justify-between gap-3">
                 <span className="text-xs font-medium text-foreground">
@@ -52,7 +52,7 @@ export default function PostsWriteThreadEditor({
                   <span
                     className={
                       isOverLimit
-                        ? 'text-xs text-red-400'
+                        ? 'text-xs text-destructive'
                         : 'text-xs text-foreground/45'
                     }
                   >

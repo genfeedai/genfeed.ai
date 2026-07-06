@@ -16,6 +16,7 @@ import {
 } from '@api/services/batch-generation/dto/batch-action.dto';
 import { CreateBatchDto } from '@api/services/batch-generation/dto/create-batch.dto';
 import { CreateManualReviewBatchDto } from '@api/services/batch-generation/dto/create-manual-review-batch.dto';
+import { UpdateBatchDto } from '@api/services/batch-generation/dto/update-batch.dto';
 import { BatchStatus } from '@genfeedai/enums';
 import { BatchSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -25,6 +26,7 @@ import {
   Get,
   HttpCode,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -203,24 +205,26 @@ export class BatchGenerationController {
     }
   }
 
-  @Post(':id/cancel')
+  @Patch(':id')
   @HttpCode(200)
-  @ApiOperation({ summary: 'Cancel a batch' })
-  async cancelBatch(
+  @ApiOperation({ summary: 'Update a batch (e.g. cancel via status)' })
+  async patch(
     @Req() req: Request,
     @Param('id') id: string,
+    @Body() dto: UpdateBatchDto,
     @CurrentUser() user: User,
   ) {
     try {
       const { organization } = getPublicMetadata(user);
 
-      const data = await this.batchGenerationService.cancelBatch(
+      const data = await this.batchGenerationService.updateBatch(
         id,
+        dto,
         organization,
       );
       return serializeSingle(req, BatchSerializer, data);
     } catch (error: unknown) {
-      return ErrorResponse.handle(error, this.loggerService, 'cancelBatch');
+      return ErrorResponse.handle(error, this.loggerService, 'patch');
     }
   }
 }

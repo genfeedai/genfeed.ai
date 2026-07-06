@@ -145,20 +145,9 @@ export default function TopbarPublic({
         className={cn(
           'fixed inset-x-0 top-0 z-50 w-full transition-all duration-300',
           isScrolled
-            ? 'border-b border-white/10'
-            : 'border-b border-transparent',
+            ? 'border-b border-white/10 bg-primary/60 backdrop-blur-2xl'
+            : 'border-b border-transparent bg-transparent',
         )}
-        style={
-          isScrolled
-            ? {
-                backdropFilter: 'blur(24px)',
-                backgroundColor: 'rgba(9, 9, 11, 0.6)',
-                WebkitBackdropFilter: 'blur(24px)',
-              }
-            : {
-                backgroundColor: 'transparent',
-              }
-        }
       >
         <div className="container mx-auto flex items-center justify-between h-20 px-6">
           {/* Left: Logo + Nav */}

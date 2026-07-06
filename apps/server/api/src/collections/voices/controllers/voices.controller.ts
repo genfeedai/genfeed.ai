@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { CloneVoiceDto } from '@api/collections/voices/dto/clone-voice.dto';
@@ -8,10 +9,14 @@ import { UpdateVoiceCatalogDto } from '@api/collections/voices/dto/update-voice-
 import { VoicesQueryDto } from '@api/collections/voices/dto/voices-query.dto';
 import { ExternalVoiceCatalogService } from '@api/collections/voices/services/external-voice-catalog.service';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
-import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
+import {
+  Credits,
+  DeferCreditsUntilModelResolution,
+} from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
@@ -143,6 +148,23 @@ function toWireFormat(voice: ExternalVoice): VoiceCatalogEntryDocument {
   };
 }
 
+/**
+ * Voice TTS credit cost per output minute. Canonical source of truth:
+ * `INTERNAL_CREDIT_COSTS.voicePerMinute` in `@genfeedai/pricing` (17 credits =
+ * $0.17, ~70% margin on ~$0.05 provider cost). Mirrored here as a backend-local
+ * constant because `@genfeedai/pricing` is a shared/frontend package the API
+ * runtime does not depend on — keep this value in sync with the canonical one.
+ */
+const VOICE_CREDITS_PER_MINUTE = 17;
+
+/**
+ * Flat credit charge for a one-time voice clone (ElevenLabs synchronous, or
+ * Genfeed Fleet asynchronous). Fleet clones are billed at job acceptance today;
+ * true compute-time metering (Replicate/Fal-style, on job completion) is tracked
+ * as a follow-up — see #1354.
+ */
+const VOICE_CLONE_CREDITS = 17;
+
 @AutoSwagger()
 @Controller('voices')
 export class VoicesController {
@@ -150,6 +172,7 @@ export class VoicesController {
 
   constructor(
     private readonly byokService: ByokService,
+    private readonly creditsUtilsService: CreditsUtilsService,
     private readonly elevenLabsService: ElevenLabsService,
     private readonly externalVoiceCatalogService: ExternalVoiceCatalogService,
     private readonly fleetService: FleetService,
@@ -377,10 +400,18 @@ export class VoicesController {
   @Post('generate')
   @UseGuards(SubscriptionGuard, CreditsGuard)
   @UseInterceptors(CreditsInterceptor)
+  // TTS cost is duration-based (VOICE_CREDITS_PER_MINUTE per output minute) and
+  // the rendered audio length is unknown until generation completes, so the
+  // charge is deferred: CreditsGuard skips the up-front amount/balance check
+  // (previously this route had no amount/modelKey and fell through to
+  // `throw InsufficientCreditsException(0,0)` on every call — #1354), the
+  // handler settles the exact amount from result.duration, and CreditsInterceptor
+  // deducts it on the successful response.
   @Credits({
     description: 'Voice generation (TTS)',
     source: ActivitySource.VOICE_GENERATION,
   })
+  @DeferCreditsUntilModelResolution()
   @RateLimit({ limit: 30, windowMs: 60 * 1000 })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async generate(
@@ -411,6 +442,12 @@ export class VoicesController {
     }
 
     const publicMetadata = getPublicMetadata(user);
+
+    // Up-front floor gate: since the exact charge is deferred until after
+    // render, block organizations that cannot afford even the 1-credit minimum
+    // before we spend a provider (ElevenLabs) call. The exact duration-based
+    // amount is settled post-render below.
+    await this.assertOrganizationCanAfford(publicMetadata.organization, 1);
 
     // Create ingredient record with PROCESSING status
     const { ingredientData } = await this.sharedService.saveDocuments(user, {
@@ -447,6 +484,16 @@ export class VoicesController {
         },
       );
 
+      // Settle the deferred credit charge from the actual rendered duration.
+      // Throws InsufficientCreditsException (surfaced by the catch below) if the
+      // org cannot afford the settled amount; otherwise CreditsInterceptor
+      // deducts it on the successful response.
+      await this.settleVoiceGenerationCredits(
+        request,
+        publicMetadata.organization,
+        result.duration,
+      );
+
       // Fetch the updated ingredient with population
       const completedIngredient = await this.voicesService.findOne(
         { _id: ingredientData.id },
@@ -478,6 +525,12 @@ export class VoicesController {
         { status: IngredientStatus.FAILED },
       );
 
+      // Preserve typed HTTP errors (e.g. InsufficientCreditsException from the
+      // credit settlement above) instead of masking them as a generic 500.
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
       throw new HttpException(
         {
           detail: (error as Error)?.message || 'Voice generation failed',
@@ -494,7 +547,15 @@ export class VoicesController {
     CreditsInterceptor,
     FileInterceptor('file', { limits: { fileSize: 25 * 1024 * 1024 } }),
   )
+  // Flat per-clone charge. Cloning creates a one-time reusable voice (not
+  // duration-priced output), so a fixed `amount` is checked up-front by
+  // CreditsGuard and deducted by CreditsInterceptor on success — replacing the
+  // previous amount-less config that fell through to
+  // `throw InsufficientCreditsException(0,0)` on every call (#1354). Fleet
+  // (async) clones are billed here at acceptance; compute-time metering on job
+  // completion is a follow-up (see #1354).
   @Credits({
+    amount: VOICE_CLONE_CREDITS,
     description: 'Voice cloning',
     source: ActivitySource.VOICE_GENERATION,
   })
@@ -686,6 +747,68 @@ export class VoicesController {
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
+    }
+  }
+
+  /**
+   * Assert the organization can afford `credits`, throwing a typed
+   * InsufficientCreditsException (422) carrying the current balance otherwise.
+   */
+  private async assertOrganizationCanAfford(
+    organizationId: string,
+    credits: number,
+  ): Promise<void> {
+    const hasCredits =
+      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
+        organizationId,
+        credits,
+      );
+
+    if (!hasCredits) {
+      const balance =
+        await this.creditsUtilsService.getOrganizationCreditsBalance(
+          organizationId,
+        );
+      throw new InsufficientCreditsException(credits, balance);
+    }
+  }
+
+  /**
+   * Resolve the deferred voice-generation charge from the rendered audio
+   * duration (VOICE_CREDITS_PER_MINUTE per minute, minimum 1 credit) and write
+   * it onto `request.creditsConfig` so CreditsInterceptor deducts it on the
+   * successful response. Throws InsufficientCreditsException if the organization
+   * cannot afford the settled amount (blocking both the deduction and the
+   * response). Mirrors the deferred-credit finalization used by video
+   * generation (`VideoGenerationService.ensureDeferredCredits`).
+   */
+  private async settleVoiceGenerationCredits(
+    request: Request,
+    organizationId: string,
+    durationSeconds: number,
+  ): Promise<void> {
+    const seconds = Number(durationSeconds) || 0;
+    const credits = Math.max(
+      1,
+      Math.ceil((seconds / 60) * VOICE_CREDITS_PER_MINUTE),
+    );
+
+    await this.assertOrganizationCanAfford(organizationId, credits);
+
+    const requestWithCredits = request as unknown as {
+      creditsConfig?: {
+        amount?: number;
+        deferred?: boolean;
+        [key: string]: unknown;
+      };
+    };
+
+    if (requestWithCredits.creditsConfig) {
+      requestWithCredits.creditsConfig = {
+        ...requestWithCredits.creditsConfig,
+        amount: credits,
+        deferred: false,
+      };
     }
   }
 

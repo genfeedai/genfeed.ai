@@ -209,6 +209,15 @@ export const beehiivSchema = {
 };
 
 /**
+ * dev.to / Forem API (optional integration — API-key based, no OAuth).
+ * The API key is supplied per-brand at connect time; only the base URL is
+ * configurable (defaults to https://dev.to/api).
+ */
+export const devtoSchema = {
+  DEVTO_API_URL: Joi.string().uri().optional().allow(''),
+};
+
+/**
  * Unipile communication provider (optional integration)
  */
 export const unipileSchema = {
@@ -239,5 +248,6 @@ export const allSocialSchema = {
   ...whatsappSchema,
   ...shopifySchema,
   ...beehiivSchema,
+  ...devtoSchema,
   ...unipileSchema,
 };

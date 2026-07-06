@@ -14,7 +14,7 @@ export default function ModalCreateThreadSettings({
   browserTimezone,
 }: ModalCreateThreadSettingsProps) {
   return (
-    <div className="border border-white/[0.08] p-4 space-y-4">
+    <div className="bg-secondary shadow-border p-4 space-y-4">
       <h3 className="font-semibold">Thread Settings</h3>
 
       {credentials.length > 0 && (

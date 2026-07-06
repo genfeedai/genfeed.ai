@@ -74,9 +74,7 @@ export default function DropdownTagsPanel({
         transform: direction === 'up' ? 'translateY(-100%)' : 'none',
         zIndex: 50,
       }}
-      className={cn(
-        'w-80 rounded-md border border-white/[0.08] bg-card shadow-lg',
-      )}
+      className={cn('w-80 rounded-md bg-card shadow-dropdown')}
     >
       {/* Search Input */}
       <div className="p-3 border-b border-white/[0.08]">

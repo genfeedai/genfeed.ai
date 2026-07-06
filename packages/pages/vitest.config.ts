@@ -290,6 +290,7 @@ export default defineConfig({
       'studio/fastlane/**/*.test.ts',
       'studio/fastlane/**/*.test.tsx',
       'trends/**/*.test.tsx',
+      'twitter-pipeline/**/*.test.tsx',
     ],
     name: '@genfeedai/pages',
     setupFiles: [path.resolve(appRoot, './vitest.setup.ts')],

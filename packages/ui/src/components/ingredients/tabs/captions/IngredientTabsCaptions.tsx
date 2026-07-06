@@ -229,10 +229,10 @@ export default function IngredientTabsCaptions({
                     setSelectedCaption(caption);
                   }
                 }}
-                className={`p-3 border cursor-pointer transition-colors ${
+                className={`p-3 cursor-pointer transition-colors ${
                   selectedCaption?.id === caption.id
-                    ? 'border-primary bg-primary/10'
-                    : 'border-white/[0.08] hover:bg-background'
+                    ? 'border border-primary bg-primary/10'
+                    : 'shadow-border hover:bg-tertiary'
                 }`}
               >
                 <div className="flex justify-between items-center">
@@ -267,7 +267,7 @@ export default function IngredientTabsCaptions({
 
           {selectedCaption && (
             <>
-              <div className="p-4 bg-background mb-4">
+              <div className="p-4 bg-tertiary mb-4">
                 <p className="text-sm font-semibold mb-2">Caption Preview</p>
                 <p className="text-sm whitespace-pre-wrap line-clamp-6">
                   {selectedCaption.content || 'Caption content available'}

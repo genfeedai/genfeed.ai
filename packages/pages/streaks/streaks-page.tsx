@@ -1,6 +1,7 @@
 'use client';
 
 import { APP_ROUTES } from '@genfeedai/constants';
+import { ButtonVariant } from '@genfeedai/enums';
 import type { IStreakMilestoneState } from '@genfeedai/types';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useStreak } from '@hooks/data/streaks/use-streak/use-streak';
@@ -8,6 +9,7 @@ import { STREAK_CELEBRATION_EVENT } from '@services/engagement/streak-events';
 import Badge from '@ui/display/badge/Badge';
 import KeyMetric from '@ui/display/key-metric/KeyMetric';
 import StreakCelebrationBurst from '@ui/feedback/streak-celebration/StreakCelebrationBurst';
+import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -94,11 +96,11 @@ export default function StreaksPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-8">
-      <section className="relative overflow-hidden rounded-3xl border border-orange-500/20 bg-[radial-gradient(circle_at_top_left,_rgba(251,146,60,0.2),_transparent_45%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-6">
+      <section className="relative overflow-hidden rounded-3xl bg-secondary p-6 shadow-border">
         <StreakCelebrationBurst isVisible={isCelebrating} />
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-3xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-orange-200/80">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
               Daily retention
             </p>
             <h1 className="mt-2 text-3xl font-semibold text-foreground">
@@ -109,13 +111,12 @@ export default function StreaksPage() {
             </p>
           </div>
 
-          <Link
-            href={APP_ROUTES.STUDIO.IMAGE}
-            className="inline-flex items-center gap-2 rounded-full border border-orange-300/30 bg-orange-400/10 px-4 py-2 text-sm font-medium text-orange-100 transition-colors hover:bg-orange-400/15"
-          >
-            <HiOutlineSparkles className="size-4" />
-            Create content now
-          </Link>
+          <Button asChild variant={ButtonVariant.DEFAULT}>
+            <Link href={APP_ROUTES.STUDIO.IMAGE}>
+              <HiOutlineSparkles className="size-4" />
+              Create content now
+            </Link>
+          </Button>
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-4">
@@ -135,7 +136,7 @@ export default function StreaksPage() {
       </section>
 
       <section className="grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
-        <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
+        <div className="rounded-3xl bg-secondary p-5 shadow-border">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
@@ -155,18 +156,18 @@ export default function StreaksPage() {
               const count = calendar[dayKey]?.count ?? 0;
               const intensityClass =
                 count >= 4
-                  ? 'bg-orange-300/80 border-orange-200/60'
+                  ? 'bg-foreground/80'
                   : count >= 2
-                    ? 'bg-orange-300/45 border-orange-300/40'
+                    ? 'bg-foreground/45'
                     : count >= 1
-                      ? 'bg-orange-300/25 border-orange-300/25'
-                      : 'bg-white/[0.03] border-white/8';
+                      ? 'bg-foreground/25'
+                      : 'bg-secondary';
 
               return (
                 <div
                   key={dayKey}
                   className={cn(
-                    'aspect-square rounded border transition-colors',
+                    'aspect-square rounded transition-colors',
                     intensityClass,
                   )}
                   title={`${dayKey}${count > 0 ? `: ${count} item${count === 1 ? '' : 's'}` : ''}`}
@@ -176,7 +177,7 @@ export default function StreaksPage() {
           </div>
         </div>
 
-        <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
+        <div className="rounded-3xl bg-secondary p-5 shadow-border">
           <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
             Badge progress
           </p>
@@ -208,12 +209,12 @@ export default function StreaksPage() {
               <div
                 key={milestone.days}
                 className={cn(
-                  'rounded-2xl border p-4',
+                  'rounded-2xl p-4',
                   milestone.isAchieved
-                    ? 'border-emerald-400/20 bg-emerald-400/8'
+                    ? 'bg-success/10 shadow-border'
                     : milestone.isNext
-                      ? 'border-orange-400/20 bg-orange-400/8'
-                      : 'border-white/10 bg-black/10',
+                      ? 'bg-warning/10 shadow-border'
+                      : 'bg-secondary shadow-border',
                 )}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -223,11 +224,11 @@ export default function StreaksPage() {
                         {milestone.days} days
                       </span>
                       {milestone.days === 7 ? (
-                        <HiOutlineShieldCheck className="size-4 text-sky-300" />
+                        <HiOutlineShieldCheck className="size-4 text-muted-foreground" />
                       ) : milestone.rewardCredits > 0 ? (
-                        <HiOutlineGift className="size-4 text-emerald-300" />
+                        <HiOutlineGift className="size-4 text-muted-foreground" />
                       ) : (
-                        <HiOutlineFire className="size-4 text-orange-300" />
+                        <HiOutlineFire className="size-4 text-muted-foreground" />
                       )}
                     </div>
                     <p className="mt-1 text-sm text-foreground/65">

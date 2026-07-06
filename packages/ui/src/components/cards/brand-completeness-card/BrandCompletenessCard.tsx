@@ -121,7 +121,6 @@ export default function BrandCompletenessCard({
 
   return (
     <Card
-      className="shadow-none"
       bodyClassName="gap-0 p-3 sm:p-3"
       data-testid="brand-completeness-card"
     >

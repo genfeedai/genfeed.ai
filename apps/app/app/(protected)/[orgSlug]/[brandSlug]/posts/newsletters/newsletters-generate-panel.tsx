@@ -99,10 +99,10 @@ export default function NewsletterGeneratePanel({
                   key={`${proposal.title}-${proposal.angle}`}
                   variant={ButtonVariant.UNSTYLED}
                   withWrapper={false}
-                  className={`rounded-lg border p-4 text-left transition-colors ${
+                  className={`rounded-lg p-4 text-left transition-colors ${
                     isSelected
-                      ? 'border-primary bg-primary/5'
-                      : 'border-border hover:border-primary/40'
+                      ? 'shadow-border-strong bg-tertiary'
+                      : 'bg-tertiary/50 hover:bg-tertiary'
                   }`}
                   onClick={() => onSelectProposal(proposal)}
                 >
@@ -164,7 +164,7 @@ export default function NewsletterGeneratePanel({
             {publishedNewsletters.map((newsletter) => (
               <span
                 key={newsletter.id}
-                className="flex items-start gap-3 rounded-lg border border-border p-3 text-sm"
+                className="flex items-start gap-3 rounded-lg bg-tertiary p-3 text-sm"
               >
                 <Checkbox
                   checked={selectedContextSet.has(newsletter.id)}

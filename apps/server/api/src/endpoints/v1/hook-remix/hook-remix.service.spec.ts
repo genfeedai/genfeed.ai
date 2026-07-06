@@ -286,8 +286,8 @@ describe('HookRemixService', () => {
     });
   });
 
-  describe('getJobStatus', () => {
-    it('should return job status from files service', async () => {
+  describe('getJob', () => {
+    it('should return job from files service', async () => {
       const mockStatus = {
         jobId: 'job-123',
         progress: 75,
@@ -295,7 +295,7 @@ describe('HookRemixService', () => {
       };
       httpGetMock.mockReturnValue(of({ data: mockStatus }));
 
-      const result = await service.getJobStatus('job-123');
+      const result = await service.getJob('job-123');
 
       expect(result).toEqual(mockStatus);
       expect(httpGetMock).toHaveBeenCalledWith(
@@ -306,7 +306,7 @@ describe('HookRemixService', () => {
     it('should throw when files service returns error', async () => {
       httpGetMock.mockReturnValue(throwError(() => new Error('Job not found')));
 
-      await expect(service.getJobStatus('bad-job-id')).rejects.toThrow(
+      await expect(service.getJob('bad-job-id')).rejects.toThrow(
         'Job not found',
       );
       expect(loggerMock.error).toHaveBeenCalled();

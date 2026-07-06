@@ -100,12 +100,9 @@ describe('cn.util', () => {
       expect(BG_BLUR).toContain('supports-[backdrop-filter]');
     });
 
-    it('BORDER_WHITE_30 should contain border and shadow classes', () => {
-      expect(BORDER_WHITE_30).toContain('border');
-      expect(BORDER_WHITE_30).toContain('border-border');
-      expect(BORDER_WHITE_30).toContain(
-        'shadow-[0_-8px_32px_rgba(0,0,0,0.45)]',
-      );
+    it('BORDER_WHITE_30 should contain rounded and shadow-dropdown token classes', () => {
+      expect(BORDER_WHITE_30).toContain('rounded-lg');
+      expect(BORDER_WHITE_30).toContain('shadow-dropdown');
     });
   });
 });

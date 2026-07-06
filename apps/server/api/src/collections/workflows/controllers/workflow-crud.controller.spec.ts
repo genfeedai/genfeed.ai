@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { WorkflowCrudController } from '@api/collections/workflows/controllers/workflow-crud.controller';
 import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
 import { UpdateWorkflowDto } from '@api/collections/workflows/dto/update-workflow.dto';
+import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { WorkflowStatus } from '@genfeedai/enums';
@@ -44,7 +45,12 @@ describe('WorkflowCrudController', () => {
     findVisibleOrThrow: vi.fn(),
     getWorkflowStatistics: vi.fn(),
     patch: vi.fn(),
+    publishToMarketplace: vi.fn(),
     remove: vi.fn(),
+  };
+
+  const mockWorkflowSchedulerService = {
+    updateSchedule: vi.fn(),
   };
 
   const mockLoggerService = {
@@ -59,6 +65,10 @@ describe('WorkflowCrudController', () => {
       controllers: [WorkflowCrudController],
       providers: [
         { provide: WorkflowsService, useValue: mockWorkflowsService },
+        {
+          provide: WorkflowSchedulerService,
+          useValue: mockWorkflowSchedulerService,
+        },
         { provide: LoggerService, useValue: mockLoggerService },
       ],
     })
@@ -100,6 +110,26 @@ describe('WorkflowCrudController', () => {
   });
 
   describe('findAll', () => {
+    it('should widen the where clause when query.referencable is truthy', async () => {
+      mockWorkflowsService.findAll.mockResolvedValue({
+        docs: [],
+        totalDocs: 0,
+      });
+
+      await controller.findAll(mockRequest, mockUser, { referencable: true });
+
+      expect(mockWorkflowsService.findAll).toHaveBeenCalled();
+      const [aggregateArg] =
+        mockWorkflowsService.findAll.mock.calls[
+          mockWorkflowsService.findAll.mock.calls.length - 1
+        ];
+      expect(aggregateArg.where).toMatchObject({
+        isDeleted: false,
+        organization: mockUser.publicMetadata.organization,
+      });
+      expect(aggregateArg.where.OR).toBeUndefined();
+    });
+
     it('should return all workflows for user', async () => {
       mockWorkflowsService.findAll.mockResolvedValue({
         docs: [mockWorkflow],
@@ -192,6 +222,74 @@ describe('WorkflowCrudController', () => {
         user: mockUser.publicMetadata.user,
       });
       expect(service.patch).toHaveBeenCalledWith(id, updateDto);
+      expect(result).toBeDefined();
+    });
+
+    it('should call workflowSchedulerService.updateSchedule and not a plain patch for schedule fields', async () => {
+      const id = '507f1f77bcf86cd799439014';
+      const updateDto: UpdateWorkflowDto = {
+        isScheduleEnabled: true,
+        schedule: '0 9 * * *',
+        timezone: 'UTC',
+      };
+
+      mockWorkflowsService.findMutableOwnedOrThrow.mockResolvedValue(
+        mockWorkflow,
+      );
+      mockWorkflowsService.findOwnedOrThrow.mockResolvedValue({
+        ...mockWorkflow,
+        ...updateDto,
+      });
+
+      const result = await controller.update(
+        mockRequest,
+        id,
+        updateDto,
+        mockUser,
+      );
+
+      expect(mockWorkflowSchedulerService.updateSchedule).toHaveBeenCalledWith(
+        id,
+        '0 9 * * *',
+        'UTC',
+        true,
+      );
+      expect(mockWorkflowsService.patch).not.toHaveBeenCalled();
+      expect(mockWorkflowsService.findOwnedOrThrow).toHaveBeenCalledWith(id, {
+        organization: mockUser.publicMetadata.organization,
+        user: mockUser.publicMetadata.user,
+      });
+      expect(result).toBeDefined();
+    });
+
+    it('should call publishToMarketplace when isPublic and isTemplate are both true', async () => {
+      const id = '507f1f77bcf86cd799439014';
+      const updateDto: UpdateWorkflowDto = {
+        isPublic: true,
+        isTemplate: true,
+      };
+
+      mockWorkflowsService.publishToMarketplace.mockResolvedValue({
+        ...mockWorkflow,
+        ...updateDto,
+      });
+
+      const result = await controller.update(
+        mockRequest,
+        id,
+        updateDto,
+        mockUser,
+      );
+
+      expect(mockWorkflowsService.publishToMarketplace).toHaveBeenCalledWith(
+        id,
+        mockUser.publicMetadata.user,
+        mockUser.publicMetadata.organization,
+      );
+      expect(
+        mockWorkflowsService.findMutableOwnedOrThrow,
+      ).not.toHaveBeenCalled();
+      expect(mockWorkflowsService.patch).not.toHaveBeenCalled();
       expect(result).toBeDefined();
     });
   });

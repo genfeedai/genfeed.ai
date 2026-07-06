@@ -38,7 +38,7 @@ const VISUAL_CATEGORY_CARDS: LibraryCategoryCardConfig[] = [
     id: 'videos',
     kicker: 'Motion',
     label: 'Videos',
-    toneClassName: 'bg-amber-500/12 text-amber-300',
+    toneClassName: 'bg-white/[0.05] text-white/80',
   },
   {
     description: 'Stills, references, and brand visual building blocks.',
@@ -47,7 +47,7 @@ const VISUAL_CATEGORY_CARDS: LibraryCategoryCardConfig[] = [
     id: 'images',
     kicker: 'Still',
     label: 'Images',
-    toneClassName: 'bg-sky-500/12 text-sky-300',
+    toneClassName: 'bg-white/[0.05] text-white/80',
   },
   {
     description: 'Short-form loops and reaction-ready motion snippets.',
@@ -56,7 +56,7 @@ const VISUAL_CATEGORY_CARDS: LibraryCategoryCardConfig[] = [
     id: 'gifs',
     kicker: 'Loop',
     label: 'GIFs',
-    toneClassName: 'bg-emerald-500/12 text-emerald-300',
+    toneClassName: 'bg-white/[0.05] text-white/80',
   },
   {
     description: 'Character presets and presenter surfaces for video creation.',
@@ -65,7 +65,7 @@ const VISUAL_CATEGORY_CARDS: LibraryCategoryCardConfig[] = [
     id: 'avatars',
     kicker: 'Persona',
     label: 'Avatars',
-    toneClassName: 'bg-fuchsia-500/12 text-fuchsia-300',
+    toneClassName: 'bg-white/[0.05] text-white/80',
   },
 ];
 
@@ -118,8 +118,8 @@ function LibraryCategoryTile({
       aria-describedby={descriptionId}
       data-testid={testId}
       className={cn(
-        'group block h-full rounded-card border border-white/[0.08] bg-card text-card-foreground shadow-[0_24px_60px_-40px_rgba(0,0,0,0.8)] transition-[border-color,background-color,box-shadow,transform] duration-200 ease-out',
-        'hover:-translate-y-0.5 hover:border-white/[0.16] hover:bg-white/[0.02] hover:shadow-[0_28px_70px_-44px_rgba(0,0,0,0.9)]',
+        'group block h-full rounded-card bg-card text-card-foreground shadow-border transition-[background-color,box-shadow,transform] duration-200 ease-out',
+        'hover:-translate-y-0.5 hover:bg-white/[0.02] hover:shadow-border-strong',
         'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
       )}
     >

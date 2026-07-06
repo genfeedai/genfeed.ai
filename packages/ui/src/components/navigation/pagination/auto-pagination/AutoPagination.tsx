@@ -92,7 +92,7 @@ function AutoPaginationContent({
       />
 
       {showTotal && totalDocs > 0 && (
-        <div className="text-sm text-foreground/60">
+        <div className="text-foreground/60">
           Showing page {currentPage} of {totalPages} ({totalDocs} {totalLabel})
         </div>
       )}

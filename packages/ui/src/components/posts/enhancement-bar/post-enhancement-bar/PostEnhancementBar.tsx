@@ -115,7 +115,7 @@ export default function PostEnhancementBar({
 
   return (
     <div
-      className={`sticky top-4 z-10 mt-4 flex items-center gap-2 border border-white/[0.08] bg-card p-2 shadow-lg ${className}`}
+      className={`sticky top-4 z-10 mt-4 flex items-center gap-2 bg-card p-2 shadow-border ${className}`}
     >
       {/* Quick Actions - Icon only */}
       <div className="flex items-center gap-1">
@@ -180,7 +180,7 @@ export default function PostEnhancementBar({
           <HiChevronDown size={14} />
         </Button>
 
-        <ul className="absolute bottom-full mb-2 left-0 hidden group-hover:block bg-background z-50 w-36 p-2 shadow-lg border border-white/[0.08]">
+        <ul className="absolute bottom-full mb-2 left-0 hidden group-hover:block bg-secondary z-50 w-36 p-2 shadow-dropdown">
           {TONE_OPTIONS.map((option) => (
             <li key={option.key}>
               <Button

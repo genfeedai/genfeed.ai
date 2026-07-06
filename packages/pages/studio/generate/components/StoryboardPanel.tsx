@@ -62,7 +62,7 @@ export function StoryboardPanel({
         />
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-white/[0.08] bg-card px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-card px-4 py-3 shadow-border">
         <div className="text-sm text-muted-foreground">
           <span className="font-medium text-foreground">{frames.length}</span>{' '}
           frame{frames.length === 1 ? '' : 's'}

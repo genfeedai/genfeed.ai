@@ -37,7 +37,7 @@ export default function WorkflowCardPreview({
     previewUrl !== DEFAULT_WORKFLOW_CARD_IMAGE && isVideoUrl(previewUrl);
 
   return (
-    <div className="relative aspect-video overflow-hidden rounded border border-white/5 bg-background/40">
+    <div className="relative aspect-video overflow-hidden rounded shadow-border bg-tertiary">
       {isVideoPreview ? (
         <video
           aria-label="Workflow preview"

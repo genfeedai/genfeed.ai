@@ -56,9 +56,8 @@ const ListingCard = memo(function ListingCard({
         className={cn(
           'relative h-full overflow-hidden',
           'gen-glass',
+          'shadow-border hover:shadow-border-strong',
           'transition-all duration-400 ease-out',
-          'hover:border-white/20 dark:hover:border-white/20',
-          'hover:shadow-[0_0_40px_rgba(255,255,255,0.08)]',
           VARIANT_CLASSES[variant],
           className,
         )}
@@ -170,9 +169,6 @@ const ListingCard = memo(function ListingCard({
             </div>
           </div>
         </div>
-
-        {/* Hover glow effect */}
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none bg-gradient-to-t from-white/[0.02] to-transparent" />
       </article>
     </Link>
   );

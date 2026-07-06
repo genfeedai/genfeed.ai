@@ -160,7 +160,7 @@ export default function PipelinePage() {
       )}
 
       {/* Campaigns Table */}
-      <h3 className="text-lg font-semibold mb-4">Campaigns</h3>
+      <h3 className="text-sm font-semibold mb-4">Campaigns</h3>
 
       {!isLoadingCampaigns && (!campaigns || campaigns.length === 0) ? (
         <CardEmpty label="No campaigns found" />

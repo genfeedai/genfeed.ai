@@ -164,19 +164,21 @@ export function BottomBar() {
       role="toolbar"
       tabIndex={-1}
     >
-      <div className="flex items-center gap-1 rounded-md border border-neutral-700/80 bg-neutral-800/95 px-2 py-1 shadow-lg backdrop-blur-sm">
+      <div className="flex items-center gap-1 rounded-md border border-border bg-secondary/95 px-2 py-1 shadow-lg backdrop-blur-sm">
         {/* Batch Counter */}
         <div className="flex items-center gap-0.5">
-          <span className="mr-0.5 text-[11px] text-neutral-400">Batch</span>
+          <span className="mr-0.5 text-[11px] text-muted-foreground">
+            Batch
+          </span>
           <Button
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
             onClick={decrementBatch}
             isDisabled={batchCount <= MIN_BATCH || isActive}
-            className="flex size-5 items-center justify-center rounded text-neutral-400 transition hover:bg-neutral-700 hover:text-white disabled:opacity-40 disabled:hover:bg-transparent"
+            className="flex size-5 items-center justify-center rounded text-muted-foreground transition hover:bg-hover hover:text-foreground disabled:opacity-40 disabled:hover:bg-transparent"
             icon={<Minus className="size-2.5" />}
           />
-          <span className="w-4 text-center text-xs font-medium tabular-nums text-white">
+          <span className="w-4 text-center text-xs font-medium tabular-nums text-foreground">
             {batchCount}
           </span>
           <Button
@@ -184,13 +186,13 @@ export function BottomBar() {
             withWrapper={false}
             onClick={incrementBatch}
             isDisabled={batchCount >= MAX_BATCH || isActive}
-            className="flex size-5 items-center justify-center rounded text-neutral-400 transition hover:bg-neutral-700 hover:text-white disabled:opacity-40 disabled:hover:bg-transparent"
+            className="flex size-5 items-center justify-center rounded text-muted-foreground transition hover:bg-hover hover:text-foreground disabled:opacity-40 disabled:hover:bg-transparent"
             icon={<Plus className="size-2.5" />}
           />
         </div>
 
         {/* Divider */}
-        <div className="mx-1 h-4 w-px bg-neutral-600" />
+        <div className="mx-1 h-4 w-px bg-border" />
 
         {/* Run Button with Dropdown */}
         <div className="relative flex items-center">
@@ -204,10 +206,10 @@ export function BottomBar() {
             isDisabled={!isActive && !canRunWorkflow}
             className={`flex h-7 items-center gap-1.5 rounded-l px-3 text-xs font-medium transition ${
               isActive
-                ? 'bg-red-500/90 text-white hover:bg-red-500'
+                ? 'bg-destructive/90 text-white hover:bg-destructive'
                 : canRunWorkflow
-                  ? 'bg-white text-black hover:bg-neutral-200'
-                  : 'bg-neutral-600 text-neutral-400'
+                  ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                  : 'bg-tertiary text-muted-foreground'
             } disabled:cursor-not-allowed`}
           >
             {isActive ? (
@@ -236,10 +238,10 @@ export function BottomBar() {
             isDisabled={isActive}
             className={`flex h-7 items-center rounded-r border-l px-1.5 transition ${
               isActive
-                ? 'border-red-400/30 bg-red-500/90 text-white'
+                ? 'border-destructive/30 bg-destructive/90 text-white'
                 : canRunWorkflow
-                  ? 'border-neutral-300 bg-white text-black hover:bg-neutral-200'
-                  : 'border-neutral-500 bg-neutral-600 text-neutral-400'
+                  ? 'border-primary/30 bg-primary text-primary-foreground hover:bg-primary/90'
+                  : 'border-border bg-tertiary text-muted-foreground'
             } disabled:cursor-not-allowed`}
             icon={<ChevronUp className="size-3.5" />}
           />
@@ -260,7 +262,7 @@ export function BottomBar() {
                 onClick={(e) => e.stopPropagation()}
                 onKeyDown={(e) => e.stopPropagation()}
                 onPointerDown={(e) => e.stopPropagation()}
-                className="absolute bottom-full left-0 z-50 mb-1.5 min-w-[180px] rounded-md border border-neutral-700 bg-neutral-800 py-0.5 shadow-xl"
+                className="absolute bottom-full left-0 z-50 mb-1.5 min-w-[180px] rounded-md border border-border bg-secondary py-0.5 shadow-xl"
                 role="menu"
                 tabIndex={-1}
               >
@@ -272,7 +274,7 @@ export function BottomBar() {
                     setDropdownOpen(false);
                   }}
                   isDisabled={!canRunWorkflow}
-                  className="flex w-full items-center gap-1.5 px-2.5 py-1.5 text-left text-xs text-neutral-200 transition hover:bg-neutral-700 disabled:text-neutral-500 disabled:hover:bg-transparent"
+                  className="flex w-full items-center gap-1.5 px-2.5 py-1.5 text-left text-xs text-foreground/88 transition hover:bg-hover disabled:text-muted-foreground disabled:hover:bg-transparent"
                   icon={<Play className="size-3" />}
                 >
                   Run Workflow
@@ -282,19 +284,19 @@ export function BottomBar() {
                   withWrapper={false}
                   onClick={handleRunSelected}
                   isDisabled={!hasSelection || isRunning}
-                  className="flex w-full items-center gap-1.5 px-2.5 py-1.5 text-left text-xs text-neutral-200 transition hover:bg-neutral-700 disabled:text-neutral-500 disabled:hover:bg-transparent"
+                  className="flex w-full items-center gap-1.5 px-2.5 py-1.5 text-left text-xs text-foreground/88 transition hover:bg-hover disabled:text-muted-foreground disabled:hover:bg-transparent"
                   icon={<PlayCircle className="size-3" />}
                 >
                   Run Selected ({selectedNodeIds.length})
                 </Button>
                 {showResume && (
                   <>
-                    <div className="mx-2 my-0.5 h-px bg-neutral-700" />
+                    <div className="mx-2 my-0.5 h-px bg-border" />
                     <Button
                       variant={ButtonVariant.UNSTYLED}
                       withWrapper={false}
                       onClick={handleResume}
-                      className="flex w-full items-center gap-1.5 px-2.5 py-1.5 text-left text-xs text-neutral-200 transition hover:bg-neutral-700"
+                      className="flex w-full items-center gap-1.5 px-2.5 py-1.5 text-left text-xs text-foreground/88 transition hover:bg-hover"
                       icon={<RotateCcw className="size-3" />}
                     >
                       Resume from Failed
@@ -309,8 +311,8 @@ export function BottomBar() {
         {/* Batch Progress */}
         {isBatchRunning && (
           <>
-            <div className="mx-1 h-4 w-px bg-neutral-600" />
-            <span className="text-[11px] tabular-nums text-neutral-400">
+            <div className="mx-1 h-4 w-px bg-border" />
+            <span className="text-[11px] tabular-nums text-muted-foreground">
               {currentBatchRun}/{batchCount}
             </span>
           </>

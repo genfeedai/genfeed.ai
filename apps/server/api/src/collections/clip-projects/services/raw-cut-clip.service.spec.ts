@@ -1,5 +1,6 @@
 import type { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 import type { Mocked } from 'vitest';
 import {
   RawCutClipService,
@@ -122,7 +123,23 @@ describe('RawCutClipService', () => {
       service.dispatchClip(
         makeInput({ sourceVideoS3Key: undefined, sourceVideoUrl: undefined }),
       ),
-    ).rejects.toThrow(/source video/i);
+    ).rejects.toThrow(BadRequestException);
+    expect(fileQueueService.processVideo).not.toHaveBeenCalled();
+  });
+
+  it('rejects a zero-length cut window before dispatching a trim job', async () => {
+    await expect(
+      service.dispatchClip(makeInput({ endTime: 15, startTime: 15 })),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(fileQueueService.processVideo).not.toHaveBeenCalled();
+  });
+
+  it('rejects a negative cut window before dispatching a trim job', async () => {
+    await expect(
+      service.dispatchClip(makeInput({ endTime: 14.5, startTime: 15 })),
+    ).rejects.toThrow(BadRequestException);
+
     expect(fileQueueService.processVideo).not.toHaveBeenCalled();
   });
 });

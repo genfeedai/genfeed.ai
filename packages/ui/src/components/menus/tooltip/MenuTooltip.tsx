@@ -114,7 +114,7 @@ export default function MenuTooltip({ label, children }: MenuTooltipProps) {
             transform: 'translateY(-50%)',
           }}
         >
-          <div className=" bg-background text-xs text-foreground px-2 py-1 shadow-lg whitespace-nowrap">
+          <div className="bg-secondary text-xs text-foreground px-2 py-1 shadow-dropdown whitespace-nowrap">
             {label}
           </div>
         </div>

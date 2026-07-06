@@ -1,9 +1,9 @@
 vi.mock(
-  '@api/shared/utils/circuit-breaker/circuit-breaker.util',
+  '@libs/utils/circuit-breaker/circuit-breaker.util',
   async (importOriginal) => {
     const actual =
       await importOriginal<
-        typeof import('@api/shared/utils/circuit-breaker/circuit-breaker.util')
+        typeof import('@libs/utils/circuit-breaker/circuit-breaker.util')
       >();
     return {
       ...actual,
@@ -16,8 +16,8 @@ vi.mock(
 
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
-import { BrokenCircuitError } from '@api/shared/utils/circuit-breaker/circuit-breaker.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { BrokenCircuitError } from '@libs/utils/circuit-breaker/circuit-breaker.util';
 import { Test, TestingModule } from '@nestjs/testing';
 import {
   AnalyticsYouTubeProcessor,
@@ -171,7 +171,7 @@ describe('AnalyticsYouTubeProcessor', () => {
 
     it('throws BrokenCircuitError when circuit breaker is open', async () => {
       const { createProcessorCircuitBreaker } = await import(
-        '@api/shared/utils/circuit-breaker/circuit-breaker.util'
+        '@libs/utils/circuit-breaker/circuit-breaker.util'
       );
       const circuitErr = new BrokenCircuitError('analytics-youtube', 5);
       (
