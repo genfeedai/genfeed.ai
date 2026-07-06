@@ -9,21 +9,24 @@ import {
 } from 'class-validator';
 
 export class CreateWatchlistDto {
-  @IsNotEmpty()
+  @IsOptional()
   @Transform(({ value }) => (typeof value === 'string' ? value : value))
-  brand!: string;
+  brand?: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @Transform(({ value }) => (typeof value === 'string' ? value : value))
-  organization!: string;
+  organization?: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @Transform(({ value }) => (typeof value === 'string' ? value : value))
-  user!: string;
+  user?: string;
 
-  @IsNotEmpty()
+  /**
+   * Defaults to `@{handle}` server-side when omitted (quick-add semantics).
+   */
+  @IsOptional()
   @IsString()
-  label!: string;
+  label?: string;
 
   @IsNotEmpty()
   @IsEnum(WatchlistPlatform)

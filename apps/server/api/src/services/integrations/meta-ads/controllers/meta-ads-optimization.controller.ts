@@ -4,6 +4,7 @@ import type { AdOptimizationConfigDocument } from '@api/collections/ad-optimizat
 import { AdOptimizationConfigsService } from '@api/collections/ad-optimization-configs/services/ad-optimization-configs.service';
 import type {
   AdOptimizationRecommendationDocument,
+  RecommendationReviewStatus,
   RecommendationStatus,
   RecommendationType,
 } from '@api/collections/ad-optimization-recommendations/schemas/ad-optimization-recommendation.schema';
@@ -29,8 +30,8 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   Post,
-  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -74,42 +75,26 @@ export class MetaAdsOptimizationController {
     });
   }
 
-  @Post('recommendations/:id/approve')
+  @Patch('recommendations/:id')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
-  async approveRecommendation(
+  async updateRecommendation(
     @CurrentUser() user: User,
     @Param('id') id: string,
+    @Body() body: { status: RecommendationReviewStatus; reason?: string },
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(`${url} started`);
-
-    const ctx = extractRequestContext(user);
-    const rec = await this.recommendationsService.approve(
-      id,
-      ctx.organizationId,
+    this.loggerService.log(
+      `${url} started, status: ${body.status}${
+        body.reason ? `, reason: ${body.reason}` : ''
+      }`,
     );
 
-    if (!rec) {
-      throw new NotFoundException('Recommendation', id);
-    }
-
-    return rec;
-  }
-
-  @Post('recommendations/:id/reject')
-  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
-  async rejectRecommendation(
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-    @Body() body?: { reason?: string },
-  ) {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(`${url} started, reason: ${body?.reason || 'none'}`);
-
     const ctx = extractRequestContext(user);
-    const rec = await this.recommendationsService.reject(
+    const rec = await this.recommendationsService.patchReviewStatus(
       id,
       ctx.organizationId,
+      body.status,
+      body.reason,
     );
 
     if (!rec) {
@@ -219,7 +204,7 @@ export class MetaAdsOptimizationController {
     return config || { isEnabled: false };
   }
 
-  @Put('config')
+  @Patch('config')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async updateConfig(
     @CurrentUser() user: User,

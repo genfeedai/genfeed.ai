@@ -46,7 +46,7 @@ export class TrendsService extends BaseService<Trend> {
   async savePreferences(
     preferences: ITrendPreferences & { brandId?: string },
   ): Promise<ITrendPreferences> {
-    const response = await this.instance.post<{
+    const response = await this.instance.put<{
       preferences?: ITrendPreferences;
     }>('preferences', preferences);
     return response.data?.preferences || preferences;

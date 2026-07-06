@@ -15,6 +15,12 @@ export type RecommendationStatus =
   | 'executed'
   | 'expired';
 
+/** Statuses settable via the recommendation review PATCH endpoint. */
+export type RecommendationReviewStatus = Extract<
+  RecommendationStatus,
+  'approved' | 'rejected'
+>;
+
 export interface RecommendationMetrics {
   clicks?: number;
   cpm?: number;

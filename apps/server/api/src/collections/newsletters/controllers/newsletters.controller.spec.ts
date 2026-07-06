@@ -26,7 +26,6 @@ describe('NewslettersController', () => {
   let controller: NewslettersController;
   let service: {
     approveScoped: ReturnType<typeof vi.fn>;
-    archiveScoped: ReturnType<typeof vi.fn>;
     createScoped: ReturnType<typeof vi.fn>;
     findAllScoped: ReturnType<typeof vi.fn>;
     findOneScoped: ReturnType<typeof vi.fn>;
@@ -57,9 +56,6 @@ describe('NewslettersController', () => {
             approveScoped: vi
               .fn()
               .mockResolvedValue({ _id: 'nl-1', status: 'approved' }),
-            archiveScoped: vi
-              .fn()
-              .mockResolvedValue({ _id: 'nl-1', status: 'archived' }),
             createScoped: vi
               .fn()
               .mockResolvedValue({ _id: 'nl-1', title: 'New Newsletter' }),
@@ -224,20 +220,6 @@ describe('NewslettersController', () => {
       );
       expect(result).toEqual({
         data: { _id: 'nl-1', status: 'published' },
-      });
-    });
-  });
-
-  describe('archive', () => {
-    it('should archive a newsletter', async () => {
-      const result = await controller.archive(mockReq, mockUser, 'nl-1');
-
-      expect(service.archiveScoped).toHaveBeenCalledWith(
-        'nl-1',
-        expect.objectContaining({ organizationId: '507f1f77bcf86cd799439012' }),
-      );
-      expect(result).toEqual({
-        data: { _id: 'nl-1', status: 'archived' },
       });
     });
   });

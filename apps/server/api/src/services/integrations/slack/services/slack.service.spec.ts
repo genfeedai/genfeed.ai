@@ -1,7 +1,6 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ConfigService } from '@api/config/config.service';
 import { SlackService } from '@api/services/integrations/slack/services/slack.service';
-import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -412,96 +411,6 @@ describe('SlackService', () => {
         expect(error).toBeInstanceOf(HttpException);
         const httpError = error as HttpException;
         expect(httpError.getStatus()).toBe(HttpStatus.UNAUTHORIZED);
-      }
-    });
-  });
-
-  describe('disconnect', () => {
-    const orgId = 'test-object-id';
-    const brandId = 'test-object-id';
-
-    it('should disconnect successfully when credential exists', async () => {
-      const mockCredential = {
-        _id: 'test-credential-id',
-        accessToken: 'encrypted-token',
-        isConnected: true,
-        platform: CredentialPlatform.SLACK,
-      };
-
-      credentialsService.findOne.mockResolvedValue(mockCredential as never);
-      credentialsService.patch.mockResolvedValue(undefined as never);
-
-      const result = await service.disconnect(orgId, brandId);
-
-      expect(result).toEqual({ success: true });
-      expect(credentialsService.findOne).toHaveBeenCalledWith({
-        brand: brandId,
-        isDeleted: false,
-        organization: orgId,
-        platform: CredentialPlatform.SLACK,
-      });
-      expect(credentialsService.patch).toHaveBeenCalledWith(mockCredential.id, {
-        isConnected: false,
-        isDeleted: true,
-      });
-      expect(loggerService.log).toHaveBeenCalled();
-    });
-
-    it('should throw NOT_FOUND when credential does not exist', async () => {
-      credentialsService.findOne.mockResolvedValue(null as never);
-
-      try {
-        await service.disconnect(orgId, brandId);
-        fail('Expected HttpException');
-      } catch (error: unknown) {
-        const httpError = error as HttpException;
-        expect(httpError.getStatus()).toBe(HttpStatus.NOT_FOUND);
-        const response = httpError.getResponse() as Record<string, string>;
-        expect(response.detail).toBe('Slack credential not found');
-      }
-    });
-
-    it('should throw INTERNAL_SERVER_ERROR when database operation fails', async () => {
-      credentialsService.findOne.mockRejectedValue(
-        new Error('Database connection lost'),
-      );
-
-      try {
-        await service.disconnect(orgId, brandId);
-        fail('Expected HttpException');
-      } catch (error: unknown) {
-        const httpError = error as HttpException;
-        expect(httpError.getStatus()).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
-        const response = httpError.getResponse() as Record<string, string>;
-        expect(response.detail).toBe('Failed to disconnect Slack');
-      }
-      expect(loggerService.error).toHaveBeenCalled();
-    });
-
-    it('should re-throw HttpException from inner logic without wrapping', async () => {
-      credentialsService.findOne.mockResolvedValue(null as never);
-
-      await expect(service.disconnect(orgId, brandId)).rejects.toThrow(
-        HttpException,
-      );
-    });
-
-    it('should throw INTERNAL_SERVER_ERROR when patch fails', async () => {
-      const mockCredential = {
-        _id: 'test-credential-id',
-        accessToken: 'token',
-        platform: CredentialPlatform.SLACK,
-      };
-
-      credentialsService.findOne.mockResolvedValue(mockCredential as never);
-      credentialsService.patch.mockRejectedValue(new Error('Write failed'));
-
-      try {
-        await service.disconnect(orgId, brandId);
-        fail('Expected HttpException');
-      } catch (error: unknown) {
-        const httpError = error as HttpException;
-        expect(httpError.getStatus()).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
       }
     });
   });

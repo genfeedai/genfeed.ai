@@ -221,19 +221,6 @@ export class NewslettersService extends BaseService<
     );
   }
 
-  async archiveScoped(
-    id: string,
-    ctx: TenantContext,
-  ): Promise<NewsletterDocument> {
-    await this.findOneScoped(id, ctx);
-
-    return await this.patch(id, { status: 'archived' }, [
-      'organization',
-      'brand',
-      'user',
-    ]);
-  }
-
   async getContextPreview(
     id: string,
     ctx: TenantContext,

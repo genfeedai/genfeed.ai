@@ -8,7 +8,6 @@ import {
 } from '@api/endpoints/onboarding/dto/brand-setup.dto';
 import { GeneratePreviewDto } from '@api/endpoints/onboarding/dto/generate-preview.dto';
 import { AddReferenceImagesDto } from '@api/endpoints/onboarding/dto/reference-images.dto';
-import { SetPrefixDto } from '@api/endpoints/onboarding/dto/set-prefix.dto';
 import { OnboardingService } from '@api/endpoints/onboarding/onboarding.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -219,37 +218,6 @@ export class OnboardingController {
     const isAvailable =
       await this.onboardingService.checkPrefixAvailable(normalized);
     return { isAvailable, prefix: normalized };
-  }
-
-  /**
-   * Set organization prefix during onboarding
-   * Prefix is immutable once set — used for issue identifiers (e.g., GEN-42)
-   */
-  @Post('prefix')
-  @HttpCode(200)
-  @ApiOperation({
-    description:
-      'Sets the unique 3-letter uppercase prefix for the organization. Used for issue identifiers. Immutable once set.',
-    summary: 'Set organization prefix',
-  })
-  @ApiResponse({
-    description: 'Prefix set successfully',
-    schema: {
-      properties: {
-        message: { type: 'string' },
-        prefix: { type: 'string' },
-        success: { type: 'boolean' },
-      },
-      type: 'object',
-    },
-    status: 200,
-  })
-  @ApiResponse({
-    description: 'Prefix already set or taken',
-    status: 409,
-  })
-  setPrefix(@Body() dto: SetPrefixDto, @CurrentUser() user: User) {
-    return this.onboardingService.setPrefix(user, dto.prefix);
   }
 
   /**

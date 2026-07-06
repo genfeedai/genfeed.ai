@@ -205,9 +205,9 @@ export class ArticlesService extends BaseService<Article> {
    * Restore article to a specific version (prompt)
    */
   public async restoreVersion(id: string, promptId: string): Promise<Article> {
-    return await this.instance
-      .post<JsonApiResponseDocument>(`/${id}/versions/${promptId}/restore`, {})
-      .then((res) => this.mapOne(res.data));
+    return await this.patch(id, {
+      restoreFromVersionId: promptId,
+    } as Record<string, unknown>);
   }
 
   /**

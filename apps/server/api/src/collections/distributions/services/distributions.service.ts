@@ -27,7 +27,7 @@ export class DistributionsService extends BaseService<
   async createDistribution(
     organizationId: string,
     userId: string,
-    dto: CreateDistributionDto,
+    dto: Omit<CreateDistributionDto, 'platform'>,
     platform: DistributionPlatform,
     status: PublishStatus = PublishStatus.PUBLISHING,
     scheduledAt?: Date,
