@@ -3,7 +3,7 @@
 // Source of truth: apps/server/api/openapi/openapi.json (Phase 1 / #1247).
 // Regenerate:      bun run --filter=@genfeedai/tools generate:mcp-tools
 //
-// 1019 MCP operation bindings for generated-tool dispatch (#1249 / #1250).
+// 1011 MCP operation bindings for generated-tool dispatch (#1249 / #1250).
 
 import type { IGeneratedMcpOperationBinding } from '../openapi/build-generated-mcp-tools.js';
 
@@ -12444,96 +12444,6 @@ export const GENERATED_MCP_OPERATIONS: IGeneratedMcpOperationBinding[] = [
     "pathParams": [],
     "queryParams": [],
     "toolName": "stripe__get_billing_portal_url"
-  },
-  {
-    "bodyFields": [],
-    "bodyRequired": false,
-    "bodyStyle": "none",
-    "method": "get",
-    "operationId": "SubscriptionAttributionsController.getContentSubscriptionStats",
-    "path": "/analytics/content/{contentId}/subscription-stats",
-    "pathParams": [
-      "contentId"
-    ],
-    "queryParams": [],
-    "toolName": "subscription_attributions__get_content_subscription_stats"
-  },
-  {
-    "bodyFields": [],
-    "bodyRequired": false,
-    "bodyStyle": "none",
-    "method": "get",
-    "operationId": "SubscriptionAttributionsController.getTopContent",
-    "path": "/analytics/top-content-by-subscriptions",
-    "pathParams": [],
-    "queryParams": [],
-    "toolName": "subscription_attributions__get_top_content"
-  },
-  {
-    "bodyFields": [],
-    "bodyRequired": false,
-    "bodyStyle": "none",
-    "method": "post",
-    "operationId": "SubscriptionAttributionsController.trackSubscription",
-    "path": "/analytics/subscription-attribution",
-    "pathParams": [],
-    "queryParams": [],
-    "toolName": "subscription_attributions__track_subscription"
-  },
-  {
-    "bodyFields": [],
-    "bodyRequired": true,
-    "bodyStyle": "properties",
-    "method": "patch",
-    "operationId": "SubscriptionsController.changePlan",
-    "path": "/subscriptions/current",
-    "pathParams": [],
-    "queryParams": [],
-    "toolName": "subscriptions__change_plan"
-  },
-  {
-    "bodyFields": [],
-    "bodyRequired": false,
-    "bodyStyle": "none",
-    "method": "get",
-    "operationId": "SubscriptionsController.findAll",
-    "path": "/subscriptions",
-    "pathParams": [],
-    "queryParams": [],
-    "toolName": "subscriptions__find_all"
-  },
-  {
-    "bodyFields": [],
-    "bodyRequired": false,
-    "bodyStyle": "none",
-    "method": "get",
-    "operationId": "SubscriptionsController.getCreditUsage",
-    "path": "/subscriptions/admin/credit-usage",
-    "pathParams": [],
-    "queryParams": [],
-    "toolName": "subscriptions__get_credit_usage"
-  },
-  {
-    "bodyFields": [],
-    "bodyRequired": false,
-    "bodyStyle": "none",
-    "method": "get",
-    "operationId": "SubscriptionsController.getCreditsBreakdown",
-    "path": "/subscriptions/current/credits",
-    "pathParams": [],
-    "queryParams": [],
-    "toolName": "subscriptions__get_credits_breakdown"
-  },
-  {
-    "bodyFields": [],
-    "bodyRequired": false,
-    "bodyStyle": "none",
-    "method": "post",
-    "operationId": "SubscriptionsController.previewChange",
-    "path": "/subscriptions/current/preview",
-    "pathParams": [],
-    "queryParams": [],
-    "toolName": "subscriptions__preview_change"
   },
   {
     "bodyFields": [],
