@@ -16,6 +16,10 @@ import type {
 import { handleAccountManagementTool } from '@mcp/tools/account-management.tool';
 import { handleAdminInfrastructureTool } from '@mcp/tools/admin-infrastructure.tool';
 import { handleAgentChatTool } from '@mcp/tools/agent-chat.tool';
+import {
+  CLIP_PROJECTS_TOOL_NAMES,
+  handleClipProjectsTool,
+} from '@mcp/tools/clip-projects.tool';
 import { handleDarkroomGenerationTool } from '@mcp/tools/darkroom-generation.tool';
 import { handleGoogleAdsTool } from '@mcp/tools/google-ads.tool';
 import { handleMetaAdsTool } from '@mcp/tools/meta-ads.tool';
@@ -149,6 +153,7 @@ type ExecutorKind =
   | 'training-pipeline'
   | 'darkroom-generation'
   | 'social-messages'
+  | 'clip-projects'
   | 'unknown';
 
 /**
@@ -178,6 +183,10 @@ const APPROVAL_REQUIRED_TOOLS: ReadonlySet<string> = new Set<string>([
   'approve_social_draft',
   'post_social_reply',
   'send_social_dm',
+  // Clip projects — resource creation + credit-spending compute require approval
+  'analyze_clip_project',
+  'create_clip_project_from_youtube',
+  'generate_clips',
 ]);
 
 @Injectable()
@@ -358,6 +367,7 @@ export class ToolRegistryService implements OnModuleInit {
     if (TRAINING_PIPELINE_TOOL_NAMES.has(name)) return 'training-pipeline';
     if (isDarkroomGenerationTool(name)) return 'darkroom-generation';
     if (SOCIAL_MESSAGES_TOOL_NAMES.has(name)) return 'social-messages';
+    if (CLIP_PROJECTS_TOOL_NAMES.has(name)) return 'clip-projects';
     return 'unknown';
   }
 
@@ -387,6 +397,8 @@ export class ToolRegistryService implements OnModuleInit {
         return handleDarkroomGenerationTool(this.clientService, name, args);
       case 'social-messages':
         return handleSocialMessagesTool(this.clientService, name, args);
+      case 'clip-projects':
+        return handleClipProjectsTool(this.clientService, name, args);
       default:
         throw new Error(`Unknown tool: ${name}`);
     }
