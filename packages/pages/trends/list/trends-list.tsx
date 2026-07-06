@@ -62,13 +62,13 @@ function SummaryMetricCard({
 }) {
   return (
     <Card bodyClassName="p-4">
-      <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-foreground/40">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-foreground/62">
         {label}
       </div>
       <div className="mt-3 text-2xl font-semibold tracking-[-0.02em] text-foreground">
         {value}
       </div>
-      <div className="mt-2 text-xs leading-5 text-foreground/52">{detail}</div>
+      <div className="mt-2 text-xs leading-5 text-foreground/68">{detail}</div>
     </Card>
   );
 }
@@ -124,7 +124,7 @@ function ReadinessCard({
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-sm font-semibold text-foreground">{label}</div>
-          <div className="mt-1 text-xs leading-5 text-foreground/52">
+          <div className="mt-1 text-xs leading-5 text-foreground/68">
             {description}
           </div>
         </div>
@@ -182,7 +182,7 @@ function SectionCardHeader({
           <Badge variant="ghost">{badge}</Badge>
         </div>
         {description ? (
-          <div className="text-sm leading-6 text-foreground/55">
+          <div className="text-sm leading-6 text-foreground/70">
             {description}
           </div>
         ) : null}
@@ -202,37 +202,27 @@ function TrendContentEmptyTable({
   search: string;
 }) {
   const hasSearch = Boolean(search.trim());
+  const headClassName =
+    'px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-foreground/72';
 
   return (
-    <div className="overflow-hidden rounded-card border border-white/[0.06] bg-card">
+    <div className="overflow-hidden rounded-card border border-border bg-card">
       <Table className="w-full text-left">
         <TableHeader>
-          <TableRow className="border-b border-white/[0.06] bg-card">
-            <TableHead className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-              Source
-            </TableHead>
-            <TableHead className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-              Content
-            </TableHead>
-            <TableHead className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-              Trend
-            </TableHead>
-            <TableHead className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-              Score
-            </TableHead>
-            <TableHead className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-              Mentions
-            </TableHead>
-            <TableHead className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-              Action
-            </TableHead>
+          <TableRow className="border-b border-border bg-background-secondary">
+            <TableHead className={headClassName}>Source</TableHead>
+            <TableHead className={headClassName}>Content</TableHead>
+            <TableHead className={headClassName}>Trend</TableHead>
+            <TableHead className={headClassName}>Score</TableHead>
+            <TableHead className={headClassName}>Mentions</TableHead>
+            <TableHead className={headClassName}>Action</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           <TableRow className="hover:bg-transparent">
-            <TableCell colSpan={6} className="px-4 py-12">
+            <TableCell colSpan={6} className="px-4 py-12 text-foreground/70">
               <div className="mx-auto flex max-w-xl flex-col items-center text-center">
-                <div className="flex size-11 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.03] text-foreground/52">
+                <div className="flex size-11 items-center justify-center rounded-full border border-border bg-background-secondary text-foreground/70">
                   <HiOutlineInboxStack className="size-5" />
                 </div>
                 <div className="mt-4 text-base font-semibold text-foreground">
@@ -240,7 +230,7 @@ function TrendContentEmptyTable({
                     ? 'No matching trend content'
                     : 'No remixable trend content yet'}
                 </div>
-                <div className="mt-2 text-sm leading-6 text-foreground/55">
+                <div className="mt-2 text-sm leading-6 text-foreground/72">
                   {hasSearch
                     ? 'The current saved feed has no source posts matching that search.'
                     : 'The feed is waiting for source posts from trend syncs before it can show remix-ready rows.'}
