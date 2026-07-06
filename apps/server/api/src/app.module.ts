@@ -61,6 +61,7 @@ import { HarnessProfilesModule } from '@api/collections/harness-profiles/harness
 import { ImagesModule } from '@api/collections/images/images.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { InsightsModule } from '@api/collections/insights/insights.module';
+import { LaunchCopyModule } from '@api/collections/launch-copy/launch-copy.module';
 import { LinksModule } from '@api/collections/links/links.module';
 import { McpApprovalsModule } from '@api/collections/mcp-approvals/mcp-approvals.module';
 import { MembersModule } from '@api/collections/members/members.module';
@@ -264,6 +265,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     ContentPlansModule,
     ContentIntelligenceModule,
     ContentPerformanceModule,
+    LaunchCopyModule,
     ContentRunsModule,
     ContentSchedulesModule,
     SkillsModule,

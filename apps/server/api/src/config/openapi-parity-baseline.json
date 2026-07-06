@@ -317,9 +317,9 @@
       "path": "/agent/threads/{threadId}/messages"
     },
     {
-      "method": "post",
-      "operationId": "AgentThreadsController.archiveAllThreads",
-      "path": "/agent/threads/archive-all"
+      "method": "patch",
+      "operationId": "AgentThreadsController.bulkUpdateThreads",
+      "path": "/agent/threads"
     },
     {
       "method": "post",
@@ -500,11 +500,6 @@
       "method": "get",
       "operationId": "ApiKeysController.findAll",
       "path": "/api-keys"
-    },
-    {
-      "method": "get",
-      "operationId": "ApiKeysController.findMCPKeys",
-      "path": "/api-keys/mcp"
     },
     {
       "method": "get",
@@ -820,11 +815,6 @@
       "method": "get",
       "operationId": "BotActivitiesController.findOne",
       "path": "/bot-activities/{id}"
-    },
-    {
-      "method": "get",
-      "operationId": "BotActivitiesController.getRecentByConfig",
-      "path": "/bot-activities/recent/{configId}"
     },
     {
       "method": "get",
@@ -1462,11 +1452,6 @@
       "path": "/creative-patterns"
     },
     {
-      "method": "get",
-      "operationId": "CreativePatternsController.findTopForBrand",
-      "path": "/creative-patterns/brand/{brandId}"
-    },
-    {
       "method": "post",
       "operationId": "CreatorsController.analyze",
       "path": "/content-intelligence/creators/{id}/analyze"
@@ -2038,28 +2023,8 @@
     },
     {
       "method": "get",
-      "operationId": "EvaluationsController.getArticleEvaluations",
-      "path": "/evaluations/articles/{articleId}"
-    },
-    {
-      "method": "get",
-      "operationId": "EvaluationsController.getImageEvaluations",
-      "path": "/evaluations/images/{imageId}"
-    },
-    {
-      "method": "get",
-      "operationId": "EvaluationsController.getPostEvaluations",
-      "path": "/evaluations/posts/{postId}"
-    },
-    {
-      "method": "get",
       "operationId": "EvaluationsController.getTrends",
       "path": "/evaluations/analytics/trends"
-    },
-    {
-      "method": "get",
-      "operationId": "EvaluationsController.getVideoEvaluations",
-      "path": "/evaluations/videos/{videoId}"
     },
     {
       "method": "patch",
@@ -2292,11 +2257,6 @@
       "path": "/harness-profiles"
     },
     {
-      "method": "get",
-      "operationId": "HarnessProfilesController.getActiveForBrand",
-      "path": "/harness-profiles/active"
-    },
-    {
       "method": "delete",
       "operationId": "HarnessProfilesController.remove",
       "path": "/harness-profiles/{profileId}"
@@ -2353,8 +2313,8 @@
     },
     {
       "method": "get",
-      "operationId": "HookRemixController.getJobStatus",
-      "path": "/hook-remix/{jobId}/status"
+      "operationId": "HookRemixController.getJob",
+      "path": "/hook-remix/{jobId}"
     },
     {
       "method": "get",
@@ -2503,6 +2463,11 @@
     },
     {
       "method": "post",
+      "operationId": "LaunchCopyController.generate",
+      "path": "/launch-copy/generate"
+    },
+    {
+      "method": "post",
       "operationId": "LinkedInController.connect",
       "path": "/services/linkedin/connect"
     },
@@ -2629,7 +2594,7 @@
     {
       "method": "get",
       "operationId": "MembersController.listInvitations",
-      "path": "/members/invitations/pending"
+      "path": "/members/invitations"
     },
     {
       "method": "post",
@@ -3343,18 +3308,8 @@
     },
     {
       "method": "get",
-      "operationId": "PatternsController.findHooks",
-      "path": "/content-intelligence/patterns/hooks"
-    },
-    {
-      "method": "get",
       "operationId": "PatternsController.findOne",
       "path": "/content-intelligence/patterns/{id}"
-    },
-    {
-      "method": "get",
-      "operationId": "PatternsController.findTemplates",
-      "path": "/content-intelligence/patterns/templates"
     },
     {
       "method": "delete",
@@ -3547,9 +3502,9 @@
       "path": "/posts/{postId}/replies"
     },
     {
-      "method": "post",
-      "operationId": "PostsOperationsController.batchSchedule",
-      "path": "/posts/schedules/batch"
+      "method": "patch",
+      "operationId": "PostsOperationsController.batchUpdate",
+      "path": "/posts/batch"
     },
     {
       "method": "post",
@@ -3650,11 +3605,6 @@
       "method": "post",
       "operationId": "ProfilesController.generateFromExamples",
       "path": "/profiles/generate"
-    },
-    {
-      "method": "get",
-      "operationId": "ProfilesController.getDefault",
-      "path": "/profiles/default"
     },
     {
       "method": "delete",
@@ -4327,11 +4277,6 @@
       "path": "/tasks/{id}"
     },
     {
-      "method": "get",
-      "operationId": "TasksController.inbox",
-      "path": "/tasks/inbox"
-    },
-    {
       "method": "post",
       "operationId": "TasksController.openPlanThread",
       "path": "/tasks/{id}/plan-thread"
@@ -4382,11 +4327,6 @@
       "path": "/templates"
     },
     {
-      "method": "post",
-      "operationId": "TemplatesController.createPromptTemplate",
-      "path": "/templates/prompts"
-    },
-    {
       "method": "get",
       "operationId": "TemplatesController.findAll",
       "path": "/templates"
@@ -4397,24 +4337,9 @@
       "path": "/templates/{templateId}"
     },
     {
-      "method": "get",
-      "operationId": "TemplatesController.getPopularTemplates",
-      "path": "/templates/popular"
-    },
-    {
-      "method": "get",
-      "operationId": "TemplatesController.listPromptTemplates",
-      "path": "/templates/prompts"
-    },
-    {
       "method": "delete",
       "operationId": "TemplatesController.remove",
       "path": "/templates/{templateId}"
-    },
-    {
-      "method": "delete",
-      "operationId": "TemplatesController.removePromptTemplate",
-      "path": "/templates/prompts/{templateId}"
     },
     {
       "method": "post",
@@ -4425,11 +4350,6 @@
       "method": "patch",
       "operationId": "TemplatesController.update",
       "path": "/templates/{templateId}"
-    },
-    {
-      "method": "patch",
-      "operationId": "TemplatesController.updatePromptTemplate",
-      "path": "/templates/prompts/{templateId}"
     },
     {
       "method": "post",
