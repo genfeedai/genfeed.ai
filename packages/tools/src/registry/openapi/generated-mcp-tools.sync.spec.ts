@@ -2,9 +2,13 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { GENERATED_MCP_OPERATIONS } from '../generated/mcp-operations.generated.js';
 import { GENERATED_MCP_TOOLS } from '../generated/mcp-tools.generated.js';
 import { ALL_TOOLS, getToolsForSurface } from '../tool-registry.js';
-import { buildGeneratedMcpTools } from './build-generated-mcp-tools.js';
+import {
+  buildGeneratedMcpOperationBindings,
+  buildGeneratedMcpTools,
+} from './build-generated-mcp-tools.js';
 import type { IOpenApiDocument } from './openapi-types.js';
 
 /**
@@ -22,7 +26,7 @@ const ALLOWLIST_PATH = resolve(
   'apps/server/api/src/config/openapi-internal-routes.json',
 );
 
-function loadFromSpec() {
+function loadToolsFromSpec() {
   const document = JSON.parse(
     readFileSync(SPEC_PATH, 'utf8'),
   ) as IOpenApiDocument;
@@ -33,17 +37,28 @@ function loadFromSpec() {
   return buildGeneratedMcpTools(document, prefixes);
 }
 
+function loadOperationsFromSpec() {
+  const document = JSON.parse(
+    readFileSync(SPEC_PATH, 'utf8'),
+  ) as IOpenApiDocument;
+  const allowlist = JSON.parse(readFileSync(ALLOWLIST_PATH, 'utf8')) as {
+    internalRoutes: { pathPrefix: string }[];
+  };
+  const prefixes = allowlist.internalRoutes.map((route) => route.pathPrefix);
+  return buildGeneratedMcpOperationBindings(document, prefixes);
+}
+
 describe('committed generated MCP tools artifact', () => {
   it('matches a fresh build from the OpenAPI spec (no drift, deterministic)', () => {
-    expect(GENERATED_MCP_TOOLS).toEqual(loadFromSpec());
+    expect(GENERATED_MCP_TOOLS).toEqual(loadToolsFromSpec());
   });
 
   it('rebuilding twice from the spec is structurally identical', () => {
-    expect(loadFromSpec()).toEqual(loadFromSpec());
+    expect(loadToolsFromSpec()).toEqual(loadToolsFromSpec());
   });
 
   it('covers the bulk of the API surface (parity baseline)', () => {
-    // ~1101 non-internal operations at time of writing; assert a healthy floor
+    // ~1000 non-internal operations at time of writing; assert a healthy floor
     // so an accidental empty/partial regen fails loudly.
     expect(GENERATED_MCP_TOOLS.length).toBeGreaterThan(1000);
   });
@@ -58,6 +73,34 @@ describe('committed generated MCP tools artifact', () => {
       expect(tool.surfaces.agent).toBe(false);
       expect(tool.parameters.type).toBe('object');
     }
+  });
+});
+
+describe('committed generated MCP operation bindings artifact', () => {
+  it('matches a fresh build from the OpenAPI spec (no drift, deterministic)', () => {
+    expect(GENERATED_MCP_OPERATIONS).toEqual(loadOperationsFromSpec());
+  });
+
+  it('has one operation binding per generated tool', () => {
+    const toolNames = GENERATED_MCP_TOOLS.map((tool) => tool.name).sort();
+    const operationNames = GENERATED_MCP_OPERATIONS.map(
+      (operation) => operation.toolName,
+    ).sort();
+    expect(operationNames).toEqual(toolNames);
+  });
+
+  it('preserves method, path, and argument-location metadata', () => {
+    const update = GENERATED_MCP_OPERATIONS.find(
+      (operation) => operation.toolName === 'activities__update',
+    );
+
+    expect(update).toMatchObject({
+      bodyFields: expect.arrayContaining(['isRead']),
+      bodyStyle: 'properties',
+      method: 'patch',
+      path: '/activities/{activityId}',
+      pathParams: ['activityId'],
+    });
   });
 });
 

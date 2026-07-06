@@ -15,6 +15,7 @@ import { ToolRegistryService } from '@mcp/services/tool-registry.service';
  * to exercise the guard — the tool's real tier is irrelevant to this test.
  */
 vi.mock('@genfeedai/tools', () => ({
+  GENERATED_MCP_OPERATIONS: [],
   getToolByName: vi.fn((name: string) =>
     name === 'get_account_info'
       ? { name, requiredRole: 'admin', surfaces: { mcp: true } }

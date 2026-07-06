@@ -17,7 +17,11 @@ import { dirname, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import type { CanonicalToolDefinition } from '../src/interfaces/tool-definition.interface.js';
-import { buildGeneratedMcpTools } from '../src/registry/openapi/build-generated-mcp-tools.js';
+import {
+  buildGeneratedMcpOperationBindings,
+  buildGeneratedMcpTools,
+  type IGeneratedMcpOperationBinding,
+} from '../src/registry/openapi/build-generated-mcp-tools.js';
 import type {
   IOpenApiDocument,
   IOpenApiSchema,
@@ -40,6 +44,10 @@ const OUT_PATH = resolve(
   packageDir,
   'src/registry/generated/mcp-tools.generated.ts',
 );
+const OPERATIONS_OUT_PATH = resolve(
+  packageDir,
+  'src/registry/generated/mcp-operations.generated.ts',
+);
 
 /**
  * Recursively sorts object keys so the emitted literal is byte-stable
@@ -61,7 +69,7 @@ function sortKeysDeep(value: unknown): unknown {
   return value;
 }
 
-function renderArtifact(tools: CanonicalToolDefinition[]): string {
+function renderToolsArtifact(tools: CanonicalToolDefinition[]): string {
   const literal = JSON.stringify(sortKeysDeep(tools), null, 2);
   return `${[
     '// AUTO-GENERATED — DO NOT EDIT BY HAND.',
@@ -70,12 +78,30 @@ function renderArtifact(tools: CanonicalToolDefinition[]): string {
     '// Regenerate:      bun run --filter=@genfeedai/tools generate:mcp-tools',
     '//',
     `// ${tools.length} MCP tools, one per non-internal OpenAPI operation (#1248).`,
-    '// Dispatch/execution and approval-gating are intentionally not wired here',
-    '// (that is #1249 / #1250); these definitions only populate the mcp surface.',
+    '// Execution metadata lives in mcp-operations.generated.ts (#1249 / #1250).',
     '',
     "import type { CanonicalToolDefinition } from '../../interfaces/tool-definition.interface.js';",
     '',
     `export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = ${literal};`,
+    '',
+  ].join('\n')}`;
+}
+
+function renderOperationsArtifact(
+  operations: IGeneratedMcpOperationBinding[],
+): string {
+  const literal = JSON.stringify(sortKeysDeep(operations), null, 2);
+  return `${[
+    '// AUTO-GENERATED — DO NOT EDIT BY HAND.',
+    '//',
+    '// Source of truth: apps/server/api/openapi/openapi.json (Phase 1 / #1247).',
+    '// Regenerate:      bun run --filter=@genfeedai/tools generate:mcp-tools',
+    '//',
+    `// ${operations.length} MCP operation bindings for generated-tool dispatch (#1249 / #1250).`,
+    '',
+    "import type { IGeneratedMcpOperationBinding } from '../openapi/build-generated-mcp-tools.js';",
+    '',
+    `export const GENERATED_MCP_OPERATIONS: IGeneratedMcpOperationBinding[] = ${literal};`,
     '',
   ].join('\n')}`;
 }
@@ -101,25 +127,38 @@ function main(): void {
   const isCheck = process.argv.slice(2).includes('--check');
   const { document, internalPrefixes } = loadSpec();
   const tools = buildGeneratedMcpTools(document, internalPrefixes);
-  const contents = renderArtifact(tools);
+  const operations = buildGeneratedMcpOperationBindings(
+    document,
+    internalPrefixes,
+  );
+  const toolsContents = renderToolsArtifact(tools);
+  const operationsContents = renderOperationsArtifact(operations);
 
   if (isCheck) {
-    const current = readFileSync(OUT_PATH, 'utf8');
-    if (current !== contents) {
+    const currentTools = readFileSync(OUT_PATH, 'utf8');
+    const currentOperations = readFileSync(OPERATIONS_OUT_PATH, 'utf8');
+    if (
+      currentTools !== toolsContents ||
+      currentOperations !== operationsContents
+    ) {
       console.error(
-        'Generated MCP tools artifact is stale. Run: bun run --filter=@genfeedai/tools generate:mcp-tools',
+        'Generated MCP tool artifacts are stale. Run: bun run --filter=@genfeedai/tools generate:mcp-tools',
       );
       process.exit(1);
     }
     console.info(
-      `Generated MCP tools artifact is up to date (${tools.length} tools).`,
+      `Generated MCP tool artifacts are up to date (${tools.length} tools).`,
     );
     return;
   }
 
-  writeFileSync(OUT_PATH, contents);
+  writeFileSync(OUT_PATH, toolsContents);
+  writeFileSync(OPERATIONS_OUT_PATH, operationsContents);
   console.info(
     `Wrote ${tools.length} generated MCP tools to ${OUT_PATH.replace(`${repoRoot}/`, '')}`,
+  );
+  console.info(
+    `Wrote ${operations.length} generated MCP operation bindings to ${OPERATIONS_OUT_PATH.replace(`${repoRoot}/`, '')}`,
   );
 }
 

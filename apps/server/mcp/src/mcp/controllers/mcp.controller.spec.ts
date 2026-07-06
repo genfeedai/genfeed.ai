@@ -10,6 +10,8 @@ type AuthenticatedControllerRequest = Parameters<
 >[1];
 
 vi.mock('@genfeedai/tools', () => ({
+  GENERATED_MCP_OPERATIONS: [],
+  getToolByName: vi.fn(),
   getToolsForSurface: vi.fn(() => [
     {
       inputSchema: { type: 'object' },

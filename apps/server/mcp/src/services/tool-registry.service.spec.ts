@@ -154,6 +154,7 @@ const MOCK_TOOLS = [
 const TOOLS_BY_NAME = new Map(MOCK_TOOLS.map((t) => [t.name, t]));
 
 vi.mock('@genfeedai/tools', () => ({
+  GENERATED_MCP_OPERATIONS: [],
   getToolByName: vi.fn((name: string) => TOOLS_BY_NAME.get(name)),
   getToolsForSurface: vi.fn(() => MOCK_TOOLS),
   toMcpTools: vi.fn((tools) => tools),
