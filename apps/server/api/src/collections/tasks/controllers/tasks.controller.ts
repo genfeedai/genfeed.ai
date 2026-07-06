@@ -39,7 +39,6 @@ import {
   Param,
   Patch,
   Post,
-  Query,
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -211,9 +210,11 @@ export class TasksController extends BaseCRUDController<
     }
 
     const sort =
-      query.view === 'inbox' || query.view === 'in_progress'
-        ? { updatedAt: -1 as const }
-        : handleQuerySort(query.sort);
+      query.view === 'inbox'
+        ? [{ reviewState: 'asc' as const }, { updatedAt: 'desc' as const }]
+        : query.view === 'in_progress'
+          ? { updatedAt: -1 as const }
+          : handleQuerySort(query.sort);
 
     return {
       orderBy: sort,
@@ -231,20 +232,6 @@ export class TasksController extends BaseCRUDController<
       entity.organization?.toString();
 
     return entityOrganizationId === publicMetadata.organization;
-  }
-
-  @Get('inbox')
-  async inbox(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Query('limit') limit?: string,
-  ) {
-    const { organization } = getPublicMetadata(user);
-    const docs = await this.tasksService.listInbox(
-      organization,
-      limit ? Number(limit) : undefined,
-    );
-    return serializeCollection(request, TaskSerializer, { docs });
   }
 
   @Get('by-identifier/:identifier')

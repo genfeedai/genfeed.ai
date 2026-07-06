@@ -1041,24 +1041,6 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     return updated as unknown as EvaluationDocument;
   }
 
-  async getContentEvaluations(
-    contentType: IngredientCategory | 'article' | 'post',
-    contentId: string,
-    organizationId: string,
-  ): Promise<EvaluationDocument[]> {
-    this.logger.log(
-      `Getting evaluations for ${contentType} ${contentId}`,
-      this.constructorName,
-    );
-
-    const evaluations = await this.prisma.evaluation.findMany({
-      where: { contentId, contentType, isDeleted: false, organizationId },
-      orderBy: { updatedAt: 'desc' },
-    });
-
-    return evaluations as unknown as EvaluationDocument[];
-  }
-
   async getEvaluationTrends(
     organizationId: string,
     filters: EvaluationFiltersDto,

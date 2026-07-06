@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { InvitationsQueryDto } from '@api/collections/members/dto/invitations-query.dto';
 import { InviteMemberDto } from '@api/collections/members/dto/invite-member.dto';
 import { InvitationService } from '@api/collections/members/services/invitation.service';
 import { MembersService } from '@api/collections/members/services/members.service';
@@ -147,11 +148,14 @@ export class MembersController {
 
   /**
    * GET /members/invitations
-   * List pending invitations for the current organization.
+   * List invitations for the current organization, optionally filtered by status.
    */
-  @Get('invitations/pending')
+  @Get('invitations')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async listInvitations(@CurrentUser() user: User): Promise<unknown> {
+  async listInvitations(
+    @Query() query: InvitationsQueryDto,
+    @CurrentUser() user: User,
+  ): Promise<unknown> {
     const publicMetadata = getPublicMetadata(user);
     const orgId = publicMetadata.organization;
 
@@ -162,8 +166,10 @@ export class MembersController {
       );
     }
 
-    const invitations =
-      await this.invitationService.listPendingInvitations(orgId);
+    const invitations = await this.invitationService.listInvitations(
+      orgId,
+      query.status,
+    );
 
     return {
       data: invitations.map((inv) => ({

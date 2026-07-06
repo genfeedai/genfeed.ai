@@ -73,24 +73,6 @@ export class BotActivitiesService extends BaseService<BotActivity> {
   }
 
   /**
-   * Get recent activities for a specific bot config
-   */
-  async getRecentByConfig(
-    configId: string,
-    limit: number = 10,
-  ): Promise<BotActivity[]> {
-    const response = await this.instance.get<JsonApiResponseDocument>(
-      `/recent/${configId}`,
-      {
-        params: { limit },
-      },
-    );
-    return this.extractCollection<Partial<BotActivity>>(response.data).map(
-      (item) => new BotActivity(item),
-    );
-  }
-
-  /**
    * Get activities by organization
    */
   async findByOrganization(

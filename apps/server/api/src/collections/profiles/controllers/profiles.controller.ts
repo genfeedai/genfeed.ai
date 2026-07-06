@@ -219,17 +219,6 @@ export class ProfilesController {
   }
 
   /**
-   * Get default profile
-   */
-  @Get('default')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async getDefault(@Req() req: Request, @CurrentUser() user: User) {
-    const { organization } = getPublicMetadata(user);
-    const profile = await this.profilesService.getDefault(organization);
-    return serializeSingle(req, ProfileSerializer, profile);
-  }
-
-  /**
    * Generate profile from examples
    */
   @Post('generate')
