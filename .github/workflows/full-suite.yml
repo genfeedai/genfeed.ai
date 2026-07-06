@@ -25,6 +25,13 @@ concurrency:
 jobs:
   ci:
     name: CI Gate
+    # Nested reusable workflows cannot elevate permissions past this job's
+    # ceiling. Mirror ci.yml's requested token scopes explicitly so callers of
+    # full-suite can validate the complete workflow graph at startup.
+    permissions:
+      contents: read
+      pull-requests: write
+      statuses: write
     uses: ./.github/workflows/ci.yml
     # Release/full-suite path runs the full heavy test matrix. A reusable
     # workflow inherits the caller's originating event, so this must be an
@@ -35,6 +42,9 @@ jobs:
 
   build-verify:
     name: Build & Boot Check
+    permissions:
+      contents: read
+      packages: write
     uses: ./.github/workflows/build-verify.yml
     # No `secrets: inherit` — build-verify.yml only uses GITHUB_TOKEN (GHCR
     # login), which every called workflow gets automatically. Inheriting the full
@@ -43,6 +53,9 @@ jobs:
   e2e:
     name: E2E Suite
     needs: [ci, build-verify]
+    permissions:
+      contents: read
+      issues: write
     uses: ./.github/workflows/e2e.yml
     secrets: inherit
 
