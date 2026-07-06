@@ -223,6 +223,9 @@ describe('TrendsList', () => {
     expect(
       screen.getByRole('columnheader', { name: 'Source' }),
     ).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Source' })).toHaveClass(
+      'text-foreground/72',
+    );
     expect(
       screen.getByRole('columnheader', { name: 'Content' }),
     ).toBeInTheDocument();

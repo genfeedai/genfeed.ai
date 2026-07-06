@@ -245,6 +245,24 @@ describe('Tabs', () => {
     expect(settingsTab).toHaveAttribute('href', '/settings');
   });
 
+  it('keeps inactive navigation tabs readable on dark app surfaces', () => {
+    mockPathname = '/dashboard';
+    mockSearch = '';
+
+    render(
+      <Tabs
+        items={[
+          { href: '/dashboard', id: 'dashboard', label: 'Dashboard' },
+          { href: '/settings', id: 'settings', label: 'Settings' },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: /settings/i })).toHaveClass(
+      'data-[variant=default]:text-secondary',
+    );
+  });
+
   it('marks the active navigation tab with aria-current instead of tab semantics', () => {
     mockPathname = '/dashboard';
     mockSearch = '';
