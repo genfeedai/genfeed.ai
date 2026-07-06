@@ -128,6 +128,14 @@ function isBareProtectedPath(pathname: string): boolean {
   );
 }
 
+function isSeededWorkspaceEntrypoint(pathname: string): boolean {
+  return (
+    pathname === '/' ||
+    pathname === '/settings' ||
+    isBareProtectedPath(pathname)
+  );
+}
+
 function isScopedWorkspacePath(pathname: string): boolean {
   const parts = pathname.split('/').filter(Boolean);
 
@@ -623,11 +631,7 @@ export default async function proxy(req: NextRequest) {
       };
 
     if (!hasDesktopToken) {
-      if (
-        pathname === '/' ||
-        pathname === '/settings' ||
-        isBareProtectedPath(pathname)
-      ) {
+      if (isSeededWorkspaceEntrypoint(pathname)) {
         return redirectPreservingSearch(req, SEEDED_WORKSPACE_PATH);
       }
       return NextResponse.next();
@@ -682,6 +686,16 @@ export default async function proxy(req: NextRequest) {
       }
 
       return redirectPreservingSearch(req, '/login');
+    }
+
+    return NextResponse.next();
+  }
+
+  if (!isBetterAuthEnabled) {
+    const { pathname } = req.nextUrl;
+
+    if (isSeededWorkspaceEntrypoint(pathname)) {
+      return redirectPreservingSearch(req, SEEDED_WORKSPACE_PATH);
     }
 
     return NextResponse.next();
