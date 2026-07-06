@@ -2002,7 +2002,9 @@
               "ghost",
               "shopify",
               "beehiiv",
-              "unipile"
+              "unipile",
+              "product_hunt",
+              "hacker_news"
             ],
             "type": "string"
           },
@@ -4138,6 +4140,147 @@
         },
         "type": "object"
       },
+      "CreateSkillDto": {
+        "properties": {
+          "baseSkill": {
+            "type": "string"
+          },
+          "category": {
+            "enum": [
+              "writing",
+              "image",
+              "video",
+              "audio",
+              "discovery",
+              "distribution",
+              "analytics",
+              "optimization"
+            ],
+            "type": "string"
+          },
+          "channels": {
+            "items": {
+              "enum": [
+                "tiktok",
+                "reels",
+                "youtube",
+                "x",
+                "linkedin",
+                "blog",
+                "ads"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "configSchema": {
+            "type": "object"
+          },
+          "defaultInstructions": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "inputSchema": {
+            "type": "object"
+          },
+          "isBuiltIn": {
+            "type": "boolean"
+          },
+          "modalities": {
+            "items": {
+              "enum": [
+                "text",
+                "image",
+                "video",
+                "audio",
+                "multi"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "outputSchema": {
+            "type": "object"
+          },
+          "requiredProviders": {
+            "items": {
+              "enum": [
+                "anthropic",
+                "openai",
+                "openrouter",
+                "elevenlabs",
+                "replicate",
+                "fal",
+                "heygen",
+                "hedra",
+                "klingai",
+                "leonardoai",
+                "higgsfield",
+                "apify"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "reviewDefaults": {
+            "type": "object"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "built_in",
+              "imported",
+              "custom"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "published",
+              "disabled"
+            ],
+            "type": "string"
+          },
+          "systemPromptTemplate": {
+            "type": "string"
+          },
+          "toolOverrides": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "workflowStage": {
+            "enum": [
+              "research",
+              "planning",
+              "creation",
+              "review",
+              "publishing",
+              "analysis"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "slug",
+          "description",
+          "category",
+          "modalities",
+          "channels",
+          "workflowStage"
+        ],
+        "type": "object"
+      },
       "CreateTagDto": {
         "properties": {
           "backgroundColor": {
@@ -5119,7 +5262,9 @@
           "ghost",
           "shopify",
           "beehiiv",
-          "unipile"
+          "unipile",
+          "product_hunt",
+          "hacker_news"
         ],
         "type": "string"
       },
@@ -5168,7 +5313,9 @@
               "ghost",
               "shopify",
               "beehiiv",
-              "unipile"
+              "unipile",
+              "product_hunt",
+              "hacker_news"
             ],
             "type": "string"
           },
@@ -5194,6 +5341,20 @@
           "platform",
           "measuredAt"
         ],
+        "type": "object"
+      },
+      "CustomizeSkillDto": {
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "DarkroomReviewStatus": {
@@ -5936,6 +6097,48 @@
         ],
         "type": "object"
       },
+      "GenerateLaunchCopyDto": {
+        "properties": {
+          "brandId": {
+            "description": "Brand the launch belongs to",
+            "type": "string"
+          },
+          "channel": {
+            "description": "Target launch channel",
+            "enum": [
+              "hacker_news",
+              "product_hunt"
+            ],
+            "example": "hacker_news",
+            "type": "string"
+          },
+          "description": {
+            "description": "What the product does, in plain language",
+            "type": "string"
+          },
+          "productName": {
+            "description": "Product / project name",
+            "type": "string"
+          },
+          "url": {
+            "description": "Landing page or repo URL",
+            "type": "string"
+          },
+          "variationsCount": {
+            "description": "Number of tagline variants to produce (Product Hunt)",
+            "maximum": 5,
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "required": [
+          "channel",
+          "productName",
+          "description",
+          "brandId"
+        ],
+        "type": "object"
+      },
       "GenerateLipSyncDto": {
         "properties": {
           "audioUrl": {
@@ -6384,7 +6587,9 @@
               "ghost",
               "shopify",
               "beehiiv",
-              "unipile"
+              "unipile",
+              "product_hunt",
+              "hacker_news"
             ],
             "type": "string"
           },
@@ -6411,6 +6616,147 @@
         },
         "required": [
           "platform"
+        ],
+        "type": "object"
+      },
+      "ImportSkillDto": {
+        "properties": {
+          "baseSkill": {
+            "type": "string"
+          },
+          "category": {
+            "enum": [
+              "writing",
+              "image",
+              "video",
+              "audio",
+              "discovery",
+              "distribution",
+              "analytics",
+              "optimization"
+            ],
+            "type": "string"
+          },
+          "channels": {
+            "items": {
+              "enum": [
+                "tiktok",
+                "reels",
+                "youtube",
+                "x",
+                "linkedin",
+                "blog",
+                "ads"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "configSchema": {
+            "type": "object"
+          },
+          "defaultInstructions": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "inputSchema": {
+            "type": "object"
+          },
+          "modalities": {
+            "items": {
+              "enum": [
+                "text",
+                "image",
+                "video",
+                "audio",
+                "multi"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "outputSchema": {
+            "type": "object"
+          },
+          "requiredProviders": {
+            "items": {
+              "enum": [
+                "anthropic",
+                "openai",
+                "openrouter",
+                "elevenlabs",
+                "replicate",
+                "fal",
+                "heygen",
+                "hedra",
+                "klingai",
+                "leonardoai",
+                "higgsfield",
+                "apify"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "reviewDefaults": {
+            "type": "object"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "built_in",
+              "imported",
+              "custom"
+            ],
+            "type": "string"
+          },
+          "sourceUrl": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "published",
+              "disabled"
+            ],
+            "type": "string"
+          },
+          "systemPromptTemplate": {
+            "type": "string"
+          },
+          "toolOverrides": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "workflowStage": {
+            "enum": [
+              "research",
+              "planning",
+              "creation",
+              "review",
+              "publishing",
+              "analysis"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "slug",
+          "description",
+          "category",
+          "modalities",
+          "channels",
+          "workflowStage"
         ],
         "type": "object"
       },
@@ -6782,7 +7128,9 @@
               "ghost",
               "shopify",
               "beehiiv",
-              "unipile"
+              "unipile",
+              "product_hunt",
+              "hacker_news"
             ],
             "type": "string"
           },
@@ -7120,6 +7468,52 @@
           "genfeed-ai"
         ],
         "type": "string"
+      },
+      "MoodBoardLayoutItemDto": {
+        "properties": {
+          "assetId": {
+            "description": "Asset ID placed on the board",
+            "type": "string"
+          },
+          "position": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MoodBoardLayoutItemPositionDto"
+              }
+            ],
+            "description": "Position of the asset on the canvas"
+          },
+          "width": {
+            "description": "Width of the asset tile",
+            "type": "number"
+          },
+          "z": {
+            "description": "Z-index layer for stacking",
+            "type": "number"
+          }
+        },
+        "required": [
+          "assetId",
+          "position"
+        ],
+        "type": "object"
+      },
+      "MoodBoardLayoutItemPositionDto": {
+        "properties": {
+          "x": {
+            "description": "X coordinate on canvas",
+            "type": "number"
+          },
+          "y": {
+            "description": "Y coordinate on canvas",
+            "type": "number"
+          }
+        },
+        "required": [
+          "x",
+          "y"
+        ],
+        "type": "object"
       },
       "NewsletterSourceRefDto": {
         "properties": {
@@ -7507,7 +7901,9 @@
           "ghost",
           "shopify",
           "beehiiv",
-          "unipile"
+          "unipile",
+          "product_hunt",
+          "hacker_news"
         ],
         "type": "string"
       },
@@ -11222,6 +11618,26 @@
         },
         "type": "object"
       },
+      "UpdateMoodBoardDto": {
+        "properties": {
+          "brandId": {
+            "description": "Brand ID this mood board belongs to",
+            "type": "string"
+          },
+          "layout": {
+            "description": "Canvas layout items",
+            "items": {
+              "$ref": "#/components/schemas/MoodBoardLayoutItemDto"
+            },
+            "type": "array"
+          },
+          "metadata": {
+            "description": "Additional metadata",
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
       "UpdateNewsletterDto": {
         "properties": {
           "angle": {
@@ -11953,6 +12369,124 @@
           },
           "user": {
             "description": "The user ID that owns these settings",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateSkillDto": {
+        "properties": {
+          "category": {
+            "enum": [
+              "writing",
+              "image",
+              "video",
+              "audio",
+              "discovery",
+              "distribution",
+              "analytics",
+              "optimization"
+            ],
+            "type": "string"
+          },
+          "channels": {
+            "items": {
+              "enum": [
+                "tiktok",
+                "reels",
+                "youtube",
+                "x",
+                "linkedin",
+                "blog",
+                "ads"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "configSchema": {
+            "type": "object"
+          },
+          "defaultInstructions": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "inputSchema": {
+            "type": "object"
+          },
+          "modalities": {
+            "items": {
+              "enum": [
+                "text",
+                "image",
+                "video",
+                "audio",
+                "multi"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "outputSchema": {
+            "type": "object"
+          },
+          "requiredProviders": {
+            "items": {
+              "enum": [
+                "anthropic",
+                "openai",
+                "openrouter",
+                "elevenlabs",
+                "replicate",
+                "fal",
+                "heygen",
+                "hedra",
+                "klingai",
+                "leonardoai",
+                "higgsfield",
+                "apify"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "reviewDefaults": {
+            "type": "object"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "published",
+              "disabled"
+            ],
+            "type": "string"
+          },
+          "systemPromptTemplate": {
+            "type": "string"
+          },
+          "toolOverrides": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "workflowStage": {
+            "enum": [
+              "research",
+              "planning",
+              "creation",
+              "review",
+              "publishing",
+              "analysis"
+            ],
             "type": "string"
           }
         },
@@ -24437,7 +24971,9 @@
                 "ghost",
                 "shopify",
                 "beehiiv",
-                "unipile"
+                "unipile",
+                "product_hunt",
+                "hacker_news"
               ],
               "type": "string"
             }
@@ -30805,6 +31341,31 @@
         ]
       }
     },
+    "/launch-copy/generate": {
+      "post": {
+        "operationId": "LaunchCopyController.generate",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateLaunchCopyDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "generate",
+        "tags": [
+          "launch-copy"
+        ]
+      }
+    },
     "/links": {
       "get": {
         "operationId": "LinksController.findAll",
@@ -32315,6 +32876,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMoodBoardDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
@@ -43459,6 +44030,16 @@
       "post": {
         "operationId": "SkillsController.createSkill",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSkillDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "description": ""
@@ -43563,6 +44144,16 @@
       "post": {
         "operationId": "SkillsController.importSkill",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportSkillDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "description": ""
@@ -43586,6 +44177,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSkillDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
@@ -43609,6 +44210,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomizeSkillDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "description": ""
