@@ -4217,11 +4217,6 @@
       "path": "/tasks/{id}"
     },
     {
-      "method": "patch",
-      "operationId": "TasksController.setOutputKept",
-      "path": "/tasks/{id}/outputs/{outputId}"
-    },
-    {
       "method": "delete",
       "operationId": "TasksController.trashOutput",
       "path": "/tasks/{id}/outputs/{outputId}"
