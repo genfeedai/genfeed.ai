@@ -1,4 +1,4 @@
-vi.mock('@api/shared/utils/encryption/encryption.util', () => ({
+vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: { decrypt: vi.fn((v: string) => `dec:${v}`) },
 }));
 vi.mock('@libs/utils/caller/caller.util', () => ({

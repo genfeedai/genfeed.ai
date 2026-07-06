@@ -215,7 +215,7 @@ export default function AdsResearchPageClient({
             onChange={(_name, value) =>
               setSortKey(value as 'score' | 'ctr' | 'roas')
             }
-            className="h-10 rounded-lg border border-white/[0.06] bg-card px-3 text-white/80 hover:bg-white/[0.04] hover:text-white"
+            className="h-10 rounded-lg shadow-border bg-card px-3 text-white/80 hover:bg-white/[0.04] hover:text-white"
           />
           <Button
             variant={ButtonVariant.SECONDARY}

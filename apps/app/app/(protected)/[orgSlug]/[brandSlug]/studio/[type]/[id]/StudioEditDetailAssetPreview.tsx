@@ -19,7 +19,7 @@ export default function StudioEditDetailAssetPreview({
 }: StudioEditDetailAssetPreviewProps) {
   if (!selectedIngredient.ingredientUrl) {
     return (
-      <div className="aspect-video bg-muted shadow-lg flex items-center justify-center p-16">
+      <div className="aspect-video bg-muted shadow-border flex items-center justify-center p-16">
         <span className="text-foreground/50 text-lg">No preview available</span>
       </div>
     );
@@ -51,7 +51,7 @@ export default function StudioEditDetailAssetPreview({
         <Image
           src={selectedIngredient.ingredientUrl}
           alt={selectedIngredient.metadataLabel || 'Image'}
-          className="max-w-full max-h-sidebar w-auto h-auto object-contain shadow-lg"
+          className="max-w-full max-h-sidebar w-auto h-auto object-contain shadow-border"
           width={selectedIngredient.width || 1920}
           height={selectedIngredient.height || 1080}
           priority
@@ -61,7 +61,7 @@ export default function StudioEditDetailAssetPreview({
   }
 
   return (
-    <div className="aspect-video bg-muted shadow-lg flex items-center justify-center p-16">
+    <div className="aspect-video bg-muted shadow-border flex items-center justify-center p-16">
       <span className="text-foreground/50 text-lg">No preview available</span>
     </div>
   );

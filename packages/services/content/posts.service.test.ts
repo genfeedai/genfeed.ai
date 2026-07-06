@@ -11,12 +11,12 @@ vi.mock('@genfeedai/pricing', () => ({
   BYOK_FREE_THRESHOLD_CREDITS: 0,
   INTERNAL_CREDIT_COSTS: {},
   PAYG_CREDIT_PACKS: [],
+  TIER_INCLUDED_MONTHLY_CREDITS: {},
   TRAINING_PACKAGES: [],
   VIDEO_CREDIT_COSTS: {},
   WEBSITE_CREDIT_PACKS: [],
   applyMargin: (value: number) => value,
   contentServiceOffering: {},
-  creatorPlan: {},
   creditPackPrice: () => 0,
   creditPackTotalCredits: () => 0,
   creditsToOutputEstimate: () => '',
@@ -24,7 +24,6 @@ vi.mock('@genfeedai/pricing', () => ({
   formatOutputs: () => '',
   formatPrice: () => '',
   getCloudTeamsPlan: () => null,
-  getCreatorPlan: () => null,
   getEnterprisePlan: () => null,
   getHostedPlan: () => null,
   getPlanByLabel: () => null,
@@ -384,11 +383,11 @@ describe('PostsService', () => {
 
   describe('batchScheduleTweets', () => {
     it('should batch schedule tweets', async () => {
-      mockInstance.post.mockResolvedValue({ data: mockPostsData });
+      mockInstance.patch.mockResolvedValue({ data: mockPostsData });
 
       const data = {
         credential: 'cred-123',
-        tweets: [
+        items: [
           {
             postId: 'post-1',
             scheduledDate: '2024-12-25T10:00:00Z',
@@ -404,19 +403,19 @@ describe('PostsService', () => {
 
       const result = await service.batchScheduleTweets(data);
 
-      expect(mockInstance.post).toHaveBeenCalledWith(
-        'https://api.genfeed.ai/posts/schedules/batch',
+      expect(mockInstance.patch).toHaveBeenCalledWith(
+        'https://api.genfeed.ai/posts/batch',
         data,
       );
       expect(Array.isArray(result)).toBe(true);
     });
 
     it('should batch schedule with optional params', async () => {
-      mockInstance.post.mockResolvedValue({ data: mockPostsData });
+      mockInstance.patch.mockResolvedValue({ data: mockPostsData });
 
       const data = {
         credential: 'cred-123',
-        tweets: [
+        items: [
           {
             ingredientId: 'ingredient-123',
             postId: 'post-1',
@@ -429,8 +428,8 @@ describe('PostsService', () => {
 
       await service.batchScheduleTweets(data);
 
-      expect(mockInstance.post).toHaveBeenCalledWith(
-        'https://api.genfeed.ai/posts/schedules/batch',
+      expect(mockInstance.patch).toHaveBeenCalledWith(
+        'https://api.genfeed.ai/posts/batch',
         data,
       );
     });

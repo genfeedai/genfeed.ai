@@ -59,10 +59,7 @@ function PostsWritePageContent() {
       id="post-compose-workspace"
       className="grid gap-6 lg:grid-cols-[1.25fr_0.75fr]"
     >
-      <Card
-        bodyClassName="gap-0 p-6"
-        className="border-white/10 bg-white/[0.03]"
-      >
+      <Card bodyClassName="gap-0 p-6">
         <div className="grid gap-5">
           <PostsWriteAccountBar
             connectedCredentials={connectedCredentials}
@@ -148,7 +145,7 @@ function PostsWritePageContent() {
           </div>
 
           {error ? (
-            <p role="alert" className="text-sm text-red-400">
+            <p role="alert" className="text-sm text-destructive">
               {error}
             </p>
           ) : null}

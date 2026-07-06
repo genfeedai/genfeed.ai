@@ -117,30 +117,6 @@ export class ReplyBotConfigsService extends BaseService<
   }
 
   /**
-   * Toggle the active status of a reply bot config
-   */
-  async toggleActive(
-    id: string,
-    organizationId: string,
-    brandId?: string,
-  ): Promise<ReplyBotConfigDocument> {
-    const config = await this.findOne({
-      ...(brandId ? { brandId } : {}),
-      id,
-      isDeleted: false,
-      organizationId,
-    });
-
-    if (!config) {
-      throw new NotFoundException(`Reply bot config ${id} not found`);
-    }
-
-    return this.patch(id, {
-      isActive: !config.isActive,
-    } as UpdateReplyBotConfigDto);
-  }
-
-  /**
    * Find all active configs by organization (alias for findActiveByOrganization)
    */
   findActive(organizationId: string): Promise<ReplyBotConfigDocument[]> {

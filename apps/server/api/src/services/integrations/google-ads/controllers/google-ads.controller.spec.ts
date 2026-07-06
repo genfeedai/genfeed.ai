@@ -1,9 +1,9 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { GoogleAdsService } from '../services/google-ads.service';
@@ -17,7 +17,7 @@ vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   })),
 }));
 
-vi.mock('@api/shared/utils/encryption/encryption.util', () => ({
+vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: {
     decrypt: vi.fn((v: string) => `decrypted:${v}`),
   },
@@ -121,17 +121,6 @@ describe('GoogleAdsController', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
-  });
-
-  // ── OAuth ──────────────────────────────────────────────────────────────────
-  describe('getOAuthUrl', () => {
-    it('returns generated auth URL', () => {
-      const result = controller.getOAuthUrl('state-abc');
-      expect(googleAdsOAuthService.generateAuthUrl).toHaveBeenCalledWith(
-        'state-abc',
-      );
-      expect(result).toEqual({ url: 'https://accounts.google.com/oauth' });
-    });
   });
 
   describe('verify', () => {

@@ -109,7 +109,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
 
         {result.status === 'success' && (
           <div className="space-y-4">
-            <HiCheckCircle className="mx-auto text-5xl text-green-500" />
+            <HiCheckCircle className="mx-auto text-5xl text-success" />
             <h2 className="text-lg font-semibold">{platformLabel} Connected</h2>
             <p className="text-sm text-muted-foreground">
               Redirecting you back…
@@ -119,7 +119,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
 
         {result.status === 'error' && (
           <div className="space-y-4">
-            <HiXCircle className="mx-auto text-5xl text-red-500" />
+            <HiXCircle className="mx-auto text-5xl text-destructive" />
             <h2 className="text-lg font-semibold">Connection Failed</h2>
             <p className="text-sm text-muted-foreground">
               {result.errorMessage}

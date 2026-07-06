@@ -125,7 +125,9 @@ export default function BotsPage() {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="card-label text-lg">{bot.label}</h3>
+                        <h3 className="card-label text-sm font-semibold">
+                          {bot.label}
+                        </h3>
                         <Badge variant={getBotStatusVariant(bot.status)}>
                           {bot.status}
                         </Badge>
@@ -192,11 +194,7 @@ export default function BotsPage() {
                           </Button>
                         </li>
                         <li>
-                          <Button
-                            asChild
-                            variant={ButtonVariant.SOFT}
-                            className="text-error"
-                          >
+                          <Button asChild variant={ButtonVariant.GHOST}>
                             <Link href={`/bots/${bot.id}/delete`}>
                               <HiTrash className="size-4" />
                               Delete

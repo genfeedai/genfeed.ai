@@ -3,6 +3,7 @@ import '@styles/globals.css';
 import { stringifyJsonLd } from '@data/json-ld';
 import { THEME_STORAGE_KEY } from '@genfeedai/constants';
 import { fontVariables } from '@genfeedai/fonts';
+import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
 import { metadata as metadataHelper } from '@helpers/media/metadata/metadata.helper';
 import { resolveRequestTheme } from '@helpers/ui/theme/theme.helper';
 import type { LayoutProps } from '@props/layout/layout.props';
@@ -62,7 +63,7 @@ const organizationJsonLd = {
     'content marketing',
     'marketing automation',
   ],
-  logo: 'https://cdn.genfeed.ai/assets/logo.png',
+  logo: cdnAsset('/assets/logo.png'),
   name: 'Genfeed',
   sameAs: [
     'https://x.com/genfeedai',

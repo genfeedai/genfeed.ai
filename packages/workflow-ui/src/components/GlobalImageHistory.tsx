@@ -51,7 +51,7 @@ function FanItem({
       variant="ghost"
       draggable
       onDragStart={(e) => onDragStart(e, item)}
-      className="absolute size-14 overflow-hidden border-2 border-neutral-600 hover:border-blue-500 shadow-lg cursor-grab active:cursor-grabbing transition-colors duration-150 animate-fan-enter group p-0"
+      className="absolute size-14 overflow-hidden border-2 border-border hover:border-border-strong shadow-dropdown cursor-grab active:cursor-grabbing transition-colors duration-150 animate-fan-enter group p-0"
       style={
         {
           '--fan-x': `${x}px`,
@@ -128,11 +128,11 @@ function HistorySidebar({
   return createPortal(
     <div
       ref={sidebarRef}
-      className="w-80 max-h-[420px] bg-neutral-800 border border-neutral-600 shadow-xl flex flex-col"
+      className="w-80 max-h-[420px] bg-secondary shadow-dropdown flex flex-col"
       style={sidebarStyle}
     >
-      <div className="px-4 py-3 border-b border-neutral-700 flex items-center justify-between shrink-0">
-        <span className="text-sm text-neutral-200 font-medium">
+      <div className="px-4 py-3 border-b border-border flex items-center justify-between shrink-0">
+        <span className="text-sm text-foreground font-medium">
           All History ({history.length})
         </span>
         <div className="flex items-center gap-2">
@@ -140,7 +140,7 @@ function HistorySidebar({
             variant="ghost"
             size="sm"
             onClick={onClear}
-            className="text-[10px] text-neutral-500 hover:text-red-400 p-0 h-auto"
+            className="text-[10px] text-muted-foreground hover:text-destructive p-0 h-auto"
             title="Clear all history"
           >
             Clear All
@@ -149,7 +149,7 @@ function HistorySidebar({
             variant="ghost"
             size="icon-sm"
             onClick={onClose}
-            className="size-5 text-neutral-400 hover:bg-neutral-700 hover:text-white"
+            className="size-5 text-muted-foreground hover:bg-muted hover:text-foreground"
             title="Close"
           >
             <X className="size-3" />
@@ -165,9 +165,9 @@ function HistorySidebar({
             variant="ghost"
             draggable
             onDragStart={(e) => onDragStart(e, item)}
-            className="flex h-auto w-full justify-start gap-3 p-2 hover:bg-neutral-700/50 cursor-grab active:cursor-grabbing group transition-colors"
+            className="flex h-auto w-full justify-start gap-3 p-2 hover:bg-muted cursor-grab active:cursor-grabbing group transition-colors"
           >
-            <div className="relative size-14 rounded overflow-hidden shrink-0 border border-neutral-600 group-hover:border-blue-500 transition-colors">
+            <div className="relative size-14 rounded overflow-hidden shrink-0 border border-border group-hover:border-border-strong transition-colors">
               <Image
                 src={item.image}
                 alt={`History ${index + 1}`}
@@ -178,10 +178,10 @@ function HistorySidebar({
               />
             </div>
             <div className="flex-1 min-w-0 flex flex-col justify-center">
-              <p className="text-[11px] text-neutral-300 truncate">
+              <p className="text-[11px] text-foreground truncate">
                 {item.prompt?.substring(0, 60) || 'No prompt'}
               </p>
-              <p className="text-[10px] text-neutral-500 mt-0.5">
+              <p className="text-[10px] text-muted-foreground mt-0.5">
                 {formatRelativeTime(item.timestamp)}
                 {item.model ? ` · ${item.model}` : ''}
               </p>
@@ -190,8 +190,8 @@ function HistorySidebar({
         ))}
       </div>
 
-      <div className="px-4 py-2 border-t border-neutral-700 bg-neutral-900/50 shrink-0">
-        <span className="text-[10px] text-neutral-500">
+      <div className="px-4 py-2 border-t border-border bg-secondary/50 shrink-0">
+        <span className="text-[10px] text-muted-foreground">
           Drag images to canvas to create nodes
         </span>
       </div>
@@ -293,11 +293,11 @@ export function GlobalImageHistory() {
         variant="outline"
         size="icon-sm"
         onClick={() => setIsOpen(!isOpen)}
-        className="relative bg-neutral-800 hover:bg-neutral-700 border-neutral-600 text-neutral-400 hover:text-white shadow-lg"
+        className="relative bg-secondary hover:bg-muted border-border text-muted-foreground hover:text-foreground shadow-dropdown"
         title={`${history.length} image${history.length > 1 ? 's' : ''} in history`}
       >
         <Clock3 className="size-4" />
-        <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-blue-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold">
+        <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-muted-foreground rounded-full text-[10px] text-background flex items-center justify-center font-bold">
           {history.length > 99 ? '99+' : history.length}
         </span>
       </Button>
@@ -330,7 +330,7 @@ export function GlobalImageHistory() {
                   variant="outline"
                   size="sm"
                   onClick={handleShowAll}
-                  className="absolute animate-fan-enter bg-neutral-800 hover:bg-neutral-700 border-neutral-600 text-[10px] text-neutral-300 hover:text-white shadow-lg whitespace-nowrap px-2 py-1 h-auto"
+                  className="absolute animate-fan-enter bg-secondary hover:bg-muted border-border text-[10px] text-foreground hover:text-foreground shadow-dropdown whitespace-nowrap px-2 py-1 h-auto"
                   style={
                     {
                       '--fan-x': `${topItemPos.x}px`,

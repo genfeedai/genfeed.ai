@@ -14,7 +14,6 @@ import {
   ReplyBotOrchestratorService,
 } from '@api/services/reply-bot/reply-bot-orchestrator.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import {
   ReplyBotPlatform,
   WorkflowLifecycle,
@@ -23,6 +22,7 @@ import {
 import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
 import type { Workflow } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Injectable } from '@nestjs/common';
 
 const SOCIAL_TRIGGER_TYPES = [

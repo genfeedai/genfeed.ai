@@ -434,61 +434,70 @@ describe('VideosController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('findLatest', () => {
-    it('should return latest videos', async () => {
-      const mockData = {
-        docs: [mockVideo],
-        limit: 10,
-        page: 1,
-        totalDocs: 1,
-      };
+  describe('findAll (latest=true shorthand)', () => {
+    const latestQuery = {
+      isDeleted: false,
+      latest: true,
+      limit: 10,
+      page: 1,
+      pagination: true,
+      sort: 'createdAt: -1',
+    } as unknown as VideosQueryDto;
 
+    it('should short-circuit to the user-scoped latest aggregate', async () => {
+      const mockData = { docs: [mockVideo], limit: 10, page: 1, totalDocs: 1 };
       videosService.findAll.mockResolvedValue(
         mockData as unknown as AggregatePaginateResult<IngredientDocument>,
       );
 
-      const result = await controller.findLatest(mockRequest, mockUser, 10);
-
-      expect(videosService.findAll).toHaveBeenCalled();
-      expect(result).toBeDefined();
-      expect(result.data).toBeDefined();
-    });
-
-    it('should limit results to maximum of 50', async () => {
-      const mockData = {
-        docs: [],
-        totalDocs: 0,
-      };
-
-      videosService.findAll.mockResolvedValue(
-        mockData as unknown as AggregatePaginateResult<IngredientDocument>,
-      );
-
-      await controller.findLatest(mockRequest, mockUser, 100);
-
-      const callArgs = videosService.findAll.mock.calls[0];
-      const options = callArgs[1];
-
-      expect(options.limit).toBe(50);
-    });
-
-    it('should use default limit of 10 if not provided', async () => {
-      const mockData = {
-        docs: [],
-        totalDocs: 0,
-      };
-
-      videosService.findAll.mockResolvedValue(
-        mockData as unknown as AggregatePaginateResult<IngredientDocument>,
-      );
-
-      await controller.findLatest(
+      const result = await controller.findAll(
         mockRequest,
         mockUser,
-        undefined as unknown as number,
+        latestQuery,
       );
 
-      expect(videosService.findAll).toHaveBeenCalled();
+      expect(result).toBeDefined();
+      expect(result.data).toBeDefined();
+
+      const [aggregate, options] = videosService.findAll.mock.calls[0] as [
+        {
+          where: { AND: Array<Record<string, unknown>> };
+          orderBy: Record<string, number>;
+        },
+        { limit: number; pagination: boolean },
+      ];
+
+      // pagination disabled, ordered newest-first
+      expect(options).toMatchObject({ pagination: false });
+      expect(aggregate.orderBy).toEqual({ createdAt: -1 });
+
+      // Exact legacy WHERE: single user-scoped branch, training excluded,
+      // NO organization OR-branch and NO isDefault branch (unlike the list route).
+      const branch = aggregate.where.AND[0];
+      expect(branch).toMatchObject({
+        training: { not: false },
+        user: mockUser.publicMetadata.user,
+      });
+      expect(branch).not.toHaveProperty('OR');
+      expect(branch).not.toHaveProperty('status');
+      expect(branch).not.toHaveProperty('organization');
+    });
+
+    it('should cap the latest limit at 50', async () => {
+      videosService.findAll.mockResolvedValue({
+        docs: [],
+        totalDocs: 0,
+      } as unknown as AggregatePaginateResult<IngredientDocument>);
+
+      await controller.findAll(mockRequest, mockUser, {
+        ...latestQuery,
+        limit: 100,
+      } as unknown as VideosQueryDto);
+
+      const options = videosService.findAll.mock.calls[0][1] as {
+        limit: number;
+      };
+      expect(options.limit).toBe(50);
     });
   });
 

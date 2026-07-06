@@ -3,12 +3,14 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { TaskCountersService } from '@api/collections/task-counters/services/task-counters.service';
 import { TasksController } from '@api/collections/tasks/controllers/tasks.controller';
 import { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
+import type { UpdateTaskDto } from '@api/collections/tasks/dto/update-task.dto';
 import type { TaskDocument } from '@api/collections/tasks/schemas/task.schema';
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import type { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { TaskSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 import type { Request } from 'express';
 
 describe('TasksController', () => {
@@ -17,12 +19,15 @@ describe('TasksController', () => {
     approve: ReturnType<typeof vi.fn>;
     areAllChildrenDone: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
+    dismiss: ReturnType<typeof vi.fn>;
     findByIdentifier: ReturnType<typeof vi.fn>;
     findChildren: ReturnType<typeof vi.fn>;
     findOne: ReturnType<typeof vi.fn>;
     keepOutput: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
+    requestChanges: ReturnType<typeof vi.fn>;
     trashOutput: ReturnType<typeof vi.fn>;
+    unkeepOutput: ReturnType<typeof vi.fn>;
   };
   let taskCountersService: { getNextNumber: ReturnType<typeof vi.fn> };
   let organizationsService: { findOne: ReturnType<typeof vi.fn> };
@@ -56,12 +61,15 @@ describe('TasksController', () => {
       approve: vi.fn(),
       areAllChildrenDone: vi.fn(),
       create: vi.fn(),
+      dismiss: vi.fn(),
       findByIdentifier: vi.fn(),
       findChildren: vi.fn().mockResolvedValue([]),
       findOne: vi.fn(),
       keepOutput: vi.fn(),
       patch: vi.fn(),
+      requestChanges: vi.fn(),
       trashOutput: vi.fn(),
+      unkeepOutput: vi.fn(),
     };
     taskCountersService = {
       getNextNumber: vi.fn(),
@@ -276,18 +284,19 @@ describe('TasksController', () => {
     });
   });
 
-  describe('review actions', () => {
+  describe('review transitions via patch', () => {
     const taskId = '507f191e810c19729de860ee'.toString();
-    const outputId = '607f191e810c19729de860ff'.toString();
     const task = {
       _id: taskId,
       title: 'Review task',
     } as TaskDocument;
 
-    it('passes the reviewer user id when approving a task', async () => {
+    it('routes reviewState=approved to the approve action', async () => {
       tasksService.approve.mockResolvedValue(task);
 
-      const result = await controller.approve(mockRequest, mockUser, taskId);
+      const result = await controller.patch(mockRequest, mockUser, taskId, {
+        reviewState: 'approved',
+      } as UpdateTaskDto);
 
       expect(tasksService.approve).toHaveBeenCalledWith(
         taskId,
@@ -297,14 +306,66 @@ describe('TasksController', () => {
       expect('data' in result ? result.data : result).toEqual(task);
     });
 
-    it('passes the reviewer user id when keeping an output', async () => {
+    it('routes reviewState=changes_requested with the reason', async () => {
+      tasksService.requestChanges.mockResolvedValue(task);
+
+      await controller.patch(mockRequest, mockUser, taskId, {
+        reason: 'tighten the hook',
+        reviewState: 'changes_requested',
+      } as UpdateTaskDto);
+
+      expect(tasksService.requestChanges).toHaveBeenCalledWith(
+        taskId,
+        organizationId,
+        userId,
+        'tighten the hook',
+      );
+    });
+
+    it('routes reviewState=dismissed', async () => {
+      tasksService.dismiss.mockResolvedValue(task);
+
+      await controller.patch(mockRequest, mockUser, taskId, {
+        reviewState: 'dismissed',
+      } as UpdateTaskDto);
+
+      expect(tasksService.dismiss).toHaveBeenCalledWith(
+        taskId,
+        organizationId,
+        userId,
+        undefined,
+      );
+    });
+
+    it('rejects a reviewState transition mixed with other fields', async () => {
+      await expect(
+        controller.patch(mockRequest, mockUser, taskId, {
+          reviewState: 'approved',
+          title: 'also renaming',
+        } as UpdateTaskDto),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(tasksService.approve).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('output actions', () => {
+    const taskId = '507f191e810c19729de860ee'.toString();
+    const outputId = '607f191e810c19729de860ff'.toString();
+    const task = {
+      _id: taskId,
+      title: 'Review task',
+    } as TaskDocument;
+
+    it('keeps an output when isKept is true', async () => {
       tasksService.keepOutput.mockResolvedValue(task);
 
-      const result = await controller.keepOutput(
+      const result = await controller.setOutputKept(
         mockRequest,
         mockUser,
         taskId,
         outputId,
+        { isKept: true },
       );
 
       expect(tasksService.keepOutput).toHaveBeenCalledWith(
@@ -314,6 +375,20 @@ describe('TasksController', () => {
         userId,
       );
       expect('data' in result ? result.data : result).toEqual(task);
+    });
+
+    it('un-keeps an output when isKept is false', async () => {
+      tasksService.unkeepOutput.mockResolvedValue(task);
+
+      await controller.setOutputKept(mockRequest, mockUser, taskId, outputId, {
+        isKept: false,
+      });
+
+      expect(tasksService.unkeepOutput).toHaveBeenCalledWith(
+        taskId,
+        outputId,
+        organizationId,
+      );
     });
 
     it('passes the reviewer user id when trashing an output', async () => {

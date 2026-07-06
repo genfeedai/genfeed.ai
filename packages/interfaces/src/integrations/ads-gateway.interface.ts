@@ -137,7 +137,6 @@ export interface IAdsAdapter {
     campaignId: string,
     input: UpdateCampaignInput,
   ): Promise<UnifiedCampaign>;
-  pauseCampaign(ctx: AdsAdapterContext, campaignId: string): Promise<void>;
   listAdSets(
     ctx: AdsAdapterContext,
     campaignId: string,

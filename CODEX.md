@@ -2,15 +2,15 @@
 
 ## Last Verified
 
-- **Date:** 2026-06-29
+- **Date:** 2026-07-06
 
 Codex-specific fast reference. See `AGENTS.md` for full project context.
 
 ## Reality Snapshot
 
 - Frontend workspaces: `apps/app`, `apps/docs`, `apps/website`, `apps/desktop/app`, `apps/mobile/app`, `apps/extensions/browser/app`, `apps/extensions/ide/app`
-- Backend services: 12 on `apps/server/` (api, clips, discord, files, images, mcp, notifications, slack, telegram, videos, voices, workers)
-- Shared packages: 42 directories under `packages/`
+- Backend service workspaces: 11 on `apps/server/` (api, discord, files, images, mcp, notifications, slack, telegram, videos, voices, workers). `apps/server/clips/` is not currently a package workspace.
+- Shared packages: 43 directories under `packages/`
 - Admin routes live inside `apps/app/app/(protected)/admin`; there is no separate `apps/admin` workspace.
 - Enterprise features: `ee/packages/` (commercial license)
 

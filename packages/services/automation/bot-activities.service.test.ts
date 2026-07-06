@@ -187,37 +187,6 @@ describe('BotActivitiesService', () => {
     });
   });
 
-  describe('getRecentByConfig', () => {
-    it('should get recent activities for config', async () => {
-      mockInstance.get.mockResolvedValue({ data: mockActivitiesData });
-
-      await service.getRecentByConfig('config-123');
-
-      expect(mockInstance.get).toHaveBeenCalledWith('/recent/config-123', {
-        params: { limit: 10 },
-      });
-    });
-
-    it('should use custom limit', async () => {
-      mockInstance.get.mockResolvedValue({ data: mockActivitiesData });
-
-      await service.getRecentByConfig('config-123', 25);
-
-      expect(mockInstance.get).toHaveBeenCalledWith('/recent/config-123', {
-        params: { limit: 25 },
-      });
-    });
-
-    it('should return array of BotActivity', async () => {
-      mockInstance.get.mockResolvedValue({ data: mockActivitiesData });
-
-      const result = await service.getRecentByConfig('config-123');
-
-      expect(Array.isArray(result)).toBe(true);
-      expect(result[0]).toBeInstanceOf(BotActivity);
-    });
-  });
-
   describe('findByOrganization', () => {
     it('should call findWithFilters with organization', async () => {
       mockInstance.get.mockResolvedValue({ data: mockActivitiesData });
