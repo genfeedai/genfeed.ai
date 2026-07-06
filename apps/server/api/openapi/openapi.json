@@ -44302,6 +44302,21 @@
         ]
       }
     },
+    "/subscriptions/admin/credit-usage": {
+      "get": {
+        "operationId": "SubscriptionsController.getCreditUsage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "getCreditUsage",
+        "tags": [
+          "subscriptions"
+        ]
+      }
+    },
     "/subscriptions/current": {
       "patch": {
         "operationId": "SubscriptionsController.changePlan",

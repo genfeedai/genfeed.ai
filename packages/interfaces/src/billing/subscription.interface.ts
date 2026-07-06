@@ -64,3 +64,32 @@ export interface SubscriptionMetadata {
   stripeSubscriptionId?: string;
   priceId?: string;
 }
+
+/**
+ * Per-organization credit usage row for the superadmin credit-usage list
+ * (GET /subscriptions/admin/credit-usage). Computed, not a serialized entity —
+ * mirrors the plain-object contract already used by getCreditsBreakdown.
+ */
+export interface IOrganizationCreditUsage {
+  organizationId: string;
+  organizationName: string;
+  tier: string | null;
+  status: SubscriptionStatus | null;
+  balance: number;
+  planLimit: number;
+  usedCredits: number;
+  usedPercent: number;
+  remainingPercent: number;
+  isMaxedOut: boolean;
+  isUnderUsing: boolean;
+  currentPeriodEnd: string | null;
+}
+
+export interface OrganizationCreditUsageResponse {
+  success: boolean;
+  data: IOrganizationCreditUsage[];
+  page: number;
+  limit: number;
+  totalDocs: number;
+  totalPages: number;
+}
