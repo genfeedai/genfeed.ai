@@ -299,9 +299,8 @@ export default function SummaryContent() {
 
   return (
     <div ref={sectionRef}>
-      <h1 className="step-headline opacity-0 mb-4 text-4xl font-serif leading-none tracking-tighter text-white md:text-5xl">
-        Finish with the setup{' '}
-        <span className="font-light italic">that fits.</span>
+      <h1 className="step-headline opacity-0 mb-4 text-4xl font-semibold leading-none tracking-tight text-white md:text-5xl">
+        Finish with the setup that fits.
       </h1>
 
       <p className="step-description opacity-0 mb-10 max-w-2xl text-lg text-white/40">

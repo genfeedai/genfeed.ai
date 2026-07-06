@@ -10,8 +10,8 @@ export default function BrandStepHeader() {
         Step 1 of 3
       </div>
 
-      <h1 className="step-headline opacity-0 text-4xl md:text-5xl font-serif leading-none tracking-tighter text-white mb-4">
-        Set up your <span className="font-light italic">brand.</span>
+      <h1 className="step-headline opacity-0 mb-4 text-4xl font-semibold leading-none tracking-tight text-white md:text-5xl">
+        Set up your brand.
       </h1>
 
       <p className="step-description opacity-0 text-lg text-white/40 mb-8 max-w-lg">
