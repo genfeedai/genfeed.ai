@@ -129,8 +129,8 @@ export class AgentApiService extends AgentBaseApiService {
     return this.config.baseUrl;
   }
 
-  getToken(): Promise<string | null> {
-    return this.config.getToken();
+  getToken(options?: { forceRefresh?: boolean }): Promise<string | null> {
+    return this.config.getToken(options);
   }
 
   createThreadEffect(
