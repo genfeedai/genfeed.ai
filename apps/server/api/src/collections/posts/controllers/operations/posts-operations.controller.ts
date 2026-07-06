@@ -11,8 +11,6 @@ import { EnhancePostDto } from '@api/collections/posts/dto/enhance-post.dto';
 import { ExpandToThreadDto } from '@api/collections/posts/dto/expand-thread.dto';
 import { GenerateAccountPostDto } from '@api/collections/posts/dto/generate-account-post.dto';
 import { GenerateHooksDto } from '@api/collections/posts/dto/generate-hooks.dto';
-import { GenerateThreadDto } from '@api/collections/posts/dto/generate-thread.dto';
-import { GenerateTweetsDto } from '@api/collections/posts/dto/generate-tweets.dto';
 import { type PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
@@ -203,34 +201,6 @@ export class PostsOperationsController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
-  }
-
-  @Post('generations')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async generateTweets(
-    @Req() request: Request,
-    @Body() dto: GenerateTweetsDto,
-    @CurrentUser() user: User,
-  ) {
-    return this.generateAccountContent(
-      request,
-      { ...dto, format: 'post' },
-      user,
-    );
-  }
-
-  @Post('thread-generations')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async generateThread(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Body() dto: GenerateThreadDto,
-  ): Promise<JsonApiCollectionResponse> {
-    return this.generateAccountContent(
-      request,
-      { ...dto, format: 'thread' },
-      user,
-    );
   }
 
   /**

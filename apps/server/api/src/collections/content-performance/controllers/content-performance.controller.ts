@@ -87,29 +87,6 @@ export class ContentPerformanceController {
   }
 
   /**
-   * Get top performers
-   * GET /content-performance/top-performers
-   */
-  @Get('top-performers')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async getTopPerformers(
-    @Req() req: Request,
-    @Query('brand') brandId: string,
-    @Query('limit') limit: string,
-    @CurrentUser() user: User,
-  ) {
-    const publicMetadata = getPublicMetadata(user);
-
-    const docs = await this.contentPerformanceService.getTopPerformers(
-      publicMetadata.organization,
-      brandId,
-      limit ? parseInt(limit, 10) || 10 : 10,
-    );
-
-    return serializeCollection(req, ContentPerformanceSerializer, { docs });
-  }
-
-  /**
    * Import CSV-style bulk metrics (structured JSON array)
    * POST /content-performance/import/csv
    */

@@ -46,7 +46,7 @@ export default function ClipsInputForm({
         </p>
       </div>
 
-      <div className="space-y-5 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
+      <div className="space-y-5 rounded-xl bg-secondary p-6 shadow-border">
         {/* YouTube URL */}
         <div>
           <label
@@ -116,7 +116,7 @@ export default function ClipsInputForm({
 
         {/* Error */}
         {error && (
-          <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm text-red-400">
+          <div className="rounded-lg bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
             {error}
           </div>
         )}

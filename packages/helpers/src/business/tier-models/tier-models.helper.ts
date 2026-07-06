@@ -7,7 +7,6 @@ import { QualityTier, SubscriptionTier } from '@genfeedai/enums';
 export const TIER_QUALITY_ACCESS: Record<SubscriptionTier, QualityTier[]> = {
   [SubscriptionTier.FREE]: [QualityTier.BASIC],
   [SubscriptionTier.BYOK]: [QualityTier.BASIC],
-  [SubscriptionTier.CREATOR]: [QualityTier.BASIC, QualityTier.STANDARD],
   [SubscriptionTier.PRO]: [
     QualityTier.BASIC,
     QualityTier.STANDARD,

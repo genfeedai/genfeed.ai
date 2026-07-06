@@ -57,10 +57,10 @@ export function SelectCardButton({
       withWrapper={false}
       variant={ButtonVariant.UNSTYLED}
       onClick={onClick}
-      className={`w-full rounded border p-4 text-left transition-colors ${
+      className={`w-full rounded p-4 text-left transition-colors ${
         isSelected
-          ? 'border-foreground bg-foreground/5'
-          : 'border-foreground/10 hover:border-foreground/30'
+          ? 'bg-tertiary shadow-border-strong'
+          : 'shadow-border hover:shadow-border-strong'
       }`}
     >
       {children}

@@ -25,34 +25,34 @@ export function buildModelsTableColumns({
   const getRegistryStatus = (model: IModel) => {
     if (model.isLegacy || model.reviewStatus === 'legacy') {
       return {
-        className: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+        className: 'bg-warning/10 text-warning shadow-border',
         label: 'Legacy',
       };
     }
 
     if (model.reviewStatus === 'rejected') {
       return {
-        className: 'bg-red-500/15 text-red-400 border-red-500/30',
+        className: 'bg-destructive/10 text-destructive shadow-border',
         label: 'Rejected',
       };
     }
 
     if (model.isDiscovered && !model.isActive) {
       return {
-        className: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
+        className: 'bg-info/10 text-info shadow-border',
         label: 'Pending',
       };
     }
 
     if (model.isDiscovered) {
       return {
-        className: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+        className: 'bg-success/10 text-success shadow-border',
         label: 'Approved',
       };
     }
 
     return {
-      className: 'bg-foreground/10 text-foreground/70',
+      className: 'bg-secondary text-foreground/70 shadow-border',
       label: 'Seeded',
     };
   };
@@ -115,10 +115,10 @@ export function buildModelsTableColumns({
           tier === 'high' ? 'Best' : tier === 'medium' ? 'Better' : 'Good';
         const tierClass =
           tier === 'high'
-            ? 'bg-emerald-500/20 text-emerald-400'
+            ? 'bg-foreground/15 text-foreground'
             : tier === 'medium'
-              ? 'bg-blue-500/20 text-blue-400'
-              : 'bg-foreground/10 text-foreground/70';
+              ? 'bg-muted-foreground/15 text-foreground/80'
+              : 'bg-secondary text-foreground/70';
         return <Badge className={`text-xs ${tierClass}`}>{tierLabel}</Badge>;
       },
     },

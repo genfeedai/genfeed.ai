@@ -36,6 +36,9 @@ describe('ToolRegistryService.classify', () => {
     ['start_training', 'training-pipeline'],
     ['generate_darkroom_content', 'darkroom-generation'],
     ['post_social_reply', 'social-messages'],
+    ['analyze_clip_project', 'clip-projects'],
+    ['generate_clips', 'clip-projects'],
+    ['get_clip_project', 'clip-projects'],
     ['a_tool_that_does_not_exist', 'unknown'],
     // resolve_approval is handled upstream in handleToolCall, so it is not a
     // classify-dispatch target.
@@ -67,6 +70,9 @@ describe('ToolRegistryService.validateDispatchCoverage', () => {
       'approve_social_draft',
       'post_social_reply',
       'send_social_dm',
+      'analyze_clip_project',
+      'create_clip_project_from_youtube',
+      'generate_clips',
     ];
     mockState.tools = [
       { name: 'generate_image' },

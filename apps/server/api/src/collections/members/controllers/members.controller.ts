@@ -1,6 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { InvitationsQueryDto } from '@api/collections/members/dto/invitations-query.dto';
-import { InviteMemberDto } from '@api/collections/members/dto/invite-member.dto';
 import { InvitationService } from '@api/collections/members/services/invitation.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
@@ -18,12 +17,10 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
 import { MemberSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
-  Body,
   Controller,
   Delete,
   Get,
@@ -96,55 +93,6 @@ export class MembersController {
   // ────────────────────────────────────────────────────────────────────────────
   // Invitation endpoints
   // ────────────────────────────────────────────────────────────────────────────
-
-  /**
-   * POST /members/invite
-   * Send an invitation to join the current organization.
-   * Creates a self-hosted invitation and sends an accept email.
-   */
-  @Post('invite')
-  @RateLimit({ limit: 10, scope: 'organization', windowMs: 60000 })
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async invite(
-    @Body() dto: InviteMemberDto,
-    @CurrentUser() user: User,
-  ): Promise<unknown> {
-    const publicMetadata = getPublicMetadata(user);
-    const orgId = publicMetadata.organization;
-
-    if (!orgId) {
-      throw new HttpException(
-        { detail: 'Organization not found in metadata', title: 'Bad Request' },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-    if (!publicMetadata.user) {
-      throw new HttpException(
-        { detail: 'Inviting user not found in metadata', title: 'Bad Request' },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
-    const invitation = await this.invitationService.createInvitation({
-      defaultRoleKey: 'member',
-      email: dto.email,
-      firstName: dto.firstName,
-      invitedByUserId: String(publicMetadata.user),
-      lastName: dto.lastName,
-      organizationId: orgId,
-      roleId: dto.role,
-    });
-
-    return {
-      data: {
-        email: dto.email,
-        id: invitation.id,
-        organization: orgId,
-        role: invitation.roleId,
-        status: invitation.status,
-      },
-    };
-  }
 
   /**
    * GET /members/invitations

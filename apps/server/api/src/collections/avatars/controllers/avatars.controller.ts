@@ -1,44 +1,34 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AvatarsService } from '@api/collections/avatars/services/avatars.service';
-import { CreateAvatarDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
-import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
-import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
-import {
-  serializeCollection,
-  serializeSingle,
-} from '@api/helpers/utils/response/response.util';
+import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
 import { HedraService } from '@api/services/integrations/hedra/services/hedra.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { ActivitySource, IngredientCategory } from '@genfeedai/enums';
+import { IngredientCategory } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
-import { AvatarSerializer, IngredientSerializer } from '@genfeedai/serializers';
+import { AvatarSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
-  Body,
   Controller,
   Get,
   HttpException,
   HttpStatus,
-  Post,
   Query,
   Req,
-  UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
 
@@ -269,159 +259,5 @@ export class AvatarsController {
     const data: AggregatePaginateResult<IngredientDocument> =
       await this.avatarsService.findAll(aggregate, options);
     return serializeCollection(request, AvatarSerializer, data);
-  }
-
-  // Create a new avatar in HeyGen
-  @Post('new')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async createNewAvatar(
-    @Req() request: Request,
-    // @Body() createAvatarDto: CreateAvatarDto,
-    // @CurrentUser() user: User,
-  ): Promise<JsonApiSingleResponse> {
-    // const isAvatar = createIngredientDto.category === IngredientCategory.AVATAR;
-
-    // if (!isAvatar) {
-    //   throw new HttpException(
-    //     {
-    //       title: 'Validation failed',
-    //       detail: 'Invalid avatar type',
-    //     },
-    //     HttpStatus.BAD_REQUEST,
-    //   );
-    // }
-
-    // const reference = await this.avatarsService.findOne(
-    //   { _id: createIngredientDto.reference || createIngredientDto.avatar },
-    //   [],
-    // );
-
-    // if (!reference) {
-    //   return returnNotFound('Reference', script.reference );
-    // }
-
-    // This is generating a new JPG for the avat in mp4 later on
-    // const { metadataData, ingredientData } =
-    //   await this.sharedService.saveDocuments(user, {
-    //     ...body,
-    //     extension: 'jpeg',
-    //     status: IngredientStatus.PROCESSING,
-    //   });
-
-    // const websocketUrl = `/avatars/${ingredientData.id}`;
-    // const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    // try {
-    //   const avatarId = await this.heygenService.createAvatar(
-    //     metadataData.label,
-    //     `${this.configService.ingredientsEndpoint}/${reference.type}s/${reference.id}`,
-    //   );
-
-    //   if (avatarId) {
-    //     await this.metadataService.patch(
-    //       metadataData.id,
-    //       new MetadataEntity({ externalId: avatarId }),
-    //     );
-
-    //     await this.avatarService.patch(ingredientData.id, { status: 'completed' });
-
-    //     this.socketGateaway.emit(websocketUrl, {
-    //       status: 'success',
-    //       result: ingredientData.id,
-    //     });
-    //   } else {
-    //     await this.avatarService.patch(ingredientData.id, { status: 'failed' });
-
-    // await this.handleFailedGeneration(ingredientData.id, websocketUrl);
-    //   }
-    // } catch (error: unknown) {
-    //   this.loggerService.error(`${url} failed`, error);
-
-    // await this.handleFailedGeneration(ingredientData.id, websocketUrl);
-    // }
-
-    // return IngredientSerializer.serialize(ingredientData);
-    return serializeSingle(request, IngredientSerializer, {});
-  }
-
-  // Generate a new avatar video in HeyGen
-  @Post('generate')
-  @UseGuards(SubscriptionGuard, CreditsGuard)
-  @Credits({
-    amount: 10,
-    description: 'Avatar generation',
-    source: ActivitySource.AVATAR_GENERATION,
-  })
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  createGenerateAvatar(
-    @Req() request: Request,
-    @Body() createAvatarDto: CreateAvatarDto,
-    @CurrentUser() user: User,
-  ): JsonApiSingleResponse {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(url, { createAvatarDto, user });
-
-    // const isAvatar = createAvatarDto.category === IngredientCategory.AVATAR;
-    // if (!isAvatar) {
-    //   throw new HttpException(
-    //     {
-    //       title: 'Validation failed',
-    //       detail: 'Invalid avatar type',
-    //     },
-    //     HttpStatus.BAD_REQUEST,
-    //   );
-    // }
-
-    // const { metadataData, ingredientData } =
-    //   await this.sharedService.saveDocuments(user, {
-    //     ...createAvatarDto,
-    //     extension: MetadataExtension.MP4,
-    //     status: IngredientStatus.PROCESSING,
-    //   });
-
-    // const publicMetadata = getPublicMetadata(user);
-    // const websocketUrl = `/avatars/${(ingredientData.id as string).toHexString()}`;
-
-    // // Determine provider (heygen or hedra)
-    // const provider = createAvatarDto.provider || Provider.HEYGEN;
-    // let externalId: string;
-
-    // if (provider === 'hedra') {
-    //   // Use Hedra for avatar generation
-    //   externalId = await this.hedraService.generateCharacterWithText(
-    //     metadataData.id,
-    //     createAvatarDto.text,
-    //     createAvatarDto.imageUrl || '', // Hedra requires an image URL
-    //     createAvatarDto.voiceId,
-    //     createAvatarDto.aspectRatio || '16:9',
-    //     publicMetadata.organization,
-    //   );
-    // } else {
-    //   // Use HeyGen for avatar generation (default)
-    //   externalId = await this.heygenService.generateAvatarVideo(
-    //     metadataData.id,
-    //     createAvatarDto.avatarId,
-    //     createAvatarDto.voiceId,
-    //     createAvatarDto.text,
-    //     publicMetadata.organization,
-    //   );
-    // }
-
-    // if (externalId) {
-    //   await this.metadataService.patch(
-    //     metadataData.id,
-    //     new MetadataEntity({
-    //       externalId,
-    //     }),
-    //   );
-    // } else {
-    // await this.failedGenerationService.handleFailedAvatarGeneration(
-    //   this.avatarsService,
-    //   ingredientId.toString(),
-    //   websocketUrl,
-    // );
-    // }
-
-    return serializeSingle(request, IngredientSerializer, createAvatarDto);
   }
 }

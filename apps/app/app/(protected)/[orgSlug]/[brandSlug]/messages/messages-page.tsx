@@ -85,9 +85,9 @@ const STATUS_LABELS: Record<string, string> = {
 
 const STATUS_STYLES: Record<string, string> = {
   archived: 'bg-white/5 text-white/38',
-  needs_review: 'bg-amber-500/15 text-amber-300',
-  open: 'bg-blue-500/15 text-blue-300',
-  resolved: 'bg-emerald-500/15 text-emerald-300',
+  needs_review: 'bg-warning/10 text-warning',
+  open: 'bg-info/10 text-info',
+  resolved: 'bg-success/10 text-success',
 };
 
 const MESSAGE_TIME = new Intl.DateTimeFormat('en', {
@@ -712,17 +712,17 @@ export default function MessagesPage() {
       </div>
 
       {error ? (
-        <div className="mb-4 rounded border border-red-500/25 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+        <div className="mb-4 rounded border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}
         </div>
       ) : null}
       {notice ? (
-        <div className="mb-4 rounded border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
+        <div className="mb-4 rounded border border-success/20 bg-success/10 px-3 py-2 text-sm text-success">
           {notice}
         </div>
       ) : null}
 
-      <div className="grid min-h-[680px] overflow-hidden rounded border border-white/[0.08] bg-card lg:grid-cols-[380px_minmax(0,1fr)]">
+      <div className="grid min-h-[680px] overflow-hidden rounded bg-card shadow-border lg:grid-cols-[380px_minmax(0,1fr)]">
         <div className="border-b border-white/[0.08] lg:border-b-0 lg:border-r">
           <div className="flex h-12 items-center justify-between border-b border-white/[0.08] px-4">
             <div className="flex items-center gap-2 text-sm font-medium text-white/76">
@@ -769,7 +769,7 @@ export default function MessagesPage() {
                       <PlatformPill platform={selectedConversation.platform} />
                       <StatusPill status={selectedConversation.status} />
                       {selectedConversation.needsReview ? (
-                        <span className="inline-flex items-center rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-300">
+                        <span className="inline-flex items-center rounded bg-warning/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-warning">
                           Review
                         </span>
                       ) : null}

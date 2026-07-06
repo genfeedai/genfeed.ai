@@ -22,16 +22,13 @@ export default function SkillsPageHeader({
   sourceFilter,
 }: Props) {
   return (
-    <Card
-      bodyClassName="gap-4 p-6"
-      className="rounded-3xl border-white/10 bg-black/20"
-    >
+    <Card bodyClassName="gap-4 p-6" className="rounded-3xl">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-foreground/50">
             Agent Skills
           </p>
-          <h1 className="text-3xl font-semibold text-foreground">
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
             Brand content behavior
           </h1>
           <p className="max-w-3xl text-sm text-foreground/60">

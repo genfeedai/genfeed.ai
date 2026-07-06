@@ -139,6 +139,9 @@ function composerReducer(
   }
 }
 
+const FIELD_INPUT_CLASSNAME =
+  'rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-white/20';
+
 export default function NewsletterComposerPanel() {
   const { push } = useRouter();
   const notificationsService = NotificationsService.getInstance();
@@ -299,7 +302,7 @@ export default function NewsletterComposerPanel() {
                 })
               }
               placeholder="What should this issue cover?"
-              className="rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-white/20"
+              className={FIELD_INPUT_CLASSNAME}
             />
           </label>
 
@@ -319,7 +322,7 @@ export default function NewsletterComposerPanel() {
                 })
               }
               placeholder="Optional framing or thesis"
-              className="rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-white/20"
+              className={FIELD_INPUT_CLASSNAME}
             />
           </label>
 
@@ -354,7 +357,7 @@ export default function NewsletterComposerPanel() {
                 })
               }
               placeholder="Newsletter title"
-              className="rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-white/20"
+              className={FIELD_INPUT_CLASSNAME}
             />
           </label>
 

@@ -2,10 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { CreateGoalDto } from '@api/collections/goals/dto/create-goal.dto';
 import { GoalQueryDto } from '@api/collections/goals/dto/goal-query.dto';
 import { UpdateGoalDto } from '@api/collections/goals/dto/update-goal.dto';
-import {
-  Goal,
-  type GoalDocument,
-} from '@api/collections/goals/schemas/goal.schema';
+import type { GoalDocument } from '@api/collections/goals/schemas/goal.schema';
 import { GoalsService } from '@api/collections/goals/services/goals.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -22,7 +19,7 @@ import type { Request } from 'express';
 
 @ApiTags('Goals')
 @AutoSwagger()
-@Controller('v1/goals')
+@Controller('goals')
 export class GoalsController extends BaseCRUDController<
   GoalDocument,
   CreateGoalDto,

@@ -43,7 +43,7 @@ export function AssetControlsHeader({
     : 'Generation';
   const showViewToggle = supportsMasonry;
   const controlGroupClassName =
-    'flex items-center rounded-xl border border-white/10 bg-white/[0.03] p-1';
+    'flex items-center rounded-xl bg-secondary p-1 shadow-border';
 
   return (
     <div className="w-full border-b border-white/[0.08] px-6 py-2">
