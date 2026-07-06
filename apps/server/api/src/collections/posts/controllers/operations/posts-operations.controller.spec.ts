@@ -607,12 +607,12 @@ Tweet 3: Tech innovation is changing the world.`,
   });
 
   // ==========================================================================
-  // POST /posts/batch - batchSchedule
+  // PATCH /posts/batch - batchUpdate
   // ==========================================================================
-  describe('batchSchedule', () => {
+  describe('batchUpdate', () => {
     const batchScheduleDto = {
       credential: credentialId,
-      tweets: [
+      items: [
         {
           postId: postId,
           scheduledDate: new Date().toISOString(),
@@ -638,7 +638,7 @@ Tweet 3: Tech innovation is changing the world.`,
     });
 
     it('should schedule multiple posts', async () => {
-      const result = await controller.batchSchedule(
+      const result = await controller.batchUpdate(
         mockRequest,
         batchScheduleDto,
         mockUser,
@@ -654,15 +654,15 @@ Tweet 3: Tech innovation is changing the world.`,
       mockCredentialsService.findOne.mockResolvedValueOnce(null);
 
       await expect(
-        controller.batchSchedule(mockRequest, batchScheduleDto, mockUser),
+        controller.batchUpdate(mockRequest, batchScheduleDto, mockUser),
       ).rejects.toThrow(HttpException);
     });
 
     it('should skip posts that are not found', async () => {
-      // batchSchedule uses findByIds (not findOne) — return empty array so no posts are found
+      // batchUpdate uses findByIds (not findOne) — return empty array so no posts are found
       mockPostsService.findByIds.mockResolvedValueOnce([]);
 
-      const result = await controller.batchSchedule(
+      const result = await controller.batchUpdate(
         mockRequest,
         batchScheduleDto,
         mockUser,
@@ -672,10 +672,10 @@ Tweet 3: Tech innovation is changing the world.`,
       expect(result).toBeDefined();
     });
 
-    it('should handle ingredient lookup for tweets with ingredientId', async () => {
+    it('should handle ingredient lookup for items with ingredientId', async () => {
       mockIngredientsService.findByIds.mockResolvedValueOnce([mockIngredient]);
 
-      await controller.batchSchedule(mockRequest, batchScheduleDto, mockUser);
+      await controller.batchUpdate(mockRequest, batchScheduleDto, mockUser);
 
       expect(mockIngredientsService.findByIds).toHaveBeenCalled();
     });

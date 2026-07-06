@@ -504,26 +504,6 @@
         ],
         "type": "object"
       },
-      "BatchScheduleDto": {
-        "properties": {
-          "credential": {
-            "description": "Credential ID (Twitter account) to use for publishing",
-            "type": "string"
-          },
-          "tweets": {
-            "description": "Array of posts to schedule (updates existing DRAFT posts to SCHEDULED)",
-            "items": {
-              "$ref": "#/components/schemas/TweetScheduleItemDto"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "tweets",
-          "credential"
-        ],
-        "type": "object"
-      },
       "BatchStatus": {
         "enum": [
           "pending",
@@ -7665,6 +7645,39 @@
         ],
         "type": "string"
       },
+      "PostBatchItemDto": {
+        "properties": {
+          "ingredientId": {
+            "description": "Ingredient ID for attached image (optional)",
+            "type": "string"
+          },
+          "postId": {
+            "description": "Post ID to schedule",
+            "type": "string"
+          },
+          "scheduledDate": {
+            "description": "Scheduled date and time for the tweet (ISO 8601)",
+            "example": "2025-11-27T14:30:00Z",
+            "type": "string"
+          },
+          "text": {
+            "description": "Tweet text content",
+            "example": "This is a sample tweet",
+            "type": "string"
+          },
+          "timezone": {
+            "description": "IANA timezone string for the scheduled date",
+            "example": "America/New_York",
+            "type": "string"
+          }
+        },
+        "required": [
+          "postId",
+          "text",
+          "scheduledDate"
+        ],
+        "type": "object"
+      },
       "PostCategory": {
         "description": "Type of media being published (image or video) - automatically derived from ingredient if not provided",
         "enum": [
@@ -7701,6 +7714,26 @@
           "failed"
         ],
         "type": "string"
+      },
+      "PostsBatchDto": {
+        "properties": {
+          "credential": {
+            "description": "Credential ID (Twitter account) to use for publishing",
+            "type": "string"
+          },
+          "items": {
+            "description": "Per-item batch of posts to update (updates existing DRAFT posts to SCHEDULED)",
+            "items": {
+              "$ref": "#/components/schemas/PostBatchItemDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items",
+          "credential"
+        ],
+        "type": "object"
       },
       "PredictViralDto": {
         "properties": {},
@@ -8998,39 +9031,6 @@
       },
       "TriggerSyncDto": {
         "properties": {},
-        "type": "object"
-      },
-      "TweetScheduleItemDto": {
-        "properties": {
-          "ingredientId": {
-            "description": "Ingredient ID for attached image (optional)",
-            "type": "string"
-          },
-          "postId": {
-            "description": "Post ID to schedule",
-            "type": "string"
-          },
-          "scheduledDate": {
-            "description": "Scheduled date and time for the tweet (ISO 8601)",
-            "example": "2025-11-27T14:30:00Z",
-            "type": "string"
-          },
-          "text": {
-            "description": "Tweet text content",
-            "example": "This is a sample tweet",
-            "type": "string"
-          },
-          "timezone": {
-            "description": "IANA timezone string for the scheduled date",
-            "example": "America/New_York",
-            "type": "string"
-          }
-        },
-        "required": [
-          "postId",
-          "text",
-          "scheduledDate"
-        ],
         "type": "object"
       },
       "TweetTone": {
@@ -16165,6 +16165,19 @@
           "Agent Threads"
         ]
       },
+      "patch": {
+        "operationId": "AgentThreadsController.bulkUpdateThreads",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Bulk-update the current user's threads by filter (currently archives all active threads)",
+        "tags": [
+          "Agent Threads"
+        ]
+      },
       "post": {
         "operationId": "AgentThreadsController.createThread",
         "parameters": [],
@@ -16174,21 +16187,6 @@
           }
         },
         "summary": "Create a new agent thread",
-        "tags": [
-          "Agent Threads"
-        ]
-      }
-    },
-    "/agent/threads/archive-all": {
-      "post": {
-        "operationId": "AgentThreadsController.archiveAllThreads",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Archive all active threads for the current user",
         "tags": [
           "Agent Threads"
         ]
@@ -37758,6 +37756,31 @@
         ]
       }
     },
+    "/posts/batch": {
+      "patch": {
+        "operationId": "PostsOperationsController.batchUpdate",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostsBatchDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "batchUpdate",
+        "tags": [
+          "posts"
+        ]
+      }
+    },
     "/posts/generations": {
       "post": {
         "operationId": "PostsOperationsController.generateTweets",
@@ -37803,31 +37826,6 @@
           }
         },
         "summary": "generateHookVariations",
-        "tags": [
-          "posts"
-        ]
-      }
-    },
-    "/posts/schedules/batch": {
-      "post": {
-        "operationId": "PostsOperationsController.batchSchedule",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BatchScheduleDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "batchSchedule",
         "tags": [
           "posts"
         ]

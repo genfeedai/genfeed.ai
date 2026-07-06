@@ -4,7 +4,6 @@ import { ActivitiesService } from '@api/collections/activities/services/activiti
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type { IngredientRefDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { BatchScheduleDto } from '@api/collections/posts/dto/batch-schedule.dto';
 import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { CreateRemixPostDto } from '@api/collections/posts/dto/create-remix-post.dto';
 import { EnhancePostDto } from '@api/collections/posts/dto/enhance-post.dto';
@@ -13,6 +12,7 @@ import { GenerateAccountPostDto } from '@api/collections/posts/dto/generate-acco
 import { GenerateHooksDto } from '@api/collections/posts/dto/generate-hooks.dto';
 import { GenerateThreadDto } from '@api/collections/posts/dto/generate-thread.dto';
 import { GenerateTweetsDto } from '@api/collections/posts/dto/generate-tweets.dto';
+import { PostsBatchDto } from '@api/collections/posts/dto/posts-batch.dto';
 import { type PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
@@ -57,6 +57,7 @@ import {
   HttpException,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Req,
   UseGuards,
@@ -352,11 +353,11 @@ export class PostsOperationsController {
     return response;
   }
 
-  @Post('schedules/batch')
+  @Patch('batch')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async batchSchedule(
+  async batchUpdate(
     @Req() request: Request,
-    @Body() dto: BatchScheduleDto,
+    @Body() dto: PostsBatchDto,
     @CurrentUser() user: User,
   ) {
     const publicMetadata = getPublicMetadata(user);
@@ -385,8 +386,8 @@ export class PostsOperationsController {
       const updatedPosts = [];
 
       // Batch fetch all posts and ingredients upfront (avoids N+1 queries)
-      const postIds = dto.tweets.map((t) => t.postId);
-      const ingredientIds = dto.tweets
+      const postIds = dto.items.map((t) => t.postId);
+      const ingredientIds = dto.items
         .filter((t) => t.ingredientId)
         .map((t) => t.ingredientId as string);
 
@@ -404,32 +405,32 @@ export class PostsOperationsController {
       const postMap = new Map(posts.map((p) => [p.id.toString(), p]));
       const ingredientSet = new Set(ingredients.map((i) => i.id.toString()));
 
-      for (const tweet of dto.tweets) {
+      for (const item of dto.items) {
         // Find the post from pre-fetched data
-        const post = postMap.get(tweet.postId.toString());
+        const post = postMap.get(item.postId.toString());
 
         if (!post) {
-          this.logger.warn(`Post ${tweet.postId} not found, skipping`);
+          this.logger.warn(`Post ${item.postId} not found, skipping`);
           continue;
         }
 
-        const tweetIngredientIds: string[] = [];
-        if (tweet.ingredientId && ingredientSet.has(tweet.ingredientId)) {
-          tweetIngredientIds.push(tweet.ingredientId);
+        const itemIngredientIds: string[] = [];
+        if (item.ingredientId && ingredientSet.has(item.ingredientId)) {
+          itemIngredientIds.push(item.ingredientId);
         }
 
         // Update post to SCHEDULED with scheduledDate
-        const postIdString = String(tweet.postId);
+        const postIdString = String(item.postId);
         const updatedPost = await this.postsService.patch(
           postIdString,
           {
             category:
-              tweetIngredientIds.length > 0 ? PostCategory.IMAGE : undefined,
-            description: tweet.text,
-            ingredients: tweetIngredientIds,
-            scheduledDate: new Date(tweet.scheduledDate),
+              itemIngredientIds.length > 0 ? PostCategory.IMAGE : undefined,
+            description: item.text,
+            ingredients: itemIngredientIds,
+            scheduledDate: new Date(item.scheduledDate),
             status: PostStatus.SCHEDULED,
-            timezone: tweet.timezone,
+            timezone: item.timezone,
           },
           [
             { path: 'ingredients', select: '_id url' },

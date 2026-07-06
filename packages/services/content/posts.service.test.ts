@@ -384,11 +384,11 @@ describe('PostsService', () => {
 
   describe('batchScheduleTweets', () => {
     it('should batch schedule tweets', async () => {
-      mockInstance.post.mockResolvedValue({ data: mockPostsData });
+      mockInstance.patch.mockResolvedValue({ data: mockPostsData });
 
       const data = {
         credential: 'cred-123',
-        tweets: [
+        items: [
           {
             postId: 'post-1',
             scheduledDate: '2024-12-25T10:00:00Z',
@@ -404,19 +404,19 @@ describe('PostsService', () => {
 
       const result = await service.batchScheduleTweets(data);
 
-      expect(mockInstance.post).toHaveBeenCalledWith(
-        'https://api.genfeed.ai/posts/schedules/batch',
+      expect(mockInstance.patch).toHaveBeenCalledWith(
+        'https://api.genfeed.ai/posts/batch',
         data,
       );
       expect(Array.isArray(result)).toBe(true);
     });
 
     it('should batch schedule with optional params', async () => {
-      mockInstance.post.mockResolvedValue({ data: mockPostsData });
+      mockInstance.patch.mockResolvedValue({ data: mockPostsData });
 
       const data = {
         credential: 'cred-123',
-        tweets: [
+        items: [
           {
             ingredientId: 'ingredient-123',
             postId: 'post-1',
@@ -429,8 +429,8 @@ describe('PostsService', () => {
 
       await service.batchScheduleTweets(data);
 
-      expect(mockInstance.post).toHaveBeenCalledWith(
-        'https://api.genfeed.ai/posts/schedules/batch',
+      expect(mockInstance.patch).toHaveBeenCalledWith(
+        'https://api.genfeed.ai/posts/batch',
         data,
       );
     });
