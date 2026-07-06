@@ -52,14 +52,6 @@ export default defineConfig({
         find: /^@genfeedai\/types\/(.*)$/,
         replacement: path.resolve(__dirname, '../types/src/$1'),
       },
-      {
-        find: /^@genfeedai\/ui$/,
-        replacement: path.resolve(__dirname, '../ui/src/index.ts'),
-      },
-      {
-        find: /^@genfeedai\/ui\/(.*)$/,
-        replacement: path.resolve(__dirname, '../ui/src/$1'),
-      },
     ],
   },
   test: {
