@@ -335,8 +335,11 @@ describe('AgentApiService', () => {
       ).resolves.toEqual({ archivedCount: 7 });
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://api.test/agent/threads/archive-all',
-        expect.objectContaining({ method: 'POST' }),
+        'http://api.test/agent/threads',
+        expect.objectContaining({
+          body: JSON.stringify({ status: 'archived' }),
+          method: 'PATCH',
+        }),
       );
     });
   });

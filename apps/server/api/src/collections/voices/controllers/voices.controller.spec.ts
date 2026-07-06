@@ -1,7 +1,12 @@
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { VoicesController } from '@api/collections/voices/controllers/voices.controller';
 import { ExternalVoiceCatalogService } from '@api/collections/voices/services/external-voice-catalog.service';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
+import {
+  CREDITS_DEFER_MODEL_RESOLUTION_KEY,
+  CREDITS_KEY,
+} from '@api/helpers/decorators/credits/credits.decorator';
 import { ByokService } from '@api/services/byok/byok.service';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
@@ -12,6 +17,7 @@ import { IngredientCategory, VoiceProvider } from '@genfeedai/enums';
 import { VoiceProvider as DbVoiceProvider } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMockLogger() {
@@ -51,6 +57,7 @@ describe('VoicesController', () => {
   let externalVoiceCatalogService: Record<string, ReturnType<typeof vi.fn>>;
   let sharedService: Record<string, ReturnType<typeof vi.fn>>;
   let byokService: Record<string, ReturnType<typeof vi.fn>>;
+  let creditsUtilsService: Record<string, ReturnType<typeof vi.fn>>;
   let fleetService: Record<string, ReturnType<typeof vi.fn>>;
   let heygenService: Record<string, ReturnType<typeof vi.fn>>;
   let metadataService: Record<string, ReturnType<typeof vi.fn>>;
@@ -84,6 +91,10 @@ describe('VoicesController', () => {
     byokService = {
       resolveApiKey: vi.fn(),
     };
+    creditsUtilsService = {
+      checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
+      getOrganizationCreditsBalance: vi.fn().mockResolvedValue(1000),
+    };
     fleetService = {
       cloneVoice: vi.fn(),
       isAvailable: vi.fn(),
@@ -104,6 +115,7 @@ describe('VoicesController', () => {
 
     controller = new VoicesController(
       byokService as unknown as ByokService,
+      creditsUtilsService as unknown as CreditsUtilsService,
       elevenLabsService as unknown as ElevenLabsService,
       externalVoiceCatalogService as unknown as ExternalVoiceCatalogService,
       fleetService as unknown as FleetService,
@@ -439,6 +451,65 @@ describe('VoicesController', () => {
       );
     });
 
+    it('settles duration-based credits (17/min) onto request.creditsConfig after render', async () => {
+      const user = createMockUser();
+      // CreditsGuard defers by setting this; the handler must resolve the amount.
+      const request = {
+        ...createMockRequest(),
+        creditsConfig: {
+          amount: 0,
+          deferred: true,
+          source: 'voice_generation',
+        },
+      };
+      const ingredientId = '507f191e810c19729de860ee';
+
+      sharedService.saveDocuments.mockResolvedValue({
+        ingredientData: { id: ingredientId },
+      });
+      elevenLabsService.generateAndUploadAudio.mockResolvedValue({
+        audioUrl: 'https://cdn.example.com/audio.mp3',
+        duration: 90, // 1.5 min -> ceil(1.5 * 17) = 26 credits
+      });
+      voicesService.patchAll.mockResolvedValue({});
+      voicesService.findOne.mockResolvedValue({
+        id: ingredientId,
+        status: 'generated',
+      });
+
+      await controller.generate(
+        request as never,
+        user as never,
+        { text: 'Hello world', voiceId: 'voice123' } as never,
+      );
+
+      expect(request.creditsConfig).toMatchObject({
+        amount: 26,
+        deferred: false,
+      });
+    });
+
+    it('rejects with InsufficientCreditsException before rendering when the org cannot afford the floor', async () => {
+      const user = createMockUser();
+      const request = createMockRequest();
+      creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
+        false,
+      );
+      creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(0);
+
+      await expect(
+        controller.generate(
+          request as never,
+          user as never,
+          { text: 'Hello world', voiceId: 'voice123' } as never,
+        ),
+      ).rejects.toMatchObject({ errorCode: 'INSUFFICIENT_CREDITS' });
+
+      // Floor gate runs before any provider call or ingredient creation.
+      expect(elevenLabsService.generateAndUploadAudio).not.toHaveBeenCalled();
+      expect(sharedService.saveDocuments).not.toHaveBeenCalled();
+    });
+
     it('should mark ingredient as failed when generation errors', async () => {
       const user = createMockUser();
       const request = createMockRequest();
@@ -467,6 +538,35 @@ describe('VoicesController', () => {
         expect.objectContaining({ OR: expect.any(Array) }),
         { status: 'failed' },
       );
+    });
+  });
+
+  describe('credit decorators (#1354)', () => {
+    const reflector = new Reflector();
+
+    it('defers voice-generation credits (duration-based, no fixed amount) so the guard never throws InsufficientCreditsException(0,0)', () => {
+      const config = reflector.get<{ amount?: number }>(
+        CREDITS_KEY,
+        controller.generate,
+      );
+      const deferred = reflector.get(
+        CREDITS_DEFER_MODEL_RESOLUTION_KEY,
+        controller.generate,
+      );
+
+      expect(config).toBeDefined();
+      expect(config.amount).toBeUndefined();
+      expect(deferred).toBe(true);
+    });
+
+    it('charges a fixed 17-credit @Credits config for voice cloning', () => {
+      const config = reflector.get<{ amount?: number }>(
+        CREDITS_KEY,
+        controller.cloneVoice,
+      );
+
+      expect(config).toBeDefined();
+      expect(config.amount).toBe(17);
     });
   });
 

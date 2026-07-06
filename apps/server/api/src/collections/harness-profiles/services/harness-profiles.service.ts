@@ -102,6 +102,7 @@ export class HarnessProfilesService {
   async findForBrand(
     organizationId: string,
     brandId: string,
+    filters?: { isActive?: boolean },
   ): Promise<HarnessProfileDocument[]> {
     const profiles = await this.prisma.profile.findMany({
       orderBy: { updatedAt: 'desc' },
@@ -120,7 +121,17 @@ export class HarnessProfilesService {
       },
     });
 
-    return profiles.map((profile) => this.normalizeProfile(profile));
+    const normalized = profiles.map((profile) =>
+      this.normalizeProfile(profile),
+    );
+
+    if (filters?.isActive === undefined) {
+      return normalized;
+    }
+
+    return normalized.filter(
+      (profile) => (profile.status === 'active') === filters.isActive,
+    );
   }
 
   async getActiveForBrand(

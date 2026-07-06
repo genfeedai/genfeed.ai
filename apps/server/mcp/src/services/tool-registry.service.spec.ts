@@ -79,9 +79,13 @@ const MOCK_TOOLS = [
     requiredRole: undefined,
     surfaces: { mcp: true },
   },
+  // Mocked as admin-gated for the role-gate test below (its production tier is
+  // user). It stands in for a role-gated tool that still dispatches to a live
+  // executor — the darkroom admin tools it previously stood in for were dropped
+  // from the OSS MCP surface in PR 5/6.
   {
     name: 'get_workflow_status',
-    requiredRole: undefined,
+    requiredRole: 'admin',
     surfaces: { mcp: true },
   },
   {
@@ -93,12 +97,6 @@ const MOCK_TOOLS = [
     name: 'get_google_ads_keyword_performance',
     // Matches production (source.ts) — this tool is user-tier, not admin.
     requiredRole: 'user',
-    surfaces: { mcp: true },
-  },
-  // A genuinely admin-gated tool, mirroring production, for the role-gate test.
-  {
-    name: 'get_darkroom_health',
-    requiredRole: 'admin',
     surfaces: { mcp: true },
   },
   {
@@ -709,8 +707,8 @@ describe('ToolRegistryService', () => {
       );
 
       await adminScoped.handleToolCall({
-        arguments: {},
-        name: 'get_darkroom_health',
+        arguments: { workflowId: 'wf-1' },
+        name: 'get_workflow_status',
       });
 
       expect(McpAuthGuard.checkToolRole).toHaveBeenCalledWith('admin', 'admin');

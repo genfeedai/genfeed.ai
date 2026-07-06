@@ -14,16 +14,17 @@ import type {
   McpTool,
 } from '@mcp/shared/interfaces/mcp-server.interface';
 import { handleAccountManagementTool } from '@mcp/tools/account-management.tool';
-import { handleAdminInfrastructureTool } from '@mcp/tools/admin-infrastructure.tool';
 import { handleAgentChatTool } from '@mcp/tools/agent-chat.tool';
-import { handleDarkroomGenerationTool } from '@mcp/tools/darkroom-generation.tool';
+import {
+  CLIP_PROJECTS_TOOL_NAMES,
+  handleClipProjectsTool,
+} from '@mcp/tools/clip-projects.tool';
 import { handleGoogleAdsTool } from '@mcp/tools/google-ads.tool';
 import { handleMetaAdsTool } from '@mcp/tools/meta-ads.tool';
 import {
   handleSocialMessagesTool,
   SOCIAL_MESSAGES_TOOL_NAMES,
 } from '@mcp/tools/social-messages.tool';
-import { handleTrainingPipelineTool } from '@mcp/tools/training-pipeline.tool';
 import { handleWorkflowControlTool } from '@mcp/tools/workflow-control.tool';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 
@@ -71,7 +72,6 @@ const LEGACY_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   'search_articles',
   'get_article',
   'list_images',
-  'create_avatar',
   'list_avatars',
   'list_music',
   'get_workflow_status',
@@ -99,21 +99,6 @@ const ACCOUNT_MANAGEMENT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   'get_job_status',
 ]);
 
-const ADMIN_INFRASTRUCTURE_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
-  'get_darkroom_health',
-  'control_comfyui',
-  'list_loras',
-  'list_gpu_personas',
-]);
-
-const TRAINING_PIPELINE_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
-  'start_training',
-  'get_training_status',
-  'get_dataset_info',
-  'delete_dataset',
-  'run_captioning',
-]);
-
 const isMetaAdsTool = (name: string): boolean =>
   name.startsWith('list_meta_') ||
   name.startsWith('get_meta_') ||
@@ -122,12 +107,16 @@ const isMetaAdsTool = (name: string): boolean =>
 const isGoogleAdsTool = (name: string): boolean =>
   name.startsWith('list_google_ads_') || name.startsWith('get_google_ads_');
 
-const isDarkroomGenerationTool = (name: string): boolean =>
-  name.startsWith('generate_face_test') ||
-  name.startsWith('generate_bootstrap') ||
-  name.startsWith('generate_pulid') ||
-  name.startsWith('generate_darkroom_') ||
-  name === 'get_darkroom_job_status';
+/**
+ * OpenAPI-generated MCP tools (#1248) are namespaced `<domain>__<action>`; the
+ * `__` separator is never used by a hand-authored tool (asserted in the
+ * `@genfeedai/tools` registry tests), so it uniquely identifies the generated
+ * baseline. These tools are surfaced for discovery but their generic API
+ * dispatcher is the next sub-issue (#1249) — until then they classify to their
+ * own executor kind (keeping the boot drift guard green) and calling one returns
+ * a clear "not wired yet" error rather than a boot crash.
+ */
+const isGeneratedTool = (name: string): boolean => name.includes('__');
 
 /**
  * Which executor handles a tool name. `'unknown'` means no dispatch path exists
@@ -145,31 +134,26 @@ type ExecutorKind =
   | 'meta-ads'
   | 'google-ads'
   | 'account-management'
-  | 'admin-infrastructure'
-  | 'training-pipeline'
-  | 'darkroom-generation'
   | 'social-messages'
+  | 'clip-projects'
+  | 'generated'
   | 'unknown';
 
 /**
  * Mutating MCP tools that must NOT execute immediately — instead they persist a
  * pending approval (human-in-the-loop) and only run once approved. Names are the
- * canonical tool names from `packages/tools/src/registry/source.ts`. High-risk
- * and expensive mutations (content creation, training, destructive ops, GPU
- * generation). Extend deliberately.
+ * canonical tool names from `packages/tools/src/registry/source`. High-risk and
+ * expensive mutations (content creation, batch generation, external sends).
+ * Extend deliberately.
+ *
+ * Every entry must be MCP-surfaced (`surfaces.mcp`), or the boot-time drift
+ * guard rejects it — see {@link validateDispatchCoverage}.
  */
 const APPROVAL_REQUIRED_TOOLS: ReadonlySet<string> = new Set<string>([
   'create_post',
   'create_article',
-  'create_avatar',
-  'start_training',
-  'delete_dataset',
-  'control_comfyui',
-  'run_captioning',
-  'generate_face_test',
-  'generate_bootstrap',
-  'generate_pulid',
-  'generate_darkroom_content',
+  // Batch content generation — expensive multi-item write (agent-executor).
+  'generate_content_batch',
   // Brand context interview — mutating tools require user confirmation
   'start_brand_interview',
   'submit_brand_interview_answer',
@@ -178,6 +162,10 @@ const APPROVAL_REQUIRED_TOOLS: ReadonlySet<string> = new Set<string>([
   'approve_social_draft',
   'post_social_reply',
   'send_social_dm',
+  // Clip projects — resource creation + credit-spending compute require approval
+  'analyze_clip_project',
+  'create_clip_project_from_youtube',
+  'generate_clips',
 ]);
 
 @Injectable()
@@ -352,12 +340,12 @@ export class ToolRegistryService implements OnModuleInit {
     if (isMetaAdsTool(name)) return 'meta-ads';
     if (isGoogleAdsTool(name)) return 'google-ads';
     if (ACCOUNT_MANAGEMENT_TOOL_NAMES.has(name)) return 'account-management';
-    if (ADMIN_INFRASTRUCTURE_TOOL_NAMES.has(name)) {
-      return 'admin-infrastructure';
-    }
-    if (TRAINING_PIPELINE_TOOL_NAMES.has(name)) return 'training-pipeline';
-    if (isDarkroomGenerationTool(name)) return 'darkroom-generation';
     if (SOCIAL_MESSAGES_TOOL_NAMES.has(name)) return 'social-messages';
+    if (CLIP_PROJECTS_TOOL_NAMES.has(name)) return 'clip-projects';
+    // Checked last: a hand-authored tool that (hypothetically) matched an
+    // earlier branch keeps its real executor; only otherwise-unclassified
+    // `<domain>__<action>` names fall through to the generated baseline.
+    if (isGeneratedTool(name)) return 'generated';
     return 'unknown';
   }
 
@@ -379,14 +367,19 @@ export class ToolRegistryService implements OnModuleInit {
         return handleGoogleAdsTool(this.clientService, name, args);
       case 'account-management':
         return handleAccountManagementTool(this.clientService, name, args);
-      case 'admin-infrastructure':
-        return handleAdminInfrastructureTool(this.clientService, name, args);
-      case 'training-pipeline':
-        return handleTrainingPipelineTool(this.clientService, name, args);
-      case 'darkroom-generation':
-        return handleDarkroomGenerationTool(this.clientService, name, args);
       case 'social-messages':
         return handleSocialMessagesTool(this.clientService, name, args);
+      case 'clip-projects':
+        return handleClipProjectsTool(this.clientService, name, args);
+      case 'generated':
+        // Generated tools are surfaced for discovery (#1248) but their generic
+        // authenticated API dispatcher lands in #1249. Fail with a clear,
+        // actionable message instead of a misleading "Unknown tool".
+        throw new Error(
+          `Generated MCP tool "${name}" is not executable yet — its API ` +
+            'dispatcher arrives in a follow-up (#1249). It is currently ' +
+            'exposed for discovery only.',
+        );
       default:
         throw new Error(`Unknown tool: ${name}`);
     }
@@ -683,37 +676,6 @@ export class ToolRegistryService implements OnModuleInit {
                 images.length > 0
                   ? `Found ${images.length} images:\n\n${JSON.stringify(images, null, 2)}`
                   : 'No images found.',
-              type: 'text',
-            },
-          ],
-        };
-      }
-
-      case 'create_avatar': {
-        if (!args || !args.name) {
-          throw new Error('name required');
-        }
-        const avatar = await this.clientService.createAvatar({
-          age: args.age as 'young' | 'middle-aged' | 'senior' | undefined,
-          gender: args.gender as 'male' | 'female' | 'neutral' | undefined,
-          name: args.name as string,
-          style: args.style as
-            | 'realistic'
-            | 'cartoon'
-            | 'professional'
-            | 'casual'
-            | undefined,
-        });
-
-        return {
-          component: {
-            height: 500,
-            type: 'iframe',
-            url: `https://chatgpt.genfeed.ai/avatar-preview?id=${avatar.id}`,
-          },
-          content: [
-            {
-              text: `Avatar "${args.name}" created successfully!\n\nAvatar ID: ${avatar.id}\nStyle: ${avatar.style}\nGender: ${avatar.gender || 'not specified'}\nAge: ${avatar.age}\nStatus: ${avatar.status}`,
               type: 'text',
             },
           ],

@@ -60,4 +60,13 @@ describe('HomeAudiences', () => {
       screen.getByRole('link', { name: /genfeed for agencies/i }),
     ).toHaveAttribute('href', '/use-cases/agencies');
   });
+
+  it('quotes the Creator launch price, not the standard price', () => {
+    render(<HomeAudiences />);
+
+    expect(screen.getByText(/then \$39\/mo creator/i)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/then \$49\/mo creator/i),
+    ).not.toBeInTheDocument();
+  });
 });

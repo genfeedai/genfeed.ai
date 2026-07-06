@@ -19,7 +19,7 @@ export default function SectionHeader({
   return (
     <div className={cn('mb-16 text-center', className)}>
       {tierLabel ? (
-        <div className="mb-6 text-xs font-black uppercase tracking-widest text-surface/20">
+        <div className="mb-6 text-xs font-black uppercase tracking-widest text-surface/45">
           {tierLabel}
         </div>
       ) : null}
@@ -27,7 +27,7 @@ export default function SectionHeader({
         {title}
       </h2>
       {description ? (
-        <p className="mx-auto max-w-2xl text-lg text-surface/50">
+        <p className="mx-auto max-w-2xl text-lg text-surface/65">
           {description}
         </p>
       ) : null}

@@ -2,7 +2,7 @@ import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-me
 import IntegrationsContent from '@public/integrations/integrations-content';
 
 export const generateMetadata = createPageMetadataWithCanonical(
-  'Integrations — Publish AI Content to Every Platform',
+  'Integrations: Publish AI Content to Every Platform',
   'Connect Genfeed to YouTube, TikTok, Instagram, LinkedIn, and more. Generate and publish AI content directly to your favorite platforms.',
   '/integrations',
 );

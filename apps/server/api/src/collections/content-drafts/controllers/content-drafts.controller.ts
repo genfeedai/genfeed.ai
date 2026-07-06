@@ -1,8 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BulkApproveContentDraftsDto } from '@api/collections/content-drafts/dto/bulk-approve-content-drafts.dto';
-import { ContentDraftRejectDto } from '@api/collections/content-drafts/dto/content-draft-action.dto';
 import { ContentDraftsQueryDto } from '@api/collections/content-drafts/dto/content-drafts-query.dto';
-import { EditContentDraftDto } from '@api/collections/content-drafts/dto/edit-content-draft.dto';
+import { PatchContentDraftDto } from '@api/collections/content-drafts/dto/patch-content-draft.dto';
 import { ContentDraftsService } from '@api/collections/content-drafts/services/content-drafts.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
@@ -45,49 +44,19 @@ export class ContentDraftsController {
     return serializeCollection(req, ContentDraftSerializer, { docs });
   }
 
-  @Patch('content-drafts/:id/approve')
-  async approveDraft(
+  @Patch('content-drafts/:id')
+  async updateDraft(
     @Req() req: Request,
     @CurrentUser() user: User,
     @Param('id') id: string,
+    @Body() dto: PatchContentDraftDto,
   ) {
     const { organization, user: userId } = getPublicMetadata(user);
-    const data = await this.contentDraftsService.approve(
+    const data = await this.contentDraftsService.update(
       id,
       organization,
+      dto,
       userId,
-    );
-    return serializeSingle(req, ContentDraftSerializer, data);
-  }
-
-  @Patch('content-drafts/:id/reject')
-  async rejectDraft(
-    @Req() req: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-    @Body() dto: ContentDraftRejectDto,
-  ) {
-    const { organization } = getPublicMetadata(user);
-    const data = await this.contentDraftsService.reject(
-      id,
-      organization,
-      dto.reason,
-    );
-    return serializeSingle(req, ContentDraftSerializer, data);
-  }
-
-  @Patch('content-drafts/:id/edit')
-  async editDraft(
-    @Req() req: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-    @Body() dto: EditContentDraftDto,
-  ) {
-    const { organization } = getPublicMetadata(user);
-    const data = await this.contentDraftsService.editDraft(
-      id,
-      organization,
-      dto.content,
     );
     return serializeSingle(req, ContentDraftSerializer, data);
   }

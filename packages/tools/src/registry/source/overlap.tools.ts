@@ -1,4 +1,5 @@
 import type { SourceTool } from '../../interfaces/source-tool.interface.js';
+import { OVERLAP_GENERATION_TOOLS } from './overlap-generation.tools.js';
 import { WORKFLOW_CONTROL_TOOLS } from './workflow-control.tools.js';
 
 export const OVERLAP_TOOLS: SourceTool[] = [
@@ -487,5 +488,6 @@ export const OVERLAP_TOOLS: SourceTool[] = [
     requiredRole: 'user',
     surfaces: { agent: true, cliAgentVisible: true, mcp: true },
   },
+  ...OVERLAP_GENERATION_TOOLS,
   ...WORKFLOW_CONTROL_TOOLS,
 ];

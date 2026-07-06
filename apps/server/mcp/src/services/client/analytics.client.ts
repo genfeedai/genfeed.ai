@@ -34,13 +34,19 @@ export class AnalyticsClient {
     return this.base.request<Analytics>(
       'getting video analytics',
       async (http) => {
+        // Per-content performance lives on the content-performance collection
+        // (`@Controller('content-performance')`): `GET /aggregate/:generationId`
+        // for a single item's rolled-up metrics, `GET /` for the org-wide list.
+        // There is no `/analytics/videos*` route. This method fails open, so a
+        // shape gap degrades to the zeroed `emptyAnalytics` rather than throwing.
         const endpoint = videoId
-          ? `/analytics/videos/${videoId}`
-          : '/analytics/videos';
+          ? `/content-performance/aggregate/${videoId}`
+          : '/content-performance';
         const response = await http.get(endpoint, {
           params: { timeRange },
         });
-        const data = response.data?.data?.attributes || {};
+        const data =
+          response.data?.data?.attributes || response.data?.data || {};
 
         return {
           ...emptyAnalytics,
@@ -72,7 +78,7 @@ export class AnalyticsClient {
     return this.base.request<OrganizationAnalytics>(
       'getting organization analytics',
       async (http) => {
-        const response = await http.get('/analytics/organization');
+        const response = await http.get('/analytics/organizations');
         const data = response.data?.data?.attributes || {};
 
         return {

@@ -82,12 +82,12 @@ export default function TemplatesPage() {
                 >
                   <Card
                     data-testid="template-card"
-                    className="h-full transition-[transform,box-shadow,border-color] duration-200 group-hover:-translate-y-0.5 group-hover:border-white/[0.14] group-hover:shadow-[0_22px_44px_-28px_rgba(0,0,0,0.72)]"
+                    className="h-full transition-[transform,box-shadow] duration-200 group-hover:-translate-y-0.5 group-hover:shadow-border-strong"
                     bodyClassName="flex h-full flex-col gap-4 p-6"
                   >
                     <div className="space-y-4">
                       <div className="flex items-center gap-3">
-                        <h3 className="text-lg font-semibold">
+                        <h3 className="text-sm font-semibold">
                           {template.name}
                         </h3>
                         {template.isActive !== undefined && (

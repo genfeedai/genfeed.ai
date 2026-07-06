@@ -74,6 +74,13 @@ export class RedisCacheInterceptor implements NestInterceptor {
 
     const cacheKey = this.generateCacheKey(context, cacheOptions, request);
 
+    // A keyGenerator may opt out of caching per-request by returning an empty
+    // key (e.g. the images list route caches only its `latest=true` shorthand).
+    if (!cacheKey) {
+      this.logger.debug('Skipping cache: empty cache key');
+      return next.handle();
+    }
+
     try {
       const cachedResult = await this.cacheService.get(cacheKey);
 

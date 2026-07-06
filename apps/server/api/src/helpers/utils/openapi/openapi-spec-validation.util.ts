@@ -57,11 +57,25 @@ export function collectOperations(
   return operations;
 }
 
+/**
+ * Whether `path` is covered by an internal-route prefix. Matching is
+ * segment-aware to avoid over-matching: a prefix that does not already end in
+ * `/` only matches the exact path or a path continuing at a `/` boundary. So
+ * `/health` matches `/health` and `/health/live` but NOT a future public
+ * `/healthcare` — which raw `startsWith` would have silently excluded from
+ * parity (#1251). Trailing-slash prefixes (`/webhooks/`) keep prefix semantics.
+ */
 export function isInternalRoute(
   path: string,
   internalRoutes: IOpenApiInternalRoute[],
 ): boolean {
-  return internalRoutes.some((route) => path.startsWith(route.pathPrefix));
+  return internalRoutes.some((route) => {
+    const prefix = route.pathPrefix;
+    if (prefix.endsWith('/')) {
+      return path.startsWith(prefix);
+    }
+    return path === prefix || path.startsWith(`${prefix}/`);
+  });
 }
 
 /**

@@ -37,6 +37,27 @@ describe('TemplateFilterUtil', () => {
       expect(filters.industries).toEqual(['tech', 'finance']);
       expect(filters.platforms).toEqual(['youtube']);
     });
+
+    it('passes through sort and limit (replaces GET /templates/popular)', () => {
+      const filters = TemplateFilterUtil.buildTemplateFilters({
+        limit: 20,
+        sort: 'popular',
+      });
+
+      expect(filters).toEqual({
+        limit: 20,
+        sort: 'popular',
+      });
+    });
+
+    it('omits sort/limit when not provided', () => {
+      const filters = TemplateFilterUtil.buildTemplateFilters({
+        purpose: 'content',
+      });
+
+      expect(filters.sort).toBeUndefined();
+      expect(filters.limit).toBeUndefined();
+    });
   });
 
   describe('buildArrayInFilter', () => {

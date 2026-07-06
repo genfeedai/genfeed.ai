@@ -107,28 +107,4 @@ export class BotActivitiesController {
       toDate ? new Date(toDate) : undefined,
     );
   }
-
-  /**
-   * Get recent activities for a specific bot config
-   */
-  @Get('recent/:configId')
-  @ApiOperation({ summary: 'Get recent activities for a bot config' })
-  @ApiResponse({
-    description: 'Returns recent activities',
-    status: 200,
-  })
-  async getRecentByConfig(
-    @Req() req: Request,
-    @Param('configId') configId: string,
-    @Query('limit') limit: number = 10,
-    @CurrentUser() user: User,
-  ) {
-    const publicMetadata = getPublicMetadata(user);
-    const docs = await this.botActivitiesService.findRecentByConfig(
-      configId,
-      publicMetadata.brand,
-      limit,
-    );
-    return serializeCollection(req, BotActivitySerializer, { docs });
-  }
 }

@@ -1,12 +1,12 @@
 # Backend type-check pattern (`apps/server/*`)
 
-last_verified: 2026-07-02
-Source: PR #1148 (#1145). Verified against local `turbo run type-check` + committed configs.
+last_verified: 2026-07-06
+Source: PR #1148 and PR #1221 (#1145). Verified against committed `package.json` scripts and `tsconfig.typecheck.json` files on `origin/master`.
 
 ## Invariant
 
 `nest build` uses swc/webpack with `typeCheck: false`, so tsc never runs during build.
-Each backend app gets standalone coverage via a **dedicated** `tsconfig.typecheck.json`
+Each backend service workspace gets standalone coverage via a **dedicated** `tsconfig.typecheck.json`
 that is **never** the runtime config.
 
 - **Runtime path is untouched:** `start:prod` → `node -r tsconfig-paths/register` reads the
@@ -24,7 +24,7 @@ that is **never** the runtime config.
   superset, `exclude` specs.
 - Per app: `apps/server/<app>/tsconfig.typecheck.json` = `extends` base + `include: ["src/**/*"]`.
   Add `types: ["node","vitest/globals","multer"]` only where the graph reaches
-  `Express.Multer` (api; workers, which imports `@api/*`). `@types/multer` is NOT hoisted to
+  `Express.Multer` (api; workers still has grandfathered `@api/*` imports). `@types/multer` is NOT hoisted to
   root — only apps declaring it resolve `multer` in `types`.
 - Script: `"type-check": "tsc --noEmit -p tsconfig.typecheck.json"`.
 
@@ -40,8 +40,17 @@ that is **never** the runtime config.
   billing contract via `@api/*`, which api's own (OSS-flavor) task does not subsume, and
   `--affected` won't select it on api-only changes.
 
-## Status (2026-07-02)
+## Worker API-import ratchet (2026-07-06)
 
-Green: `api, clips, discord, images, mcp, slack, telegram, videos, voices, workers` (10/12).
-Follow-ups on #1145: `notifications` (discord.js payload typing + `NotificationEvent.payload`
-narrowing), `files` (per-endpoint request-body interfaces for `@Body() body: unknown`).
+PR #1342 added `scripts/architecture/check-no-api-imports-in-workers.ts` and the root
+`check:architecture` gate. Existing worker `@api/*` imports are frozen in
+`scripts/architecture/workers-api-imports.baseline.ts`; new worker code should import from
+`@genfeedai/queue-contracts`, `@genfeedai/libs`, or the planned `@genfeedai/server-domain`
+surface instead of adding more API deep imports.
+
+## Status (2026-07-06)
+
+Green coverage is present for all current backend service workspaces:
+`api, discord, files, images, mcp, notifications, slack, telegram, videos, voices, workers`
+(11/11). `apps/server/clips/` is not currently a package workspace and has no
+`tsconfig.typecheck.json`; re-verify before treating it as an active service.

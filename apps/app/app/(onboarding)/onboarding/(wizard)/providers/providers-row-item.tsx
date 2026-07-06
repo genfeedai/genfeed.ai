@@ -25,9 +25,7 @@ export default function ProvidersRowItem({
       </div>
       <div
         className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-xs ${
-          enabled
-            ? 'bg-emerald-500/10 text-emerald-300'
-            : 'bg-white/[0.06] text-white/45'
+          enabled ? 'bg-hover text-foreground' : 'bg-white/[0.06] text-white/45'
         }`}
       >
         {enabled ? (

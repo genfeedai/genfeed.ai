@@ -14,7 +14,7 @@ export default function AgentStrategyPublishToggles({
   setForm,
 }: AgentStrategyPublishTogglesProps) {
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-white/10 p-4">
+    <div className="flex flex-col gap-3 rounded-lg bg-secondary p-4 shadow-border">
       <span className="flex items-center gap-3 text-sm text-foreground">
         <Checkbox
           checked={form.autoPublishEnabled}

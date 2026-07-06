@@ -174,7 +174,7 @@ export class HookRemixService {
     };
   }
 
-  async getJobStatus(jobId: string) {
+  async getJob(jobId: string) {
     try {
       const response = await firstValueFrom(
         this.httpService.get(`${this.filesServiceUrl}/v1/files/job/${jobId}`),
@@ -182,7 +182,7 @@ export class HookRemixService {
       return response.data;
     } catch (error: unknown) {
       this.loggerService.error(
-        `Failed to get hook remix job status for ${jobId}`,
+        `Failed to get hook remix job for ${jobId}`,
         error,
         this.serviceName,
       );

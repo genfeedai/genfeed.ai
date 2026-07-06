@@ -116,27 +116,6 @@ export class PatternStoreService extends BaseService<
     }) as Promise<ContentPatternDocument[]>;
   }
 
-  async findHooks(
-    organizationId: string,
-    platform?: ContentIntelligencePlatform,
-    limit = 50,
-  ): Promise<ContentPatternDocument[]> {
-    const where: Record<string, unknown> = {
-      isDeleted: false,
-      organizationId,
-      patternType: ContentPatternType.HOOK,
-    };
-
-    if (platform) {
-      where.platform = platform;
-    }
-
-    return this.delegate.findMany({
-      where,
-      take: limit,
-    }) as Promise<ContentPatternDocument[]>;
-  }
-
   findByCreator(creatorId: string): Promise<ContentPatternDocument[]> {
     return this.delegate.findMany({
       where: { isDeleted: false, sourceCreatorId: creatorId },
