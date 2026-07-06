@@ -18,7 +18,7 @@ export default function HarnessHeader({
   onSave,
 }: HarnessHeaderProps) {
   return (
-    <Card className="border-border/70 bg-background/80 p-6">
+    <Card className="p-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">

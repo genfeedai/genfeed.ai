@@ -115,7 +115,7 @@ export default function StudioClipsPage() {
             </p>
           </div>
         ) : project.status === 'failed' ? (
-          <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          <div className="rounded-lg border border-transparent bg-destructive/10 px-4 py-3 text-sm text-destructive">
             Analysis failed. Check the YouTube URL and try again.
           </div>
         ) : (
@@ -140,7 +140,7 @@ export default function StudioClipsPage() {
             </div>
 
             {/* Avatar & Voice config */}
-            <div className="mt-6 space-y-4 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
+            <div className="mt-6 space-y-4 rounded-xl bg-secondary p-4 shadow-border">
               <h3 className="text-sm font-medium text-zinc-300">
                 Avatar Configuration
               </h3>
@@ -214,7 +214,7 @@ export default function StudioClipsPage() {
 
             {/* Error */}
             {error && (
-              <div className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm text-red-400">
+              <div className="mt-4 rounded-lg bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
                 {error}
               </div>
             )}

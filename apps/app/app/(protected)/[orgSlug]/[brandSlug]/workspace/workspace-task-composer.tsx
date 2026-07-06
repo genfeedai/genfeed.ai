@@ -61,7 +61,7 @@ export function WorkspaceTaskComposer({
 
   return (
     <Modal.Root open={open} onOpenChange={handleModalOpenChange}>
-      <Modal.Content size="lg" className="border-white/10 bg-[#111111]">
+      <Modal.Content size="lg" className="border-white/10 bg-secondary">
         <Modal.Header>
           <Modal.Title>New Task</Modal.Title>
           <Modal.Description>

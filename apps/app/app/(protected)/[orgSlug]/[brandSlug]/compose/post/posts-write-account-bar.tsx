@@ -123,7 +123,7 @@ export default function PostsWriteAccountBar({
     <>
       {hasPrefilledIngredient ? (
         <InsetSurface
-          className="border-primary/20 bg-primary/10 text-sm text-foreground/80"
+          className="bg-tertiary text-sm text-muted-foreground"
           tone="default"
         >
           A generated asset is preselected for supervised review. Save a draft

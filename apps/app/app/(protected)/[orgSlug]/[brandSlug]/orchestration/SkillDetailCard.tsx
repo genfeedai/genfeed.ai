@@ -44,10 +44,7 @@ export default function SkillDetailCard({
   skillDraft,
 }: Props) {
   return (
-    <Card
-      bodyClassName="gap-0 p-5"
-      className="rounded-3xl border-white/10 bg-black/20"
-    >
+    <Card bodyClassName="gap-0 p-5" className="rounded-3xl">
       {selectedSkill ? (
         <div className="space-y-5">
           <div className="space-y-2">
@@ -127,7 +124,7 @@ export default function SkillDetailCard({
             <span className="grid gap-2 text-sm text-foreground/70">
               Name
               <Input
-                className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-foreground outline-none"
+                className="rounded-2xl px-3 py-2"
                 disabled={!selectedSkill.organization}
                 onChange={(event) =>
                   onSkillDraftChange((current) => ({
@@ -142,7 +139,7 @@ export default function SkillDetailCard({
             <span className="grid gap-2 text-sm text-foreground/70">
               Description
               <Textarea
-                className="min-h-24 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-foreground outline-none"
+                className="min-h-24 rounded-2xl px-3 py-2"
                 disabled={!selectedSkill.organization}
                 onChange={(event) =>
                   onSkillDraftChange((current) => ({
@@ -157,7 +154,7 @@ export default function SkillDetailCard({
             <span className="grid gap-2 text-sm text-foreground/70">
               Default instructions
               <Textarea
-                className="min-h-28 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm font-mono text-foreground outline-none"
+                className="min-h-28 rounded-2xl px-3 py-2 text-sm font-mono"
                 disabled={!selectedSkill.organization}
                 onChange={(event) =>
                   onSkillDraftChange((current) => ({
@@ -180,7 +177,7 @@ export default function SkillDetailCard({
                     runtime. Falls back to Default Instructions if empty.
                   </p>
                   <Textarea
-                    className="min-h-32 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm font-mono text-foreground outline-none"
+                    className="min-h-32 w-full rounded-2xl px-3 py-2 text-sm font-mono"
                     disabled={!selectedSkill.organization}
                     onChange={(event) =>
                       onSkillDraftChange((current) => ({
