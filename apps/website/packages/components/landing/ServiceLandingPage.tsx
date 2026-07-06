@@ -42,8 +42,7 @@ export default function ServiceLandingPage({
         badgeIcon={LuSparkles}
         title={
           <>
-            {config.heroTitle}{' '}
-            <span className="italic font-light">{config.heroAccent}</span>.
+            {config.heroTitle} <span>{config.heroAccent}</span>.
           </>
         }
         description={config.heroDescription}
@@ -56,7 +55,7 @@ export default function ServiceLandingPage({
                 {config.intro}
               </p>
 
-              <div className="flex flex-wrap items-center gap-3 text-sm text-surface/45">
+              <div className="flex flex-wrap items-center gap-3 text-sm text-surface/65">
                 <span className="border border-edge/10 px-3 py-2">
                   Starting from $2,500
                 </span>
@@ -67,7 +66,7 @@ export default function ServiceLandingPage({
             </div>
 
             <div className="border border-edge/10 bg-black/30 p-6">
-              <div className="mb-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-surface/35">
+              <div className="mb-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-surface/50">
                 <LuCalendarRange className="size-4" />
                 {config.fitLabel}
               </div>
@@ -77,7 +76,7 @@ export default function ServiceLandingPage({
                     key={signal}
                     className="flex gap-3 text-sm text-surface/65"
                   >
-                    <LuBadgeCheck className="mt-0.5 size-4 shrink-0 text-surface/35" />
+                    <LuBadgeCheck className="mt-0.5 size-4 shrink-0 text-surface/50" />
                     <span>{signal}</span>
                   </li>
                 ))}

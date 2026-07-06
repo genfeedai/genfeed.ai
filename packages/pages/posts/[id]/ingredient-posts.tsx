@@ -127,10 +127,7 @@ export default function IngredientPosts({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {posts.map((post) => (
-              <Card
-                key={post.id}
-                className="p-4 hover:shadow-lg transition-shadow duration-300"
-              >
+              <Card key={post.id} className="p-4">
                 <div className="flex flex-col gap-y-3">
                   <div className="flex items-center justify-between">
                     <h3 className="font-semibold truncate flex-1">

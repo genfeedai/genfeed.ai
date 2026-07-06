@@ -42,8 +42,8 @@ export function SaveIndicator({
       <div
         className={
           isPill
-            ? 'flex items-center gap-1.5 rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 text-xs text-blue-400'
-            : 'flex items-center gap-1.5 text-xs text-blue-500'
+            ? 'flex items-center gap-1.5 rounded-full border border-info/20 bg-info/10 px-2.5 py-1 text-xs text-info'
+            : 'flex items-center gap-1.5 text-xs text-info'
         }
       >
         <Loader2 className="size-3.5 animate-spin" />
@@ -75,8 +75,8 @@ export function SaveIndicator({
       title="Click to disable auto-save"
       className={
         isPill
-          ? 'rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-400 hover:text-emerald-300'
-          : 'text-xs text-green-500 hover:text-green-400 h-auto p-0'
+          ? 'rounded-full border border-success/20 bg-success/10 px-2.5 py-1 text-xs text-success hover:text-success/80'
+          : 'text-xs text-success hover:text-success/80 h-auto p-0'
       }
     >
       <Check className="size-3.5" />

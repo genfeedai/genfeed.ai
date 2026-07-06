@@ -145,7 +145,7 @@ export const useCases: UseCase[] = [
       },
       {
         description: 'AI tells you what to post next',
-        example: 'Post more "tutorial" content—it converts 3x better',
+        example: 'Post more "tutorial" content, it converts 3x better',
         step: 5,
         title: 'Optimize',
       },
@@ -191,7 +191,7 @@ export const useCases: UseCase[] = [
     workflow: [
       {
         description: 'Separate workspace per client, shared team access',
-        example: 'Client A, Client B, Client C—all in one login',
+        example: 'Client A, Client B, Client C: all in one login',
         step: 1,
         title: 'Client Workspaces',
       },
@@ -291,7 +291,7 @@ export const useCases: UseCase[] = [
     audience: 'Marketing managers, CMOs, brand marketers, growth teams',
     cta: 'Get Started',
     description:
-      'Stop guessing what content works. Generate, test, and scale content that converts—with full attribution.',
+      'Stop guessing what content works. Generate, test, and scale content that converts, with full attribution.',
     headline: 'Content That Actually Drives Pipeline',
     painPoints: [
       "Content team can't keep up with demand",
@@ -323,7 +323,7 @@ export const useCases: UseCase[] = [
     workflow: [
       {
         description: 'AI suggests content based on industry trends',
-        example: 'Trending: "AI for B2B marketing"—create video?',
+        example: 'Trending: "AI for B2B marketing". Create video?',
         step: 1,
         title: 'Content Ideation',
       },
@@ -357,7 +357,7 @@ export const useCases: UseCase[] = [
     audience: 'Solopreneurs, indie hackers, startup founders, solo devs',
     cta: 'Get Started',
     description:
-      'Generate content, grow your audience, and track what converts—all while building your product.',
+      'Generate content, grow your audience, and track what converts, all while building your product.',
     headline: 'Build an Audience Without Hiring a Team',
     painPoints: [
       'No time for content (busy building product)',
@@ -382,7 +382,7 @@ export const useCases: UseCase[] = [
       'Automate posting schedule (set it and forget it)',
       'Track which content drives signups/revenue',
       'All-in-one platform (no tool switching)',
-      'Start free — credits buy your output, subscriptions make them cheaper',
+      'Start free: credits buy your output, subscriptions make them cheaper',
     ],
     subtitle: 'Solopreneurs & Startup Founders',
     title: 'Genfeed for Founders',

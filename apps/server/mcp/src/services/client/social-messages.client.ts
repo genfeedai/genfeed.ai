@@ -129,11 +129,7 @@ export class SocialMessagesClient {
     conversationId: string,
     messageId: string,
   ): Promise<Record<string, unknown>> {
-    return this.postMessageAction(
-      conversationId,
-      `drafts/${messageId}/approve`,
-      {},
-    );
+    return this.patchDraft(conversationId, messageId, { status: 'approved' });
   }
 
   rejectDraft(
@@ -141,11 +137,10 @@ export class SocialMessagesClient {
     messageId: string,
     reason?: string,
   ): Promise<Record<string, unknown>> {
-    return this.postMessageAction(
-      conversationId,
-      `drafts/${messageId}/reject`,
-      reason ? { reason } : {},
-    );
+    return this.patchDraft(conversationId, messageId, {
+      status: 'rejected',
+      ...(reason ? { reason } : {}),
+    });
   }
 
   postReply(
@@ -166,22 +161,20 @@ export class SocialMessagesClient {
     conversationId: string,
     tags: string[],
   ): Promise<Record<string, unknown>> {
-    return this.patchConversation(conversationId, 'tags', { tags });
+    return this.patchConversation(conversationId, { tags });
   }
 
   assignConversation(
     conversationId: string,
     assignedOwnerId?: string | null,
   ): Promise<Record<string, unknown>> {
-    return this.patchConversation(conversationId, 'assignment', {
+    return this.patchConversation(conversationId, {
       assignedOwnerId: assignedOwnerId ?? null,
     });
   }
 
   markResolved(conversationId: string): Promise<Record<string, unknown>> {
-    return this.patchConversation(conversationId, 'status', {
-      status: 'resolved',
-    });
+    return this.patchConversation(conversationId, { status: 'resolved' });
   }
 
   private postMessageAction(
@@ -204,19 +197,36 @@ export class SocialMessagesClient {
 
   private patchConversation(
     conversationId: string,
-    action: string,
     payload: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
     return this.base.request(
-      `patching social conversation ${action}`,
+      'patching social conversation',
       async (http) => {
         const response = await http.patch(
-          `/messages/${conversationId}/${action}`,
+          `/messages/${conversationId}`,
           payload,
         );
         return this.mapResource(response.data?.data);
       },
       this.base.failWithDetail('Failed to update social conversation'),
+    );
+  }
+
+  private patchDraft(
+    conversationId: string,
+    messageId: string,
+    payload: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    return this.base.request(
+      'patching social draft',
+      async (http) => {
+        const response = await http.patch(
+          `/messages/${conversationId}/drafts/${messageId}`,
+          payload,
+        );
+        return this.mapResource(response.data?.data);
+      },
+      this.base.failWithDetail('Failed to update social draft'),
     );
   }
 

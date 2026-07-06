@@ -6,6 +6,7 @@ import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import { HStack } from '@ui/layout/stack';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import { HOME_ASSETS } from '@web-components/home/_assets';
 import Image from 'next/image';
 import { LuArrowRight } from 'react-icons/lu';
 
@@ -50,7 +51,7 @@ export default function HomeHero(): React.ReactElement {
               <ButtonTracked
                 asChild
                 size={ButtonSize.PUBLIC}
-                className="hero-cta shadow-[var(--shadow-glow-md)]"
+                className="hero-cta"
                 trackingData={{ action: 'signup_payg_hero' }}
                 trackingName="hero_cta_click"
               >
@@ -91,7 +92,7 @@ export default function HomeHero(): React.ReactElement {
                 height={929}
                 priority
                 sizes="(max-width: 1024px) 100vw, 860px"
-                src="/images/home/generated-output-wall.png"
+                src={HOME_ASSETS.outputWall}
               />
               <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_54%,rgba(5,6,7,0.82))]" />
             </div>

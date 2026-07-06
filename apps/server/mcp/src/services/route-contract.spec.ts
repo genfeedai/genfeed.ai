@@ -119,6 +119,10 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
     file: 'collections/social-inbox/controllers/social-inbox.controller.ts',
     prefix: 'messages',
   },
+  clipProjects: {
+    file: 'collections/clip-projects/clip-projects.controller.ts',
+    prefix: 'clip-projects',
+  },
   metaAds: {
     file: 'services/integrations/meta-ads/controllers/meta-ads.controller.ts',
     prefix: 'services/meta-ads',
@@ -214,12 +218,6 @@ const ROUTE_CONTRACT: ContractRoute[] = [
   },
   { method: 'Get', sub: '', controller: 'videos', tools: ['list_videos'] },
   { method: 'Get', sub: '', controller: 'images', tools: ['list_images'] },
-  {
-    method: 'Post',
-    sub: 'generate',
-    controller: 'avatars',
-    tools: ['create_avatar'],
-  },
   { method: 'Get', sub: '', controller: 'avatars', tools: ['list_avatars'] },
   {
     method: 'Get',
@@ -371,16 +369,10 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     tools: ['create_social_reply_draft'],
   },
   {
-    method: 'Post',
-    sub: ':conversationId/drafts/:messageId/approve',
+    method: 'Patch',
+    sub: ':conversationId/drafts/:messageId',
     controller: 'socialInbox',
-    tools: ['approve_social_draft'],
-  },
-  {
-    method: 'Post',
-    sub: ':conversationId/drafts/:messageId/reject',
-    controller: 'socialInbox',
-    tools: ['reject_social_draft'],
+    tools: ['approve_social_draft', 'reject_social_draft'],
   },
   {
     method: 'Post',
@@ -396,21 +388,51 @@ const ROUTE_CONTRACT: ContractRoute[] = [
   },
   {
     method: 'Patch',
-    sub: ':conversationId/tags',
+    sub: ':conversationId',
     controller: 'socialInbox',
-    tools: ['tag_social_conversation'],
+    tools: [
+      'tag_social_conversation',
+      'assign_social_conversation',
+      'mark_social_conversation_resolved',
+    ],
+  },
+
+  // ── Clip projects ──
+  {
+    method: 'Post',
+    sub: 'analyze',
+    controller: 'clipProjects',
+    tools: ['analyze_clip_project'],
   },
   {
-    method: 'Patch',
-    sub: ':conversationId/assignment',
-    controller: 'socialInbox',
-    tools: ['assign_social_conversation'],
+    method: 'Post',
+    sub: 'from-youtube',
+    controller: 'clipProjects',
+    tools: ['create_clip_project_from_youtube'],
   },
   {
-    method: 'Patch',
-    sub: ':conversationId/status',
-    controller: 'socialInbox',
-    tools: ['mark_social_conversation_resolved'],
+    method: 'Get',
+    sub: ':projectId/highlights',
+    controller: 'clipProjects',
+    tools: ['get_clip_highlights'],
+  },
+  {
+    method: 'Post',
+    sub: ':projectId/generate',
+    controller: 'clipProjects',
+    tools: ['generate_clips'],
+  },
+  {
+    method: 'Get',
+    sub: ':id',
+    controller: 'clipProjects',
+    tools: ['get_clip_project'],
+  },
+  {
+    method: 'Get',
+    sub: '',
+    controller: 'clipProjects',
+    tools: ['list_clip_projects'],
   },
 
   // ── Meta Ads (services/meta-ads) ──

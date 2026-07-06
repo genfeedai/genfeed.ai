@@ -148,7 +148,7 @@ function HelperLinesComponent({ draggingNodeId }: HelperLinesProps) {
               y1={y1}
               x2={x}
               y2={y2}
-              stroke="#3b82f6"
+              stroke="hsl(var(--border-strong))"
               strokeWidth={1}
               strokeDasharray="4 2"
             />
@@ -165,7 +165,7 @@ function HelperLinesComponent({ draggingNodeId }: HelperLinesProps) {
               y1={y}
               x2={x2}
               y2={y}
-              stroke="#3b82f6"
+              stroke="hsl(var(--border-strong))"
               strokeWidth={1}
               strokeDasharray="4 2"
             />

@@ -132,14 +132,14 @@ function TextToSpeechNodeComponent(props: NodeProps) {
       <div className="space-y-3">
         {/* API Key Warning */}
         {!TTS_ENABLED && (
-          <div className="flex items-start gap-2 p-2 bg-amber-500/10 border border-amber-500/30 rounded text-xs">
-            <AlertTriangle className="size-4 text-amber-500 flex-shrink-0 mt-0.5" />
-            <div className="text-amber-500">
+          <div className="flex items-start gap-2 p-2 bg-warning/10 border border-warning/30 rounded text-xs">
+            <AlertTriangle className="size-4 text-warning flex-shrink-0 mt-0.5" />
+            <div className="text-warning">
               <p className="font-medium">ElevenLabs not configured</p>
-              <p className="text-amber-500/80 mt-0.5">
-                Set <Code className="bg-amber-500/20">ELEVENLABS_API_KEY</Code>{' '}
-                in API and{' '}
-                <Code className="bg-amber-500/20">
+              <p className="text-warning/80 mt-0.5">
+                Set <Code className="bg-warning/20">ELEVENLABS_API_KEY</Code> in
+                API and{' '}
+                <Code className="bg-warning/20">
                   NEXT_PUBLIC_TTS_ENABLED=true
                 </Code>{' '}
                 in web

@@ -409,7 +409,7 @@ export function useTableActions({
         icon: (item: IIngredient) => (
           <HiStar
             size={16}
-            className={item.isFavorite ? 'fill-yellow-500 text-yellow-500' : ''}
+            className={item.isFavorite ? 'fill-foreground text-foreground' : ''}
           />
         ),
         onClick: handleToggleFavorite,

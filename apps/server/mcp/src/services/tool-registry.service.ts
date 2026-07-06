@@ -15,6 +15,10 @@ import type {
 } from '@mcp/shared/interfaces/mcp-server.interface';
 import { handleAccountManagementTool } from '@mcp/tools/account-management.tool';
 import { handleAgentChatTool } from '@mcp/tools/agent-chat.tool';
+import {
+  CLIP_PROJECTS_TOOL_NAMES,
+  handleClipProjectsTool,
+} from '@mcp/tools/clip-projects.tool';
 import { handleGoogleAdsTool } from '@mcp/tools/google-ads.tool';
 import { handleMetaAdsTool } from '@mcp/tools/meta-ads.tool';
 import {
@@ -68,7 +72,6 @@ const LEGACY_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   'search_articles',
   'get_article',
   'list_images',
-  'create_avatar',
   'list_avatars',
   'list_music',
   'get_workflow_status',
@@ -121,6 +124,7 @@ type ExecutorKind =
   | 'google-ads'
   | 'account-management'
   | 'social-messages'
+  | 'clip-projects'
   | 'unknown';
 
 /**
@@ -136,7 +140,6 @@ type ExecutorKind =
 const APPROVAL_REQUIRED_TOOLS: ReadonlySet<string> = new Set<string>([
   'create_post',
   'create_article',
-  'create_avatar',
   // Batch content generation — expensive multi-item write (agent-executor).
   'generate_content_batch',
   // Brand context interview — mutating tools require user confirmation
@@ -147,6 +150,10 @@ const APPROVAL_REQUIRED_TOOLS: ReadonlySet<string> = new Set<string>([
   'approve_social_draft',
   'post_social_reply',
   'send_social_dm',
+  // Clip projects — resource creation + credit-spending compute require approval
+  'analyze_clip_project',
+  'create_clip_project_from_youtube',
+  'generate_clips',
 ]);
 
 @Injectable()
@@ -322,6 +329,7 @@ export class ToolRegistryService implements OnModuleInit {
     if (isGoogleAdsTool(name)) return 'google-ads';
     if (ACCOUNT_MANAGEMENT_TOOL_NAMES.has(name)) return 'account-management';
     if (SOCIAL_MESSAGES_TOOL_NAMES.has(name)) return 'social-messages';
+    if (CLIP_PROJECTS_TOOL_NAMES.has(name)) return 'clip-projects';
     return 'unknown';
   }
 
@@ -345,6 +353,8 @@ export class ToolRegistryService implements OnModuleInit {
         return handleAccountManagementTool(this.clientService, name, args);
       case 'social-messages':
         return handleSocialMessagesTool(this.clientService, name, args);
+      case 'clip-projects':
+        return handleClipProjectsTool(this.clientService, name, args);
       default:
         throw new Error(`Unknown tool: ${name}`);
     }
@@ -641,37 +651,6 @@ export class ToolRegistryService implements OnModuleInit {
                 images.length > 0
                   ? `Found ${images.length} images:\n\n${JSON.stringify(images, null, 2)}`
                   : 'No images found.',
-              type: 'text',
-            },
-          ],
-        };
-      }
-
-      case 'create_avatar': {
-        if (!args || !args.name) {
-          throw new Error('name required');
-        }
-        const avatar = await this.clientService.createAvatar({
-          age: args.age as 'young' | 'middle-aged' | 'senior' | undefined,
-          gender: args.gender as 'male' | 'female' | 'neutral' | undefined,
-          name: args.name as string,
-          style: args.style as
-            | 'realistic'
-            | 'cartoon'
-            | 'professional'
-            | 'casual'
-            | undefined,
-        });
-
-        return {
-          component: {
-            height: 500,
-            type: 'iframe',
-            url: `https://chatgpt.genfeed.ai/avatar-preview?id=${avatar.id}`,
-          },
-          content: [
-            {
-              text: `Avatar "${args.name}" created successfully!\n\nAvatar ID: ${avatar.id}\nStyle: ${avatar.style}\nGender: ${avatar.gender || 'not specified'}\nAge: ${avatar.age}\nStatus: ${avatar.status}`,
               type: 'text',
             },
           ],

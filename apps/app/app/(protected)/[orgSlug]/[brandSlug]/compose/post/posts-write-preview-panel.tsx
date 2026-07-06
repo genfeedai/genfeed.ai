@@ -48,7 +48,7 @@ export default function PostsWritePreviewPanel({
   selectedFormat,
 }: PostsWritePreviewPanelProps) {
   return (
-    <Card bodyClassName="gap-0 p-6" className="border-white/10 bg-white/[0.03]">
+    <Card bodyClassName="gap-0 p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-medium">Preview</h2>
@@ -84,7 +84,7 @@ export default function PostsWritePreviewPanel({
                 </span>
                 <span
                   className={
-                    isOverLimit ? 'text-red-400' : 'text-foreground/40'
+                    isOverLimit ? 'text-destructive' : 'text-foreground/40'
                   }
                 >
                   {characterLimit ? `${count}/${characterLimit}` : count}

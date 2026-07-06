@@ -127,6 +127,31 @@ describe('BrandsService.relocateToOrganization', () => {
     getDelegate('organization').findFirst.mockResolvedValue({ id: DEST_ORG });
   }
 
+  // Brand read returns SOURCE_ORG first (pre-move), then the moved row (post-move).
+  function primeRelocatableBrand(): void {
+    getDelegate('brand')
+      .findFirst.mockResolvedValueOnce({
+        id: BRAND_ID,
+        isDeleted: false,
+        organizationId: SOURCE_ORG,
+      })
+      .mockResolvedValueOnce({ id: BRAND_ID, organizationId: DEST_ORG });
+    getDelegate('organization').findFirst.mockResolvedValue({ id: DEST_ORG });
+  }
+
+  // `severCrossOrgLinks` issues two workflow.findMany queries: the first (no `AND`)
+  // returns every cross-org workflow on the brand; the second (with `AND`) returns
+  // only the multi-brand subset. Route each by the presence of `where.AND`.
+  function mockWorkflowSplit(opts: {
+    cross: { id: string }[];
+    shared: { id: string }[];
+  }): void {
+    getDelegate('workflow').findMany.mockImplementation(
+      (args: { where?: { AND?: unknown } }) =>
+        Promise.resolve(args.where?.AND ? opts.shared : opts.cross),
+    );
+  }
+
   it('does not relocate (or open a transaction) when the org is unchanged', async () => {
     getDelegate('brand').findFirst.mockResolvedValue({
       id: BRAND_ID,
@@ -275,6 +300,123 @@ describe('BrandsService.relocateToOrganization', () => {
     expect(cacheInvalidationService.invalidateByTags).toHaveBeenCalled();
 
     expect(result).toEqual({ id: BRAND_ID, organizationId: DEST_ORG });
+  });
+
+  it('moves a sole-brand workflow (with its execution + batch history) with the brand', async () => {
+    primeRelocatableBrand();
+    // wf_sole is attached only to the moving brand → it should move, not sever.
+    mockWorkflowSplit({ cross: [{ id: 'wf_sole' }], shared: [] });
+
+    await service.relocateToOrganization(
+      BRAND_ID,
+      { organizationId: DEST_ORG },
+      { isSuperAdmin: true, userId: USER_ID },
+    );
+
+    // Workflow definition re-homed to the destination org.
+    expect(getDelegate('workflow').updateMany).toHaveBeenCalledWith({
+      data: { organizationId: DEST_ORG },
+      where: { id: { in: ['wf_sole'] }, organizationId: { not: DEST_ORG } },
+    });
+    // Org-keyed execution + batch history followed the workflow.
+    expect(getDelegate('workflowExecution').updateMany).toHaveBeenCalledWith({
+      data: { organizationId: DEST_ORG },
+      where: {
+        organizationId: { not: DEST_ORG },
+        workflowId: { in: ['wf_sole'] },
+      },
+    });
+    expect(getDelegate('batchWorkflowJob').updateMany).toHaveBeenCalledWith({
+      data: { organizationId: DEST_ORG },
+      where: {
+        organizationId: { not: DEST_ORG },
+        workflowId: { in: ['wf_sole'] },
+      },
+    });
+    // A moved workflow keeps its brand link (never disconnected)...
+    expect(getDelegate('brand').update).not.toHaveBeenCalled();
+    // ...and keeps its default-recurring marker (excluded from the null-out).
+    expect(getDelegate('workflow').updateMany).toHaveBeenCalledWith({
+      data: { defaultRecurringBrandId: null },
+      where: { defaultRecurringBrandId: BRAND_ID, id: { notIn: ['wf_sole'] } },
+    });
+  });
+
+  it('severs a multi-brand workflow, leaving it and its org in the source org', async () => {
+    primeRelocatableBrand();
+    // wf_shared drives another brand too → it must stay; only the brand link is cut.
+    mockWorkflowSplit({
+      cross: [{ id: 'wf_shared' }],
+      shared: [{ id: 'wf_shared' }],
+    });
+
+    await service.relocateToOrganization(
+      BRAND_ID,
+      { organizationId: DEST_ORG },
+      { isSuperAdmin: true, userId: USER_ID },
+    );
+
+    // Brand link severed for the shared workflow.
+    expect(getDelegate('brand').update).toHaveBeenCalledWith({
+      data: {
+        members: { disconnect: [] },
+        workflows: { disconnect: [{ id: 'wf_shared' }] },
+      },
+      where: { id: BRAND_ID },
+    });
+    // A severed workflow is NOT re-homed and its history stays put.
+    expect(getDelegate('workflowExecution').updateMany).not.toHaveBeenCalled();
+    expect(getDelegate('batchWorkflowJob').updateMany).not.toHaveBeenCalled();
+    expect(getDelegate('workflow').updateMany).not.toHaveBeenCalledWith(
+      expect.objectContaining({ data: { organizationId: DEST_ORG } }),
+    );
+    // Nothing moved → default-recurring null-out carries no move-exclusion.
+    expect(getDelegate('workflow').updateMany).toHaveBeenCalledWith({
+      data: { defaultRecurringBrandId: null },
+      where: { defaultRecurringBrandId: BRAND_ID },
+    });
+  });
+
+  it('rolls back when a brand-linked workflow/member is left stranded in the source org', async () => {
+    primeRelocatableBrand();
+    mockWorkflowSplit({ cross: [], shared: [] });
+    // The M2M backstop recomputes the post-state and finds a workflow still attached to
+    // the moved brand from a source org (e.g. a concurrent re-link the scalar auditor
+    // cannot see).
+    getDelegate('workflow').count.mockImplementation(
+      (args: { where?: { brands?: { some?: { id?: string } } } }) =>
+        Promise.resolve(args.where?.brands?.some?.id === BRAND_ID ? 1 : 0),
+    );
+
+    await expect(
+      service.relocateToOrganization(
+        BRAND_ID,
+        { organizationId: DEST_ORG },
+        { isSuperAdmin: true, userId: USER_ID },
+      ),
+    ).rejects.toThrow(/cross-org association/);
+    // Aborted → caches untouched.
+    expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
+  });
+
+  it('rolls back when a moved workflow is still linked to a source-org brand', async () => {
+    primeRelocatableBrand();
+    mockWorkflowSplit({ cross: [{ id: 'wf_sole' }], shared: [] });
+    // Post-move recheck: the moved workflow is scoped by `id: { in: [...] }` and turns
+    // out to still reference a brand outside the destination org.
+    getDelegate('workflow').count.mockImplementation(
+      (args: { where?: { id?: unknown } }) =>
+        Promise.resolve(args.where?.id ? 1 : 0),
+    );
+
+    await expect(
+      service.relocateToOrganization(
+        BRAND_ID,
+        { organizationId: DEST_ORG },
+        { isSuperAdmin: true, userId: USER_ID },
+      ),
+    ).rejects.toThrow(/cross-org association/);
+    expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
   });
 
   it('translates a P2002 unique violation into a ConflictException', async () => {

@@ -327,39 +327,6 @@ describe('ClientService (MCP)', () => {
 
   // ==================== AVATAR TESTS ====================
 
-  describe('createAvatar', () => {
-    it('should create avatar with valid parameters', async () => {
-      const params = {
-        age: 'middle-aged' as const,
-        gender: 'female' as const,
-        name: 'Sarah',
-        style: 'professional' as const,
-      };
-
-      const mockResponse = {
-        data: {
-          data: {
-            attributes: { status: 'processing' },
-            id: 'avatar-123',
-          },
-        },
-      };
-
-      (mockAxiosInstance.post as Mock).mockResolvedValue(mockResponse);
-
-      const result = await service.createAvatar(params);
-
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
-        '/avatars/generate',
-        expect.objectContaining({
-          data: expect.objectContaining({ type: 'avatars' }),
-        }),
-      );
-      expect(result.id).toBe('avatar-123');
-      expect(result.name).toBe('Sarah');
-    });
-  });
-
   describe('listAvatars', () => {
     it('should return list of avatars', async () => {
       const mockResponse = {
@@ -1284,10 +1251,9 @@ describe('ClientService (MCP)', () => {
 
       const result = await service.updateSocialTags('conv-1', ['lead']);
 
-      expect(mockAxiosInstance.patch).toHaveBeenCalledWith(
-        '/messages/conv-1/tags',
-        { tags: ['lead'] },
-      );
+      expect(mockAxiosInstance.patch).toHaveBeenCalledWith('/messages/conv-1', {
+        tags: ['lead'],
+      });
       expect(result).toMatchObject({ id: 'conv-1', tags: ['lead'] });
     });
   });

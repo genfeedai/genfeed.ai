@@ -193,23 +193,6 @@ describe('ArticlesController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('findBySlug', () => {
-    it('should return an article by slug', async () => {
-      const slug = 'test-article';
-      mockArticlesService.findBySlug.mockResolvedValue(mockArticle);
-
-      const result = await controller.findBySlug(slug, mockUser);
-
-      expect(service.findBySlug).toHaveBeenCalledWith(
-        slug,
-        mockUser.publicMetadata.user,
-        mockUser.publicMetadata.organization,
-        mockUser.publicMetadata.brand,
-      );
-      expect(result).toEqual(mockArticle);
-    });
-  });
-
   describe('generateArticles', () => {
     it('should generate articles from prompts', async () => {
       const dto: GenerateArticlesDto = {

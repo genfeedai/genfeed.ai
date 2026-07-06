@@ -35,10 +35,6 @@ export const neuralGridItemVariants = cva(
         center: 'text-center',
         left: 'text-left',
       },
-      inverted: {
-        false: '',
-        true: 'bg-inv hover:bg-inv/95',
-      },
       padding: {
         lg: 'p-12',
         md: 'p-10',

@@ -22,6 +22,7 @@ const REQUIRED_ROLES = new Set(['user', 'admin', 'superadmin']);
  */
 const EXPECTED_TOOL_NAMES = [
   'ai_action',
+  'analyze_clip_project',
   'analyze_performance',
   'approve_social_draft',
   'assign_social_conversation',
@@ -35,10 +36,10 @@ const EXPECTED_TOOL_NAMES = [
   'complete_onboarding',
   'connect_social_account',
   'create_article',
-  'create_avatar',
   'create_brand',
   'create_campaign',
   'create_chat',
+  'create_clip_project_from_youtube',
   'create_goal',
   'create_livestream_bot',
   'create_post',
@@ -49,6 +50,7 @@ const EXPECTED_TOOL_NAMES = [
   'duplicate_workflow',
   'execute_workflow',
   'generate_as_identity',
+  'generate_clips',
   'generate_content',
   'generate_content_batch',
   'generate_image',
@@ -67,6 +69,8 @@ const EXPECTED_TOOL_NAMES = [
   'get_brand',
   'get_brand_completeness',
   'get_campaign_analytics',
+  'get_clip_highlights',
+  'get_clip_project',
   'get_connection_status',
   'get_content_analytics',
   'get_content_calendar',
@@ -97,6 +101,7 @@ const EXPECTED_TOOL_NAMES = [
   'list_agent_runs',
   'list_avatars',
   'list_brands',
+  'list_clip_projects',
   'list_genfeed_tools',
   'list_google_ads_campaigns',
   'list_google_ads_customers',
@@ -195,7 +200,7 @@ describe('SOURCE_TOOLS registry split (#692)', () => {
   it('partitions tools by their declared surface', () => {
     expect(OVERLAP_TOOLS).toHaveLength(17);
     expect(AGENT_ONLY_TOOLS).toHaveLength(55);
-    expect(MCP_ONLY_TOOLS).toHaveLength(52);
+    expect(MCP_ONLY_TOOLS).toHaveLength(57);
     expect(BRAND_INTERVIEW_TOOLS).toHaveLength(4);
     expect(
       OVERLAP_TOOLS.every((tool) => tool.surfaces.agent && tool.surfaces.mcp),

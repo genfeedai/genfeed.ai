@@ -36,6 +36,9 @@ describe('ToolRegistryService.classify', () => {
     // generate_content_batch is an AgentToolName, so it routes through the
     // agent-executor to /agent-tools/:name/execute (re-surfaced in PR 5/6).
     ['generate_content_batch', 'agent-executor'],
+    ['analyze_clip_project', 'clip-projects'],
+    ['generate_clips', 'clip-projects'],
+    ['get_clip_project', 'clip-projects'],
     ['a_tool_that_does_not_exist', 'unknown'],
     // The darkroom/training/GPU fleet tools were dropped from the OSS MCP
     // surface in PR 5/6 (superadmin+IP-gated fleet API — a gf_ key can't reach
@@ -58,7 +61,6 @@ describe('ToolRegistryService.validateDispatchCoverage', () => {
     const approvalGated = [
       'create_post',
       'create_article',
-      'create_avatar',
       'generate_content_batch',
       'start_brand_interview',
       'submit_brand_interview_answer',
@@ -66,6 +68,9 @@ describe('ToolRegistryService.validateDispatchCoverage', () => {
       'approve_social_draft',
       'post_social_reply',
       'send_social_dm',
+      'analyze_clip_project',
+      'create_clip_project_from_youtube',
+      'generate_clips',
     ];
     mockState.tools = [
       { name: 'generate_image' },

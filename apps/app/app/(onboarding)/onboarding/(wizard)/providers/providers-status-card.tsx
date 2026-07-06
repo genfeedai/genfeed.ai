@@ -17,8 +17,8 @@ export default function ProvidersStatusCard({ accessStatusLabel }: Props) {
         </p>
       </div>
 
-      <div className="rounded-2xl border border-emerald-400/15 bg-emerald-500/5 p-4 text-sm text-white/55">
-        <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-200">
+      <div className="rounded-2xl bg-hover p-4 text-sm text-white/55">
+        <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-secondary shadow-border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground">
           <HiSparkles className="size-3.5" />
           Server Defaults First
         </div>
@@ -27,7 +27,7 @@ export default function ProvidersStatusCard({ accessStatusLabel }: Props) {
           from Organization → API Keys if you want provider control or BYOK
           billing.
         </p>
-        <p className="mt-3 text-xs uppercase tracking-[0.18em] text-emerald-200/80">
+        <p className="mt-3 text-xs uppercase tracking-[0.18em] text-muted-foreground">
           {accessStatusLabel}
         </p>
       </div>

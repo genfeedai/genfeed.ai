@@ -65,7 +65,6 @@ describe('McpController', () => {
 
   const mockClientService = {
     createArticle: vi.fn(),
-    createAvatar: vi.fn(),
     createImage: vi.fn(),
     createMusic: vi.fn(),
     createVideo: vi.fn(),

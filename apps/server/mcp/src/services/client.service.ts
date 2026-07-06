@@ -15,6 +15,13 @@ import type {
   ListBatchesParams,
   PersonaResponse,
 } from '@mcp/services/client/client.types';
+import {
+  type AnalyzeClipProjectParams,
+  ClipsClient,
+  type CreateClipProjectFromYoutubeParams,
+  type GenerateClipsParams,
+  type ListClipProjectsParams,
+} from '@mcp/services/client/clips.client';
 import { ContentClient } from '@mcp/services/client/content.client';
 import { LinkedInClient } from '@mcp/services/client/linkedin.client';
 import { MediaClient } from '@mcp/services/client/media.client';
@@ -43,7 +50,6 @@ import type {
   ArticleSearchResult,
 } from '@mcp/shared/interfaces/article.interface';
 import type {
-  AvatarCreationParams,
   AvatarListParams,
   AvatarResponse,
 } from '@mcp/shared/interfaces/avatar.interface';
@@ -103,6 +109,7 @@ export class ClientService {
   private readonly media: MediaClient;
   private readonly analytics: AnalyticsClient;
   private readonly content: ContentClient;
+  private readonly clips: ClipsClient;
   private readonly workflows: WorkflowClient;
   private readonly workspace: WorkspaceClient;
   private readonly ads: AdsClient;
@@ -121,6 +128,7 @@ export class ClientService {
     this.media = new MediaClient(this.base);
     this.analytics = new AnalyticsClient(this.base);
     this.content = new ContentClient(this.base);
+    this.clips = new ClipsClient(this.base);
     this.workflows = new WorkflowClient(this.base);
     this.workspace = new WorkspaceClient(this.base);
     this.ads = new AdsClient(this.base);
@@ -213,10 +221,6 @@ export class ClientService {
     return this.media.listImages(params);
   }
 
-  createAvatar(params: AvatarCreationParams): Promise<AvatarResponse> {
-    return this.media.createAvatar(params);
-  }
-
   listAvatars(params: AvatarListParams = {}): Promise<AvatarResponse[]> {
     return this.media.listAvatars(params);
   }
@@ -268,6 +272,38 @@ export class ClientService {
     params: TrendingTopicsParams = {},
   ): Promise<TrendingTopic[]> {
     return this.content.getTrendingTopics(params);
+  }
+
+  // ── Clip projects (analyze / factory / highlights / generate / read) ──
+
+  analyzeClipProject(
+    params: AnalyzeClipProjectParams,
+  ): Promise<Record<string, unknown>> {
+    return this.clips.analyzeClipProject(params);
+  }
+
+  createClipProjectFromYoutube(
+    params: CreateClipProjectFromYoutubeParams,
+  ): Promise<Record<string, unknown>> {
+    return this.clips.createClipProjectFromYoutube(params);
+  }
+
+  getClipHighlights(projectId: string): Promise<Record<string, unknown>> {
+    return this.clips.getClipHighlights(projectId);
+  }
+
+  getClipProject(projectId: string): Promise<Record<string, unknown>> {
+    return this.clips.getClipProject(projectId);
+  }
+
+  generateClips(params: GenerateClipsParams): Promise<Record<string, unknown>> {
+    return this.clips.generateClips(params);
+  }
+
+  listClipProjects(
+    params: ListClipProjectsParams = {},
+  ): Promise<Array<Record<string, unknown>>> {
+    return this.clips.listClipProjects(params);
   }
 
   // ── Workspace (credits / usage / brands / personas / batches / account / chat) ──

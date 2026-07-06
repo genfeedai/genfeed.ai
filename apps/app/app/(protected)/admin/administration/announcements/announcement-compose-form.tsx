@@ -37,11 +37,11 @@ export default function AnnouncementComposeForm({
           htmlFor="announcement-body"
           className="text-sm font-medium text-foreground"
         >
-          Body <span className="text-rose-400">*</span>
+          Body <span className="text-muted-foreground">*</span>
         </label>
         <Textarea
           id="announcement-body"
-          className="w-full min-h-[160px] bg-background border border-white/10 px-3 py-2 text-sm text-foreground placeholder:text-foreground/40 resize-y focus:outline-none focus:border-white/25 transition-colors"
+          className="w-full min-h-[160px] bg-background shadow-border px-3 py-2 text-sm text-foreground placeholder:text-foreground/40 resize-y focus:outline-none transition-colors"
           placeholder="Write your announcement here — supports Markdown for Discord…"
           value={form.body}
           onChange={(e) => onFieldChange('body', e.target.value)}
@@ -62,7 +62,7 @@ export default function AnnouncementComposeForm({
         <div className="relative">
           <Textarea
             id="announcement-tweet"
-            className="w-full min-h-[100px] bg-background border border-white/10 px-3 py-2 text-sm text-foreground placeholder:text-foreground/40 resize-y focus:outline-none focus:border-white/25 transition-colors"
+            className="w-full min-h-[100px] bg-background shadow-border px-3 py-2 text-sm text-foreground placeholder:text-foreground/40 resize-y focus:outline-none transition-colors"
             placeholder="Short version for Twitter/X…"
             value={form.tweetText}
             onChange={(e) => onFieldChange('tweetText', e.target.value)}
@@ -70,7 +70,7 @@ export default function AnnouncementComposeForm({
           />
           <span
             className={`absolute bottom-2 right-3 text-xs tabular-nums ${
-              tweetOverLimit ? 'text-rose-400' : 'text-foreground/40'
+              tweetOverLimit ? 'text-error' : 'text-foreground/40'
             }`}
           >
             {tweetCharCount}/{TWEET_MAX_CHARS}
@@ -81,7 +81,7 @@ export default function AnnouncementComposeForm({
       {/* Channels */}
       <div className="flex flex-col gap-3">
         <span className="text-sm font-medium text-foreground">
-          Channels <span className="text-rose-400">*</span>
+          Channels <span className="text-muted-foreground">*</span>
         </span>
 
         <span className="flex items-center gap-3 cursor-pointer select-none">
@@ -102,12 +102,13 @@ export default function AnnouncementComposeForm({
               htmlFor="discord-channel-id"
               className="text-xs text-foreground/60"
             >
-              Discord channel ID <span className="text-rose-400">*</span>
+              Discord channel ID{' '}
+              <span className="text-muted-foreground">*</span>
             </label>
             <Input
               id="discord-channel-id"
               type="text"
-              className="w-full max-w-xs bg-background border border-white/10 px-3 py-1.5 text-sm text-foreground placeholder:text-foreground/40 focus:outline-none focus:border-white/25 transition-colors"
+              className="w-full max-w-xs bg-background shadow-border px-3 py-1.5 text-sm text-foreground placeholder:text-foreground/40 focus:outline-none transition-colors"
               placeholder="e.g. 1234567890"
               value={form.discordChannelId}
               onChange={(e) =>

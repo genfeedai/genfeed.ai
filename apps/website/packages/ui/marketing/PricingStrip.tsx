@@ -25,18 +25,9 @@ const PILLAR_COLUMNS = [
   },
 ] as const;
 
-export default function PricingStrip({
-  inverted,
-  className,
-}: PricingStripProps) {
+export default function PricingStrip({ className }: PricingStripProps) {
   return (
-    <div
-      className={cn(
-        'mb-12 border',
-        inverted ? 'border-inv-fg/10' : 'border-edge/5',
-        className,
-      )}
-    >
+    <div className={cn('mb-12 border border-edge/5', className)}>
       <div className="grid grid-cols-1 gap-px md:grid-cols-3">
         {PILLAR_COLUMNS.map((column) => {
           const isFeatured = column.label === 'Creator';
@@ -46,64 +37,32 @@ export default function PricingStrip({
               key={column.label}
               className={cn(
                 'px-6 py-5 text-center',
-                isFeatured && (inverted ? 'bg-inv-fg/[0.03]' : 'bg-fill/5'),
+                isFeatured && 'bg-white/[0.04]',
               )}
             >
-              <div
-                className={cn(
-                  'mb-2 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest',
-                  inverted ? 'text-inv-fg/30' : 'text-surface/30',
-                )}
-              >
+              <div className="mb-2 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest text-surface/50">
                 {column.subtitle}
                 {isFeatured ? (
-                  <span
-                    className={cn(
-                      'text-[9px] font-bold',
-                      inverted ? 'text-inv-fg/50' : 'text-surface/50',
-                    )}
-                  >
+                  <span className="text-[9px] font-bold text-surface/65">
                     ★ Popular
                   </span>
                 ) : null}
               </div>
 
-              <div
-                className={cn(
-                  'text-2xl font-semibold',
-                  inverted ? 'text-inv-fg' : 'text-surface',
-                )}
-              >
+              <div className="text-2xl font-semibold text-surface">
                 {column.price}
               </div>
 
-              <div
-                className={cn(
-                  'mt-1 text-xs',
-                  inverted ? 'text-inv-fg/40' : 'text-surface/40',
-                )}
-              >
-                {column.label}
-              </div>
+              <div className="mt-1 text-xs text-surface/60">{column.label}</div>
             </div>
           );
         })}
       </div>
 
-      <div
-        className={cn(
-          'border-t py-3 text-center',
-          inverted ? 'border-inv-fg/10' : 'border-edge/5',
-        )}
-      >
+      <div className="border-t border-edge/5 py-3 text-center">
         <Link
           href="/pricing"
-          className={cn(
-            'inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest transition-colors',
-            inverted
-              ? 'text-inv-fg/50 hover:text-inv-fg/70'
-              : 'text-surface/40 hover:text-surface/60',
-          )}
+          className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-surface/55 transition-colors hover:text-surface/80"
         >
           View all plans
         </Link>
