@@ -9,6 +9,7 @@ import { StripeController } from '@api/services/integrations/stripe/controllers/
 import { UserStripeController } from '@api/services/integrations/stripe/controllers/user-stripe.controller';
 import { ManagedStripeCheckoutService } from '@api/services/integrations/stripe/services/managed-stripe-checkout.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { LifecycleEmailsModule } from '@api/services/lifecycle-emails/lifecycle-emails.module';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { forwardRef, Module } from '@nestjs/common';
 
@@ -20,6 +21,7 @@ const BaseModule = createServiceModule(StripeService, {
     forwardRef(() => SubscriptionsModule),
     forwardRef(() => UserSubscriptionsModule),
     forwardRef(() => UsersModule),
+    forwardRef(() => LifecycleEmailsModule),
   ],
 });
 

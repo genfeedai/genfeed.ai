@@ -22,6 +22,7 @@ import {
   MANAGED_API_KEY_LABEL,
   MANAGED_API_KEY_SCOPES,
 } from '@api/services/integrations/stripe/stripe.constants';
+import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { generateLabel } from '@api/shared/utils/label/label.util';
 import {
@@ -79,6 +80,7 @@ export class StripeCheckoutWebhookHandler {
     private readonly eventEmitter: EventEmitter2,
     private readonly supportService: StripeWebhookSupportService,
     private readonly attributionTracker: StripeAttributionTrackerService,
+    private readonly lifecycleEmailService: LifecycleEmailService,
   ) {}
 
   async handleCheckoutCompleted(
@@ -86,6 +88,8 @@ export class StripeCheckoutWebhookHandler {
     url: string,
   ): Promise<void> {
     try {
+      await this.lifecycleEmailService.recordCheckoutCompleted(session.id);
+
       const sessionType = session.metadata?.type;
 
       if (sessionType === 'managed_inference') {

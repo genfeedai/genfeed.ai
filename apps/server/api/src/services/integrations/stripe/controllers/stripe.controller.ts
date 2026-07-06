@@ -13,6 +13,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { isEEEnabled } from '@genfeedai/config';
 import {
   type ISubscriptionsService,
@@ -46,6 +47,7 @@ export class StripeController {
     private readonly usersService: UsersService,
     private readonly loggerService: LoggerService,
     private readonly organizationsService: OrganizationsService,
+    private readonly lifecycleEmailService: LifecycleEmailService,
   ) {}
 
   @Post('checkout')
@@ -133,6 +135,14 @@ export class StripeController {
         quantity,
         redirectUrls,
       );
+
+      await this.lifecycleEmailService.recordCheckoutStarted({
+        checkoutSessionId: result.id,
+        checkoutUrl: result.url,
+        organizationId: publicMetadata.organization,
+        source: 'organization-checkout',
+        userId: dbUser.id.toString(),
+      });
 
       return serializeSingle(request, StripeUrlSerializer, result);
     } catch (error: unknown) {

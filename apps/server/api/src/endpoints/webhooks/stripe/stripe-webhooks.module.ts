@@ -19,6 +19,7 @@ import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/hand
 import { StripeWebhookController } from '@api/endpoints/webhooks/stripe/webhooks.stripe.controller';
 import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.stripe.service';
 import { StripeModule } from '@api/services/integrations/stripe/stripe.module';
+import { LifecycleEmailsModule } from '@api/services/lifecycle-emails/lifecycle-emails.module';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { ConfigModule } from '@libs/config/config.module';
 import { ConfigService } from '@libs/config/config.service';
@@ -32,6 +33,7 @@ const BaseModule = createServiceModule(StripeWebhookService, {
     forwardRef(() => BrandsModule),
     forwardRef(() => CommonModule),
     forwardRef(() => CreditsModule),
+    forwardRef(() => LifecycleEmailsModule),
     forwardRef(() => OrganizationSettingsModule),
     forwardRef(() => OrganizationsModule),
     forwardRef(() => StripeModule),

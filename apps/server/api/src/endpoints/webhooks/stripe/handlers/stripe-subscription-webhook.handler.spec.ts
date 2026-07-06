@@ -3,6 +3,7 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { StripeSubscriptionWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-webhook.handler';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
 import type { StripeSubscription } from '@api/services/integrations/stripe/services/stripe.service';
+import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { SubscriptionPlan, SubscriptionTier } from '@genfeedai/enums';
 import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -26,6 +27,9 @@ describe('StripeSubscriptionWebhookHandler', () => {
     resolveSubscriptionPlan: vi.fn().mockReturnValue(SubscriptionPlan.MONTHLY),
     resolveTierFromPriceId: vi.fn().mockReturnValue(null),
     updateOrganizationTierAndModels: vi.fn(),
+  };
+  const lifecycleEmailService = {
+    recordSubscriptionLapsed: vi.fn(),
   };
 
   function stripeSubscription(
@@ -69,6 +73,7 @@ describe('StripeSubscriptionWebhookHandler', () => {
         { provide: CreditsUtilsService, useValue: creditsUtilsService },
         { provide: UsersService, useValue: usersService },
         { provide: StripeWebhookSupportService, useValue: supportService },
+        { provide: LifecycleEmailService, useValue: lifecycleEmailService },
       ],
     }).compile();
 
@@ -209,6 +214,13 @@ describe('StripeSubscriptionWebhookHandler', () => {
       expect(supportService.invalidateUserCaches).toHaveBeenCalledWith(
         'user_1',
       );
+      expect(
+        lifecycleEmailService.recordSubscriptionLapsed,
+      ).toHaveBeenCalledWith({
+        organizationId: 'org_1',
+        subscriptionId: 'sub_stripe_1',
+        userId: 'user_1',
+      });
       expect(
         supportService.updateOrganizationTierAndModels.mock
           .invocationCallOrder[0],

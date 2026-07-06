@@ -18,6 +18,10 @@
       "reason": "OAuth provider browser-redirect callback"
     },
     {
+      "pathPrefix": "/lifecycle-emails/unsubscribe",
+      "reason": "Email preference browser-link callback"
+    },
+    {
       "pathPrefix": "/internal/",
       "reason": "Service-to-service internal endpoints (API-key guarded, not user-callable)"
     },

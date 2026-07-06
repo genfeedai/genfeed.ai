@@ -13,6 +13,7 @@ import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/hand
 import type { ManagedCheckoutResult } from '@api/services/integrations/stripe/services/managed-stripe-checkout.service';
 import { ManagedStripeCheckoutService } from '@api/services/integrations/stripe/services/managed-stripe-checkout.service';
 import type { StripeCheckoutSession } from '@api/services/integrations/stripe/services/stripe.service';
+import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   SUBSCRIPTIONS_SERVICE,
@@ -75,6 +76,9 @@ describe('StripeCheckoutWebhookHandler', () => {
   const attributionTracker = {
     trackSubscriptionAttributionFromSession: vi.fn(),
   };
+  const lifecycleEmailService = {
+    recordCheckoutCompleted: vi.fn(),
+  };
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -127,6 +131,7 @@ describe('StripeCheckoutWebhookHandler', () => {
           provide: StripeAttributionTrackerService,
           useValue: attributionTracker,
         },
+        { provide: LifecycleEmailService, useValue: lifecycleEmailService },
       ],
     }).compile();
 
@@ -154,6 +159,9 @@ describe('StripeCheckoutWebhookHandler', () => {
 
       await handler.handleCheckoutCompleted(session, 'test');
 
+      expect(
+        lifecycleEmailService.recordCheckoutCompleted,
+      ).toHaveBeenCalledWith('cs_payg_1');
       expect(supportService.addPurchasedCredits).toHaveBeenCalledWith(
         'org_1',
         100,

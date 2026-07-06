@@ -9,6 +9,7 @@ import {
   CREDIT_DEDUCTION_QUEUE,
   DEFAULT_QUEUE,
   HEYGEN_POLL_QUEUE,
+  LIFECYCLE_EMAIL_QUEUE,
   REPLY_BOT_POLLING_QUEUE,
   TRIGGER_EVALUATION_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
@@ -26,6 +27,7 @@ describe('queue-names.constant', () => {
     expect(AGENT_RUN_QUEUE).toBe('agent-run');
     expect(WORKSPACE_TASK_QUEUE).toBe('workspace-task');
     expect(HEYGEN_POLL_QUEUE).toBe('heygen-poll');
+    expect(LIFECYCLE_EMAIL_QUEUE).toBe('lifecycle-email');
     expect(CREDIT_DEDUCTION_QUEUE).toBe('credit-deduction');
     expect(CLIP_ANALYZE_QUEUE).toBe('clip-analyze');
     expect(CLIP_FACTORY_QUEUE).toBe('clip-factory');

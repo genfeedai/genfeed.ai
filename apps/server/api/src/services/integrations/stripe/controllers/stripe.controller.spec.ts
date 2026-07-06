@@ -36,6 +36,7 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { StripeController } from '@api/services/integrations/stripe/controllers/stripe.controller';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -55,6 +56,9 @@ describe('StripeController', () => {
   };
   let usersService: { findOne: ReturnType<typeof vi.fn> };
   let organizationsService: { findOne: ReturnType<typeof vi.fn> };
+  let lifecycleEmailService: {
+    recordCheckoutStarted: ReturnType<typeof vi.fn>;
+  };
 
   const mockRequest = {
     headers: { origin: 'https://app.genfeed.ai' },
@@ -77,9 +81,10 @@ describe('StripeController', () => {
 
   beforeEach(async () => {
     stripeService = {
-      createPaymentSession: vi
-        .fn()
-        .mockResolvedValue({ url: 'https://checkout.stripe.com/session' }),
+      createPaymentSession: vi.fn().mockResolvedValue({
+        id: 'cs_org_1',
+        url: 'https://checkout.stripe.com/session',
+      }),
       createSetupCheckoutSession: vi
         .fn()
         .mockResolvedValue({ url: 'https://checkout.stripe.com/setup' }),
@@ -104,6 +109,9 @@ describe('StripeController', () => {
     organizationsService = {
       findOne: vi.fn().mockResolvedValue({ id: orgId }),
     };
+    lifecycleEmailService = {
+      recordCheckoutStarted: vi.fn().mockResolvedValue(undefined),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [StripeController],
@@ -113,6 +121,7 @@ describe('StripeController', () => {
         { provide: SUBSCRIPTIONS_SERVICE, useValue: subscriptionsService },
         { provide: UsersService, useValue: usersService },
         { provide: OrganizationsService, useValue: organizationsService },
+        { provide: LifecycleEmailService, useValue: lifecycleEmailService },
       ],
     })
       .overrideGuard(RolesGuard)
@@ -135,12 +144,22 @@ describe('StripeController', () => {
         dto,
         mockRequest,
       );
-      expect(result).toEqual({ url: 'https://checkout.stripe.com/session' });
+      expect(result).toEqual({
+        id: 'cs_org_1',
+        url: 'https://checkout.stripe.com/session',
+      });
       // Regression (#1199): resolve the DB user by Genfeed User.id, never the
       // frozen authProviderId column (NULL for post-cutover Better Auth users).
       expect(usersService.findOne).toHaveBeenCalledWith({
         _id: userId,
         isDeleted: false,
+      });
+      expect(lifecycleEmailService.recordCheckoutStarted).toHaveBeenCalledWith({
+        checkoutSessionId: 'cs_org_1',
+        checkoutUrl: 'https://checkout.stripe.com/session',
+        organizationId: orgId,
+        source: 'organization-checkout',
+        userId,
       });
       expect(stripeService.createPaymentSession).toHaveBeenCalledWith(
         'cus_test123',
@@ -182,7 +201,10 @@ describe('StripeController', () => {
         mockRequest,
       );
       expect(subscriptionsService.createForOrganization).toHaveBeenCalled();
-      expect(result).toEqual({ url: 'https://checkout.stripe.com/session' });
+      expect(result).toEqual({
+        id: 'cs_org_1',
+        url: 'https://checkout.stripe.com/session',
+      });
     });
 
     it('should throw NOT_FOUND if subscription missing and org not found', async () => {

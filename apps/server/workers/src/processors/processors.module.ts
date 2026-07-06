@@ -97,6 +97,7 @@ import { ClipFactoryProcessor } from '@workers/processors/api/queues/clip-factor
 import { CreditDeductionProcessor } from '@workers/processors/api/queues/credit-deduction/credit-deduction.processor';
 import { EmailDigestProcessor } from '@workers/processors/api/queues/email-digest/email-digest.processor';
 import { HeygenPollProcessor } from '@workers/processors/api/queues/heygen-poll/heygen-poll.processor';
+import { LifecycleEmailProcessor } from '@workers/processors/api/queues/lifecycle-email/lifecycle-email.processor';
 import { PatternExtractionProcessor } from '@workers/processors/api/queues/pattern-extraction/pattern-extraction.processor';
 import { ReplyBotPollingProcessor } from '@workers/processors/api/queues/reply-bot/reply-bot-polling.processor';
 import { TelegramDistributeProcessor } from '@workers/processors/api/queues/telegram-distribute/telegram-distribute.processor';
@@ -220,7 +221,7 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
       useExisting: YoutubeService,
     },
 
-    // --- queues/ processors (21) ---
+    // --- queues/ processors (22) ---
     AdBulkUploadProcessor,
     AdOptimizationProcessor,
     AdSyncGoogleProcessor,
@@ -239,6 +240,7 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     CreditDeductionProcessor,
     EmailDigestProcessor,
     HeygenPollProcessor,
+    LifecycleEmailProcessor,
     PatternExtractionProcessor,
     ReplyBotPollingProcessor,
     TelegramDistributeProcessor,

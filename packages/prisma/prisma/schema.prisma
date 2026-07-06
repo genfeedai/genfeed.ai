@@ -607,6 +607,8 @@ model User {
   brandInterviews          BrandInterview[]
   warmupAccountsOperated   WarmupAccount[]           @relation("warmup_account_operator")
   warmupAccountsCustomer   WarmupAccount[]           @relation("warmup_account_customer")
+  lifecycleEmailPreference LifecycleEmailPreference?
+  lifecycleEmailDeliveries LifecycleEmailDelivery[]
 
   @@index([isDefault])
   @@index([appSource])
@@ -2167,6 +2169,42 @@ model SubscriptionAttribution {
 
   @@index([organizationId])
   @@map("subscription_attributions")
+}
+
+model LifecycleEmailPreference {
+  id                      String    @id @default(cuid())
+  userId                  String    @unique
+  user                    User      @relation(fields: [userId], references: [id])
+  unsubscribeToken        String    @unique
+  marketingUnsubscribedAt DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  @@map("lifecycle_email_preferences")
+}
+
+model LifecycleEmailDelivery {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  email         String
+  sequence      String
+  step          String
+  triggerKey    String
+  status        String    @default("scheduled")
+  scheduledFor  DateTime
+  sentAt        DateTime?
+  skippedAt     DateTime?
+  canceledAt    DateTime?
+  failureReason String?
+  metadata      Json?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([userId, sequence, step, triggerKey], map: "lifecycle_email_deliveries_unique_step")
+  @@index([status, scheduledFor], map: "lifecycle_email_deliveries_due_idx")
+  @@index([triggerKey], map: "lifecycle_email_deliveries_trigger_idx")
+  @@map("lifecycle_email_deliveries")
 }
 
 model CreditBalance {

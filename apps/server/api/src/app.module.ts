@@ -173,6 +173,7 @@ import { WordpressModule } from '@api/services/integrations/wordpress/wordpress.
 import { XaiModule } from '@api/services/integrations/xai/xai.module';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
 import { YoutubeUploadCompletionModule } from '@api/services/integrations/youtube/youtube-upload-completion.module';
+import { LifecycleEmailsModule } from '@api/services/lifecycle-emails/lifecycle-emails.module';
 import { MicroservicesModule } from '@api/services/microservices/microservices.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
@@ -369,6 +370,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     // Onboarding
     OnboardingModule,
     MediumModule,
+    LifecycleEmailsModule,
     ManagedInferenceModule,
     MicroservicesModule,
     ModelRouterModule,

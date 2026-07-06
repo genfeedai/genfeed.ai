@@ -1,6 +1,7 @@
 import type { Prisma } from '@genfeedai/prisma';
 
 export const SERVER_TOKENS = {
+  config: 'SERVER_CONFIG',
   credentials: 'SERVER_CREDENTIALS',
   instagram: 'SERVER_INSTAGRAM',
   linkedIn: 'SERVER_LINKEDIN',
@@ -16,6 +17,10 @@ export const SERVER_TOKENS = {
   youtube: 'SERVER_YOUTUBE',
   brandMemorySync: 'SERVER_BRAND_MEMORY_SYNC',
 } as const;
+
+export interface ServerConfig {
+  get(key: string): string | undefined;
+}
 
 export interface ServerLogger {
   error(message: string, trace?: unknown, context?: unknown): void;
@@ -143,6 +148,38 @@ export interface ServerPrisma {
       args: unknown,
     ): Promise<{ createdAt: Date; data: unknown } | null>;
   };
+  lifecycleEmailDelivery: {
+    findFirst(args: unknown): Promise<{
+      id: string;
+      email: string;
+      sequence: string;
+      step: string;
+      triggerKey: string;
+      status: string;
+      scheduledFor: Date;
+      metadata: unknown;
+      user: {
+        id: string;
+        email: string | null;
+        firstName: string | null;
+        isDeleted: boolean;
+      };
+    } | null>;
+    update(args: unknown): Promise<unknown>;
+  };
+  lifecycleEmailPreference: {
+    create(args: unknown): Promise<{
+      id: string;
+      marketingUnsubscribedAt: Date | null;
+      unsubscribeToken: string;
+    }>;
+    findUnique(args: unknown): Promise<{
+      id: string;
+      marketingUnsubscribedAt: Date | null;
+      unsubscribeToken: string;
+    } | null>;
+    update(args: unknown): Promise<unknown>;
+  };
   organization: {
     findUnique(args: unknown): Promise<{
       label: string | null;
@@ -150,6 +187,7 @@ export interface ServerPrisma {
     } | null>;
   };
   post: {
+    findFirst(args: unknown): Promise<{ id: string } | null>;
     findMany(args: unknown): Promise<ServerPostRecord[]>;
   };
   postAnalytics: {
@@ -160,7 +198,13 @@ export interface ServerPrisma {
     }>;
     findMany(args: unknown): Promise<ServerPostAnalyticsRecord[]>;
   };
+  subscription: {
+    findFirst(args: unknown): Promise<{ id: string } | null>;
+  };
   user: {
     findUnique(args: unknown): Promise<{ email: string | null } | null>;
+  };
+  userSubscription: {
+    findFirst(args: unknown): Promise<{ id: string } | null>;
   };
 }

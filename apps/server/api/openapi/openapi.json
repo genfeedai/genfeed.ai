@@ -31640,6 +31640,29 @@
         ]
       }
     },
+    "/lifecycle-emails/unsubscribe": {
+      "get": {
+        "operationId": "LifecycleEmailsController.unsubscribe",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "token",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LifecycleEmails"
+        ]
+      }
+    },
     "/links": {
       "get": {
         "operationId": "LinksController.findAll",
