@@ -49,7 +49,7 @@ export default function HomeCredits(): React.ReactElement {
             <VStack className="gap-4">
               {CREDIT_EXPLAINERS.map((item) => (
                 <HStack key={item} className="items-start gap-3">
-                  <LuCheck className="mt-0.5 size-4 shrink-0 text-success" />
+                  <LuCheck className="mt-0.5 size-4 shrink-0 text-surface/70" />
                   <Text className="text-sm leading-6 text-surface/60">
                     {item}
                   </Text>
@@ -72,7 +72,7 @@ export default function HomeCredits(): React.ReactElement {
                 ${creditPackPrice(pack).toLocaleString()} →{' '}
                 {creditPackTotalCredits(pack).toLocaleString()} credits
                 {pack.bonus ? (
-                  <span className="text-success">
+                  <span className="font-medium text-surface">
                     {' '}
                     (+{pack.bonus.toLocaleString()} bonus)
                   </span>
