@@ -129,9 +129,20 @@ describe('WorkflowApiService', () => {
         data: workflow({
           edgeStyle: null,
           edges: null,
+          inputVariables: [
+            {
+              key: 'titleText',
+              label: 'Title',
+              required: true,
+              type: 'text',
+            },
+          ],
+          isScheduleEnabled: false,
           label: 'Launch workflow',
           lifecycle: 'unknown',
           nodes: null,
+          schedule: '0 9 * * *',
+          timezone: 'UTC',
         }),
       },
     });
@@ -140,21 +151,54 @@ describe('WorkflowApiService', () => {
       service().create({
         description: 'Plan launch',
         edges: [],
+        inputVariables: [
+          {
+            key: 'titleText',
+            label: 'Title',
+            required: true,
+            type: 'text',
+          },
+        ],
+        isScheduleEnabled: false,
         name: 'Launch workflow',
         nodes: [],
+        schedule: '0 9 * * *',
+        timezone: 'UTC',
       }),
     ).resolves.toMatchObject({
       edgeStyle: 'default',
       edges: [],
+      inputVariables: [
+        {
+          key: 'titleText',
+          label: 'Title',
+          required: true,
+          type: 'text',
+        },
+      ],
+      isScheduleEnabled: false,
       lifecycle: 'draft',
       name: 'Launch workflow',
       nodes: [],
+      schedule: '0 9 * * *',
+      timezone: 'UTC',
     });
     expect(mocks.post).toHaveBeenCalledWith('', {
       description: 'Plan launch',
       edges: [],
+      inputVariables: [
+        {
+          key: 'titleText',
+          label: 'Title',
+          required: true,
+          type: 'text',
+        },
+      ],
+      isScheduleEnabled: false,
       label: 'Launch workflow',
       nodes: [],
+      schedule: '0 9 * * *',
+      timezone: 'UTC',
     });
   });
 
@@ -167,12 +211,30 @@ describe('WorkflowApiService', () => {
 
     await service().update('workflow-1', {
       description: 'Updated description',
+      inputVariables: [
+        {
+          defaultValue: 'Launch title',
+          key: 'titleText',
+          label: 'Title',
+          required: true,
+          type: 'text',
+        },
+      ],
       name: 'Updated',
     });
     await service().setThumbnail('workflow-1', 'x.png', 'node-1');
 
     expect(mocks.patch).toHaveBeenNthCalledWith(1, '/workflow-1', {
       description: 'Updated description',
+      inputVariables: [
+        {
+          defaultValue: 'Launch title',
+          key: 'titleText',
+          label: 'Title',
+          required: true,
+          type: 'text',
+        },
+      ],
       label: 'Updated',
     });
     expect(mocks.patch).toHaveBeenNthCalledWith(2, '/workflow-1', {

@@ -171,6 +171,51 @@ describe('WorkflowsService template creation', () => {
     expect(createInput.trigger).toBeUndefined();
     expect(createInput.user).toBeUndefined();
   });
+
+  it('skips initial manual execution when required inputs do not have defaults', async () => {
+    await service.createWorkflow('user-1', 'org-1', {
+      edges: [],
+      inputVariables: [
+        {
+          key: 'titleText',
+          label: 'Title text',
+          required: true,
+          type: 'text',
+        },
+      ],
+      nodes: [],
+      trigger: 'manual',
+    } as never);
+
+    expect(service.executeWorkflowCompat).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('titleText'),
+    );
+  });
+
+  it('passes default inputs to initial manual execution', async () => {
+    await service.createWorkflow('user-1', 'org-1', {
+      edges: [],
+      inputVariables: [
+        {
+          defaultValue: 'My video title',
+          key: 'titleText',
+          label: 'Title text',
+          required: true,
+          type: 'text',
+        },
+      ],
+      nodes: [],
+      trigger: 'manual',
+    } as never);
+
+    expect(service.executeWorkflowCompat).toHaveBeenCalledWith(
+      'workflow-1',
+      'user-1',
+      'org-1',
+      { titleText: 'My video title' },
+    );
+  });
 });
 
 describe('WorkflowsService system workflow guardrails', () => {

@@ -24,6 +24,7 @@ import {
   selectNodes,
   useWorkflowStore,
 } from '@genfeedai/workflow-ui/stores';
+import { Play } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import '@genfeedai/workflow-ui/styles';
@@ -32,6 +33,7 @@ import '@/features/workflows/styles/workflow-scope.css';
 import { ExecutionPanel } from '@/features/workflows/components/ExecutionPanel';
 import { CloudCreditsIndicator } from '@/features/workflows/components/editor/CloudCreditsIndicator';
 import { CloudWorkflowToolbar } from '@/features/workflows/components/editor/CloudWorkflowToolbar';
+import { WorkflowRunPanel } from '@/features/workflows/components/WorkflowRunPanel';
 import { useCloudWorkflow } from '@/features/workflows/hooks/useCloudWorkflow';
 import { cloudNodeTypes } from '@/features/workflows/nodes/merged-node-types';
 import { createWorkflowApiService } from '@/features/workflows/services/workflow-api';
@@ -111,6 +113,7 @@ export default function WorkflowNewPageClient() {
   const hasSeededMessagesAutomationRef = useRef(false);
   const [isRunning, setIsRunning] = useState(false);
   const [showExecutionPanel, setShowExecutionPanel] = useState(false);
+  const [showRunPanel, setShowRunPanel] = useState(false);
   const [activeExecutionId, setActiveExecutionId] = useState<
     string | undefined
   >();
@@ -120,12 +123,15 @@ export default function WorkflowNewPageClient() {
     isLoading,
     isSaving,
     error: cloudError,
+    inputVariables,
     lifecycle,
     save,
+    saveInputDefaults,
     publish,
     archive,
   } = useCloudWorkflow({ autoSave: true });
   const currentWorkflowId = useWorkflowStore((state) => state.workflowId);
+  const hasRunInputs = inputVariables.length > 0;
 
   const messagesAutomationSeed = useMemo(
     () =>
@@ -233,29 +239,53 @@ export default function WorkflowNewPageClient() {
     await save();
   }, [save]);
 
-  const handleRun = useCallback(async () => {
-    try {
-      setIsRunning(true);
-      const service = await getWorkflowService();
-      await useCloudWorkflowStore.getState().saveToCloud(service);
+  const handleRun = useCallback(
+    async (
+      inputValues: Record<string, unknown> = {},
+      options: { saveDefaults: boolean } = { saveDefaults: false },
+    ) => {
+      try {
+        setIsRunning(true);
+        const service = await getWorkflowService();
+        await useCloudWorkflowStore.getState().saveToCloud(service);
 
-      const runnableWorkflowId = useWorkflowStore.getState().workflowId;
-      if (!runnableWorkflowId) {
-        throw new Error('Workflow must be saved before it can run');
+        const runnableWorkflowId = useWorkflowStore.getState().workflowId;
+        if (!runnableWorkflowId) {
+          throw new Error('Workflow must be saved before it can run');
+        }
+
+        if (options.saveDefaults) {
+          await saveInputDefaults(inputValues);
+        }
+
+        const execution = await service.execute(runnableWorkflowId, {
+          inputValues,
+          metadata: { source: 'workflow-editor-run-panel' },
+        });
+        setActiveExecutionId(execution?._id);
+        setShowRunPanel(false);
+        setShowExecutionPanel(true);
+      } catch (error) {
+        logger.error('Failed to run workflow', {
+          error,
+          workflowId: currentWorkflowId ?? 'new',
+        });
+      } finally {
+        setIsRunning(false);
       }
+    },
+    [currentWorkflowId, getWorkflowService, saveInputDefaults],
+  );
 
-      const execution = await service.execute(runnableWorkflowId);
-      setActiveExecutionId(execution?._id);
-      setShowExecutionPanel(true);
-    } catch (error) {
-      logger.error('Failed to run workflow', {
-        error,
-        workflowId: currentWorkflowId ?? 'new',
-      });
-    } finally {
-      setIsRunning(false);
+  const handleRunButtonClick = useCallback(() => {
+    if (hasRunInputs) {
+      setShowExecutionPanel(false);
+      setShowRunPanel(true);
+      return;
     }
-  }, [currentWorkflowId, getWorkflowService]);
+
+    void handleRun();
+  }, [handleRun, hasRunInputs]);
 
   if (isLoading) {
     return (
@@ -280,7 +310,14 @@ export default function WorkflowNewPageClient() {
           <WorkflowEditorShell
             nodeTypes={cloudNodeTypes}
             rightPanel={
-              showExecutionPanel ? (
+              showRunPanel ? (
+                <WorkflowRunPanel
+                  inputVariables={inputVariables}
+                  isRunning={isRunning}
+                  onClose={() => setShowRunPanel(false)}
+                  onRun={handleRun}
+                />
+              ) : showExecutionPanel ? (
                 <ExecutionPanel
                   workflowId={currentWorkflowId ?? 'new'}
                   onClose={() => setShowExecutionPanel(false)}
@@ -315,8 +352,9 @@ export default function WorkflowNewPageClient() {
                       <Button
                         variant={ButtonVariant.DEFAULT}
                         size={ButtonSize.SM}
-                        onClick={handleRun}
+                        onClick={handleRunButtonClick}
                         disabled={isRunning}
+                        icon={<Play className="size-4" />}
                       >
                         {isRunning ? 'Running…' : 'Run'}
                       </Button>

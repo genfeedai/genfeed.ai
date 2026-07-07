@@ -214,6 +214,21 @@ export class WorkflowSchedulerService implements OnModuleInit {
         return;
       }
 
+      const workflowDocument = toWorkflowDocument(workflow);
+      const defaultInputValues = this.getDefaultInputValues(workflowDocument);
+      const missingRequiredInputs = this.getMissingRequiredInputKeys(
+        workflowDocument,
+        defaultInputValues,
+      );
+
+      if (missingRequiredInputs.length > 0) {
+        this.logger.warn(
+          `Scheduled workflow ${workflowId} skipped because required input defaults are missing: ${missingRequiredInputs.join(', ')}`,
+          'WorkflowSchedulerService',
+        );
+        return;
+      }
+
       const nodes = wDoc.nodes as unknown[] | undefined;
       const usesNodeExecutor = Boolean(nodes?.length);
 
@@ -221,7 +236,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
       // Node-based workflows create their own execution record via WorkflowExecutorService.
       if (!usesNodeExecutor) {
         await this.workflowExecutionsService.createExecution(wUserId, wOrgId, {
-          inputValues: this.getDefaultInputValues(toWorkflowDocument(workflow)),
+          inputValues: defaultInputValues,
           trigger: WorkflowExecutionTrigger.SCHEDULED,
           workflow: workflowId,
         });
@@ -241,10 +256,10 @@ export class WorkflowSchedulerService implements OnModuleInit {
       // legacy step-based workflows keep the existing execution path.
       const executePromise = usesNodeExecutor
         ? this.workflowExecutorService.executeManualWorkflowDocument(
-            toWorkflowDocument(workflow),
+            workflowDocument,
             wUserId,
             wOrgId,
-            this.getDefaultInputValues(toWorkflowDocument(workflow)),
+            defaultInputValues,
             { triggeredBy: 'schedule' },
             WorkflowExecutionTrigger.SCHEDULED,
           )
@@ -271,6 +286,14 @@ export class WorkflowSchedulerService implements OnModuleInit {
     }
   }
 
+  private isMissingInputValue(value: unknown): boolean {
+    return (
+      value === undefined ||
+      value === null ||
+      (typeof value === 'string' && value.trim().length === 0)
+    );
+  }
+
   /**
    * Get default input values for a workflow
    */
@@ -288,6 +311,21 @@ export class WorkflowSchedulerService implements OnModuleInit {
     }
 
     return defaults;
+  }
+
+  private getMissingRequiredInputKeys(
+    workflow: WorkflowDocument,
+    inputValues: Record<string, unknown>,
+  ): string[] {
+    return (workflow.inputVariables ?? [])
+      .filter((variable) => {
+        if (!variable.required) {
+          return false;
+        }
+
+        return this.isMissingInputValue(inputValues[variable.key]);
+      })
+      .map((variable) => variable.key);
   }
 
   /**

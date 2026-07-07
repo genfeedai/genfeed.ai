@@ -9,7 +9,10 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { useCallback, useEffect, useRef } from 'react';
-import type { WorkflowApiService } from '@/features/workflows/services/workflow-api';
+import type {
+  WorkflowApiService,
+  WorkflowInputVariable,
+} from '@/features/workflows/services/workflow-api';
 import { createWorkflowApiService } from '@/features/workflows/services/workflow-api';
 import { useCloudWorkflowStore } from '@/features/workflows/stores/cloud-workflow-store';
 
@@ -49,6 +52,10 @@ interface UseCloudWorkflowReturn {
     logoUrl?: string;
     primaryColor?: string;
   }>;
+  /** Run-time input variables exposed by the workflow */
+  inputVariables: WorkflowInputVariable[];
+  /** Persist input values as defaults for scheduled executions */
+  saveInputDefaults: (inputValues: Record<string, unknown>) => Promise<void>;
 }
 
 // =============================================================================
@@ -130,6 +137,7 @@ export function useCloudWorkflow({
   const lifecycle = useCloudWorkflowStore((s) => s.lifecycle);
   const brands = useCloudWorkflowStore((s) => s.brands);
   const isBrandsLoading = useCloudWorkflowStore((s) => s.isBrandsLoading);
+  const inputVariables = useCloudWorkflowStore((s) => s.inputVariables);
 
   // Shared store selectors
   const isDirty = useWorkflowStore(selectIsDirty);
@@ -284,14 +292,32 @@ export function useCloudWorkflow({
     }
   }, [getService]);
 
+  const saveInputDefaults = useCallback(
+    async (inputValues: Record<string, unknown>) => {
+      try {
+        const service = serviceRef.current ?? (await getService());
+        serviceRef.current = service;
+        await useCloudWorkflowStore
+          .getState()
+          .updateInputVariableDefaults(service, inputValues);
+      } catch (error) {
+        logger.error('Save workflow input defaults failed', { error });
+        throw error;
+      }
+    },
+    [getService],
+  );
+
   return {
     archive,
     brands,
     error: cloudError,
+    inputVariables,
     isLoading: !isHydrated || isCloudLoading,
     isSaving,
     lifecycle,
     publish,
     save,
+    saveInputDefaults,
   };
 }
