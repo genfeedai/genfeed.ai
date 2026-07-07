@@ -53,16 +53,12 @@ describe('VariablesPanel', () => {
 
   it('should call onToggleCollapse when header is clicked', () => {
     const onToggleCollapse = vi.fn();
-    const { container } = render(
+    render(
       <VariablesPanel {...defaultProps} onToggleCollapse={onToggleCollapse} />,
     );
 
-    // Header row is clickable for collapse/expand
-    const headerRow = container.querySelector('.cursor-pointer');
-    if (headerRow) {
-      fireEvent.click(headerRow);
-      expect(onToggleCollapse).toHaveBeenCalled();
-    }
+    fireEvent.click(screen.getByRole('button', { name: /Input Variables/i }));
+    expect(onToggleCollapse).toHaveBeenCalled();
   });
 
   it('should render empty state when no variables', () => {
@@ -83,12 +79,8 @@ describe('VariablesPanel', () => {
     );
 
     // Test expanding/collapsing variable item
-    const variableItem = screen.getByText('Prompt').closest('div');
-    if (variableItem) {
-      fireEvent.click(variableItem);
-      // Variable should expand showing input fields
-      expect(screen.getByPlaceholderText('variable_key')).toBeInTheDocument();
-    }
+    fireEvent.click(screen.getByRole('button', { name: /Prompt/i }));
+    expect(screen.getByPlaceholderText('variable_key')).toBeInTheDocument();
 
     // Test updating variable key
     const keyInput = screen.getByPlaceholderText('variable_key');

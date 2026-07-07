@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
@@ -127,7 +128,8 @@ describe('MasonryImage', () => {
     expect(screen.getByRole('button')).toHaveClass('rounded-lg');
   });
 
-  it('supports space key activation for keyboard users', () => {
+  it('supports space key activation for keyboard users', async () => {
+    const user = userEvent.setup();
     const handleClickIngredient = vi.fn();
 
     render(
@@ -138,7 +140,8 @@ describe('MasonryImage', () => {
     );
 
     const trigger = screen.getByRole('button');
-    fireEvent.keyDown(trigger, { key: ' ' });
+    trigger.focus();
+    await user.keyboard(' ');
 
     expect(handleClickIngredient).toHaveBeenCalledWith(mockImage);
   });

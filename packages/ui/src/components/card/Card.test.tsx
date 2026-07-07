@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import Card from '@ui/card/Card';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -29,7 +30,8 @@ describe('Card', () => {
     expect(screen.getByRole('button', { name: 'Review' })).toBeInTheDocument();
   });
 
-  it('renders keyboard-accessible interactive semantics when onClick is provided', () => {
+  it('renders keyboard-accessible interactive semantics when onClick is provided', async () => {
+    const user = userEvent.setup();
     const activateCard = vi.fn();
     render(<Card label="Interactive" onClick={activateCard} />);
 
@@ -37,8 +39,9 @@ describe('Card', () => {
       name: 'Interactive',
     });
 
-    fireEvent.keyDown(interactiveSurface, { key: 'Enter' });
-    fireEvent.keyDown(interactiveSurface, { key: ' ' });
+    interactiveSurface.focus();
+    await user.keyboard('{Enter}');
+    await user.keyboard(' ');
 
     expect(activateCard).toHaveBeenCalledTimes(2);
   });
