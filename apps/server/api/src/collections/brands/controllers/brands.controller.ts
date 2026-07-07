@@ -215,8 +215,8 @@ export class BrandsController extends BaseCRUDController<
   }
 
   /**
-   * Preview the impact of relocating a brand to another organization: how many
-   * brand-owned workflows will move with it, and how many members will lose access.
+   * Preview the impact of relocating a brand to another organization: which
+   * brand-owned resources move with it, and how many members lose access.
    * `sharedWorkflows` and `ackToken` remain in the response for compatibility and
    * are always 0/null now that workflows are scoped to one brand.
    */

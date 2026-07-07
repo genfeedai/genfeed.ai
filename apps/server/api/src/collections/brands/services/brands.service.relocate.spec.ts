@@ -152,6 +152,44 @@ describe('BrandsService.relocateToOrganization', () => {
     getDelegate('workflow').findMany.mockResolvedValue(workflows);
   }
 
+  it('previews every non-zero resource type that will move with the brand', async () => {
+    primeBrand();
+    getDelegate('member').findMany.mockResolvedValue([{ id: 'member_1' }]);
+    getDelegate('workflow').findMany.mockResolvedValue([{ id: 'wf_1' }]);
+    getDelegate('workflow').count.mockResolvedValue(1);
+    getDelegate('post').count.mockResolvedValue(4);
+    getDelegate('workflowExecution').count.mockResolvedValue(2);
+    getDelegate('batchWorkflowJob').count.mockResolvedValue(1);
+
+    const preview = await service.previewRelocation(BRAND_ID, DEST_ORG, {
+      isSuperAdmin: true,
+      userId: USER_ID,
+    });
+
+    expect(preview).toEqual({
+      ackToken: null,
+      counts: {
+        sharedWorkflows: 0,
+        soleBrandWorkflows: 1,
+        staleMembers: 1,
+      },
+      movingResources: [
+        { count: 1, label: 'workflow', resource: 'workflow' },
+        { count: 4, label: 'posts', resource: 'post' },
+        {
+          count: 2,
+          label: 'workflow executions',
+          resource: 'workflowExecution',
+        },
+        {
+          count: 1,
+          label: 'batch workflow job',
+          resource: 'batchWorkflowJob',
+        },
+      ],
+    });
+  });
+
   it('does not relocate (or open a transaction) when the org is unchanged', async () => {
     getDelegate('brand').findFirst.mockResolvedValue({
       id: BRAND_ID,

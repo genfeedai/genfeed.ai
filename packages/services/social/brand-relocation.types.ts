@@ -1,8 +1,9 @@
 import type { Brand } from '@genfeedai/models/organization/brand.model';
 
 /**
- * Counts returned by the relocation preview endpoint, describing the
- * clone/severance impact of moving a brand to a destination organization.
+ * Counts returned by the relocation preview endpoint. `sharedWorkflows` remains
+ * for backwards compatibility and is always 0 now that workflows are one-to-one
+ * with a brand.
  */
 export interface IBrandRelocationCounts {
   sharedWorkflows: number;
@@ -10,21 +11,29 @@ export interface IBrandRelocationCounts {
   staleMembers: number;
 }
 
+export interface IBrandRelocationMovingResource {
+  resource: string;
+  label: string;
+  count: number;
+}
+
 /**
  * Response shape for `GET /brands/:id/relocation-preview`.
  *
- * `ackToken` is `null` when the move has no clone impact (no shared
- * workflows attached to the brand) and therefore doesn't require an ack.
+ * `movingResources` lists non-zero resource counts whose organization scope
+ * will be rewritten with the brand. `ackToken` remains for backwards
+ * compatibility and is always `null`.
  */
 export interface IBrandRelocationPreview {
   ackToken: string | null;
   counts: IBrandRelocationCounts;
+  movingResources: IBrandRelocationMovingResource[];
 }
 
 /**
  * Request body for the relocation-specific `PATCH /brands/:id` call.
- * `relocationAck` must echo the `ackToken` from the preview whenever
- * `counts.sharedWorkflows > 0` — the server returns 409 otherwise.
+ * `relocationAck` is accepted for backwards compatibility with older clients
+ * and ignored by the current one-to-one workflow relocation path.
  */
 export type IBrandRelocationPatchBody = Record<string, unknown> & {
   organizationId: string;

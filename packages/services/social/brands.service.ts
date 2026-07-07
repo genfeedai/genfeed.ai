@@ -409,10 +409,9 @@ export class BrandsService extends BaseService<Brand> {
   }
 
   /**
-   * Previews the clone/severance impact of moving a brand to a destination
-   * organization. Read-only. `ackToken` is `null` when there's no clone
-   * impact (no shared workflows attached to the brand), meaning the
-   * relocation patch does not need to pass `relocationAck`.
+   * Previews the impact of moving a brand to a destination organization.
+   * Read-only. `movingResources` lists non-zero brand-owned resource counts
+   * whose organization scope will be rewritten with the brand.
    */
   public async getRelocationPreview(
     id: string,
@@ -433,10 +432,8 @@ export class BrandsService extends BaseService<Brand> {
    * (`workflowsMoved`, `workflowsClonedActive`, `workflowsClonedPaused`,
    * `membersSevered`, `schedulingPending`).
    *
-   * Pass `relocationAck` = the `ackToken` from `getRelocationPreview()`.
-   * It is required whenever the preview's `counts.sharedWorkflows > 0` —
-   * the server returns 409 otherwise (or if the impacted set changed
-   * since the preview was taken).
+   * `relocationAck` is still accepted for older clients but current workflow
+   * relocation no longer needs clone/disconnect acknowledgement.
    */
   public async relocateBrand(
     id: string,

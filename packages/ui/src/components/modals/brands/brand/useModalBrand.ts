@@ -58,6 +58,7 @@ import {
   useState,
 } from 'react';
 import { useForm } from 'react-hook-form';
+import { buildMovingResourcesSummary } from './brand-relocation-summary.util';
 import {
   type BrandEditorTab,
   type BrandFormValues,
@@ -65,14 +66,6 @@ import {
   type BrandOverlayView,
   buildSocialConnections,
 } from './ModalBrand.types';
-
-function getStructuredErrorStatus(error: unknown): number | undefined {
-  if (!error || typeof error !== 'object') {
-    return undefined;
-  }
-  const status = (error as IStructuredError).status;
-  return typeof status === 'number' ? status : undefined;
-}
 
 const DEFAULT_BRAND_FORM_VALUES: BrandFormValues = {
   backgroundColor: THEME_COLORS.PRIMARY,
@@ -94,6 +87,14 @@ export type OrganizationOption = {
   id: string;
   label: string;
 };
+
+function getStructuredErrorStatus(error: unknown): number | undefined {
+  if (!error || typeof error !== 'object') {
+    return undefined;
+  }
+  const status = (error as IStructuredError).status;
+  return typeof status === 'number' ? status : undefined;
+}
 
 const DEFAULT_BRAND_LINK_FORM_VALUES: BrandLinkEditorValues = {
   category: LinkCategory.WEBSITE,
@@ -767,21 +768,19 @@ export function useModalBrand(
       destinationLabel: string,
       preview: IBrandRelocationPreview,
     ): string => {
-      const { soleBrandWorkflows, sharedWorkflows, staleMembers } =
-        preview.counts;
+      const { soleBrandWorkflows, staleMembers } = preview.counts;
       const sentences: string[] = [
         `${brandLabel} moves to ${destinationLabel}.`,
       ];
+      const movingResourcesSummary = buildMovingResourcesSummary(
+        preview.movingResources,
+      );
 
-      if (soleBrandWorkflows > 0) {
+      if (movingResourcesSummary) {
+        sentences.push(movingResourcesSummary);
+      } else if (soleBrandWorkflows > 0) {
         sentences.push(
           `${soleBrandWorkflows} dedicated workflow${soleBrandWorkflows === 1 ? '' : 's'} move${soleBrandWorkflows === 1 ? 's' : ''} with it.`,
-        );
-      }
-
-      if (sharedWorkflows > 0) {
-        sentences.push(
-          `${sharedWorkflows} shared workflow${sharedWorkflows === 1 ? '' : 's'} will be COPIED into ${destinationLabel} and will run there (any that reference other brands' resources are created paused for review).`,
         );
       }
 
@@ -944,7 +943,7 @@ export function useModalBrand(
     } catch (previewError) {
       logger.error('Failed to load brand relocation preview', previewError);
       setError(
-        "Couldn't check the move's impact on workflows and members. Please try again.",
+        "Couldn't check the move's impact on resources and members. Please try again.",
       );
       resetOrganizationSelection();
     }
