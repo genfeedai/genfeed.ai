@@ -10,6 +10,10 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "outDir": "./dist",
+    "paths": {
+      "@genfeedai/tools": ["./src/index.ts"],
+      "@genfeedai/tools/*": ["./src/*"]
+    },
     "rootDir": "./src",
     "skipLibCheck": true,
     "sourceMap": true,
