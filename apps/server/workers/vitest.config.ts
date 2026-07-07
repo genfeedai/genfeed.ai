@@ -38,6 +38,13 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, '../server/src/$1'),
       },
       {
+        find: '@billing-providers',
+        replacement: path.resolve(
+          serviceDir,
+          '../api/src/common/subscriptions/billing.providers.oss.ts',
+        ),
+      },
+      {
         find: '@genfeedai/constants',
         replacement: path.resolve(
           serviceDir,
@@ -112,10 +119,45 @@ export default defineConfig({
         ),
       },
       {
+        find: '@genfeedai/workflow-saas',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/workflow-saas/src',
+        ),
+      },
+      {
+        find: '@genfeedai/workflows',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/workflows/src',
+        ),
+      },
+      {
+        find: /^@genfeedai\/workflows\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/workflows/src/$1',
+        ),
+      },
+      {
+        find: /^@genfeedai\/workflow-saas\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/workflow-saas/src/$1',
+        ),
+      },
+      {
         find: /^@workflow-engine\/(.*)$/,
         replacement: path.resolve(
           serviceDir,
           '../../../packages/workflow-engine/src/$1',
+        ),
+      },
+      {
+        find: /^@workflow-saas\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/workflow-saas/src/$1',
         ),
       },
       {
@@ -179,6 +221,13 @@ export default defineConfig({
         replacement: path.resolve(
           serviceDir,
           '../../../packages/queue-contracts/src',
+        ),
+      },
+      {
+        find: /^@api-types\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/api-types/src/$1',
         ),
       },
       {
