@@ -21,6 +21,10 @@ import type {
   TrendSourceReferenceRecord,
   TrendSourceReferenceResult,
 } from '@api/collections/trends/interfaces/trend.interfaces';
+import {
+  DEFAULT_SOURCE_FRESHNESS_WINDOW_DAYS_BY_KIND as DEFAULT_FRESHNESS_WINDOW_DAYS_BY_SOURCE_KIND,
+  normalizeTrendSourceClassification,
+} from '@api/collections/trends/utils/trend-source-classification.util';
 import { SecurityUtil } from '@api/helpers/utils/security/security.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Prisma } from '@genfeedai/prisma';
@@ -157,22 +161,6 @@ const PROMPT_REFERENCE_PACK_TYPES: TrendPromptReferencePackType[] = [
 const DEFAULT_SOURCE_PREVIEW_STALE_AFTER_DAYS = 3;
 const MAX_CORPUS_FRESHNESS_REFERENCE_RECORDS = 5000;
 const MAX_CORPUS_FRESHNESS_TREND_RECORDS = 2000;
-const DEFAULT_FRESHNESS_WINDOW_DAYS_BY_SOURCE_KIND: Record<
-  TrendSourceKind,
-  number
-> = {
-  manual_curated_reference: 30,
-  owned_brand_reference: 30,
-  paid_creative_reference: 14,
-  public_platform_reference: 7,
-};
-const TREND_SOURCE_INTENDED_USES: ReadonlySet<string> =
-  new Set<TrendSourceIntendedUse>([
-    'evergreen_prompt_context',
-    'organic_trend_discovery',
-    'paid_creative_analysis',
-  ]);
-
 @Injectable()
 export class TrendReferenceCorpusService {
   constructor(
@@ -211,6 +199,12 @@ export class TrendReferenceCorpusService {
         if (matchedRef) {
           const existingData =
             matchedRef.data as unknown as ReferenceRecordData;
+          const sourceClassification = this.buildReferenceSourceClassification({
+            capturedAt: now,
+            existingClassification: existingData.sourceClassification,
+            sourceItem,
+            trend,
+          });
           const matchedTopics = Array.isArray(existingData.matchedTrendTopics)
             ? existingData.matchedTrendTopics
             : [];
@@ -239,9 +233,7 @@ export class TrendReferenceCorpusService {
                 publishedAt: sourceItem.publishedAt
                   ? new Date(sourceItem.publishedAt).toISOString()
                   : undefined,
-                sourceClassification:
-                  sourceItem.sourceClassification ??
-                  existingData.sourceClassification,
+                sourceClassification,
                 sourcePreviewState: trend.sourcePreviewState,
                 text: sourceItem.text,
                 thumbnailUrl: sourceItem.thumbnailUrl,
@@ -255,6 +247,11 @@ export class TrendReferenceCorpusService {
           });
           referenceId = matchedRef.id;
         } else {
+          const sourceClassification = this.buildReferenceSourceClassification({
+            capturedAt: now,
+            sourceItem,
+            trend,
+          });
           const created = await this.prisma.trendSourceReference.create({
             data: {
               authorHandle: sourceItem.authorHandle,
@@ -277,7 +274,7 @@ export class TrendReferenceCorpusService {
                 publishedAt: sourceItem.publishedAt
                   ? new Date(sourceItem.publishedAt).toISOString()
                   : undefined,
-                sourceClassification: sourceItem.sourceClassification,
+                sourceClassification,
                 sourcePreviewState: trend.sourcePreviewState,
                 text: sourceItem.text,
                 thumbnailUrl: sourceItem.thumbnailUrl,
@@ -902,6 +899,14 @@ export class TrendReferenceCorpusService {
       const data = this.asRecord(doc.data) as unknown as ReferenceRecordData;
       const classification = this.resolveSourceClassification(
         data.sourceClassification,
+        {
+          capturedAt: data.firstSeenAt,
+          platform:
+            this.readString(doc.platform) ?? this.readString(data.platform),
+          sourceAuthor: data.authorHandle,
+          sourceTimestamp: data.publishedAt ?? data.lastSeenAt,
+          sourceTopic: data.matchedTrendTopics?.[0],
+        },
       );
       const platform =
         this.readString(doc.platform) ??
@@ -1143,48 +1148,18 @@ export class TrendReferenceCorpusService {
 
   private resolveSourceClassification(
     value: unknown,
+    defaults: {
+      capturedAt?: Date | string;
+      platform?: string;
+      sourceAuthor?: string;
+      sourceTimestamp?: Date | string;
+      sourceTopic?: string;
+    } = {},
   ): TrendSourceClassification | undefined {
-    const record = this.asRecord(value);
-    const sourceKind = this.readString(record.sourceKind);
-    const intendedUse = this.readString(record.intendedUse);
-    const freshnessWindowDays = this.readNumber(record.freshnessWindowDays);
-
-    if (
-      !this.isTrendSourceKind(sourceKind) ||
-      !this.isTrendSourceIntendedUse(intendedUse)
-    ) {
-      return undefined;
-    }
-
-    return {
-      capturedAt: this.readString(record.capturedAt) ?? '',
-      confidence:
-        record.confidence === 'high' ||
-        record.confidence === 'low' ||
-        record.confidence === 'medium'
-          ? record.confidence
-          : 'medium',
-      freshnessWindowDays:
-        freshnessWindowDays ??
-        DEFAULT_FRESHNESS_WINDOW_DAYS_BY_SOURCE_KIND[sourceKind],
-      intendedUse,
-      sourceKind,
-      sourceLabel: this.readString(record.sourceLabel),
-      sourceTopic: this.readString(record.sourceTopic),
-    };
-  }
-
-  private isTrendSourceKind(value: unknown): value is TrendSourceKind {
-    return (
-      typeof value === 'string' &&
-      value in DEFAULT_FRESHNESS_WINDOW_DAYS_BY_SOURCE_KIND
-    );
-  }
-
-  private isTrendSourceIntendedUse(
-    value: unknown,
-  ): value is TrendSourceIntendedUse {
-    return typeof value === 'string' && TREND_SOURCE_INTENDED_USES.has(value);
+    return normalizeTrendSourceClassification({
+      ...defaults,
+      value,
+    });
   }
 
   private isCurrentTrend(doc: TrendHealthDoc, now: Date): boolean {
@@ -1195,6 +1170,29 @@ export class TrendReferenceCorpusService {
 
   private calculateAgeDays(now: Date, date: Date): number {
     return (now.getTime() - date.getTime()) / (24 * 60 * 60 * 1000);
+  }
+
+  private buildReferenceSourceClassification(input: {
+    capturedAt: Date;
+    existingClassification?: TrendSourceClassification;
+    sourceItem: TrendSourceItem;
+    trend: SyncTrendInput;
+  }): TrendSourceClassification | undefined {
+    return normalizeTrendSourceClassification({
+      capturedAt: input.capturedAt,
+      confidence: 'medium',
+      intendedUse: 'organic_trend_discovery',
+      platform: input.sourceItem.platform,
+      sourceAuthor: input.sourceItem.authorHandle,
+      sourceKind: 'public_platform_reference',
+      sourceLabel:
+        input.sourceItem.sourceClassification?.sourceLabel ??
+        input.sourceItem.platform,
+      sourceTimestamp: input.sourceItem.publishedAt,
+      sourceTopic: input.trend.topic,
+      value:
+        input.sourceItem.sourceClassification ?? input.existingClassification,
+    });
   }
 
   private asRecord(value: unknown): Record<string, unknown> {
@@ -1214,12 +1212,6 @@ export class TrendReferenceCorpusService {
 
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? undefined : date;
-  }
-
-  private readNumber(value: unknown): number | undefined {
-    return typeof value === 'number' && Number.isFinite(value)
-      ? value
-      : undefined;
   }
 
   private readString(value: unknown): string | undefined {
@@ -1903,7 +1895,16 @@ export class TrendReferenceCorpusService {
       publishedAt: data.publishedAt,
       remixCount: remixCounts.get(id) || 0,
       sourcePreviewState: data.sourcePreviewState,
-      sourceClassification: data.sourceClassification,
+      sourceClassification: this.resolveSourceClassification(
+        data.sourceClassification,
+        {
+          capturedAt: data.firstSeenAt,
+          platform: data.platform,
+          sourceAuthor: data.authorHandle,
+          sourceTimestamp: data.publishedAt ?? data.lastSeenAt,
+          sourceTopic: data.matchedTrendTopics?.[0],
+        },
+      ),
       text: data.text,
       thumbnailUrl: data.thumbnailUrl,
       title: data.title,

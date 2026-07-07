@@ -648,7 +648,7 @@ describe('TrendsService', () => {
       expect(result.lockedPlatforms).toEqual(['instagram']);
     });
 
-    it('does not synthesize LinkedIn content from a stale curated row without references', async () => {
+    it('does not synthesize LinkedIn content from a stale legacy row without references', async () => {
       vi.spyOn(service, 'getTrendsWithAccessControl').mockResolvedValue({
         connectedPlatforms: [],
         lockedPlatforms: ['linkedin'],

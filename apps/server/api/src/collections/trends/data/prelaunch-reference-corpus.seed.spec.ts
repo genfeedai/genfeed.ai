@@ -25,7 +25,10 @@ describe('prelaunch reference corpus seed', () => {
           item.sourceClassification?.sourceKind ===
             'public_platform_reference' &&
           item.sourceClassification.intendedUse === 'organic_trend_discovery' &&
+          item.sourceClassification.platform === item.platform &&
+          typeof item.sourceClassification.sourceAuthor === 'string' &&
           typeof item.sourceClassification.sourceLabel === 'string' &&
+          typeof item.sourceClassification.sourceTimestamp === 'string' &&
           typeof item.sourceClassification.sourceTopic === 'string',
       ),
     ).toBe(true);
@@ -43,6 +46,8 @@ describe('prelaunch reference corpus seed', () => {
         seed.sourcePreview.every(
           (item) =>
             item.platform === 'linkedin' &&
+            item.sourceClassification?.platform === 'linkedin' &&
+            item.sourceClassification.sourceAuthor?.startsWith('linkedin-') &&
             item.sourceClassification?.sourceLabel === 'LinkedIn' &&
             item.sourceClassification.confidence !== undefined,
         ),
