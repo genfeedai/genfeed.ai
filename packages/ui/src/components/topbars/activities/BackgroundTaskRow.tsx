@@ -13,6 +13,12 @@ type BackgroundTaskStatus = 'processing' | 'completed' | 'failed';
 
 type Preview = { url: string; category: IngredientCategory };
 
+const STATUS_BADGE_CONFIG = {
+  completed: { label: 'Ready', variant: 'success' as const },
+  failed: { label: 'Failed', variant: 'error' as const },
+  processing: { label: 'Processing', variant: 'primary' as const },
+};
+
 type Props = {
   activity: IActivity;
   loadingTaskId: string | null;
@@ -56,13 +62,7 @@ export default function BackgroundTaskRow({
     }
   })();
 
-  const statusBadgeConfig = {
-    completed: { label: 'Ready', variant: 'success' as const },
-    failed: { label: 'Failed', variant: 'error' as const },
-    processing: { label: 'Processing', variant: 'primary' as const },
-  };
-
-  const badgeConfig = statusBadgeConfig[status];
+  const badgeConfig = STATUS_BADGE_CONFIG[status];
   const statusBadge = (
     <Badge variant={badgeConfig.variant} size={ComponentSize.SM}>
       {badgeConfig.label}

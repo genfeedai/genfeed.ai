@@ -8,12 +8,12 @@ import { PWA_APPS } from '@ui-constants/pwa/pwa-apps.constant';
 /**
  * Offline fallback page displayed when user is disconnected from the internet
  */
+function handleRetry(): void {
+  window.location.reload();
+}
+
 export function OfflinePage({ appName }: OfflinePageProps) {
   const config = PWA_APPS[appName];
-
-  const handleRetry = (): void => {
-    window.location.reload();
-  };
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-card p-4 text-center">

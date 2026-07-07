@@ -22,12 +22,32 @@ const Area = dynamic(() => import('recharts').then((m) => m.Area), {
   ssr: false,
 });
 
+const TREND_DATA = [
+  { value: 72 },
+  { value: 85 },
+  { value: 63 },
+  { value: 91 },
+  { value: 78 },
+  { value: 54 },
+  { value: 88 },
+];
+
 export interface QuickAnalyticsPreviewProps {
   data: IAnalytics | null;
   isLoading?: boolean;
   moreLink?: string;
   className?: string;
   title?: string;
+}
+
+function getTrendColor(growth: number): string {
+  if (growth > 0) {
+    return 'text-green-600 dark:text-green-400';
+  }
+  if (growth < 0) {
+    return 'text-red-600 dark:text-red-400';
+  }
+  return 'text-muted-foreground';
 }
 
 export function QuickAnalyticsPreview({
@@ -78,27 +98,6 @@ export function QuickAnalyticsPreview({
       </div>
     );
   }
-
-  const getTrendColor = (growth: number) => {
-    if (growth > 0) {
-      return 'text-green-600 dark:text-green-400';
-    }
-    if (growth < 0) {
-      return 'text-red-600 dark:text-red-400';
-    }
-    return 'text-muted-foreground';
-  };
-
-  // Generate simple trend data for mini chart
-  const trendData = [
-    { value: 72 },
-    { value: 85 },
-    { value: 63 },
-    { value: 91 },
-    { value: 78 },
-    { value: 54 },
-    { value: 88 },
-  ];
 
   const quickStats = [
     {
@@ -174,7 +173,7 @@ export function QuickAnalyticsPreview({
           className="border-0 bg-transparent p-0 shadow-none"
           height={80}
         >
-          <AreaChart data={trendData}>
+          <AreaChart data={TREND_DATA}>
             <defs>
               <linearGradient id="colorPreview" x1="0" y1="0" x2="0" y2="1">
                 <stop

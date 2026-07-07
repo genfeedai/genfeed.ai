@@ -1,14 +1,8 @@
 'use client';
 
 import type { MasonryProps } from '@genfeedai/props/content/masonry.props';
-import {
-  Children,
-  isValidElement,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { Children, isValidElement, useEffect, useMemo, useRef } from 'react';
+import { useMounted } from '../../../lib/hooks';
 
 const BREAKPOINTS = [
   { key: 'xl' as const, width: 1280 },
@@ -24,16 +18,12 @@ export default function Masonry({
   className = '',
 }: MasonryProps): React.ReactElement {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
 
   const childArray = useMemo(
     () => Children.toArray(children).filter(Boolean),
     [children],
   );
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     if (!mounted || !containerRef.current) {

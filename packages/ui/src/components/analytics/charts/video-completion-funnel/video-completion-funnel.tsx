@@ -20,6 +20,19 @@ export interface VideoCompletionFunnelProps {
   className?: string;
 }
 
+function getBarColor(percentage: number): string {
+  if (percentage >= 75) {
+    return 'bg-success';
+  }
+  if (percentage >= 50) {
+    return 'bg-warning';
+  }
+  if (percentage >= 25) {
+    return 'bg-error';
+  }
+  return 'bg-muted';
+}
+
 export function VideoCompletionFunnel({
   data,
   isLoading = false,
@@ -73,19 +86,6 @@ export function VideoCompletionFunnel({
       to: '100%',
     },
   ];
-
-  const getBarColor = (percentage: number) => {
-    if (percentage >= 75) {
-      return 'bg-success';
-    }
-    if (percentage >= 50) {
-      return 'bg-warning';
-    }
-    if (percentage >= 25) {
-      return 'bg-error';
-    }
-    return 'bg-muted';
-  };
 
   const isEmpty = data.started === 0;
 

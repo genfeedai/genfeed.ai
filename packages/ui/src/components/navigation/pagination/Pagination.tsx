@@ -9,6 +9,10 @@ import {
   Pagination as PaginationPrimitive,
 } from '@ui/primitives/pagination';
 
+function createPageHref(page: number): string {
+  return `?page=${page}`;
+}
+
 export default function Pagination({
   currentPage = 1,
   totalPages = 1,
@@ -19,7 +23,6 @@ export default function Pagination({
   }
 
   const clampedPage = Math.min(Math.max(currentPage, 1), totalPages);
-  const createPageHref = (page: number) => `?page=${page}`;
 
   const getVisiblePages = () => {
     if (totalPages <= 7) {

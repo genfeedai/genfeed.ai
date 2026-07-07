@@ -14,6 +14,15 @@ import {
   HiOutlinePlay,
 } from 'react-icons/hi2';
 
+function formatDuration(seconds?: number): string {
+  if (!seconds) {
+    return '';
+  }
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
 export function TrendingSounds({
   sounds,
   isLoading = false,
@@ -50,15 +59,6 @@ export function TrendingSounds({
   }
 
   const sortedSounds = sounds.toSorted((a, b) => b.usageCount - a.usageCount);
-
-  const formatDuration = (seconds?: number) => {
-    if (!seconds) {
-      return '';
-    }
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
 
   return (
     <div className={`space-y-4 ${className}`}>

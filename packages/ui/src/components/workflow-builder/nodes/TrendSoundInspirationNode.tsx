@@ -17,6 +17,16 @@ interface TrendSoundInspirationNodeProps {
   onExecute: (id: string) => void;
 }
 
+function formatNumber(num: number): string {
+  if (num >= 1000000) {
+    return `${(num / 1000000).toFixed(1)}M`;
+  }
+  if (num >= 1000) {
+    return `${(num / 1000).toFixed(1)}K`;
+  }
+  return num.toString();
+}
+
 function TrendSoundInspirationNodeComponent({
   id,
   data,
@@ -56,16 +66,6 @@ function TrendSoundInspirationNodeComponent({
   }, [data.soundUrl]);
 
   const isProcessing = data.status === WorkflowNodeStatus.PROCESSING;
-
-  const formatNumber = (num: number) => {
-    if (num >= 1000000) {
-      return `${(num / 1000000).toFixed(1)}M`;
-    }
-    if (num >= 1000) {
-      return `${(num / 1000).toFixed(1)}K`;
-    }
-    return num.toString();
-  };
 
   return (
     <div className="space-y-3">

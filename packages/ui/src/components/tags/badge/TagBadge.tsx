@@ -7,6 +7,12 @@ import { Button } from '@ui/primitives/button';
 import type { MouseEvent } from 'react';
 import { HiXMark } from 'react-icons/hi2';
 
+const SIZE_CLASSES = {
+  [ComponentSize.LG]: 'px-4 py-1.5 text-base',
+  [ComponentSize.MD]: 'px-3 py-1 text-sm',
+  [ComponentSize.SM]: 'px-2 py-0.5 text-xs',
+};
+
 export default function TagBadge({
   tag,
   onRemove,
@@ -14,12 +20,6 @@ export default function TagBadge({
   size = ComponentSize.SM,
   isRemovable = false,
 }: TagBadgeProps) {
-  const sizeClasses = {
-    [ComponentSize.LG]: 'px-4 py-1.5 text-base',
-    [ComponentSize.MD]: 'px-3 py-1 text-sm',
-    [ComponentSize.SM]: 'px-2 py-0.5 text-xs',
-  };
-
   const handleRemove = (e: MouseEvent) => {
     e.stopPropagation();
     if (onRemove && tag.id) {
@@ -31,7 +31,7 @@ export default function TagBadge({
     <span
       className={cn(
         'inline-flex items-center gap-2 rounded-full font-medium transition-all cursor-pointer',
-        sizeClasses[size],
+        SIZE_CLASSES[size],
         isRemovable && 'pr-1',
         className,
       )}

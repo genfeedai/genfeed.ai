@@ -15,7 +15,14 @@ import {
   LazyMasonryImage,
   LazyMasonryVideo,
 } from '@ui/lazy/masonry/LazyMasonry';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 
 function getColumnsConfig(format?: IngredientFormat): {
   mobile: number;
@@ -37,6 +44,19 @@ function getMediaType(ingredient: IIngredient): MediaType {
 
 const INITIAL_BATCH_SIZE = 24;
 const BATCH_SIZE = 24;
+
+function getViewportWidthSnapshot(): number {
+  return typeof window === 'undefined' ? 0 : window.innerWidth;
+}
+
+function subscribeViewportWidth(onStoreChange: () => void): () => void {
+  if (typeof window === 'undefined') {
+    return () => {};
+  }
+
+  window.addEventListener('resize', onStoreChange);
+  return () => window.removeEventListener('resize', onStoreChange);
+}
 
 export default function MasonryGrid({
   ingredients,
@@ -74,7 +94,11 @@ export default function MasonryGrid({
   onRefresh,
 }: IngredientListProps): React.ReactElement {
   const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH_SIZE);
-  const [viewportWidth, setViewportWidth] = useState(0);
+  const viewportWidth = useSyncExternalStore(
+    subscribeViewportWidth,
+    getViewportWidthSnapshot,
+    () => 0,
+  );
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -98,20 +122,6 @@ export default function MasonryGrid({
     columnsConfig.tablet,
     viewportWidth,
   ]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    const handleResize = () => {
-      setViewportWidth(window.innerWidth);
-    };
-
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   const validIngredients = useMemo(
     () =>
