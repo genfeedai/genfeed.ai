@@ -49,6 +49,23 @@ type PlatformBreakdownLabelEntry = {
   value: number;
 };
 
+function getColor(platform: string): string {
+  return (
+    PLATFORM_COLORS[platform.toLowerCase()] || 'hsl(var(--muted-foreground))'
+  );
+}
+
+function getLabel(platform: string): string {
+  return PLATFORM_LABELS[platform.toLowerCase()] || platform;
+}
+
+function renderLabel(entry: PieLabelRenderProps): string {
+  const { payload, value } = entry as PlatformBreakdownLabelEntry;
+  const total = payload?.total ?? 0;
+  const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
+  return `${percentage}%`;
+}
+
 export function PlatformBreakdownChart({
   data,
   title = 'Platform Distribution',
@@ -61,24 +78,6 @@ export function PlatformBreakdownChart({
 
   // Filter out platforms with zero values
   const filteredData = chartData.filter((item) => item.value > 0);
-
-  const getColor = (platform: string) => {
-    return (
-      PLATFORM_COLORS[platform.toLowerCase()] || 'hsl(var(--muted-foreground))'
-    );
-  };
-
-  const getLabel = (platform: string) => {
-    return PLATFORM_LABELS[platform.toLowerCase()] || platform;
-  };
-
-  // Custom label renderer with percentage
-  const renderLabel = (entry: PieLabelRenderProps) => {
-    const { payload, value } = entry as PlatformBreakdownLabelEntry;
-    const total = payload?.total ?? 0;
-    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
-    return `${percentage}%`;
-  };
 
   // Add total to each data point for percentage calculation
   const total = filteredData.reduce((sum, item) => sum + item.value, 0);

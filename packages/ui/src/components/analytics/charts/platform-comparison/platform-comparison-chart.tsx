@@ -48,6 +48,10 @@ const METRIC_COLORS = {
   views: 'hsl(var(--foreground))',
 };
 
+function getPlatformLabel(platform: string): string {
+  return PLATFORM_LABELS[platform.toLowerCase()] || platform;
+}
+
 export function PlatformComparisonChart({
   data,
   isLoading = false,
@@ -85,10 +89,6 @@ export function PlatformComparisonChart({
         ? previousMetrics.filter((m) => m !== metric)
         : previousMetrics;
     });
-  };
-
-  const getPlatformLabel = (platform: string) => {
-    return PLATFORM_LABELS[platform.toLowerCase()] || platform;
   };
 
   return (

@@ -19,6 +19,10 @@ function getCurrencyFormatter(currency: string): Intl.NumberFormat {
   return formatter;
 }
 
+function formatAmount(amount: number, currency: string = 'usd'): string {
+  return getCurrencyFormatter(currency.toUpperCase()).format(amount / 100);
+}
+
 export default function SubscriptionPlanChanger({
   subscription,
   onPreviewChange,
@@ -73,10 +77,6 @@ export default function SubscriptionPlanChanger({
       logger.error('Failed to change subscription plan:', error);
       setIsLoading(false);
     }
-  };
-
-  const formatAmount = (amount: number, currency: string = 'usd') => {
-    return getCurrencyFormatter(currency.toUpperCase()).format(amount / 100);
   };
 
   return (

@@ -13,6 +13,41 @@ import {
   HiMinus,
 } from 'react-icons/hi2';
 
+function getTrendIcon(direction: TrendDirection) {
+  switch (direction) {
+    case TrendDirection.UP:
+      return <HiArrowTrendingUp className="size-4 text-green-500" />;
+    case TrendDirection.DOWN:
+      return <HiArrowTrendingDown className="size-4 text-red-500" />;
+    default:
+      return <HiMinus className="size-4 text-muted-foreground" />;
+  }
+}
+
+function getTrendColor(direction: TrendDirection): string {
+  switch (direction) {
+    case TrendDirection.UP:
+      return 'text-green-600 dark:text-green-400';
+    case TrendDirection.DOWN:
+      return 'text-red-600 dark:text-red-400';
+    default:
+      return 'text-muted-foreground';
+  }
+}
+
+function getTimeframeLabel(timeframe: Timeframe): string {
+  switch (timeframe) {
+    case Timeframe.D7:
+      return 'Last 7 days';
+    case Timeframe.D30:
+      return 'Last 30 days';
+    case Timeframe.D90:
+      return 'Last 90 days';
+    default:
+      return 'Period';
+  }
+}
+
 export function GrowthTrendsCard({
   growthData,
   timeframe = Timeframe.D30,
@@ -47,41 +82,6 @@ export function GrowthTrendsCard({
       </div>
     );
   }
-
-  const getTrendIcon = (direction: TrendDirection) => {
-    switch (direction) {
-      case TrendDirection.UP:
-        return <HiArrowTrendingUp className="size-4 text-green-500" />;
-      case TrendDirection.DOWN:
-        return <HiArrowTrendingDown className="size-4 text-red-500" />;
-      default:
-        return <HiMinus className="size-4 text-muted-foreground" />;
-    }
-  };
-
-  const getTrendColor = (direction: TrendDirection) => {
-    switch (direction) {
-      case TrendDirection.UP:
-        return 'text-green-600 dark:text-green-400';
-      case TrendDirection.DOWN:
-        return 'text-red-600 dark:text-red-400';
-      default:
-        return 'text-muted-foreground';
-    }
-  };
-
-  const getTimeframeLabel = () => {
-    switch (timeframe) {
-      case Timeframe.D7:
-        return 'Last 7 days';
-      case Timeframe.D30:
-        return 'Last 30 days';
-      case Timeframe.D90:
-        return 'Last 90 days';
-      default:
-        return 'Period';
-    }
-  };
 
   return (
     <div className={cardClassName}>
@@ -215,7 +215,8 @@ export function GrowthTrendsCard({
       </div>
 
       <p className="text-xs text-muted-foreground mt-4">
-        Comparing {getTimeframeLabel().toLowerCase()} vs previous period
+        Comparing {getTimeframeLabel(timeframe).toLowerCase()} vs previous
+        period
       </p>
     </div>
   );

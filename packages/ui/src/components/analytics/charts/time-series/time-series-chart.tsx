@@ -50,6 +50,15 @@ const METRIC_LABELS = {
   views: 'Views',
 };
 
+type TimeSeriesMetric = keyof typeof METRIC_COLORS;
+
+function formatValue(value: number, metric: TimeSeriesMetric): string {
+  if (metric === 'engagementRate') {
+    return formatPercentageSimple(value, 2);
+  }
+  return formatCompactNumberIntl(value);
+}
+
 export function TimeSeriesChart({
   data,
   metrics = [
@@ -61,7 +70,6 @@ export function TimeSeriesChart({
   height = 350,
   className = '',
 }: TimeSeriesChartProps) {
-  type TimeSeriesMetric = keyof typeof METRIC_COLORS;
   const normalizedMetrics = metrics.map(
     (metric) => String(metric) as TimeSeriesMetric,
   );
@@ -121,13 +129,6 @@ export function TimeSeriesChart({
         ? previousMetrics.filter((m) => m !== metric)
         : previousMetrics;
     });
-  };
-
-  const formatValue = (value: number, metric: TimeSeriesMetric) => {
-    if (metric === 'engagementRate') {
-      return formatPercentageSimple(value, 2);
-    }
-    return formatCompactNumberIntl(value);
   };
 
   return (

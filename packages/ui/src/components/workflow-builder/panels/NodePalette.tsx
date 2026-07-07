@@ -45,6 +45,15 @@ const CATEGORY_LABELS: Record<string, string> = {
   processing: 'Processing',
 };
 
+const CATEGORY_ORDER = [
+  'input',
+  'processing',
+  'effects',
+  'ai',
+  'output',
+  'control',
+];
+
 interface CategorySectionProps {
   category: string;
   nodes: Array<[string, NodeDefinition]>;
@@ -124,15 +133,6 @@ export default function NodePalette({
     );
   }
 
-  const categories = [
-    'input',
-    'processing',
-    'effects',
-    'ai',
-    'output',
-    'control',
-  ];
-
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
@@ -150,7 +150,7 @@ export default function NodePalette({
 
       {/* Node Categories */}
       <div className="flex-1 overflow-y-auto">
-        {categories.map((category) => {
+        {CATEGORY_ORDER.map((category) => {
           const nodes =
             nodesByCategory[category as keyof typeof nodesByCategory] || [];
           const nodesWithTypes: Array<[string, NodeDefinition]> = nodes.map(

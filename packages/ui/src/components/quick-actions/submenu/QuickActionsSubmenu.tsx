@@ -26,6 +26,12 @@ interface SubmenuPortalProps {
   onActionClick: (action: IQuickAction) => void;
 }
 
+const QUICK_ACTION_SIZE_CLASSES = {
+  [ComponentSize.LG]: ButtonSize.LG,
+  [ComponentSize.MD]: ButtonSize.DEFAULT,
+  [ComponentSize.SM]: ButtonSize.SM,
+} as const;
+
 function SubmenuPortal({
   menuRef,
   menuPosition,
@@ -151,12 +157,6 @@ export default function QuickActionsSubmenu({
     };
   }, [isOpen]);
 
-  const sizeClasses = {
-    [ComponentSize.LG]: ButtonSize.LG,
-    [ComponentSize.MD]: ButtonSize.DEFAULT,
-    [ComponentSize.SM]: ButtonSize.SM,
-  } as const;
-
   if (actions.length === 0) {
     return null;
   }
@@ -175,7 +175,7 @@ export default function QuickActionsSubmenu({
             withWrapper={false}
             variant={ButtonVariant.UNSTYLED}
             onClick={() => setIsOpen(!isOpen)}
-            size={sizeClasses[size]}
+            size={QUICK_ACTION_SIZE_CLASSES[size]}
             className={cn(
               'rounded-full transition-all duration-300',
               BG_BLUR,
