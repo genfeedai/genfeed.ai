@@ -35,13 +35,25 @@ const IGNORE_GLOBS = [
   '**/generated/**',
 ];
 
-type Violation = {
+export type DiValueImportViolation = {
   file: string;
   line: number;
   typeName: string;
   context: 'constructor' | 'decorated-parameter';
   owner: string;
 };
+
+export type DiValueImportCheckOptions = {
+  ignoreGlobs?: string[];
+  includeGlobs?: string[];
+};
+
+export type DiValueImportCheckResult = {
+  filesScanned: number;
+  violations: DiValueImportViolation[];
+};
+
+const NAMED_TYPE_SPECIFIER_PATTERN = /(?:\{|,)\s*type\s+/;
 
 function collectTypeOnlyImports(
   sourceFile: ts.SourceFile,
@@ -118,9 +130,12 @@ function parameterDecoratorNames(parameter: ts.ParameterDeclaration): string[] {
  */
 const VALIDATED_PARAM_DECORATORS = new Set(['Body', 'Query', 'Param']);
 
-function checkFile(file: string): Violation[] {
+function checkFile(file: string): DiValueImportViolation[] {
   const content = readFileSync(file, 'utf8');
-  if (!content.includes('import type') && !/\{\s*type\s+/.test(content)) {
+  if (
+    !content.includes('import type') &&
+    !NAMED_TYPE_SPECIFIER_PATTERN.test(content)
+  ) {
     return [];
   }
   const sourceFile = ts.createSourceFile(
@@ -134,7 +149,7 @@ function checkFile(file: string): Violation[] {
     return [];
   }
 
-  const violations: Violation[] = [];
+  const violations: DiValueImportViolation[] = [];
 
   const visit = (node: ts.Node): void => {
     if (
@@ -205,13 +220,27 @@ function checkFile(file: string): Violation[] {
   return violations;
 }
 
-function main(): void {
-  const files = globSync(INCLUDE_GLOBS, { ignore: IGNORE_GLOBS, nodir: true });
+export function runCheckDiValueImports(
+  options: DiValueImportCheckOptions = {},
+): DiValueImportCheckResult {
+  const files = globSync(options.includeGlobs ?? INCLUDE_GLOBS, {
+    ignore: options.ignoreGlobs ?? IGNORE_GLOBS,
+    nodir: true,
+  });
   const violations = files.flatMap(checkFile);
+
+  return {
+    filesScanned: files.length,
+    violations,
+  };
+}
+
+function main(): void {
+  const { filesScanned, violations } = runCheckDiValueImports();
 
   if (violations.length === 0) {
     console.log(
-      `check:di-value-imports — ${files.length} files scanned, no violations.`,
+      `check:di-value-imports — ${filesScanned} files scanned, no violations.`,
     );
     return;
   }
@@ -235,4 +264,6 @@ function main(): void {
   process.exit(1);
 }
 
-main();
+if (import.meta.main) {
+  main();
+}
