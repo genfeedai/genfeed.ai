@@ -68,10 +68,12 @@ const routes = listPageFiles(appRoot)
 
 const publicRoutes = routes.filter(
   (route) =>
+    route.startsWith('/forgot-password') ||
     route.startsWith('/login') ||
     route.startsWith('/logout') ||
     route.startsWith('/managed-credits') ||
     route.startsWith('/request-access') ||
+    route.startsWith('/reset-password') ||
     route.startsWith('/sign-up'),
 );
 
