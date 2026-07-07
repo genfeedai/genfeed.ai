@@ -15,6 +15,7 @@ describe('CreateWorkflowDto', () => {
 
     it('should allow visual builder creates without an explicit trigger', async () => {
       const dto = plainToInstance(CreateWorkflowDto, {
+        brands: ['cm0brand123'],
         label: 'Untitled Workflow',
         nodes: [
           {
@@ -36,6 +37,16 @@ describe('CreateWorkflowDto', () => {
       expect(errors).not.toContainEqual(
         expect.objectContaining({
           property: 'trigger',
+        }),
+      );
+      expect(errors).not.toContainEqual(
+        expect.objectContaining({
+          property: 'organization',
+        }),
+      );
+      expect(errors).not.toContainEqual(
+        expect.objectContaining({
+          property: 'user',
         }),
       );
     });

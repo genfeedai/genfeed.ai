@@ -30,6 +30,14 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException, Injectable, Optional } from '@nestjs/common';
 
+type WorkflowCreateExtras = CreateWorkflowDto & {
+  brands?: unknown;
+  config?: Record<string, unknown>;
+  defaultRecurringBrandId?: string | null;
+  lifecycle?: string | null;
+  lockedNodeIds?: string[];
+};
+
 /**
  * Core workflow service: CRUD/templating, lifecycle transitions, node locks,
  * and the ownership guards shared by the workflows controllers.
@@ -71,6 +79,100 @@ export class WorkflowsService extends BaseService<
     );
   }
 
+  private normalizeWorkflowBrandIds(
+    value: unknown,
+    fallbackBrandId?: string,
+  ): string[] {
+    const rawValues = Array.isArray(value)
+      ? value
+      : typeof value === 'string'
+        ? [value]
+        : [];
+    const ids = rawValues
+      .map((entry) => {
+        if (typeof entry === 'string') {
+          return entry;
+        }
+        if (entry && typeof entry === 'object') {
+          const record = entry as Record<string, unknown>;
+          if (typeof record.id === 'string') {
+            return record.id;
+          }
+          if (typeof record._id === 'string') {
+            return record._id;
+          }
+        }
+        return '';
+      })
+      .filter((id) => id.length > 0);
+
+    if (fallbackBrandId && ids.length === 0) {
+      ids.push(fallbackBrandId);
+    }
+
+    return [...new Set(ids)];
+  }
+
+  private buildWorkflowBrandConnect(brandIds: string[]) {
+    return brandIds.length > 0
+      ? { connect: brandIds.map((id) => ({ id })) }
+      : undefined;
+  }
+
+  private omitUndefinedPayload(
+    payload: Record<string, unknown>,
+  ): Record<string, unknown> {
+    return Object.fromEntries(
+      Object.entries(payload).filter(([, value]) => value !== undefined),
+    );
+  }
+
+  private buildWorkflowCreatePayload(input: {
+    brandIds?: string[];
+    defaultLabel: string;
+    organizationId: string;
+    steps: CreateWorkflowDto['steps'];
+    userId: string;
+    workflowData: WorkflowCreateExtras;
+  }): Record<string, unknown> {
+    const {
+      brandIds = [],
+      defaultLabel,
+      organizationId,
+      steps,
+      userId,
+    } = input;
+    const workflowData = input.workflowData;
+
+    return this.omitUndefinedPayload({
+      brands: this.buildWorkflowBrandConnect(brandIds),
+      config: workflowData.config,
+      defaultRecurringBrandId: workflowData.defaultRecurringBrandId,
+      description: workflowData.description,
+      edges: workflowData.edges ?? [],
+      executionCount: workflowData.executionCount ?? 0,
+      inputVariables: workflowData.inputVariables ?? [],
+      isScheduleEnabled: workflowData.isScheduleEnabled,
+      label: workflowData.label || defaultLabel,
+      lastExecutedAt: workflowData.lastExecutedAt,
+      lifecycle: workflowData.lifecycle,
+      lockedNodeIds: workflowData.lockedNodeIds,
+      metadata: workflowData.metadata,
+      nodes: workflowData.nodes ?? [],
+      organizationId,
+      progress: workflowData.progress ?? 0,
+      recurrence: workflowData.recurrence,
+      schedule: workflowData.schedule,
+      startedAt: workflowData.startedAt,
+      status: workflowData.status ?? WorkflowStatus.ACTIVE,
+      steps: steps ?? [],
+      thumbnail: workflowData.thumbnail,
+      thumbnailNodeId: workflowData.thumbnailNodeId,
+      timezone: workflowData.timezone,
+      userId,
+    });
+  }
+
   /**
    * Upsert or remove the BullMQ job scheduler for one workflow row based on
    * its current schedule/enabled/status state. No-ops when the queue service
@@ -101,6 +203,7 @@ export class WorkflowsService extends BaseService<
     userId: string,
     organizationId: string,
     workflowData: CreateWorkflowDto,
+    defaultBrandId?: string,
   ): Promise<WorkflowEntity> {
     const templateMetadata = workflowData.templateId
       ? {
@@ -112,26 +215,32 @@ export class WorkflowsService extends BaseService<
       this.applyTemplateDefaults(workflowData, templateMetadata);
     workflowData = mergedWorkflowData;
 
-    // Create the workflow
-    const workflow = await this.create({
-      ...workflowData,
-      executionCount: 0,
-      label:
-        workflowData.label ||
-        `Workflow: ${workflowData.templateId || 'Custom'}`,
-      metadata:
-        workflowData.metadata || templateMetadata
-          ? {
-              ...templateMetadata,
-              ...(workflowData.metadata ?? {}),
-            }
-          : undefined,
-      organization: organizationId,
-      progress: 0,
-      status: workflowData.status ?? WorkflowStatus.ACTIVE,
-      steps,
-      user: userId,
-    });
+    const metadata =
+      workflowData.metadata || templateMetadata
+        ? {
+            ...templateMetadata,
+            ...(workflowData.metadata ?? {}),
+          }
+        : undefined;
+    const brandIds = this.normalizeWorkflowBrandIds(
+      (workflowData as WorkflowCreateExtras).brands,
+      defaultBrandId,
+    );
+
+    const workflow = await this.create(
+      this.buildWorkflowCreatePayload({
+        brandIds,
+        defaultLabel: `Workflow: ${workflowData.templateId || 'Custom'}`,
+        organizationId,
+        steps,
+        userId,
+        workflowData: {
+          ...(workflowData as WorkflowCreateExtras),
+          metadata,
+          status: workflowData.status ?? WorkflowStatus.ACTIVE,
+        },
+      }) as unknown as CreateWorkflowDto,
+    );
 
     // Register the BullMQ job scheduler when the workflow is created with an
     // enabled schedule (template-seeded or explicit).
@@ -295,38 +404,52 @@ export class WorkflowsService extends BaseService<
     const sourceWorkflowId = String(workflowDoc._id ?? workflowDoc.id);
     const sourceLabel = workflowDoc.label ?? workflowDoc.name ?? 'Workflow';
 
-    const clonedWorkflow = await this.create({
-      ...workflowDoc,
-      brands: isProtectedSystemWorkflow
-        ? workflowDoc.brands
-        : targetBrandId
-          ? [targetBrandId]
-          : workflowDoc.brands,
-      completedAt: undefined,
-      defaultRecurringBrandId: isProtectedSystemWorkflow
-        ? undefined
-        : targetBrandId || workflowDoc.defaultRecurringBrandId,
-      executionCount: 0,
-      isScheduleEnabled: isProtectedSystemWorkflow
-        ? false
-        : workflowDoc.isScheduleEnabled,
-      label: `${sourceLabel} (Copy)`,
-      lastExecutedAt: undefined,
-      lockedNodeIds: isProtectedSystemWorkflow
-        ? []
-        : (workflowDoc.lockedNodeIds ?? []),
-      metadata: buildSystemWorkflowDuplicateMetadata(
-        workflowDoc.metadata,
-        sourceWorkflowId,
-      ),
-      organization: organizationId,
-      progress: 0,
-      recurrence: undefined,
-      schedule: isProtectedSystemWorkflow ? undefined : workflowDoc.schedule,
-      startedAt: undefined,
-      status: WorkflowStatus.DRAFT,
-      user: userId,
-    } as unknown as CreateWorkflowDto);
+    const brandIds = targetBrandId
+      ? [targetBrandId]
+      : this.normalizeWorkflowBrandIds(workflowDoc.brands);
+
+    const clonedWorkflow = await this.create(
+      this.buildWorkflowCreatePayload({
+        brandIds,
+        defaultLabel: `${sourceLabel} (Copy)`,
+        organizationId,
+        steps: workflowDoc.steps,
+        userId,
+        workflowData: {
+          config: workflowDoc.config,
+          defaultRecurringBrandId: isProtectedSystemWorkflow
+            ? null
+            : targetBrandId || workflowDoc.defaultRecurringBrandId || null,
+          description: workflowDoc.description ?? undefined,
+          edges: workflowDoc.edges,
+          executionCount: 0,
+          inputVariables: workflowDoc.inputVariables,
+          isScheduleEnabled: isProtectedSystemWorkflow
+            ? false
+            : workflowDoc.isScheduleEnabled,
+          label: `${sourceLabel} (Copy)`,
+          lastExecutedAt: undefined,
+          lockedNodeIds: isProtectedSystemWorkflow
+            ? []
+            : (workflowDoc.lockedNodeIds ?? []),
+          metadata: buildSystemWorkflowDuplicateMetadata(
+            workflowDoc.metadata,
+            sourceWorkflowId,
+          ),
+          nodes: workflowDoc.nodes,
+          progress: 0,
+          recurrence: undefined,
+          schedule: isProtectedSystemWorkflow
+            ? undefined
+            : workflowDoc.schedule,
+          startedAt: undefined,
+          status: WorkflowStatus.DRAFT,
+          thumbnail: workflowDoc.thumbnail ?? undefined,
+          thumbnailNodeId: workflowDoc.thumbnailNodeId ?? undefined,
+          timezone: workflowDoc.timezone ?? undefined,
+        },
+      }) as unknown as CreateWorkflowDto,
+    );
 
     return EntityFactory.fromDocument(WorkflowEntity, clonedWorkflow);
   }

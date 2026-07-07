@@ -56,8 +56,14 @@ export const workflowsApi = {
   create: (
     data: CreateWorkflowInput,
     signal?: AbortSignal,
-  ): Promise<WorkflowData> =>
-    apiClient.post<WorkflowData>('/workflows', data, { signal }),
+  ): Promise<WorkflowData> => {
+    const { name, ...rest } = data;
+    return apiClient.post<WorkflowData>(
+      '/workflows',
+      { ...rest, label: name },
+      { signal },
+    );
+  },
 
   /**
    * Delete a workflow (soft delete)
@@ -87,7 +93,7 @@ export const workflowsApi = {
    * Duplicate a workflow
    */
   duplicate: (id: string, signal?: AbortSignal): Promise<WorkflowData> =>
-    apiClient.post<WorkflowData>(`/workflows/${id}/duplicate`, undefined, {
+    apiClient.post<WorkflowData>(`/workflows/${id}/clone`, undefined, {
       signal,
     }),
 
@@ -188,7 +194,7 @@ export const workflowsApi = {
     nodeId: string,
     signal?: AbortSignal,
   ): Promise<WorkflowData> =>
-    apiClient.put<WorkflowData>(
+    apiClient.patch<WorkflowData>(
       `/workflows/${id}`,
       { thumbnail: thumbnailUrl, thumbnailNodeId: nodeId },
       { signal },
@@ -201,8 +207,17 @@ export const workflowsApi = {
     id: string,
     data: UpdateWorkflowInput,
     signal?: AbortSignal,
-  ): Promise<WorkflowData> =>
-    apiClient.put<WorkflowData>(`/workflows/${id}`, data, { signal }),
+  ): Promise<WorkflowData> => {
+    const { name, ...rest } = data;
+    return apiClient.patch<WorkflowData>(
+      `/workflows/${id}`,
+      {
+        ...rest,
+        ...(name !== undefined ? { label: name } : {}),
+      },
+      { signal },
+    );
+  },
 
   /**
    * Validate a workflow reference (checks for circular references)

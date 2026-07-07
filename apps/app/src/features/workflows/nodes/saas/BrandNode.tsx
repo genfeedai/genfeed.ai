@@ -13,6 +13,7 @@ import { NodeCard, NodeHeader } from '@/features/workflows/components/ui/card';
 import { NodeSelect } from '@/features/workflows/components/ui/inputs';
 import { HelpText } from '@/features/workflows/components/ui/status';
 import { coerceNodeData } from '@/features/workflows/nodes/node-data';
+import { useCloudWorkflowStore } from '@/features/workflows/stores/cloud-workflow-store';
 
 /**
  * Store icon for brand nodes
@@ -41,12 +42,23 @@ function BrandNodeComponent(props: NodeProps): React.JSX.Element {
   const { id } = props;
   const data = coerceNodeData<BrandNodeData>(props.data, brandNodeDefaults);
   const updateNodeData = useWorkflowStore(selectUpdateNodeData);
+  const brands = useCloudWorkflowStore((state) => state.brands);
+  const isBrandsLoading = useCloudWorkflowStore(
+    (state) => state.isBrandsLoading,
+  );
 
   const handleBrandChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
-      updateNodeData(id, { brandId: e.target.value || null });
+      const brandId = e.target.value || null;
+      const selectedBrand = brands.find((brand) => brand._id === brandId);
+      updateNodeData(id, {
+        brandId,
+        resolvedBrandId: brandId,
+        resolvedLabel: selectedBrand?.label ?? null,
+        resolvedLogoUrl: selectedBrand?.logoUrl ?? null,
+      });
     },
-    [id, updateNodeData],
+    [brands, id, updateNodeData],
   );
 
   const hasResolvedBrand = data.resolvedLabel !== null;
@@ -61,10 +73,22 @@ function BrandNodeComponent(props: NodeProps): React.JSX.Element {
 
       <NodeSelect
         label="Select Brand"
-        value={data.brandId || ''}
+        placeholder={
+          isBrandsLoading
+            ? 'Loading brands...'
+            : brands.length > 0
+              ? 'Choose a brand...'
+              : 'No brands available'
+        }
+        value={data.brandId ?? undefined}
         onChange={handleBrandChange}
+        disabled={isBrandsLoading || brands.length === 0}
       >
-        <option value="">Choose a brand…</option>
+        {brands.map((brand) => (
+          <option key={brand._id} value={brand._id}>
+            {brand.label}
+          </option>
+        ))}
       </NodeSelect>
 
       {/* Resolved brand info */}

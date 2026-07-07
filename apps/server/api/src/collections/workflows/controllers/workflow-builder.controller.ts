@@ -174,6 +174,7 @@ export class WorkflowBuilderController {
           trigger: WorkflowTrigger.MANUAL,
           user: publicMetadata.user,
         } as unknown as CreateWorkflowDto,
+        publicMetadata.brand || undefined,
       );
 
       return serializeSingle(request, WorkflowSerializer, created);

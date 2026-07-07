@@ -83,6 +83,7 @@ export class WorkflowCrudController {
         publicMetadata.user,
         publicMetadata.organization,
         createWorkflowDto,
+        publicMetadata.brand || undefined,
       );
 
       return serializeSingle(request, WorkflowSerializer, workflow);

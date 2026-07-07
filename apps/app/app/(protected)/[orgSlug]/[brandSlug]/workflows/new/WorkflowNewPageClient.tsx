@@ -44,7 +44,6 @@ import {
   type WorkflowGraphEdgeLike,
   type WorkflowGraphNodeLike,
 } from '@/features/workflows/utils/workflow-graph';
-import { workflowsApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
 import { getExecutionProviderHeaders } from '@/lib/api/execution-headers';
 import { applyEditOperations } from '@/lib/chat/editOperations';
@@ -204,12 +203,30 @@ export default function WorkflowNewPageClient() {
       },
       logger,
       workflowPersistence: {
-        create: workflowsApi.create,
-        delete: workflowsApi.delete,
-        duplicate: workflowsApi.duplicate,
-        getAll: workflowsApi.getAll,
-        getById: workflowsApi.getById,
-        update: workflowsApi.update,
+        create: async (input) => {
+          const service = await getWorkflowService();
+          return service.create(input);
+        },
+        delete: async (id) => {
+          const service = await getWorkflowService();
+          await service.remove(id);
+        },
+        duplicate: async (id) => {
+          const service = await getWorkflowService();
+          return service.duplicate(id);
+        },
+        getAll: async (params) => {
+          const service = await getWorkflowService();
+          return service.list(params);
+        },
+        getById: async (id) => {
+          const service = await getWorkflowService();
+          return service.get(id);
+        },
+        update: async (id, input) => {
+          const service = await getWorkflowService();
+          return service.update(id, input);
+        },
       },
       workflowsApi: {
         setThumbnail: async (selectedWorkflowId, thumbnailUrl, nodeId) => {
