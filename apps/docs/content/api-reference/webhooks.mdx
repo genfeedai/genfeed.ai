@@ -1,3 +1,8 @@
+---
+title: Webhooks
+description: Signed outbound webhook events for scheduled publish outcomes.
+---
+
 # Webhooks
 
 Genfeed can send signed outbound webhooks when scheduled publish work reaches a terminal outcome. Webhooks use the organization webhook endpoint and secret configured in organization settings.
@@ -24,11 +29,13 @@ Each request includes:
 - `X-Genfeed-Delivery`: BullMQ delivery job id
 - `X-Genfeed-Signature`: `sha256=` HMAC over the JSON payload with the endpoint secret
 
-Payloads include `eventId` for consumer idempotency. Delivery is at-least-once, so consumers should store processed `eventId` values.
+Payloads include `eventId` for consumer idempotency. Delivery is at-least-once, so consumers should store processed `eventId` values before running side effects and safely ignore duplicates. The `X-Genfeed-Delivery` header is a transport diagnostic; use the payload `eventId` as the durable idempotency key.
+
+Publish events use stable `eventId` values derived from release, target, event type, and terminal status. If a publish worker retries the same terminal transition, Genfeed enqueues the same webhook job id while the queue record is retained. Consumer endpoints must still be idempotent because delivery retries can resend the same event.
 
 ## Event Catalog
 
-All publish webhook payloads use `schemaVersion: 1`.
+All publish webhook payloads use `schemaVersion: 1`. Breaking payload changes will increment `schemaVersion`; additive fields can appear under the current version, so consumers should tolerate unknown fields and branch parsing by `schemaVersion`.
 
 | Event | When it emits |
 | --- | --- |

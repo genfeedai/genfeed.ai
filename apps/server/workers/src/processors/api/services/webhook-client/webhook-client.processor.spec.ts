@@ -145,4 +145,40 @@ describe('WebhookClientProcessor', () => {
       }),
     );
   });
+
+  it('rethrows delivery failures so BullMQ retries the webhook job', async () => {
+    const error = new Error('upstream 503');
+    httpService.post.mockReturnValue(throwError(() => error));
+    const job = {
+      attemptsMade: 1,
+      data: {
+        endpoint: 'https://8.8.8.8/webhook',
+        organizationId: 'org-1',
+        payload: {
+          event: 'target.failed',
+          eventId: 'publish:target.failed:release-1:target-1:failed',
+          timestamp: '2026-05-17T10:00:00.000Z',
+        },
+        secret: 'secret',
+      },
+      id: 'publish:target.failed:release-1:target-1:failed',
+      opts: { attempts: 5 },
+      updateProgress: vi.fn(),
+    };
+
+    await expect(processor.process(job as never)).rejects.toThrow(
+      'upstream 503',
+    );
+
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('webhook delivery failed'),
+      expect.objectContaining({
+        attempt: 2,
+        event: 'target.failed',
+        jobId: 'publish:target.failed:release-1:target-1:failed',
+        maxAttempts: 5,
+        organizationId: 'org-1',
+      }),
+    );
+  });
 });

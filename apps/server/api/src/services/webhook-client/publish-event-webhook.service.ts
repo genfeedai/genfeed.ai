@@ -69,6 +69,9 @@ type TerminalTargetResolution =
       reason: 'non-terminal';
     };
 
+const PUBLISH_WEBHOOK_DEDUPE_RETENTION_SECONDS = 24 * 60 * 60;
+const PUBLISH_WEBHOOK_FAILED_RETENTION_SECONDS = 7 * 24 * 60 * 60;
+
 @Injectable()
 export class PublishEventWebhookService {
   private readonly constructorName = 'PublishEventWebhookService';
@@ -468,9 +471,25 @@ export class PublishEventWebhookService {
       secret: settings.webhookSecret,
     };
 
-    await this.webhookQueue.add('send-webhook', jobData, {
-      jobId: deliveryId,
-    });
+    await this.webhookQueue.add(
+      'send-webhook',
+      jobData,
+      options.isTest
+        ? { jobId: deliveryId }
+        : {
+            // Retried publish workers must resolve to the same BullMQ jobId long
+            // enough to suppress duplicate terminal events.
+            jobId: payload.eventId,
+            removeOnComplete: {
+              age: PUBLISH_WEBHOOK_DEDUPE_RETENTION_SECONDS,
+              count: 10_000,
+            },
+            removeOnFail: {
+              age: PUBLISH_WEBHOOK_FAILED_RETENTION_SECONDS,
+              count: 10_000,
+            },
+          },
+    );
 
     const status: IWebhookDeliveryStatus = {
       deliveryId,

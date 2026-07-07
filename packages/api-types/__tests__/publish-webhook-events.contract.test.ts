@@ -66,6 +66,82 @@ describe('publishWebhookPayloadSchema', () => {
 
     expect(result.success).toBe(false);
   });
+
+  test('accepts a classified target failure payload snapshot', () => {
+    const result = publishWebhookPayloadSchema.safeParse({
+      event: 'target.failed',
+      eventId: 'publish:target.failed:release_123:target_123:failed',
+      occurredAt: '2026-07-07T10:00:00.000Z',
+      release: {
+        id: 'release_123',
+        publishedAt: null,
+        scheduledAt: '2026-07-07T09:55:00.000Z',
+        status: ReleaseStatus.FAILED,
+        targetSummary: {
+          failed: 1,
+          published: 0,
+          total: 1,
+        },
+      },
+      schemaVersion: PUBLISH_WEBHOOK_SCHEMA_VERSION,
+      target: {
+        ...target,
+        error: {
+          class: 'credential',
+          code: 'credential',
+          message: 'Credential expired',
+          retryable: false,
+        },
+        publishedAt: null,
+        status: TargetExecutionState.FAILED,
+      },
+      timestamp: '2026-07-07T10:00:00.000Z',
+    });
+
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      throw new Error('Expected target failure payload to parse');
+    }
+    expect(result.data).toMatchInlineSnapshot(`
+      {
+        "event": "target.failed",
+        "eventId": "publish:target.failed:release_123:target_123:failed",
+        "occurredAt": "2026-07-07T10:00:00.000Z",
+        "release": {
+          "id": "release_123",
+          "publishedAt": null,
+          "scheduledAt": "2026-07-07T09:55:00.000Z",
+          "status": "failed",
+          "targetSummary": {
+            "failed": 1,
+            "published": 0,
+            "total": 1,
+          },
+        },
+        "schemaVersion": 1,
+        "target": {
+          "credential": {
+            "id": "cred_123",
+          },
+          "error": {
+            "class": "credential",
+            "code": "credential",
+            "message": "Credential expired",
+            "retryable": false,
+          },
+          "externalProviderId": "post_123",
+          "externalShortcode": "abc123",
+          "id": "target_123",
+          "platform": "twitter",
+          "publishedAt": null,
+          "scheduledAt": "2026-07-07T09:55:00.000Z",
+          "status": "failed",
+          "url": "https://x.com/example/status/post_123",
+        },
+        "timestamp": "2026-07-07T10:00:00.000Z",
+      }
+    `);
+  });
 });
 
 describe('publish webhook helpers', () => {
@@ -91,14 +167,15 @@ describe('publish webhook helpers', () => {
     ).toBe('publish:target.published:release-123:target-123:published');
   });
 
-  test('classifies common terminal publish errors', () => {
-    expect(classifyPublishWebhookError('Quota exceeded')).toBe('rate_limit');
-    expect(classifyPublishWebhookError('Credential token expired')).toBe(
-      'credential',
-    );
-    expect(classifyPublishWebhookError('Unsupported platform')).toBe(
-      'validation',
-    );
+  test.each([
+    ['missing channel configuration', 'misconfiguration'],
+    ['credential token expired', 'credential'],
+    ['provider timeout with 503', 'provider_outage'],
+    ['quota exceeded', 'rate_limit'],
+    ['unsupported platform', 'validation'],
+    ['unexpected scheduler failure', 'unknown'],
+  ] as const)('classifies "%s" as %s', (message, expectedErrorClass) => {
+    expect(classifyPublishWebhookError(message)).toBe(expectedErrorClass);
   });
 
   test('redacts secret-like text from error messages', () => {
