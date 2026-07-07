@@ -220,5 +220,24 @@ describe('workflowsApi', () => {
       expect(result._id).toBe('workflow-2');
       expect(result.name).toBe('Test Workflow (Copy)');
     });
+
+    it('should duplicate a workflow for a target brand', async () => {
+      const { apiClient } = await import('./client');
+      vi.mocked(apiClient.post).mockResolvedValueOnce({
+        ...mockWorkflow,
+        _id: 'workflow-2',
+        brandId: 'brand-2',
+      });
+
+      await workflowsApi.duplicate('workflow-1', { brandId: 'brand-2' });
+
+      expect(apiClient.post).toHaveBeenCalledWith(
+        '/workflows/workflow-1/clone',
+        { brandId: 'brand-2' },
+        {
+          signal: undefined,
+        },
+      );
+    });
   });
 });

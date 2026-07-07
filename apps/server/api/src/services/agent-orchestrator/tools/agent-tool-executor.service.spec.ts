@@ -2086,7 +2086,7 @@ describe('AgentToolExecutorService', () => {
       '67a123456789012345678902',
       '67a123456789012345678901',
       expect.objectContaining({
-        brands: [expect.any(String)],
+        brandId: expect.any(String),
         isScheduleEnabled: true,
         nodes: [
           expect.objectContaining({
@@ -2380,7 +2380,7 @@ describe('AgentToolExecutorService', () => {
       '67a123456789012345678902',
       '67a123456789012345678901',
       expect.objectContaining({
-        brands: [expect.any(String)],
+        brandId: expect.any(String),
         edges: [
           expect.objectContaining({
             id: 'edge-1',
@@ -2562,11 +2562,7 @@ describe('AgentToolExecutorService', () => {
       workflowsService.createWorkflow.mock.calls[0];
     expect(userId).toBe('67a123456789012345678902');
     expect(organizationId).toBe('67a123456789012345678901');
-    expect(
-      workflowPayload.brands.map((brand: { toString(): string }) =>
-        brand.toString(),
-      ),
-    ).toEqual(['67a1234567890123456789aa']);
+    expect(workflowPayload.brandId.toString()).toBe('67a1234567890123456789aa');
     expect(workflowPayload.description).toBe('Generated workflow description');
     expect(workflowPayload.edges[0]?.id).toBe('edge-1');
     expect(workflowPayload.isScheduleEnabled).toBe(true);
@@ -2616,7 +2612,7 @@ describe('AgentToolExecutorService', () => {
       '67a123456789012345678902',
       '67a123456789012345678901',
       expect.objectContaining({
-        brands: [expect.any(String)],
+        brandId: expect.any(String),
       }),
     );
     expect(result.success).toBe(true);
@@ -3196,7 +3192,7 @@ describe('AgentToolExecutorService', () => {
 
     workflowsService.findOne.mockResolvedValue({
       id: 'wf-official-1',
-      brands: [],
+      brandId: null,
       isDeleted: false,
       label: 'Social Media Video Series',
       metadata: {},

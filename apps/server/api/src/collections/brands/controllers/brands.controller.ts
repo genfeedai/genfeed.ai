@@ -217,11 +217,9 @@ export class BrandsController extends BaseCRUDController<
 
   /**
    * Preview the impact of relocating a brand to another organization: how many
-   * dedicated (sole-brand) workflows will move with it, how many shared workflows
-   * will be cloned into the destination org, and how many members will lose access.
-   * Returns an `ackToken` that the client must echo back on the PATCH when the move
-   * would clone shared workflows — the server recomputes and verifies this token
-   * inside the relocation transaction so a stale or missing token is rejected.
+   * brand-owned workflows will move with it, and how many members will lose access.
+   * `sharedWorkflows` and `ackToken` remain in the response for compatibility and
+   * are always 0/null now that workflows are scoped to one brand.
    */
   @Get(':id/relocation-preview')
   @LogMethod({ logEnd: false, logError: true, logStart: true })

@@ -43,7 +43,7 @@ type StoredWorkflow = {
 };
 
 type WhereClause = {
-  brands?: { some?: { id?: string } };
+  brandId?: string;
   isDeleted?: boolean;
   metadata?: { equals?: unknown; path?: string[] };
   organizationId?: string;
@@ -70,10 +70,7 @@ function matches(row: StoredWorkflow, where: WhereClause | undefined): boolean {
   if (!where) {
     return true;
   }
-  if (
-    where.brands?.some?.id !== undefined &&
-    row.brandId !== where.brands.some.id
-  ) {
+  if (where.brandId !== undefined && row.brandId !== where.brandId) {
     return false;
   }
   if (where.isDeleted !== undefined && row.isDeleted !== where.isDeleted) {
@@ -100,14 +97,13 @@ function rowFromCreateData(
   data: Record<string, unknown>,
   id: string,
 ): StoredWorkflow {
-  const brands = data.brands as { connect?: Array<{ id: string }> } | undefined;
   const metadata = (data.metadata as Record<string, unknown>) ?? {};
   const defaultRecurringContent = metadata.defaultRecurringContent as
     | { contentType?: string }
     | undefined;
 
   return {
-    brandId: brands?.connect?.[0]?.id ?? '',
+    brandId: (data.brandId as string) ?? '',
     contentType: defaultRecurringContent?.contentType ?? '',
     defaultRecurringBrandId: (data.defaultRecurringBrandId as string) ?? null,
     id,

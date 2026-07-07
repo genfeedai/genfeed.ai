@@ -57,13 +57,7 @@ export interface SecondOrderCascadeTarget {
  *
  * Excluded on purpose (see KNOWN_EXCLUDED): `Member` (its brand link is
  * `lastUsedBrandId`, a per-user UI pointer — the member row belongs to its own org
- * and must NOT move) and `Workflow` (brand link is the `workflow_brands` M2M, not a
- * scalar brand key — a workflow can drive several brands at once, so it cannot be
- * rewritten by the generic cascade). Workflows are reconciled by the bespoke
- * `reconcileCrossOrgLinks` step: sole-brand workflows MOVE with the brand; multi-brand
- * (shared) workflows are CLONED into the destination org, scoped to the moved brand —
- * the original stays in the source org for its remaining brands. See that method for
- * the full ownership split and the clone's active-when-clean / draft-when-not rule.
+ * and must NOT move).
  *
  * Non-standard field names are hand-mapped: `Asset` (parentBrandId/parentOrgId),
  * `ContextBase` (sourceBrandId), `Lead` (proactiveBrandId → proactiveOrganizationId,
@@ -85,6 +79,12 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
   {
     delegate: 'warmupAccount',
     table: 'warmup_accounts',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
+    delegate: 'workflow',
+    table: 'workflows',
     brandField: 'brandId',
     orgField: 'organizationId',
   },
@@ -431,13 +431,34 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
  * — no brand key, indirect ownership), `Invitation` (org-level). These stay in the
  * source org by design.
  *
- * `WorkflowExecution` / `BatchWorkflowJob` are NOT listed here because they have no
- * brand key and are not owned by a first-order parent — they hang off a `Workflow`.
- * They are moved conditionally by `reconcileCrossOrgLinks`, but only for the
- * sole-brand workflows that actually move; multi-brand workflows (and their history)
- * stay in the source org — a clone gets a fresh, empty execution history instead.
+ * `WorkflowExecution` / `BatchWorkflowJob` hang off the first-order `Workflow`
+ * parent and now move with the brand-owned workflow row.
  */
 export const SECOND_ORDER_TARGETS: readonly SecondOrderCascadeTarget[] = [
+  {
+    delegate: 'workflowExecution',
+    table: 'workflow_executions',
+    orgField: 'organizationId',
+    parents: [
+      {
+        parentDelegate: 'workflow',
+        parentBrandField: 'brandId',
+        fkField: 'workflowId',
+      },
+    ],
+  },
+  {
+    delegate: 'batchWorkflowJob',
+    table: 'batch_workflow_jobs',
+    orgField: 'organizationId',
+    parents: [
+      {
+        parentDelegate: 'workflow',
+        parentBrandField: 'brandId',
+        fkField: 'workflowId',
+      },
+    ],
+  },
   {
     delegate: 'taskComment',
     table: 'task_comments',
@@ -539,7 +560,7 @@ export const SECOND_ORDER_TARGETS: readonly SecondOrderCascadeTarget[] = [
  * asserts every schema model with a brand+org key is either a first-order target or
  * listed here — so a new one can't slip through unreviewed.
  */
-export const KNOWN_EXCLUDED_MODELS: readonly string[] = ['Member', 'Workflow'];
+export const KNOWN_EXCLUDED_MODELS: readonly string[] = ['Member'];
 
 /**
  * Physical tables the orphan auditor's "unknown table" scan should ignore, because
@@ -548,18 +569,7 @@ export const KNOWN_EXCLUDED_MODELS: readonly string[] = ['Member', 'Workflow'];
  * the generic cascade deliberately leaves untouched). Keep in sync with
  * KNOWN_EXCLUDED_MODELS.
  *
- * `workflows` stays ignored even though sole-brand workflows now move: the auditor
- * scans scalar `%brand_id` columns, but a workflow's brand link is the `workflow_brands`
- * M2M — invisible to that scan. Its only scalar brand-ish column is
- * `default_recurring_brand_id`, which `reconcileCrossOrgLinks` either moves (sole-brand,
- * activating clone) or nulls (severed original / non-activating clone), so it can never
- * be left stale anyway. The M2M split itself gets its own runtime backstop —
- * `BrandsService.assertNoCrossOrgBrandLinks` recomputes the `workflow_brands` /
- * `member_brands` post-state inside the transaction and rolls the move back on any
- * surviving cross-org link — so the scalar auditor does not need to (and cannot) cover
- * it.
+ * `workflows` is covered by FIRST_ORDER_TARGETS; execution and batch history follow it
+ * via SECOND_ORDER_TARGETS.
  */
-export const AUDITOR_IGNORED_TABLES: readonly string[] = [
-  'members',
-  'workflows',
-];
+export const AUDITOR_IGNORED_TABLES: readonly string[] = ['members'];

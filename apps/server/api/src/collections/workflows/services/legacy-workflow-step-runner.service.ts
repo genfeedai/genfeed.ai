@@ -460,7 +460,7 @@ export class LegacyWorkflowStepRunner extends BaseService<
       const posts = await Promise.all(
         (platforms as string[]).map((platform: string) =>
           postsService.create({
-            brand: workflow.brands?.[0],
+            brand: workflow.brandId,
             credential: config.credential,
             description: config.description as string,
             ingredients: assetId ? [assetId] : [],

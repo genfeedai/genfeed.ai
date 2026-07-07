@@ -844,7 +844,7 @@ model Brand {
   socialMessages             SocialMessage[]
   agentStrategyOpportunities AgentStrategyOpportunity[]
   agentStrategyReports       AgentStrategyReport[]
-  workflows                  Workflow[]                 @relation("workflow_brands")
+  workflows                  Workflow[]
   contentRuns                ContentRun[]
   contentSchedules           ContentSchedule[]
   distributions              Distribution[]
@@ -880,6 +880,7 @@ model Brand {
 
   @@index([isDefault])
   @@index([organizationId, isDeleted, label], map: "brands_org_deleted_label_idx")
+  @@unique([id, organizationId], map: "brands_id_organizationId_key")
   @@map("brands")
 }
 
@@ -2929,6 +2930,8 @@ model Workflow {
   user              User         @relation(fields: [userId], references: [id])
   organizationId    String
   organization      Organization @relation(fields: [organizationId], references: [id])
+  brandId           String?
+  brand             Brand?       @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
   label             String?
   description       String?
   steps             Json         @default("[]")
@@ -2966,7 +2969,6 @@ model Workflow {
   defaultRecurringBrandId String?
 
   tags       Tag[]               @relation("workflow_tags")
-  brands     Brand[]             @relation("workflow_brands")
   executions WorkflowExecution[]
   batchJobs  BatchWorkflowJob[]
 
@@ -2975,6 +2977,7 @@ model Workflow {
   // concurrent writes to `workflows` (different org/brand) from aborting the
   // Serializable transaction with a false-positive P2034.
   @@index([organizationId, isDeleted])
+  @@index([organizationId, brandId, isDeleted])
   // Supporting index for the partial unique constraint lookup.
   @@index([defaultRecurringBrandId, organizationId])
   @@map("workflows")

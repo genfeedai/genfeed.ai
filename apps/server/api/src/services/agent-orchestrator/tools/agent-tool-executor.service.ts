@@ -718,7 +718,7 @@ export class AgentToolExecutorService {
     const timezone = this.readOptionalString(params.timezone) ?? 'UTC';
 
     await this.workflowsService.patch(workflowId, {
-      brands: brand && brand.id ? [String(brand.id)] : workflow.brands,
+      brandId: brand && brand.id ? String(brand.id) : workflow.brandId,
       label:
         typeof params.label === 'string' && params.label.trim()
           ? params.label.trim()
@@ -4808,7 +4808,7 @@ export class AgentToolExecutorService {
       ctx.userId,
       ctx.organizationId,
       {
-        brands: [brandId],
+        brandId,
         description: taskDescription,
         edges: [],
         inputVariables: [],
@@ -5774,7 +5774,7 @@ export class AgentToolExecutorService {
       ctx.userId,
       ctx.organizationId,
       {
-        brands: workflowBrandIds,
+        brandId: workflowBrandIds[0],
         description,
         edges,
         inputVariables: Array.isArray(params.inputVariables)

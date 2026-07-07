@@ -4,6 +4,7 @@ export const workflowAttributes = createEntityAttributes([
   'organization',
   'user',
   'brand',
+  'brandId',
   'tasks',
   'label',
   'description',
@@ -21,6 +22,5 @@ export const workflowAttributes = createEntityAttributes([
   'thumbnailNodeId',
   'lifecycle',
   'lockedNodeIds',
-  'brands',
   'cloudSync',
 ]);

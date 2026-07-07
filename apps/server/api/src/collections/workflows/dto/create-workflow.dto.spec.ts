@@ -15,7 +15,7 @@ describe('CreateWorkflowDto', () => {
 
     it('should allow visual builder creates without an explicit trigger', async () => {
       const dto = plainToInstance(CreateWorkflowDto, {
-        brands: ['cm0brand123'],
+        brandId: 'cm0brand123',
         label: 'Untitled Workflow',
         nodes: [
           {

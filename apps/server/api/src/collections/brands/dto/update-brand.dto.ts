@@ -89,10 +89,9 @@ export class UpdateBrandDto extends PartialType(CreateBrandDto) {
   @IsString()
   @ApiProperty({
     description:
-      'Server-verified confirmation token from GET /brands/:id/relocation-preview, ' +
-      'required whenever the relocation would clone shared workflows into the ' +
-      'destination organization. A stale or missing token is rejected with 409 so a ' +
-      'client cannot bypass the consent modal or move against an outdated preview.',
+      'Deprecated compatibility field from the former shared-workflow relocation ' +
+      'confirmation flow. Workflows are now scoped to one brand and move with it, so ' +
+      'the server ignores this value.',
     required: false,
   })
   readonly relocationAck?: string;

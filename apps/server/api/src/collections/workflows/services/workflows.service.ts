@@ -31,6 +31,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException, Injectable, Optional } from '@nestjs/common';
 
 type WorkflowCreateExtras = CreateWorkflowDto & {
+  brandId?: string | null;
   brands?: unknown;
   config?: Record<string, unknown>;
   defaultRecurringBrandId?: string | null;
@@ -79,16 +80,21 @@ export class WorkflowsService extends BaseService<
     );
   }
 
-  private normalizeWorkflowBrandIds(
+  private normalizeWorkflowBrandId(
     value: unknown,
+    legacyBrands?: unknown,
     fallbackBrandId?: string,
-  ): string[] {
-    const rawValues = Array.isArray(value)
-      ? value
-      : typeof value === 'string'
-        ? [value]
+  ): string | undefined {
+    if (typeof value === 'string' && value.length > 0) {
+      return value;
+    }
+
+    const rawLegacyValues = Array.isArray(legacyBrands)
+      ? legacyBrands
+      : typeof legacyBrands === 'string'
+        ? [legacyBrands]
         : [];
-    const ids = rawValues
+    const legacyIds = rawLegacyValues
       .map((entry) => {
         if (typeof entry === 'string') {
           return entry;
@@ -106,17 +112,7 @@ export class WorkflowsService extends BaseService<
       })
       .filter((id) => id.length > 0);
 
-    if (fallbackBrandId && ids.length === 0) {
-      ids.push(fallbackBrandId);
-    }
-
-    return [...new Set(ids)];
-  }
-
-  private buildWorkflowBrandConnect(brandIds: string[]) {
-    return brandIds.length > 0
-      ? { connect: brandIds.map((id) => ({ id })) }
-      : undefined;
+    return legacyIds[0] ?? fallbackBrandId;
   }
 
   private omitUndefinedPayload(
@@ -128,24 +124,18 @@ export class WorkflowsService extends BaseService<
   }
 
   private buildWorkflowCreatePayload(input: {
-    brandIds?: string[];
+    brandId?: string;
     defaultLabel: string;
     organizationId: string;
     steps: CreateWorkflowDto['steps'];
     userId: string;
     workflowData: WorkflowCreateExtras;
   }): Record<string, unknown> {
-    const {
-      brandIds = [],
-      defaultLabel,
-      organizationId,
-      steps,
-      userId,
-    } = input;
+    const { brandId, defaultLabel, organizationId, steps, userId } = input;
     const workflowData = input.workflowData;
 
     return this.omitUndefinedPayload({
-      brands: this.buildWorkflowBrandConnect(brandIds),
+      brandId,
       config: workflowData.config,
       defaultRecurringBrandId: workflowData.defaultRecurringBrandId,
       description: workflowData.description,
@@ -222,14 +212,15 @@ export class WorkflowsService extends BaseService<
             ...(workflowData.metadata ?? {}),
           }
         : undefined;
-    const brandIds = this.normalizeWorkflowBrandIds(
+    const brandId = this.normalizeWorkflowBrandId(
+      (workflowData as WorkflowCreateExtras).brandId,
       (workflowData as WorkflowCreateExtras).brands,
       defaultBrandId,
     );
 
     const workflow = await this.create(
       this.buildWorkflowCreatePayload({
-        brandIds,
+        brandId,
         defaultLabel: `Workflow: ${workflowData.templateId || 'Custom'}`,
         organizationId,
         steps,
@@ -404,13 +395,16 @@ export class WorkflowsService extends BaseService<
     const sourceWorkflowId = String(workflowDoc._id ?? workflowDoc.id);
     const sourceLabel = workflowDoc.label ?? workflowDoc.name ?? 'Workflow';
 
-    const brandIds = targetBrandId
-      ? [targetBrandId]
-      : this.normalizeWorkflowBrandIds(workflowDoc.brands);
+    const brandId =
+      targetBrandId ??
+      this.normalizeWorkflowBrandId(
+        workflowDoc.brandId,
+        (workflowDoc as WorkflowCreateExtras).brands,
+      );
 
     const clonedWorkflow = await this.create(
       this.buildWorkflowCreatePayload({
-        brandIds,
+        brandId,
         defaultLabel: `${sourceLabel} (Copy)`,
         organizationId,
         steps: workflowDoc.steps,

@@ -197,8 +197,20 @@ describe('WorkflowApiService', () => {
     expect(mocks.patch).toHaveBeenNthCalledWith(2, '/workflow-1', {
       lifecycle: 'archived',
     });
-    expect(mocks.post).toHaveBeenCalledWith('/workflow-1/clone');
+    expect(mocks.post).toHaveBeenCalledWith('/workflow-1/clone', undefined);
     expect(mocks.delete).toHaveBeenCalledWith('/workflow-1');
+  });
+
+  it('duplicates a workflow for a target brand', async () => {
+    mocks.post.mockResolvedValue({
+      data: { data: workflow({ brandId: 'brand-2' }) },
+    });
+
+    await service().duplicate('workflow-1', { brandId: 'brand-2' });
+
+    expect(mocks.post).toHaveBeenCalledWith('/workflow-1/clone', {
+      brandId: 'brand-2',
+    });
   });
 
   it('uses execution endpoints and supports raw and JSON:API responses', async () => {

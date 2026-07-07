@@ -23,6 +23,7 @@ export interface WorkflowData {
   edgeStyle: string;
   groups?: NodeGroup[];
   tags?: string[];
+  brandId?: string | null;
   thumbnail?: string | null;
   thumbnailNodeId?: string | null;
   createdAt: string;
@@ -37,6 +38,7 @@ export interface CreateWorkflowInput {
   edgeStyle?: string;
   groups?: NodeGroup[];
   tags?: string[];
+  brandId?: string | null;
 }
 
 export interface UpdateWorkflowInput {
@@ -47,6 +49,7 @@ export interface UpdateWorkflowInput {
   edgeStyle?: string;
   groups?: NodeGroup[];
   tags?: string[];
+  brandId?: string | null;
 }
 
 export const workflowsApi = {
@@ -92,8 +95,12 @@ export const workflowsApi = {
   /**
    * Duplicate a workflow
    */
-  duplicate: (id: string, signal?: AbortSignal): Promise<WorkflowData> =>
-    apiClient.post<WorkflowData>(`/workflows/${id}/clone`, undefined, {
+  duplicate: (
+    id: string,
+    options?: { brandId?: string | null },
+    signal?: AbortSignal,
+  ): Promise<WorkflowData> =>
+    apiClient.post<WorkflowData>(`/workflows/${id}/clone`, options, {
       signal,
     }),
 

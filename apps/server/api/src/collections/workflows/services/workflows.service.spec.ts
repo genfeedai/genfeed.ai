@@ -46,7 +46,7 @@ describe('WorkflowsService template creation', () => {
     );
 
     const createInput = vi.mocked(service.create).mock.calls[0]?.[0] as {
-      brands?: { connect: Array<{ id: string }> };
+      brandId?: string;
       isScheduleEnabled?: boolean;
       metadata?: Record<string, unknown>;
       nodes?: Array<{ id: string; type: string }>;
@@ -61,7 +61,7 @@ describe('WorkflowsService template creation', () => {
     };
 
     expect(createInput).toMatchObject({
-      brands: { connect: [{ id: 'brand-1' }] },
+      brandId: 'brand-1',
       isScheduleEnabled: true,
       metadata: {
         createdFrom: 'templates',
@@ -155,7 +155,7 @@ describe('WorkflowsService template creation', () => {
     >;
 
     expect(createInput).toMatchObject({
-      brands: { connect: [{ id: 'brand-1' }] },
+      brandId: 'brand-1',
       edges: [],
       label: 'Browser Workflow',
       nodes: [],
@@ -229,7 +229,7 @@ describe('WorkflowsService system workflow guardrails', () => {
       },
       nodes: [],
       organization: 'org-1',
-      brands: ['source-brand'],
+      brandId: 'source-brand',
       schedule: '0 7 * * *',
       steps: [],
       user: 'owner-user',
@@ -251,7 +251,7 @@ describe('WorkflowsService system workflow guardrails', () => {
     );
 
     const createInput = vi.mocked(service.create).mock.calls[0]?.[0] as {
-      brands?: { connect: Array<{ id: string }> };
+      brandId?: string;
       isScheduleEnabled?: boolean;
       label?: string;
       lockedNodeIds?: string[];
@@ -261,7 +261,7 @@ describe('WorkflowsService system workflow guardrails', () => {
     };
 
     expect(createInput).toMatchObject({
-      brands: { connect: [{ id: 'target-brand' }] },
+      brandId: 'target-brand',
       isScheduleEnabled: false,
       label: 'Daily Trends Digest (Copy)',
       lockedNodeIds: [],
@@ -288,7 +288,7 @@ describe('WorkflowsService system workflow guardrails', () => {
   it('duplicates editable workflows into the target brand without carrying source ownership state', async () => {
     vi.spyOn(service, 'findVisibleOrThrow').mockResolvedValue({
       _id: 'workflow-1',
-      brands: ['source-brand'],
+      brandId: 'source-brand',
       edges: [],
       executionCount: 3,
       id: 'workflow-1',
@@ -320,7 +320,7 @@ describe('WorkflowsService system workflow guardrails', () => {
     >;
 
     expect(createInput).toMatchObject({
-      brands: { connect: [{ id: 'brand-2' }] },
+      brandId: 'brand-2',
       defaultRecurringBrandId: 'brand-2',
       executionCount: 0,
       isScheduleEnabled: true,

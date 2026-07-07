@@ -29,6 +29,7 @@ export interface CloudWorkflowData {
   thumbnailNodeId?: string | null;
   lifecycle: 'draft' | 'published' | 'archived';
   organization: string;
+  brandId?: string | null;
   createdBy?: string;
   createdAt: string;
   updatedAt: string;
@@ -40,6 +41,7 @@ export interface WorkflowSummary {
   name: string;
   description?: string;
   lifecycle: 'draft' | 'published' | 'archived';
+  brandId?: string | null;
   nodeCount: number;
   thumbnail?: string | null;
   thumbnailNodeId?: string | null;
@@ -70,6 +72,7 @@ export interface CreateWorkflowInput {
   edges: Edge[];
   edgeStyle?: string;
   groups?: NodeGroup[];
+  brandId?: string | null;
   metadata?: Record<string, unknown>;
   templateId?: string;
   trigger?: string;
@@ -83,6 +86,7 @@ export interface UpdateWorkflowInput {
   edges?: Edge[];
   edgeStyle?: string;
   groups?: NodeGroup[];
+  brandId?: string | null;
   metadata?: Record<string, unknown>;
   thumbnail?: string | null;
   thumbnailNodeId?: string | null;
@@ -520,10 +524,14 @@ export class WorkflowApiService extends HTTPBaseService {
   }
 
   /** Duplicate (clone) a workflow */
-  async duplicate(id: string): Promise<CloudWorkflowData> {
+  async duplicate(
+    id: string,
+    options?: { brandId?: string | null },
+  ): Promise<CloudWorkflowData> {
     try {
       const response = await this.instance.post<JsonApiResponseDocument>(
         `/${id}/clone`,
+        options,
       );
       const item = deserializeResource<CloudWorkflowData>(response.data);
       return this.normalizeWorkflowData(item);

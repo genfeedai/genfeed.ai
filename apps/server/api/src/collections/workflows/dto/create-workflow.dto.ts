@@ -279,11 +279,20 @@ export class CreateWorkflowDto {
   })
   readonly description?: string;
 
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Brand ID this workflow is scoped to',
+    required: false,
+  })
+  readonly brandId?: string;
+
   @IsArray()
   @IsEntityId({ each: true })
   @IsOptional()
   @ApiProperty({
-    description: 'Brand IDs this workflow is scoped to',
+    description:
+      'Deprecated legacy brand IDs input. Only the first brand ID is used.',
     required: false,
   })
   readonly brands?: string[];

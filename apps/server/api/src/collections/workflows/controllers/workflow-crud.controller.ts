@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CloneWorkflowDto } from '@api/collections/workflows/dto/clone-workflow.dto';
 import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
 import { WorkflowQueryDto } from '@api/collections/workflows/dto/query-workflow.dto';
 import { UpdateWorkflowDto } from '@api/collections/workflows/dto/update-workflow.dto';
@@ -200,15 +201,17 @@ export class WorkflowCrudController {
     @Req() request: Request,
     @Param('workflowId') workflowId: string,
     @CurrentUser() user: User,
+    @Body() dto: CloneWorkflowDto = {},
   ): Promise<JsonApiSingleResponse> {
     return wrapError(async () => {
       const publicMetadata = getPublicMetadata(user);
+      const targetBrandId = dto.brandId ?? (publicMetadata.brand || undefined);
 
       const clonedWorkflow = await this.workflowsService.cloneWorkflow(
         workflowId,
         publicMetadata.user,
         publicMetadata.organization,
-        publicMetadata.brand || undefined,
+        targetBrandId,
       );
 
       return serializeSingle(request, WorkflowSerializer, clonedWorkflow);
