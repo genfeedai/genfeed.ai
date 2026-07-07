@@ -198,8 +198,11 @@ export interface IngredientDetailImageProps {
   onReprompt?: (image: IImage) => void;
   onUsePrompt?: (image: IImage) => void;
   onSeeDetails?: (image: IImage) => void;
-  onUpdateMetadata?: (field: string, value: string) => Promise<any>;
-  onUpdateSharing?: (field: string, value: boolean | string) => Promise<any>;
+  onUpdateMetadata?: (field: string, value: string) => Promise<unknown>;
+  onUpdateSharing?: (
+    field: string,
+    value: boolean | string,
+  ) => Promise<unknown>;
   onScopeChange?: (scope: AssetScope, updatedIngredient?: IIngredient) => void;
 
   isUpscaling?: boolean;
@@ -238,8 +241,11 @@ export interface IngredientDetailVideoProps {
   onGenerateCaptions?: (video: IVideo) => void;
   onAddTextOverlay?: (video: IVideo) => void;
   onSeeDetails?: (video: IVideo) => void;
-  onUpdateMetadata?: (field: string, value: string) => Promise<any>;
-  onUpdateSharing?: (field: string, value: boolean | string) => Promise<any>;
+  onUpdateMetadata?: (field: string, value: string) => Promise<unknown>;
+  onUpdateSharing?: (
+    field: string,
+    value: boolean | string,
+  ) => Promise<unknown>;
 
   isUpscaling?: boolean;
   isPublishing?: boolean;
@@ -279,9 +285,9 @@ export interface IngredientTabsProps {
 export interface TabsIngredientInfoProps {
   ingredient: IIngredient;
   onUpdate?: (data: Partial<IIngredient>) => void;
-  onUpdateMetadata?: (field: string, value: string) => Promise<any>;
+  onUpdateMetadata?: (field: string, value: string) => Promise<unknown>;
   isEditable?: boolean;
-  isUpdating?: boolean | any;
+  isUpdating?: boolean;
 }
 
 export interface IngredientTabsPromptsProps {

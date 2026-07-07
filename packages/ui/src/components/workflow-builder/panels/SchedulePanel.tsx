@@ -147,17 +147,12 @@ export default function SchedulePanel({
 
   return (
     <div className="border-b border-white/[0.08]">
-      <div
-        role="button"
-        tabIndex={0}
+      <Button
         className="flex cursor-pointer items-center justify-between px-4 py-3"
         onClick={onToggleCollapse}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            onToggleCollapse?.();
-          }
-        }}
+        type="button"
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
       >
         <div className="flex items-center gap-2">
           <HiOutlineClock className="size-4" />
@@ -175,7 +170,7 @@ export default function SchedulePanel({
             <HiOutlineChevronUp className="size-4" />
           )}
         </div>
-      </div>
+      </Button>
 
       {!isCollapsed && (
         <div className="p-4 pt-0 space-y-4">

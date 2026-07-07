@@ -36,6 +36,16 @@ type VideoDetailTab =
   | 'sharing'
   | 'evaluation';
 
+type VideoProcessingEvent = {
+  eventType?: WebSocketEventType;
+  status?: WebSocketEventStatus;
+};
+
+type VideoDimensionsMetadata = {
+  height?: number;
+  width?: number;
+};
+
 export default function IngredientDetailVideo({
   video,
   videoRef,
@@ -144,7 +154,7 @@ export default function IngredientDetailVideo({
 
     const videoEventPath = WebSocketPaths.video(currentVideo.id);
 
-    const handleVideoEvent = (data: any) => {
+    const handleVideoEvent = (data: VideoProcessingEvent) => {
       logger.info('Video event received:', data);
 
       if (data.status === WebSocketEventStatus.COMPLETED) {
@@ -186,7 +196,10 @@ export default function IngredientDetailVideo({
       }
     };
 
-    const unsubscribe = subscribe(videoEventPath, handleVideoEvent);
+    const unsubscribe = subscribe<VideoProcessingEvent>(
+      videoEventPath,
+      handleVideoEvent,
+    );
 
     return () => {
       unsubscribe();
@@ -194,8 +207,12 @@ export default function IngredientDetailVideo({
   }, [currentVideo?.id, isReady, subscribe, onReload, notificationsService]);
 
   // Detect aspect ratio for smart layout
-  const videoWidth = (currentVideo.metadata as any)?.width || 1920;
-  const videoHeight = (currentVideo.metadata as any)?.height || 1920;
+  const videoMetadata =
+    typeof currentVideo.metadata === 'object' && currentVideo.metadata
+      ? (currentVideo.metadata as VideoDimensionsMetadata)
+      : undefined;
+  const videoWidth = videoMetadata?.width || 1920;
+  const videoHeight = videoMetadata?.height || 1920;
   const isPortrait = videoHeight > videoWidth;
 
   const tabs: TabItem[] = [

@@ -232,22 +232,17 @@ export default function ModalBrandInstagram({
         {!isLoading && availableHandles.length > 0 && (
           <div className="space-y-3 max-h-96 overflow-y-auto">
             {availableHandles.map((handle: CredentialInstagram) => (
-              <div
+              <Button
                 key={handle.id}
-                role="button"
-                tabIndex={0}
                 className={`p-4 cursor-pointer transition-all ${
                   selectedHandle?.id === handle.id
                     ? 'shadow-border-strong bg-primary/10'
                     : 'hover:bg-white/5'
                 }`}
                 onClick={() => setSelectedHandle(handle)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setSelectedHandle(handle);
-                  }
-                }}
+                type="button"
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
               >
                 <div className="flex items-center gap-2">
                   <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-full bg-platform-instagram">
@@ -272,7 +267,7 @@ export default function ModalBrandInstagram({
                     <HiCheckCircle className="text-primary text-xl" />
                   )}
                 </div>
-              </div>
+              </Button>
             ))}
           </div>
         )}

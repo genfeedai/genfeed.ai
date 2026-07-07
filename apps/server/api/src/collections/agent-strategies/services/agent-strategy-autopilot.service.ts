@@ -88,6 +88,19 @@ interface OptimizerAnalysisResult {
   overallScore?: number;
 }
 
+interface ImageEvaluationScore {
+  overall?: number;
+}
+
+interface ImageEvaluationResult {
+  overallScore?: number;
+  scores?: {
+    brand?: ImageEvaluationScore;
+    engagement?: ImageEvaluationScore;
+    technical?: ImageEvaluationScore;
+  };
+}
+
 interface FinalizeOpportunityInput {
   draft: ContentDraftDocument;
   draftContent: string;
@@ -1148,7 +1161,7 @@ export class AgentStrategyAutopilotService {
           prompt: content,
         },
         organizationId,
-      )) as Record<string, any>;
+      )) as ImageEvaluationResult;
 
       const technicalOverall = Number(
         evaluation?.scores?.technical?.overall ?? evaluation?.overallScore ?? 0,

@@ -1,4 +1,6 @@
+import { ButtonVariant } from '@genfeedai/enums';
 import type { MenuLabelProps } from '@genfeedai/props/navigation/menu.props';
+import { Button } from '@ui/primitives/button';
 
 function MenuLabelIcon({
   icon,
@@ -49,17 +51,12 @@ export default function MenuLabel({
 
   return (
     <li className="list-none mb-1">
-      <div
-        role="button"
-        tabIndex={0}
+      <Button
         onClick={onClick}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            onClick?.();
-          }
-        }}
         className={`${baseClasses} ${activeClasses} cursor-pointer justify-between`}
+        type="button"
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
       >
         <div className="flex items-center gap-2">
           <MenuLabelIcon
@@ -73,7 +70,7 @@ export default function MenuLabel({
         {chevronIcon && (
           <div className="size-4 transition-transform">{chevronIcon}</div>
         )}
-      </div>
+      </Button>
     </li>
   );
 }

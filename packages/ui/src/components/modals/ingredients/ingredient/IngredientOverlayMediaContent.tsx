@@ -1,5 +1,5 @@
 import type { AssetScope } from '@genfeedai/enums';
-import type { ICredential, IIngredient } from '@genfeedai/interfaces';
+import type { ICredential, IImage, IIngredient } from '@genfeedai/interfaces';
 import IngredientDetailImage from '@ui/ingredients/detail-image/IngredientDetailImage';
 import IngredientDetailVideo from '@ui/ingredients/detail-video/IngredientDetailVideo';
 import type { RefObject } from 'react';
@@ -120,7 +120,7 @@ export default function IngredientOverlayMediaContent({
         ) : isImage ? (
           <IngredientDetailImage
             childIngredients={childIngredients}
-            image={localIngredient as any}
+            image={localIngredient as unknown as IImage}
             isCloning={isCloning}
             isConvertingToVideo={isConvertingToVideo}
             isDownloading={isDownloading}

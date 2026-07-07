@@ -80,14 +80,17 @@ export abstract class HTTPBaseService {
     this.initializeResponseInterceptor();
   }
 
-  static getInstance(this: new (token: string) => any, token: string): any {
-    const serviceConstructor = HTTPBaseService as unknown as new (
+  static getInstance(token: string): HTTPBaseService {
+    // biome-ignore lint/complexity: static factory must preserve the subclass constructor for singleton caching.
+    const serviceConstructor = this as unknown as new (
       token: string,
-    ) => any;
-    const serviceKey = serviceConstructor;
+    ) => HTTPBaseService;
 
     // Check if we have a cached instance for this service + token
-    const cached = httpServiceInstances.get<any>(serviceKey, token);
+    const cached = httpServiceInstances.get<HTTPBaseService>(
+      serviceConstructor,
+      token,
+    );
     if (
       cached &&
       Object.getPrototypeOf(cached) === serviceConstructor.prototype
@@ -96,15 +99,15 @@ export abstract class HTTPBaseService {
     }
 
     const instance = new serviceConstructor(token);
-    httpServiceInstances.set(serviceKey, token, instance);
+    httpServiceInstances.set(serviceConstructor, token, instance);
 
     return instance;
   }
 
-  static getBaseServiceInstance<T extends HTTPBaseService>(
-    serviceConstructor: new (...args: any[]) => T,
-    ...args: any[]
-  ): T {
+  static getBaseServiceInstance<
+    T extends HTTPBaseService,
+    TArgs extends unknown[],
+  >(serviceConstructor: new (...args: TArgs) => T, ...args: TArgs): T {
     const instanceKey = buildInstanceKey(args);
 
     const cached = httpServiceInstances.get<T>(serviceConstructor, instanceKey);

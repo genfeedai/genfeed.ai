@@ -60,14 +60,15 @@ export abstract class BaseService<
     super(`${EnvironmentService.apiEndpoint}${endpoint}`, token);
   }
 
-  static getInstance(this: new (token: string) => any, token: string): any {
-    // biome-ignore lint: 'this' refers to the subclass constructor in static context
-    const serviceConstructor = this as unknown as new (token: string) => any;
-    const serviceKey = serviceConstructor;
+  static getInstance(token: string): BaseService<unknown> {
+    // biome-ignore lint/complexity: static factory must preserve the subclass constructor for singleton caching.
+    const serviceConstructor = this as unknown as new (
+      token: string,
+    ) => BaseService<unknown>;
 
     // Check if we have a cached instance for this service + token
     const cached = serviceInstances.get<BaseService<unknown>>(
-      serviceKey,
+      serviceConstructor,
       token,
     );
     if (
@@ -78,15 +79,15 @@ export abstract class BaseService<
     }
 
     const instance = new serviceConstructor(token);
-    serviceInstances.set(serviceKey, token, instance);
+    serviceInstances.set(serviceConstructor, token, instance);
 
     return instance;
   }
 
-  static getDataServiceInstance<T extends BaseService<unknown>>(
-    serviceConstructor: new (...args: any[]) => T,
-    ...args: any[]
-  ): T {
+  static getDataServiceInstance<
+    T extends BaseService<unknown>,
+    TArgs extends unknown[],
+  >(serviceConstructor: new (...args: TArgs) => T, ...args: TArgs): T {
     const instanceKey = buildInstanceKey(args);
     const serviceKey = serviceConstructor;
 

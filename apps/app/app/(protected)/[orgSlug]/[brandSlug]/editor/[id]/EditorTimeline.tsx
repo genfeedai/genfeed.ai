@@ -239,7 +239,7 @@ function ClipBlock({
         : 'bg-foreground/30';
 
   return (
-    /* biome-ignore lint/a11y/useSemanticElements: complex drag-and-drop timeline clip with ref */
+    /* biome-ignore lint/a11y/useSemanticElements: complex drag-and-drop timeline clip with nested resize handles */
     <div
       ref={clipRef}
       role="button"

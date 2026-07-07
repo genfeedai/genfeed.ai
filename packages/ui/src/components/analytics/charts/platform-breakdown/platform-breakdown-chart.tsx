@@ -5,6 +5,7 @@ import type { PlatformBreakdownChartProps } from '@genfeedai/props/analytics/ana
 import Card from '@ui/card/Card';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import dynamic from 'next/dynamic';
+import type { PieLabelRenderProps } from 'recharts';
 
 const PieChart = dynamic(() => import('recharts').then((m) => m.PieChart), {
   ssr: false,
@@ -43,6 +44,11 @@ const PLATFORM_LABELS: Record<string, string> = {
   youtube: 'YouTube',
 };
 
+type PlatformBreakdownLabelEntry = {
+  payload?: { total?: number };
+  value: number;
+};
+
 export function PlatformBreakdownChart({
   data,
   title = 'Platform Distribution',
@@ -67,8 +73,10 @@ export function PlatformBreakdownChart({
   };
 
   // Custom label renderer with percentage
-  const renderLabel = (entry: any) => {
-    const percentage = ((entry.value / entry.payload.total) * 100).toFixed(1);
+  const renderLabel = (entry: PieLabelRenderProps) => {
+    const { payload, value } = entry as PlatformBreakdownLabelEntry;
+    const total = payload?.total ?? 0;
+    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
     return `${percentage}%`;
   };
 

@@ -22,9 +22,11 @@ import type {
   DragState,
 } from '@genfeedai/props/ui/attachments.props';
 import { type Editor, Extension, type JSONContent } from '@tiptap/core';
+import type { MentionNodeAttrs } from '@tiptap/extension-mention';
 import Placeholder from '@tiptap/extension-placeholder';
 import { ReactRenderer, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import type { SuggestionProps } from '@tiptap/suggestion';
 import {
   type ChangeEvent,
   type ComponentType,
@@ -106,6 +108,14 @@ const SendOnEnter = Extension.create({
   name: 'sendOnEnter',
 });
 
+type MentionSuggestionRenderProps = SuggestionProps<unknown, MentionNodeAttrs>;
+
+function getMentionClientRect(
+  props: MentionSuggestionRenderProps,
+): () => DOMRect {
+  return () => props.clientRect?.() ?? new DOMRect();
+}
+
 function buildMentionSuggestion<T>({
   component,
   getItems,
@@ -141,29 +151,29 @@ function buildMentionSuggestion<T>({
             )?.onKeyDown(props) ?? false
           );
         },
-        onStart: (props: any) => {
+        onStart: (props: MentionSuggestionRenderProps) => {
           reactRenderer = new ReactRenderer(
             component as ComponentType<Record<string, unknown>>,
             {
-              editor: props.editor as Editor,
+              editor: props.editor,
               props,
             },
           );
           popup = tippy('body', {
             appendTo: () => document.body,
             content: reactRenderer.element,
-            getReferenceClientRect: props.clientRect as () => DOMRect,
+            getReferenceClientRect: getMentionClientRect(props),
             interactive: true,
             placement: 'bottom-start',
             showOnCreate: true,
             trigger: 'manual',
           });
         },
-        onUpdate: (props: any) => {
+        onUpdate: (props: MentionSuggestionRenderProps) => {
           reactRenderer.updateProps(props);
           if (popup[0]) {
             popup[0].setProps({
-              getReferenceClientRect: props.clientRect as () => DOMRect,
+              getReferenceClientRect: getMentionClientRect(props),
             });
           }
         },

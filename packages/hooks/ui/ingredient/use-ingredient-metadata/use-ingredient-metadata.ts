@@ -72,7 +72,7 @@ export function useIngredientMetadata(
 
         setIsUpdating(false);
         return reloadedIngredient;
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error(`${url} failed`, error);
         notificationsService.error('Failed to update');
         setIsUpdating(false);

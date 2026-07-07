@@ -141,6 +141,7 @@ export const ConversationView = ({
           onClearProvider={handleClearProvider}
           onDeleteDraft={handleDeleteDraft}
           onNewDraft={handleNewDraft}
+          onOpenProviderKeys={handleOpenProviderKeys}
           onProviderApiKeyChange={setProviderApiKey}
           onProviderBaseUrlChange={setProviderBaseUrl}
           onProviderModelChange={setProviderModel}

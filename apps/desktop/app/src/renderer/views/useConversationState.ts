@@ -1,22 +1,18 @@
 import type {
   DesktopContentPlatform,
   DesktopContentType,
-  DesktopGenerationProviderKind,
   DesktopPublishIntent,
   IDesktopCloudProject,
   IDesktopContentRunBrief,
   IDesktopContentRunDraft,
-  IDesktopGenerationProviderPublicConfig,
   IDesktopTrendHandoff,
   IDesktopWorkspace,
 } from '@genfeedai/desktop-contracts';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-
-import { PROVIDER_PRESETS } from './ConversationProviderPresets';
+import { useLocalProviderSettings } from './useLocalProviderSettings';
 
 const CREDIT_CHECKOUT_PATH =
   '/onboarding/post-signup?credits=1000&source=desktop';
-const PROVIDER_KEYS_PATH = '/settings/api-keys?source=desktop';
 
 export function createId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -194,25 +190,9 @@ export function useConversationState({
     useState<DesktopPublishIntent>('review');
   const [error, setError] = useState<string | null>(null);
   const [isLoadingDrafts, setIsLoadingDrafts] = useState(false);
-  const [providerConfig, setProviderConfig] =
-    useState<IDesktopGenerationProviderPublicConfig | null>(null);
-  const [providerKind, setProviderKind] =
-    useState<DesktopGenerationProviderKind>('ollama');
-  const [providerBaseUrl, setProviderBaseUrl] = useState(
-    PROVIDER_PRESETS.ollama.baseUrl,
-  );
-  const [providerModel, setProviderModel] = useState(
-    PROVIDER_PRESETS.ollama.model,
-  );
-  const [providerApiKey, setProviderApiKey] = useState('');
-  const [providerDisplayName, setProviderDisplayName] = useState(
-    PROVIDER_PRESETS.ollama.displayName,
-  );
-  const [providerStatus, setProviderStatus] = useState<string | null>(null);
-  const [isSavingProvider, setIsSavingProvider] = useState(false);
-  const [isTestingProvider, setIsTestingProvider] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const localProviderSettings = useLocalProviderSettings();
 
   const selectedDraft = useMemo(
     () => drafts.find((draft) => draft.id === selectedDraftId) ?? null,
@@ -257,34 +237,6 @@ export function useConversationState({
   useEffect(() => {
     void loadWorkspaceContext();
   }, [loadWorkspaceContext]);
-
-  const loadProviderConfig = useCallback(async () => {
-    const nextConfig =
-      await window.genfeedDesktop.generation.getProviderConfig();
-    setProviderConfig(nextConfig);
-
-    if (!nextConfig) {
-      return;
-    }
-
-    setProviderKind(nextConfig.provider);
-    setProviderBaseUrl(nextConfig.baseUrl);
-    setProviderModel(nextConfig.model);
-    setProviderDisplayName(
-      nextConfig.displayName ??
-        PROVIDER_PRESETS[nextConfig.provider].displayName,
-    );
-  }, []);
-
-  useEffect(() => {
-    void loadProviderConfig().catch((nextError: unknown) => {
-      setProviderStatus(
-        nextError instanceof Error
-          ? nextError.message
-          : 'Failed to load local provider.',
-      );
-    });
-  }, [loadProviderConfig]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -474,97 +426,8 @@ export function useConversationState({
     [workspaceId],
   );
 
-  const applyProviderPreset = useCallback(
-    (nextProviderKind: DesktopGenerationProviderKind) => {
-      const preset = PROVIDER_PRESETS[nextProviderKind];
-      setProviderKind(nextProviderKind);
-      setProviderBaseUrl(preset.baseUrl);
-      setProviderModel(preset.model);
-      setProviderDisplayName(preset.displayName);
-      setProviderStatus(null);
-    },
-    [],
-  );
-
-  const buildProviderPayload = useCallback(
-    () => ({
-      ...(providerApiKey.trim()
-        ? {
-            apiKey: providerApiKey.trim(),
-          }
-        : {}),
-      baseUrl: providerBaseUrl.trim(),
-      displayName: providerDisplayName.trim() || undefined,
-      model: providerModel.trim(),
-      provider: providerKind,
-    }),
-    [
-      providerApiKey,
-      providerBaseUrl,
-      providerDisplayName,
-      providerKind,
-      providerModel,
-    ],
-  );
-
-  const handleSaveProvider = useCallback(async () => {
-    setIsSavingProvider(true);
-    setProviderStatus(null);
-
-    try {
-      const savedConfig =
-        await window.genfeedDesktop.generation.saveProviderConfig(
-          buildProviderPayload(),
-        );
-      setProviderConfig(savedConfig);
-      setProviderApiKey('');
-      setProviderStatus(
-        `Using ${savedConfig.displayName ?? savedConfig.model}.`,
-      );
-    } catch (nextError) {
-      setProviderStatus(
-        nextError instanceof Error
-          ? nextError.message
-          : 'Failed to save local provider.',
-      );
-    } finally {
-      setIsSavingProvider(false);
-    }
-  }, [buildProviderPayload]);
-
-  const handleTestProvider = useCallback(async () => {
-    setIsTestingProvider(true);
-    setProviderStatus(null);
-
-    try {
-      const result = await window.genfeedDesktop.generation.testProviderConfig(
-        buildProviderPayload(),
-      );
-      setProviderStatus(`Connected in ${String(result.latencyMs)}ms.`);
-    } catch (nextError) {
-      setProviderStatus(
-        nextError instanceof Error
-          ? nextError.message
-          : 'Local provider test failed.',
-      );
-    } finally {
-      setIsTestingProvider(false);
-    }
-  }, [buildProviderPayload]);
-
-  const handleClearProvider = useCallback(async () => {
-    await window.genfeedDesktop.generation.clearProviderConfig();
-    setProviderConfig(null);
-    setProviderApiKey('');
-    setProviderStatus('Local provider cleared.');
-  }, []);
-
   const handleOpenCreditsCheckout = useCallback(async () => {
     await window.genfeedDesktop.app.openExternalPath(CREDIT_CHECKOUT_PATH);
-  }, []);
-
-  const handleOpenProviderKeys = useCallback(async () => {
-    await window.genfeedDesktop.app.openExternalPath(PROVIDER_KEYS_PATH);
   }, []);
 
   const handleFocusLocalProvider = useCallback(() => {
@@ -579,48 +442,33 @@ export function useConversationState({
   }, []);
 
   return {
-    applyProviderPreset,
     contentType,
     drafts,
     error,
-    handleClearProvider,
     handleDeleteDraft,
     handleFocusLocalProvider,
     handleNewDraft,
     handleOpenCreditsCheckout,
-    handleOpenProviderKeys,
     handleBrandLink,
     handleProjectLink,
     handleSaveDraft,
-    handleSaveProvider,
-    handleTestProvider,
     input,
     inputRef,
     isGenerating,
     isLoadingDrafts,
-    isSavingProvider,
-    isTestingProvider,
     messagesEndRef,
     persistDraft,
     platform,
     projects,
-    providerApiKey,
-    providerBaseUrl,
-    providerConfig,
-    providerKind,
-    providerModel,
-    providerStatus,
     publishIntent,
     selectedDraft,
     selectedDraftId,
+    ...localProviderSettings,
     setContentType,
     setError,
     setInput,
     setIsGenerating,
     setPlatform,
-    setProviderApiKey,
-    setProviderBaseUrl,
-    setProviderModel,
     setPublishIntent,
     setSelectedDraftId,
     workspace,

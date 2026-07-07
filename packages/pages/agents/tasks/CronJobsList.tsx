@@ -1,5 +1,6 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
@@ -139,12 +140,14 @@ export default function CronJobsList() {
       icon={HiOutlineClock}
       right={
         <div className="flex items-center gap-2">
-          <Link
-            href={href('/workflows')}
+          <Button
+            asChild
             className="inline-flex h-8 items-center rounded border border-white/10 px-3 text-xs font-semibold text-foreground transition-colors hover:bg-white/[0.04]"
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
           >
-            Open Workflows
-          </Link>
+            <Link href={href('/workflows')}>Open Workflows</Link>
+          </Button>
           <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
         </div>
       }

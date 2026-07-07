@@ -142,9 +142,6 @@ export default function VideoDetailWorkspacePanel({
           />
         )}
       </IngredientWorkspacePanel>
-
-      {/* TO DO : ADD ADS CAMPAIGN LATER */}
-      {/* <AdsCampaign contentType="video" /> */}
     </div>
   );
 }

@@ -55,6 +55,14 @@ interface WorkflowNode {
   };
 }
 
+type DiscordMessagePayload =
+  | string
+  | {
+      components?: Array<ActionRowBuilder<ButtonBuilder>>;
+      content?: string;
+      ephemeral?: boolean;
+    };
+
 @Injectable()
 export class DiscordBotManager
   extends BaseBotManager<DiscordBotInstance>
@@ -288,7 +296,7 @@ export class DiscordBotManager
       channelId: string | null;
       user: { id: string };
       deferReply: () => Promise<unknown>;
-      editReply: (msg: any) => Promise<unknown>;
+      editReply: (msg: DiscordMessagePayload) => Promise<unknown>;
     },
     orgId: string,
   ): Promise<void> {
@@ -365,7 +373,7 @@ export class DiscordBotManager
   private async handleStatusCommand(interaction: {
     channelId: string | null;
     user: { id: string };
-    reply: (msg: any) => Promise<unknown>;
+    reply: (msg: DiscordMessagePayload) => Promise<unknown>;
   }): Promise<void> {
     const sessionKey = this.getSessionKey(interaction);
     const session = this.getSession(sessionKey);
@@ -410,7 +418,7 @@ export class DiscordBotManager
   private async handleCancelCommand(interaction: {
     channelId: string | null;
     user: { id: string };
-    reply: (msg: any) => Promise<unknown>;
+    reply: (msg: DiscordMessagePayload) => Promise<unknown>;
   }): Promise<void> {
     const sessionKey = this.getSessionKey(interaction);
     const session = this.getSession(sessionKey);
@@ -437,7 +445,7 @@ export class DiscordBotManager
   private async handleSettingsCommand(interaction: {
     channelId: string | null;
     user: { id: string };
-    reply: (msg: any) => Promise<unknown>;
+    reply: (msg: DiscordMessagePayload) => Promise<unknown>;
   }): Promise<void> {
     const current = this.userSettings.get(interaction.user.id) || {
       imageModel: IMAGE_MODELS[0],
@@ -486,9 +494,9 @@ export class DiscordBotManager
       channelId: string | null;
       user: { id: string };
       deferUpdate: () => Promise<unknown>;
-      editReply: (msg: any) => Promise<unknown>;
-      reply: (msg: any) => Promise<unknown>;
-      update: (msg: any) => Promise<unknown>;
+      editReply: (msg: DiscordMessagePayload) => Promise<unknown>;
+      reply: (msg: DiscordMessagePayload) => Promise<unknown>;
+      update: (msg: DiscordMessagePayload) => Promise<unknown>;
     },
     orgId: string,
   ): Promise<void> {
@@ -542,8 +550,8 @@ export class DiscordBotManager
       channelId: string | null;
       user: { id: string };
       deferUpdate: () => Promise<unknown>;
-      editReply: (msg: any) => Promise<unknown>;
-      update: (msg: any) => Promise<unknown>;
+      editReply: (msg: DiscordMessagePayload) => Promise<unknown>;
+      update: (msg: DiscordMessagePayload) => Promise<unknown>;
     },
     orgId: string,
     workflowId: string,
@@ -611,7 +619,7 @@ export class DiscordBotManager
 
   private async promptNextInput(
     sessionKey: string,
-    channel: { editReply?: (msg: any) => Promise<unknown> },
+    channel: { editReply?: (msg: DiscordMessagePayload) => Promise<unknown> },
   ): Promise<void> {
     const session = this.getSession(sessionKey);
     if (!session) {
@@ -646,7 +654,7 @@ export class DiscordBotManager
       author: { id: string };
       channelId: string;
       content: string;
-      channel: { send: (msg: any) => Promise<unknown> };
+      channel: { send: (msg: DiscordMessagePayload) => Promise<unknown> };
     },
     sessionKey: string,
   ): Promise<void> {
@@ -677,7 +685,7 @@ export class DiscordBotManager
       author: { id: string };
       channelId: string;
       attachments: Map<string, { url: string; contentType?: string | null }>;
-      channel: { send: (msg: any) => Promise<unknown> };
+      channel: { send: (msg: DiscordMessagePayload) => Promise<unknown> };
     },
     sessionKey: string,
   ): Promise<void> {
@@ -706,7 +714,7 @@ export class DiscordBotManager
 
   private async promptNextInputViaChannel(
     sessionKey: string,
-    channel: { send: (msg: any) => Promise<unknown> },
+    channel: { send: (msg: DiscordMessagePayload) => Promise<unknown> },
   ): Promise<void> {
     const session = this.getSession(sessionKey);
     if (!session) {
@@ -739,7 +747,7 @@ export class DiscordBotManager
 
   private async showConfirmation(
     sessionKey: string,
-    channel: { editReply?: (msg: any) => Promise<unknown> },
+    channel: { editReply?: (msg: DiscordMessagePayload) => Promise<unknown> },
   ): Promise<void> {
     const session = this.getSession(sessionKey);
     if (!session) {
@@ -758,7 +766,7 @@ export class DiscordBotManager
 
   private async showConfirmationViaChannel(
     sessionKey: string,
-    channel: { send: (msg: any) => Promise<unknown> },
+    channel: { send: (msg: DiscordMessagePayload) => Promise<unknown> },
   ): Promise<void> {
     const session = this.getSession(sessionKey);
     if (!session) {
@@ -812,9 +820,11 @@ export class DiscordBotManager
       channelId: string | null;
       user: { id: string };
       deferUpdate: () => Promise<unknown>;
-      editReply: (msg: any) => Promise<unknown>;
-      update: (msg: any) => Promise<unknown>;
-      channel?: { send?: (msg: any) => Promise<unknown> } | null;
+      editReply: (msg: DiscordMessagePayload) => Promise<unknown>;
+      update: (msg: DiscordMessagePayload) => Promise<unknown>;
+      channel?: {
+        send?: (msg: DiscordMessagePayload) => Promise<unknown>;
+      } | null;
     },
     orgId: string,
   ): Promise<void> {
@@ -956,7 +966,7 @@ export class DiscordBotManager
   private async monitorWorkflowExecution(
     orgId: string,
     sessionKey: string,
-    send: (msg: any) => Promise<unknown>,
+    send: (msg: DiscordMessagePayload) => Promise<unknown>,
   ): Promise<void> {
     const session = this.getSession(sessionKey);
     if (!session?.executionId) {
@@ -1021,8 +1031,8 @@ export class DiscordBotManager
     channelId: string | null;
     user: { id: string };
     deferUpdate: () => Promise<unknown>;
-    editReply: (msg: any) => Promise<unknown>;
-    update: (msg: any) => Promise<unknown>;
+    editReply: (msg: DiscordMessagePayload) => Promise<unknown>;
+    update: (msg: DiscordMessagePayload) => Promise<unknown>;
   }): Promise<void> {
     const sessionKey = this.getSessionKey(interaction);
     const session = this.getSession(sessionKey);

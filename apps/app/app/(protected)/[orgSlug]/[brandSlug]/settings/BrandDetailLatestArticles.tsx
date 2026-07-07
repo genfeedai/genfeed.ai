@@ -1,10 +1,12 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import type { BrandDetailLatestArticlesProps } from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import Card from '@ui/card/Card';
+import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
-import Link from 'next/link';
+import NextLink from 'next/link';
 
 export default function BrandDetailLatestArticles({
   articles,
@@ -13,12 +15,16 @@ export default function BrandDetailLatestArticles({
     <Card>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold">Latest Articles</h2>
-        <Link
-          href={`${EnvironmentService.apps.app}/compose/article`}
+        <Button
+          asChild
           className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-xs font-medium transition-all duration-300 bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80 h-8 px-3"
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
         >
-          View All
-        </Link>
+          <NextLink href={`${EnvironmentService.apps.app}/compose/article`}>
+            View All
+          </NextLink>
+        </Button>
       </div>
 
       {articles && articles.length > 0 ? (
@@ -49,24 +55,34 @@ export default function BrandDetailLatestArticles({
                   </p>
                 )}
 
-                <Link
-                  href={`${EnvironmentService.apps.website}/articles/${article.slug}`}
+                <Button
+                  asChild
                   className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-xs font-medium transition-all duration-300 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-8 px-3"
-                  target="_blank"
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
                 >
-                  Read Article
-                </Link>
+                  <NextLink
+                    href={`${EnvironmentService.apps.website}/articles/${article.slug}`}
+                    target="_blank"
+                  >
+                    Read Article
+                  </NextLink>
+                </Button>
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <Link
-          href={`${EnvironmentService.apps.app}`}
+        <Button
+          asChild
           className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all duration-300 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2"
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
         >
-          Create an Article
-        </Link>
+          <NextLink href={`${EnvironmentService.apps.app}`}>
+            Create an Article
+          </NextLink>
+        </Button>
       )}
     </Card>
   );

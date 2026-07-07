@@ -3,7 +3,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IMetadata } from '@genfeedai/interfaces';
 import type { ListRowSoundProps } from '@genfeedai/props/content/list.props';
 import { Button } from '@ui/primitives/button';
-import type { KeyboardEvent, MouseEvent } from 'react';
+import type { MouseEvent } from 'react';
 import { HiPause, HiPlay } from 'react-icons/hi2';
 
 function renderLegacyPlaybackControl({
@@ -70,29 +70,16 @@ export default function ListRowSound({
     }
     onRowClick?.();
   };
-  const activateRowFromKeyboard = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== 'Enter' && event.key !== ' ') {
-      return;
-    }
-
-    event.preventDefault();
-    activateRow();
-  };
-
   return (
     <li>
       <div
-        role="button"
-        tabIndex={0}
         className={cn(
-          'group grid min-h-20 grid-cols-[auto_minmax(0,2.4fr)_minmax(180px,1.4fr)_minmax(120px,0.8fr)_auto] items-center gap-4 rounded-2xl shadow-border bg-white/[0.02] px-4 py-3 transition-colors duration-200',
+          'group grid min-h-20 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 rounded-2xl shadow-border bg-white/[0.02] px-4 py-3 transition-colors duration-200',
           'hover:shadow-border-strong hover:bg-white/[0.04]',
           (isActive ?? isSelected) && 'shadow-border-strong bg-white/[0.06]',
           onRowClick && 'cursor-pointer',
           className,
         )}
-        onClick={activateRow}
-        onKeyDown={activateRowFromKeyboard}
       >
         <div className="flex min-w-0 items-center gap-3">
           {leading ?? (
@@ -105,70 +92,58 @@ export default function ListRowSound({
             </div>
           )}
           {resolvedPlaybackControl ? (
-            <div
-              role="presentation"
-              className="shrink-0"
-              onClick={(event) => {
-                event.stopPropagation();
-              }}
-              onKeyDown={(event) => {
-                event.stopPropagation();
-              }}
-            >
-              {resolvedPlaybackControl}
-            </div>
+            <div className="shrink-0">{resolvedPlaybackControl}</div>
           ) : null}
         </div>
 
-        <div className="min-w-0 space-y-1">
-          <div className="truncate text-sm font-semibold text-white">
-            {resolvedTitle}
-          </div>
-          {resolvedSubtitle ? (
-            <div className="truncate text-sm text-muted-foreground">
-              {resolvedSubtitle}
-            </div>
-          ) : null}
-          {badges ? (
-            <div className="flex flex-wrap items-center gap-2">{badges}</div>
-          ) : null}
-        </div>
-
-        <div className="min-w-0 space-y-1 text-sm text-muted-foreground">
-          {resolvedProvider ? (
-            <div className="truncate font-medium text-white/85">
-              {resolvedProvider}
-            </div>
-          ) : null}
-          {metaPrimary ? (
-            <div
-              className={cn(
-                'min-w-0',
-                (typeof metaPrimary === 'string' ||
-                  typeof metaPrimary === 'number') &&
-                  'truncate',
-              )}
-            >
-              {metaPrimary}
-            </div>
-          ) : null}
-          {metaSecondary ? (
-            <div className="truncate text-xs">{metaSecondary}</div>
-          ) : null}
-        </div>
-
-        <div className="min-w-0 text-sm text-muted-foreground">{stats}</div>
-
-        <div
-          role="presentation"
-          className="flex shrink-0 items-center justify-start gap-2 lg:justify-end"
-          onClick={(event) => {
-            event.stopPropagation();
-          }}
-          onKeyDown={(event) => {
-            event.stopPropagation();
-          }}
+        <Button
+          className="grid min-w-0 grid-cols-[minmax(0,2.4fr)_minmax(180px,1.4fr)_minmax(120px,0.8fr)] items-center gap-4 text-left"
+          onClick={activateRow}
+          type="button"
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
         >
+          <div className="min-w-0 space-y-1">
+            <div className="truncate text-sm font-semibold text-white">
+              {resolvedTitle}
+            </div>
+            {resolvedSubtitle ? (
+              <div className="truncate text-sm text-muted-foreground">
+                {resolvedSubtitle}
+              </div>
+            ) : null}
+            {badges ? (
+              <div className="flex flex-wrap items-center gap-2">{badges}</div>
+            ) : null}
+          </div>
+
+          <div className="min-w-0 space-y-1 text-sm text-muted-foreground">
+            {resolvedProvider ? (
+              <div className="truncate font-medium text-white/85">
+                {resolvedProvider}
+              </div>
+            ) : null}
+            {metaPrimary ? (
+              <div
+                className={cn(
+                  'min-w-0',
+                  (typeof metaPrimary === 'string' ||
+                    typeof metaPrimary === 'number') &&
+                    'truncate',
+                )}
+              >
+                {metaPrimary}
+              </div>
+            ) : null}
+            {metaSecondary ? (
+              <div className="truncate text-xs">{metaSecondary}</div>
+            ) : null}
+          </div>
+
+          <div className="min-w-0 text-sm text-muted-foreground">{stats}</div>
+        </Button>
+
+        <div className="flex shrink-0 items-center justify-start gap-2 lg:justify-end">
           {actions}
         </div>
       </div>

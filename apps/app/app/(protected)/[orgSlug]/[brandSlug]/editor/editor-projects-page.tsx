@@ -123,13 +123,16 @@ export default function EditorProjectsPage() {
       <div className="mb-8 flex items-start justify-between">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <Link
-              href={href('/studio/video')}
+            <Button
+              asChild
               className="flex size-8 shrink-0 items-center justify-center rounded-lg text-foreground/40 transition-colors duration-150 hover:bg-white/[0.06] hover:text-foreground"
-              aria-label="Back to Studio"
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
             >
-              <HiOutlineArrowLeft className="size-4" />
-            </Link>
+              <Link aria-label="Back to Studio" href={href('/studio/video')}>
+                <HiOutlineArrowLeft className="size-4" />
+              </Link>
+            </Button>
             <h1 className="text-3xl font-semibold tracking-tight">
               Video Editor
             </h1>
@@ -140,13 +143,17 @@ export default function EditorProjectsPage() {
           </p>
         </div>
 
-        <Link
-          href={href('/editor/new')}
+        <Button
+          asChild
           className="inline-flex items-center gap-2 bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
         >
-          <HiOutlinePlus className="size-4" />
-          New Project
-        </Link>
+          <Link href={href('/editor/new')}>
+            <HiOutlinePlus className="size-4" />
+            New Project
+          </Link>
+        </Button>
       </div>
 
       {isLoading ? (

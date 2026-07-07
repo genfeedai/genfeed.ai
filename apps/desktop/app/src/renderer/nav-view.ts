@@ -4,6 +4,7 @@ export type NavView =
   | 'conversation'
   | 'library'
   | 'mission-control'
+  | 'settings'
   | 'terminal'
   | 'trends'
   | 'workflows';

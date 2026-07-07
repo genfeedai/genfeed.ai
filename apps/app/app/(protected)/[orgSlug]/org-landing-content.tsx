@@ -8,8 +8,10 @@ import {
   getResumeStep,
   ONBOARDING_STEPS,
 } from '@genfeedai/constants';
+import { ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Brand } from '@models/organization/brand.model';
+import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -139,13 +141,17 @@ export default function OrgLandingContent() {
             workspace
           </p>
         </div>
-        <Link
-          href={orgHref('/settings/brands')}
+        <Button
+          asChild
           className="inline-flex items-center gap-2 rounded-lg bg-foreground/[0.03] px-3.5 py-2 text-sm font-medium text-foreground/70 shadow-border transition hover:shadow-border-strong hover:bg-foreground/[0.06] hover:text-foreground"
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
         >
-          <HiPlus className="size-4" />
-          New Brand
-        </Link>
+          <Link href={orgHref('/settings/brands')}>
+            <HiPlus className="size-4" />
+            New Brand
+          </Link>
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -99,8 +99,7 @@ export class EntityLeaderboardService {
 
     const column = this.entityColumn(entityField);
 
-    // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
-    const results: any[] = await this.prisma.$queryRaw`
+    const results = await this.prisma.$queryRaw<AnalyticsAggRow[]>`
       SELECT
         ${column} AS entity_id,
         AVG("engagementRate") AS avg_engagement_rate,
@@ -119,7 +118,7 @@ export class EntityLeaderboardService {
     `;
 
     const analyticsMap = new Map<string, IEntityAnalyticsStats>();
-    for (const row of results as AnalyticsAggRow[]) {
+    for (const row of results) {
       const totalLikes = Number(row.total_likes);
       const totalComments = Number(row.total_comments);
       const totalShares = Number(row.total_shares);
@@ -154,8 +153,7 @@ export class EntityLeaderboardService {
 
     const column = this.entityColumn(entityField);
 
-    // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
-    const results: any[] = await this.prisma.$queryRaw`
+    const results = await this.prisma.$queryRaw<EngagementAggRow[]>`
       SELECT
         ${column} AS entity_id,
         SUM("totalLikes" + "totalComments" + "totalShares" + "totalSaves") AS total_engagement
@@ -167,7 +165,7 @@ export class EntityLeaderboardService {
     `;
 
     const engagementMap = new Map<string, number>();
-    for (const row of results as EngagementAggRow[]) {
+    for (const row of results) {
       engagementMap.set(row.entity_id, Number(row.total_engagement));
     }
 

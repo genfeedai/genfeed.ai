@@ -172,16 +172,14 @@ export default function AppLayout({
               transition: agentPanelTransition,
             }}
           >
-            <div
+            <Button
               data-testid="agent-panel-resize-handle"
-              role="button"
               aria-label="Resize agent panel"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') e.preventDefault();
-              }}
               className="absolute top-0 left-0 right-0 z-10 h-1.5 cursor-row-resize border-t border-border"
               onMouseDown={handleAgentPanelResizeStart}
+              type="button"
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
             />
             <div
               data-testid="agent-panel-shell"

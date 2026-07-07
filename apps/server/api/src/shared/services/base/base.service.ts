@@ -154,26 +154,20 @@ type PrismaDelegateArgs<TWhere> = {
 
 /**
  * Dynamic Prisma delegate type, generic over the model's where-input.
- * Returns stay `any` — Prisma generates concrete return types per model, but
- * BaseService operates generically across all models via `prisma[modelName]`.
+ * Returns use the service's model type plus common document fields. Prisma
+ * generates concrete return types per model, but BaseService operates
+ * generically across all models via `prisma[modelName]`.
  * Default `TWhere = PrismaFilter` keeps the delegate loose for services that
  * have not opted into the typed where yet.
  */
-type PrismaDelegate<TWhere = PrismaFilter> = {
-  // biome-ignore lint/suspicious/noExplicitAny: concrete return types per model
-  findMany: (args?: PrismaDelegateArgs<TWhere>) => Promise<any[]>;
-  // biome-ignore lint/suspicious/noExplicitAny: concrete return types per model
-  findFirst: (args?: PrismaDelegateArgs<TWhere>) => Promise<any>;
-  // biome-ignore lint/suspicious/noExplicitAny: concrete return types per model
-  findUnique: (args?: PrismaDelegateArgs<TWhere>) => Promise<any>;
-  // biome-ignore lint/suspicious/noExplicitAny: concrete return types per model
-  create: (args: Record<string, unknown>) => Promise<any>;
-  // biome-ignore lint/suspicious/noExplicitAny: concrete return types per model
-  update: (args: PrismaDelegateArgs<TWhere>) => Promise<any>;
-  // biome-ignore lint/suspicious/noExplicitAny: concrete return types per model
-  updateMany: (args: PrismaDelegateArgs<TWhere>) => Promise<any>;
-  // biome-ignore lint/suspicious/noExplicitAny: concrete return types per model
-  delete: (args: PrismaDelegateArgs<TWhere>) => Promise<any>;
+type PrismaDelegate<TWhere = PrismaFilter, TResult = BaseDocument> = {
+  findMany: (args?: PrismaDelegateArgs<TWhere>) => Promise<TResult[]>;
+  findFirst: (args?: PrismaDelegateArgs<TWhere>) => Promise<TResult | null>;
+  findUnique: (args?: PrismaDelegateArgs<TWhere>) => Promise<TResult | null>;
+  create: (args: Record<string, unknown>) => Promise<TResult>;
+  update: (args: PrismaDelegateArgs<TWhere>) => Promise<TResult>;
+  updateMany: (args: PrismaDelegateArgs<TWhere>) => Promise<{ count: number }>;
+  delete: (args: PrismaDelegateArgs<TWhere>) => Promise<TResult>;
   count: (args?: PrismaDelegateArgs<TWhere>) => Promise<number>;
 };
 
@@ -245,10 +239,13 @@ export abstract class BaseService<
    * (`Prisma.<Model>WhereInput` once a subclass specializes it). Use this in
    * service query code so filter fields are checked at compile time.
    */
-  protected get delegate(): PrismaDelegate<TWhere> {
-    return (this.prisma as unknown as Record<string, PrismaDelegate<TWhere>>)[
-      this.modelName
-    ];
+  protected get delegate(): PrismaDelegate<TWhere, T & BaseDocument> {
+    return (
+      this.prisma as unknown as Record<
+        string,
+        PrismaDelegate<TWhere, T & BaseDocument>
+      >
+    )[this.modelName];
   }
 
   /**
@@ -257,9 +254,15 @@ export abstract class BaseService<
    * covers field validity there), so narrowing `TWhere` in a subclass must not
    * reject the base's own generic plumbing.
    */
-  private get internalDelegate(): PrismaDelegate<PrismaFilter> {
+  private get internalDelegate(): PrismaDelegate<
+    PrismaFilter,
+    T & BaseDocument
+  > {
     return (
-      this.prisma as unknown as Record<string, PrismaDelegate<PrismaFilter>>
+      this.prisma as unknown as Record<
+        string,
+        PrismaDelegate<PrismaFilter, T & BaseDocument>
+      >
     )[this.modelName];
   }
 

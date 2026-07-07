@@ -5,9 +5,8 @@ import type {
 } from '@genfeedai/desktop-contracts';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
 
-import { PROVIDER_PRESETS } from './ConversationProviderPresets';
+import { LocalProviderSettingsPanel } from './LocalProviderSettingsPanel';
 
 function formatRelativeDate(value: string): string {
   const delta = Date.now() - new Date(value).getTime();
@@ -43,6 +42,7 @@ type ConversationSidepanelProps = {
   onProviderApiKeyChange: (value: string) => void;
   onProviderBaseUrlChange: (value: string) => void;
   onProviderModelChange: (value: string) => void;
+  onOpenProviderKeys: () => Promise<void>;
 };
 
 export function ConversationSidepanel({
@@ -68,6 +68,7 @@ export function ConversationSidepanel({
   onProviderApiKeyChange,
   onProviderBaseUrlChange,
   onProviderModelChange,
+  onOpenProviderKeys,
 }: ConversationSidepanelProps) {
   return (
     <aside className="conversation-sidepanel panel-card">
@@ -101,151 +102,67 @@ export function ConversationSidepanel({
 
       <div className="draft-list">
         {drafts.map((draft) => (
-          <Button
+          <div
             className={`draft-list-item ${
               selectedDraftId === draft.id ? 'active' : ''
             }`}
             key={draft.id}
-            onClick={() => onSelectDraft(draft.id)}
-            type="button"
-            variant={ButtonVariant.UNSTYLED}
           >
-            <span className="draft-list-title">{draft.title}</span>
-            <span className="draft-list-meta">
-              <span className={`status-badge status-${draft.status}`}>
-                {draft.status}
+            <Button
+              className="draft-list-main"
+              onClick={() => onSelectDraft(draft.id)}
+              type="button"
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
+            >
+              <span className="draft-list-title">{draft.title}</span>
+              <span className="draft-list-meta">
+                <span className={`status-badge status-${draft.status}`}>
+                  {draft.status}
+                </span>
+                <span>{formatRelativeDate(draft.updatedAt)}</span>
               </span>
-              <span>{formatRelativeDate(draft.updatedAt)}</span>
-            </span>
-            <span className="draft-list-submeta">
-              {draft.platform} · {draft.type}
-            </span>
-            <span className="draft-list-actions">
-              <span>{draft.sourceType === 'trend' ? 'Trend' : 'Prompt'}</span>
-              <Button
-                aria-label={`Delete draft ${draft.title}`}
-                className="draft-list-delete"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  void onDeleteDraft(draft.id);
-                }}
-                type="button"
-                variant={ButtonVariant.GHOST}
-              >
-                ✕
-              </Button>
-            </span>
-          </Button>
+              <span className="draft-list-submeta">
+                {draft.platform} · {draft.type}
+              </span>
+              <span className="draft-list-actions">
+                <span>{draft.sourceType === 'trend' ? 'Trend' : 'Prompt'}</span>
+              </span>
+            </Button>
+            <Button
+              aria-label={`Delete draft ${draft.title}`}
+              className="draft-list-delete"
+              onClick={() => {
+                void onDeleteDraft(draft.id);
+              }}
+              type="button"
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
+            >
+              ✕
+            </Button>
+          </div>
         ))}
       </div>
 
-      <div className="provider-panel" id="desktop-provider-panel">
-        <div className="conversation-panel-header">
-          <h3>Local Provider</h3>
-          <span
-            className={`status-badge ${
-              providerConfig ? 'status-active' : 'status-pending'
-            }`}
-          >
-            {providerConfig ? 'Ready' : 'Optional'}
-          </span>
-        </div>
-        <p className="muted-text provider-status">
-          Genfeed server credits are the default when connected. Configure a
-          local provider only for offline or bring-your-own-key generation.
-        </p>
-
-        <div className="provider-preset-group">
-          {(
-            Object.keys(PROVIDER_PRESETS) as DesktopGenerationProviderKind[]
-          ).map((presetKey) => (
-            <Button
-              className={`provider-preset ${
-                providerKind === presetKey ? 'active' : ''
-              }`}
-              key={presetKey}
-              onClick={() => onApplyProviderPreset(presetKey)}
-              type="button"
-              variant={ButtonVariant.UNSTYLED}
-            >
-              {PROVIDER_PRESETS[presetKey].displayName}
-            </Button>
-          ))}
-        </div>
-
-        <label className="provider-field" htmlFor="desktop-provider-url">
-          <span>Base URL</span>
-          <Input
-            id="desktop-provider-url"
-            onChange={(event) => onProviderBaseUrlChange(event.target.value)}
-            placeholder="http://localhost:11434/v1"
-            type="url"
-            value={providerBaseUrl}
-          />
-        </label>
-
-        <label className="provider-field" htmlFor="desktop-provider-model">
-          <span>Model</span>
-          <Input
-            id="desktop-provider-model"
-            onChange={(event) => onProviderModelChange(event.target.value)}
-            placeholder="llama3.1"
-            type="text"
-            value={providerModel}
-          />
-        </label>
-
-        <label className="provider-field" htmlFor="desktop-provider-api-key">
-          <span>
-            API key
-            {providerConfig?.apiKeyConfigured ? ' saved' : ''}
-          </span>
-          <Input
-            id="desktop-provider-api-key"
-            onChange={(event) => onProviderApiKeyChange(event.target.value)}
-            placeholder={
-              providerConfig?.apiKeyConfigured
-                ? 'Leave blank to keep saved key'
-                : 'Optional for local providers'
-            }
-            type="password"
-            value={providerApiKey}
-          />
-        </label>
-
-        <div className="provider-actions">
-          <Button
-            className="small"
-            disabled={isSavingProvider}
-            onClick={() => void onSaveProvider()}
-            type="button"
-            variant={ButtonVariant.GHOST}
-          >
-            {isSavingProvider ? 'Saving…' : 'Save'}
-          </Button>
-          <Button
-            className="small"
-            disabled={isTestingProvider}
-            onClick={() => void onTestProvider()}
-            type="button"
-            variant={ButtonVariant.GHOST}
-          >
-            {isTestingProvider ? 'Testing…' : 'Test'}
-          </Button>
-          <Button
-            className="small"
-            onClick={() => void onClearProvider()}
-            type="button"
-            variant={ButtonVariant.GHOST}
-          >
-            Clear
-          </Button>
-        </div>
-
-        {providerStatus && (
-          <p className="muted-text provider-status">{providerStatus}</p>
-        )}
-      </div>
+      <LocalProviderSettingsPanel
+        isSavingProvider={isSavingProvider}
+        isTestingProvider={isTestingProvider}
+        onApplyProviderPreset={onApplyProviderPreset}
+        onClearProvider={onClearProvider}
+        onOpenProviderKeys={onOpenProviderKeys}
+        onProviderApiKeyChange={onProviderApiKeyChange}
+        onProviderBaseUrlChange={onProviderBaseUrlChange}
+        onProviderModelChange={onProviderModelChange}
+        onSaveProvider={onSaveProvider}
+        onTestProvider={onTestProvider}
+        providerApiKey={providerApiKey}
+        providerBaseUrl={providerBaseUrl}
+        providerConfig={providerConfig}
+        providerKind={providerKind}
+        providerModel={providerModel}
+        providerStatus={providerStatus}
+      />
     </aside>
   );
 }

@@ -23,14 +23,14 @@ import {
 export interface CrudModalOptions<T, Schema extends FieldValues> {
   entity: T | null;
   schema: StandardSchemaV1;
-  serviceFactory: (token: string) => BaseService<any>;
+  serviceFactory: (token: string) => BaseService<unknown, unknown, unknown>;
   modalId: ModalEnum;
   onConfirm: (isRefreshing?: boolean) => void;
   onClose?: () => void;
   defaultValues?: DefaultValues<Schema>;
-  transformSubmitData?: (formData: Schema) => any;
+  transformSubmitData?: (formData: Schema) => unknown;
   customSubmitHandler?: (
-    service: BaseService<any>,
+    service: BaseService<unknown, unknown, unknown>,
     entity: T | null,
     formData: Schema,
   ) => Promise<T>;
@@ -67,7 +67,7 @@ export function useCrudModal<
 
   const formRef = useFocusFirstInput<HTMLFormElement>();
 
-  const form = useForm<Schema, any, Schema>({
+  const form = useForm<Schema, unknown, Schema>({
     defaultValues: defaultValues as DefaultValues<Schema>,
     resolver: standardSchemaResolver(
       schema as StandardSchemaV1<Schema, unknown>,
@@ -123,9 +123,9 @@ export function useCrudModal<
       if (customSubmitHandler) {
         result = await customSubmitHandler(service, entity, formData);
       } else if (isUpdate) {
-        result = await service.patch(entity.id, submitData);
+        result = (await service.patch(entity.id, submitData)) as T;
       } else {
-        result = await service.post(submitData);
+        result = (await service.post(submitData)) as T;
       }
 
       logger.info(`${url} success`, result);

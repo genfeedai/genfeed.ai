@@ -35,6 +35,11 @@ const MissionControlView = lazy(() =>
     default: module.MissionControlView,
   })),
 );
+const SettingsView = lazy(() =>
+  import('./views/SettingsView').then((module) => ({
+    default: module.SettingsView,
+  })),
+);
 const TerminalView = lazy(() =>
   import('./views/TerminalView').then((module) => ({
     default: module.TerminalView,
@@ -116,6 +121,9 @@ function MainView({
       break;
     case 'mission-control':
       content = <MissionControlView onStartNewThread={onNewThread} />;
+      break;
+    case 'settings':
+      content = <SettingsView />;
       break;
     case 'analytics':
       content = (

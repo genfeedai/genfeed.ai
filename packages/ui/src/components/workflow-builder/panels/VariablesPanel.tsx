@@ -53,17 +53,12 @@ function VariableItem({ variable, onUpdate, onDelete }: VariableItemProps) {
 
   return (
     <div className=" border border-white/[0.08] bg-card">
-      <div
-        role="button"
-        tabIndex={0}
+      <Button
         className="flex cursor-pointer items-center gap-2 p-3"
         onClick={() => setIsExpanded(!isExpanded)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            setIsExpanded(!isExpanded);
-          }
-        }}
+        type="button"
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
       >
         <HiOutlineVariable className="size-4 text-primary" />
         <span className="flex-1 font-medium text-sm">{variable.label}</span>
@@ -75,7 +70,7 @@ function VariableItem({ variable, onUpdate, onDelete }: VariableItemProps) {
         ) : (
           <HiOutlineChevronDown className="size-4" />
         )}
-      </div>
+      </Button>
 
       {isExpanded && (
         <div className="border-t border-white/[0.08] p-3 space-y-3">
@@ -194,17 +189,12 @@ export default function VariablesPanel({
   return (
     <div className="flex flex-col">
       {/* Header */}
-      <div
-        role="button"
-        tabIndex={0}
+      <Button
         className="flex cursor-pointer items-center justify-between border-b border-white/[0.08] px-4 py-3"
         onClick={onToggleCollapse}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            onToggleCollapse?.();
-          }
-        }}
+        type="button"
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
       >
         <span className="font-semibold text-sm">Input Variables</span>
         <div className="flex items-center gap-2">
@@ -217,7 +207,7 @@ export default function VariablesPanel({
             <HiOutlineChevronUp className="size-4" />
           )}
         </div>
-      </div>
+      </Button>
 
       {!isCollapsed && (
         <div className="p-4 space-y-3">

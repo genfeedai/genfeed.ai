@@ -49,6 +49,10 @@ const ASSET_CATEGORIES = [
   ModelCategory.MUSIC,
 ];
 
+type PresetWithLegacyBlacklist = IPreset & {
+  blacklist?: Array<string | undefined>;
+};
+
 function getPresetGroup(preset: IPreset): string {
   if (preset.platform && SOCIAL_PLATFORMS.includes(preset.platform)) {
     return 'socials';
@@ -149,7 +153,8 @@ const PromptBarMetadataSelectors = memo(function PromptBarMetadataSelectors({
               }
 
               const presetBlacklist =
-                preset.blacklists || (preset as any).blacklist;
+                preset.blacklists ||
+                (preset as PresetWithLegacyBlacklist).blacklist;
               if (presetBlacklist?.length) {
                 const blacklist = [...presetBlacklist].filter(
                   (key): key is string => key !== undefined,

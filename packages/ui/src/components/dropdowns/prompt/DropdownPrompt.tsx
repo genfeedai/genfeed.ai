@@ -173,21 +173,16 @@ export default function DropdownPrompt({
 
             {/* Prompt Text */}
             <div className="p-4">
-              <div
-                role="button"
-                tabIndex={0}
+              <Button
                 onClick={handlePromptTextClick}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    handleCopyPrompt();
-                  }
-                }}
                 className="text-sm text-foreground cursor-pointer hover:bg-background p-3 transition-colors select-all"
                 title="Click to copy"
+                type="button"
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
               >
                 {promptText}
-              </div>
+              </Button>
             </div>
           </div>,
           document.body,

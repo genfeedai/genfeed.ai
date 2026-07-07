@@ -20,10 +20,8 @@ const LINK_TYPE_PATTERNS: Array<{ pattern: string; type: string }> = [
 ];
 
 const logInvalidUrl = (error: unknown, url: string) => {
-  if (process.env.NODE_ENV === 'production') {
-    return;
-  }
-  console.error('Invalid URL for UTM tracking', { error, url });
+  void error;
+  void url;
 };
 
 export function getLinkType(url: string): string {

@@ -1,9 +1,11 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import type { BrandDetailLatestImagesProps } from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import Card from '@ui/card/Card';
 import { LazyMasonryImage } from '@ui/lazy/masonry/LazyMasonry';
+import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 
 export default function BrandDetailLatestImages({
@@ -13,12 +15,16 @@ export default function BrandDetailLatestImages({
     <Card>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold">Latest Images</h2>
-        <Link
-          href={`${EnvironmentService.apps.app}/library/ingredients`}
+        <Button
+          asChild
           className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-xs font-medium transition-all duration-300 bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80 h-8 px-3"
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
         >
-          View All
-        </Link>
+          <Link href={`${EnvironmentService.apps.app}/library/ingredients`}>
+            View All
+          </Link>
+        </Button>
       </div>
 
       {images && images.length > 0 ? (
@@ -33,12 +39,16 @@ export default function BrandDetailLatestImages({
           ))}
         </div>
       ) : (
-        <Link
-          href={`${EnvironmentService.apps.app}/studio/image`}
+        <Button
+          asChild
           className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all duration-300 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2"
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
         >
-          Create an Image
-        </Link>
+          <Link href={`${EnvironmentService.apps.app}/studio/image`}>
+            Create an Image
+          </Link>
+        </Button>
       )}
     </Card>
   );

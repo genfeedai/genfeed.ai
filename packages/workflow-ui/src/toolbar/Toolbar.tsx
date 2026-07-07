@@ -23,6 +23,7 @@ import {
   useState,
 } from 'react';
 import { useExecutionStore } from '../stores/execution';
+import { getWorkflowLogger } from '../stores/executionLogger';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useUIStore } from '../stores/uiStore';
 import { useWorkflowStore } from '../stores/workflow';
@@ -282,13 +283,17 @@ export function Toolbar({
           const data = JSON.parse(event.target?.result as string);
 
           if (!isValidWorkflow(data)) {
-            console.warn('[Toolbar] Invalid workflow file structure');
+            getWorkflowLogger().error(
+              '[Toolbar] Invalid workflow file structure',
+            );
             return;
           }
 
           useWorkflowStore.getState().loadWorkflow(data);
-        } catch {
-          console.warn('[Toolbar] Failed to parse workflow file');
+        } catch (error) {
+          getWorkflowLogger().error('[Toolbar] Failed to parse workflow file', {
+            error,
+          });
         }
       };
       reader.readAsText(file);

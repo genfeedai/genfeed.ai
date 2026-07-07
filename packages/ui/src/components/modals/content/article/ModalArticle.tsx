@@ -199,7 +199,9 @@ export default function ModalArticle({
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
-    form.setValue(name as any, value, { shouldValidate: true });
+    form.setValue(name as Parameters<typeof form.setValue>[0], value, {
+      shouldValidate: true,
+    });
   };
 
   const count = form.watch('count');

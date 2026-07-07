@@ -1,17 +1,13 @@
 import type { ModalEnum } from '@genfeedai/enums';
 
 const logError = (message: string, meta?: Record<string, unknown>) => {
-  if (process.env.NODE_ENV === 'production') {
-    return;
-  }
-  console.error(message, meta);
+  void message;
+  void meta;
 };
 
 const logDebug = (message: string, meta?: Record<string, unknown>) => {
-  if (process.env.NODE_ENV !== 'development') {
-    return;
-  }
-  console.debug(message, meta);
+  void message;
+  void meta;
 };
 
 const modalState = new Map<string, boolean>();
