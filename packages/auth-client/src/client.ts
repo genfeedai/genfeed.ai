@@ -27,7 +27,15 @@ export const authClient = createAuthClient({
   plugins: [magicLinkClient(), jwtClient()],
 });
 
-export const { getSession, signIn, signOut, signUp, useSession } = authClient;
+export const {
+  getSession,
+  requestPasswordReset,
+  resetPassword,
+  signIn,
+  signOut,
+  signUp,
+  useSession,
+} = authClient;
 
 function extractBetterAuthToken(response: unknown): string | null {
   if (!response || typeof response !== 'object') {

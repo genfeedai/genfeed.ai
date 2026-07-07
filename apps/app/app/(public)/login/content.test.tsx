@@ -202,4 +202,21 @@ describe('LoginPage', () => {
       });
     });
   });
+
+  it('links password sign-in users to forgot password with callbackUrl preserved', () => {
+    window.history.replaceState(
+      {},
+      '',
+      '/login/password?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321',
+    );
+
+    render(<LoginBetterAuth mode="password" />);
+
+    expect(
+      screen.getByRole('link', { name: 'Forgot password?' }),
+    ).toHaveAttribute(
+      'href',
+      '/forgot-password?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321',
+    );
+  });
 });

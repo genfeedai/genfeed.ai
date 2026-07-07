@@ -458,8 +458,11 @@ describe('createBetterAuthInstance source', () => {
     expect(source).toContain('google');
     expect(source).toContain('requireEmailVerification');
     expect(source).toContain('sendVerificationEmail');
+    expect(source).toContain('sendResetPassword');
+    expect(source).toContain('revokeSessionsOnPasswordReset');
     expect(source).toContain('accountLinking');
     expect(source).toContain('trustedProviders');
     expect(source).toContain('enabled: true');
+    expect(source).toContain('rateLimit');
   });
 });
