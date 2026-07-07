@@ -195,6 +195,12 @@ interface RelocationReconcileResult {
   membersSevered: number;
 }
 
+export interface BrandRelocationMovingResource {
+  resource: string;
+  label: string;
+  count: number;
+}
+
 /** Server-authoritative summary of a completed (or no-op) brand relocation. */
 export interface BrandRelocationSummary {
   workflowsMoved: number;
@@ -218,6 +224,7 @@ export interface BrandRelocationPreview {
     sharedWorkflows: number;
     staleMembers: number;
   };
+  movingResources: BrandRelocationMovingResource[];
   /** Always null after workflow brand ownership became one-to-one. */
   ackToken: string | null;
 }
@@ -228,6 +235,145 @@ const EMPTY_RELOCATION_SUMMARY: BrandRelocationSummary = {
   workflowsClonedPaused: 0,
   membersSevered: 0,
   schedulingPending: 0,
+};
+
+const RELOCATION_RESOURCE_LABELS: Record<
+  string,
+  { singular: string; plural: string }
+> = {
+  adBulkUploadJob: {
+    singular: 'ad bulk upload job',
+    plural: 'ad bulk upload jobs',
+  },
+  adCreativeMapping: {
+    singular: 'ad creative mapping',
+    plural: 'ad creative mappings',
+  },
+  adPerformance: {
+    singular: 'ad performance record',
+    plural: 'ad performance records',
+  },
+  activity: { singular: 'activity', plural: 'activities' },
+  agentCampaign: { singular: 'agent campaign', plural: 'agent campaigns' },
+  agentGoal: { singular: 'agent goal', plural: 'agent goals' },
+  agentMemory: { singular: 'agent memory', plural: 'agent memories' },
+  agentMessage: { singular: 'agent message', plural: 'agent messages' },
+  agentStrategy: { singular: 'agent strategy', plural: 'agent strategies' },
+  agentStrategyOpportunity: {
+    singular: 'agent strategy opportunity',
+    plural: 'agent strategy opportunities',
+  },
+  agentStrategyReport: {
+    singular: 'agent strategy report',
+    plural: 'agent strategy reports',
+  },
+  articleAnalytics: {
+    singular: 'article analytics record',
+    plural: 'article analytics records',
+  },
+  article: { singular: 'article', plural: 'articles' },
+  asset: { singular: 'asset', plural: 'assets' },
+  batchWorkflowJob: {
+    singular: 'batch workflow job',
+    plural: 'batch workflow jobs',
+  },
+  batch: { singular: 'batch', plural: 'batches' },
+  bookmark: { singular: 'bookmark', plural: 'bookmarks' },
+  botActivity: { singular: 'bot activity', plural: 'bot activities' },
+  bot: { singular: 'bot', plural: 'bots' },
+  brandInterview: {
+    singular: 'brand interview',
+    plural: 'brand interviews',
+  },
+  brandMemory: { singular: 'brand memory', plural: 'brand memories' },
+  campaignTarget: { singular: 'campaign target', plural: 'campaign targets' },
+  caption: { singular: 'caption', plural: 'captions' },
+  clipProject: { singular: 'clip project', plural: 'clip projects' },
+  contentPerformance: {
+    singular: 'content performance record',
+    plural: 'content performance records',
+  },
+  contentDraft: { singular: 'content draft', plural: 'content drafts' },
+  contentPlan: { singular: 'content plan', plural: 'content plans' },
+  contentPlanItem: {
+    singular: 'content plan item',
+    plural: 'content plan items',
+  },
+  contentRun: { singular: 'content run', plural: 'content runs' },
+  contextBase: { singular: 'context base', plural: 'context bases' },
+  contextEntry: { singular: 'context entry', plural: 'context entries' },
+  credential: { singular: 'credential', plural: 'credentials' },
+  creativePattern: {
+    singular: 'creative pattern',
+    plural: 'creative patterns',
+  },
+  distribution: { singular: 'distribution', plural: 'distributions' },
+  editorProject: {
+    singular: 'editor project',
+    plural: 'editor projects',
+  },
+  folder: { singular: 'folder', plural: 'folders' },
+  ingredient: { singular: 'ingredient', plural: 'ingredients' },
+  lead: { singular: 'lead', plural: 'leads' },
+  model: { singular: 'model', plural: 'models' },
+  monitoredAccount: {
+    singular: 'monitored account',
+    plural: 'monitored accounts',
+  },
+  moodBoard: { singular: 'mood board', plural: 'mood boards' },
+  newsletter: { singular: 'newsletter', plural: 'newsletters' },
+  outreachCampaign: {
+    singular: 'outreach campaign',
+    plural: 'outreach campaigns',
+  },
+  persona: { singular: 'persona', plural: 'personas' },
+  post: { singular: 'post', plural: 'posts' },
+  postAnalytics: {
+    singular: 'post analytics record',
+    plural: 'post analytics records',
+  },
+  preset: { singular: 'preset', plural: 'presets' },
+  processedTweet: {
+    singular: 'processed tweet',
+    plural: 'processed tweets',
+  },
+  prompt: { singular: 'prompt', plural: 'prompts' },
+  replyBotConfig: {
+    singular: 'reply bot config',
+    plural: 'reply bot configs',
+  },
+  run: { singular: 'run', plural: 'runs' },
+  schedule: { singular: 'schedule', plural: 'schedules' },
+  socialConversation: {
+    singular: 'social conversation',
+    plural: 'social conversations',
+  },
+  socialMessage: { singular: 'social message', plural: 'social messages' },
+  tag: { singular: 'tag', plural: 'tags' },
+  task: { singular: 'task', plural: 'tasks' },
+  taskComment: { singular: 'task comment', plural: 'task comments' },
+  training: { singular: 'training', plural: 'trainings' },
+  trackedLink: { singular: 'tracked link', plural: 'tracked links' },
+  transcript: { singular: 'transcript', plural: 'transcripts' },
+  trend: { singular: 'trend', plural: 'trends' },
+  trendPreferences: {
+    singular: 'trend preference',
+    plural: 'trend preferences',
+  },
+  trendRemixLineage: {
+    singular: 'trend remix lineage',
+    plural: 'trend remix lineages',
+  },
+  warmupAccount: {
+    singular: 'warmup account',
+    plural: 'warmup accounts',
+  },
+  watchlist: { singular: 'watchlist', plural: 'watchlists' },
+  workflowExecution: {
+    singular: 'workflow execution',
+    plural: 'workflow executions',
+  },
+  workflow: { singular: 'workflow', plural: 'workflows' },
 };
 
 @Injectable()
@@ -1804,6 +1950,11 @@ Respond ONLY with the JSON array.`;
       brandId,
       destOrgId,
     );
+    const movingResources = await this.countRelocationMovingResources(
+      this.prisma as unknown as Prisma.TransactionClient,
+      brandId,
+      destOrgId,
+    );
 
     return {
       ackToken: null,
@@ -1812,7 +1963,91 @@ Respond ONLY with the JSON array.`;
         soleBrandWorkflows: impact.soleBrandWorkflowIds.length,
         staleMembers: impact.staleMemberIds.length,
       },
+      movingResources,
     };
+  }
+
+  private async countRelocationMovingResources(
+    client: Prisma.TransactionClient,
+    brandId: string,
+    destOrgId: string,
+  ): Promise<BrandRelocationMovingResource[]> {
+    const delegateClient = client as unknown as Record<string, CascadeDelegate>;
+    const firstOrderResources = await Promise.all(
+      FIRST_ORDER_TARGETS.map(async (target) => {
+        const count = await delegateClient[target.delegate].count({
+          where: {
+            [target.brandField]: brandId,
+            [target.orgField]: { not: destOrgId },
+          },
+        });
+        return this.toMovingResource(target.delegate, count);
+      }),
+    );
+
+    const secondOrderResources = await Promise.all(
+      SECOND_ORDER_TARGETS.map(async (child) => {
+        const orClauses: Record<string, unknown>[] = [];
+        await Promise.all(
+          child.parents.map(async (parent) => {
+            const parentRows = await delegateClient[
+              parent.parentDelegate
+            ].findMany({
+              select: { id: true },
+              where: { [parent.parentBrandField]: brandId },
+            });
+            if (parentRows.length > 0) {
+              orClauses.push({
+                [parent.fkField]: { in: parentRows.map((row) => row.id) },
+              });
+            }
+          }),
+        );
+        if (orClauses.length === 0) {
+          return null;
+        }
+
+        const count = await delegateClient[child.delegate].count({
+          where: {
+            OR: orClauses,
+            [child.orgField]: { not: destOrgId },
+          },
+        });
+        return this.toMovingResource(child.delegate, count);
+      }),
+    );
+
+    return [...firstOrderResources, ...secondOrderResources].filter(
+      (resource): resource is BrandRelocationMovingResource =>
+        resource !== null,
+    );
+  }
+
+  private toMovingResource(
+    resource: string,
+    count: number,
+  ): BrandRelocationMovingResource | null {
+    if (count <= 0) {
+      return null;
+    }
+    return {
+      count,
+      label: this.formatRelocationResourceLabel(resource, count),
+      resource,
+    };
+  }
+
+  private formatRelocationResourceLabel(
+    resource: string,
+    count: number,
+  ): string {
+    const labels = RELOCATION_RESOURCE_LABELS[resource];
+    if (labels) {
+      return count === 1 ? labels.singular : labels.plural;
+    }
+
+    const words = resource.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
+    return `${words} ${count === 1 ? 'record' : 'records'}`;
   }
 
   /**
