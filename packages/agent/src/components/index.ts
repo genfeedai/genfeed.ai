@@ -21,6 +21,7 @@ export { AgentThreadList } from '@genfeedai/agent/components/AgentThreadList';
 export { AgentToolCallDisplay } from '@genfeedai/agent/components/AgentToolCallDisplay';
 export {
   CompositeLayout,
+  DashboardOpenUIRenderer,
   DynamicBlockGrid,
   DynamicChart,
   DynamicTable,

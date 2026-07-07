@@ -170,10 +170,16 @@ vi.mock('@genfeedai/agent/hooks/use-agent-dashboard-persistence', () => ({
 }));
 
 vi.mock('@genfeedai/agent/components/blocks', () => ({
+  DashboardOpenUIRenderer: () => (
+    <div data-testid="dashboard-openui-renderer" />
+  ),
   DynamicBlockGrid: () => <div data-testid="dynamic-block-grid" />,
 }));
 
 vi.mock('@genfeedai/agent', () => ({
+  DashboardOpenUIRenderer: () => (
+    <div data-testid="dashboard-openui-renderer" />
+  ),
   DynamicBlockGrid: () => <div data-testid="dynamic-block-grid" />,
   useAgentDashboardStore: (
     selector: (state: typeof mockAnalyticsStore) => unknown,

@@ -6,10 +6,6 @@ import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { applyDashboardOperation } from '@genfeedai/agent/utils/apply-dashboard-operation';
 import { mapToolCallResponse } from '@genfeedai/agent/utils/map-tool-call-response';
 import { AgentThreadStatus } from '@genfeedai/enums';
-import type {
-  AgentDashboardOperation,
-  AgentUIBlock,
-} from '@genfeedai/interfaces';
 import type { ChatAttachment } from '@genfeedai/props/ui/attachments.props';
 import { useCallback, useRef } from 'react';
 
@@ -133,11 +129,27 @@ export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
         );
 
         const metadata = response.message.metadata;
-        if (metadata?.uiBlocks && metadata?.dashboardOperation) {
+        const uiBlocksState =
+          metadata?.uiBlocks &&
+          typeof metadata.uiBlocks === 'object' &&
+          !Array.isArray(metadata.uiBlocks)
+            ? (metadata.uiBlocks as Record<string, unknown>)
+            : null;
+        const dashboardOperation =
+          typeof metadata?.dashboardOperation === 'string'
+            ? metadata.dashboardOperation
+            : typeof uiBlocksState?.operation === 'string'
+              ? uiBlocksState.operation
+              : undefined;
+        const dashboardPayload =
+          uiBlocksState?.blocks ??
+          (uiBlocksState?.components ? uiBlocksState : metadata?.uiBlocks);
+
+        if (dashboardOperation && metadata?.uiBlocks) {
           applyDashboardOperation(
-            metadata.dashboardOperation as AgentDashboardOperation,
-            metadata.uiBlocks as AgentUIBlock[],
-            metadata.blockIds as string[] | undefined,
+            dashboardOperation,
+            dashboardPayload,
+            uiBlocksState?.blockIds ?? metadata.blockIds,
           );
         }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { DynamicBlockGrid } from '@genfeedai/agent/components/blocks';
+import { DashboardOpenUIRenderer } from '@genfeedai/agent/components/blocks';
 import { useAgentDashboardPersistence } from '@genfeedai/agent/hooks/use-agent-dashboard-persistence';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type {
@@ -81,7 +81,7 @@ export default function AnalyticsAgentDashboard({
           Reset to defaults
         </Button>
       </div>
-      <DynamicBlockGrid blocks={agentBlocks} />
+      <DashboardOpenUIRenderer blocks={agentBlocks} />
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { parseAgentDashboardBlocks } from '@genfeedai/agent/dashboard/dashboard-openui';
 import type { AgentUIBlock } from '@genfeedai/interfaces';
 import { create } from 'zustand';
 
@@ -6,6 +7,30 @@ export const AGENT_DASHBOARD_STORAGE_KEY = 'genfeed-agent-dashboard-blocks';
 export interface StoredDashboardState {
   blocks: AgentUIBlock[];
   isAgentModified: boolean;
+}
+
+const initialState: StoredDashboardState = {
+  blocks: [],
+  isAgentModified: false,
+};
+
+function isStoredDashboardState(value: unknown): value is {
+  blocks?: unknown;
+  isAgentModified?: unknown;
+} {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function normalizeStoredDashboardState(value: unknown): StoredDashboardState {
+  if (!isStoredDashboardState(value)) {
+    return initialState;
+  }
+
+  const parsed = parseAgentDashboardBlocks(value.blocks ?? []);
+  return {
+    blocks: parsed.blocks,
+    isAgentModified: parsed.ok ? value.isAgentModified === true : true,
+  };
 }
 
 function getStoredDashboardState(): StoredDashboardState {
@@ -17,7 +42,7 @@ function getStoredDashboardState(): StoredDashboardState {
     if (!stored) {
       return { blocks: [], isAgentModified: false };
     }
-    return JSON.parse(stored) as StoredDashboardState;
+    return normalizeStoredDashboardState(JSON.parse(stored) as unknown);
   } catch {
     return { blocks: [], isAgentModified: false };
   }
@@ -53,15 +78,10 @@ interface AgentDashboardActions {
 
 export type AgentDashboardStore = AgentDashboardState & AgentDashboardActions;
 
-const initialState: StoredDashboardState = {
-  blocks: [],
-  isAgentModified: false,
-};
-
 export const useAgentDashboardStore = create<AgentDashboardStore>((set) => ({
   addBlock: (block, index?) =>
     set((state) => {
-      const blocks =
+      const rawBlocks =
         index !== undefined
           ? [
               ...state.blocks.slice(0, index),
@@ -69,7 +89,8 @@ export const useAgentDashboardStore = create<AgentDashboardStore>((set) => ({
               ...state.blocks.slice(index),
             ]
           : [...state.blocks, block];
-      const next = { blocks, isAgentModified: true };
+      const parsed = parseAgentDashboardBlocks(rawBlocks);
+      const next = { blocks: parsed.blocks, isAgentModified: true };
       persistDashboardState(next);
       return next;
     }),
@@ -83,10 +104,7 @@ export const useAgentDashboardStore = create<AgentDashboardStore>((set) => ({
 
   getLocalSnapshot: () => getStoredDashboardState(),
   hydrateState: (state) => {
-    const next = {
-      blocks: state.blocks,
-      isAgentModified: state.isAgentModified,
-    };
+    const next = normalizeStoredDashboardState(state);
     persistDashboardState(next);
     set(next);
   },
@@ -122,17 +140,22 @@ export const useAgentDashboardStore = create<AgentDashboardStore>((set) => ({
   },
 
   setBlocks: (blocks) => {
-    const next = { blocks, isAgentModified: true };
+    const parsed = parseAgentDashboardBlocks(blocks);
+    const next = { blocks: parsed.blocks, isAgentModified: true };
     persistDashboardState(next);
     set(next);
   },
 
   updateBlock: (id, partial) =>
     set((state) => {
-      const blocks = state.blocks.map((b) =>
+      const rawBlocks = state.blocks.map((b) =>
         b.id === id ? ({ ...b, ...partial } as AgentUIBlock) : b,
       );
-      const next = { blocks, isAgentModified: state.isAgentModified };
+      const parsed = parseAgentDashboardBlocks(rawBlocks);
+      const next = {
+        blocks: parsed.blocks,
+        isAgentModified: parsed.ok ? state.isAgentModified : true,
+      };
       persistDashboardState(next);
       return next;
     }),
