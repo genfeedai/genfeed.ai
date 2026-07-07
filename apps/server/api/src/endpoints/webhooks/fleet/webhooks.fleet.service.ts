@@ -305,7 +305,8 @@ export class FleetWebhookService {
     return (
       this.readString(payload.handle) ??
       this.readString(payload.ingredientId) ??
-      this.readString(payload.assetId)
+      this.readString(payload.assetId) ??
+      null
     );
   }
 

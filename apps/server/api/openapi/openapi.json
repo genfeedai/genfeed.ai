@@ -49581,6 +49581,21 @@
         ]
       }
     },
+    "/webhooks/fleet/voice-clone": {
+      "post": {
+        "operationId": "FleetWebhookController.handleVoiceCloneCompletion",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "handleVoiceCloneCompletion",
+        "tags": [
+          "webhooks/fleet"
+        ]
+      }
+    },
     "/webhooks/heygen/callback": {
       "post": {
         "operationId": "HeygenWebhookController.handleCallback",
