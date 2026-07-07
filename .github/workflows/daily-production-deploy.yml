@@ -11,11 +11,12 @@ name: Daily Production Deploy
 # editing or removing this file.
 
 on:
-  # GitHub cron is UTC. Europe/Malta is UTC+2 during CEST and UTC+1 during CET,
-  # so both UTC hours are scheduled and the first step keeps only 02:00 local.
+  # Run once daily at 02:17 Europe/Malta. The :17 offset avoids GitHub Actions'
+  # top-of-hour schedule backlog, and the explicit timezone keeps CET/CEST
+  # transitions out of repo-local shell guards.
   schedule:
-    - cron: "0 0 * * *"
-    - cron: "0 1 * * *"
+    - cron: "17 2 * * *"
+      timezone: "Europe/Malta"
   workflow_dispatch:
 
 concurrency:
@@ -67,28 +68,8 @@ jobs:
           echo "should_continue=true" >> "$GITHUB_OUTPUT"
           echo "skipped_reason=" >> "$GITHUB_OUTPUT"
 
-      - name: Guard 02:00 Europe/Malta
-        id: time_guard
-        if: steps.enabled_guard.outputs.should_continue == 'true'
-        run: |
-          set -euo pipefail
-
-          local_hour="$(TZ=Europe/Malta date +%H)"
-          local_time="$(TZ=Europe/Malta date '+%Y-%m-%d %H:%M:%S %Z')"
-          echo "local_hour=${local_hour}" >> "$GITHUB_OUTPUT"
-          echo "local_time=${local_time}" >> "$GITHUB_OUTPUT"
-
-          if [ "${GITHUB_EVENT_NAME}" = "schedule" ] && [ "${local_hour}" != "02" ]; then
-            echo "should_continue=false" >> "$GITHUB_OUTPUT"
-            echo "skipped_reason=Scheduled UTC twin no-op: Europe/Malta local hour is ${local_hour}, not 02." >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          echo "should_continue=true" >> "$GITHUB_OUTPUT"
-          echo "skipped_reason=" >> "$GITHUB_OUTPUT"
-
       - name: Checkout master
-        if: steps.enabled_guard.outputs.should_continue == 'true' && steps.time_guard.outputs.should_continue == 'true'
+        if: steps.enabled_guard.outputs.should_continue == 'true'
         uses: actions/checkout@v5
         with:
           ref: master
@@ -96,7 +77,7 @@ jobs:
 
       - name: Resolve origin/master
         id: master
-        if: steps.enabled_guard.outputs.should_continue == 'true' && steps.time_guard.outputs.should_continue == 'true'
+        if: steps.enabled_guard.outputs.should_continue == 'true'
         run: |
           set -euo pipefail
           git fetch --no-tags origin master
@@ -109,10 +90,9 @@ jobs:
         id: preflight
         uses: actions/github-script@v8
         env:
-          SHOULD_CONTINUE: ${{ steps.enabled_guard.outputs.should_continue == 'true' && steps.time_guard.outputs.should_continue || 'false' }}
-          TIME_SKIPPED_REASON: ${{ steps.enabled_guard.outputs.skipped_reason || steps.time_guard.outputs.skipped_reason }}
+          SHOULD_CONTINUE: ${{ steps.enabled_guard.outputs.should_continue }}
+          PRECHECK_SKIPPED_REASON: ${{ steps.enabled_guard.outputs.skipped_reason }}
           MASTER_SHA: ${{ steps.master.outputs.sha }}
-          LOCAL_TIME: ${{ steps.time_guard.outputs.local_time }}
         with:
           script: |
             const owner = context.repo.owner;
@@ -226,7 +206,7 @@ jobs:
 
             try {
               if (process.env.SHOULD_CONTINUE !== 'true') {
-                skip(process.env.TIME_SKIPPED_REASON || 'Scheduled UTC twin no-op.');
+                skip(process.env.PRECHECK_SKIPPED_REASON || 'Daily production deploy precheck skipped.');
                 return;
               }
 
