@@ -8459,7 +8459,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "type": "array"
         },
         "relocationAck": {
-          "description": "Server-verified confirmation token from GET /brands/:id/relocation-preview, required whenever the relocation would clone shared workflows into the destination organization. A stale or missing token is rejected with 409 so a client cannot bypass the consent modal or move against an outdated preview.",
+          "description": "Deprecated compatibility field from the former shared-workflow relocation confirmation flow. Workflows are now scoped to one brand and move with it, so the server ignores this value.",
           "type": "string"
         },
         "scope": {
@@ -43082,6 +43082,10 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "name": "workflow_crud__clone_workflow",
     "parameters": {
       "properties": {
+        "brandId": {
+          "description": "Target brand ID for the duplicated workflow. Defaults to the current selected brand.",
+          "type": "string"
+        },
         "workflowId": {
           "type": "string"
         }
@@ -43108,9 +43112,16 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "name": "workflow_crud__create",
     "parameters": {
       "properties": {
-        "_id": {
-          "description": "The unique identifier of the document",
+        "brandId": {
+          "description": "Brand ID this workflow is scoped to",
           "type": "string"
+        },
+        "brands": {
+          "description": "Deprecated legacy brand IDs input. Only the first brand ID is used.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
         },
         "completedAt": {
           "description": "Workflow completion timestamp",
@@ -43118,7 +43129,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "type": "string"
         },
         "description": {
-          "description": "Optional detailed description of the resource",
+          "description": "Optional detailed description of the workflow",
           "type": "string"
         },
         "edges": {
@@ -43249,7 +43260,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "type": "boolean"
         },
         "label": {
-          "description": "The display label/name of the resource",
+          "description": "The display label/name of the workflow",
           "type": "string"
         },
         "lastExecutedAt": {
@@ -43335,7 +43346,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "type": "array"
         },
         "organization": {
-          "description": "The organization ID that owns this resource",
+          "description": "The organization ID that owns this resource. Server-owned.",
           "type": "string"
         },
         "progress": {
@@ -43519,14 +43530,12 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "description": "When the workflow should trigger"
         },
         "user": {
-          "description": "The user ID who created this resource",
+          "description": "The user ID who created this resource. Server-owned.",
           "type": "string"
         }
       },
       "required": [
-        "label",
-        "organization",
-        "user"
+        "label"
       ],
       "type": "object"
     },
@@ -43708,9 +43717,16 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "name": "workflow_crud__update",
     "parameters": {
       "properties": {
-        "_id": {
-          "description": "The unique identifier of the document",
+        "brandId": {
+          "description": "Brand ID this workflow is scoped to",
           "type": "string"
+        },
+        "brands": {
+          "description": "Deprecated legacy brand IDs input. Only the first brand ID is used.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
         },
         "completedAt": {
           "description": "Workflow completion timestamp",
@@ -43718,7 +43734,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "type": "string"
         },
         "description": {
-          "description": "Optional detailed description of the resource",
+          "description": "Optional detailed description of the workflow",
           "type": "string"
         },
         "edges": {
@@ -43849,7 +43865,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "type": "boolean"
         },
         "label": {
-          "description": "The display label/name of the resource",
+          "description": "The display label/name of the workflow",
           "type": "string"
         },
         "lastExecutedAt": {
@@ -43949,7 +43965,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "type": "array"
         },
         "organization": {
-          "description": "The organization ID that owns this resource",
+          "description": "The organization ID that owns this resource. Server-owned.",
           "type": "string"
         },
         "progress": {
@@ -44133,7 +44149,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "description": "When the workflow should trigger"
         },
         "user": {
-          "description": "The user ID who created this resource",
+          "description": "The user ID who created this resource. Server-owned.",
           "type": "string"
         },
         "workflowId": {

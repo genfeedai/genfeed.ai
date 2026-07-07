@@ -1,5 +1,8 @@
 {
   "scope": "full",
+  "supplyChain": {
+    "severity": "warning"
+  },
   "ignore": {
     "files": [
       "**/dist/**",

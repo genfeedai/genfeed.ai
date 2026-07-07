@@ -15067,9 +15067,11 @@ export const GENERATED_MCP_OPERATIONS: IGeneratedMcpOperationBinding[] = [
     "toolName": "workflow_builder__validate_workflow_reference"
   },
   {
-    "bodyFields": [],
+    "bodyFields": [
+      "brandId"
+    ],
     "bodyRequired": false,
-    "bodyStyle": "none",
+    "bodyStyle": "properties",
     "method": "post",
     "operationId": "WorkflowCrudController.cloneWorkflow",
     "path": "/workflows/{workflowId}/clone",
@@ -15081,7 +15083,8 @@ export const GENERATED_MCP_OPERATIONS: IGeneratedMcpOperationBinding[] = [
   },
   {
     "bodyFields": [
-      "_id",
+      "brandId",
+      "brands",
       "completedAt",
       "description",
       "edges",
@@ -15193,7 +15196,8 @@ export const GENERATED_MCP_OPERATIONS: IGeneratedMcpOperationBinding[] = [
   },
   {
     "bodyFields": [
-      "_id",
+      "brandId",
+      "brands",
       "completedAt",
       "description",
       "edges",

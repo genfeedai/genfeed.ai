@@ -25,6 +25,7 @@ import {
   WorkflowExecutionTrigger,
   WorkflowLifecycle,
   WorkflowStatus,
+  WorkflowStepCategory,
   WorkflowStepStatus,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
