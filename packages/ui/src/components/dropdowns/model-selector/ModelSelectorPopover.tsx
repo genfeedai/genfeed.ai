@@ -466,20 +466,15 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                           isAutoSelected && 'bg-primary/10',
                         )}
                       >
-                        <div
-                          role="button"
-                          tabIndex={0}
+                        <Button
                           onClick={() => handleToggle(AUTO_MODEL_OPTION_VALUE)}
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter' || event.key === ' ') {
-                              event.preventDefault();
-                              handleToggle(AUTO_MODEL_OPTION_VALUE);
-                            }
-                          }}
                           className={cn(
                             'flex w-full items-center gap-2.5 rounded px-3 py-3 text-left transition-colors',
                             'hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20',
                           )}
+                          type="button"
+                          variant={ButtonVariant.UNSTYLED}
+                          withWrapper={false}
                         >
                           <div
                             className={cn(
@@ -502,7 +497,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                               Optimize for {AUTO_PRIORITY_LABELS[prioritize]}
                             </div>
                           </div>
-                        </div>
+                        </Button>
                       </div>
 
                       {isAutoSelected && onPrioritizeChange && (

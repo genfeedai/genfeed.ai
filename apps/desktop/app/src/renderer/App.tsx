@@ -3,6 +3,7 @@ import type {
   IDesktopSession,
   IDesktopTrendHandoff,
 } from '@genfeedai/desktop-contracts';
+import * as Sentry from '@sentry/browser';
 import { startTransition, useCallback, useEffect, useReducer } from 'react';
 import { AuthScreen } from './auth/AuthScreen';
 import OnboardingWizard from './components/OnboardingWizard';
@@ -186,7 +187,7 @@ export const App = () => {
       const data = await window.genfeedDesktop.app.getBootstrap();
       dispatch({ type: 'SET_BOOTSTRAP', payload: data });
     } catch (err) {
-      console.error('Failed to load bootstrap:', err);
+      Sentry.captureException(err);
     }
   }, []);
 
@@ -312,7 +313,7 @@ export const App = () => {
   }, []);
 
   const handleOpenSettings = useCallback(() => {
-    // TODO: add settings view
+    dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'settings' });
   }, []);
 
   const handleGenerateFromTrend = useCallback(

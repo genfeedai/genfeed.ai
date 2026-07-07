@@ -1,6 +1,7 @@
 'use client';
 
 import { APP_ROUTES } from '@genfeedai/constants';
+import { ButtonVariant } from '@genfeedai/enums';
 import {
   type IOnboardingJourneyMissionState,
   ONBOARDING_JOURNEY_MISSIONS,
@@ -8,6 +9,7 @@ import {
 } from '@genfeedai/types';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import PageLoadingState from '@ui/loading/page/PageLoadingState';
+import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useEffect } from 'react';
 
@@ -81,12 +83,16 @@ export default function ChatJourneyPage() {
               moving with additional credits.
             </p>
           </div>
-          <Link
-            href={APP_ROUTES.ONBOARDING.PROVIDERS}
+          <Button
+            asChild
             className="inline-flex rounded-full border border-primary/30 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10"
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
           >
-            Back to onboarding
-          </Link>
+            <Link href={APP_ROUTES.ONBOARDING.PROVIDERS}>
+              Back to onboarding
+            </Link>
+          </Button>
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-3">
@@ -174,12 +180,16 @@ export default function ChatJourneyPage() {
                   ) : null}
                 </div>
 
-                <Link
-                  href={mission.ctaHref}
+                <Button
+                  asChild
                   className="inline-flex rounded-full border border-white/15 px-4 py-2 text-sm font-medium text-foreground hover:bg-white/5"
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
                 >
-                  {isCompleted ? 'Review' : mission.ctaLabel}
-                </Link>
+                  <Link href={mission.ctaHref}>
+                    {isCompleted ? 'Review' : mission.ctaLabel}
+                  </Link>
+                </Button>
               </div>
             </div>
           );

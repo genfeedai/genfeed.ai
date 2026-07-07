@@ -154,26 +154,19 @@ type PrismaDelegateArgs<TWhere> = {
 
 /**
  * Dynamic Prisma delegate type, generic over the model's where-input.
- * Returns stay `any` — Prisma generates concrete return types per model, but
+ * Returns stay unknown: Prisma generates concrete return types per model, but
  * BaseService operates generically across all models via `prisma[modelName]`.
  * Default `TWhere = PrismaFilter` keeps the delegate loose for services that
  * have not opted into the typed where yet.
  */
 type PrismaDelegate<TWhere = PrismaFilter> = {
-  // biome-ignore lint/suspicious/noExplicitAny: concrete return types per model
-  findMany: (args?: PrismaDelegateArgs<TWhere>) => Promise<any[]>;
-  // biome-ignore lint/suspicious/noExplicitAny: concrete return types per model
-  findFirst: (args?: PrismaDelegateArgs<TWhere>) => Promise<any>;
-  // biome-ignore lint/suspicious/noExplicitAny: concrete return types per model
-  findUnique: (args?: PrismaDelegateArgs<TWhere>) => Promise<any>;
-  // biome-ignore lint/suspicious/noExplicitAny: concrete return types per model
-  create: (args: Record<string, unknown>) => Promise<any>;
-  // biome-ignore lint/suspicious/noExplicitAny: concrete return types per model
-  update: (args: PrismaDelegateArgs<TWhere>) => Promise<any>;
-  // biome-ignore lint/suspicious/noExplicitAny: concrete return types per model
-  updateMany: (args: PrismaDelegateArgs<TWhere>) => Promise<any>;
-  // biome-ignore lint/suspicious/noExplicitAny: concrete return types per model
-  delete: (args: PrismaDelegateArgs<TWhere>) => Promise<any>;
+  findMany: (args?: PrismaDelegateArgs<TWhere>) => Promise<unknown[]>;
+  findFirst: (args?: PrismaDelegateArgs<TWhere>) => Promise<unknown>;
+  findUnique: (args?: PrismaDelegateArgs<TWhere>) => Promise<unknown>;
+  create: (args: Record<string, unknown>) => Promise<unknown>;
+  update: (args: PrismaDelegateArgs<TWhere>) => Promise<unknown>;
+  updateMany: (args: PrismaDelegateArgs<TWhere>) => Promise<unknown>;
+  delete: (args: PrismaDelegateArgs<TWhere>) => Promise<unknown>;
   count: (args?: PrismaDelegateArgs<TWhere>) => Promise<number>;
 };
 

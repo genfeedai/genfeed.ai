@@ -1,10 +1,11 @@
 'use client';
 
-import { ComponentSize } from '@genfeedai/enums';
+import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IImage, IMetadata } from '@genfeedai/interfaces';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
 import Spinner from '@ui/feedback/spinner/Spinner';
+import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import type { MouseEvent } from 'react';
 
@@ -53,9 +54,7 @@ export default function MasonryImageMediaArea({
 
   return (
     <>
-      <div
-        role="button"
-        tabIndex={0}
+      <Button
         aria-label={imageError ? 'Asset preview unavailable' : undefined}
         data-asset-media-state={mediaState}
         data-testid={`masonry-ingredient-${image.id}`}
@@ -65,12 +64,9 @@ export default function MasonryImageMediaArea({
           MASONRY_TILE_RADIUS_CLASS,
         )}
         onClick={handleContentClick}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            handleContentClick(e as unknown as MouseEvent<HTMLElement>);
-          }
-        }}
+        type="button"
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
       >
         {isLoading && (
           <div
@@ -123,7 +119,7 @@ export default function MasonryImageMediaArea({
             </div>
           </div>
         )}
-      </div>
+      </Button>
 
       {isProcessing && (
         <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none rounded-lg bg-black/20 backdrop-blur-sm">

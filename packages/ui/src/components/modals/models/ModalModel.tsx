@@ -85,7 +85,9 @@ export default function ModalModel({
     field: Field,
     value: ModelSchema[Field],
   ) => {
-    form.setValue(field as any, value, { shouldValidate: true });
+    form.setValue(field as Parameters<typeof form.setValue>[0], value, {
+      shouldValidate: true,
+    });
   };
 
   const updateModalModel = (

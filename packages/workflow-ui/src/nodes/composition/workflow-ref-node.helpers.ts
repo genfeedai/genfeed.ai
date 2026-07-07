@@ -1,4 +1,5 @@
 import type { WorkflowInterface } from '@genfeedai/types';
+import { getWorkflowLogger } from '../../stores/executionLogger';
 
 export interface ReferencableWorkflow {
   _id: string;
@@ -25,19 +26,19 @@ export interface WorkflowRefApi {
 
 const noopApi: WorkflowRefApi = {
   fetchReferencableWorkflows: async () => {
-    console.warn(
+    getWorkflowLogger().error(
       '[workflow-ui] WorkflowRefApi not configured: fetchReferencableWorkflows',
     );
     return [];
   },
   fetchWorkflowInterface: async () => {
-    console.warn(
+    getWorkflowLogger().error(
       '[workflow-ui] WorkflowRefApi not configured: fetchWorkflowInterface',
     );
     return { inputs: [], outputs: [] } as WorkflowInterface;
   },
   validateReference: async () => {
-    console.warn(
+    getWorkflowLogger().error(
       '[workflow-ui] WorkflowRefApi not configured: validateReference',
     );
   },

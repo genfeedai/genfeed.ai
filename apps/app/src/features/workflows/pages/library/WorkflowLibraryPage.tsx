@@ -158,19 +158,23 @@ export default function WorkflowLibraryPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {/* New Workflow card */}
-          <Link
-            href={href('/workflows/new')}
+          <Button
+            asChild
             className="group flex items-center justify-center rounded-lg border-2 border-dashed border-white/10 bg-card/40 p-4 transition-all duration-200 hover:border-white/20 hover:bg-card/60"
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
           >
-            <div className="flex flex-col items-center gap-3 py-8">
-              <div className="flex size-14 items-center justify-center rounded-full bg-foreground/5 transition-all duration-300 group-hover:scale-110 group-hover:bg-foreground/10">
-                <HiOutlinePlus className="size-7 text-foreground/50" />
+            <Link href={href('/workflows/new')}>
+              <div className="flex flex-col items-center gap-3 py-8">
+                <div className="flex size-14 items-center justify-center rounded-full bg-foreground/5 transition-all duration-300 group-hover:scale-110 group-hover:bg-foreground/10">
+                  <HiOutlinePlus className="size-7 text-foreground/50" />
+                </div>
+                <span className="text-sm font-medium text-foreground/70">
+                  New Workflow
+                </span>
               </div>
-              <span className="text-sm font-medium text-foreground/70">
-                New Workflow
-              </span>
-            </div>
-          </Link>
+            </Link>
+          </Button>
 
           {/* Workflow cards */}
           {filteredWorkflows.map((workflow) => (

@@ -644,18 +644,26 @@ textarea {
   border: 1px solid transparent;
   border-radius: var(--radius-lg);
   color: var(--text);
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
   padding: 12px;
-  text-align: left;
 }
 
 .draft-list-item:hover,
 .draft-list-item.active {
   background: var(--accent-soft);
   border-color: var(--card-border);
+}
+
+.draft-list-main {
+  align-items: flex-start;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  text-align: left;
 }
 
 .draft-list-title {
@@ -675,6 +683,7 @@ textarea {
 }
 
 .draft-list-delete {
+  align-self: start;
   background: transparent;
   border: none;
   color: var(--danger);
@@ -1066,8 +1075,27 @@ textarea {
 .view-trends,
 .view-analytics,
 .view-agents,
+.view-settings,
 .view-workflows {
   padding: 0 24px 24px;
+}
+
+.settings-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.settings-content {
+  max-width: 720px;
+  overflow-y: auto;
+}
+
+.settings-content .provider-panel {
+  border-top: none;
+  padding-top: 0;
 }
 
 /* ======= Shared Components ======= */

@@ -113,7 +113,9 @@ export default function ModalPreset({
     const { name, value, type: inputType } = e.target;
     if (inputType === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked;
-      form.setValue(name as any, checked, { shouldValidate: true });
+      form.setValue(name as Parameters<typeof form.setValue>[0], checked, {
+        shouldValidate: true,
+      });
     } else {
       // Format key if key field changes
       if (name === 'key') {
@@ -123,7 +125,9 @@ export default function ModalPreset({
           .replace(/[^a-z0-9-]/g, '');
         form.setValue('key', formattedKey, { shouldValidate: true });
       } else {
-        form.setValue(name as any, value, { shouldValidate: true });
+        form.setValue(name as Parameters<typeof form.setValue>[0], value, {
+          shouldValidate: true,
+        });
       }
     }
   };

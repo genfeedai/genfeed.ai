@@ -39,6 +39,7 @@ import {
   parseRedisConnectionForWorkload,
   RedisWorkload,
 } from '@libs/redis/redis-connection.utils';
+import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Queue } from 'bullmq';
@@ -52,6 +53,7 @@ import gptActionsSpec from './config/gpt-actions-openapi.json';
 
 const apiDir = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_API_LISTEN_TIMEOUT_MS = 120_000;
+const bootstrapLogger = new Logger('ApiBootstrap');
 
 function parsePositiveTimeoutMs(
   value: string | undefined,
@@ -89,13 +91,13 @@ async function main() {
   let logger: LoggerService | undefined;
 
   try {
-    console.info('API bootstrap: creating Nest application');
+    bootstrapLogger.log('API bootstrap: creating Nest application');
     const app = await NestFactory.create<NestExpressApplication>(AppModule, {
       abortOnError: false,
       logger: ['error'],
       snapshot: true,
     });
-    console.info('API bootstrap: Nest application created');
+    bootstrapLogger.log('API bootstrap: Nest application created');
 
     // Headless OpenAPI emit gate (#1247): writes the deterministic spec
     // artifact and exits before any middleware, queues, or the listener.
@@ -376,17 +378,20 @@ async function main() {
 
     expressApp.use('/admin/queues', bullBoardAuth, serverAdapter.getRouter());
 
-    console.info(`API bootstrap: starting listener on port ${port}`);
+    bootstrapLogger.log(`API bootstrap: starting listener on port ${port}`);
     await withStartupTimeout(
       app.listen(port),
       apiListenTimeoutMs,
       `API listen timed out after ${apiListenTimeoutMs}ms before serving port ${port}`,
     );
-    console.info(`API bootstrap: listener ready on port ${port}`);
+    bootstrapLogger.log(`API bootstrap: listener ready on port ${port}`);
     logger.debug(`API service is running on port ${port}`);
   } catch (error: unknown) {
     logger?.error('Failed to start API service:', error);
-    console.error('API bootstrap failed:', error);
+    bootstrapLogger.error(
+      'API bootstrap failed',
+      error instanceof Error ? error.stack : String(error),
+    );
     // A failed bootstrap leaves the process alive but unbound if Redis/BullMQ
     // handles remain open. Exit loudly so ECS and boot-smoke fail fast.
     process.exit(1);

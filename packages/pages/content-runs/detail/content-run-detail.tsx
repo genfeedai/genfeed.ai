@@ -1,5 +1,6 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import type {
   ContentRunAnalyticsSummary,
   ContentRunBrief,
@@ -12,6 +13,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { ContentRunRecord } from '@services/content/content-runs.service';
 import { ContentRunsService } from '@services/content/content-runs.service';
 import Container from '@ui/layout/container/Container';
+import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import {
@@ -483,17 +485,21 @@ function NavigationPanel() {
         {links.map((item) => {
           const Icon = item.icon;
           return (
-            <Link
+            <Button
+              asChild
               key={item.href}
-              href={item.href}
               className="flex min-h-11 items-center justify-between rounded-md bg-card px-3 text-sm text-foreground/82 shadow-border transition hover:bg-accent"
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
             >
-              <span className="flex items-center gap-2">
-                <Icon className="size-4" />
-                {item.label}
-              </span>
-              <span aria-hidden="true">&gt;</span>
-            </Link>
+              <Link href={item.href}>
+                <span className="flex items-center gap-2">
+                  <Icon className="size-4" />
+                  {item.label}
+                </span>
+                <span aria-hidden="true">&gt;</span>
+              </Link>
+            </Button>
           );
         })}
       </div>

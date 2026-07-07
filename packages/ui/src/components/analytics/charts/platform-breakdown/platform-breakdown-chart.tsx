@@ -43,6 +43,13 @@ const PLATFORM_LABELS: Record<string, string> = {
   youtube: 'YouTube',
 };
 
+type PlatformBreakdownLabelEntry = {
+  payload: {
+    total: number;
+  };
+  value: number;
+};
+
 export function PlatformBreakdownChart({
   data,
   title = 'Platform Distribution',
@@ -67,7 +74,7 @@ export function PlatformBreakdownChart({
   };
 
   // Custom label renderer with percentage
-  const renderLabel = (entry: any) => {
+  const renderLabel = (entry: PlatformBreakdownLabelEntry) => {
     const percentage = ((entry.value / entry.payload.total) * 100).toFixed(1);
     return `${percentage}%`;
   };

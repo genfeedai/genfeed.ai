@@ -23,15 +23,6 @@ export default function ModalGalleryItemMusic({
 
   return (
     <div
-      role="button"
-      tabIndex={0}
-      onClick={() => onSelect(music)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onSelect(music);
-        }
-      }}
       className={`relative p-4 transition-all cursor-pointer group ${
         isSelected
           ? 'shadow-border-strong bg-primary/5'
@@ -39,29 +30,37 @@ export default function ModalGalleryItemMusic({
       }`}
     >
       <div className="flex items-center gap-3">
-        <div
-          className={`size-12 rounded-full flex items-center justify-center ${
-            isSelected ? 'bg-primary/20' : 'bg-muted'
-          }`}
+        <Button
+          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+          onClick={() => onSelect(music)}
+          type="button"
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
         >
-          <HiMusicalNote
-            className={`text-xl ${
-              isSelected ? 'text-primary' : 'text-foreground/50'
+          <div
+            className={`size-12 rounded-full flex items-center justify-center ${
+              isSelected ? 'bg-primary/20' : 'bg-muted'
             }`}
-          />
-        </div>
+          >
+            <HiMusicalNote
+              className={`text-xl ${
+                isSelected ? 'text-primary' : 'text-foreground/50'
+              }`}
+            />
+          </div>
 
-        <div className="flex-1 min-w-0">
-          <h4 className="font-medium truncate">
-            {metadataLabel || 'Untitled'}
-          </h4>
+          <div className="flex-1 min-w-0">
+            <h4 className="font-medium truncate">
+              {metadataLabel || 'Untitled'}
+            </h4>
 
-          {music.metadataDuration && (
-            <p className="text-xs text-foreground/60">
-              {formatDuration(music.metadataDuration)}
-            </p>
-          )}
-        </div>
+            {music.metadataDuration && (
+              <p className="text-xs text-foreground/60">
+                {formatDuration(music.metadataDuration)}
+              </p>
+            )}
+          </div>
+        </Button>
 
         <Button
           label={isPlaying ? <HiPause /> : <HiPlay />}

@@ -188,8 +188,8 @@ export function useModalIngredient({
         return;
       }
 
-      // biome-ignore lint/suspicious/noExplicitAny: dynamic field access on ingredient shape
-      const originalValue = (localIngredient as any)[field];
+      const fieldKey = field as keyof IIngredient;
+      const originalValue = localIngredient[fieldKey];
 
       setLocalIngredient((prev) => ({
         ...prev!,
@@ -200,10 +200,9 @@ export function useModalIngredient({
 
       try {
         const service = await getIngredientsService();
-        // biome-ignore lint/suspicious/noExplicitAny: dynamic patch payload
         await service.patch(localIngredient.id, {
           [field]: value,
-        } as any);
+        } as Record<string, boolean | string>);
 
         setIsUpdating(false);
       } catch (err) {
@@ -379,10 +378,9 @@ export function useModalIngredient({
 
         try {
           const service = await getIngredientsService();
-          // biome-ignore lint/suspicious/noExplicitAny: dynamic patch payload
           const updated = await service.patch(localIngredient.id, {
             scope,
-          } as any);
+          });
           setLocalIngredient(updated as IIngredient);
           setIsUpdating(false);
           notificationsService.success('Scope updated successfully');

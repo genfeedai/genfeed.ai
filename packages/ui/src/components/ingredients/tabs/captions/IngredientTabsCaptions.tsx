@@ -220,15 +220,7 @@ export default function IngredientTabsCaptions({
             {captions.map((caption: ICaption) => (
               <div
                 key={caption.id}
-                role="button"
-                tabIndex={0}
                 onClick={() => setSelectedCaption(caption)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setSelectedCaption(caption);
-                  }
-                }}
                 className={`p-3 cursor-pointer transition-colors ${
                   selectedCaption?.id === caption.id
                     ? 'border border-primary bg-primary/10'

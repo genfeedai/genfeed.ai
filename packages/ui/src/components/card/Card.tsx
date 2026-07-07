@@ -1,7 +1,8 @@
-import { CardVariant } from '@genfeedai/enums';
+import { ButtonVariant, CardVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { CardProps } from '@genfeedai/props/ui/ui.props';
 import CardIcon from '@ui/card/icon/CardIcon';
+import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import { memo } from 'react';
 
@@ -102,23 +103,18 @@ const Card = memo(function Card({
 
   if (onClick) {
     return (
-      <div
-        role="button"
-        tabIndex={0}
+      <Button
         aria-label={typeof label === 'string' ? label : undefined}
         data-card-index={index}
         data-testid={dataTestId}
         onClick={onClick}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            onClick();
-          }
-        }}
         className={cardClasses}
+        type="button"
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
       >
         {cardContent}
-      </div>
+      </Button>
     );
   }
 

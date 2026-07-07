@@ -106,6 +106,11 @@ const SendOnEnter = Extension.create({
   name: 'sendOnEnter',
 });
 
+type MentionSuggestionRenderProps = {
+  clientRect: () => DOMRect;
+  editor: Editor;
+} & Record<string, unknown>;
+
 function buildMentionSuggestion<T>({
   component,
   getItems,
@@ -141,11 +146,11 @@ function buildMentionSuggestion<T>({
             )?.onKeyDown(props) ?? false
           );
         },
-        onStart: (props: any) => {
+        onStart: (props: MentionSuggestionRenderProps) => {
           reactRenderer = new ReactRenderer(
             component as ComponentType<Record<string, unknown>>,
             {
-              editor: props.editor as Editor,
+              editor: props.editor,
               props,
             },
           );
@@ -159,7 +164,7 @@ function buildMentionSuggestion<T>({
             trigger: 'manual',
           });
         },
-        onUpdate: (props: any) => {
+        onUpdate: (props: MentionSuggestionRenderProps) => {
           reactRenderer.updateProps(props);
           if (popup[0]) {
             popup[0].setProps({

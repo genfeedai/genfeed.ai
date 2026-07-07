@@ -46,11 +46,13 @@ function ModalComponent({
   return (
     <>
       {/* Backdrop */}
-      <button
+      <Button
         aria-label="Close modal"
         className="fixed inset-0 z-50 bg-black/50"
         onClick={onClose}
         type="button"
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
       />
 
       {/* Modal */}

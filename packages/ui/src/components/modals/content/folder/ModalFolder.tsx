@@ -49,7 +49,7 @@ export default function ModalFolder({
     transformSubmitData: (formData) =>
       new Folder({
         ...formData,
-        brand: formData.brand as any, // API accepts brand ID as string
+        brand: formData.brand,
       }),
   });
 
@@ -76,7 +76,7 @@ export default function ModalFolder({
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       if (!isSubmitting && form.formState.isValid) {
-        onSubmit(e as any);
+        onSubmit(e as unknown as Parameters<typeof onSubmit>[0]);
       }
     }
   };
@@ -144,50 +144,6 @@ export default function ModalFolder({
             </SelectField>
           </FormControl>
         )}
-        {/* <FormControl label="Tags">
-          <div className="space-y-2">
-            <div className="flex gap-2">
-              <Input
-                type="text"
-                name="tags"
-                control={form.control}
-                onChange={updateModalFolder}
-                placeholder="Enter tag and press Enter"
-                isDisabled={isSubmitting}
-              />
-
-              <Button
-                label={<HiPlus />}
-                variant="default"
-                onClick={handleAddTag}
-                isDisabled={isSubmitting || !tagInput.trim()}
-              />
-            </div>
-
-            {form.watch('tags') && form.watch('tags').length > 0 && (
-              <div className="flex gap-2 flex-wrap">
-                {form.watch('tags').map((tag, index) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center gap-2 rounded-full bg-primary px-2.5 py-0.5 text-xs font-semibold text-primary-foreground"
-                  >
-                    {tag}
-                    <Button
-                      withWrapper={false}
-                      variant="unstyled"
-                      onClick={() => handleRemoveTag(tag)}
-                      className="hover:text-error"
-                      isDisabled={isSubmitting}
-                      ariaLabel={`Remove ${tag}`}
-                    >
-                      <HiXMark className="text-xs" />
-                    </Button>
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        </FormControl> */}
         <ModalActions>
           <Button
             label="Cancel"

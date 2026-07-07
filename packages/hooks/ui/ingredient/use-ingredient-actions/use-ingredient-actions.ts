@@ -31,6 +31,12 @@ import {
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+type AssetStatusSocketPayload = {
+  assetId?: string | number;
+  metadata?: unknown;
+  status?: string;
+};
+
 /**
  * Options for the useIngredientActions hook
  */
@@ -166,52 +172,55 @@ export function useIngredientActions({
       return;
     }
 
-    const unsubscribe = subscribe('asset-status', (data: any) => {
-      const { assetId, status, metadata } = data;
+    const unsubscribe = subscribe<AssetStatusSocketPayload>(
+      'asset-status',
+      (data) => {
+        const { assetId, status, metadata } = data;
 
-      logger.info(
-        'Asset status websocket event received in use-ingredient-actions',
-        {
-          assetId,
-          metadata,
-          pendingAssetId,
-          status,
-        },
-      );
-
-      // Only process if this is our pending asset
-      if (String(assetId) !== String(pendingAssetId)) {
-        return;
-      }
-
-      if (status === 'completed') {
-        setActionStates((prev) => ({
-          ...prev,
-          isSettingAsBanner: false,
-          isSettingAsLogo: false,
-        }));
-
-        if (onRefresh) {
-          onRefresh();
-        }
-
-        setPendingAssetId(null);
-        setPendingAssetCategory(null);
-      } else if (status === 'failed') {
-        setActionStates((prev) => ({
-          ...prev,
-          isSettingAsBanner: false,
-          isSettingAsLogo: false,
-        }));
-
-        notificationsService.error(
-          `Failed to set as ${pendingAssetCategory === AssetCategory.BANNER ? 'banner' : 'logo'}`,
+        logger.info(
+          'Asset status websocket event received in use-ingredient-actions',
+          {
+            assetId,
+            metadata,
+            pendingAssetId,
+            status,
+          },
         );
 
-        setPendingAssetId(null);
-        setPendingAssetCategory(null);
-      }
-    });
+        // Only process if this is our pending asset
+        if (String(assetId) !== String(pendingAssetId)) {
+          return;
+        }
+
+        if (status === 'completed') {
+          setActionStates((prev) => ({
+            ...prev,
+            isSettingAsBanner: false,
+            isSettingAsLogo: false,
+          }));
+
+          if (onRefresh) {
+            onRefresh();
+          }
+
+          setPendingAssetId(null);
+          setPendingAssetCategory(null);
+        } else if (status === 'failed') {
+          setActionStates((prev) => ({
+            ...prev,
+            isSettingAsBanner: false,
+            isSettingAsLogo: false,
+          }));
+
+          notificationsService.error(
+            `Failed to set as ${pendingAssetCategory === AssetCategory.BANNER ? 'banner' : 'logo'}`,
+          );
+
+          setPendingAssetId(null);
+          setPendingAssetCategory(null);
+        }
+      },
+    );
 
     return () => {
       unsubscribe();
@@ -245,7 +254,7 @@ export function useIngredientActions({
         return;
       }
 
-      await executeSilentWithActionState<any, MasonryActionStates>({
+      await executeSilentWithActionState<unknown, MasonryActionStates>({
         errorMessage: 'Failed to archive ingredient',
         onSuccess: onRefresh,
         operation: async () => {
@@ -271,7 +280,7 @@ export function useIngredientActions({
         return;
       }
 
-      await executeSilentWithActionState<any, MasonryActionStates>({
+      await executeSilentWithActionState<unknown, MasonryActionStates>({
         errorMessage: 'Failed to mark as validated',
         onSuccess: onRefresh,
         operation: async () => {
@@ -297,7 +306,7 @@ export function useIngredientActions({
         return;
       }
 
-      await executeSilentWithActionState<any, MasonryActionStates>({
+      await executeSilentWithActionState<unknown, MasonryActionStates>({
         errorMessage: 'Failed to reject ingredient',
         onSuccess: onRefresh,
         operation: async () => {
@@ -325,7 +334,7 @@ export function useIngredientActions({
    */
   const handleClone = useCallback(
     async (ingredient: IIngredient) => {
-      await executeSilentWithActionState<any, MasonryActionStates>({
+      await executeSilentWithActionState<unknown, MasonryActionStates>({
         errorMessage: 'Failed to clone ingredient',
         onSuccess: onRefresh,
         operation: async () => {
@@ -349,7 +358,7 @@ export function useIngredientActions({
         return notificationsService.error('Can only reverse videos');
       }
 
-      await executeSilentWithActionState<any, MasonryActionStates>({
+      await executeSilentWithActionState<unknown, MasonryActionStates>({
         errorMessage: 'Failed to reverse video',
         onSuccess: onRefresh,
         operation: async () => {
@@ -376,7 +385,7 @@ export function useIngredientActions({
         try {
           await onDeleteIngredient(ingredient);
           setActionStates((prev) => ({ ...prev, isDeleting: false }));
-        } catch (error: any) {
+        } catch (error: unknown) {
           notificationsService.error('Failed to delete ingredient');
           logger.error(`${url} failed`, error);
           setActionStates((prev) => ({ ...prev, isDeleting: false }));
@@ -397,7 +406,7 @@ export function useIngredientActions({
 
           notificationsService.success('Ingredient deleted successfully');
           setActionStates((prev) => ({ ...prev, isDeleting: false }));
-        } catch (error: any) {
+        } catch (error: unknown) {
           logger.error(`${url} failed`, error);
           notificationsService.error('Failed to delete ingredient');
           setActionStates((prev) => ({ ...prev, isDeleting: false }));
@@ -445,7 +454,7 @@ export function useIngredientActions({
         return notificationsService.error('Can only mirror videos');
       }
 
-      await executeSilentWithActionState<any, MasonryActionStates>({
+      await executeSilentWithActionState<unknown, MasonryActionStates>({
         errorMessage: 'Failed to mirror video',
         onSuccess: onRefresh,
         operation: async () => {
@@ -465,7 +474,7 @@ export function useIngredientActions({
    */
   const handlePortrait = useCallback(
     async (ingredient: IIngredient) => {
-      await executeSilentWithActionState<any, MasonryActionStates>({
+      await executeSilentWithActionState<unknown, MasonryActionStates>({
         errorMessage: 'Portrait conversion failed',
         onSuccess: onRefresh,
         operation: async () => {
@@ -490,7 +499,7 @@ export function useIngredientActions({
    */
   const handleSquare = useCallback(
     async (ingredient: IIngredient) => {
-      await executeSilentWithActionState<any, MasonryActionStates>({
+      await executeSilentWithActionState<unknown, MasonryActionStates>({
         errorMessage: 'Square conversion failed',
         onSuccess: onRefresh,
         operation: async () => {
@@ -515,7 +524,7 @@ export function useIngredientActions({
    */
   const handleLandscape = useCallback(
     async (ingredient: IIngredient) => {
-      await executeSilentWithActionState<any, MasonryActionStates>({
+      await executeSilentWithActionState<unknown, MasonryActionStates>({
         errorMessage: 'Landscape conversion failed',
         onSuccess: onRefresh,
         operation: async () => {
@@ -544,7 +553,7 @@ export function useIngredientActions({
         return notificationsService.error('Can only convert videos to GIF');
       }
 
-      await executeSilentWithActionState<any, MasonryActionStates>({
+      await executeSilentWithActionState<unknown, MasonryActionStates>({
         errorMessage: 'Failed to convert to GIF',
         onSuccess: onRefresh,
         operation: async () => {
@@ -621,7 +630,7 @@ export function useIngredientActions({
       const endpoint = ingredient.hasVoted ? 'unvote' : 'vote';
       const willHaveVoted = !ingredient.hasVoted;
 
-      await executeWithActionState<any, MasonryActionStates>({
+      await executeWithActionState<unknown, MasonryActionStates>({
         errorMessage: 'Failed to vote',
         operation: async () => {
           const service = await getIngredientsService();
@@ -651,7 +660,7 @@ export function useIngredientActions({
         );
       }
 
-      await executeSilentWithActionState<any, MasonryActionStates>({
+      await executeSilentWithActionState<unknown, MasonryActionStates>({
         errorMessage: 'Failed to generate captions',
         onSuccess: onRefresh,
         operation: async () => {
@@ -725,7 +734,7 @@ export function useIngredientActions({
         if (onRefresh) {
           await onRefresh();
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error(`${url} failed`, error);
         notificationsService.error('Failed to set as logo');
         setActionStates((prev) => ({ ...prev, isSettingAsLogo: false }));
@@ -774,7 +783,7 @@ export function useIngredientActions({
         if (onRefresh) {
           await onRefresh();
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error(`${url} failed`, error);
         notificationsService.error('Failed to set as banner');
 
@@ -804,7 +813,7 @@ export function useIngredientActions({
         const url = `${EnvironmentService.apps.app}/${ingredient.category}s/${ingredient.id}`;
         await clipboardService.copyToClipboard(url);
         notificationsService.success('Link copied to clipboard');
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Failed to share ingredient', error);
         notificationsService.error('Failed to copy link');
       }
@@ -828,7 +837,7 @@ export function useIngredientActions({
       try {
         await clipboardService.copyToClipboard(ingredient.promptText);
         notificationsService.success('Prompt copied to clipboard');
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Failed to copy prompt', error);
         notificationsService.error('Failed to copy prompt');
       }

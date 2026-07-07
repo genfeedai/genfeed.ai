@@ -23,14 +23,14 @@ import {
 export interface CrudModalOptions<T, Schema extends FieldValues> {
   entity: T | null;
   schema: StandardSchemaV1;
-  serviceFactory: (token: string) => BaseService<any>;
+  serviceFactory: (token: string) => BaseService<unknown>;
   modalId: ModalEnum;
   onConfirm: (isRefreshing?: boolean) => void;
   onClose?: () => void;
   defaultValues?: DefaultValues<Schema>;
-  transformSubmitData?: (formData: Schema) => any;
+  transformSubmitData?: (formData: Schema) => unknown;
   customSubmitHandler?: (
-    service: BaseService<any>,
+    service: BaseService<unknown>,
     entity: T | null,
     formData: Schema,
   ) => Promise<T>;
@@ -67,7 +67,7 @@ export function useCrudModal<
 
   const formRef = useFocusFirstInput<HTMLFormElement>();
 
-  const form = useForm<Schema, any, Schema>({
+  const form = useForm<Schema, unknown, Schema>({
     defaultValues: defaultValues as DefaultValues<Schema>,
     resolver: standardSchemaResolver(
       schema as StandardSchemaV1<Schema, unknown>,

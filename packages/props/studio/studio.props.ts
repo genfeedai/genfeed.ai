@@ -165,7 +165,7 @@ export interface MediaTypeDropdownProps {
 }
 
 export interface GenerationQueueProps {
-  generations: Array<any>;
+  generations: Array<Record<string, unknown>>;
   onRemove?: (id: string) => void;
   onClose?: () => void;
 }

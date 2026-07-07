@@ -101,18 +101,13 @@ export default function ModalVideo({
               className="w-full"
             >
               {availableVideos.map((video) => (
-                <div
+                <Button
                   key={video.id}
-                  role="button"
-                  tabIndex={0}
-                  className="cursor-pointer group"
+                  className="block w-full cursor-pointer group text-left"
                   onClick={() => onSelect(video)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      onSelect(video);
-                    }
-                  }}
+                  type="button"
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
                 >
                   <div
                     className={`relative ${getAspectClass()} bg-background overflow-hidden shadow-border group-hover:shadow-border-strong transition-all group-hover:scale-105`}
@@ -143,7 +138,7 @@ export default function ModalVideo({
                   <p className="text-xs mt-2 truncate text-center text-foreground/70">
                     {video.metadataLabel || `Video ${video.id.slice(0, 8)}`}
                   </p>
-                </div>
+                </Button>
               ))}
             </Masonry>
           )}

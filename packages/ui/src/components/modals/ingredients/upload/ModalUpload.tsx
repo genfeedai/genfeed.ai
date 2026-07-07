@@ -134,17 +134,6 @@ export default function ModalUpload({
           )}
         </div>
 
-        {/* TO DO: Upload image via an URL */}
-        {/* <FormControl label="Image URL (optional)">
-          <Input
-            type="url"
-            placeholder="https://example.com/image.jpg"
-            value={urlValue}
-            onChange={(e:any) => setUrlValue(e.target.value)}
-            className="h-10 border border-border px-3 w-full bg-card"
-          />
-        </FormControl> */}
-
         <UploadRequirements
           acceptedTypes={acceptedTypes}
           maxFiles={maxFiles}

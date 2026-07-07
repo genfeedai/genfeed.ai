@@ -199,19 +199,16 @@ const PostsGrid = memo(
           return (
             <div
               key={post.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => handleOpenPost(post)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  handleOpenPost(post);
-                }
-              }}
               className="group rounded-xl bg-card p-4 text-left shadow-border transition-all duration-200 hover:bg-background hover:shadow-border-strong"
             >
               <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 items-start gap-3">
+                <Button
+                  className="flex min-w-0 items-start gap-3 text-left"
+                  onClick={() => handleOpenPost(post)}
+                  type="button"
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
+                >
                   <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-white/70">
                     <PlatformIcon className="size-4" />
                   </div>
@@ -226,7 +223,7 @@ const PostsGrid = memo(
                         : getPostsPlatformLabel(post.platform)}
                     </p>
                   </div>
-                </div>
+                </Button>
 
                 {visibleSecondaryActions.length > 0 && (
                   <DropdownMenu>

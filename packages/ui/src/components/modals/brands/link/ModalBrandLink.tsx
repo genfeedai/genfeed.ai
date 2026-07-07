@@ -74,7 +74,9 @@ export default function ModalBrandLink({
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
-    form.setValue(name as any, value, { shouldValidate: true });
+    form.setValue(name as Parameters<typeof form.setValue>[0], value, {
+      shouldValidate: true,
+    });
   };
 
   return (

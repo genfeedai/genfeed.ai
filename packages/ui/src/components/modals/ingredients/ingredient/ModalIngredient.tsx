@@ -1,6 +1,7 @@
 'use client';
 
 import { ModalEnum } from '@genfeedai/enums';
+import type { IVideo } from '@genfeedai/interfaces';
 import type { IngredientOverlayProps } from '@genfeedai/props/modals/modal.props';
 import TextOverlayPanel from '@ui/ingredients/text-overlay-panel/TextOverlayPanel';
 import Loading from '@ui/loading/default/Loading';
@@ -119,7 +120,7 @@ export default function IngredientOverlay({
 
       {localIngredient && isVideo && (
         <TextOverlayPanel
-          video={localIngredient as any}
+          video={localIngredient as unknown as IVideo}
           isOpen={showTextOverlayPanel}
           onClose={() => setShowTextOverlayPanel(false)}
           onSuccess={handleTextOverlaySuccess}

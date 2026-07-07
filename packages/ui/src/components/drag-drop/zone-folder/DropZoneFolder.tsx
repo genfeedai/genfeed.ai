@@ -1,10 +1,12 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import type { FolderDropZoneProps } from '@genfeedai/props/content/folder-drop-zone.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { readIngredientTransferData } from '@ui/drag-drop/shared/ingredient-transfer';
-import type { DragEvent, KeyboardEvent } from 'react';
+import { Button } from '@ui/primitives/button';
+import type { DragEvent } from 'react';
 import { useState } from 'react';
 import { HiFolder, HiFolderOpen } from 'react-icons/hi2';
 
@@ -18,13 +20,13 @@ export default function DropZoneFolder({
 }: FolderDropZoneProps) {
   const [isDragOver, setIsDragOver] = useState(false);
 
-  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+  const handleDragOver = (e: DragEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     setIsDragOver(true);
   };
 
-  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+  const handleDragLeave = (e: DragEvent<HTMLButtonElement>) => {
     // Only set isDragOver to false if we're leaving the drop zone entirely
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX;
@@ -35,7 +37,7 @@ export default function DropZoneFolder({
     }
   };
 
-  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+  const handleDrop = (e: DragEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragOver(false);
@@ -51,24 +53,15 @@ export default function DropZoneFolder({
     }
   };
 
-  const activateFolder = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== 'Enter' && event.key !== ' ') {
-      return;
-    }
-
-    event.preventDefault();
-    onClick?.();
-  };
-
   return (
-    <div
-      role="button"
-      tabIndex={0}
+    <Button
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       onClick={onClick}
-      onKeyDown={activateFolder}
+      type="button"
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
       className={`
         rounded-lg border p-3 transition-colors duration-200 cursor-pointer
         hover:bg-white/[0.04]
@@ -94,6 +87,6 @@ export default function DropZoneFolder({
           </span>
         </div>
       )}
-    </div>
+    </Button>
   );
 }

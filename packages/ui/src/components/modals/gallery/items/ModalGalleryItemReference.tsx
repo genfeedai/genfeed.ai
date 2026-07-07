@@ -1,9 +1,10 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import type { ModalGalleryItemReferenceProps } from '@genfeedai/props/modals/modal-gallery.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
-import type { KeyboardEvent } from 'react';
 
 export default function ModalGalleryItemReference({
   reference,
@@ -28,25 +29,14 @@ export default function ModalGalleryItemReference({
       }
     }
   };
-  const activateModalGalleryItemReferenceFromKeyboard = (
-    event: KeyboardEvent<HTMLDivElement>,
-  ) => {
-    if (event.key !== 'Enter' && event.key !== ' ') {
-      return;
-    }
-
-    event.preventDefault();
-    activateModalGalleryItemReference();
-  };
-
   return (
-    <div
+    <Button
       key={reference.id}
-      role="button"
-      tabIndex={0}
-      className="cursor-pointer group"
+      className="block w-full cursor-pointer group text-left"
       onClick={activateModalGalleryItemReference}
-      onKeyDown={activateModalGalleryItemReferenceFromKeyboard}
+      type="button"
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
     >
       <div
         className={`relative w-full pb-[100%] bg-background overflow-hidden shadow-md ${isSelected ? 'ring-4 ring-primary' : ''}`}
@@ -65,6 +55,6 @@ export default function ModalGalleryItemReference({
           </div>
         )}
       </div>
-    </div>
+    </Button>
   );
 }

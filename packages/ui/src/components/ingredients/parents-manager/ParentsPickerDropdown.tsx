@@ -10,7 +10,6 @@ import { EnvironmentService } from '@genfeedai/services/core/environment.service
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
-import type { KeyboardEvent } from 'react';
 import { HiPhoto, HiVideoCamera } from 'react-icons/hi2';
 
 type ParentsPickerDropdownProps = {
@@ -62,24 +61,17 @@ export default function ParentsPickerDropdown({
           ) : (
             <div className="grid grid-cols-6 gap-2 max-h-72 overflow-y-auto">
               {availableIngredients.map((ing: IIngredient) => (
-                <div
+                <Button
                   key={ing.id}
-                  role="button"
-                  tabIndex={0}
-                  className="relative group cursor-pointer transition-all"
+                  className="relative group block cursor-pointer text-left transition-all"
                   onClick={() => onAddParent(ing.id)}
-                  onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
-                    if (event.key !== 'Enter' && event.key !== ' ') {
-                      return;
-                    }
-
-                    event.preventDefault();
-                    onAddParent(ing.id);
-                  }}
                   title={
                     (ing.metadata as IMetadata)?.label ||
                     `${ing.category} - ${ing.id.slice(0, 8)}`
                   }
+                  type="button"
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
                 >
                   <div className="relative size-16 overflow-hidden border-2 border-transparent hover:border-primary transition-all hover:scale-105">
                     {isVideo ? (
@@ -117,7 +109,7 @@ export default function ParentsPickerDropdown({
                       </span>
                     </div>
                   </div>
-                </div>
+                </Button>
               ))}
             </div>
           )}

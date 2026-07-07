@@ -7,7 +7,7 @@ import Card from '@ui/card/Card';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
 import { Button } from '@ui/primitives/button';
 import { formatDistanceToNow } from 'date-fns';
-import { type KeyboardEvent, memo, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import {
   HiArrowRight,
   HiBell,
@@ -150,9 +150,8 @@ const SmartAlertsPanel = memo(function SmartAlertsPanel({
           const markAlertRead = () => !alert.isRead && onMarkRead?.(alert.id);
 
           return (
-            <div
+            <Button
               key={alert.id}
-              role="button"
               tabIndex={alert.isRead ? -1 : 0}
               className={cn(
                 'relative flex items-start gap-3 p-3 border transition-all',
@@ -161,14 +160,9 @@ const SmartAlertsPanel = memo(function SmartAlertsPanel({
                 !alert.isRead && 'ring-2 ring-offset-2 ring-primary/20',
               )}
               onClick={markAlertRead}
-              onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
-                if (event.key !== 'Enter' && event.key !== ' ') {
-                  return;
-                }
-
-                event.preventDefault();
-                markAlertRead();
-              }}
+              type="button"
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
             >
               <div className={cn('mt-0.5', styles.text)}>
                 <SeverityIcon className="size-5" />
@@ -247,7 +241,7 @@ const SmartAlertsPanel = memo(function SmartAlertsPanel({
                   <HiXMark className="size-4 text-foreground/40" />
                 </Button>
               )}
-            </div>
+            </Button>
           );
         })}
       </div>

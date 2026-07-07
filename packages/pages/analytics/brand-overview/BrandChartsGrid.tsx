@@ -1,9 +1,11 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import type { PlatformComparisonData } from '@props/analytics/analytics.props';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import Card from '@ui/card/Card';
+import { Button } from '@ui/primitives/button';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { HiArrowRight } from 'react-icons/hi2';
@@ -60,15 +62,21 @@ export default function BrandChartsGrid({
         {platformComparisonData.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-4">
             {platformComparisonData.map(({ platform }) => (
-              <Link
+              <Button
+                asChild
                 key={platform}
-                href={`${basePath}/brands/${brandId}/platforms/${platform}`}
                 className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground/70 hover:text-foreground transition-colors px-3 py-1.5 border border-border hover:border-primary/40"
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
               >
-                {getPlatformIcon(platform, 'size-4')}
-                <span className="capitalize">{platform}</span>
-                <HiArrowRight className="size-3" />
-              </Link>
+                <Link
+                  href={`${basePath}/brands/${brandId}/platforms/${platform}`}
+                >
+                  {getPlatformIcon(platform, 'size-4')}
+                  <span className="capitalize">{platform}</span>
+                  <HiArrowRight className="size-3" />
+                </Link>
+              </Button>
             ))}
           </div>
         )}

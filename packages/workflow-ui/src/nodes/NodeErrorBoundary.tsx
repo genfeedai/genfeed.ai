@@ -2,6 +2,7 @@
 
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Component, type ReactNode } from 'react';
+import { getWorkflowLogger } from '../stores/executionLogger';
 import { Button } from '../ui/button';
 
 interface NodeErrorBoundaryProps {
@@ -33,11 +34,9 @@ export class NodeErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
-    // Log error for debugging - in production this would go to error tracking
-    console.error(
+    getWorkflowLogger().error(
       `Node ${this.props.nodeId} (${this.props.nodeType}) crashed:`,
-      error,
-      errorInfo,
+      { error, errorInfo },
     );
   }
 

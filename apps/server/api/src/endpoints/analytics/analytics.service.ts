@@ -136,8 +136,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     end.setUTCHours(23, 59, 59, 999); // Include the entire end date (UTC)
 
     // Aggregate timeseries data across all organizations and platforms using raw SQL
-    // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
-    const rawResults: any[] = await this.prisma.$queryRaw`
+    const rawResults = await this.prisma.$queryRaw<RawRow[]>`
       SELECT
         TO_CHAR("date", 'YYYY-MM-DD') AS day,
         "platform"::text AS platform,
@@ -300,8 +299,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     brandFilter: PrismaSql,
     orgFilter: PrismaSql,
   ): Promise<RawRow> {
-    // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
-    const currentMetrics: any[] = await this.prisma.$queryRaw`
+    const currentMetrics = await this.prisma.$queryRaw<RawRow[]>`
       SELECT
         AVG("engagementRate") AS avg_engagement_rate,
         SUM("totalComments") AS total_comments,
@@ -335,8 +333,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     brandFilter: PrismaSql,
     orgFilter: PrismaSql,
   ): Promise<RawRow> {
-    // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
-    const previousMetrics: any[] = await this.prisma.$queryRaw`
+    const previousMetrics = await this.prisma.$queryRaw<RawRow[]>`
       SELECT
         SUM("totalLikes" + "totalComments" + "totalShares" + "totalSaves") AS total_engagement,
         COUNT(*) AS total_posts,
@@ -441,8 +438,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     );
 
     // Group by platform and hour, pick the best hour per platform
-    // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
-    const results: any[] = await this.prisma.$queryRaw`
+    const results = await this.prisma.$queryRaw<RawRow[]>`
       WITH hour_stats AS (
         SELECT
           "platform"::text AS platform,
@@ -560,8 +556,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     platformFilter: PrismaSql,
     orgFilter: PrismaSql,
   ): Promise<RawRow[]> {
-    // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
-    const results: any[] = await this.prisma.$queryRaw`
+    const results = await this.prisma.$queryRaw<RawRow[]>`
       SELECT
         pa.id,
         pa."postId" AS post_id,
@@ -612,8 +607,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       brandId,
     );
 
-    // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
-    const results: any[] = await this.prisma.$queryRaw`
+    const results = await this.prisma.$queryRaw<RawRow[]>`
       SELECT
         "platform"::text AS platform,
         AVG("engagementRate") AS avg_engagement_rate,
@@ -711,8 +705,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     brandFilter: PrismaSql,
   ): Promise<RawRow[]> {
     // Current period: group by day
-    // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
-    const currentResults: any[] = await this.prisma.$queryRaw`
+    const currentResults = await this.prisma.$queryRaw<RawRow[]>`
       SELECT
         TO_CHAR("date", 'YYYY-MM-DD') AS day,
         SUM("totalComments") AS comments,
@@ -738,8 +731,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     brandFilter: PrismaSql,
   ): Promise<RawRow> {
     // Previous period: aggregate totals
-    // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
-    const previousResults: any[] = await this.prisma.$queryRaw`
+    const previousResults = await this.prisma.$queryRaw<RawRow[]>`
       SELECT
         SUM("totalComments") AS total_comments,
         SUM("totalLikes") AS total_likes,
@@ -832,8 +824,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     );
     const platformFilter = this.postAnalyticsOptionalPlatformFilter(platform);
 
-    // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
-    const results: any[] = await this.prisma.$queryRaw`
+    const results = await this.prisma.$queryRaw<RawRow[]>`
       SELECT
         SUM("totalComments") AS total_comments,
         SUM("totalLikes") AS total_likes,
@@ -952,8 +943,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     orgFilter: PrismaSql,
   ): Promise<RawRow[]> {
     // Get top performing posts with description data
-    // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
-    const videos: any[] = await this.prisma.$queryRaw`
+    const videos = await this.prisma.$queryRaw<RawRow[]>`
       SELECT
         pa."postId" AS id,
         ARRAY_AGG(DISTINCT pa."platform"::text) AS platforms,
@@ -981,8 +971,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     orgFilter: PrismaSql,
   ): Promise<RawRow[]> {
     // Platform aggregation
-    // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
-    const topPlatformsRaw: any[] = await this.prisma.$queryRaw`
+    const topPlatformsRaw = await this.prisma.$queryRaw<RawRow[]>`
       SELECT
         pa."platform"::text AS platform,
         COUNT(*) AS post_count,

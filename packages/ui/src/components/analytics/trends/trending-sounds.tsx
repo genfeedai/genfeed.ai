@@ -81,101 +81,115 @@ export function TrendingSounds({
           <Card
             key={sound.id}
             variant={CardVariant.DEFAULT}
-            onClick={onSoundClick ? () => onSoundClick(sound) : undefined}
             bodyClassName="p-4"
           >
-            <div className="flex gap-3">
-              {/* Cover Art / Play Button */}
-              <div className="relative flex-shrink-0">
+            <div className="relative">
+              {onSoundClick && (
                 <Button
-                  withWrapper={false}
+                  aria-label={`Open ${sound.soundName}`}
+                  className="absolute inset-0 z-0"
+                  onClick={() => onSoundClick(sound)}
+                  type="button"
                   variant={ButtonVariant.UNSTYLED}
-                  className="size-16 bg-muted flex items-center justify-center overflow-hidden"
-                  onClick={(e) => {
-                    if (onPlaySound) {
-                      e.stopPropagation();
-                      onPlaySound(sound);
-                    }
-                  }}
-                  isDisabled={!onPlaySound}
-                >
-                  {sound.coverUrl ? (
-                    <Image
-                      src={sound.coverUrl}
-                      alt={sound.soundName}
-                      fill
-                      sizes="64px"
-                      className="size-full object-cover"
-                      unoptimized
-                    />
-                  ) : (
-                    <HiOutlineMusicalNote className="size-8 text-muted-foreground" />
-                  )}
-                  {onPlaySound && (
-                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                      <HiOutlinePlay className="size-8 text-white" />
+                  withWrapper={false}
+                />
+              )}
+
+              <div className="relative z-10 flex gap-3 pointer-events-none">
+                {/* Cover Art / Play Button */}
+                <div className="relative flex-shrink-0 pointer-events-auto">
+                  <Button
+                    withWrapper={false}
+                    variant={ButtonVariant.UNSTYLED}
+                    className="size-16 bg-muted flex items-center justify-center overflow-hidden"
+                    onClick={(e) => {
+                      if (onPlaySound) {
+                        e.stopPropagation();
+                        onPlaySound(sound);
+                      }
+                    }}
+                    isDisabled={!onPlaySound}
+                  >
+                    {sound.coverUrl ? (
+                      <Image
+                        src={sound.coverUrl}
+                        alt={sound.soundName}
+                        fill
+                        sizes="64px"
+                        className="size-full object-cover"
+                        unoptimized
+                      />
+                    ) : (
+                      <HiOutlineMusicalNote className="size-8 text-muted-foreground" />
+                    )}
+                    {onPlaySound && (
+                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                        <HiOutlinePlay className="size-8 text-white" />
+                      </div>
+                    )}
+                  </Button>
+                  {index < 3 && (
+                    <div className="absolute -top-2 -right-2 size-6 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
+                      {index + 1}
                     </div>
                   )}
-                </Button>
-                {index < 3 && (
-                  <div className="absolute -top-2 -right-2 size-6 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
-                    {index + 1}
-                  </div>
-                )}
-              </div>
+                </div>
 
-              {/* Sound Info */}
-              <div className="flex-1 min-w-0">
-                <h4 className="font-semibold text-foreground truncate">
-                  {sound.soundName}
-                </h4>
-                {sound.authorName && (
-                  <p className="text-sm text-foreground/60 truncate">
-                    {sound.authorName}
-                  </p>
-                )}
-                <div className="flex items-center gap-3 mt-2 text-xs text-foreground/60">
-                  <span className="flex items-center gap-1">
-                    <HiOutlinePlay className="size-3.5" />
-                    {formatCompactNumber(sound.usageCount)} uses
-                  </span>
-                  {sound.duration && (
-                    <span>{formatDuration(sound.duration)}</span>
+                {/* Sound Info */}
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-foreground truncate">
+                    {sound.soundName}
+                  </h4>
+                  {sound.authorName && (
+                    <p className="text-sm text-foreground/60 truncate">
+                      {sound.authorName}
+                    </p>
                   )}
+                  <div className="flex items-center gap-3 mt-2 text-xs text-foreground/60">
+                    <span className="flex items-center gap-1">
+                      <HiOutlinePlay className="size-3.5" />
+                      {formatCompactNumber(sound.usageCount)} uses
+                    </span>
+                    {sound.duration && (
+                      <span>{formatDuration(sound.duration)}</span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/[0.08]">
-              <div className="flex items-center gap-1 text-sm">
-                <HiArrowTrendingUp
-                  className={`size-4 ${
-                    sound.growthRate > 0 ? 'text-success' : 'text-foreground/40'
+              <div className="relative z-10 flex items-center justify-between mt-3 pt-3 border-t border-white/[0.08] pointer-events-none">
+                <div className="flex items-center gap-1 text-sm">
+                  <HiArrowTrendingUp
+                    className={`size-4 ${
+                      sound.growthRate > 0
+                        ? 'text-success'
+                        : 'text-foreground/40'
+                    }`}
+                  />
+                  <span
+                    className={`font-medium ${
+                      sound.growthRate > 0
+                        ? 'text-success'
+                        : sound.growthRate < 0
+                          ? 'text-error'
+                          : ''
+                    }`}
+                  >
+                    {sound.growthRate > 0 ? '+' : ''}
+                    {sound.growthRate.toFixed(0)}%
+                  </span>
+                </div>
+                <Badge
+                  value={Math.round(sound.viralityScore)}
+                  className={`text-xs ${
+                    sound.viralityScore >= 70
+                      ? 'bg-primary text-primary-foreground'
+                      : sound.viralityScore >= 40
+                        ? 'bg-secondary text-secondary-foreground'
+                        : 'bg-muted text-muted-foreground'
                   }`}
                 />
-                <span
-                  className={`font-medium ${
-                    sound.growthRate > 0
-                      ? 'text-success'
-                      : sound.growthRate < 0
-                        ? 'text-error'
-                        : ''
-                  }`}
-                >
-                  {sound.growthRate > 0 ? '+' : ''}
-                  {sound.growthRate.toFixed(0)}%
-                </span>
               </div>
-              <Badge
-                value={Math.round(sound.viralityScore)}
-                className={`text-xs ${
-                  sound.viralityScore >= 70
-                    ? 'bg-primary text-primary-foreground'
-                    : sound.viralityScore >= 40
-                      ? 'bg-secondary text-secondary-foreground'
-                      : 'bg-muted text-muted-foreground'
-                }`}
-              />
             </div>
           </Card>
         ))}

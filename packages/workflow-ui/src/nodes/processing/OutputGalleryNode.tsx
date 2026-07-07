@@ -196,16 +196,8 @@ function OutputGalleryNodeComponent(props: NodeProps) {
         createPortal(
           <div
             className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-8"
-            role="button"
-            tabIndex={0}
             onClick={closeLightbox}
             onContextMenu={(e) => e.stopPropagation()}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                closeLightbox();
-              }
-            }}
           >
             <div
               className="relative max-w-full max-h-full"

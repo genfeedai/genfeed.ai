@@ -156,54 +156,53 @@ export default function ModalMusic({
                 return (
                   <div
                     key={music.id}
-                    role="button"
-                    tabIndex={0}
                     className={`relative p-4 transition-all cursor-pointer group ${
                       selectedMusic === music.id
                         ? 'shadow-border-strong bg-primary/5'
                         : 'shadow-border hover:shadow-border-strong bg-background'
                     }`}
-                    onClick={() => setSelectedMusic(music.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        setSelectedMusic(music.id);
-                      }
-                    }}
                   >
                     {/* Music Icon */}
                     <div className="flex items-center gap-3">
-                      <div
-                        className={`size-12 rounded-full flex items-center justify-center ${
-                          selectedMusic === music.id
-                            ? 'bg-primary/20'
-                            : 'bg-muted'
-                        }`}
+                      <Button
+                        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                        onClick={() => setSelectedMusic(music.id)}
+                        type="button"
+                        variant={ButtonVariant.UNSTYLED}
+                        withWrapper={false}
                       >
-                        <HiMusicalNote
-                          className={`text-xl ${
+                        <div
+                          className={`size-12 rounded-full flex items-center justify-center ${
                             selectedMusic === music.id
-                              ? 'text-primary'
-                              : 'text-foreground/50'
+                              ? 'bg-primary/20'
+                              : 'bg-muted'
                           }`}
-                        />
-                      </div>
+                        >
+                          <HiMusicalNote
+                            className={`text-xl ${
+                              selectedMusic === music.id
+                                ? 'text-primary'
+                                : 'text-foreground/50'
+                            }`}
+                          />
+                        </div>
 
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium truncate">
-                          {metadataLabel || `Track ${music.id.slice(0, 8)}`}
-                        </h4>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium truncate">
+                            {metadataLabel || `Track ${music.id.slice(0, 8)}`}
+                          </h4>
 
-                        {music.metadataDuration && (
-                          <p className="text-xs text-foreground/60">
-                            {Math.floor(music.metadataDuration / 60)}:
-                            {String(music.metadataDuration % 60).padStart(
-                              2,
-                              '0',
-                            )}
-                          </p>
-                        )}
-                      </div>
+                          {music.metadataDuration && (
+                            <p className="text-xs text-foreground/60">
+                              {Math.floor(music.metadataDuration / 60)}:
+                              {String(music.metadataDuration % 60).padStart(
+                                2,
+                                '0',
+                              )}
+                            </p>
+                          )}
+                        </div>
+                      </Button>
 
                       {/* Play/Pause Button */}
                       <Button
@@ -233,21 +232,16 @@ export default function ModalMusic({
 
             {/* No Music Option */}
             <div className="mt-3 pt-3 border-t border-white/[0.08]">
-              <div
-                role="button"
-                tabIndex={0}
+              <Button
                 className={`p-3 transition-all cursor-pointer ${
                   !selectedMusic
                     ? 'shadow-border-strong bg-primary/5'
                     : 'shadow-border hover:shadow-border-strong'
                 }`}
                 onClick={handleClearSelection}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    handleClearSelection();
-                  }
-                }}
+                type="button"
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
               >
                 <div className="flex items-center gap-3">
                   <div className="size-10 rounded-full bg-muted flex items-center justify-center">
@@ -260,7 +254,7 @@ export default function ModalMusic({
                     </p>
                   </div>
                 </div>
-              </div>
+              </Button>
             </div>
           </>
         )}

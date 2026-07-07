@@ -49,7 +49,9 @@ export default function ModalFontFamily({
         .replace(/[^a-z0-9-]/g, '');
       form.setValue('key', formattedKey, { shouldValidate: true });
     } else {
-      form.setValue(name as any, value, { shouldValidate: true });
+      form.setValue(name as Parameters<typeof form.setValue>[0], value, {
+        shouldValidate: true,
+      });
     }
   };
 

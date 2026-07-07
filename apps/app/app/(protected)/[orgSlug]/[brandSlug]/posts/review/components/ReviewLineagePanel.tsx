@@ -1,5 +1,6 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import type { IBatchItem } from '@genfeedai/interfaces';
 import {
   DefinitionDetail,
@@ -7,7 +8,8 @@ import {
   DefinitionTerm,
 } from '@genfeedai/ui';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
-import Link from 'next/link';
+import { Button } from '@ui/primitives/button';
+import NextLink from 'next/link';
 
 type ReviewPanelItem = IBatchItem & {
   gateOverallScore?: number;
@@ -59,34 +61,44 @@ export default function ReviewLineagePanel({ item }: ReviewLineagePanelProps) {
 
       <div className="mt-4 flex flex-wrap gap-2 border-t border-white/10 pt-4">
         {item.sourceWorkflowId && (
-          <Link
+          <Button
+            asChild
             className="inline-flex rounded-lg border border-white/10 bg-muted/30 px-3 py-2 text-sm text-foreground/75 transition-colors hover:border-white/20 hover:bg-muted/60"
-            href={
-              item.sourceActionId
-                ? `/orchestration/${item.sourceWorkflowId}?opportunity=${item.sourceActionId}`
-                : `/orchestration/${item.sourceWorkflowId}`
-            }
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
           >
-            Open strategy
-          </Link>
+            <NextLink
+              href={
+                item.sourceActionId
+                  ? `/orchestration/${item.sourceWorkflowId}?opportunity=${item.sourceActionId}`
+                  : `/orchestration/${item.sourceWorkflowId}`
+              }
+            >
+              Open strategy
+            </NextLink>
+          </Button>
         )}
         {item.postId && (
-          <Link
+          <Button
+            asChild
             className="inline-flex rounded-lg border border-white/10 bg-muted/30 px-3 py-2 text-sm text-foreground/75 transition-colors hover:border-white/20 hover:bg-muted/60"
-            href={`/posts/${item.postId}`}
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
           >
-            Open draft
-          </Link>
+            <NextLink href={`/posts/${item.postId}`}>Open draft</NextLink>
+          </Button>
         )}
         {item.postUrl && (
-          <a
+          <Button
+            asChild
             className="inline-flex rounded-lg border border-white/10 bg-muted/30 px-3 py-2 text-sm text-foreground/75 transition-colors hover:border-white/20 hover:bg-muted/60"
-            href={item.postUrl}
-            rel="noreferrer"
-            target="_blank"
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
           >
-            Open published URL
-          </a>
+            <a href={item.postUrl} rel="noreferrer" target="_blank">
+              Open published URL
+            </a>
+          </Button>
         )}
       </div>
     </InsetSurface>
