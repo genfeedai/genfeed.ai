@@ -55,7 +55,6 @@ function renderProvider(
     <MarketingTrackingProvider
       config={{
         gtmContainerId: 'GTM-TEST',
-        metaPixelId: 'meta-test',
       }}
       consentDefault="denied"
     >
@@ -134,17 +133,22 @@ describe('MarketingTrackingProvider', () => {
     fireEvent.click(await screen.findByRole('button', { name: /accept/i }));
 
     await waitFor(() =>
-      expect(browserMocks.loadMarketingTags).toHaveBeenCalledWith({
-        gtmContainerId: 'GTM-TEST',
-        metaPixelId: 'meta-test',
-      }),
+      expect(browserMocks.loadMarketingTags).toHaveBeenCalledWith(
+        {
+          gtmContainerId: 'GTM-TEST',
+        },
+        expect.objectContaining({ adStorage: 'granted' }),
+      ),
     );
     await waitFor(() =>
       expect(browserMocks.trackWebsiteMarketingEvent).toHaveBeenCalledWith(
         expect.objectContaining({
           name: WEBSITE_MARKETING_EVENTS.PAGE_VIEW,
         }),
-        expect.any(Object),
+        expect.objectContaining({
+          config: { gtmContainerId: 'GTM-TEST' },
+          consent: expect.objectContaining({ adStorage: 'granted' }),
+        }),
       ),
     );
 

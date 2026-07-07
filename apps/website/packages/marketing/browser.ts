@@ -1,37 +1,26 @@
 'use client';
 
+import { hasMarketingConsent, type MarketingConsentState } from './consent';
 import {
   BROWSER_AND_SERVER_MARKETING_EVENTS,
   createMarketingEventId,
-  META_EVENT_NAMES,
-  WEBSITE_MARKETING_EVENTS,
   type WebsiteMarketingEvent,
-  type WebsiteMarketingEventName,
-  X_EVENT_NAMES,
 } from './events';
 
 declare global {
   interface Window {
-    _linkedin_data_partner_ids?: string[];
-    _linkedin_partner_id?: string;
     dataLayer?: Array<Record<string, unknown>>;
-    fbq?: (...args: unknown[]) => void;
     gtag?: (...args: unknown[]) => void;
-    lintrk?: (command: string, payload: Record<string, unknown>) => void;
-    twq?: (...args: unknown[]) => void;
   }
 }
 
 export interface MarketingTrackingConfig {
-  gaId?: string;
   gtmContainerId?: string;
-  linkedinConversionIds?: Partial<
-    Record<WebsiteMarketingEventName, number | undefined>
-  >;
-  linkedinPartnerId?: string;
-  metaPixelId?: string;
-  xEventIds?: Partial<Record<WebsiteMarketingEventName, string>>;
-  xPixelId?: string;
+}
+
+export interface TrackWebsiteMarketingEventOptions {
+  config: MarketingTrackingConfig;
+  consent: MarketingConsentState | null;
 }
 
 const loadedScripts = new Set<string>();
@@ -77,7 +66,14 @@ export function setGoogleConsent({
   });
 }
 
-export function loadMarketingTags(config: MarketingTrackingConfig): void {
+export function loadMarketingTags(
+  config: MarketingTrackingConfig,
+  consent: MarketingConsentState | null,
+): void {
+  if (!hasMarketingConsent(consent)) {
+    return;
+  }
+
   if (config.gtmContainerId) {
     pushDataLayer({
       event: 'gtm.js',
@@ -90,60 +86,12 @@ export function loadMarketingTags(config: MarketingTrackingConfig): void {
       )}`,
     );
   }
-
-  if (config.gaId) {
-    appendScript(
-      'genfeed-ga4',
-      `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(
-        config.gaId,
-      )}`,
-    );
-    window.gtag?.('js', new Date());
-    window.gtag?.('config', config.gaId, {
-      send_page_view: false,
-    });
-  }
-
-  if (config.metaPixelId) {
-    window.fbq =
-      window.fbq ||
-      ((...args: unknown[]) => {
-        pushDataLayer({ event: 'meta.pixel.queue', args });
-      });
-    appendScript(
-      'genfeed-meta-pixel',
-      'https://connect.facebook.net/en_US/fbevents.js',
-    );
-    window.fbq('init', config.metaPixelId);
-  }
-
-  if (config.linkedinPartnerId) {
-    window._linkedin_partner_id = config.linkedinPartnerId;
-    window._linkedin_data_partner_ids = window._linkedin_data_partner_ids || [];
-    if (!window._linkedin_data_partner_ids.includes(config.linkedinPartnerId)) {
-      window._linkedin_data_partner_ids.push(config.linkedinPartnerId);
-    }
-    appendScript(
-      'genfeed-linkedin-insight',
-      'https://snap.licdn.com/li.lms-analytics/insight.min.js',
-    );
-  }
-
-  if (config.xPixelId) {
-    window.twq =
-      window.twq ||
-      ((...args: unknown[]) => {
-        pushDataLayer({ event: 'x.pixel.queue', args });
-      });
-    appendScript('genfeed-x-pixel', 'https://static.ads-twitter.com/uwt.js');
-    window.twq('config', config.xPixelId);
-  }
 }
 
-function dispatchBrowserVendorEvents(
+function pushMarketingDataLayerEvent(
   event: Required<Pick<WebsiteMarketingEvent, 'eventId' | 'name'>> &
     WebsiteMarketingEvent,
-  config: MarketingTrackingConfig,
+  consent: MarketingConsentState,
 ): void {
   const payload = event.payload ?? {};
   const eventUrl =
@@ -154,44 +102,10 @@ function dispatchBrowserVendorEvents(
     event_id: event.eventId,
     event_name: event.name,
     event_source_url: eventUrl,
+    marketing_consent_ad_storage: consent.adStorage,
+    marketing_consent_analytics_storage: consent.analyticsStorage,
     ...payload,
   });
-
-  if (config.gaId) {
-    window.gtag?.('event', event.name, {
-      event_id: event.eventId,
-      event_source_url: eventUrl,
-      ...payload,
-    });
-  }
-
-  if (config.metaPixelId) {
-    window.fbq?.('track', META_EVENT_NAMES[event.name], payload, {
-      eventID: event.eventId,
-    });
-  }
-
-  const linkedinConversionId = config.linkedinConversionIds?.[event.name];
-  if (
-    config.linkedinPartnerId &&
-    event.name !== WEBSITE_MARKETING_EVENTS.PAGE_VIEW &&
-    typeof linkedinConversionId === 'number'
-  ) {
-    window.lintrk?.('track', {
-      conversion_id: linkedinConversionId,
-    });
-  }
-
-  if (config.xPixelId) {
-    const xEventId =
-      config.xEventIds?.[event.name] || X_EVENT_NAMES[event.name];
-
-    window.twq?.('event', xEventId, {
-      event_id: event.eventId,
-      event_name: X_EVENT_NAMES[event.name],
-      ...payload,
-    });
-  }
 }
 
 function sendServerConversion(event: WebsiteMarketingEvent): void {
@@ -225,12 +139,18 @@ function sendServerConversion(event: WebsiteMarketingEvent): void {
 
 export function trackWebsiteMarketingEvent(
   event: WebsiteMarketingEvent,
-  config: MarketingTrackingConfig,
-): string {
+  options: TrackWebsiteMarketingEventOptions,
+): string | null {
+  const consent = options.consent;
+
+  if (!hasMarketingConsent(consent)) {
+    return null;
+  }
+
   const eventId = event.eventId || createMarketingEventId(event.name);
   const nextEvent = { ...event, eventId };
 
-  dispatchBrowserVendorEvents(nextEvent, config);
+  pushMarketingDataLayerEvent(nextEvent, consent);
   sendServerConversion(nextEvent);
 
   return eventId;
