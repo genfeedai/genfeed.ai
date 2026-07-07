@@ -3,7 +3,7 @@
 // Source of truth: apps/server/api/openapi/openapi.json (Phase 1 / #1247).
 // Regenerate:      bun run --filter=@genfeedai/tools generate:mcp-tools
 //
-// 1011 MCP operation bindings for generated-tool dispatch (#1249 / #1250).
+// 1012 MCP operation bindings for generated-tool dispatch (#1249 / #1250).
 
 import type { IGeneratedMcpOperationBinding } from '../openapi/build-generated-mcp-tools.js';
 
@@ -9520,6 +9520,21 @@ export const GENERATED_MCP_OPERATIONS: IGeneratedMcpOperationBinding[] = [
   },
   {
     "bodyFields": [
+      "event"
+    ],
+    "bodyRequired": true,
+    "bodyStyle": "properties",
+    "method": "post",
+    "operationId": "OrganizationsSettingsController.testWebhookDelivery",
+    "path": "/organizations/{organizationId}/settings/webhooks/test",
+    "pathParams": [
+      "organizationId"
+    ],
+    "queryParams": [],
+    "toolName": "organizations_settings__test_webhook_delivery"
+  },
+  {
+    "bodyFields": [
       "agentPolicy",
       "agentReplyStyle",
       "brandsLimit",
@@ -9564,6 +9579,7 @@ export const GENERATED_MCP_OPERATIONS: IGeneratedMcpOperationBinding[] = [
       "subscriptionTier",
       "timezone",
       "webhookEndpoint",
+      "webhookEventTypes",
       "webhookSecret"
     ],
     "bodyRequired": true,

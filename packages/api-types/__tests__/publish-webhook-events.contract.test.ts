@@ -1,6 +1,7 @@
 import {
   classifyPublishWebhookError,
   createPublishWebhookEventId,
+  createSamplePublishWebhookPayload,
   PUBLISH_WEBHOOK_SCHEMA_VERSION,
   publishWebhookPayloadSchema,
   redactPublishWebhookText,
@@ -68,6 +69,17 @@ describe('publishWebhookPayloadSchema', () => {
 });
 
 describe('publish webhook helpers', () => {
+  test('builds a schema-valid sample payload for test delivery', () => {
+    const payload = createSamplePublishWebhookPayload({
+      event: 'release.partially_published',
+      occurredAt: '2026-07-07T10:00:00.000Z',
+    });
+
+    expect(payload.event).toBe('release.partially_published');
+    expect(payload.targets).toHaveLength(2);
+    expect(publishWebhookPayloadSchema.safeParse(payload).success).toBe(true);
+  });
+
   test('creates deterministic event ids', () => {
     expect(
       createPublishWebhookEventId({

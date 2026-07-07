@@ -185,6 +185,7 @@ export const APP_ROUTES = {
     PERSONAL: '/settings/personal',
     POLICY: '/settings/policy',
     ROOT: '/settings',
+    WEBHOOKS: '/settings/webhooks',
   },
   STUDIO: {
     AVATAR: '/studio/avatar',

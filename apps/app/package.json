@@ -2,6 +2,7 @@
   "dependencies": {
     "@fullcalendar/timegrid": "6.1.21",
     "@genfeedai/agent": "*",
+    "@genfeedai/api-types": "*",
     "@genfeedai/auth-client": "*",
     "@genfeedai/client": "*",
     "@genfeedai/config": "*",

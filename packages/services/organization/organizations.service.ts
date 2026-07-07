@@ -17,6 +17,7 @@ import type {
   IPost,
   IQueryParams,
   ISubscription,
+  IWebhookDeliveryStatus,
   UpdateMemberData,
 } from '@genfeedai/interfaces';
 import { Avatar } from '@genfeedai/models/ai/avatar.model';
@@ -188,6 +189,18 @@ export class OrganizationsService extends BaseService<Organization> {
             this.extractResource<IOrganizationSetting>(res.data),
           ),
       );
+  }
+
+  public async testWebhookDelivery(
+    id: string,
+    data: { event?: string } = {},
+  ): Promise<IWebhookDeliveryStatus> {
+    return await this.instance
+      .post<{ data: IWebhookDeliveryStatus }>(
+        `/${id}/settings/webhooks/test`,
+        data,
+      )
+      .then((res) => res.data.data);
   }
 
   /**

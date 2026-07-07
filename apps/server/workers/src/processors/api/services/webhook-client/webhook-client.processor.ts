@@ -1,5 +1,7 @@
 import * as crypto from 'node:crypto';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { assertSafeWebhookEndpoint } from '@api/services/webhook-client/webhook-endpoint.validator';
+import type { IWebhookDeliveryStatus } from '@genfeedai/interfaces';
 import {
   WEBHOOK_CLIENT_QUEUE,
   WebhookJobData,
@@ -17,16 +19,19 @@ export class WebhookClientProcessor extends WorkerHost {
   constructor(
     private readonly httpService: HttpService,
     private readonly logger: LoggerService,
+    private readonly organizationSettingsService: OrganizationSettingsService,
   ) {
     super();
   }
 
   async process(job: Job<WebhookJobData>): Promise<void> {
-    const { endpoint, secret, payload, organizationId, ingredientId } =
+    const { endpoint, secret, payload, organizationId, ingredientId, isTest } =
       job.data;
+    const deliveryId = job.data.deliveryId ?? job.id ?? 'unknown';
 
     this.logger.log(`${this.constructorName} processing webhook job`, {
       attempt: job.attemptsMade + 1,
+      deliveryId,
       event: payload.event,
       ingredientId,
       jobId: job.id,
@@ -52,7 +57,7 @@ export class WebhookClientProcessor extends WorkerHost {
         this.httpService.post(endpoint, payload, {
           headers: {
             'Content-Type': 'application/json',
-            'X-Genfeed-Delivery': job.id,
+            'X-Genfeed-Delivery': deliveryId,
             'X-Genfeed-Event': payload.event,
             'X-Genfeed-Signature': `sha256=${signature}`,
           },
@@ -64,7 +69,18 @@ export class WebhookClientProcessor extends WorkerHost {
 
       await job.updateProgress(100);
 
+      await this.recordDeliveryStatus(organizationId, {
+        attemptedAt: new Date().toISOString(),
+        completedAt: new Date().toISOString(),
+        deliveryId,
+        event: payload.event,
+        isTest: Boolean(isTest),
+        status: response.status >= 400 ? 'rejected' : 'delivered',
+        statusCode: response.status,
+      });
+
       this.logger.log(`${this.constructorName} webhook delivered`, {
+        deliveryId,
         event: payload.event,
         ingredientId,
         jobId: job.id,
@@ -85,6 +101,16 @@ export class WebhookClientProcessor extends WorkerHost {
         );
       }
     } catch (error: unknown) {
+      await this.recordDeliveryStatus(organizationId, {
+        attemptedAt: new Date().toISOString(),
+        deliveryId,
+        error: (error as Error)?.message || 'Webhook delivery failed',
+        event: payload.event,
+        isTest: Boolean(isTest),
+        status: 'failed',
+        statusCode: readHttpStatusCode(error),
+      });
+
       this.logger.error(`${this.constructorName} webhook delivery failed`, {
         attempt: job.attemptsMade + 1,
         // @ts-expect-error TS2339
@@ -101,4 +127,28 @@ export class WebhookClientProcessor extends WorkerHost {
       throw error;
     }
   }
+
+  private async recordDeliveryStatus(
+    organizationId: string,
+    status: IWebhookDeliveryStatus,
+  ): Promise<void> {
+    try {
+      await this.organizationSettingsService.recordWebhookDeliveryStatus(
+        organizationId,
+        status,
+      );
+    } catch (error: unknown) {
+      this.logger.warn(`${this.constructorName} failed to record status`, {
+        deliveryId: status.deliveryId,
+        error: (error as Error)?.message,
+        organizationId,
+      });
+    }
+  }
+}
+
+function readHttpStatusCode(error: unknown): number | undefined {
+  const status = (error as { response?: { status?: unknown } })?.response
+    ?.status;
+  return typeof status === 'number' ? status : undefined;
 }

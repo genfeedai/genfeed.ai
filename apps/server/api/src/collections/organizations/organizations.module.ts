@@ -27,6 +27,7 @@ import { CommonModule } from '@api/common/common.module';
 import { IntegrationsModule } from '@api/endpoints/integrations/integrations.module';
 import { MemberCreditsGuard } from '@api/helpers/guards/member-credits/member-credits.guard';
 import { ByokModule } from '@api/services/byok/byok.module';
+import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { forwardRef, Module } from '@nestjs/common';
 
@@ -59,6 +60,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => TagsModule),
     forwardRef(() => UsersModule),
     forwardRef(() => VideosModule),
+    forwardRef(() => WebhookClientModule),
   ],
   providers: [OrganizationsService, MemberCreditsGuard],
 })

@@ -13,6 +13,7 @@ export const webhookSettingsSchema = z
   .object({
     isWebhookEnabled: z.boolean(),
     webhookEndpoint: z.string().optional(),
+    webhookEventTypes: z.array(z.string().min(1)).optional(),
   })
   .refine(
     (data) => {

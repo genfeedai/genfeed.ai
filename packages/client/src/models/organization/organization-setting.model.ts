@@ -34,6 +34,8 @@ export class OrganizationSetting
   public declare isWebhookEnabled: boolean;
   public declare webhookEndpoint?: string;
   public declare webhookSecret?: string;
+  public declare webhookEventTypes?: string[];
+  public declare webhookDeliveryStatus?: IOrganizationSetting['webhookDeliveryStatus'];
 
   public declare seatsLimit: number;
   public declare brandsLimit: number;

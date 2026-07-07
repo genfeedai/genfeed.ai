@@ -9350,6 +9350,22 @@
         ],
         "type": "string"
       },
+      "TestOrganizationWebhookDto": {
+        "properties": {
+          "event": {
+            "description": "Publish webhook event type to use for the sample test payload. Defaults to the first configured event filter or target.published.",
+            "enum": [
+              "release.published",
+              "release.partially_published",
+              "release.failed",
+              "target.published",
+              "target.failed"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "ToggleBrandSkillDto": {
         "properties": {
           "enabledSkills": {
@@ -12112,6 +12128,20 @@
           "webhookEndpoint": {
             "description": "Webhook endpoint URL",
             "type": "string"
+          },
+          "webhookEventTypes": {
+            "description": "Optional publish webhook event filter. Empty means all publish webhook events are delivered.",
+            "items": {
+              "enum": [
+                "release.published",
+                "release.partially_published",
+                "release.failed",
+                "target.published",
+                "target.failed"
+              ],
+              "type": "string"
+            },
+            "type": "array"
           },
           "webhookSecret": {
             "description": "Webhook secret for signature verification",
@@ -36045,6 +36075,45 @@
           }
         ],
         "summary": "validateByokProviderKey",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{organizationId}/settings/webhooks/test": {
+      "post": {
+        "operationId": "OrganizationsSettingsController.testWebhookDelivery",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestOrganizationWebhookDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "testWebhookDelivery",
         "tags": [
           "organizations"
         ]

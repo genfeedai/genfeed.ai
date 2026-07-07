@@ -4,6 +4,10 @@ import {
 } from '@api/collections/organization-settings/schemas/organization-setting.schema';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { DefaultVoiceRefDto } from '@api/shared/default-voice-ref/default-voice-ref.dto';
+import {
+  PUBLISH_WEBHOOK_EVENT_TYPES,
+  type PublishWebhookEventType,
+} from '@api-types/contracts/publish-webhook-events.contract';
 import { AgentAutonomyMode, AgentReplyStyle } from '@genfeedai/enums';
 import {
   ONBOARDING_JOURNEY_MISSIONS,
@@ -13,6 +17,8 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   Allow,
+  ArrayUnique,
+  IsArray,
   IsBoolean,
   IsEnum,
   IsIn,
@@ -339,6 +345,19 @@ export class CreateOrganizationSettingDto {
     required: false,
   })
   readonly webhookSecret?: string;
+
+  @IsArray()
+  @ArrayUnique()
+  @IsOptional()
+  @IsIn(PUBLISH_WEBHOOK_EVENT_TYPES, { each: true })
+  @ApiProperty({
+    description:
+      'Optional publish webhook event filter. Empty means all publish webhook events are delivered.',
+    enum: PUBLISH_WEBHOOK_EVENT_TYPES,
+    isArray: true,
+    required: false,
+  })
+  readonly webhookEventTypes?: PublishWebhookEventType[];
 
   @IsEntityId({ each: true })
   @IsOptional()

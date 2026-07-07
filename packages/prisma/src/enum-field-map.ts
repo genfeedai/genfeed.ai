@@ -2140,6 +2140,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'subscriptionTier',
       'timezone',
       'updatedAt',
+      'webhookDeliveryStatus',
       'webhookEndpoint',
       'webhookSecret',
     ],

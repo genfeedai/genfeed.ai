@@ -20,6 +20,24 @@ export interface IAgentPolicy {
   allowAdvancedOverrides?: boolean;
 }
 
+export type WebhookDeliveryStatusValue =
+  | 'queued'
+  | 'delivered'
+  | 'rejected'
+  | 'failed';
+
+export interface IWebhookDeliveryStatus {
+  deliveryId: string;
+  event: string;
+  status: WebhookDeliveryStatusValue;
+  queuedAt?: string | Date | null;
+  attemptedAt?: string | Date | null;
+  completedAt?: string | Date | null;
+  statusCode?: number | null;
+  error?: string | null;
+  isTest?: boolean;
+}
+
 export interface IOrganizationSetting extends IBaseEntity {
   isFirstLogin?: boolean;
   isWhitelabelEnabled: boolean;
@@ -42,6 +60,8 @@ export interface IOrganizationSetting extends IBaseEntity {
   isWebhookEnabled: boolean;
   webhookEndpoint?: string;
   webhookSecret?: string;
+  webhookEventTypes?: string[];
+  webhookDeliveryStatus?: IWebhookDeliveryStatus | null;
 
   seatsLimit: number;
   brandsLimit: number;
