@@ -239,9 +239,12 @@ function ClipBlock({
         : 'bg-foreground/30';
 
   return (
-    /* biome-ignore lint/a11y/noStaticElementInteractions: complex drag-and-drop timeline clip with nested resize handles */
+    /* biome-ignore lint/a11y/useSemanticElements: complex drag-and-drop timeline clip with nested resize handles */
     <div
       ref={clipRef}
+      role="button"
+      tabIndex={-1}
+      aria-label="Timeline clip"
       className={`absolute top-1 bottom-1 ${bgColor} ${
         isSelected ? 'ring-2 ring-primary ring-offset-1' : ''
       } ${isDragging || isResizing ? 'opacity-80' : ''} ${

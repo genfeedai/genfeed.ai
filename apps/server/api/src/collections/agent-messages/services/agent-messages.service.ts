@@ -217,7 +217,7 @@ export class AgentMessagesService extends BaseService<
     let cursor: { id: string } | undefined;
 
     while (true) {
-      const docs = (await this.delegate.findMany({
+      const docs = await this.delegate.findMany({
         ...(cursor ? { cursor, skip: 1 } : {}),
         orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
         take: DEFAULT_AGENT_MESSAGE_BACKLOG_LIMIT,
@@ -226,7 +226,7 @@ export class AgentMessagesService extends BaseService<
           organizationId,
           threadId: sourceRoomId,
         },
-      })) as Array<Record<string, unknown> & { id: string }>;
+      });
 
       if (docs.length === 0) {
         return;
