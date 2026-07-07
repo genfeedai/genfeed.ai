@@ -239,5 +239,21 @@ describe('workflowsApi', () => {
         },
       );
     });
+
+    it('should duplicate a workflow with an abort signal as the second argument', async () => {
+      const { apiClient } = await import('./client');
+      const abortController = new AbortController();
+      vi.mocked(apiClient.post).mockResolvedValueOnce(mockWorkflow);
+
+      await workflowsApi.duplicate('workflow-1', abortController.signal);
+
+      expect(apiClient.post).toHaveBeenCalledWith(
+        '/workflows/workflow-1/clone',
+        undefined,
+        {
+          signal: abortController.signal,
+        },
+      );
+    });
   });
 });

@@ -97,12 +97,20 @@ export const workflowsApi = {
    */
   duplicate: (
     id: string,
-    options?: { brandId?: string | null },
+    optionsOrSignal?: { brandId?: string | null } | AbortSignal,
     signal?: AbortSignal,
-  ): Promise<WorkflowData> =>
-    apiClient.post<WorkflowData>(`/workflows/${id}/clone`, options, {
-      signal,
-    }),
+  ): Promise<WorkflowData> => {
+    const isAbortSignal =
+      optionsOrSignal &&
+      'aborted' in optionsOrSignal &&
+      'addEventListener' in optionsOrSignal;
+    const options = isAbortSignal ? undefined : optionsOrSignal;
+    const requestSignal = isAbortSignal ? optionsOrSignal : signal;
+
+    return apiClient.post<WorkflowData>(`/workflows/${id}/clone`, options, {
+      signal: requestSignal,
+    });
+  },
 
   // Export/Import endpoints
 
