@@ -304,7 +304,7 @@ function buildLlmsFull(): string {
   s.push('## Pricing');
   s.push('');
   s.push(
-    'Genfeed is free to join: credits buy the output you generate (1 credit = $0.01 at the pay-as-you-go rate). Subscriptions include monthly credits at a ~40% better rate and unlock unlimited brands, more channels, and unlimited team seats. Pro is $49/month with 8,000 credits included. Scale is $499/month with unlimited seats and an 80,000-credit shared pool. Enterprise is custom.',
+    'Genfeed is free to join: credits buy the output you generate (1 credit = $0.01 at the pay-as-you-go rate). Subscriptions include monthly credits at a ~40% better rate, paid API access, and unlimited team seats. Brands and connected channels are unlimited. Pay As You Go and Pro include one organization; Scale adds multi-organization workflows. Pro is $49/month with 8,000 credits included. Scale is $499/month with unlimited seats and an 80,000-credit shared pool. Enterprise is custom.',
   );
   s.push('');
 

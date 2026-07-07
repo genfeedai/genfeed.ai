@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 type BusinessErrorDetails = Record<string, unknown>;
-type PlanLimitResource = 'brands' | 'channels' | 'seats';
+type PlanLimitResource = 'brands' | 'channels' | 'organizations' | 'seats';
 
 interface PlanLimitExceededOptions {
   currentCount: number;
@@ -18,6 +18,10 @@ const PLAN_LIMIT_RESOURCE_LABELS: Record<
   channels: {
     plural: 'connected channels',
     singular: 'connected channel',
+  },
+  organizations: {
+    plural: 'organizations',
+    singular: 'organization',
   },
   seats: { plural: 'team seats', singular: 'team seat' },
 };

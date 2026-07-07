@@ -47,7 +47,6 @@ Apply `@Public()` to a controller class or individual handler to bypass all auth
 | `RolesGuard` | `roles/` | Organization membership and role-based access (uses `@Roles()`) |
 | `SubscriptionGuard` | `subscription/` | Requires active Stripe subscription (active or trialing) |
 | `CreditsGuard` | `credits/` | Checks org credit balance against model cost (uses `@Credits()`) |
-| `BrandCreditsGuard` | `brand-credits/` | Extends `CreditsGuard`; also checks brand count vs org limit |
 | `MemberCreditsGuard` | `member-credits/` | Extends `CreditsGuard`; also checks seat count vs org limit |
 | `ModelsGuard` | `models/` | Validates model key against allowed models for a category |
 

@@ -5,6 +5,7 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useSubscription } from '@genfeedai/hooks/data/subscription/use-subscription/use-subscription';
+import { getOrganizationLimitForTier } from '@genfeedai/pricing';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import SwitcherDropdown from '@ui/menus/switcher-dropdown/SwitcherDropdown';
 import { Modal } from '@ui/modals/compound/modal.compound';
@@ -21,6 +22,7 @@ interface OrgEntry {
   label: string;
   slug: string;
   isActive: boolean;
+  isOwner?: boolean;
   brand: { id: string; label: string } | null;
 }
 
@@ -29,6 +31,10 @@ interface SwitcherState {
   isLoading: boolean;
   isSwitching: boolean;
   orgs: OrgEntry[];
+}
+
+interface OrganizationSwitcherProps {
+  subscriptionTier?: string | null;
 }
 
 type SwitcherAction =
@@ -71,7 +77,9 @@ function switcherReducer(
   }
 }
 
-export default function OrganizationSwitcher() {
+export default function OrganizationSwitcher({
+  subscriptionTier,
+}: OrganizationSwitcherProps = {}) {
   const getOrgsService = useAuthedService((token: string) =>
     OrganizationsService.getInstance(token),
   );
@@ -121,6 +129,18 @@ export default function OrganizationSwitcher() {
     (orgs.length === 1 ? orgs[0]?.id : null) ||
     null;
   const activeOrg = orgs.find((o) => o.id === activeOrgId);
+  const organizationLimit = getOrganizationLimitForTier(subscriptionTier);
+  const hasOwnershipMetadata = orgs.some(
+    (org) => typeof org.isOwner === 'boolean',
+  );
+  const organizationCountForLimit = hasOwnershipMetadata
+    ? orgs.filter((org) => org.isOwner).length
+    : orgs.length;
+  const canCreateOrganization =
+    isSubscriptionActive &&
+    !isLoading &&
+    (organizationLimit === null ||
+      organizationCountForLimit < organizationLimit);
 
   const handleSwitch = useCallback(
     async (orgId: string) => {
@@ -206,7 +226,7 @@ export default function OrganizationSwitcher() {
         emptyMessage={error ?? 'No organizations'}
         hasSearch={orgs.length >= 5}
         footerActions={
-          isSubscriptionActive
+          canCreateOrganization
             ? [
                 {
                   label: 'New Organization',

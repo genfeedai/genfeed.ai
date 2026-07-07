@@ -88,7 +88,6 @@ Move the following directories from `apps/server/api/src/` into `ee/packages/bil
 | `helpers/interceptors/credits/` | `src/interceptors/` | Per-request credit debit |
 | `helpers/decorators/credits/` | `src/decorators/` | `@CreditCost(n)` |
 | `helpers/guards/credits/` | `src/guards/credits/` | Balance-check guard |
-| `helpers/guards/brand-credits/` | `src/guards/brand-credits/` | Brand-scoped credit guard |
 | `helpers/guards/member-credits/` | `src/guards/member-credits/` | Member-scoped credit guard |
 | `helpers/guards/subscription/` | `src/guards/subscription/` | Subscription-tier guard |
 | `packages/config/src/schemas/stripe.schema.ts` | `src/config/stripe.schema.ts` | Stripe config schema |
