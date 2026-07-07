@@ -100,6 +100,28 @@ describe('CreditDeductionQueueService', () => {
         .jobId as string;
       expect(call1).not.toBe(call2);
     });
+
+    it('should use a deterministic job ID when an idempotency key is supplied', async () => {
+      const jobData: CreditDeductionJobData = {
+        amount: 18,
+        description: 'Fleet voice clone compute',
+        idempotencyKey: 'fleet-voice-clone-job-1',
+        organizationId: 'org-123',
+        source: 'video-generation',
+        type: 'deduct-credits',
+        userId: 'user-456',
+      };
+
+      await service.queueDeduction(jobData);
+
+      expect(queue.add).toHaveBeenCalledWith(
+        'deduct-credits',
+        jobData,
+        expect.objectContaining({
+          jobId: 'credit-deduct-org-123-fleet-voice-clone-job-1',
+        }),
+      );
+    });
   });
 
   describe('queueByokUsage', () => {

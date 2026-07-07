@@ -8,4 +8,8 @@ export interface CreditDeductionJobData {
   description: string;
   source: ActivitySource;
   maxOverdraftCredits?: number;
+  idempotencyKey?: string;
+  metadata?: Record<string, unknown>;
+  referenceId?: string;
+  referenceType?: string;
 }

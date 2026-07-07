@@ -80,7 +80,12 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     creditsToDeduct: number,
     description: string,
     source: ActivitySource = ActivitySource.SCRIPT,
-    options?: { maxOverdraftCredits?: number },
+    options?: {
+      maxOverdraftCredits?: number;
+      metadata?: Record<string, unknown>;
+      referenceId?: string;
+      referenceType?: string;
+    },
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -104,6 +109,38 @@ export class CreditsUtilsService implements ICreditsUtilsService {
 
       // Core deduction logic — runs atomically inside a transaction when available
       const deductCore = async (tx?: PrismaTransactionClient) => {
+        if (options?.referenceId && options.referenceType) {
+          const existingTransaction = tx
+            ? await tx.creditTransaction.findFirst({
+                where: {
+                  category: CreditTransactionCategory.DEDUCT,
+                  isDeleted: false,
+                  organizationId,
+                  referenceId: options.referenceId,
+                  referenceType: options.referenceType,
+                },
+              })
+            : await this.creditTransactionsService.findOne({
+                category: CreditTransactionCategory.DEDUCT,
+                isDeleted: false,
+                organizationId,
+                referenceId: options.referenceId,
+                referenceType: options.referenceType,
+              });
+
+          if (existingTransaction) {
+            this.loggerService.log(
+              `${url} credit deduction already recorded for reference`,
+              {
+                organizationId,
+                referenceId: options.referenceId,
+                referenceType: options.referenceType,
+              },
+            );
+            return this.getOrganizationCreditsBalance(organizationId, tx);
+          }
+        }
+
         const currentBalance = await this.getOrganizationCreditsBalance(
           organizationId,
           tx,
@@ -126,17 +163,45 @@ export class CreditsUtilsService implements ICreditsUtilsService {
           newBalance,
           tx,
         );
-        await this.creditTransactionsService.createTransactionEntry(
-          organizationId,
-          CreditTransactionCategory.DEDUCT,
-          creditsToDeduct,
-          currentBalance,
-          newBalance,
-          source,
-          description,
-          undefined,
-          tx,
-        );
+        const transactionOptions =
+          options?.referenceId || options?.referenceType || options?.metadata
+            ? {
+                ...(options.metadata ? { metadata: options.metadata } : {}),
+                ...(options.referenceId
+                  ? { referenceId: options.referenceId }
+                  : {}),
+                ...(options.referenceType
+                  ? { referenceType: options.referenceType }
+                  : {}),
+              }
+            : undefined;
+
+        if (transactionOptions) {
+          await this.creditTransactionsService.createTransactionEntry(
+            organizationId,
+            CreditTransactionCategory.DEDUCT,
+            creditsToDeduct,
+            currentBalance,
+            newBalance,
+            source,
+            description,
+            undefined,
+            tx,
+            transactionOptions,
+          );
+        } else {
+          await this.creditTransactionsService.createTransactionEntry(
+            organizationId,
+            CreditTransactionCategory.DEDUCT,
+            creditsToDeduct,
+            currentBalance,
+            newBalance,
+            source,
+            description,
+            undefined,
+            tx,
+          );
+        }
 
         return newBalance;
       };

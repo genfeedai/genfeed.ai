@@ -18,11 +18,14 @@ export class CreditDeductionQueueService {
 
   async queueDeduction(data: CreditDeductionJobData): Promise<void> {
     await this.queue.add('deduct-credits', data, {
-      jobId: `credit-deduct-${data.organizationId}-${Date.now()}`,
+      jobId: data.idempotencyKey
+        ? `credit-deduct-${data.organizationId}-${data.idempotencyKey}`
+        : `credit-deduct-${data.organizationId}-${Date.now()}`,
     });
 
     this.logger.log(`${this.constructorName} credit deduction job queued`, {
       amount: data.amount,
+      idempotencyKey: data.idempotencyKey,
       organizationId: data.organizationId,
       type: data.type,
     });
