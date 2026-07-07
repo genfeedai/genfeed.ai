@@ -7,6 +7,7 @@ const routerReplace = vi.fn();
 const sendMessage = vi.fn();
 const patchMe = vi.fn();
 const touchSession = vi.fn();
+const getToken = vi.fn();
 
 const navigationState = {
   params: {
@@ -30,6 +31,13 @@ vi.mock('@genfeedai/auth-client/react', () => ({
     session: {
       touch: touchSession,
     },
+  }),
+}));
+
+vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => ({
+    getToken,
+    isLoaded: true,
   }),
 }));
 
@@ -106,6 +114,8 @@ describe('AgentWorkspaceLayoutClient', () => {
     patchMe.mockReset();
     patchMe.mockResolvedValue(undefined);
     touchSession.mockReset();
+    getToken.mockReset();
+    getToken.mockResolvedValue('token');
   });
 
   it('does not immediately redirect /agent/new back to the previously active thread', async () => {
