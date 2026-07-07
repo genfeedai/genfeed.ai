@@ -14,6 +14,7 @@ export const APP_ROUTES = {
       PLATFORM_SETTINGS: '/admin/administration/platform-settings',
       ROLES: '/admin/administration/roles',
       SUBSCRIPTIONS: '/admin/administration/subscriptions',
+      SYSTEM_EMAILS: '/admin/administration/system-emails',
       USERS: '/admin/administration/users',
       WARMUP_ACCOUNTS: '/admin/administration/warmup-accounts',
     },
