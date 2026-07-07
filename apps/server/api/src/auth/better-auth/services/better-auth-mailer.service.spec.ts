@@ -95,4 +95,42 @@ describe('BetterAuthMailerService', () => {
     );
     expect(html).toContain('If you did not create a Genfeed.ai account');
   });
+
+  it('sends password reset emails through the shared notification pipeline', async () => {
+    const notificationsService = {
+      sendEmail: vi.fn().mockResolvedValue(undefined),
+    };
+    const logger = { log: vi.fn() };
+    const service = new BetterAuthMailerService(
+      notificationsService as never,
+      logger as never,
+    );
+    const url =
+      'https://app.genfeed.ai/reset-password?token=reset&callbackUrl=https%3A%2F%2Fapp.genfeed.ai%2F';
+
+    await service.sendResetPassword({
+      token: 'reset',
+      url,
+      user: { email: 'user@example.com' },
+    });
+
+    expect(notificationsService.sendEmail).toHaveBeenCalledWith(
+      'user@example.com',
+      'Reset your Genfeed.ai password',
+      expect.stringContaining('<!doctype html>'),
+    );
+    const html = notificationsService.sendEmail.mock.calls[0]?.[2] as string;
+    expect(html).toContain('Reset your password');
+    expect(html).toContain('Reset password');
+    expect(html).toContain(
+      'https://app.genfeed.ai/reset-password?token=reset&amp;callbackUrl=https%3A%2F%2Fapp.genfeed.ai%2F',
+    );
+    expect(html).toContain(
+      'If you did not request a Genfeed.ai password reset',
+    );
+    expect(logger.log).toHaveBeenCalledWith('Password reset email dispatched', {
+      emailDomain: 'example.com',
+      service: 'BetterAuthMailerService',
+    });
+  });
 });

@@ -573,14 +573,16 @@ async function resolveCanonicalProtectedPath(
 
 /**
  * Public (no-session) routes under the Better Auth guard. Unlike the keyless
- * self-hosted branch, /login, /sign-up and /logout are real auth pages here.
- * /oauth/* are integration callbacks and must never be gated.
+ * self-hosted branch, /login, /sign-up, password reset, and /logout are real
+ * auth pages here. /oauth/* are integration callbacks and must never be gated.
  */
 function isBetterAuthPublicRoute(pathname: string): boolean {
   return (
     pathname.startsWith('/login') ||
     pathname.startsWith('/sign-in') ||
     pathname.startsWith('/sign-up') ||
+    pathname.startsWith('/forgot-password') ||
+    pathname.startsWith('/reset-password') ||
     pathname.startsWith('/logout') ||
     pathname.startsWith('/onboarding') ||
     pathname.startsWith('/oauth') ||
@@ -648,6 +650,8 @@ export default async function proxy(req: NextRequest) {
       pathname.startsWith('/login') ||
       pathname.startsWith('/sign-in') ||
       pathname.startsWith('/sign-up') ||
+      pathname.startsWith('/forgot-password') ||
+      pathname.startsWith('/reset-password') ||
       pathname.startsWith('/logout') ||
       pathname.startsWith('/onboarding');
     const resolveDesktopWorkspace =

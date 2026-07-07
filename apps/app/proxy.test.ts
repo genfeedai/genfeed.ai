@@ -152,6 +152,18 @@ describe('proxy', () => {
     );
   });
 
+  it.each([
+    '/forgot-password',
+    '/reset-password',
+  ])('lets signed-out users render public reset route %s', async (pathname) => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(makeSignedOutRequest(pathname), {} as never);
+
+    expect(response.status).not.toBe(307);
+    expect(response.headers.get('location')).toBeNull();
+  });
+
   it('normalizes a bare API_URL origin before calling versioned auth endpoints', async () => {
     vi.stubEnv('API_URL', 'http://localhost:3010');
     vi.resetModules();

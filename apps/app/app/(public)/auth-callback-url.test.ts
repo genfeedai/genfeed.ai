@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   getAuthCallbackURL,
+  getAuthFlowHref,
   toAbsoluteAuthCallbackURL,
 } from './auth-callback-url';
 
@@ -41,6 +42,13 @@ describe('auth callback URL helpers', () => {
         { includeOnboardingHandoffParams: true },
       ),
     ).toBe('genfeedai-desktop://auth');
+  });
+
+  it('builds auth route links that preserve callbackUrl only when needed', () => {
+    expect(getAuthFlowHref('/forgot-password', '/')).toBe('/forgot-password');
+    expect(getAuthFlowHref('/forgot-password', '/oauth/cli?port=4321')).toBe(
+      '/forgot-password?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321',
+    );
   });
 
   it('expands relative callbacks to the active app origin', () => {
