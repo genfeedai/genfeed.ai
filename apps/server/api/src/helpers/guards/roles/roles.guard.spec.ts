@@ -148,11 +148,35 @@ describe('RolesGuard', () => {
           user: USER_ID,
         },
       },
-      { body: { organization: REQUEST_ORGANIZATION_ID } },
+      { body: { organizationId: REQUEST_ORGANIZATION_ID } },
     );
 
     await expectForbidden(guard.canActivate(context));
     expect(mockMembersService.findOne).not.toHaveBeenCalled();
+  });
+
+  it('ignores non-ID body organization payloads when token organization exists', async () => {
+    vi.spyOn(reflector, 'get').mockReturnValue(undefined);
+    mockMembersService.findOne.mockResolvedValue({ id: 'member-1' });
+
+    const context = createContext(
+      {
+        publicMetadata: {
+          organization: TOKEN_ORGANIZATION_ID,
+          user: USER_ID,
+        },
+      },
+      { body: { organization: 'creator-handle' } },
+    );
+
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+    expect(mockMembersService.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organization: TOKEN_ORGANIZATION_ID,
+        user: USER_ID,
+      }),
+      expect.any(Array),
+    );
   });
 
   it('uses explicit route organization when token organization is absent', async () => {
@@ -166,6 +190,29 @@ describe('RolesGuard', () => {
         },
       },
       { params: { organizationId: REQUEST_ORGANIZATION_ID } },
+    );
+
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+    expect(mockMembersService.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organization: REQUEST_ORGANIZATION_ID,
+        user: USER_ID,
+      }),
+      expect.any(Array),
+    );
+  });
+
+  it('uses explicit body organizationId when token organization is absent', async () => {
+    vi.spyOn(reflector, 'get').mockReturnValue(undefined);
+    mockMembersService.findOne.mockResolvedValue({ id: 'member-1' });
+
+    const context = createContext(
+      {
+        publicMetadata: {
+          user: USER_ID,
+        },
+      },
+      { body: { organizationId: REQUEST_ORGANIZATION_ID } },
     );
 
     await expect(guard.canActivate(context)).resolves.toBe(true);

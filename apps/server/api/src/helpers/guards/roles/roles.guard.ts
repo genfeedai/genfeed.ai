@@ -199,7 +199,7 @@ export class RolesGuard implements CanActivate {
     return [
       params.organizationId,
       params.orgId,
-      body?.organization,
+      this.normalizeOrganizationId(body?.organization),
       body?.organizationId,
       body?.orgId,
     ].filter((value) => value !== undefined && value !== null && value !== '');
