@@ -2,6 +2,11 @@
 
 import { gsapPresets, useGsapEntrance } from '@hooks/ui/use-gsap-entrance';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
+import {
+  NeuralGrid,
+  NeuralGridItem,
+  WebSection,
+} from '@web-components/content/NeuralGrid';
 import PageLayout from '@web-components/PageLayout';
 import Image from 'next/image';
 import { useMemo } from 'react';
@@ -22,19 +27,8 @@ export default function AboutContent() {
       <PageLayout
         compact
         title="About Genfeed"
-        description="About Genfeed - Built by AI, for creators who track revenue"
+        description="Built by AI agents for creators and agencies who track revenue, not vanity metrics."
       >
-        {/* Hero */}
-        <section className="about-hero max-w-4xl mx-auto py-20 text-center">
-          <h1 className="font-semibold text-5xl md:text-6xl mb-4">
-            About <span className="text-primary">Genfeed</span>
-          </h1>
-          <p className="text-xl text-foreground/70">
-            Built by AI agents. For SMBs and marketing agencies who track
-            revenue, not likes.
-          </p>
-        </section>
-
         {/* Hero Image */}
         <section className="max-w-4xl mx-auto pb-12">
           <div className="relative aspect-[21/9] overflow-hidden">
@@ -50,40 +44,32 @@ export default function AboutContent() {
         </section>
 
         {/* The Problem */}
-        <section className="about-content max-w-4xl mx-auto pb-20 space-y-8">
-          <div className="about-card node-card bg-card border border-edge/[0.08] p-8">
-            <h2 className="text-2xl font-semibold mb-4">The Problem</h2>
-            <p className="text-foreground/70">
-              SMBs and marketing agencies use 5+ tools. Nobody tracks what
-              drives revenue. Content creation is slow and manual, taking days
-              or weeks instead of minutes.
-            </p>
-          </div>
-
-          <div className="about-card node-card bg-card border border-edge/[0.08] p-8">
-            <h2 className="text-2xl font-semibold mb-4">Why Now?</h2>
-            <p className="text-foreground/70">
-              AI content generation just hit a critical threshold: quality now
-              matches human output while production costs dropped 95%. This
-              technology inflection point enables what was previously
-              impossible: creating professional, on-brand content at scale
-              without scaling headcount.
-            </p>
-          </div>
-
-          <div className="about-card node-card bg-card border border-edge/[0.08] p-8">
-            <h2 className="text-2xl font-semibold mb-4">The Solution</h2>
-            <p className="text-foreground/70">
-              Genfeed: Discover trends → Generate content in minutes → Publish
-              everywhere → Track ROI → Optimize. All in one content intelligence
-              platform.
-            </p>
-          </div>
-        </section>
+        <WebSection className="about-content pt-0" maxWidth="lg" py="md">
+          <NeuralGrid columns={1}>
+            <NeuralGridItem
+              className="about-card"
+              padding="lg"
+              title="The problem"
+              description="SMBs and marketing agencies use five or more tools. Nobody tracks what drives revenue. Content creation stays slow and manual."
+            />
+            <NeuralGridItem
+              className="about-card"
+              padding="lg"
+              title="Why now"
+              description="AI content quality now matches professional output while production costs have collapsed. Teams can create on-brand content at scale without scaling headcount."
+            />
+            <NeuralGridItem
+              className="about-card"
+              padding="lg"
+              title="The solution"
+              description="Discover trends, generate content in minutes, publish everywhere, track ROI, and optimize from one content intelligence platform."
+            />
+          </NeuralGrid>
+        </WebSection>
 
         {/* CTA */}
         <section className="max-w-4xl mx-auto pb-20">
-          <div className="bg-card border border-edge/[0.08] shadow-[0_0_100px_rgba(255,255,255,0.2),inset_0_0_40px_rgba(255,255,255,0.05)] p-8 text-center">
+          <div className="bg-background p-8 text-center shadow-border-strong">
             <h2 className="text-2xl font-semibold mb-4">Get Started</h2>
             <p className="text-foreground/70 mb-6">
               Sign up, pick a plan, and start creating content at scale.

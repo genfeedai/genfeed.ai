@@ -32,7 +32,7 @@ export default function EditorialPoster({
   return (
     <article
       className={cn(
-        'relative overflow-hidden rounded-card border border-[var(--gen-accent-border)] bg-white/[0.04] p-8 sm:p-10 lg:p-12',
+        'relative overflow-hidden rounded-card bg-background p-8 shadow-border sm:p-10 lg:p-12',
         className,
       )}
       data-testid={testId}
@@ -47,7 +47,7 @@ export default function EditorialPoster({
       <div className="relative z-10 flex min-h-[420px] flex-col justify-between gap-10">
         <div className="space-y-5">
           {eyebrow ? (
-            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--gen-accent-text)]">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--gen-accent-text)]">
               {eyebrow}
             </div>
           ) : null}
@@ -58,7 +58,7 @@ export default function EditorialPoster({
             </h2>
 
             {subtitle ? (
-              <p className="max-w-xl text-sm uppercase tracking-[0.2em] text-[var(--gen-accent-text)] sm:text-[13px]">
+              <p className="max-w-xl text-sm font-medium leading-6 tracking-[-0.01em] text-[var(--gen-accent-text)] sm:text-[13px]">
                 {subtitle}
               </p>
             ) : null}

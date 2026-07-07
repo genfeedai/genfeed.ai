@@ -168,7 +168,7 @@ export default function ModalBrandInstagram({
     >
       <div className="w-full max-w-2xl">
         <div className="flex items-center gap-2 mb-6">
-          <div className="size-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+          <div className="flex size-10 items-center justify-center rounded-full bg-platform-instagram">
             <FaInstagram className="text-white text-lg" />
           </div>
 
@@ -250,7 +250,7 @@ export default function ModalBrandInstagram({
                 }}
               >
                 <div className="flex items-center gap-2">
-                  <div className="size-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-full bg-platform-instagram">
                     <Image
                       src={handle.image}
                       alt={handle.label}
