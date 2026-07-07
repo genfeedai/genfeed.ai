@@ -13,13 +13,7 @@ import {
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { Loader2, Play, X } from 'lucide-react';
-import {
-  type ChangeEvent,
-  type FormEvent,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { type ChangeEvent, type FormEvent, useMemo, useState } from 'react';
 import type { WorkflowInputVariable } from '@/features/workflows/services/workflow-api';
 
 interface WorkflowRunPanelProps {
@@ -151,14 +145,17 @@ export function WorkflowRunPanel({
     () => buildInitialValues(inputVariables),
     [inputVariables],
   );
+  const [previousInitialValues, setPreviousInitialValues] =
+    useState(initialValues);
   const [values, setValues] = useState<FormValues>(initialValues);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [saveDefaults, setSaveDefaults] = useState(false);
 
-  useEffect(() => {
+  if (previousInitialValues !== initialValues) {
+    setPreviousInitialValues(initialValues);
     setValues(initialValues);
     setErrors({});
-  }, [initialValues]);
+  }
 
   const setFieldValue = (key: string, value: unknown) => {
     setValues((currentValues) => ({ ...currentValues, [key]: value }));
