@@ -41,7 +41,8 @@ type IngredientModelConstructorMap = {
 export class IngredientsService<
   T extends Ingredient = Ingredient,
 > extends BaseService<T> {
-  private static instances = new Map<string, IngredientsService<Ingredient>>();
+  // biome-ignore lint/suspicious/noExplicitAny: heterogeneous map stores different IngredientsService<T> subtypes
+  private static instances = new Map<string, IngredientsService<any>>();
 
   constructor(category: IngredientCategory | string, token: string) {
     const modelMap: IngredientModelConstructorMap = {
@@ -72,10 +73,11 @@ export class IngredientsService<
    * Get singleton instance for specific category and token
    * If only token is provided, defaults to 'ingredients' category
    */
+  // biome-ignore lint/suspicious/noExplicitAny: factory pattern — subclasses override with concrete return types
   static getInstance<T extends Ingredient = Ingredient>(
     categoryOrToken: IngredientCategory | string,
     tokenOrUndefined?: string,
-  ): IngredientsService<T> {
+  ): any {
     // Support both signatures: getInstance(category, token) and getInstance(token)
     const category = tokenOrUndefined ? categoryOrToken : 'ingredients';
     const token = tokenOrUndefined || categoryOrToken;
@@ -85,10 +87,7 @@ export class IngredientsService<
     if (!IngredientsService.instances.has(key)) {
       IngredientsService.instances.set(
         key,
-        new IngredientsService<T>(
-          category,
-          token,
-        ) as unknown as IngredientsService<Ingredient>,
+        new IngredientsService<T>(category, token),
       );
     }
 
