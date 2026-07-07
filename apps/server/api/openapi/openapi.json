@@ -15629,6 +15629,21 @@
         ]
       }
     },
+    "/admin/system-emails": {
+      "get": {
+        "operationId": "SystemEmailsController.list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "List platform-owned lifecycle system emails",
+        "tags": [
+          "Admin / System Emails"
+        ]
+      }
+    },
     "/admin/warmup-accounts": {
       "get": {
         "operationId": "WarmupAccountsController.list",
