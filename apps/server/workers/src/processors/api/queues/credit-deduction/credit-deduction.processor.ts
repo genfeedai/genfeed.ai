@@ -42,13 +42,22 @@ export class CreditDeductionProcessor extends WorkerHost {
 
     try {
       if (type === 'deduct-credits') {
+        if (!userId) {
+          throw new UnrecoverableError('Credit deduction job missing userId');
+        }
+
         await this.creditsUtilsService.deductCreditsFromOrganization(
           organizationId,
-          userId!,
+          userId,
           amount,
           description,
           source,
-          { maxOverdraftCredits: job.data.maxOverdraftCredits },
+          {
+            maxOverdraftCredits: job.data.maxOverdraftCredits,
+            metadata: job.data.metadata,
+            referenceId: job.data.referenceId,
+            referenceType: job.data.referenceType,
+          },
         );
 
         await this.checkLowCredits(organizationId);

@@ -1,29 +1,77 @@
-import { describe, expect, it } from 'vitest';
+import { ActivitySource } from '@genfeedai/enums';
+import type { CreditDeductionJobData } from '@genfeedai/queue-contracts';
+import { CreditDeductionProcessor } from '@workers/processors/api/queues/credit-deduction/credit-deduction.processor';
+import type { Job } from 'bullmq';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-/**
- * CreditDeductionProcessor Test
- * Note: Full integration tests require complex module resolution.
- * This file ensures the processor spec is present for coverage tracking.
- */
 describe('CreditDeductionProcessor', () => {
-  describe('processor logic', () => {
-    it('should handle credit deductions', () => {
-      // The processor handles two job types:
-      // 1. deduct-credits - deducts credits from organization
-      // 2. record-byok-usage - records BYOK usage without deduction
-      expect(true).toBe(true);
-    });
+  let processor: CreditDeductionProcessor;
+  let creditsUtilsService: {
+    deductCreditsFromOrganization: ReturnType<typeof vi.fn>;
+    getOrganizationCreditsBalance: ReturnType<typeof vi.fn>;
+  };
 
-    it('should validate organizationId', () => {
-      // Processor requires valid organizationId
-      const isValid = (id: string) => Boolean(id && id.length > 0);
-      expect(isValid('org-123')).toBe(true);
-      expect(isValid('')).toBe(false);
-    });
+  beforeEach(() => {
+    creditsUtilsService = {
+      deductCreditsFromOrganization: vi.fn().mockResolvedValue(undefined),
+      getOrganizationCreditsBalance: vi.fn().mockResolvedValue(5000),
+    };
 
-    it('should handle errors gracefully', () => {
-      // Processor should catch and log errors
-      expect(true).toBe(true);
-    });
+    processor = new CreditDeductionProcessor(
+      creditsUtilsService as never,
+      { createTransactionEntry: vi.fn() } as never,
+      { sendLowCreditsAlert: vi.fn() } as never,
+      { getPublisher: vi.fn() } as never,
+      {
+        debug: vi.fn(),
+        error: vi.fn(),
+        log: vi.fn(),
+        warn: vi.fn(),
+      } as never,
+    );
+  });
+
+  it('passes completion billing references into the credit utility', async () => {
+    const data: CreditDeductionJobData = {
+      amount: 18,
+      description: 'Fleet voice clone compute',
+      idempotencyKey: 'fleet-voice-clone-job-1',
+      metadata: {
+        fleetJobId: 'job-1',
+        processTimeSeconds: 61,
+      },
+      organizationId: 'org-1',
+      referenceId: 'job-1',
+      referenceType: 'fleet:voice-clone',
+      source: ActivitySource.VOICE_GENERATION,
+      type: 'deduct-credits',
+      userId: 'user-1',
+    };
+
+    await processor.process({
+      attemptsMade: 0,
+      data,
+      id: 'credit-deduct-org-1-fleet-voice-clone-job-1',
+      opts: { attempts: 3 },
+    } as Job<CreditDeductionJobData>);
+
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      18,
+      'Fleet voice clone compute',
+      ActivitySource.VOICE_GENERATION,
+      {
+        maxOverdraftCredits: undefined,
+        metadata: {
+          fleetJobId: 'job-1',
+          processTimeSeconds: 61,
+        },
+        referenceId: 'job-1',
+        referenceType: 'fleet:voice-clone',
+      },
+    );
   });
 });

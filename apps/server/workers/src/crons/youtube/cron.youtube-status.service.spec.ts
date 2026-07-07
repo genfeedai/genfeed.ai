@@ -4,6 +4,7 @@ import {
   SystemWorkflowProvenanceService,
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
+import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
 import { PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -16,6 +17,10 @@ describe('CronYoutubeStatusService', () => {
     patch: ReturnType<typeof vi.fn>;
   };
   let youtubeService: { getVideoStatus: ReturnType<typeof vi.fn> };
+  let publishEventWebhookService: {
+    emitLegacyPostFailed: ReturnType<typeof vi.fn>;
+    emitLegacyPostPublished: ReturnType<typeof vi.fn>;
+  };
   let provenanceService: { runAction: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
@@ -25,6 +30,10 @@ describe('CronYoutubeStatusService', () => {
     };
     youtubeService = {
       getVideoStatus: vi.fn(),
+    };
+    publishEventWebhookService = {
+      emitLegacyPostFailed: vi.fn().mockResolvedValue(undefined),
+      emitLegacyPostPublished: vi.fn().mockResolvedValue(undefined),
     };
     provenanceService = {
       runAction: vi.fn(
@@ -62,6 +71,10 @@ describe('CronYoutubeStatusService', () => {
           provide: SystemWorkflowProvenanceService,
           useValue: provenanceService,
         },
+        {
+          provide: PublishEventWebhookService,
+          useValue: publishEventWebhookService,
+        },
       ],
     }).compile();
 
@@ -78,6 +91,7 @@ describe('CronYoutubeStatusService', () => {
       brand: 'brand-1',
       credential: 'credential-1',
       externalId: 'video-1',
+      id: 'post-1',
       organization: 'org-1',
       status: PostStatus.PRIVATE,
       user: 'user-1',
@@ -100,6 +114,16 @@ describe('CronYoutubeStatusService', () => {
       'post-1',
       expect.objectContaining({ status: PostStatus.PUBLIC }),
     );
+    expect(
+      publishEventWebhookService.emitLegacyPostPublished,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        externalProviderId: 'video-1',
+        platform: 'youtube',
+        post,
+        url: 'https://www.youtube.com/watch?v=video-1',
+      }),
+    );
   });
 
   it('does not record an execution when the status is unchanged', async () => {
@@ -108,6 +132,7 @@ describe('CronYoutubeStatusService', () => {
       brand: 'brand-1',
       credential: 'credential-1',
       externalId: 'video-2',
+      id: 'post-2',
       organization: 'org-1',
       status: PostStatus.PRIVATE,
       user: 'user-1',
@@ -129,6 +154,7 @@ describe('CronYoutubeStatusService', () => {
       brand: 'brand-1',
       credential: 'credential-1',
       externalId: 'video-3',
+      id: 'post-3',
       organization: 'org-1',
       status: PostStatus.PRIVATE,
       user: 'user-1',

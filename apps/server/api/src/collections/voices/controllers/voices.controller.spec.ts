@@ -13,7 +13,12 @@ import { FleetService } from '@api/services/integrations/fleet/fleet.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
-import { IngredientCategory, VoiceProvider } from '@genfeedai/enums';
+import {
+  ActivitySource,
+  IngredientCategory,
+  VoiceCloneStatus,
+  VoiceProvider,
+} from '@genfeedai/enums';
 import { VoiceProvider as DbVoiceProvider } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -559,14 +564,19 @@ describe('VoicesController', () => {
       expect(deferred).toBe(true);
     });
 
-    it('charges a fixed 17-credit @Credits config for voice cloning', () => {
+    it('defers voice clone credits so the handler can branch by provider', () => {
       const config = reflector.get<{ amount?: number }>(
         CREDITS_KEY,
         controller.cloneVoice,
       );
+      const deferred = reflector.get(
+        CREDITS_DEFER_MODEL_RESOLUTION_KEY,
+        controller.cloneVoice,
+      );
 
       expect(config).toBeDefined();
-      expect(config.amount).toBe(17);
+      expect(config.amount).toBeUndefined();
+      expect(deferred).toBe(true);
     });
   });
 
@@ -634,6 +644,108 @@ describe('VoicesController', () => {
       expect(voicesService.patchAll).toHaveBeenCalledWith(
         expect.objectContaining({ OR: expect.any(Array) }),
         expect.objectContaining({ voiceProvider: VoiceProvider.ELEVENLABS }),
+      );
+    });
+
+    it('settles the flat 17-credit charge for ElevenLabs clones', async () => {
+      const user = createMockUser();
+      const request = {
+        ...createMockRequest(),
+        creditsConfig: {
+          amount: 0,
+          deferred: true,
+          description: 'Voice cloning',
+          source: ActivitySource.VOICE_GENERATION,
+        },
+      };
+      const ingredientId = '507f191e810c19729de860ee';
+
+      byokService.resolveApiKey.mockResolvedValue({ apiKey: 'test-key' });
+      elevenLabsService.cloneVoice.mockResolvedValue({ voiceId: 'el_cloned' });
+      sharedService.saveDocuments.mockResolvedValue({
+        ingredientData: { id: ingredientId },
+      });
+      voicesService.patchAll.mockResolvedValue({});
+      voicesService.findOne.mockResolvedValue({
+        id: ingredientId,
+        isCloned: true,
+      });
+      notificationsService.publishAssetStatus.mockResolvedValue(undefined);
+
+      await controller.cloneVoice(
+        request as never,
+        user as never,
+        {
+          audioUrl: 'https://example.com/audio.mp3',
+          name: 'My Voice',
+          provider: VoiceProvider.ELEVENLABS,
+        } as never,
+        undefined,
+      );
+
+      expect(
+        creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).toHaveBeenCalledWith(user.publicMetadata.organization, 17);
+      expect(request.creditsConfig).toMatchObject({
+        amount: 17,
+        deferred: false,
+      });
+    });
+
+    it('does not finalize request credits when accepting a Fleet clone job', async () => {
+      const user = createMockUser();
+      const request = {
+        ...createMockRequest(),
+        creditsConfig: {
+          amount: 0,
+          deferred: true,
+          description: 'Voice cloning',
+          source: ActivitySource.VOICE_GENERATION,
+        },
+      };
+      const ingredientId = '507f191e810c19729de860ee';
+
+      fleetService.isAvailable.mockResolvedValue(true);
+      fleetService.cloneVoice.mockResolvedValue({ jobId: 'fleet-job-1' });
+      sharedService.saveDocuments.mockResolvedValue({
+        ingredientData: { id: ingredientId },
+      });
+      voicesService.patchAll.mockResolvedValue({});
+      voicesService.findOne.mockResolvedValue({
+        cloneStatus: VoiceCloneStatus.CLONING,
+        id: ingredientId,
+        isCloned: true,
+      });
+      notificationsService.publishAssetStatus.mockResolvedValue(undefined);
+
+      await controller.cloneVoice(
+        request as never,
+        user as never,
+        {
+          audioUrl: 'https://example.com/audio.mp3',
+          name: 'My Voice',
+          provider: VoiceProvider.GENFEED_AI,
+        } as never,
+        undefined,
+      );
+
+      expect(request.creditsConfig).toMatchObject({
+        amount: 0,
+        deferred: true,
+      });
+      expect(voicesService.patchAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          OR: expect.any(Array),
+          organizationId: user.publicMetadata.organization,
+        }),
+        expect.objectContaining({
+          providerData: {
+            fleet: {
+              jobId: 'fleet-job-1',
+              jobKind: 'voice-clone',
+            },
+          },
+        }),
       );
     });
   });

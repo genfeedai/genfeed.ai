@@ -48,6 +48,9 @@ describe('website AppProviders', () => {
         includeToaster={false}
         marketingConsentDefault="denied"
         marketingGtmContainerId="GTM-123"
+        marketingRetargetingProviders={[
+          { pixelId: 'meta-pixel', provider: 'meta' },
+        ]}
       >
         <div>Website child</div>
       </AppProviders>,
@@ -57,6 +60,7 @@ describe('website AppProviders', () => {
     expect(marketingProviderSpy).toHaveBeenCalledWith({
       config: {
         gtmContainerId: 'GTM-123',
+        retargetingProviders: [{ pixelId: 'meta-pixel', provider: 'meta' }],
       },
       consentDefault: 'denied',
     });

@@ -5,16 +5,43 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { PublisherFactoryService } from '@api/services/integrations/publishers/publisher-factory.service';
 import { QuotaService } from '@api/services/quota/quota.service';
+import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
+import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
 
 describe('CronPostsService', () => {
   let service: CronPostsService;
+  let activitiesService: { create: ReturnType<typeof vi.fn> };
+  let credentialsService: { findOne: ReturnType<typeof vi.fn> };
   let postsService: vi.Mocked<PostsService>;
+  let publisherFactory: { getPublisher: ReturnType<typeof vi.fn> };
+  let publishEventWebhookService: {
+    emitLegacyPostFailed: ReturnType<typeof vi.fn>;
+    emitLegacyPostPublished: ReturnType<typeof vi.fn>;
+  };
+  let quotaService: { checkQuota: ReturnType<typeof vi.fn> };
   let loggerService: vi.Mocked<LoggerService>;
 
   beforeEach(async () => {
+    activitiesService = {
+      create: vi.fn().mockResolvedValue(undefined),
+    };
+    credentialsService = {
+      findOne: vi.fn(),
+    };
+    publisherFactory = {
+      getPublisher: vi.fn(),
+    };
+    publishEventWebhookService = {
+      emitLegacyPostFailed: vi.fn().mockResolvedValue(undefined),
+      emitLegacyPostPublished: vi.fn().mockResolvedValue(undefined),
+    };
+    quotaService = {
+      checkQuota: vi.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CronPostsService,
@@ -28,20 +55,16 @@ describe('CronPostsService', () => {
         },
         {
           provide: ActivitiesService,
-          useValue: {
-            create: vi.fn(),
-          },
+          useValue: activitiesService,
         },
         {
           provide: CredentialsService,
-          useValue: {
-            findOne: vi.fn(),
-          },
+          useValue: credentialsService,
         },
         {
           provide: OrganizationsService,
           useValue: {
-            findOne: vi.fn(),
+            findOne: vi.fn().mockResolvedValue({ id: 'org-1' }),
           },
         },
         {
@@ -54,15 +77,11 @@ describe('CronPostsService', () => {
         },
         {
           provide: QuotaService,
-          useValue: {
-            checkQuota: vi.fn(),
-          },
+          useValue: quotaService,
         },
         {
           provide: PublisherFactoryService,
-          useValue: {
-            getPublisher: vi.fn(),
-          },
+          useValue: publisherFactory,
         },
         {
           provide: SystemWorkflowProvenanceService,
@@ -86,6 +105,10 @@ describe('CronPostsService', () => {
             ),
           },
         },
+        {
+          provide: PublishEventWebhookService,
+          useValue: publishEventWebhookService,
+        },
       ],
     }).compile();
 
@@ -108,6 +131,111 @@ describe('CronPostsService', () => {
     expect(postsService.findAll).toHaveBeenCalled();
     expect(loggerService.log).toHaveBeenCalledWith(
       expect.stringContaining('no posts to process'),
+    );
+  });
+
+  it('emits publish webhooks after a scheduled post publishes', async () => {
+    const post = {
+      brand: 'brand-1',
+      children: [],
+      credential: 'cred-1',
+      id: 'post-1',
+      ingredients: [],
+      organization: 'org-1',
+      platform: CredentialPlatform.TWITTER,
+      scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
+      status: PostStatus.SCHEDULED,
+      user: 'user-1',
+    };
+    postsService.findAll.mockResolvedValueOnce({
+      docs: [post],
+      total: 1,
+    } as never);
+    credentialsService.findOne.mockResolvedValue({
+      id: 'cred-1',
+      platform: CredentialPlatform.TWITTER,
+    });
+    quotaService.checkQuota.mockResolvedValue({
+      allowed: true,
+      currentCount: 0,
+      dailyLimit: 10,
+    });
+    publisherFactory.getPublisher.mockReturnValue({
+      publish: vi.fn().mockResolvedValue({
+        externalId: 'tweet-1',
+        externalShortcode: 'tweet-short',
+        platform: CredentialPlatform.TWITTER,
+        status: PostStatus.PUBLIC,
+        success: true,
+        url: 'https://x.com/example/status/tweet-1',
+      }),
+      supportsThreads: false,
+    });
+
+    await service.publishScheduledPosts();
+
+    expect(
+      publishEventWebhookService.emitLegacyPostPublished,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        externalProviderId: 'tweet-1',
+        externalShortcode: 'tweet-short',
+        platform: CredentialPlatform.TWITTER,
+        post,
+        url: 'https://x.com/example/status/tweet-1',
+      }),
+    );
+  });
+
+  it('emits failure webhooks only after retries are exhausted', async () => {
+    const post = {
+      brand: 'brand-1',
+      children: [],
+      credential: 'cred-1',
+      id: 'post-1',
+      ingredients: [],
+      organization: 'org-1',
+      platform: CredentialPlatform.TWITTER,
+      retryCount: 3,
+      scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
+      status: PostStatus.SCHEDULED,
+      user: 'user-1',
+    };
+    postsService.findAll.mockResolvedValueOnce({
+      docs: [post],
+      total: 1,
+    } as never);
+    credentialsService.findOne.mockResolvedValue({
+      id: 'cred-1',
+      platform: CredentialPlatform.TWITTER,
+    });
+    quotaService.checkQuota.mockResolvedValue({
+      allowed: true,
+      currentCount: 0,
+      dailyLimit: 10,
+    });
+    publisherFactory.getPublisher.mockReturnValue({
+      publish: vi.fn().mockResolvedValue({
+        error: 'Provider validation failed',
+        externalId: null,
+        platform: CredentialPlatform.TWITTER,
+        status: PostStatus.FAILED,
+        success: false,
+        url: '',
+      }),
+      supportsThreads: false,
+    });
+
+    await service.publishScheduledPosts();
+
+    expect(
+      publishEventWebhookService.emitLegacyPostFailed,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        errorMessage: 'Provider validation failed',
+        platform: CredentialPlatform.TWITTER,
+        post,
+      }),
     );
   });
 });

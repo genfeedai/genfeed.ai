@@ -1,0 +1,73 @@
+---
+title: Webhooks
+description: Signed outbound webhook events for scheduled publish outcomes.
+---
+
+# Webhooks
+
+Genfeed can send signed outbound webhooks when scheduled publish work reaches a terminal outcome. Webhooks use the organization webhook endpoint and secret configured in organization settings.
+
+## Delivery
+
+Webhook delivery is asynchronous and does not block publish execution. Events are queued on the `webhook-client` queue and retried up to five times with exponential backoff. Consumer `5xx` and network failures are retried; `4xx` responses are treated as delivered but rejected by the receiver.
+
+Each request includes:
+
+- `X-Genfeed-Event`: event type
+- `X-Genfeed-Delivery`: BullMQ delivery job id
+- `X-Genfeed-Signature`: `sha256=` HMAC over the JSON payload with the endpoint secret
+
+Payloads include `eventId` for consumer idempotency. Delivery is at-least-once, so consumers should store processed `eventId` values before running side effects and safely ignore duplicates. The `X-Genfeed-Delivery` header is a transport diagnostic; use the payload `eventId` as the durable idempotency key.
+
+Publish events use stable `eventId` values derived from release, target, event type, and terminal status. If a publish worker retries the same terminal transition, Genfeed enqueues the same webhook job id while the queue record is retained. Consumer endpoints must still be idempotent because delivery retries can resend the same event.
+
+## Event Catalog
+
+All publish webhook payloads use `schemaVersion: 1`. Breaking payload changes will increment `schemaVersion`; additive fields can appear under the current version, so consumers should tolerate unknown fields and branch parsing by `schemaVersion`.
+
+| Event | When it emits |
+| --- | --- |
+| `target.published` | A scheduled publish target reaches a published terminal state. |
+| `target.failed` | A scheduled publish target reaches a permanent failed state. |
+| `release.published` | Every target in the release published. |
+| `release.partially_published` | At least one target published and at least one target failed. |
+| `release.failed` | Every terminal target failed. |
+
+## Payload Shape
+
+```json
+{
+  "event": "target.published",
+  "eventId": "publish:target.published:release_123:target_123:published",
+  "schemaVersion": 1,
+  "timestamp": "2026-07-07T10:00:00.000Z",
+  "occurredAt": "2026-07-07T10:00:00.000Z",
+  "release": {
+    "id": "release_123",
+    "status": "published",
+    "scheduledAt": "2026-07-07T09:55:00.000Z",
+    "publishedAt": "2026-07-07T10:00:00.000Z",
+    "targetSummary": {
+      "total": 1,
+      "published": 1,
+      "failed": 0
+    }
+  },
+  "target": {
+    "id": "target_123",
+    "platform": "twitter",
+    "credential": {
+      "id": "cred_123"
+    },
+    "status": "published",
+    "scheduledAt": "2026-07-07T09:55:00.000Z",
+    "publishedAt": "2026-07-07T10:00:00.000Z",
+    "externalProviderId": "post_123",
+    "externalShortcode": "abc123",
+    "url": "https://x.com/example/status/post_123",
+    "error": null
+  }
+}
+```
+
+Failure payloads include a stable `error.class` value: `misconfiguration`, `credential`, `provider_outage`, `rate_limit`, `validation`, or `unknown`. Provider tokens, webhook secrets, bearer tokens, and API keys are redacted from error messages before delivery.

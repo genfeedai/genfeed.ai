@@ -12,6 +12,7 @@
     "moduleResolution": "bundler",
     "outDir": "./dist",
     "paths": {
+      "@api-types/*": ["../api-types/src/*"],
       "@genfeedai/client": ["../client/src/index.ts"],
       "@genfeedai/client/*": ["../client/src/*"],
       "@genfeedai/contexts": ["../contexts/index.ts"],

@@ -46,12 +46,50 @@ this contract:
 `adStorage` must be `granted` before any marketing event reaches
 GTM/dataLayer.
 
+## Retargeting Routes
+
+The browser layer does not hardcode Meta, LinkedIn, or X snippets. When public
+provider IDs are configured, consented `genfeed_marketing_event` pushes include
+GTM-readable route metadata:
+
+```json
+{
+  "retargeting_providers": ["meta", "linkedin", "x"],
+  "retargeting_routes": [
+    {
+      "accountId": "000000000000000",
+      "eventName": "Schedule",
+      "provider": "meta"
+    }
+  ]
+}
+```
+
+GTM uses that route metadata to decide which browser pixel tags fire. Empty
+provider IDs are ignored, and route metadata is never emitted before marketing
+consent is granted.
+
 ## Environment
 
 Public browser config:
 
 - `NEXT_PUBLIC_MARKETING_CONSENT_DEFAULT`
 - `NEXT_PUBLIC_GTM_CONTAINER_ID`
+- `NEXT_PUBLIC_META_PIXEL_ID`
+- `NEXT_PUBLIC_LINKEDIN_PARTNER_ID`
+- `NEXT_PUBLIC_LINKEDIN_CONVERSION_ID_CTA_CLICK`
+- `NEXT_PUBLIC_LINKEDIN_CONVERSION_ID_BOOK_CALL`
+- `NEXT_PUBLIC_LINKEDIN_CONVERSION_ID_LEAD_SUBMIT`
+- `NEXT_PUBLIC_LINKEDIN_CONVERSION_ID_SIGNUP_COMPLETE`
+- `NEXT_PUBLIC_LINKEDIN_CONVERSION_ID_START_SIGNUP`
+- `NEXT_PUBLIC_LINKEDIN_CONVERSION_ID_VIEW_PRICING`
+- `NEXT_PUBLIC_X_PIXEL_ID`
+- `NEXT_PUBLIC_X_BOOK_CALL_EVENT_ID`
+- `NEXT_PUBLIC_X_CTA_CLICK_EVENT_ID`
+- `NEXT_PUBLIC_X_LEAD_SUBMIT_EVENT_ID`
+- `NEXT_PUBLIC_X_SIGNUP_COMPLETE_EVENT_ID`
+- `NEXT_PUBLIC_X_START_SIGNUP_EVENT_ID`
+- `NEXT_PUBLIC_X_VIEW_PRICING_EVENT_ID`
 
 Server conversion config:
 
@@ -85,7 +123,8 @@ Local or staging:
 - Open GTM Preview and confirm no `genfeed_marketing_event` dataLayer events
   are emitted before accepting marketing consent.
 - Accept marketing consent and confirm `genfeed_marketing_event` dataLayer
-  events for `page_view`, `cta_click`, and lower-funnel CTAs.
+  events for `page_view`, `cta_click`, and lower-funnel CTAs include
+  `retargeting_providers` and `retargeting_routes` for configured providers.
 - Confirm Meta, LinkedIn, X, or other vendor browser pixels are configured in
   GTM rather than in website page components.
 - Trigger a booking, lead, or signup success event and confirm the dataLayer

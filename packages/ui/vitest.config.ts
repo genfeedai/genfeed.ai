@@ -21,6 +21,7 @@ const XYFLOW_REACT_MOCK = path.resolve(
   './tests/__mocks__/xyflow-react.tsx',
 );
 const EMPTY_STYLE_MOCK = path.resolve(__dirname, './tests/__mocks__/style.ts');
+const API_TYPES_SRC = path.resolve(__dirname, '../api-types/src');
 const CONSTANTS_SRC = path.resolve(__dirname, '../constants/src');
 const ENUMS_SRC = path.resolve(__dirname, '../enums/src');
 const PRICING_SRC = path.resolve(__dirname, '../pricing/src');
@@ -31,6 +32,10 @@ const PAGES_SRC = path.resolve(__dirname, '../pages');
 export default defineConfig({
   resolve: {
     alias: [
+      {
+        find: /^@api-types\/(.*)$/,
+        replacement: path.resolve(API_TYPES_SRC, '$1'),
+      },
       {
         find: '@genfeedai/client',
         replacement: path.resolve(__dirname, '../client/src'),

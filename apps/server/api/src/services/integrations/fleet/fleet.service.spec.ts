@@ -12,7 +12,7 @@ const mockedAxios = vi.mocked(axios, true);
 
 describe('FleetService', () => {
   let service: FleetService;
-  let configService: vi.Mocked<ConfigService>;
+  let _configService: vi.Mocked<ConfigService>;
   let loggerService: vi.Mocked<LoggerService>;
   let customerInstancesService: {
     findRunningForOrg: ReturnType<typeof vi.fn>;
@@ -60,7 +60,7 @@ describe('FleetService', () => {
     }).compile();
 
     service = module.get<FleetService>(FleetService);
-    configService = module.get(ConfigService);
+    _configService = module.get(ConfigService);
     loggerService = module.get(LoggerService);
   };
 
@@ -447,6 +447,31 @@ describe('FleetService', () => {
           audio_url: 'https://example.com/sample.wav',
           handle: 'aria',
           label: 'Aria Voice',
+        }),
+        expect.any(Object),
+      );
+    });
+
+    it('sends a Fleet voice clone completion callback URL when configured', async () => {
+      await createModule({
+        FLEET_WEBHOOK_SECRET: 'fleet-secret',
+        GENFEEDAI_WEBHOOKS_URL: 'https://webhooks.test',
+      });
+      mockedAxios.post = vi
+        .fn()
+        .mockResolvedValue({ data: { job_id: 'clone_1' } });
+
+      await service.cloneVoice({
+        audioUrl: 'https://example.com/sample.wav',
+        handle: 'aria',
+        label: 'Aria Voice',
+      });
+
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        'http://voices.fleet.local/voices/clone',
+        expect.objectContaining({
+          callback_url:
+            'https://webhooks.test/v1/webhooks/fleet/voice-clone?token=fleet-secret',
         }),
         expect.any(Object),
       );

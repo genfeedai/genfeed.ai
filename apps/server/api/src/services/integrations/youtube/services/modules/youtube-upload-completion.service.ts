@@ -1,4 +1,5 @@
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { PublishEventWebhookService } from '@api/services/webhook-client/publish-event-webhook.service';
 import { PostStatus } from '@genfeedai/enums';
 import { RedisService } from '@libs/redis/redis.service';
 import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
@@ -83,6 +84,7 @@ export class YoutubeUploadCompletionService implements OnModuleInit {
   constructor(
     private readonly redisService: RedisService,
     private readonly postsService: PostsService,
+    private readonly publishEventWebhookService: PublishEventWebhookService,
   ) {}
 
   async onModuleInit() {
@@ -132,7 +134,27 @@ export class YoutubeUploadCompletionService implements OnModuleInit {
         updateData.publicationDate = new Date();
       }
 
-      await this.postsService.patch(postId, updateData);
+      const patchedPost = await this.postsService.patch(postId, updateData);
+      const webhookPost = buildYoutubeWebhookPostSnapshot(data, patchedPost);
+
+      if (PUBLISHED_STATUSES.includes(status)) {
+        void this.publishEventWebhookService.emitLegacyPostPublished({
+          externalProviderId: result?.externalId ?? null,
+          occurredAt: parseCompletionTimestamp(data.timestamp),
+          platform: 'youtube',
+          post: webhookPost,
+          publishedAt: updateData.publicationDate as Date | undefined,
+          url: result?.videoUrl ?? null,
+        });
+      } else if (status === 'failed') {
+        void this.publishEventWebhookService.emitLegacyPostFailed({
+          errorMessage: error || 'YouTube upload failed',
+          occurredAt: parseCompletionTimestamp(data.timestamp),
+          platform: 'youtube',
+          post: webhookPost,
+          retryable: false,
+        });
+      }
 
       this.logger.log(
         `Updated post ${postId} status to ${status}${result?.externalId ? ` with externalId ${result.externalId}` : ''}`,
@@ -144,4 +166,32 @@ export class YoutubeUploadCompletionService implements OnModuleInit {
       );
     }
   }
+}
+
+function buildYoutubeWebhookPostSnapshot(
+  data: YoutubeUploadCompletionEvent,
+  patchedPost: unknown,
+): Record<string, unknown> {
+  if (isPlainObject(patchedPost)) {
+    return patchedPost;
+  }
+
+  return {
+    externalId: data.result?.externalId,
+    id: data.postId,
+    organization: data.organizationId,
+    organizationId: data.organizationId,
+    platform: 'youtube',
+    publicationDate: PUBLISHED_STATUSES.includes(data.status)
+      ? parseCompletionTimestamp(data.timestamp)
+      : undefined,
+    status: STATUS_MAP[data.status] ?? PostStatus.FAILED,
+    url: data.result?.videoUrl,
+    user: data.userId,
+  };
+}
+
+function parseCompletionTimestamp(timestamp: string): Date {
+  const date = new Date(timestamp);
+  return Number.isNaN(date.getTime()) ? new Date() : date;
 }

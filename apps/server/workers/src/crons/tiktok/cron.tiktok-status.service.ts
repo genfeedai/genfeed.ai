@@ -7,6 +7,7 @@ import {
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
+import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
 import {
   CredentialPlatform,
   PostStatus,
@@ -67,6 +68,7 @@ export class CronTiktokStatusService {
     private readonly tiktokService: TiktokService,
     private readonly credentialsService: CredentialsService,
     private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
+    private readonly publishEventWebhookService: PublishEventWebhookService,
   ) {}
 
   /**
@@ -233,7 +235,7 @@ export class CronTiktokStatusService {
         const postUrl = `https://www.tiktok.com/@${credential.externalHandle}/video/${postId}`;
 
         // Update post with real post_id and mark as PUBLIC
-        await this.recordStatusTransition(
+        const transitioned = await this.recordStatusTransition(
           post,
           'published',
           `TikTok moderation completed - post ${postId} is live`,
@@ -245,6 +247,15 @@ export class CronTiktokStatusService {
             });
           },
         );
+        if (transitioned) {
+          void this.publishEventWebhookService.emitLegacyPostPublished({
+            externalProviderId: postId,
+            occurredAt: now,
+            platform: CredentialPlatform.TIKTOK,
+            post,
+            url: postUrl,
+          });
+        }
 
         this.logger.log(`${url} post ${post.id} verified and published`, {
           postId,
@@ -340,11 +351,23 @@ export class CronTiktokStatusService {
     post: TiktokPost,
     reason: string,
   ): Promise<void> {
-    await this.recordStatusTransition(post, 'failed', reason, async () => {
-      await this.postsService.patch(String(post.id), {
-        status: PostStatus.FAILED,
+    const transitioned = await this.recordStatusTransition(
+      post,
+      'failed',
+      reason,
+      async () => {
+        await this.postsService.patch(String(post.id), {
+          status: PostStatus.FAILED,
+        });
+      },
+    );
+    if (transitioned) {
+      void this.publishEventWebhookService.emitLegacyPostFailed({
+        errorMessage: reason,
+        platform: CredentialPlatform.TIKTOK,
+        post,
       });
-    });
+    }
 
     this.logger.warn(`Post ${String(post.id)} marked as failed`, {
       reason,
@@ -362,7 +385,7 @@ export class CronTiktokStatusService {
     outcome: 'published' | 'failed',
     detail: string,
     transition: () => Promise<void>,
-  ): Promise<void> {
+  ): Promise<boolean> {
     try {
       await this.systemWorkflowProvenanceService.runAction(
         {
@@ -387,12 +410,14 @@ export class CronTiktokStatusService {
         },
         transition,
       );
+      return true;
     } catch (error: unknown) {
       this.logger.error('Failed to record TikTok status transition', {
         error: (error as Error)?.message,
         outcome,
         postId: String(post.id),
       });
+      return false;
     }
   }
 }

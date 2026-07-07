@@ -10,6 +10,7 @@ import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 import { Toaster } from 'sonner';
 import MarketingTrackingProvider from '../../marketing/MarketingTrackingProvider';
+import type { MarketingRetargetingProviderConfig } from '../../marketing/retargeting';
 
 const LazyModalErrorDebug = dynamic(
   () => import('@ui/modals/system/error-debug/ModalErrorDebug'),
@@ -35,6 +36,7 @@ export interface AppProvidersProps {
   includeToaster?: boolean;
   marketingConsentDefault?: 'denied' | 'granted';
   marketingGtmContainerId?: string;
+  marketingRetargetingProviders?: MarketingRetargetingProviderConfig[];
   storageKey?: string;
 }
 
@@ -72,13 +74,15 @@ export default function AppProviders({
   includeToaster = true,
   marketingConsentDefault = 'denied',
   marketingGtmContainerId,
+  marketingRetargetingProviders = [],
   storageKey = THEME_STORAGE_KEY,
 }: AppProvidersProps) {
   const marketingConfig = useMemo(
     () => ({
       gtmContainerId: marketingGtmContainerId,
+      retargetingProviders: marketingRetargetingProviders,
     }),
-    [marketingGtmContainerId],
+    [marketingGtmContainerId, marketingRetargetingProviders],
   );
   const content = (
     <>

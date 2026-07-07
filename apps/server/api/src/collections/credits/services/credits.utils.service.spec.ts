@@ -26,6 +26,7 @@ describe('CreditsUtilsService', () => {
   };
   const creditTransactionsService = {
     createTransactionEntry: vi.fn(),
+    findOne: vi.fn(),
   };
   const organizationSettingsService = {
     findOne: vi.fn(),
@@ -69,6 +70,7 @@ describe('CreditsUtilsService', () => {
     creditBalanceService.findByOrganization.mockResolvedValue({ balance: 100 });
     creditBalanceService.updateBalance.mockResolvedValue({ balance: 60 });
     creditTransactionsService.createTransactionEntry.mockResolvedValue({});
+    creditTransactionsService.findOne.mockResolvedValue(null);
     organizationSettingsService.findOne.mockResolvedValue(null);
   });
 
@@ -147,6 +149,37 @@ describe('CreditsUtilsService', () => {
         60,
         undefined,
       );
+    });
+
+    it('skips an idempotent deduction when the ledger reference already exists', async () => {
+      const service = buildService(false);
+      creditTransactionsService.findOne.mockResolvedValue({
+        id: 'txn_existing',
+      });
+
+      await service.deductCreditsFromOrganization(
+        'org_1',
+        'user_1',
+        40,
+        'Fleet voice clone compute',
+        undefined,
+        {
+          referenceId: 'fleet-job-1',
+          referenceType: 'fleet:voice-clone',
+        },
+      );
+
+      expect(creditTransactionsService.findOne).toHaveBeenCalledWith({
+        category: expect.anything(),
+        isDeleted: false,
+        organizationId: 'org_1',
+        referenceId: 'fleet-job-1',
+        referenceType: 'fleet:voice-clone',
+      });
+      expect(creditBalanceService.updateBalance).not.toHaveBeenCalled();
+      expect(
+        creditTransactionsService.createTransactionEntry,
+      ).not.toHaveBeenCalled();
     });
   });
 

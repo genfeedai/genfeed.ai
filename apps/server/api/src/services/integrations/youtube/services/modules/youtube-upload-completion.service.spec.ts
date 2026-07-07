@@ -1,5 +1,6 @@
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { YoutubeUploadCompletionService } from '@api/services/integrations/youtube/services/modules/youtube-upload-completion.service';
+import { PublishEventWebhookService } from '@api/services/webhook-client/publish-event-webhook.service';
 import { PostStatus } from '@genfeedai/enums';
 import { RedisService } from '@libs/redis/redis.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -8,6 +9,10 @@ describe('YoutubeUploadCompletionService', () => {
   let service: YoutubeUploadCompletionService;
   let redisService: { subscribe: ReturnType<typeof vi.fn> };
   let postsService: { patch: ReturnType<typeof vi.fn> };
+  let publishEventWebhookService: {
+    emitLegacyPostFailed: ReturnType<typeof vi.fn>;
+    emitLegacyPostPublished: ReturnType<typeof vi.fn>;
+  };
   let capturedHandler: (data: unknown) => void;
 
   beforeEach(async () => {
@@ -25,12 +30,20 @@ describe('YoutubeUploadCompletionService', () => {
     postsService = {
       patch: vi.fn().mockResolvedValue(undefined),
     };
+    publishEventWebhookService = {
+      emitLegacyPostFailed: vi.fn().mockResolvedValue(undefined),
+      emitLegacyPostPublished: vi.fn().mockResolvedValue(undefined),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         YoutubeUploadCompletionService,
         { provide: RedisService, useValue: redisService },
         { provide: PostsService, useValue: postsService },
+        {
+          provide: PublishEventWebhookService,
+          useValue: publishEventWebhookService,
+        },
       ],
     }).compile();
 
@@ -78,6 +91,15 @@ describe('YoutubeUploadCompletionService', () => {
         }),
       );
     });
+    expect(
+      publishEventWebhookService.emitLegacyPostPublished,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        externalProviderId: 'yt-vid-1',
+        platform: 'youtube',
+        url: 'https://youtube.com/watch?v=yt-vid-1',
+      }),
+    );
   });
 
   it('should update post status to PRIVATE when status is "private"', async () => {
@@ -185,6 +207,14 @@ describe('YoutubeUploadCompletionService', () => {
         }),
       );
     });
+    expect(
+      publishEventWebhookService.emitLegacyPostFailed,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        errorMessage: 'Upload quota exceeded',
+        platform: 'youtube',
+      }),
+    );
   });
 
   it('should update post status to SCHEDULED when status is "scheduled"', async () => {
@@ -212,6 +242,12 @@ describe('YoutubeUploadCompletionService', () => {
         }),
       );
     });
+    expect(
+      publishEventWebhookService.emitLegacyPostPublished,
+    ).not.toHaveBeenCalled();
+    expect(
+      publishEventWebhookService.emitLegacyPostFailed,
+    ).not.toHaveBeenCalled();
   });
 
   it('should not set publicationDate for scheduled status', async () => {

@@ -1,36 +1,36 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { McpController } from '@mcp/mcp/controllers/mcp.controller';
 import { MCPService } from '@mcp/mcp/services/mcp.service';
+import type { McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
 import { ServerService } from '@mcp/services/server.service';
+import { ToolRegistryService } from '@mcp/services/tool-registry.service';
+import type { McpTool } from '@mcp/shared/interfaces/mcp-server.interface';
 import { Test, TestingModule } from '@nestjs/testing';
 
 type AuthenticatedControllerRequest = Parameters<
   McpController['readResource']
 >[1];
 
+const rawToolSourceMocks = vi.hoisted(() => ({
+  getToolByName: vi.fn(),
+  getToolsForSurface: vi.fn(() => {
+    throw new Error(
+      'McpController must use ToolRegistryService for tool lists',
+    );
+  }),
+  toMcpTools: vi.fn(() => {
+    throw new Error(
+      'McpController must use ToolRegistryService for tool lists',
+    );
+  }),
+}));
+
 vi.mock('@genfeedai/tools', () => ({
   GENERATED_MCP_OPERATIONS: [],
-  getToolByName: vi.fn(),
-  getToolsForSurface: vi.fn(() => [
-    {
-      inputSchema: { type: 'object' },
-      name: 'generate_video',
-    },
-    {
-      inputSchema: { type: 'object' },
-      name: 'get_video_status',
-    },
-    {
-      inputSchema: { type: 'object' },
-      name: 'list_videos',
-    },
-    {
-      inputSchema: { type: 'object' },
-      name: 'get_video_analytics',
-    },
-  ]),
-  toMcpTools: vi.fn((tools: unknown) => tools),
+  getToolByName: rawToolSourceMocks.getToolByName,
+  getToolsForSurface: rawToolSourceMocks.getToolsForSurface,
+  toMcpTools: rawToolSourceMocks.toMcpTools,
 }));
 
 vi.mock('@mcp/services/client.service', () => ({
@@ -49,12 +49,63 @@ vi.mock('@mcp/guards/mcp-auth.guard', () => ({
 describe('McpController', () => {
   let controller: McpController;
 
+  const roleTools: Record<McpRole, McpTool[]> = {
+    admin: [
+      {
+        description: 'List posts',
+        inputSchema: { properties: {}, type: 'object' },
+        name: 'list_posts',
+        requiredRole: 'user',
+      },
+      {
+        description: 'Inspect workflow',
+        inputSchema: { properties: {}, type: 'object' },
+        name: 'inspect_workflow',
+        requiredRole: 'admin',
+      },
+    ],
+    superadmin: [
+      {
+        description: 'List posts',
+        inputSchema: { properties: {}, type: 'object' },
+        name: 'list_posts',
+        requiredRole: 'user',
+      },
+      {
+        description: 'Inspect workflow',
+        inputSchema: { properties: {}, type: 'object' },
+        name: 'inspect_workflow',
+        requiredRole: 'admin',
+      },
+      {
+        description: 'Resolve approval',
+        inputSchema: { properties: {}, type: 'object' },
+        name: 'resolve_approval',
+        requiredRole: 'superadmin',
+      },
+    ],
+    user: [
+      {
+        description: 'List posts',
+        inputSchema: { properties: {}, type: 'object' },
+        name: 'list_posts',
+        requiredRole: 'user',
+      },
+    ],
+  };
+
+  const getToolsForRoleMock = vi.fn(
+    (role: McpRole): McpTool[] => roleTools[role],
+  );
+
   const mockMcpService = {
     getHello: vi.fn().mockReturnValue('Genfeed MCP Server'),
     getMcpConfiguration: vi.fn().mockReturnValue({
       mcpServers: {
         genfeed: {
-          headers: { Authorization: 'Bearer ${GENFEED_API_KEY}' },
+          headers: {
+            Authorization: ['Bearer ', '$', '{GENFEED_API_KEY}'].join(''),
+          },
           transport: 'streamable-http',
           type: 'http',
           url: 'https://mcp.genfeed.ai/mcp',
@@ -97,6 +148,10 @@ describe('McpController', () => {
     setBearerToken: vi.fn(),
   };
 
+  const mockToolRegistryService = {
+    getToolsForRole: getToolsForRoleMock,
+  } satisfies Pick<ToolRegistryService, 'getToolsForRole'>;
+
   const mockLoggerService = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -111,6 +166,7 @@ describe('McpController', () => {
         { provide: MCPService, useValue: mockMcpService },
         { provide: ClientService, useValue: mockClientService },
         { provide: ServerService, useValue: mockServerService },
+        { provide: ToolRegistryService, useValue: mockToolRegistryService },
         { provide: LoggerService, useValue: mockLoggerService },
       ],
     }).compile();
@@ -209,21 +265,26 @@ describe('McpController', () => {
   });
 
   describe('getTools', () => {
-    it('should return role-filtered list of available tools', () => {
+    it('delegates to the registry role-aware listing path', () => {
       const request = {
         authContext: { role: 'superadmin' },
       } as unknown as Parameters<typeof controller.getTools>[0];
-      const result = controller.getTools(request);
-      expect(result).toHaveProperty('tools');
-      expect(Array.isArray(result.tools)).toBe(true);
-      expect(result.tools.length).toBeGreaterThan(0);
 
-      // Check canonical video tool exists
-      const createVideoTool = result.tools.find(
-        (tool) => tool.name === 'generate_video',
+      const result = controller.getTools(request);
+
+      expect(getToolsForRoleMock).toHaveBeenCalledWith('superadmin');
+      expect(result).toEqual({ tools: roleTools.superadmin });
+      expect(rawToolSourceMocks.getToolsForSurface).not.toHaveBeenCalled();
+      expect(rawToolSourceMocks.toMcpTools).not.toHaveBeenCalled();
+    });
+
+    it('defaults to the user role when auth context is absent', () => {
+      const result = controller.getTools(
+        {} as unknown as Parameters<typeof controller.getTools>[0],
       );
-      expect(createVideoTool).toBeDefined();
-      expect(createVideoTool?.inputSchema).toBeDefined();
+
+      expect(getToolsForRoleMock).toHaveBeenCalledWith('user');
+      expect(result).toEqual({ tools: roleTools.user });
     });
 
     it('applies role filtering so a user never sees more than a superadmin', () => {

@@ -346,6 +346,30 @@ describe('PostsWritePage', () => {
     expect(generateAccountContentMock).not.toHaveBeenCalled();
   });
 
+  it('renders platform preview limits from channel capabilities', () => {
+    useBrandMock.mockReturnValue({
+      credentials: [
+        {
+          externalHandle: 'genfeed',
+          id: 'cred-1',
+          isConnected: true,
+          platform: 'linkedin',
+        },
+      ],
+    });
+
+    render(<PostsWritePage />);
+
+    fireEvent.change(screen.getByLabelText('Draft content'), {
+      target: { value: 'x'.repeat(3001) },
+    });
+
+    expect(screen.getByText('3001/3000')).toBeInTheDocument();
+    expect(
+      screen.getByText('LinkedIn captions must be 3000 characters or fewer.'),
+    ).toBeInTheDocument();
+  });
+
   it('generates local desktop content when no connected accounts are available', async () => {
     const generateContent = vi.fn().mockResolvedValue({
       content: 'Generated local post',
