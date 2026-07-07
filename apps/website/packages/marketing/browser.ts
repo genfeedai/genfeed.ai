@@ -141,14 +141,16 @@ export function trackWebsiteMarketingEvent(
   event: WebsiteMarketingEvent,
   options: TrackWebsiteMarketingEventOptions,
 ): string | null {
-  if (!hasMarketingConsent(options.consent)) {
+  const consent = options.consent;
+
+  if (!hasMarketingConsent(consent)) {
     return null;
   }
 
   const eventId = event.eventId || createMarketingEventId(event.name);
   const nextEvent = { ...event, eventId };
 
-  pushMarketingDataLayerEvent(nextEvent, options.consent);
+  pushMarketingDataLayerEvent(nextEvent, consent);
   sendServerConversion(nextEvent);
 
   return eventId;
