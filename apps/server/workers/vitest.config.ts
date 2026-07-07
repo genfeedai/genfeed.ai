@@ -38,6 +38,13 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, '../server/src/$1'),
       },
       {
+        find: '@billing-providers',
+        replacement: path.resolve(
+          serviceDir,
+          '../api/src/common/subscriptions/billing.providers.oss.ts',
+        ),
+      },
+      {
         find: '@genfeedai/constants',
         replacement: path.resolve(
           serviceDir,

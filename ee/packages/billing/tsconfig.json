@@ -10,6 +10,7 @@
     "noEmit": true,
     "paths": {
       "@api/*": ["../../../apps/server/api/src/*"],
+      "@api-types/*": ["../../../packages/api-types/src/*"],
       "@billing-providers": ["./src/billing.providers.ee.ts"],
       "@config/*": ["../../../packages/config/src/*"],
       "@genfeedai/config": ["../../../packages/config/src/index.ts"],
