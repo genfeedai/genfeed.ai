@@ -34,6 +34,10 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: /^@api-types\/(.*)$/,
+        replacement: path.resolve(repoRoot, './packages/api-types/src/$1'),
+      },
+      {
         find: /^@app$/,
         replacement: path.resolve(appRoot, './app'),
       },

@@ -1,3 +1,4 @@
+import { getChannelCapability } from '@api-types/contracts';
 import type {
   DesktopContentPlatform,
   DesktopContentType,
@@ -92,22 +93,7 @@ export function getCharacterLimit(
     ? String(credential.platform).toLowerCase()
     : platform;
 
-  if (
-    activePlatform === CredentialPlatform.TWITTER ||
-    activePlatform === 'twitter'
-  ) {
-    return 280;
-  }
-
-  if (activePlatform === CredentialPlatform.LINKEDIN) {
-    return 3000;
-  }
-
-  if (activePlatform === CredentialPlatform.INSTAGRAM) {
-    return 2200;
-  }
-
-  return null;
+  return getChannelCapability(activePlatform)?.caption.maxLength ?? null;
 }
 
 export function toDesktopPlatform(

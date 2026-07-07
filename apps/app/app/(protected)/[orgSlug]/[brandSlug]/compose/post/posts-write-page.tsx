@@ -166,11 +166,11 @@ function PostsWritePageContent() {
       </Card>
 
       <PostsWritePreviewPanel
-        characterLimit={characterLimit}
         desktopPlatform={desktopPlatform}
         draftSegments={draftSegments}
         selectedCredential={selectedCredential}
         selectedFormat={selectedFormat}
+        workingTitle={workingTitle}
       />
     </section>
   );

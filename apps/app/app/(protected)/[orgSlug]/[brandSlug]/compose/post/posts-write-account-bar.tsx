@@ -11,52 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-
-type GenerationFormat = 'post' | 'thread' | 'x-article';
-
-const PLATFORM_LABELS: Partial<Record<CredentialPlatform, string>> = {
-  [CredentialPlatform.DISCORD]: 'Discord',
-  [CredentialPlatform.FACEBOOK]: 'Facebook',
-  [CredentialPlatform.INSTAGRAM]: 'Instagram',
-  [CredentialPlatform.LINKEDIN]: 'LinkedIn',
-  [CredentialPlatform.MEDIUM]: 'Medium',
-  [CredentialPlatform.PINTEREST]: 'Pinterest',
-  [CredentialPlatform.REDDIT]: 'Reddit',
-  [CredentialPlatform.TELEGRAM]: 'Telegram',
-  [CredentialPlatform.TIKTOK]: 'TikTok',
-  [CredentialPlatform.TWITCH]: 'Twitch',
-  [CredentialPlatform.TWITTER]: 'X',
-  [CredentialPlatform.YOUTUBE]: 'YouTube',
-};
-
-const DESKTOP_PLATFORM_OPTIONS: Array<{
-  label: string;
-  value: DesktopContentPlatform;
-}> = [
-  { label: 'X', value: 'twitter' },
-  { label: 'LinkedIn', value: 'linkedin' },
-  { label: 'Instagram', value: 'instagram' },
-  { label: 'TikTok', value: 'tiktok' },
-  { label: 'YouTube', value: 'youtube' },
-];
-
-const SOCIAL_FORMAT_LABELS: Record<GenerationFormat, string> = {
-  post: 'Post',
-  thread: 'Thread',
-  'x-article': 'X Article',
-};
-
-function getCredentialLabel(credential: ICredential): string {
-  const platform =
-    PLATFORM_LABELS[credential.platform as CredentialPlatform] ??
-    credential.platform;
-  const handle =
-    'externalHandle' in credential && credential.externalHandle
-      ? `@${credential.externalHandle}`
-      : null;
-
-  return handle ? `${platform} ${handle}` : String(platform);
-}
+import {
+  DESKTOP_PLATFORM_OPTIONS,
+  type GenerationFormat,
+  getCharacterLimit,
+  getCredentialLabel,
+  SOCIAL_FORMAT_LABELS,
+  toDesktopPlatform,
+} from './posts-write-page.helpers';
 
 function getFormatConstraintLabel(
   credential: ICredential | undefined,
@@ -72,7 +34,13 @@ function getFormatConstraintLabel(
   }
 
   if (String(platform ?? '').toLowerCase() === CredentialPlatform.TWITTER) {
-    return '280 weighted characters per post';
+    const limit = getCharacterLimit(
+      credential,
+      toDesktopPlatform(credential?.platform),
+    );
+    return limit
+      ? `${limit} weighted characters per post`
+      : 'Weighted characters per post';
   }
 
   if (String(platform ?? '').toLowerCase() === CredentialPlatform.INSTAGRAM) {
