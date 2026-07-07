@@ -158,10 +158,9 @@ function toWireFormat(voice: ExternalVoice): VoiceCatalogEntryDocument {
 const VOICE_CREDITS_PER_MINUTE = 17;
 
 /**
- * Flat credit charge for a one-time voice clone (ElevenLabs synchronous, or
- * Genfeed Fleet asynchronous). Fleet clones are billed at job acceptance today;
- * true compute-time metering (Replicate/Fal-style, on job completion) is tracked
- * as a follow-up — see #1354.
+ * Flat credit charge for a synchronous ElevenLabs one-time voice clone. Fleet
+ * clones are asynchronous and billed from measured compute time by the Fleet
+ * completion webhook instead.
  */
 const VOICE_CLONE_CREDITS = 17;
 
@@ -176,9 +175,9 @@ export class VoicesController {
     private readonly elevenLabsService: ElevenLabsService,
     private readonly externalVoiceCatalogService: ExternalVoiceCatalogService,
     private readonly fleetService: FleetService,
-    private readonly heygenService: HeyGenService,
+    _heygenService: HeyGenService,
     private readonly loggerService: LoggerService,
-    private readonly metadataService: MetadataService,
+    _metadataService: MetadataService,
     private readonly notificationsPublisherService: NotificationsPublisherService,
     private readonly sharedService: SharedService,
     private readonly voicesService: VoicesService,
@@ -547,15 +546,11 @@ export class VoicesController {
     CreditsInterceptor,
     FileInterceptor('file', { limits: { fileSize: 25 * 1024 * 1024 } }),
   )
-  // Flat per-clone charge. Cloning creates a one-time reusable voice (not
-  // duration-priced output), so a fixed `amount` is checked up-front by
-  // CreditsGuard and deducted by CreditsInterceptor on success — replacing the
-  // previous amount-less config that fell through to
-  // `throw InsufficientCreditsException(0,0)` on every call (#1354). Fleet
-  // (async) clones are billed here at acceptance; compute-time metering on job
-  // completion is a follow-up (see #1354).
+  @DeferCreditsUntilModelResolution()
+  // Provider-specific charge: ElevenLabs keeps the flat synchronous clone charge,
+  // while Fleet async clones finalize credits from measured process time in the
+  // Fleet completion webhook.
   @Credits({
-    amount: VOICE_CLONE_CREDITS,
     description: 'Voice cloning',
     source: ActivitySource.VOICE_GENERATION,
   })
@@ -600,6 +595,12 @@ export class VoicesController {
 
     try {
       if (provider === VoiceProvider.ELEVENLABS) {
+        await this.assertOrganizationCanAfford(
+          publicMetadata.organization,
+          VOICE_CLONE_CREDITS,
+        );
+        this.settleVoiceCloneCredits(request);
+
         return await this.cloneVoiceElevenLabs(
           request,
           user,
@@ -812,6 +813,24 @@ export class VoicesController {
     }
   }
 
+  private settleVoiceCloneCredits(request: Request): void {
+    const requestWithCredits = request as unknown as {
+      creditsConfig?: {
+        amount?: number;
+        deferred?: boolean;
+        [key: string]: unknown;
+      };
+    };
+
+    if (requestWithCredits.creditsConfig) {
+      requestWithCredits.creditsConfig = {
+        ...requestWithCredits.creditsConfig,
+        amount: VOICE_CLONE_CREDITS,
+        deferred: false,
+      };
+    }
+  }
+
   private parseSingleProvider(value?: string): SyncableDbProvider | undefined {
     if (!value) {
       return undefined;
@@ -1012,6 +1031,7 @@ export class VoicesController {
           { id: String(ingredientData.id) },
           { mongoId: String(ingredientData.id) },
         ],
+        organizationId: publicMetadata.organization,
       },
       {
         cloneStatus: VoiceCloneStatus.CLONING,
@@ -1048,6 +1068,7 @@ export class VoicesController {
             { id: String(ingredientData.id) },
             { mongoId: String(ingredientData.id) },
           ],
+          organizationId: publicMetadata.organization,
         },
         {
           cloneStatus: VoiceCloneStatus.FAILED,
@@ -1074,6 +1095,24 @@ export class VoicesController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+
+    await this.voicesService.patchAll(
+      {
+        OR: [
+          { id: String(ingredientData.id) },
+          { mongoId: String(ingredientData.id) },
+        ],
+        organizationId: publicMetadata.organization,
+      },
+      {
+        providerData: {
+          fleet: {
+            jobId: result.jobId,
+            jobKind: 'voice-clone',
+          },
+        },
+      },
+    );
 
     this.loggerService.log(`${url} Genfeed AI voice clone initiated`, {
       jobId: result.jobId,

@@ -21,9 +21,12 @@ import { TrainingsModule } from '@api/collections/trainings/trainings.module';
 import { UserSubscriptionsModule } from '@api/collections/user-subscriptions/user-subscriptions.module';
 import { UserSetupModule } from '@api/collections/users/user-setup.module';
 import { UsersModule } from '@api/collections/users/users.module';
+import { VoicesModule } from '@api/collections/voices/voices.module';
 import { CommonModule } from '@api/common/common.module';
 import { ChromaticWebhookController } from '@api/endpoints/webhooks/chromatic/webhooks.chromatic.controller';
 import { ChromaticWebhookService } from '@api/endpoints/webhooks/chromatic/webhooks.chromatic.service';
+import { FleetWebhookController } from '@api/endpoints/webhooks/fleet/webhooks.fleet.controller';
+import { FleetWebhookService } from '@api/endpoints/webhooks/fleet/webhooks.fleet.service';
 import { GitHubWebhookController } from '@api/endpoints/webhooks/github/webhooks.github.controller';
 import { GitHubWebhookService } from '@api/endpoints/webhooks/github/webhooks.github.service';
 import { HeygenWebhookController } from '@api/endpoints/webhooks/heygen/webhooks.heygen.controller';
@@ -58,6 +61,7 @@ import { forwardRef, Module } from '@nestjs/common';
 @Module({
   controllers: [
     ChromaticWebhookController,
+    FleetWebhookController,
     GitHubWebhookController,
     HeygenWebhookController,
     KlingWebhookController,
@@ -100,11 +104,13 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => UserSubscriptionsModule),
     forwardRef(() => UserSetupModule),
     forwardRef(() => UsersModule),
+    forwardRef(() => VoicesModule),
   ],
   providers: [
     ActivityUpdateService,
     AutoMergeService,
     ChromaticWebhookService,
+    FleetWebhookService,
     ModelRegistrationService,
     GitHubWebhookService,
     HeygenWebhookService,

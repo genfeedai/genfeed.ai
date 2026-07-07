@@ -1,4 +1,5 @@
 import { CustomerInstancesService } from '@api/collections/customer-instances/services/customer-instances.service';
+import { appendWebhookToken } from '@api/endpoints/webhooks/webhook-token.util';
 import type {
   IFleetHealthResponse,
   IFleetInstance,
@@ -215,6 +216,22 @@ export class FleetService {
    */
   getVoicesUrl(): string | null {
     return this.getInstanceUrl('voices');
+  }
+
+  private getWebhookUrl(
+    path: string,
+    secretKey: 'FLEET_WEBHOOK_SECRET',
+  ): string | undefined {
+    const baseUrl = this.configService.get('GENFEEDAI_WEBHOOKS_URL');
+
+    if (!baseUrl) {
+      return undefined;
+    }
+
+    return appendWebhookToken(
+      `${baseUrl}/v1/${path}`,
+      this.configService.get(secretKey) as string | undefined,
+    );
   }
 
   /**
@@ -488,6 +505,10 @@ export class FleetService {
         `${url}/voices/clone`,
         {
           audio_url: params.audioUrl,
+          callback_url: this.getWebhookUrl(
+            'webhooks/fleet/voice-clone',
+            'FLEET_WEBHOOK_SECRET',
+          ),
           handle: params.handle,
           label: params.label,
         },
