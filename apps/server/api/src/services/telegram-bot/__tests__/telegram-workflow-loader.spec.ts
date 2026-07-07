@@ -28,6 +28,69 @@ const workflow: WorkflowJson = {
   version: 1,
 };
 
+const runtimeInputWorkflow: WorkflowJson = {
+  description: 'runtime desc',
+  edges: [
+    {
+      id: 'e1',
+      source: 'workflow-input-audio',
+      sourceHandle: 'value',
+      target: 'output',
+      targetHandle: 'audio',
+    },
+    {
+      id: 'e2',
+      source: 'workflow-input-video',
+      sourceHandle: 'value',
+      target: 'output',
+      targetHandle: 'video',
+    },
+  ],
+  inputVariables: [
+    {
+      key: 'audioUrl',
+      label: 'Narration',
+      required: true,
+      type: 'audio',
+    },
+    {
+      key: 'videoUrl',
+      label: 'Reference video',
+      required: true,
+      type: 'video',
+    },
+  ],
+  name: 'Runtime Inputs',
+  nodes: [
+    {
+      data: {
+        config: {
+          inputName: 'audioUrl',
+          inputType: 'audio',
+          required: true,
+        },
+        label: 'Narration',
+      },
+      id: 'workflow-input-audio',
+      type: 'workflowInput',
+    },
+    {
+      data: {
+        config: {
+          inputName: 'videoUrl',
+          inputType: 'video',
+          required: true,
+        },
+        label: 'Reference video',
+      },
+      id: 'workflow-input-video',
+      type: 'workflow-input',
+    },
+    { data: { label: 'Output' }, id: 'output', type: 'output' },
+  ],
+  version: 1,
+};
+
 describe('extractWorkflowInputs', () => {
   it('extracts only input nodes with the correct kinds and labels', () => {
     const inputs = extractWorkflowInputs(workflow);
@@ -50,6 +113,29 @@ describe('extractWorkflowInputs', () => {
     expect(byId.v).toMatchObject({ inputType: 'video', label: 'Video' });
     // Only the prompt (text) input carries a default value.
     expect(byId.img.defaultValue).toBeUndefined();
+  });
+
+  it('extracts canonical workflow input variables for audio and video steps', () => {
+    const inputs = extractWorkflowInputs(runtimeInputWorkflow);
+
+    expect(inputs).toEqual([
+      expect.objectContaining({
+        inputKey: 'audioUrl',
+        inputType: 'audio',
+        label: 'Narration',
+        nodeId: 'workflow-input-audio',
+        nodeType: 'workflowInput',
+        required: true,
+      }),
+      expect.objectContaining({
+        inputKey: 'videoUrl',
+        inputType: 'video',
+        label: 'Reference video',
+        nodeId: 'workflow-input-video',
+        nodeType: 'workflow-input',
+        required: true,
+      }),
+    ]);
   });
 });
 
@@ -76,5 +162,34 @@ describe('toExecutableWorkflow', () => {
     expect(byId.gen.inputs).toEqual(['img']);
     expect(executable.id).toBe('wid');
     expect(executable.organizationId).toBe('telegram-bot');
+  });
+
+  it('locks canonical workflow input nodes with collected runtime values', () => {
+    const executable = toExecutableWorkflow(
+      runtimeInputWorkflow,
+      new Map<string, string>([
+        ['audioUrl', 'audio-url'],
+        ['videoUrl', 'video-url'],
+      ]),
+      'runtime-workflow',
+    );
+    const byId = Object.fromEntries(executable.nodes.map((n) => [n.id, n]));
+
+    expect(executable.lockedNodeIds.sort()).toEqual([
+      'workflow-input-audio',
+      'workflow-input-video',
+    ]);
+    expect(byId['workflow-input-audio']).toMatchObject({
+      cachedOutput: 'audio-url',
+      isLocked: true,
+    });
+    expect(byId['workflow-input-video']).toMatchObject({
+      cachedOutput: 'video-url',
+      isLocked: true,
+    });
+    expect(byId.output.inputs).toEqual([
+      'workflow-input-audio',
+      'workflow-input-video',
+    ]);
   });
 });

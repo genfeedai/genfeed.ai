@@ -13,6 +13,7 @@ export interface WorkflowJson {
   version: number;
   name: string;
   description: string;
+  inputVariables?: WorkflowInputVariable[];
   nodes: Array<{
     id: string;
     type: string;
@@ -28,9 +29,20 @@ export interface WorkflowJson {
   }>;
 }
 
+export interface WorkflowInputVariable {
+  key: string;
+  type: string;
+  label: string;
+  description?: string;
+  defaultValue?: unknown;
+  required?: boolean;
+  validation?: Record<string, unknown>;
+}
+
 /** Input requirement derived from workflow nodes */
 export interface WorkflowInput {
   nodeId: string;
+  inputKey?: string;
   nodeType: string;
   label: string;
   inputType: 'image' | 'text' | 'audio' | 'video';

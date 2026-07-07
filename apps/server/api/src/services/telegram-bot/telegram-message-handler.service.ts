@@ -65,7 +65,7 @@ export class TelegramMessageHandlerService {
     const photos = ctx.message.photo;
     const bestPhoto = photos[photos.length - 1];
 
-    if (!state || state.step !== 'collecting_inputs') {
+    if (state?.step !== 'collecting_inputs') {
       try {
         const { imageUrl } = await this.downloadPhotoFromTelegram(
           ctx,
@@ -94,7 +94,7 @@ export class TelegramMessageHandlerService {
     }
 
     const currentInput = state.requiredInputs[state.currentInputIndex];
-    if (!currentInput || currentInput.inputType !== 'image') {
+    if (currentInput?.inputType !== 'image') {
       await ctx.reply(this.getExpectedInputMessage(currentInput?.inputType));
       return;
     }
@@ -108,7 +108,7 @@ export class TelegramMessageHandlerService {
       );
 
       // Store the re-hosted, token-free image URL; Replicate fetches from it.
-      state.collectedInputs.set(currentInput.nodeId, imageUrl);
+      this.collectInputValue(state, currentInput, imageUrl);
       state.currentInputIndex++;
 
       this.loggerService.log(
@@ -153,7 +153,7 @@ export class TelegramMessageHandlerService {
     }
 
     const state = this.conversation.getState(chatId);
-    if (!state || state.step !== 'collecting_inputs') {
+    if (state?.step !== 'collecting_inputs') {
       return;
     }
 
@@ -216,7 +216,7 @@ export class TelegramMessageHandlerService {
     }
 
     const currentInput = state.requiredInputs[state.currentInputIndex];
-    if (!currentInput || currentInput.inputType !== 'text') {
+    if (currentInput?.inputType !== 'text') {
       await ctx.reply(this.getExpectedInputMessage(currentInput?.inputType));
       return;
     }
@@ -227,7 +227,7 @@ export class TelegramMessageHandlerService {
       text = currentInput.defaultValue;
     }
 
-    state.collectedInputs.set(currentInput.nodeId, text);
+    this.collectInputValue(state, currentInput, text);
     state.currentInputIndex++;
 
     await this.conversation.promptNextInput(ctx, chatId);
@@ -306,7 +306,7 @@ export class TelegramMessageHandlerService {
     }
 
     const state = this.conversation.getState(chatId);
-    if (!state || state.step !== 'collecting_inputs') {
+    if (state?.step !== 'collecting_inputs') {
       return;
     }
 
@@ -338,7 +338,7 @@ export class TelegramMessageHandlerService {
         currentInput.inputType,
       );
 
-      state.collectedInputs.set(currentInput.nodeId, mediaUrl);
+      this.collectInputValue(state, currentInput, mediaUrl);
       state.currentInputIndex++;
 
       this.loggerService.log(
@@ -371,6 +371,17 @@ export class TelegramMessageHandlerService {
         return "I'm expecting video right now. Please send a video.";
       default:
         return "I'm not expecting a file right now. Send /workflows to start.";
+    }
+  }
+
+  private collectInputValue(
+    state: ConversationState,
+    input: WorkflowInput,
+    value: string,
+  ): void {
+    state.collectedInputs.set(input.nodeId, value);
+    if (input.inputKey) {
+      state.collectedInputs.set(input.inputKey, value);
     }
   }
 
