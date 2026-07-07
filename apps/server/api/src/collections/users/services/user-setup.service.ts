@@ -25,7 +25,6 @@ import { RolesService } from '@api/collections/roles/services/roles.service';
 import type { SettingDocument } from '@api/collections/settings/schemas/setting.schema';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { OrganizationCategory } from '@genfeedai/enums';
-import { FREE_BRAND_LIMIT } from '@genfeedai/pricing';
 import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -302,7 +301,7 @@ export class UserSetupService {
       await this.organizationSettingsService.getLatestMajorVersionModelIds();
 
     const orgSettings = await this.organizationSettingsService.create({
-      brandsLimit: FREE_BRAND_LIMIT,
+      brandsLimit: 0,
       enabledModels: enabledModelIds,
       isAutoEvaluateEnabled: false,
       isFastlaneEnabled: false,

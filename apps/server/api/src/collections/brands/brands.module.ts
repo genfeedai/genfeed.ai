@@ -24,7 +24,6 @@ import { OrganizationsModule } from '@api/collections/organizations/organization
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
-import { BrandCreditsGuard } from '@api/helpers/guards/brand-credits/brand-credits.guard';
 import { BrandScraperModule } from '@api/services/brand-scraper/brand-scraper.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
@@ -62,7 +61,6 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   providers: [
     BrandsService,
-    BrandCreditsGuard,
     DefaultRecurringContentService,
     // Brand-setup orchestration (scrape → analyze → guidance → slug sync),
     // dissolved out of OnboardingModule per REST audit #1354 so the brand write

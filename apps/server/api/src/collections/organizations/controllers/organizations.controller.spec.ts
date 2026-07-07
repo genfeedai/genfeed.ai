@@ -1,3 +1,14 @@
+let mockCloudMode = true;
+vi.mock('@genfeedai/config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/config')>();
+  return {
+    ...actual,
+    get IS_CLOUD_MODE() {
+      return mockCloudMode;
+    },
+  };
+});
+
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
@@ -15,6 +26,8 @@ import { VideosService } from '@api/collections/videos/services/videos.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
+import { SubscriptionTier } from '@genfeedai/enums';
+import { SINGLE_ORGANIZATION_LIMIT } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -22,6 +35,7 @@ interface FindMineEntry {
   brand: { id: string; label: string } | null;
   id: string;
   isActive: boolean;
+  isOwner: boolean;
   label: string;
   slug: string;
 }
@@ -37,17 +51,21 @@ describe('OrganizationsController', () => {
   };
 
   const mockMembersService = {
+    create: vi.fn(),
     find: vi.fn(),
     findOne: vi.fn(),
     setLastUsedBrand: vi.fn(),
   };
 
   const mockOrganizationsService = {
+    count: vi.fn(),
+    create: vi.fn(),
     findOne: vi.fn(),
     generateUniqueSlug: vi.fn(),
   };
 
   const mockBrandsService = {
+    create: vi.fn(),
     findOne: vi.fn(),
   };
 
@@ -62,7 +80,12 @@ describe('OrganizationsController', () => {
 
   const mockOrganizationSettingsService = {
     create: vi.fn(),
+    findOne: vi.fn(),
     getLatestMajorVersionModelIds: vi.fn(),
+  };
+
+  const mockDefaultRecurringContentService = {
+    ensureDefaultBundle: vi.fn(),
   };
 
   const mockInvalidatingCache = {
@@ -80,6 +103,33 @@ describe('OrganizationsController', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    mockCloudMode = true;
+
+    mockDefaultRecurringContentService.ensureDefaultBundle.mockResolvedValue(
+      undefined,
+    );
+    mockOrganizationSettingsService.findOne.mockResolvedValue({
+      subscriptionTier: SubscriptionTier.FREE,
+    });
+    mockOrganizationSettingsService.getLatestMajorVersionModelIds.mockResolvedValue(
+      [],
+    );
+    mockOrganizationsService.count.mockResolvedValue(0);
+    mockOrganizationsService.create.mockResolvedValue({
+      id: 'org_new',
+      label: 'New Org',
+      slug: 'new-org',
+    });
+    mockOrganizationsService.generateUniqueSlug.mockResolvedValue('new-org');
+    mockBrandsService.create.mockResolvedValue({
+      id: 'brand_new',
+      label: 'New Org',
+    });
+    mockMembersService.create.mockResolvedValue({ id: 'member_new' });
+    mockMembersService.setLastUsedBrand.mockResolvedValue(undefined);
+    mockRolesService.findOne.mockResolvedValue({ id: 'role_admin' });
+    mockUsersService.findOne.mockResolvedValue({ id: 'user_1' });
+    mockUsersService.patch.mockResolvedValue({ id: 'user_1' });
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [OrganizationsController],
@@ -89,7 +139,10 @@ describe('OrganizationsController', () => {
         { provide: ActivitiesService, useValue: {} },
         { provide: MembersService, useValue: mockMembersService },
         { provide: OrganizationsService, useValue: mockOrganizationsService },
-        { provide: DefaultRecurringContentService, useValue: {} },
+        {
+          provide: DefaultRecurringContentService,
+          useValue: mockDefaultRecurringContentService,
+        },
         { provide: PostsService, useValue: {} },
         { provide: TagsService, useValue: {} },
         { provide: VideosService, useValue: {} },
@@ -132,6 +185,7 @@ describe('OrganizationsController', () => {
           id: _id,
           label: `label ${_id}`,
           slug: `slug-${_id}`,
+          userId: _id === 'org_a' ? 'user_1' : 'user_2',
         }),
       );
       mockBrandsService.findOne.mockResolvedValue(null);
@@ -149,6 +203,12 @@ describe('OrganizationsController', () => {
         isDeleted: false,
       });
       expect(result.map((entry) => entry.id)).toEqual(['org_a', 'org_b']);
+      expect(
+        result.map((entry) => ({ id: entry.id, isOwner: entry.isOwner })),
+      ).toEqual([
+        { id: 'org_a', isOwner: true },
+        { id: 'org_b', isOwner: false },
+      ]);
     });
 
     it('dedups multiple membership rows pointing at the same organization', async () => {
@@ -245,6 +305,7 @@ describe('OrganizationsController', () => {
         id: 'org_active',
         label: 'Active Org',
         slug: 'active-org',
+        userId: 'user_1',
       });
       mockBrandsService.findOne.mockResolvedValue(null);
 
@@ -257,6 +318,7 @@ describe('OrganizationsController', () => {
           brand: null,
           id: 'org_active',
           isActive: true,
+          isOwner: true,
           label: 'Active Org',
           slug: 'active-org',
         },
@@ -280,6 +342,72 @@ describe('OrganizationsController', () => {
 
       expect(result).toEqual([]);
       expect(mockOrganizationsService.findOne).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('createOrganization', () => {
+    it.each([
+      SubscriptionTier.FREE,
+      SubscriptionTier.BYOK,
+      SubscriptionTier.PRO,
+    ])('blocks %s after the single organization limit is reached', async (tier) => {
+      mockOrganizationSettingsService.findOne.mockResolvedValue({
+        subscriptionTier: tier,
+      });
+      mockOrganizationsService.count.mockResolvedValue(
+        SINGLE_ORGANIZATION_LIMIT,
+      );
+
+      await expect(
+        controller.createOrganization({ label: 'Second Org' }, currentUser),
+      ).rejects.toMatchObject({
+        response: {
+          code: 'PLAN_LIMIT_EXCEEDED',
+          meta: {
+            currentCount: SINGLE_ORGANIZATION_LIMIT,
+            limit: SINGLE_ORGANIZATION_LIMIT,
+            resource: 'organizations',
+            upgradeTier: SubscriptionTier.SCALE,
+          },
+        },
+        status: 403,
+      });
+      expect(mockOrganizationsService.create).not.toHaveBeenCalled();
+      expect(mockBrandsService.create).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      SubscriptionTier.SCALE,
+      SubscriptionTier.ENTERPRISE,
+    ])('allows additional organizations for %s', async (tier) => {
+      mockOrganizationSettingsService.findOne.mockResolvedValue({
+        subscriptionTier: tier,
+      });
+
+      const result = await controller.createOrganization(
+        { description: 'Desc', label: 'New Org' },
+        currentUser,
+      );
+
+      expect(result).toEqual({
+        brand: { id: 'brand_new', label: 'New Org' },
+        organization: { id: 'org_new', label: 'New Org' },
+      });
+      expect(mockOrganizationsService.count).not.toHaveBeenCalled();
+      expect(mockOrganizationsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          label: 'New Org',
+          slug: 'new-org',
+          userId: 'user_1',
+        }),
+      );
+      expect(mockMembersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          organizationId: 'org_new',
+          roleId: 'role_admin',
+          userId: 'user_1',
+        }),
+      );
     });
   });
 });

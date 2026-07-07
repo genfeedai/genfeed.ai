@@ -1,10 +1,12 @@
 import { randomBytes } from 'node:crypto';
 import { IS_SELF_HOSTED } from '@genfeedai/config';
+import {
+  buildLifecycleSystemEmailAction,
+  getLifecycleSystemEmailDefinition,
+  renderLifecycleSystemEmailParagraphs,
+} from '@genfeedai/constants';
 import { PostStatus, SubscriptionStatus } from '@genfeedai/enums';
-import type {
-  LifecycleEmailJobData,
-  LifecycleEmailSequence,
-} from '@genfeedai/queue-contracts';
+import type { LifecycleEmailJobData } from '@genfeedai/queue-contracts';
 import {
   buildSystemEmailHtml,
   buildSystemEmailParagraph,
@@ -310,99 +312,35 @@ export class LifecycleEmailDeliveryService {
     const firstName = input.user.firstName?.trim();
     const greeting = firstName ? `Hi ${firstName}` : 'Hi there';
     const appUrl = this.appUrl();
-    const actionUrl =
-      input.data.sequence === 'abandoned-checkout' && input.metadata.checkoutUrl
-        ? input.metadata.checkoutUrl
-        : this.defaultActionUrl(input.data.sequence);
 
-    switch (input.data.step) {
-      case 'welcome-day-0':
-        return {
-          actionLabel: 'Start onboarding',
-          actionUrl: `${appUrl}/onboarding`,
-          paragraphs: [
-            `${greeting}, welcome to Genfeed.ai.`,
-            'The fastest path is simple: set up your brand, connect one channel, and publish one useful piece of content.',
-            'Your workspace is ready when you are.',
-          ],
-          preheader: 'Start your Genfeed.ai onboarding path.',
-          subject: 'Welcome to Genfeed.ai',
-          title: 'Your Genfeed workspace is ready',
-        };
-      case 'welcome-day-2':
-        return {
-          actionLabel: 'Continue setup',
-          actionUrl: `${appUrl}/onboarding/providers`,
-          paragraphs: [
-            `${greeting}, a connected channel turns Genfeed from a workspace into a publishing loop.`,
-            'Connect one destination and Genfeed can help you draft, review, and publish from the same place.',
-          ],
-          preheader: 'Connect one channel to keep setup moving.',
-          subject: 'Connect your first Genfeed channel',
-          title: 'Keep your setup moving',
-        };
-      case 'welcome-day-7':
-        return {
-          actionLabel: 'Open Genfeed',
-          actionUrl: appUrl,
-          paragraphs: [
-            `${greeting}, your first week is about finding the repeatable content motion that fits your brand.`,
-            'Open your workspace when you are ready to turn an idea into a scheduled post.',
-          ],
-          preheader: 'Turn one idea into a scheduled post.',
-          subject: 'Ready to build your first content loop?',
-          title: 'Build your first content loop',
-        };
-      case 'activation-nudge':
-        return {
-          actionLabel: 'Publish first post',
-          actionUrl: `${appUrl}/onboarding`,
-          paragraphs: [
-            `${greeting}, your account is set up but has not reached the first publish milestone yet.`,
-            'Pick one idea, let Genfeed shape the draft, and publish it to complete activation.',
-          ],
-          preheader: 'Publish once to complete activation.',
-          subject: 'Publish your first Genfeed post',
-          title: 'One publish completes activation',
-        };
-      case 'checkout-recovery':
-        return {
-          actionLabel: input.metadata.checkoutUrl
-            ? 'Return to checkout'
-            : 'Open Genfeed',
-          actionUrl,
-          paragraphs: [
-            `${greeting}, your checkout did not complete.`,
-            'You can return when you are ready and continue from the same Genfeed account.',
-          ],
-          preheader: 'Return to your Genfeed checkout when ready.',
-          subject: 'Finish setting up Genfeed',
-          title: 'Your checkout is still waiting',
-        };
-      case 'win-back':
-        return {
-          actionLabel: 'Open billing',
-          actionUrl: `${appUrl}/settings/billing`,
-          paragraphs: [
-            `${greeting}, your Genfeed subscription has lapsed.`,
-            'Your workspace remains focused on helping you keep a consistent content system. You can restart when the timing is right.',
-          ],
-          preheader: 'Restart your Genfeed workspace when ready.',
-          subject: 'Restart your Genfeed content system',
-          title: 'Your workspace is ready when you return',
-        };
-      default:
-        return {
-          actionLabel: 'Open Genfeed',
-          actionUrl: appUrl,
-          paragraphs: [
-            `${greeting}, there is an update waiting in your Genfeed workspace.`,
-          ],
-          preheader: 'Open your Genfeed workspace.',
-          subject: 'Open Genfeed',
-          title: 'Open Genfeed',
-        };
+    const definition = getLifecycleSystemEmailDefinition(input.data.step);
+    if (definition) {
+      const action = buildLifecycleSystemEmailAction(
+        definition,
+        appUrl,
+        input.metadata.checkoutUrl,
+      );
+
+      return {
+        actionLabel: action.label,
+        actionUrl: action.url,
+        paragraphs: renderLifecycleSystemEmailParagraphs(definition, greeting),
+        preheader: definition.preheader,
+        subject: definition.subject,
+        title: definition.title,
+      };
     }
+
+    return {
+      actionLabel: 'Open Genfeed',
+      actionUrl: appUrl,
+      paragraphs: [
+        `${greeting}, there is an update waiting in your Genfeed workspace.`,
+      ],
+      preheader: 'Open your Genfeed workspace.',
+      subject: 'Open Genfeed',
+      title: 'Open Genfeed',
+    };
   }
 
   private buildHtml(template: EmailTemplate, unsubscribeToken: string): string {
@@ -423,20 +361,6 @@ export class LifecycleEmailDeliveryService {
       preheader: template.preheader,
       title: template.title,
     });
-  }
-
-  private defaultActionUrl(sequence: LifecycleEmailSequence): string {
-    const appUrl = this.appUrl();
-
-    if (sequence === 'win-back') {
-      return `${appUrl}/settings/billing`;
-    }
-
-    if (sequence === 'activation-nudge') {
-      return `${appUrl}/onboarding`;
-    }
-
-    return appUrl;
   }
 
   private appUrl(): string {

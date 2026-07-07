@@ -1177,6 +1177,7 @@
         "@genfeedai/hooks": "workspace:*",
         "@genfeedai/interfaces": "workspace:*",
         "@genfeedai/models": "workspace:*",
+        "@genfeedai/pricing": "workspace:*",
         "@genfeedai/props": "workspace:*",
         "@genfeedai/services": "workspace:*",
         "@genfeedai/utils": "workspace:*",

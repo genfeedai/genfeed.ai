@@ -191,7 +191,12 @@ vi.mock('@ui/menus/switchers/MenuBrandSwitcher', () => ({
 }));
 
 vi.mock('@ui/menus/organization-switcher/OrganizationSwitcher', () => ({
-  default: () => <div data-testid="organization-switcher" />,
+  default: ({ subscriptionTier }: { subscriptionTier?: string | null }) => (
+    <div
+      data-testid="organization-switcher"
+      data-subscription-tier={subscriptionTier ?? ''}
+    />
+  ),
 }));
 
 vi.mock('@app-config/menu-items.config', () => ({
@@ -244,6 +249,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
     },
     setBrandId: vi.fn(),
     setOrganizationId: vi.fn(),
+    settings: { subscriptionTier: 'scale' },
   }),
 }));
 

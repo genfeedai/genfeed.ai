@@ -373,6 +373,7 @@ export class OrganizationsService extends BaseService<Organization> {
       label: string;
       slug: string;
       isActive: boolean;
+      isOwner: boolean;
       brand: { id: string; label: string } | null;
     }[]
   > {
@@ -383,6 +384,7 @@ export class OrganizationsService extends BaseService<Organization> {
           label: string;
           slug: string;
           isActive: boolean;
+          isOwner: boolean;
           brand: { id: string; label: string } | null;
         }[]
       >('/mine')

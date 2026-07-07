@@ -1184,7 +1184,7 @@ model OrganizationSetting {
   isAutoEvaluateEnabled         Boolean           @default(false)
   isFastlaneEnabled             Boolean           @default(false)
   seatsLimit                    Int               @default(1)
-  brandsLimit                   Int               @default(1)
+  brandsLimit                   Int               @default(0)
   timezone                      String            @default("UTC")
   isWebhookEnabled              Boolean           @default(false)
   webhookEndpoint               String?

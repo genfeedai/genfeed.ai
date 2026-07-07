@@ -8,6 +8,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
     isReady: true,
     organizationId: 'org-123',
+    settings: { subscriptionTier: 'free' },
   })),
 }));
 
@@ -72,6 +73,12 @@ describe('SettingsBillingPage', () => {
 
     expect(screen.getByText('Credits Left')).toBeInTheDocument();
     expect(screen.getByText('80.00%')).toBeInTheDocument();
+  });
+
+  it('should display the organization plan limit', () => {
+    render(<SettingsBillingPage />);
+
+    expect(screen.getByText('Organizations')).toBeInTheDocument();
   });
 
   it('should show low credits warning when balance is below 1000', () => {

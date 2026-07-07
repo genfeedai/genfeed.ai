@@ -23,6 +23,7 @@ const XYFLOW_REACT_MOCK = path.resolve(
 const EMPTY_STYLE_MOCK = path.resolve(__dirname, './tests/__mocks__/style.ts');
 const CONSTANTS_SRC = path.resolve(__dirname, '../constants/src');
 const ENUMS_SRC = path.resolve(__dirname, '../enums/src');
+const PRICING_SRC = path.resolve(__dirname, '../pricing/src');
 const SERIALIZERS_SRC = path.resolve(__dirname, '../serializers/src');
 const AGENT_SRC = path.resolve(__dirname, '../agent/src');
 const PAGES_SRC = path.resolve(__dirname, '../pages');
@@ -150,6 +151,14 @@ export default defineConfig({
       {
         find: /^@genfeedai\/models\/(.*)$/,
         replacement: path.resolve(__dirname, '../models/$1'),
+      },
+      {
+        find: '@genfeedai/pricing',
+        replacement: path.resolve(PRICING_SRC, 'index.ts'),
+      },
+      {
+        find: /^@genfeedai\/pricing\/(.*)$/,
+        replacement: path.resolve(PRICING_SRC, '$1'),
       },
       {
         find: '@genfeedai/props',

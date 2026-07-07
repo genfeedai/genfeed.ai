@@ -4,15 +4,13 @@
  *
  *   Marketing plan (plans-pricing.ts)      → SubscriptionTier   → finite gates
  *   ─────────────────────────────────────────────────────────────────────────
- *   Pay As You Go (free)                   → FREE               → 1 brand, 3 channels, no API, solo
- *   BYOK (free, bring-your-own-key)        → BYOK               → 1 brand, 3 channels, no API, solo
- *   Pro                                    → PRO                → 15 channels, API, unlimited seats/brands
- *   Scale                                  → SCALE              → API, unlimited seats/brands/channels
- *   Enterprise                             → ENTERPRISE         → custom API, unlimited seats/brands/channels
+ *   Pay As You Go (free)                   → FREE               → no API, solo, 1 org
+ *   BYOK (free, bring-your-own-key)        → BYOK               → no API, solo, 1 org
+ *   Pro                                    → PRO                → API, unlimited seats, 1 org
+ *   Scale                                  → SCALE              → API, unlimited seats/orgs
+ *   Enterprise                             → ENTERPRISE         → custom API, unlimited seats/orgs
  *
  * Enforcement lives in the API:
- *   - brand gate:   apps/server/api/src/helpers/guards/brand-credits/brand-credits.guard.ts
- *   - channel gate: apps/server/api/src/collections/credentials/services/credentials.service.ts
  *   - seat gate:    apps/server/api/src/helpers/guards/member-credits/member-credits.guard.ts
  *   - issuance gate:  apps/server/api/src/helpers/guards/api-access/api-access.guard.ts
  *   - rate limiting:  apps/server/api/src/collections/api-keys/services/api-keys.service.ts
@@ -43,23 +41,25 @@ export type TierPlanEntitlement = ApiTierEntitlement & {
   brandLimit: TierLimit;
   /** Connected publishing/integration channels. `null` means unlimited. */
   channelLimit: TierLimit;
+  /** Owned organizations/workspaces. `null` means unlimited organizations. */
+  organizationLimit: TierLimit;
   /** Organization seats. `null` means unlimited team seats. */
   seatLimit: TierLimit;
 };
 
-export type LimitedPlanResource = 'brands' | 'channels' | 'seats';
+export type LimitedPlanResource =
+  | 'brands'
+  | 'channels'
+  | 'organizations'
+  | 'seats';
 
 /** Sentinel for product limits that are unlimited for a tier. */
 export const PLAN_LIMIT_UNLIMITED = null;
 
-/** PAYG/BYOK brand-kit cap from plans-pricing.ts. */
-export const FREE_BRAND_LIMIT = 1;
-/** PAYG/BYOK connected-channel cap from plans-pricing.ts. */
-export const FREE_CHANNEL_LIMIT = 3;
 /** PAYG/BYOK solo workspace seat cap. */
 export const FREE_SEAT_LIMIT = 1;
-/** Pro connected-channel cap from plans-pricing.ts. */
-export const PRO_CHANNEL_LIMIT = 15;
+/** Free/Creator single-organization workspace cap. */
+export const SINGLE_ORGANIZATION_LIMIT = 1;
 
 /** Higher ceiling for the Pro tier. */
 export const HIGHER_API_RATE_LIMIT = 300;
@@ -68,8 +68,9 @@ export const SCALE_API_RATE_LIMIT = 600;
 
 /**
  * Exhaustive tier → cloud entitlement map. Free tiers (FREE, BYOK) are solo
- * workspaces with limited brands/channels and no managed API access; every paid
- * tier has unlimited seats and brands; Scale+ removes the connected-channel cap.
+ * workspaces with no managed API access; every tier has unlimited brands and
+ * channels so credits remain the output meter instead of account topology.
+ * Multi-organization workflows start at Scale.
  */
 export const TIER_PLAN_ENTITLEMENTS: Record<
   SubscriptionTier,
@@ -78,22 +79,25 @@ export const TIER_PLAN_ENTITLEMENTS: Record<
   [SubscriptionTier.FREE]: {
     apiAccess: false,
     apiRateLimit: 0,
-    brandLimit: FREE_BRAND_LIMIT,
-    channelLimit: FREE_CHANNEL_LIMIT,
+    brandLimit: PLAN_LIMIT_UNLIMITED,
+    channelLimit: PLAN_LIMIT_UNLIMITED,
+    organizationLimit: SINGLE_ORGANIZATION_LIMIT,
     seatLimit: FREE_SEAT_LIMIT,
   },
   [SubscriptionTier.BYOK]: {
     apiAccess: false,
     apiRateLimit: 0,
-    brandLimit: FREE_BRAND_LIMIT,
-    channelLimit: FREE_CHANNEL_LIMIT,
+    brandLimit: PLAN_LIMIT_UNLIMITED,
+    channelLimit: PLAN_LIMIT_UNLIMITED,
+    organizationLimit: SINGLE_ORGANIZATION_LIMIT,
     seatLimit: FREE_SEAT_LIMIT,
   },
   [SubscriptionTier.PRO]: {
     apiAccess: true,
     apiRateLimit: HIGHER_API_RATE_LIMIT,
     brandLimit: PLAN_LIMIT_UNLIMITED,
-    channelLimit: PRO_CHANNEL_LIMIT,
+    channelLimit: PLAN_LIMIT_UNLIMITED,
+    organizationLimit: SINGLE_ORGANIZATION_LIMIT,
     seatLimit: PLAN_LIMIT_UNLIMITED,
   },
   [SubscriptionTier.SCALE]: {
@@ -101,6 +105,7 @@ export const TIER_PLAN_ENTITLEMENTS: Record<
     apiRateLimit: SCALE_API_RATE_LIMIT,
     brandLimit: PLAN_LIMIT_UNLIMITED,
     channelLimit: PLAN_LIMIT_UNLIMITED,
+    organizationLimit: PLAN_LIMIT_UNLIMITED,
     seatLimit: PLAN_LIMIT_UNLIMITED,
   },
   [SubscriptionTier.ENTERPRISE]: {
@@ -108,6 +113,7 @@ export const TIER_PLAN_ENTITLEMENTS: Record<
     apiRateLimit: null,
     brandLimit: PLAN_LIMIT_UNLIMITED,
     channelLimit: PLAN_LIMIT_UNLIMITED,
+    organizationLimit: PLAN_LIMIT_UNLIMITED,
     seatLimit: PLAN_LIMIT_UNLIMITED,
   },
 };
@@ -200,6 +206,13 @@ export function getSeatLimitForTier(
   return getPlanEntitlementForTier(tier).seatLimit;
 }
 
+/** Organization/workspace limit for a tier. `null` means unlimited. */
+export function getOrganizationLimitForTier(
+  tier: string | null | undefined,
+): TierLimit {
+  return getPlanEntitlementForTier(tier).organizationLimit;
+}
+
 /**
  * Next tier that lifts the given finite resource cap. Used for upgrade prompts.
  */
@@ -213,7 +226,7 @@ export function getUpgradeTierForLimit(
       : SubscriptionTier.FREE;
 
   if (
-    (resource === 'brands' || resource === 'seats') &&
+    resource === 'seats' &&
     ![
       SubscriptionTier.PRO,
       SubscriptionTier.SCALE,
@@ -224,13 +237,10 @@ export function getUpgradeTierForLimit(
   }
 
   if (
-    resource === 'channels' &&
+    resource === 'organizations' &&
     ![SubscriptionTier.SCALE, SubscriptionTier.ENTERPRISE].includes(currentTier)
   ) {
-    return currentTier === SubscriptionTier.FREE ||
-      currentTier === SubscriptionTier.BYOK
-      ? SubscriptionTier.PRO
-      : SubscriptionTier.SCALE;
+    return SubscriptionTier.SCALE;
   }
 
   return null;

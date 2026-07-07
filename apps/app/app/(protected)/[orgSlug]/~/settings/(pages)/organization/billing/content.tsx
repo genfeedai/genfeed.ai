@@ -240,7 +240,15 @@ export default function SettingsBillingPage() {
       </BillingCard>
 
       <BillingCard title="Plan Limits">
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+          <div className="p-4 bg-muted/50 rounded">
+            <Text size="sm" color="muted">
+              Organizations
+            </Text>
+            <Text as="p" size="lg" weight="bold">
+              {formatPlanLimit(planEntitlement.organizationLimit)}
+            </Text>
+          </div>
           <div className="p-4 bg-muted/50 rounded">
             <Text size="sm" color="muted">
               Brands
