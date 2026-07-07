@@ -75,7 +75,8 @@ export default function OrganizationSwitcher() {
   const getOrgsService = useAuthedService((token: string) =>
     OrganizationsService.getInstance(token),
   );
-  const { isSubscriptionActive } = useSubscription();
+  const { isLoading: isSubscriptionLoading, isSubscriptionActive } =
+    useSubscription();
   const { push } = useRouter();
   const params = useParams<{ orgSlug?: string }>();
   const currentOrgSlug =
@@ -206,7 +207,7 @@ export default function OrganizationSwitcher() {
         emptyMessage={error ?? 'No organizations'}
         hasSearch={orgs.length >= 5}
         footerActions={
-          isSubscriptionActive
+          !isSubscriptionLoading && isSubscriptionActive
             ? [
                 {
                   label: 'New Organization',

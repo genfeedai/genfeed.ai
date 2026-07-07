@@ -14,7 +14,7 @@ colors:
   bg-tertiary: "#131518"
   bg-elevated: "#1a1c21"
   bg-hover: "#20232a"
-  card: "#080808"
+  card: "#000000"
 
   # Borders — hex approximations of translucent white on the dark canvas
   border: "#1e2022"

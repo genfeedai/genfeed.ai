@@ -45,7 +45,7 @@ function SectionHeader({
 }: SectionHeaderProps): React.ReactNode {
   return (
     <div className="flex justify-between items-center mb-4">
-      <h2 className="text-xl font-semibold tracking-[-0.02em] text-foreground">
+      <h2 className="text-sm font-semibold tracking-[-0.01em] text-foreground">
         {title}
       </h2>
       {headerActions}

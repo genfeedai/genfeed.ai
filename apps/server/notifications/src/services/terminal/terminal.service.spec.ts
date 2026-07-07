@@ -167,20 +167,72 @@ describe('TerminalService', () => {
     }
   });
 
-  it('falls back to the home directory for invalid cwd requests', () => {
+  it('falls back to the discovered workspace root for invalid cwd requests', () => {
+    const workspaceDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'genfeed-workspace-'),
+    );
+    const serviceDir = path.join(workspaceDir, 'apps/server');
+    const originalCwd = process.cwd();
+    fs.mkdirSync(serviceDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(workspaceDir, 'package.json'),
+      JSON.stringify({ name: 'genfeed-test', workspaces: ['apps/*'] }),
+    );
+    process.chdir(serviceDir);
+    const expectedWorkspaceDir = fs.realpathSync(workspaceDir);
+
     const service = createService({ NODE_ENV: 'development' }, mockAdapter);
 
-    const session = service.createSession(
-      'socket-1',
-      'user_123',
-      { cwd: '/tmp/does-not-exist-genfeed-terminal', kind: 'shell' },
-      { onData: vi.fn(), onExit: vi.fn() },
-    );
+    try {
+      const session = service.createSession(
+        'socket-1',
+        'user_123',
+        { cwd: '/tmp/does-not-exist-genfeed-terminal', kind: 'shell' },
+        { onData: vi.fn(), onExit: vi.fn() },
+      );
 
-    expect(session.cwd).toBe(os.homedir());
-    expect(mockAdapter.spawn).toHaveBeenCalledWith(
-      expect.objectContaining({ cwd: os.homedir() }),
+      expect(session.cwd).toBe(expectedWorkspaceDir);
+      expect(mockAdapter.spawn).toHaveBeenCalledWith(
+        expect.objectContaining({ cwd: expectedWorkspaceDir }),
+      );
+    } finally {
+      process.chdir(originalCwd);
+      fs.rmSync(workspaceDir, { force: true, recursive: true });
+    }
+  });
+
+  it('uses the discovered workspace root when no cwd is configured', () => {
+    const workspaceDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'genfeed-workspace-'),
     );
+    const serviceDir = path.join(workspaceDir, 'apps/server');
+    const originalCwd = process.cwd();
+    fs.mkdirSync(serviceDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(workspaceDir, 'package.json'),
+      JSON.stringify({ name: 'genfeed-test', workspaces: ['apps/*'] }),
+    );
+    process.chdir(serviceDir);
+    const expectedWorkspaceDir = fs.realpathSync(workspaceDir);
+
+    const service = createService({ NODE_ENV: 'development' }, mockAdapter);
+
+    try {
+      const session = service.createSession(
+        'socket-1',
+        'user_123',
+        { kind: 'shell' },
+        { onData: vi.fn(), onExit: vi.fn() },
+      );
+
+      expect(session.cwd).toBe(expectedWorkspaceDir);
+      expect(mockAdapter.spawn).toHaveBeenCalledWith(
+        expect.objectContaining({ cwd: expectedWorkspaceDir }),
+      );
+    } finally {
+      process.chdir(originalCwd);
+      fs.rmSync(workspaceDir, { force: true, recursive: true });
+    }
   });
 
   it('returns a useful error when a requested CLI is missing', () => {

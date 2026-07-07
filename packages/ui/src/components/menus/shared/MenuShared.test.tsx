@@ -294,6 +294,27 @@ describe('MenuShared', () => {
     expect(headerShell).toContainElement(orgSwitcher);
   });
 
+  it('renders a collapse control in the sidebar header when collapse is available', () => {
+    const onToggleCollapse = vi.fn();
+
+    render(
+      <MenuShared
+        config={config}
+        onToggleCollapse={onToggleCollapse}
+        orgSwitcherSlot={<div data-testid="organization-switcher">Acme</div>}
+      />,
+    );
+
+    const headerShell = screen.getByTestId('sidebar-header-shell');
+    const collapseButton = screen.getByRole('button', {
+      name: 'Collapse sidebar',
+    });
+
+    expect(headerShell).toContainElement(collapseButton);
+    fireEvent.click(collapseButton);
+    expect(onToggleCollapse).toHaveBeenCalledTimes(1);
+  });
+
   it('renders the org switcher in the header above the top slot and nav', () => {
     render(
       <MenuShared

@@ -10,6 +10,7 @@ import AppProtectedLayout from './app-protected-layout';
 const {
   appLayoutSpy,
   appSidebarSpy,
+  agentApiServiceConfigSpy,
   agentThreadListSpy,
   agentPanelSpy,
   beginOverlaySessionSpy,
@@ -19,9 +20,11 @@ const {
   onboardingGuardSpy,
   lowCreditsBannerSpy,
   protectedProvidersSpy,
+  resolveAuthTokenSpy,
   setIsOpenSpy,
   toggleOpenSpy,
 } = vi.hoisted(() => ({
+  agentApiServiceConfigSpy: vi.fn(),
   agentPanelSpy: vi.fn(),
   agentThreadListSpy: vi.fn(),
   appLayoutSpy: vi.fn(),
@@ -33,6 +36,7 @@ const {
   lowCreditsBannerSpy: vi.fn(),
   onboardingGuardSpy: vi.fn(),
   protectedProvidersSpy: vi.fn(),
+  resolveAuthTokenSpy: vi.fn(),
   setIsOpenSpy: vi.fn(),
   toggleOpenSpy: vi.fn(),
 }));
@@ -69,6 +73,10 @@ vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
     getToken: vi.fn().mockResolvedValue('token'),
   }),
+}));
+
+vi.mock('@helpers/auth/auth.helper', () => ({
+  resolveAuthToken: resolveAuthTokenSpy,
 }));
 
 vi.mock('@ui/command-palette/command-palette/CommandPalette', () => ({
@@ -337,7 +345,11 @@ vi.mock('next/dynamic', () => ({
 
 vi.mock('@genfeedai/agent', () => ({
   AGENT_PANEL_OPEN_KEY: 'genfeed:agent-open',
-  AgentApiService: class AgentApiService {},
+  AgentApiService: class AgentApiService {
+    constructor(config: unknown) {
+      agentApiServiceConfigSpy(config);
+    }
+  },
   useAgentChatStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector({
       beginOverlaySession: beginOverlaySessionSpy,
@@ -486,6 +498,9 @@ describe('AppProtectedLayout', () => {
     onboardingGuardSpy.mockClear();
     lowCreditsBannerSpy.mockClear();
     protectedProvidersSpy.mockClear();
+    agentApiServiceConfigSpy.mockClear();
+    resolveAuthTokenSpy.mockClear();
+    resolveAuthTokenSpy.mockResolvedValue('resolved-token');
     setIsOpenSpy.mockClear();
     toggleOpenSpy.mockClear();
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
@@ -758,6 +773,28 @@ describe('AppProtectedLayout', () => {
     expect(screen.getByTestId('agent-panel-rail')).toBeInTheDocument();
     expect(screen.getByTestId('agent-panel')).toBeInTheDocument();
     expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
+  });
+
+  it('forwards forced token refresh options to the embedded terminal api service', async () => {
+    mockPathname.value = '/workspace';
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    const apiConfig = agentApiServiceConfigSpy.mock.calls.at(-1)?.[0] as {
+      getToken: (options?: {
+        forceRefresh?: boolean;
+      }) => Promise<string | null>;
+    };
+
+    await apiConfig.getToken({ forceRefresh: true });
+
+    expect(resolveAuthTokenSpy).toHaveBeenCalledWith(expect.any(Function), {
+      forceRefresh: true,
+    });
   });
 
   it('hides the terminal dock on hosted cloud', () => {

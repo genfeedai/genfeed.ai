@@ -4,15 +4,14 @@ import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { MenuSharedProps } from '@genfeedai/props/navigation/menu.props';
-import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import MenuItem from '@ui/menus/item/MenuItem';
 import SidebarNested from '@ui/menus/sidebar-nested/SidebarNested';
 import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import { Button } from '@ui/primitives/button';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { HiOutlineArrowLeft } from 'react-icons/hi2';
+import { PiSidebarSimple } from 'react-icons/pi';
 import CollapsibleGroup from './CollapsibleGroup';
 import MenuSharedConversations from './MenuSharedConversations';
 import MenuSharedGroupedItems from './MenuSharedGroupedItems';
@@ -45,7 +44,6 @@ export default function MenuShared({
   const { push } = useRouter();
 
   const {
-    logoUrl,
     href,
     orgHref,
     isConversationsCollapsed,
@@ -157,20 +155,7 @@ export default function MenuShared({
       className="flex size-7 flex-shrink-0 items-center justify-center rounded-md bg-transparent text-foreground/72 cursor-pointer transition-colors hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
       ariaLabel={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
     >
-      <span className="relative flex size-4 items-center justify-center">
-        {logoUrl ? (
-          <Image
-            src={logoUrl}
-            alt={EnvironmentService.LOGO_ALT}
-            className="size-4 object-contain dark:invert"
-            width={16}
-            height={16}
-            sizes="16px"
-          />
-        ) : (
-          <span className="text-sm font-bold leading-none">G</span>
-        )}
-      </span>
+      <PiSidebarSimple className="size-4" />
     </Button>
   ) : null;
 
@@ -199,7 +184,6 @@ export default function MenuShared({
             shellChromeVariant === 'default' && 'border-b border-border',
           )}
         >
-          {sharedCollapseControl}
           {orgSwitcherSlot ? (
             <div
               className={cn(
@@ -210,6 +194,7 @@ export default function MenuShared({
               {orgSwitcherSlot}
             </div>
           ) : null}
+          {sharedCollapseControl}
         </div>
 
         {/* Body — fades out when collapsed, pointer-events disabled */}

@@ -83,102 +83,100 @@ export function BrandPerformanceChart({
   };
 
   return (
-    <Card className={className}>
-      <div className="p-6">
-        <h3 className="text-lg font-semibold mb-4">{title}</h3>
-        {/* Metric Toggle Buttons */}
-        <div className="flex flex-wrap gap-2 mb-4">
-          {(Object.keys(METRIC_LABELS) as BrandMetricKey[]).map((metricKey) => (
-            <Button
-              type="button"
-              key={metricKey}
-              onClick={() => setActiveMetric(metricKey)}
-              isDisabled={isLoading || isEmpty}
-              variant={ButtonVariant.UNSTYLED}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all border ${
-                activeMetric === metricKey
-                  ? 'bg-white/10 border-white/20 text-white'
-                  : 'bg-transparent border-white/[0.08] text-white/50 hover:border-white/20 hover:text-white/80'
-              } ${isLoading || isEmpty ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <span
-                className="inline-block size-3 rounded-full mr-2"
-                style={{ backgroundColor: METRIC_COLORS[metricKey] }}
-              />
-
-              {METRIC_LABELS[metricKey]}
-            </Button>
-          ))}
-        </div>
-
-        {/* Chart */}
-        <div className="relative" style={{ height }}>
-          {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-card/50 z-10">
-              <span className="animate-pulse size-12 rounded-full bg-primary/30" />
-            </div>
-          )}
-
-          {isEmpty && !isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center text-foreground/50">
-              No data available for the selected period
-            </div>
-          )}
-
-          <ChartContainer
-            config={chartConfig}
-            className="border-0 bg-transparent p-0 shadow-none"
-            height="100%"
-            style={{ minWidth: 0 }}
+    <Card className={className} bodyClassName="p-6">
+      <h3 className="mb-4 text-sm font-semibold text-foreground">{title}</h3>
+      {/* Metric Toggle Buttons */}
+      <div className="mb-4 flex flex-wrap gap-2">
+        {(Object.keys(METRIC_LABELS) as BrandMetricKey[]).map((metricKey) => (
+          <Button
+            type="button"
+            key={metricKey}
+            onClick={() => setActiveMetric(metricKey)}
+            isDisabled={isLoading || isEmpty}
+            variant={ButtonVariant.UNSTYLED}
+            className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-all ${
+              activeMetric === metricKey
+                ? 'border-white/20 bg-white/10 text-white'
+                : 'border-white/[0.08] bg-transparent text-white/50 hover:border-white/20 hover:text-white/80'
+            } ${isLoading || isEmpty ? 'cursor-not-allowed opacity-50' : ''}`}
           >
-            <BarChart
-              data={sortedData}
-              margin={{ bottom: 60, left: 20, right: 30, top: 5 }}
-            >
-              <CartesianGrid
-                strokeDasharray="0"
-                stroke="var(--overlay-white-5)"
-                vertical={false}
-              />
-              <XAxis
-                dataKey="name"
-                angle={-45}
-                textAnchor="end"
-                height={80}
-                tick={{ fill: 'var(--overlay-white-20)', fontSize: 12 }}
-                tickFormatter={formatBrandName}
-                stroke="var(--overlay-white-20)"
-              />
-              <YAxis
-                tick={{ fill: 'var(--overlay-white-20)', fontSize: 12 }}
-                tickFormatter={formatCompactNumberIntl}
-                stroke="var(--overlay-white-20)"
-              />
-              <Tooltip
-                content={
-                  <ChartTooltipContent
-                    labelFormatter={(label) => String(label)}
-                    valueFormatter={(value) =>
-                      formatFullNumber(
-                        typeof value === 'number'
-                          ? value
-                          : typeof value === 'string'
-                            ? Number(value)
-                            : undefined,
-                      )
-                    }
-                  />
-                }
-              />
-              <Bar
-                dataKey={activeMetric as 'engagement' | 'posts' | 'views'}
-                fill={METRIC_COLORS[activeMetric]}
-                radius={[8, 8, 0, 0]}
-                maxBarSize={60}
-              />
-            </BarChart>
-          </ChartContainer>
-        </div>
+            <span
+              className="mr-2 inline-block size-3 rounded-full"
+              style={{ backgroundColor: METRIC_COLORS[metricKey] }}
+            />
+
+            {METRIC_LABELS[metricKey]}
+          </Button>
+        ))}
+      </div>
+
+      {/* Chart */}
+      <div className="relative" style={{ height }}>
+        {isLoading && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-card/50">
+            <span className="size-12 animate-pulse rounded-full bg-primary/30" />
+          </div>
+        )}
+
+        {isEmpty && !isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center text-foreground/50">
+            No data available for the selected period
+          </div>
+        )}
+
+        <ChartContainer
+          config={chartConfig}
+          className="border-0 bg-transparent p-0 shadow-none"
+          height="100%"
+          style={{ minWidth: 0 }}
+        >
+          <BarChart
+            data={sortedData}
+            margin={{ bottom: 60, left: 20, right: 30, top: 5 }}
+          >
+            <CartesianGrid
+              strokeDasharray="0"
+              stroke="var(--overlay-white-5)"
+              vertical={false}
+            />
+            <XAxis
+              dataKey="name"
+              angle={-45}
+              textAnchor="end"
+              height={80}
+              tick={{ fill: 'var(--overlay-white-20)', fontSize: 12 }}
+              tickFormatter={formatBrandName}
+              stroke="var(--overlay-white-20)"
+            />
+            <YAxis
+              tick={{ fill: 'var(--overlay-white-20)', fontSize: 12 }}
+              tickFormatter={formatCompactNumberIntl}
+              stroke="var(--overlay-white-20)"
+            />
+            <Tooltip
+              content={
+                <ChartTooltipContent
+                  labelFormatter={(label) => String(label)}
+                  valueFormatter={(value) =>
+                    formatFullNumber(
+                      typeof value === 'number'
+                        ? value
+                        : typeof value === 'string'
+                          ? Number(value)
+                          : undefined,
+                    )
+                  }
+                />
+              }
+            />
+            <Bar
+              dataKey={activeMetric as 'engagement' | 'posts' | 'views'}
+              fill={METRIC_COLORS[activeMetric]}
+              radius={[8, 8, 0, 0]}
+              maxBarSize={60}
+            />
+          </BarChart>
+        </ChartContainer>
       </div>
     </Card>
   );

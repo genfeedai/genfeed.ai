@@ -269,10 +269,10 @@ function ViralVideosEmptyState({ isLoading }: { isLoading: boolean }) {
   ];
 
   return (
-    <div className="overflow-hidden rounded-card border border-white/[0.06] bg-card">
-      <div className="grid grid-cols-1 divide-y divide-white/[0.06] md:grid-cols-3 md:divide-x md:divide-y-0">
+    <div className="overflow-hidden rounded-card border border-border bg-card">
+      <div className="grid grid-cols-1 divide-y divide-border md:grid-cols-3 md:divide-x md:divide-y-0">
         {cards.map((card) => (
-          <div key={card.label} className="bg-background/30 p-4">
+          <div key={card.label} className="bg-card p-4">
             <div className="flex items-center gap-2 text-sm font-medium text-foreground">
               <HiOutlineSparkles className="size-4 text-foreground/52" />
               {card.label}
@@ -280,7 +280,7 @@ function ViralVideosEmptyState({ isLoading }: { isLoading: boolean }) {
             <div className="mt-4 text-xs uppercase tracking-[0.18em] text-foreground/35">
               {card.value}
             </div>
-            <div className="mt-2 h-2 w-full rounded-full bg-white/[0.04]" />
+            <div className="mt-2 h-2 w-full rounded-full bg-background-secondary" />
           </div>
         ))}
       </div>

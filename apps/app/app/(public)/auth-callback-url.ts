@@ -17,6 +17,7 @@ export function getAuthCallbackURL(
 const ALLOWED_CALLBACK_HOSTS = new Set([
   'app.genfeed.ai',
   'genfeed.ai',
+  'local.genfeed.ai',
   'www.genfeed.ai',
 ]);
 

@@ -30,7 +30,7 @@ export default function AgentPageContent({
     () =>
       new AgentApiService({
         baseUrl: process.env.NEXT_PUBLIC_API_ENDPOINT ?? '',
-        getToken: async () => resolveAuthToken(getToken),
+        getToken: async (options) => resolveAuthToken(getToken, options),
       }),
     [getToken],
   );

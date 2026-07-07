@@ -230,7 +230,8 @@ export function useAppProtectedLayout(
 
     return new AgentApiService({
       baseUrl: process.env.NEXT_PUBLIC_API_ENDPOINT ?? '',
-      getToken: async () => resolveAuthToken(getTokenRef.current),
+      getToken: async (options) =>
+        resolveAuthToken(getTokenRef.current, options),
     });
   }, [shouldInitAgentApiService]);
 

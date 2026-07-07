@@ -16,6 +16,7 @@ let capturedItems: SwitcherDropdownItem[] = [];
 let capturedOnSelect: ((id: string) => void) | undefined;
 let capturedIsLoading: boolean | undefined;
 let capturedEmptyMessage: string | undefined;
+let mockIsSubscriptionLoading = false;
 let mockIsSubscriptionActive = true;
 
 vi.mock('next/navigation', () => ({
@@ -37,6 +38,7 @@ vi.mock(
   '@genfeedai/hooks/data/subscription/use-subscription/use-subscription',
   () => ({
     useSubscription: () => ({
+      isLoading: mockIsSubscriptionLoading,
       isSubscriptionActive: mockIsSubscriptionActive,
     }),
   }),
@@ -106,6 +108,7 @@ describe('OrganizationSwitcher', () => {
     capturedIsLoading = undefined;
     capturedEmptyMessage = undefined;
     capturedOnSelect = undefined;
+    mockIsSubscriptionLoading = false;
     mockIsSubscriptionActive = true;
     mockParams = { orgSlug: 'acme-org' };
     mockGetMyOrganizations.mockReset();
@@ -159,6 +162,19 @@ describe('OrganizationSwitcher', () => {
 
   it('hides organization creation when the subscription is inactive', async () => {
     mockIsSubscriptionActive = false;
+
+    render(<OrganizationSwitcher />);
+
+    await waitFor(() => {
+      expect(capturedItems).toHaveLength(1);
+    });
+
+    expect(capturedFooterActions).toEqual([]);
+  });
+
+  it('hides organization creation while subscription status is loading', async () => {
+    mockIsSubscriptionLoading = true;
+    mockIsSubscriptionActive = true;
 
     render(<OrganizationSwitcher />);
 

@@ -35,17 +35,21 @@ describe('Container', () => {
     expect(rootElement).not.toHaveClass('max-w-none');
   });
 
-  it('keeps full-pane header dividers while insetting header content', () => {
+  it('keeps full-pane header dividers while insetting header and body content', () => {
     const { container } = render(
       <Container label="Dashboard">content</Container>,
     );
     const rootElement = container.firstChild as HTMLElement;
     const header = rootElement.querySelector('.border-b') as HTMLElement;
+    const body = rootElement.lastElementChild as HTMLElement;
 
     expect(rootElement).not.toHaveClass('px-5');
     expect(header).toHaveClass('px-5');
     expect(header).toHaveClass('sm:px-6');
     expect(header).toHaveClass('lg:px-6');
+    expect(body).toHaveClass('px-5');
+    expect(body).toHaveClass('sm:px-6');
+    expect(body).toHaveClass('lg:px-6');
   });
 
   it('can keep the h1 for assistive tech without rendering the visible header row', () => {
@@ -59,7 +63,8 @@ describe('Container', () => {
     expect(screen.getByRole('heading', { name: 'Dashboard' })).toHaveClass(
       'sr-only',
     );
-    expect(rootElement.childElementCount).toBe(1);
+    expect(rootElement.querySelector('.border-b')).not.toBeInTheDocument();
+    expect(rootElement.lastElementChild).toHaveClass('px-5');
   });
 
   it('keeps header controls visible when the title is screen-reader only', () => {

@@ -24,16 +24,27 @@ vi.mock('@api/helpers/utils/pagination/pagination.util', () => ({
 vi.mock('@api/helpers/utils/query-defaults/query-defaults.util', () => ({
   QueryDefaultsUtil: {
     getIsDeletedDefault: vi.fn((val: boolean) => val ?? false),
-    getPaginationDefaults: vi.fn(() => ({ limit: 10, page: 1 })),
-    parseStatusFilter: vi.fn(
-      (val: unknown) => val ?? { in: ['draft', 'uploaded', 'completed'] },
+    getPaginationDefaults: vi.fn(
+      (query: { limit?: number; page?: number }) => ({
+        limit: query?.limit ?? 10,
+        page: query?.page ?? 1,
+      }),
     ),
+    parseStatusFilter: vi.fn((val: unknown) => {
+      if (Array.isArray(val)) {
+        const values = val.map((entry) => String(entry).trim()).filter(Boolean);
+        return values.length
+          ? { in: values }
+          : { in: ['draft', 'uploaded', 'completed'] };
+      }
+      return val ?? { in: ['draft', 'uploaded', 'completed'] };
+    }),
   },
 }));
 
 vi.mock('@api/helpers/utils/collection-filter/collection-filter.util', () => ({
   CollectionFilterUtil: {
-    buildBrandFilter: vi.fn(() => ({ not: null })),
+    buildBrandFilter: vi.fn((brand: unknown) => brand ?? { not: null }),
     buildScopeFilter: vi.fn(() => undefined),
   },
 }));
@@ -189,6 +200,43 @@ describe('ImagesController', () => {
         where: { AND?: unknown[] };
       };
       expect(aggregate.where.AND).toBeDefined();
+    });
+
+    it('should accept the studio image list query shape', async () => {
+      const query = {
+        brand: '507f1f77bcf86cd799439012',
+        limit: 24,
+        page: 1,
+        sort: 'createdAt: -1',
+        status: ['generated', 'processing', 'validated'],
+      } as unknown as ImagesQueryDto;
+
+      await controller.findAll(mockRequest, mockUser, query);
+
+      const aggregate = imagesService.findAll.mock.calls[0][0] as {
+        where: {
+          AND: Array<{
+            OR: Array<{ AND: Array<Record<string, unknown>> }>;
+          }>;
+        };
+      };
+      const options = imagesService.findAll.mock.calls[0][1] as {
+        limit: number;
+        page: number;
+      };
+      const userBranch = aggregate.where.AND[0].OR[0].AND[0];
+      const defaultBranch = aggregate.where.AND[0].OR[1].AND[0];
+
+      expect(options).toMatchObject({ limit: 24, page: 1 });
+      expect(userBranch).toMatchObject({
+        brand: '507f1f77bcf86cd799439012',
+        status: { in: ['generated', 'processing', 'validated'] },
+      });
+      expect(defaultBranch).toMatchObject({
+        brand: '507f1f77bcf86cd799439012',
+        isDefault: true,
+        status: { in: ['generated', 'processing', 'validated'] },
+      });
     });
   });
 });

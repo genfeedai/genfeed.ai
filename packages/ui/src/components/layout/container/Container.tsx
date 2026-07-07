@@ -87,7 +87,7 @@ export default function Container({
         </div>
       )}
 
-      {children}
+      <div className={cn(insetClassName)}>{children}</div>
     </div>
   );
 }

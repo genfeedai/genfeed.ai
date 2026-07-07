@@ -83,6 +83,15 @@ export function getPlaywrightJwtToken(): string | null {
   return null;
 }
 
+async function getSafeBetterAuthToken(): Promise<string | null> {
+  try {
+    const { getBetterAuthToken } = await import('@genfeedai/auth-client');
+    return await getBetterAuthToken();
+  } catch {
+    return null;
+  }
+}
+
 export async function resolveAuthToken(
   getToken: AuthTokenGetter,
   opts?: {
@@ -90,9 +99,16 @@ export async function resolveAuthToken(
     template?: string;
   },
 ): Promise<string | null> {
-  const { getBetterAuthToken } = await import('@genfeedai/auth-client');
+  if (opts?.forceRefresh) {
+    return (
+      (await getToken(opts)) ??
+      (await getSafeBetterAuthToken()) ??
+      getPlaywrightJwtToken()
+    );
+  }
+
   return (
-    (await getBetterAuthToken()) ??
+    (await getSafeBetterAuthToken()) ??
     (await getToken(opts)) ??
     getPlaywrightJwtToken()
   );

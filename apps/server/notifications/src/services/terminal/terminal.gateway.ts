@@ -94,7 +94,6 @@ export class TerminalGateway
 
   handleDisconnect(client: Socket): void {
     this.authenticatedSockets.delete(client.id);
-    this.terminalService.killAllForSocket(client.id);
   }
 
   @SubscribeMessage('terminal:create')

@@ -35,9 +35,9 @@ describe('KPISection', () => {
     const heading = screen.getByRole('heading', { name: 'Overview' });
 
     expect(heading).toHaveClass(
-      'text-xl',
+      'text-sm',
       'font-semibold',
-      'tracking-[-0.02em]',
+      'tracking-[-0.01em]',
       'text-foreground',
     );
     expect(heading).not.toHaveClass('font-serif-italic');

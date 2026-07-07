@@ -314,6 +314,29 @@ describe('WorkspacePageContent', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('renders activity content on the workspace activity route', async () => {
+    listMock.mockResolvedValueOnce([
+      buildTask({
+        id: 'activity-task-1',
+        status: 'done',
+        title: 'Published launch post',
+        updatedAt: '2026-03-30T11:00:00.000Z',
+      }),
+    ]);
+
+    render(<WorkspacePageContent section="activity" />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Published launch post')).toBeInTheDocument();
+    });
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Activity' }),
+    ).toBeVisible();
+    expect(
+      screen.queryByText('Activity will appear here once tasks start running.'),
+    ).not.toBeInTheDocument();
+  });
+
   it('keeps the inbox content mounted while the first task list loads', async () => {
     let resolveTasks: (tasks: ReturnType<typeof buildTask>[]) => void;
     listMock.mockReturnValueOnce(

@@ -1,6 +1,7 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import {
   cloneElement,
+  type InputHTMLAttributes,
   isValidElement,
   type ReactElement,
   type ReactNode,
@@ -92,6 +93,12 @@ vi.mock('../../../primitives/dropdown-menu', () => ({
   DropdownMenuSeparator: () => <hr />,
   DropdownMenuTrigger: ({ children }: { children: ReactNode }) => (
     <>{children}</>
+  ),
+}));
+
+vi.mock('../../../primitives/input', () => ({
+  Input: ({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) => (
+    <input className={className} {...props} />
   ),
 }));
 
@@ -190,6 +197,19 @@ describe('AppSwitcher', () => {
     }
   });
 
+  it('renders compact pinned apps above the full app list', () => {
+    render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
+
+    for (const label of [
+      'Open Workspace',
+      'Open Agent',
+      'Open Studio',
+      'Open Discovery',
+    ]) {
+      expect(screen.getByRole('link', { name: label })).toBeInTheDocument();
+    }
+  });
+
   it('marks the active app with aria-current="page"', () => {
     render(<AppSwitcher orgSlug="acme" currentApp="posts" />);
     const activeButton = screen.getByRole('link', { name: 'Posts' });
@@ -238,14 +258,33 @@ describe('AppSwitcher', () => {
     const btn = screen.getByRole('link', { name: 'Studio' });
     expect(btn).toBeDefined();
     expect(btn).toHaveAttribute('aria-current', 'page');
-    expect(btn).toHaveClass('bg-foreground/[0.08]');
+    expect(btn).toHaveClass('bg-foreground/[0.06]');
   });
 
   it('inactive app button does not have active-state classes', () => {
     render(<AppSwitcher orgSlug="acme" currentApp="compose" />);
     const btn = screen.getByRole('link', { name: 'Posts' });
     expect(btn).not.toHaveAttribute('aria-current');
-    expect(btn).not.toHaveClass('bg-foreground/[0.08]');
+    expect(btn).not.toHaveClass('bg-foreground/[0.06]');
+  });
+
+  it('filters app rows from the switcher search', () => {
+    render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
+
+    fireEvent.change(
+      screen.getByRole('textbox', {
+        name: 'Search apps',
+      }),
+      { target: { value: 'studio' } },
+    );
+
+    expect(screen.getByRole('link', { name: 'Studio' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Workspace' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Open Workspace' }),
+    ).not.toBeInTheDocument();
   });
 
   it('uses the most specific current path for active state', () => {

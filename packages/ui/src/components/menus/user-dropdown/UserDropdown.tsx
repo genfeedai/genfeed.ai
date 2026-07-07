@@ -14,7 +14,7 @@ import {
 } from '@ui/primitives/dropdown-menu';
 import Image from 'next/image';
 import Link from 'next/link';
-import type { ComponentType } from 'react';
+import { type ComponentType, useCallback, useState } from 'react';
 import {
   HiOutlineArrowRightOnRectangle,
   HiOutlineBuildingOffice2,
@@ -22,6 +22,7 @@ import {
   HiOutlineTag,
   HiOutlineUser,
 } from 'react-icons/hi2';
+import { scheduleModalGlobalSideEffectCleanup } from '../../../utils/modal-global-side-effects';
 
 interface DropdownItem {
   label: string;
@@ -45,7 +46,14 @@ export default function UserDropdown({
   userEmail,
 }: UserDropdownProps) {
   const { orgHref } = useOrgUrl();
+  const [isOpen, setIsOpen] = useState(false);
   const initial = userName.trim().charAt(0).toUpperCase() || 'U';
+  const handleOpenChange = useCallback((open: boolean) => {
+    setIsOpen(open);
+    if (!open) {
+      scheduleModalGlobalSideEffectCleanup();
+    }
+  }, []);
   // Cross-scope switcher for the scope-specific Settings sidebar: each entry
   // enters a settings scope, whose sidebar then shows only that scope's pages
   // (see buildSettingsMenuItems). Help is part of the personal scope. See #1231.
@@ -75,7 +83,7 @@ export default function UserDropdown({
       : allDropdownItems;
 
   return (
-    <DropdownMenu modal={false}>
+    <DropdownMenu modal={false} open={isOpen} onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>
         <Button
           variant={ButtonVariant.UNSTYLED}

@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { ButtonVariant } from '@genfeedai/enums';
 import {
@@ -294,7 +295,7 @@ export default function ButtonCredits({
 
             {/* Top Up */}
             <Link
-              href={orgHref('/settings')}
+              href={orgHref(APP_ROUTES.SETTINGS.BILLING)}
               target="_blank"
               rel="noopener noreferrer"
               className={cn(

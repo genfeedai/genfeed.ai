@@ -222,6 +222,17 @@ describe('TerminalGateway', () => {
     expect(socket.emit).toHaveBeenCalledWith('terminal:sessions', []);
   });
 
+  it('keeps local PTY sessions alive across socket disconnects', async () => {
+    const terminalService = createTerminalService();
+    const gateway = new TerminalGateway(terminalService as never);
+    const socket = createSocket('http://localhost:3000', 'session-token');
+
+    await gateway.handleConnection(socket);
+    gateway.handleDisconnect(socket);
+
+    expect(terminalService.killAllForSocket).not.toHaveBeenCalled();
+  });
+
   it('emits terminal:error when attach session is not found', async () => {
     const terminalService = createTerminalService();
     terminalService.attach.mockReturnValue(null);

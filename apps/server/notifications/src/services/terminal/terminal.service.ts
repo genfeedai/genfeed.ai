@@ -452,14 +452,15 @@ export class TerminalService {
       typeof requestedCwd === 'string' && requestedCwd.trim()
         ? requestedCwd
         : this.configService.get('GENFEED_TERMINAL_CWD');
+    const defaultCwd = this.resolveDefaultWorkingDirectory();
 
     if (typeof configuredCwd !== 'string' || !configuredCwd.trim()) {
-      return os.homedir();
+      return defaultCwd;
     }
 
     if (!path.isAbsolute(configuredCwd)) {
       this.logger.warn(`Ignoring non-absolute terminal cwd: ${configuredCwd}`);
-      return os.homedir();
+      return defaultCwd;
     }
 
     const normalizedCwd = path.resolve(configuredCwd);
@@ -469,11 +470,83 @@ export class TerminalService {
       }
     } catch {
       this.logger.warn(`Ignoring unavailable terminal cwd: ${configuredCwd}`);
-      return os.homedir();
+      return defaultCwd;
     }
 
     this.logger.warn(`Ignoring non-directory terminal cwd: ${configuredCwd}`);
+    return defaultCwd;
+  }
+
+  private resolveDefaultWorkingDirectory(): string {
+    const candidates = [
+      process.env.GENFEED_WORKSPACE_ROOT,
+      process.env.INIT_CWD,
+      process.cwd(),
+      os.homedir(),
+    ];
+
+    for (const candidate of candidates) {
+      if (typeof candidate !== 'string' || !candidate.trim()) {
+        continue;
+      }
+
+      const normalizedCandidate = path.resolve(candidate);
+      const startDir = this.resolveExistingDirectory(normalizedCandidate);
+      if (!startDir) {
+        continue;
+      }
+
+      return this.findWorkspaceRoot(startDir) ?? startDir;
+    }
+
     return os.homedir();
+  }
+
+  private resolveExistingDirectory(candidate: string): string | null {
+    try {
+      const stat = fs.statSync(candidate);
+      if (stat.isDirectory()) {
+        return candidate;
+      }
+
+      if (stat.isFile()) {
+        return path.dirname(candidate);
+      }
+    } catch {
+      return null;
+    }
+
+    return null;
+  }
+
+  private findWorkspaceRoot(startDir: string): string | null {
+    let current = path.resolve(startDir);
+
+    while (true) {
+      if (this.hasWorkspacePackageJson(current)) {
+        return current;
+      }
+
+      const parent = path.dirname(current);
+      if (parent === current) {
+        return null;
+      }
+
+      current = parent;
+    }
+  }
+
+  private hasWorkspacePackageJson(directory: string): boolean {
+    const packageJsonPath = path.join(directory, 'package.json');
+
+    try {
+      const packageJson = JSON.parse(
+        fs.readFileSync(packageJsonPath, 'utf8'),
+      ) as { workspaces?: unknown };
+      return Array.isArray(packageJson.workspaces);
+    } catch {
+      return false;
+    }
   }
 
   /** Appends a chunk to the scrollback ring, evicting oldest chunks as needed. */

@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import UserDropdown from '@ui/menus/user-dropdown/UserDropdown';
 import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
@@ -40,6 +40,12 @@ vi.mock('next/image', () => ({
 }));
 
 describe('UserDropdown', () => {
+  afterEach(() => {
+    document.body.removeAttribute('data-scroll-locked');
+    document.body.style.removeProperty('overflow');
+    document.body.style.removeProperty('padding-right');
+  });
+
   it('renders an initials avatar trigger when no image is provided', () => {
     render(<UserDropdown userName="Test User" userEmail="test@example.com" />);
 
@@ -160,5 +166,25 @@ describe('UserDropdown', () => {
       'href',
       '/logout',
     );
+  });
+
+  it('cleans up stale global scroll locks after the profile menu closes', async () => {
+    document.body.style.overflow = 'hidden';
+    document.body.setAttribute('data-scroll-locked', '1');
+    document.body.style.paddingRight = '15px';
+
+    render(<UserDropdown userName="Test User" userEmail="test@example.com" />);
+
+    const trigger = screen.getByRole('button', { name: 'Open account menu' });
+    fireEvent.pointerDown(trigger);
+    expect(screen.getByRole('menuitem', { name: /Personal/i })).toBeVisible();
+
+    fireEvent.pointerDown(trigger);
+
+    await waitFor(() => {
+      expect(document.body.style.overflow).not.toBe('hidden');
+      expect(document.body).not.toHaveAttribute('data-scroll-locked');
+      expect(document.body.style.paddingRight).toBe('');
+    });
   });
 });

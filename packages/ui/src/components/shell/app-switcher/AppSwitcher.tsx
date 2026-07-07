@@ -9,7 +9,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { AppContext, AppSwitcherItemConfig } from '@genfeedai/interfaces';
 import type { AppSwitcherProps } from '@genfeedai/props/ui/app-switcher.props';
 import Link from 'next/link';
-import { useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   HiChevronDown,
   HiOutlineArrowPathRoundedSquare,
@@ -19,6 +19,7 @@ import {
   HiOutlineCheckCircle,
   HiOutlineClock,
   HiOutlineCommandLine,
+  HiOutlineMagnifyingGlass,
   HiOutlinePaperAirplane,
   HiOutlineRectangleStack,
   HiOutlineShieldCheck,
@@ -35,6 +36,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '../../../primitives/dropdown-menu';
+import { Input } from '../../../primitives/input';
 
 type LifecycleAppSwitcherItemConfig = AppSwitcherItemConfig & {
   activeIds?: AppContext[];
@@ -293,6 +295,13 @@ const ADMIN_APP_SWITCHER_SECTION: AppSwitcherSectionConfig = {
   ],
 };
 
+const PINNED_APP_ITEM_KEYS = [
+  'home-workspace',
+  'home-agent',
+  'create-studio',
+  'trends-discovery',
+] as const;
+
 function withPreservedSearch(path: string, preservedSearch?: string): string {
   if (!preservedSearch) {
     return path;
@@ -395,6 +404,89 @@ function getActiveItemKey({
   return apps.find((app) => isActiveApp(app, currentApp))?.itemKey;
 }
 
+function getPinnedApps(
+  apps: LifecycleAppSwitcherItemConfig[],
+): LifecycleAppSwitcherItemConfig[] {
+  return PINNED_APP_ITEM_KEYS.map((itemKey) =>
+    apps.find((app) => app.itemKey === itemKey),
+  ).filter((app): app is LifecycleAppSwitcherItemConfig => Boolean(app));
+}
+
+function getFilteredSections(
+  sections: AppSwitcherSectionConfig[],
+  searchQuery: string,
+): AppSwitcherSectionConfig[] {
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+
+  if (!normalizedSearch) {
+    return sections;
+  }
+
+  return sections
+    .map((section) => ({
+      ...section,
+      apps: section.apps.filter((app) => {
+        const searchableText = [
+          section.label,
+          app.label,
+          app.description,
+          app.id,
+        ]
+          .join(' ')
+          .toLowerCase();
+
+        return searchableText.includes(normalizedSearch);
+      }),
+    }))
+    .filter((section) => section.apps.length > 0);
+}
+
+function AppSwitcherPinnedItem({
+  app,
+  isActive,
+  href,
+  onNavigateStart,
+}: {
+  app: LifecycleAppSwitcherItemConfig;
+  isActive: boolean;
+  href: string;
+  onNavigateStart: () => void;
+}) {
+  const Icon = app.icon;
+
+  return (
+    <DropdownMenuItem asChild>
+      <Link
+        href={href}
+        aria-current={isActive ? 'page' : undefined}
+        aria-label={`Open ${app.label}`}
+        onClick={onNavigateStart}
+        title={app.label}
+        className={cn(
+          'group flex h-[58px] min-w-0 flex-col items-center justify-center gap-1 rounded-md px-1.5 text-center outline-none transition-colors',
+          'text-foreground/60 hover:bg-foreground/[0.06] hover:text-foreground focus:bg-foreground/[0.06] focus:text-foreground',
+          isActive && 'bg-foreground/[0.06] text-foreground',
+        )}
+      >
+        <span
+          className={cn(
+            'flex size-7 shrink-0 items-center justify-center rounded-[6px] transition-colors',
+            isActive
+              ? 'bg-foreground/[0.08] text-foreground'
+              : 'text-foreground/50 group-hover:text-foreground/78',
+          )}
+          aria-hidden="true"
+        >
+          <Icon className="size-4" />
+        </span>
+        <span className="block max-w-full truncate text-[11px] font-medium leading-4">
+          {app.label}
+        </span>
+      </Link>
+    </DropdownMenuItem>
+  );
+}
+
 function AppSwitcherMenuItem({
   app,
   isActive,
@@ -415,36 +507,24 @@ function AppSwitcherMenuItem({
         aria-current={isActive ? 'page' : undefined}
         onClick={onNavigateStart}
         className={cn(
-          'group flex min-h-10 min-w-0 items-start gap-2.5 rounded-md px-2.5 py-2 text-left text-[13px] outline-none transition-colors',
-          'hover:bg-foreground/[0.06] focus:bg-foreground/[0.06]',
-          isActive && 'bg-foreground/[0.08] shadow-border-strong',
+          'group flex min-h-[64px] min-w-0 flex-col items-center justify-center gap-1 rounded-md px-1.5 py-2 text-center outline-none transition-colors',
+          'text-foreground/68 hover:bg-foreground/[0.06] hover:text-foreground focus:bg-foreground/[0.06] focus:text-foreground',
+          isActive && 'bg-foreground/[0.06] text-foreground',
         )}
       >
-        <Icon
+        <span
           className={cn(
-            'mt-0.5 size-4 shrink-0 transition-colors',
+            'flex size-6 shrink-0 items-center justify-center rounded-[6px] transition-colors',
             isActive
-              ? 'text-foreground'
+              ? 'bg-foreground/[0.08] text-foreground'
               : 'text-foreground/50 group-hover:text-foreground/78',
           )}
-        />
-        <span className="min-w-0 flex-1">
-          <span
-            className={cn(
-              'block truncate leading-5',
-              isActive
-                ? 'font-medium text-foreground'
-                : 'font-medium text-foreground/85',
-            )}
-          >
-            {app.label}
-          </span>
-          <span
-            aria-hidden="true"
-            className="mt-0.5 block truncate text-[12px] leading-4 text-foreground/52"
-          >
-            {app.description}
-          </span>
+          aria-hidden="true"
+        >
+          <Icon className="size-4" />
+        </span>
+        <span className="block max-w-full truncate text-[12px] font-medium leading-4">
+          {app.label}
         </span>
       </Link>
     </DropdownMenuItem>
@@ -470,11 +550,11 @@ function AppSwitcherMenuSection({
     >
       <DropdownMenuLabel
         id={`app-switcher-${section.id}`}
-        className="px-2 pb-1.5 pt-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground/42"
+        className="px-2 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground/42"
       >
         {section.label}
       </DropdownMenuLabel>
-      <div className="space-y-0.5">
+      <div className="grid grid-cols-3 gap-1">
         {section.apps.map((app) => (
           <AppSwitcherMenuItem
             key={app.itemKey}
@@ -499,6 +579,7 @@ export function AppSwitcher({
   variant = 'icon',
 }: AppSwitcherProps) {
   const preventTriggerAutoFocusRef = useRef(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   function getAppHref(app: AppSwitcherItemConfig) {
     return withPreservedSearch(app.route(orgSlug, brandSlug), preservedSearch);
@@ -506,12 +587,26 @@ export function AppSwitcher({
 
   const handleNavigateStart = () => {
     preventTriggerAutoFocusRef.current = true;
+    setSearchQuery('');
   };
 
-  const sections = showAdmin
-    ? [...APP_SWITCHER_SECTIONS, ADMIN_APP_SWITCHER_SECTION]
-    : APP_SWITCHER_SECTIONS;
-  const apps = sections.flatMap((section) => section.apps);
+  const sections = useMemo(
+    () =>
+      showAdmin
+        ? [...APP_SWITCHER_SECTIONS, ADMIN_APP_SWITCHER_SECTION]
+        : APP_SWITCHER_SECTIONS,
+    [showAdmin],
+  );
+  const filteredSections = useMemo(
+    () => getFilteredSections(sections, searchQuery),
+    [sections, searchQuery],
+  );
+  const apps = useMemo(
+    () => sections.flatMap((section) => section.apps),
+    [sections],
+  );
+  const pinnedApps = useMemo(() => getPinnedApps(apps), [apps]);
+  const hasSearchQuery = searchQuery.trim().length > 0;
   const activeItemKey = getActiveItemKey({
     apps,
     brandSlug,
@@ -526,7 +621,14 @@ export function AppSwitcher({
   const activeLabel = activeApp?.label ?? 'Apps';
 
   return (
-    <DropdownMenu modal={false}>
+    <DropdownMenu
+      modal={false}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) {
+          setSearchQuery('');
+        }
+      }}
+    >
       <DropdownMenuTrigger asChild>
         {variant === 'labeled' ? (
           <Button
@@ -556,7 +658,7 @@ export function AppSwitcher({
       <DropdownMenuContent
         align="end"
         sideOffset={8}
-        className="max-h-[80vh] w-[calc(100vw-2rem)] overflow-y-auto p-2 sm:w-[22rem]"
+        className="max-h-[80vh] w-[calc(100vw-2rem)] overflow-y-auto p-0 sm:w-[22rem]"
         onCloseAutoFocus={(event) => {
           if (!preventTriggerAutoFocusRef.current) {
             return;
@@ -566,25 +668,71 @@ export function AppSwitcher({
           preventTriggerAutoFocusRef.current = false;
         }}
       >
-        <div className="border-b border-border px-2 pb-2 pt-1">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground/42">
-            Switch app
-          </div>
-          <div className="mt-1 flex items-center gap-2 text-sm font-medium text-foreground">
-            <ActiveIcon className="size-4 shrink-0 text-foreground/70" />
-            <span className="truncate">{activeLabel}</span>
+        <div className="border-b border-border px-3 py-2">
+          <div className="flex min-w-0 items-center justify-between gap-3">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground/42">
+              Apps
+            </div>
+            <div className="flex min-w-0 items-center gap-2 text-[13px] font-medium text-foreground/72">
+              <ActiveIcon className="size-4 shrink-0 text-foreground/55" />
+              <span className="truncate">{activeLabel}</span>
+            </div>
           </div>
         </div>
 
-        {sections.map((section) => (
-          <AppSwitcherMenuSection
-            key={section.id}
-            section={section}
-            activeItemKey={activeItemKey}
-            getAppHref={getAppHref}
-            onNavigateStart={handleNavigateStart}
-          />
-        ))}
+        <div className="border-b border-border px-2 py-2">
+          <div className="relative">
+            <HiOutlineMagnifyingGlass
+              aria-hidden="true"
+              className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-foreground/42"
+            />
+            <Input
+              aria-label="Search apps"
+              className="h-8 rounded-md border-border bg-background px-2 pl-8 text-[13px]"
+              onChange={(event) => setSearchQuery(event.target.value)}
+              onKeyDown={(event) => event.stopPropagation()}
+              placeholder="Find app..."
+              value={searchQuery}
+            />
+          </div>
+        </div>
+
+        {!hasSearchQuery && pinnedApps.length > 0 && (
+          <div className="border-b border-border px-2 py-2">
+            <div className="px-1 pb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground/42">
+              Pinned
+            </div>
+            <div className="grid grid-cols-4 gap-1">
+              {pinnedApps.map((app) => (
+                <AppSwitcherPinnedItem
+                  key={app.itemKey}
+                  app={app}
+                  isActive={app.itemKey === activeItemKey}
+                  href={getAppHref(app)}
+                  onNavigateStart={handleNavigateStart}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="px-1 pb-1">
+          {filteredSections.length > 0 ? (
+            filteredSections.map((section) => (
+              <AppSwitcherMenuSection
+                key={section.id}
+                section={section}
+                activeItemKey={activeItemKey}
+                getAppHref={getAppHref}
+                onNavigateStart={handleNavigateStart}
+              />
+            ))
+          ) : (
+            <div className="px-3 py-6 text-center text-[13px] text-foreground/52">
+              No apps found.
+            </div>
+          )}
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );

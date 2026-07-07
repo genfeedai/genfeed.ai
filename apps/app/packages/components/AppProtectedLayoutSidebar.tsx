@@ -45,6 +45,8 @@ type Props = {
   isSettingsRoute: boolean;
   isStudioRoute: boolean;
   isWorkflowsRoute: boolean;
+  isCollapsed?: MenuSharedProps['isCollapsed'];
+  onToggleCollapse?: MenuSharedProps['onToggleCollapse'];
   adminMenuItems: MenuItemConfig[];
   analyticsMenuItems: MenuItemConfig[];
   composeMenuItems: MenuItemConfig[];
@@ -77,6 +79,8 @@ export default function AppProtectedLayoutSidebar({
   isSettingsRoute,
   isStudioRoute,
   isWorkflowsRoute,
+  isCollapsed,
+  onToggleCollapse,
   adminMenuItems,
   analyticsMenuItems,
   composeMenuItems,
@@ -94,6 +98,7 @@ export default function AppProtectedLayoutSidebar({
 }: Props) {
   const { href: buildHref, orgHref } = useOrgUrl();
   const orgSwitcherSlot = <OrganizationSwitcher />;
+  const collapseProps = { isCollapsed, onToggleCollapse };
 
   if (isFocusedOnboardingRoute) {
     return null;
@@ -111,6 +116,7 @@ export default function AppProtectedLayoutSidebar({
         sectionLabel="Library"
         shellChromeVariant={shellChromeVariant}
         orgSwitcherSlot={orgSwitcherSlot}
+        {...collapseProps}
       />
     );
   }
@@ -127,6 +133,7 @@ export default function AppProtectedLayoutSidebar({
         sectionLabel="Studio"
         shellChromeVariant={shellChromeVariant}
         orgSwitcherSlot={orgSwitcherSlot}
+        {...collapseProps}
       />
     );
   }
@@ -136,6 +143,7 @@ export default function AppProtectedLayoutSidebar({
       <AdminSidebar
         items={adminMenuItems}
         logoHref={withTaskContextHref(ADMIN_LOGO_HREF, taskContextSearchParams)}
+        {...collapseProps}
       />
     );
   }
@@ -152,6 +160,7 @@ export default function AppProtectedLayoutSidebar({
         sectionLabel="Compose"
         shellChromeVariant={shellChromeVariant}
         orgSwitcherSlot={orgSwitcherSlot}
+        {...collapseProps}
       />
     );
   }
@@ -168,6 +177,7 @@ export default function AppProtectedLayoutSidebar({
         sectionLabel="Workflows"
         shellChromeVariant={shellChromeVariant}
         orgSwitcherSlot={orgSwitcherSlot}
+        {...collapseProps}
       />
     );
   }
@@ -184,6 +194,7 @@ export default function AppProtectedLayoutSidebar({
         sectionLabel="Editor"
         shellChromeVariant={shellChromeVariant}
         orgSwitcherSlot={orgSwitcherSlot}
+        {...collapseProps}
       />
     );
   }
@@ -200,6 +211,7 @@ export default function AppProtectedLayoutSidebar({
         sectionLabel="Analytics"
         shellChromeVariant={shellChromeVariant}
         orgSwitcherSlot={orgSwitcherSlot}
+        {...collapseProps}
       />
     );
   }
@@ -216,6 +228,7 @@ export default function AppProtectedLayoutSidebar({
         sectionLabel="Research"
         shellChromeVariant={shellChromeVariant}
         orgSwitcherSlot={orgSwitcherSlot}
+        {...collapseProps}
       />
     );
   }
@@ -232,6 +245,7 @@ export default function AppProtectedLayoutSidebar({
         sectionLabel="Organization"
         shellChromeVariant={shellChromeVariant}
         orgSwitcherSlot={orgSwitcherSlot}
+        {...collapseProps}
       />
     );
   }
@@ -248,6 +262,7 @@ export default function AppProtectedLayoutSidebar({
         sectionLabel="Settings"
         shellChromeVariant={shellChromeVariant}
         orgSwitcherSlot={orgSwitcherSlot}
+        {...collapseProps}
       />
     );
   }
@@ -295,6 +310,7 @@ export default function AppProtectedLayoutSidebar({
       showPrimaryItems={!isConversationRoute}
       sidebarWidth={isConversationRoute ? undefined : 304}
       shellChromeVariant={shellChromeVariant}
+      {...collapseProps}
     />
   );
 }

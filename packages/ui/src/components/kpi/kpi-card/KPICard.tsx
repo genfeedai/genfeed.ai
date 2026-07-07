@@ -43,6 +43,7 @@ export default function KPICard({
   value,
   icon: Icon,
   iconClassName,
+  description,
   valueClassName,
   trend,
   trendLabel,
@@ -68,48 +69,59 @@ export default function KPICard({
   return (
     <Card
       variant={variant}
-      bodyClassName="p-6 flex flex-col justify-between h-full min-h-card"
+      bodyClassName="h-full min-h-card justify-between gap-0"
       className={cn(className)}
     >
-      {/* Top row: Icon (left) + Trend badge (right) */}
-      <div className="flex items-start justify-between">
-        {Icon && (
+      <div className="flex items-start justify-between gap-3">
+        {isLoading ? (
+          <div className="h-8 w-16 animate-pulse bg-white/10" />
+        ) : (
           <div
             className={cn(
-              'size-10 rounded-lg bg-white/5 text-foreground/60 flex items-center justify-center',
-              iconClassName,
+              'text-2xl font-semibold tracking-[-0.02em] text-foreground',
+              valueClassName,
             )}
           >
-            <Icon className="size-5" />
+            {valueContent}
           </div>
         )}
 
-        {hasTrend && !isLoading && (
-          <span
-            className={cn(
-              'inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium',
-              isPositiveTrend
-                ? 'bg-success/20 text-success'
-                : 'bg-destructive/20 text-destructive',
-            )}
-          >
-            <TrendIcon className="size-3" />
-            {Math.abs(trend)}%
-            {trendLabel && <span className="ml-0.5">{trendLabel}</span>}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {Icon && (
+            <div
+              className={cn(
+                'flex size-8 items-center justify-center rounded-md bg-white/5 text-foreground/55',
+                iconClassName,
+              )}
+            >
+              <Icon className="size-4" />
+            </div>
+          )}
+
+          {hasTrend && !isLoading && (
+            <span
+              className={cn(
+                'inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium',
+                isPositiveTrend
+                  ? 'bg-success/20 text-success'
+                  : 'bg-destructive/20 text-destructive',
+              )}
+            >
+              <TrendIcon className="size-3" />
+              {Math.abs(trend)}%
+              {trendLabel && <span className="ml-0.5">{trendLabel}</span>}
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Bottom: Label + Value */}
-      <div className="mt-auto">
-        <div className="text-[10px] text-foreground/40 uppercase tracking-widest font-bold mb-1">
+      <div className="mt-4">
+        <div className="text-[10px] font-medium uppercase tracking-[0.14em] text-foreground/55">
           {label}
         </div>
-        <div
-          className={cn('text-5xl font-serif text-foreground', valueClassName)}
-        >
-          {valueContent}
-        </div>
+        {description ? (
+          <p className="mt-1.5 text-[11px] text-foreground/45">{description}</p>
+        ) : null}
       </div>
     </Card>
   );

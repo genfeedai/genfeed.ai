@@ -2,7 +2,7 @@
 name: Production AWS Runtime
 description: Live AWS source of truth for genfeed.ai production runtime
 type: reference
-last_verified: 2026-06-18
+last_verified: 2026-07-06
 ---
 
 # Production AWS Runtime - genfeed.ai
@@ -11,7 +11,15 @@ Live AWS wins over older AL2023 EC2 migration notes.
 
 ## Current Runtime Posture
 
-- **Region**: `us-west-1`.
+- **Region**: `us-west-1`. ⚠️ **Local AWS CLI default is `us-east-1`** — every
+  prod SSM/infra command MUST pass `--region us-west-1` explicitly. Observed
+  2026-07-06: webhook secrets written to us-east-1 via CLI default were
+  invisible to production (silent — `put-parameter` succeeds either way).
+- **SSM → containers**: TF `aws_ssm_parameters_by_path` on
+  `/genfeed/production/` (`infra/terraform/genfeed-prod/data.tf:21`) injects
+  every param under the path as container secrets on the next deploy's tofu
+  render — new params need **no** task-def/TF enumeration, just the right
+  region + a deploy.
 - **ECS cluster**: `genfeed-production`, Fargate-only. Task definition
   revisions change on every deploy; verify live ECS state rather than relying
   on old EC2-era notes.

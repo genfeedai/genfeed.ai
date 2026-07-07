@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Effect } from 'effect';
 import type { ReactNode } from 'react';
+import { io } from 'socket.io-client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockPush = vi.fn();
@@ -312,6 +313,26 @@ describe('AgentPanel', () => {
       });
       expect(apiService.getToken).toHaveBeenCalledWith({ forceRefresh: true });
     });
+  });
+
+  it('connects the terminal socket with cookie auth when no explicit JWT is available', async () => {
+    resolveAuthTokenMock.mockResolvedValue(null);
+
+    render(<AgentPanel apiService={createCreditsInfoApiService() as never} />);
+
+    await waitFor(() => {
+      expect(io).toHaveBeenCalledWith(
+        expect.stringContaining('/terminal'),
+        expect.objectContaining({
+          auth: {},
+          withCredentials: true,
+        }),
+      );
+    });
+
+    expect(xtermMocks.writeln).toHaveBeenCalledWith(
+      'Using browser session cookie for terminal auth...',
+    );
   });
 
   it('opens the Claude CLI from the terminal session menu', async () => {

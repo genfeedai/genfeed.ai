@@ -23,6 +23,11 @@ describe('auth callback URL helpers', () => {
     expect(toAbsoluteAuthCallbackURL('https://app.genfeed.ai/')).toBe(
       'https://app.genfeed.ai/',
     );
+    expect(
+      toAbsoluteAuthCallbackURL(
+        'http://local.genfeed.ai:3000/default/default/workspace/overview',
+      ),
+    ).toBe('http://local.genfeed.ai:3000/default/default/workspace/overview');
     expect(toAbsoluteAuthCallbackURL('genfeedai-desktop://auth')).toBe(
       'genfeedai-desktop://auth',
     );

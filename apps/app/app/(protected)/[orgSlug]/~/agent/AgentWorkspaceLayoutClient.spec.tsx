@@ -7,6 +7,10 @@ const routerReplace = vi.fn();
 const sendMessage = vi.fn();
 const patchMe = vi.fn();
 const touchSession = vi.fn();
+const { agentApiServiceConfigSpy, resolveAuthTokenSpy } = vi.hoisted(() => ({
+  agentApiServiceConfigSpy: vi.fn(),
+  resolveAuthTokenSpy: vi.fn(),
+}));
 
 const navigationState = {
   params: {
@@ -42,7 +46,11 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('@genfeedai/agent', () => ({
-  AgentApiService: class AgentApiService {},
+  AgentApiService: class AgentApiService {
+    constructor(config: unknown) {
+      agentApiServiceConfigSpy(config);
+    }
+  },
   AgentFullPage: ({
     children,
     threadId,
@@ -56,6 +64,11 @@ vi.mock('@genfeedai/agent', () => ({
   useAgentChatStream: () => ({
     sendMessage,
   }),
+}));
+
+vi.mock('@helpers/auth/auth.helper', () => ({
+  getPlaywrightAuthState: () => null,
+  resolveAuthToken: resolveAuthTokenSpy,
 }));
 
 vi.mock('@services/core/environment.service', () => ({
@@ -106,6 +119,9 @@ describe('AgentWorkspaceLayoutClient', () => {
     patchMe.mockReset();
     patchMe.mockResolvedValue(undefined);
     touchSession.mockReset();
+    agentApiServiceConfigSpy.mockReset();
+    resolveAuthTokenSpy.mockReset();
+    resolveAuthTokenSpy.mockResolvedValue('api-token');
   });
 
   it('does not immediately redirect /agent/new back to the previously active thread', async () => {
@@ -164,6 +180,26 @@ describe('AgentWorkspaceLayoutClient', () => {
         signal: expect.any(AbortSignal),
         source: 'agent',
       });
+    });
+  });
+
+  it('forwards forced token refresh options to the focused agent api service', async () => {
+    render(
+      <AgentWorkspaceLayoutClient>
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+
+    const apiConfig = agentApiServiceConfigSpy.mock.calls.at(-1)?.[0] as {
+      getToken: (options?: {
+        forceRefresh?: boolean;
+      }) => Promise<string | null>;
+    };
+
+    await apiConfig.getToken({ forceRefresh: true });
+
+    expect(resolveAuthTokenSpy).toHaveBeenCalledWith(expect.any(Function), {
+      forceRefresh: true,
     });
   });
 

@@ -1,5 +1,6 @@
-import { render, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import ButtonCredits from '@ui/buttons/credits/ButtonCredits';
+import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 const findOneMock = vi.fn().mockResolvedValue({ balance: 1000 });
@@ -34,6 +35,27 @@ vi.mock('@genfeedai/hooks/utils/use-socket-manager/use-socket-manager', () => ({
   }),
 }));
 
+vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    orgHref: (href: string) => `/acme/~${href}`,
+  }),
+}));
+
+vi.mock('next/link', () => ({
+  default: ({
+    children,
+    href,
+    ...props
+  }: {
+    children: ReactNode;
+    href: string;
+  }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
+}));
+
 describe('ButtonCredits', () => {
   it('should render without crashing', async () => {
     const { container } = render(<ButtonCredits />);
@@ -52,5 +74,18 @@ describe('ButtonCredits', () => {
     await waitFor(() => expect(findOneMock).toHaveBeenCalled());
     const rootElement = container.firstChild as HTMLElement;
     expect(rootElement).toBeInTheDocument();
+  });
+
+  it('routes top up to organization billing settings', async () => {
+    const { container } = render(<ButtonCredits />);
+    await waitFor(() => expect(findOneMock).toHaveBeenCalled());
+
+    const trigger = container.querySelector('button');
+    expect(trigger).toBeInTheDocument();
+    fireEvent.click(trigger as HTMLButtonElement);
+
+    expect(
+      await screen.findByRole('link', { name: /Top Up/i }),
+    ).toHaveAttribute('href', '/acme/~/settings/billing');
   });
 });

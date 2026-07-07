@@ -322,6 +322,18 @@ export function useAgentCliTerminal(
     cwdRef.current = value;
   }, []);
 
+  const syncResolvedSession = useCallback((session: TerminalSessionDto) => {
+    setActiveKind(session.kind);
+
+    if (!session.cwd) {
+      return;
+    }
+
+    cwdRef.current = session.cwd;
+    setCwdInputState(session.cwd);
+    persistTerminalCwd(session.cwd);
+  }, []);
+
   const fitAndSyncSize = useCallback(() => {
     const terminal = terminalRef.current;
     const fitAddon = fitAddonRef.current;
@@ -574,14 +586,17 @@ export function useAgentCliTerminal(
         { forceRefresh: true },
       );
       if (!token) {
-        terminal.writeln('Authenticated session required.');
-        setStatus('authenticated session required');
-        return;
+        terminal.writeln('Using browser session cookie for terminal auth...');
+        setStatus('authenticating with session cookie...');
       }
 
       const socket = io(`${resolveTerminalEndpoint()}/terminal`, {
-        auth: { token },
-        extraHeaders: { Authorization: `Bearer ${token}` },
+        ...(token
+          ? {
+              auth: { token },
+              extraHeaders: { Authorization: `Bearer ${token}` },
+            }
+          : { auth: {} }),
         reconnectionAttempts: 3,
         timeout: 8_000,
         transports: ['websocket', 'polling'],
@@ -603,6 +618,7 @@ export function useAgentCliTerminal(
         sessionIdRef,
         onSessionCreated: (session) => {
           const key = resolveThreadKey(activeThreadIdRef.current);
+          syncResolvedSession(session);
           addTerminalSession(key, session);
           sessionIdRef.current = session.id;
           setActiveTerminalSession(key, session.id);
@@ -636,6 +652,7 @@ export function useAgentCliTerminal(
         },
         onSessionAttached: (session) => {
           const key = resolveThreadKey(activeThreadIdRef.current);
+          syncResolvedSession(session);
           // Ensure it's tracked in the map even if we rehydrated from a fresh list
           addTerminalSession(key, session);
           setActiveTerminalSession(key, session.id);
@@ -655,10 +672,6 @@ export function useAgentCliTerminal(
     return () => {
       disposed = true;
       const socket = socketRef.current;
-
-      if (sessionIdRef.current) {
-        socket?.emit('terminal:kill', { sessionId: sessionIdRef.current });
-      }
 
       resizeObserverRef.current?.disconnect();
       detachConnectHandler?.();
