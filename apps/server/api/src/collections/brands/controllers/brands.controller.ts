@@ -33,7 +33,6 @@ import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
-import { BrandCreditsGuard } from '@api/helpers/guards/brand-credits/brand-credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   getIsSuperAdmin,
@@ -326,7 +325,6 @@ export class BrandsController extends BaseCRUDController<
   }
 
   @Post()
-  @UseGuards(BrandCreditsGuard)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async create(
     @Req() request: Request,

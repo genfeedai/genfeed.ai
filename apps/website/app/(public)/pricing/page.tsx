@@ -4,7 +4,7 @@ import PricingContent from '@public/pricing/pricing-content';
 
 export const generateMetadata = createPageMetadataWithCanonical(
   'Pricing',
-  'Free to sign up — credits buy the output you generate. Subscriptions from $49/mo include monthly credits at a better rate, plus unlimited brands, more channels, and unlimited team seats.',
+  'Free to sign up — credits buy the output you generate. Subscriptions from $49/mo include monthly credits at a better rate, paid API access, and unlimited team seats.',
   '/pricing',
 );
 
@@ -32,7 +32,7 @@ const saasJsonLd = {
       {
         '@type': 'Offer',
         description:
-          'Monthly subscription with 8,000 included credits at a better rate, unlimited brand kits, and 15 connected channels.',
+          'Monthly subscription with 8,000 included credits at a better rate, unlimited brand kits, unlimited connected channels, and API access.',
         name: 'Pro',
         price: '49',
         priceCurrency: 'USD',

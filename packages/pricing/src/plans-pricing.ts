@@ -11,11 +11,10 @@
  * - Subscriptions sell a better credit rate, not access: included monthly
  *   credits are priced at ~50% margin (Pro $49 → 8,000 credits ≈ $80 of
  *   PAYG output; Scale $499 → 80,000 credits ≈ $800 of PAYG output)
- * - Seats are never a meter: FREE/BYOK is solo (1 seat); every paid tier
- *   (Pro, Scale, Enterprise) has unlimited seats. Connected channels are
- *   gated by tier; brands are unlimited on all paid plans — credits are
- *   the only meter, not seats or brand count (account-sharing can't dodge
- *   a usage meter)
+ * - Seats are never a usage meter: FREE/BYOK is solo (1 seat); every paid tier
+ *   (Pro, Scale, Enterprise) has unlimited seats. Brands and connected channels
+ *   are unlimited so credits stay the only output meter (account-sharing can't
+ *   dodge a usage meter).
  * - Models are never user-selected: the Genfeed router picks the best model
  *   for each format, brief, and budget
  *
@@ -230,8 +229,8 @@ export const websitePlans: PricingPlanProps[] = [
       'No monthly fee, buy credits and spend on any format',
       'Credits at the standard rate (1 credit = $0.01)',
       'Best model auto-routed for every job',
-      '1 brand kit',
-      '3 connected channels',
+      'Unlimited brand kits',
+      'Unlimited connected channels',
       'Multi-platform publishing',
       'Email support',
     ],
@@ -255,7 +254,7 @@ export const websitePlans: PricingPlanProps[] = [
       'Included credits ~40% cheaper than the standard rate',
       'Best model auto-routed for every job',
       'Unlimited brands',
-      '15 connected channels',
+      'Unlimited connected channels',
       'API access (standard rate limits)',
       'Top up with credit packs anytime',
       'Email support',
@@ -272,7 +271,7 @@ export const websitePlans: PricingPlanProps[] = [
     target: 'Creators and founders publishing every week',
     type: 'subscription',
     valueProposition:
-      'For steady publishing: a monthly fee that buys more output per dollar, plus more brands and channels.',
+      'For steady publishing: a monthly fee that buys more output per dollar while credits stay the output meter.',
   },
 
   // Scale Tier - higher-entry team studio

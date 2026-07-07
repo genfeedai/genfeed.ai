@@ -4,15 +4,13 @@
  *
  *   Marketing plan (plans-pricing.ts)      → SubscriptionTier   → finite gates
  *   ─────────────────────────────────────────────────────────────────────────
- *   Pay As You Go (free)                   → FREE               → 1 brand, 3 channels, no API, solo
- *   BYOK (free, bring-your-own-key)        → BYOK               → 1 brand, 3 channels, no API, solo
- *   Pro                                    → PRO                → 15 channels, API, unlimited seats/brands
- *   Scale                                  → SCALE              → API, unlimited seats/brands/channels
- *   Enterprise                             → ENTERPRISE         → custom API, unlimited seats/brands/channels
+ *   Pay As You Go (free)                   → FREE               → no API, solo
+ *   BYOK (free, bring-your-own-key)        → BYOK               → no API, solo
+ *   Pro                                    → PRO                → API, unlimited seats
+ *   Scale                                  → SCALE              → API, unlimited seats
+ *   Enterprise                             → ENTERPRISE         → custom API, unlimited seats
  *
  * Enforcement lives in the API:
- *   - brand gate:   apps/server/api/src/helpers/guards/brand-credits/brand-credits.guard.ts
- *   - channel gate: apps/server/api/src/collections/credentials/services/credentials.service.ts
  *   - seat gate:    apps/server/api/src/helpers/guards/member-credits/member-credits.guard.ts
  *   - issuance gate:  apps/server/api/src/helpers/guards/api-access/api-access.guard.ts
  *   - rate limiting:  apps/server/api/src/collections/api-keys/services/api-keys.service.ts
@@ -52,14 +50,8 @@ export type LimitedPlanResource = 'brands' | 'channels' | 'seats';
 /** Sentinel for product limits that are unlimited for a tier. */
 export const PLAN_LIMIT_UNLIMITED = null;
 
-/** PAYG/BYOK brand-kit cap from plans-pricing.ts. */
-export const FREE_BRAND_LIMIT = 1;
-/** PAYG/BYOK connected-channel cap from plans-pricing.ts. */
-export const FREE_CHANNEL_LIMIT = 3;
 /** PAYG/BYOK solo workspace seat cap. */
 export const FREE_SEAT_LIMIT = 1;
-/** Pro connected-channel cap from plans-pricing.ts. */
-export const PRO_CHANNEL_LIMIT = 15;
 
 /** Higher ceiling for the Pro tier. */
 export const HIGHER_API_RATE_LIMIT = 300;
@@ -68,8 +60,8 @@ export const SCALE_API_RATE_LIMIT = 600;
 
 /**
  * Exhaustive tier → cloud entitlement map. Free tiers (FREE, BYOK) are solo
- * workspaces with limited brands/channels and no managed API access; every paid
- * tier has unlimited seats and brands; Scale+ removes the connected-channel cap.
+ * workspaces with no managed API access; every tier has unlimited brands and
+ * channels so credits remain the output meter instead of account topology.
  */
 export const TIER_PLAN_ENTITLEMENTS: Record<
   SubscriptionTier,
@@ -78,22 +70,22 @@ export const TIER_PLAN_ENTITLEMENTS: Record<
   [SubscriptionTier.FREE]: {
     apiAccess: false,
     apiRateLimit: 0,
-    brandLimit: FREE_BRAND_LIMIT,
-    channelLimit: FREE_CHANNEL_LIMIT,
+    brandLimit: PLAN_LIMIT_UNLIMITED,
+    channelLimit: PLAN_LIMIT_UNLIMITED,
     seatLimit: FREE_SEAT_LIMIT,
   },
   [SubscriptionTier.BYOK]: {
     apiAccess: false,
     apiRateLimit: 0,
-    brandLimit: FREE_BRAND_LIMIT,
-    channelLimit: FREE_CHANNEL_LIMIT,
+    brandLimit: PLAN_LIMIT_UNLIMITED,
+    channelLimit: PLAN_LIMIT_UNLIMITED,
     seatLimit: FREE_SEAT_LIMIT,
   },
   [SubscriptionTier.PRO]: {
     apiAccess: true,
     apiRateLimit: HIGHER_API_RATE_LIMIT,
     brandLimit: PLAN_LIMIT_UNLIMITED,
-    channelLimit: PRO_CHANNEL_LIMIT,
+    channelLimit: PLAN_LIMIT_UNLIMITED,
     seatLimit: PLAN_LIMIT_UNLIMITED,
   },
   [SubscriptionTier.SCALE]: {
@@ -213,7 +205,7 @@ export function getUpgradeTierForLimit(
       : SubscriptionTier.FREE;
 
   if (
-    (resource === 'brands' || resource === 'seats') &&
+    resource === 'seats' &&
     ![
       SubscriptionTier.PRO,
       SubscriptionTier.SCALE,
@@ -221,16 +213,6 @@ export function getUpgradeTierForLimit(
     ].includes(currentTier as SubscriptionTier)
   ) {
     return SubscriptionTier.PRO;
-  }
-
-  if (
-    resource === 'channels' &&
-    ![SubscriptionTier.SCALE, SubscriptionTier.ENTERPRISE].includes(currentTier)
-  ) {
-    return currentTier === SubscriptionTier.FREE ||
-      currentTier === SubscriptionTier.BYOK
-      ? SubscriptionTier.PRO
-      : SubscriptionTier.SCALE;
   }
 
   return null;

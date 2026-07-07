@@ -1,5 +1,4 @@
 import type { BrandEntity } from '@api/collections/brands/entities/brand.entity';
-import { BrandCreditsGuard } from '@api/helpers/guards/brand-credits/brand-credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import 'reflect-metadata';
@@ -162,8 +161,6 @@ describe('BrandsController', () => {
       ],
     })
       .overrideGuard(RolesGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(BrandCreditsGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

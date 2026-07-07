@@ -1,7 +1,5 @@
 import { SubscriptionTier } from '@genfeedai/enums';
 import {
-  FREE_BRAND_LIMIT,
-  FREE_CHANNEL_LIMIT,
   FREE_SEAT_LIMIT,
   getApiEntitlementForTier,
   getApiRateLimitForTier,
@@ -13,7 +11,6 @@ import {
   HIGHER_API_RATE_LIMIT,
   hasApiAccess,
   PLAN_LIMIT_UNLIMITED,
-  PRO_CHANNEL_LIMIT,
   SCALE_API_RATE_LIMIT,
   TIER_API_ENTITLEMENTS,
   TIER_PLAN_ENTITLEMENTS,
@@ -83,18 +80,18 @@ describe('tier API entitlements', () => {
     }
   });
 
-  it('resolves PAYG/BYOK finite product limits from the pricing package', () => {
+  it('resolves PAYG/BYOK product limits from the pricing package', () => {
     for (const tier of [SubscriptionTier.FREE, SubscriptionTier.BYOK]) {
-      expect(getBrandLimitForTier(tier)).toBe(FREE_BRAND_LIMIT);
-      expect(getChannelLimitForTier(tier)).toBe(FREE_CHANNEL_LIMIT);
+      expect(getBrandLimitForTier(tier)).toBeNull();
+      expect(getChannelLimitForTier(tier)).toBeNull();
       expect(getSeatLimitForTier(tier)).toBe(FREE_SEAT_LIMIT);
     }
   });
 
-  it('resolves paid tier product limits: unlimited seats/brands, Pro channel cap, Scale+ unlimited channels', () => {
+  it('resolves paid tier product limits: unlimited seats, brands, and channels', () => {
     expect(getPlanEntitlementForTier(SubscriptionTier.PRO)).toMatchObject({
       brandLimit: PLAN_LIMIT_UNLIMITED,
-      channelLimit: PRO_CHANNEL_LIMIT,
+      channelLimit: PLAN_LIMIT_UNLIMITED,
       seatLimit: PLAN_LIMIT_UNLIMITED,
     });
 
@@ -107,25 +104,21 @@ describe('tier API entitlements', () => {
 
   it('uses PAYG/free limits for empty or unknown tiers', () => {
     for (const tier of ['', 'bogus', null, undefined]) {
-      expect(getBrandLimitForTier(tier)).toBe(FREE_BRAND_LIMIT);
-      expect(getChannelLimitForTier(tier)).toBe(FREE_CHANNEL_LIMIT);
+      expect(getBrandLimitForTier(tier)).toBeNull();
+      expect(getChannelLimitForTier(tier)).toBeNull();
       expect(getSeatLimitForTier(tier)).toBe(FREE_SEAT_LIMIT);
     }
   });
 
-  it('names the next tier that lifts each finite product limit', () => {
-    expect(getUpgradeTierForLimit('brands', SubscriptionTier.FREE)).toBe(
-      SubscriptionTier.PRO,
-    );
+  it('names the next tier only for finite product limits', () => {
+    expect(getUpgradeTierForLimit('brands', SubscriptionTier.FREE)).toBe(null);
     expect(getUpgradeTierForLimit('seats', SubscriptionTier.BYOK)).toBe(
       SubscriptionTier.PRO,
     );
     expect(getUpgradeTierForLimit('channels', SubscriptionTier.FREE)).toBe(
-      SubscriptionTier.PRO,
+      null,
     );
-    expect(getUpgradeTierForLimit('channels', SubscriptionTier.PRO)).toBe(
-      SubscriptionTier.SCALE,
-    );
+    expect(getUpgradeTierForLimit('channels', SubscriptionTier.PRO)).toBe(null);
     expect(getUpgradeTierForLimit('channels', SubscriptionTier.SCALE)).toBe(
       null,
     );

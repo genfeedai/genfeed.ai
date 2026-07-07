@@ -34,7 +34,7 @@ const FEATURED_TIER = 'Pro';
 const FAQ_ITEMS = [
   {
     answer:
-      'Signing up is free. Credits buy the output you generate: images, reels, ads, articles, avatar clips, and voice. Subscriptions exist to make credits cheaper and to unlock unlimited brands, more channels, and shared team seats.',
+      'Signing up is free. Credits buy the output you generate: images, reels, ads, articles, avatar clips, and voice. Subscriptions exist to make credits cheaper, unlock API access, and support shared team seats.',
     question: 'How does pricing work?',
   },
   {
@@ -49,12 +49,12 @@ const FAQ_ITEMS = [
   },
   {
     answer:
-      'Pro ($49/month) includes 8,000 credits (about $80 of pay-as-you-go output) plus unlimited brand kits and 15 connected channels. Scale ($499/month) includes unlimited seats, 80,000 credits in a shared pool, multi-organization control, and approvals.',
+      'Pro ($49/month) includes 8,000 credits (about $80 of pay-as-you-go output), unlimited brand kits, unlimited connected channels, and API access. Scale ($499/month) includes unlimited seats, 80,000 credits in a shared pool, multi-organization control, and approvals.',
     question: 'What do subscriptions add?',
   },
   {
     answer:
-      'Pay As You Go includes 1 brand kit and 3 connected channels. Pro raises that to unlimited brands and 15 channels. Scale and Enterprise remove the channel limits and add organizations and seats.',
+      'Brands and connected channels are unlimited. Credits meter generated output; paid plans add API access, included monthly credits, and team scale.',
     question: 'How many brands and channels can I connect?',
   },
   {
@@ -160,7 +160,7 @@ export default function PricingContent() {
     <div ref={containerRef}>
       <PageLayout
         title={<>Credits for output. Subscriptions for scale.</>}
-        description="Signing up is free. Credits buy the content you generate; a subscription makes those credits cheaper and unlocks unlimited brands, more channels, and shared team seats."
+        description="Signing up is free. Credits buy the content you generate; a subscription makes those credits cheaper and unlocks API access plus shared team seats."
       >
         <WebSection maxWidth="lg" py="md">
           <div className="grid gap-px overflow-hidden border border-edge/10 bg-edge/5 md:grid-cols-4">
@@ -178,7 +178,7 @@ export default function PricingContent() {
         <WebSection maxWidth="full" py="md">
           <SectionHeader
             title="Start free. Subscribe when volume makes it cheaper."
-            description="Pay As You Go covers bursty campaigns with zero commitment. Pro and Scale include monthly credits at a ~40% better rate, plus unlimited brands, more channels, and unlimited team seats."
+            description="Pay As You Go covers bursty campaigns with zero commitment. Pro and Scale include monthly credits at a ~40% better rate, plus API access and unlimited team seats."
             className="[&_h2]:text-5xl mb-4"
           />
 

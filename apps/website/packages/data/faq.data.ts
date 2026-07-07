@@ -71,7 +71,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
     questions: [
       {
         answer:
-          'Credits buy output: 1 credit is one cent at the pay-as-you-go rate. Signing up is free, so you only pay for what you generate. Subscriptions include monthly credits at a ~40% better rate and unlock unlimited brands, more channels, and shared team seats.',
+          'Credits buy output: 1 credit is one cent at the pay-as-you-go rate. Signing up is free, so you only pay for what you generate. Subscriptions include monthly credits at a ~40% better rate, paid API access, and shared team seats.',
         question: 'How does pricing work?',
       },
       {
@@ -96,7 +96,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
       },
       {
         answer:
-          'Pay As You Go includes 1 brand kit and 3 connected channels. Creator raises that to unlimited brands and 15 channels. Teams and Enterprise remove the channel limits and add organizations, seats, and shared approvals.',
+          'Brands and connected channels are unlimited. Credits are the meter for generated output; Teams and Enterprise add organizations, seats, shared approvals, and higher API limits.',
         question: 'How many brands and channels can I connect?',
       },
       {
@@ -136,7 +136,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
     questions: [
       {
         answer:
-          'Pay As You Go includes a personal workspace, 1 brand kit, 3 connected channels, auto-routed premium models, and multi-platform publishing, with no monthly fee. Creator adds 8,000 monthly credits at a better rate, unlimited brand kits, and 15 channels.',
+          'Pay As You Go includes a personal workspace, unlimited brand kits, unlimited connected channels, auto-routed premium models, and multi-platform publishing, with no monthly fee. Creator adds 8,000 monthly credits at a better rate and paid API access.',
         question: "What's included in the free and Creator plans?",
       },
       {

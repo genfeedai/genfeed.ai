@@ -3,10 +3,6 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant } from '@genfeedai/enums';
 import type { IQueryParams } from '@genfeedai/interfaces';
-import {
-  getBrandLimitForTier,
-  getUpgradeTierForLimit,
-} from '@genfeedai/pricing';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Brand } from '@models/organization/brand.model';
 import {
@@ -34,20 +30,8 @@ import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 
 const ITEMS_PER_PAGE = 20;
 
-function formatTierLabel(tier: string | null): string {
-  if (!tier) {
-    return 'a paid plan';
-  }
-
-  return tier.charAt(0).toUpperCase() + tier.slice(1);
-}
-
-function formatBrandLabel(limit: number): string {
-  return limit === 1 ? 'brand kit' : 'brand kits';
-}
-
 function BrandsListContent() {
-  const { organizationId, settings } = useBrand();
+  const { organizationId } = useBrand();
   const { openBrandOverlay } = useBrandOverlay();
   const { openConfirm } = useConfirmModal();
   const notificationsService = NotificationsService.getInstance();
@@ -100,15 +84,6 @@ function BrandsListContent() {
   const refresh = useCallback(async () => {
     await refetch();
   }, [refetch]);
-
-  const brandLimit = getBrandLimitForTier(settings?.subscriptionTier);
-  const isAtBrandLimit =
-    brandLimit !== null && !isLoading && (brands?.length ?? 0) >= brandLimit;
-  const brandLimitDescription = isAtBrandLimit
-    ? `Current plan includes ${brandLimit} ${formatBrandLabel(brandLimit)}. Upgrade to ${formatTierLabel(
-        getUpgradeTierForLimit('brands', settings?.subscriptionTier),
-      )} to add more.`
-    : 'Manage brands and settings.';
 
   const handleDelete = useCallback(
     async (brand: Brand) => {
@@ -215,14 +190,13 @@ function BrandsListContent() {
   return (
     <Container
       label="Brands"
-      description={brandLimitDescription}
+      description="Manage brands and settings."
       icon={HiOutlineBuildingOffice2}
       right={
         <Button
           variant={ButtonVariant.DEFAULT}
           icon={<HiPlus />}
           label="Add Brand"
-          isDisabled={isAtBrandLimit}
           onClick={() => openBrandOverlay(null, () => refresh())}
         />
       }
