@@ -20,6 +20,8 @@ export const organizationSettingsAttributes = createEntityAttributes([
   'isWebhookEnabled',
   'webhookEndpoint',
   'webhookSecret',
+  'webhookEventTypes',
+  'webhookDeliveryStatus',
   'seatsLimit',
   'brandsLimit',
   'timezone',

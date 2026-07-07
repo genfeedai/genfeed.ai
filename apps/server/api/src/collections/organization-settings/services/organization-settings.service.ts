@@ -6,16 +6,15 @@ import type { OrganizationSettingDocument } from '@api/collections/organization-
 import type { WorkflowTemplateSeederService } from '@api/collections/workflows/services/workflow-template-seeder.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import type { IWebhookDeliveryStatus } from '@genfeedai/interfaces';
 import {
   type IOnboardingJourneyMissionState,
   ONBOARDING_JOURNEY_MISSION_ORDER,
   ONBOARDING_JOURNEY_MISSIONS,
   type OnboardingJourneyMissionId,
 } from '@genfeedai/types';
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { ModuleRef } from '@nestjs/core';
 import * as Sentry from '@sentry/nestjs';
 
@@ -189,6 +188,25 @@ export class OrganizationSettingsService extends BaseService<
       data: { seatsLimit: newLimit },
       where: { id },
     })) as never;
+  }
+
+  async recordWebhookDeliveryStatus(
+    organizationId: string,
+    status: IWebhookDeliveryStatus,
+  ): Promise<void> {
+    const setting = await this.prisma.organizationSetting.findFirst({
+      select: { id: true },
+      where: { organizationId },
+    });
+
+    if (!setting) {
+      return;
+    }
+
+    await this.prisma.organizationSetting.update({
+      data: { webhookDeliveryStatus: status } as never,
+      where: { id: setting.id },
+    });
   }
 
   /**

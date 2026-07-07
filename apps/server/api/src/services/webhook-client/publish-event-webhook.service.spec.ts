@@ -18,7 +18,10 @@ describe('PublishEventWebhookService', () => {
   let queue: { add: ReturnType<typeof vi.fn> };
   let postsService: { findAll: ReturnType<typeof vi.fn> };
   let service: PublishEventWebhookService;
-  let settingsService: { findOne: ReturnType<typeof vi.fn> };
+  let settingsService: {
+    findOne: ReturnType<typeof vi.fn>;
+    recordWebhookDeliveryStatus: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
     queue = {
@@ -30,6 +33,7 @@ describe('PublishEventWebhookService', () => {
         webhookEndpoint: 'https://example.com/webhook',
         webhookSecret: 'secret',
       }),
+      recordWebhookDeliveryStatus: vi.fn().mockResolvedValue(undefined),
     };
     postsService = {
       findAll: vi.fn().mockResolvedValue({ docs: [] }),
@@ -91,6 +95,14 @@ describe('PublishEventWebhookService', () => {
     expect(queue.add.mock.calls[0][2]).toMatchObject({
       jobId: 'publish:target.published:post_123:post_123:published',
     });
+    expect(settingsService.recordWebhookDeliveryStatus).toHaveBeenCalledWith(
+      'org_123',
+      expect.objectContaining({
+        deliveryId: 'publish:target.published:post_123:post_123:published',
+        event: 'target.published',
+        status: 'queued',
+      }),
+    );
 
     const secondPayload = (queue.add.mock.calls[1][1] as WebhookJobData)
       .payload;
@@ -305,5 +317,69 @@ describe('PublishEventWebhookService', () => {
     });
 
     expect(queue.add).not.toHaveBeenCalled();
+  });
+
+  it('skips publish events excluded by the endpoint event filter', async () => {
+    settingsService.findOne.mockResolvedValue({
+      isWebhookEnabled: true,
+      webhookEndpoint: 'https://example.com/webhook',
+      webhookEventTypes: ['release.failed'],
+      webhookSecret: 'secret',
+    });
+
+    await service.emitLegacyPostPublished({
+      post: {
+        credential: 'cred_123',
+        id: 'post_123',
+        organization: 'org_123',
+        platform: 'twitter',
+      },
+    });
+
+    expect(queue.add).not.toHaveBeenCalled();
+    expect(settingsService.recordWebhookDeliveryStatus).not.toHaveBeenCalled();
+  });
+
+  it('queues a sample publish webhook test delivery and bypasses filters', async () => {
+    settingsService.findOne.mockResolvedValue({
+      isWebhookEnabled: true,
+      webhookEndpoint: 'https://example.com/webhook',
+      webhookEventTypes: ['release.failed'],
+      webhookSecret: 'secret',
+    });
+
+    const status = await service.sendTestDelivery({
+      event: 'target.published',
+      organizationId: 'org_123',
+    });
+
+    expect(status).toMatchObject({
+      event: 'target.published',
+      isTest: true,
+      status: 'queued',
+    });
+    expect(status.deliveryId).toContain('publish-test:org_123');
+    expect(queue.add).toHaveBeenCalledWith(
+      'send-webhook',
+      expect.objectContaining({
+        deliveryId: status.deliveryId,
+        isTest: true,
+        organizationId: 'org_123',
+        payload: expect.objectContaining({
+          event: 'target.published',
+          release: expect.objectContaining({ id: 'release_test' }),
+        }),
+      }),
+      { jobId: status.deliveryId },
+    );
+    expect(settingsService.recordWebhookDeliveryStatus).toHaveBeenCalledWith(
+      'org_123',
+      expect.objectContaining({
+        deliveryId: status.deliveryId,
+        event: 'target.published',
+        isTest: true,
+        status: 'queued',
+      }),
+    );
   });
 });

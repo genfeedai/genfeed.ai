@@ -28,6 +28,7 @@ describe('integration schemas', () => {
         webhookSettingsSchema.safeParse({
           isWebhookEnabled: true,
           webhookEndpoint: 'https://example.com/wh',
+          webhookEventTypes: ['target.published'],
         }).success,
       ).toBe(true);
     });

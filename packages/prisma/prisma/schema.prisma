@@ -1190,6 +1190,8 @@ model OrganizationSetting {
   isWebhookEnabled              Boolean           @default(false)
   webhookEndpoint               String?
   webhookSecret                 String?
+  webhookEventTypes             String[]          @default([])
+  webhookDeliveryStatus         Json?
   quotaYoutube                  Int               @default(5)
   quotaTiktok                   Int               @default(1)
   quotaTwitter                  Int               @default(5)

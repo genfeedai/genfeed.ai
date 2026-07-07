@@ -22,6 +22,7 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { OrganizationsSettingsController } from '@api/collections/organizations/controllers/organizations-settings.controller';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ByokService } from '@api/services/byok/byok.service';
+import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
 import {
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
@@ -94,6 +95,10 @@ describe('OrganizationsSettingsController', () => {
     validateKey: vi.fn().mockResolvedValue({ isValid: true }),
   };
 
+  const mockPublishEventWebhookService = {
+    sendTestDelivery: vi.fn(),
+  };
+
   beforeEach(async () => {
     mockReq = {} as Request;
 
@@ -123,6 +128,10 @@ describe('OrganizationsSettingsController', () => {
         {
           provide: ByokService,
           useValue: mockByokService,
+        },
+        {
+          provide: PublishEventWebhookService,
+          useValue: mockPublishEventWebhookService,
         },
       ],
     })
@@ -247,6 +256,44 @@ describe('OrganizationsSettingsController', () => {
       ).rejects.toThrow(
         'Default avatar must reference an avatar image ingredient in this organization',
       );
+    });
+  });
+
+  describe('testWebhookDelivery', () => {
+    const organizationId = '507f1f77bcf86cd799439012';
+
+    it('queues a publish webhook test delivery for organization owners', async () => {
+      mockPublishEventWebhookService.sendTestDelivery.mockResolvedValue({
+        deliveryId: 'publish-test:org-1:target.published:abc',
+        event: 'target.published',
+        isTest: true,
+        status: 'queued',
+      });
+
+      const result = await controller.testWebhookDelivery(
+        {
+          context: {
+            organizationId: 'org_current',
+          },
+        } as Request,
+        organizationId,
+        { event: 'target.published' },
+      );
+
+      expect(
+        mockPublishEventWebhookService.sendTestDelivery,
+      ).toHaveBeenCalledWith({
+        event: 'target.published',
+        organizationId: 'org_current',
+      });
+      expect(result).toEqual({
+        data: {
+          deliveryId: 'publish-test:org-1:target.published:abc',
+          event: 'target.published',
+          isTest: true,
+          status: 'queued',
+        },
+      });
     });
   });
 

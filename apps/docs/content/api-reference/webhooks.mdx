@@ -7,6 +7,18 @@ description: Signed outbound webhook events for scheduled publish outcomes.
 
 Genfeed can send signed outbound webhooks when scheduled publish work reaches a terminal outcome. Webhooks use the organization webhook endpoint and secret configured in organization settings.
 
+## Endpoint Configuration
+
+Organization owners and admins can configure the outbound endpoint from organization settings. The endpoint supports:
+
+- enable or disable delivery without affecting publish execution
+- endpoint URL and signing secret configuration
+- optional publish event filters; an empty event list delivers every publish webhook event
+- test delivery using a schema-valid sample publish payload
+- latest delivery status, including queued, delivered, rejected, or failed
+
+The API test action is `POST /organizations/{organizationId}/settings/webhooks/test`. The optional body field `event` can be one publish event type from the catalog below. The response returns the queued delivery status snapshot.
+
 ## Delivery
 
 Webhook delivery is asynchronous and does not block publish execution. Events are queued on the `webhook-client` queue and retried up to five times with exponential backoff. Consumer `5xx` and network failures are retried; `4xx` responses are treated as delivered but rejected by the receiver.

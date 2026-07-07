@@ -3,7 +3,7 @@
 // Source of truth: apps/server/api/openapi/openapi.json (Phase 1 / #1247).
 // Regenerate:      bun run --filter=@genfeedai/tools generate:mcp-tools
 //
-// 1011 MCP tools, one per non-internal OpenAPI operation (#1248).
+// 1012 MCP tools, one per non-internal OpenAPI operation (#1248).
 // Execution metadata lives in mcp-operations.generated.ts (#1249 / #1250).
 
 import type { CanonicalToolDefinition } from '../../interfaces/tool-definition.interface.js';
@@ -27111,6 +27111,43 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
+    "description": "testWebhookDelivery (POST /organizations/{organizationId}/settings/webhooks/test)",
+    "name": "organizations_settings__test_webhook_delivery",
+    "parameters": {
+      "properties": {
+        "event": {
+          "description": "Publish webhook event type to use for the sample test payload. Defaults to the first configured event filter or target.published.",
+          "enum": [
+            "release.published",
+            "release.partially_published",
+            "release.failed",
+            "target.published",
+            "target.failed"
+          ],
+          "type": "string"
+        },
+        "organizationId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "organizationId"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "organizations_settings"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
     "description": "updateSettings (PATCH /organizations/{organizationId}/settings)",
     "name": "organizations_settings__update_settings",
     "parameters": {
@@ -27461,6 +27498,20 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
         "webhookEndpoint": {
           "description": "Webhook endpoint URL",
           "type": "string"
+        },
+        "webhookEventTypes": {
+          "description": "Optional publish webhook event filter. Empty means all publish webhook events are delivered.",
+          "items": {
+            "enum": [
+              "release.published",
+              "release.partially_published",
+              "release.failed",
+              "target.published",
+              "target.failed"
+            ],
+            "type": "string"
+          },
+          "type": "array"
         },
         "webhookSecret": {
           "description": "Webhook secret for signature verification",

@@ -11,6 +11,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { UpdateOrganizationSettingDto } from '@api/collections/organization-settings/dto/update-organization-setting.dto';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { TestOrganizationWebhookDto } from '@api/collections/organizations/dto/test-organization-webhook.dto';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -20,9 +21,11 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { ByokService } from '@api/services/byok/byok.service';
+import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
 import { ByokProvider, MemberRole } from '@genfeedai/enums';
 import type {
   IByokProviderStatus,
+  IWebhookDeliveryStatus,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
 import {
@@ -68,6 +71,7 @@ export class OrganizationsSettingsController {
     @Inject(SUBSCRIPTIONS_SERVICE)
     private readonly subscriptionsService: ISubscriptionsService,
     private readonly byokService: ByokService,
+    private readonly publishEventWebhookService: PublishEventWebhookService,
     readonly _loggerService: LoggerService,
   ) {}
 
@@ -153,6 +157,27 @@ export class OrganizationsSettingsController {
     );
 
     return serializeSingle(req, OrganizationSettingSerializer, data);
+  }
+
+  @Post(':organizationId/settings/webhooks/test')
+  @SetMetadata('roles', ['superadmin', MemberRole.OWNER, MemberRole.ADMIN])
+  @HttpCode(HttpStatus.OK)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async testWebhookDelivery(
+    @Req() req: RequestWithContext,
+    @Param('organizationId') organizationId: string,
+    @Body() body: TestOrganizationWebhookDto,
+  ): Promise<{ data: IWebhookDeliveryStatus }> {
+    const resolvedOrganizationId = this.resolveOrganizationId(
+      req,
+      organizationId,
+    );
+    const data = await this.publishEventWebhookService.sendTestDelivery({
+      event: body.event,
+      organizationId: resolvedOrganizationId,
+    });
+
+    return { data };
   }
 
   @Get(':organizationId/brands/:brandId/darkroom-capabilities')

@@ -1,4 +1,5 @@
 export interface WebhookJobData {
+  deliveryId?: string;
   endpoint: string;
   secret: string;
   payload: {
@@ -8,4 +9,5 @@ export interface WebhookJobData {
   };
   organizationId: string;
   ingredientId?: string;
+  isTest?: boolean;
 }

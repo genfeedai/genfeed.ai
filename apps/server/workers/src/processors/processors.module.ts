@@ -25,6 +25,7 @@ import { CreativePatternsModule } from '@api/collections/creative-patterns/creat
 import { CredentialsModule } from '@api/collections/credentials/credentials.module';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CreditsModule } from '@api/collections/credits/credits.module';
+import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { OutreachCampaignsModule } from '@api/collections/outreach-campaigns/outreach-campaigns.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
@@ -139,6 +140,7 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     forwardRef(() => CredentialsModule),
     forwardRef(() => CreditsModule),
     forwardRef(() => OrganizationsModule),
+    forwardRef(() => OrganizationSettingsModule),
     forwardRef(() => OutreachCampaignsModule),
     forwardRef(() => PostsModule),
     forwardRef(() => ReplyBotConfigsModule),
