@@ -7,7 +7,6 @@ import {
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
 import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
 import type { IBrand, IFolder } from '@genfeedai/interfaces';
-import { Folder } from '@genfeedai/models/content/folder.model';
 import type { ModalFolderProps } from '@genfeedai/props/modals/modal.props';
 import { FoldersService } from '@genfeedai/services/content/folders.service';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
@@ -46,11 +45,10 @@ export default function ModalFolder({
     },
     schema: folderSchema,
     serviceFactory: (token) => FoldersService.getInstance(token),
-    transformSubmitData: (formData) =>
-      new Folder({
-        ...formData,
-        brand: formData.brand,
-      }),
+    transformSubmitData: (formData) => ({
+      ...formData,
+      brand: formData.brand,
+    }),
   });
 
   // Ensure brand field stores the brand id (not the entire brand object)

@@ -66,7 +66,7 @@ export default function ModalTag({
 
   const customSubmitHandler = useCallback(
     async (
-      service: BaseService<Tag>,
+      service: BaseService<ITag, unknown, unknown>,
       entity: ITag | null,
       formData: TagSchema,
     ): Promise<ITag> => {

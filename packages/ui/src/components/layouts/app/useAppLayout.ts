@@ -247,7 +247,7 @@ export function useAppLayout({
   } as CSSProperties;
 
   const handleAgentPanelResizeStart = useCallback(
-    (event: ReactMouseEvent<HTMLDivElement>) => {
+    (event: ReactMouseEvent<HTMLButtonElement>) => {
       if (isAgentCollapsed) {
         return;
       }

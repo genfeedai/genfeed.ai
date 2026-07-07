@@ -23,14 +23,14 @@ import {
 export interface CrudModalOptions<T, Schema extends FieldValues> {
   entity: T | null;
   schema: StandardSchemaV1;
-  serviceFactory: (token: string) => BaseService<unknown>;
+  serviceFactory: (token: string) => BaseService<T, unknown, unknown>;
   modalId: ModalEnum;
   onConfirm: (isRefreshing?: boolean) => void;
   onClose?: () => void;
   defaultValues?: DefaultValues<Schema>;
   transformSubmitData?: (formData: Schema) => unknown;
   customSubmitHandler?: (
-    service: BaseService<unknown>,
+    service: BaseService<T, unknown, unknown>,
     entity: T | null,
     formData: Schema,
   ) => Promise<T>;
