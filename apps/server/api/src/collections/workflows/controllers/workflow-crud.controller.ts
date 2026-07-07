@@ -44,6 +44,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { ApiBody } from '@nestjs/swagger';
 import type { Request } from 'express';
 
 type WorkflowStatistics = Awaited<
@@ -195,6 +196,7 @@ export class WorkflowCrudController {
   }
 
   @Post(':workflowId/clone')
+  @ApiBody({ required: false, type: CloneWorkflowDto })
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async cloneWorkflow(

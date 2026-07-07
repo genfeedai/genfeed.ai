@@ -994,6 +994,15 @@
         ],
         "type": "object"
       },
+      "CloneWorkflowDto": {
+        "properties": {
+          "brandId": {
+            "description": "Target brand ID for the duplicated workflow. Defaults to the current selected brand.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "CloudFrontInvalidateDto": {
         "properties": {
           "distributionId": {
@@ -5213,9 +5222,16 @@
       },
       "CreateWorkflowDto": {
         "properties": {
-          "_id": {
-            "description": "The unique identifier of the document",
+          "brandId": {
+            "description": "Brand ID this workflow is scoped to",
             "type": "string"
+          },
+          "brands": {
+            "description": "Deprecated legacy brand IDs input. Only the first brand ID is used.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "completedAt": {
             "description": "Workflow completion timestamp",
@@ -5223,7 +5239,7 @@
             "type": "string"
           },
           "description": {
-            "description": "Optional detailed description of the resource",
+            "description": "Optional detailed description of the workflow",
             "type": "string"
           },
           "edges": {
@@ -5257,7 +5273,7 @@
             "type": "boolean"
           },
           "label": {
-            "description": "The display label/name of the resource",
+            "description": "The display label/name of the workflow",
             "type": "string"
           },
           "lastExecutedAt": {
@@ -5277,7 +5293,7 @@
             "type": "array"
           },
           "organization": {
-            "description": "The organization ID that owns this resource",
+            "description": "The organization ID that owns this resource. Server-owned.",
             "type": "string"
           },
           "progress": {
@@ -5357,13 +5373,11 @@
             "description": "When the workflow should trigger"
           },
           "user": {
-            "description": "The user ID who created this resource",
+            "description": "The user ID who created this resource. Server-owned.",
             "type": "string"
           }
         },
         "required": [
-          "user",
-          "organization",
           "label"
         ],
         "type": "object"
@@ -10579,7 +10593,7 @@
             "type": "array"
           },
           "relocationAck": {
-            "description": "Server-verified confirmation token from GET /brands/:id/relocation-preview, required whenever the relocation would clone shared workflows into the destination organization. A stale or missing token is rejected with 409 so a client cannot bypass the consent modal or move against an outdated preview.",
+            "description": "Deprecated compatibility field from the former shared-workflow relocation confirmation flow. Workflows are now scoped to one brand and move with it, so the server ignores this value.",
             "type": "string"
           },
           "scope": {
@@ -13145,9 +13159,16 @@
       },
       "UpdateWorkflowDto": {
         "properties": {
-          "_id": {
-            "description": "The unique identifier of the document",
+          "brandId": {
+            "description": "Brand ID this workflow is scoped to",
             "type": "string"
+          },
+          "brands": {
+            "description": "Deprecated legacy brand IDs input. Only the first brand ID is used.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "completedAt": {
             "description": "Workflow completion timestamp",
@@ -13155,7 +13176,7 @@
             "type": "string"
           },
           "description": {
-            "description": "Optional detailed description of the resource",
+            "description": "Optional detailed description of the workflow",
             "type": "string"
           },
           "edges": {
@@ -13189,7 +13210,7 @@
             "type": "boolean"
           },
           "label": {
-            "description": "The display label/name of the resource",
+            "description": "The display label/name of the workflow",
             "type": "string"
           },
           "lastExecutedAt": {
@@ -13217,7 +13238,7 @@
             "type": "array"
           },
           "organization": {
-            "description": "The organization ID that owns this resource",
+            "description": "The organization ID that owns this resource. Server-owned.",
             "type": "string"
           },
           "progress": {
@@ -13297,7 +13318,7 @@
             "description": "When the workflow should trigger"
           },
           "user": {
-            "description": "The user ID who created this resource",
+            "description": "The user ID who created this resource. Server-owned.",
             "type": "string"
           }
         },
@@ -50486,6 +50507,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloneWorkflowDto"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "description": ""

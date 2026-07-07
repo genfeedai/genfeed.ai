@@ -274,8 +274,6 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
   },
   AgentRun: {
     allFields: [
-      'brand',
-      'brandId',
       'completedAt',
       'config',
       'createdAt',

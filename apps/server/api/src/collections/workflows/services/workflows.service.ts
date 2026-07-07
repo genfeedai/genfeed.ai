@@ -115,6 +115,22 @@ export class WorkflowsService extends BaseService<
     return legacyIds[0] ?? fallbackBrandId;
   }
 
+  private normalizeWorkflowStepsForCreate(
+    steps: WorkflowDocument['steps'],
+  ): CreateWorkflowDto['steps'] {
+    return (steps ?? []).map((step) => {
+      const category =
+        typeof step.category === 'string' &&
+        Object.values(WorkflowStepCategory).includes(
+          step.category as WorkflowStepCategory,
+        )
+          ? (step.category as WorkflowStepCategory)
+          : WorkflowStepCategory.TRANSFORM;
+
+      return { ...step, category };
+    });
+  }
+
   private omitUndefinedPayload(
     payload: Record<string, unknown>,
   ): Record<string, unknown> {
@@ -407,7 +423,7 @@ export class WorkflowsService extends BaseService<
         brandId,
         defaultLabel: `${sourceLabel} (Copy)`,
         organizationId,
-        steps: workflowDoc.steps,
+        steps: this.normalizeWorkflowStepsForCreate(workflowDoc.steps),
         userId,
         workflowData: {
           config: workflowDoc.config,
@@ -435,7 +451,7 @@ export class WorkflowsService extends BaseService<
           recurrence: undefined,
           schedule: isProtectedSystemWorkflow
             ? undefined
-            : workflowDoc.schedule,
+            : (workflowDoc.schedule ?? undefined),
           startedAt: undefined,
           status: WorkflowStatus.DRAFT,
           thumbnail: workflowDoc.thumbnail ?? undefined,
