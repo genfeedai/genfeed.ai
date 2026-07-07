@@ -140,16 +140,41 @@ function getLinkedinConversionUrns(): Partial<
   };
 }
 
+function getConversionEventId(
+  key: string,
+  legacyPublicKey: string,
+): string | undefined {
+  return process.env[key] || process.env[legacyPublicKey];
+}
+
 function getDefaultXEventIds(): Partial<
   Record<WebsiteMarketingEventName, string>
 > {
   return {
-    book_call: process.env.NEXT_PUBLIC_X_BOOK_CALL_EVENT_ID,
-    cta_click: process.env.NEXT_PUBLIC_X_CTA_CLICK_EVENT_ID,
-    lead_submit: process.env.NEXT_PUBLIC_X_LEAD_SUBMIT_EVENT_ID,
-    signup_complete: process.env.NEXT_PUBLIC_X_SIGNUP_COMPLETE_EVENT_ID,
-    start_signup: process.env.NEXT_PUBLIC_X_START_SIGNUP_EVENT_ID,
-    view_pricing: process.env.NEXT_PUBLIC_X_VIEW_PRICING_EVENT_ID,
+    book_call: getConversionEventId(
+      'X_BOOK_CALL_EVENT_ID',
+      'NEXT_PUBLIC_X_BOOK_CALL_EVENT_ID',
+    ),
+    cta_click: getConversionEventId(
+      'X_CTA_CLICK_EVENT_ID',
+      'NEXT_PUBLIC_X_CTA_CLICK_EVENT_ID',
+    ),
+    lead_submit: getConversionEventId(
+      'X_LEAD_SUBMIT_EVENT_ID',
+      'NEXT_PUBLIC_X_LEAD_SUBMIT_EVENT_ID',
+    ),
+    signup_complete: getConversionEventId(
+      'X_SIGNUP_COMPLETE_EVENT_ID',
+      'NEXT_PUBLIC_X_SIGNUP_COMPLETE_EVENT_ID',
+    ),
+    start_signup: getConversionEventId(
+      'X_START_SIGNUP_EVENT_ID',
+      'NEXT_PUBLIC_X_START_SIGNUP_EVENT_ID',
+    ),
+    view_pricing: getConversionEventId(
+      'X_VIEW_PRICING_EVENT_ID',
+      'NEXT_PUBLIC_X_VIEW_PRICING_EVENT_ID',
+    ),
   };
 }
 
@@ -223,7 +248,8 @@ export async function sendServerConversions(
     linkedinConversionUrns: getLinkedinConversionUrns(),
     metaAccessToken: process.env.META_CONVERSIONS_API_ACCESS_TOKEN,
     metaGraphVersion: process.env.META_CONVERSIONS_API_GRAPH_VERSION,
-    metaPixelId: process.env.NEXT_PUBLIC_META_PIXEL_ID,
+    metaPixelId:
+      process.env.META_PIXEL_ID || process.env.NEXT_PUBLIC_META_PIXEL_ID,
     xApiEndpoint: process.env.X_CONVERSIONS_API_ENDPOINT,
     xBearerToken: process.env.X_CONVERSIONS_API_BEARER_TOKEN,
     xEventIds: getDefaultXEventIds(),

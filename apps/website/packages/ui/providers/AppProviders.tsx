@@ -9,7 +9,6 @@ import { ThemeProvider, useTheme } from 'next-themes';
 import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 import { Toaster } from 'sonner';
-import type { MarketingTrackingConfig } from '../../marketing/browser';
 import MarketingTrackingProvider from '../../marketing/MarketingTrackingProvider';
 
 const LazyModalErrorDebug = dynamic(
@@ -31,17 +30,11 @@ export interface AppProvidersProps {
   authProps?: BetterAuthProviderProps;
   disableTransitionOnChange?: boolean;
   enableSystem?: boolean;
-  googleAnalyticsId?: string;
   includeLazyModalErrorDebug?: boolean;
   includeMarketingTracking?: boolean;
   includeToaster?: boolean;
   marketingConsentDefault?: 'denied' | 'granted';
   marketingGtmContainerId?: string;
-  marketingLinkedinConversionIds?: MarketingTrackingConfig['linkedinConversionIds'];
-  marketingLinkedinPartnerId?: string;
-  marketingMetaPixelId?: string;
-  marketingXEventIds?: MarketingTrackingConfig['xEventIds'];
-  marketingXPixelId?: string;
   storageKey?: string;
 }
 
@@ -74,38 +67,18 @@ export default function AppProviders({
   authProps,
   disableTransitionOnChange = true,
   enableSystem = false,
-  googleAnalyticsId,
   includeLazyModalErrorDebug = true,
   includeMarketingTracking = true,
   includeToaster = true,
   marketingConsentDefault = 'denied',
   marketingGtmContainerId,
-  marketingLinkedinConversionIds,
-  marketingLinkedinPartnerId,
-  marketingMetaPixelId,
-  marketingXEventIds,
-  marketingXPixelId,
   storageKey = THEME_STORAGE_KEY,
 }: AppProvidersProps) {
   const marketingConfig = useMemo(
     () => ({
-      gaId: googleAnalyticsId,
       gtmContainerId: marketingGtmContainerId,
-      linkedinConversionIds: marketingLinkedinConversionIds,
-      linkedinPartnerId: marketingLinkedinPartnerId,
-      metaPixelId: marketingMetaPixelId,
-      xEventIds: marketingXEventIds,
-      xPixelId: marketingXPixelId,
     }),
-    [
-      googleAnalyticsId,
-      marketingGtmContainerId,
-      marketingLinkedinConversionIds,
-      marketingLinkedinPartnerId,
-      marketingMetaPixelId,
-      marketingXEventIds,
-      marketingXPixelId,
-    ],
+    [marketingGtmContainerId],
   );
   const content = (
     <>

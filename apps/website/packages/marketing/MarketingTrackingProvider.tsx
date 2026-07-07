@@ -42,13 +42,7 @@ interface MarketingPageTrackerProps {
 }
 
 const hasConfiguredMarketingTag = (config: MarketingTrackingConfig): boolean =>
-  Boolean(
-    config.gaId ||
-      config.gtmContainerId ||
-      config.linkedinPartnerId ||
-      config.metaPixelId ||
-      config.xPixelId,
-  );
+  Boolean(config.gtmContainerId);
 
 /**
  * Renders no UI — owns the page-view and CTA tracking effects that depend on
@@ -92,7 +86,7 @@ function MarketingPageTracker({
         },
         url: currentUrl,
       },
-      config,
+      { config, consent },
     );
 
     if (pathname === '/pricing') {
@@ -102,7 +96,7 @@ function MarketingPageTracker({
           payload: { path: pathname },
           url: currentUrl,
         },
-        config,
+        { config, consent },
       );
     }
   }, [config, consent, currentUrl, pathname, search]);
@@ -133,7 +127,7 @@ function MarketingPageTracker({
             payload,
             url: currentUrl,
           },
-          config,
+          { config, consent: currentConsent },
         );
       }
     };
@@ -182,7 +176,7 @@ export default function MarketingTrackingProvider({
     });
 
     if (hasMarketingConsent(initialConsent)) {
-      loadMarketingTags(config);
+      loadMarketingTags(config, initialConsent);
     }
   }, [config, consentDefault]);
 
@@ -199,7 +193,7 @@ export default function MarketingTrackingProvider({
     });
 
     if (hasMarketingConsent(nextConsent)) {
-      loadMarketingTags(config);
+      loadMarketingTags(config, nextConsent);
     }
   };
 

@@ -43,17 +43,11 @@ describe('website AppProviders', () => {
   it('passes marketing tracking config through one provider', () => {
     render(
       <AppProviders
-        googleAnalyticsId="G-123"
         initialTheme="dark"
         includeLazyModalErrorDebug={false}
         includeToaster={false}
         marketingConsentDefault="denied"
         marketingGtmContainerId="GTM-123"
-        marketingLinkedinConversionIds={{ book_call: 12345 }}
-        marketingLinkedinPartnerId="li-123"
-        marketingMetaPixelId="meta-123"
-        marketingXEventIds={{ book_call: 'tw-book-call' }}
-        marketingXPixelId="x-123"
       >
         <div>Website child</div>
       </AppProviders>,
@@ -62,13 +56,7 @@ describe('website AppProviders', () => {
     expect(screen.getByText('Website child')).toBeInTheDocument();
     expect(marketingProviderSpy).toHaveBeenCalledWith({
       config: {
-        gaId: 'G-123',
         gtmContainerId: 'GTM-123',
-        linkedinConversionIds: { book_call: 12345 },
-        linkedinPartnerId: 'li-123',
-        metaPixelId: 'meta-123',
-        xEventIds: { book_call: 'tw-book-call' },
-        xPixelId: 'x-123',
       },
       consentDefault: 'denied',
     });
