@@ -7,6 +7,7 @@
  * Foundation for epic #1123, issue #1125.
  */
 
+import { publishingProviderReadinessSchema } from '@api-types/contracts/publishing-readiness.contract';
 import { CredentialPlatform, TargetValidationState } from '@genfeedai/enums';
 import { z } from 'zod';
 
@@ -130,6 +131,7 @@ export const channelTargetValidationMediaSchema = z.object({
 
 export const validateChannelTargetSettingsInputSchema = z.object({
   caption: z.string().optional(),
+  credentialId: z.string().min(1).optional(),
   media: z.array(channelTargetValidationMediaSchema).optional(),
   platform: z.union([z.nativeEnum(CredentialPlatform), z.string().min(1)]),
   publishMode: channelPublishModeSchema.optional(),
@@ -147,6 +149,7 @@ export const channelTargetValidationResultSchema = z.object({
   capability: channelCapabilitySchema.optional(),
   errors: z.array(channelValidationIssueSchema),
   platform: z.union([z.nativeEnum(CredentialPlatform), z.string().min(1)]),
+  readiness: publishingProviderReadinessSchema.optional(),
   valid: z.boolean(),
   validationState: z.nativeEnum(TargetValidationState),
   warnings: z.array(channelValidationIssueSchema),

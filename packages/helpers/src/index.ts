@@ -13,6 +13,7 @@ export * from './generation-controls.helper';
 export * from './generation-eta.helper';
 export * from './media/provenance/provenance.helper';
 export * from './model-capability.helper';
+export * from './publisher/publishing-diagnostics.helper';
 export * from './quality-routing.helper';
 export * from './serializer.helper';
 export * from './social-url.helper';
